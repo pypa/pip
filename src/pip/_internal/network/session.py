@@ -13,7 +13,7 @@ from pip._vendor.requests.models import Response
 from pip._vendor.requests.structures import CaseInsensitiveDict
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
-import pip
+from pip import __version__
 from pip._internal.network.auth import MultiDomainBasicAuth
 from pip._internal.network.cache import SafeFileCache
 # Import ssl from compat so the initial import occurs in only one place.
@@ -89,7 +89,7 @@ def user_agent():
     Return a string representing the user agent.
     """
     data = {
-        "installer": {"name": "pip", "version": pip.__version__},
+        "installer": {"name": "pip", "version": __version__},
         "python": platform.python_version(),
         "implementation": {
             "name": platform.python_implementation(),
@@ -367,9 +367,11 @@ class PipSession(requests.Session):
             except ValueError:
                 # We don't have both a valid address or a valid network, so
                 # we'll check this origin against hostnames.
-                if (origin_host and
-                        origin_host.lower() != secure_host.lower() and
-                        secure_host != "*"):
+                if (
+                    origin_host and
+                    origin_host.lower() != secure_host.lower() and
+                    secure_host != "*"
+                ):
                     continue
             else:
                 # We have a valid address and network, so see if the address
@@ -378,9 +380,11 @@ class PipSession(requests.Session):
                     continue
 
             # Check to see if the port matches.
-            if (origin_port != secure_port and
-                    secure_port != "*" and
-                    secure_port is not None):
+            if (
+                origin_port != secure_port and
+                secure_port != "*" and
+                secure_port is not None
+            ):
                 continue
 
             # If we've gotten here, then this origin matches the current

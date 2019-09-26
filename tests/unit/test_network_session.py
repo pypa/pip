@@ -2,7 +2,7 @@ import logging
 
 import pytest
 
-import pip
+from pip import __version__
 from pip._internal.network.session import CI_ENVIRONMENT_VARIABLES, PipSession
 
 
@@ -13,7 +13,7 @@ def get_user_agent():
 def test_user_agent():
     user_agent = get_user_agent()
 
-    assert user_agent.startswith("pip/%s" % pip.__version__)
+    assert user_agent.startswith("pip/{}".format(__version__))
 
 
 @pytest.mark.parametrize('name, expected_like_ci', [
@@ -58,12 +58,14 @@ class TestPipSession:
         assert not hasattr(session.adapters["https://"], "cache")
 
     def test_cache_is_enabled(self, tmpdir):
-        session = PipSession(cache=tmpdir.joinpath("test-cache"))
+        cache_directory = tmpdir.joinpath("test-cache")
+        session = PipSession(cache=cache_directory)
 
         assert hasattr(session.adapters["https://"], "cache")
 
-        assert (session.adapters["https://"].cache.directory ==
-                tmpdir.joinpath("test-cache"))
+        assert (
+            session.adapters["https://"].cache.directory == cache_directory
+        )
 
     def test_http_cache_is_not_enabled(self, tmpdir):
         session = PipSession(cache=tmpdir.joinpath("test-cache"))
