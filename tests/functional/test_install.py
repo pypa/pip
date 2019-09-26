@@ -1667,13 +1667,13 @@ def test_ignore_yanked_file(script, data):
         'install', 'simple',
         '--index-url', data.index_url('yanked'),
     )
-    # Make sure a "yanked" release ignored
+    # Make sure a "yanked" release is ignored
     assert 'Successfully installed simple-2.0\n' in result.stdout, str(result)
 
 
 def test_install_yanked_file_and_print_warning(script, data):
     """
-    Test install a "yanked" file and warn a reason.
+    Test install a "yanked" file and print a warning.
 
     Yanked files are always ignored, unless they are the only file that
     matches a version specifier that "pins" to an exact version (PEP 592).
@@ -1685,5 +1685,5 @@ def test_install_yanked_file_and_print_warning(script, data):
     )
     expected_warning = 'Reason for being yanked: test reason message'
     assert expected_warning in result.stderr, str(result)
-    # Make sure a "yanked" release installed
+    # Make sure a "yanked" release is installed
     assert 'Successfully installed simple-3.0\n' in result.stdout, str(result)
