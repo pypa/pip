@@ -33,7 +33,7 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.req import InstallRequirement
     from pip._internal.cache import WheelCache
     from pip._internal.index import PackageFinder
-    from pip._internal.download import PipSession
+    from pip._internal.network.session import PipSession
 
     ReqFileLines = Iterator[Tuple[int, Text]]
 

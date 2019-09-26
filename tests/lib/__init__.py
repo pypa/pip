@@ -14,11 +14,11 @@ import pytest
 from scripttest import FoundDir, TestFileEnvironment
 
 from pip._internal.collector import LinkCollector
-from pip._internal.download import PipSession
 from pip._internal.index import PackageFinder
 from pip._internal.locations import get_major_minor_version
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
+from pip._internal.network.session import PipSession
 from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from tests.lib.path import Path, curdir
