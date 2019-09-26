@@ -1,3 +1,6 @@
+"""PipSession and supporting code, containing all pip-specific
+network request configuration and behavior.
+"""
 import email.utils
 import json
 import logging
