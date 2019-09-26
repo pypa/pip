@@ -600,7 +600,7 @@ class InstallRequirement(object):
             self._temp_dir.cleanup()
 
     def prepare_pep517_metadata(self):
-        # type: () -> None
+        # type: () -> str
         assert self.pep517_backend is not None
 
         # NOTE: This needs to be refactored to stop using atexit
@@ -624,6 +624,7 @@ class InstallRequirement(object):
             )
 
         self.metadata_directory = os.path.join(metadata_dir, distinfo_dir)
+        return self.metadata_directory
 
     @property
     def egg_info_path(self):
