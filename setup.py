@@ -71,9 +71,9 @@ setup(
     },
     entry_points={
         "console_scripts": [
-            "pip=pip._internal:main",
-            "pip%s=pip._internal:main" % sys.version_info[:1],
-            "pip%s.%s=pip._internal:main" % sys.version_info[:2],
+            "pip=pip._internal.main:main",
+            "pip%s=pip._internal.main:main" % sys.version_info[:1],
+            "pip%s.%s=pip._internal.main:main" % sys.version_info[:2],
         ],
     },
 

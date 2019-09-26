@@ -4,9 +4,9 @@ from contextlib import contextmanager
 import pytest
 
 import pip._internal.configuration
-from pip._internal import main
 from pip._internal.commands import create_command
 from pip._internal.exceptions import PipError
+from pip._internal.main import main
 from tests.lib.options_helpers import AddFakeCommandMixin
 
 
