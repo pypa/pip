@@ -31,9 +31,9 @@ def get_author_list():
 
 
 # -----------------------------------------------------------------------------
-# Commands used during the release process
+# Release Commands
 # -----------------------------------------------------------------------------
-@nox.session
+@nox.session(python=False)
 def generate_authors(session):
     # Get our list of authors
     session.log("Collecting author names")
