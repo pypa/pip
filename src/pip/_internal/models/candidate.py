@@ -21,16 +21,16 @@ class InstallationCandidate(KeyBasedCompareMixin):
 
         super(InstallationCandidate, self).__init__(
             key=(self.project, self.version, self.link),
-            defining_class=InstallationCandidate
+            defining_class=InstallationCandidate,
         )
 
     def __repr__(self):
         # type: () -> str
         return "<InstallationCandidate({!r}, {!r}, {!r})>".format(
-            self.project, self.version, self.link,
+            self.project, self.version, self.link
         )
 
     def __str__(self):
-        return '{!r} candidate (version {} at {})'.format(
-            self.project, self.version, self.link,
+        return "{!r} candidate (version {} at {})".format(
+            self.project, self.version, self.link
         )

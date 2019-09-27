@@ -7,7 +7,6 @@ from pip._internal.operations import check
 
 
 class TestInstalledDistributionsCall(object):
-
     def test_passes_correct_default_kwargs(self, monkeypatch):
         my_mock = mock.MagicMock(return_value=[])
         monkeypatch.setattr(check, "get_installed_distributions", my_mock)

@@ -19,11 +19,7 @@ from textwrap import dedent
 import pytest
 from mock import Mock, patch
 
-from pip._internal.exceptions import (
-    HashMismatch,
-    HashMissing,
-    InstallationError,
-)
+from pip._internal.exceptions import HashMismatch, HashMissing, InstallationError
 from pip._internal.utils.deprecation import PipDeprecationWarning, deprecated
 from pip._internal.utils.encoding import BOMS, auto_decode
 from pip._internal.utils.glibc import (
@@ -67,42 +63,41 @@ class Tests_EgglinkPath:
 
     def setup(self):
 
-        project = 'foo'
+        project = "foo"
 
         self.mock_dist = Mock(project_name=project)
-        self.site_packages = 'SITE_PACKAGES'
-        self.user_site = 'USER_SITE'
-        self.user_site_egglink = os.path.join(
-            self.user_site,
-            '%s.egg-link' % project
-        )
+        self.site_packages = "SITE_PACKAGES"
+        self.user_site = "USER_SITE"
+        self.user_site_egglink = os.path.join(self.user_site, "%s.egg-link" % project)
         self.site_packages_egglink = os.path.join(
-            self.site_packages,
-            '%s.egg-link' % project,
+            self.site_packages, "%s.egg-link" % project
         )
 
         # patches
         from pip._internal.utils import misc as utils
+
         self.old_site_packages = utils.site_packages
-        self.mock_site_packages = utils.site_packages = 'SITE_PACKAGES'
+        self.mock_site_packages = utils.site_packages = "SITE_PACKAGES"
         self.old_running_under_virtualenv = utils.running_under_virtualenv
-        self.mock_running_under_virtualenv = utils.running_under_virtualenv = \
-            Mock()
+        self.mock_running_under_virtualenv = utils.running_under_virtualenv = Mock()
         self.old_virtualenv_no_global = utils.virtualenv_no_global
         self.mock_virtualenv_no_global = utils.virtualenv_no_global = Mock()
         self.old_user_site = utils.user_site
         self.mock_user_site = utils.user_site = self.user_site
         from os import path
+
         self.old_isfile = path.isfile
         self.mock_isfile = path.isfile = Mock()
 
     def teardown(self):
         from pip._internal.utils import misc as utils
+
         utils.site_packages = self.old_site_packages
         utils.running_under_virtualenv = self.old_running_under_virtualenv
         utils.virtualenv_no_global = self.old_virtualenv_no_global
         utils.user_site = self.old_user_site
         from os import path
+
         path.isfile = self.old_isfile
 
     def eggLinkInUserSite(self, egglink):
@@ -196,9 +191,9 @@ class Tests_EgglinkPath:
         assert egg_link_path(self.mock_dist) is None
 
 
-@patch('pip._internal.utils.misc.dist_in_usersite')
-@patch('pip._internal.utils.misc.dist_is_local')
-@patch('pip._internal.utils.misc.dist_is_editable')
+@patch("pip._internal.utils.misc.dist_in_usersite")
+@patch("pip._internal.utils.misc.dist_is_local")
+@patch("pip._internal.utils.misc.dist_is_editable")
 class Tests_get_installed_distributions:
     """test util.get_installed_distributions"""
 
@@ -210,29 +205,29 @@ class Tests_get_installed_distributions:
     ]
 
     workingset_stdlib = [
-        Mock(test_name='normal', key='argparse'),
-        Mock(test_name='normal', key='wsgiref')
+        Mock(test_name="normal", key="argparse"),
+        Mock(test_name="normal", key="wsgiref"),
     ]
 
     workingset_freeze = [
-        Mock(test_name='normal', key='pip'),
-        Mock(test_name='normal', key='setuptools'),
-        Mock(test_name='normal', key='distribute')
+        Mock(test_name="normal", key="pip"),
+        Mock(test_name="normal", key="setuptools"),
+        Mock(test_name="normal", key="distribute"),
     ]
 
     def dist_is_editable(self, dist):
         return dist.test_name == "editable"
 
     def dist_is_local(self, dist):
-        return dist.test_name != "global" and dist.test_name != 'user'
+        return dist.test_name != "global" and dist.test_name != "user"
 
     def dist_in_usersite(self, dist):
         return dist.test_name == "user"
 
-    @patch('pip._vendor.pkg_resources.working_set', workingset)
-    def test_editables_only(self, mock_dist_is_editable,
-                            mock_dist_is_local,
-                            mock_dist_in_usersite):
+    @patch("pip._vendor.pkg_resources.working_set", workingset)
+    def test_editables_only(
+        self, mock_dist_is_editable, mock_dist_is_local, mock_dist_in_usersite
+    ):
         mock_dist_is_editable.side_effect = self.dist_is_editable
         mock_dist_is_local.side_effect = self.dist_is_local
         mock_dist_in_usersite.side_effect = self.dist_in_usersite
@@ -240,10 +235,10 @@ class Tests_get_installed_distributions:
         assert len(dists) == 1, dists
         assert dists[0].test_name == "editable"
 
-    @patch('pip._vendor.pkg_resources.working_set', workingset)
-    def test_exclude_editables(self, mock_dist_is_editable,
-                               mock_dist_is_local,
-                               mock_dist_in_usersite):
+    @patch("pip._vendor.pkg_resources.working_set", workingset)
+    def test_exclude_editables(
+        self, mock_dist_is_editable, mock_dist_is_local, mock_dist_in_usersite
+    ):
         mock_dist_is_editable.side_effect = self.dist_is_editable
         mock_dist_is_local.side_effect = self.dist_is_local
         mock_dist_in_usersite.side_effect = self.dist_in_usersite
@@ -251,47 +246,45 @@ class Tests_get_installed_distributions:
         assert len(dists) == 1
         assert dists[0].test_name == "normal"
 
-    @patch('pip._vendor.pkg_resources.working_set', workingset)
-    def test_include_globals(self, mock_dist_is_editable,
-                             mock_dist_is_local,
-                             mock_dist_in_usersite):
+    @patch("pip._vendor.pkg_resources.working_set", workingset)
+    def test_include_globals(
+        self, mock_dist_is_editable, mock_dist_is_local, mock_dist_in_usersite
+    ):
         mock_dist_is_editable.side_effect = self.dist_is_editable
         mock_dist_is_local.side_effect = self.dist_is_local
         mock_dist_in_usersite.side_effect = self.dist_in_usersite
         dists = get_installed_distributions(local_only=False)
         assert len(dists) == 4
 
-    @patch('pip._vendor.pkg_resources.working_set', workingset)
-    def test_user_only(self, mock_dist_is_editable,
-                       mock_dist_is_local,
-                       mock_dist_in_usersite):
+    @patch("pip._vendor.pkg_resources.working_set", workingset)
+    def test_user_only(
+        self, mock_dist_is_editable, mock_dist_is_local, mock_dist_in_usersite
+    ):
         mock_dist_is_editable.side_effect = self.dist_is_editable
         mock_dist_is_local.side_effect = self.dist_is_local
         mock_dist_in_usersite.side_effect = self.dist_in_usersite
-        dists = get_installed_distributions(local_only=False,
-                                            user_only=True)
+        dists = get_installed_distributions(local_only=False, user_only=True)
         assert len(dists) == 1
         assert dists[0].test_name == "user"
 
-    @patch('pip._vendor.pkg_resources.working_set', workingset_stdlib)
-    def test_gte_py27_excludes(self, mock_dist_is_editable,
-                               mock_dist_is_local,
-                               mock_dist_in_usersite):
+    @patch("pip._vendor.pkg_resources.working_set", workingset_stdlib)
+    def test_gte_py27_excludes(
+        self, mock_dist_is_editable, mock_dist_is_local, mock_dist_in_usersite
+    ):
         mock_dist_is_editable.side_effect = self.dist_is_editable
         mock_dist_is_local.side_effect = self.dist_is_local
         mock_dist_in_usersite.side_effect = self.dist_in_usersite
         dists = get_installed_distributions()
         assert len(dists) == 0
 
-    @patch('pip._vendor.pkg_resources.working_set', workingset_freeze)
-    def test_freeze_excludes(self, mock_dist_is_editable,
-                             mock_dist_is_local,
-                             mock_dist_in_usersite):
+    @patch("pip._vendor.pkg_resources.working_set", workingset_freeze)
+    def test_freeze_excludes(
+        self, mock_dist_is_editable, mock_dist_is_local, mock_dist_in_usersite
+    ):
         mock_dist_is_editable.side_effect = self.dist_is_editable
         mock_dist_is_local.side_effect = self.dist_is_local
         mock_dist_in_usersite.side_effect = self.dist_in_usersite
-        dists = get_installed_distributions(
-            skip=('setuptools', 'pip', 'distribute'))
+        dists = get_installed_distributions(skip=("setuptools", "pip", "distribute"))
         assert len(dists) == 0
 
 
@@ -299,7 +292,7 @@ def test_rmtree_errorhandler_nonexistent_directory(tmpdir):
     """
     Test rmtree_errorhandler ignores the given non-existing directory.
     """
-    nonexistent_path = str(tmpdir / 'foo')
+    nonexistent_path = str(tmpdir / "foo")
     mock_func = Mock()
     rmtree_errorhandler(mock_func, nonexistent_path, None)
     mock_func.assert_not_called()
@@ -310,7 +303,7 @@ def test_rmtree_errorhandler_readonly_directory(tmpdir):
     Test rmtree_errorhandler makes the given read-only directory writable.
     """
     # Create read only directory
-    path = str((tmpdir / 'subdir').mkdir())
+    path = str((tmpdir / "subdir").mkdir())
     os.chmod(path, stat.S_IREAD)
 
     # Make sure mock_func is called with the given path
@@ -328,16 +321,16 @@ def test_rmtree_errorhandler_reraises_error(tmpdir):
     by the given unreadable directory.
     """
     # Create directory without read permission
-    path = str((tmpdir / 'subdir').mkdir())
+    path = str((tmpdir / "subdir").mkdir())
     os.chmod(path, stat.S_IWRITE)
 
     mock_func = Mock()
 
     try:
-        raise RuntimeError('test message')
+        raise RuntimeError("test message")
     except RuntimeError:
         # Make sure the handler reraises an exception
-        with pytest.raises(RuntimeError, match='test message'):
+        with pytest.raises(RuntimeError, match="test message"):
             rmtree_errorhandler(mock_func, path, None)
 
     mock_func.assert_not_called()
@@ -348,7 +341,7 @@ def test_rmtree_skips_nonexistent_directory():
     Test wrapped rmtree doesn't raise an error
     by the given nonexistent directory.
     """
-    rmtree.__wrapped__('nonexistent-subdir')
+    rmtree.__wrapped__("nonexistent-subdir")
 
 
 class Failer:
@@ -365,35 +358,41 @@ def test_rmtree_retries(tmpdir, monkeypatch):
     """
     Test pip._internal.utils.rmtree will retry failures
     """
-    monkeypatch.setattr(shutil, 'rmtree', Failer(duration=1).call)
-    rmtree('foo')
+    monkeypatch.setattr(shutil, "rmtree", Failer(duration=1).call)
+    rmtree("foo")
 
 
 def test_rmtree_retries_for_3sec(tmpdir, monkeypatch):
     """
     Test pip._internal.utils.rmtree will retry failures for no more than 3 sec
     """
-    monkeypatch.setattr(shutil, 'rmtree', Failer(duration=5).call)
+    monkeypatch.setattr(shutil, "rmtree", Failer(duration=5).call)
     with pytest.raises(OSError):
-        rmtree('foo')
+        rmtree("foo")
 
 
-@pytest.mark.parametrize('path, fs_encoding, expected', [
-    (None, None, None),
-    # Test passing a text (unicode) string.
-    (u'/path/déf', None, u'/path/déf'),
-    # Test a bytes object with a non-ascii character.
-    (u'/path/déf'.encode('utf-8'), 'utf-8', u'/path/déf'),
-    # Test a bytes object with a character that can't be decoded.
-    (u'/path/déf'.encode('utf-8'), 'ascii', u"b'/path/d\\xc3\\xa9f'"),
-    (u'/path/déf'.encode('utf-16'), 'utf-8',
-     u"b'\\xff\\xfe/\\x00p\\x00a\\x00t\\x00h\\x00/"
-     "\\x00d\\x00\\xe9\\x00f\\x00'"),
-])
+@pytest.mark.parametrize(
+    "path, fs_encoding, expected",
+    [
+        (None, None, None),
+        # Test passing a text (unicode) string.
+        (u"/path/déf", None, u"/path/déf"),
+        # Test a bytes object with a non-ascii character.
+        (u"/path/déf".encode("utf-8"), "utf-8", u"/path/déf"),
+        # Test a bytes object with a character that can't be decoded.
+        (u"/path/déf".encode("utf-8"), "ascii", u"b'/path/d\\xc3\\xa9f'"),
+        (
+            u"/path/déf".encode("utf-16"),
+            "utf-8",
+            u"b'\\xff\\xfe/\\x00p\\x00a\\x00t\\x00h\\x00/"
+            "\\x00d\\x00\\xe9\\x00f\\x00'",
+        ),
+    ],
+)
 def test_path_to_display(monkeypatch, path, fs_encoding, expected):
-    monkeypatch.setattr(sys, 'getfilesystemencoding', lambda: fs_encoding)
+    monkeypatch.setattr(sys, "getfilesystemencoding", lambda: fs_encoding)
     actual = path_to_display(path)
-    assert actual == expected, 'actual: {!r}'.format(actual)
+    assert actual == expected, "actual: {!r}".format(actual)
 
 
 class Test_normalize_path(object):
@@ -407,28 +406,28 @@ class Test_normalize_path(object):
         orig_working_dir = os.getcwd()
         os.chdir(tmpdir)
         try:
-            d = os.path.join('foo', 'bar')
-            f = os.path.join(d, 'file1')
+            d = os.path.join("foo", "bar")
+            f = os.path.join(d, "file1")
             os.makedirs(d)
-            with open(f, 'w'):  # Create the file
+            with open(f, "w"):  # Create the file
                 pass
 
-            os.symlink(d, 'dir_link')
-            os.symlink(f, 'file_link')
+            os.symlink(d, "dir_link")
+            os.symlink(f, "file_link")
 
             assert normalize_path(
-                'dir_link/file1', resolve_symlinks=True
+                "dir_link/file1", resolve_symlinks=True
             ) == os.path.join(tmpdir, f)
             assert normalize_path(
-                'dir_link/file1', resolve_symlinks=False
-            ) == os.path.join(tmpdir, 'dir_link', 'file1')
+                "dir_link/file1", resolve_symlinks=False
+            ) == os.path.join(tmpdir, "dir_link", "file1")
 
-            assert normalize_path(
-                'file_link', resolve_symlinks=True
-            ) == os.path.join(tmpdir, f)
-            assert normalize_path(
-                'file_link', resolve_symlinks=False
-            ) == os.path.join(tmpdir, 'file_link')
+            assert normalize_path("file_link", resolve_symlinks=True) == os.path.join(
+                tmpdir, f
+            )
+            assert normalize_path("file_link", resolve_symlinks=False) == os.path.join(
+                tmpdir, "file_link"
+            )
         finally:
             os.chdir(orig_working_dir)
 
@@ -436,19 +435,20 @@ class Test_normalize_path(object):
 class TestHashes(object):
     """Tests for pip._internal.utils.hashes"""
 
-    @pytest.mark.parametrize('hash_name, hex_digest, expected', [
-        # Test a value that matches but with the wrong hash_name.
-        ('sha384', 128 * 'a', False),
-        # Test matching values, including values other than the first.
-        ('sha512', 128 * 'a', True),
-        ('sha512', 128 * 'b', True),
-        # Test a matching hash_name with a value that doesn't match.
-        ('sha512', 128 * 'c', False),
-    ])
+    @pytest.mark.parametrize(
+        "hash_name, hex_digest, expected",
+        [
+            # Test a value that matches but with the wrong hash_name.
+            ("sha384", 128 * "a", False),
+            # Test matching values, including values other than the first.
+            ("sha512", 128 * "a", True),
+            ("sha512", 128 * "b", True),
+            # Test a matching hash_name with a value that doesn't match.
+            ("sha512", 128 * "c", False),
+        ],
+    )
     def test_is_hash_allowed(self, hash_name, hex_digest, expected):
-        hashes_data = {
-            'sha512': [128 * 'a', 128 * 'b'],
-        }
+        hashes_data = {"sha512": [128 * "a", 128 * "b"]}
         hashes = Hashes(hashes_data)
         assert hashes.is_hash_allowed(hash_name, hex_digest) == expected
 
@@ -458,37 +458,42 @@ class TestHashes(object):
         Test check_against_path because it calls everything else.
 
         """
-        file = tmpdir / 'to_hash'
-        file.write_text('hello')
-        hashes = Hashes({
-            'sha256': ['2cf24dba5fb0a30e26e83b2ac5b9e29e'
-                       '1b161e5c1fa7425e73043362938b9824'],
-            'sha224': ['wrongwrong'],
-            'md5': ['5d41402abc4b2a76b9719d911017c592']})
+        file = tmpdir / "to_hash"
+        file.write_text("hello")
+        hashes = Hashes(
+            {
+                "sha256": [
+                    "2cf24dba5fb0a30e26e83b2ac5b9e29e"
+                    "1b161e5c1fa7425e73043362938b9824"
+                ],
+                "sha224": ["wrongwrong"],
+                "md5": ["5d41402abc4b2a76b9719d911017c592"],
+            }
+        )
         hashes.check_against_path(file)
 
     def test_failure(self):
         """Hashes should raise HashMismatch when no hashes match."""
-        hashes = Hashes({'sha256': ['wrongwrong']})
+        hashes = Hashes({"sha256": ["wrongwrong"]})
         with pytest.raises(HashMismatch):
-            hashes.check_against_file(BytesIO(b'hello'))
+            hashes.check_against_file(BytesIO(b"hello"))
 
     def test_missing_hashes(self):
         """MissingHashes should raise HashMissing when any check is done."""
         with pytest.raises(HashMissing):
-            MissingHashes().check_against_file(BytesIO(b'hello'))
+            MissingHashes().check_against_file(BytesIO(b"hello"))
 
     def test_unknown_hash(self):
         """Hashes should raise InstallationError when it encounters an unknown
         hash."""
-        hashes = Hashes({'badbad': ['dummy']})
+        hashes = Hashes({"badbad": ["dummy"]})
         with pytest.raises(InstallationError):
-            hashes.check_against_file(BytesIO(b'hello'))
+            hashes.check_against_file(BytesIO(b"hello"))
 
     def test_non_zero(self):
         """Test that truthiness tests tell whether any known-good hashes
         exist."""
-        assert Hashes({'sha256': 'dummy'})
+        assert Hashes({"sha256": "dummy"})
         assert not Hashes()
         assert not Hashes({})
 
@@ -498,41 +503,41 @@ class TestEncoding(object):
 
     def test_auto_decode_utf_16_le(self):
         data = (
-            b'\xff\xfeD\x00j\x00a\x00n\x00g\x00o\x00=\x00'
-            b'=\x001\x00.\x004\x00.\x002\x00'
+            b"\xff\xfeD\x00j\x00a\x00n\x00g\x00o\x00=\x00"
+            b"=\x001\x00.\x004\x00.\x002\x00"
         )
         assert data.startswith(codecs.BOM_UTF16_LE)
         assert auto_decode(data) == "Django==1.4.2"
 
     def test_auto_decode_utf_16_be(self):
         data = (
-            b'\xfe\xff\x00D\x00j\x00a\x00n\x00g\x00o\x00='
-            b'\x00=\x001\x00.\x004\x00.\x002'
+            b"\xfe\xff\x00D\x00j\x00a\x00n\x00g\x00o\x00="
+            b"\x00=\x001\x00.\x004\x00.\x002"
         )
         assert data.startswith(codecs.BOM_UTF16_BE)
         assert auto_decode(data) == "Django==1.4.2"
 
     def test_auto_decode_no_bom(self):
-        assert auto_decode(b'foobar') == u'foobar'
+        assert auto_decode(b"foobar") == u"foobar"
 
     def test_auto_decode_pep263_headers(self):
-        latin1_req = u'# coding=latin1\n# Pas trop de café'
-        assert auto_decode(latin1_req.encode('latin1')) == latin1_req
+        latin1_req = u"# coding=latin1\n# Pas trop de café"
+        assert auto_decode(latin1_req.encode("latin1")) == latin1_req
 
     def test_auto_decode_no_preferred_encoding(self):
         om, em = Mock(), Mock()
-        om.return_value = 'ascii'
+        om.return_value = "ascii"
         em.return_value = None
-        data = u'data'
-        with patch('sys.getdefaultencoding', om):
-            with patch('locale.getpreferredencoding', em):
+        data = u"data"
+        with patch("sys.getdefaultencoding", om):
+            with patch("locale.getpreferredencoding", em):
                 ret = auto_decode(data.encode(sys.getdefaultencoding()))
         assert ret == data
 
-    @pytest.mark.parametrize('encoding', [encoding for bom, encoding in BOMS])
+    @pytest.mark.parametrize("encoding", [encoding for bom, encoding in BOMS])
     def test_all_encodings_are_valid(self, encoding):
         # we really only care that there is no LookupError
-        assert ''.encode(encoding).decode(encoding) == ''
+        assert "".encode(encoding).decode(encoding) == ""
 
 
 def raises(error):
@@ -545,14 +550,15 @@ class TestGlibc(object):
         Test that the check_glibc_version function is robust against weird
         glibc version strings.
         """
-        for two_twenty in ["2.20",
-                           # used by "linaro glibc", see gh-3588
-                           "2.20-2014.11",
-                           # weird possibilities that I just made up
-                           "2.20+dev",
-                           "2.20-custom",
-                           "2.20.1",
-                           ]:
+        for two_twenty in [
+            "2.20",
+            # used by "linaro glibc", see gh-3588
+            "2.20-2014.11",
+            # weird possibilities that I just made up
+            "2.20+dev",
+            "2.20-custom",
+            "2.20.1",
+        ]:
             assert check_glibc_version(two_twenty, 2, 15)
             assert check_glibc_version(two_twenty, 2, 20)
             assert not check_glibc_version(two_twenty, 2, 21)
@@ -573,22 +579,17 @@ class TestGlibc(object):
                     assert False
 
     def test_glibc_version_string(self, monkeypatch):
-        monkeypatch.setattr(
-            os, "confstr", lambda x: "glibc 2.20", raising=False,
-        )
+        monkeypatch.setattr(os, "confstr", lambda x: "glibc 2.20", raising=False)
         assert glibc_version_string() == "2.20"
 
     def test_glibc_version_string_confstr(self, monkeypatch):
-        monkeypatch.setattr(
-            os, "confstr", lambda x: "glibc 2.20", raising=False,
-        )
+        monkeypatch.setattr(os, "confstr", lambda x: "glibc 2.20", raising=False)
         assert glibc_version_string_confstr() == "2.20"
 
-    @pytest.mark.parametrize("failure", [
-        lambda x: raises(ValueError),
-        lambda x: raises(OSError),
-        lambda x: "XXX",
-    ])
+    @pytest.mark.parametrize(
+        "failure",
+        [lambda x: raises(ValueError), lambda x: raises(OSError), lambda x: "XXX"],
+    )
     def test_glibc_version_string_confstr_fail(self, monkeypatch, failure):
         monkeypatch.setattr(os, "confstr", failure, raising=False)
         assert glibc_version_string_confstr() is None
@@ -602,62 +603,66 @@ class TestGlibc(object):
         assert glibc_version_string_ctypes() is None
 
 
-@pytest.mark.parametrize('version_info, expected', [
-    ((), (0, 0, 0)),
-    ((3, ), (3, 0, 0)),
-    ((3, 6), (3, 6, 0)),
-    ((3, 6, 2), (3, 6, 2)),
-    ((3, 6, 2, 4), (3, 6, 2)),
-])
+@pytest.mark.parametrize(
+    "version_info, expected",
+    [
+        ((), (0, 0, 0)),
+        ((3,), (3, 0, 0)),
+        ((3, 6), (3, 6, 0)),
+        ((3, 6, 2), (3, 6, 2)),
+        ((3, 6, 2, 4), (3, 6, 2)),
+    ],
+)
 def test_normalize_version_info(version_info, expected):
     actual = normalize_version_info(version_info)
     assert actual == expected
 
 
 class TestGetProg(object):
-
     @pytest.mark.parametrize(
         ("argv", "executable", "expected"),
         [
-            ('/usr/bin/pip', '', 'pip'),
-            ('-c', '/usr/bin/python', '/usr/bin/python -m pip'),
-            ('__main__.py', '/usr/bin/python', '/usr/bin/python -m pip'),
-            ('/usr/bin/pip3', '', 'pip3'),
-        ]
+            ("/usr/bin/pip", "", "pip"),
+            ("-c", "/usr/bin/python", "/usr/bin/python -m pip"),
+            ("__main__.py", "/usr/bin/python", "/usr/bin/python -m pip"),
+            ("/usr/bin/pip3", "", "pip3"),
+        ],
     )
     def test_get_prog(self, monkeypatch, argv, executable, expected):
-        monkeypatch.setattr('pip._internal.utils.misc.sys.argv', [argv])
-        monkeypatch.setattr(
-            'pip._internal.utils.misc.sys.executable',
-            executable
-        )
+        monkeypatch.setattr("pip._internal.utils.misc.sys.argv", [argv])
+        monkeypatch.setattr("pip._internal.utils.misc.sys.executable", executable)
         assert get_prog() == expected
 
 
-@pytest.mark.parametrize('args, expected', [
-    (['pip', 'list'], 'pip list'),
-    (['foo', 'space space', 'new\nline', 'double"quote', "single'quote"],
-     """foo 'space space' 'new\nline' 'double"quote' 'single'"'"'quote'"""),
-    # Test HiddenText arguments.
-    (make_command(hide_value('secret1'), 'foo', hide_value('secret2')),
-        "'****' foo '****'"),
-])
+@pytest.mark.parametrize(
+    "args, expected",
+    [
+        (["pip", "list"], "pip list"),
+        (
+            ["foo", "space space", "new\nline", 'double"quote', "single'quote"],
+            """foo 'space space' 'new\nline' 'double"quote' 'single'"'"'quote'""",
+        ),
+        # Test HiddenText arguments.
+        (
+            make_command(hide_value("secret1"), "foo", hide_value("secret2")),
+            "'****' foo '****'",
+        ),
+    ],
+)
 def test_format_command_args(args, expected):
     actual = format_command_args(args)
     assert actual == expected
 
 
 def test_make_subprocess_output_error():
-    cmd_args = ['test', 'has space']
-    cwd = '/path/to/cwd'
-    lines = ['line1\n', 'line2\n', 'line3\n']
+    cmd_args = ["test", "has space"]
+    cwd = "/path/to/cwd"
+    lines = ["line1\n", "line2\n", "line3\n"]
     actual = make_subprocess_output_error(
-        cmd_args=cmd_args,
-        cwd=cwd,
-        lines=lines,
-        exit_status=3,
+        cmd_args=cmd_args, cwd=cwd, lines=lines, exit_status=3
     )
-    expected = dedent("""\
+    expected = dedent(
+        """\
     Command errored out with exit status 3:
      command: test 'has space'
          cwd: /path/to/cwd
@@ -665,36 +670,36 @@ def test_make_subprocess_output_error():
     line1
     line2
     line3
-    ----------------------------------------""")
-    assert actual == expected, 'actual: {}'.format(actual)
+    ----------------------------------------"""
+    )
+    assert actual == expected, "actual: {}".format(actual)
 
 
 def test_make_subprocess_output_error__non_ascii_command_arg(monkeypatch):
     """
     Test a command argument with a non-ascii character.
     """
-    cmd_args = ['foo', 'déf']
+    cmd_args = ["foo", "déf"]
     if sys.version_info[0] == 2:
         # Check in Python 2 that the str (bytes object) with the non-ascii
         # character has the encoding we expect. (This comes from the source
         # code encoding at the top of the file.)
-        assert cmd_args[1].decode('utf-8') == u'déf'
+        assert cmd_args[1].decode("utf-8") == u"déf"
 
     # We need to monkeypatch so the encoding will be correct on Windows.
-    monkeypatch.setattr(locale, 'getpreferredencoding', lambda: 'utf-8')
+    monkeypatch.setattr(locale, "getpreferredencoding", lambda: "utf-8")
     actual = make_subprocess_output_error(
-        cmd_args=cmd_args,
-        cwd='/path/to/cwd',
-        lines=[],
-        exit_status=1,
+        cmd_args=cmd_args, cwd="/path/to/cwd", lines=[], exit_status=1
     )
-    expected = dedent(u"""\
+    expected = dedent(
+        u"""\
     Command errored out with exit status 1:
      command: foo 'déf'
          cwd: /path/to/cwd
     Complete output (0 lines):
-    ----------------------------------------""")
-    assert actual == expected, u'actual: {}'.format(actual)
+    ----------------------------------------"""
+    )
+    assert actual == expected, u"actual: {}".format(actual)
 
 
 @pytest.mark.skipif("sys.version_info < (3,)")
@@ -702,51 +707,50 @@ def test_make_subprocess_output_error__non_ascii_cwd_python_3(monkeypatch):
     """
     Test a str (text) cwd with a non-ascii character in Python 3.
     """
-    cmd_args = ['test']
-    cwd = '/path/to/cwd/déf'
+    cmd_args = ["test"]
+    cwd = "/path/to/cwd/déf"
     actual = make_subprocess_output_error(
-        cmd_args=cmd_args,
-        cwd=cwd,
-        lines=[],
-        exit_status=1,
+        cmd_args=cmd_args, cwd=cwd, lines=[], exit_status=1
     )
-    expected = dedent("""\
+    expected = dedent(
+        """\
     Command errored out with exit status 1:
      command: test
          cwd: /path/to/cwd/déf
     Complete output (0 lines):
-    ----------------------------------------""")
-    assert actual == expected, 'actual: {}'.format(actual)
+    ----------------------------------------"""
+    )
+    assert actual == expected, "actual: {}".format(actual)
 
 
-@pytest.mark.parametrize('encoding', [
-    'utf-8',
-    # Test a Windows encoding.
-    'cp1252',
-])
+@pytest.mark.parametrize(
+    "encoding",
+    [
+        "utf-8",
+        # Test a Windows encoding.
+        "cp1252",
+    ],
+)
 @pytest.mark.skipif("sys.version_info >= (3,)")
-def test_make_subprocess_output_error__non_ascii_cwd_python_2(
-    monkeypatch, encoding,
-):
+def test_make_subprocess_output_error__non_ascii_cwd_python_2(monkeypatch, encoding):
     """
     Test a str (bytes object) cwd with a non-ascii character in Python 2.
     """
-    cmd_args = ['test']
-    cwd = u'/path/to/cwd/déf'.encode(encoding)
-    monkeypatch.setattr(sys, 'getfilesystemencoding', lambda: encoding)
+    cmd_args = ["test"]
+    cwd = u"/path/to/cwd/déf".encode(encoding)
+    monkeypatch.setattr(sys, "getfilesystemencoding", lambda: encoding)
     actual = make_subprocess_output_error(
-        cmd_args=cmd_args,
-        cwd=cwd,
-        lines=[],
-        exit_status=1,
+        cmd_args=cmd_args, cwd=cwd, lines=[], exit_status=1
     )
-    expected = dedent(u"""\
+    expected = dedent(
+        u"""\
     Command errored out with exit status 1:
      command: test
          cwd: /path/to/cwd/déf
     Complete output (0 lines):
-    ----------------------------------------""")
-    assert actual == expected, u'actual: {}'.format(actual)
+    ----------------------------------------"""
+    )
+    assert actual == expected, u"actual: {}".format(actual)
 
 
 # This test is mainly important for checking unicode in Python 2.
@@ -754,25 +758,23 @@ def test_make_subprocess_output_error__non_ascii_line():
     """
     Test a line with a non-ascii character.
     """
-    lines = [u'curly-quote: \u2018\n']
+    lines = [u"curly-quote: \u2018\n"]
     actual = make_subprocess_output_error(
-        cmd_args=['test'],
-        cwd='/path/to/cwd',
-        lines=lines,
-        exit_status=1,
+        cmd_args=["test"], cwd="/path/to/cwd", lines=lines, exit_status=1
     )
-    expected = dedent(u"""\
+    expected = dedent(
+        u"""\
     Command errored out with exit status 1:
      command: test
          cwd: /path/to/cwd
     Complete output (1 lines):
     curly-quote: \u2018
-    ----------------------------------------""")
-    assert actual == expected, u'actual: {}'.format(actual)
+    ----------------------------------------"""
+    )
+    assert actual == expected, u"actual: {}".format(actual)
 
 
 class FakeSpinner(SpinnerInterface):
-
     def __init__(self):
         self.spin_count = 0
         self.final_status = None
@@ -791,8 +793,7 @@ class TestCallSubprocess(object):
     """
 
     def check_result(
-        self, capfd, caplog, log_level, spinner, result, expected,
-        expected_spinner,
+        self, capfd, caplog, log_level, spinner, result, expected, expected_spinner
     ):
         """
         Check the result of calling call_subprocess().
@@ -819,11 +820,11 @@ class TestCallSubprocess(object):
 
         # Confirm that stdout and stderr haven't been written to.
         captured = capfd.readouterr()
-        assert (captured.out, captured.err) == ('', '')
+        assert (captured.out, captured.err) == ("", "")
 
         records = caplog.record_tuples
         if len(records) != len(expected_records):
-            raise RuntimeError('{} != {}'.format(records, expected_records))
+            raise RuntimeError("{} != {}".format(records, expected_records))
 
         for record, expected_record in zip(records, expected_records):
             # Check the logger_name and log level parts exactly.
@@ -844,7 +845,7 @@ class TestCallSubprocess(object):
 
         caplog.set_level(log_level)
         spinner = FakeSpinner()
-        args = [sys.executable, '-c', command]
+        args = [sys.executable, "-c", command]
 
         return (args, spinner)
 
@@ -856,15 +857,23 @@ class TestCallSubprocess(object):
         args, spinner = self.prepare_call(caplog, log_level)
         result = call_subprocess(args, spinner=spinner)
 
-        expected = (['Hello', 'world'], [
-            ('pip.subprocessor', DEBUG, 'Running command '),
-            ('pip.subprocessor', DEBUG, 'Hello'),
-            ('pip.subprocessor', DEBUG, 'world'),
-        ])
+        expected = (
+            ["Hello", "world"],
+            [
+                ("pip.subprocessor", DEBUG, "Running command "),
+                ("pip.subprocessor", DEBUG, "Hello"),
+                ("pip.subprocessor", DEBUG, "world"),
+            ],
+        )
         # The spinner shouldn't spin in this case since the subprocess
         # output is already being logged to the console.
         self.check_result(
-            capfd, caplog, log_level, spinner, result, expected,
+            capfd,
+            caplog,
+            log_level,
+            spinner,
+            result,
+            expected,
             expected_spinner=(0, None),
         )
 
@@ -876,12 +885,17 @@ class TestCallSubprocess(object):
         args, spinner = self.prepare_call(caplog, log_level)
         result = call_subprocess(args, spinner=spinner)
 
-        expected = (['Hello', 'world'], [])
+        expected = (["Hello", "world"], [])
         # The spinner should spin twice in this case since the subprocess
         # output isn't being written to the console.
         self.check_result(
-            capfd, caplog, log_level, spinner, result, expected,
-            expected_spinner=(2, 'done'),
+            capfd,
+            caplog,
+            log_level,
+            spinner,
+            result,
+            expected,
+            expected_spinner=(2, "done"),
         )
 
     def test_info_logging__subprocess_error(self, capfd, caplog):
@@ -897,19 +911,20 @@ class TestCallSubprocess(object):
             call_subprocess(args, spinner=spinner)
         result = None
         exc_message = str(exc.value)
-        assert exc_message.startswith(
-            'Command errored out with exit status 1: '
-        )
-        assert exc_message.endswith('Check the logs for full command output.')
+        assert exc_message.startswith("Command errored out with exit status 1: ")
+        assert exc_message.endswith("Check the logs for full command output.")
 
-        expected = (None, [
-            ('pip.subprocessor', ERROR, 'Complete output (3 lines):\n'),
-        ])
+        expected = (None, [("pip.subprocessor", ERROR, "Complete output (3 lines):\n")])
         # The spinner should spin three times in this case since the
         # subprocess output isn't being written to the console.
         self.check_result(
-            capfd, caplog, log_level, spinner, result, expected,
-            expected_spinner=(3, 'error'),
+            capfd,
+            caplog,
+            log_level,
+            spinner,
+            result,
+            expected,
+            expected_spinner=(3, "error"),
         )
 
         # Do some further checking on the captured log records to confirm
@@ -927,16 +942,18 @@ class TestCallSubprocess(object):
         # exact match.
         command_line = actual.pop(1)
         assert actual == [
-            '     cwd: None',
-            '----------------------------------------',
-            'Command errored out with exit status 1:',
-            'Complete output (3 lines):',
-            'Hello',
-            'fail',
-            'world',
-        ], 'lines: {}'.format(actual)  # Show the full output on failure.
+            "     cwd: None",
+            "----------------------------------------",
+            "Command errored out with exit status 1:",
+            "Complete output (3 lines):",
+            "Hello",
+            "fail",
+            "world",
+        ], "lines: {}".format(
+            actual
+        )  # Show the full output on failure.
 
-        assert command_line.startswith(' command: ')
+        assert command_line.startswith(" command: ")
         assert command_line.endswith('print("world"); exit("fail")\'')
 
     def test_info_logging_with_show_stdout_true(self, capfd, caplog):
@@ -947,26 +964,33 @@ class TestCallSubprocess(object):
         args, spinner = self.prepare_call(caplog, log_level)
         result = call_subprocess(args, spinner=spinner, show_stdout=True)
 
-        expected = (['Hello', 'world'], [
-            ('pip.subprocessor', INFO, 'Running command '),
-            ('pip.subprocessor', INFO, 'Hello'),
-            ('pip.subprocessor', INFO, 'world'),
-        ])
+        expected = (
+            ["Hello", "world"],
+            [
+                ("pip.subprocessor", INFO, "Running command "),
+                ("pip.subprocessor", INFO, "Hello"),
+                ("pip.subprocessor", INFO, "world"),
+            ],
+        )
         # The spinner shouldn't spin in this case since the subprocess
         # output is already being written to the console.
         self.check_result(
-            capfd, caplog, log_level, spinner, result, expected,
+            capfd,
+            caplog,
+            log_level,
+            spinner,
+            result,
+            expected,
             expected_spinner=(0, None),
         )
 
-    @pytest.mark.parametrize((
-        'exit_status', 'show_stdout', 'extra_ok_returncodes', 'log_level',
-        'expected'),
+    @pytest.mark.parametrize(
+        ("exit_status", "show_stdout", "extra_ok_returncodes", "log_level", "expected"),
         [
             # The spinner should show here because show_stdout=False means
             # the subprocess should get logged at DEBUG level, but the passed
             # log level is only INFO.
-            (0, False, None, INFO, (None, 'done', 2)),
+            (0, False, None, INFO, (None, "done", 2)),
             # Test some cases where the spinner should not be shown.
             (0, False, None, DEBUG, (None, None, 0)),
             # Test show_stdout=True.
@@ -975,15 +999,21 @@ class TestCallSubprocess(object):
             # The spinner should show here because show_stdout=True means
             # the subprocess should get logged at INFO level, but the passed
             # log level is only WARNING.
-            (0, True, None, WARNING, (None, 'done', 2)),
+            (0, True, None, WARNING, (None, "done", 2)),
             # Test a non-zero exit status.
-            (3, False, None, INFO, (InstallationError, 'error', 2)),
+            (3, False, None, INFO, (InstallationError, "error", 2)),
             # Test a non-zero exit status also in extra_ok_returncodes.
-            (3, False, (3, ), INFO, (None, 'done', 2)),
-    ])
+            (3, False, (3,), INFO, (None, "done", 2)),
+        ],
+    )
     def test_spinner_finish(
-        self, exit_status, show_stdout, extra_ok_returncodes, log_level,
-        caplog, expected,
+        self,
+        exit_status,
+        show_stdout,
+        extra_ok_returncodes,
+        log_level,
+        caplog,
+        expected,
     ):
         """
         Test that the spinner finishes correctly.
@@ -992,9 +1022,7 @@ class TestCallSubprocess(object):
         expected_final_status = expected[1]
         expected_spin_count = expected[2]
 
-        command = (
-            'print("Hello"); print("world"); exit({})'.format(exit_status)
-        )
+        command = 'print("Hello"); print("world"); exit({})'.format(exit_status)
         args, spinner = self.prepare_call(caplog, log_level, command=command)
         try:
             call_subprocess(
@@ -1014,180 +1042,213 @@ class TestCallSubprocess(object):
 
     def test_closes_stdin(self):
         with pytest.raises(InstallationError):
-            call_subprocess(
-                [sys.executable, '-c', 'input()'],
-                show_stdout=True,
-            )
+            call_subprocess([sys.executable, "-c", "input()"], show_stdout=True)
 
 
-@pytest.mark.parametrize('host_port, expected_netloc', [
-    # Test domain name.
-    (('example.com', None), 'example.com'),
-    (('example.com', 5000), 'example.com:5000'),
-    # Test IPv4 address.
-    (('127.0.0.1', None), '127.0.0.1'),
-    (('127.0.0.1', 5000), '127.0.0.1:5000'),
-    # Test bare IPv6 address.
-    (('2001:db6::1', None), '2001:db6::1'),
-    # Test IPv6 with port.
-    (('2001:db6::1', 5000), '[2001:db6::1]:5000'),
-])
+@pytest.mark.parametrize(
+    "host_port, expected_netloc",
+    [
+        # Test domain name.
+        (("example.com", None), "example.com"),
+        (("example.com", 5000), "example.com:5000"),
+        # Test IPv4 address.
+        (("127.0.0.1", None), "127.0.0.1"),
+        (("127.0.0.1", 5000), "127.0.0.1:5000"),
+        # Test bare IPv6 address.
+        (("2001:db6::1", None), "2001:db6::1"),
+        # Test IPv6 with port.
+        (("2001:db6::1", 5000), "[2001:db6::1]:5000"),
+    ],
+)
 def test_build_netloc(host_port, expected_netloc):
     assert build_netloc(*host_port) == expected_netloc
 
 
-@pytest.mark.parametrize('netloc, expected_url, expected_host_port', [
-    # Test domain name.
-    ('example.com', 'https://example.com', ('example.com', None)),
-    ('example.com:5000', 'https://example.com:5000', ('example.com', 5000)),
-    # Test IPv4 address.
-    ('127.0.0.1', 'https://127.0.0.1', ('127.0.0.1', None)),
-    ('127.0.0.1:5000', 'https://127.0.0.1:5000', ('127.0.0.1', 5000)),
-    # Test bare IPv6 address.
-    ('2001:db6::1', 'https://[2001:db6::1]', ('2001:db6::1', None)),
-    # Test IPv6 with port.
-    (
-        '[2001:db6::1]:5000',
-        'https://[2001:db6::1]:5000',
-        ('2001:db6::1', 5000)
-    ),
-    # Test netloc with auth.
-    (
-        'user:password@localhost:5000',
-        'https://user:password@localhost:5000',
-        ('localhost', 5000)
-    )
-])
+@pytest.mark.parametrize(
+    "netloc, expected_url, expected_host_port",
+    [
+        # Test domain name.
+        ("example.com", "https://example.com", ("example.com", None)),
+        ("example.com:5000", "https://example.com:5000", ("example.com", 5000)),
+        # Test IPv4 address.
+        ("127.0.0.1", "https://127.0.0.1", ("127.0.0.1", None)),
+        ("127.0.0.1:5000", "https://127.0.0.1:5000", ("127.0.0.1", 5000)),
+        # Test bare IPv6 address.
+        ("2001:db6::1", "https://[2001:db6::1]", ("2001:db6::1", None)),
+        # Test IPv6 with port.
+        ("[2001:db6::1]:5000", "https://[2001:db6::1]:5000", ("2001:db6::1", 5000)),
+        # Test netloc with auth.
+        (
+            "user:password@localhost:5000",
+            "https://user:password@localhost:5000",
+            ("localhost", 5000),
+        ),
+    ],
+)
 def test_build_url_from_netloc_and_parse_netloc(
-    netloc, expected_url, expected_host_port,
+    netloc, expected_url, expected_host_port
 ):
     assert build_url_from_netloc(netloc) == expected_url
     assert parse_netloc(netloc) == expected_host_port
 
 
-@pytest.mark.parametrize('netloc, expected', [
-    # Test a basic case.
-    ('example.com', ('example.com', (None, None))),
-    # Test with username and no password.
-    ('user@example.com', ('example.com', ('user', None))),
-    # Test with username and password.
-    ('user:pass@example.com', ('example.com', ('user', 'pass'))),
-    # Test with username and empty password.
-    ('user:@example.com', ('example.com', ('user', ''))),
-    # Test the password containing an @ symbol.
-    ('user:pass@word@example.com', ('example.com', ('user', 'pass@word'))),
-    # Test the password containing a : symbol.
-    ('user:pass:word@example.com', ('example.com', ('user', 'pass:word'))),
-    # Test URL-encoded reserved characters.
-    ('user%3Aname:%23%40%5E@example.com',
-     ('example.com', ('user:name', '#@^'))),
-])
+@pytest.mark.parametrize(
+    "netloc, expected",
+    [
+        # Test a basic case.
+        ("example.com", ("example.com", (None, None))),
+        # Test with username and no password.
+        ("user@example.com", ("example.com", ("user", None))),
+        # Test with username and password.
+        ("user:pass@example.com", ("example.com", ("user", "pass"))),
+        # Test with username and empty password.
+        ("user:@example.com", ("example.com", ("user", ""))),
+        # Test the password containing an @ symbol.
+        ("user:pass@word@example.com", ("example.com", ("user", "pass@word"))),
+        # Test the password containing a : symbol.
+        ("user:pass:word@example.com", ("example.com", ("user", "pass:word"))),
+        # Test URL-encoded reserved characters.
+        ("user%3Aname:%23%40%5E@example.com", ("example.com", ("user:name", "#@^"))),
+    ],
+)
 def test_split_auth_from_netloc(netloc, expected):
     actual = split_auth_from_netloc(netloc)
     assert actual == expected
 
 
-@pytest.mark.parametrize('url, expected', [
-    # Test a basic case.
-    ('http://example.com/path#anchor',
-     ('http://example.com/path#anchor', 'example.com', (None, None))),
-    # Test with username and no password.
-    ('http://user@example.com/path#anchor',
-     ('http://example.com/path#anchor', 'example.com', ('user', None))),
-    # Test with username and password.
-    ('http://user:pass@example.com/path#anchor',
-     ('http://example.com/path#anchor', 'example.com', ('user', 'pass'))),
-    # Test with username and empty password.
-    ('http://user:@example.com/path#anchor',
-     ('http://example.com/path#anchor', 'example.com', ('user', ''))),
-    # Test the password containing an @ symbol.
-    ('http://user:pass@word@example.com/path#anchor',
-     ('http://example.com/path#anchor', 'example.com', ('user', 'pass@word'))),
-    # Test the password containing a : symbol.
-    ('http://user:pass:word@example.com/path#anchor',
-     ('http://example.com/path#anchor', 'example.com', ('user', 'pass:word'))),
-    # Test URL-encoded reserved characters.
-    ('http://user%3Aname:%23%40%5E@example.com/path#anchor',
-     ('http://example.com/path#anchor', 'example.com', ('user:name', '#@^'))),
-])
+@pytest.mark.parametrize(
+    "url, expected",
+    [
+        # Test a basic case.
+        (
+            "http://example.com/path#anchor",
+            ("http://example.com/path#anchor", "example.com", (None, None)),
+        ),
+        # Test with username and no password.
+        (
+            "http://user@example.com/path#anchor",
+            ("http://example.com/path#anchor", "example.com", ("user", None)),
+        ),
+        # Test with username and password.
+        (
+            "http://user:pass@example.com/path#anchor",
+            ("http://example.com/path#anchor", "example.com", ("user", "pass")),
+        ),
+        # Test with username and empty password.
+        (
+            "http://user:@example.com/path#anchor",
+            ("http://example.com/path#anchor", "example.com", ("user", "")),
+        ),
+        # Test the password containing an @ symbol.
+        (
+            "http://user:pass@word@example.com/path#anchor",
+            ("http://example.com/path#anchor", "example.com", ("user", "pass@word")),
+        ),
+        # Test the password containing a : symbol.
+        (
+            "http://user:pass:word@example.com/path#anchor",
+            ("http://example.com/path#anchor", "example.com", ("user", "pass:word")),
+        ),
+        # Test URL-encoded reserved characters.
+        (
+            "http://user%3Aname:%23%40%5E@example.com/path#anchor",
+            ("http://example.com/path#anchor", "example.com", ("user:name", "#@^")),
+        ),
+    ],
+)
 def test_split_auth_netloc_from_url(url, expected):
     actual = split_auth_netloc_from_url(url)
     assert actual == expected
 
 
-@pytest.mark.parametrize('netloc, expected', [
-    # Test a basic case.
-    ('example.com', 'example.com'),
-    # Test with username and no password.
-    ('accesstoken@example.com', '****@example.com'),
-    # Test with username and password.
-    ('user:pass@example.com', 'user:****@example.com'),
-    # Test with username and empty password.
-    ('user:@example.com', 'user:****@example.com'),
-    # Test the password containing an @ symbol.
-    ('user:pass@word@example.com', 'user:****@example.com'),
-    # Test the password containing a : symbol.
-    ('user:pass:word@example.com', 'user:****@example.com'),
-    # Test URL-encoded reserved characters.
-    ('user%3Aname:%23%40%5E@example.com', 'user%3Aname:****@example.com'),
-])
+@pytest.mark.parametrize(
+    "netloc, expected",
+    [
+        # Test a basic case.
+        ("example.com", "example.com"),
+        # Test with username and no password.
+        ("accesstoken@example.com", "****@example.com"),
+        # Test with username and password.
+        ("user:pass@example.com", "user:****@example.com"),
+        # Test with username and empty password.
+        ("user:@example.com", "user:****@example.com"),
+        # Test the password containing an @ symbol.
+        ("user:pass@word@example.com", "user:****@example.com"),
+        # Test the password containing a : symbol.
+        ("user:pass:word@example.com", "user:****@example.com"),
+        # Test URL-encoded reserved characters.
+        ("user%3Aname:%23%40%5E@example.com", "user%3Aname:****@example.com"),
+    ],
+)
 def test_redact_netloc(netloc, expected):
     actual = redact_netloc(netloc)
     assert actual == expected
 
 
-@pytest.mark.parametrize('auth_url, expected_url', [
-    ('https://user:pass@domain.tld/project/tags/v0.2',
-     'https://domain.tld/project/tags/v0.2'),
-    ('https://domain.tld/project/tags/v0.2',
-     'https://domain.tld/project/tags/v0.2',),
-    ('https://user:pass@domain.tld/svn/project/trunk@8181',
-     'https://domain.tld/svn/project/trunk@8181'),
-    ('https://domain.tld/project/trunk@8181',
-     'https://domain.tld/project/trunk@8181',),
-    ('git+https://pypi.org/something',
-     'git+https://pypi.org/something'),
-    ('git+https://user:pass@pypi.org/something',
-     'git+https://pypi.org/something'),
-    ('git+ssh://git@pypi.org/something',
-     'git+ssh://pypi.org/something'),
-])
+@pytest.mark.parametrize(
+    "auth_url, expected_url",
+    [
+        (
+            "https://user:pass@domain.tld/project/tags/v0.2",
+            "https://domain.tld/project/tags/v0.2",
+        ),
+        (
+            "https://domain.tld/project/tags/v0.2",
+            "https://domain.tld/project/tags/v0.2",
+        ),
+        (
+            "https://user:pass@domain.tld/svn/project/trunk@8181",
+            "https://domain.tld/svn/project/trunk@8181",
+        ),
+        (
+            "https://domain.tld/project/trunk@8181",
+            "https://domain.tld/project/trunk@8181",
+        ),
+        ("git+https://pypi.org/something", "git+https://pypi.org/something"),
+        ("git+https://user:pass@pypi.org/something", "git+https://pypi.org/something"),
+        ("git+ssh://git@pypi.org/something", "git+ssh://pypi.org/something"),
+    ],
+)
 def test_remove_auth_from_url(auth_url, expected_url):
     url = remove_auth_from_url(auth_url)
     assert url == expected_url
 
 
-@pytest.mark.parametrize('auth_url, expected_url', [
-    ('https://accesstoken@example.com/abc', 'https://****@example.com/abc'),
-    ('https://user:password@example.com', 'https://user:****@example.com'),
-    ('https://user:@example.com', 'https://user:****@example.com'),
-    ('https://example.com', 'https://example.com'),
-    # Test URL-encoded reserved characters.
-    ('https://user%3Aname:%23%40%5E@example.com',
-     'https://user%3Aname:****@example.com'),
-])
+@pytest.mark.parametrize(
+    "auth_url, expected_url",
+    [
+        ("https://accesstoken@example.com/abc", "https://****@example.com/abc"),
+        ("https://user:password@example.com", "https://user:****@example.com"),
+        ("https://user:@example.com", "https://user:****@example.com"),
+        ("https://example.com", "https://example.com"),
+        # Test URL-encoded reserved characters.
+        (
+            "https://user%3Aname:%23%40%5E@example.com",
+            "https://user%3Aname:****@example.com",
+        ),
+    ],
+)
 def test_redact_auth_from_url(auth_url, expected_url):
     url = redact_auth_from_url(auth_url)
     assert url == expected_url
 
 
 class TestHiddenText:
-
     def test_basic(self):
         """
         Test str(), repr(), and attribute access.
         """
-        hidden = HiddenText('my-secret', redacted='######')
+        hidden = HiddenText("my-secret", redacted="######")
         assert repr(hidden) == "<HiddenText '######'>"
-        assert str(hidden) == '######'
-        assert hidden.redacted == '######'
-        assert hidden.secret == 'my-secret'
+        assert str(hidden) == "######"
+        assert hidden.redacted == "######"
+        assert hidden.secret == "my-secret"
 
     def test_equality_with_str(self):
         """
         Test equality (and inequality) with str objects.
         """
-        hidden = HiddenText('secret', redacted='****')
+        hidden = HiddenText("secret", redacted="****")
 
         # Test that the object doesn't compare equal to either its original
         # or redacted forms.
@@ -1202,8 +1263,8 @@ class TestHiddenText:
         Test equality with an object having the same secret.
         """
         # Choose different redactions for the two objects.
-        hidden1 = HiddenText('secret', redacted='****')
-        hidden2 = HiddenText('secret', redacted='####')
+        hidden1 = HiddenText("secret", redacted="****")
+        hidden2 = HiddenText("secret", redacted="####")
 
         assert hidden1 == hidden2
         # Also test __ne__.  This assertion fails in Python 2 without
@@ -1214,8 +1275,8 @@ class TestHiddenText:
         """
         Test equality with an object having a different secret.
         """
-        hidden1 = HiddenText('secret-1', redacted='****')
-        hidden2 = HiddenText('secret-2', redacted='****')
+        hidden1 = HiddenText("secret-1", redacted="****")
+        hidden2 = HiddenText("secret-2", redacted="****")
 
         assert hidden1 != hidden2
         # Also test __eq__.
@@ -1223,25 +1284,26 @@ class TestHiddenText:
 
 
 def test_hide_value():
-    hidden = hide_value('my-secret')
+    hidden = hide_value("my-secret")
     assert repr(hidden) == "<HiddenText '****'>"
-    assert str(hidden) == '****'
-    assert hidden.redacted == '****'
-    assert hidden.secret == 'my-secret'
+    assert str(hidden) == "****"
+    assert hidden.redacted == "****"
+    assert hidden.secret == "my-secret"
 
 
 def test_hide_url():
-    hidden_url = hide_url('https://user:password@example.com')
+    hidden_url = hide_url("https://user:password@example.com")
     assert repr(hidden_url) == "<HiddenText 'https://user:****@example.com'>"
-    assert str(hidden_url) == 'https://user:****@example.com'
-    assert hidden_url.redacted == 'https://user:****@example.com'
-    assert hidden_url.secret == 'https://user:password@example.com'
+    assert str(hidden_url) == "https://user:****@example.com"
+    assert hidden_url.redacted == "https://user:****@example.com"
+    assert hidden_url.secret == "https://user:password@example.com"
 
 
 @pytest.fixture()
 def patch_deprecation_check_version():
     # We do this, so that the deprecation tests are easier to write.
     import pip._internal.utils.deprecation as d
+
     old_version = d.current_version
     d.current_version = "1.0"
     yield
@@ -1255,10 +1317,7 @@ def patch_deprecation_check_version():
 def test_deprecated_message_contains_information(gone_in, replacement, issue):
     with pytest.warns(PipDeprecationWarning) as record:
         deprecated(
-            "Stop doing this!",
-            replacement=replacement,
-            gone_in=gone_in,
-            issue=issue,
+            "Stop doing this!", replacement=replacement, gone_in=gone_in, issue=issue
         )
 
     assert len(record) == 1
@@ -1317,28 +1376,23 @@ def test_deprecated_message_reads_well():
 def test_make_setuptools_shim_args():
     # Test all arguments at once, including the overall ordering.
     args = make_setuptools_shim_args(
-        '/dir/path/setup.py',
-        global_options=['--some', '--option'],
+        "/dir/path/setup.py",
+        global_options=["--some", "--option"],
         no_user_config=True,
         unbuffered_output=True,
     )
 
-    assert args[1:3] == ['-u', '-c']
+    assert args[1:3] == ["-u", "-c"]
     # Spot-check key aspects of the command string.
     assert "sys.argv[0] = '/dir/path/setup.py'" in args[3]
     assert "__file__='/dir/path/setup.py'" in args[3]
-    assert args[4:] == ['--some', '--option', '--no-user-cfg']
+    assert args[4:] == ["--some", "--option", "--no-user-cfg"]
 
 
-@pytest.mark.parametrize('global_options', [
-    None,
-    [],
-    ['--some', '--option']
-])
+@pytest.mark.parametrize("global_options", [None, [], ["--some", "--option"]])
 def test_make_setuptools_shim_args__global_options(global_options):
     args = make_setuptools_shim_args(
-        '/dir/path/setup.py',
-        global_options=global_options,
+        "/dir/path/setup.py", global_options=global_options
     )
 
     if global_options:
@@ -1349,19 +1403,17 @@ def test_make_setuptools_shim_args__global_options(global_options):
         assert len(args) == 3
 
 
-@pytest.mark.parametrize('no_user_config', [False, True])
+@pytest.mark.parametrize("no_user_config", [False, True])
 def test_make_setuptools_shim_args__no_user_config(no_user_config):
     args = make_setuptools_shim_args(
-        '/dir/path/setup.py',
-        no_user_config=no_user_config,
+        "/dir/path/setup.py", no_user_config=no_user_config
     )
-    assert ('--no-user-cfg' in args) == no_user_config
+    assert ("--no-user-cfg" in args) == no_user_config
 
 
-@pytest.mark.parametrize('unbuffered_output', [False, True])
+@pytest.mark.parametrize("unbuffered_output", [False, True])
 def test_make_setuptools_shim_args__unbuffered_output(unbuffered_output):
     args = make_setuptools_shim_args(
-        '/dir/path/setup.py',
-        unbuffered_output=unbuffered_output
+        "/dir/path/setup.py", unbuffered_output=unbuffered_output
     )
-    assert ('-u' in args) == unbuffered_output
+    assert ("-u" in args) == unbuffered_output

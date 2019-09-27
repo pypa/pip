@@ -16,21 +16,14 @@ def test_symlinked_path():
         assert os.path.exists(tmp_dir.path)
 
         alt_tmp_dir = tempfile.mkdtemp(prefix="pip-test-")
-        assert (
-            os.path.dirname(tmp_dir.path) ==
-            os.path.dirname(os.path.realpath(alt_tmp_dir))
+        assert os.path.dirname(tmp_dir.path) == os.path.dirname(
+            os.path.realpath(alt_tmp_dir)
         )
         # are we on a system where /tmp is a symlink
         if os.path.realpath(alt_tmp_dir) != os.path.abspath(alt_tmp_dir):
-            assert (
-                os.path.dirname(tmp_dir.path) !=
-                os.path.dirname(alt_tmp_dir)
-            )
+            assert os.path.dirname(tmp_dir.path) != os.path.dirname(alt_tmp_dir)
         else:
-            assert (
-                os.path.dirname(tmp_dir.path) ==
-                os.path.dirname(alt_tmp_dir)
-            )
+            assert os.path.dirname(tmp_dir.path) == os.path.dirname(alt_tmp_dir)
         os.rmdir(tmp_dir.path)
         assert not os.path.exists(tmp_dir.path)
 
@@ -88,16 +81,9 @@ def test_create_and_cleanup_work():
     assert not os.path.exists(created_path)
 
 
-@pytest.mark.parametrize("name", [
-    "ABC",
-    "ABC.dist-info",
-    "_+-",
-    "_package",
-    "A......B",
-    "AB",
-    "A",
-    "2",
-])
+@pytest.mark.parametrize(
+    "name", ["ABC", "ABC.dist-info", "_+-", "_package", "A......B", "AB", "A", "2"]
+)
 def test_adjacent_directory_names(name):
     def names():
         return AdjacentTempDirectory._generate_names(name)
@@ -125,15 +111,12 @@ def test_adjacent_directory_names(name):
         assert len(some_names) > 0.9 * len(set(some_names))
 
         # Ensure the first few names are the same length as the original
-        same_len = list(itertools.takewhile(
-            lambda x: len(x) == len(name),
-            some_names
-        ))
+        same_len = list(itertools.takewhile(lambda x: len(x) == len(name), some_names))
         assert len(same_len) > 10
 
         # Check the first group are correct
-        expected_names = ['~' + name[1:]]
-        expected_names.extend('~' + c + name[2:] for c in chars)
+        expected_names = ["~" + name[1:]]
+        expected_names.extend("~" + c + name[2:] for c in chars)
         for x, y in zip(some_names, expected_names):
             assert x == y
 
@@ -152,16 +135,11 @@ def test_adjacent_directory_names(name):
             assert all(x.endswith(name) for x in some_names)
 
 
-@pytest.mark.parametrize("name", [
-    "A",
-    "ABC",
-    "ABC.dist-info",
-    "_+-",
-    "_package",
-])
+@pytest.mark.parametrize("name", ["A", "ABC", "ABC.dist-info", "_+-", "_package"])
 def test_adjacent_directory_exists(name, tmpdir):
     block_name, expect_name = itertools.islice(
-        AdjacentTempDirectory._generate_names(name), 2)
+        AdjacentTempDirectory._generate_names(name), 2
+    )
 
     original = os.path.join(tmpdir, name)
     blocker = os.path.join(tmpdir, block_name)

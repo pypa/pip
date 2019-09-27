@@ -33,10 +33,7 @@ from pip._internal.utils.misc import (
     ensure_dir,
     normalize_version_info,
 )
-from pip._internal.utils.packaging import (
-    check_requires_python,
-    get_requires_python,
-)
+from pip._internal.utils.packaging import check_requires_python, get_requires_python
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -50,9 +47,7 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.req.req_set import RequirementSet
 
-    InstallRequirementProvider = Callable[
-        [str, InstallRequirement], InstallRequirement
-    ]
+    InstallRequirementProvider = Callable[[str, InstallRequirement], InstallRequirement]
 
 logger = logging.getLogger(__name__)
 
@@ -78,31 +73,32 @@ def _check_dist_requires_python(
     requires_python = get_requires_python(dist)
     try:
         is_compatible = check_requires_python(
-            requires_python, version_info=version_info,
+            requires_python, version_info=version_info
         )
     except specifiers.InvalidSpecifier as exc:
         logger.warning(
-            "Package %r has an invalid Requires-Python: %s",
-            dist.project_name, exc,
+            "Package %r has an invalid Requires-Python: %s", dist.project_name, exc
         )
         return
 
     if is_compatible:
         return
 
-    version = '.'.join(map(str, version_info))
+    version = ".".join(map(str, version_info))
     if ignore_requires_python:
         logger.debug(
-            'Ignoring failed Requires-Python check for package %r: '
-            '%s not in %r',
-            dist.project_name, version, requires_python,
+            "Ignoring failed Requires-Python check for package %r: %s not in %r",
+            dist.project_name,
+            version,
+            requires_python,
         )
         return
 
     raise UnsupportedPythonVersion(
-        'Package {!r} requires a different Python: {} not in {!r}'.format(
-            dist.project_name, version, requires_python,
-        ))
+        "Package {!r} requires a different Python: {} not in {!r}".format(
+            dist.project_name, version, requires_python
+        )
+    )
 
 
 class Resolver(object):
@@ -152,8 +148,9 @@ class Resolver(object):
         self.use_user_site = use_user_site
         self._make_install_req = make_install_req
 
-        self._discovered_dependencies = \
-            defaultdict(list)  # type: DefaultDict[str, List]
+        self._discovered_dependencies = defaultdict(
+            list
+        )  # type: DefaultDict[str, List]
 
     def resolve(self, requirement_set):
         # type: (RequirementSet) -> None
@@ -173,13 +170,11 @@ class Resolver(object):
 
         # If any top-level requirement has a hash specified, enter
         # hash-checking mode, which requires hashes from all.
-        root_reqs = (
-            requirement_set.unnamed_requirements +
-            list(requirement_set.requirements.values())
+        root_reqs = requirement_set.unnamed_requirements + list(
+            requirement_set.requirements.values()
         )
-        self.require_hashes = (
-            requirement_set.require_hashes or
-            any(req.has_hash_options for req in root_reqs)
+        self.require_hashes = requirement_set.require_hashes or any(
+            req.has_hash_options for req in root_reqs
         )
 
         # Display where finder is looking for packages
@@ -196,9 +191,7 @@ class Resolver(object):
         hash_errors = HashErrors()
         for req in chain(root_reqs, discovered_reqs):
             try:
-                discovered_reqs.extend(
-                    self._resolve_one(requirement_set, req)
-                )
+                discovered_reqs.extend(self._resolve_one(requirement_set, req))
             except HashError as exc:
                 exc.req = req
                 hash_errors.append(exc)
@@ -259,8 +252,8 @@ class Resolver(object):
 
         if not self._is_upgrade_allowed(req_to_install):
             if self.upgrade_strategy == "only-if-needed":
-                return 'already satisfied, skipping upgrade'
-            return 'already satisfied'
+                return "already satisfied, skipping upgrade"
+            return "already satisfied"
 
         # Check for the possibility of an upgrade.  For link-based
         # requirements we have to pull the tree down and inspect to assess
@@ -270,7 +263,7 @@ class Resolver(object):
                 self.finder.find_requirement(req_to_install, upgrade=True)
             except BestVersionAlreadyInstalled:
                 # Then the best version is installed.
-                return 'already up-to-date'
+                return "already up-to-date"
             except DistributionNotFound:
                 # No distribution found, so we squash the error.  It will
                 # be raised later when we re-try later to do the install.
@@ -285,13 +278,13 @@ class Resolver(object):
         """Takes a InstallRequirement and returns a single AbstractDist \
         representing a prepared variant of the same.
         """
-        assert self.require_hashes is not None, (
-            "require_hashes should have been set in Resolver.resolve()"
-        )
+        assert (
+            self.require_hashes is not None
+        ), "require_hashes should have been set in Resolver.resolve()"
 
         if req.editable:
             return self.preparer.prepare_editable_requirement(
-                req, self.require_hashes, self.use_user_site, self.finder,
+                req, self.require_hashes, self.use_user_site, self.finder
             )
 
         # satisfied_by is only evaluated by calling _check_skip_installed,
@@ -325,17 +318,16 @@ class Resolver(object):
 
         if req.satisfied_by:
             should_modify = (
-                self.upgrade_strategy != "to-satisfy-only" or
-                self.force_reinstall or
-                self.ignore_installed or
-                req.link.scheme == 'file'
+                self.upgrade_strategy != "to-satisfy-only"
+                or self.force_reinstall
+                or self.ignore_installed
+                or req.link.scheme == "file"
             )
             if should_modify:
                 self._set_req_to_reinstall(req)
             else:
                 logger.info(
-                    'Requirement already satisfied (use --upgrade to upgrade):'
-                    ' %s', req,
+                    "Requirement already satisfied (use --upgrade to upgrade): %s", req
                 )
 
         return abstract_dist
@@ -343,7 +335,7 @@ class Resolver(object):
     def _resolve_one(
         self,
         requirement_set,  # type: RequirementSet
-        req_to_install  # type: InstallRequirement
+        req_to_install,  # type: InstallRequirement
     ):
         # type: (...) -> List[InstallRequirement]
         """Prepare a single requirements file.
@@ -368,17 +360,15 @@ class Resolver(object):
         # This will raise UnsupportedPythonVersion if the given Python
         # version isn't compatible with the distribution's Requires-Python.
         _check_dist_requires_python(
-            dist, version_info=self._py_version_info,
+            dist,
+            version_info=self._py_version_info,
             ignore_requires_python=self.ignore_requires_python,
         )
 
         more_reqs = []  # type: List[InstallRequirement]
 
         def add_req(subreq, extras_requested):
-            sub_install_req = self._make_install_req(
-                str(subreq),
-                req_to_install,
-            )
+            sub_install_req = self._make_install_req(str(subreq), req_to_install)
             parent_req_name = req_to_install.name
             to_scan_again, add_to_parent = requirement_set.add_requirement(
                 sub_install_req,
@@ -386,9 +376,7 @@ class Resolver(object):
                 extras_requested=extras_requested,
             )
             if parent_req_name and add_to_parent:
-                self._discovered_dependencies[parent_req_name].append(
-                    add_to_parent
-                )
+                self._discovered_dependencies[parent_req_name].append(add_to_parent)
             more_reqs.extend(to_scan_again)
 
         with indent_log():
@@ -397,24 +385,19 @@ class Resolver(object):
             if not requirement_set.has_requirement(req_to_install.name):
                 # 'unnamed' requirements will get added here
                 req_to_install.is_direct = True
-                requirement_set.add_requirement(
-                    req_to_install, parent_req_name=None,
-                )
+                requirement_set.add_requirement(req_to_install, parent_req_name=None)
 
             if not self.ignore_dependencies:
                 if req_to_install.extras:
                     logger.debug(
                         "Installing extra requirements: %r",
-                        ','.join(req_to_install.extras),
+                        ",".join(req_to_install.extras),
                     )
                 missing_requested = sorted(
                     set(req_to_install.extras) - set(dist.extras)
                 )
                 for missing in missing_requested:
-                    logger.warning(
-                        '%s does not provide the extra \'%s\'',
-                        dist, missing
-                    )
+                    logger.warning("%s does not provide the extra '%s'", dist, missing)
 
                 available_requested = sorted(
                     set(dist.extras) & set(req_to_install.extras)

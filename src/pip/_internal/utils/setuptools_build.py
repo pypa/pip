@@ -21,10 +21,10 @@ _SETUPTOOLS_SHIM = (
 
 
 def make_setuptools_shim_args(
-        setup_py_path,  # type: str
-        global_options=None,  # type: Sequence[str]
-        no_user_config=False,  # type: bool
-        unbuffered_output=False  # type: bool
+    setup_py_path,  # type: str
+    global_options=None,  # type: Sequence[str]
+    no_user_config=False,  # type: bool
+    unbuffered_output=False,  # type: bool
 ):
     # type: (...) -> List[str]
     """
@@ -38,10 +38,10 @@ def make_setuptools_shim_args(
     """
     args = [sys.executable]
     if unbuffered_output:
-        args.append('-u')
-    args.extend(['-c', _SETUPTOOLS_SHIM.format(setup_py_path)])
+        args.append("-u")
+    args.extend(["-c", _SETUPTOOLS_SHIM.format(setup_py_path)])
     if global_options:
         args.extend(global_options)
     if no_user_config:
-        args.append('--no-user-cfg')
+        args.append("--no-user-cfg")
     return args

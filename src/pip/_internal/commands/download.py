@@ -58,19 +58,19 @@ class DownloadCommand(RequirementCommand):
         cmd_opts.add_option(cmdoptions.no_use_pep517())
 
         cmd_opts.add_option(
-            '-d', '--dest', '--destination-dir', '--destination-directory',
-            dest='download_dir',
-            metavar='dir',
+            "-d",
+            "--dest",
+            "--destination-dir",
+            "--destination-directory",
+            dest="download_dir",
+            metavar="dir",
             default=os.curdir,
             help=("Download packages into <dir>."),
         )
 
         cmdoptions.add_target_python_options(cmd_opts)
 
-        index_opts = cmdoptions.make_option_group(
-            cmdoptions.index_group,
-            self.parser,
-        )
+        index_opts = cmdoptions.make_option_group(cmdoptions.index_group, self.parser)
 
         self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, cmd_opts)
@@ -92,11 +92,9 @@ class DownloadCommand(RequirementCommand):
 
         target_python = make_target_python(options)
         finder = self._build_package_finder(
-            options=options,
-            session=session,
-            target_python=target_python,
+            options=options, session=session, target_python=target_python
         )
-        build_delete = (not (options.no_clean or options.build_dir))
+        build_delete = not (options.no_clean or options.build_dir)
         if options.cache_dir and not check_path_owner(options.cache_dir):
             logger.warning(
                 "The directory '%s' or its parent directory is not owned "
@@ -112,16 +110,9 @@ class DownloadCommand(RequirementCommand):
             options.build_dir, delete=build_delete, kind="download"
         ) as directory:
 
-            requirement_set = RequirementSet(
-                require_hashes=options.require_hashes,
-            )
+            requirement_set = RequirementSet(require_hashes=options.require_hashes)
             self.populate_requirement_set(
-                requirement_set,
-                args,
-                options,
-                finder,
-                session,
-                None
+                requirement_set, args, options, finder, session, None
             )
 
             preparer = self.make_requirement_preparer(
@@ -140,11 +131,11 @@ class DownloadCommand(RequirementCommand):
             )
             resolver.resolve(requirement_set)
 
-            downloaded = ' '.join([
-                req.name for req in requirement_set.successfully_downloaded
-            ])
+            downloaded = " ".join(
+                [req.name for req in requirement_set.successfully_downloaded]
+            )
             if downloaded:
-                write_output('Successfully downloaded %s', downloaded)
+                write_output("Successfully downloaded %s", downloaded)
 
             # Clean up
             if not options.no_clean:

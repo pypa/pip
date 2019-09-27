@@ -35,7 +35,7 @@ def main(args=None):
     # Needed for locale.getpreferredencoding(False) to work
     # in pip._internal.utils.encoding.auto_decode
     try:
-        locale.setlocale(locale.LC_ALL, '')
+        locale.setlocale(locale.LC_ALL, "")
     except locale.Error as e:
         # setlocale can apparently crash if locale are uninitialized
         logger.debug("Ignoring error %s when setting locale", e)

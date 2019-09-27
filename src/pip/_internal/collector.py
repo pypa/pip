@@ -24,8 +24,15 @@ from pip._internal.vcs import is_url, vcs
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Callable, Dict, Iterable, List, MutableMapping, Optional, Sequence,
-        Tuple, Union,
+        Callable,
+        Dict,
+        Iterable,
+        List,
+        MutableMapping,
+        Optional,
+        Sequence,
+        Tuple,
+        Union,
     )
     import xml.etree.ElementTree
 
@@ -48,7 +55,7 @@ def _match_vcs_scheme(url):
     Returns the matched VCS scheme, or None if there's no match.
     """
     for scheme in vcs.schemes:
-        if url.lower().startswith(scheme) and url[len(scheme)] in '+:':
+        if url.lower().startswith(scheme) and url[len(scheme)] in "+:":
             return scheme
     return None
 
@@ -95,7 +102,7 @@ def _ensure_html_response(url, session):
     `_NotHTML` if the content type is not text/html.
     """
     scheme, netloc, path, query, fragment = urllib_parse.urlsplit(url)
-    if scheme not in {'http', 'https'}:
+    if scheme not in {"http", "https"}:
         raise _NotHTTP()
 
     resp = session.head(url, allow_redirects=True)
@@ -121,7 +128,7 @@ def _get_html_response(url, session):
     if _is_url_like_archive(url):
         _ensure_html_response(url, session=session)
 
-    logger.debug('Getting page %s', redact_auth_from_url(url))
+    logger.debug("Getting page %s", redact_auth_from_url(url))
 
     resp = session.get(
         url,
@@ -162,7 +169,7 @@ def _get_encoding_from_headers(headers):
     if headers and "Content-Type" in headers:
         content_type, params = cgi.parse_header(headers["Content-Type"])
         if "charset" in params:
-            return params['charset']
+            return params["charset"]
     return None
 
 
@@ -203,8 +210,7 @@ def _clean_link(url):
         # should not be quoted. On Linux where drive letters do not
         # exist, the colon should be quoted. We rely on urllib.request
         # to do the right thing here.
-        path = urllib_request.pathname2url(
-            urllib_request.url2pathname(result.path))
+        path = urllib_request.pathname2url(urllib_request.url2pathname(result.path))
     else:
         # In addition to the `/` character we protect `@` so that
         # revision strings in VCS URLs are properly parsed.
@@ -213,7 +219,7 @@ def _clean_link(url):
 
 
 def _create_link_from_element(
-    anchor,    # type: HTMLElement
+    anchor,  # type: HTMLElement
     page_url,  # type: str
     base_url,  # type: str
 ):
@@ -226,19 +232,16 @@ def _create_link_from_element(
         return None
 
     url = _clean_link(urllib_parse.urljoin(base_url, href))
-    pyrequire = anchor.get('data-requires-python')
+    pyrequire = anchor.get("data-requires-python")
     pyrequire = unescape(pyrequire) if pyrequire else None
 
-    yanked_reason = anchor.get('data-yanked')
+    yanked_reason = anchor.get("data-yanked")
     if yanked_reason:
         # This is a unicode string in Python 2 (and 3).
         yanked_reason = unescape(yanked_reason)
 
     link = Link(
-        url,
-        comes_from=page_url,
-        requires_python=pyrequire,
-        yanked_reason=yanked_reason,
+        url, comes_from=page_url, requires_python=pyrequire, yanked_reason=yanked_reason
     )
 
     return link
@@ -250,19 +253,13 @@ def parse_links(page):
     Parse an HTML document, and yield its anchor elements as Link objects.
     """
     document = html5lib.parse(
-        page.content,
-        transport_encoding=page.encoding,
-        namespaceHTMLElements=False,
+        page.content, transport_encoding=page.encoding, namespaceHTMLElements=False
     )
 
     url = page.url
     base_url = _determine_base_url(document, url)
     for anchor in document.findall(".//a"):
-        link = _create_link_from_element(
-            anchor,
-            page_url=url,
-            base_url=base_url,
-        )
+        link = _create_link_from_element(anchor, page_url=url, base_url=base_url)
         if link is None:
             continue
         yield link
@@ -273,9 +270,9 @@ class HTMLPage(object):
 
     def __init__(
         self,
-        content,   # type: bytes
+        content,  # type: bytes
         encoding,  # type: Optional[str]
-        url,       # type: str
+        url,  # type: str
     ):
         # type: (...) -> None
         """
@@ -293,7 +290,7 @@ class HTMLPage(object):
 def _handle_get_page_fail(
     link,  # type: Link
     reason,  # type: Union[str, Exception]
-    meth=None  # type: Optional[Callable[..., None]]
+    meth=None,  # type: Optional[Callable[..., None]]
 ):
     # type: (...) -> None
     if meth is None:
@@ -314,35 +311,38 @@ def _get_html_page(link, session=None):
             "_get_html_page() missing 1 required keyword argument: 'session'"
         )
 
-    url = link.url.split('#', 1)[0]
+    url = link.url.split("#", 1)[0]
 
     # Check for VCS schemes that do not support lookup as web pages.
     vcs_scheme = _match_vcs_scheme(url)
     if vcs_scheme:
-        logger.debug('Cannot look at %s URL %s', vcs_scheme, link)
+        logger.debug("Cannot look at %s URL %s", vcs_scheme, link)
         return None
 
     # Tack index.html onto file:// URLs that point to directories
     scheme, _, path, _, _, _ = urllib_parse.urlparse(url)
-    if (scheme == 'file' and os.path.isdir(urllib_request.url2pathname(path))):
+    if scheme == "file" and os.path.isdir(urllib_request.url2pathname(path)):
         # add trailing slash if not present so urljoin doesn't trim
         # final segment
-        if not url.endswith('/'):
-            url += '/'
-        url = urllib_parse.urljoin(url, 'index.html')
-        logger.debug(' file: URL is directory, getting %s', url)
+        if not url.endswith("/"):
+            url += "/"
+        url = urllib_parse.urljoin(url, "index.html")
+        logger.debug(" file: URL is directory, getting %s", url)
 
     try:
         resp = _get_html_response(url, session=session)
     except _NotHTTP:
         logger.debug(
-            'Skipping page %s because it looks like an archive, and cannot '
-            'be checked by HEAD.', link,
+            "Skipping page %s because it looks like an archive, and cannot "
+            "be checked by HEAD.",
+            link,
         )
     except _NotHTML as exc:
         logger.debug(
-            'Skipping page %s because the %s request got Content-Type: %s',
-            link, exc.request_desc, exc.content_type,
+            "Skipping page %s because the %s request got Content-Type: %s",
+            link,
+            exc.request_desc,
+            exc.content_type,
         )
     except HTTPError as exc:
         _handle_get_page_fail(link, exc)
@@ -383,7 +383,7 @@ def group_locations(locations, expand_dir=False):
     # puts the url for the given file path into the appropriate list
     def sort_path(path):
         url = path_to_url(path)
-        if mimetypes.guess_type(url, strict=False)[0] == 'text/html':
+        if mimetypes.guess_type(url, strict=False)[0] == "text/html":
             urls.append(url)
         else:
             files.append(url)
@@ -391,7 +391,7 @@ def group_locations(locations, expand_dir=False):
     for url in locations:
 
         is_local_path = os.path.exists(url)
-        is_file_url = url.startswith('file:')
+        is_file_url = url.startswith("file:")
 
         if is_local_path or is_file_url:
             if is_local_path:
@@ -407,15 +407,13 @@ def group_locations(locations, expand_dir=False):
                     urls.append(url)
                 else:
                     logger.warning(
-                        "Path '{0}' is ignored: "
-                        "it is a directory.".format(path),
+                        "Path '{0}' is ignored: it is a directory.".format(path)
                     )
             elif os.path.isfile(path):
                 sort_path(path)
             else:
                 logger.warning(
-                    "Url '%s' is ignored: it is neither a file "
-                    "nor a directory.", url,
+                    "Url '%s' is ignored: it is neither a file nor a directory.", url
                 )
         elif is_url(url):
             # Only add url with clear scheme
@@ -423,7 +421,8 @@ def group_locations(locations, expand_dir=False):
         else:
             logger.warning(
                 "Url '%s' is ignored. It is either a non-existing "
-                "path or lacks a specific scheme.", url,
+                "path or lacks a specific scheme.",
+                url,
             )
 
     return files, urls
@@ -442,9 +441,9 @@ class CollectedLinks(object):
 
     def __init__(
         self,
-        files,       # type: List[Link]
+        files,  # type: List[Link]
         find_links,  # type: List[Link]
-        pages,       # type: Dict[str, List[Link]]
+        pages,  # type: Dict[str, List[Link]]
     ):
         # type: (...) -> None
         """
@@ -468,7 +467,7 @@ class LinkCollector(object):
 
     def __init__(
         self,
-        session,       # type: PipSession
+        session,  # type: PipSession
         search_scope,  # type: SearchScope
     ):
         # type: (...) -> None
@@ -502,44 +501,38 @@ class LinkCollector(object):
         search_scope = self.search_scope
         index_locations = search_scope.get_index_urls_locations(project_name)
         index_file_loc, index_url_loc = group_locations(index_locations)
-        fl_file_loc, fl_url_loc = group_locations(
-            self.find_links, expand_dir=True,
-        )
+        fl_file_loc, fl_url_loc = group_locations(self.find_links, expand_dir=True)
 
-        file_links = [
-            Link(url) for url in itertools.chain(index_file_loc, fl_file_loc)
-        ]
+        file_links = [Link(url) for url in itertools.chain(index_file_loc, fl_file_loc)]
 
         # We trust every directly linked archive in find_links
-        find_link_links = [Link(url, '-f') for url in self.find_links]
+        find_link_links = [Link(url, "-f") for url in self.find_links]
 
         # We trust every url that the user has given us whether it was given
         # via --index-url or --find-links.
         # We want to filter out anything that does not have a secure origin.
         url_locations = [
-            link for link in itertools.chain(
-                (Link(url) for url in index_url_loc),
-                (Link(url) for url in fl_url_loc),
+            link
+            for link in itertools.chain(
+                (Link(url) for url in index_url_loc), (Link(url) for url in fl_url_loc)
             )
             if self.session.is_secure_origin(link)
         ]
 
         url_locations = _remove_duplicate_links(url_locations)
         lines = [
-            '{} location(s) to search for versions of {}:'.format(
-                len(url_locations), project_name,
-            ),
+            "{} location(s) to search for versions of {}:".format(
+                len(url_locations), project_name
+            )
         ]
         for link in url_locations:
-            lines.append('* {}'.format(link))
-        logger.debug('\n'.join(lines))
+            lines.append("* {}".format(link))
+        logger.debug("\n".join(lines))
 
         pages_links = {}
         for page in self._get_pages(url_locations):
             pages_links[page.url] = list(parse_links(page))
 
         return CollectedLinks(
-            files=file_links,
-            find_links=find_link_links,
-            pages=pages_links,
+            files=file_links, find_links=find_link_links, pages=pages_links
         )

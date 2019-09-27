@@ -27,8 +27,9 @@ def _generate_metadata_legacy(install_req):
     # type: (InstallRequirement) -> None
     req_details_str = install_req.name or "from {}".format(install_req.link)
     logger.debug(
-        'Running setup.py (path:%s) egg_info for package %s',
-        install_req.setup_py_path, req_details_str,
+        "Running setup.py (path:%s) egg_info for package %s",
+        install_req.setup_py_path,
+        req_details_str,
     )
 
     # Compose arguments for subprocess call
@@ -42,9 +43,9 @@ def _generate_metadata_legacy(install_req):
     egg_base_option = []  # type: List[str]
     if not install_req.editable:
         egg_info_dir = os.path.join(
-            install_req.unpacked_source_directory, 'pip-egg-info',
+            install_req.unpacked_source_directory, "pip-egg-info"
         )
-        egg_base_option = ['--egg-base', egg_info_dir]
+        egg_base_option = ["--egg-base", egg_info_dir]
 
         # setuptools complains if the target directory does not exist.
         ensure_dir(egg_info_dir)
@@ -53,7 +54,7 @@ def _generate_metadata_legacy(install_req):
         call_subprocess(
             base_cmd + ["egg_info"] + egg_base_option,
             cwd=install_req.unpacked_source_directory,
-            command_desc='python setup.py egg_info',
+            command_desc="python setup.py egg_info",
         )
 
 

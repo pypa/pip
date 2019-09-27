@@ -41,6 +41,7 @@ class SessionCommandMixin(CommandContextMixIn):
     """
     A class mixin for command classes needing _build_session().
     """
+
     def __init__(self):
         super(SessionCommandMixin, self).__init__()
         self._session = None  # Optional[PipSession]
@@ -71,7 +72,8 @@ class SessionCommandMixin(CommandContextMixIn):
         session = PipSession(
             cache=(
                 normalize_path(os.path.join(options.cache_dir, "http"))
-                if options.cache_dir else None
+                if options.cache_dir
+                else None
             ),
             retries=retries if retries is not None else options.retries,
             trusted_hosts=options.trusted_hosts,
@@ -88,16 +90,11 @@ class SessionCommandMixin(CommandContextMixIn):
 
         # Handle timeouts
         if options.timeout or timeout:
-            session.timeout = (
-                timeout if timeout is not None else options.timeout
-            )
+            session.timeout = timeout if timeout is not None else options.timeout
 
         # Handle configured proxies
         if options.proxy:
-            session.proxies = {
-                "http": options.proxy,
-                "https": options.proxy,
-            }
+            session.proxies = {"http": options.proxy, "https": options.proxy}
 
         # Determine if we can prompt the user for authentication or not
         session.auth.prompting = not options.no_input
@@ -121,29 +118,26 @@ class IndexGroupCommand(Command, SessionCommandMixin):
         This overrides the default behavior of not doing the check.
         """
         # Make sure the index_group options are present.
-        assert hasattr(options, 'no_index')
+        assert hasattr(options, "no_index")
 
         if options.disable_pip_version_check or options.no_index:
             return
 
         # Otherwise, check if we're using the latest version of pip available.
         session = self._build_session(
-            options,
-            retries=0,
-            timeout=min(5, options.timeout)
+            options, retries=0, timeout=min(5, options.timeout)
         )
         with session:
             pip_version_check(session, options)
 
 
 class RequirementCommand(IndexGroupCommand):
-
     @staticmethod
     def make_requirement_preparer(
-        temp_build_dir,           # type: TempDirectory
-        options,                  # type: Values
-        req_tracker,              # type: RequirementTracker
-        download_dir=None,        # type: str
+        temp_build_dir,  # type: TempDirectory
+        options,  # type: Values
+        req_tracker,  # type: RequirementTracker
+        download_dir=None,  # type: str
         wheel_download_dir=None,  # type: str
     ):
         # type: (...) -> RequirementPreparer
@@ -164,18 +158,18 @@ class RequirementCommand(IndexGroupCommand):
 
     @staticmethod
     def make_resolver(
-        preparer,                            # type: RequirementPreparer
-        session,                             # type: PipSession
-        finder,                              # type: PackageFinder
-        options,                             # type: Values
-        wheel_cache=None,                    # type: Optional[WheelCache]
-        use_user_site=False,                 # type: bool
-        ignore_installed=True,               # type: bool
-        ignore_requires_python=False,        # type: bool
-        force_reinstall=False,               # type: bool
+        preparer,  # type: RequirementPreparer
+        session,  # type: PipSession
+        finder,  # type: PackageFinder
+        options,  # type: Values
+        wheel_cache=None,  # type: Optional[WheelCache]
+        use_user_site=False,  # type: bool
+        ignore_installed=True,  # type: bool
+        ignore_requires_python=False,  # type: bool
+        force_reinstall=False,  # type: bool
         upgrade_strategy="to-satisfy-only",  # type: str
-        use_pep517=None,                     # type: Optional[bool]
-        py_version_info=None            # type: Optional[Tuple[int, ...]]
+        use_pep517=None,  # type: Optional[bool]
+        py_version_info=None,  # type: Optional[Tuple[int, ...]]
     ):
         # type: (...) -> Resolver
         """
@@ -198,17 +192,17 @@ class RequirementCommand(IndexGroupCommand):
             ignore_requires_python=ignore_requires_python,
             force_reinstall=force_reinstall,
             upgrade_strategy=upgrade_strategy,
-            py_version_info=py_version_info
+            py_version_info=py_version_info,
         )
 
     def populate_requirement_set(
         self,
         requirement_set,  # type: RequirementSet
-        args,             # type: List[str]
-        options,          # type: Values
-        finder,           # type: PackageFinder
-        session,          # type: PipSession
-        wheel_cache,      # type: Optional[WheelCache]
+        args,  # type: List[str]
+        options,  # type: Values
+        finder,  # type: PackageFinder
+        session,  # type: PipSession
+        wheel_cache,  # type: Optional[WheelCache]
     ):
         # type: (...) -> None
         """
@@ -219,17 +213,23 @@ class RequirementCommand(IndexGroupCommand):
 
         for filename in options.constraints:
             for req_to_add in parse_requirements(
-                    filename,
-                    constraint=True, finder=finder, options=options,
-                    session=session, wheel_cache=wheel_cache):
+                filename,
+                constraint=True,
+                finder=finder,
+                options=options,
+                session=session,
+                wheel_cache=wheel_cache,
+            ):
                 req_to_add.is_direct = True
                 requirement_set.add_requirement(req_to_add)
 
         for req in args:
             req_to_add = install_req_from_line(
-                req, None, isolated=options.isolated_mode,
+                req,
+                None,
+                isolated=options.isolated_mode,
                 use_pep517=options.use_pep517,
-                wheel_cache=wheel_cache
+                wheel_cache=wheel_cache,
             )
             req_to_add.is_direct = True
             requirement_set.add_requirement(req_to_add)
@@ -239,17 +239,20 @@ class RequirementCommand(IndexGroupCommand):
                 req,
                 isolated=options.isolated_mode,
                 use_pep517=options.use_pep517,
-                wheel_cache=wheel_cache
+                wheel_cache=wheel_cache,
             )
             req_to_add.is_direct = True
             requirement_set.add_requirement(req_to_add)
 
         for filename in options.requirements:
             for req_to_add in parse_requirements(
-                    filename,
-                    finder=finder, options=options, session=session,
-                    wheel_cache=wheel_cache,
-                    use_pep517=options.use_pep517):
+                filename,
+                finder=finder,
+                options=options,
+                session=session,
+                wheel_cache=wheel_cache,
+                use_pep517=options.use_pep517,
+            ):
                 req_to_add.is_direct = True
                 requirement_set.add_requirement(req_to_add)
         # If --require-hashes was a line in a requirements file, tell
@@ -257,22 +260,24 @@ class RequirementCommand(IndexGroupCommand):
         requirement_set.require_hashes = options.require_hashes
 
         if not (args or options.editables or options.requirements):
-            opts = {'name': self.name}
+            opts = {"name": self.name}
             if options.find_links:
                 raise CommandError(
-                    'You must give at least one requirement to %(name)s '
-                    '(maybe you meant "pip %(name)s %(links)s"?)' %
-                    dict(opts, links=' '.join(options.find_links)))
+                    "You must give at least one requirement to %(name)s "
+                    '(maybe you meant "pip %(name)s %(links)s"?)'
+                    % dict(opts, links=" ".join(options.find_links))
+                )
             else:
                 raise CommandError(
-                    'You must give at least one requirement to %(name)s '
-                    '(see "pip help %(name)s")' % opts)
+                    "You must give at least one requirement to %(name)s "
+                    '(see "pip help %(name)s")' % opts
+                )
 
     def _build_package_finder(
         self,
-        options,               # type: Values
-        session,               # type: PipSession
-        target_python=None,    # type: Optional[TargetPython]
+        options,  # type: Values
+        session,  # type: PipSession
+        target_python=None,  # type: Optional[TargetPython]
         ignore_requires_python=None,  # type: Optional[bool]
     ):
         # type: (...) -> PackageFinder

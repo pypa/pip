@@ -34,9 +34,7 @@ try:
 except ImportError:
     keyring = None
 except Exception as exc:
-    logger.warning(
-        "Keyring is skipped due to an exception: %s", str(exc),
-    )
+    logger.warning("Keyring is skipped due to an exception: %s", str(exc))
     keyring = None
 
 
@@ -64,13 +62,10 @@ def get_keyring_auth(url, username):
                 return username, password
 
     except Exception as exc:
-        logger.warning(
-            "Keyring is skipped due to an exception: %s", str(exc),
-        )
+        logger.warning("Keyring is skipped due to an exception: %s", str(exc))
 
 
 class MultiDomainBasicAuth(AuthBase):
-
     def __init__(self, prompting=True, index_urls=None):
         # type: (bool, Optional[Values]) -> None
         self.prompting = prompting
@@ -104,13 +99,10 @@ class MultiDomainBasicAuth(AuthBase):
             if url.startswith(prefix):
                 return u
 
-    def _get_new_credentials(self, original_url, allow_netrc=True,
-                             allow_keyring=True):
+    def _get_new_credentials(self, original_url, allow_netrc=True, allow_keyring=True):
         """Find and return credentials for the specified URL."""
         # Split the credentials and netloc from the url.
-        url, netloc, url_user_password = split_auth_netloc_from_url(
-            original_url,
-        )
+        url, netloc, url_user_password = split_auth_netloc_from_url(original_url)
 
         # Start with the credentials embedded in the url
         username, password = url_user_password
@@ -144,9 +136,8 @@ class MultiDomainBasicAuth(AuthBase):
         # If we don't have a password and keyring is available, use it.
         if allow_keyring:
             # The index url is more specific than the netloc, so try it first
-            kr_auth = (
-                get_keyring_auth(index_url, username) or
-                get_keyring_auth(netloc, username)
+            kr_auth = get_keyring_auth(index_url, username) or get_keyring_auth(
+                netloc, username
             )
             if kr_auth:
                 logger.debug("Found credentials in keyring for %s", netloc)
@@ -187,7 +178,8 @@ class MultiDomainBasicAuth(AuthBase):
 
         assert (
             # Credentials were found
-            (username is not None and password is not None) or
+            (username is not None and password is not None)
+            or
             # Credentials were not found
             (username is None and password is None)
         ), "Could not load credentials from url: {}".format(original_url)
@@ -276,7 +268,7 @@ class MultiDomainBasicAuth(AuthBase):
         """Response callback to warn about incorrect credentials."""
         if resp.status_code == 401:
             logger.warning(
-                '401 Error, Credentials not correct for %s', resp.request.url,
+                "401 Error, Credentials not correct for %s", resp.request.url
             )
 
     def save_credentials(self, resp, **kwargs):
@@ -289,7 +281,7 @@ class MultiDomainBasicAuth(AuthBase):
         self._credentials_to_save = None
         if creds and resp.status_code < 400:
             try:
-                logger.info('Saving credentials to keyring')
+                logger.info("Saving credentials to keyring")
                 keyring.set_password(*creds)
             except Exception:
-                logger.exception('Failed to save credentials')
+                logger.exception("Failed to save credentials")

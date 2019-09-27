@@ -44,10 +44,10 @@ class SourceDistribution(AbstractDistribution):
             error_message = format_string.format(
                 requirement=self.req,
                 conflicting_with=conflicting_with,
-                description=', '.join(
-                    '%s is incompatible with %s' % (installed, wanted)
+                description=", ".join(
+                    "%s is incompatible with %s" % (installed, wanted)
                     for installed, wanted in sorted(conflicting)
-                )
+                ),
             )
             raise InstallationError(error_message)
 
@@ -55,24 +55,24 @@ class SourceDistribution(AbstractDistribution):
         # requirements.
         self.req.build_env = BuildEnvironment()
         self.req.build_env.install_requirements(
-            finder, self.req.pyproject_requires, 'overlay',
-            "Installing build dependencies"
+            finder,
+            self.req.pyproject_requires,
+            "overlay",
+            "Installing build dependencies",
         )
         conflicting, missing = self.req.build_env.check_requirements(
             self.req.requirements_to_check
         )
         if conflicting:
-            _raise_conflicts("PEP 517/518 supported requirements",
-                             conflicting)
+            _raise_conflicts("PEP 517/518 supported requirements", conflicting)
         if missing:
             logger.warning(
-                "Missing build requirements in pyproject.toml for %s.",
-                self.req,
+                "Missing build requirements in pyproject.toml for %s.", self.req
             )
             logger.warning(
                 "The project does not specify a build backend, and "
                 "pip cannot fall back to setuptools without %s.",
-                " and ".join(map(repr, sorted(missing)))
+                " and ".join(map(repr, sorted(missing))),
             )
         # Install any extra build dependencies that the backend requests.
         # This must be done in a second pass, as the pyproject.toml
@@ -85,6 +85,5 @@ class SourceDistribution(AbstractDistribution):
         if conflicting:
             _raise_conflicts("the backend dependencies", conflicting)
         self.req.build_env.install_requirements(
-            finder, missing, 'normal',
-            "Installing backend dependencies"
+            finder, missing, "normal", "Installing backend dependencies"
         )

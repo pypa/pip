@@ -10,12 +10,11 @@ from tests.lib.configuration_helpers import ConfigurationMixin, kinds
 
 
 def test_no_options_passed_should_error(script):
-    result = script.pip('config', expect_error=True)
+    result = script.pip("config", expect_error=True)
     assert result.returncode == ERROR
 
 
 class TestBasicLoading(ConfigurationMixin):
-
     @pytest.mark.skip("Can't modify underlying file for any mode")
     def test_reads_file_appropriately(self, script):
         contents = """
@@ -45,10 +44,9 @@ class TestBasicLoading(ConfigurationMixin):
 
         result = script.pip("config", "list")
 
-        lines = list(filter(
-            lambda x: x.startswith("test.listing-"),
-            result.stdout.splitlines()
-        ))
+        lines = list(
+            filter(lambda x: x.startswith("test.listing-"), result.stdout.splitlines())
+        )
 
         expected = """
             test.listing-alpha='1'
@@ -59,6 +57,5 @@ class TestBasicLoading(ConfigurationMixin):
         assert lines == textwrap.dedent(expected).strip().splitlines()
 
     def test_forget_section(self, script):
-        result = script.pip("config", "set", "isolated", "true",
-                            expect_error=True)
+        result = script.pip("config", "set", "isolated", "true", expect_error=True)
         assert "global.isolated" in result.stderr

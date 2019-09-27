@@ -22,20 +22,20 @@ logger = logging.getLogger(__name__)
 
 def show_value(name, value):
     # type: (str, str) -> None
-    logger.info('{}: {}'.format(name, value))
+    logger.info("{}: {}".format(name, value))
 
 
 def show_sys_implementation():
     # type: () -> None
-    logger.info('sys.implementation:')
-    if hasattr(sys, 'implementation'):
+    logger.info("sys.implementation:")
+    if hasattr(sys, "implementation"):
         implementation = sys.implementation  # type: ignore
         implementation_name = implementation.name
     else:
-        implementation_name = ''
+        implementation_name = ""
 
     with indent_log():
-        show_value('name', implementation_name)
+        show_value("name", implementation_name)
 
 
 def show_tags(options):
@@ -47,11 +47,11 @@ def show_tags(options):
 
     # Display the target options that were explicitly provided.
     formatted_target = target_python.format_given()
-    suffix = ''
+    suffix = ""
     if formatted_target:
-        suffix = ' (target: {})'.format(formatted_target)
+        suffix = " (target: {})".format(formatted_target)
 
-    msg = 'Compatible tags: {}{}'.format(len(tags), suffix)
+    msg = "Compatible tags: {}{}".format(len(tags), suffix)
     logger.info(msg)
 
     if options.verbose < 1 and len(tags) > tag_limit:
@@ -66,8 +66,7 @@ def show_tags(options):
 
         if tags_limited:
             msg = (
-                '...\n'
-                '[First {tag_limit} tags shown. Pass --verbose to show all.]'
+                "...\n[First {tag_limit} tags shown. Pass --verbose to show all.]"
             ).format(tag_limit=tag_limit)
             logger.info(msg)
 
@@ -96,15 +95,13 @@ class DebugCommand(Command):
             "details, since the output and options of this command may "
             "change without notice."
         )
-        show_value('pip version', get_pip_version())
-        show_value('sys.version', sys.version)
-        show_value('sys.executable', sys.executable)
-        show_value('sys.getdefaultencoding', sys.getdefaultencoding())
-        show_value('sys.getfilesystemencoding', sys.getfilesystemencoding())
-        show_value(
-            'locale.getpreferredencoding', locale.getpreferredencoding(),
-        )
-        show_value('sys.platform', sys.platform)
+        show_value("pip version", get_pip_version())
+        show_value("sys.version", sys.version)
+        show_value("sys.executable", sys.executable)
+        show_value("sys.getdefaultencoding", sys.getdefaultencoding())
+        show_value("sys.getfilesystemencoding", sys.getfilesystemencoding())
+        show_value("locale.getpreferredencoding", locale.getpreferredencoding())
+        show_value("sys.platform", sys.platform)
         show_sys_implementation()
 
         show_tags(options)

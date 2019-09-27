@@ -4,11 +4,7 @@ import subprocess
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
-from pip._internal.configuration import (
-    Configuration,
-    get_configuration_files,
-    kinds,
-)
+from pip._internal.configuration import Configuration, get_configuration_files, kinds
 from pip._internal.exceptions import PipError
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.misc import get_prog, write_output
@@ -50,49 +46,49 @@ class ConfigurationCommand(Command):
         self.configuration = None
 
         self.cmd_opts.add_option(
-            '--editor',
-            dest='editor',
-            action='store',
+            "--editor",
+            dest="editor",
+            action="store",
             default=None,
             help=(
-                'Editor to use to edit the file. Uses VISUAL or EDITOR '
-                'environment variables if not provided.'
-            )
+                "Editor to use to edit the file. Uses VISUAL or EDITOR "
+                "environment variables if not provided."
+            ),
         )
 
         self.cmd_opts.add_option(
-            '--global',
-            dest='global_file',
-            action='store_true',
+            "--global",
+            dest="global_file",
+            action="store_true",
             default=False,
-            help='Use the system-wide configuration file only'
+            help="Use the system-wide configuration file only",
         )
 
         self.cmd_opts.add_option(
-            '--user',
-            dest='user_file',
-            action='store_true',
+            "--user",
+            dest="user_file",
+            action="store_true",
             default=False,
-            help='Use the user configuration file only'
+            help="Use the user configuration file only",
         )
 
         self.cmd_opts.add_option(
-            '--site',
-            dest='site_file',
-            action='store_true',
+            "--site",
+            dest="site_file",
+            action="store_true",
             default=False,
-            help='Use the current environment configuration file only'
+            help="Use the current environment configuration file only",
         )
 
         self.cmd_opts.add_option(
-            '--venv',
-            dest='venv_file',
-            action='store_true',
+            "--venv",
+            dest="venv_file",
+            action="store_true",
             default=False,
             help=(
-                '[Deprecated] Use the current environment configuration '
-                'file in a virtual environment only'
-            )
+                "[Deprecated] Use the current environment configuration "
+                "file in a virtual environment only"
+            ),
         )
 
         self.parser.insert_option_group(0, self.cmd_opts)
@@ -103,13 +99,13 @@ class ConfigurationCommand(Command):
             "edit": self.open_in_editor,
             "get": self.get_name,
             "set": self.set_name_value,
-            "unset": self.unset_name
+            "unset": self.unset_name,
         }
 
         # Determine action
         if not args or args[0] not in handlers:
-            logger.error("Need an action ({}) to perform.".format(
-                ", ".join(sorted(handlers)))
+            logger.error(
+                "Need an action ({}) to perform.".format(", ".join(sorted(handlers)))
             )
             return ERROR
 
@@ -156,11 +152,15 @@ class ConfigurationCommand(Command):
                     "Use --site instead."
                 )
 
-        file_options = [key for key, value in (
-            (kinds.USER, options.user_file),
-            (kinds.GLOBAL, options.global_file),
-            (kinds.SITE, options.site_file),
-        ) if value]
+        file_options = [
+            key
+            for key, value in (
+                (kinds.USER, options.user_file),
+                (kinds.GLOBAL, options.global_file),
+                (kinds.SITE, options.site_file),
+            )
+            if value
+        ]
 
         if not file_options:
             if not need_value:
@@ -216,8 +216,7 @@ class ConfigurationCommand(Command):
             subprocess.check_call([editor, fname])
         except subprocess.CalledProcessError as e:
             raise PipError(
-                "Editor Subprocess exited with exit code {}"
-                .format(e.returncode)
+                "Editor Subprocess exited with exit code {}".format(e.returncode)
             )
 
     def _get_n_args(self, args, example, n):
@@ -225,7 +224,7 @@ class ConfigurationCommand(Command):
         """
         if len(args) != n:
             msg = (
-                'Got unexpected number of arguments, expected {}. '
+                "Got unexpected number of arguments, expected {}. "
                 '(example: "{} config {}")'
             ).format(n, get_prog(), example)
             raise PipError(msg)
@@ -242,8 +241,7 @@ class ConfigurationCommand(Command):
             self.configuration.save()
         except Exception:
             logger.error(
-                "Unable to save configuration. Please report this as a bug.",
-                exc_info=1
+                "Unable to save configuration. Please report this as a bug.", exc_info=1
             )
             raise PipError("Internal Error.")
 

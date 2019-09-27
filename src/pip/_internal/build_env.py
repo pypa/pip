@@ -28,15 +28,14 @@ logger = logging.getLogger(__name__)
 
 
 class _Prefix:
-
     def __init__(self, path):
         # type: (str) -> None
         self.path = path
         self.setup = False
         self.bin_dir = get_paths(
-            'nt' if os.name == 'nt' else 'posix_prefix',
-            vars={'base': path, 'platbase': path}
-        )['scripts']
+            "nt" if os.name == "nt" else "posix_prefix",
+            vars={"base": path, "platbase": path},
+        )["scripts"]
         # Note: prefer distutils' sysconfig to get the
         # library paths so PyPy is correctly supported.
         purelib = get_python_lib(plat_specific=False, prefix=path)
@@ -55,10 +54,12 @@ class BuildEnvironment(object):
         # type: () -> None
         self._temp_dir = TempDirectory(kind="build-env")
 
-        self._prefixes = OrderedDict((
-            (name, _Prefix(os.path.join(self._temp_dir.path, name)))
-            for name in ('normal', 'overlay')
-        ))
+        self._prefixes = OrderedDict(
+            (
+                (name, _Prefix(os.path.join(self._temp_dir.path, name)))
+                for name in ("normal", "overlay")
+            )
+        )
 
         self._bin_dirs = []  # type: List[str]
         self._lib_dirs = []  # type: List[str]
@@ -70,17 +71,19 @@ class BuildEnvironment(object):
         # - ensure .pth files are honored
         # - prevent access to system site packages
         system_sites = {
-            os.path.normcase(site) for site in (
+            os.path.normcase(site)
+            for site in (
                 get_python_lib(plat_specific=False),
                 get_python_lib(plat_specific=True),
             )
         }
-        self._site_dir = os.path.join(self._temp_dir.path, 'site')
+        self._site_dir = os.path.join(self._temp_dir.path, "site")
         if not os.path.exists(self._site_dir):
             os.mkdir(self._site_dir)
-        with open(os.path.join(self._site_dir, 'sitecustomize.py'), 'w') as fp:
-            fp.write(textwrap.dedent(
-                '''
+        with open(os.path.join(self._site_dir, "sitecustomize.py"), "w") as fp:
+            fp.write(
+                textwrap.dedent(
+                    """
                 import os, site, sys
 
                 # First, drop system-sites related paths.
@@ -103,27 +106,30 @@ class BuildEnvironment(object):
                 for path in {lib_dirs!r}:
                     assert not path in sys.path
                     site.addsitedir(path)
-                '''
-            ).format(system_sites=system_sites, lib_dirs=self._lib_dirs))
+                """
+                ).format(system_sites=system_sites, lib_dirs=self._lib_dirs)
+            )
 
     def __enter__(self):
         self._save_env = {
             name: os.environ.get(name, None)
-            for name in ('PATH', 'PYTHONNOUSERSITE', 'PYTHONPATH')
+            for name in ("PATH", "PYTHONNOUSERSITE", "PYTHONPATH")
         }
 
         path = self._bin_dirs[:]
-        old_path = self._save_env['PATH']
+        old_path = self._save_env["PATH"]
         if old_path:
             path.extend(old_path.split(os.pathsep))
 
         pythonpath = [self._site_dir]
 
-        os.environ.update({
-            'PATH': os.pathsep.join(path),
-            'PYTHONNOUSERSITE': '1',
-            'PYTHONPATH': os.pathsep.join(pythonpath),
-        })
+        os.environ.update(
+            {
+                "PATH": os.pathsep.join(path),
+                "PYTHONNOUSERSITE": "1",
+                "PYTHONPATH": os.pathsep.join(pythonpath),
+            }
+        )
 
     def __exit__(self, exc_type, exc_val, exc_tb):
         for varname, old_value in self._save_env.items():
@@ -151,8 +157,7 @@ class BuildEnvironment(object):
                     if ws.find(Requirement.parse(req)) is None:
                         missing.add(req)
                 except VersionConflict as e:
-                    conflicting.add((str(e.args[0].as_requirement()),
-                                     str(e.args[1])))
+                    conflicting.add((str(e.args[0].as_requirement()), str(e.args[1])))
         return conflicting, missing
 
     def install_requirements(
@@ -160,7 +165,7 @@ class BuildEnvironment(object):
         finder,  # type: PackageFinder
         requirements,  # type: Iterable[str]
         prefix_as_string,  # type: str
-        message  # type: Optional[str]
+        message,  # type: Optional[str]
     ):
         # type: (...) -> None
         prefix = self._prefixes[prefix_as_string]
@@ -169,32 +174,41 @@ class BuildEnvironment(object):
         if not requirements:
             return
         args = [
-            sys.executable, os.path.dirname(pip_location), 'install',
-            '--ignore-installed', '--no-user', '--prefix', prefix.path,
-            '--no-warn-script-location',
+            sys.executable,
+            os.path.dirname(pip_location),
+            "install",
+            "--ignore-installed",
+            "--no-user",
+            "--prefix",
+            prefix.path,
+            "--no-warn-script-location",
         ]  # type: List[str]
         if logger.getEffectiveLevel() <= logging.DEBUG:
-            args.append('-v')
-        for format_control in ('no_binary', 'only_binary'):
+            args.append("-v")
+        for format_control in ("no_binary", "only_binary"):
             formats = getattr(finder.format_control, format_control)
-            args.extend(('--' + format_control.replace('_', '-'),
-                         ','.join(sorted(formats or {':none:'}))))
+            args.extend(
+                (
+                    "--" + format_control.replace("_", "-"),
+                    ",".join(sorted(formats or {":none:"})),
+                )
+            )
 
         index_urls = finder.index_urls
         if index_urls:
-            args.extend(['-i', index_urls[0]])
+            args.extend(["-i", index_urls[0]])
             for extra_index in index_urls[1:]:
-                args.extend(['--extra-index-url', extra_index])
+                args.extend(["--extra-index-url", extra_index])
         else:
-            args.append('--no-index')
+            args.append("--no-index")
         for link in finder.find_links:
-            args.extend(['--find-links', link])
+            args.extend(["--find-links", link])
 
         for host in finder.trusted_hosts:
-            args.extend(['--trusted-host', host])
+            args.extend(["--trusted-host", host])
         if finder.allow_all_prereleases:
-            args.append('--pre')
-        args.append('--')
+            args.append("--pre")
+        args.append("--")
         args.extend(requirements)
         with open_spinner(message) as spinner:
             call_subprocess(args, spinner=spinner)

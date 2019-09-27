@@ -89,9 +89,9 @@ def adjacent_tmp_file(path):
         delete=False,
         dir=os.path.dirname(path),
         prefix=os.path.basename(path),
-        suffix='.tmp',
+        suffix=".tmp",
     ) as f:
-        result = cast('NamedTemporaryFileResult', f)
+        result = cast("NamedTemporaryFileResult", f)
         try:
             yield result
         finally:
@@ -102,6 +102,7 @@ def adjacent_tmp_file(path):
 _replace_retry = retry(stop_max_delay=1000, wait_fixed=250)
 
 if PY2:
+
     @_replace_retry
     def replace(src, dest):
         # type: (str, str) -> None
@@ -110,6 +111,7 @@ if PY2:
         except OSError:
             os.remove(dest)
             os.rename(src, dest)
+
 
 else:
     replace = _replace_retry(os.replace)

@@ -3,7 +3,6 @@ from pip._internal.utils.compat import expanduser
 
 
 class TestWheelCache:
-
     def test_expands_path(self):
         wc = WheelCache("~/.foo/", None)
         assert wc.cache_dir == expanduser("~/.foo/")

@@ -12,7 +12,6 @@ from tests.lib.configuration_helpers import ConfigurationMixin
 
 
 class TestConfigurationLoading(ConfigurationMixin):
-
     def test_global_loading(self):
         self.patch_configuration(kinds.GLOBAL, {"test.hello": "1"})
 
@@ -41,8 +40,9 @@ class TestConfigurationLoading(ConfigurationMixin):
             os.environ["PIP_CONFIG_FILE"] = config_file
 
             self.configuration.load()
-            assert self.configuration.get_value("test.hello") == "4", \
-                self.configuration._config
+            assert (
+                self.configuration.get_value("test.hello") == "4"
+            ), self.configuration._config
 
     def test_environment_var_loading(self):
         os.environ["PIP_HELLO"] = "5"
@@ -78,9 +78,8 @@ class TestConfigurationLoading(ConfigurationMixin):
 
         assert "section header" in str(err.value)  # error kind
         assert "1" in str(err.value)  # line number
-        assert (  # file name
-            config_file in str(err.value) or
-            repr(config_file) in str(err.value)
+        assert config_file in str(err.value) or repr(config_file) in str(  # file name
+            err.value
         )
 
 
@@ -192,9 +191,7 @@ class TestConfigurationModification(ConfigurationMixin):
 
         # get the path to site config file
         assert mymock.call_count == 1
-        assert mymock.call_args[0][0] == (
-            get_configuration_files()[kinds.SITE][0]
-        )
+        assert mymock.call_args[0][0] == (get_configuration_files()[kinds.SITE][0])
 
     def test_user_modification(self):
         # get the path to local config file
@@ -227,6 +224,4 @@ class TestConfigurationModification(ConfigurationMixin):
 
         # get the path to user config file
         assert mymock.call_count == 1
-        assert mymock.call_args[0][0] == (
-            get_configuration_files()[kinds.GLOBAL][-1]
-        )
+        assert mymock.call_args[0][0] == (get_configuration_files()[kinds.GLOBAL][-1])

@@ -16,7 +16,7 @@ import os
 import re
 import sys
 
-on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
+on_rtd = os.environ.get("READTHEDOCS", None) == "True"
 
 docs_dir = os.path.dirname(os.path.dirname(__file__))
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -30,13 +30,13 @@ sys.path.insert(0, docs_dir)
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 # extensions = ['sphinx.ext.autodoc']
-extensions = ['sphinx.ext.extlinks', 'pip_sphinxext', 'sphinx.ext.intersphinx']
+extensions = ["sphinx.ext.extlinks", "pip_sphinxext", "sphinx.ext.intersphinx"]
 
 # intersphinx
 intersphinx_cache_limit = 0
 intersphinx_mapping = {
-    'pypug': ('https://packaging.python.org/', None),
-    'pypa': ('https://www.pypa.io/en/latest/', None),
+    "pypug": ("https://packaging.python.org/", None),
+    "pypa": ("https://www.pypa.io/en/latest/", None),
 }
 
 
@@ -44,17 +44,17 @@ intersphinx_mapping = {
 templates_path = []
 
 # The suffix of source filenames.
-source_suffix = '.rst'
+source_suffix = ".rst"
 
 # The encoding of source files.
 # source_encoding = 'utf-8'
 
 # The master toctree document.
-master_doc = 'index'
+master_doc = "index"
 
 # General information about the project.
-project = 'pip'
-copyright = '2008-2017, PyPA'
+project = "pip"
+copyright = "2008-2017, PyPA"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -62,7 +62,7 @@ copyright = '2008-2017, PyPA'
 #
 # The short X.Y version.
 
-version = release = 'dev'
+version = release = "dev"
 
 # Readthedocs seems to install pip as an egg (via setup.py install) which
 # is somehow resulting in "import pip" picking up an older copy of pip.
@@ -70,14 +70,14 @@ version = release = 'dev'
 # read the version direct from the __init__.py file. (Yes, this is
 # fragile, but it works...)
 
-pip_init = os.path.join(docs_dir, '..', 'src', 'pip', '__init__.py')
+pip_init = os.path.join(docs_dir, "..", "src", "pip", "__init__.py")
 with open(pip_init) as f:
     for line in f:
         m = re.match(r'__version__ = "(.*)"', line)
         if m:
             __version__ = m.group(1)
             # The short X.Y version.
-            version = '.'.join(__version__.split('.')[:2])
+            version = ".".join(__version__.split(".")[:2])
             # The full version, including alpha/beta/rc tags.
             release = __version__
             break
@@ -95,14 +95,14 @@ print(version)
 # non-false value, then it is used:
 # today = ''
 # Else, today_fmt is used as the format for a strftime call.
-today_fmt = '%B %d, %Y'
+today_fmt = "%B %d, %Y"
 
 # List of documents that shouldn't be included in the build.
 # unused_docs = []
 
 # List of directories, relative to source directory, that shouldn't be searched
 # for source files.
-exclude_patterns = ['build/']
+exclude_patterns = ["build/"]
 
 # The reST default role (used for this markup: `text`) to use for all documents
 # default_role = None
@@ -119,15 +119,15 @@ exclude_patterns = ['build/']
 # show_authors = False
 
 # The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
+pygments_style = "sphinx"
 
 # A list of ignored prefixes for module index sorting.
 # modindex_common_prefix = []
 
 extlinks = {
-    'issue': ('https://github.com/pypa/pip/issues/%s', '#'),
-    'pull': ('https://github.com/pypa/pip/pull/%s', 'PR #'),
-    'pypi': ('https://pypi.org/project/%s', ''),
+    "issue": ("https://github.com/pypa/pip/issues/%s", "#"),
+    "pull": ("https://github.com/pypa/pip/pull/%s", "PR #"),
+    "pypi": ("https://pypi.org/project/%s", ""),
 }
 
 # -- Options for HTML output --------------------------------------------------
@@ -140,10 +140,10 @@ html_theme = "pypa_theme"
 # further.  For a list of options available for each theme, see the
 # documentation.
 html_theme_options = {
-    'collapsiblesidebar': True,
-    'externalrefs': True,
-    'navigation_depth': 3,
-    'issues_url': 'https://github.com/pypa/pip/issues'
+    "collapsiblesidebar": True,
+    "externalrefs": True,
+    "navigation_depth": 3,
+    "issues_url": "https://github.com/pypa/pip/issues",
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
@@ -171,7 +171,7 @@ html_static_path = []
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
-html_last_updated_fmt = '%b %d, %Y'
+html_last_updated_fmt = "%b %d, %Y"
 
 # If true, the Docutils Smart Quotes transform (originally based on
 # SmartyPants) will be used to convert characters like quotes and dashes
@@ -190,10 +190,7 @@ smartquotes = True
 smartquotes_action = "qe"
 
 # Custom sidebar templates, maps document names to template names.
-html_sidebars = {
-    '**': ['localtoc.html', 'relations.html'],
-    'index': ['localtoc.html']
-}
+html_sidebars = {"**": ["localtoc.html", "relations.html"], "index": ["localtoc.html"]}
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.
@@ -220,7 +217,7 @@ html_show_sourcelink = False
 # html_file_suffix = ''
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'pipdocs'
+htmlhelp_basename = "pipdocs"
 
 
 # -- Options for LaTeX output -------------------------------------------------
@@ -234,13 +231,7 @@ htmlhelp_basename = 'pipdocs'
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual])
 latex_documents = [
-    (
-        'index',
-        'pip.tex',
-        u'pip Documentation',
-        u'pip developers',
-        'manual',
-    ),
+    ("index", "pip.tex", u"pip Documentation", u"pip developers", "manual")
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -264,28 +255,18 @@ latex_documents = [
 
 # List of manual pages generated
 man_pages = [
-    (
-        'index',
-        'pip',
-        u'package manager for Python packages',
-        u'pip developers',
-        1
-    )
+    ("index", "pip", u"package manager for Python packages", u"pip developers", 1)
 ]
 
 # Here, we crawl the entire man/commands/ directory and list every file with
 # appropriate name and details
-man_dir = os.path.join(docs_dir, 'man/')
-raw_subcommands = glob.glob(os.path.join(man_dir, 'commands/*.rst'))
+man_dir = os.path.join(docs_dir, "man/")
+raw_subcommands = glob.glob(os.path.join(man_dir, "commands/*.rst"))
 if not raw_subcommands:
-    raise FileNotFoundError(
-        'The individual subcommand manpages could not be found!'
-    )
+    raise FileNotFoundError("The individual subcommand manpages could not be found!")
 for fname in raw_subcommands:
-    fname_base = fname[len(man_dir):-4]
-    outname = 'pip-' + fname_base[9:]
-    description = u'description of {} command'.format(
-        outname.replace('-', ' ')
-    )
+    fname_base = fname[len(man_dir) : -4]
+    outname = "pip-" + fname_base[9:]
+    description = u"description of {} command".format(outname.replace("-", " "))
 
-    man_pages.append((fname_base, outname, description, u'pip developers', 1))
+    man_pages.append((fname_base, outname, description, u"pip developers", 1))

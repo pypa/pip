@@ -26,11 +26,7 @@ from pip._internal.models.link import Link
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.urls import path_to_url
 from tests.lib import create_file
-from tests.lib.filesystem import (
-    get_filelist,
-    make_socket_file,
-    make_unreadable_file,
-)
+from tests.lib.filesystem import get_filelist, make_socket_file, make_unreadable_file
 from tests.lib.path import Path
 
 
@@ -52,14 +48,13 @@ def test_unpack_http_url_with_urllib_response_without_content_type(data):
     link = Link(uri)
     temp_dir = mkdtemp()
     try:
-        unpack_http_url(
-            link,
-            temp_dir,
-            download_dir=None,
-            session=session,
-        )
+        unpack_http_url(link, temp_dir, download_dir=None, session=session)
         assert set(os.listdir(temp_dir)) == {
-            'PKG-INFO', 'setup.cfg', 'setup.py', 'simple', 'simple.egg-info'
+            "PKG-INFO",
+            "setup.cfg",
+            "setup.py",
+            "simple",
+            "simple.egg-info",
         }
     finally:
         rmtree(temp_dir)
@@ -75,14 +70,17 @@ def test_user_agent():
     assert user_agent.startswith("pip/%s" % pip.__version__)
 
 
-@pytest.mark.parametrize('name, expected_like_ci', [
-    ('BUILD_BUILDID', True),
-    ('BUILD_ID', True),
-    ('CI', True),
-    ('PIP_IS_CI', True),
-    # Test a prefix substring of one of the variable names we use.
-    ('BUILD', False),
-])
+@pytest.mark.parametrize(
+    "name, expected_like_ci",
+    [
+        ("BUILD_BUILDID", True),
+        ("BUILD_ID", True),
+        ("CI", True),
+        ("PIP_IS_CI", True),
+        # Test a prefix substring of one of the variable names we use.
+        ("BUILD", False),
+    ],
+)
 def test_user_agent__ci(monkeypatch, name, expected_like_ci):
     # Delete the variable names we use to check for CI to prevent the
     # detection from always returning True in case the tests are being run
@@ -97,7 +95,7 @@ def test_user_agent__ci(monkeypatch, name, expected_like_ci):
     assert '"ci":null' in user_agent
     assert '"ci":true' not in user_agent
 
-    monkeypatch.setenv(name, 'true')
+    monkeypatch.setenv(name, "true")
     user_agent = get_user_agent()
     assert ('"ci":true' in user_agent) == expected_like_ci
     assert ('"ci":null' in user_agent) == (not expected_like_ci)
@@ -109,7 +107,6 @@ def test_user_agent_user_data(monkeypatch):
 
 
 class FakeStream(object):
-
     def __init__(self, contents):
         self._io = BytesIO(contents)
 
@@ -124,7 +121,6 @@ class FakeStream(object):
 
 
 class MockResponse(object):
-
     def __init__(self, contents):
         self.raw = FakeStream(contents)
         self.content = contents
@@ -140,7 +136,6 @@ class MockResponse(object):
 
 
 class MockConnection(object):
-
     def _send(self, req, **kwargs):
         raise NotImplementedError("_send must be overridden for tests")
 
@@ -152,7 +147,6 @@ class MockConnection(object):
 
 
 class MockRequest(object):
-
     def __init__(self, url):
         self.url = url
         self.headers = {}
@@ -162,57 +156,60 @@ class MockRequest(object):
         self.hooks.setdefault(event_name, []).append(callback)
 
 
-@patch('pip._internal.download.unpack_file')
+@patch("pip._internal.download.unpack_file")
 def test_unpack_http_url_bad_downloaded_checksum(mock_unpack_file):
     """
     If already-downloaded file has bad checksum, re-download.
     """
-    base_url = 'http://www.example.com/somepackage.tgz'
-    contents = b'downloaded'
-    download_hash = hashlib.new('sha1', contents)
-    link = Link(base_url + '#sha1=' + download_hash.hexdigest())
+    base_url = "http://www.example.com/somepackage.tgz"
+    contents = b"downloaded"
+    download_hash = hashlib.new("sha1", contents)
+    link = Link(base_url + "#sha1=" + download_hash.hexdigest())
 
     session = Mock()
     session.get = Mock()
     response = session.get.return_value = MockResponse(contents)
-    response.headers = {'content-type': 'application/x-tar'}
+    response.headers = {"content-type": "application/x-tar"}
     response.url = base_url
 
     download_dir = mkdtemp()
     try:
-        downloaded_file = os.path.join(download_dir, 'somepackage.tgz')
-        create_file(downloaded_file, 'some contents')
+        downloaded_file = os.path.join(download_dir, "somepackage.tgz")
+        create_file(downloaded_file, "some contents")
 
         unpack_http_url(
             link,
-            'location',
+            "location",
             download_dir=download_dir,
             session=session,
-            hashes=Hashes({'sha1': [download_hash.hexdigest()]})
+            hashes=Hashes({"sha1": [download_hash.hexdigest()]}),
         )
 
         # despite existence of downloaded file with bad hash, downloaded again
         session.get.assert_called_once_with(
-            'http://www.example.com/somepackage.tgz',
+            "http://www.example.com/somepackage.tgz",
             headers={"Accept-Encoding": "identity"},
             stream=True,
         )
         # cached file is replaced with newly downloaded file
         with open(downloaded_file) as fh:
-            assert fh.read() == 'downloaded'
+            assert fh.read() == "downloaded"
 
     finally:
         rmtree(download_dir)
 
 
-@pytest.mark.parametrize("filename, expected", [
-    ('dir/file', 'file'),
-    ('../file', 'file'),
-    ('../../file', 'file'),
-    ('../', ''),
-    ('../..', '..'),
-    ('/', ''),
-])
+@pytest.mark.parametrize(
+    "filename, expected",
+    [
+        ("dir/file", "file"),
+        ("../file", "file"),
+        ("../../file", "file"),
+        ("../", ""),
+        ("../..", ".."),
+        ("/", ""),
+    ],
+)
 def test_sanitize_content_filename(filename, expected):
     """
     Test inputs where the result is the same for Windows and non-Windows.
@@ -220,37 +217,35 @@ def test_sanitize_content_filename(filename, expected):
     assert sanitize_content_filename(filename) == expected
 
 
-@pytest.mark.parametrize("filename, win_expected, non_win_expected", [
-    ('dir\\file', 'file', 'dir\\file'),
-    ('..\\file', 'file', '..\\file'),
-    ('..\\..\\file', 'file', '..\\..\\file'),
-    ('..\\', '', '..\\'),
-    ('..\\..', '..', '..\\..'),
-    ('\\', '', '\\'),
-])
+@pytest.mark.parametrize(
+    "filename, win_expected, non_win_expected",
+    [
+        ("dir\\file", "file", "dir\\file"),
+        ("..\\file", "file", "..\\file"),
+        ("..\\..\\file", "file", "..\\..\\file"),
+        ("..\\", "", "..\\"),
+        ("..\\..", "..", "..\\.."),
+        ("\\", "", "\\"),
+    ],
+)
 def test_sanitize_content_filename__platform_dependent(
-    filename,
-    win_expected,
-    non_win_expected
+    filename, win_expected, non_win_expected
 ):
     """
     Test inputs where the result is different for Windows and non-Windows.
     """
-    if sys.platform == 'win32':
+    if sys.platform == "win32":
         expected = win_expected
     else:
         expected = non_win_expected
     assert sanitize_content_filename(filename) == expected
 
 
-@pytest.mark.parametrize("content_disposition, default_filename, expected", [
-    ('attachment;filename="../file"', 'df', 'file'),
-])
-def test_parse_content_disposition(
-    content_disposition,
-    default_filename,
-    expected
-):
+@pytest.mark.parametrize(
+    "content_disposition, default_filename, expected",
+    [('attachment;filename="../file"', "df", "file")],
+)
+def test_parse_content_disposition(content_disposition, default_filename, expected):
     actual = parse_content_disposition(content_disposition, default_filename)
     assert actual == expected
 
@@ -260,8 +255,8 @@ def test_download_http_url__no_directory_traversal(tmpdir):
     Test that directory traversal doesn't happen on download when the
     Content-Disposition header contains a filename with a ".." path part.
     """
-    mock_url = 'http://www.example.com/whatever.tgz'
-    contents = b'downloaded'
+    mock_url = "http://www.example.com/whatever.tgz"
+    contents = b"downloaded"
     link = Link(mock_url)
 
     session = Mock()
@@ -270,23 +265,19 @@ def test_download_http_url__no_directory_traversal(tmpdir):
     resp.headers = {
         # Set the content-type to a random value to prevent
         # mimetypes.guess_extension from guessing the extension.
-        'content-type': 'random',
-        'content-disposition': 'attachment;filename="../out_dir_file"'
+        "content-type": "random",
+        "content-disposition": 'attachment;filename="../out_dir_file"',
     }
     session.get.return_value = resp
 
-    download_dir = tmpdir.joinpath('download')
+    download_dir = tmpdir.joinpath("download")
     os.mkdir(download_dir)
     file_path, content_type = _download_http_url(
-        link,
-        session,
-        download_dir,
-        hashes=None,
-        progress_bar='on',
+        link, session, download_dir, hashes=None, progress_bar="on"
     )
     # The file should be downloaded to download_dir.
     actual = os.listdir(download_dir)
-    assert actual == ['out_dir_file']
+    assert actual == ["out_dir_file"]
 
 
 @pytest.fixture
@@ -324,14 +315,12 @@ def test_copy_source_tree_with_socket(clean_project, tmpdir, caplog):
     # Warning should have been logged.
     assert len(caplog.records) == 1
     record = caplog.records[0]
-    assert record.levelname == 'WARNING'
+    assert record.levelname == "WARNING"
     assert socket_path in record.message
 
 
 @pytest.mark.skipif("sys.platform == 'win32' or sys.version_info < (3,)")
-def test_copy_source_tree_with_socket_fails_with_no_socket_error(
-    clean_project, tmpdir
-):
+def test_copy_source_tree_with_socket_fails_with_no_socket_error(clean_project, tmpdir):
     target = tmpdir.joinpath("target")
     expected_files = get_filelist(clean_project)
     make_socket_file(clean_project.joinpath("aaa"))
@@ -369,10 +358,9 @@ def test_copy_source_tree_with_unreadable_dir_fails(clean_project, tmpdir):
 
 
 class Test_unpack_file_url(object):
-
     def prep(self, tmpdir, data):
-        self.build_dir = tmpdir.joinpath('build')
-        self.download_dir = tmpdir.joinpath('download')
+        self.build_dir = tmpdir.joinpath("build")
+        self.download_dir = tmpdir.joinpath("download")
         os.mkdir(self.build_dir)
         os.mkdir(self.download_dir)
         self.dist_file = "simple-1.0.tar.gz"
@@ -385,48 +373,40 @@ class Test_unpack_file_url(object):
     def test_unpack_file_url_no_download(self, tmpdir, data):
         self.prep(tmpdir, data)
         unpack_file_url(self.dist_url, self.build_dir)
-        assert os.path.isdir(os.path.join(self.build_dir, 'simple'))
-        assert not os.path.isfile(
-            os.path.join(self.download_dir, self.dist_file))
+        assert os.path.isdir(os.path.join(self.build_dir, "simple"))
+        assert not os.path.isfile(os.path.join(self.download_dir, self.dist_file))
 
     def test_unpack_file_url_and_download(self, tmpdir, data):
         self.prep(tmpdir, data)
-        unpack_file_url(self.dist_url, self.build_dir,
-                        download_dir=self.download_dir)
-        assert os.path.isdir(os.path.join(self.build_dir, 'simple'))
+        unpack_file_url(self.dist_url, self.build_dir, download_dir=self.download_dir)
+        assert os.path.isdir(os.path.join(self.build_dir, "simple"))
         assert os.path.isfile(os.path.join(self.download_dir, self.dist_file))
 
-    def test_unpack_file_url_download_already_exists(self, tmpdir,
-                                                     data, monkeypatch):
+    def test_unpack_file_url_download_already_exists(self, tmpdir, data, monkeypatch):
         self.prep(tmpdir, data)
         # add in previous download (copy simple-2.0 as simple-1.0)
         # so we can tell it didn't get overwritten
         dest_file = os.path.join(self.download_dir, self.dist_file)
         copy(self.dist_path2, dest_file)
-        with open(self.dist_path2, 'rb') as f:
+        with open(self.dist_path2, "rb") as f:
             dist_path2_md5 = hashlib.md5(f.read()).hexdigest()
 
-        unpack_file_url(self.dist_url, self.build_dir,
-                        download_dir=self.download_dir)
+        unpack_file_url(self.dist_url, self.build_dir, download_dir=self.download_dir)
         # our hash should be the same, i.e. not overwritten by simple-1.0 hash
-        with open(dest_file, 'rb') as f:
+        with open(dest_file, "rb") as f:
             assert dist_path2_md5 == hashlib.md5(f.read()).hexdigest()
 
-    def test_unpack_file_url_bad_hash(self, tmpdir, data,
-                                      monkeypatch):
+    def test_unpack_file_url_bad_hash(self, tmpdir, data, monkeypatch):
         """
         Test when the file url hash fragment is wrong
         """
         self.prep(tmpdir, data)
-        url = '{}#md5=bogus'.format(self.dist_url.url)
+        url = "{}#md5=bogus".format(self.dist_url.url)
         dist_url = Link(url)
         with pytest.raises(HashMismatch):
-            unpack_file_url(dist_url,
-                            self.build_dir,
-                            hashes=Hashes({'md5': ['bogus']}))
+            unpack_file_url(dist_url, self.build_dir, hashes=Hashes({"md5": ["bogus"]}))
 
-    def test_unpack_file_url_download_bad_hash(self, tmpdir, data,
-                                               monkeypatch):
+    def test_unpack_file_url_download_bad_hash(self, tmpdir, data, monkeypatch):
         """
         Test when existing download has different hash from the file url
         fragment
@@ -438,44 +418,43 @@ class Test_unpack_file_url(object):
         dest_file = os.path.join(self.download_dir, self.dist_file)
         copy(self.dist_path2, dest_file)
 
-        with open(self.dist_path, 'rb') as f:
+        with open(self.dist_path, "rb") as f:
             dist_path_md5 = hashlib.md5(f.read()).hexdigest()
-        with open(dest_file, 'rb') as f:
+        with open(dest_file, "rb") as f:
             dist_path2_md5 = hashlib.md5(f.read()).hexdigest()
 
         assert dist_path_md5 != dist_path2_md5
 
-        url = '{}#md5={}'.format(self.dist_url.url, dist_path_md5)
+        url = "{}#md5={}".format(self.dist_url.url, dist_path_md5)
         dist_url = Link(url)
-        unpack_file_url(dist_url, self.build_dir,
-                        download_dir=self.download_dir,
-                        hashes=Hashes({'md5': [dist_path_md5]}))
+        unpack_file_url(
+            dist_url,
+            self.build_dir,
+            download_dir=self.download_dir,
+            hashes=Hashes({"md5": [dist_path_md5]}),
+        )
 
         # confirm hash is for simple1-1.0
         # the previous bad download has been removed
-        with open(dest_file, 'rb') as f:
+        with open(dest_file, "rb") as f:
             assert hashlib.md5(f.read()).hexdigest() == dist_path_md5
 
     def test_unpack_file_url_thats_a_dir(self, tmpdir, data):
         self.prep(tmpdir, data)
         dist_path = data.packages.joinpath("FSPkg")
         dist_url = Link(path_to_url(dist_path))
-        unpack_file_url(dist_url, self.build_dir,
-                        download_dir=self.download_dir)
-        assert os.path.isdir(os.path.join(self.build_dir, 'fspkg'))
+        unpack_file_url(dist_url, self.build_dir, download_dir=self.download_dir)
+        assert os.path.isdir(os.path.join(self.build_dir, "fspkg"))
 
 
-@pytest.mark.parametrize('exclude_dir', [
-    '.nox',
-    '.tox'
-])
+@pytest.mark.parametrize("exclude_dir", [".nox", ".tox"])
 def test_unpack_file_url_excludes_expected_dirs(tmpdir, exclude_dir):
-    src_dir = tmpdir / 'src'
-    dst_dir = tmpdir / 'dst'
-    src_included_file = src_dir.joinpath('file.txt')
+    src_dir = tmpdir / "src"
+    dst_dir = tmpdir / "dst"
+    src_included_file = src_dir.joinpath("file.txt")
     src_excluded_dir = src_dir.joinpath(exclude_dir)
-    src_excluded_file = src_dir.joinpath(exclude_dir, 'file.txt')
-    src_included_dir = src_dir.joinpath('subdir', exclude_dir)
+    src_excluded_file = src_dir.joinpath(exclude_dir, "file.txt")
+    src_included_dir = src_dir.joinpath("subdir", exclude_dir)
 
     # set up source directory
     src_excluded_dir.mkdir(parents=True)
@@ -483,17 +462,13 @@ def test_unpack_file_url_excludes_expected_dirs(tmpdir, exclude_dir):
     src_included_file.touch()
     src_excluded_file.touch()
 
-    dst_included_file = dst_dir.joinpath('file.txt')
+    dst_included_file = dst_dir.joinpath("file.txt")
     dst_excluded_dir = dst_dir.joinpath(exclude_dir)
-    dst_excluded_file = dst_dir.joinpath(exclude_dir, 'file.txt')
-    dst_included_dir = dst_dir.joinpath('subdir', exclude_dir)
+    dst_excluded_file = dst_dir.joinpath(exclude_dir, "file.txt")
+    dst_included_dir = dst_dir.joinpath("subdir", exclude_dir)
 
     src_link = Link(path_to_url(src_dir))
-    unpack_file_url(
-        src_link,
-        dst_dir,
-        download_dir=None
-    )
+    unpack_file_url(src_link, dst_dir, download_dir=None)
     assert not os.path.isdir(dst_excluded_dir)
     assert not os.path.isfile(dst_excluded_file)
     assert os.path.isfile(dst_included_file)
@@ -501,7 +476,6 @@ def test_unpack_file_url_excludes_expected_dirs(tmpdir, exclude_dir):
 
 
 class TestPipSession:
-
     def test_cache_defaults_off(self):
         session = PipSession()
 
@@ -513,8 +487,9 @@ class TestPipSession:
 
         assert hasattr(session.adapters["https://"], "cache")
 
-        assert (session.adapters["https://"].cache.directory ==
-                tmpdir.joinpath("test-cache"))
+        assert session.adapters["https://"].cache.directory == tmpdir.joinpath(
+            "test-cache"
+        )
 
     def test_http_cache_is_not_enabled(self, tmpdir):
         session = PipSession(cache=tmpdir.joinpath("test-cache"))
@@ -523,8 +498,7 @@ class TestPipSession:
 
     def test_insecure_host_adapter(self, tmpdir):
         session = PipSession(
-            cache=tmpdir.joinpath("test-cache"),
-            trusted_hosts=["example.com"],
+            cache=tmpdir.joinpath("test-cache"), trusted_hosts=["example.com"]
         )
 
         assert "https://example.com/" in session.adapters
@@ -535,42 +509,46 @@ class TestPipSession:
 
     def test_add_trusted_host(self):
         # Leave a gap to test how the ordering is affected.
-        trusted_hosts = ['host1', 'host3']
+        trusted_hosts = ["host1", "host3"]
         session = PipSession(trusted_hosts=trusted_hosts)
         insecure_adapter = session._insecure_adapter
-        prefix2 = 'https://host2/'
-        prefix3 = 'https://host3/'
-        prefix3_wildcard = 'https://host3:'
+        prefix2 = "https://host2/"
+        prefix3 = "https://host3/"
+        prefix3_wildcard = "https://host3:"
 
         # Confirm some initial conditions as a baseline.
-        assert session.pip_trusted_origins == [
-            ('host1', None), ('host3', None)
-        ]
+        assert session.pip_trusted_origins == [("host1", None), ("host3", None)]
         assert session.adapters[prefix3] is insecure_adapter
         assert session.adapters[prefix3_wildcard] is insecure_adapter
 
         assert prefix2 not in session.adapters
 
         # Test adding a new host.
-        session.add_trusted_host('host2')
+        session.add_trusted_host("host2")
         assert session.pip_trusted_origins == [
-            ('host1', None), ('host3', None), ('host2', None)
+            ("host1", None),
+            ("host3", None),
+            ("host2", None),
         ]
         # Check that prefix3 is still present.
         assert session.adapters[prefix3] is insecure_adapter
         assert session.adapters[prefix2] is insecure_adapter
 
         # Test that adding the same host doesn't create a duplicate.
-        session.add_trusted_host('host3')
+        session.add_trusted_host("host3")
         assert session.pip_trusted_origins == [
-            ('host1', None), ('host3', None), ('host2', None)
-        ], 'actual: {}'.format(session.pip_trusted_origins)
+            ("host1", None),
+            ("host3", None),
+            ("host2", None),
+        ], "actual: {}".format(session.pip_trusted_origins)
 
-        session.add_trusted_host('host4:8080')
-        prefix4 = 'https://host4:8080/'
+        session.add_trusted_host("host4:8080")
+        prefix4 = "https://host4:8080/"
         assert session.pip_trusted_origins == [
-            ('host1', None), ('host3', None),
-            ('host2', None), ('host4', 8080)
+            ("host1", None),
+            ("host3", None),
+            ("host2", None),
+            ("host4", 8080),
         ]
         assert session.adapters[prefix4] is insecure_adapter
 
@@ -578,36 +556,36 @@ class TestPipSession:
         """
         Test logging when add_trusted_host() is called.
         """
-        trusted_hosts = ['host0', 'host1']
+        trusted_hosts = ["host0", "host1"]
         session = PipSession(trusted_hosts=trusted_hosts)
         with caplog.at_level(logging.INFO):
             # Test adding an existing host.
-            session.add_trusted_host('host1', source='somewhere')
-            session.add_trusted_host('host2')
+            session.add_trusted_host("host1", source="somewhere")
+            session.add_trusted_host("host2")
             # Test calling add_trusted_host() on the same host twice.
-            session.add_trusted_host('host2')
+            session.add_trusted_host("host2")
 
         actual = [(r.levelname, r.message) for r in caplog.records]
         # Observe that "host0" isn't included in the logs.
         expected = [
-            ('INFO', "adding trusted host: 'host1' (from somewhere)"),
-            ('INFO', "adding trusted host: 'host2'"),
-            ('INFO', "adding trusted host: 'host2'"),
+            ("INFO", "adding trusted host: 'host1' (from somewhere)"),
+            ("INFO", "adding trusted host: 'host2'"),
+            ("INFO", "adding trusted host: 'host2'"),
         ]
         assert actual == expected
 
     def test_iter_secure_origins(self):
-        trusted_hosts = ['host1', 'host2', 'host3:8080']
+        trusted_hosts = ["host1", "host2", "host3:8080"]
         session = PipSession(trusted_hosts=trusted_hosts)
 
         actual = list(session.iter_secure_origins())
         assert len(actual) == 9
         # Spot-check that SECURE_ORIGINS is included.
-        assert actual[0] == ('https', '*', '*')
+        assert actual[0] == ("https", "*", "*")
         assert actual[-3:] == [
-            ('*', 'host1', '*'),
-            ('*', 'host2', '*'),
-            ('*', 'host3', 8080)
+            ("*", "host1", "*"),
+            ("*", "host2", "*"),
+            ("*", "host3", 8080),
         ]
 
     def test_iter_secure_origins__trusted_hosts_empty(self):
@@ -619,10 +597,10 @@ class TestPipSession:
         actual = list(session.iter_secure_origins())
         assert len(actual) == 6
         # Spot-check that SECURE_ORIGINS is included.
-        assert actual[0] == ('https', '*', '*')
+        assert actual[0] == ("https", "*", "*")
 
     @pytest.mark.parametrize(
-        'location, trusted, expected',
+        "location, trusted, expected",
         [
             ("http://pypi.org/something", [], False),
             ("https://pypi.org/something", [], True),
@@ -640,11 +618,7 @@ class TestPipSession:
             # Test a trusted_host with a port.
             ("http://example.com:8080/something/", ["example.com:8080"], True),
             ("http://example.com/something/", ["example.com:8080"], False),
-            (
-                "http://example.com:8888/something/",
-                ["example.com:8080"],
-                False
-            ),
+            ("http://example.com:8888/something/", ["example.com:8080"], False),
         ],
     )
     def test_is_secure_origin(self, caplog, location, trusted, expected):
@@ -666,5 +640,5 @@ class TestPipSession:
 
         assert len(log_records) == 1
         actual_level, actual_message = log_records[0]
-        assert actual_level == 'WARNING'
-        assert 'is not a trusted or secure host' in actual_message
+        assert actual_level == "WARNING"
+        assert "is not a trusted or secure host" in actual_message

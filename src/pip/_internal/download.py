@@ -17,6 +17,7 @@ from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
 from pip._vendor.requests.structures import CaseInsensitiveDict
 from pip._vendor.six import PY2
+
 # NOTE: XMLRPC Client is not annotated in typeshed as on 2017-07-17, which is
 #       why we ignore the type on this import
 from pip._vendor.six.moves import xmlrpc_client  # type: ignore
@@ -27,6 +28,7 @@ from pip._internal.exceptions import HashMismatch, InstallationError
 from pip._internal.models.index import PyPI
 from pip._internal.network.auth import MultiDomainBasicAuth
 from pip._internal.network.cache import SafeFileCache
+
 # Import ssl from compat so the initial import occurs in only one place.
 from pip._internal.utils.compat import HAS_TLS, ipaddress, ssl
 from pip._internal.utils.encoding import auto_decode
@@ -54,9 +56,7 @@ from pip._internal.utils.urls import get_url_scheme, url_to_path
 from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
-    from typing import (
-        IO, Callable, Iterator, List, Optional, Text, Tuple, Union,
-    )
+    from typing import IO, Callable, Iterator, List, Optional, Text, Tuple, Union
 
     from mypy_extensions import TypedDict
 
@@ -68,31 +68,32 @@ if MYPY_CHECK_RUNNING:
 
     if PY2:
         CopytreeKwargs = TypedDict(
-            'CopytreeKwargs',
-            {
-                'ignore': Callable[[str, List[str]], List[str]],
-                'symlinks': bool,
-            },
+            "CopytreeKwargs",
+            {"ignore": Callable[[str, List[str]], List[str]], "symlinks": bool},
             total=False,
         )
     else:
         CopytreeKwargs = TypedDict(
-            'CopytreeKwargs',
+            "CopytreeKwargs",
             {
-                'copy_function': Callable[[str, str], None],
-                'ignore': Callable[[str, List[str]], List[str]],
-                'ignore_dangling_symlinks': bool,
-                'symlinks': bool,
+                "copy_function": Callable[[str, str], None],
+                "ignore": Callable[[str, List[str]], List[str]],
+                "ignore_dangling_symlinks": bool,
+                "symlinks": bool,
             },
             total=False,
         )
 
 
-__all__ = ['get_file_content',
-           'unpack_vcs_link',
-           'unpack_file_url',
-           'unpack_http_url', 'unpack_url',
-           'parse_content_disposition', 'sanitize_content_filename']
+__all__ = [
+    "get_file_content",
+    "unpack_vcs_link",
+    "unpack_file_url",
+    "unpack_http_url",
+    "unpack_url",
+    "parse_content_disposition",
+    "sanitize_content_filename",
+]
 
 
 logger = logging.getLogger(__name__)
@@ -120,13 +121,13 @@ SECURE_ORIGINS = [
 # For more background, see: https://github.com/pypa/pip/issues/5499
 CI_ENVIRONMENT_VARIABLES = (
     # Azure Pipelines
-    'BUILD_BUILDID',
+    "BUILD_BUILDID",
     # Jenkins
-    'BUILD_ID',
+    "BUILD_ID",
     # AppVeyor, CircleCI, Codeship, Gitlab CI, Shippable, Travis CI
-    'CI',
+    "CI",
     # Explicit environment variable.
-    'PIP_IS_CI',
+    "PIP_IS_CI",
 )
 
 
@@ -148,38 +149,36 @@ def user_agent():
     data = {
         "installer": {"name": "pip", "version": pip.__version__},
         "python": platform.python_version(),
-        "implementation": {
-            "name": platform.python_implementation(),
-        },
+        "implementation": {"name": platform.python_implementation()},
     }
 
-    if data["implementation"]["name"] == 'CPython':
+    if data["implementation"]["name"] == "CPython":
         data["implementation"]["version"] = platform.python_version()
-    elif data["implementation"]["name"] == 'PyPy':
-        if sys.pypy_version_info.releaselevel == 'final':
+    elif data["implementation"]["name"] == "PyPy":
+        if sys.pypy_version_info.releaselevel == "final":
             pypy_version_info = sys.pypy_version_info[:3]
         else:
             pypy_version_info = sys.pypy_version_info
         data["implementation"]["version"] = ".".join(
             [str(x) for x in pypy_version_info]
         )
-    elif data["implementation"]["name"] == 'Jython':
+    elif data["implementation"]["name"] == "Jython":
         # Complete Guess
         data["implementation"]["version"] = platform.python_version()
-    elif data["implementation"]["name"] == 'IronPython':
+    elif data["implementation"]["name"] == "IronPython":
         # Complete Guess
         data["implementation"]["version"] = platform.python_version()
 
     if sys.platform.startswith("linux"):
         from pip._vendor import distro
-        distro_infos = dict(filter(
-            lambda x: x[1],
-            zip(["name", "version", "id"], distro.linux_distribution()),
-        ))
-        libc = dict(filter(
-            lambda x: x[1],
-            zip(["lib", "version"], libc_ver()),
-        ))
+
+        distro_infos = dict(
+            filter(
+                lambda x: x[1],
+                zip(["name", "version", "id"], distro.linux_distribution()),
+            )
+        )
+        libc = dict(filter(lambda x: x[1], zip(["lib", "version"], libc_ver())))
         if libc:
             distro_infos["libc"] = libc
         if distro_infos:
@@ -215,15 +214,14 @@ def user_agent():
         data["user_data"] = user_data
 
     return "{data[installer][name]}/{data[installer][version]} {json}".format(
-        data=data,
-        json=json.dumps(data, separators=(",", ":"), sort_keys=True),
+        data=data, json=json.dumps(data, separators=(",", ":"), sort_keys=True)
     )
 
 
 class LocalFSAdapter(BaseAdapter):
-
-    def send(self, request, stream=None, timeout=None, verify=None, cert=None,
-             proxies=None):
+    def send(
+        self, request, stream=None, timeout=None, verify=None, cert=None, proxies=None
+    ):
         pathname = url_to_path(request.url)
 
         resp = Response()
@@ -238,11 +236,13 @@ class LocalFSAdapter(BaseAdapter):
         else:
             modified = email.utils.formatdate(stats.st_mtime, usegmt=True)
             content_type = mimetypes.guess_type(pathname)[0] or "text/plain"
-            resp.headers = CaseInsensitiveDict({
-                "Content-Type": content_type,
-                "Content-Length": stats.st_size,
-                "Last-Modified": modified,
-            })
+            resp.headers = CaseInsensitiveDict(
+                {
+                    "Content-Type": content_type,
+                    "Content-Length": stats.st_size,
+                    "Last-Modified": modified,
+                }
+            )
 
             resp.raw = open(pathname, "rb")
             resp.close = resp.raw.close
@@ -254,9 +254,8 @@ class LocalFSAdapter(BaseAdapter):
 
 
 class InsecureHTTPAdapter(HTTPAdapter):
-
     def cert_verify(self, conn, url, verify, cert):
-        conn.cert_reqs = 'CERT_NONE'
+        conn.cert_reqs = "CERT_NONE"
         conn.ca_certs = None
 
 
@@ -292,7 +291,6 @@ class PipSession(requests.Session):
             # Set the total number of retries that a particular request can
             # have.
             total=retries,
-
             # A 503 error from PyPI typically means that the Fastly -> Origin
             # connection got interrupted in some way. A 503 error in general
             # is typically considered a transient error so we'll go ahead and
@@ -300,7 +298,6 @@ class PipSession(requests.Session):
             # A 500 may indicate transient error in Amazon S3
             # A 520 or 527 - may indicate transient error in CloudFlare
             status_forcelist=[500, 503, 520, 527],
-
             # Add a small amount of back off between failed requests in
             # order to prevent hammering the service.
             backoff_factor=0.25,
@@ -325,8 +322,7 @@ class PipSession(requests.Session):
         # require manual eviction from the cache to fix it.
         if cache:
             secure_adapter = CacheControlAdapter(
-                cache=SafeFileCache(cache),
-                max_retries=retries,
+                cache=SafeFileCache(cache), max_retries=retries
             )
         else:
             secure_adapter = HTTPAdapter(max_retries=retries)
@@ -357,43 +353,42 @@ class PipSession(requests.Session):
             string came from.
         """
         if not suppress_logging:
-            msg = 'adding trusted host: {!r}'.format(host)
+            msg = "adding trusted host: {!r}".format(host)
             if source is not None:
-                msg += ' (from {})'.format(source)
+                msg += " (from {})".format(source)
             logger.info(msg)
 
         host_port = parse_netloc(host)
         if host_port not in self.pip_trusted_origins:
             self.pip_trusted_origins.append(host_port)
 
-        self.mount(build_url_from_netloc(host) + '/', self._insecure_adapter)
+        self.mount(build_url_from_netloc(host) + "/", self._insecure_adapter)
         if not host_port[1]:
             # Mount wildcard ports for the same host.
-            self.mount(
-                build_url_from_netloc(host) + ':',
-                self._insecure_adapter
-            )
+            self.mount(build_url_from_netloc(host) + ":", self._insecure_adapter)
 
     def iter_secure_origins(self):
         # type: () -> Iterator[SecureOrigin]
         for secure_origin in SECURE_ORIGINS:
             yield secure_origin
         for host, port in self.pip_trusted_origins:
-            yield ('*', host, '*' if port is None else port)
+            yield ("*", host, "*" if port is None else port)
 
     def is_secure_origin(self, location):
         # type: (Link) -> bool
         # Determine if this url used a secure transport mechanism
         parsed = urllib_parse.urlparse(str(location))
         origin_protocol, origin_host, origin_port = (
-            parsed.scheme, parsed.hostname, parsed.port,
+            parsed.scheme,
+            parsed.hostname,
+            parsed.port,
         )
 
         # The protocol to use to see if the protocol matches.
         # Don't count the repository type as part of the protocol: in
         # cases such as "git+ssh", only use "ssh". (I.e., Only verify against
         # the last scheme.)
-        origin_protocol = origin_protocol.rsplit('+', 1)[-1]
+        origin_protocol = origin_protocol.rsplit("+", 1)[-1]
 
         # Determine if our origin is a secure origin by looking through our
         # hardcoded list of secure origins, as well as any additional ones
@@ -408,10 +403,7 @@ class PipSession(requests.Session):
                 # unicode object, even on Python 2.x.
                 addr = ipaddress.ip_address(
                     origin_host
-                    if (
-                        isinstance(origin_host, six.text_type) or
-                        origin_host is None
-                    )
+                    if (isinstance(origin_host, six.text_type) or origin_host is None)
                     else origin_host.decode("utf8")
                 )
                 network = ipaddress.ip_network(
@@ -424,9 +416,11 @@ class PipSession(requests.Session):
             except ValueError:
                 # We don't have both a valid address or a valid network, so
                 # we'll check this origin against hostnames.
-                if (origin_host and
-                        origin_host.lower() != secure_host.lower() and
-                        secure_host != "*"):
+                if (
+                    origin_host
+                    and origin_host.lower() != secure_host.lower()
+                    and secure_host != "*"
+                ):
                     continue
             else:
                 # We have a valid address and network, so see if the address
@@ -435,9 +429,11 @@ class PipSession(requests.Session):
                     continue
 
             # Check to see if the port matches.
-            if (origin_port != secure_port and
-                    secure_port != "*" and
-                    secure_port is not None):
+            if (
+                origin_port != secure_port
+                and secure_port != "*"
+                and secure_port is not None
+            ):
                 continue
 
             # If we've gotten here, then this origin matches the current
@@ -482,39 +478,38 @@ def get_file_content(url, comes_from=None, session=None):
 
     scheme = get_url_scheme(url)
 
-    if scheme in ['http', 'https']:
+    if scheme in ["http", "https"]:
         # FIXME: catch some errors
         resp = session.get(url)
         resp.raise_for_status()
         return resp.url, resp.text
 
-    elif scheme == 'file':
-        if comes_from and comes_from.startswith('http'):
+    elif scheme == "file":
+        if comes_from and comes_from.startswith("http"):
             raise InstallationError(
-                'Requirements file %s references URL %s, which is local'
-                % (comes_from, url))
+                "Requirements file %s references URL %s, which is local"
+                % (comes_from, url)
+            )
 
-        path = url.split(':', 1)[1]
-        path = path.replace('\\', '/')
+        path = url.split(":", 1)[1]
+        path = path.replace("\\", "/")
         match = _url_slash_drive_re.match(path)
         if match:
-            path = match.group(1) + ':' + path.split('|', 1)[1]
+            path = match.group(1) + ":" + path.split("|", 1)[1]
         path = urllib_parse.unquote(path)
-        if path.startswith('/'):
-            path = '/' + path.lstrip('/')
+        if path.startswith("/"):
+            path = "/" + path.lstrip("/")
         url = path
 
     try:
-        with open(url, 'rb') as f:
+        with open(url, "rb") as f:
             content = auto_decode(f.read())
     except IOError as exc:
-        raise InstallationError(
-            'Could not open requirements file: %s' % str(exc)
-        )
+        raise InstallationError("Could not open requirements file: %s" % str(exc))
     return url, content
 
 
-_url_slash_drive_re = re.compile(r'/*([a-z])\|', re.I)
+_url_slash_drive_re = re.compile(r"/*([a-z])\|", re.I)
 
 
 def unpack_vcs_link(link, location):
@@ -544,11 +539,11 @@ def _download_url(
     link,  # type: Link
     content_file,  # type: IO
     hashes,  # type: Optional[Hashes]
-    progress_bar  # type: str
+    progress_bar,  # type: str
 ):
     # type: (...) -> None
     try:
-        total_length = int(resp.headers['content-length'])
+        total_length = int(resp.headers["content-length"])
     except (ValueError, KeyError, TypeError):
         total_length = 0
 
@@ -570,30 +565,31 @@ def _download_url(
         try:
             # Special case for urllib3.
             for chunk in resp.raw.stream(
-                    chunk_size,
-                    # We use decode_content=False here because we don't
-                    # want urllib3 to mess with the raw bytes we get
-                    # from the server. If we decompress inside of
-                    # urllib3 then we cannot verify the checksum
-                    # because the checksum will be of the compressed
-                    # file. This breakage will only occur if the
-                    # server adds a Content-Encoding header, which
-                    # depends on how the server was configured:
-                    # - Some servers will notice that the file isn't a
-                    #   compressible file and will leave the file alone
-                    #   and with an empty Content-Encoding
-                    # - Some servers will notice that the file is
-                    #   already compressed and will leave the file
-                    #   alone and will add a Content-Encoding: gzip
-                    #   header
-                    # - Some servers won't notice anything at all and
-                    #   will take a file that's already been compressed
-                    #   and compress it again and set the
-                    #   Content-Encoding: gzip header
-                    #
-                    # By setting this not to decode automatically we
-                    # hope to eliminate problems with the second case.
-                    decode_content=False):
+                chunk_size,
+                # We use decode_content=False here because we don't
+                # want urllib3 to mess with the raw bytes we get
+                # from the server. If we decompress inside of
+                # urllib3 then we cannot verify the checksum
+                # because the checksum will be of the compressed
+                # file. This breakage will only occur if the
+                # server adds a Content-Encoding header, which
+                # depends on how the server was configured:
+                # - Some servers will notice that the file isn't a
+                #   compressible file and will leave the file alone
+                #   and with an empty Content-Encoding
+                # - Some servers will notice that the file is
+                #   already compressed and will leave the file
+                #   alone and will add a Content-Encoding: gzip
+                #   header
+                # - Some servers won't notice anything at all and
+                #   will take a file that's already been compressed
+                #   and compress it again and set the
+                #   Content-Encoding: gzip header
+                #
+                # By setting this not to decode automatically we
+                # hope to eliminate problems with the second case.
+                decode_content=False,
+            ):
                 yield chunk
         except AttributeError:
             # Standard file-like object.
@@ -616,8 +612,7 @@ def _download_url(
         url = link.url_without_fragment
 
     if show_progress:  # We don't show progress on cached responses
-        progress_indicator = DownloadProgressProvider(progress_bar,
-                                                      max=total_length)
+        progress_indicator = DownloadProgressProvider(progress_bar, max=total_length)
         if total_length:
             logger.info("Downloading %s (%s)", url, format_size(total_length))
         else:
@@ -628,10 +623,7 @@ def _download_url(
         logger.info("Downloading %s", url)
 
     downloaded_chunks = written_chunks(
-        progress_indicator(
-            resp_read(CONTENT_CHUNK_SIZE),
-            CONTENT_CHUNK_SIZE
-        )
+        progress_indicator(resp_read(CONTENT_CHUNK_SIZE), CONTENT_CHUNK_SIZE)
     )
     if hashes:
         hashes.check_against_chunks(downloaded_chunks)
@@ -644,26 +636,28 @@ def _copy_file(filename, location, link):
     download_location = os.path.join(location, link.filename)
     if os.path.exists(download_location):
         response = ask_path_exists(
-            'The file %s exists. (i)gnore, (w)ipe, (b)ackup, (a)abort' %
-            display_path(download_location), ('i', 'w', 'b', 'a'))
-        if response == 'i':
+            "The file %s exists. (i)gnore, (w)ipe, (b)ackup, (a)abort"
+            % display_path(download_location),
+            ("i", "w", "b", "a"),
+        )
+        if response == "i":
             copy = False
-        elif response == 'w':
-            logger.warning('Deleting %s', display_path(download_location))
+        elif response == "w":
+            logger.warning("Deleting %s", display_path(download_location))
             os.remove(download_location)
-        elif response == 'b':
+        elif response == "b":
             dest_file = backup_dir(download_location)
             logger.warning(
-                'Backing up %s to %s',
+                "Backing up %s to %s",
                 display_path(download_location),
                 display_path(dest_file),
             )
             shutil.move(download_location, dest_file)
-        elif response == 'a':
+        elif response == "a":
             sys.exit(-1)
     if copy:
         shutil.copy(filename, download_location)
-        logger.info('Saved %s', display_path(download_location))
+        logger.info("Saved %s", display_path(download_location))
 
 
 def unpack_http_url(
@@ -672,7 +666,7 @@ def unpack_http_url(
     download_dir=None,  # type: Optional[str]
     session=None,  # type: Optional[PipSession]
     hashes=None,  # type: Optional[Hashes]
-    progress_bar="on"  # type: str
+    progress_bar="on",  # type: str
 ):
     # type: (...) -> None
     if session is None:
@@ -684,20 +678,16 @@ def unpack_http_url(
         # If a download dir is specified, is the file already downloaded there?
         already_downloaded_path = None
         if download_dir:
-            already_downloaded_path = _check_download_dir(link,
-                                                          download_dir,
-                                                          hashes)
+            already_downloaded_path = _check_download_dir(link, download_dir, hashes)
 
         if already_downloaded_path:
             from_path = already_downloaded_path
             content_type = mimetypes.guess_type(from_path)[0]
         else:
             # let's download to a tmp dir
-            from_path, content_type = _download_http_url(link,
-                                                         session,
-                                                         temp_dir.path,
-                                                         hashes,
-                                                         progress_bar)
+            from_path, content_type = _download_http_url(
+                link, session, temp_dir.path, hashes, progress_bar
+            )
 
         # unpack the archive to the build dir location. even when only
         # downloading archives, they have to be unpacked to parse dependencies
@@ -739,14 +729,14 @@ def _copy_source_tree(source, target):
         # exclude the following directories if they appear in the top
         # level dir (and only it).
         # See discussion at https://github.com/pypa/pip/pull/6770
-        return ['.tox', '.nox'] if d == source else []
+        return [".tox", ".nox"] if d == source else []
 
     kwargs = dict(ignore=ignore, symlinks=True)  # type: CopytreeKwargs
 
     if not PY2:
         # Python 2 does not support copy_function, so we only ignore
         # errors on special file copy in Python 3.
-        kwargs['copy_function'] = _copy2_ignoring_special_files
+        kwargs["copy_function"] = _copy2_ignoring_special_files
 
     shutil.copytree(source, target, **kwargs)
 
@@ -755,7 +745,7 @@ def unpack_file_url(
     link,  # type: Link
     location,  # type: str
     download_dir=None,  # type: Optional[str]
-    hashes=None  # type: Optional[Hashes]
+    hashes=None,  # type: Optional[Hashes]
 ):
     # type: (...) -> None
     """Unpack link into location.
@@ -770,7 +760,7 @@ def unpack_file_url(
             rmtree(location)
         _copy_source_tree(link_path, location)
         if download_dir:
-            logger.info('Link is a directory, ignoring download_dir')
+            logger.info("Link is a directory, ignoring download_dir")
         return
 
     # If --require-hashes is off, `hashes` is either empty, the
@@ -784,9 +774,7 @@ def unpack_file_url(
     # If a download dir is specified, is the file already there and valid?
     already_downloaded_path = None
     if download_dir:
-        already_downloaded_path = _check_download_dir(link,
-                                                      download_dir,
-                                                      hashes)
+        already_downloaded_path = _check_download_dir(link, download_dir, hashes)
 
     if already_downloaded_path:
         from_path = already_downloaded_path
@@ -819,16 +807,16 @@ class PipXmlrpcTransport(xmlrpc_client.Transport):
         parts = (self._scheme, host, handler, None, None, None)
         url = urllib_parse.urlunparse(parts)
         try:
-            headers = {'Content-Type': 'text/xml'}
-            response = self._session.post(url, data=request_body,
-                                          headers=headers, stream=True)
+            headers = {"Content-Type": "text/xml"}
+            response = self._session.post(
+                url, data=request_body, headers=headers, stream=True
+            )
             response.raise_for_status()
             self.verbose = verbose
             return self.parse_response(response.raw)
         except requests.HTTPError as exc:
             logger.critical(
-                "HTTP error %s while getting %s",
-                exc.response.status_code, url,
+                "HTTP error %s while getting %s", exc.response.status_code, url
             )
             raise
 
@@ -839,7 +827,7 @@ def unpack_url(
     download_dir=None,  # type: Optional[str]
     session=None,  # type: Optional[PipSession]
     hashes=None,  # type: Optional[Hashes]
-    progress_bar="on"  # type: str
+    progress_bar="on",  # type: str
 ):
     # type: (...) -> None
     """Unpack link.
@@ -875,7 +863,7 @@ def unpack_url(
             download_dir,
             session,
             hashes=hashes,
-            progress_bar=progress_bar
+            progress_bar=progress_bar,
         )
 
 
@@ -894,7 +882,7 @@ def parse_content_disposition(content_disposition, default_filename):
     return the default filename if the result is empty.
     """
     _type, params = cgi.parse_header(content_disposition)
-    filename = params.get('filename')
+    filename = params.get("filename")
     if filename:
         # We need to sanitize the filename to prevent directory traversal
         # in case the filename contains ".." path parts.
@@ -907,11 +895,11 @@ def _download_http_url(
     session,  # type: PipSession
     temp_dir,  # type: str
     hashes,  # type: Optional[Hashes]
-    progress_bar  # type: str
+    progress_bar,  # type: str
 ):
     # type: (...) -> Tuple[str, str]
     """Download link url into temp_dir using provided session"""
-    target_url = link.url.split('#', 1)[0]
+    target_url = link.url.split("#", 1)[0]
     try:
         resp = session.get(
             target_url,
@@ -940,14 +928,14 @@ def _download_http_url(
         resp.raise_for_status()
     except requests.HTTPError as exc:
         logger.critical(
-            "HTTP error %s while getting %s", exc.response.status_code, link,
+            "HTTP error %s while getting %s", exc.response.status_code, link
         )
         raise
 
-    content_type = resp.headers.get('content-type', '')
+    content_type = resp.headers.get("content-type", "")
     filename = link.filename  # fallback
     # Have a look at the Content-Disposition header for a better guess
-    content_disposition = resp.headers.get('content-disposition')
+    content_disposition = resp.headers.get("content-disposition")
     if content_disposition:
         filename = parse_content_disposition(content_disposition, filename)
     ext = splitext(filename)[1]  # type: Optional[str]
@@ -960,7 +948,7 @@ def _download_http_url(
         if ext:
             filename += ext
     file_path = os.path.join(temp_dir, filename)
-    with open(file_path, 'wb') as content_file:
+    with open(file_path, "wb") as content_file:
         _download_url(resp, link, content_file, hashes, progress_bar)
     return file_path, content_type
 
@@ -976,15 +964,14 @@ def _check_download_dir(link, download_dir, hashes):
         return None
 
     # If already downloaded, does its hash match?
-    logger.info('File was already downloaded %s', download_path)
+    logger.info("File was already downloaded %s", download_path)
     if hashes:
         try:
             hashes.check_against_path(download_path)
         except HashMismatch:
             logger.warning(
-                'Previously-downloaded file %s has bad hash. '
-                'Re-downloading.',
-                download_path
+                "Previously-downloaded file %s has bad hash. Re-downloading.",
+                download_path,
             )
             os.unlink(download_path)
             return None

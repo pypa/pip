@@ -5,10 +5,7 @@ import os
 import sys
 
 from pip._internal.cli import cmdoptions
-from pip._internal.cli.parser import (
-    ConfigOptionParser,
-    UpdatingDefaultsHelpFormatter,
-)
+from pip._internal.cli.parser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip._internal.commands import commands_dict, get_similar_commands
 from pip._internal.exceptions import CommandError
 from pip._internal.utils.misc import get_pip_version, get_prog
@@ -27,11 +24,11 @@ def create_main_parser():
     """
 
     parser_kw = {
-        'usage': '\n%prog <command> [options]',
-        'add_help_option': False,
-        'formatter': UpdatingDefaultsHelpFormatter(),
-        'name': 'global',
-        'prog': get_prog(),
+        "usage": "\n%prog <command> [options]",
+        "add_help_option": False,
+        "formatter": UpdatingDefaultsHelpFormatter(),
+        "name": "global",
+        "prog": get_prog(),
     }
 
     parser = ConfigOptionParser(**parser_kw)
@@ -47,11 +44,11 @@ def create_main_parser():
     parser.main = True  # type: ignore
 
     # create command listing for description
-    description = [''] + [
-        '%-27s %s' % (name, command_info.summary)
+    description = [""] + [
+        "%-27s %s" % (name, command_info.summary)
         for name, command_info in commands_dict.items()
     ]
-    parser.description = '\n'.join(description)
+    parser.description = "\n".join(description)
 
     return parser
 
@@ -76,7 +73,7 @@ def parse_command(args):
         sys.exit()
 
     # pip || pip help -> print_help()
-    if not args_else or (args_else[0] == 'help' and len(args_else) == 1):
+    if not args_else or (args_else[0] == "help" and len(args_else) == 1):
         parser.print_help()
         sys.exit()
 
@@ -90,7 +87,7 @@ def parse_command(args):
         if guess:
             msg.append('maybe you meant "%s"' % guess)
 
-        raise CommandError(' - '.join(msg))
+        raise CommandError(" - ".join(msg))
 
     # all the args without the subcommand
     cmd_args = args[:]

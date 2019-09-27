@@ -19,14 +19,14 @@ def test_no_color(script):
     #
     # This test will stay until someone has the time to rewrite it.
     command = (
-        'script --flush --quiet --return /tmp/pip-test-no-color.txt '
+        "script --flush --quiet --return /tmp/pip-test-no-color.txt "
         '--command "pip uninstall {} noSuchPackage"'
     )
 
     def get_run_output(option):
         cmd = command.format(option)
         proc = subprocess.Popen(
-            cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+            cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
         )
         proc.communicate()
         if proc.returncode:
@@ -40,5 +40,6 @@ def test_no_color(script):
             os.unlink("/tmp/pip-test-no-color.txt")
 
     assert "\x1b" in get_run_output(option=""), "Expected color in output"
-    assert "\x1b" not in get_run_output(option="--no-color"), \
-        "Expected no color in output"
+    assert "\x1b" not in get_run_output(
+        option="--no-color"
+    ), "Expected no color in output"

@@ -23,13 +23,14 @@ logger = logging.getLogger(__name__)
 
 
 class RequirementSet(object):
-
     def __init__(self, require_hashes=False, check_supported_wheels=True):
         # type: (bool, bool) -> None
         """Create a RequirementSet.
         """
 
-        self.requirements = OrderedDict()  # type: Dict[str, InstallRequirement]  # noqa: E501
+        self.requirements = (
+            OrderedDict()
+        )  # type: Dict[str, InstallRequirement]  # noqa: E501
         self.require_hashes = require_hashes
         self.check_supported_wheels = check_supported_wheels
 
@@ -43,20 +44,19 @@ class RequirementSet(object):
             (req for req in self.requirements.values() if not req.comes_from),
             key=lambda req: canonicalize_name(req.name),
         )
-        return ' '.join(str(req.req) for req in requirements)
+        return " ".join(str(req.req) for req in requirements)
 
     def __repr__(self):
         # type: () -> str
         requirements = sorted(
-            self.requirements.values(),
-            key=lambda req: canonicalize_name(req.name),
+            self.requirements.values(), key=lambda req: canonicalize_name(req.name)
         )
 
-        format_string = '<{classname} object; {count} requirement(s): {reqs}>'
+        format_string = "<{classname} object; {count} requirement(s): {reqs}>"
         return format_string.format(
             classname=self.__class__.__name__,
             count=len(requirements),
-            reqs=', '.join(str(req.req) for req in requirements),
+            reqs=", ".join(str(req.req) for req in requirements),
         )
 
     def add_unnamed_requirement(self, install_req):
@@ -75,7 +75,7 @@ class RequirementSet(object):
         self,
         install_req,  # type: InstallRequirement
         parent_req_name=None,  # type: Optional[str]
-        extras_requested=None  # type: Optional[Iterable[str]]
+        extras_requested=None,  # type: Optional[Iterable[str]]
     ):
         # type: (...) -> Tuple[List[InstallRequirement], Optional[InstallRequirement]]  # noqa: E501
         """Add install_req as a requirement to install.
@@ -96,7 +96,8 @@ class RequirementSet(object):
         if not install_req.match_markers(extras_requested):
             logger.info(
                 "Ignoring %s: markers '%s' don't match your environment",
-                install_req.name, install_req.markers,
+                install_req.name,
+                install_req.markers,
             )
             return [], None
 
@@ -107,10 +108,9 @@ class RequirementSet(object):
         if install_req.link and install_req.link.is_wheel:
             wheel = Wheel(install_req.link.filename)
             tags = pep425tags.get_supported()
-            if (self.check_supported_wheels and not wheel.supported(tags)):
+            if self.check_supported_wheels and not wheel.supported(tags):
                 raise InstallationError(
-                    "%s is not a supported wheel on this platform." %
-                    wheel.filename
+                    "%s is not a supported wheel on this platform." % wheel.filename
                 )
 
         # This next bit is really a sanity check.
@@ -131,11 +131,11 @@ class RequirementSet(object):
             existing_req = None
 
         has_conflicting_requirement = (
-            parent_req_name is None and
-            existing_req and
-            not existing_req.constraint and
-            existing_req.extras == install_req.extras and
-            existing_req.req.specifier != install_req.req.specifier
+            parent_req_name is None
+            and existing_req
+            and not existing_req.constraint
+            and existing_req.extras == install_req.extras
+            and existing_req.req.specifier != install_req.req.specifier
         )
         if has_conflicting_requirement:
             raise InstallationError(
@@ -155,30 +155,23 @@ class RequirementSet(object):
         if install_req.constraint or not existing_req.constraint:
             return [], existing_req
 
-        does_not_satisfy_constraint = (
-            install_req.link and
-            not (
-                existing_req.link and
-                install_req.link.path == existing_req.link.path
-            )
+        does_not_satisfy_constraint = install_req.link and not (
+            existing_req.link and install_req.link.path == existing_req.link.path
         )
         if does_not_satisfy_constraint:
             self.reqs_to_cleanup.append(install_req)
             raise InstallationError(
                 "Could not satisfy constraints for '%s': "
                 "installation from path or url cannot be "
-                "constrained to a version" % install_req.name,
+                "constrained to a version" % install_req.name
             )
         # If we're now installing a constraint, mark the existing
         # object for real installation.
         existing_req.constraint = False
-        existing_req.extras = tuple(sorted(
-            set(existing_req.extras) | set(install_req.extras)
-        ))
-        logger.debug(
-            "Setting %s extras to: %s",
-            existing_req, existing_req.extras,
+        existing_req.extras = tuple(
+            sorted(set(existing_req.extras) | set(install_req.extras))
         )
+        logger.debug("Setting %s extras to: %s", existing_req, existing_req.extras)
         # Return the existing requirement for addition to the parent and
         # scanning again.
         return [existing_req], existing_req
@@ -188,8 +181,8 @@ class RequirementSet(object):
         project_name = canonicalize_name(name)
 
         return (
-            project_name in self.requirements and
-            not self.requirements[project_name].constraint
+            project_name in self.requirements
+            and not self.requirements[project_name].constraint
         )
 
     def get_requirement(self, name):
@@ -204,7 +197,7 @@ class RequirementSet(object):
     def cleanup_files(self):
         # type: () -> None
         """Clean up files, remove builds."""
-        logger.debug('Cleaning up...')
+        logger.debug("Cleaning up...")
         with indent_log():
             for req in self.reqs_to_cleanup:
                 req.remove_temporary_source()

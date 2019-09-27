@@ -98,21 +98,16 @@ def user_data_dir(appname, roaming=False):
         const = roaming and "CSIDL_APPDATA" or "CSIDL_LOCAL_APPDATA"
         path = os.path.join(os.path.normpath(_get_win_folder(const)), appname)
     elif sys.platform == "darwin":
-        path = os.path.join(
-            expanduser('~/Library/Application Support/'),
-            appname,
-        ) if os.path.isdir(os.path.join(
-            expanduser('~/Library/Application Support/'),
-            appname,
-        )
-        ) else os.path.join(
-            expanduser('~/.config/'),
-            appname,
+        path = (
+            os.path.join(expanduser("~/Library/Application Support/"), appname)
+            if os.path.isdir(
+                os.path.join(expanduser("~/Library/Application Support/"), appname)
+            )
+            else os.path.join(expanduser("~/.config/"), appname)
         )
     else:
         path = os.path.join(
-            os.getenv('XDG_DATA_HOME', expanduser("~/.local/share")),
-            appname,
+            os.getenv("XDG_DATA_HOME", expanduser("~/.local/share")), appname
         )
 
     return path
@@ -144,7 +139,7 @@ def user_config_dir(appname, roaming=True):
     elif sys.platform == "darwin":
         path = user_data_dir(appname)
     else:
-        path = os.getenv('XDG_CONFIG_HOME', expanduser("~/.config"))
+        path = os.getenv("XDG_CONFIG_HOME", expanduser("~/.config"))
         path = os.path.join(path, appname)
 
     return path
@@ -172,11 +167,11 @@ def site_config_dirs(appname):
     if WINDOWS:
         path = os.path.normpath(_get_win_folder("CSIDL_COMMON_APPDATA"))
         pathlist = [os.path.join(path, appname)]
-    elif sys.platform == 'darwin':
-        pathlist = [os.path.join('/Library/Application Support', appname)]
+    elif sys.platform == "darwin":
+        pathlist = [os.path.join("/Library/Application Support", appname)]
     else:
         # try looking in $XDG_CONFIG_DIRS
-        xdg_config_dirs = os.getenv('XDG_CONFIG_DIRS', '/etc/xdg')
+        xdg_config_dirs = os.getenv("XDG_CONFIG_DIRS", "/etc/xdg")
         if xdg_config_dirs:
             pathlist = [
                 os.path.join(expanduser(x), appname)
@@ -186,12 +181,13 @@ def site_config_dirs(appname):
             pathlist = []
 
         # always look in /etc directly as well
-        pathlist.append('/etc')
+        pathlist.append("/etc")
 
     return pathlist
 
 
 # -- Windows support functions --
+
 
 def _get_win_folder_from_registry(csidl_name):
     # type: (str) -> str
@@ -210,7 +206,7 @@ def _get_win_folder_from_registry(csidl_name):
 
     key = _winreg.OpenKey(
         _winreg.HKEY_CURRENT_USER,
-        r"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders"
+        r"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders",
     )
     directory, _type = _winreg.QueryValueEx(key, shell_folder_name)
     return directory
@@ -248,6 +244,7 @@ def _get_win_folder_with_ctypes(csidl_name):
 if WINDOWS:
     try:
         import ctypes
+
         _get_win_folder = _get_win_folder_with_ctypes
     except ImportError:
         _get_win_folder = _get_win_folder_from_registry
@@ -263,7 +260,7 @@ def _win_path_to_bytes(path):
 
     If encoding using ASCII and MBCS fails, return the original Unicode path.
     """
-    for encoding in ('ASCII', 'MBCS'):
+    for encoding in ("ASCII", "MBCS"):
         try:
             return path.encode(encoding)
         except (UnicodeEncodeError, LookupError):

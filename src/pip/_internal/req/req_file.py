@@ -27,9 +27,7 @@ from pip._internal.req.constructors import (
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import (
-        Any, Callable, Iterator, List, NoReturn, Optional, Text, Tuple,
-    )
+    from typing import Any, Callable, Iterator, List, NoReturn, Optional, Text, Tuple
     from pip._internal.req import InstallRequirement
     from pip._internal.cache import WheelCache
     from pip._internal.index import PackageFinder
@@ -37,16 +35,16 @@ if MYPY_CHECK_RUNNING:
 
     ReqFileLines = Iterator[Tuple[int, Text]]
 
-__all__ = ['parse_requirements']
+__all__ = ["parse_requirements"]
 
-SCHEME_RE = re.compile(r'^(http|https|file):', re.I)
-COMMENT_RE = re.compile(r'(^|\s+)#.*$')
+SCHEME_RE = re.compile(r"^(http|https|file):", re.I)
+COMMENT_RE = re.compile(r"(^|\s+)#.*$")
 
 # Matches environment variable-style values in '${MY_VARIABLE_1}' with the
 # variable name consisting of only uppercase letters, digits or the '_'
 # (underscore). This follows the POSIX standard defined in IEEE Std 1003.1,
 # 2013 Edition.
-ENV_VAR_RE = re.compile(r'(?P<var>\$\{(?P<name>[A-Z0-9_]+)\})')
+ENV_VAR_RE = re.compile(r"(?P<var>\$\{(?P<name>[A-Z0-9_]+)\})")
 
 SUPPORTED_OPTIONS = [
     cmdoptions.constraints,
@@ -83,7 +81,7 @@ def parse_requirements(
     session=None,  # type: Optional[PipSession]
     constraint=False,  # type: bool
     wheel_cache=None,  # type: Optional[WheelCache]
-    use_pep517=None  # type: Optional[bool]
+    use_pep517=None,  # type: Optional[bool]
 ):
     # type: (...) -> Iterator[InstallRequirement]
     """Parse a requirements file and yield InstallRequirement instances.
@@ -100,20 +98,26 @@ def parse_requirements(
     """
     if session is None:
         raise TypeError(
-            "parse_requirements() missing 1 required keyword argument: "
-            "'session'"
+            "parse_requirements() missing 1 required keyword argument: 'session'"
         )
 
-    _, content = get_file_content(
-        filename, comes_from=comes_from, session=session
-    )
+    _, content = get_file_content(filename, comes_from=comes_from, session=session)
 
     lines_enum = preprocess(content, options)
 
     for line_number, line in lines_enum:
-        req_iter = process_line(line, filename, line_number, finder,
-                                comes_from, options, session, wheel_cache,
-                                use_pep517=use_pep517, constraint=constraint)
+        req_iter = process_line(
+            line,
+            filename,
+            line_number,
+            finder,
+            comes_from,
+            options,
+            session,
+            wheel_cache,
+            use_pep517=use_pep517,
+            constraint=constraint,
+        )
         for req in req_iter:
             yield req
 
@@ -172,14 +176,15 @@ def process_line(
     # Prior to 2.7.3, shlex cannot deal with unicode entries
     if sys.version_info < (2, 7, 3):
         # https://github.com/python/mypy/issues/1174
-        options_str = options_str.encode('utf8')  # type: ignore
+        options_str = options_str.encode("utf8")  # type: ignore
     # https://github.com/python/mypy/issues/1174
-    opts, _ = parser.parse_args(
-        shlex.split(options_str), defaults)  # type: ignore
+    opts, _ = parser.parse_args(shlex.split(options_str), defaults)  # type: ignore
 
     # preserve for the nested code path
-    line_comes_from = '%s %s (line %s)' % (
-        '-c' if constraint else '-r', filename, line_number,
+    line_comes_from = "%s %s (line %s)" % (
+        "-c" if constraint else "-r",
+        filename,
+        line_number,
     )
 
     # yield a line requirement
@@ -192,7 +197,7 @@ def process_line(
         for dest in SUPPORTED_OPTIONS_REQ_DEST:
             if dest in opts.__dict__ and opts.__dict__[dest]:
                 req_options[dest] = opts.__dict__[dest]
-        line_source = 'line {} of {}'.format(line_number, filename)
+        line_source = "line {} of {}".format(line_number, filename)
         yield install_req_from_line(
             args_str,
             comes_from=line_comes_from,
@@ -208,9 +213,12 @@ def process_line(
     elif opts.editables:
         isolated = options.isolated_mode if options else False
         yield install_req_from_editable(
-            opts.editables[0], comes_from=line_comes_from,
+            opts.editables[0],
+            comes_from=line_comes_from,
             use_pep517=use_pep517,
-            constraint=constraint, isolated=isolated, wheel_cache=wheel_cache
+            constraint=constraint,
+            isolated=isolated,
+            wheel_cache=wheel_cache,
         )
 
     # parse a nested requirements file
@@ -231,8 +239,13 @@ def process_line(
             req_path = os.path.join(os.path.dirname(filename), req_path)
         # TODO: Why not use `comes_from='-r {} (line {})'` here as well?
         parsed_reqs = parse_requirements(
-            req_path, finder, comes_from, options, session,
-            constraint=nested_constraint, wheel_cache=wheel_cache
+            req_path,
+            finder,
+            comes_from,
+            options,
+            session,
+            constraint=nested_constraint,
+            wheel_cache=wheel_cache,
         )
         for req in parsed_reqs:
             yield req
@@ -262,16 +275,13 @@ def process_line(
                 value = relative_to_reqs_file
             find_links.append(value)
 
-        search_scope = SearchScope(
-            find_links=find_links,
-            index_urls=index_urls,
-        )
+        search_scope = SearchScope(find_links=find_links, index_urls=index_urls)
         finder.search_scope = search_scope
 
         if opts.pre:
             finder.set_allow_all_prereleases()
         for host in opts.trusted_hosts or []:
-            source = 'line {} of {}'.format(line_number, filename)
+            source = "line {} of {}".format(line_number, filename)
             session.add_trusted_host(host, source=source)
 
 
@@ -281,16 +291,16 @@ def break_args_options(line):
     (and then optparse) the options, not the args.  args can contain markers
     which are corrupted by shlex.
     """
-    tokens = line.split(' ')
+    tokens = line.split(" ")
     args = []
     options = tokens[:]
     for token in tokens:
-        if token.startswith('-') or token.startswith('--'):
+        if token.startswith("-") or token.startswith("--"):
             break
         else:
             args.append(token)
             options.pop(0)
-    return ' '.join(args), ' '.join(options)  # type: ignore
+    return " ".join(args), " ".join(options)  # type: ignore
 
 
 def build_parser(line):
@@ -310,8 +320,9 @@ def build_parser(line):
     def parser_exit(self, msg):
         # type: (Any, str) -> NoReturn
         # add offending line
-        msg = 'Invalid requirement: %s\n%s' % (line, msg)
+        msg = "Invalid requirement: %s\n%s" % (line, msg)
         raise RequirementsFileParseError(msg)
+
     # NOTE: mypy disallows assigning to a method
     #       https://github.com/python/mypy/issues/2427
     parser.exit = parser_exit  # type: ignore
@@ -327,24 +338,24 @@ def join_lines(lines_enum):
     primary_line_number = None
     new_line = []  # type: List[Text]
     for line_number, line in lines_enum:
-        if not line.endswith('\\') or COMMENT_RE.match(line):
+        if not line.endswith("\\") or COMMENT_RE.match(line):
             if COMMENT_RE.match(line):
                 # this ensures comments are always matched later
-                line = ' ' + line
+                line = " " + line
             if new_line:
                 new_line.append(line)
-                yield primary_line_number, ''.join(new_line)
+                yield primary_line_number, "".join(new_line)
                 new_line = []
             else:
                 yield line_number, line
         else:
             if not new_line:
                 primary_line_number = line_number
-            new_line.append(line.strip('\\'))
+            new_line.append(line.strip("\\"))
 
     # last line contains \
     if new_line:
-        yield primary_line_number, ''.join(new_line)
+        yield primary_line_number, "".join(new_line)
 
     # TODO: handle space after '\'.
 
@@ -355,7 +366,7 @@ def ignore_comments(lines_enum):
     Strips comments and filter empty lines.
     """
     for line_number, line in lines_enum:
-        line = COMMENT_RE.sub('', line)
+        line = COMMENT_RE.sub("", line)
         line = line.strip()
         if line:
             yield line_number, line

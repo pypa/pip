@@ -10,8 +10,8 @@ class PackageIndex(object):
         super(PackageIndex, self).__init__()
         self.url = url
         self.netloc = urllib_parse.urlsplit(url).netloc
-        self.simple_url = self._url_for_path('simple')
-        self.pypi_url = self._url_for_path('pypi')
+        self.simple_url = self._url_for_path("simple")
+        self.pypi_url = self._url_for_path("pypi")
 
         # This is part of a temporary hack used to block installs of PyPI
         # packages which depend on external urls only necessary until PyPI can
@@ -23,9 +23,7 @@ class PackageIndex(object):
         return urllib_parse.urljoin(self.url, path)
 
 
-PyPI = PackageIndex(
-    'https://pypi.org/', file_storage_domain='files.pythonhosted.org'
-)
+PyPI = PackageIndex("https://pypi.org/", file_storage_domain="files.pythonhosted.org")
 TestPyPI = PackageIndex(
-    'https://test.pypi.org/', file_storage_domain='test-files.pythonhosted.org'
+    "https://test.pypi.org/", file_storage_domain="test-files.pythonhosted.org"
 )

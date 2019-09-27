@@ -9,9 +9,7 @@ import os
 
 from pip._vendor import requests
 
-from pip._internal.distributions import (
-    make_distribution_for_install_requirement,
-)
+from pip._internal.distributions import make_distribution_for_install_requirement
 from pip._internal.distributions.installed import InstalledDistribution
 from pip._internal.download import unpack_url
 from pip._internal.exceptions import (
@@ -61,7 +59,7 @@ class RequirementPreparer(object):
         wheel_download_dir,  # type: Optional[str]
         progress_bar,  # type: str
         build_isolation,  # type: bool
-        req_tracker  # type: RequirementTracker
+        req_tracker,  # type: RequirementTracker
     ):
         # type: (...) -> None
         super(RequirementPreparer, self).__init__()
@@ -102,10 +100,11 @@ class RequirementPreparer(object):
         if os.path.exists(self.download_dir):
             return True
 
-        logger.critical('Could not find download directory')
+        logger.critical("Could not find download directory")
         raise InstallationError(
             "Could not find or access download directory '%s'"
-            % display_path(self.download_dir))
+            % display_path(self.download_dir)
+        )
 
     def prepare_linked_requirement(
         self,
@@ -121,11 +120,11 @@ class RequirementPreparer(object):
         link = req.link
 
         # TODO: Breakup into smaller functions
-        if link.scheme == 'file':
+        if link.scheme == "file":
             path = link.file_path
-            logger.info('Processing %s', display_path(path))
+            logger.info("Processing %s", display_path(path))
         else:
-            logger.info('Collecting %s', req.req or req)
+            logger.info("Collecting %s", req.req or req)
 
         with indent_log():
             # @@ if filesystem packages are not marked
@@ -138,7 +137,7 @@ class RequirementPreparer(object):
             # installation.
             # FIXME: this won't upgrade when there's an existing
             # package unpacked in `req.source_dir`
-            if os.path.exists(os.path.join(req.source_dir, 'setup.py')):
+            if os.path.exists(os.path.join(req.source_dir, "setup.py")):
                 raise PreviousBuildDirError(
                     "pip can't proceed with requirements '%s' due to a"
                     " pre-existing build directory (%s). This is "
@@ -188,20 +187,20 @@ class RequirementPreparer(object):
 
             try:
                 unpack_url(
-                    link, req.source_dir, download_dir,
-                    session=session, hashes=hashes,
-                    progress_bar=self.progress_bar
+                    link,
+                    req.source_dir,
+                    download_dir,
+                    session=session,
+                    hashes=hashes,
+                    progress_bar=self.progress_bar,
                 )
             except requests.HTTPError as exc:
                 logger.critical(
-                    'Could not install requirement %s because of error %s',
-                    req,
-                    exc,
+                    "Could not install requirement %s because of error %s", req, exc
                 )
                 raise InstallationError(
-                    'Could not install requirement %s because of HTTP '
-                    'error %s for URL %s' %
-                    (req, exc, link)
+                    "Could not install requirement %s because of HTTP "
+                    "error %s for URL %s" % (req, exc, link)
                 )
 
             if link.is_wheel:
@@ -220,7 +219,7 @@ class RequirementPreparer(object):
                 write_delete_marker_file(req.source_dir)
 
             abstract_dist = _get_prepared_distribution(
-                req, self.req_tracker, finder, self.build_isolation,
+                req, self.req_tracker, finder, self.build_isolation
             )
 
             if self._download_should_save:
@@ -234,27 +233,27 @@ class RequirementPreparer(object):
         req,  # type: InstallRequirement
         require_hashes,  # type: bool
         use_user_site,  # type: bool
-        finder  # type: PackageFinder
+        finder,  # type: PackageFinder
     ):
         # type: (...) -> AbstractDistribution
         """Prepare an editable requirement
         """
         assert req.editable, "cannot prepare a non-editable req as editable"
 
-        logger.info('Obtaining %s', req)
+        logger.info("Obtaining %s", req)
 
         with indent_log():
             if require_hashes:
                 raise InstallationError(
-                    'The editable requirement %s cannot be installed when '
-                    'requiring hashes, because there is no single file to '
-                    'hash.' % req
+                    "The editable requirement %s cannot be installed when "
+                    "requiring hashes, because there is no single file to "
+                    "hash." % req
                 )
             req.ensure_has_source_dir(self.src_dir)
             req.update_editable(not self._download_should_save)
 
             abstract_dist = _get_prepared_distribution(
-                req, self.req_tracker, finder, self.build_isolation,
+                req, self.req_tracker, finder, self.build_isolation
             )
 
             if self._download_should_save:
@@ -267,7 +266,7 @@ class RequirementPreparer(object):
         self,
         req,  # type: InstallRequirement
         require_hashes,  # type: bool
-        skip_reason  # type: str
+        skip_reason,  # type: str
     ):
         # type: (...) -> AbstractDistribution
         """Prepare an already-installed requirement
@@ -278,16 +277,15 @@ class RequirementPreparer(object):
             "is set to %r" % (req.satisfied_by,)
         )
         logger.info(
-            'Requirement %s: %s (%s)',
-            skip_reason, req, req.satisfied_by.version
+            "Requirement %s: %s (%s)", skip_reason, req, req.satisfied_by.version
         )
         with indent_log():
             if require_hashes:
                 logger.debug(
-                    'Since it is already installed, we are trusting this '
-                    'package without checking its hash. To ensure a '
-                    'completely repeatable environment, install into an '
-                    'empty virtualenv.'
+                    "Since it is already installed, we are trusting this "
+                    "package without checking its hash. To ensure a "
+                    "completely repeatable environment, install into an "
+                    "empty virtualenv."
                 )
             abstract_dist = InstalledDistribution(req)
 

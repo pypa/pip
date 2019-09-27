@@ -10,8 +10,7 @@ class WheelDistribution(AbstractDistribution):
     """
 
     def get_pkg_resources_distribution(self):
-        return list(pkg_resources.find_distributions(
-                    self.req.source_dir))[0]
+        return list(pkg_resources.find_distributions(self.req.source_dir))[0]
 
     def prepare_distribution_metadata(self, finder, build_isolation):
         pass

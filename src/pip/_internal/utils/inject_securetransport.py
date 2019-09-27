@@ -15,7 +15,7 @@ else:
     import sys
 
     # Checks for OpenSSL 1.0.1 on MacOS
-    if sys.platform == "darwin" and ssl.OPENSSL_VERSION_NUMBER < 0x1000100f:
+    if sys.platform == "darwin" and ssl.OPENSSL_VERSION_NUMBER < 0x1000100F:
         try:
             from pip._vendor.urllib3.contrib import securetransport
         except (ImportError, OSError):

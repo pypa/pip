@@ -20,19 +20,20 @@ class HashCommand(Command):
     installs.
     """
 
-    usage = '%prog [options] <file> ...'
+    usage = "%prog [options] <file> ..."
     ignore_require_venv = True
 
     def __init__(self, *args, **kw):
         super(HashCommand, self).__init__(*args, **kw)
         self.cmd_opts.add_option(
-            '-a', '--algorithm',
-            dest='algorithm',
+            "-a",
+            "--algorithm",
+            dest="algorithm",
             choices=STRONG_HASHES,
-            action='store',
+            action="store",
             default=FAVORITE_HASH,
-            help='The hash algorithm to use: one of %s' %
-                 ', '.join(STRONG_HASHES))
+            help="The hash algorithm to use: one of %s" % ", ".join(STRONG_HASHES),
+        )
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
@@ -42,13 +43,14 @@ class HashCommand(Command):
 
         algorithm = options.algorithm
         for path in args:
-            write_output('%s:\n--hash=%s:%s',
-                         path, algorithm, _hash_of_file(path, algorithm))
+            write_output(
+                "%s:\n--hash=%s:%s", path, algorithm, _hash_of_file(path, algorithm)
+            )
 
 
 def _hash_of_file(path, algorithm):
     """Return the hash digest of a file."""
-    with open(path, 'rb') as archive:
+    with open(path, "rb") as archive:
         hash = hashlib.new(algorithm)
         for chunk in read_chunks(archive):
             hash.update(chunk)
