@@ -84,8 +84,11 @@ def test(session):
     session.run(*protected_pip("install", "."))
     session.run(*protected_pip("install", "-r", REQUIREMENTS["tests"]))
 
+    # Parallelize tests as much as possible, by default.
+    arguments = session.posargs or ["-n", "auto"]
+
     # Run the tests
-    session.run("pytest", *session.posargs, env={"LC_CTYPE": "en_US.UTF-8"})
+    session.run("pytest", *arguments, env={"LC_CTYPE": "en_US.UTF-8"})
 
 
 @nox.session
