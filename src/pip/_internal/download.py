@@ -17,8 +17,6 @@ from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
 from pip._vendor.requests.structures import CaseInsensitiveDict
 from pip._vendor.six import PY2
-# NOTE: XMLRPC Client is not annotated in typeshed as on 2017-07-17, which is
-#       why we ignore the type on this import
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 import pip
