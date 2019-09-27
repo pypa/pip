@@ -485,7 +485,7 @@ class InstallRequirement(object):
 
     # Things valid for sdists
     @property
-    def setup_py_dir(self):
+    def unpacked_source_directory(self):
         # type: () -> str
         return os.path.join(
             self.source_dir,
@@ -495,8 +495,7 @@ class InstallRequirement(object):
     def setup_py_path(self):
         # type: () -> str
         assert self.source_dir, "No source dir for %s" % self
-
-        setup_py = os.path.join(self.setup_py_dir, 'setup.py')
+        setup_py = os.path.join(self.unpacked_source_directory, 'setup.py')
 
         # Python2 __file__ should not be unicode
         if six.PY2 and isinstance(setup_py, six.text_type):
@@ -508,8 +507,7 @@ class InstallRequirement(object):
     def pyproject_toml_path(self):
         # type: () -> str
         assert self.source_dir, "No source dir for %s" % self
-
-        return make_pyproject_path(self.setup_py_dir)
+        return make_pyproject_path(self.unpacked_source_directory)
 
     def load_pyproject_toml(self):
         # type: () -> None
@@ -535,7 +533,9 @@ class InstallRequirement(object):
         requires, backend, check = pyproject_toml_data
         self.requirements_to_check = check
         self.pyproject_requires = requires
-        self.pep517_backend = Pep517HookCaller(self.setup_py_dir, backend)
+        self.pep517_backend = Pep517HookCaller(
+            self.unpacked_source_directory, backend
+        )
 
         # Use a custom function to call subprocesses
         self.spin_message = ""
@@ -665,7 +665,7 @@ class InstallRequirement(object):
             base = self.source_dir
             filenames = locate_editable_egg_info(base)
         else:
-            base = os.path.join(self.setup_py_dir, 'pip-egg-info')
+            base = os.path.join(self.unpacked_source_directory, 'pip-egg-info')
             filenames = os.listdir(base)
 
         if not filenames:
@@ -770,8 +770,7 @@ class InstallRequirement(object):
                     base_cmd +
                     ['develop', '--no-deps'] +
                     list(install_options),
-
-                    cwd=self.setup_py_dir,
+                    cwd=self.unpacked_source_directory,
                 )
 
         self.install_succeeded = True
@@ -883,7 +882,9 @@ class InstallRequirement(object):
             archive_path, 'w', zipfile.ZIP_DEFLATED, allowZip64=True,
         )
         with zip_output:
-            dir = os.path.normcase(os.path.abspath(self.setup_py_dir))
+            dir = os.path.normcase(
+                os.path.abspath(self.unpacked_source_directory)
+            )
             for dirpath, dirnames, filenames in os.walk(dir):
                 if 'pip-egg-info' in dirnames:
                     dirnames.remove('pip-egg-info')
@@ -956,7 +957,7 @@ class InstallRequirement(object):
                     with self.build_env:
                         call_subprocess(
                             install_args + install_options,
-                            cwd=self.setup_py_dir,
+                            cwd=self.unpacked_source_directory,
                             spinner=spinner,
                         )
 

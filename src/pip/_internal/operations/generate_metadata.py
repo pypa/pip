@@ -41,7 +41,9 @@ def _generate_metadata_legacy(install_req):
     # egg.
     egg_base_option = []  # type: List[str]
     if not install_req.editable:
-        egg_info_dir = os.path.join(install_req.setup_py_dir, 'pip-egg-info')
+        egg_info_dir = os.path.join(
+            install_req.unpacked_source_directory, 'pip-egg-info',
+        )
         egg_base_option = ['--egg-base', egg_info_dir]
 
         # setuptools complains if the target directory does not exist.
@@ -50,7 +52,7 @@ def _generate_metadata_legacy(install_req):
     with install_req.build_env:
         call_subprocess(
             base_cmd + ["egg_info"] + egg_base_option,
-            cwd=install_req.setup_py_dir,
+            cwd=install_req.unpacked_source_directory,
             command_desc='python setup.py egg_info',
         )
 

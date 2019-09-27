@@ -1019,12 +1019,16 @@ class WheelBuilder(object):
                 wheel_args += ["--python-tag", python_tag]
 
             try:
-                output = call_subprocess(wheel_args, cwd=req.setup_py_dir,
-                                         spinner=spinner)
+                output = call_subprocess(
+                    wheel_args,
+                    cwd=req.unpacked_source_directory,
+                    spinner=spinner,
+                )
             except Exception:
                 spinner.finish("error")
                 logger.error('Failed building wheel for %s', req.name)
                 return None
+
             names = os.listdir(tempd)
             wheel_path = get_legacy_build_wheel_path(
                 names=names,
