@@ -1,4 +1,4 @@
-"""Release time helpers, executed using nox.
+"""Automation using nox.
 """
 
 import io
