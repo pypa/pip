@@ -277,7 +277,6 @@ class HashMismatch(HashError):
                          for e in expecteds)
             lines.append('             Got        %s\n' %
                          self.gots[hash_name].hexdigest())
-            prefix = '    or'
         return '\n'.join(lines)
 
 
