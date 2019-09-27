@@ -2,9 +2,23 @@
 """
 
 import io
+import os
+import shutil
 import subprocess
 
 import nox
+
+nox.options.reuse_existing_virtualenvs = True
+nox.options.sessions = ["lint"]
+
+LOCATIONS = {
+    "common-wheels": "tests/data/common_wheels",
+    "protected-pip": "tools/tox_pip.py",
+}
+REQUIREMENTS = {
+    "tests": "tools/requirements/tests.txt",
+    "common-wheels": "tools/requirements/tests-common_wheels.txt",
+}
 
 
 def get_author_list():
@@ -28,6 +42,82 @@ def get_author_list():
 
     # Sort our list of Authors by their case insensitive name
     return sorted(authors, key=lambda x: x.lower())
+
+
+def protected_pip(*arguments):
+    """Get arguments for session.run, that use a "protected" pip.
+    """
+    return ("python", LOCATIONS["protected-pip"]) + arguments
+
+
+def should_update_common_wheels():
+    # If the cache hasn't been created, create it.
+    if not os.path.exists(LOCATIONS["common-wheels"]):
+        return True
+
+    # If the requirements was updated after cache, we'll repopulate it.
+    cache_last_populated_at = os.path.getmtime(LOCATIONS["common-wheels"])
+    requirements_updated_at = os.path.getmtime(REQUIREMENTS["common-wheels"])
+    need_to_repopulate = requirements_updated_at > cache_last_populated_at
+
+    # Clear the stale cache.
+    if need_to_repopulate:
+        shutil.remove(LOCATIONS["common-wheels"], ignore_errors=True)
+
+    return need_to_repopulate
+
+
+# -----------------------------------------------------------------------------
+# Development Commands
+# -----------------------------------------------------------------------------
+@nox.session(python=["2.7", "3.5", "3.6", "3.7", "pypy"])
+def test(session):
+    # Get the common wheels.
+    if should_update_common_wheels():
+        session.run(*protected_pip(
+            "wheel",
+            "-w", LOCATIONS["common-wheels"],
+            "-r", REQUIREMENTS["common-wheels"],
+        ))
+
+    # Install sources and dependencies
+    session.run(*protected_pip("install", "."))
+    session.run(*protected_pip("install", "-r", REQUIREMENTS["tests"]))
+
+    # Run the tests
+    session.run("pytest", *session.posargs, env={"LC_CTYPE": "en_US.UTF-8"})
+
+
+@nox.session
+def docs(session):
+    session.install(".")
+    session.install("-r", REQUIREMENTS["docs"])
+
+    def get_sphinx_build_command(kind):
+        return [
+            "sphinx-build",
+            "-W",
+            "-c", "docs/html",
+            "-d", "docs/build/doctrees/" + kind,
+            "-b", kind,
+            "docs/" + kind,
+            "docs/build/" + kind,
+        ]
+
+    session.run(*get_sphinx_build_command("html"))
+    session.run(*get_sphinx_build_command("man"))
+
+
+@nox.session
+def lint(session):
+    session.install("pre-commit")
+
+    if session.posargs:
+        args = session.posargs + ["--all-files"]
+    else:
+        args = ["--all-files", "--show-diff-on-failure"]
+
+    session.run("pre-commit", "run", *args)
 
 
 # -----------------------------------------------------------------------------
