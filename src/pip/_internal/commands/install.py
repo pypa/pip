@@ -285,6 +285,7 @@ class InstallCommand(RequirementCommand):
                 options.target_dir,
             )
             return ERROR
+        
         if (options.prefix_path is not None and not
                 check_path_owner(options.prefix_path)):
             logger.error(
@@ -293,6 +294,7 @@ class InstallCommand(RequirementCommand):
                 options.prefix_path,
             )
             return ERROR
+        
         if (options.root_path is not None and not
                 check_path_owner(options.root_path)):
             logger.error(
