@@ -4,6 +4,7 @@ Support for installing and building the "wheel" binary package format.
 
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
+# mypy: disallow-untyped-defs=False
 
 from __future__ import absolute_import
 

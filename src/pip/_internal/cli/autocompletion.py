@@ -1,6 +1,9 @@
 """Logic that powers autocompletion installed by ``pip completion``.
 """
 
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 import optparse
 import os
 import sys

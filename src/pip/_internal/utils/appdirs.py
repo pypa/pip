@@ -2,6 +2,10 @@
 This code was taken from https://github.com/ActiveState/appdirs and modified
 to suit our purposes.
 """
+
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 from __future__ import absolute_import
 
 import os

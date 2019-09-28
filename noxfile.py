@@ -1,6 +1,9 @@
 """Automation using nox.
 """
 
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 import io
 import os
 import shutil

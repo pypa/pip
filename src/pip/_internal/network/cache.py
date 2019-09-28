@@ -1,5 +1,9 @@
 """HTTP cache implementation.
 """
+
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 import os
 from contextlib import contextmanager
 
