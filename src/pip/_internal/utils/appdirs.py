@@ -227,7 +227,8 @@ def _get_win_folder_with_ctypes(csidl_name):
     }[csidl_name]
 
     buf = ctypes.create_unicode_buffer(1024)
-    ctypes.windll.shell32.SHGetFolderPathW(None, csidl_const, None, 0, buf)
+    windll = ctypes.windll  # type: ignore
+    windll.shell32.SHGetFolderPathW(None, csidl_const, None, 0, buf)
 
     # Downgrade to short path name if have highbit chars. See
     # <http://bugs.activestate.com/show_bug.cgi?id=85099>.
@@ -238,7 +239,7 @@ def _get_win_folder_with_ctypes(csidl_name):
             break
     if has_high_char:
         buf2 = ctypes.create_unicode_buffer(1024)
-        if ctypes.windll.kernel32.GetShortPathNameW(buf.value, buf2, 1024):
+        if windll.kernel32.GetShortPathNameW(buf.value, buf2, 1024):
             buf = buf2
 
     # The type: ignore is explained under the type annotation for this function

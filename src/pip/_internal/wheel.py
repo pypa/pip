@@ -55,7 +55,7 @@ from pip._internal.utils.urls import path_to_url
 if MYPY_CHECK_RUNNING:
     from typing import (
         Dict, List, Optional, Sequence, Mapping, Tuple, IO, Text, Any,
-        Iterable, Callable,
+        Iterable, Callable, Set,
     )
     from pip._vendor.packaging.requirements import Requirement
     from pip._internal.req.req_install import InstallRequirement
@@ -207,7 +207,7 @@ def message_about_scripts_not_on_PATH(scripts):
         return None
 
     # Group scripts by the path they were installed in
-    grouped_by_dir = collections.defaultdict(set)  # type: Dict[str, set]
+    grouped_by_dir = collections.defaultdict(set)  # type: Dict[str, Set[str]]
     for destfile in scripts:
         parent_dir = os.path.dirname(destfile)
         script_name = os.path.basename(destfile)
@@ -224,14 +224,14 @@ def message_about_scripts_not_on_PATH(scripts):
     warn_for = {
         parent_dir: scripts for parent_dir, scripts in grouped_by_dir.items()
         if os.path.normcase(parent_dir) not in not_warn_dirs
-    }
+    }  # type: Dict[str, Set[str]]
     if not warn_for:
         return None
 
     # Format a message
     msg_lines = []
-    for parent_dir, scripts in warn_for.items():
-        sorted_scripts = sorted(scripts)  # type: List[str]
+    for parent_dir, dir_scripts in warn_for.items():
+        sorted_scripts = sorted(dir_scripts)  # type: List[str]
         if len(sorted_scripts) == 1:
             start_text = "script {} is".format(sorted_scripts[0])
         else:
