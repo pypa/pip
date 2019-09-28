@@ -46,6 +46,10 @@ def get_author_list():
 
 def protected_pip(*arguments):
     """Get arguments for session.run, that use a "protected" pip.
+
+    This invokes a wrapper script, that forwards calls to original virtualenv
+    (stable) version, and not the code being tested. This ensures pip being
+    used is not the code being tested.
     """
     return ("python", LOCATIONS["protected-pip"]) + arguments
 
@@ -88,6 +92,8 @@ def test(session):
     arguments = session.posargs or ["-n", "auto"]
 
     # Run the tests
+    #   LC_CTYPE is set to get UTF-8 output inside of the subprocesses that our
+    #   tests use.
     session.run("pytest", *arguments, env={"LC_CTYPE": "en_US.UTF-8"})
 
 
@@ -97,10 +103,14 @@ def docs(session):
     session.install("-r", REQUIREMENTS["docs"])
 
     def get_sphinx_build_command(kind):
+        # Having the conf.py in the docs/html is weird but needed because we
+        # can not use a different configuration directory vs source directory
+        # on RTD currently. So, we'll pass "-c docs/html" here.
+        # See https://github.com/rtfd/readthedocs.org/issues/1543.
         return [
             "sphinx-build",
             "-W",
-            "-c", "docs/html",
+            "-c", "docs/html",  # see note above
             "-d", "docs/build/doctrees/" + kind,
             "-b", kind,
             "docs/" + kind,
