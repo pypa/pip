@@ -6,6 +6,7 @@ import logging
 from pip._internal.build_env import BuildEnvironment
 from pip._internal.distributions.base import AbstractDistribution
 from pip._internal.exceptions import InstallationError
+from pip._internal.utils.subprocess import run_with_spinner_message
 
 logger = logging.getLogger(__name__)
 
@@ -81,9 +82,13 @@ class SourceDistribution(AbstractDistribution):
         # This must be done in a second pass, as the pyproject.toml
         # dependencies must be installed before we can call the backend.
         with self.req.build_env:
-            # We need to have the env active when calling the hook.
-            self.req.spin_message = "Getting requirements to build wheel"
-            reqs = self.req.pep517_backend.get_requires_for_build_wheel()
+            runner = run_with_spinner_message(
+                "Getting requirements to build wheel"
+            )
+            backend = self.req.pep517_backend
+            with backend.subprocess_runner(runner):
+                reqs = backend.get_requires_for_build_wheel()
+
         conflicting, missing = self.req.build_env.check_requirements(reqs)
         if conflicting:
             _raise_conflicts("the backend dependencies", conflicting)

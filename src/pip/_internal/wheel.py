@@ -44,6 +44,7 @@ from pip._internal.utils.subprocess import (
     LOG_DIVIDER,
     call_subprocess,
     format_command_args,
+    run_with_spinner_message,
 )
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -979,12 +980,17 @@ class WheelBuilder(object):
                          '--build-options is present' % (req.name,))
             return None
         try:
-            req.spin_message = 'Building wheel for %s (PEP 517)' % (req.name,)
             logger.debug('Destination directory: %s', tempd)
-            wheel_name = req.pep517_backend.build_wheel(
-                tempd,
-                metadata_directory=req.metadata_directory
+
+            runner = run_with_spinner_message(
+                'Building wheel for {} (PEP 517)'.format(req.name)
             )
+            backend = req.pep517_backend
+            with backend.subprocess_runner(runner):
+                wheel_name = backend.build_wheel(
+                    tempd,
+                    metadata_directory=req.metadata_directory,
+                )
             if python_tag:
                 # General PEP 517 backends don't necessarily support
                 # a "--python-tag" option, so we rename the wheel
