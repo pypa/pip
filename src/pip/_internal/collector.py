@@ -2,6 +2,9 @@
 The main purpose of this module is to expose LinkCollector.collect_links().
 """
 
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 import cgi
 import itertools
 import logging

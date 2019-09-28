@@ -1,6 +1,10 @@
 """PipSession and supporting code, containing all pip-specific
 network request configuration and behavior.
 """
+
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 import email.utils
 import json
 import logging

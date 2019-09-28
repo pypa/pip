@@ -1,3 +1,6 @@
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 from pip._internal.distributions.base import AbstractDistribution
 
 

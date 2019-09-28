@@ -4,6 +4,7 @@
 # couple errors where we have to know req.name is str rather than
 # Optional[str] for the InstallRequirement req.
 # mypy: strict-optional=False
+# mypy: disallow-untyped-defs=False
 
 from __future__ import absolute_import
 
