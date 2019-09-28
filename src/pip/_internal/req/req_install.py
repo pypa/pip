@@ -550,26 +550,6 @@ class InstallRequirement(object):
             self.unpacked_source_directory, backend
         )
 
-        # Use a custom function to call subprocesses
-        self.spin_message = ""
-
-        def runner(
-            cmd,  # type: List[str]
-            cwd=None,  # type: Optional[str]
-            extra_environ=None  # type: Optional[Mapping[str, Any]]
-        ):
-            # type: (...) -> None
-            with open_spinner(self.spin_message) as spinner:
-                call_subprocess(
-                    cmd,
-                    cwd=cwd,
-                    extra_environ=extra_environ,
-                    spinner=spinner
-                )
-            self.spin_message = ""
-
-        self.pep517_backend._subprocess_runner = runner
-
     def prepare_metadata(self):
         # type: () -> None
         """Ensure that project metadata is available.
