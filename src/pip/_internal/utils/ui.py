@@ -17,7 +17,6 @@ from pip._vendor.progress.spinner import Spinner
 
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.logging import get_indentation
-from pip._internal.utils.misc import format_size
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -31,6 +30,18 @@ except Exception:
     colorama = None
 
 logger = logging.getLogger(__name__)
+
+
+def format_size(bytes):
+    # type: (float) -> str
+    if bytes > 1000 * 1000:
+        return '%.1fMB' % (bytes / 1000.0 / 1000)
+    elif bytes > 10 * 1000:
+        return '%ikB' % (bytes / 1000)
+    elif bytes > 1000:
+        return '%.1fkB' % (bytes / 1000.0)
+    else:
+        return '%ibytes' % bytes
 
 
 def _select_progress_class(preferred, fallback):

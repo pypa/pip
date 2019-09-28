@@ -70,7 +70,7 @@ else:
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
            'ask', 'splitext',
-           'format_size', 'is_installable_dir',
+           'is_installable_dir',
            'normalize_path',
            'renames', 'get_prog',
            'call_subprocess',
@@ -272,18 +272,6 @@ def ask_password(message):
     """Ask for a password interactively."""
     _check_no_input(message)
     return getpass.getpass(message)
-
-
-def format_size(bytes):
-    # type: (float) -> str
-    if bytes > 1000 * 1000:
-        return '%.1fMB' % (bytes / 1000.0 / 1000)
-    elif bytes > 10 * 1000:
-        return '%ikB' % (bytes / 1000)
-    elif bytes > 1000:
-        return '%.1fkB' % (bytes / 1000.0)
-    else:
-        return '%ibytes' % bytes
 
 
 def is_installable_dir(path):

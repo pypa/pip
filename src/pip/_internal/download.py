@@ -26,7 +26,6 @@ from pip._internal.utils.misc import (
     backup_dir,
     consume,
     display_path,
-    format_size,
     hide_url,
     path_to_display,
     rmtree,
@@ -34,7 +33,7 @@ from pip._internal.utils.misc import (
 )
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from pip._internal.utils.ui import DownloadProgressProvider
+from pip._internal.utils.ui import DownloadProgressProvider, format_size
 from pip._internal.utils.unpacking import unpack_file
 from pip._internal.utils.urls import get_url_scheme
 from pip._internal.vcs import vcs
