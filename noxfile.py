@@ -73,6 +73,9 @@ def should_update_common_wheels():
 
 # -----------------------------------------------------------------------------
 # Development Commands
+#   These are currently prototypes to evaluate whether we want to switch over
+#   completely to nox for all our automation. Contributors should prefer using
+#   `tox -e ...` until this note is removed.
 # -----------------------------------------------------------------------------
 @nox.session(python=["2.7", "3.5", "3.6", "3.7", "pypy"])
 def test(session):
