@@ -16,7 +16,13 @@ logger = logging.getLogger(__name__)
 
 
 def get_metadata_generator(install_req):
-    # type: (InstallRequirement) -> Callable[[InstallRequirement], None]
+    # type: (InstallRequirement) -> Callable[[InstallRequirement], str]
+    """Return a callable metadata generator for this InstallRequirement.
+
+    A metadata generator takes an InstallRequirement (install_req) as an input,
+    generates metadata via the appropriate process for that install_req and
+    returns the generated metadata directory.
+    """
     if not install_req.use_pep517:
         return _generate_metadata_legacy
 
@@ -24,7 +30,7 @@ def get_metadata_generator(install_req):
 
 
 def _generate_metadata_legacy(install_req):
-    # type: (InstallRequirement) -> None
+    # type: (InstallRequirement) -> str
     req_details_str = install_req.name or "from {}".format(install_req.link)
     logger.debug(
         'Running setup.py (path:%s) egg_info for package %s',
@@ -56,7 +62,10 @@ def _generate_metadata_legacy(install_req):
             command_desc='python setup.py egg_info',
         )
 
+    # Return the metadata directory.
+    return install_req.find_egg_info()
+
 
 def _generate_metadata(install_req):
-    # type: (InstallRequirement) -> None
-    install_req.prepare_pep517_metadata()
+    # type: (InstallRequirement) -> str
+    return install_req.prepare_pep517_metadata()

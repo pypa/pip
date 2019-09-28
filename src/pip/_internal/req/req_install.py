@@ -121,7 +121,6 @@ class InstallRequirement(object):
             markers = req.marker
         self.markers = markers
 
-        self._egg_info_path = None  # type: Optional[str]
         # This holds the pkg_resources.Distribution object if this requirement
         # is already available:
         self.satisfied_by = None
@@ -367,28 +366,33 @@ class InstallRequirement(object):
             return
         assert self.req is not None
         assert self._temp_build_dir
-        assert (self._ideal_build_dir is not None and
-                self._ideal_build_dir.path)  # type: ignore
+        assert (
+            self._ideal_build_dir is not None and
+            self._ideal_build_dir.path  # type: ignore
+        )
         old_location = self._temp_build_dir
-        self._temp_build_dir = None
+        self._temp_build_dir = None  # checked inside ensure_build_location
 
+        # Figure out the correct place to put the files.
         new_location = self.ensure_build_location(self._ideal_build_dir)
         if os.path.exists(new_location):
             raise InstallationError(
                 'A package already exists in %s; please remove it to continue'
-                % display_path(new_location))
+                % display_path(new_location)
+            )
+
+        # Move the files to the correct location.
         logger.debug(
             'Moving package %s from %s to new location %s',
             self, display_path(old_location.path), display_path(new_location),
         )
         shutil.move(old_location.path, new_location)
+
+        # Update directory-tracking variables, to be in line with new_location
+        self.source_dir = os.path.normpath(os.path.abspath(new_location))
         self._temp_build_dir = TempDirectory(
             path=new_location, kind="req-install",
         )
-
-        self._ideal_build_dir = None
-        self.source_dir = os.path.normpath(os.path.abspath(new_location))
-        self._egg_info_path = None
 
         # Correct the metadata directory, if it exists
         if self.metadata_directory:
@@ -397,6 +401,11 @@ class InstallRequirement(object):
             new_meta = os.path.join(new_location, rel)
             new_meta = os.path.normpath(os.path.abspath(new_meta))
             self.metadata_directory = new_meta
+
+        # Done with any "move built files" work, since have moved files to the
+        # "ideal" build location. Setting to None allows to clearly flag that
+        # no more moves are needed.
+        self._ideal_build_dir = None
 
     def remove_temporary_source(self):
         # type: () -> None
@@ -568,7 +577,7 @@ class InstallRequirement(object):
 
         metadata_generator = get_metadata_generator(self)
         with indent_log():
-            metadata_generator(self)
+            self.metadata_directory = metadata_generator(self)
 
         if not self.req:
             if isinstance(parse_version(self.metadata["Version"]), Version):
@@ -595,7 +604,7 @@ class InstallRequirement(object):
                 self.req = Requirement(metadata_name)
 
     def prepare_pep517_metadata(self):
-        # type: () -> None
+        # type: () -> str
         assert self.pep517_backend is not None
 
         # NOTE: This needs to be refactored to stop using atexit
@@ -618,14 +627,10 @@ class InstallRequirement(object):
                 metadata_dir
             )
 
-        self.metadata_directory = os.path.join(metadata_dir, distinfo_dir)
+        return os.path.join(metadata_dir, distinfo_dir)
 
-    @property
-    def egg_info_path(self):
+    def find_egg_info(self):
         # type: () -> str
-        if self._egg_info_path is not None:
-            return self._egg_info_path
-
         def looks_like_virtual_env(path):
             return (
                 os.path.lexists(os.path.join(path, 'bin', 'python')) or
@@ -674,8 +679,7 @@ class InstallRequirement(object):
         if len(filenames) > 1:
             filenames.sort(key=depth_of_directory)
 
-        self._egg_info_path = os.path.join(base, filenames[0])
-        return self._egg_info_path
+        return os.path.join(base, filenames[0])
 
     @property
     def metadata(self):
@@ -688,16 +692,16 @@ class InstallRequirement(object):
     def get_dist(self):
         # type: () -> Distribution
         """Return a pkg_resources.Distribution for this requirement"""
-        if self.metadata_directory:
-            dist_dir = self.metadata_directory
-            dist_cls = pkg_resources.DistInfoDistribution
-        else:
-            dist_dir = self.egg_info_path.rstrip(os.path.sep)
-            # https://github.com/python/mypy/issues/1174
-            dist_cls = pkg_resources.Distribution  # type: ignore
+        dist_dir = self.metadata_directory.rstrip(os.sep)
 
-        # dist_dir_name can be of the form "<project>.dist-info" or
-        # e.g. "<project>.egg-info".
+        # Determine the correct Distribution object type.
+        if dist_dir.endswith(".egg-info"):
+            dist_cls = pkg_resources.Distribution
+        else:
+            assert dist_dir.endswith(".dist-info")
+            dist_cls = pkg_resources.DistInfoDistribution
+
+        # Build a PathMetadata object, from path to metadata. :wink:
         base_dir, dist_dir_name = os.path.split(dist_dir)
         dist_name = os.path.splitext(dist_dir_name)[0]
         metadata = pkg_resources.PathMetadata(base_dir, dist_dir)
