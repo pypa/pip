@@ -594,23 +594,18 @@ class InstallRequirement(object):
                 )
                 self.req = Requirement(metadata_name)
 
-    def cleanup(self):
-        # type: () -> None
-        if self._temp_dir is not None:
-            self._temp_dir.cleanup()
-
     def prepare_pep517_metadata(self):
         # type: () -> None
         assert self.pep517_backend is not None
 
         # NOTE: This needs to be refactored to stop using atexit
-        self._temp_dir = TempDirectory(delete=False, kind="req-install")
+        temp_dir = TempDirectory(kind="modern-metadata")
+        atexit.register(temp_dir.cleanup)
+
         metadata_dir = os.path.join(
-            self._temp_dir.path,
+            temp_dir.path,
             'pip-wheel-metadata',
         )
-        atexit.register(self.cleanup)
-
         ensure_dir(metadata_dir)
 
         with self.build_env:
