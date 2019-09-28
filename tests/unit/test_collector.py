@@ -22,9 +22,9 @@ from pip._internal.collector import (
     group_locations,
     parse_links,
 )
-from pip._internal.download import PipSession
 from pip._internal.models.index import PyPI
 from pip._internal.models.link import Link
+from pip._internal.network.session import PipSession
 from tests.lib import make_test_link_collector
 
 

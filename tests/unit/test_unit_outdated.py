@@ -9,8 +9,8 @@ import pytest
 from mock import patch
 from pip._vendor import pkg_resources
 
-from pip._internal.download import PipSession
 from pip._internal.index import InstallationCandidate
+from pip._internal.network.session import PipSession
 from pip._internal.utils import outdated
 from pip._internal.utils.outdated import (
     SelfCheckState,

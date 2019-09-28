@@ -32,7 +32,7 @@ if MYPY_CHECK_RUNNING:
     from pip._vendor.requests import Response
 
     from pip._internal.models.search_scope import SearchScope
-    from pip._internal.download import PipSession
+    from pip._internal.network.session import PipSession
 
     HTMLElement = xml.etree.ElementTree.Element
     ResponseHeaders = MutableMapping[str, str]

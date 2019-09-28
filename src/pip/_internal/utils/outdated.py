@@ -33,7 +33,8 @@ if MYPY_CHECK_RUNNING:
     import optparse
     from optparse import Values
     from typing import Any, Dict, Text, Union
-    from pip._internal.download import PipSession
+
+    from pip._internal.network.session import PipSession
 
 
 SELFCHECK_DATE_FMT = "%Y-%m-%dT%H:%M:%SZ"
