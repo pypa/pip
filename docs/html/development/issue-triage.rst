@@ -168,7 +168,7 @@ depending on the situation:
 * Python as resolved by the shell: ``type python``
 * Origin of pip (get-pip.py, OS-level package manager, ensurepip, manual
   installation)
-* Using a virtual environment (with `--system-site-packages`?)
+* Using a virtual environment (with ``--system-site-packages``?)
 * Using a conda environment
 * ``PATH`` environment variable
 * Network situation (e.g. airgapped environment, firewalls)
