@@ -11,6 +11,7 @@ from pip._vendor.six.moves import shlex_quote
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.utils.compat import console_to_str, str_to_display
+from pip._internal.utils.logging import subprocess_logger
 from pip._internal.utils.misc import HiddenText, path_to_display
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -21,7 +22,6 @@ if MYPY_CHECK_RUNNING:
     CommandArgs = List[Union[str, HiddenText]]
 
 
-subprocess_logger = logging.getLogger('pip.subprocessor')
 LOG_DIVIDER = '----------------------------------------'
 
 
