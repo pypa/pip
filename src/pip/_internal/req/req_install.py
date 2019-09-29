@@ -55,7 +55,6 @@ from pip._internal.utils.subprocess import (
 )
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from pip._internal.utils.ui import open_spinner
 from pip._internal.utils.virtualenv import running_under_virtualenv
 from pip._internal.vcs import vcs
 
@@ -935,15 +934,15 @@ class InstallRequirement(object):
             install_args = self.get_install_args(
                 global_options, record_filename, root, prefix, pycompile,
             )
-            msg = 'Running setup.py install for %s' % (self.name,)
-            with open_spinner(msg) as spinner:
-                with indent_log():
-                    with self.build_env:
-                        call_subprocess(
-                            install_args + install_options,
-                            cwd=self.unpacked_source_directory,
-                            spinner=spinner,
-                        )
+
+            runner = run_with_spinner_message(
+                "Running setup.py install for {}".format(self.name)
+            )
+            with indent_log(), self.build_env:
+                runner(
+                    cmd=install_args + install_options,
+                    cwd=self.unpacked_source_directory,
+                )
 
             if not os.path.exists(record_filename):
                 logger.debug('Record file %s not found', record_filename)
