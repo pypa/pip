@@ -86,7 +86,7 @@ difference may simply be historical and may not actually be necessary.)
 Each of these commands also uses the ``PackageFinder`` class for pip's
 "self-check," (i.e. to check whether a pip upgrade is available). In this
 case, the ``PackageFinder`` instance is created by the ``outdated.py``
-module's ``pip_version_check()`` function.
+module's ``pip_self_version_check()`` function.
 
 The ``PackageFinder`` class is responsible for doing all of the things listed
 in the :ref:`Overview <index-py-overview>` section like fetching and parsing
