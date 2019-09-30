@@ -1,3 +1,6 @@
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 from __future__ import absolute_import
 
 import logging
@@ -5,7 +8,8 @@ import os
 
 from pip._vendor.six.moves import configparser
 
-from pip._internal.utils.misc import display_path, make_command
+from pip._internal.utils.misc import display_path
+from pip._internal.utils.subprocess import make_command
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import path_to_url

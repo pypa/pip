@@ -1,3 +1,6 @@
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 from __future__ import absolute_import
 
 import logging
@@ -8,10 +11,10 @@ import sys
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     display_path,
-    make_command,
     rmtree,
     split_auth_from_netloc,
 )
+from pip._internal.utils.subprocess import make_command
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs.versioncontrol import VersionControl, vcs
 
@@ -23,7 +26,8 @@ _svn_info_xml_url_re = re.compile(r'<url>(.*)</url>')
 
 if MYPY_CHECK_RUNNING:
     from typing import Optional, Tuple
-    from pip._internal.utils.misc import CommandArgs, HiddenText
+    from pip._internal.utils.subprocess import CommandArgs
+    from pip._internal.utils.misc import HiddenText
     from pip._internal.vcs.versioncontrol import AuthInfo, RevOptions
 
 

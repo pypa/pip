@@ -10,7 +10,7 @@ import pytest
 import six
 from setuptools.wheel import Wheel
 
-import pip._internal
+from pip._internal.main import main as pip_entry_point
 from tests.lib import DATA_DIR, SRC_DIR, TestData
 from tests.lib.path import Path
 from tests.lib.scripttest import PipTestEnvironment
@@ -181,10 +181,10 @@ def pip_src(tmpdir_factory):
             return to_ignore
 
         # Ignore all compiled files and egg-info.
-        ignored = list()
-        for pattern in ["__pycache__", "*.pyc", "pip.egg-info"]:
-            ignored.extend(fnmatch.filter(names, pattern))
-        return set(ignored)
+        ignored = set()
+        for pattern in ("__pycache__", "*.pyc", "pip.egg-info"):
+            ignored.update(fnmatch.filter(names, pattern))
+        return ignored
 
     pip_src = Path(str(tmpdir_factory.mktemp('pip_src'))).joinpath('pip_src')
     # Copy over our source tree so that each use is self contained
@@ -342,7 +342,7 @@ class InMemoryPip(object):
             stdout = io.BytesIO()
         sys.stdout = stdout
         try:
-            returncode = pip._internal.main(list(args))
+            returncode = pip_entry_point(list(args))
         except SystemExit as e:
             returncode = e.code or 0
         finally:

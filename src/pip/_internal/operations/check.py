@@ -3,6 +3,7 @@
 
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
+# mypy: disallow-untyped-defs=False
 
 import logging
 from collections import namedtuple
@@ -68,8 +69,8 @@ def check_package_set(package_set, should_ignore=None):
         def should_ignore(name):
             return False
 
-    missing = dict()
-    conflicting = dict()
+    missing = {}
+    conflicting = {}
 
     for package_name in package_set:
         # Info about dependencies of package_name

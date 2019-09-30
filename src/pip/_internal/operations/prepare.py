@@ -3,6 +3,7 @@
 
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
+# mypy: disallow-untyped-defs=False
 
 import logging
 import os
@@ -32,8 +33,8 @@ if MYPY_CHECK_RUNNING:
     from typing import Optional
 
     from pip._internal.distributions import AbstractDistribution
-    from pip._internal.download import PipSession
     from pip._internal.index import PackageFinder
+    from pip._internal.network.session import PipSession
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.req.req_tracker import RequirementTracker
 

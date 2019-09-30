@@ -11,7 +11,6 @@ from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.commands import create_command
-from pip._internal.download import PipSession
 from pip._internal.exceptions import (
     HashErrors,
     InstallationError,
@@ -19,6 +18,7 @@ from pip._internal.exceptions import (
     PreviousBuildDirError,
 )
 from pip._internal.legacy_resolve import Resolver
+from pip._internal.network.session import PipSession
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import InstallRequirement, RequirementSet
 from pip._internal.req.constructors import (
@@ -438,7 +438,7 @@ class TestInstallRequirement(object):
     ))
     def test_get_dist(self, path):
         req = install_req_from_line('foo')
-        req._egg_info_path = path
+        req.metadata_directory = path
         dist = req.get_dist()
         assert isinstance(dist, pkg_resources.Distribution)
         assert dist.project_name == 'foo'

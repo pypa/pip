@@ -1,3 +1,6 @@
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 from contextlib import contextmanager
 
 from pip._vendor.contextlib2 import ExitStack

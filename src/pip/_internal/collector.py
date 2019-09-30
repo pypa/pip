@@ -2,6 +2,9 @@
 The main purpose of this module is to expose LinkCollector.collect_links().
 """
 
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 import cgi
 import itertools
 import logging
@@ -32,7 +35,7 @@ if MYPY_CHECK_RUNNING:
     from pip._vendor.requests import Response
 
     from pip._internal.models.search_scope import SearchScope
-    from pip._internal.download import PipSession
+    from pip._internal.network.session import PipSession
 
     HTMLElement = xml.etree.ElementTree.Element
     ResponseHeaders = MutableMapping[str, str]

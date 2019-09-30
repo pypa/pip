@@ -4,6 +4,7 @@ Support for installing and building the "wheel" binary package format.
 
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
+# mypy: disallow-untyped-defs=False
 
 from __future__ import absolute_import
 
@@ -37,15 +38,14 @@ from pip._internal.locations import distutils_scheme, get_major_minor_version
 from pip._internal.models.link import Link
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.marker_files import has_delete_marker_file
-from pip._internal.utils.misc import (
+from pip._internal.utils.misc import captured_stdout, ensure_dir, read_chunks
+from pip._internal.utils.setuptools_build import make_setuptools_shim_args
+from pip._internal.utils.subprocess import (
     LOG_DIVIDER,
     call_subprocess,
-    captured_stdout,
-    ensure_dir,
     format_command_args,
-    read_chunks,
+    runner_with_spinner_message,
 )
-from pip._internal.utils.setuptools_build import make_setuptools_shim_args
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import open_spinner
@@ -55,7 +55,7 @@ from pip._internal.utils.urls import path_to_url
 if MYPY_CHECK_RUNNING:
     from typing import (
         Dict, List, Optional, Sequence, Mapping, Tuple, IO, Text, Any,
-        Iterable, Callable, Union,
+        Iterable, Callable, Set, Union,
     )
     from pip._vendor.packaging.requirements import Requirement
     from pip._internal.req.req_install import InstallRequirement
@@ -207,7 +207,7 @@ def message_about_scripts_not_on_PATH(scripts):
         return None
 
     # Group scripts by the path they were installed in
-    grouped_by_dir = collections.defaultdict(set)  # type: Dict[str, set]
+    grouped_by_dir = collections.defaultdict(set)  # type: Dict[str, Set[str]]
     for destfile in scripts:
         parent_dir = os.path.dirname(destfile)
         script_name = os.path.basename(destfile)
@@ -224,14 +224,14 @@ def message_about_scripts_not_on_PATH(scripts):
     warn_for = {
         parent_dir: scripts for parent_dir, scripts in grouped_by_dir.items()
         if os.path.normcase(parent_dir) not in not_warn_dirs
-    }
+    }  # type: Dict[str, Set[str]]
     if not warn_for:
         return None
 
     # Format a message
     msg_lines = []
-    for parent_dir, scripts in warn_for.items():
-        sorted_scripts = sorted(scripts)  # type: List[str]
+    for parent_dir, dir_scripts in warn_for.items():
+        sorted_scripts = sorted(dir_scripts)  # type: List[str]
         if len(sorted_scripts) == 1:
             start_text = "script {} is".format(sorted_scripts[0])
         else:
@@ -985,12 +985,17 @@ class WheelBuilder(object):
                          '--build-options is present' % (req.name,))
             return None
         try:
-            req.spin_message = 'Building wheel for %s (PEP 517)' % (req.name,)
             logger.debug('Destination directory: %s', tempd)
-            wheel_name = req.pep517_backend.build_wheel(
-                tempd,
-                metadata_directory=req.metadata_directory
+
+            runner = runner_with_spinner_message(
+                'Building wheel for {} (PEP 517)'.format(req.name)
             )
+            backend = req.pep517_backend
+            with backend.subprocess_runner(runner):
+                wheel_name = backend.build_wheel(
+                    tempd,
+                    metadata_directory=req.metadata_directory,
+                )
             if python_tag:
                 # General PEP 517 backends don't necessarily support
                 # a "--python-tag" option, so we rename the wheel
@@ -1024,12 +1029,16 @@ class WheelBuilder(object):
                 wheel_args += ["--python-tag", python_tag]
 
             try:
-                output = call_subprocess(wheel_args, cwd=req.setup_py_dir,
-                                         spinner=spinner)
+                output = call_subprocess(
+                    wheel_args,
+                    cwd=req.unpacked_source_directory,
+                    spinner=spinner,
+                )
             except Exception:
                 spinner.finish("error")
                 logger.error('Failed building wheel for %s', req.name)
                 return None
+
             names = os.listdir(tempd)
             wheel_path = get_legacy_build_wheel_path(
                 names=names,

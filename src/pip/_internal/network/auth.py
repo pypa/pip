@@ -4,6 +4,9 @@ Contains interface (MultiDomainBasicAuth) and associated glue code for
 providing credentials in the context of network requests.
 """
 
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 import logging
 
 from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth

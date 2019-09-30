@@ -234,4 +234,3 @@ General Options
 ***************
 
 .. pip-general-options::
-

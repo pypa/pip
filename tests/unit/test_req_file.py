@@ -8,12 +8,12 @@ from mock import Mock, patch
 from pretend import stub
 
 import pip._internal.index
-from pip._internal.download import PipSession
 from pip._internal.exceptions import (
     InstallationError,
     RequirementsFileParseError,
 )
 from pip._internal.models.format_control import FormatControl
+from pip._internal.network.session import PipSession
 from pip._internal.req.constructors import (
     install_req_from_editable,
     install_req_from_line,

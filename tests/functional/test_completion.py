@@ -78,7 +78,9 @@ def setup_completion(script, words, cword, cwd=None):
 
     # expect_error is True because autocomplete exists with 1 status code
     result = script.run(
-        'python', '-c', 'import pip._internal;pip._internal.autocomplete()',
+        'python', '-c',
+        'from pip._internal.cli.autocompletion import autocomplete;'
+        'autocomplete()',
         expect_error=True,
         cwd=cwd,
     )

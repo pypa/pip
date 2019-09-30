@@ -1,9 +1,8 @@
 #!/bin/bash
 set -e
 
-# Short circuit tests and linting jobs if there are no code changes involved.
-if [[ $TOXENV != docs ]] && [[ $TOXENV != lint-py2 ]] && [[ $TOXENV != lint ]]; then
-    # Keep lint and lint-py2, for docs/conf.py
+# Short circuit test runs if there are no code changes involved.
+if [[ $TOXENV != docs ]] || [[ $TOXENV != lint ]]; then
     if [[ "$TRAVIS_PULL_REQUEST" == "false" ]]
     then
         echo "This is not a PR -- will do a complete build."
@@ -18,7 +17,7 @@ if [[ $TOXENV != docs ]] && [[ $TOXENV != lint-py2 ]] && [[ $TOXENV != lint ]]; 
         echo "$changes"
         if ! echo "$changes" | grep -qvE '(\.rst$)|(^docs)|(^news)|(^\.github)'
         then
-            echo "Only Documentation was updated -- skipping build."
+            echo "Code was not changed -- skipping build."
             exit
         fi
     fi
