@@ -4,8 +4,9 @@
 import logging
 import os
 
-from pip._internal.utils.misc import call_subprocess, ensure_dir
+from pip._internal.utils.misc import ensure_dir
 from pip._internal.utils.setuptools_build import make_setuptools_shim_args
+from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:

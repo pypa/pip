@@ -15,7 +15,8 @@ from pip._vendor.six import PY2
 
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
-from pip._internal.utils.misc import ensure_dir, subprocess_logger
+from pip._internal.utils.misc import ensure_dir
+from pip._internal.utils.subprocess import subprocess_logger
 
 try:
     import threading
