@@ -49,16 +49,18 @@ from pip._internal.utils.misc import (
 )
 from pip._internal.utils.packaging import get_metadata
 from pip._internal.utils.setuptools_build import make_setuptools_shim_args
-from pip._internal.utils.subprocess import call_subprocess
+from pip._internal.utils.subprocess import (
+    call_subprocess,
+    runner_with_spinner_message,
+)
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from pip._internal.utils.ui import open_spinner
 from pip._internal.utils.virtualenv import running_under_virtualenv
 from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Any, Dict, Iterable, List, Mapping, Optional, Sequence, Union,
+        Any, Dict, Iterable, List, Optional, Sequence, Union,
     )
     from pip._internal.build_env import BuildEnvironment
     from pip._internal.cache import WheelCache
@@ -547,26 +549,6 @@ class InstallRequirement(object):
             self.unpacked_source_directory, backend
         )
 
-        # Use a custom function to call subprocesses
-        self.spin_message = ""
-
-        def runner(
-            cmd,  # type: List[str]
-            cwd=None,  # type: Optional[str]
-            extra_environ=None  # type: Optional[Mapping[str, Any]]
-        ):
-            # type: (...) -> None
-            with open_spinner(self.spin_message) as spinner:
-                call_subprocess(
-                    cmd,
-                    cwd=cwd,
-                    extra_environ=extra_environ,
-                    spinner=spinner
-                )
-            self.spin_message = ""
-
-        self.pep517_backend._subprocess_runner = runner
-
     def prepare_metadata(self):
         # type: () -> None
         """Ensure that project metadata is available.
@@ -622,11 +604,12 @@ class InstallRequirement(object):
             # Note that Pep517HookCaller implements a fallback for
             # prepare_metadata_for_build_wheel, so we don't have to
             # consider the possibility that this hook doesn't exist.
+            runner = runner_with_spinner_message("Preparing wheel metadata")
             backend = self.pep517_backend
-            self.spin_message = "Preparing wheel metadata"
-            distinfo_dir = backend.prepare_metadata_for_build_wheel(
-                metadata_dir
-            )
+            with backend.subprocess_runner(runner):
+                distinfo_dir = backend.prepare_metadata_for_build_wheel(
+                    metadata_dir
+                )
 
         return os.path.join(metadata_dir, distinfo_dir)
 
@@ -951,15 +934,15 @@ class InstallRequirement(object):
             install_args = self.get_install_args(
                 global_options, record_filename, root, prefix, pycompile,
             )
-            msg = 'Running setup.py install for %s' % (self.name,)
-            with open_spinner(msg) as spinner:
-                with indent_log():
-                    with self.build_env:
-                        call_subprocess(
-                            install_args + install_options,
-                            cwd=self.unpacked_source_directory,
-                            spinner=spinner,
-                        )
+
+            runner = runner_with_spinner_message(
+                "Running setup.py install for {}".format(self.name)
+            )
+            with indent_log(), self.build_env:
+                runner(
+                    cmd=install_args + install_options,
+                    cwd=self.unpacked_source_directory,
+                )
 
             if not os.path.exists(record_filename):
                 logger.debug('Record file %s not found', record_filename)

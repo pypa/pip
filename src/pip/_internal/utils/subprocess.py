@@ -11,17 +11,20 @@ from pip._vendor.six.moves import shlex_quote
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.utils.compat import console_to_str, str_to_display
+from pip._internal.utils.logging import subprocess_logger
 from pip._internal.utils.misc import HiddenText, path_to_display
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.ui import open_spinner
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Iterable, List, Mapping, Optional, Text, Union
+    from typing import (
+        Any, Callable, Iterable, List, Mapping, Optional, Text, Union,
+    )
     from pip._internal.utils.ui import SpinnerInterface
 
     CommandArgs = List[Union[str, HiddenText]]
 
 
-subprocess_logger = logging.getLogger('pip.subprocessor')
 LOG_DIVIDER = '----------------------------------------'
 
 
@@ -245,3 +248,28 @@ def call_subprocess(
             raise ValueError('Invalid value: on_returncode=%s' %
                              repr(on_returncode))
     return ''.join(all_output)
+
+
+def runner_with_spinner_message(message):
+    # type: (str) -> Callable
+    """Provide a subprocess_runner that shows a spinner message.
+
+    Intended for use with for pep517's Pep517HookCaller. Thus, the runner has
+    an API that matches what's expected by Pep517HookCaller.subprocess_runner.
+    """
+
+    def runner(
+        cmd,  # type: List[str]
+        cwd=None,  # type: Optional[str]
+        extra_environ=None  # type: Optional[Mapping[str, Any]]
+    ):
+        # type: (...) -> None
+        with open_spinner(message) as spinner:
+            call_subprocess(
+                cmd,
+                cwd=cwd,
+                extra_environ=extra_environ,
+                spinner=spinner,
+            )
+
+    return runner
