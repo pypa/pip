@@ -157,7 +157,7 @@ def was_installed_by_pip(pkg):
         return False
 
 
-def pip_version_check(session, options):
+def pip_self_version_check(session, options):
     # type: (PipSession, optparse.Values) -> None
     """Check for an update for pip.
 

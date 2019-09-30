@@ -25,8 +25,11 @@ from pip._internal.req.constructors import (
     install_req_from_req_string,
 )
 from pip._internal.req.req_file import parse_requirements
+from pip._internal.self_outdated_check import (
+    make_link_collector,
+    pip_self_version_check,
+)
 from pip._internal.utils.misc import normalize_path
-from pip._internal.utils.outdated import make_link_collector, pip_version_check
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -136,7 +139,7 @@ class IndexGroupCommand(Command, SessionCommandMixin):
             timeout=min(5, options.timeout)
         )
         with session:
-            pip_version_check(session, options)
+            pip_self_version_check(session, options)
 
 
 class RequirementCommand(IndexGroupCommand):
