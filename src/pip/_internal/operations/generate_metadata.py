@@ -68,12 +68,11 @@ def find_egg_info(install_req):
             (os.path.altsep and dir_.count(os.path.altsep) or 0)
         )
 
+    base = install_req.unpacked_source_directory
     if install_req.editable:
-        base = install_req.source_dir
         filenames = locate_editable_egg_info(base)
     else:
-        dir_ = install_req.unpacked_source_directory
-        base = os.path.join(dir_, 'pip-egg-info')
+        base = os.path.join(base, 'pip-egg-info')
         filenames = os.listdir(base)
 
     if not filenames:
