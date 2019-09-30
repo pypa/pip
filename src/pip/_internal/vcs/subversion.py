@@ -188,7 +188,7 @@ class Subversion(VersionControl):
     def __init__(self, use_interactive=None):
         # type: (bool) -> None
         if use_interactive is None:
-            use_interactive = sys.stdin.isatty()
+            use_interactive = sys.stdin and sys.stdin.isatty()
         self.use_interactive = use_interactive
 
         # This member is used to cache the fetched version of the current
