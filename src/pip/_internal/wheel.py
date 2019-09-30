@@ -38,15 +38,13 @@ from pip._internal.locations import distutils_scheme, get_major_minor_version
 from pip._internal.models.link import Link
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.marker_files import has_delete_marker_file
-from pip._internal.utils.misc import (
+from pip._internal.utils.misc import captured_stdout, ensure_dir, read_chunks
+from pip._internal.utils.setuptools_build import make_setuptools_shim_args
+from pip._internal.utils.subprocess import (
     LOG_DIVIDER,
     call_subprocess,
-    captured_stdout,
-    ensure_dir,
     format_command_args,
-    read_chunks,
 )
-from pip._internal.utils.setuptools_build import make_setuptools_shim_args
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import open_spinner

@@ -38,7 +38,6 @@ from pip._internal.utils.misc import (
     _make_build_dir,
     ask_path_exists,
     backup_dir,
-    call_subprocess,
     display_path,
     dist_in_site_packages,
     dist_in_usersite,
@@ -50,6 +49,7 @@ from pip._internal.utils.misc import (
 )
 from pip._internal.utils.packaging import get_metadata
 from pip._internal.utils.setuptools_build import make_setuptools_shim_args
+from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import open_spinner
