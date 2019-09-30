@@ -34,6 +34,8 @@ def get_metadata_generator(install_req):
 
 def _find_egg_info(source_directory, is_editable):
     # type: (str, bool) -> str
+    """Find an .egg-info in `source_directory`, based on `is_editable`.
+    """
 
     def looks_like_virtual_env(path):
         # type: (str) -> bool
