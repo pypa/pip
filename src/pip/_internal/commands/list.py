@@ -267,9 +267,9 @@ def format_for_columns(pkgs, options):
     running_outdated = options.outdated
     # Adjust the header for the `pip list --outdated` case.
     if running_outdated:
-        header = ["Package", "Version", "Latest", "Type"]
+        header = ["Distribution package", "Version", "Latest", "Type"]
     else:
-        header = ["Package", "Version"]
+        header = ["Distribution package", "Version"]
 
     data = []
     if options.verbose >= 1 or any(dist_is_editable(x) for x in pkgs):
