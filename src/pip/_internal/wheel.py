@@ -44,7 +44,7 @@ from pip._internal.utils.subprocess import (
     LOG_DIVIDER,
     call_subprocess,
     format_command_args,
-    run_with_spinner_message,
+    runner_with_spinner_message,
 )
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -982,7 +982,7 @@ class WheelBuilder(object):
         try:
             logger.debug('Destination directory: %s', tempd)
 
-            runner = run_with_spinner_message(
+            runner = runner_with_spinner_message(
                 'Building wheel for {} (PEP 517)'.format(req.name)
             )
             backend = req.pep517_backend

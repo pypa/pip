@@ -51,7 +51,7 @@ from pip._internal.utils.packaging import get_metadata
 from pip._internal.utils.setuptools_build import make_setuptools_shim_args
 from pip._internal.utils.subprocess import (
     call_subprocess,
-    run_with_spinner_message,
+    runner_with_spinner_message,
 )
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -604,7 +604,7 @@ class InstallRequirement(object):
             # Note that Pep517HookCaller implements a fallback for
             # prepare_metadata_for_build_wheel, so we don't have to
             # consider the possibility that this hook doesn't exist.
-            runner = run_with_spinner_message("Preparing wheel metadata")
+            runner = runner_with_spinner_message("Preparing wheel metadata")
             backend = self.pep517_backend
             with backend.subprocess_runner(runner):
                 distinfo_dir = backend.prepare_metadata_for_build_wheel(
@@ -935,7 +935,7 @@ class InstallRequirement(object):
                 global_options, record_filename, root, prefix, pycompile,
             )
 
-            runner = run_with_spinner_message(
+            runner = runner_with_spinner_message(
                 "Running setup.py install for {}".format(self.name)
             )
             with indent_log(), self.build_env:

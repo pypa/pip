@@ -250,7 +250,7 @@ def call_subprocess(
     return ''.join(all_output)
 
 
-def run_with_spinner_message(message):
+def runner_with_spinner_message(message):
     # type: (str) -> Callable
     """Provide a subprocess_runner that shows a spinner message.
 
