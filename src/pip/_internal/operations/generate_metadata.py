@@ -32,8 +32,8 @@ def get_metadata_generator(install_req):
     return _generate_metadata
 
 
-def find_egg_info(install_req):
-    # type: (InstallRequirement) -> str
+def find_egg_info(source_directory, is_editable):
+    # type: (str, bool) -> str
 
     def looks_like_virtual_env(path):
         # type: (str) -> bool
@@ -68,8 +68,8 @@ def find_egg_info(install_req):
             (os.path.altsep and dir_.count(os.path.altsep) or 0)
         )
 
-    base = install_req.unpacked_source_directory
-    if install_req.editable:
+    base = source_directory
+    if is_editable:
         filenames = locate_editable_egg_info(base)
     else:
         base = os.path.join(base, 'pip-egg-info')
@@ -123,7 +123,10 @@ def _generate_metadata_legacy(install_req):
         )
 
     # Return the .egg-info directory.
-    return find_egg_info(install_req)
+    return find_egg_info(
+        install_req.unpacked_source_directory,
+        install_req.editable,
+    )
 
 
 def _generate_metadata(install_req):
