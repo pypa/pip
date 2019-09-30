@@ -32,7 +32,7 @@ def get_metadata_generator(install_req):
     return _generate_metadata
 
 
-def find_egg_info(source_directory, is_editable):
+def _find_egg_info(source_directory, is_editable):
     # type: (str, bool) -> str
 
     def looks_like_virtual_env(path):
@@ -123,7 +123,7 @@ def _generate_metadata_legacy(install_req):
         )
 
     # Return the .egg-info directory.
-    return find_egg_info(
+    return _find_egg_info(
         install_req.unpacked_source_directory,
         install_req.editable,
     )
