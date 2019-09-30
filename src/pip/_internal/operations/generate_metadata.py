@@ -36,13 +36,15 @@ def find_egg_info(install_req):
     # type: (InstallRequirement) -> str
 
     def looks_like_virtual_env(path):
+        # type: (str) -> bool
         return (
             os.path.lexists(os.path.join(path, 'bin', 'python')) or
             os.path.exists(os.path.join(path, 'Scripts', 'Python.exe'))
         )
 
     def locate_editable_egg_info(base):
-        candidates = []
+        # type: (str) -> List[str]
+        candidates = []  # type: List[str]
         for root, dirs, files in os.walk(base):
             for dir_ in vcs.dirnames:
                 if dir_ in dirs:
@@ -60,6 +62,7 @@ def find_egg_info(install_req):
         return [f for f in candidates if f.endswith('.egg-info')]
 
     def depth_of_directory(dir_):
+        # type: (str) -> int
         return (
             dir_.count(os.path.sep) +
             (os.path.altsep and dir_.count(os.path.altsep) or 0)
