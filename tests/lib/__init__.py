@@ -924,7 +924,7 @@ def create_basic_wheel_for_package(script, name, version,
         extras = {}
     files = {
         "{name}/__init__.py": """
-            __version__ = {version}
+            __version__ = {version!r}
             def hello():
                 return "Hello From {name}"
         """,
