@@ -6,7 +6,6 @@ from __future__ import absolute_import
 import logging
 import os
 import re
-import sys
 
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
