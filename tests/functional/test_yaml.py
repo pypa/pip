@@ -57,6 +57,8 @@ def handle_install_request(script, requirement):
         "install",
         "--no-index", "--find-links", path_to_url(script.scratch_path),
         requirement, "--verbose",
+        allow_stderr_error=True,
+        allow_stderr_warning=True,
     )
 
     retval = {
