@@ -454,9 +454,9 @@ def no_binary():
         help="Do not use binary packages. Can be supplied multiple times, and "
              "each time adds to the existing value. Accepts either :all: to "
              "disable all binary packages, :none: to empty the set, or one or "
-             "more package names with commas between them. Note that some "
-             "packages are tricky to compile and may fail to install when "
-             "this option is used on them.",
+             "more package names with commas between them (no colons). Note "
+             "that some packages are tricky to compile and may fail to "
+             "install when this option is used on them.",
     )
 
 
