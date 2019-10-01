@@ -13,6 +13,7 @@ from pip._internal.utils.misc import (
     display_path,
     rmtree,
     split_auth_from_netloc,
+    is_console_interactive
 )
 from pip._internal.utils.subprocess import make_command
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -188,7 +189,7 @@ class Subversion(VersionControl):
     def __init__(self, use_interactive=None):
         # type: (bool) -> None
         if use_interactive is None:
-            use_interactive = sys.stdin and sys.stdin.isatty()
+            use_interactive = is_console_interactive()
         self.use_interactive = use_interactive
 
         # This member is used to cache the fetched version of the current
