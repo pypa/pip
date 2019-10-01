@@ -27,7 +27,7 @@ def test_verbose_flag(script, data):
         'simple2==3.0',
     )
     result = script.pip('list', '-v', '--format=columns')
-    assert 'Package' in result.stdout, str(result)
+    assert 'Project' in result.stdout, str(result)
     assert 'Version' in result.stdout, str(result)
     assert 'Location' in result.stdout, str(result)
     assert 'Installer' in result.stdout, str(result)
@@ -44,7 +44,7 @@ def test_columns_flag(script, data):
         'simple2==3.0',
     )
     result = script.pip('list', '--format=columns')
-    assert 'Package' in result.stdout, str(result)
+    assert 'Project' in result.stdout, str(result)
     assert 'Version' in result.stdout, str(result)
     assert 'simple (1.0)' not in result.stdout, str(result)
     assert 'simple     1.0' in result.stdout, str(result)
@@ -67,7 +67,7 @@ def test_format_priority(script, data):
     assert 'simple2    3.0' not in result.stdout, str(result)
 
     result = script.pip('list', '--format=freeze', '--format=columns')
-    assert 'Package' in result.stdout, str(result)
+    assert 'Project' in result.stdout, str(result)
     assert 'Version' in result.stdout, str(result)
     assert 'simple==1.0' not in result.stdout, str(result)
     assert 'simple2==3.0' not in result.stdout, str(result)
@@ -92,7 +92,7 @@ def test_local_columns_flag(script, data):
     """
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
     result = script.pip('list', '--local', '--format=columns')
-    assert 'Package' in result.stdout
+    assert 'Project' in result.stdout
     assert 'Version' in result.stdout
     assert 'simple (1.0)' not in result.stdout
     assert 'simple     1.0' in result.stdout, str(result)
@@ -125,7 +125,7 @@ def test_user_columns_flag(script, data):
     script.pip('install', '-f', data.find_links, '--no-index',
                '--user', 'simple2==2.0')
     result = script.pip('list', '--user', '--format=columns')
-    assert 'Package' in result.stdout
+    assert 'Project' in result.stdout
     assert 'Version' in result.stdout
     assert 'simple2 (2.0)' not in result.stdout
     assert 'simple2 2.0' in result.stdout, str(result)
@@ -174,7 +174,7 @@ def test_uptodate_columns_flag(script, data):
         'list', '-f', data.find_links, '--no-index', '--uptodate',
         '--format=columns',
     )
-    assert 'Package' in result.stdout
+    assert 'Project' in result.stdout
     assert 'Version' in result.stdout
     assert 'Location' in result.stdout      # editables included
     assert 'pip-test-package (0.1.1,' not in result.stdout
@@ -232,7 +232,7 @@ def test_outdated_columns_flag(script, data):
         'list', '-f', data.find_links, '--no-index', '--outdated',
         '--format=columns',
     )
-    assert 'Package' in result.stdout
+    assert 'Project' in result.stdout
     assert 'Version' in result.stdout
     assert 'Latest' in result.stdout
     assert 'Type' in result.stdout
@@ -291,7 +291,7 @@ def test_editables_columns_flag(script, data):
         'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package'
     )
     result = script.pip('list', '--editable', '--format=columns')
-    assert 'Package' in result.stdout
+    assert 'Project' in result.stdout
     assert 'Version' in result.stdout
     assert 'Location' in result.stdout
     assert os.path.join('src', 'pip-test-package') in result.stdout, (
@@ -334,7 +334,7 @@ def test_uptodate_editables_columns_flag(script, data):
         'list', '-f', data.find_links, '--no-index',
         '--editable', '--uptodate', '--format=columns',
     )
-    assert 'Package' in result.stdout
+    assert 'Project' in result.stdout
     assert 'Version' in result.stdout
     assert 'Location' in result.stdout
     assert os.path.join('src', 'pip-test-package') in result.stdout, (
@@ -376,7 +376,7 @@ def test_outdated_editables_columns_flag(script, data):
         'list', '-f', data.find_links, '--no-index',
         '--editable', '--outdated', '--format=columns',
     )
-    assert 'Package' in result.stdout
+    assert 'Project' in result.stdout
     assert 'Version' in result.stdout
     assert 'Location' in result.stdout
     assert os.path.join('src', 'pip-test-package') in result.stdout, (
@@ -448,7 +448,7 @@ def test_outdated_formats(script, data):
         'list', '--no-index', '--find-links', wheelhouse_path,
         '--outdated', '--format=columns',
     )
-    assert 'Package Version Latest Type' in result.stdout
+    assert 'Project Version Latest Type' in result.stdout
     assert 'simple  1.0     1.1    wheel' in result.stdout
 
     # Check freeze
