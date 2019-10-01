@@ -18,6 +18,11 @@ repos:
   - id: trailing-whitespace
     exclude: .patch
 
+-   repo: https://github.com/asottile/add-trailing-comma
+    rev: v1.4.1
+    hooks:
+    -   id: add-trailing-comma
+
 - repo: https://github.com/timothycrosley/isort
   rev: 4.3.21
   hooks:
