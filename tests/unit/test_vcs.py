@@ -23,26 +23,37 @@ else:
 
 @pytest.mark.skipif(
     'TRAVIS' not in os.environ,
-    reason='Subversion is only required under Travis')
+    reason='Subversion is only required under Travis',
+)
 def test_ensure_svn_available():
     """Make sure that svn is available when running in Travis."""
     assert is_svn_installed()
 
 
-@pytest.mark.parametrize('args, expected', [
-    # Test without subdir.
-    (('git+https://example.com/pkg', 'dev', 'myproj'),
-     'git+https://example.com/pkg@dev#egg=myproj'),
-    # Test with subdir.
-    (('git+https://example.com/pkg', 'dev', 'myproj', 'sub/dir'),
-     'git+https://example.com/pkg@dev#egg=myproj&subdirectory=sub/dir'),
-    # Test with None subdir.
-    (('git+https://example.com/pkg', 'dev', 'myproj', None),
-     'git+https://example.com/pkg@dev#egg=myproj'),
-    # Test an unescaped project name.
-    (('git+https://example.com/pkg', 'dev', 'zope-interface'),
-     'git+https://example.com/pkg@dev#egg=zope_interface'),
-])
+@pytest.mark.parametrize(
+    'args, expected', [
+        # Test without subdir.
+        (
+            ('git+https://example.com/pkg', 'dev', 'myproj'),
+            'git+https://example.com/pkg@dev#egg=myproj',
+        ),
+        # Test with subdir.
+        (
+            ('git+https://example.com/pkg', 'dev', 'myproj', 'sub/dir'),
+            'git+https://example.com/pkg@dev#egg=myproj&subdirectory=sub/dir',
+        ),
+        # Test with None subdir.
+        (
+            ('git+https://example.com/pkg', 'dev', 'myproj', None),
+            'git+https://example.com/pkg@dev#egg=myproj',
+        ),
+        # Test an unescaped project name.
+        (
+            ('git+https://example.com/pkg', 'dev', 'zope-interface'),
+            'git+https://example.com/pkg@dev#egg=zope_interface',
+        ),
+    ],
+)
 def test_make_vcs_requirement_url(args, expected):
     actual = make_vcs_requirement_url(*args)
     assert actual == expected
@@ -53,16 +64,20 @@ def test_rev_options_repr():
     assert repr(rev_options) == "<RevOptions git: rev='develop'>"
 
 
-@pytest.mark.parametrize(('vc_class', 'expected1', 'expected2', 'kwargs'), [
-    # First check VCS-specific RevOptions behavior.
-    (Bazaar, [], ['-r', '123'], {}),
-    (Git, ['HEAD'], ['123'], {}),
-    (Mercurial, [], ['123'], {}),
-    (Subversion, [], ['-r', '123'], {}),
-    # Test extra_args.  For this, test using a single VersionControl class.
-    (Git, ['HEAD', 'opt1', 'opt2'], ['123', 'opt1', 'opt2'],
-        dict(extra_args=['opt1', 'opt2'])),
-])
+@pytest.mark.parametrize(
+    ('vc_class', 'expected1', 'expected2', 'kwargs'), [
+        # First check VCS-specific RevOptions behavior.
+        (Bazaar, [], ['-r', '123'], {}),
+        (Git, ['HEAD'], ['123'], {}),
+        (Mercurial, [], ['123'], {}),
+        (Subversion, [], ['-r', '123'], {}),
+        # Test extra_args.  For this, test using a single VersionControl class.
+        (
+            Git, ['HEAD', 'opt1', 'opt2'], ['123', 'opt1', 'opt2'],
+            dict(extra_args=['opt1', 'opt2']),
+        ),
+    ],
+)
 def test_rev_options_to_args(vc_class, expected1, expected2, kwargs):
     """
     Test RevOptions.to_args().
@@ -99,26 +114,30 @@ def test_rev_options_make_new():
     assert new_options.vc_class is Git
 
 
-@pytest.mark.parametrize('sha, expected', [
-    ((40 * 'a'), True),
-    ((40 * 'A'), True),
-    # Test a string containing all valid characters.
-    ((18 * 'a' + '0123456789abcdefABCDEF'), True),
-    ((40 * 'g'), False),
-    ((39 * 'a'), False),
-    ((41 * 'a'), False)
-])
+@pytest.mark.parametrize(
+    'sha, expected', [
+        ((40 * 'a'), True),
+        ((40 * 'A'), True),
+        # Test a string containing all valid characters.
+        ((18 * 'a' + '0123456789abcdefABCDEF'), True),
+        ((40 * 'g'), False),
+        ((39 * 'a'), False),
+        ((41 * 'a'), False),
+    ],
+)
 def test_looks_like_hash(sha, expected):
     assert looks_like_hash(sha) == expected
 
 
-@pytest.mark.parametrize('vcs_cls, remote_url, expected', [
-    # Git is one of the subclasses using the base class implementation.
-    (Git, 'git://example.com/MyProject', False),
-    (Git, 'http://example.com/MyProject', True),
-    # Subversion is the only subclass overriding the base class implementation.
-    (Subversion, 'svn://example.com/MyProject', True),
-])
+@pytest.mark.parametrize(
+    'vcs_cls, remote_url, expected', [
+        # Git is one of the subclasses using the base class implementation.
+        (Git, 'git://example.com/MyProject', False),
+        (Git, 'http://example.com/MyProject', True),
+        # Subversion is the only subclass overriding the base class implementation.
+        (Subversion, 'svn://example.com/MyProject', True),
+    ],
+)
 def test_should_add_vcs_url_prefix(vcs_cls, remote_url, expected):
     actual = vcs_cls.should_add_vcs_url_prefix(remote_url)
     assert actual == expected
@@ -129,7 +148,7 @@ def test_should_add_vcs_url_prefix(vcs_cls, remote_url, expected):
 @patch('pip._internal.vcs.git.Git.get_subdirectory')
 @pytest.mark.network
 def test_git_get_src_requirements(
-    mock_get_subdirectory, mock_get_revision, mock_get_remote_url
+    mock_get_subdirectory, mock_get_revision, mock_get_remote_url,
 ):
     git_url = 'https://github.com/pypa/pip-test-package'
     sha = '5547fa909e83df8bd743d3978d6667497983a4b7'
@@ -184,18 +203,20 @@ def test_git_resolve_revision_not_found_warning(get_sha_mock, caplog):
     messages = [r.getMessage() for r in caplog.records]
     messages = [msg for msg in messages if msg.startswith('Did not find ')]
     assert messages == [
-        "Did not find branch or tag 'aaaaaa', assuming revision or ref."
+        "Did not find branch or tag 'aaaaaa', assuming revision or ref.",
     ]
 
 
-@pytest.mark.parametrize('rev_name,result', (
-    ('5547fa909e83df8bd743d3978d6667497983a4b7', True),
-    ('5547fa909', False),
-    ('5678', False),
-    ('abc123', False),
-    ('foo', False),
-    (None, False),
-))
+@pytest.mark.parametrize(
+    'rev_name,result', (
+        ('5547fa909e83df8bd743d3978d6667497983a4b7', True),
+        ('5547fa909', False),
+        ('5678', False),
+        ('abc123', False),
+        ('foo', False),
+        (None, False),
+    ),
+)
 @patch('pip._internal.vcs.git.Git.get_revision')
 def test_git_is_commit_id_equal(mock_get_revision, rev_name, result):
     """
@@ -207,13 +228,17 @@ def test_git_is_commit_id_equal(mock_get_revision, rev_name, result):
 
 # The non-SVN backends all use the same get_netloc_and_auth(), so only test
 # Git as a representative.
-@pytest.mark.parametrize('args, expected', [
-    # Test a basic case.
-    (('example.com', 'https'), ('example.com', (None, None))),
-    # Test with username and password.
-    (('user:pass@example.com', 'https'),
-     ('user:pass@example.com', (None, None))),
-])
+@pytest.mark.parametrize(
+    'args, expected', [
+        # Test a basic case.
+        (('example.com', 'https'), ('example.com', (None, None))),
+        # Test with username and password.
+        (
+            ('user:pass@example.com', 'https'),
+            ('user:pass@example.com', (None, None)),
+        ),
+    ],
+)
 def test_git__get_netloc_and_auth(args, expected):
     """
     Test VersionControl.get_netloc_and_auth().
@@ -223,20 +248,26 @@ def test_git__get_netloc_and_auth(args, expected):
     assert actual == expected
 
 
-@pytest.mark.parametrize('args, expected', [
-    # Test https.
-    (('example.com', 'https'), ('example.com', (None, None))),
-    # Test https with username and no password.
-    (('user@example.com', 'https'), ('example.com', ('user', None))),
-    # Test https with username and password.
-    (('user:pass@example.com', 'https'), ('example.com', ('user', 'pass'))),
-    # Test https with URL-encoded reserved characters.
-    (('user%3Aname:%23%40%5E@example.com', 'https'),
-     ('example.com', ('user:name', '#@^'))),
-    # Test ssh with username and password.
-    (('user:pass@example.com', 'ssh'),
-     ('user:pass@example.com', (None, None))),
-])
+@pytest.mark.parametrize(
+    'args, expected', [
+        # Test https.
+        (('example.com', 'https'), ('example.com', (None, None))),
+        # Test https with username and no password.
+        (('user@example.com', 'https'), ('example.com', ('user', None))),
+        # Test https with username and password.
+        (('user:pass@example.com', 'https'), ('example.com', ('user', 'pass'))),
+        # Test https with URL-encoded reserved characters.
+        (
+            ('user%3Aname:%23%40%5E@example.com', 'https'),
+            ('example.com', ('user:name', '#@^')),
+        ),
+        # Test ssh with username and password.
+        (
+            ('user:pass@example.com', 'ssh'),
+            ('user:pass@example.com', (None, None)),
+        ),
+    ],
+)
 def test_subversion__get_netloc_and_auth(args, expected):
     """
     Test Subversion.get_netloc_and_auth().
@@ -261,13 +292,19 @@ def test_git__get_url_rev__idempotent():
     assert result2 == expected
 
 
-@pytest.mark.parametrize('url, expected', [
-    ('svn+https://svn.example.com/MyProject',
-     ('https://svn.example.com/MyProject', None, (None, None))),
-    # Test a "+" in the path portion.
-    ('svn+https://svn.example.com/My+Project',
-     ('https://svn.example.com/My+Project', None, (None, None))),
-])
+@pytest.mark.parametrize(
+    'url, expected', [
+        (
+            'svn+https://svn.example.com/MyProject',
+            ('https://svn.example.com/MyProject', None, (None, None)),
+        ),
+        # Test a "+" in the path portion.
+        (
+            'svn+https://svn.example.com/My+Project',
+            ('https://svn.example.com/My+Project', None, (None, None)),
+        ),
+    ],
+)
 def test_version_control__get_url_rev_and_auth(url, expected):
     """
     Test the basic case of VersionControl.get_url_rev_and_auth().
@@ -276,11 +313,13 @@ def test_version_control__get_url_rev_and_auth(url, expected):
     assert actual == expected
 
 
-@pytest.mark.parametrize('url', [
-    'https://svn.example.com/MyProject',
-    # Test a URL containing a "+" (but not in the scheme).
-    'https://svn.example.com/My+Project',
-])
+@pytest.mark.parametrize(
+    'url', [
+        'https://svn.example.com/MyProject',
+        # Test a URL containing a "+" (but not in the scheme).
+        'https://svn.example.com/My+Project',
+    ],
+)
 def test_version_control__get_url_rev_and_auth__missing_plus(url):
     """
     Test passing a URL to VersionControl.get_url_rev_and_auth() with a "+"
@@ -292,26 +331,40 @@ def test_version_control__get_url_rev_and_auth__missing_plus(url):
     assert 'malformed VCS url' in str(excinfo.value)
 
 
-@pytest.mark.parametrize('url, expected', [
-    # Test http.
-    ('bzr+http://bzr.myproject.org/MyProject/trunk/#egg=MyProject',
-     'http://bzr.myproject.org/MyProject/trunk/'),
-    # Test https.
-    ('bzr+https://bzr.myproject.org/MyProject/trunk/#egg=MyProject',
-     'https://bzr.myproject.org/MyProject/trunk/'),
-    # Test ftp.
-    ('bzr+ftp://bzr.myproject.org/MyProject/trunk/#egg=MyProject',
-     'ftp://bzr.myproject.org/MyProject/trunk/'),
-    # Test sftp.
-    ('bzr+sftp://bzr.myproject.org/MyProject/trunk/#egg=MyProject',
-     'sftp://bzr.myproject.org/MyProject/trunk/'),
-    # Test launchpad.
-    ('bzr+lp:MyLaunchpadProject#egg=MyLaunchpadProject',
-     'lp:MyLaunchpadProject'),
-    # Test ssh (special handling).
-    ('bzr+ssh://bzr.myproject.org/MyProject/trunk/#egg=MyProject',
-     'bzr+ssh://bzr.myproject.org/MyProject/trunk/'),
-])
+@pytest.mark.parametrize(
+    'url, expected', [
+        # Test http.
+        (
+            'bzr+http://bzr.myproject.org/MyProject/trunk/#egg=MyProject',
+            'http://bzr.myproject.org/MyProject/trunk/',
+        ),
+        # Test https.
+        (
+            'bzr+https://bzr.myproject.org/MyProject/trunk/#egg=MyProject',
+            'https://bzr.myproject.org/MyProject/trunk/',
+        ),
+        # Test ftp.
+        (
+            'bzr+ftp://bzr.myproject.org/MyProject/trunk/#egg=MyProject',
+            'ftp://bzr.myproject.org/MyProject/trunk/',
+        ),
+        # Test sftp.
+        (
+            'bzr+sftp://bzr.myproject.org/MyProject/trunk/#egg=MyProject',
+            'sftp://bzr.myproject.org/MyProject/trunk/',
+        ),
+        # Test launchpad.
+        (
+            'bzr+lp:MyLaunchpadProject#egg=MyLaunchpadProject',
+            'lp:MyLaunchpadProject',
+        ),
+        # Test ssh (special handling).
+        (
+            'bzr+ssh://bzr.myproject.org/MyProject/trunk/#egg=MyProject',
+            'bzr+ssh://bzr.myproject.org/MyProject/trunk/',
+        ),
+    ],
+)
 def test_bazaar__get_url_rev_and_auth(url, expected):
     """
     Test Bazaar.get_url_rev_and_auth().
@@ -320,20 +373,30 @@ def test_bazaar__get_url_rev_and_auth(url, expected):
     assert actual == (expected, None, (None, None))
 
 
-@pytest.mark.parametrize('url, expected', [
-    # Test an https URL.
-    ('svn+https://svn.example.com/MyProject#egg=MyProject',
-     ('https://svn.example.com/MyProject', None, (None, None))),
-    # Test an https URL with a username and password.
-    ('svn+https://user:pass@svn.example.com/MyProject#egg=MyProject',
-     ('https://svn.example.com/MyProject', None, ('user', 'pass'))),
-    # Test an ssh URL.
-    ('svn+ssh://svn.example.com/MyProject#egg=MyProject',
-     ('svn+ssh://svn.example.com/MyProject', None, (None, None))),
-    # Test an ssh URL with a username.
-    ('svn+ssh://user@svn.example.com/MyProject#egg=MyProject',
-     ('svn+ssh://user@svn.example.com/MyProject', None, (None, None))),
-])
+@pytest.mark.parametrize(
+    'url, expected', [
+        # Test an https URL.
+        (
+            'svn+https://svn.example.com/MyProject#egg=MyProject',
+            ('https://svn.example.com/MyProject', None, (None, None)),
+        ),
+        # Test an https URL with a username and password.
+        (
+            'svn+https://user:pass@svn.example.com/MyProject#egg=MyProject',
+            ('https://svn.example.com/MyProject', None, ('user', 'pass')),
+        ),
+        # Test an ssh URL.
+        (
+            'svn+ssh://svn.example.com/MyProject#egg=MyProject',
+            ('svn+ssh://svn.example.com/MyProject', None, (None, None)),
+        ),
+        # Test an ssh URL with a username.
+        (
+            'svn+ssh://user@svn.example.com/MyProject#egg=MyProject',
+            ('svn+ssh://user@svn.example.com/MyProject', None, (None, None)),
+        ),
+    ],
+)
 def test_subversion__get_url_rev_and_auth(url, expected):
     """
     Test Subversion.get_url_rev_and_auth().
@@ -344,11 +407,13 @@ def test_subversion__get_url_rev_and_auth(url, expected):
 
 # The non-SVN backends all use the same make_rev_args(), so only test
 # Git as a representative.
-@pytest.mark.parametrize('username, password, expected', [
-    (None, None, []),
-    ('user', None, []),
-    ('user', hide_value('pass'), []),
-])
+@pytest.mark.parametrize(
+    'username, password, expected', [
+        (None, None, []),
+        ('user', None, []),
+        ('user', hide_value('pass'), []),
+    ],
+)
 def test_git__make_rev_args(username, password, expected):
     """
     Test VersionControl.make_rev_args().
@@ -357,12 +422,16 @@ def test_git__make_rev_args(username, password, expected):
     assert actual == expected
 
 
-@pytest.mark.parametrize('username, password, expected', [
-    (None, None, []),
-    ('user', None, ['--username', 'user']),
-    ('user', hide_value('pass'),
-     ['--username', 'user', '--password', hide_value('pass')]),
-])
+@pytest.mark.parametrize(
+    'username, password, expected', [
+        (None, None, []),
+        ('user', None, ['--username', 'user']),
+        (
+            'user', hide_value('pass'),
+            ['--username', 'user', '--password', hide_value('pass')],
+        ),
+    ],
+)
 def test_subversion__make_rev_args(username, password, expected):
     """
     Test Subversion.make_rev_args().
@@ -392,17 +461,20 @@ def test_get_git_version():
     assert git_version >= parse_version('1.0.0')
 
 
-@pytest.mark.parametrize('use_interactive,is_atty,expected', [
-    (None, False, False),
-    (None, True, True),
-    (False, False, False),
-    (False, True, False),
-    (True, False, True),
-    (True, True, True),
-])
+@pytest.mark.parametrize(
+    'use_interactive,is_atty,expected', [
+        (None, False, False),
+        (None, True, True),
+        (False, False, False),
+        (False, True, False),
+        (True, False, True),
+        (True, True, True),
+    ],
+)
 @patch('sys.stdin.isatty')
 def test_subversion__init_use_interactive(
-        mock_isatty, use_interactive, is_atty, expected):
+        mock_isatty, use_interactive, is_atty, expected,
+):
     """
     Test Subversion.__init__() with mocked sys.stdin.isatty() output.
     """
@@ -424,22 +496,27 @@ def test_subversion__call_vcs_version():
     assert version[0] >= 1
 
 
-@pytest.mark.parametrize('svn_output, expected_version', [
-    ('svn, version 1.10.3 (r1842928)\n'
-     '   compiled Feb 25 2019, 14:20:39 on x86_64-apple-darwin17.0.0',
-     (1, 10, 3)),
-    ('svn, version 1.9.7 (r1800392)', (1, 9, 7)),
-    ('svn, version 1.9.7a1 (r1800392)', ()),
-    ('svn, version 1.9 (r1800392)', (1, 9)),
-    ('svn, version .9.7 (r1800392)', ()),
-    ('svn version 1.9.7 (r1800392)', ()),
-    ('svn 1.9.7', ()),
-    ('svn, version . .', ()),
-    ('', ()),
-])
+@pytest.mark.parametrize(
+    'svn_output, expected_version', [
+        (
+            'svn, version 1.10.3 (r1842928)\n'
+            '   compiled Feb 25 2019, 14:20:39 on x86_64-apple-darwin17.0.0',
+            (1, 10, 3),
+        ),
+        ('svn, version 1.9.7 (r1800392)', (1, 9, 7)),
+        ('svn, version 1.9.7a1 (r1800392)', ()),
+        ('svn, version 1.9 (r1800392)', (1, 9)),
+        ('svn, version .9.7 (r1800392)', ()),
+        ('svn version 1.9.7 (r1800392)', ()),
+        ('svn 1.9.7', ()),
+        ('svn, version . .', ()),
+        ('', ()),
+    ],
+)
 @patch('pip._internal.vcs.subversion.Subversion.run_command')
 def test_subversion__call_vcs_version_patched(
-        mock_run_command, svn_output, expected_version):
+        mock_run_command, svn_output, expected_version,
+):
     """
     Test Subversion.call_vcs_version() against patched output.
     """
@@ -458,12 +535,14 @@ def test_subversion__call_vcs_version_svn_not_installed(mock_run_command):
         Subversion().call_vcs_version()
 
 
-@pytest.mark.parametrize('version', [
-    (),
-    (1,),
-    (1, 8),
-    (1, 8, 0),
-])
+@pytest.mark.parametrize(
+    'version', [
+        (),
+        (1,),
+        (1, 8),
+        (1, 8, 0),
+    ],
+)
 def test_subversion__get_vcs_version_cached(version):
     """
     Test Subversion.get_vcs_version() with previously cached result.
@@ -473,11 +552,13 @@ def test_subversion__get_vcs_version_cached(version):
     assert svn.get_vcs_version() == version
 
 
-@pytest.mark.parametrize('vcs_version', [
-    (),
-    (1, 7),
-    (1, 8, 0),
-])
+@pytest.mark.parametrize(
+    'vcs_version', [
+        (),
+        (1, 7),
+        (1, 8, 0),
+    ],
+)
 @patch('pip._internal.vcs.subversion.Subversion.call_vcs_version')
 def test_subversion__get_vcs_version_call_vcs(mock_call_vcs, vcs_version):
     """
@@ -492,16 +573,19 @@ def test_subversion__get_vcs_version_call_vcs(mock_call_vcs, vcs_version):
     assert svn._vcs_version == vcs_version
 
 
-@pytest.mark.parametrize('use_interactive,vcs_version,expected_options', [
-    (False, (), ['--non-interactive']),
-    (False, (1, 7, 0), ['--non-interactive']),
-    (False, (1, 8, 0), ['--non-interactive']),
-    (True, (), []),
-    (True, (1, 7, 0), []),
-    (True, (1, 8, 0), ['--force-interactive']),
-])
+@pytest.mark.parametrize(
+    'use_interactive,vcs_version,expected_options', [
+        (False, (), ['--non-interactive']),
+        (False, (1, 7, 0), ['--non-interactive']),
+        (False, (1, 8, 0), ['--non-interactive']),
+        (True, (), []),
+        (True, (1, 7, 0), []),
+        (True, (1, 8, 0), ['--force-interactive']),
+    ],
+)
 def test_subversion__get_remote_call_options(
-        use_interactive, vcs_version, expected_options):
+        use_interactive, vcs_version, expected_options,
+):
     """
     Test Subversion.get_remote_call_options().
     """

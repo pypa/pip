@@ -52,7 +52,7 @@ def install_given_reqs(
                 )
                 with indent_log():
                     uninstalled_pathset = requirement.uninstall(
-                        auto_confirm=True
+                        auto_confirm=True,
                     )
             try:
                 requirement.install(

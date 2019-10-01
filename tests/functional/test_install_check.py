@@ -42,7 +42,8 @@ def test_check_install_canonicalization(script, deprecated_python):
     ]
     # Deprecated python versions produce an extra warning on stderr
     assert matches_expected_lines(
-        result.stderr, expected_lines, exact=not deprecated_python)
+        result.stderr, expected_lines, exact=not deprecated_python,
+    )
     assert result.returncode == 0
 
     # Install the second missing package and expect that there is no warning
@@ -52,7 +53,8 @@ def test_check_install_canonicalization(script, deprecated_python):
         'install', '--no-index', special_path, '--quiet',
     )
     assert matches_expected_lines(
-        result.stderr, [], exact=not deprecated_python)
+        result.stderr, [], exact=not deprecated_python,
+    )
     assert result.returncode == 0
 
     # Double check that all errors are resolved in the end
@@ -65,7 +67,8 @@ def test_check_install_canonicalization(script, deprecated_python):
 
 
 def test_check_install_does_not_warn_for_out_of_graph_issues(
-        script, deprecated_python):
+        script, deprecated_python,
+):
     pkg_broken_path = create_test_package_with_setup(
         script,
         name='broken',
@@ -87,19 +90,22 @@ def test_check_install_does_not_warn_for_out_of_graph_issues(
     result = script.pip('install', '--no-index', pkg_broken_path, '--no-deps')
     # Deprecated python versions produce an extra warning on stderr
     assert matches_expected_lines(
-        result.stderr, [], exact=not deprecated_python)
+        result.stderr, [], exact=not deprecated_python,
+    )
 
     # Install conflict package
     result = script.pip(
         'install', '--no-index', pkg_conflict_path, allow_stderr_error=True,
     )
-    assert matches_expected_lines(result.stderr, [
-        "ERROR: broken 1.0 requires missing, which is not installed.",
-        (
-            "ERROR: broken 1.0 has requirement conflict<1.0, but "
-            "you'll have conflict 1.0 which is incompatible."
-        ),
-    ], exact=not deprecated_python)
+    assert matches_expected_lines(
+        result.stderr, [
+            "ERROR: broken 1.0 requires missing, which is not installed.",
+            (
+                "ERROR: broken 1.0 has requirement conflict<1.0, but "
+                "you'll have conflict 1.0 which is incompatible."
+            ),
+        ], exact=not deprecated_python,
+    )
 
     # Install unrelated package
     result = script.pip(
@@ -107,7 +113,8 @@ def test_check_install_does_not_warn_for_out_of_graph_issues(
     )
     # should not warn about broken's deps when installing unrelated package
     assert matches_expected_lines(
-        result.stderr, [], exact=not deprecated_python)
+        result.stderr, [], exact=not deprecated_python,
+    )
 
     result = script.pip('check', expect_error=True)
     expected_lines = [

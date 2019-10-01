@@ -191,7 +191,7 @@ def untar_file(filename, location):
                     'outside target directory ({})'
                 )
                 raise InstallationError(
-                    message.format(filename, path, location)
+                    message.format(filename, path, location),
                 )
             if member.isdir():
                 ensure_dir(path)
@@ -249,13 +249,13 @@ def unpack_file(
         unzip_file(
             filename,
             location,
-            flatten=not filename.endswith('.whl')
+            flatten=not filename.endswith('.whl'),
         )
     elif (
         content_type == 'application/x-gzip' or
         tarfile.is_tarfile(filename) or
         filename.lower().endswith(
-            TAR_EXTENSIONS + BZ2_EXTENSIONS + XZ_EXTENSIONS
+            TAR_EXTENSIONS + BZ2_EXTENSIONS + XZ_EXTENSIONS,
         )
     ):
         untar_file(filename, location)
@@ -268,5 +268,5 @@ def unpack_file(
             filename, location, content_type,
         )
         raise InstallationError(
-            'Cannot determine archive format of {}'.format(location)
+            'Cannot determine archive format of {}'.format(location),
         )

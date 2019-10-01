@@ -33,7 +33,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Any, Dict, Iterable, List, NewType, Optional, Tuple
+        Any, Dict, Iterable, List, NewType, Optional, Tuple,
     )
 
     RawConfigParser = configparser.RawConfigParser  # Shorthand
@@ -90,7 +90,7 @@ def get_configuration_files():
         CONFIG_BASENAME,
     )
     new_config_file = os.path.join(
-        appdirs.user_config_dir("pip"), CONFIG_BASENAME
+        appdirs.user_config_dir("pip"), CONFIG_BASENAME,
     )
     return {
         kinds.GLOBAL: global_config_files,
@@ -121,15 +121,15 @@ class Configuration(object):
         if load_only not in _valid_load_only:
             raise ConfigurationError(
                 "Got invalid value for load_only - should be one of {}".format(
-                    ", ".join(map(repr, _valid_load_only[:-1]))
-                )
+                    ", ".join(map(repr, _valid_load_only[:-1])),
+                ),
             )
         self.isolated = isolated  # type: bool
         self.load_only = load_only  # type: Optional[Kind]
 
         # The order here determines the override order.
         self._override_order = [
-            kinds.GLOBAL, kinds.USER, kinds.SITE, kinds.ENV, kinds.ENV_VAR
+            kinds.GLOBAL, kinds.USER, kinds.SITE, kinds.ENV, kinds.ENV_VAR,
         ]
 
         self._ignore_env_names = ["version", "help"]
@@ -232,7 +232,7 @@ class Configuration(object):
                 self._mark_as_modified(fname, parser)
             else:
                 raise ConfigurationError(
-                    "Fatal Internal error [id=1]. Please report as a bug."
+                    "Fatal Internal error [id=1]. Please report as a bug.",
                 )
 
         del self._config[self.load_only][key]
@@ -284,7 +284,7 @@ class Configuration(object):
         if config_files[kinds.ENV][0:1] == [os.devnull]:
             logger.debug(
                 "Skipping loading configuration files due to "
-                "environment's PIP_CONFIG_FILE being os.devnull"
+                "environment's PIP_CONFIG_FILE being os.devnull",
             )
             return
 
@@ -294,7 +294,7 @@ class Configuration(object):
                 # that variant, not the others.
                 if self.load_only is not None and variant != self.load_only:
                     logger.debug(
-                        "Skipping file '%s' (variant: %s)", fname, variant
+                        "Skipping file '%s' (variant: %s)", fname, variant,
                     )
                     continue
 
@@ -328,7 +328,7 @@ class Configuration(object):
                 # See https://github.com/pypa/pip/issues/4963
                 raise ConfigurationFileCouldNotBeLoaded(
                     reason="contains invalid {} characters".format(
-                        locale.getpreferredencoding(False)
+                        locale.getpreferredencoding(False),
                     ),
                     fname=fname,
                 )
@@ -342,7 +342,7 @@ class Configuration(object):
         """Loads configuration from environment variables
         """
         self._config[kinds.ENV_VAR].update(
-            self._normalized_keys(":env:", self._get_environ_vars())
+            self._normalized_keys(":env:", self._get_environ_vars()),
         )
 
     def _normalized_keys(self, section, items):
@@ -408,7 +408,7 @@ class Configuration(object):
         if not parsers:
             # This should not happen if everything works correctly.
             raise ConfigurationError(
-                "Fatal Internal error [id=2]. Please report as a bug."
+                "Fatal Internal error [id=2]. Please report as a bug.",
             )
 
         # Use the highest priority parser.

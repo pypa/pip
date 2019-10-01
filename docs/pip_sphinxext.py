@@ -18,7 +18,7 @@ class PipCommandUsage(rst.Directive):
     def run(self):
         cmd = create_command(self.arguments[0])
         usage = dedent(
-            cmd.usage.replace('%prog', 'pip {}'.format(cmd.name))
+            cmd.usage.replace('%prog', 'pip {}'.format(cmd.name)),
         ).strip()
         node = nodes.literal_block(usage, usage)
         return [node]
@@ -81,14 +81,14 @@ class PipOptions(rst.Directive):
 class PipGeneralOptions(PipOptions):
     def process_options(self):
         self._format_options(
-            [o() for o in cmdoptions.general_group['options']]
+            [o() for o in cmdoptions.general_group['options']],
         )
 
 
 class PipIndexOptions(PipOptions):
     def process_options(self):
         self._format_options(
-            [o() for o in cmdoptions.index_group['options']]
+            [o() for o in cmdoptions.index_group['options']],
         )
 
 

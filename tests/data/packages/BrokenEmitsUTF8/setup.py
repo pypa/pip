@@ -20,7 +20,8 @@ if sys.argv[1] == 'install':
 
     raise FakeError('this package designed to fail on install')
 
-setup(name='broken',
-      version='0.2',
-      py_modules=['broken'],
-      )
+setup(
+    name='broken',
+    version='0.2',
+    py_modules=['broken'],
+)

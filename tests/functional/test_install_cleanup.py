@@ -14,7 +14,7 @@ def test_cleanup_after_install(script, data):
     Test clean up after installing a package.
     """
     script.pip(
-        'install', '--no-index', '--find-links=%s' % data.find_links, 'simple'
+        'install', '--no-index', '--find-links=%s' % data.find_links, 'simple',
     )
     build = script.venv_path / "build"
     src = script.venv_path / "src"

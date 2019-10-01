@@ -44,37 +44,45 @@ class ListCommand(IndexGroupCommand):
             '-o', '--outdated',
             action='store_true',
             default=False,
-            help='List outdated packages')
+            help='List outdated packages',
+        )
         cmd_opts.add_option(
             '-u', '--uptodate',
             action='store_true',
             default=False,
-            help='List uptodate packages')
+            help='List uptodate packages',
+        )
         cmd_opts.add_option(
             '-e', '--editable',
             action='store_true',
             default=False,
-            help='List editable projects.')
+            help='List editable projects.',
+        )
         cmd_opts.add_option(
             '-l', '--local',
             action='store_true',
             default=False,
-            help=('If in a virtualenv that has global access, do not list '
-                  'globally-installed packages.'),
+            help=(
+                'If in a virtualenv that has global access, do not list '
+                'globally-installed packages.'
+            ),
         )
         self.cmd_opts.add_option(
             '--user',
             dest='user',
             action='store_true',
             default=False,
-            help='Only output packages installed in user-site.')
+            help='Only output packages installed in user-site.',
+        )
         cmd_opts.add_option(cmdoptions.list_path())
         cmd_opts.add_option(
             '--pre',
             action='store_true',
             default=False,
-            help=("Include pre-release and development versions. By default, "
-                  "pip only finds stable versions."),
+            help=(
+                "Include pre-release and development versions. By default, "
+                "pip only finds stable versions."
+            ),
         )
 
         cmd_opts.add_option(
@@ -109,7 +117,7 @@ class ListCommand(IndexGroupCommand):
             default=True,
         )
         index_opts = cmdoptions.make_option_group(
-            cmdoptions.index_group, self.parser
+            cmdoptions.index_group, self.parser,
         )
 
         self.parser.insert_option_group(0, index_opts)
@@ -135,7 +143,8 @@ class ListCommand(IndexGroupCommand):
     def run(self, options, args):
         if options.outdated and options.uptodate:
             raise CommandError(
-                "Options --outdated and --uptodate cannot be combined.")
+                "Options --outdated and --uptodate cannot be combined.",
+            )
 
         cmdoptions.check_list_path_option(options)
 
@@ -188,8 +197,10 @@ class ListCommand(IndexGroupCommand):
                 all_candidates = finder.find_all_candidates(dist.key)
                 if not options.pre:
                     # Remove prereleases
-                    all_candidates = [candidate for candidate in all_candidates
-                                      if not candidate.version.is_prerelease]
+                    all_candidates = [
+                        candidate for candidate in all_candidates
+                        if not candidate.version.is_prerelease
+                    ]
 
                 evaluator = finder.make_candidate_evaluator(
                     project_name=dist.project_name,
@@ -219,8 +230,10 @@ class ListCommand(IndexGroupCommand):
         elif options.list_format == 'freeze':
             for dist in packages:
                 if options.verbose >= 1:
-                    write_output("%s==%s (%s)", dist.project_name,
-                                 dist.version, dist.location)
+                    write_output(
+                        "%s==%s (%s)", dist.project_name,
+                        dist.version, dist.location,
+                    )
                 else:
                     write_output("%s==%s", dist.project_name, dist.version)
         elif options.list_format == 'json':
@@ -252,8 +265,10 @@ def tabulate(vals):
 
     result = []
     for row in vals:
-        display = " ".join([str(c).ljust(s) if c is not None else ''
-                            for s, c in zip_longest(sizes, row)])
+        display = " ".join([
+            str(c).ljust(s) if c is not None else ''
+            for s, c in zip_longest(sizes, row)
+        ])
         result.append(display)
 
     return result, sizes

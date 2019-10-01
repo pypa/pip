@@ -93,7 +93,7 @@ class InstallRequirement(object):
         options=None,  # type: Optional[Dict[str, Any]]
         wheel_cache=None,  # type: Optional[WheelCache]
         constraint=False,  # type: bool
-        extras=()  # type: Iterable[str]
+        extras=(),  # type: Iterable[str]
     ):
         # type: (...) -> None
         assert req is None or isinstance(req, Requirement), req
@@ -191,7 +191,8 @@ class InstallRequirement(object):
     def __repr__(self):
         # type: () -> str
         return '<%s object: %s editable=%r>' % (
-            self.__class__.__name__, str(self), self.editable)
+            self.__class__.__name__, str(self), self.editable,
+        )
 
     def format_debug(self):
         # type: () -> str
@@ -255,8 +256,10 @@ class InstallRequirement(object):
         For example, some-package==1.2 is pinned; some-package>1.2 is not.
         """
         specifiers = self.specifier
-        return (len(specifiers) == 1 and
-                next(iter(specifiers)).operator in {'==', '==='})
+        return (
+            len(specifiers) == 1 and
+            next(iter(specifiers)).operator in {'==', '==='}
+        )
 
     @property
     def installed_version(self):
@@ -272,7 +275,8 @@ class InstallRequirement(object):
         if self.markers is not None:
             return any(
                 self.markers.evaluate({'extra': extra})
-                for extra in extras_requested)
+                for extra in extras_requested
+            )
         else:
             return True
 
@@ -381,7 +385,7 @@ class InstallRequirement(object):
         if os.path.exists(new_location):
             raise InstallationError(
                 'A package already exists in %s; please remove it to continue'
-                % display_path(new_location)
+                % display_path(new_location),
             )
 
         # Move the files to the correct location.
@@ -449,17 +453,19 @@ class InstallRequirement(object):
             return False
         except pkg_resources.VersionConflict:
             existing_dist = pkg_resources.get_distribution(
-                self.req.name
+                self.req.name,
             )
             if use_user_site:
                 if dist_in_usersite(existing_dist):
                     self.conflicts_with = existing_dist
-                elif (running_under_virtualenv() and
-                        dist_in_site_packages(existing_dist)):
+                elif (
+                    running_under_virtualenv() and
+                    dist_in_site_packages(existing_dist)
+                ):
                     raise InstallationError(
                         "Will not install to the user site because it will "
                         "lack sys.path precedence to %s in %s" %
-                        (existing_dist.project_name, existing_dist.location)
+                        (existing_dist.project_name, existing_dist.location),
                     )
             else:
                 self.conflicts_with = existing_dist
@@ -481,7 +487,7 @@ class InstallRequirement(object):
         prefix=None,  # type: Optional[str]
         warn_script_location=True,  # type: bool
         use_user_site=False,  # type: bool
-        pycompile=True  # type: bool
+        pycompile=True,  # type: bool
     ):
         # type: (...) -> None
         wheel.move_wheel_files(
@@ -501,7 +507,8 @@ class InstallRequirement(object):
         # type: () -> str
         return os.path.join(
             self.source_dir,
-            self.link and self.link.subdirectory_fragment or '')
+            self.link and self.link.subdirectory_fragment or '',
+        )
 
     @property
     def setup_py_path(self):
@@ -534,7 +541,7 @@ class InstallRequirement(object):
             self.use_pep517,
             self.pyproject_toml_path,
             self.setup_py_path,
-            str(self)
+            str(self),
         )
 
         if pyproject_toml_data is None:
@@ -546,7 +553,7 @@ class InstallRequirement(object):
         self.requirements_to_check = check
         self.pyproject_requires = requires
         self.pep517_backend = Pep517HookCaller(
-            self.unpacked_source_directory, backend
+            self.unpacked_source_directory, backend,
         )
 
     def prepare_metadata(self):
@@ -572,7 +579,7 @@ class InstallRequirement(object):
                     self.metadata["Name"],
                     op,
                     self.metadata["Version"],
-                ])
+                ]),
             )
             self.move_to_correct_build_directory()
         else:
@@ -582,7 +589,7 @@ class InstallRequirement(object):
                     'Generating metadata for package %s '
                     'produced metadata for project name %s. Fix your '
                     '#egg=%s fragments.',
-                    self.name, metadata_name, self.name
+                    self.name, metadata_name, self.name,
                 )
                 self.req = Requirement(metadata_name)
 
@@ -608,7 +615,7 @@ class InstallRequirement(object):
             backend = self.pep517_backend
             with backend.subprocess_runner(runner):
                 distinfo_dir = backend.prepare_metadata_for_build_wheel(
-                    metadata_dir
+                    metadata_dir,
                 )
 
         return os.path.join(metadata_dir, distinfo_dir)
@@ -654,7 +661,7 @@ class InstallRequirement(object):
 
         if not filenames:
             raise InstallationError(
-                "Files/directories not found in %s" % base
+                "Files/directories not found in %s" % base,
             )
 
         # If we have more than one match, we pick the toplevel one.  This
@@ -734,7 +741,7 @@ class InstallRequirement(object):
         self,
         install_options,  # type: List[str]
         global_options=(),  # type: Sequence[str]
-        prefix=None  # type: Optional[str]
+        prefix=None,  # type: Optional[str]
     ):
         # type: (...) -> None
         logger.info('Running setup.py develop for %s', self.name)
@@ -745,7 +752,7 @@ class InstallRequirement(object):
         base_cmd = make_setuptools_shim_args(
             self.setup_py_path,
             global_options=global_options,
-            no_user_config=self.isolated
+            no_user_config=self.isolated,
         )
         with indent_log():
             with self.build_env:
@@ -784,11 +791,14 @@ class InstallRequirement(object):
         else:
             assert 0, (
                 'Unexpected version control type (in %s): %s'
-                % (self.link, vc_type))
+                % (self.link, vc_type)
+            )
 
     # Top-level Actions
-    def uninstall(self, auto_confirm=False, verbose=False,
-                  use_user_site=False):
+    def uninstall(
+        self, auto_confirm=False, verbose=False,
+        use_user_site=False,
+    ):
         # type: (bool, bool, bool) -> Optional[UninstallPathSet]
         """
         Uninstall the distribution currently satisfying this requirement.
@@ -841,7 +851,8 @@ class InstallRequirement(object):
         if os.path.exists(archive_path):
             response = ask_path_exists(
                 'The file %s exists. (i)gnore, (w)ipe, (b)ackup, (a)bort ' %
-                display_path(archive_path), ('i', 'w', 'b', 'a'))
+                display_path(archive_path), ('i', 'w', 'b', 'a'),
+            )
             if response == 'i':
                 create_archive = False
             elif response == 'w':
@@ -866,7 +877,7 @@ class InstallRequirement(object):
         )
         with zip_output:
             dir = os.path.normcase(
-                os.path.abspath(self.unpacked_source_directory)
+                os.path.abspath(self.unpacked_source_directory),
             )
             for dirpath, dirnames, filenames in os.walk(dir):
                 if 'pip-egg-info' in dirnames:
@@ -898,7 +909,7 @@ class InstallRequirement(object):
         prefix=None,  # type: Optional[str]
         warn_script_location=True,  # type: bool
         use_user_site=False,  # type: bool
-        pycompile=True  # type: bool
+        pycompile=True,  # type: bool
     ):
         # type: (...) -> None
         global_options = global_options if global_options is not None else []
@@ -936,7 +947,7 @@ class InstallRequirement(object):
             )
 
             runner = runner_with_spinner_message(
-                "Running setup.py install for {}".format(self.name)
+                "Running setup.py install for {}".format(self.name),
             )
             with indent_log(), self.build_env:
                 runner(
@@ -977,7 +988,7 @@ class InstallRequirement(object):
                     if os.path.isdir(filename):
                         filename += os.path.sep
                     new_lines.append(
-                        os.path.relpath(prepend_root(filename), egg_info_dir)
+                        os.path.relpath(prepend_root(filename), egg_info_dir),
                     )
             new_lines.sort()
             ensure_dir(egg_info_dir)
@@ -991,14 +1002,14 @@ class InstallRequirement(object):
         record_filename,  # type: str
         root,  # type: Optional[str]
         prefix,  # type: Optional[str]
-        pycompile  # type: bool
+        pycompile,  # type: bool
     ):
         # type: (...) -> List[str]
         install_args = make_setuptools_shim_args(
             self.setup_py_path,
             global_options=global_options,
             no_user_config=self.isolated,
-            unbuffered_output=True
+            unbuffered_output=True,
         )
         install_args += ['install', '--record', record_filename]
         install_args += ['--single-version-externally-managed']
@@ -1015,8 +1026,12 @@ class InstallRequirement(object):
 
         if running_under_virtualenv():
             py_ver_str = 'python' + sysconfig.get_python_version()
-            install_args += ['--install-headers',
-                             os.path.join(sys.prefix, 'include', 'site',
-                                          py_ver_str, self.name)]
+            install_args += [
+                '--install-headers',
+                os.path.join(
+                    sys.prefix, 'include', 'site',
+                    py_ver_str, self.name,
+                ),
+            ]
 
         return install_args

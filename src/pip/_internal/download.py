@@ -72,11 +72,13 @@ if MYPY_CHECK_RUNNING:
         )
 
 
-__all__ = ['get_file_content',
-           'unpack_vcs_link',
-           'unpack_file_url',
-           'unpack_http_url', 'unpack_url',
-           'parse_content_disposition', 'sanitize_content_filename']
+__all__ = [
+    'get_file_content',
+    'unpack_vcs_link',
+    'unpack_file_url',
+    'unpack_http_url', 'unpack_url',
+    'parse_content_disposition', 'sanitize_content_filename',
+]
 
 
 logger = logging.getLogger(__name__)
@@ -93,7 +95,7 @@ def get_file_content(url, comes_from=None, session=None):
     """
     if session is None:
         raise TypeError(
-            "get_file_content() missing 1 required keyword argument: 'session'"
+            "get_file_content() missing 1 required keyword argument: 'session'",
         )
 
     scheme = get_url_scheme(url)
@@ -108,7 +110,8 @@ def get_file_content(url, comes_from=None, session=None):
         if comes_from and comes_from.startswith('http'):
             raise InstallationError(
                 'Requirements file %s references URL %s, which is local'
-                % (comes_from, url))
+                % (comes_from, url),
+            )
 
         path = url.split(':', 1)[1]
         path = path.replace('\\', '/')
@@ -125,7 +128,7 @@ def get_file_content(url, comes_from=None, session=None):
             content = auto_decode(f.read())
     except IOError as exc:
         raise InstallationError(
-            'Could not open requirements file: %s' % str(exc)
+            'Could not open requirements file: %s' % str(exc),
         )
     return url, content
 
@@ -160,7 +163,7 @@ def _download_url(
     link,  # type: Link
     content_file,  # type: IO
     hashes,  # type: Optional[Hashes]
-    progress_bar  # type: str
+    progress_bar,  # type: str
 ):
     # type: (...) -> None
     try:
@@ -209,7 +212,8 @@ def _download_url(
                     #
                     # By setting this not to decode automatically we
                     # hope to eliminate problems with the second case.
-                    decode_content=False):
+                    decode_content=False,
+            ):
                 yield chunk
         except AttributeError:
             # Standard file-like object.
@@ -232,8 +236,10 @@ def _download_url(
         url = link.url_without_fragment
 
     if show_progress:  # We don't show progress on cached responses
-        progress_indicator = DownloadProgressProvider(progress_bar,
-                                                      max=total_length)
+        progress_indicator = DownloadProgressProvider(
+            progress_bar,
+            max=total_length,
+        )
         if total_length:
             logger.info("Downloading %s (%s)", url, format_size(total_length))
         else:
@@ -246,8 +252,8 @@ def _download_url(
     downloaded_chunks = written_chunks(
         progress_indicator(
             resp_read(CONTENT_CHUNK_SIZE),
-            CONTENT_CHUNK_SIZE
-        )
+            CONTENT_CHUNK_SIZE,
+        ),
     )
     if hashes:
         hashes.check_against_chunks(downloaded_chunks)
@@ -261,7 +267,8 @@ def _copy_file(filename, location, link):
     if os.path.exists(download_location):
         response = ask_path_exists(
             'The file %s exists. (i)gnore, (w)ipe, (b)ackup, (a)abort' %
-            display_path(download_location), ('i', 'w', 'b', 'a'))
+            display_path(download_location), ('i', 'w', 'b', 'a'),
+        )
         if response == 'i':
             copy = False
         elif response == 'w':
@@ -288,32 +295,36 @@ def unpack_http_url(
     download_dir=None,  # type: Optional[str]
     session=None,  # type: Optional[PipSession]
     hashes=None,  # type: Optional[Hashes]
-    progress_bar="on"  # type: str
+    progress_bar="on",  # type: str
 ):
     # type: (...) -> None
     if session is None:
         raise TypeError(
-            "unpack_http_url() missing 1 required keyword argument: 'session'"
+            "unpack_http_url() missing 1 required keyword argument: 'session'",
         )
 
     with TempDirectory(kind="unpack") as temp_dir:
         # If a download dir is specified, is the file already downloaded there?
         already_downloaded_path = None
         if download_dir:
-            already_downloaded_path = _check_download_dir(link,
-                                                          download_dir,
-                                                          hashes)
+            already_downloaded_path = _check_download_dir(
+                link,
+                download_dir,
+                hashes,
+            )
 
         if already_downloaded_path:
             from_path = already_downloaded_path
             content_type = mimetypes.guess_type(from_path)[0]
         else:
             # let's download to a tmp dir
-            from_path, content_type = _download_http_url(link,
-                                                         session,
-                                                         temp_dir.path,
-                                                         hashes,
-                                                         progress_bar)
+            from_path, content_type = _download_http_url(
+                link,
+                session,
+                temp_dir.path,
+                hashes,
+                progress_bar,
+            )
 
         # unpack the archive to the build dir location. even when only
         # downloading archives, they have to be unpacked to parse dependencies
@@ -371,7 +382,7 @@ def unpack_file_url(
     link,  # type: Link
     location,  # type: str
     download_dir=None,  # type: Optional[str]
-    hashes=None  # type: Optional[Hashes]
+    hashes=None,  # type: Optional[Hashes]
 ):
     # type: (...) -> None
     """Unpack link into location.
@@ -400,9 +411,11 @@ def unpack_file_url(
     # If a download dir is specified, is the file already there and valid?
     already_downloaded_path = None
     if download_dir:
-        already_downloaded_path = _check_download_dir(link,
-                                                      download_dir,
-                                                      hashes)
+        already_downloaded_path = _check_download_dir(
+            link,
+            download_dir,
+            hashes,
+        )
 
     if already_downloaded_path:
         from_path = already_downloaded_path
@@ -426,7 +439,7 @@ def unpack_url(
     download_dir=None,  # type: Optional[str]
     session=None,  # type: Optional[PipSession]
     hashes=None,  # type: Optional[Hashes]
-    progress_bar="on"  # type: str
+    progress_bar="on",  # type: str
 ):
     # type: (...) -> None
     """Unpack link.
@@ -462,7 +475,7 @@ def unpack_url(
             download_dir,
             session,
             hashes=hashes,
-            progress_bar=progress_bar
+            progress_bar=progress_bar,
         )
 
 
@@ -494,7 +507,7 @@ def _download_http_url(
     session,  # type: PipSession
     temp_dir,  # type: str
     hashes,  # type: Optional[Hashes]
-    progress_bar  # type: str
+    progress_bar,  # type: str
 ):
     # type: (...) -> Tuple[str, str]
     """Download link url into temp_dir using provided session"""
@@ -571,7 +584,7 @@ def _check_download_dir(link, download_dir, hashes):
             logger.warning(
                 'Previously-downloaded file %s has bad hash. '
                 'Re-downloading.',
-                download_path
+                download_path,
             )
             os.unlink(download_path)
             return None

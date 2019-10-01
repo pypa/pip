@@ -7,15 +7,17 @@ from tests.lib import CURRENT_PY_VERSION_INFO, pyversion
 
 class TestTargetPython:
 
-    @pytest.mark.parametrize('py_version_info, expected', [
-        ((), ((0, 0, 0), '0.0')),
-        ((2, ), ((2, 0, 0), '2.0')),
-        ((3, ), ((3, 0, 0), '3.0')),
-        ((3, 7), ((3, 7, 0), '3.7')),
-        ((3, 7, 3), ((3, 7, 3), '3.7')),
-        # Check a minor version with two digits.
-        ((3, 10, 1), ((3, 10, 1), '3.10')),
-    ])
+    @pytest.mark.parametrize(
+        'py_version_info, expected', [
+            ((), ((0, 0, 0), '0.0')),
+            ((2,), ((2, 0, 0), '2.0')),
+            ((3,), ((3, 0, 0), '3.0')),
+            ((3, 7), ((3, 7, 0), '3.7')),
+            ((3, 7, 3), ((3, 7, 3), '3.7')),
+            # Check a minor version with two digits.
+            ((3, 10, 1), ((3, 10, 1), '3.10')),
+        ],
+    )
     def test_init__py_version_info(self, py_version_info, expected):
         """
         Test passing the py_version_info argument.
@@ -41,40 +43,44 @@ class TestTargetPython:
         assert target_python.py_version_info == CURRENT_PY_VERSION_INFO
         assert target_python.py_version == pyversion
 
-    @pytest.mark.parametrize('kwargs, expected', [
-        ({}, ''),
-        (dict(py_version_info=(3, 6)), "version_info='3.6'"),
-        (
-            dict(platform='darwin', py_version_info=(3, 6)),
-            "platform='darwin' version_info='3.6'",
-        ),
-        (
-            dict(
-                platform='darwin', py_version_info=(3, 6), abi='cp36m',
-                implementation='cp'
+    @pytest.mark.parametrize(
+        'kwargs, expected', [
+            ({}, ''),
+            (dict(py_version_info=(3, 6)), "version_info='3.6'"),
+            (
+                dict(platform='darwin', py_version_info=(3, 6)),
+                "platform='darwin' version_info='3.6'",
             ),
             (
-                "platform='darwin' version_info='3.6' abi='cp36m' "
-                "implementation='cp'"
+                dict(
+                    platform='darwin', py_version_info=(3, 6), abi='cp36m',
+                    implementation='cp',
+                ),
+                (
+                    "platform='darwin' version_info='3.6' abi='cp36m' "
+                    "implementation='cp'"
+                ),
             ),
-        ),
-    ])
+        ],
+    )
     def test_format_given(self, kwargs, expected):
         target_python = TargetPython(**kwargs)
         actual = target_python.format_given()
         assert actual == expected
 
-    @pytest.mark.parametrize('py_version_info, expected_versions', [
-        ((), ['']),
-        ((2, ), ['2']),
-        ((3, ), ['3']),
-        ((3, 7), ['37']),
-        ((3, 7, 3), ['37']),
-        # Check a minor version with two digits.
-        ((3, 10, 1), ['310']),
-        # Check that versions=None is passed to get_tags().
-        (None, None),
-    ])
+    @pytest.mark.parametrize(
+        'py_version_info, expected_versions', [
+            ((), ['']),
+            ((2,), ['2']),
+            ((3,), ['3']),
+            ((3, 7), ['37']),
+            ((3, 7, 3), ['37']),
+            # Check a minor version with two digits.
+            ((3, 10, 1), ['310']),
+            # Check that versions=None is passed to get_tags().
+            (None, None),
+        ],
+    )
     @patch('pip._internal.models.target_python.get_supported')
     def test_get_tags(
         self, mock_get_supported, py_version_info, expected_versions,

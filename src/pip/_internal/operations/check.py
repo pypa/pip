@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 if MYPY_CHECK_RUNNING:
     from pip._internal.req.req_install import InstallRequirement
     from typing import (
-        Any, Callable, Dict, Optional, Set, Tuple, List
+        Any, Callable, Dict, Optional, Set, Tuple, List,
     )
 
     # Shorthands
@@ -121,8 +121,8 @@ def check_install_conflicts(to_install):
     return (
         package_set,
         check_package_set(
-            package_set, should_ignore=lambda name: name not in whitelist
-        )
+            package_set, should_ignore=lambda name: name not in whitelist,
+        ),
     )
 
 

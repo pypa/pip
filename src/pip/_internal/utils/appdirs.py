@@ -105,10 +105,11 @@ def user_data_dir(appname, roaming=False):
         path = os.path.join(
             expanduser('~/Library/Application Support/'),
             appname,
-        ) if os.path.isdir(os.path.join(
-            expanduser('~/Library/Application Support/'),
-            appname,
-        )
+        ) if os.path.isdir(
+            os.path.join(
+                expanduser('~/Library/Application Support/'),
+                appname,
+            ),
         ) else os.path.join(
             expanduser('~/.config/'),
             appname,
@@ -214,7 +215,7 @@ def _get_win_folder_from_registry(csidl_name):
 
     key = _winreg.OpenKey(
         _winreg.HKEY_CURRENT_USER,
-        r"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders"
+        r"Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders",
     )
     directory, _type = _winreg.QueryValueEx(key, shell_folder_name)
     return directory

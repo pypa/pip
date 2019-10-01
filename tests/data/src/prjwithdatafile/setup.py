@@ -7,6 +7,6 @@ setup(
     packages=['prjwithdatafile'],
     data_files=[
         (r'packages1', ['prjwithdatafile/README.txt']),
-        (r'packages2', ['prjwithdatafile/README.txt'])
-    ]
+        (r'packages2', ['prjwithdatafile/README.txt']),
+    ],
 )

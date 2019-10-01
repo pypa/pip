@@ -103,7 +103,8 @@ def _check_dist_requires_python(
     raise UnsupportedPythonVersion(
         'Package {!r} requires a different Python: {} not in {!r}'.format(
             dist.project_name, version, requires_python,
-        ))
+        ),
+    )
 
 
 class Resolver(object):
@@ -198,7 +199,7 @@ class Resolver(object):
         for req in chain(root_reqs, discovered_reqs):
             try:
                 discovered_reqs.extend(
-                    self._resolve_one(requirement_set, req)
+                    self._resolve_one(requirement_set, req),
                 )
             except HashError as exc:
                 exc.req = req
@@ -302,7 +303,7 @@ class Resolver(object):
 
         if req.satisfied_by:
             return self.preparer.prepare_installed_requirement(
-                req, self.require_hashes, skip_reason
+                req, self.require_hashes, skip_reason,
             )
 
         upgrade_allowed = self._is_upgrade_allowed(req)
@@ -310,7 +311,7 @@ class Resolver(object):
         # We eagerly populate the link, since that's our "legacy" behavior.
         req.populate_link(self.finder, upgrade_allowed, self.require_hashes)
         abstract_dist = self.preparer.prepare_linked_requirement(
-            req, self.session, self.finder, self.require_hashes
+            req, self.session, self.finder, self.require_hashes,
         )
 
         # NOTE
@@ -344,7 +345,7 @@ class Resolver(object):
     def _resolve_one(
         self,
         requirement_set,  # type: RequirementSet
-        req_to_install  # type: InstallRequirement
+        req_to_install,  # type: InstallRequirement
     ):
         # type: (...) -> List[InstallRequirement]
         """Prepare a single requirements file.
@@ -388,7 +389,7 @@ class Resolver(object):
             )
             if parent_req_name and add_to_parent:
                 self._discovered_dependencies[parent_req_name].append(
-                    add_to_parent
+                    add_to_parent,
                 )
             more_reqs.extend(to_scan_again)
 
@@ -409,16 +410,16 @@ class Resolver(object):
                         ','.join(req_to_install.extras),
                     )
                 missing_requested = sorted(
-                    set(req_to_install.extras) - set(dist.extras)
+                    set(req_to_install.extras) - set(dist.extras),
                 )
                 for missing in missing_requested:
                     logger.warning(
                         '%s does not provide the extra \'%s\'',
-                        dist, missing
+                        dist, missing,
                     )
 
                 available_requested = sorted(
-                    set(dist.extras) & set(req_to_install.extras)
+                    set(dist.extras) & set(req_to_install.extras),
                 )
                 for subreq in dist.requires(available_requested):
                     add_req(subreq, extras_requested=available_requested)

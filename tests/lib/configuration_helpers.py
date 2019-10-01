@@ -58,7 +58,7 @@ class ConfigurationMixin(object):
     def tmpfile(self, contents):
         # Create a temporary file
         fd, path = tempfile.mkstemp(
-            prefix="pip_", suffix="_config.ini", text=True
+            prefix="pip_", suffix="_config.ini", text=True,
         )
         os.close(fd)
 

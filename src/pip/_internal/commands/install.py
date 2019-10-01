@@ -148,7 +148,7 @@ class InstallCommand(RequirementCommand):
             help='Install packages into <dir>. '
                  'By default this will not replace existing files/folders in '
                  '<dir>. Use --upgrade to replace existing packages in <dir> '
-                 'with new versions.'
+                 'with new versions.',
         )
         cmdoptions.add_target_python_options(cmd_opts)
 
@@ -159,26 +159,30 @@ class InstallCommand(RequirementCommand):
             help="Install to the Python user install directory for your "
                  "platform. Typically ~/.local/, or %APPDATA%\\Python on "
                  "Windows. (See the Python documentation for site.USER_BASE "
-                 "for full details.)")
+                 "for full details.)",
+        )
         cmd_opts.add_option(
             '--no-user',
             dest='use_user_site',
             action='store_false',
-            help=SUPPRESS_HELP)
+            help=SUPPRESS_HELP,
+        )
         cmd_opts.add_option(
             '--root',
             dest='root_path',
             metavar='dir',
             default=None,
             help="Install everything relative to this alternate root "
-                 "directory.")
+                 "directory.",
+        )
         cmd_opts.add_option(
             '--prefix',
             dest='prefix_path',
             metavar='dir',
             default=None,
             help="Installation prefix where lib, bin and other top-level "
-                 "folders are placed")
+                 "folders are placed",
+        )
 
         cmd_opts.add_option(cmdoptions.build_dir())
 
@@ -190,7 +194,7 @@ class InstallCommand(RequirementCommand):
             action='store_true',
             help='Upgrade all specified packages to the newest available '
                  'version. The handling of dependencies depends on the '
-                 'upgrade-strategy used.'
+                 'upgrade-strategy used.',
         )
 
         cmd_opts.add_option(
@@ -204,7 +208,7 @@ class InstallCommand(RequirementCommand):
                  'whether the currently installed version satisfies the '
                  'requirements of the upgraded package(s). '
                  '"only-if-needed" -  are upgraded only when they do not '
-                 'satisfy the requirements of the upgraded package(s).'
+                 'satisfy the requirements of the upgraded package(s).',
         )
 
         cmd_opts.add_option(
@@ -212,7 +216,8 @@ class InstallCommand(RequirementCommand):
             dest='force_reinstall',
             action='store_true',
             help='Reinstall all packages even if they are already '
-                 'up-to-date.')
+                 'up-to-date.',
+        )
 
         cmd_opts.add_option(
             '-I', '--ignore-installed',
@@ -221,7 +226,7 @@ class InstallCommand(RequirementCommand):
             help='Ignore the installed packages, overwriting them. '
                  'This can break your system if the existing package '
                  'is of a different version or was installed '
-                 'with a different package manager!'
+                 'with a different package manager!',
         )
 
         cmd_opts.add_option(cmdoptions.ignore_requires_python())
@@ -295,12 +300,12 @@ class InstallCommand(RequirementCommand):
             if options.prefix_path:
                 raise CommandError(
                     "Can not combine '--user' and '--prefix' as they imply "
-                    "different installation locations"
+                    "different installation locations",
                 )
             if virtualenv_no_global():
                 raise InstallationError(
                     "Can not perform a '--user' install. User site-packages "
-                    "are not visible in this virtualenv."
+                    "are not visible in this virtualenv.",
                 )
             install_options.append('--user')
             install_options.append('--prefix=')
@@ -310,11 +315,13 @@ class InstallCommand(RequirementCommand):
         if options.target_dir:
             options.ignore_installed = True
             options.target_dir = os.path.abspath(options.target_dir)
-            if (os.path.exists(options.target_dir) and not
-                    os.path.isdir(options.target_dir)):
+            if (
+                os.path.exists(options.target_dir) and not
+                os.path.isdir(options.target_dir)
+            ):
                 raise CommandError(
                     "Target path exists but is not a directory, will not "
-                    "continue."
+                    "continue.",
                 )
 
             # Create a target directory for using with the target option
@@ -348,7 +355,7 @@ class InstallCommand(RequirementCommand):
             options.cache_dir = None
 
         with RequirementTracker() as req_tracker, TempDirectory(
-            options.build_dir, delete=build_delete, kind="install"
+            options.build_dir, delete=build_delete, kind="install",
         ) as directory:
             requirement_set = RequirementSet(
                 require_hashes=options.require_hashes,
@@ -358,7 +365,7 @@ class InstallCommand(RequirementCommand):
             try:
                 self.populate_requirement_set(
                     requirement_set, args, options, finder, session,
-                    wheel_cache
+                    wheel_cache,
                 )
                 preparer = self.make_requirement_preparer(
                     temp_build_dir=directory,
@@ -389,11 +396,11 @@ class InstallCommand(RequirementCommand):
                     # we're not modifying it.
                     modifying_pip = pip_req.satisfied_by is None
                 protect_pip_from_modification_on_windows(
-                    modifying_pip=modifying_pip
+                    modifying_pip=modifying_pip,
                 )
 
                 check_binary_allowed = get_check_binary_allowed(
-                    finder.format_control
+                    finder.format_control,
                 )
                 # Consider legacy and PEP517-using requirements separately
                 legacy_requirements = []
@@ -422,10 +429,12 @@ class InstallCommand(RequirementCommand):
                     raise InstallationError(
                         "Could not build wheels for {} which use"
                         " PEP 517 and cannot be installed directly".format(
-                            ", ".join(r.name for r in build_failures)))
+                            ", ".join(r.name for r in build_failures),
+                        ),
+                    )
 
                 to_install = resolver.get_installation_order(
-                    requirement_set
+                    requirement_set,
                 )
 
                 # Consistency Checking of the package set we're installing.
@@ -469,7 +478,7 @@ class InstallCommand(RequirementCommand):
                     item = req.name
                     try:
                         installed_version = get_installed_version(
-                            req.name, working_set=working_set
+                            req.name, working_set=working_set,
                         )
                         if installed_version:
                             item += '-' + installed_version
@@ -501,7 +510,7 @@ class InstallCommand(RequirementCommand):
 
         if options.target_dir:
             self._handle_target_dir(
-                options.target_dir, target_temp_dir, options.upgrade
+                options.target_dir, target_temp_dir, options.upgrade,
             )
 
         return SUCCESS
@@ -540,7 +549,7 @@ class InstallCommand(RequirementCommand):
                             logger.warning(
                                 'Target directory %s already exists. Specify '
                                 '--upgrade to force replacement.',
-                                target_item_dir
+                                target_item_dir,
                             )
                             continue
                         if os.path.islink(target_item_dir):
@@ -549,7 +558,7 @@ class InstallCommand(RequirementCommand):
                                 'a link. Pip will not automatically replace '
                                 'links, please remove if replacement is '
                                 'desired.',
-                                target_item_dir
+                                target_item_dir,
                             )
                             continue
                         if os.path.isdir(target_item_dir):
@@ -559,7 +568,7 @@ class InstallCommand(RequirementCommand):
 
                     shutil.move(
                         os.path.join(lib_dir, item),
-                        target_item_dir
+                        target_item_dir,
                     )
 
     def _warn_about_conflicts(self, to_install):

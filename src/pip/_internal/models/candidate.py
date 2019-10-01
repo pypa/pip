@@ -24,7 +24,7 @@ class InstallationCandidate(KeyBasedCompareMixin):
 
         super(InstallationCandidate, self).__init__(
             key=(self.project, self.version, self.link),
-            defining_class=InstallationCandidate
+            defining_class=InstallationCandidate,
         )
 
     def __repr__(self):

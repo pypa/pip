@@ -35,7 +35,7 @@ class FormatControl(object):
         return "{}({}, {})".format(
             self.__class__.__name__,
             self.no_binary,
-            self.only_binary
+            self.only_binary,
         )
 
     @staticmethod
@@ -43,7 +43,7 @@ class FormatControl(object):
         # type: (str, Optional[Set], Optional[Set]) -> None
         if value.startswith('-'):
             raise CommandError(
-                "--no-binary / --only-binary option requires 1 argument."
+                "--no-binary / --only-binary option requires 1 argument.",
             )
         new = value.split(',')
         while ':all:' in new:

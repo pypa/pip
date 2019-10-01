@@ -92,7 +92,7 @@ def test_basic_check_broken_dependency_and_missing_dependency(script):
 
     expected_lines = (
         "broken 0.1 requires missing, which is not installed.",
-        "pkga 1.0 has requirement broken>=1.0, but you have broken 0.1."
+        "pkga 1.0 has requirement broken>=1.0, but you have broken 0.1.",
     )
 
     assert matches_expected_lines(result.stdout, expected_lines)
@@ -229,11 +229,12 @@ def test_basic_check_broken_metadata(script):
     dist_info_dir = script.site_packages_path / 'pkga-1.0.dist-info'
     dist_info_dir.mkdir()
     with open(dist_info_dir / 'METADATA', 'w') as f:
-        f.write('Metadata-Version: 2.1\n'
-                'Name: pkga\n'
-                'Version: 1.0\n'
-                'Requires-Dist: pip; python_version == "3.4";extra == "test"\n'
-                )
+        f.write(
+            'Metadata-Version: 2.1\n'
+            'Name: pkga\n'
+            'Version: 1.0\n'
+            'Requires-Dist: pip; python_version == "3.4";extra == "test"\n',
+        )
 
     result = script.pip('check', expect_error=True)
 

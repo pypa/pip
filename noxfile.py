@@ -84,11 +84,13 @@ def should_update_common_wheels():
 def test(session):
     # Get the common wheels.
     if should_update_common_wheels():
-        session.run(*protected_pip(
-            "wheel",
-            "-w", LOCATIONS["common-wheels"],
-            "-r", REQUIREMENTS["common-wheels"],
-        ))
+        session.run(
+            *protected_pip(
+                "wheel",
+                "-w", LOCATIONS["common-wheels"],
+                "-r", REQUIREMENTS["common-wheels"],
+            )
+        )
 
     # Install sources and dependencies
     session.run(*protected_pip("install", "."))

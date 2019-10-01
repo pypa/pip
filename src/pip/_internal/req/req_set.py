@@ -75,7 +75,7 @@ class RequirementSet(object):
         self,
         install_req,  # type: InstallRequirement
         parent_req_name=None,  # type: Optional[str]
-        extras_requested=None  # type: Optional[Iterable[str]]
+        extras_requested=None,  # type: Optional[Iterable[str]]
     ):
         # type: (...) -> Tuple[List[InstallRequirement], Optional[InstallRequirement]]  # noqa: E501
         """Add install_req as a requirement to install.
@@ -110,7 +110,7 @@ class RequirementSet(object):
             if (self.check_supported_wheels and not wheel.supported(tags)):
                 raise InstallationError(
                     "%s is not a supported wheel on this platform." %
-                    wheel.filename
+                    wheel.filename,
                 )
 
         # This next bit is really a sanity check.
@@ -140,7 +140,7 @@ class RequirementSet(object):
         if has_conflicting_requirement:
             raise InstallationError(
                 "Double requirement given: %s (already in %s, name=%r)"
-                % (install_req, existing_req, install_req.name)
+                % (install_req, existing_req, install_req.name),
             )
 
         # When no existing requirement exists, add the requirement as a
@@ -172,9 +172,11 @@ class RequirementSet(object):
         # If we're now installing a constraint, mark the existing
         # object for real installation.
         existing_req.constraint = False
-        existing_req.extras = tuple(sorted(
-            set(existing_req.extras) | set(install_req.extras)
-        ))
+        existing_req.extras = tuple(
+            sorted(
+                set(existing_req.extras) | set(install_req.extras),
+            ),
+        )
         logger.debug(
             "Setting %s extras to: %s",
             existing_req, existing_req.extras,

@@ -85,7 +85,7 @@ class Cache(object):
 
         canonical_name = canonicalize_name(package_name)
         formats = self.format_control.get_allowed_formats(
-            canonical_name
+            canonical_name,
         )
         if not self.allowed_formats.intersection(formats):
             return []
@@ -135,7 +135,7 @@ class SimpleWheelCache(Cache):
     def __init__(self, cache_dir, format_control):
         # type: (str, FormatControl) -> None
         super(SimpleWheelCache, self).__init__(
-            cache_dir, format_control, {"binary"}
+            cache_dir, format_control, {"binary"},
         )
 
     def get_path_for_link(self, link):
@@ -177,7 +177,7 @@ class SimpleWheelCache(Cache):
                 # Built for a different python/arch/etc
                 continue
             candidates.append(
-                (wheel.support_index_min(supported_tags), wheel_name)
+                (wheel.support_index_min(supported_tags), wheel_name),
             )
 
         if not candidates:
@@ -195,7 +195,7 @@ class EphemWheelCache(SimpleWheelCache):
         self._temp_dir = TempDirectory(kind="ephem-wheel-cache")
 
         super(EphemWheelCache, self).__init__(
-            self._temp_dir.path, format_control
+            self._temp_dir.path, format_control,
         )
 
     def cleanup(self):
@@ -213,7 +213,7 @@ class WheelCache(Cache):
     def __init__(self, cache_dir, format_control):
         # type: (str, FormatControl) -> None
         super(WheelCache, self).__init__(
-            cache_dir, format_control, {'binary'}
+            cache_dir, format_control, {'binary'},
         )
         self._wheel_cache = SimpleWheelCache(cache_dir, format_control)
         self._ephem_cache = EphemWheelCache(format_control)

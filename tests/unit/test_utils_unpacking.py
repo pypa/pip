@@ -172,18 +172,20 @@ class TestUnpackArchives(object):
         untar_file(test_tar, self.tempdir)
 
 
-@pytest.mark.parametrize('args, expected', [
-    # Test the second containing the first.
-    (('parent/sub', 'parent/'), False),
-    # Test the first not ending in a trailing slash.
-    (('parent', 'parent/foo'), True),
-    # Test target containing `..` but still inside the parent.
-    (('parent/', 'parent/foo/../bar'), True),
-    # Test target within the parent
-    (('parent/', 'parent/sub'), True),
-    # Test target outside parent
-    (('parent/', 'parent/../sub'), False),
-])
+@pytest.mark.parametrize(
+    'args, expected', [
+        # Test the second containing the first.
+        (('parent/sub', 'parent/'), False),
+        # Test the first not ending in a trailing slash.
+        (('parent', 'parent/foo'), True),
+        # Test target containing `..` but still inside the parent.
+        (('parent/', 'parent/foo/../bar'), True),
+        # Test target within the parent
+        (('parent/', 'parent/sub'), True),
+        # Test target outside parent
+        (('parent/', 'parent/../sub'), False),
+    ],
+)
 def test_is_within_directory(args, expected):
     result = is_within_directory(*args)
     assert result == expected

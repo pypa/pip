@@ -123,19 +123,21 @@ class TestOptionPrecedence(AddFakeCommandMixin):
         options, args = main(['fake', '--timeout', '-2'])
         assert options.timeout == -2
 
-    @pytest.mark.parametrize('pip_no_cache_dir', [
-        # Enabling --no-cache-dir means no cache directory.
-        '1',
-        'true',
-        'on',
-        'yes',
-        # For historical / backwards compatibility reasons, we also disable
-        # the cache directory if provided a value that translates to 0.
-        '0',
-        'false',
-        'off',
-        'no',
-    ])
+    @pytest.mark.parametrize(
+        'pip_no_cache_dir', [
+            # Enabling --no-cache-dir means no cache directory.
+            '1',
+            'true',
+            'on',
+            'yes',
+            # For historical / backwards compatibility reasons, we also disable
+            # the cache directory if provided a value that translates to 0.
+            '0',
+            'false',
+            'off',
+            'no',
+        ],
+    )
     def test_cache_dir__PIP_NO_CACHE_DIR(self, pip_no_cache_dir):
         """
         Test setting the PIP_NO_CACHE_DIR environment variable without
@@ -147,7 +149,7 @@ class TestOptionPrecedence(AddFakeCommandMixin):
 
     @pytest.mark.parametrize('pip_no_cache_dir', ['yes', 'no'])
     def test_cache_dir__PIP_NO_CACHE_DIR__with_cache_dir(
-        self, pip_no_cache_dir
+        self, pip_no_cache_dir,
     ):
         """
         Test setting PIP_NO_CACHE_DIR while also passing an explicit
@@ -160,7 +162,7 @@ class TestOptionPrecedence(AddFakeCommandMixin):
 
     @pytest.mark.parametrize('pip_no_cache_dir', ['yes', 'no'])
     def test_cache_dir__PIP_NO_CACHE_DIR__with_no_cache_dir(
-        self, pip_no_cache_dir
+        self, pip_no_cache_dir,
     ):
         """
         Test setting PIP_NO_CACHE_DIR while also passing --no-cache-dir.
@@ -387,7 +389,7 @@ class TestOptionsConfigFiles(object):
         # strict limit on the global config files list
         monkeypatch.setattr(
             pip._internal.utils.appdirs, 'site_config_dirs',
-            lambda _: ['/a/place']
+            lambda _: ['/a/place'],
         )
 
         cp = pip._internal.configuration.Configuration(isolated=False)
@@ -408,7 +410,7 @@ class TestOptionsConfigFiles(object):
             (["--global", "--user"], PipError),
             (["--global", "--site"], PipError),
             (["--global", "--site", "--user"], PipError),
-        )
+        ),
     )
     def test_config_file_options(self, monkeypatch, args, expect):
         cmd = create_command('config')
@@ -440,7 +442,9 @@ class TestOptionsConfigFiles(object):
 
         # No warning or error if both "--venv" and "--site" are specified
         collected_warnings[:] = []
-        options, args = cmd.parser.parse_args(["--venv", "--site", "get",
-                                               "name"])
+        options, args = cmd.parser.parse_args([
+            "--venv", "--site", "get",
+            "name",
+        ])
         assert "site" == cmd._determine_file(options, need_value=False)
         assert not collected_warnings

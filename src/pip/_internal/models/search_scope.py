@@ -59,7 +59,7 @@ class SearchScope(object):
                     logger.warning(
                         'pip is configured with locations that require '
                         'TLS/SSL, however the ssl module in Python is not '
-                        'available.'
+                        'available.',
                     )
                     break
 
@@ -82,13 +82,19 @@ class SearchScope(object):
         lines = []
         if self.index_urls and self.index_urls != [PyPI.simple_url]:
             lines.append(
-                'Looking in indexes: {}'.format(', '.join(
-                    redact_auth_from_url(url) for url in self.index_urls))
+                'Looking in indexes: {}'.format(
+                    ', '.join(
+                    redact_auth_from_url(url) for url in self.index_urls
+                    ),
+                ),
             )
         if self.find_links:
             lines.append(
-                'Looking in links: {}'.format(', '.join(
-                    redact_auth_from_url(url) for url in self.find_links))
+                'Looking in links: {}'.format(
+                    ', '.join(
+                    redact_auth_from_url(url) for url in self.find_links
+                    ),
+                ),
             )
         return '\n'.join(lines)
 
@@ -103,7 +109,8 @@ class SearchScope(object):
         def mkurl_pypi_url(url):
             loc = posixpath.join(
                 url,
-                urllib_parse.quote(canonicalize_name(project_name)))
+                urllib_parse.quote(canonicalize_name(project_name)),
+            )
             # For maximum compatibility with easy_install, ensure the path
             # ends in a trailing slash.  Although this isn't in the spec
             # (and PyPI can handle it without the slash) some other index

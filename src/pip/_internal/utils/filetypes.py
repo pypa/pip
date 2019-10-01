@@ -7,8 +7,10 @@ if MYPY_CHECK_RUNNING:
 
 WHEEL_EXTENSION = '.whl'
 BZ2_EXTENSIONS = ('.tar.bz2', '.tbz')  # type: Tuple[str, ...]
-XZ_EXTENSIONS = ('.tar.xz', '.txz', '.tlz',
-                 '.tar.lz', '.tar.lzma')  # type: Tuple[str, ...]
+XZ_EXTENSIONS = (
+    '.tar.xz', '.txz', '.tlz',
+    '.tar.lz', '.tar.lzma',
+)  # type: Tuple[str, ...]
 ZIP_EXTENSIONS = ('.zip', WHEEL_EXTENSION)  # type: Tuple[str, ...]
 TAR_EXTENSIONS = ('.tar.gz', '.tgz', '.tar')  # type: Tuple[str, ...]
 ARCHIVE_EXTENSIONS = (

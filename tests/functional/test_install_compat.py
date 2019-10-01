@@ -24,7 +24,8 @@ def test_debian_egg_name_workaround(script):
     result = script.pip('install', 'INITools==0.2')
 
     egg_info = os.path.join(
-        script.site_packages, "INITools-0.2-py%s.egg-info" % pyversion)
+        script.site_packages, "INITools-0.2-py%s.egg-info" % pyversion,
+    )
 
     # Debian only removes pyversion for global installs, not inside a venv
     # so even if this test runs on a Debian/Ubuntu system with broken

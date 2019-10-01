@@ -192,8 +192,10 @@ class WindowsMixin(object):
             self.file.flush = lambda: self.file.wrapped.flush()
 
 
-class BaseDownloadProgressBar(WindowsMixin, InterruptibleMixin,
-                              DownloadProgressMixin):
+class BaseDownloadProgressBar(
+    WindowsMixin, InterruptibleMixin,
+    DownloadProgressMixin,
+):
 
     file = sys.stdout
     message = "%(percent)d%%"
@@ -203,8 +205,10 @@ class BaseDownloadProgressBar(WindowsMixin, InterruptibleMixin,
 #       work around https://github.com/python/typing/issues/241
 
 
-class DefaultDownloadProgressBar(BaseDownloadProgressBar,
-                                 _BaseBar):
+class DefaultDownloadProgressBar(
+    BaseDownloadProgressBar,
+    _BaseBar,
+):
     pass
 
 
@@ -212,23 +216,31 @@ class DownloadSilentBar(BaseDownloadProgressBar, SilentBar):  # type: ignore
     pass
 
 
-class DownloadBar(BaseDownloadProgressBar,  # type: ignore
-                  Bar):
+class DownloadBar(
+    BaseDownloadProgressBar,  # type: ignore
+    Bar,
+):
     pass
 
 
-class DownloadFillingCirclesBar(BaseDownloadProgressBar,  # type: ignore
-                                FillingCirclesBar):
+class DownloadFillingCirclesBar(
+    BaseDownloadProgressBar,  # type: ignore
+    FillingCirclesBar,
+):
     pass
 
 
-class DownloadBlueEmojiProgressBar(BaseDownloadProgressBar,  # type: ignore
-                                   BlueEmojiBar):
+class DownloadBlueEmojiProgressBar(
+    BaseDownloadProgressBar,  # type: ignore
+    BlueEmojiBar,
+):
     pass
 
 
-class DownloadProgressSpinner(WindowsMixin, InterruptibleMixin,
-                              DownloadProgressMixin, Spinner):
+class DownloadProgressSpinner(
+    WindowsMixin, InterruptibleMixin,
+    DownloadProgressMixin, Spinner,
+):
 
     file = sys.stdout
     suffix = "%(downloaded)s %(download_speed)s"
@@ -258,7 +270,7 @@ BAR_TYPES = {
     "on": (DefaultDownloadProgressBar, DownloadProgressSpinner),
     "ascii": (DownloadBar, DownloadProgressSpinner),
     "pretty": (DownloadFillingCirclesBar, DownloadProgressSpinner),
-    "emoji": (DownloadBlueEmojiProgressBar, DownloadProgressSpinner)
+    "emoji": (DownloadBlueEmojiProgressBar, DownloadProgressSpinner),
 }
 
 
@@ -325,9 +337,11 @@ class SpinnerInterface(object):
 
 
 class InteractiveSpinner(SpinnerInterface):
-    def __init__(self, message, file=None, spin_chars="-\\|/",
-                 # Empirically, 8 updates/second looks nice
-                 min_update_interval_seconds=0.125):
+    def __init__(
+        self, message, file=None, spin_chars="-\\|/",
+        # Empirically, 8 updates/second looks nice
+        min_update_interval_seconds=0.125,
+    ):
         self._message = message
         if file is None:
             file = sys.stdout

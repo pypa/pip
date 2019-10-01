@@ -26,23 +26,27 @@ def mock_is_local(path):
 def test_uninstallation_paths():
     class dist(object):
         def get_metadata_lines(self, record):
-            return ['file.py,,',
-                    'file.pyc,,',
-                    'file.so,,',
-                    'nopyc.py']
+            return [
+                'file.py,,',
+                'file.pyc,,',
+                'file.so,,',
+                'nopyc.py',
+            ]
         location = ''
 
     d = dist()
 
     paths = list(uninstallation_paths(d))
 
-    expected = ['file.py',
-                'file.pyc',
-                'file.pyo',
-                'file.so',
-                'nopyc.py',
-                'nopyc.pyc',
-                'nopyc.pyo']
+    expected = [
+        'file.py',
+        'file.pyc',
+        'file.pyo',
+        'file.so',
+        'nopyc.py',
+        'nopyc.pyc',
+        'nopyc.pyo',
+    ]
 
     assert paths == expected
 
@@ -57,7 +61,7 @@ def test_compressed_listing(tmpdir):
         li = []
         for path in paths:
             li.append(
-                str(os.path.join(tmpdir, path.replace("/", os.path.sep)))
+                str(os.path.join(tmpdir, path.replace("/", os.path.sep))),
             )
         return li
 
@@ -118,12 +122,15 @@ def test_compressed_listing(tmpdir):
 
 class TestUninstallPathSet(object):
     def test_add(self, tmpdir, monkeypatch):
-        monkeypatch.setattr(pip._internal.req.req_uninstall, 'is_local',
-                            mock_is_local)
+        monkeypatch.setattr(
+            pip._internal.req.req_uninstall, 'is_local',
+            mock_is_local,
+        )
         # Fix case for windows tests
         file_extant = os.path.normcase(os.path.join(tmpdir, 'foo'))
         file_nonexistent = os.path.normcase(
-            os.path.join(tmpdir, 'nonexistent'))
+            os.path.join(tmpdir, 'nonexistent'),
+        )
         with open(file_extant, 'w'):
             pass
 
@@ -136,8 +143,10 @@ class TestUninstallPathSet(object):
         assert ups.paths == {file_extant}
 
     def test_add_pth(self, tmpdir, monkeypatch):
-        monkeypatch.setattr(pip._internal.req.req_uninstall, 'is_local',
-                            mock_is_local)
+        monkeypatch.setattr(
+            pip._internal.req.req_uninstall, 'is_local',
+            mock_is_local,
+        )
         # Fix case for windows tests
         tmpdir = os.path.normcase(tmpdir)
         on_windows = sys.platform == 'win32'
@@ -148,11 +157,15 @@ class TestUninstallPathSet(object):
             share_com = '\\\\example.com\\share\\'
         # Create a .pth file for testing
         with open(pth_file, 'w') as f:
-            f.writelines([tmpdir, '\n',
-                          relative, '\n'])
+            f.writelines([
+                tmpdir, '\n',
+                relative, '\n',
+            ])
             if on_windows:
-                f.writelines([share, '\n',
-                              share_com, '\n'])
+                f.writelines([
+                    share, '\n',
+                    share_com, '\n',
+                ])
         # Add paths to be removed
         pth = UninstallPthEntries(pth_file)
         pth.add(tmpdir)
@@ -169,8 +182,10 @@ class TestUninstallPathSet(object):
 
     @pytest.mark.skipif("sys.platform == 'win32'")
     def test_add_symlink(self, tmpdir, monkeypatch):
-        monkeypatch.setattr(pip._internal.req.req_uninstall, 'is_local',
-                            mock_is_local)
+        monkeypatch.setattr(
+            pip._internal.req.req_uninstall, 'is_local',
+            mock_is_local,
+        )
         f = os.path.join(tmpdir, 'foo')
         with open(f, 'w'):
             pass
@@ -182,12 +197,17 @@ class TestUninstallPathSet(object):
         assert ups.paths == {foo_link}
 
     def test_compact_shorter_path(self, monkeypatch):
-        monkeypatch.setattr(pip._internal.req.req_uninstall, 'is_local',
-                            mock_is_local)
+        monkeypatch.setattr(
+            pip._internal.req.req_uninstall, 'is_local',
+            mock_is_local,
+        )
         monkeypatch.setattr('os.path.exists', lambda p: True)
         # This deals with nt/posix path differences
-        short_path = os.path.normcase(os.path.abspath(
-            os.path.join(os.path.sep, 'path')))
+        short_path = os.path.normcase(
+            os.path.abspath(
+            os.path.join(os.path.sep, 'path'),
+            ),
+        )
         ups = UninstallPathSet(dist=Mock())
         ups.add(short_path)
         ups.add(os.path.join(short_path, 'longer'))
@@ -195,8 +215,10 @@ class TestUninstallPathSet(object):
 
     @pytest.mark.skipif("sys.platform == 'win32'")
     def test_detect_symlink_dirs(self, monkeypatch, tmpdir):
-        monkeypatch.setattr(pip._internal.req.req_uninstall, 'is_local',
-                            mock_is_local)
+        monkeypatch.setattr(
+            pip._internal.req.req_uninstall, 'is_local',
+            mock_is_local,
+        )
 
         # construct 2 paths:
         #  tmpdir/dir/file
@@ -235,20 +257,24 @@ class TestStashedUninstallPathSet(object):
                 yield dirname[len(root) + 1:], subdirs, files
 
     def test_compress_for_rename(self, monkeypatch):
-        paths = [os.path.sep.join(p.split("/")) for p in [
-            "A/B/b.py",
-            "A/B/D/c.py",
-            "A/C/d.py",
-            "A/E/f.py",
-            "A/G/g.py",
-        ]]
+        paths = [
+            os.path.sep.join(p.split("/")) for p in [
+                "A/B/b.py",
+                "A/B/D/c.py",
+                "A/C/d.py",
+                "A/E/f.py",
+                "A/G/g.py",
+            ]
+        ]
 
-        expected_paths = [os.path.sep.join(p.split("/")) for p in [
-            "A/B/",         # selected everything below A/B
-            "A/C/d.py",     # did not select everything below A/C
-            "A/E/",         # only empty folders remain under A/E
-            "A/G/g.py",     # non-empty folder remains under A/G
-        ]]
+        expected_paths = [
+            os.path.sep.join(p.split("/")) for p in [
+                "A/B/",         # selected everything below A/B
+                "A/C/d.py",     # did not select everything below A/C
+                "A/E/",         # only empty folders remain under A/E
+                "A/G/g.py",     # non-empty folder remains under A/G
+            ]
+        ]
 
         monkeypatch.setattr('os.walk', self.mock_walk)
 
@@ -275,9 +301,11 @@ class TestStashedUninstallPathSet(object):
         return pathset, stashed_paths
 
     def test_stash(self, tmpdir):
-        pathset, stashed_paths = self.make_stash(tmpdir, [
-            "A/B/", "A/C/d.py", "A/E/", "A/G/g.py",
-        ])
+        pathset, stashed_paths = self.make_stash(
+            tmpdir, [
+                "A/B/", "A/C/d.py", "A/E/", "A/G/g.py",
+            ],
+        )
 
         for old_path, new_path in stashed_paths:
             assert not os.path.exists(old_path)
@@ -286,9 +314,11 @@ class TestStashedUninstallPathSet(object):
         assert stashed_paths == pathset._moves
 
     def test_commit(self, tmpdir):
-        pathset, stashed_paths = self.make_stash(tmpdir, [
-            "A/B/", "A/C/d.py", "A/E/", "A/G/g.py",
-        ])
+        pathset, stashed_paths = self.make_stash(
+            tmpdir, [
+                "A/B/", "A/C/d.py", "A/E/", "A/G/g.py",
+            ],
+        )
 
         pathset.commit()
 
@@ -297,9 +327,11 @@ class TestStashedUninstallPathSet(object):
             assert not os.path.exists(new_path)
 
     def test_rollback(self, tmpdir):
-        pathset, stashed_paths = self.make_stash(tmpdir, [
-            "A/B/", "A/C/d.py", "A/E/", "A/G/g.py",
-        ])
+        pathset, stashed_paths = self.make_stash(
+            tmpdir, [
+                "A/B/", "A/C/d.py", "A/E/", "A/G/g.py",
+            ],
+        )
 
         pathset.rollback()
 

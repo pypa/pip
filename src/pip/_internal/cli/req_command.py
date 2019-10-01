@@ -136,7 +136,7 @@ class IndexGroupCommand(Command, SessionCommandMixin):
         session = self._build_session(
             options,
             retries=0,
-            timeout=min(5, options.timeout)
+            timeout=min(5, options.timeout),
         )
         with session:
             pip_self_version_check(session, options)
@@ -181,7 +181,7 @@ class RequirementCommand(IndexGroupCommand):
         force_reinstall=False,               # type: bool
         upgrade_strategy="to-satisfy-only",  # type: str
         use_pep517=None,                     # type: Optional[bool]
-        py_version_info=None            # type: Optional[Tuple[int, ...]]
+        py_version_info=None,            # type: Optional[Tuple[int, ...]]
     ):
         # type: (...) -> Resolver
         """
@@ -204,7 +204,7 @@ class RequirementCommand(IndexGroupCommand):
             ignore_requires_python=ignore_requires_python,
             force_reinstall=force_reinstall,
             upgrade_strategy=upgrade_strategy,
-            py_version_info=py_version_info
+            py_version_info=py_version_info,
         )
 
     def populate_requirement_set(
@@ -227,7 +227,8 @@ class RequirementCommand(IndexGroupCommand):
             for req_to_add in parse_requirements(
                     filename,
                     constraint=True, finder=finder, options=options,
-                    session=session, wheel_cache=wheel_cache):
+                    session=session, wheel_cache=wheel_cache,
+            ):
                 req_to_add.is_direct = True
                 requirement_set.add_requirement(req_to_add)
 
@@ -235,7 +236,7 @@ class RequirementCommand(IndexGroupCommand):
             req_to_add = install_req_from_line(
                 req, None, isolated=options.isolated_mode,
                 use_pep517=options.use_pep517,
-                wheel_cache=wheel_cache
+                wheel_cache=wheel_cache,
             )
             req_to_add.is_direct = True
             requirement_set.add_requirement(req_to_add)
@@ -245,7 +246,7 @@ class RequirementCommand(IndexGroupCommand):
                 req,
                 isolated=options.isolated_mode,
                 use_pep517=options.use_pep517,
-                wheel_cache=wheel_cache
+                wheel_cache=wheel_cache,
             )
             req_to_add.is_direct = True
             requirement_set.add_requirement(req_to_add)
@@ -255,7 +256,8 @@ class RequirementCommand(IndexGroupCommand):
                     filename,
                     finder=finder, options=options, session=session,
                     wheel_cache=wheel_cache,
-                    use_pep517=options.use_pep517):
+                    use_pep517=options.use_pep517,
+            ):
                 req_to_add.is_direct = True
                 requirement_set.add_requirement(req_to_add)
         # If --require-hashes was a line in a requirements file, tell
@@ -268,11 +270,13 @@ class RequirementCommand(IndexGroupCommand):
                 raise CommandError(
                     'You must give at least one requirement to %(name)s '
                     '(maybe you meant "pip %(name)s %(links)s"?)' %
-                    dict(opts, links=' '.join(options.find_links)))
+                    dict(opts, links=' '.join(options.find_links)),
+                )
             else:
                 raise CommandError(
                     'You must give at least one requirement to %(name)s '
-                    '(see "pip help %(name)s")' % opts)
+                    '(see "pip help %(name)s")' % opts,
+                )
 
     def _build_package_finder(
         self,

@@ -27,7 +27,7 @@ def _get_editable_branch(script, package_name):
     """
     repo_dir = _get_editable_repo_dir(script, package_name)
     result = script.run(
-        'git', 'rev-parse', '--abbrev-ref', 'HEAD', cwd=repo_dir
+        'git', 'rev-parse', '--abbrev-ref', 'HEAD', cwd=repo_dir,
     )
     return result.stdout.strip()
 
@@ -38,7 +38,7 @@ def _get_branch_remote(script, package_name, branch):
     """
     repo_dir = _get_editable_repo_dir(script, package_name)
     result = script.run(
-        'git', 'config', 'branch.{}.remote'.format(branch), cwd=repo_dir
+        'git', 'config', 'branch.{}.remote'.format(branch), cwd=repo_dir,
     )
     return result.stdout.strip()
 
@@ -167,15 +167,17 @@ def test_install_noneditable_git(script, tmpdir):
     result = script.pip(
         'install',
         'git+https://github.com/pypa/pip-test-package.git'
-        '@0.1.1#egg=pip-test-package'
+        '@0.1.1#egg=pip-test-package',
     )
     egg_info_folder = (
         script.site_packages /
         'pip_test_package-0.1.1-py%s.egg-info' % pyversion
     )
-    result.assert_installed('piptestpackage',
-                            without_egg_link=True,
-                            editable=False)
+    result.assert_installed(
+        'piptestpackage',
+        without_egg_link=True,
+        editable=False,
+    )
     assert egg_info_folder in result.files_created, str(result)
 
 
@@ -454,7 +456,7 @@ def test_check_submodule_addition(script):
     )
 
     install_result = script.pip(
-        'install', '-e', 'git+' + module_path + '#egg=version_pkg'
+        'install', '-e', 'git+' + module_path + '#egg=version_pkg',
     )
     assert (
         script.venv / 'src/version-pkg/testpkg/static/testfile'

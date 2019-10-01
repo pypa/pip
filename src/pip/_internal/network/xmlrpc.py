@@ -31,8 +31,10 @@ class PipXmlrpcTransport(xmlrpc_client.Transport):
         url = urllib_parse.urlunparse(parts)
         try:
             headers = {'Content-Type': 'text/xml'}
-            response = self._session.post(url, data=request_body,
-                                          headers=headers, stream=True)
+            response = self._session.post(
+                url, data=request_body,
+                headers=headers, stream=True,
+            )
             response.raise_for_status()
             self.verbose = verbose
             return self.parse_response(response.raw)

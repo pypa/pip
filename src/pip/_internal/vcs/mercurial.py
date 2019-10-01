@@ -40,7 +40,7 @@ class Mercurial(VersionControl):
             self.unpack(temp_dir.path, url=url)
 
             self.run_command(
-                ['archive', location], show_stdout=False, cwd=temp_dir.path
+                ['archive', location], show_stdout=False, cwd=temp_dir.path,
             )
 
     def fetch_new(self, dest, url, rev_options):
@@ -85,7 +85,8 @@ class Mercurial(VersionControl):
     def get_remote_url(cls, location):
         url = cls.run_command(
             ['showconfig', 'paths.default'],
-            show_stdout=False, cwd=location).strip()
+            show_stdout=False, cwd=location,
+        ).strip()
         if cls._is_local_repository(url):
             url = path_to_url(url)
         return url.strip()
@@ -97,7 +98,8 @@ class Mercurial(VersionControl):
         """
         current_revision = cls.run_command(
             ['parents', '--template={rev}'],
-            show_stdout=False, cwd=location).strip()
+            show_stdout=False, cwd=location,
+        ).strip()
         return current_revision
 
     @classmethod
@@ -108,7 +110,8 @@ class Mercurial(VersionControl):
         """
         current_rev_hash = cls.run_command(
             ['parents', '--template={node}'],
-            show_stdout=False, cwd=location).strip()
+            show_stdout=False, cwd=location,
+        ).strip()
         return current_rev_hash
 
     @classmethod

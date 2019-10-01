@@ -72,15 +72,19 @@ if WINDOWS:
     if PY2:
         def _is_broken_pipe_error(exc_class, exc):
             """See the docstring for non-Windows Python 3 below."""
-            return (exc_class is IOError and
-                    exc.errno in (errno.EINVAL, errno.EPIPE))
+            return (
+                exc_class is IOError and
+                exc.errno in (errno.EINVAL, errno.EPIPE)
+            )
     else:
         # In Windows, a broken pipe IOError became OSError in Python 3.
         def _is_broken_pipe_error(exc_class, exc):
             """See the docstring for non-Windows Python 3 below."""
             return ((exc_class is BrokenPipeError) or  # noqa: F821
-                    (exc_class is OSError and
-                     exc.errno in (errno.EINVAL, errno.EPIPE)))
+                    (
+                        exc_class is OSError and
+                        exc.errno in (errno.EINVAL, errno.EPIPE)
+                    ))
 elif PY2:
     def _is_broken_pipe_error(exc_class, exc):
         """See the docstring for non-Windows Python 3 below."""
@@ -239,8 +243,10 @@ class ColorizedStreamHandler(logging.StreamHandler):
         # stdout stream in logging's Handler.emit(), then raise our special
         # exception so we can handle it in main() instead of logging the
         # broken pipe error and continuing.
-        if (exc_class and self._using_stdout() and
-                _is_broken_pipe_error(exc_class, exc)):
+        if (
+            exc_class and self._using_stdout() and
+            _is_broken_pipe_error(exc_class, exc)
+        ):
             raise BrokenStdoutLoggingError()
 
         return super(ColorizedStreamHandler, self).handleError(record)
@@ -390,8 +396,8 @@ def setup_logging(verbosity, no_color, user_log_file):
         },
         "loggers": {
             "pip._vendor": {
-                "level": vendored_log_level
-            }
+                "level": vendored_log_level,
+            },
         },
     })
 

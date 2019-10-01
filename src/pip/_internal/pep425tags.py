@@ -16,7 +16,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Tuple, Callable, List, Optional, Union, Dict, Set
+        Tuple, Callable, List, Optional, Union, Dict, Set,
     )
 
     Pep425Tag = Tuple[str, str, str]
@@ -71,9 +71,11 @@ def get_impl_version_info():
     if get_abbr_impl() == 'pp':
         # as per https://github.com/pypa/pip/issues/2882
         # attrs exist only on pypy
-        return (sys.version_info[0],
-                sys.pypy_version_info.major,  # type: ignore
-                sys.pypy_version_info.minor)  # type: ignore
+        return (
+            sys.version_info[0],
+            sys.pypy_version_info.major,  # type: ignore
+            sys.pypy_version_info.minor,
+        )  # type: ignore
     else:
         return sys.version_info[0], sys.version_info[1]
 
@@ -93,8 +95,10 @@ def get_flag(var, fallback, expected=True, warn=True):
     val = get_config_var(var)
     if val is None:
         if warn:
-            logger.debug("Config variable '%s' is unset, Python ABI tag may "
-                         "be incorrect", var)
+            logger.debug(
+                "Config variable '%s' is unset, Python ABI tag may "
+                "be incorrect", var,
+            )
         return fallback()
     return val == expected
 
@@ -114,14 +118,17 @@ def get_abi_tag():
         is_cpython = (impl == 'cp')
         if get_flag(
                 'Py_DEBUG', lambda: hasattr(sys, 'gettotalrefcount'),
-                warn=is_cpython):
+                warn=is_cpython,
+        ):
             d = 'd'
         if sys.version_info < (3, 8) and get_flag(
-                'WITH_PYMALLOC', lambda: is_cpython, warn=is_cpython):
+                'WITH_PYMALLOC', lambda: is_cpython, warn=is_cpython,
+        ):
             m = 'm'
         if sys.version_info < (3, 3) and get_flag(
                 'Py_UNICODE_SIZE', lambda: sys.maxunicode == 0x10ffff,
-                expected=4, warn=is_cpython):
+                expected=4, warn=is_cpython,
+        ):
             u = 'u'
         abi = '%s%s%s%s%s' % (impl, get_impl_ver(), d, m, u)
     elif soabi and soabi.startswith('cpython-'):
@@ -278,7 +285,7 @@ def get_supported(
     noarch=False,  # type: bool
     platform=None,  # type: Optional[str]
     impl=None,  # type: Optional[str]
-    abi=None  # type: Optional[str]
+    abi=None,  # type: Optional[str]
 ):
     # type: (...) -> List[Pep425Tag]
     """Return a list of supported tags for each version specified in

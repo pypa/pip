@@ -207,7 +207,8 @@ def _clean_link(url):
         # exist, the colon should be quoted. We rely on urllib.request
         # to do the right thing here.
         path = urllib_request.pathname2url(
-            urllib_request.url2pathname(result.path))
+            urllib_request.url2pathname(result.path),
+        )
     else:
         # In addition to the `/` character we protect `@` so that
         # revision strings in VCS URLs are properly parsed.
@@ -296,7 +297,7 @@ class HTMLPage(object):
 def _handle_get_page_fail(
     link,  # type: Link
     reason,  # type: Union[str, Exception]
-    meth=None  # type: Optional[Callable[..., None]]
+    meth=None,  # type: Optional[Callable[..., None]]
 ):
     # type: (...) -> None
     if meth is None:
@@ -314,7 +315,7 @@ def _get_html_page(link, session=None):
     # type: (Link, Optional[PipSession]) -> Optional[HTMLPage]
     if session is None:
         raise TypeError(
-            "_get_html_page() missing 1 required keyword argument: 'session'"
+            "_get_html_page() missing 1 required keyword argument: 'session'",
         )
 
     url = link.url.split('#', 1)[0]

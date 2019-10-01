@@ -121,7 +121,8 @@ def get_path_completion_type(cwords, cword, opts):
             if cwords[cword - 2].split('=')[0] == o:
                 if not opt.metavar or any(
                         x in ('path', 'file', 'dir')
-                        for x in opt.metavar.split('/')):
+                        for x in opt.metavar.split('/')
+                ):
                     return opt.metavar
 
 
@@ -141,8 +142,10 @@ def auto_complete_paths(current, completion_type):
         return
     filename = os.path.normcase(filename)
     # list all files that start with ``filename``
-    file_list = (x for x in os.listdir(current_path)
-                 if os.path.normcase(x).startswith(filename))
+    file_list = (
+        x for x in os.listdir(current_path)
+        if os.path.normcase(x).startswith(filename)
+    )
     for f in file_list:
         opt = os.path.join(current_path, f)
         comp_file = os.path.normcase(os.path.join(directory, f))

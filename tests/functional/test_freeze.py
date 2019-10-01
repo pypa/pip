@@ -55,11 +55,13 @@ def test_basic_freeze(script):
     currently it is not).
 
     """
-    script.scratch_path.joinpath("initools-req.txt").write_text(textwrap.dedent("""\
+    script.scratch_path.joinpath("initools-req.txt").write_text(
+        textwrap.dedent("""\
         simple==2.0
         # and something else to test out:
         simple2<=3.0
-        """))
+        """),
+    )
     script.pip_install_local(
         '-r', script.scratch_path / 'initools-req.txt',
     )
@@ -87,21 +89,24 @@ def test_freeze_with_invalid_names(script):
             dest, '{}-1.0-py{}.{}.egg-info'.format(
                 pkgname.replace('-', '_'),
                 sys.version_info[0],
-                sys.version_info[1]
-            )
+                sys.version_info[1],
+            ),
         )
         with open(egg_info_path, 'w') as egg_info_file:
-            egg_info_file.write(textwrap.dedent("""\
+            egg_info_file.write(
+                textwrap.dedent(
+                    """\
                 Metadata-Version: 1.0
                 Name: {}
                 Version: 1.0
                 """.format(pkgname)
-            ))
+                ),
+            )
 
     valid_pkgnames = ('middle-dash', 'middle_underscore', 'middle.dot')
     invalid_pkgnames = (
         '-leadingdash', '_leadingunderscore', '.leadingdot',
-        'trailingdash-', 'trailingunderscore_', 'trailingdot.'
+        'trailingdash-', 'trailingunderscore_', 'trailingdot.',
     )
     for pkgname in valid_pkgnames + invalid_pkgnames:
         fake_install(pkgname, script.site_packages_path)
@@ -109,7 +114,7 @@ def test_freeze_with_invalid_names(script):
     for pkgname in valid_pkgnames:
         _check_output(
             result.stdout,
-            '...{}==1.0...'.format(pkgname.replace('_', '-'))
+            '...{}==1.0...'.format(pkgname.replace('_', '-')),
         )
     for pkgname in invalid_pkgnames:
         # Check that the full distribution repr is present.
@@ -141,10 +146,12 @@ def test_freeze_editable_not_vcs(script, tmpdir):
 
     # We need to apply os.path.normcase() to the path since that is what
     # the freeze code does.
-    expected = textwrap.dedent("""\
+    expected = textwrap.dedent(
+        """\
     ...# Editable install with no version control (version-pkg==0.1)
     -e {}
-    ...""".format(os.path.normcase(pkg_path)))
+    ...""".format(os.path.normcase(pkg_path))
+    )
     _check_output(result.stdout, expected)
 
 
@@ -162,10 +169,12 @@ def test_freeze_editable_git_with_no_remote(script, tmpdir, deprecated_python):
 
     # We need to apply os.path.normcase() to the path since that is what
     # the freeze code does.
-    expected = textwrap.dedent("""\
+    expected = textwrap.dedent(
+        """\
     ...# Editable Git install with no remote (version-pkg==0.1)
     -e {}
-    ...""".format(os.path.normcase(pkg_path)))
+    ...""".format(os.path.normcase(pkg_path))
+    )
     _check_output(result.stdout, expected)
 
 
@@ -178,7 +187,7 @@ def test_freeze_svn(script, tmpdir):
     # Install with develop
     script.run(
         'python', 'setup.py', 'develop',
-        cwd=checkout_path, expect_stderr=True
+        cwd=checkout_path, expect_stderr=True,
     )
     result = script.pip('freeze', expect_stderr=True)
     expected = textwrap.dedent("""\
@@ -429,7 +438,7 @@ def test_freeze_bazaar_clone(script, tmpdir):
         pytest.fail('Invoking `bzr` failed: %s' % e)
 
     result = script.run(
-        'bzr', 'checkout', checkout_path, 'bzr-package'
+        'bzr', 'checkout', checkout_path, 'bzr-package',
     )
     result = script.run(
         'python', 'setup.py', 'develop',
@@ -447,10 +456,12 @@ def test_freeze_bazaar_clone(script, tmpdir):
         '%s/#egg=django-wikiapp' % checkout_path,
         expect_stderr=True,
     )
-    expected = textwrap.dedent("""\
+    expected = textwrap.dedent(
+        """\
         -f %(repo)s/#egg=django-wikiapp
         ...-e bzr+file://...@...#egg=version_pkg
-        ...""" % {'repo': checkout_path})
+        ...""" % {'repo': checkout_path}
+    )
     _check_output(result.stdout, expected)
 
 
@@ -473,7 +484,8 @@ _freeze_req_opts = textwrap.dedent("""\
 
 
 def test_freeze_with_requirement_option_file_url_egg_not_installed(
-        script, deprecated_python):
+        script, deprecated_python,
+):
     """
     Test "freeze -r requirements.txt" with a local file URL whose egg name
     is not installed.
@@ -502,11 +514,13 @@ def test_freeze_with_requirement_option(script):
 
     """
 
-    script.scratch_path.joinpath("hint.txt").write_text(textwrap.dedent("""\
+    script.scratch_path.joinpath("hint.txt").write_text(
+        textwrap.dedent("""\
         INITools==0.1
         NoExist==4.2  # A comment that ensures end of line comments work.
         simple==3.0; python_version > '1.0'
-        """) + _freeze_req_opts)
+        """) + _freeze_req_opts,
+    )
     result = script.pip_install_local('initools==0.2')
     result = script.pip_install_local('simple')
     result = script.pip(
@@ -532,15 +546,19 @@ def test_freeze_with_requirement_option_multiple(script):
     --requirement hints
 
     """
-    script.scratch_path.joinpath('hint1.txt').write_text(textwrap.dedent("""\
+    script.scratch_path.joinpath('hint1.txt').write_text(
+        textwrap.dedent("""\
         INITools==0.1
         NoExist==4.2
         simple==3.0; python_version > '1.0'
-    """) + _freeze_req_opts)
-    script.scratch_path.joinpath('hint2.txt').write_text(textwrap.dedent("""\
+    """) + _freeze_req_opts,
+    )
+    script.scratch_path.joinpath('hint2.txt').write_text(
+        textwrap.dedent("""\
         NoExist2==2.0
         simple2==1.0
-    """) + _freeze_req_opts)
+    """) + _freeze_req_opts,
+    )
     result = script.pip_install_local('initools==0.2')
     result = script.pip_install_local('simple')
     result = script.pip_install_local('simple2==1.0')
@@ -580,11 +598,13 @@ def test_freeze_with_requirement_option_package_repeated_one_file(script):
     Test freezing with single requirements file that contains a package
     multiple times
     """
-    script.scratch_path.joinpath('hint1.txt').write_text(textwrap.dedent("""\
+    script.scratch_path.joinpath('hint1.txt').write_text(
+        textwrap.dedent("""\
         simple2
         simple2
         NoExist
-    """) + _freeze_req_opts)
+    """) + _freeze_req_opts,
+    )
     result = script.pip_install_local('simple2==1.0')
     result = script.pip_install_local('meta')
     result = script.pip(
@@ -600,8 +620,10 @@ def test_freeze_with_requirement_option_package_repeated_one_file(script):
         ...meta==1.0...
     """)
     _check_output(result.stdout, expected_out)
-    err1 = ("Requirement file [hint1.txt] contains NoExist, "
-            "but package 'NoExist' is not installed\n")
+    err1 = (
+        "Requirement file [hint1.txt] contains NoExist, "
+        "but package 'NoExist' is not installed\n"
+    )
     err2 = "Requirement simple2 included multiple times [hint1.txt]\n"
     assert err1 in result.stderr
     assert err2 in result.stderr
@@ -613,13 +635,17 @@ def test_freeze_with_requirement_option_package_repeated_multi_file(script):
     """
     Test freezing with multiple requirements file that contain a package
     """
-    script.scratch_path.joinpath('hint1.txt').write_text(textwrap.dedent("""\
+    script.scratch_path.joinpath('hint1.txt').write_text(
+        textwrap.dedent("""\
         simple
-    """) + _freeze_req_opts)
-    script.scratch_path.joinpath('hint2.txt').write_text(textwrap.dedent("""\
+    """) + _freeze_req_opts,
+    )
+    script.scratch_path.joinpath('hint2.txt').write_text(
+        textwrap.dedent("""\
         simple
         NoExist
-    """) + _freeze_req_opts)
+    """) + _freeze_req_opts,
+    )
     result = script.pip_install_local('simple==1.0')
     result = script.pip_install_local('meta')
     result = script.pip(
@@ -637,10 +663,14 @@ def test_freeze_with_requirement_option_package_repeated_multi_file(script):
     """)
     _check_output(result.stdout, expected_out)
 
-    err1 = ("Requirement file [hint2.txt] contains NoExist, but package "
-            "'NoExist' is not installed\n")
-    err2 = ("Requirement simple included multiple times "
-            "[hint1.txt, hint2.txt]\n")
+    err1 = (
+        "Requirement file [hint2.txt] contains NoExist, but package "
+        "'NoExist' is not installed\n"
+    )
+    err2 = (
+        "Requirement simple included multiple times "
+        "[hint1.txt, hint2.txt]\n"
+    )
     assert err1 in result.stderr
     assert err2 in result.stderr
     # there shouldn't be any other 'is not installed' warnings
@@ -653,10 +683,14 @@ def test_freeze_user(script, virtualenv, data):
     Testing freeze with --user, first we have to install some stuff.
     """
     script.pip('download', 'setuptools', 'wheel', '-d', data.packages)
-    script.pip_install_local('--find-links', data.find_links,
-                             '--user', 'simple==2.0')
-    script.pip_install_local('--find-links', data.find_links,
-                             'simple2==3.0')
+    script.pip_install_local(
+        '--find-links', data.find_links,
+        '--user', 'simple==2.0',
+    )
+    script.pip_install_local(
+        '--find-links', data.find_links,
+        'simple2==3.0',
+    )
     result = script.pip('freeze', '--user', expect_stderr=True)
     expected = textwrap.dedent("""\
         simple==2.0
@@ -669,8 +703,10 @@ def test_freeze_path(tmpdir, script, data):
     """
     Test freeze with --path.
     """
-    script.pip('install', '--find-links', data.find_links,
-               '--target', tmpdir, 'simple==2.0')
+    script.pip(
+        'install', '--find-links', data.find_links,
+        '--target', tmpdir, 'simple==2.0',
+    )
     result = script.pip('freeze', '--path', tmpdir)
     expected = textwrap.dedent("""\
         simple==2.0
@@ -683,10 +719,14 @@ def test_freeze_path_exclude_user(tmpdir, script, data):
     Test freeze with --path and make sure packages from --user are not picked
     up.
     """
-    script.pip_install_local('--find-links', data.find_links,
-                             '--user', 'simple2')
-    script.pip('install', '--find-links', data.find_links,
-               '--target', tmpdir, 'simple==1.0')
+    script.pip_install_local(
+        '--find-links', data.find_links,
+        '--user', 'simple2',
+    )
+    script.pip(
+        'install', '--find-links', data.find_links,
+        '--target', tmpdir, 'simple==1.0',
+    )
     result = script.pip('freeze', '--user')
     expected = textwrap.dedent("""\
         simple2==3.0
@@ -707,10 +747,14 @@ def test_freeze_path_multiple(tmpdir, script, data):
     os.mkdir(path1)
     path2 = tmpdir / "path2"
     os.mkdir(path2)
-    script.pip('install', '--find-links', data.find_links,
-               '--target', path1, 'simple==2.0')
-    script.pip('install', '--find-links', data.find_links,
-               '--target', path2, 'simple2==3.0')
+    script.pip(
+        'install', '--find-links', data.find_links,
+        '--target', path1, 'simple==2.0',
+    )
+    script.pip(
+        'install', '--find-links', data.find_links,
+        '--target', path2, 'simple2==3.0',
+    )
     result = script.pip('freeze', '--path', path1)
     expected = textwrap.dedent("""\
         simple==2.0

@@ -59,8 +59,10 @@ def test_format_priority(script, data):
         'install', '-f', data.find_links, '--no-index', 'simple==1.0',
         'simple2==3.0',
     )
-    result = script.pip('list', '--format=columns', '--format=freeze',
-                        expect_stderr=True)
+    result = script.pip(
+        'list', '--format=columns', '--format=freeze',
+        expect_stderr=True,
+    )
     assert 'simple==1.0' in result.stdout, str(result)
     assert 'simple2==3.0' in result.stdout, str(result)
     assert 'simple     1.0' not in result.stdout, str(result)
@@ -106,8 +108,10 @@ def test_user_flag(script, data):
     """
     script.pip('download', 'setuptools', 'wheel', '-d', data.packages)
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
-    script.pip('install', '-f', data.find_links, '--no-index',
-               '--user', 'simple2==2.0')
+    script.pip(
+        'install', '-f', data.find_links, '--no-index',
+        '--user', 'simple2==2.0',
+    )
     result = script.pip('list', '--user', '--format=json')
     assert {"name": "simple", "version": "1.0"} \
         not in json.loads(result.stdout)
@@ -122,8 +126,10 @@ def test_user_columns_flag(script, data):
     """
     script.pip('download', 'setuptools', 'wheel', '-d', data.packages)
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
-    script.pip('install', '-f', data.find_links, '--no-index',
-               '--user', 'simple2==2.0')
+    script.pip(
+        'install', '-f', data.find_links, '--no-index',
+        '--user', 'simple2==2.0',
+    )
     result = script.pip('list', '--user', '--format=columns')
     assert 'Package' in result.stdout
     assert 'Version' in result.stdout
@@ -143,7 +149,7 @@ def test_uptodate_flag(script, data):
     )
     script.pip(
         'install', '-e',
-        'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package'
+        'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package',
     )
     result = script.pip(
         'list', '-f', data.find_links, '--no-index', '--uptodate',
@@ -168,7 +174,7 @@ def test_uptodate_columns_flag(script, data):
     )
     script.pip(
         'install', '-e',
-        'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package'
+        'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package',
     )
     result = script.pip(
         'list', '-f', data.find_links, '--no-index', '--uptodate',
@@ -195,20 +201,26 @@ def test_outdated_flag(script, data):
     script.pip(
         'install', '-e',
         'git+https://github.com/pypa/pip-test-package.git'
-        '@0.1#egg=pip-test-package'
+        '@0.1#egg=pip-test-package',
     )
     result = script.pip(
         'list', '-f', data.find_links, '--no-index', '--outdated',
         '--format=json',
     )
-    assert {"name": "simple", "version": "1.0",
-            "latest_version": "3.0", "latest_filetype": "sdist"} \
+    assert {
+        "name": "simple", "version": "1.0",
+        "latest_version": "3.0", "latest_filetype": "sdist",
+    } \
         in json.loads(result.stdout)
-    assert dict(name="simplewheel", version="1.0",
-                latest_version="2.0", latest_filetype="wheel") \
+    assert dict(
+        name="simplewheel", version="1.0",
+        latest_version="2.0", latest_filetype="wheel",
+    ) \
         in json.loads(result.stdout)
-    assert dict(name="pip-test-package", version="0.1",
-                latest_version="0.1.1", latest_filetype="sdist") \
+    assert dict(
+        name="pip-test-package", version="0.1",
+        latest_version="0.1.1", latest_filetype="sdist",
+    ) \
         in json.loads(result.stdout)
     assert "simple2" not in {p["name"] for p in json.loads(result.stdout)}
 
@@ -226,7 +238,7 @@ def test_outdated_columns_flag(script, data):
     script.pip(
         'install', '-e',
         'git+https://github.com/pypa/pip-test-package.git'
-        '@0.1#egg=pip-test-package'
+        '@0.1#egg=pip-test-package',
     )
     result = script.pip(
         'list', '-f', data.find_links, '--no-index', '--outdated',
@@ -255,7 +267,7 @@ def test_editables_flag(script, data):
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
     result = script.pip(
         'install', '-e',
-        'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package'
+        'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package',
     )
     result = script.pip('list', '--editable', '--format=json')
     result2 = script.pip('list', '--editable')
@@ -272,7 +284,7 @@ def test_exclude_editable_flag(script, data):
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
     result = script.pip(
         'install', '-e',
-        'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package'
+        'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package',
     )
     result = script.pip('list', '--exclude-editable', '--format=json')
     assert {"name": "simple", "version": "1.0"} in json.loads(result.stdout)
@@ -288,7 +300,7 @@ def test_editables_columns_flag(script, data):
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
     result = script.pip(
         'install', '-e',
-        'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package'
+        'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package',
     )
     result = script.pip('list', '--editable', '--format=columns')
     assert 'Package' in result.stdout
@@ -307,7 +319,7 @@ def test_uptodate_editables_flag(script, data):
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
     result = script.pip(
         'install', '-e',
-        'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package'
+        'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package',
     )
     result = script.pip(
         'list', '-f', data.find_links, '--no-index',
@@ -328,7 +340,7 @@ def test_uptodate_editables_columns_flag(script, data):
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
     result = script.pip(
         'install', '-e',
-        'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package'
+        'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package',
     )
     result = script.pip(
         'list', '-f', data.find_links, '--no-index',
@@ -351,7 +363,7 @@ def test_outdated_editables_flag(script, data):
     result = script.pip(
         'install', '-e',
         'git+https://github.com/pypa/pip-test-package.git'
-        '@0.1#egg=pip-test-package'
+        '@0.1#egg=pip-test-package',
     )
     result = script.pip(
         'list', '-f', data.find_links, '--no-index',
@@ -370,7 +382,7 @@ def test_outdated_editables_columns_flag(script, data):
     result = script.pip(
         'install', '-e',
         'git+https://github.com/pypa/pip-test-package.git'
-        '@0.1#egg=pip-test-package'
+        '@0.1#egg=pip-test-package',
     )
     result = script.pip(
         'list', '-f', data.find_links, '--no-index',
@@ -390,7 +402,7 @@ def test_outdated_not_required_flag(script, data):
     """
     script.pip(
         'install', '-f', data.find_links, '--no-index',
-        'simple==2.0', 'require_simple==1.0'
+        'simple==2.0', 'require_simple==1.0',
     )
     result = script.pip(
         'list', '-f', data.find_links, '--no-index', '--outdated',
@@ -407,7 +419,7 @@ def test_outdated_pre(script, data):
     wheelhouse_path = script.scratch_path / 'wheelhouse'
     wheelhouse_path.joinpath('simple-1.1-py2.py3-none-any.whl').write_text('')
     wheelhouse_path.joinpath(
-        'simple-2.0.dev0-py2.py3-none-any.whl'
+        'simple-2.0.dev0-py2.py3-none-any.whl',
     ).write_text('')
     result = script.pip(
         'list', '--no-index', '--find-links', wheelhouse_path,
@@ -418,14 +430,20 @@ def test_outdated_pre(script, data):
         'list', '--no-index', '--find-links', wheelhouse_path, '--outdated',
         '--format=json',
     )
-    assert {"name": "simple", "version": "1.0",
-            "latest_version": "1.1", "latest_filetype": "wheel"} \
+    assert {
+        "name": "simple", "version": "1.0",
+        "latest_version": "1.1", "latest_filetype": "wheel",
+    } \
         in json.loads(result.stdout)
-    result_pre = script.pip('list', '--no-index',
-                            '--find-links', wheelhouse_path,
-                            '--outdated', '--pre', '--format=json')
-    assert {"name": "simple", "version": "1.0",
-            "latest_version": "2.0.dev0", "latest_filetype": "wheel"} \
+    result_pre = script.pip(
+        'list', '--no-index',
+        '--find-links', wheelhouse_path,
+        '--outdated', '--pre', '--format=json',
+    )
+    assert {
+        "name": "simple", "version": "1.0",
+        "latest_version": "2.0.dev0", "latest_filetype": "wheel",
+    } \
         in json.loads(result_pre.stdout)
 
 
@@ -464,13 +482,15 @@ def test_outdated_formats(script, data):
         '--outdated', '--format=json',
     )
     data = json.loads(result.stdout)
-    assert data == [{'name': 'simple', 'version': '1.0',
-                     'latest_version': '1.1', 'latest_filetype': 'wheel'}]
+    assert data == [{
+        'name': 'simple', 'version': '1.0',
+        'latest_version': '1.1', 'latest_filetype': 'wheel',
+    }]
 
 
 def test_not_required_flag(script, data):
     script.pip(
-        'install', '-f', data.find_links, '--no-index', 'TopoRequires4'
+        'install', '-f', data.find_links, '--no-index', 'TopoRequires4',
     )
     result = script.pip('list', '--not-required', expect_stderr=True)
     assert 'TopoRequires4 ' in result.stdout, str(result)
@@ -555,8 +575,10 @@ def test_list_path_multiple(tmpdir, script, data):
     json_result = json.loads(result.stdout)
     assert {'name': 'simple', 'version': '2.0'} in json_result
 
-    result = script.pip('list', '--path', path1, '--path', path2,
-                        '--format=json')
+    result = script.pip(
+        'list', '--path', path1, '--path', path2,
+        '--format=json',
+    )
     json_result = json.loads(result.stdout)
     assert {'name': 'simple', 'version': '2.0'} in json_result
     assert {'name': 'simple2', 'version': '3.0'} in json_result

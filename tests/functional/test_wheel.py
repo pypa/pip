@@ -54,9 +54,11 @@ def test_pip_wheel_success(script, data):
     assert re.search(
         r"Created wheel for simple: "
         r"filename=%s size=\d+ sha256=[A-Fa-f0-9]{64}"
-        % re.escape(wheel_file_name), result.stdout)
+        % re.escape(wheel_file_name), result.stdout,
+    )
     assert re.search(
-        r"^\s+Stored in directory: ", result.stdout, re.M)
+        r"^\s+Stored in directory: ", result.stdout, re.M,
+    )
     assert wheel_file_path in result.files_created, result.stdout
     assert "Successfully built simple" in result.stdout, result.stdout
 
@@ -80,7 +82,8 @@ def test_pip_wheel_builds_when_no_binary_set(script, data):
     res = script.pip(
         'wheel', '--no-index', '--no-binary', ':all:',
         '-f', data.find_links,
-        'simple==3.0')
+        'simple==3.0',
+    )
     assert "Building wheel for simple" in str(res), str(res)
 
 
@@ -91,7 +94,7 @@ def test_pip_wheel_builds_editable_deps(script, data):
     editable_path = os.path.join(data.src, 'requires_simple')
     result = script.pip(
         'wheel', '--no-index', '-f', data.find_links,
-        '-e', editable_path
+        '-e', editable_path,
     )
     wheel_file_name = 'simple-1.0-py%s-none-any.whl' % pyversion[0]
     wheel_file_path = script.scratch / wheel_file_name
@@ -105,7 +108,7 @@ def test_pip_wheel_builds_editable(script, data):
     editable_path = os.path.join(data.src, 'simplewheel-1.0')
     result = script.pip(
         'wheel', '--no-index', '-f', data.find_links,
-        '-e', editable_path
+        '-e', editable_path,
     )
     wheel_file_name = 'simplewheel-1.0-py%s-none-any.whl' % pyversion[0]
     wheel_file_path = script.scratch / wheel_file_name
@@ -195,8 +198,10 @@ def test_wheel_package_with_latin1_setup(script, data):
 
 
 def test_pip_wheel_with_pep518_build_reqs(script, data, common_wheels):
-    result = script.pip('wheel', '--no-index', '-f', data.find_links,
-                        '-f', common_wheels, 'pep518==3.0',)
+    result = script.pip(
+        'wheel', '--no-index', '-f', data.find_links,
+        '-f', common_wheels, 'pep518==3.0',
+    )
     wheel_file_name = 'pep518-3.0-py%s-none-any.whl' % pyversion[0]
     wheel_file_path = script.scratch / wheel_file_name
     assert wheel_file_path in result.files_created, result.stdout
@@ -223,7 +228,7 @@ def test_pip_wheel_with_user_set_in_config(script, data, common_wheels):
     config_file.write_text("[install]\nuser = true")
     result = script.pip(
         'wheel', data.src / 'withpyproject',
-        '--no-index', '-f', common_wheels
+        '--no-index', '-f', common_wheels,
     )
     assert "Successfully built withpyproject" in result.stdout, result.stdout
 

@@ -112,7 +112,7 @@ class DownloadCommand(RequirementCommand):
             options.cache_dir = None
 
         with RequirementTracker() as req_tracker, TempDirectory(
-            options.build_dir, delete=build_delete, kind="download"
+            options.build_dir, delete=build_delete, kind="download",
         ) as directory:
 
             requirement_set = RequirementSet(
@@ -124,7 +124,7 @@ class DownloadCommand(RequirementCommand):
                 options,
                 finder,
                 session,
-                None
+                None,
             )
 
             preparer = self.make_requirement_preparer(

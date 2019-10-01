@@ -117,14 +117,14 @@ def check_dist_restriction(options, check_target=False):
             "--python-version, --platform, --abi, or --implementation, "
             "either --no-deps must be set, or --only-binary=:all: must be "
             "set and --no-binary must not be set (or must be set to "
-            ":none:)."
+            ":none:).",
         )
 
     if check_target:
         if dist_restriction_set and not options.target_dir:
             raise CommandError(
                 "Can not use any platform or abi specific options unless "
-                "installing via '--target'"
+                "installing via '--target'",
             )
 
 
@@ -159,7 +159,7 @@ require_virtualenv = partial(
     dest='require_venv',
     action='store_true',
     default=False,
-    help=SUPPRESS_HELP
+    help=SUPPRESS_HELP,
 )  # type: Callable[..., Option]
 
 verbose = partial(
@@ -168,7 +168,7 @@ verbose = partial(
     dest='verbose',
     action='count',
     default=0,
-    help='Give more output. Option is additive, and can be used up to 3 times.'
+    help='Give more output. Option is additive, and can be used up to 3 times.',
 )  # type: Callable[..., Option]
 
 no_color = partial(
@@ -219,7 +219,7 @@ log = partial(
     "--log", "--log-file", "--local-log",
     dest="log",
     metavar="path",
-    help="Path to a verbose appending log."
+    help="Path to a verbose appending log.",
 )  # type: Callable[..., Option]
 
 no_input = partial(
@@ -229,7 +229,7 @@ no_input = partial(
     dest='no_input',
     action='store_true',
     default=False,
-    help=SUPPRESS_HELP
+    help=SUPPRESS_HELP,
 )  # type: Callable[..., Option]
 
 proxy = partial(
@@ -238,7 +238,7 @@ proxy = partial(
     dest='proxy',
     type='str',
     default='',
-    help="Specify a proxy in the form [user:passwd@]proxy.server:port."
+    help="Specify a proxy in the form [user:passwd@]proxy.server:port.",
 )  # type: Callable[..., Option]
 
 retries = partial(
@@ -380,7 +380,7 @@ def constraints():
         default=[],
         metavar='file',
         help='Constrain versions using the given constraints file. '
-        'This option can be used multiple times.'
+        'This option can be used multiple times.',
     )
 
 
@@ -393,7 +393,7 @@ def requirements():
         default=[],
         metavar='file',
         help='Install from the given requirements file. '
-        'This option can be used multiple times.'
+        'This option can be used multiple times.',
     )
 
 
@@ -405,8 +405,10 @@ def editable():
         action='append',
         default=[],
         metavar='path/url',
-        help=('Install a project in editable mode (i.e. setuptools '
-              '"develop mode") from a local project path or a VCS url.'),
+        help=(
+            'Install a project in editable mode (i.e. setuptools '
+            '"develop mode") from a local project path or a VCS url.'
+        ),
     )
 
 
@@ -418,7 +420,7 @@ src = partial(
     default=get_src_prefix(),
     help='Directory to check out editable projects into. '
     'The default in a virtualenv is "<venv path>/src". '
-    'The default for global installs is "<current dir>/src".'
+    'The default for global installs is "<current dir>/src".',
 )  # type: Callable[..., Option]
 
 
@@ -482,8 +484,10 @@ platform = partial(
     dest='platform',
     metavar='platform',
     default=None,
-    help=("Only use wheels compatible with <platform>. "
-          "Defaults to the platform of the running system."),
+    help=(
+        "Only use wheels compatible with <platform>. "
+        "Defaults to the platform of the running system."
+    ),
 )  # type: Callable[..., Option]
 
 
@@ -559,11 +563,13 @@ implementation = partial(
     dest='implementation',
     metavar='implementation',
     default=None,
-    help=("Only use wheels compatible with Python "
-          "implementation <implementation>, e.g. 'pp', 'jy', 'cp', "
-          " or 'ip'. If not specified, then the current "
-          "interpreter implementation is used.  Use 'py' to force "
-          "implementation-agnostic wheels."),
+    help=(
+        "Only use wheels compatible with Python "
+        "implementation <implementation>, e.g. 'pp', 'jy', 'cp', "
+        " or 'ip'. If not specified, then the current "
+        "interpreter implementation is used.  Use 'py' to force "
+        "implementation-agnostic wheels."
+    ),
 )  # type: Callable[..., Option]
 
 
@@ -573,12 +579,14 @@ abi = partial(
     dest='abi',
     metavar='abi',
     default=None,
-    help=("Only use wheels compatible with Python "
-          "abi <abi>, e.g. 'pypy_41'.  If not specified, then the "
-          "current interpreter abi tag is used.  Generally "
-          "you will need to specify --implementation, "
-          "--platform, and --python-version when using "
-          "this option."),
+    help=(
+        "Only use wheels compatible with Python "
+        "abi <abi>, e.g. 'pypy_41'.  If not specified, then the "
+        "current interpreter abi tag is used.  Generally "
+        "you will need to specify --implementation, "
+        "--platform, and --python-version when using "
+        "this option."
+    ),
 )  # type: Callable[..., Option]
 
 
@@ -609,7 +617,7 @@ def prefer_binary():
         dest="prefer_binary",
         action="store_true",
         default=False,
-        help="Prefer older binary packages over newer source packages."
+        help="Prefer older binary packages over newer source packages.",
     )
 
 
@@ -619,7 +627,7 @@ cache_dir = partial(
     dest="cache_dir",
     default=USER_CACHE_DIR,
     metavar="dir",
-    help="Store the cache data in <dir>."
+    help="Store the cache data in <dir>.",
 )  # type: Callable[..., Option]
 
 
@@ -678,7 +686,7 @@ build_dir = partial(
          'an initial build still takes place in a temporary directory. '
          'The location of temporary directories can be controlled by setting '
          'the TMPDIR environment variable (TEMP on Windows) appropriately. '
-         'When passed, build directories are not cleaned in case of failures.'
+         'When passed, build directories are not cleaned in case of failures.',
 )  # type: Callable[..., Option]
 
 ignore_requires_python = partial(
@@ -686,7 +694,7 @@ ignore_requires_python = partial(
     '--ignore-requires-python',
     dest='ignore_requires_python',
     action='store_true',
-    help='Ignore the Requires-Python information.'
+    help='Ignore the Requires-Python information.',
 )  # type: Callable[..., Option]
 
 no_build_isolation = partial(
@@ -697,7 +705,7 @@ no_build_isolation = partial(
     default=True,
     help='Disable isolation when building a modern source distribution. '
          'Build dependencies specified by PEP 518 must be already installed '
-         'if this option is used.'
+         'if this option is used.',
 )  # type: Callable[..., Option]
 
 
@@ -732,7 +740,7 @@ use_pep517 = partial(
     action='store_true',
     default=None,
     help='Use PEP 517 for building source distributions '
-         '(use --no-use-pep517 to force legacy behaviour).'
+         '(use --no-use-pep517 to force legacy behaviour).',
 )  # type: Any
 
 no_use_pep517 = partial(
@@ -742,7 +750,7 @@ no_use_pep517 = partial(
     action='callback',
     callback=_handle_no_use_pep517,
     default=None,
-    help=SUPPRESS_HELP
+    help=SUPPRESS_HELP,
 )  # type: Any
 
 install_options = partial(
@@ -773,7 +781,7 @@ no_clean = partial(
     '--no-clean',
     action='store_true',
     default=False,
-    help="Don't clean up build directories."
+    help="Don't clean up build directories.",
 )  # type: Callable[..., Option]
 
 pre = partial(
@@ -815,12 +823,16 @@ def _handle_merge_hash(option, opt_str, value, parser):
     try:
         algo, digest = value.split(':', 1)
     except ValueError:
-        parser.error('Arguments to %s must be a hash name '
-                     'followed by a value, like --hash=sha256:abcde...' %
-                     opt_str)
+        parser.error(
+            'Arguments to %s must be a hash name '
+            'followed by a value, like --hash=sha256:abcde...' %
+            opt_str,
+        )
     if algo not in STRONG_HASHES:
-        parser.error('Allowed hash algorithms for %s are %s.' %
-                     (opt_str, ', '.join(STRONG_HASHES)))
+        parser.error(
+            'Allowed hash algorithms for %s are %s.' %
+            (opt_str, ', '.join(STRONG_HASHES)),
+        )
     parser.values.hashes.setdefault(algo, []).append(digest)
 
 
@@ -856,7 +868,7 @@ list_path = partial(
     dest='path',
     action='append',
     help='Restrict to the specified installation path for listing '
-         'packages (can be used multiple times).'
+         'packages (can be used multiple times).',
 )  # type: Callable[..., Option]
 
 
@@ -864,7 +876,7 @@ def check_list_path_option(options):
     # type: (Values) -> None
     if options.path and (options.user or options.local):
         raise CommandError(
-            "Cannot combine '--path' with '--user' or '--local'"
+            "Cannot combine '--path' with '--user' or '--local'",
         )
 
 
@@ -895,7 +907,7 @@ general_group = {
         no_cache,
         disable_pip_version_check,
         no_color,
-    ]
+    ],
 }  # type: Dict[str, Any]
 
 index_group = {
@@ -905,5 +917,5 @@ index_group = {
         extra_index_url,
         no_index,
         find_links,
-    ]
+    ],
 }  # type: Dict[str, Any]

@@ -93,7 +93,7 @@ class SelfCheckState(object):
         # Try to load the existing state
         if cache_dir:
             self.statefile_path = os.path.join(
-                cache_dir, "selfcheck", _get_statefile_name(self.key)
+                cache_dir, "selfcheck", _get_statefile_name(self.key),
             )
             try:
                 with open(self.statefile_path) as statefile:
@@ -180,7 +180,7 @@ def pip_self_version_check(session, options):
         if "last_check" in state.state and "pypi_version" in state.state:
             last_check = datetime.datetime.strptime(
                 state.state["last_check"],
-                SELFCHECK_DATE_FMT
+                SELFCHECK_DATE_FMT,
             )
             if (current_time - last_check).total_seconds() < 7 * 24 * 60 * 60:
                 pypi_version = state.state["pypi_version"]
@@ -235,7 +235,7 @@ def pip_self_version_check(session, options):
             "You are using pip version %s; however, version %s is "
             "available.\nYou should consider upgrading via the "
             "'%s install --upgrade pip' command.",
-            pip_version, pypi_version, pip_cmd
+            pip_version, pypi_version, pip_cmd,
         )
     except Exception:
         logger.debug(

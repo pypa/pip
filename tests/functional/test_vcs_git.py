@@ -159,13 +159,13 @@ def test_get_revision_sha(script):
     generic_ref = 'refs/generic-ref'
 
     script.run(
-        'git', 'branch', 'local-branch', head_sha, cwd=repo_dir
+        'git', 'branch', 'local-branch', head_sha, cwd=repo_dir,
     )
     script.run('git', 'tag', 'v1.0', tag_sha, cwd=repo_dir)
     script.run('git', 'update-ref', origin_ref, origin_sha, cwd=repo_dir)
     script.run(
         'git', 'update-ref', 'refs/remotes/upstream/upstream-branch',
-        head_sha, cwd=repo_dir
+        head_sha, cwd=repo_dir,
     )
     script.run('git', 'update-ref', generic_ref, head_sha, cwd=repo_dir)
 
@@ -207,7 +207,7 @@ def test_is_commit_id_equal(script):
     script.run('git', 'branch', 'branch0.1', cwd=version_pkg_path)
     commit = script.run(
         'git', 'rev-parse', 'HEAD',
-        cwd=version_pkg_path
+        cwd=version_pkg_path,
     ).stdout.strip()
 
     assert Git.is_commit_id_equal(version_pkg_path, commit)

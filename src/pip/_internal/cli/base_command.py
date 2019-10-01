@@ -145,7 +145,7 @@ class Command(CommandContextMixIn):
             # If a venv is required check if it can really be found
             if not running_under_virtualenv():
                 logger.critical(
-                    'Could not find an activated virtualenv (required).'
+                    'Could not find an activated virtualenv (required).',
                 )
                 sys.exit(VIRTUALENV_NOT_FOUND)
 

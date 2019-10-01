@@ -11,8 +11,10 @@ def indent(text, prefix):
                      for line in text.split('\n'))
 
 
-def run_with_build_env(script, setup_script_contents,
-                       test_script_contents=None):
+def run_with_build_env(
+    script, setup_script_contents,
+    test_script_contents=None,
+):
     build_env_script = script.scratch_path / 'build_env.py'
     build_env_script.write_text(
         dedent(
@@ -44,7 +46,8 @@ def run_with_build_env(script, setup_script_contents,
             build_env = BuildEnvironment()
 
             try:
-            ''' % str(script.scratch_path)) +
+            ''' % str(script.scratch_path)
+        ) +
         indent(dedent(setup_script_contents), '    ') +
         dedent(
             '''
@@ -53,7 +56,8 @@ def run_with_build_env(script, setup_script_contents,
                         subprocess.check_call((sys.executable, sys.argv[1]))
             finally:
                 build_env.cleanup()
-            ''')
+            '''
+        ),
     )
     args = ['python', build_env_script]
     if test_script_contents is not None:
@@ -75,14 +79,20 @@ def test_build_env_allow_only_one_install(script):
     finder = make_test_finder(find_links=[script.scratch_path])
     build_env = BuildEnvironment()
     for prefix in ('normal', 'overlay'):
-        build_env.install_requirements(finder, ['foo'], prefix,
-                                       'installing foo in %s' % prefix)
+        build_env.install_requirements(
+            finder, ['foo'], prefix,
+            'installing foo in %s' % prefix,
+        )
         with pytest.raises(AssertionError):
-            build_env.install_requirements(finder, ['bar'], prefix,
-                                           'installing bar in %s' % prefix)
+            build_env.install_requirements(
+                finder, ['bar'], prefix,
+                'installing bar in %s' % prefix,
+            )
         with pytest.raises(AssertionError):
-            build_env.install_requirements(finder, [], prefix,
-                                           'installing in %s' % prefix)
+            build_env.install_requirements(
+                finder, [], prefix,
+                'installing in %s' % prefix,
+            )
 
 
 def test_build_env_requirements_check(script):
@@ -105,7 +115,8 @@ def test_build_env_requirements_check(script):
 
         r = build_env.check_requirements(['foo>3.0', 'bar>=2.5'])
         assert r == (set(), {'foo>3.0', 'bar>=2.5'}), repr(r)
-        ''')
+        ''',
+    )
 
     run_with_build_env(
         script,
@@ -121,7 +132,8 @@ def test_build_env_requirements_check(script):
 
         r = build_env.check_requirements(['foo>3.0', 'bar>=2.5'])
         assert r == ({('foo==2.0', 'foo>3.0')}, set()), repr(r)
-        ''')
+        ''',
+    )
 
     run_with_build_env(
         script,
@@ -140,7 +152,8 @@ def test_build_env_requirements_check(script):
         r = build_env.check_requirements(['foo>3.0', 'bar>=2.5'])
         assert r == ({('bar==1.0', 'bar>=2.5'), ('foo==2.0', 'foo>3.0')}, \
             set()), repr(r)
-        ''')
+        ''',
+    )
 
 
 def test_build_env_overlay_prefix_has_priority(script):
@@ -158,7 +171,8 @@ def test_build_env_overlay_prefix_has_priority(script):
         from __future__ import print_function
 
         print(__import__('pkg').__version__)
-        ''')
+        ''',
+    )
     assert result.stdout.strip() == '2.0', str(result)
 
 
@@ -177,7 +191,7 @@ def test_build_env_isolation(script):
     target = script.scratch_path / 'pth_install'
     script.pip_install_local('-t', target, pkg_whl)
     (script.site_packages_path / 'build_requires.pth').write_text(
-        str(target) + '\n'
+        str(target) + '\n',
     )
 
     # And finally to yet another directory available through PYTHONPATH.
@@ -204,4 +218,5 @@ def test_build_env_isolation(script):
                     })), file=sys.stderr)
             print('sys.path:\n  ' + '\n  '.join(sys.path), file=sys.stderr)
             sys.exit(1)
-        ''')
+        ''',
+    )

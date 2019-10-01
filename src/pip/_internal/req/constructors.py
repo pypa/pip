@@ -42,7 +42,7 @@ if MYPY_CHECK_RUNNING:
 
 __all__ = [
     "install_req_from_editable", "install_req_from_line",
-    "parse_editable"
+    "parse_editable",
 ]
 
 logger = logging.getLogger(__name__)
@@ -132,7 +132,7 @@ def parse_editable(editable_req):
         raise InstallationError(
             '{} is not a valid editable requirement. '
             'It should either be a path to a local project or a VCS URL '
-            '(beginning with svn+, git+, hg+, or bzr+).'.format(editable_req)
+            '(beginning with svn+, git+, hg+, or bzr+).'.format(editable_req),
         )
 
     vc_type = url.split('+', 1)[0].lower()
@@ -147,7 +147,7 @@ def parse_editable(editable_req):
     if not package_name:
         raise InstallationError(
             "Could not detect requirement name for '%s', please specify one "
-            "with #egg=your_package_name" % editable_req
+            "with #egg=your_package_name" % editable_req,
         )
     return package_name, url, None
 
@@ -173,8 +173,10 @@ def deduce_helpful_msg(req):
                     " case, use the '-r' flag to install" + \
                     " the packages specified within it."
         except RequirementParseError:
-            logger.debug("Cannot parse '%s' as requirements \
-            file" % (req), exc_info=True)
+            logger.debug(
+                "Cannot parse '%s' as requirements \
+            file" % (req), exc_info=True,
+            )
     else:
         msg += " File '%s' does not exist." % (req)
     return msg
@@ -221,7 +223,7 @@ def install_req_from_editable(
     isolated=False,  # type: bool
     options=None,  # type: Optional[Dict[str, Any]]
     wheel_cache=None,  # type: Optional[WheelCache]
-    constraint=False  # type: bool
+    constraint=False,  # type: bool
 ):
     # type: (...) -> InstallRequirement
 
@@ -277,7 +279,7 @@ def _get_url_from_path(path, name):
             return path_to_url(path)
         raise InstallationError(
             "Directory %r is not installable. Neither 'setup.py' "
-            "nor 'pyproject.toml' found." % name
+            "nor 'pyproject.toml' found." % name,
         )
     if not is_archive_file(path):
         return None
@@ -291,7 +293,7 @@ def _get_url_from_path(path, name):
     logger.warning(
         'Requirement %r looks like a filename, but the '
         'file does not exist',
-        name
+        name,
     )
     return path_to_url(path)
 
@@ -330,7 +332,8 @@ def parse_req_from_line(name, line_source):
         # Handle relative file URLs
         if link.scheme == 'file' and re.search(r'\.\./', link.url):
             link = Link(
-                path_to_url(os.path.normpath(os.path.abspath(link.path))))
+                path_to_url(os.path.normpath(os.path.abspath(link.path))),
+            )
         # wheel file
         if link.is_wheel:
             wheel = Wheel(link.filename)  # can raise InvalidWheelFilename
@@ -358,13 +361,15 @@ def parse_req_from_line(name, line_source):
             if os.path.sep in req_as_string:
                 add_msg = "It looks like a path."
                 add_msg += deduce_helpful_msg(req_as_string)
-            elif ('=' in req_as_string and
-                  not any(op in req_as_string for op in operators)):
+            elif (
+                '=' in req_as_string and
+                not any(op in req_as_string for op in operators)
+            ):
                 add_msg = "= is not a valid operator. Did you mean == ?"
             else:
                 add_msg = ''
             msg = with_source(
-                'Invalid requirement: {!r}'.format(req_as_string)
+                'Invalid requirement: {!r}'.format(req_as_string),
             )
             if add_msg:
                 msg += '\nHint: {}'.format(add_msg)
@@ -409,7 +414,7 @@ def install_req_from_req_string(
     comes_from=None,  # type: Optional[InstallRequirement]
     isolated=False,  # type: bool
     wheel_cache=None,  # type: Optional[WheelCache]
-    use_pep517=None  # type: Optional[bool]
+    use_pep517=None,  # type: Optional[bool]
 ):
     # type: (...) -> InstallRequirement
     try:
@@ -421,16 +426,18 @@ def install_req_from_req_string(
         PyPI.file_storage_domain,
         TestPyPI.file_storage_domain,
     ]
-    if (req.url and comes_from and comes_from.link and
-            comes_from.link.netloc in domains_not_allowed):
+    if (
+        req.url and comes_from and comes_from.link and
+        comes_from.link.netloc in domains_not_allowed
+    ):
         # Explicitly disallow pypi packages that depend on external urls
         raise InstallationError(
             "Packages installed from PyPI cannot depend on packages "
             "which are not also hosted on PyPI.\n"
-            "%s depends on %s " % (comes_from.name, req)
+            "%s depends on %s " % (comes_from.name, req),
         )
 
     return InstallRequirement(
         req, comes_from, isolated=isolated, wheel_cache=wheel_cache,
-        use_pep517=use_pep517
+        use_pep517=use_pep517,
     )

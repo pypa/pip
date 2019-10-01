@@ -65,13 +65,15 @@ else:
         return value
 
 
-__all__ = ['rmtree', 'display_path', 'backup_dir',
-           'ask', 'splitext',
-           'format_size', 'is_installable_dir',
-           'normalize_path',
-           'renames', 'get_prog',
-           'captured_stdout', 'ensure_dir',
-           'get_installed_version', 'remove_auth_from_url']
+__all__ = [
+    'rmtree', 'display_path', 'backup_dir',
+    'ask', 'splitext',
+    'format_size', 'is_installable_dir',
+    'normalize_path',
+    'renames', 'get_prog',
+    'captured_stdout', 'ensure_dir',
+    'get_installed_version', 'remove_auth_from_url',
+]
 
 
 logger = logging.getLogger(__name__)
@@ -136,8 +138,10 @@ def get_prog():
 @retry(stop_max_delay=3000, wait_fixed=500)
 def rmtree(dir, ignore_errors=False):
     # type: (str, bool) -> None
-    shutil.rmtree(dir, ignore_errors=ignore_errors,
-                  onerror=rmtree_errorhandler)
+    shutil.rmtree(
+        dir, ignore_errors=ignore_errors,
+        onerror=rmtree_errorhandler,
+    )
 
 
 def rmtree_errorhandler(func, path, exc_info):
@@ -233,7 +237,7 @@ def _check_no_input(message):
     if os.environ.get('PIP_NO_INPUT'):
         raise Exception(
             'No input was expected ($PIP_NO_INPUT set); question: %s' %
-            message
+            message,
         )
 
 
@@ -247,7 +251,7 @@ def ask(message, options):
         if response not in options:
             print(
                 'Your response (%r) was not one of the expected responses: '
-                '%s' % (response, ', '.join(options))
+                '%s' % (response, ', '.join(options)),
             )
         else:
             return response
@@ -407,7 +411,7 @@ def get_installed_distributions(
         include_editables=True,  # type: bool
         editables_only=False,  # type: bool
         user_only=False,  # type: bool
-        paths=None  # type: Optional[List[str]]
+        paths=None,  # type: Optional[List[str]]
 ):
     # type: (...) -> List[Distribution]
     """
@@ -461,13 +465,14 @@ def get_installed_distributions(
             return True
 
     # because of pkg_resources vendoring, mypy cannot find stub in typeshed
-    return [d for d in working_set  # type: ignore
-            if local_test(d) and
-            d.key not in skip and
-            editable_test(d) and
-            editables_only_test(d) and
-            user_test(d)
-            ]
+    return [
+        d for d in working_set  # type: ignore
+        if local_test(d) and
+        d.key not in skip and
+        editable_test(d) and
+        editables_only_test(d) and
+        user_test(d)
+    ]
 
 
 def egg_link_path(dist):
@@ -732,9 +737,11 @@ def redact_netloc(netloc):
     else:
         user = urllib_parse.quote(user)
         password = ':****'
-    return '{user}{password}@{netloc}'.format(user=user,
-                                              password=password,
-                                              netloc=netloc)
+    return '{user}{password}@{netloc}'.format(
+        user=user,
+        password=password,
+        netloc=netloc,
+    )
 
 
 def _transform_url(url, transform_netloc):
@@ -751,7 +758,7 @@ def _transform_url(url, transform_netloc):
     netloc_tuple = transform_netloc(purl.netloc)
     # stripped url
     url_pieces = (
-        purl.scheme, netloc_tuple[0], purl.path, purl.query, purl.fragment
+        purl.scheme, netloc_tuple[0], purl.path, purl.query, purl.fragment,
     )
     surl = urllib_parse.urlunsplit(url_pieces)
     return surl, netloc_tuple
@@ -858,9 +865,9 @@ def protect_pip_from_modification_on_windows(modifying_pip):
 
     if should_show_use_python_msg:
         new_command = [
-            sys.executable, "-m", "pip"
+            sys.executable, "-m", "pip",
         ] + sys.argv[1:]
         raise CommandError(
             'To modify pip, please run the following command:\n{}'
-            .format(" ".join(new_command))
+            .format(" ".join(new_command)),
         )

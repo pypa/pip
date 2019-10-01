@@ -36,7 +36,7 @@ def load_pyproject_toml(
     use_pep517,  # type: Optional[bool]
     pyproject_toml,  # type: str
     setup_py,  # type: str
-    req_name  # type: str
+    req_name,  # type: str
 ):
     # type: (...) -> Optional[Tuple[List[str], str, List[str]]]
     """Load the pyproject.toml file.
@@ -78,7 +78,7 @@ def load_pyproject_toml(
         if use_pep517 is not None and not use_pep517:
             raise InstallationError(
                 "Disabling PEP 517 processing is invalid: "
-                "project does not have a setup.py"
+                "project does not have a setup.py",
             )
         use_pep517 = True
     elif build_system and "build-backend" in build_system:
@@ -87,8 +87,8 @@ def load_pyproject_toml(
                 "Disabling PEP 517 processing is invalid: "
                 "project specifies a build backend of {} "
                 "in pyproject.toml".format(
-                    build_system["build-backend"]
-                )
+                    build_system["build-backend"],
+                ),
             )
         use_pep517 = True
 
@@ -136,19 +136,23 @@ def load_pyproject_toml(
     # Specifying the build-system table but not the requires key is invalid
     if "requires" not in build_system:
         raise InstallationError(
-            error_template.format(package=req_name, reason=(
-                "it has a 'build-system' table but not "
-                "'build-system.requires' which is mandatory in the table"
-            ))
+            error_template.format(
+                package=req_name, reason=(
+                    "it has a 'build-system' table but not "
+                    "'build-system.requires' which is mandatory in the table"
+                ),
+            ),
         )
 
     # Error out if requires is not a list of strings
     requires = build_system["requires"]
     if not _is_list_of_str(requires):
-        raise InstallationError(error_template.format(
-            package=req_name,
-            reason="'build-system.requires' is not a list of strings.",
-        ))
+        raise InstallationError(
+            error_template.format(
+                package=req_name,
+                reason="'build-system.requires' is not a list of strings.",
+            ),
+        )
 
     backend = build_system.get("build-backend")
     check = []  # type: List[str]

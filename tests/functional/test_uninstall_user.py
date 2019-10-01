@@ -21,7 +21,8 @@ class Tests_UninstallUserSite:
         assert_all_changes(result1, result2, [script.venv / 'build', 'cache'])
 
     def test_uninstall_from_usersite_with_dist_in_global_site(
-            self, virtualenv, script):
+            self, virtualenv, script,
+    ):
         """
         Test uninstall from usersite (with same dist in global site)
         """
@@ -30,7 +31,8 @@ class Tests_UninstallUserSite:
         script.pip_install_local('pip-test-package==0.1', '--no-binary=:all:')
 
         result2 = script.pip_install_local(
-            '--user', 'pip-test-package==0.1.1', '--no-binary=:all:')
+            '--user', 'pip-test-package==0.1.1', '--no-binary=:all:',
+        )
         result3 = script.pip('uninstall', '-vy', 'pip-test-package')
 
         # uninstall console is mentioning user scripts, but not global scripts
@@ -72,5 +74,5 @@ class Tests_UninstallUserSite:
                 script.venv / 'build',
                 'cache',
                 script.user_site / 'easy-install.pth',
-            ]
+            ],
         )

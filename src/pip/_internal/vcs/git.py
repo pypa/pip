@@ -84,7 +84,7 @@ class Git(VersionControl):
         # and to suppress the message to stderr.
         args = ['symbolic-ref', '-q', 'HEAD']
         output = cls.run_command(
-            args, extra_ok_returncodes=(1, ), show_stdout=False, cwd=location,
+            args, extra_ok_returncodes=(1,), show_stdout=False, cwd=location,
         )
         ref = output.strip()
 
@@ -103,7 +103,7 @@ class Git(VersionControl):
             self.unpack(temp_dir.path, url=url)
             self.run_command(
                 ['checkout-index', '-a', '-f', '--prefix', location],
-                show_stdout=False, cwd=temp_dir.path
+                show_stdout=False, cwd=temp_dir.path,
             )
 
     @classmethod
@@ -117,8 +117,10 @@ class Git(VersionControl):
           rev: the revision name.
         """
         # Pass rev to pre-filter the list.
-        output = cls.run_command(['show-ref', rev], cwd=dest,
-                                 show_stdout=False, on_returncode='ignore')
+        output = cls.run_command(
+            ['show-ref', rev], cwd=dest,
+            show_stdout=False, on_returncode='ignore',
+        )
         refs = {}
         for line in output.strip().splitlines():
             try:
@@ -269,7 +271,7 @@ class Git(VersionControl):
         # exits with return code 1 if there are no matching lines.
         stdout = cls.run_command(
             ['config', '--get-regexp', r'remote\..*\.url'],
-            extra_ok_returncodes=(1, ), show_stdout=False, cwd=location,
+            extra_ok_returncodes=(1,), show_stdout=False, cwd=location,
         )
         remotes = stdout.splitlines()
         try:
@@ -296,8 +298,10 @@ class Git(VersionControl):
     @classmethod
     def get_subdirectory(cls, location):
         # find the repo root
-        git_dir = cls.run_command(['rev-parse', '--git-dir'],
-                                  show_stdout=False, cwd=location).strip()
+        git_dir = cls.run_command(
+            ['rev-parse', '--git-dir'],
+            show_stdout=False, cwd=location,
+        ).strip()
         if not os.path.isabs(git_dir):
             git_dir = os.path.join(location, git_dir)
         root_dir = os.path.join(git_dir, '..')
@@ -369,14 +373,18 @@ class Git(VersionControl):
         if super(Git, cls).controls_location(location):
             return True
         try:
-            r = cls.run_command(['rev-parse'],
-                                cwd=location,
-                                show_stdout=False,
-                                on_returncode='ignore')
+            r = cls.run_command(
+                ['rev-parse'],
+                cwd=location,
+                show_stdout=False,
+                on_returncode='ignore',
+            )
             return not r
         except BadCommand:
-            logger.debug("could not determine if %s is under git control "
-                         "because git is not available", location)
+            logger.debug(
+                "could not determine if %s is under git control "
+                "because git is not available", location,
+            )
             return False
 
 

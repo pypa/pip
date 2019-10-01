@@ -125,7 +125,7 @@ def vendor(ctx, vendor_dir):
     ctx.run(
         'pip install -t {0} -r {0}/vendor.txt --no-compile --no-deps'.format(
             str(vendor_dir),
-        )
+        ),
     )
     remove_all(vendor_dir.glob('*.dist-info'))
     remove_all(vendor_dir.glob('*.egg-info'))
@@ -171,7 +171,7 @@ def download_licenses(ctx, vendor_dir):
         ':all: --no-deps -d {1}'.format(
             str(vendor_dir),
             str(tmp_dir),
-        )
+        ),
     )
     for sdist in tmp_dir.iterdir():
         extract_license(vendor_dir, sdist)

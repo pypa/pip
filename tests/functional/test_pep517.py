@@ -35,10 +35,10 @@ def test_pep517_install(script, tmpdir, data):
     """Check we can build with a custom backend"""
     project_dir = make_project(
         tmpdir, requires=['test_backend'],
-        backend="test_backend"
+        backend="test_backend",
     )
     result = script.pip(
-        'install', '--no-index', '-f', data.backends, project_dir
+        'install', '--no-index', '-f', data.backends, project_dir,
     )
     result.assert_installed('project', editable=False)
 
@@ -47,14 +47,14 @@ def test_pep517_install_with_reqs(script, tmpdir, data):
     """Backend generated requirements are installed in the build env"""
     project_dir = make_project(
         tmpdir, requires=['test_backend'],
-        backend="test_backend"
+        backend="test_backend",
     )
     project_dir.joinpath("backend_reqs.txt").write_text("simplewheel")
     result = script.pip(
         'install', '--no-index',
         '-f', data.backends,
         '-f', data.packages,
-        project_dir
+        project_dir,
     )
     result.assert_installed('project', editable=False)
 
@@ -63,13 +63,13 @@ def test_no_use_pep517_without_setup_py(script, tmpdir, data):
     """Using --no-use-pep517 requires setup.py"""
     project_dir = make_project(
         tmpdir, requires=['test_backend'],
-        backend="test_backend"
+        backend="test_backend",
     )
     result = script.pip(
         'install', '--no-index', '--no-use-pep517',
         '-f', data.backends,
         project_dir,
-        expect_error=True
+        expect_error=True,
     )
     assert 'project does not have a setup.py' in result.stderr
 
@@ -77,7 +77,7 @@ def test_no_use_pep517_without_setup_py(script, tmpdir, data):
 def test_conflicting_pep517_backend_requirements(script, tmpdir, data):
     project_dir = make_project(
         tmpdir, requires=['test_backend', 'simplewheel==1.0'],
-        backend="test_backend"
+        backend="test_backend",
     )
     project_dir.joinpath("backend_reqs.txt").write_text("simplewheel==2.0")
     result = script.pip(
@@ -85,20 +85,22 @@ def test_conflicting_pep517_backend_requirements(script, tmpdir, data):
         '-f', data.backends,
         '-f', data.packages,
         project_dir,
-        expect_error=True
+        expect_error=True,
     )
     assert (
         result.returncode != 0 and
-        ('Some build dependencies for %s conflict with the backend '
-         'dependencies: simplewheel==1.0 is incompatible with '
-         'simplewheel==2.0.' % path_to_url(project_dir)) in result.stderr
+        (
+            'Some build dependencies for %s conflict with the backend '
+            'dependencies: simplewheel==1.0 is incompatible with '
+            'simplewheel==2.0.' % path_to_url(project_dir)
+        ) in result.stderr
     ), str(result)
 
 
 def test_pep517_backend_requirements_already_satisfied(script, tmpdir, data):
     project_dir = make_project(
         tmpdir, requires=['test_backend', 'simplewheel==1.0'],
-        backend="test_backend"
+        backend="test_backend",
     )
     project_dir.joinpath("backend_reqs.txt").write_text("simplewheel")
     result = script.pip(
@@ -115,7 +117,7 @@ def test_pep517_install_with_no_cache_dir(script, tmpdir, data):
     """
     project_dir = make_project(
         tmpdir, requires=['test_backend'],
-        backend="test_backend"
+        backend="test_backend",
     )
     result = script.pip(
         'install', '--no-cache-dir', '--no-index', '-f', data.backends,
@@ -208,7 +210,7 @@ def test_pep517_and_build_options(script, tmpdir, data, common_wheels):
         '--build-option', 'foo',
         '-f', common_wheels,
         project_dir,
-        expect_error=True
+        expect_error=True,
     )
     assert 'Cannot build wheel' in result.stderr
     assert 'when --build-options is present' in result.stderr

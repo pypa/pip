@@ -23,5 +23,5 @@ setup(
     packages=find_packages(),
     extras_require={
         ":python_version == '2.7'": ['simple'],
-    }
+    },
 )

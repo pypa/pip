@@ -57,6 +57,6 @@ class TestSafeFileCache:
         cache = SafeFileCache(cache_tmpdir)
         key = "test key"
         fake_cache = Mock(
-            FileCache, directory=cache.directory, encode=FileCache.encode
+            FileCache, directory=cache.directory, encode=FileCache.encode,
         )
         assert cache._get_cache_path(key) == FileCache._fn(fake_cache, key)

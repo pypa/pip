@@ -99,7 +99,7 @@ def test_report_mixed_not_found(script):
     """
     # We test passing non-canonicalized names.
     result = script.pip(
-        'show', 'Abcd3', 'A-B-C', 'pip', allow_stderr_warning=True
+        'show', 'Abcd3', 'A-B-C', 'pip', allow_stderr_warning=True,
     )
     assert 'WARNING: Package(s) not found: A-B-C, Abcd3' in result.stderr
     lines = result.stdout.splitlines()
@@ -167,9 +167,11 @@ def test_all_fields(script):
     """
     result = script.pip('show', 'pip')
     lines = result.stdout.splitlines()
-    expected = {'Name', 'Version', 'Summary', 'Home-page', 'Author',
-                'Author-email', 'License', 'Location', 'Requires',
-                'Required-by'}
+    expected = {
+        'Name', 'Version', 'Summary', 'Home-page', 'Author',
+        'Author-email', 'License', 'Location', 'Requires',
+        'Required-by',
+    }
     actual = {re.sub(':.*$', '', line) for line in lines}
     assert actual == expected
 
@@ -187,16 +189,20 @@ def test_pip_show_divider(script, data):
     """
     Expect a divider between packages
     """
-    script.pip('install', 'pip-test-package', '--no-index',
-               '-f', data.packages)
+    script.pip(
+        'install', 'pip-test-package', '--no-index',
+        '-f', data.packages,
+    )
     result = script.pip('show', 'pip', 'pip-test-package')
     lines = result.stdout.splitlines()
     assert "---" in lines
 
 
 def test_package_name_is_canonicalized(script, data):
-    script.pip('install', 'pip-test-package', '--no-index', '-f',
-               data.packages)
+    script.pip(
+        'install', 'pip-test-package', '--no-index', '-f',
+        data.packages,
+    )
 
     dash_show_result = script.pip('show', 'pip-test-package')
     underscore_upper_show_result = script.pip('show', 'pip-test_Package')
@@ -211,7 +217,7 @@ def test_show_required_by_packages_basic(script, data):
     """
     editable_path = os.path.join(data.src, 'requires_simple')
     script.pip(
-        'install', '--no-index', '-f', data.find_links, editable_path
+        'install', '--no-index', '-f', data.find_links, editable_path,
     )
 
     result = script.pip('show', 'simple')
@@ -228,7 +234,7 @@ def test_show_required_by_packages_capitalized(script, data):
     """
     editable_path = os.path.join(data.src, 'requires_capitalized')
     script.pip(
-        'install', '--no-index', '-f', data.find_links, editable_path
+        'install', '--no-index', '-f', data.find_links, editable_path,
     )
 
     result = script.pip('show', 'simple')
@@ -246,11 +252,11 @@ def test_show_required_by_packages_requiring_capitalized(script, data):
     """
     required_package_path = os.path.join(data.src, 'requires_capitalized')
     script.pip(
-        'install', '--no-index', '-f', data.find_links, required_package_path
+        'install', '--no-index', '-f', data.find_links, required_package_path,
     )
     editable_path = os.path.join(data.src, 'requires_requires_capitalized')
     script.pip(
-        'install', '--no-index', '-f', data.find_links, editable_path
+        'install', '--no-index', '-f', data.find_links, editable_path,
     )
 
     result = script.pip('show', 'Requires_Capitalized')

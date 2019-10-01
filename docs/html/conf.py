@@ -143,7 +143,7 @@ html_theme_options = {
     'collapsiblesidebar': True,
     'externalrefs': True,
     'navigation_depth': 3,
-    'issues_url': 'https://github.com/pypa/pip/issues'
+    'issues_url': 'https://github.com/pypa/pip/issues',
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
@@ -192,7 +192,7 @@ smartquotes_action = "qe"
 # Custom sidebar templates, maps document names to template names.
 html_sidebars = {
     '**': ['localtoc.html', 'relations.html'],
-    'index': ['localtoc.html']
+    'index': ['localtoc.html'],
 }
 
 # Additional templates that should be rendered to pages, maps page names to
@@ -269,8 +269,8 @@ man_pages = [
         'pip',
         u'package manager for Python packages',
         u'pip developers',
-        1
-    )
+        1,
+    ),
 ]
 
 # Here, we crawl the entire man/commands/ directory and list every file with
@@ -279,13 +279,13 @@ man_dir = os.path.join(docs_dir, 'man/')
 raw_subcommands = glob.glob(os.path.join(man_dir, 'commands/*.rst'))
 if not raw_subcommands:
     raise FileNotFoundError(
-        'The individual subcommand manpages could not be found!'
+        'The individual subcommand manpages could not be found!',
     )
 for fname in raw_subcommands:
     fname_base = fname[len(man_dir):-4]
     outname = 'pip-' + fname_base[9:]
     description = u'description of {} command'.format(
-        outname.replace('-', ' ')
+        outname.replace('-', ' '),
     )
 
     man_pages.append((fname_base, outname, description, u'pip developers', 1))

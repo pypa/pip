@@ -40,8 +40,11 @@ def test_none_resets():
 def test_none_preserves_other_side():
     cmd = SimpleCommand()
     cmd.main(
-        ['fake', '--no-binary=:all:', '--only-binary=fred',
-         '--no-binary=:none:'])
+        [
+            'fake', '--no-binary=:all:', '--only-binary=fred',
+            '--no-binary=:none:',
+        ],
+    )
     format_control = FormatControl(set(), {'fred'})
     assert cmd.options.format_control == format_control
 
@@ -59,8 +62,8 @@ def test_comma_separated_values():
         ({"fred"}, set(), "fred", frozenset(["source"])),
         ({"fred"}, {":all:"}, "fred", frozenset(["source"])),
         (set(), {"fred"}, "fred", frozenset(["binary"])),
-        ({":all:"}, {"fred"}, "fred", frozenset(["binary"]))
-    ]
+        ({":all:"}, {"fred"}, "fred", frozenset(["binary"])),
+    ],
 )
 def test_fmt_ctl_matches(no_binary, only_binary, argument, expected):
     fmt = FormatControl(no_binary, only_binary)

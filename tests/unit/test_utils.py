@@ -66,7 +66,7 @@ class Tests_EgglinkPath:
         self.user_site = 'USER_SITE'
         self.user_site_egglink = os.path.join(
             self.user_site,
-            '%s.egg-link' % project
+            '%s.egg-link' % project,
         )
         self.site_packages_egglink = os.path.join(
             self.site_packages,
@@ -203,13 +203,13 @@ class Tests_get_installed_distributions:
 
     workingset_stdlib = [
         Mock(test_name='normal', key='argparse'),
-        Mock(test_name='normal', key='wsgiref')
+        Mock(test_name='normal', key='wsgiref'),
     ]
 
     workingset_freeze = [
         Mock(test_name='normal', key='pip'),
         Mock(test_name='normal', key='setuptools'),
-        Mock(test_name='normal', key='distribute')
+        Mock(test_name='normal', key='distribute'),
     ]
 
     def dist_is_editable(self, dist):
@@ -222,9 +222,11 @@ class Tests_get_installed_distributions:
         return dist.test_name == "user"
 
     @patch('pip._vendor.pkg_resources.working_set', workingset)
-    def test_editables_only(self, mock_dist_is_editable,
-                            mock_dist_is_local,
-                            mock_dist_in_usersite):
+    def test_editables_only(
+        self, mock_dist_is_editable,
+        mock_dist_is_local,
+        mock_dist_in_usersite,
+    ):
         mock_dist_is_editable.side_effect = self.dist_is_editable
         mock_dist_is_local.side_effect = self.dist_is_local
         mock_dist_in_usersite.side_effect = self.dist_in_usersite
@@ -233,9 +235,11 @@ class Tests_get_installed_distributions:
         assert dists[0].test_name == "editable"
 
     @patch('pip._vendor.pkg_resources.working_set', workingset)
-    def test_exclude_editables(self, mock_dist_is_editable,
-                               mock_dist_is_local,
-                               mock_dist_in_usersite):
+    def test_exclude_editables(
+        self, mock_dist_is_editable,
+        mock_dist_is_local,
+        mock_dist_in_usersite,
+    ):
         mock_dist_is_editable.side_effect = self.dist_is_editable
         mock_dist_is_local.side_effect = self.dist_is_local
         mock_dist_in_usersite.side_effect = self.dist_in_usersite
@@ -244,9 +248,11 @@ class Tests_get_installed_distributions:
         assert dists[0].test_name == "normal"
 
     @patch('pip._vendor.pkg_resources.working_set', workingset)
-    def test_include_globals(self, mock_dist_is_editable,
-                             mock_dist_is_local,
-                             mock_dist_in_usersite):
+    def test_include_globals(
+        self, mock_dist_is_editable,
+        mock_dist_is_local,
+        mock_dist_in_usersite,
+    ):
         mock_dist_is_editable.side_effect = self.dist_is_editable
         mock_dist_is_local.side_effect = self.dist_is_local
         mock_dist_in_usersite.side_effect = self.dist_in_usersite
@@ -254,21 +260,27 @@ class Tests_get_installed_distributions:
         assert len(dists) == 4
 
     @patch('pip._vendor.pkg_resources.working_set', workingset)
-    def test_user_only(self, mock_dist_is_editable,
-                       mock_dist_is_local,
-                       mock_dist_in_usersite):
+    def test_user_only(
+        self, mock_dist_is_editable,
+        mock_dist_is_local,
+        mock_dist_in_usersite,
+    ):
         mock_dist_is_editable.side_effect = self.dist_is_editable
         mock_dist_is_local.side_effect = self.dist_is_local
         mock_dist_in_usersite.side_effect = self.dist_in_usersite
-        dists = get_installed_distributions(local_only=False,
-                                            user_only=True)
+        dists = get_installed_distributions(
+            local_only=False,
+            user_only=True,
+        )
         assert len(dists) == 1
         assert dists[0].test_name == "user"
 
     @patch('pip._vendor.pkg_resources.working_set', workingset_stdlib)
-    def test_gte_py27_excludes(self, mock_dist_is_editable,
-                               mock_dist_is_local,
-                               mock_dist_in_usersite):
+    def test_gte_py27_excludes(
+        self, mock_dist_is_editable,
+        mock_dist_is_local,
+        mock_dist_in_usersite,
+    ):
         mock_dist_is_editable.side_effect = self.dist_is_editable
         mock_dist_is_local.side_effect = self.dist_is_local
         mock_dist_in_usersite.side_effect = self.dist_in_usersite
@@ -276,14 +288,17 @@ class Tests_get_installed_distributions:
         assert len(dists) == 0
 
     @patch('pip._vendor.pkg_resources.working_set', workingset_freeze)
-    def test_freeze_excludes(self, mock_dist_is_editable,
-                             mock_dist_is_local,
-                             mock_dist_in_usersite):
+    def test_freeze_excludes(
+        self, mock_dist_is_editable,
+        mock_dist_is_local,
+        mock_dist_in_usersite,
+    ):
         mock_dist_is_editable.side_effect = self.dist_is_editable
         mock_dist_is_local.side_effect = self.dist_is_local
         mock_dist_in_usersite.side_effect = self.dist_in_usersite
         dists = get_installed_distributions(
-            skip=('setuptools', 'pip', 'distribute'))
+            skip=('setuptools', 'pip', 'distribute'),
+        )
         assert len(dists) == 0
 
 
@@ -370,18 +385,22 @@ def test_rmtree_retries_for_3sec(tmpdir, monkeypatch):
         rmtree('foo')
 
 
-@pytest.mark.parametrize('path, fs_encoding, expected', [
-    (None, None, None),
-    # Test passing a text (unicode) string.
-    (u'/path/déf', None, u'/path/déf'),
-    # Test a bytes object with a non-ascii character.
-    (u'/path/déf'.encode('utf-8'), 'utf-8', u'/path/déf'),
-    # Test a bytes object with a character that can't be decoded.
-    (u'/path/déf'.encode('utf-8'), 'ascii', u"b'/path/d\\xc3\\xa9f'"),
-    (u'/path/déf'.encode('utf-16'), 'utf-8',
-     u"b'\\xff\\xfe/\\x00p\\x00a\\x00t\\x00h\\x00/"
-     "\\x00d\\x00\\xe9\\x00f\\x00'"),
-])
+@pytest.mark.parametrize(
+    'path, fs_encoding, expected', [
+        (None, None, None),
+        # Test passing a text (unicode) string.
+        (u'/path/déf', None, u'/path/déf'),
+        # Test a bytes object with a non-ascii character.
+        (u'/path/déf'.encode('utf-8'), 'utf-8', u'/path/déf'),
+        # Test a bytes object with a character that can't be decoded.
+        (u'/path/déf'.encode('utf-8'), 'ascii', u"b'/path/d\\xc3\\xa9f'"),
+        (
+            u'/path/déf'.encode('utf-16'), 'utf-8',
+            u"b'\\xff\\xfe/\\x00p\\x00a\\x00t\\x00h\\x00/"
+            "\\x00d\\x00\\xe9\\x00f\\x00'",
+        ),
+    ],
+)
 def test_path_to_display(monkeypatch, path, fs_encoding, expected):
     monkeypatch.setattr(sys, 'getfilesystemencoding', lambda: fs_encoding)
     actual = path_to_display(path)
@@ -409,17 +428,17 @@ class Test_normalize_path(object):
             os.symlink(f, 'file_link')
 
             assert normalize_path(
-                'dir_link/file1', resolve_symlinks=True
+                'dir_link/file1', resolve_symlinks=True,
             ) == os.path.join(tmpdir, f)
             assert normalize_path(
-                'dir_link/file1', resolve_symlinks=False
+                'dir_link/file1', resolve_symlinks=False,
             ) == os.path.join(tmpdir, 'dir_link', 'file1')
 
             assert normalize_path(
-                'file_link', resolve_symlinks=True
+                'file_link', resolve_symlinks=True,
             ) == os.path.join(tmpdir, f)
             assert normalize_path(
-                'file_link', resolve_symlinks=False
+                'file_link', resolve_symlinks=False,
             ) == os.path.join(tmpdir, 'file_link')
         finally:
             os.chdir(orig_working_dir)
@@ -428,15 +447,17 @@ class Test_normalize_path(object):
 class TestHashes(object):
     """Tests for pip._internal.utils.hashes"""
 
-    @pytest.mark.parametrize('hash_name, hex_digest, expected', [
-        # Test a value that matches but with the wrong hash_name.
-        ('sha384', 128 * 'a', False),
-        # Test matching values, including values other than the first.
-        ('sha512', 128 * 'a', True),
-        ('sha512', 128 * 'b', True),
-        # Test a matching hash_name with a value that doesn't match.
-        ('sha512', 128 * 'c', False),
-    ])
+    @pytest.mark.parametrize(
+        'hash_name, hex_digest, expected', [
+            # Test a value that matches but with the wrong hash_name.
+            ('sha384', 128 * 'a', False),
+            # Test matching values, including values other than the first.
+            ('sha512', 128 * 'a', True),
+            ('sha512', 128 * 'b', True),
+            # Test a matching hash_name with a value that doesn't match.
+            ('sha512', 128 * 'c', False),
+        ],
+    )
     def test_is_hash_allowed(self, hash_name, hex_digest, expected):
         hashes_data = {
             'sha512': [128 * 'a', 128 * 'b'],
@@ -453,10 +474,13 @@ class TestHashes(object):
         file = tmpdir / 'to_hash'
         file.write_text('hello')
         hashes = Hashes({
-            'sha256': ['2cf24dba5fb0a30e26e83b2ac5b9e29e'
-                       '1b161e5c1fa7425e73043362938b9824'],
+            'sha256': [
+                '2cf24dba5fb0a30e26e83b2ac5b9e29e'
+                '1b161e5c1fa7425e73043362938b9824',
+            ],
             'sha224': ['wrongwrong'],
-            'md5': ['5d41402abc4b2a76b9719d911017c592']})
+            'md5': ['5d41402abc4b2a76b9719d911017c592'],
+        })
         hashes.check_against_path(file)
 
     def test_failure(self):
@@ -537,14 +561,15 @@ class TestGlibc(object):
         Test that the check_glibc_version function is robust against weird
         glibc version strings.
         """
-        for two_twenty in ["2.20",
-                           # used by "linaro glibc", see gh-3588
-                           "2.20-2014.11",
-                           # weird possibilities that I just made up
-                           "2.20+dev",
-                           "2.20-custom",
-                           "2.20.1",
-                           ]:
+        for two_twenty in [
+            "2.20",
+            # used by "linaro glibc", see gh-3588
+            "2.20-2014.11",
+            # weird possibilities that I just made up
+            "2.20+dev",
+            "2.20-custom",
+            "2.20.1",
+        ]:
             assert check_glibc_version(two_twenty, 2, 15)
             assert check_glibc_version(two_twenty, 2, 20)
             assert not check_glibc_version(two_twenty, 2, 21)
@@ -576,11 +601,13 @@ class TestGlibc(object):
         )
         assert glibc_version_string_confstr() == "2.20"
 
-    @pytest.mark.parametrize("failure", [
-        lambda x: raises(ValueError),
-        lambda x: raises(OSError),
-        lambda x: "XXX",
-    ])
+    @pytest.mark.parametrize(
+        "failure", [
+            lambda x: raises(ValueError),
+            lambda x: raises(OSError),
+            lambda x: "XXX",
+        ],
+    )
     def test_glibc_version_string_confstr_fail(self, monkeypatch, failure):
         monkeypatch.setattr(os, "confstr", failure, raising=False)
         assert glibc_version_string_confstr() is None
@@ -594,13 +621,15 @@ class TestGlibc(object):
         assert glibc_version_string_ctypes() is None
 
 
-@pytest.mark.parametrize('version_info, expected', [
-    ((), (0, 0, 0)),
-    ((3, ), (3, 0, 0)),
-    ((3, 6), (3, 6, 0)),
-    ((3, 6, 2), (3, 6, 2)),
-    ((3, 6, 2, 4), (3, 6, 2)),
-])
+@pytest.mark.parametrize(
+    'version_info, expected', [
+        ((), (0, 0, 0)),
+        ((3,), (3, 0, 0)),
+        ((3, 6), (3, 6, 0)),
+        ((3, 6, 2), (3, 6, 2)),
+        ((3, 6, 2, 4), (3, 6, 2)),
+    ],
+)
 def test_normalize_version_info(version_info, expected):
     actual = normalize_version_info(version_info)
     assert actual == expected
@@ -615,55 +644,59 @@ class TestGetProg(object):
             ('-c', '/usr/bin/python', '/usr/bin/python -m pip'),
             ('__main__.py', '/usr/bin/python', '/usr/bin/python -m pip'),
             ('/usr/bin/pip3', '', 'pip3'),
-        ]
+        ],
     )
     def test_get_prog(self, monkeypatch, argv, executable, expected):
         monkeypatch.setattr('pip._internal.utils.misc.sys.argv', [argv])
         monkeypatch.setattr(
             'pip._internal.utils.misc.sys.executable',
-            executable
+            executable,
         )
         assert get_prog() == expected
 
 
-@pytest.mark.parametrize('host_port, expected_netloc', [
-    # Test domain name.
-    (('example.com', None), 'example.com'),
-    (('example.com', 5000), 'example.com:5000'),
-    # Test IPv4 address.
-    (('127.0.0.1', None), '127.0.0.1'),
-    (('127.0.0.1', 5000), '127.0.0.1:5000'),
-    # Test bare IPv6 address.
-    (('2001:db6::1', None), '2001:db6::1'),
-    # Test IPv6 with port.
-    (('2001:db6::1', 5000), '[2001:db6::1]:5000'),
-])
+@pytest.mark.parametrize(
+    'host_port, expected_netloc', [
+        # Test domain name.
+        (('example.com', None), 'example.com'),
+        (('example.com', 5000), 'example.com:5000'),
+        # Test IPv4 address.
+        (('127.0.0.1', None), '127.0.0.1'),
+        (('127.0.0.1', 5000), '127.0.0.1:5000'),
+        # Test bare IPv6 address.
+        (('2001:db6::1', None), '2001:db6::1'),
+        # Test IPv6 with port.
+        (('2001:db6::1', 5000), '[2001:db6::1]:5000'),
+    ],
+)
 def test_build_netloc(host_port, expected_netloc):
     assert build_netloc(*host_port) == expected_netloc
 
 
-@pytest.mark.parametrize('netloc, expected_url, expected_host_port', [
-    # Test domain name.
-    ('example.com', 'https://example.com', ('example.com', None)),
-    ('example.com:5000', 'https://example.com:5000', ('example.com', 5000)),
-    # Test IPv4 address.
-    ('127.0.0.1', 'https://127.0.0.1', ('127.0.0.1', None)),
-    ('127.0.0.1:5000', 'https://127.0.0.1:5000', ('127.0.0.1', 5000)),
-    # Test bare IPv6 address.
-    ('2001:db6::1', 'https://[2001:db6::1]', ('2001:db6::1', None)),
-    # Test IPv6 with port.
-    (
-        '[2001:db6::1]:5000',
-        'https://[2001:db6::1]:5000',
-        ('2001:db6::1', 5000)
-    ),
-    # Test netloc with auth.
-    (
-        'user:password@localhost:5000',
-        'https://user:password@localhost:5000',
-        ('localhost', 5000)
-    )
-])
+@pytest.mark.parametrize(
+    'netloc, expected_url, expected_host_port', [
+        # Test domain name.
+        ('example.com', 'https://example.com', ('example.com', None)),
+        ('example.com:5000', 'https://example.com:5000', ('example.com', 5000)),
+        # Test IPv4 address.
+        ('127.0.0.1', 'https://127.0.0.1', ('127.0.0.1', None)),
+        ('127.0.0.1:5000', 'https://127.0.0.1:5000', ('127.0.0.1', 5000)),
+        # Test bare IPv6 address.
+        ('2001:db6::1', 'https://[2001:db6::1]', ('2001:db6::1', None)),
+        # Test IPv6 with port.
+        (
+            '[2001:db6::1]:5000',
+            'https://[2001:db6::1]:5000',
+            ('2001:db6::1', 5000),
+        ),
+        # Test netloc with auth.
+        (
+            'user:password@localhost:5000',
+            'https://user:password@localhost:5000',
+            ('localhost', 5000),
+        ),
+    ],
+)
 def test_build_url_from_netloc_and_parse_netloc(
     netloc, expected_url, expected_host_port,
 ):
@@ -671,107 +704,149 @@ def test_build_url_from_netloc_and_parse_netloc(
     assert parse_netloc(netloc) == expected_host_port
 
 
-@pytest.mark.parametrize('netloc, expected', [
-    # Test a basic case.
-    ('example.com', ('example.com', (None, None))),
-    # Test with username and no password.
-    ('user@example.com', ('example.com', ('user', None))),
-    # Test with username and password.
-    ('user:pass@example.com', ('example.com', ('user', 'pass'))),
-    # Test with username and empty password.
-    ('user:@example.com', ('example.com', ('user', ''))),
-    # Test the password containing an @ symbol.
-    ('user:pass@word@example.com', ('example.com', ('user', 'pass@word'))),
-    # Test the password containing a : symbol.
-    ('user:pass:word@example.com', ('example.com', ('user', 'pass:word'))),
-    # Test URL-encoded reserved characters.
-    ('user%3Aname:%23%40%5E@example.com',
-     ('example.com', ('user:name', '#@^'))),
-])
+@pytest.mark.parametrize(
+    'netloc, expected', [
+        # Test a basic case.
+        ('example.com', ('example.com', (None, None))),
+        # Test with username and no password.
+        ('user@example.com', ('example.com', ('user', None))),
+        # Test with username and password.
+        ('user:pass@example.com', ('example.com', ('user', 'pass'))),
+        # Test with username and empty password.
+        ('user:@example.com', ('example.com', ('user', ''))),
+        # Test the password containing an @ symbol.
+        ('user:pass@word@example.com', ('example.com', ('user', 'pass@word'))),
+        # Test the password containing a : symbol.
+        ('user:pass:word@example.com', ('example.com', ('user', 'pass:word'))),
+        # Test URL-encoded reserved characters.
+        (
+            'user%3Aname:%23%40%5E@example.com',
+            ('example.com', ('user:name', '#@^')),
+        ),
+    ],
+)
 def test_split_auth_from_netloc(netloc, expected):
     actual = split_auth_from_netloc(netloc)
     assert actual == expected
 
 
-@pytest.mark.parametrize('url, expected', [
-    # Test a basic case.
-    ('http://example.com/path#anchor',
-     ('http://example.com/path#anchor', 'example.com', (None, None))),
-    # Test with username and no password.
-    ('http://user@example.com/path#anchor',
-     ('http://example.com/path#anchor', 'example.com', ('user', None))),
-    # Test with username and password.
-    ('http://user:pass@example.com/path#anchor',
-     ('http://example.com/path#anchor', 'example.com', ('user', 'pass'))),
-    # Test with username and empty password.
-    ('http://user:@example.com/path#anchor',
-     ('http://example.com/path#anchor', 'example.com', ('user', ''))),
-    # Test the password containing an @ symbol.
-    ('http://user:pass@word@example.com/path#anchor',
-     ('http://example.com/path#anchor', 'example.com', ('user', 'pass@word'))),
-    # Test the password containing a : symbol.
-    ('http://user:pass:word@example.com/path#anchor',
-     ('http://example.com/path#anchor', 'example.com', ('user', 'pass:word'))),
-    # Test URL-encoded reserved characters.
-    ('http://user%3Aname:%23%40%5E@example.com/path#anchor',
-     ('http://example.com/path#anchor', 'example.com', ('user:name', '#@^'))),
-])
+@pytest.mark.parametrize(
+    'url, expected', [
+        # Test a basic case.
+        (
+            'http://example.com/path#anchor',
+            ('http://example.com/path#anchor', 'example.com', (None, None)),
+        ),
+        # Test with username and no password.
+        (
+            'http://user@example.com/path#anchor',
+            ('http://example.com/path#anchor', 'example.com', ('user', None)),
+        ),
+        # Test with username and password.
+        (
+            'http://user:pass@example.com/path#anchor',
+            ('http://example.com/path#anchor', 'example.com', ('user', 'pass')),
+        ),
+        # Test with username and empty password.
+        (
+            'http://user:@example.com/path#anchor',
+            ('http://example.com/path#anchor', 'example.com', ('user', '')),
+        ),
+        # Test the password containing an @ symbol.
+        (
+            'http://user:pass@word@example.com/path#anchor',
+            ('http://example.com/path#anchor', 'example.com', ('user', 'pass@word')),
+        ),
+        # Test the password containing a : symbol.
+        (
+            'http://user:pass:word@example.com/path#anchor',
+            ('http://example.com/path#anchor', 'example.com', ('user', 'pass:word')),
+        ),
+        # Test URL-encoded reserved characters.
+        (
+            'http://user%3Aname:%23%40%5E@example.com/path#anchor',
+            ('http://example.com/path#anchor', 'example.com', ('user:name', '#@^')),
+        ),
+    ],
+)
 def test_split_auth_netloc_from_url(url, expected):
     actual = split_auth_netloc_from_url(url)
     assert actual == expected
 
 
-@pytest.mark.parametrize('netloc, expected', [
-    # Test a basic case.
-    ('example.com', 'example.com'),
-    # Test with username and no password.
-    ('accesstoken@example.com', '****@example.com'),
-    # Test with username and password.
-    ('user:pass@example.com', 'user:****@example.com'),
-    # Test with username and empty password.
-    ('user:@example.com', 'user:****@example.com'),
-    # Test the password containing an @ symbol.
-    ('user:pass@word@example.com', 'user:****@example.com'),
-    # Test the password containing a : symbol.
-    ('user:pass:word@example.com', 'user:****@example.com'),
-    # Test URL-encoded reserved characters.
-    ('user%3Aname:%23%40%5E@example.com', 'user%3Aname:****@example.com'),
-])
+@pytest.mark.parametrize(
+    'netloc, expected', [
+        # Test a basic case.
+        ('example.com', 'example.com'),
+        # Test with username and no password.
+        ('accesstoken@example.com', '****@example.com'),
+        # Test with username and password.
+        ('user:pass@example.com', 'user:****@example.com'),
+        # Test with username and empty password.
+        ('user:@example.com', 'user:****@example.com'),
+        # Test the password containing an @ symbol.
+        ('user:pass@word@example.com', 'user:****@example.com'),
+        # Test the password containing a : symbol.
+        ('user:pass:word@example.com', 'user:****@example.com'),
+        # Test URL-encoded reserved characters.
+        ('user%3Aname:%23%40%5E@example.com', 'user%3Aname:****@example.com'),
+    ],
+)
 def test_redact_netloc(netloc, expected):
     actual = redact_netloc(netloc)
     assert actual == expected
 
 
-@pytest.mark.parametrize('auth_url, expected_url', [
-    ('https://user:pass@domain.tld/project/tags/v0.2',
-     'https://domain.tld/project/tags/v0.2'),
-    ('https://domain.tld/project/tags/v0.2',
-     'https://domain.tld/project/tags/v0.2',),
-    ('https://user:pass@domain.tld/svn/project/trunk@8181',
-     'https://domain.tld/svn/project/trunk@8181'),
-    ('https://domain.tld/project/trunk@8181',
-     'https://domain.tld/project/trunk@8181',),
-    ('git+https://pypi.org/something',
-     'git+https://pypi.org/something'),
-    ('git+https://user:pass@pypi.org/something',
-     'git+https://pypi.org/something'),
-    ('git+ssh://git@pypi.org/something',
-     'git+ssh://pypi.org/something'),
-])
+@pytest.mark.parametrize(
+    'auth_url, expected_url', [
+        (
+            'https://user:pass@domain.tld/project/tags/v0.2',
+            'https://domain.tld/project/tags/v0.2',
+        ),
+        (
+            'https://domain.tld/project/tags/v0.2',
+            'https://domain.tld/project/tags/v0.2',
+        ),
+        (
+            'https://user:pass@domain.tld/svn/project/trunk@8181',
+            'https://domain.tld/svn/project/trunk@8181',
+        ),
+        (
+            'https://domain.tld/project/trunk@8181',
+            'https://domain.tld/project/trunk@8181',
+        ),
+        (
+            'git+https://pypi.org/something',
+            'git+https://pypi.org/something',
+        ),
+        (
+            'git+https://user:pass@pypi.org/something',
+            'git+https://pypi.org/something',
+        ),
+        (
+            'git+ssh://git@pypi.org/something',
+            'git+ssh://pypi.org/something',
+        ),
+    ],
+)
 def test_remove_auth_from_url(auth_url, expected_url):
     url = remove_auth_from_url(auth_url)
     assert url == expected_url
 
 
-@pytest.mark.parametrize('auth_url, expected_url', [
-    ('https://accesstoken@example.com/abc', 'https://****@example.com/abc'),
-    ('https://user:password@example.com', 'https://user:****@example.com'),
-    ('https://user:@example.com', 'https://user:****@example.com'),
-    ('https://example.com', 'https://example.com'),
-    # Test URL-encoded reserved characters.
-    ('https://user%3Aname:%23%40%5E@example.com',
-     'https://user%3Aname:****@example.com'),
-])
+@pytest.mark.parametrize(
+    'auth_url, expected_url', [
+        ('https://accesstoken@example.com/abc', 'https://****@example.com/abc'),
+        ('https://user:password@example.com', 'https://user:****@example.com'),
+        ('https://user:@example.com', 'https://user:****@example.com'),
+        ('https://example.com', 'https://example.com'),
+        # Test URL-encoded reserved characters.
+        (
+            'https://user%3Aname:%23%40%5E@example.com',
+            'https://user%3Aname:****@example.com',
+        ),
+    ],
+)
 def test_redact_auth_from_url(auth_url, expected_url):
     url = redact_auth_from_url(auth_url)
     assert url == expected_url
@@ -936,11 +1011,13 @@ def test_make_setuptools_shim_args():
     assert args[4:] == ['--some', '--option', '--no-user-cfg']
 
 
-@pytest.mark.parametrize('global_options', [
-    None,
-    [],
-    ['--some', '--option']
-])
+@pytest.mark.parametrize(
+    'global_options', [
+        None,
+        [],
+        ['--some', '--option'],
+    ],
+)
 def test_make_setuptools_shim_args__global_options(global_options):
     args = make_setuptools_shim_args(
         '/dir/path/setup.py',
@@ -968,6 +1045,6 @@ def test_make_setuptools_shim_args__no_user_config(no_user_config):
 def test_make_setuptools_shim_args__unbuffered_output(unbuffered_output):
     args = make_setuptools_shim_args(
         '/dir/path/setup.py',
-        unbuffered_output=unbuffered_output
+        unbuffered_output=unbuffered_output,
     )
     assert ('-u' in args) == unbuffered_output

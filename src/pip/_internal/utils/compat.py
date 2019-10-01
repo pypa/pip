@@ -139,13 +139,15 @@ def str_to_display(data, desc=None):
     # or doesn't have an encoding attribute. Neither of these cases
     # should occur in normal pip use, but there's no harm in checking
     # in case people use pip in (unsupported) unusual situations.
-    output_encoding = getattr(getattr(sys, "__stderr__", None),
-                              "encoding", None)
+    output_encoding = getattr(
+        getattr(sys, "__stderr__", None),
+        "encoding", None,
+    )
 
     if output_encoding:
         output_encoded = decoded_data.encode(
             output_encoding,
-            errors="backslashreplace"
+            errors="backslashreplace",
         )
         decoded_data = output_encoded.decode(output_encoding)
 
@@ -200,7 +202,7 @@ def get_path_uid(path):
         else:
             # raise OSError for parity with os.O_NOFOLLOW above
             raise OSError(
-                "%s is a symlink; Will not return uid for symlinks" % path
+                "%s is a symlink; Will not return uid for symlinks" % path,
             )
     return file_uid
 
@@ -240,8 +242,10 @@ stdlib_pkgs = {"python", "wsgiref", "argparse"}
 
 
 # windows detection, covers cpython and ironpython
-WINDOWS = (sys.platform.startswith("win") or
-           (sys.platform == 'cli' and os.name == 'nt'))
+WINDOWS = (
+    sys.platform.startswith("win") or
+    (sys.platform == 'cli' and os.name == 'nt')
+)
 
 
 def samefile(file1, file2):
@@ -277,7 +281,7 @@ else:
                 import struct
                 cr = struct.unpack_from(
                     'hh',
-                    fcntl.ioctl(fd, termios.TIOCGWINSZ, '12345678')
+                    fcntl.ioctl(fd, termios.TIOCGWINSZ, '12345678'),
                 )
             except Exception:
                 return None

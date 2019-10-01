@@ -3,14 +3,16 @@ import pytest
 from pip._internal import pep425tags
 
 
-@pytest.mark.parametrize('expected_text', [
-    'sys.executable: ',
-    'sys.getdefaultencoding: ',
-    'sys.getfilesystemencoding: ',
-    'locale.getpreferredencoding: ',
-    'sys.platform: ',
-    'sys.implementation:',
-])
+@pytest.mark.parametrize(
+    'expected_text', [
+        'sys.executable: ',
+        'sys.getdefaultencoding: ',
+        'sys.getfilesystemencoding: ',
+        'locale.getpreferredencoding: ',
+        'sys.platform: ',
+        'sys.implementation:',
+    ],
+)
 def test_debug(script, expected_text):
     """
     Check that certain strings are present in the output.
@@ -27,7 +29,7 @@ def test_debug(script, expected_text):
     [
         [],
         ['--verbose'],
-    ]
+    ],
 )
 def test_debug__tags(script, args):
     """
@@ -51,7 +53,7 @@ def test_debug__tags(script, args):
     'args, expected',
     [
         (['--python-version', '3.7'], "(target: version_info='3.7')"),
-    ]
+    ],
 )
 def test_debug__target_options(script, args, expected):
     """

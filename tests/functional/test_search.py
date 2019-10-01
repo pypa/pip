@@ -80,10 +80,12 @@ def test_basic_search(script):
 
 @pytest.mark.network
 @pytest.mark.skip(
-    reason=("Warehouse search behavior is different and no longer returns "
-            "multiple results. See "
-            "https://github.com/pypa/warehouse/issues/3717 for more "
-            "information."),
+    reason=(
+        "Warehouse search behavior is different and no longer returns "
+        "multiple results. See "
+        "https://github.com/pypa/warehouse/issues/3717 for more "
+        "information."
+    ),
 )
 def test_multiple_search(script):
     """
@@ -158,13 +160,15 @@ def test_latest_prerelease_install_message(caplog, monkeypatch):
         {
             'name': 'ni',
             'summary': 'For knights who say Ni!',
-            'versions': ['1.0.0', '1.0.1a']
-        }
+            'versions': ['1.0.0', '1.0.1a'],
+        },
     ]
 
     installed_package = pretend.stub(project_name="ni")
-    monkeypatch.setattr("pip._vendor.pkg_resources.working_set",
-                        [installed_package])
+    monkeypatch.setattr(
+        "pip._vendor.pkg_resources.working_set",
+        [installed_package],
+    )
 
     dist = pretend.stub(version="1.0.0")
     get_dist = pretend.call_recorder(lambda x: dist)
@@ -185,13 +189,13 @@ def test_search_print_results_should_contain_latest_versions(caplog):
         {
             'name': 'testlib1',
             'summary': 'Test library 1.',
-            'versions': ['1.0.5', '1.0.3']
+            'versions': ['1.0.5', '1.0.3'],
         },
         {
             'name': 'testlib2',
             'summary': 'Test library 1.',
-            'versions': ['2.0.1', '2.0.3']
-        }
+            'versions': ['2.0.1', '2.0.3'],
+        },
     ]
 
     with caplog.at_level(logging.INFO):

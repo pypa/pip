@@ -46,13 +46,15 @@ def _create_test_package_with_submodule(env, rel_path):
 
     pkg_path.joinpath("__init__.py").write_text("# hello there")
     _create_main_file(pkg_path, name="version_pkg", output="0.1")
-    version_pkg_path.joinpath("setup.py").write_text(textwrap.dedent('''\
+    version_pkg_path.joinpath("setup.py").write_text(
+        textwrap.dedent('''\
                         from setuptools import setup, find_packages
                         setup(name='version_pkg',
                               version='0.1',
                               packages=find_packages(),
                              )
-                        '''))
+                        '''),
+    )
     env.run('git', 'init', cwd=version_pkg_path)
     env.run('git', 'add', '.', cwd=version_pkg_path)
     _git_commit(env, version_pkg_path, message='initial version')

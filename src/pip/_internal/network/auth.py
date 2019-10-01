@@ -107,8 +107,10 @@ class MultiDomainBasicAuth(AuthBase):
             if url.startswith(prefix):
                 return u
 
-    def _get_new_credentials(self, original_url, allow_netrc=True,
-                             allow_keyring=True):
+    def _get_new_credentials(
+        self, original_url, allow_netrc=True,
+        allow_keyring=True,
+    ):
         """Find and return credentials for the specified URL."""
         # Split the credentials and netloc from the url.
         url, netloc, url_user_password = split_auth_netloc_from_url(

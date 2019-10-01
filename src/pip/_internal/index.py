@@ -197,7 +197,7 @@ class LinkEvaluator(object):
                     file_tags = wheel.get_formatted_file_tags()
                     reason = (
                         "none of the wheel's tags match: {}".format(
-                            ', '.join(file_tags)
+                            ', '.join(file_tags),
                         )
                     )
                     return (False, reason)
@@ -296,7 +296,7 @@ def filter_unallowed_hashes(
     else:
         discard_message = 'discarding {} non-matches:\n  {}'.format(
             len(non_matches),
-            '\n  '.join(str(candidate.link) for candidate in non_matches)
+            '\n  '.join(str(candidate.link) for candidate in non_matches),
         )
 
     logger.debug(
@@ -307,7 +307,7 @@ def filter_unallowed_hashes(
         hashes.digest_count,
         match_count,
         len(matches_or_no_digest) - match_count,
-        discard_message
+        discard_message,
     )
 
     return filtered
@@ -521,7 +521,7 @@ class CandidateEvaluator(object):
             if not wheel.supported(valid_tags):
                 raise UnsupportedWheel(
                     "%s is not a supported wheel for this platform. It "
-                    "can't be sorted." % wheel.filename
+                    "can't be sorted." % wheel.filename,
                 )
             if self._prefer_binary:
                 binary_preference = 1
@@ -818,7 +818,7 @@ class PackageFinder(object):
                 ', '.join([
                     url_to_path(candidate.link.url)
                     for candidate in file_versions
-                ])
+                ]),
             )
 
         # This is an intentional priority ordering
@@ -889,10 +889,12 @@ class PackageFinder(object):
             # handle different vendoring sources from pip and pkg_resources.
             # If we stop using the pkg_resources provided specifier and start
             # using our own, we can drop the cast to str().
-            return ", ".join(sorted(
-                {str(c.version) for c in cand_iter},
-                key=parse_version,
-            )) or "none"
+            return ", ".join(
+                sorted(
+                    {str(c.version) for c in cand_iter},
+                    key=parse_version,
+                ),
+            ) or "none"
 
         if installed_version is None and best_candidate is None:
             logger.critical(
@@ -903,13 +905,14 @@ class PackageFinder(object):
             )
 
             raise DistributionNotFound(
-                'No matching distribution found for %s' % req
+                'No matching distribution found for %s' % req,
             )
 
         best_installed = False
         if installed_version and (
                 best_candidate is None or
-                best_candidate.version <= installed_version):
+                best_candidate.version <= installed_version
+        ):
             best_installed = True
 
         if not upgrade and installed_version is not None:

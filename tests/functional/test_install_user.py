@@ -43,7 +43,8 @@ class Tests_UserSite:
     @pytest.mark.network
     @pytest.mark.svn
     def test_install_subversion_usersite_editable_with_distribute(
-            self, script, tmpdir):
+            self, script, tmpdir,
+    ):
         """
         Test installing current directory ('.') into usersite after installing
         distribute
@@ -51,12 +52,13 @@ class Tests_UserSite:
         result = script.pip(
             'install', '--user', '-e',
             '%s#egg=initools' %
-            local_checkout('svn+http://svn.colorstudy.com/INITools', tmpdir)
+            local_checkout('svn+http://svn.colorstudy.com/INITools', tmpdir),
         )
         result.assert_installed('INITools', use_user_site=True)
 
     def test_install_from_current_directory_into_usersite(
-            self, script, data, with_wheel):
+            self, script, data, with_wheel,
+    ):
         """
         Test installing current directory ('.') into usersite
         """
@@ -76,8 +78,10 @@ class Tests_UserSite:
         assert dist_info_folder in result.files_created
 
     @pytest.mark.incompatible_with_test_venv
-    def test_install_user_venv_nositepkgs_fails(self, virtualenv,
-                                                script, data):
+    def test_install_user_venv_nositepkgs_fails(
+        self, virtualenv,
+        script, data,
+    ):
         """
         user install in virtualenv (with no system packages) fails with message
         """
@@ -104,7 +108,8 @@ class Tests_UserSite:
         script.pip('install', '--user', 'INITools==0.3', '--no-binary=:all:')
 
         result2 = script.pip(
-            'install', '--user', 'INITools==0.1', '--no-binary=:all:')
+            'install', '--user', 'INITools==0.1', '--no-binary=:all:',
+        )
 
         # usersite has 0.1
         egg_info_folder = (
@@ -129,7 +134,8 @@ class Tests_UserSite:
         script.pip('install', 'INITools==0.2', '--no-binary=:all:')
 
         result2 = script.pip(
-            'install', '--user', 'INITools==0.1', '--no-binary=:all:')
+            'install', '--user', 'INITools==0.1', '--no-binary=:all:',
+        )
 
         # usersite has 0.1
         egg_info_folder = (
@@ -158,7 +164,8 @@ class Tests_UserSite:
 
         script.pip('install', 'INITools==0.2', '--no-binary=:all:')
         result2 = script.pip(
-            'install', '--user', '--upgrade', 'INITools', '--no-binary=:all:')
+            'install', '--user', '--upgrade', 'INITools', '--no-binary=:all:',
+        )
 
         # usersite has 0.3.1
         egg_info_folder = (
@@ -179,7 +186,8 @@ class Tests_UserSite:
 
     @pytest.mark.network
     def test_install_user_conflict_in_globalsite_and_usersite(
-            self, virtualenv, script):
+            self, virtualenv, script,
+    ):
         """
         Test user install with conflict in globalsite and usersite ignores
         global site and updates usersite.
@@ -190,7 +198,8 @@ class Tests_UserSite:
         script.pip('install', '--user', 'INITools==0.3', '--no-binary=:all:')
 
         result3 = script.pip(
-            'install', '--user', 'INITools==0.1', '--no-binary=:all:')
+            'install', '--user', 'INITools==0.1', '--no-binary=:all:',
+        )
 
         # usersite has 0.1
         egg_info_folder = (
@@ -215,7 +224,8 @@ class Tests_UserSite:
 
     @pytest.mark.network
     def test_install_user_in_global_virtualenv_with_conflict_fails(
-            self, script):
+            self, script,
+    ):
         """
         Test user install in --system-site-packages virtualenv with conflict in
         site fails.

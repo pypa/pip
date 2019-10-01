@@ -45,7 +45,7 @@ class TestInstallationCandidate(object):
 
     def test_sets_correct_variables(self):
         obj = candidate.InstallationCandidate(
-            "A", "1.0.0", "https://somewhere.com/path/A-1.0.0.tar.gz"
+            "A", "1.0.0", "https://somewhere.com/path/A-1.0.0.tar.gz",
         )
         assert obj.project == "A"
         assert obj.version == parse_version("1.0.0")
@@ -55,6 +55,6 @@ class TestInstallationCandidate(object):
     #       it is correct.
     def test_sets_the_right_key(self):
         obj = candidate.InstallationCandidate(
-            "A", "1.0.0", "https://somewhere.com/path/A-1.0.0.tar.gz"
+            "A", "1.0.0", "https://somewhere.com/path/A-1.0.0.tar.gz",
         )
         assert obj._compare_key == (obj.project, obj.version, obj.link)

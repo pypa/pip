@@ -97,7 +97,7 @@ class DebugCommand(Command):
             "This command is only meant for debugging. "
             "Do not use this with automation for parsing and getting these "
             "details, since the output and options of this command may "
-            "change without notice."
+            "change without notice.",
         )
         show_value('pip version', get_pip_version())
         show_value('sys.version', sys.version)

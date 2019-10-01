@@ -47,7 +47,7 @@ def get_src_prefix():
         except OSError:
             # In case the current working directory has been renamed or deleted
             sys.exit(
-                "The folder you are executing pip from can no longer be found."
+                "The folder you are executing pip from can no longer be found.",
             )
 
     # under macOS + virtualenv sys.prefix is not properly resolved
@@ -88,8 +88,10 @@ else:
         bin_py = '/usr/local/bin'
 
 
-def distutils_scheme(dist_name, user=False, home=None, root=None,
-                     isolated=False, prefix=None):
+def distutils_scheme(
+    dist_name, user=False, home=None, root=None,
+    isolated=False, prefix=None,
+):
     # type:(str, bool, str, str, bool, str) -> dict
     """
     Return a distutils install scheme
@@ -147,7 +149,8 @@ def distutils_scheme(dist_name, user=False, home=None, root=None,
 
         if root is not None:
             path_no_drive = os.path.splitdrive(
-                os.path.abspath(scheme["headers"]))[1]
+                os.path.abspath(scheme["headers"]),
+            )[1]
             scheme["headers"] = os.path.join(
                 root,
                 path_no_drive[1:],

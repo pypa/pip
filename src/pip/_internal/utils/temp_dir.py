@@ -44,7 +44,7 @@ class TempDirectory(object):
         self,
         path=None,    # type: Optional[str]
         delete=None,  # type: Optional[bool]
-        kind="temp"
+        kind="temp",
     ):
         super(TempDirectory, self).__init__()
 
@@ -87,7 +87,7 @@ class TempDirectory(object):
         # scripts, so we canonicalize the path by traversing potential
         # symlinks here.
         path = os.path.realpath(
-            tempfile.mkdtemp(prefix="pip-{}-".format(kind))
+            tempfile.mkdtemp(prefix="pip-{}-".format(kind)),
         )
         logger.debug("Created temporary directory: {}".format(path))
         return path
@@ -136,7 +136,8 @@ class AdjacentTempDirectory(TempDirectory):
         """
         for i in range(1, len(name)):
             for candidate in itertools.combinations_with_replacement(
-                    cls.LEADING_CHARS, i - 1):
+                    cls.LEADING_CHARS, i - 1,
+            ):
                 new_name = '~' + ''.join(candidate) + name[i:]
                 if new_name != name:
                     yield new_name
@@ -144,7 +145,8 @@ class AdjacentTempDirectory(TempDirectory):
         # If we make it this far, we will have to make a longer name
         for i in range(len(cls.LEADING_CHARS)):
             for candidate in itertools.combinations_with_replacement(
-                    cls.LEADING_CHARS, i):
+                    cls.LEADING_CHARS, i,
+            ):
                 new_name = '~' + ''.join(candidate) + name
                 if new_name != name:
                     yield new_name
@@ -165,7 +167,7 @@ class AdjacentTempDirectory(TempDirectory):
         else:
             # Final fallback on the default behavior.
             path = os.path.realpath(
-                tempfile.mkdtemp(prefix="pip-{}-".format(kind))
+                tempfile.mkdtemp(prefix="pip-{}-".format(kind)),
             )
 
         logger.debug("Created temporary directory: {}".format(path))

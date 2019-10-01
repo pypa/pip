@@ -95,8 +95,10 @@ class Bazaar(VersionControl):
         urls = cls.run_command(['info'], show_stdout=False, cwd=location)
         for line in urls.splitlines():
             line = line.strip()
-            for x in ('checkout of branch: ',
-                      'parent branch: '):
+            for x in (
+                'checkout of branch: ',
+                'parent branch: ',
+            ):
                 if line.startswith(x):
                     repo = line.split(x)[1]
                     if cls._is_local_repository(repo):

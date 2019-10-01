@@ -43,7 +43,8 @@ class UninstallCommand(Command, SessionCommandMixin):
             '-y', '--yes',
             dest='yes',
             action='store_true',
-            help="Don't ask for confirmation of uninstall deletions.")
+            help="Don't ask for confirmation of uninstall deletions.",
+        )
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
@@ -61,17 +62,18 @@ class UninstallCommand(Command, SessionCommandMixin):
             for req in parse_requirements(
                     filename,
                     options=options,
-                    session=session):
+                    session=session,
+            ):
                 if req.name:
                     reqs_to_uninstall[canonicalize_name(req.name)] = req
         if not reqs_to_uninstall:
             raise InstallationError(
                 'You must give at least one requirement to %(name)s (see '
-                '"pip help %(name)s")' % dict(name=self.name)
+                '"pip help %(name)s")' % dict(name=self.name),
             )
 
         protect_pip_from_modification_on_windows(
-            modifying_pip="pip" in reqs_to_uninstall
+            modifying_pip="pip" in reqs_to_uninstall,
         )
 
         for req in reqs_to_uninstall.values():

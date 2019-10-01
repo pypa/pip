@@ -62,7 +62,7 @@ class RequirementPreparer(object):
         wheel_download_dir,  # type: Optional[str]
         progress_bar,  # type: str
         build_isolation,  # type: bool
-        req_tracker  # type: RequirementTracker
+        req_tracker,  # type: RequirementTracker
     ):
         # type: (...) -> None
         super(RequirementPreparer, self).__init__()
@@ -106,7 +106,8 @@ class RequirementPreparer(object):
         logger.critical('Could not find download directory')
         raise InstallationError(
             "Could not find or access download directory '%s'"
-            % display_path(self.download_dir))
+            % display_path(self.download_dir),
+        )
 
     def prepare_linked_requirement(
         self,
@@ -146,7 +147,7 @@ class RequirementPreparer(object):
                     "likely due to a previous installation that failed"
                     ". pip is being responsible and not assuming it "
                     "can delete this. Please delete it and try again."
-                    % (req, req.source_dir)
+                    % (req, req.source_dir),
                 )
 
             # Now that we have the real link, we can tell what kind of
@@ -191,7 +192,7 @@ class RequirementPreparer(object):
                 unpack_url(
                     link, req.source_dir, download_dir,
                     session=session, hashes=hashes,
-                    progress_bar=self.progress_bar
+                    progress_bar=self.progress_bar,
                 )
             except requests.HTTPError as exc:
                 logger.critical(
@@ -202,7 +203,7 @@ class RequirementPreparer(object):
                 raise InstallationError(
                     'Could not install requirement %s because of HTTP '
                     'error %s for URL %s' %
-                    (req, exc, link)
+                    (req, exc, link),
                 )
 
             if link.is_wheel:
@@ -235,7 +236,7 @@ class RequirementPreparer(object):
         req,  # type: InstallRequirement
         require_hashes,  # type: bool
         use_user_site,  # type: bool
-        finder  # type: PackageFinder
+        finder,  # type: PackageFinder
     ):
         # type: (...) -> AbstractDistribution
         """Prepare an editable requirement
@@ -249,7 +250,7 @@ class RequirementPreparer(object):
                 raise InstallationError(
                     'The editable requirement %s cannot be installed when '
                     'requiring hashes, because there is no single file to '
-                    'hash.' % req
+                    'hash.' % req,
                 )
             req.ensure_has_source_dir(self.src_dir)
             req.update_editable(not self._download_should_save)
@@ -268,7 +269,7 @@ class RequirementPreparer(object):
         self,
         req,  # type: InstallRequirement
         require_hashes,  # type: bool
-        skip_reason  # type: str
+        skip_reason,  # type: str
     ):
         # type: (...) -> AbstractDistribution
         """Prepare an already-installed requirement
@@ -280,7 +281,7 @@ class RequirementPreparer(object):
         )
         logger.info(
             'Requirement %s: %s (%s)',
-            skip_reason, req, req.satisfied_by.version
+            skip_reason, req, req.satisfied_by.version,
         )
         with indent_log():
             if require_hashes:
@@ -288,7 +289,7 @@ class RequirementPreparer(object):
                     'Since it is already installed, we are trusting this '
                     'package without checking its hash. To ensure a '
                     'completely repeatable environment, install into an '
-                    'empty virtualenv.'
+                    'empty virtualenv.',
                 )
             abstract_dist = InstalledDistribution(req)
 

@@ -24,7 +24,7 @@ def make_setuptools_shim_args(
         setup_py_path,  # type: str
         global_options=None,  # type: Sequence[str]
         no_user_config=False,  # type: bool
-        unbuffered_output=False  # type: bool
+        unbuffered_output=False,  # type: bool
 ):
     # type: (...) -> List[str]
     """

@@ -56,7 +56,7 @@ class VirtualEnvironment(object):
                 self.location.rmdir()
             # Clone virtual environment from template.
             shutil.copytree(
-                self._template.location, self.location, symlinks=True
+                self._template.location, self.location, symlinks=True,
             )
             self._sitecustomize = self._template.sitecustomize
             self._user_site_packages = self._template.user_site_packages
@@ -144,7 +144,8 @@ class VirtualEnvironment(object):
                     # Third, add back system-sites related paths.
                     for path in site.getsitepackages():
                         site.addsitedir(path)
-                ''').strip()
+                '''
+            ).strip()
         if self._sitecustomize is not None:
             contents += '\n' + self._sitecustomize
         sitecustomize = self.site / "sitecustomize.py"

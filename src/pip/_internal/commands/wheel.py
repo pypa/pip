@@ -58,8 +58,10 @@ class WheelCommand(RequirementCommand):
             dest='wheel_dir',
             metavar='dir',
             default=os.curdir,
-            help=("Build wheels into <dir>, where the default is the "
-                  "current working directory."),
+            help=(
+                "Build wheels into <dir>, where the default is the "
+                "current working directory."
+            ),
         )
         cmd_opts.add_option(cmdoptions.no_binary())
         cmd_opts.add_option(cmdoptions.only_binary())
@@ -89,14 +91,17 @@ class WheelCommand(RequirementCommand):
             action='append',
             metavar='options',
             help="Extra global options to be supplied to the setup.py "
-            "call before the 'bdist_wheel' command.")
+            "call before the 'bdist_wheel' command.",
+        )
 
         cmd_opts.add_option(
             '--pre',
             action='store_true',
             default=False,
-            help=("Include pre-release and development versions. By default, "
-                  "pip only finds stable versions."),
+            help=(
+                "Include pre-release and development versions. By default, "
+                "pip only finds stable versions."
+            ),
         )
 
         cmd_opts.add_option(cmdoptions.no_clean())
@@ -126,7 +131,7 @@ class WheelCommand(RequirementCommand):
         wheel_cache = WheelCache(options.cache_dir, options.format_control)
 
         with RequirementTracker() as req_tracker, TempDirectory(
-            options.build_dir, delete=build_delete, kind="wheel"
+            options.build_dir, delete=build_delete, kind="wheel",
         ) as directory:
 
             requirement_set = RequirementSet(
@@ -136,7 +141,7 @@ class WheelCommand(RequirementCommand):
             try:
                 self.populate_requirement_set(
                     requirement_set, args, options, finder, session,
-                    wheel_cache
+                    wheel_cache,
                 )
 
                 preparer = self.make_requirement_preparer(
@@ -169,7 +174,7 @@ class WheelCommand(RequirementCommand):
                 )
                 if len(build_failures) != 0:
                     raise CommandError(
-                        "Failed to build one or more wheels"
+                        "Failed to build one or more wheels",
                     )
             except PreviousBuildDirError:
                 options.no_clean = True

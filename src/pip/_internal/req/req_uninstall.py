@@ -124,8 +124,12 @@ def compress_for_rename(paths):
     """
     case_map = dict((os.path.normcase(p), p) for p in paths)
     remaining = set(case_map)
-    unchecked = sorted(set(os.path.split(p)[0]
-                           for p in case_map.values()), key=len)
+    unchecked = sorted(
+        set(
+            os.path.split(p)[0]
+            for p in case_map.values()
+        ), key=len,
+    )
     wildcards = set()  # type: Set[str]
 
     def norm_join(*a):
@@ -133,18 +137,24 @@ def compress_for_rename(paths):
         return os.path.normcase(os.path.join(*a))
 
     for root in unchecked:
-        if any(os.path.normcase(root).startswith(w)
-               for w in wildcards):
+        if any(
+            os.path.normcase(root).startswith(w)
+            for w in wildcards
+        ):
             # This directory has already been handled.
             continue
 
         all_files = set()  # type: Set[str]
         all_subdirs = set()  # type: Set[str]
         for dirname, subdirs, files in os.walk(root):
-            all_subdirs.update(norm_join(root, dirname, d)
-                               for d in subdirs)
-            all_files.update(norm_join(root, dirname, f)
-                             for f in files)
+            all_subdirs.update(
+                norm_join(root, dirname, d)
+                for d in subdirs
+            )
+            all_files.update(
+                norm_join(root, dirname, f)
+                for f in files
+            )
         # If all the files we found are in our remaining set of files to
         # remove, then remove them from the latter set and add a wildcard
         # for the directory.
@@ -194,8 +204,10 @@ def compress_for_output_listing(paths):
                     continue
 
                 file_ = os.path.join(dirpath, fname)
-                if (os.path.isfile(file_) and
-                        os.path.normcase(file_) not in _normcased_files):
+                if (
+                    os.path.isfile(file_) and
+                    os.path.normcase(file_) not in _normcased_files
+                ):
                     # We are skipping this file. Add it to the set.
                     will_skip.add(file_)
 
@@ -462,9 +474,13 @@ class UninstallPathSet(object):
             )
             return cls(dist)
 
-        if dist_path in {p for p in {sysconfig.get_path("stdlib"),
-                                     sysconfig.get_path("platstdlib")}
-                         if p}:
+        if dist_path in {
+            p for p in {
+                sysconfig.get_path("stdlib"),
+                sysconfig.get_path("platstdlib"),
+            }
+            if p
+        }:
             logger.info(
                 "Not uninstalling %s at %s, as it is in the standard library.",
                 dist.key,
@@ -475,23 +491,27 @@ class UninstallPathSet(object):
         paths_to_remove = cls(dist)
         develop_egg_link = egg_link_path(dist)
         develop_egg_link_egg_info = '{}.egg-info'.format(
-            pkg_resources.to_filename(dist.project_name))
+            pkg_resources.to_filename(dist.project_name),
+        )
         egg_info_exists = dist.egg_info and os.path.exists(dist.egg_info)
         # Special case for distutils installed package
         distutils_egg_info = getattr(dist._provider, 'path', None)
 
         # Uninstall cases order do matter as in the case of 2 installs of the
         # same package, pip needs to uninstall the currently detected version
-        if (egg_info_exists and dist.egg_info.endswith('.egg-info') and
-                not dist.egg_info.endswith(develop_egg_link_egg_info)):
+        if (
+            egg_info_exists and dist.egg_info.endswith('.egg-info') and
+            not dist.egg_info.endswith(develop_egg_link_egg_info)
+        ):
             # if dist.egg_info.endswith(develop_egg_link_egg_info), we
             # are in fact in the develop_egg_link case
             paths_to_remove.add(dist.egg_info)
             if dist.has_metadata('installed-files.txt'):
                 for installed_file in dist.get_metadata(
-                        'installed-files.txt').splitlines():
+                        'installed-files.txt',
+                ).splitlines():
                     path = os.path.normpath(
-                        os.path.join(dist.egg_info, installed_file)
+                        os.path.join(dist.egg_info, installed_file),
                     )
                     paths_to_remove.add(path)
             # FIXME: need a test for this elif block
@@ -505,7 +525,8 @@ class UninstallPathSet(object):
                 for top_level_pkg in [
                         p for p
                         in dist.get_metadata('top_level.txt').splitlines()
-                        if p and p not in namespaces]:
+                        if p and p not in namespaces
+                ]:
                     path = os.path.join(dist.location, top_level_pkg)
                     paths_to_remove.add(path)
                     paths_to_remove.add(path + '.py')
@@ -518,7 +539,7 @@ class UninstallPathSet(object):
                 "and thus we cannot accurately determine which files belong "
                 "to it which would lead to only a partial uninstall.".format(
                     dist.project_name,
-                )
+                ),
             )
 
         elif dist.location.endswith('.egg'):
@@ -527,8 +548,10 @@ class UninstallPathSet(object):
             # i.e. setuptools-0.6c11-py2.6.egg vs setuptools-0.6rc11-py2.6.egg
             paths_to_remove.add(dist.location)
             easy_install_egg = os.path.split(dist.location)[1]
-            easy_install_pth = os.path.join(os.path.dirname(dist.location),
-                                            'easy-install.pth')
+            easy_install_pth = os.path.join(
+                os.path.dirname(dist.location),
+                'easy-install.pth',
+            )
             paths_to_remove.add_pth(easy_install_pth, './' + easy_install_egg)
 
         elif egg_info_exists and dist.egg_info.endswith('.dist-info'):
@@ -544,8 +567,10 @@ class UninstallPathSet(object):
                 '(at %s)' % (link_pointer, dist.project_name, dist.location)
             )
             paths_to_remove.add(develop_egg_link)
-            easy_install_pth = os.path.join(os.path.dirname(develop_egg_link),
-                                            'easy-install.pth')
+            easy_install_pth = os.path.join(
+                os.path.dirname(develop_egg_link),
+                'easy-install.pth',
+            )
             paths_to_remove.add_pth(easy_install_pth, dist.location)
 
         else:
@@ -586,7 +611,7 @@ class UninstallPthEntries(object):
         # type: (str) -> None
         if not os.path.isfile(pth_file):
             raise UninstallationError(
-                "Cannot remove entries from nonexistent file %s" % pth_file
+                "Cannot remove entries from nonexistent file %s" % pth_file,
             )
         self.file = pth_file
         self.entries = set()  # type: Set[str]
@@ -635,7 +660,7 @@ class UninstallPthEntries(object):
         # type: () -> bool
         if self._saved_lines is None:
             logger.error(
-                'Cannot roll back changes to %s, none were made', self.file
+                'Cannot roll back changes to %s, none were made', self.file,
             )
             return False
         logger.debug('Rolling %s back to previous state', self.file)

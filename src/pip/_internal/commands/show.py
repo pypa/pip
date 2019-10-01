@@ -35,7 +35,8 @@ class ShowCommand(Command):
             dest='files',
             action='store_true',
             default=False,
-            help='Show the full list of installed files for each package.')
+            help='Show the full list of installed files for each package.',
+        )
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
@@ -47,7 +48,8 @@ class ShowCommand(Command):
 
         results = search_packages_info(query)
         if not print_results(
-                results, list_files=options.files, verbose=options.verbose):
+                results, list_files=options.files, verbose=options.verbose,
+        ):
             return ERROR
         return SUCCESS
 
@@ -65,7 +67,7 @@ def search_packages_info(query):
 
     query_names = [canonicalize_name(name) for name in query]
     missing = sorted(
-        [name for name, pkg in zip(query, query_names) if pkg not in installed]
+        [name for name, pkg in zip(query, query_names) if pkg not in installed],
     )
     if missing:
         logger.warning('Package(s) not found: %s', ', '.join(missing))
@@ -75,8 +77,10 @@ def search_packages_info(query):
         return [
             pkg.project_name for pkg in pkg_resources.working_set
             if canonical_name in
-               [canonicalize_name(required.name) for required in
-                pkg.requires()]
+               [
+                   canonicalize_name(required.name) for required in
+                   pkg.requires()
+               ]
         ]
 
     for dist in [installed[pkg] for pkg in query_names if pkg in installed]:
@@ -85,7 +89,7 @@ def search_packages_info(query):
             'version': dist.version,
             'location': dist.location,
             'requires': [dep.project_name for dep in dist.requires()],
-            'required_by': get_requiring_packages(dist.project_name)
+            'required_by': get_requiring_packages(dist.project_name),
         }
         file_list = None
         metadata = None
@@ -124,8 +128,10 @@ def search_packages_info(query):
         feed_parser = FeedParser()
         feed_parser.feed(metadata)
         pkg_info_dict = feed_parser.close()
-        for key in ('metadata-version', 'summary',
-                    'home-page', 'author', 'author-email', 'license'):
+        for key in (
+            'metadata-version', 'summary',
+            'home-page', 'author', 'author-email', 'license',
+        ):
             package[key] = pkg_info_dict.get(key)
 
         # It looks like FeedParser cannot deal with repeated headers
@@ -162,8 +168,10 @@ def print_results(distributions, list_files=False, verbose=False):
         write_output("Required-by: %s", ', '.join(dist.get('required_by', [])))
 
         if verbose:
-            write_output("Metadata-Version: %s",
-                         dist.get('metadata-version', ''))
+            write_output(
+                "Metadata-Version: %s",
+                dist.get('metadata-version', ''),
+            )
             write_output("Installer: %s", dist.get('installer', ''))
             write_output("Classifiers:")
             for classifier in dist.get('classifiers', []):

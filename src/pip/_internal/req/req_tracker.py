@@ -43,7 +43,7 @@ class RequirementTracker(object):
         self,
         exc_type,  # type: Optional[Type[BaseException]]
         exc_val,  # type: Optional[BaseException]
-        exc_tb  # type: Optional[TracebackType]
+        exc_tb,  # type: Optional[TracebackType]
     ):
         # type: (...) -> None
         self.cleanup()
@@ -61,8 +61,10 @@ class RequirementTracker(object):
         try:
             with open(entry_path) as fp:
                 # Error, these's already a build in progress.
-                raise LookupError('%s is already being built: %s'
-                                  % (link, fp.read()))
+                raise LookupError(
+                    '%s is already being built: %s'
+                    % (link, fp.read()),
+                )
         except IOError as e:
             if e.errno != errno.ENOENT:
                 raise
@@ -86,9 +88,11 @@ class RequirementTracker(object):
         remove = self._temp_dir is not None
         if remove:
             self._temp_dir.cleanup()
-        logger.debug('%s build tracker %r',
-                     'Removed' if remove else 'Cleaned',
-                     self._root)
+        logger.debug(
+            '%s build tracker %r',
+            'Removed' if remove else 'Cleaned',
+            self._root,
+        )
 
     @contextlib.contextmanager
     def track(self, req):

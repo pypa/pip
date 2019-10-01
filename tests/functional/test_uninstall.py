@@ -41,19 +41,23 @@ def test_basic_uninstall_distutils(script):
     """
     script.scratch_path.joinpath("distutils_install").mkdir()
     pkg_path = script.scratch_path / 'distutils_install'
-    pkg_path.joinpath("setup.py").write_text(textwrap.dedent("""
+    pkg_path.joinpath("setup.py").write_text(
+        textwrap.dedent("""
         from distutils.core import setup
         setup(
             name='distutils-install',
             version='0.1',
         )
-    """))
+    """),
+    )
     result = script.run('python', pkg_path / 'setup.py', 'install')
     result = script.pip('list', '--format=json')
     assert {"name": "distutils-install", "version": "0.1"} \
         in json.loads(result.stdout)
-    result = script.pip('uninstall', 'distutils_install', '-y',
-                        expect_stderr=True, expect_error=True)
+    result = script.pip(
+        'uninstall', 'distutils_install', '-y',
+        expect_stderr=True, expect_error=True,
+    )
     assert (
         "Cannot uninstall 'distutils-install'. It is a distutils installed "
         "project and thus we cannot accurately determine which files belong "
@@ -85,8 +89,10 @@ def test_uninstall_easy_install_after_import(script):
     Uninstall an easy_installed package after it's been imported
 
     """
-    result = script.easy_install('--always-unzip', 'INITools==0.2',
-                                 expect_stderr=True)
+    result = script.easy_install(
+        '--always-unzip', 'INITools==0.2',
+        expect_stderr=True,
+    )
     # the import forces the generation of __pycache__ if the version of python
     # supports it
     script.run('python', '-c', "import initools")
@@ -98,7 +104,7 @@ def test_uninstall_easy_install_after_import(script):
             script.venv / 'build',
             'cache',
             script.site_packages / 'easy-install.pth',
-        ]
+        ],
     )
 
 
@@ -175,7 +181,7 @@ def test_uninstall_overlapping_package(script, data):
         sorted(result2.files_created.keys())
     )
     assert normpath(
-        join(script.site_packages, 'parent/plugins/child_plugin.py')
+        join(script.site_packages, 'parent/plugins/child_plugin.py'),
     ) in result2.files_created, sorted(result2.files_created.keys())
     # The import forces the generation of __pycache__ if the version of python
     #  supports it
@@ -185,7 +191,7 @@ def test_uninstall_overlapping_package(script, data):
         sorted(result3.files_created.keys())
     )
     assert normpath(
-        join(script.site_packages, 'parent/plugins/child_plugin.py')
+        join(script.site_packages, 'parent/plugins/child_plugin.py'),
     ) in result3.files_deleted, sorted(result3.files_deleted.keys())
     assert join(script.site_packages, 'parent') not in result3.files_deleted, (
         sorted(result3.files_deleted.keys())
@@ -195,9 +201,13 @@ def test_uninstall_overlapping_package(script, data):
     assert_all_changes(result2, result3, [])
 
 
-@pytest.mark.parametrize("console_scripts",
-                         ["test_ = distutils_install",
-                          "test_:test_ = distutils_install"])
+@pytest.mark.parametrize(
+    "console_scripts",
+    [
+        "test_ = distutils_install",
+        "test_:test_ = distutils_install",
+    ],
+)
 def test_uninstall_entry_point(script, console_scripts):
     """
     Test uninstall package with two or more entry points in the same section,
@@ -208,14 +218,17 @@ def test_uninstall_entry_point(script, console_scripts):
         script,
         name=pkg_name,
         version='0.1',
-        entry_points={"console_scripts": [console_scripts, ],
-                      "pip_test.ep":
-                      ["ep:name1 = distutils_install",
-                       "ep:name2 = distutils_install"]
-                      }
+        entry_points={
+            "console_scripts": [console_scripts],
+            "pip_test.ep":
+            [
+                "ep:name1 = distutils_install",
+                "ep:name2 = distutils_install",
+            ],
+        },
     )
     script_name = script.bin_path.joinpath(
-        console_scripts.split('=')[0].strip()
+        console_scripts.split('=')[0].strip(),
     )
     if sys.platform == 'win32':
         script_name += '.exe'
@@ -240,7 +253,7 @@ def test_uninstall_gui_scripts(script):
         script,
         name=pkg_name,
         version='0.1',
-        entry_points={"gui_scripts": ["test_ = distutils_install", ], }
+        entry_points={"gui_scripts": ["test_ = distutils_install"]},
     )
     script_name = script.bin_path.joinpath('test_')
     if sys.platform == 'win32':
@@ -284,7 +297,7 @@ def test_uninstall_easy_installed_console_scripts(script):
             script.venv / 'build',
             'cache',
             script.site_packages / 'easy-install.pth',
-        ]
+        ],
     )
 
 
@@ -308,7 +321,7 @@ def test_uninstall_editable_from_svn(script, tmpdir):
         [
             script.venv / 'src',
             script.venv / 'build',
-            script.site_packages / 'easy-install.pth'
+            script.site_packages / 'easy-install.pth',
         ],
     )
 
@@ -341,7 +354,7 @@ def _test_uninstall_editable_with_source_outside_venv(
     )
     result2 = script.pip('install', '-e', temp_pkg_dir)
     assert join(
-        script.site_packages, 'pip-test-package.egg-link'
+        script.site_packages, 'pip-test-package.egg-link',
     ) in result2.files_created, list(result2.files_created.keys())
     result3 = script.pip('uninstall', '-y', 'pip-test-package')
     assert_all_changes(
@@ -366,7 +379,7 @@ def test_uninstall_from_reqs_file(script, tmpdir):
             -e %s#egg=initools
             # and something else to test out:
             PyLogo<0.4
-        """) % local_svn_url
+        """) % local_svn_url,
     )
     result = script.pip('install', '-r', 'test-req.txt')
     script.scratch_path.joinpath("test-req.txt").write_text(
@@ -379,7 +392,7 @@ def test_uninstall_from_reqs_file(script, tmpdir):
             -e %s#egg=initools
             # and something else to test out:
             PyLogo<0.4
-        """) % local_svn_url
+        """) % local_svn_url,
     )
     result2 = script.pip('uninstall', '-r', 'test-req.txt', '-y')
     assert_all_changes(
@@ -472,20 +485,26 @@ def test_uninstall_with_symlink(script, data, tmpdir):
 def test_uninstall_setuptools_develop_install(script, data):
     """Try uninstall after setup.py develop followed of setup.py install"""
     pkg_path = data.packages.joinpath("FSPkg")
-    script.run('python', 'setup.py', 'develop',
-               expect_stderr=True, cwd=pkg_path)
-    script.run('python', 'setup.py', 'install',
-               expect_stderr=True, cwd=pkg_path)
+    script.run(
+        'python', 'setup.py', 'develop',
+        expect_stderr=True, cwd=pkg_path,
+    )
+    script.run(
+        'python', 'setup.py', 'install',
+        expect_stderr=True, cwd=pkg_path,
+    )
     list_result = script.pip('list', '--format=json')
     assert {"name": os.path.normcase("FSPkg"), "version": "0.1.dev0"} \
         in json.loads(list_result.stdout), str(list_result)
     # Uninstall both develop and install
     uninstall = script.pip('uninstall', 'FSPkg', '-y')
-    assert any(filename.endswith('.egg')
-               for filename in uninstall.files_deleted.keys())
+    assert any(
+        filename.endswith('.egg')
+        for filename in uninstall.files_deleted.keys()
+    )
     uninstall2 = script.pip('uninstall', 'FSPkg', '-y')
     assert join(
-        script.site_packages, 'FSPkg.egg-link'
+        script.site_packages, 'FSPkg.egg-link',
     ) in uninstall2.files_deleted, list(uninstall2.files_deleted.keys())
     list_result2 = script.pip('list', '--format=json')
     assert "FSPkg" not in {p["name"] for p in json.loads(list_result2.stdout)}
@@ -499,21 +518,27 @@ def test_uninstall_editable_and_pip_install(script, data):
     script.environ['SETUPTOOLS_SYS_PATH_TECHNIQUE'] = 'raw'
 
     pkg_path = data.packages.joinpath("FSPkg")
-    script.pip('install', '-e', '.',
-               expect_stderr=True, cwd=pkg_path)
+    script.pip(
+        'install', '-e', '.',
+        expect_stderr=True, cwd=pkg_path,
+    )
     # ensure both are installed with --ignore-installed:
-    script.pip('install', '--ignore-installed', '.',
-               expect_stderr=True, cwd=pkg_path)
+    script.pip(
+        'install', '--ignore-installed', '.',
+        expect_stderr=True, cwd=pkg_path,
+    )
     list_result = script.pip('list', '--format=json')
     assert {"name": "FSPkg", "version": "0.1.dev0"} \
         in json.loads(list_result.stdout)
     # Uninstall both develop and install
     uninstall = script.pip('uninstall', 'FSPkg', '-y')
-    assert not any(filename.endswith('.egg-link')
-                   for filename in uninstall.files_deleted.keys())
+    assert not any(
+        filename.endswith('.egg-link')
+        for filename in uninstall.files_deleted.keys()
+    )
     uninstall2 = script.pip('uninstall', 'FSPkg', '-y')
     assert join(
-        script.site_packages, 'FSPkg.egg-link'
+        script.site_packages, 'FSPkg.egg-link',
     ) in uninstall2.files_deleted, list(uninstall2.files_deleted.keys())
     list_result2 = script.pip('list', '--format=json')
     assert "FSPkg" not in {p["name"] for p in json.loads(list_result2.stdout)}

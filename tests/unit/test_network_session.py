@@ -16,14 +16,16 @@ def test_user_agent():
     assert user_agent.startswith("pip/{}".format(__version__))
 
 
-@pytest.mark.parametrize('name, expected_like_ci', [
-    ('BUILD_BUILDID', True),
-    ('BUILD_ID', True),
-    ('CI', True),
-    ('PIP_IS_CI', True),
-    # Test a prefix substring of one of the variable names we use.
-    ('BUILD', False),
-])
+@pytest.mark.parametrize(
+    'name, expected_like_ci', [
+        ('BUILD_BUILDID', True),
+        ('BUILD_ID', True),
+        ('CI', True),
+        ('PIP_IS_CI', True),
+        # Test a prefix substring of one of the variable names we use.
+        ('BUILD', False),
+    ],
+)
 def test_user_agent__ci(monkeypatch, name, expected_like_ci):
     # Delete the variable names we use to check for CI to prevent the
     # detection from always returning True in case the tests are being run
@@ -95,7 +97,7 @@ class TestPipSession:
 
         # Confirm some initial conditions as a baseline.
         assert session.pip_trusted_origins == [
-            ('host1', None), ('host3', None)
+            ('host1', None), ('host3', None),
         ]
         assert session.adapters[prefix3] is insecure_adapter
         assert session.adapters[prefix3_wildcard] is insecure_adapter
@@ -105,7 +107,7 @@ class TestPipSession:
         # Test adding a new host.
         session.add_trusted_host('host2')
         assert session.pip_trusted_origins == [
-            ('host1', None), ('host3', None), ('host2', None)
+            ('host1', None), ('host3', None), ('host2', None),
         ]
         # Check that prefix3 is still present.
         assert session.adapters[prefix3] is insecure_adapter
@@ -114,14 +116,14 @@ class TestPipSession:
         # Test that adding the same host doesn't create a duplicate.
         session.add_trusted_host('host3')
         assert session.pip_trusted_origins == [
-            ('host1', None), ('host3', None), ('host2', None)
+            ('host1', None), ('host3', None), ('host2', None),
         ], 'actual: {}'.format(session.pip_trusted_origins)
 
         session.add_trusted_host('host4:8080')
         prefix4 = 'https://host4:8080/'
         assert session.pip_trusted_origins == [
             ('host1', None), ('host3', None),
-            ('host2', None), ('host4', 8080)
+            ('host2', None), ('host4', 8080),
         ]
         assert session.adapters[prefix4] is insecure_adapter
 
@@ -158,7 +160,7 @@ class TestPipSession:
         assert actual[-3:] == [
             ('*', 'host1', '*'),
             ('*', 'host2', '*'),
-            ('*', 'host3', 8080)
+            ('*', 'host3', 8080),
         ]
 
     def test_iter_secure_origins__trusted_hosts_empty(self):
@@ -194,7 +196,7 @@ class TestPipSession:
             (
                 "http://example.com:8888/something/",
                 ["example.com:8080"],
-                False
+                False,
             ),
         ],
     )

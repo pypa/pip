@@ -36,7 +36,7 @@ class _Prefix:
         self.setup = False
         self.bin_dir = get_paths(
             'nt' if os.name == 'nt' else 'posix_prefix',
-            vars={'base': path, 'platbase': path}
+            vars={'base': path, 'platbase': path},
         )['scripts']
         # Note: prefer distutils' sysconfig to get the
         # library paths so PyPy is correctly supported.
@@ -80,8 +80,9 @@ class BuildEnvironment(object):
         if not os.path.exists(self._site_dir):
             os.mkdir(self._site_dir)
         with open(os.path.join(self._site_dir, 'sitecustomize.py'), 'w') as fp:
-            fp.write(textwrap.dedent(
-                '''
+            fp.write(
+                textwrap.dedent(
+                    '''
                 import os, site, sys
 
                 # First, drop system-sites related paths.
@@ -105,7 +106,8 @@ class BuildEnvironment(object):
                     assert not path in sys.path
                     site.addsitedir(path)
                 '''
-            ).format(system_sites=system_sites, lib_dirs=self._lib_dirs))
+                ).format(system_sites=system_sites, lib_dirs=self._lib_dirs),
+            )
 
     def __enter__(self):
         self._save_env = {
@@ -152,8 +154,10 @@ class BuildEnvironment(object):
                     if ws.find(Requirement.parse(req)) is None:
                         missing.add(req)
                 except VersionConflict as e:
-                    conflicting.add((str(e.args[0].as_requirement()),
-                                     str(e.args[1])))
+                    conflicting.add((
+                        str(e.args[0].as_requirement()),
+                        str(e.args[1]),
+                    ))
         return conflicting, missing
 
     def install_requirements(
@@ -161,7 +165,7 @@ class BuildEnvironment(object):
         finder,  # type: PackageFinder
         requirements,  # type: Iterable[str]
         prefix_as_string,  # type: str
-        message  # type: Optional[str]
+        message,  # type: Optional[str]
     ):
         # type: (...) -> None
         prefix = self._prefixes[prefix_as_string]
@@ -178,8 +182,10 @@ class BuildEnvironment(object):
             args.append('-v')
         for format_control in ('no_binary', 'only_binary'):
             formats = getattr(finder.format_control, format_control)
-            args.extend(('--' + format_control.replace('_', '-'),
-                         ','.join(sorted(formats or {':none:'}))))
+            args.extend((
+                '--' + format_control.replace('_', '-'),
+                ','.join(sorted(formats or {':none:'})),
+            ))
 
         index_urls = finder.index_urls
         if index_urls:

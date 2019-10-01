@@ -24,8 +24,8 @@ class PackageIndex(object):
 
 
 PyPI = PackageIndex(
-    'https://pypi.org/', file_storage_domain='files.pythonhosted.org'
+    'https://pypi.org/', file_storage_domain='files.pythonhosted.org',
 )
 TestPyPI = PackageIndex(
-    'https://test.pypi.org/', file_storage_domain='test-files.pythonhosted.org'
+    'https://test.pypi.org/', file_storage_domain='test-files.pythonhosted.org',
 )

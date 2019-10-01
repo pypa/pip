@@ -23,7 +23,7 @@ def _create_svn_initools_repo(initools_dir):
 
     filename, _ = urllib_request.urlretrieve(
         'http://bitbucket.org/hltbra/pip-initools-dump/raw/8b55c908a320/'
-        'INITools_modified.dump'
+        'INITools_modified.dump',
     )
     devnull = open(os.devnull, 'w')
     dump = open(filename)

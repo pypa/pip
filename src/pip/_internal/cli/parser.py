@@ -164,7 +164,7 @@ class ConfigOptionParser(CustomOptionParser):
             if not val:
                 logger.debug(
                     "Ignoring configuration key '%s' as it's value is empty.",
-                    section_key
+                    section_key,
                 )
                 continue
 
@@ -201,7 +201,7 @@ class ConfigOptionParser(CustomOptionParser):
                     val = strtobool(val)
                 except ValueError:
                     error_msg = invalid_config_error_message(
-                        option.action, key, val
+                        option.action, key, val,
                     )
                     self.error(error_msg)
 
@@ -256,10 +256,14 @@ def invalid_config_error_message(action, key, val):
     """Returns a better error message when invalid configuration option
     is provided."""
     if action in ('store_true', 'store_false'):
-        return ("{0} is not a valid value for {1} option, "
-                "please specify a boolean value like yes/no, "
-                "true/false or 1/0 instead.").format(val, key)
+        return (
+            "{0} is not a valid value for {1} option, "
+            "please specify a boolean value like yes/no, "
+            "true/false or 1/0 instead."
+        ).format(val, key)
 
-    return ("{0} is not a valid value for {1} option, "
-            "please specify a numerical value like 1/0 "
-            "instead.").format(val, key)
+    return (
+        "{0} is not a valid value for {1} option, "
+        "please specify a numerical value like 1/0 "
+        "instead."
+    ).format(val, key)

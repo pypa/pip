@@ -41,7 +41,8 @@ class SearchCommand(Command, SessionCommandMixin):
             dest='index',
             metavar='URL',
             default=PyPI.pypi_url,
-            help='Base URL of Python Package Index (default %default)')
+            help='Base URL of Python Package Index (default %default)',
+        )
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
@@ -121,8 +122,10 @@ def print_results(hits, name_column_width=None, terminal_width=None):
                 summary = textwrap.wrap(summary, target_width)
                 summary = ('\n' + ' ' * (name_column_width + 3)).join(summary)
 
-        line = '%-*s - %s' % (name_column_width,
-                              '%s (%s)' % (name, latest), summary)
+        line = '%-*s - %s' % (
+            name_column_width,
+            '%s (%s)' % (name, latest), summary,
+        )
         try:
             write_output(line)
             if name in installed_packages:
@@ -133,8 +136,10 @@ def print_results(hits, name_column_width=None, terminal_width=None):
                     else:
                         write_output('INSTALLED: %s', dist.version)
                         if parse_version(latest).pre:
-                            write_output('LATEST:    %s (pre-release; install'
-                                         ' with "pip install --pre")', latest)
+                            write_output(
+                                'LATEST:    %s (pre-release; install'
+                                ' with "pip install --pre")', latest,
+                            )
                         else:
                             write_output('LATEST:    %s', latest)
         except UnicodeEncodeError:

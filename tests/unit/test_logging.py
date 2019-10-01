@@ -63,13 +63,15 @@ class TestIndentingFormatter(object):
 
         return record
 
-    @pytest.mark.parametrize('level_name, expected', [
-        ('DEBUG', 'hello\nworld'),
-        ('INFO', 'hello\nworld'),
-        ('WARNING', 'WARNING: hello\nworld'),
-        ('ERROR', 'ERROR: hello\nworld'),
-        ('CRITICAL', 'ERROR: hello\nworld'),
-    ])
+    @pytest.mark.parametrize(
+        'level_name, expected', [
+            ('DEBUG', 'hello\nworld'),
+            ('INFO', 'hello\nworld'),
+            ('WARNING', 'WARNING: hello\nworld'),
+            ('ERROR', 'ERROR: hello\nworld'),
+            ('CRITICAL', 'ERROR: hello\nworld'),
+        ],
+    )
     def test_format(self, level_name, expected):
         """
         Args:
@@ -79,24 +81,32 @@ class TestIndentingFormatter(object):
         f = IndentingFormatter(fmt="%(message)s")
         assert f.format(record) == expected
 
-    @pytest.mark.parametrize('level_name, expected', [
-        ('INFO',
-         '2019-01-17T06:00:37,040 hello\n'
-         '2019-01-17T06:00:37,040 world'),
-        ('WARNING',
-         '2019-01-17T06:00:37,040 WARNING: hello\n'
-         '2019-01-17T06:00:37,040 world'),
-    ])
+    @pytest.mark.parametrize(
+        'level_name, expected', [
+            (
+                'INFO',
+                '2019-01-17T06:00:37,040 hello\n'
+                '2019-01-17T06:00:37,040 world',
+            ),
+            (
+                'WARNING',
+                '2019-01-17T06:00:37,040 WARNING: hello\n'
+                '2019-01-17T06:00:37,040 world',
+            ),
+        ],
+    )
     def test_format_with_timestamp(self, level_name, expected):
         record = self.make_record('hello\nworld', level_name=level_name)
         f = IndentingFormatter(fmt="%(message)s", add_timestamp=True)
         assert f.format(record) == expected
 
-    @pytest.mark.parametrize('level_name, expected', [
-        ('WARNING', 'DEPRECATION: hello\nworld'),
-        ('ERROR', 'DEPRECATION: hello\nworld'),
-        ('CRITICAL', 'DEPRECATION: hello\nworld'),
-    ])
+    @pytest.mark.parametrize(
+        'level_name, expected', [
+            ('WARNING', 'DEPRECATION: hello\nworld'),
+            ('ERROR', 'DEPRECATION: hello\nworld'),
+            ('CRITICAL', 'DEPRECATION: hello\nworld'),
+        ],
+    )
     def test_format_deprecated(self, level_name, expected):
         """
         Test that logged deprecation warnings coming from deprecated()

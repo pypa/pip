@@ -123,7 +123,7 @@ def call_subprocess(
     command_desc=None,  # type: Optional[str]
     extra_environ=None,  # type: Optional[Mapping[str, Any]]
     unset_environ=None,  # type: Optional[Iterable[str]]
-    spinner=None  # type: Optional[SpinnerInterface]
+    spinner=None,  # type: Optional[SpinnerInterface]
 ):
     # type: (...) -> Text
     """
@@ -245,8 +245,10 @@ def call_subprocess(
         elif on_returncode == 'ignore':
             pass
         else:
-            raise ValueError('Invalid value: on_returncode=%s' %
-                             repr(on_returncode))
+            raise ValueError(
+                'Invalid value: on_returncode=%s' %
+                repr(on_returncode),
+            )
     return ''.join(all_output)
 
 
@@ -261,7 +263,7 @@ def runner_with_spinner_message(message):
     def runner(
         cmd,  # type: List[str]
         cwd=None,  # type: Optional[str]
-        extra_environ=None  # type: Optional[Mapping[str, Any]]
+        extra_environ=None,  # type: Optional[Mapping[str, Any]]
     ):
         # type: (...) -> None
         with open_spinner(message) as spinner:

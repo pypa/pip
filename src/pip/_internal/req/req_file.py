@@ -83,7 +83,7 @@ def parse_requirements(
     session=None,  # type: Optional[PipSession]
     constraint=False,  # type: bool
     wheel_cache=None,  # type: Optional[WheelCache]
-    use_pep517=None  # type: Optional[bool]
+    use_pep517=None,  # type: Optional[bool]
 ):
     # type: (...) -> Iterator[InstallRequirement]
     """Parse a requirements file and yield InstallRequirement instances.
@@ -101,19 +101,21 @@ def parse_requirements(
     if session is None:
         raise TypeError(
             "parse_requirements() missing 1 required keyword argument: "
-            "'session'"
+            "'session'",
         )
 
     _, content = get_file_content(
-        filename, comes_from=comes_from, session=session
+        filename, comes_from=comes_from, session=session,
     )
 
     lines_enum = preprocess(content, options)
 
     for line_number, line in lines_enum:
-        req_iter = process_line(line, filename, line_number, finder,
-                                comes_from, options, session, wheel_cache,
-                                use_pep517=use_pep517, constraint=constraint)
+        req_iter = process_line(
+            line, filename, line_number, finder,
+            comes_from, options, session, wheel_cache,
+            use_pep517=use_pep517, constraint=constraint,
+        )
         for req in req_iter:
             yield req
 
@@ -175,7 +177,8 @@ def process_line(
         options_str = options_str.encode('utf8')  # type: ignore
     # https://github.com/python/mypy/issues/1174
     opts, _ = parser.parse_args(
-        shlex.split(options_str), defaults)  # type: ignore
+        shlex.split(options_str), defaults,
+    )  # type: ignore
 
     # preserve for the nested code path
     line_comes_from = '%s %s (line %s)' % (
@@ -210,7 +213,7 @@ def process_line(
         yield install_req_from_editable(
             opts.editables[0], comes_from=line_comes_from,
             use_pep517=use_pep517,
-            constraint=constraint, isolated=isolated, wheel_cache=wheel_cache
+            constraint=constraint, isolated=isolated, wheel_cache=wheel_cache,
         )
 
     # parse a nested requirements file
@@ -232,7 +235,7 @@ def process_line(
         # TODO: Why not use `comes_from='-r {} (line {})'` here as well?
         parsed_reqs = parse_requirements(
             req_path, finder, comes_from, options, session,
-            constraint=nested_constraint, wheel_cache=wheel_cache
+            constraint=nested_constraint, wheel_cache=wheel_cache,
         )
         for req in parsed_reqs:
             yield req

@@ -141,10 +141,12 @@ class TestCheckDistRequiresPython(object):
             "Invalid specifier: 'invalid'"
         )
 
-    @pytest.mark.parametrize('metadata_name', [
-        'METADATA',
-        'PKG-INFO',
-    ])
+    @pytest.mark.parametrize(
+        'metadata_name', [
+            'METADATA',
+            'PKG-INFO',
+        ],
+    )
     def test_empty_metadata_error(self, caplog, metadata_name):
         """
         Test dist.has_metadata() returning True and dist.get_metadata()

@@ -56,7 +56,7 @@ def test_unpack_http_url_with_urllib_response_without_content_type(data):
             session=session,
         )
         assert set(os.listdir(temp_dir)) == {
-            'PKG-INFO', 'setup.cfg', 'setup.py', 'simple', 'simple.egg-info'
+            'PKG-INFO', 'setup.cfg', 'setup.py', 'simple', 'simple.egg-info',
         }
     finally:
         rmtree(temp_dir)
@@ -142,7 +142,7 @@ def test_unpack_http_url_bad_downloaded_checksum(mock_unpack_file):
             'location',
             download_dir=download_dir,
             session=session,
-            hashes=Hashes({'sha1': [download_hash.hexdigest()]})
+            hashes=Hashes({'sha1': [download_hash.hexdigest()]}),
         )
 
         # despite existence of downloaded file with bad hash, downloaded again
@@ -159,14 +159,16 @@ def test_unpack_http_url_bad_downloaded_checksum(mock_unpack_file):
         rmtree(download_dir)
 
 
-@pytest.mark.parametrize("filename, expected", [
-    ('dir/file', 'file'),
-    ('../file', 'file'),
-    ('../../file', 'file'),
-    ('../', ''),
-    ('../..', '..'),
-    ('/', ''),
-])
+@pytest.mark.parametrize(
+    "filename, expected", [
+        ('dir/file', 'file'),
+        ('../file', 'file'),
+        ('../../file', 'file'),
+        ('../', ''),
+        ('../..', '..'),
+        ('/', ''),
+    ],
+)
 def test_sanitize_content_filename(filename, expected):
     """
     Test inputs where the result is the same for Windows and non-Windows.
@@ -174,18 +176,20 @@ def test_sanitize_content_filename(filename, expected):
     assert sanitize_content_filename(filename) == expected
 
 
-@pytest.mark.parametrize("filename, win_expected, non_win_expected", [
-    ('dir\\file', 'file', 'dir\\file'),
-    ('..\\file', 'file', '..\\file'),
-    ('..\\..\\file', 'file', '..\\..\\file'),
-    ('..\\', '', '..\\'),
-    ('..\\..', '..', '..\\..'),
-    ('\\', '', '\\'),
-])
+@pytest.mark.parametrize(
+    "filename, win_expected, non_win_expected", [
+        ('dir\\file', 'file', 'dir\\file'),
+        ('..\\file', 'file', '..\\file'),
+        ('..\\..\\file', 'file', '..\\..\\file'),
+        ('..\\', '', '..\\'),
+        ('..\\..', '..', '..\\..'),
+        ('\\', '', '\\'),
+    ],
+)
 def test_sanitize_content_filename__platform_dependent(
     filename,
     win_expected,
-    non_win_expected
+    non_win_expected,
 ):
     """
     Test inputs where the result is different for Windows and non-Windows.
@@ -197,13 +201,15 @@ def test_sanitize_content_filename__platform_dependent(
     assert sanitize_content_filename(filename) == expected
 
 
-@pytest.mark.parametrize("content_disposition, default_filename, expected", [
-    ('attachment;filename="../file"', 'df', 'file'),
-])
+@pytest.mark.parametrize(
+    "content_disposition, default_filename, expected", [
+        ('attachment;filename="../file"', 'df', 'file'),
+    ],
+)
 def test_parse_content_disposition(
     content_disposition,
     default_filename,
-    expected
+    expected,
 ):
     actual = parse_content_disposition(content_disposition, default_filename)
     assert actual == expected
@@ -225,7 +231,7 @@ def test_download_http_url__no_directory_traversal(tmpdir):
         # Set the content-type to a random value to prevent
         # mimetypes.guess_extension from guessing the extension.
         'content-type': 'random',
-        'content-disposition': 'attachment;filename="../out_dir_file"'
+        'content-disposition': 'attachment;filename="../out_dir_file"',
     }
     session.get.return_value = resp
 
@@ -284,7 +290,7 @@ def test_copy_source_tree_with_socket(clean_project, tmpdir, caplog):
 
 @pytest.mark.skipif("sys.platform == 'win32' or sys.version_info < (3,)")
 def test_copy_source_tree_with_socket_fails_with_no_socket_error(
-    clean_project, tmpdir
+    clean_project, tmpdir,
 ):
     target = tmpdir.joinpath("target")
     expected_files = get_filelist(clean_project)
@@ -341,17 +347,22 @@ class Test_unpack_file_url(object):
         unpack_file_url(self.dist_url, self.build_dir)
         assert os.path.isdir(os.path.join(self.build_dir, 'simple'))
         assert not os.path.isfile(
-            os.path.join(self.download_dir, self.dist_file))
+            os.path.join(self.download_dir, self.dist_file),
+        )
 
     def test_unpack_file_url_and_download(self, tmpdir, data):
         self.prep(tmpdir, data)
-        unpack_file_url(self.dist_url, self.build_dir,
-                        download_dir=self.download_dir)
+        unpack_file_url(
+            self.dist_url, self.build_dir,
+            download_dir=self.download_dir,
+        )
         assert os.path.isdir(os.path.join(self.build_dir, 'simple'))
         assert os.path.isfile(os.path.join(self.download_dir, self.dist_file))
 
-    def test_unpack_file_url_download_already_exists(self, tmpdir,
-                                                     data, monkeypatch):
+    def test_unpack_file_url_download_already_exists(
+        self, tmpdir,
+        data, monkeypatch,
+    ):
         self.prep(tmpdir, data)
         # add in previous download (copy simple-2.0 as simple-1.0)
         # so we can tell it didn't get overwritten
@@ -360,14 +371,18 @@ class Test_unpack_file_url(object):
         with open(self.dist_path2, 'rb') as f:
             dist_path2_md5 = hashlib.md5(f.read()).hexdigest()
 
-        unpack_file_url(self.dist_url, self.build_dir,
-                        download_dir=self.download_dir)
+        unpack_file_url(
+            self.dist_url, self.build_dir,
+            download_dir=self.download_dir,
+        )
         # our hash should be the same, i.e. not overwritten by simple-1.0 hash
         with open(dest_file, 'rb') as f:
             assert dist_path2_md5 == hashlib.md5(f.read()).hexdigest()
 
-    def test_unpack_file_url_bad_hash(self, tmpdir, data,
-                                      monkeypatch):
+    def test_unpack_file_url_bad_hash(
+        self, tmpdir, data,
+        monkeypatch,
+    ):
         """
         Test when the file url hash fragment is wrong
         """
@@ -375,12 +390,16 @@ class Test_unpack_file_url(object):
         url = '{}#md5=bogus'.format(self.dist_url.url)
         dist_url = Link(url)
         with pytest.raises(HashMismatch):
-            unpack_file_url(dist_url,
-                            self.build_dir,
-                            hashes=Hashes({'md5': ['bogus']}))
+            unpack_file_url(
+                dist_url,
+                self.build_dir,
+                hashes=Hashes({'md5': ['bogus']}),
+            )
 
-    def test_unpack_file_url_download_bad_hash(self, tmpdir, data,
-                                               monkeypatch):
+    def test_unpack_file_url_download_bad_hash(
+        self, tmpdir, data,
+        monkeypatch,
+    ):
         """
         Test when existing download has different hash from the file url
         fragment
@@ -401,9 +420,11 @@ class Test_unpack_file_url(object):
 
         url = '{}#md5={}'.format(self.dist_url.url, dist_path_md5)
         dist_url = Link(url)
-        unpack_file_url(dist_url, self.build_dir,
-                        download_dir=self.download_dir,
-                        hashes=Hashes({'md5': [dist_path_md5]}))
+        unpack_file_url(
+            dist_url, self.build_dir,
+            download_dir=self.download_dir,
+            hashes=Hashes({'md5': [dist_path_md5]}),
+        )
 
         # confirm hash is for simple1-1.0
         # the previous bad download has been removed
@@ -414,15 +435,19 @@ class Test_unpack_file_url(object):
         self.prep(tmpdir, data)
         dist_path = data.packages.joinpath("FSPkg")
         dist_url = Link(path_to_url(dist_path))
-        unpack_file_url(dist_url, self.build_dir,
-                        download_dir=self.download_dir)
+        unpack_file_url(
+            dist_url, self.build_dir,
+            download_dir=self.download_dir,
+        )
         assert os.path.isdir(os.path.join(self.build_dir, 'fspkg'))
 
 
-@pytest.mark.parametrize('exclude_dir', [
-    '.nox',
-    '.tox'
-])
+@pytest.mark.parametrize(
+    'exclude_dir', [
+        '.nox',
+        '.tox',
+    ],
+)
 def test_unpack_file_url_excludes_expected_dirs(tmpdir, exclude_dir):
     src_dir = tmpdir / 'src'
     dst_dir = tmpdir / 'dst'
@@ -446,7 +471,7 @@ def test_unpack_file_url_excludes_expected_dirs(tmpdir, exclude_dir):
     unpack_file_url(
         src_link,
         dst_dir,
-        download_dir=None
+        download_dir=None,
     )
     assert not os.path.isdir(dst_excluded_dir)
     assert not os.path.isfile(dst_excluded_file)

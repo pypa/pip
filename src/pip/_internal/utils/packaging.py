@@ -48,8 +48,10 @@ def get_metadata(dist):
         True but `get_metadata()` returns None.
     """
     metadata_name = 'METADATA'
-    if (isinstance(dist, pkg_resources.DistInfoDistribution) and
-            dist.has_metadata(metadata_name)):
+    if (
+        isinstance(dist, pkg_resources.DistInfoDistribution) and
+        dist.has_metadata(metadata_name)
+    ):
         metadata = dist.get_metadata(metadata_name)
     elif dist.has_metadata('PKG-INFO'):
         metadata_name = 'PKG-INFO'

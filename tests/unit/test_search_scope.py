@@ -14,7 +14,7 @@ class TestSearchScope:
             'https://repo-user:repo-pass@repo.domain.com',
         ]
         find_links = [
-            'https://links-user:links-pass@page.domain.com'
+            'https://links-user:links-pass@page.domain.com',
         ]
         search_scope = SearchScope(
             find_links=find_links, index_urls=index_urls,
@@ -33,7 +33,7 @@ class TestSearchScope:
             index_urls=['file://index1/', 'file://index2'],
         )
         actual = search_scope.get_index_urls_locations(
-            install_req_from_line('Complex_Name').name
+            install_req_from_line('Complex_Name').name,
         )
         assert actual == [
             'file://index1/complex-name/',

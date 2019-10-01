@@ -7,32 +7,34 @@ from pip._internal.network.auth import MultiDomainBasicAuth
 from tests.unit.test_download import MockConnection, MockRequest, MockResponse
 
 
-@pytest.mark.parametrize(["input_url", "url", "username", "password"], [
-    (
-        "http://user%40email.com:password@example.com/path",
-        "http://example.com/path",
-        "user@email.com",
-        "password",
-    ),
-    (
-        "http://username:password@example.com/path",
-        "http://example.com/path",
-        "username",
-        "password",
-    ),
-    (
-        "http://token@example.com/path",
-        "http://example.com/path",
-        "token",
-        "",
-    ),
-    (
-        "http://example.com/path",
-        "http://example.com/path",
-        None,
-        None,
-    ),
-])
+@pytest.mark.parametrize(
+    ["input_url", "url", "username", "password"], [
+        (
+            "http://user%40email.com:password@example.com/path",
+            "http://example.com/path",
+            "user@email.com",
+            "password",
+        ),
+        (
+            "http://username:password@example.com/path",
+            "http://example.com/path",
+            "username",
+            "password",
+        ),
+        (
+            "http://token@example.com/path",
+            "http://example.com/path",
+            "token",
+            "",
+        ),
+        (
+            "http://example.com/path",
+            "http://example.com/path",
+            None,
+            None,
+        ),
+    ],
+)
 def test_get_credentials_parses_correctly(input_url, url, username, password):
     auth = MultiDomainBasicAuth()
     get = auth._get_url_and_credentials
@@ -57,13 +59,15 @@ def test_get_credentials_uses_cached_credentials():
 
 
 def test_get_index_url_credentials():
-    auth = MultiDomainBasicAuth(index_urls=[
-        "http://foo:bar@example.com/path"
-    ])
+    auth = MultiDomainBasicAuth(
+        index_urls=[
+            "http://foo:bar@example.com/path",
+        ],
+    )
     get = functools.partial(
         auth._get_new_credentials,
         allow_netrc=False,
-        allow_keyring=False
+        allow_keyring=False,
     )
 
     # Check resolution of indexes
@@ -90,22 +94,26 @@ class KeyringModuleV1(object):
         self.saved_passwords.append((system, username, password))
 
 
-@pytest.mark.parametrize('url, expect', (
-    ("http://example.com/path1", (None, None)),
-    # path1 URLs will be resolved by netloc
-    ("http://user@example.com/path1", ("user", "user!netloc")),
-    ("http://user2@example.com/path1", ("user2", "user2!netloc")),
-    # path2 URLs will be resolved by index URL
-    ("http://example.com/path2/path3", (None, None)),
-    ("http://foo@example.com/path2/path3", ("foo", "foo!url")),
-))
+@pytest.mark.parametrize(
+    'url, expect', (
+        ("http://example.com/path1", (None, None)),
+        # path1 URLs will be resolved by netloc
+        ("http://user@example.com/path1", ("user", "user!netloc")),
+        ("http://user2@example.com/path1", ("user2", "user2!netloc")),
+        # path2 URLs will be resolved by index URL
+        ("http://example.com/path2/path3", (None, None)),
+        ("http://foo@example.com/path2/path3", ("foo", "foo!url")),
+    ),
+)
 def test_keyring_get_password(monkeypatch, url, expect):
     keyring = KeyringModuleV1()
     monkeypatch.setattr('pip._internal.network.auth.keyring', keyring)
     auth = MultiDomainBasicAuth(index_urls=["http://example.com/path2"])
 
-    actual = auth._get_new_credentials(url, allow_netrc=False,
-                                       allow_keyring=True)
+    actual = auth._get_new_credentials(
+        url, allow_netrc=False,
+        allow_keyring=True,
+    )
     assert actual == expect
 
 
@@ -130,25 +138,31 @@ def test_keyring_get_password_username_in_index(monkeypatch):
     get = functools.partial(
         auth._get_new_credentials,
         allow_netrc=False,
-        allow_keyring=True
+        allow_keyring=True,
     )
 
     assert get("http://example.com/path2/path3") == ("user", "user!url")
     assert get("http://example.com/path4/path1") == (None, None)
 
 
-@pytest.mark.parametrize("response_status, creds, expect_save", (
-    (403, ("user", "pass", True), False),
-    (200, ("user", "pass", True), True,),
-    (200, ("user", "pass", False), False,),
-))
-def test_keyring_set_password(monkeypatch, response_status, creds,
-                              expect_save):
+@pytest.mark.parametrize(
+    "response_status, creds, expect_save", (
+        (403, ("user", "pass", True), False),
+        (200, ("user", "pass", True), True),
+        (200, ("user", "pass", False), False),
+    ),
+)
+def test_keyring_set_password(
+    monkeypatch, response_status, creds,
+    expect_save,
+):
     keyring = KeyringModuleV1()
     monkeypatch.setattr('pip._internal.network.auth.keyring', keyring)
     auth = MultiDomainBasicAuth(prompting=True)
-    monkeypatch.setattr(auth, '_get_url_and_credentials',
-                        lambda u: (u, None, None))
+    monkeypatch.setattr(
+        auth, '_get_url_and_credentials',
+        lambda u: (u, None, None),
+    )
     monkeypatch.setattr(auth, '_prompt_for_password', lambda *a: creds)
     if creds[2]:
         # when _prompt_for_password indicates to save, we should save
@@ -158,10 +172,14 @@ def test_keyring_set_password(monkeypatch, response_status, creds,
         # when _prompt_for_password indicates not to save, we should
         # never call this function
         def should_save_password_to_keyring(*a):
-            assert False, ("_should_save_password_to_keyring should not be " +
-                           "called")
-    monkeypatch.setattr(auth, '_should_save_password_to_keyring',
-                        should_save_password_to_keyring)
+            assert False, (
+                "_should_save_password_to_keyring should not be " +
+                "called"
+            )
+    monkeypatch.setattr(
+        auth, '_should_save_password_to_keyring',
+        should_save_password_to_keyring,
+    )
 
     req = MockRequest("https://example.com")
     resp = MockResponse(b"")
@@ -208,17 +226,19 @@ class KeyringModuleV2(object):
         return None
 
 
-@pytest.mark.parametrize('url, expect', (
-    ("http://example.com/path1", ("username", "netloc")),
-    ("http://example.com/path2/path3", ("username", "url")),
-    ("http://user2@example.com/path2/path3", ("username", "url")),
-))
+@pytest.mark.parametrize(
+    'url, expect', (
+        ("http://example.com/path1", ("username", "netloc")),
+        ("http://example.com/path2/path3", ("username", "url")),
+        ("http://user2@example.com/path2/path3", ("username", "url")),
+    ),
+)
 def test_keyring_get_credential(monkeypatch, url, expect):
     monkeypatch.setattr(
-        pip._internal.network.auth, 'keyring', KeyringModuleV2()
+        pip._internal.network.auth, 'keyring', KeyringModuleV2(),
     )
     auth = MultiDomainBasicAuth(index_urls=["http://example.com/path2"])
 
     assert auth._get_new_credentials(
-        url, allow_netrc=False, allow_keyring=True
+        url, allow_netrc=False, allow_keyring=True,
     ) == expect

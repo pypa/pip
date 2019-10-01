@@ -16,16 +16,20 @@ def test_install_from_future_wheel_version(script, data):
     package = data.packages.joinpath("futurewheel-3.0-py2.py3-none-any.whl")
     result = script.pip('install', package, '--no-index', expect_error=True)
     with pytest.raises(TestFailure):
-        result.assert_installed('futurewheel', without_egg_link=True,
-                                editable=False)
+        result.assert_installed(
+            'futurewheel', without_egg_link=True,
+            editable=False,
+        )
 
     package = data.packages.joinpath("futurewheel-1.9-py2.py3-none-any.whl")
     result = script.pip(
         'install', package, '--no-index', expect_error=False,
         expect_stderr=True,
     )
-    result.assert_installed('futurewheel', without_egg_link=True,
-                            editable=False)
+    result.assert_installed(
+        'futurewheel', without_egg_link=True,
+        editable=False,
+    )
 
 
 def test_install_from_broken_wheel(script, data):
@@ -36,8 +40,10 @@ def test_install_from_broken_wheel(script, data):
     package = data.packages.joinpath("brokenwheel-1.0-py2.py3-none-any.whl")
     result = script.pip('install', package, '--no-index', expect_error=True)
     with pytest.raises(TestFailure):
-        result.assert_installed('futurewheel', without_egg_link=True,
-                                editable=False)
+        result.assert_installed(
+            'futurewheel', without_egg_link=True,
+            editable=False,
+        )
 
 
 def test_basic_install_from_wheel(script, data):
@@ -50,9 +56,11 @@ def test_basic_install_from_wheel(script, data):
         expect_error=False,
     )
     dist_info_folder = script.site_packages / 'has.script-1.0.dist-info'
-    assert dist_info_folder in result.files_created, (dist_info_folder,
-                                                      result.files_created,
-                                                      result.stdout)
+    assert dist_info_folder in result.files_created, (
+        dist_info_folder,
+        result.files_created,
+        result.stdout,
+    )
     script_file = script.bin / 'script.py'
     assert script_file in result.files_created
 
@@ -67,13 +75,17 @@ def test_basic_install_from_wheel_with_extras(script, data):
         expect_error=False,
     )
     dist_info_folder = script.site_packages / 'complex_dist-0.1.dist-info'
-    assert dist_info_folder in result.files_created, (dist_info_folder,
-                                                      result.files_created,
-                                                      result.stdout)
+    assert dist_info_folder in result.files_created, (
+        dist_info_folder,
+        result.files_created,
+        result.stdout,
+    )
     dist_info_folder = script.site_packages / 'simple.dist-0.1.dist-info'
-    assert dist_info_folder in result.files_created, (dist_info_folder,
-                                                      result.files_created,
-                                                      result.stdout)
+    assert dist_info_folder in result.files_created, (
+        dist_info_folder,
+        result.files_created,
+        result.stdout,
+    )
 
 
 def test_basic_install_from_wheel_file(script, data):
@@ -83,20 +95,26 @@ def test_basic_install_from_wheel_file(script, data):
     package = data.packages.joinpath("simple.dist-0.1-py2.py3-none-any.whl")
     result = script.pip('install', package, '--no-index', expect_error=False)
     dist_info_folder = script.site_packages / 'simple.dist-0.1.dist-info'
-    assert dist_info_folder in result.files_created, (dist_info_folder,
-                                                      result.files_created,
-                                                      result.stdout)
+    assert dist_info_folder in result.files_created, (
+        dist_info_folder,
+        result.files_created,
+        result.stdout,
+    )
     installer = dist_info_folder / 'INSTALLER'
-    assert installer in result.files_created, (dist_info_folder,
-                                               result.files_created,
-                                               result.stdout)
+    assert installer in result.files_created, (
+        dist_info_folder,
+        result.files_created,
+        result.stdout,
+    )
     with open(script.base_path / installer, 'rb') as installer_file:
         installer_details = installer_file.read()
         assert installer_details == b'pip\n'
     installer_temp = dist_info_folder / 'INSTALLER.pip'
-    assert installer_temp not in result.files_created, (dist_info_folder,
-                                                        result.files_created,
-                                                        result.stdout)
+    assert installer_temp not in result.files_created, (
+        dist_info_folder,
+        result.files_created,
+        result.stdout,
+    )
 
 
 def test_install_from_wheel_with_headers(script, data):
@@ -106,9 +124,11 @@ def test_install_from_wheel_with_headers(script, data):
     package = data.packages.joinpath("headers.dist-0.1-py2.py3-none-any.whl")
     result = script.pip('install', package, '--no-index', expect_error=False)
     dist_info_folder = script.site_packages / 'headers.dist-0.1.dist-info'
-    assert dist_info_folder in result.files_created, (dist_info_folder,
-                                                      result.files_created,
-                                                      result.stdout)
+    assert dist_info_folder in result.files_created, (
+        dist_info_folder,
+        result.files_created,
+        result.stdout,
+    )
 
 
 def test_install_wheel_with_target(script, data, with_wheel):
@@ -146,19 +166,27 @@ def test_install_wheel_with_target_and_data_files(script, data, with_wheel):
     """
     target_dir = script.scratch_path / 'prjwithdatafile'
     package = data.packages.joinpath(
-        "prjwithdatafile-1.0-py2.py3-none-any.whl"
+        "prjwithdatafile-1.0-py2.py3-none-any.whl",
     )
-    result = script.pip('install', package,
-                        '-t', target_dir,
-                        '--no-index',
-                        expect_error=False)
+    result = script.pip(
+        'install', package,
+        '-t', target_dir,
+        '--no-index',
+        expect_error=False,
+    )
 
-    assert (Path('scratch') / 'prjwithdatafile' / 'packages1' / 'README.txt'
-            in result.files_created), str(result)
-    assert (Path('scratch') / 'prjwithdatafile' / 'packages2' / 'README.txt'
-            in result.files_created), str(result)
-    assert (Path('scratch') / 'prjwithdatafile' / 'lib' / 'python'
-            not in result.files_created), str(result)
+    assert (
+        Path('scratch') / 'prjwithdatafile' / 'packages1' / 'README.txt'
+        in result.files_created
+    ), str(result)
+    assert (
+        Path('scratch') / 'prjwithdatafile' / 'packages2' / 'README.txt'
+        in result.files_created
+    ), str(result)
+    assert (
+        Path('scratch') / 'prjwithdatafile' / 'lib' / 'python'
+        not in result.files_created
+    ), str(result)
 
 
 def test_install_wheel_with_root(script, data):
@@ -192,7 +220,7 @@ def test_install_from_wheel_installs_deps(script, data):
     """
     # 'requires_source' depends on the 'source' project
     package = data.packages.joinpath(
-        "requires_source-1.0-py2.py3-none-any.whl"
+        "requires_source-1.0-py2.py3-none-any.whl",
     )
     result = script.pip(
         'install', '--no-index', '--find-links', data.find_links, package,
@@ -206,7 +234,7 @@ def test_install_from_wheel_no_deps(script, data):
     """
     # 'requires_source' depends on the 'source' project
     package = data.packages.joinpath(
-        "requires_source-1.0-py2.py3-none-any.whl"
+        "requires_source-1.0-py2.py3-none-any.whl",
     )
     result = script.pip(
         'install', '--no-index', '--find-links', data.find_links, '--no-deps',
@@ -370,7 +398,7 @@ def test_wheel_compiles_pyc(script, data):
     """
     script.pip(
         "install", "--compile", "simple.dist==0.1", "--no-index",
-        "--find-links=" + data.find_links
+        "--find-links=" + data.find_links,
     )
     # There are many locations for the __init__.pyc file so attempt to find
     #   any of them
@@ -379,7 +407,7 @@ def test_wheel_compiles_pyc(script, data):
     ]
 
     exists += glob.glob(
-        script.site_packages_path / "simpledist/__pycache__/__init__*.pyc"
+        script.site_packages_path / "simpledist/__pycache__/__init__*.pyc",
     )
 
     assert any(exists)
@@ -391,7 +419,7 @@ def test_wheel_no_compiles_pyc(script, data):
     """
     script.pip(
         "install", "--no-compile", "simple.dist==0.1", "--no-index",
-        "--find-links=" + data.find_links
+        "--find-links=" + data.find_links,
     )
     # There are many locations for the __init__.pyc file so attempt to find
     #   any of them
@@ -400,7 +428,7 @@ def test_wheel_no_compiles_pyc(script, data):
     ]
 
     exists += glob.glob(
-        script.site_packages_path / "simpledist/__pycache__/__init__*.pyc"
+        script.site_packages_path / "simpledist/__pycache__/__init__*.pyc",
     )
 
     assert not any(exists)

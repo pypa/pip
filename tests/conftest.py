@@ -20,10 +20,12 @@ from tests.lib.venv import VirtualEnvironment
 def pytest_addoption(parser):
     parser.addoption(
         "--keep-tmpdir", action="store_true",
-        default=False, help="keep temporary test directories"
+        default=False, help="keep temporary test directories",
     )
-    parser.addoption("--use-venv", action="store_true",
-                     help="use venv for virtual environment creation")
+    parser.addoption(
+        "--use-venv", action="store_true",
+        help="use venv for virtual environment creation",
+    )
 
 
 def pytest_collection_modifyitems(config, items):
@@ -32,19 +34,31 @@ def pytest_collection_modifyitems(config, items):
             continue
 
         # Mark network tests as flaky
-        if (item.get_closest_marker('network') is not None and
-                "CI" in os.environ):
+        if (
+            item.get_closest_marker('network') is not None and
+            "CI" in os.environ
+        ):
             item.add_marker(pytest.mark.flaky(reruns=3))
 
         if six.PY3:
-            if (item.get_closest_marker('incompatible_with_test_venv') and
-                    config.getoption("--use-venv")):
-                item.add_marker(pytest.mark.skip(
-                    'Incompatible with test venv'))
-            if (item.get_closest_marker('incompatible_with_venv') and
-                    sys.prefix != sys.base_prefix):
-                item.add_marker(pytest.mark.skip(
-                    'Incompatible with venv'))
+            if (
+                item.get_closest_marker('incompatible_with_test_venv') and
+                config.getoption("--use-venv")
+            ):
+                item.add_marker(
+                    pytest.mark.skip(
+                    'Incompatible with test venv',
+                    ),
+                )
+            if (
+                item.get_closest_marker('incompatible_with_venv') and
+                sys.prefix != sys.base_prefix
+            ):
+                item.add_marker(
+                    pytest.mark.skip(
+                    'Incompatible with venv',
+                    ),
+                )
 
         module_path = os.path.relpath(
             item.module.__file__,
@@ -52,15 +66,17 @@ def pytest_collection_modifyitems(config, items):
         )
 
         module_root_dir = module_path.split(os.pathsep)[0]
-        if (module_root_dir.startswith("functional") or
-                module_root_dir.startswith("integration") or
-                module_root_dir.startswith("lib")):
+        if (
+            module_root_dir.startswith("functional") or
+            module_root_dir.startswith("integration") or
+            module_root_dir.startswith("lib")
+        ):
             item.add_marker(pytest.mark.integration)
         elif module_root_dir.startswith("unit"):
             item.add_marker(pytest.mark.unit)
         else:
             raise RuntimeError(
-                "Unknown test type (filename = {})".format(module_path)
+                "Unknown test type (filename = {})".format(module_path),
             )
 
 
@@ -162,7 +178,7 @@ def isolate(tmpdir):
     os.makedirs(os.path.join(home_dir, ".config", "git"))
     with open(os.path.join(home_dir, ".config", "git", "config"), "wb") as fp:
         fp.write(
-            b"[user]\n\tname = pip\n\temail = pypa-dev@googlegroups.com\n"
+            b"[user]\n\tname = pip\n\temail = pypa-dev@googlegroups.com\n",
         )
 
 
@@ -208,16 +224,20 @@ def _common_wheel_editable_install(tmpdir_factory, common_wheels, package):
 
 @pytest.fixture(scope='session')
 def setuptools_install(tmpdir_factory, common_wheels):
-    return _common_wheel_editable_install(tmpdir_factory,
-                                          common_wheels,
-                                          'setuptools')
+    return _common_wheel_editable_install(
+        tmpdir_factory,
+        common_wheels,
+        'setuptools',
+    )
 
 
 @pytest.fixture(scope='session')
 def wheel_install(tmpdir_factory, common_wheels):
-    return _common_wheel_editable_install(tmpdir_factory,
-                                          common_wheels,
-                                          'wheel')
+    return _common_wheel_editable_install(
+        tmpdir_factory,
+        common_wheels,
+        'wheel',
+    )
 
 
 def install_egg_link(venv, project_name, egg_info_dir):
@@ -228,8 +248,10 @@ def install_egg_link(venv, project_name, egg_info_dir):
 
 
 @pytest.fixture(scope='session')
-def virtualenv_template(request, tmpdir_factory, pip_src,
-                        setuptools_install, common_wheels):
+def virtualenv_template(
+    request, tmpdir_factory, pip_src,
+    setuptools_install, common_wheels,
+):
 
     if six.PY3 and request.config.getoption('--use-venv'):
         venv_type = 'venv'
@@ -239,7 +261,7 @@ def virtualenv_template(request, tmpdir_factory, pip_src,
     # Create the virtual environment
     tmpdir = Path(str(tmpdir_factory.mktemp('virtualenv')))
     venv = VirtualEnvironment(
-        tmpdir.joinpath("venv_orig"), venv_type=venv_type
+        tmpdir.joinpath("venv_orig"), venv_type=venv_type,
     )
 
     # Install setuptools and pip.
@@ -247,8 +269,10 @@ def virtualenv_template(request, tmpdir_factory, pip_src,
     pip_editable = Path(str(tmpdir_factory.mktemp('pip'))) / 'pip'
     shutil.copytree(pip_src, pip_editable, symlinks=True)
     assert compileall.compile_dir(str(pip_editable), quiet=1)
-    subprocess.check_call([venv.bin / 'python', 'setup.py', '-q', 'develop'],
-                          cwd=pip_editable)
+    subprocess.check_call(
+        [venv.bin / 'python', 'setup.py', '-q', 'develop'],
+        cwd=pip_editable,
+    )
 
     # Drop (non-relocatable) launchers.
     for exe in os.listdir(venv.bin):

@@ -19,7 +19,8 @@ from tests.lib import (
 
 @pytest.mark.skipif(
     'TRAVIS' not in os.environ,
-    reason='Bazaar is only required under Travis')
+    reason='Bazaar is only required under Travis',
+)
 def test_ensure_bzr_available():
     """Make sure that bzr is available when running in Travis."""
     assert is_bzr_installed()

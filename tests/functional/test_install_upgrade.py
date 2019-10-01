@@ -27,7 +27,7 @@ def test_invalid_upgrade_strategy_causes_error(script):
     """
     result = script.pip_install_local(
         '--upgrade', '--upgrade-strategy=bazinga', 'simple',
-        expect_error=True
+        expect_error=True,
     )
 
     assert result.returncode
@@ -41,7 +41,7 @@ def test_only_if_needed_does_not_upgrade_deps_when_satisfied(script):
     """
     script.pip_install_local('simple==2.0')
     result = script.pip_install_local(
-        '--upgrade', '--upgrade-strategy=only-if-needed', 'require_simple'
+        '--upgrade', '--upgrade-strategy=only-if-needed', 'require_simple',
     )
 
     assert (
@@ -65,7 +65,7 @@ def test_only_if_needed_does_upgrade_deps_when_no_longer_satisfied(script):
     """
     script.pip_install_local('simple==1.0')
     result = script.pip_install_local(
-        '--upgrade', '--upgrade-strategy=only-if-needed', 'require_simple'
+        '--upgrade', '--upgrade-strategy=only-if-needed', 'require_simple',
     )
 
     assert (
@@ -89,7 +89,7 @@ def test_eager_does_upgrade_dependecies_when_currently_satisfied(script):
     """
     script.pip_install_local('simple==2.0')
     result = script.pip_install_local(
-        '--upgrade', '--upgrade-strategy=eager', 'require_simple'
+        '--upgrade', '--upgrade-strategy=eager', 'require_simple',
     )
 
     assert (
@@ -109,7 +109,7 @@ def test_eager_does_upgrade_dependecies_when_no_longer_satisfied(script):
     """
     script.pip_install_local('simple==1.0')
     result = script.pip_install_local(
-        '--upgrade', '--upgrade-strategy=eager', 'require_simple'
+        '--upgrade', '--upgrade-strategy=eager', 'require_simple',
     )
 
     assert (
@@ -169,7 +169,7 @@ def test_upgrade_with_newest_already_installed(script, data):
     """
     script.pip('install', '-f', data.find_links, '--no-index', 'simple')
     result = script.pip(
-        'install', '--upgrade', '-f', data.find_links, '--no-index', 'simple'
+        'install', '--upgrade', '-f', data.find_links, '--no-index', 'simple',
     )
     assert not result.files_created, 'simple upgraded when it should not have'
     assert 'already up-to-date' in result.stdout, result.stdout
@@ -186,7 +186,7 @@ def test_upgrade_force_reinstall_newest(script):
         sorted(result.files_created.keys())
     )
     result2 = script.pip(
-        'install', '--upgrade', '--force-reinstall', 'INITools'
+        'install', '--upgrade', '--force-reinstall', 'INITools',
     )
     assert result2.files_updated, 'upgrade to INITools 0.3 failed'
     result3 = script.pip('uninstall', 'initools', '-y')
@@ -256,24 +256,28 @@ def test_upgrade_from_reqs_file(script):
     Upgrade from a requirements file.
 
     """
-    script.scratch_path.joinpath("test-req.txt").write_text(textwrap.dedent("""\
+    script.scratch_path.joinpath("test-req.txt").write_text(
+        textwrap.dedent("""\
         PyLogo<0.4
         # and something else to test out:
         INITools==0.3
-        """))
-    install_result = script.pip(
-        'install', '-r', script.scratch_path / 'test-req.txt'
+        """),
     )
-    script.scratch_path.joinpath("test-req.txt").write_text(textwrap.dedent("""\
+    install_result = script.pip(
+        'install', '-r', script.scratch_path / 'test-req.txt',
+    )
+    script.scratch_path.joinpath("test-req.txt").write_text(
+        textwrap.dedent("""\
         PyLogo
         # and something else to test out:
         INITools
-        """))
+        """),
+    )
     script.pip(
-        'install', '--upgrade', '-r', script.scratch_path / 'test-req.txt'
+        'install', '--upgrade', '-r', script.scratch_path / 'test-req.txt',
     )
     uninstall_result = script.pip(
-        'uninstall', '-r', script.scratch_path / 'test-req.txt', '-y'
+        'uninstall', '-r', script.scratch_path / 'test-req.txt', '-y',
     )
     assert_all_changes(
         install_result,
@@ -289,10 +293,10 @@ def test_uninstall_rollback(script, data):
 
     """
     result = script.pip(
-        'install', '-f', data.find_links, '--no-index', 'broken==0.1'
+        'install', '-f', data.find_links, '--no-index', 'broken==0.1',
     )
     assert script.site_packages / 'broken.py' in result.files_created, list(
-        result.files_created.keys()
+        result.files_created.keys(),
     )
     result2 = script.pip(
         'install', '-f', data.find_links, '--no-index', 'broken===0.2broken',
@@ -300,7 +304,7 @@ def test_uninstall_rollback(script, data):
     )
     assert result2.returncode == 1, str(result2)
     assert script.run(
-        'python', '-c', "import broken; print(broken.VERSION)"
+        'python', '-c', "import broken; print(broken.VERSION)",
     ).stdout == '0.1\n'
     assert_all_changes(
         result.files_after,
@@ -338,10 +342,10 @@ def test_install_with_ignoreinstalled_requested(script):
     assert result.files_created, 'pip install -I did not install'
     # both the old and new metadata should be present.
     assert os.path.exists(
-        script.site_packages_path / 'INITools-0.1-py%s.egg-info' % pyversion
+        script.site_packages_path / 'INITools-0.1-py%s.egg-info' % pyversion,
     )
     assert os.path.exists(
-        script.site_packages_path / 'INITools-0.3-py%s.egg-info' % pyversion
+        script.site_packages_path / 'INITools-0.3-py%s.egg-info' % pyversion,
     )
 
 

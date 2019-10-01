@@ -65,7 +65,7 @@ def _test_packages(output, pending_fn):
         [
             os.path.join(dest_dir, bin_dir, 'python'),
             'setup.py',
-            'install'
+            'install',
         ],
         cwd=src_folder,
     )

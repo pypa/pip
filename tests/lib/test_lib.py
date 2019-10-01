@@ -50,7 +50,7 @@ def test_correct_pip_version(script):
     pip_folder_outputed = re.match(
         r'pip \d+(\.[\d]+)+(\.?(b|rc|dev|pre|post)\d+)? from (.*) '
         r'\(python \d(.[\d])+\)$',
-        result.stdout
+        result.stdout,
     ).group(4)
     pip_folder = join(SRC_DIR, 'src', 'pip')
 
@@ -101,11 +101,13 @@ class TestPipTestEnvironment:
         args = [sys.executable, '-c', command]
         script.run(*args, **kwargs)
 
-    @pytest.mark.parametrize('prefix', (
-        'DEBUG',
-        'INFO',
-        'FOO',
-    ))
+    @pytest.mark.parametrize(
+        'prefix', (
+            'DEBUG',
+            'INFO',
+            'FOO',
+        ),
+    )
     def test_run__allowed_stderr(self, script, prefix):
         """
         Test calling run() with allowed stderr.
@@ -129,11 +131,13 @@ class TestPipTestEnvironment:
                 script, 'ERROR', allow_stderr_warning=True,
             )
 
-    @pytest.mark.parametrize('prefix', (
-        'DEPRECATION',
-        'WARNING',
-        'ERROR',
-    ))
+    @pytest.mark.parametrize(
+        'prefix', (
+            'DEPRECATION',
+            'WARNING',
+            'ERROR',
+        ),
+    )
     def test_run__allow_stderr_error(self, script, prefix):
         """
         Test passing allow_stderr_error=True.
@@ -141,11 +145,13 @@ class TestPipTestEnvironment:
         # Check that no error happens.
         self.run_stderr_with_prefix(script, prefix, allow_stderr_error=True)
 
-    @pytest.mark.parametrize('prefix, expected_start', (
-        ('DEPRECATION', 'stderr has an unexpected warning'),
-        ('WARNING', 'stderr has an unexpected warning'),
-        ('ERROR', 'stderr has an unexpected error'),
-    ))
+    @pytest.mark.parametrize(
+        'prefix, expected_start', (
+            ('DEPRECATION', 'stderr has an unexpected warning'),
+            ('WARNING', 'stderr has an unexpected warning'),
+            ('ERROR', 'stderr has an unexpected error'),
+        ),
+    )
     def test_run__unexpected_stderr(self, script, prefix, expected_start):
         """
         Test calling run() with unexpected stderr output.
@@ -196,10 +202,12 @@ class TestPipTestEnvironment:
                 'python', allow_stderr_warning=False, expect_stderr=True,
             )
 
-    @pytest.mark.parametrize('arg_name', (
-        'expect_error',
-        'allow_stderr_error',
-    ))
+    @pytest.mark.parametrize(
+        'arg_name', (
+            'expect_error',
+            'allow_stderr_error',
+        ),
+    )
     def test_run__allow_stderr_warning_false_error(self, script, arg_name):
         """
         Test passing allow_stderr_warning=False when it is not allowed.
@@ -216,12 +224,12 @@ class TestPipTestEnvironment:
         expected_start = 'Script passed unexpectedly'
         with assert_error_startswith(AssertionError, expected_start):
             script.run(
-                'python', expect_error=True
+                'python', expect_error=True,
             )
 
     def test_run__no_expect_error_fails_when_nonzero_returncode(self, script):
         expected_start = 'Script returned code: 1'
         with assert_error_startswith(AssertionError, expected_start):
             script.run(
-                'python', '-c', 'import sys; sys.exit(1)'
+                'python', '-c', 'import sys; sys.exit(1)',
             )

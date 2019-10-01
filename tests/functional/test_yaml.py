@@ -20,7 +20,7 @@ _conflict_finder_re = re.compile(
         (?P<selector>.+?)
         (?=,|\.$)
     """,
-    re.X
+    re.X,
 )
 
 
@@ -56,7 +56,7 @@ def handle_install_request(script, requirement):
     result = script.pip(
         "install",
         "--no-index", "--find-links", path_to_url(script.scratch_path),
-        requirement
+        requirement,
     )
 
     retval = {}
@@ -90,8 +90,8 @@ def handle_install_request(script, requirement):
             retval["conflicting"].append(
                 {
                     "required_by": "{} {}".format(di["name"], di["version"]),
-                    "selector": di["selector"]
-                }
+                    "selector": di["selector"],
+                },
             )
 
     return retval
@@ -99,7 +99,7 @@ def handle_install_request(script, requirement):
 
 @pytest.mark.yaml
 @pytest.mark.parametrize(
-    "case", generate_yaml_tests(DATA_DIR.parent / "yaml"), ids=id_func
+    "case", generate_yaml_tests(DATA_DIR.parent / "yaml"), ids=id_func,
 )
 def test_yaml_based(script, case):
     available = case.get("available", [])
@@ -122,7 +122,7 @@ def test_yaml_based(script, case):
         create_basic_wheel_for_package(script, **package)
 
     available_actions = {
-        "install": handle_install_request
+        "install": handle_install_request,
     }
 
     # use scratch path for index

@@ -29,7 +29,7 @@ from pip._internal.utils.urls import get_url_scheme
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Any, Dict, Iterable, List, Mapping, Optional, Text, Tuple, Type, Union
+        Any, Dict, Iterable, List, Mapping, Optional, Text, Tuple, Type, Union,
     )
     from pip._internal.utils.ui import SpinnerInterface
     from pip._internal.utils.misc import HiddenText
@@ -204,8 +204,10 @@ class VcsSupport(object):
         """
         for vcs_backend in self._registry.values():
             if vcs_backend.controls_location(location):
-                logger.debug('Determine that %s uses VCS: %s',
-                             location, vcs_backend.name)
+                logger.debug(
+                    'Determine that %s uses VCS: %s',
+                    location, vcs_backend.name,
+                )
                 return vcs_backend
         return None
 
@@ -275,8 +277,10 @@ class VersionControl(object):
 
         revision = cls.get_requirement_revision(repo_dir)
         subdir = cls.get_subdirectory(repo_dir)
-        req = make_vcs_requirement_url(repo_url, revision, project_name,
-                                       subdir=subdir)
+        req = make_vcs_requirement_url(
+            repo_url, revision, project_name,
+            subdir=subdir,
+        )
 
         return req
 
@@ -355,7 +359,7 @@ class VersionControl(object):
             raise ValueError(
                 "Sorry, {!r} is a malformed VCS url. "
                 "The format is <vcs>+<protocol>://<url>, "
-                "e.g. svn+http://myrepo/svn/MyApp#egg=MyApp".format(url)
+                "e.g. svn+http://myrepo/svn/MyApp#egg=MyApp".format(url),
             )
         # Remove the vcs prefix.
         scheme = scheme.split('+', 1)[1]
@@ -494,8 +498,10 @@ class VersionControl(object):
                 display_path(dest),
                 existing_url,
             )
-            prompt = ('(s)witch, (i)gnore, (w)ipe, (b)ackup ',
-                      ('s', 'i', 'w', 'b'))
+            prompt = (
+                '(s)witch, (i)gnore, (w)ipe, (b)ackup ',
+                ('s', 'i', 'w', 'b'),
+            )
         else:
             logger.warning(
                 'Directory %s already exists, and is not a %s %s.',
@@ -504,8 +510,10 @@ class VersionControl(object):
                 self.repo_name,
             )
             # https://github.com/python/mypy/issues/1174
-            prompt = ('(i)gnore, (w)ipe, (b)ackup ',  # type: ignore
-                      ('i', 'w', 'b'))
+            prompt = (
+                '(i)gnore, (w)ipe, (b)ackup ',  # type: ignore
+                ('i', 'w', 'b'),
+            )
 
         logger.warning(
             'The plan is to install the %s repository %s',
@@ -582,7 +590,7 @@ class VersionControl(object):
         extra_ok_returncodes=None,  # type: Optional[Iterable[int]]
         command_desc=None,  # type: Optional[str]
         extra_environ=None,  # type: Optional[Mapping[str, Any]]
-        spinner=None  # type: Optional[SpinnerInterface]
+        spinner=None,  # type: Optional[SpinnerInterface]
     ):
         # type: (...) -> Text
         """
@@ -592,13 +600,15 @@ class VersionControl(object):
         """
         cmd = make_command(cls.name, *cmd)
         try:
-            return call_subprocess(cmd, show_stdout, cwd,
-                                   on_returncode=on_returncode,
-                                   extra_ok_returncodes=extra_ok_returncodes,
-                                   command_desc=command_desc,
-                                   extra_environ=extra_environ,
-                                   unset_environ=cls.unset_environ,
-                                   spinner=spinner)
+            return call_subprocess(
+                cmd, show_stdout, cwd,
+                on_returncode=on_returncode,
+                extra_ok_returncodes=extra_ok_returncodes,
+                command_desc=command_desc,
+                extra_environ=extra_environ,
+                unset_environ=cls.unset_environ,
+                spinner=spinner,
+            )
         except OSError as e:
             # errno.ENOENT = no such file or directory
             # In other words, the VCS executable isn't available
@@ -606,7 +616,8 @@ class VersionControl(object):
                 raise BadCommand(
                     'Cannot find command %r - do you have '
                     '%r installed and in your '
-                    'PATH?' % (cls.name, cls.name))
+                    'PATH?' % (cls.name, cls.name),
+                )
             else:
                 raise  # re-raise exception if a different error occurred
 
@@ -616,8 +627,10 @@ class VersionControl(object):
         """
         Return whether a directory path is a repository directory.
         """
-        logger.debug('Checking in %s for %s (%s)...',
-                     path, cls.dirname, cls.name)
+        logger.debug(
+            'Checking in %s for %s (%s)...',
+            path, cls.dirname, cls.name,
+        )
         return os.path.exists(os.path.join(path, cls.dirname))
 
     @classmethod

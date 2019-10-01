@@ -63,10 +63,12 @@ def _test_env_vars_override_config_file(script, virtualenv, config_file):
     # because there is/was a bug which only shows up in cases in which
     # 'config-item' and 'config_item' hash to the same value modulo the size
     # of the config dictionary.
-    (script.scratch_path / config_file).write_text(textwrap.dedent("""\
+    (script.scratch_path / config_file).write_text(
+        textwrap.dedent("""\
         [global]
         no-index = 1
-        """))
+        """),
+    )
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
     assert (
         "DistributionNotFound: No matching distribution found for INITools"
@@ -152,21 +154,25 @@ def test_config_file_override_stack(script, virtualenv):
 def _test_config_file_override_stack(script, virtualenv, config_file):
     # set this to make pip load it
     script.environ['PIP_CONFIG_FILE'] = config_file
-    (script.scratch_path / config_file).write_text(textwrap.dedent("""\
+    (script.scratch_path / config_file).write_text(
+        textwrap.dedent("""\
         [global]
         index-url = https://download.zope.org/ppix
-        """))
+        """),
+    )
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
     assert (
         "Getting page https://download.zope.org/ppix/initools" in result.stdout
     )
     virtualenv.clear()
-    (script.scratch_path / config_file).write_text(textwrap.dedent("""\
+    (script.scratch_path / config_file).write_text(
+        textwrap.dedent("""\
         [global]
         index-url = https://download.zope.org/ppix
         [install]
         index-url = https://pypi.gocept.com/
-        """))
+        """),
+    )
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
     assert "Getting page https://pypi.gocept.com/initools" in result.stdout
     result = script.pip(
@@ -202,18 +208,22 @@ def test_options_from_venv_config(script, virtualenv):
 
 
 def test_install_no_binary_via_config_disables_cached_wheels(
-        script, data, with_wheel):
+        script, data, with_wheel,
+):
     config_file = tempfile.NamedTemporaryFile(mode='wt', delete=False)
     try:
         script.environ['PIP_CONFIG_FILE'] = config_file.name
-        config_file.write(textwrap.dedent("""\
+        config_file.write(
+            textwrap.dedent("""\
             [global]
             no-binary = :all:
-            """))
+            """),
+        )
         config_file.close()
         res = script.pip(
             'install', '--no-index', '-f', data.find_links,
-            'upper', expect_stderr=True)
+            'upper', expect_stderr=True,
+        )
     finally:
         os.unlink(config_file.name)
     assert "Successfully installed upper-2.0" in str(res), str(res)

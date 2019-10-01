@@ -17,14 +17,20 @@ from pip._internal.utils.subprocess import (
 from pip._internal.utils.ui import SpinnerInterface
 
 
-@pytest.mark.parametrize('args, expected', [
-    (['pip', 'list'], 'pip list'),
-    (['foo', 'space space', 'new\nline', 'double"quote', "single'quote"],
-     """foo 'space space' 'new\nline' 'double"quote' 'single'"'"'quote'"""),
-    # Test HiddenText arguments.
-    (make_command(hide_value('secret1'), 'foo', hide_value('secret2')),
-        "'****' foo '****'"),
-])
+@pytest.mark.parametrize(
+    'args, expected', [
+        (['pip', 'list'], 'pip list'),
+        (
+            ['foo', 'space space', 'new\nline', 'double"quote', "single'quote"],
+            """foo 'space space' 'new\nline' 'double"quote' 'single'"'"'quote'""",
+        ),
+        # Test HiddenText arguments.
+        (
+            make_command(hide_value('secret1'), 'foo', hide_value('secret2')),
+            "'****' foo '****'",
+        ),
+    ],
+)
 def test_format_command_args(args, expected):
     actual = format_command_args(args)
     assert actual == expected
@@ -102,11 +108,13 @@ def test_make_subprocess_output_error__non_ascii_cwd_python_3(monkeypatch):
     assert actual == expected, 'actual: {}'.format(actual)
 
 
-@pytest.mark.parametrize('encoding', [
-    'utf-8',
-    # Test a Windows encoding.
-    'cp1252',
-])
+@pytest.mark.parametrize(
+    'encoding', [
+        'utf-8',
+        # Test a Windows encoding.
+        'cp1252',
+    ],
+)
 @pytest.mark.skipif("sys.version_info >= (3,)")
 def test_make_subprocess_output_error__non_ascii_cwd_python_2(
     monkeypatch, encoding,
@@ -239,11 +247,13 @@ class TestCallSubprocess(object):
         args, spinner = self.prepare_call(caplog, log_level)
         result = call_subprocess(args, spinner=spinner)
 
-        expected = (['Hello', 'world'], [
-            ('pip.subprocessor', DEBUG, 'Running command '),
-            ('pip.subprocessor', DEBUG, 'Hello'),
-            ('pip.subprocessor', DEBUG, 'world'),
-        ])
+        expected = (
+            ['Hello', 'world'], [
+                ('pip.subprocessor', DEBUG, 'Running command '),
+                ('pip.subprocessor', DEBUG, 'Hello'),
+                ('pip.subprocessor', DEBUG, 'world'),
+            ],
+        )
         # The spinner shouldn't spin in this case since the subprocess
         # output is already being logged to the console.
         self.check_result(
@@ -281,13 +291,15 @@ class TestCallSubprocess(object):
         result = None
         exc_message = str(exc.value)
         assert exc_message.startswith(
-            'Command errored out with exit status 1: '
+            'Command errored out with exit status 1: ',
         )
         assert exc_message.endswith('Check the logs for full command output.')
 
-        expected = (None, [
-            ('pip.subprocessor', ERROR, 'Complete output (3 lines):\n'),
-        ])
+        expected = (
+            None, [
+                ('pip.subprocessor', ERROR, 'Complete output (3 lines):\n'),
+            ],
+        )
         # The spinner should spin three times in this case since the
         # subprocess output isn't being written to the console.
         self.check_result(
@@ -330,11 +342,13 @@ class TestCallSubprocess(object):
         args, spinner = self.prepare_call(caplog, log_level)
         result = call_subprocess(args, spinner=spinner, show_stdout=True)
 
-        expected = (['Hello', 'world'], [
-            ('pip.subprocessor', INFO, 'Running command '),
-            ('pip.subprocessor', INFO, 'Hello'),
-            ('pip.subprocessor', INFO, 'world'),
-        ])
+        expected = (
+            ['Hello', 'world'], [
+                ('pip.subprocessor', INFO, 'Running command '),
+                ('pip.subprocessor', INFO, 'Hello'),
+                ('pip.subprocessor', INFO, 'world'),
+            ],
+        )
         # The spinner shouldn't spin in this case since the subprocess
         # output is already being written to the console.
         self.check_result(
@@ -342,28 +356,31 @@ class TestCallSubprocess(object):
             expected_spinner=(0, None),
         )
 
-    @pytest.mark.parametrize((
-        'exit_status', 'show_stdout', 'extra_ok_returncodes', 'log_level',
-        'expected'),
-        [
-            # The spinner should show here because show_stdout=False means
-            # the subprocess should get logged at DEBUG level, but the passed
-            # log level is only INFO.
-            (0, False, None, INFO, (None, 'done', 2)),
-            # Test some cases where the spinner should not be shown.
-            (0, False, None, DEBUG, (None, None, 0)),
-            # Test show_stdout=True.
-            (0, True, None, DEBUG, (None, None, 0)),
-            (0, True, None, INFO, (None, None, 0)),
-            # The spinner should show here because show_stdout=True means
-            # the subprocess should get logged at INFO level, but the passed
-            # log level is only WARNING.
-            (0, True, None, WARNING, (None, 'done', 2)),
-            # Test a non-zero exit status.
-            (3, False, None, INFO, (InstallationError, 'error', 2)),
-            # Test a non-zero exit status also in extra_ok_returncodes.
-            (3, False, (3, ), INFO, (None, 'done', 2)),
-    ])
+    @pytest.mark.parametrize(
+        (
+            'exit_status', 'show_stdout', 'extra_ok_returncodes', 'log_level',
+            'expected',
+        ),
+            [
+                # The spinner should show here because show_stdout=False means
+                # the subprocess should get logged at DEBUG level, but the passed
+                # log level is only INFO.
+                (0, False, None, INFO, (None, 'done', 2)),
+                # Test some cases where the spinner should not be shown.
+                (0, False, None, DEBUG, (None, None, 0)),
+                # Test show_stdout=True.
+                (0, True, None, DEBUG, (None, None, 0)),
+                (0, True, None, INFO, (None, None, 0)),
+                # The spinner should show here because show_stdout=True means
+                # the subprocess should get logged at INFO level, but the passed
+                # log level is only WARNING.
+                (0, True, None, WARNING, (None, 'done', 2)),
+                # Test a non-zero exit status.
+                (3, False, None, INFO, (InstallationError, 'error', 2)),
+                # Test a non-zero exit status also in extra_ok_returncodes.
+                (3, False, (3,), INFO, (None, 'done', 2)),
+            ],
+    )
     def test_spinner_finish(
         self, exit_status, show_stdout, extra_ok_returncodes, log_level,
         caplog, expected,

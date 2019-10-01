@@ -38,12 +38,14 @@ def make_mock_candidate(version, yanked_reason=None, hex_digest=None):
     return candidate
 
 
-@pytest.mark.parametrize('requires_python, expected', [
-    ('== 3.6.4', False),
-    ('== 3.6.5', True),
-    # Test an invalid Requires-Python value.
-    ('invalid', True),
-])
+@pytest.mark.parametrize(
+    'requires_python, expected', [
+        ('== 3.6.4', False),
+        ('== 3.6.5', True),
+        # Test an invalid Requires-Python value.
+        ('invalid', True),
+    ],
+)
 def test_check_link_requires_python(requires_python, expected):
     version_info = (3, 6, 5)
     link = Link('https://example.com', requires_python=requires_python)
@@ -58,18 +60,24 @@ def check_caplog(caplog, expected_level, expected_message):
     assert record.message == expected_message
 
 
-@pytest.mark.parametrize('ignore_requires_python, expected', [
-    (None, (
-        False, 'DEBUG',
-        "Link requires a different Python (3.6.5 not in: '== 3.6.4'): "
-        "https://example.com"
-    )),
-    (True, (
-        True, 'DEBUG',
-        "Ignoring failed Requires-Python check (3.6.5 not in: '== 3.6.4') "
-        "for link: https://example.com"
-    )),
-])
+@pytest.mark.parametrize(
+    'ignore_requires_python, expected', [
+        (
+            None, (
+                False, 'DEBUG',
+                "Link requires a different Python (3.6.5 not in: '== 3.6.4'): "
+                "https://example.com",
+            ),
+        ),
+        (
+            True, (
+                True, 'DEBUG',
+                "Ignoring failed Requires-Python check (3.6.5 not in: '== 3.6.4') "
+                "for link: https://example.com",
+            ),
+        ),
+    ],
+)
 def test_check_link_requires_python__incompatible_python(
     caplog, ignore_requires_python, expected,
 ):
@@ -134,19 +142,25 @@ class TestLinkEvaluator:
         actual = evaluator.evaluate_link(link)
         assert actual == expected
 
-    @pytest.mark.parametrize('yanked_reason, allow_yanked, expected', [
-        (None, True, (True, '1.12')),
-        (None, False, (True, '1.12')),
-        ('', True, (True, '1.12')),
-        ('', False, (False, 'yanked for reason: <none given>')),
-        ('bad metadata', True, (True, '1.12')),
-        ('bad metadata', False,
-         (False, 'yanked for reason: bad metadata')),
-        # Test a unicode string with a non-ascii character.
-        (u'curly quote: \u2018', True, (True, '1.12')),
-        (u'curly quote: \u2018', False,
-         (False, u'yanked for reason: curly quote: \u2018')),
-    ])
+    @pytest.mark.parametrize(
+        'yanked_reason, allow_yanked, expected', [
+            (None, True, (True, '1.12')),
+            (None, False, (True, '1.12')),
+            ('', True, (True, '1.12')),
+            ('', False, (False, 'yanked for reason: <none given>')),
+            ('bad metadata', True, (True, '1.12')),
+            (
+                'bad metadata', False,
+                (False, 'yanked for reason: bad metadata'),
+            ),
+            # Test a unicode string with a non-ascii character.
+            (u'curly quote: \u2018', True, (True, '1.12')),
+            (
+                u'curly quote: \u2018', False,
+                (False, u'yanked for reason: curly quote: \u2018'),
+            ),
+        ],
+    )
     def test_evaluate_link__allow_yanked(
         self, yanked_reason, allow_yanked, expected,
     ):
@@ -182,17 +196,19 @@ class TestLinkEvaluator:
         link = Link('https://example.com/sample-1.0-py2.py3-none-any.whl')
         actual = evaluator.evaluate_link(link)
         expected = (
-            False, "none of the wheel's tags match: py2-none-any, py3-none-any"
+            False, "none of the wheel's tags match: py2-none-any, py3-none-any",
         )
         assert actual == expected
 
 
-@pytest.mark.parametrize('hex_digest, expected_versions', [
-    (None, ['1.0', '1.1', '1.2']),
-    (64 * 'a', ['1.0', '1.1']),
-    (64 * 'b', ['1.0', '1.2']),
-    (64 * 'c', ['1.0', '1.1', '1.2']),
-])
+@pytest.mark.parametrize(
+    'hex_digest, expected_versions', [
+        (None, ['1.0', '1.1', '1.2']),
+        (64 * 'a', ['1.0', '1.1']),
+        (64 * 'b', ['1.0', '1.2']),
+        (64 * 'c', ['1.0', '1.1', '1.2']),
+    ],
+)
 def test_filter_unallowed_hashes(hex_digest, expected_versions):
     candidates = [
         make_mock_candidate('1.0'),
@@ -242,8 +258,8 @@ def test_filter_unallowed_hashes__log_message_with_match(caplog):
     # different.
     candidates = [
         make_mock_candidate('1.0'),
-        make_mock_candidate('1.1',),
-        make_mock_candidate('1.2',),
+        make_mock_candidate('1.1'),
+        make_mock_candidate('1.2'),
         make_mock_candidate('1.3', hex_digest=(64 * 'a')),
         make_mock_candidate('1.4', hex_digest=(64 * 'b')),
         make_mock_candidate('1.5', hex_digest=(64 * 'c')),
@@ -294,12 +310,14 @@ def test_filter_unallowed_hashes__log_message_with_no_match(caplog):
 
 class TestCandidateEvaluator:
 
-    @pytest.mark.parametrize('allow_all_prereleases, prefer_binary', [
-        (False, False),
-        (False, True),
-        (True, False),
-        (True, True),
-    ])
+    @pytest.mark.parametrize(
+        'allow_all_prereleases, prefer_binary', [
+            (False, False),
+            (False, True),
+            (True, False),
+            (True, True),
+        ],
+    )
     def test_create(self, allow_all_prereleases, prefer_binary):
         target_python = TargetPython()
         target_python._valid_tags = [('py36', 'none', 'any')]
@@ -350,13 +368,15 @@ class TestCandidateEvaluator:
         ]
         assert actual == expected_applicable
 
-    @pytest.mark.parametrize('specifier, expected_versions', [
-        # Test no version constraint.
-        (SpecifierSet(), ['1.0', '1.2']),
-        # Test a version constraint that excludes the candidate whose
-        # hash matches.  Then the non-allowed hash is a candidate.
-        (SpecifierSet('<= 1.1'), ['1.0', '1.1']),
-    ])
+    @pytest.mark.parametrize(
+        'specifier, expected_versions', [
+            # Test no version constraint.
+            (SpecifierSet(), ['1.0', '1.2']),
+            # Test a version constraint that excludes the candidate whose
+            # hash matches.  Then the non-allowed hash is a candidate.
+            (SpecifierSet('<= 1.1'), ['1.0', '1.1']),
+        ],
+    )
     def test_get_applicable_candidates__hashes(
         self, specifier, expected_versions,
     ):
@@ -422,14 +442,16 @@ class TestCandidateEvaluator:
         assert result._applicable_candidates == []
         assert result.best_candidate is None
 
-    @pytest.mark.parametrize('hex_digest, expected', [
-        # Test a link with no hash.
-        (None, 0),
-        # Test a link with an allowed hash.
-        (64 * 'a', 1),
-        # Test a link with a hash that isn't allowed.
-        (64 * 'b', 0),
-    ])
+    @pytest.mark.parametrize(
+        'hex_digest, expected', [
+            # Test a link with no hash.
+            (None, 0),
+            # Test a link with an allowed hash.
+            (64 * 'a', 1),
+            # Test a link with a hash that isn't allowed.
+            (64 * 'b', 0),
+        ],
+    )
     def test_sort_key__hash(self, hex_digest, expected):
         """
         Test the effect of the link's hash on _sort_key()'s return value.
@@ -445,12 +467,14 @@ class TestCandidateEvaluator:
         actual = sort_value[0]
         assert actual == expected
 
-    @pytest.mark.parametrize('yanked_reason, expected', [
-        # Test a non-yanked file.
-        (None, 0),
-        # Test a yanked file (has a lower value than non-yanked).
-        ('bad metadata', -1),
-    ])
+    @pytest.mark.parametrize(
+        'yanked_reason, expected', [
+            # Test a non-yanked file.
+            (None, 0),
+            # Test a yanked file (has a lower value than non-yanked).
+            ('bad metadata', -1),
+        ],
+    )
     def test_sort_key__is_yanked(self, yanked_reason, expected):
         """
         Test the effect of is_yanked on _sort_key()'s return value.
@@ -497,12 +521,14 @@ class TestCandidateEvaluator:
             'Reason for being yanked: bad metadata #3'
         )
 
-    @pytest.mark.parametrize('yanked_reason, expected_reason', [
-        # Test no reason given.
-        ('', '<none given>'),
-        # Test a unicode string with a non-ascii character.
-        (u'curly quote: \u2018', u'curly quote: \u2018'),
-    ])
+    @pytest.mark.parametrize(
+        'yanked_reason, expected_reason', [
+            # Test no reason given.
+            ('', '<none given>'),
+            # Test a unicode string with a non-ascii character.
+            (u'curly quote: \u2018', u'curly quote: \u2018'),
+        ],
+    )
     def test_sort_best_candidate__yanked_reason(
         self, caplog, yanked_reason, expected_reason,
     ):
@@ -553,12 +579,14 @@ class TestCandidateEvaluator:
 
 class TestPackageFinder:
 
-    @pytest.mark.parametrize('allow_all_prereleases, prefer_binary', [
-        (False, False),
-        (False, True),
-        (True, False),
-        (True, True),
-    ])
+    @pytest.mark.parametrize(
+        'allow_all_prereleases, prefer_binary', [
+            (False, False),
+            (False, True),
+            (True, False),
+            (True, True),
+        ],
+    )
     def test_create__candidate_prefs(
         self, allow_all_prereleases, prefer_binary,
     ):
@@ -702,7 +730,7 @@ class TestPackageFinder:
             (False, True, {}, frozenset({'binary', 'source'})),
             # Test a non-trivial only_binary.
             (False, False, {'twine'}, frozenset({'binary'})),
-        ]
+        ],
     )
     def test_make_link_evaluator(
         self, allow_yanked, ignore_requires_python, only_binary,
@@ -742,12 +770,14 @@ class TestPackageFinder:
         assert actual_target_python._given_py_version_info == (3, 7)
         assert actual_target_python.py_version_info == (3, 7, 0)
 
-    @pytest.mark.parametrize('allow_all_prereleases, prefer_binary', [
-        (False, False),
-        (False, True),
-        (True, False),
-        (True, True),
-    ])
+    @pytest.mark.parametrize(
+        'allow_all_prereleases, prefer_binary', [
+            (False, False),
+            (False, True),
+            (True, False),
+            (True, True),
+        ],
+    )
     def test_make_candidate_evaluator(
         self, allow_all_prereleases, prefer_binary,
     ):

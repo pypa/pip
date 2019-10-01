@@ -111,7 +111,7 @@ def user_agent():
         else:
             pypy_version_info = sys.pypy_version_info
         data["implementation"]["version"] = ".".join(
-            [str(x) for x in pypy_version_info]
+            [str(x) for x in pypy_version_info],
         )
     elif data["implementation"]["name"] == 'Jython':
         # Complete Guess
@@ -122,14 +122,18 @@ def user_agent():
 
     if sys.platform.startswith("linux"):
         from pip._vendor import distro
-        distro_infos = dict(filter(
-            lambda x: x[1],
-            zip(["name", "version", "id"], distro.linux_distribution()),
-        ))
-        libc = dict(filter(
-            lambda x: x[1],
-            zip(["lib", "version"], libc_ver()),
-        ))
+        distro_infos = dict(
+            filter(
+                lambda x: x[1],
+                zip(["name", "version", "id"], distro.linux_distribution()),
+            ),
+        )
+        libc = dict(
+            filter(
+                lambda x: x[1],
+                zip(["lib", "version"], libc_ver()),
+            ),
+        )
         if libc:
             distro_infos["libc"] = libc
         if distro_infos:
@@ -172,8 +176,10 @@ def user_agent():
 
 class LocalFSAdapter(BaseAdapter):
 
-    def send(self, request, stream=None, timeout=None, verify=None, cert=None,
-             proxies=None):
+    def send(
+        self, request, stream=None, timeout=None, verify=None, cert=None,
+        proxies=None,
+    ):
         pathname = url_to_path(request.url)
 
         resp = Response()
@@ -321,7 +327,7 @@ class PipSession(requests.Session):
             # Mount wildcard ports for the same host.
             self.mount(
                 build_url_from_netloc(host) + ':',
-                self._insecure_adapter
+                self._insecure_adapter,
             )
 
     def iter_secure_origins(self):
@@ -362,14 +368,14 @@ class PipSession(requests.Session):
                         isinstance(origin_host, six.text_type) or
                         origin_host is None
                     )
-                    else origin_host.decode("utf8")
+                    else origin_host.decode("utf8"),
                 )
                 network = ipaddress.ip_network(
                     secure_host
                     if isinstance(secure_host, six.text_type)
                     # setting secure_host to proper Union[bytes, str]
                     # creates problems in other places
-                    else secure_host.decode("utf8")  # type: ignore
+                    else secure_host.decode("utf8"),  # type: ignore
                 )
             except ValueError:
                 # We don't have both a valid address or a valid network, so

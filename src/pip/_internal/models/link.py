@@ -72,8 +72,10 @@ class Link(KeyBasedCompareMixin):
         else:
             rp = ''
         if self.comes_from:
-            return '%s (from %s)%s' % (redact_auth_from_url(self._url),
-                                       self.comes_from, rp)
+            return '%s (from %s)%s' % (
+                redact_auth_from_url(self._url),
+                self.comes_from, rp,
+            )
         else:
             return redact_auth_from_url(str(self._url))
 
@@ -159,7 +161,7 @@ class Link(KeyBasedCompareMixin):
         return match.group(1)
 
     _hash_re = re.compile(
-        r'(sha1|sha224|sha384|sha256|sha512|md5)=([a-f0-9]+)'
+        r'(sha1|sha224|sha384|sha256|sha512|md5)=([a-f0-9]+)',
     )
 
     @property

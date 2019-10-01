@@ -14,10 +14,12 @@ TOX_PIP_DIR = os.path.join(VIRTUAL_ENV, 'pip')
 def pip(args):
     # First things first, get a recent (stable) version of pip.
     if not os.path.exists(TOX_PIP_DIR):
-        subprocess.check_call([sys.executable, '-m', 'pip',
-                               '--disable-pip-version-check',
-                               'install', '-t', TOX_PIP_DIR,
-                               'pip'])
+        subprocess.check_call([
+            sys.executable, '-m', 'pip',
+            '--disable-pip-version-check',
+            'install', '-t', TOX_PIP_DIR,
+            'pip',
+        ])
         shutil.rmtree(glob(os.path.join(TOX_PIP_DIR, 'pip-*.dist-info'))[0])
     # And use that version.
     pypath = os.environ.get('PYTHONPATH')

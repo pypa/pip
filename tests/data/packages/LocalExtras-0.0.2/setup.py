@@ -22,5 +22,5 @@ setup(
     version='0.0.2',
     packages=find_packages(),
     install_requires=['simple==1.0'],
-    extras_require={'bar': ['simple==2.0'], 'baz': ['singlemodule']}
+    extras_require={'bar': ['simple==2.0'], 'baz': ['singlemodule']},
 )

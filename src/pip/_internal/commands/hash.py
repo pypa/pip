@@ -35,7 +35,8 @@ class HashCommand(Command):
             action='store',
             default=FAVORITE_HASH,
             help='The hash algorithm to use: one of %s' %
-                 ', '.join(STRONG_HASHES))
+                 ', '.join(STRONG_HASHES),
+        )
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
@@ -45,8 +46,10 @@ class HashCommand(Command):
 
         algorithm = options.algorithm
         for path in args:
-            write_output('%s:\n--hash=%s:%s',
-                         path, algorithm, _hash_of_file(path, algorithm))
+            write_output(
+                '%s:\n--hash=%s:%s',
+                path, algorithm, _hash_of_file(path, algorithm),
+            )
 
 
 def _hash_of_file(path, algorithm):

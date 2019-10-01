@@ -71,10 +71,12 @@ def make_test_install_req(base_name=None):
     return req
 
 
-@pytest.mark.parametrize('file_tag, expected', [
-    (('py27', 'none', 'any'), 'py27-none-any'),
-    (('cp33', 'cp32dmu', 'linux_x86_64'), 'cp33-cp32dmu-linux_x86_64'),
-])
+@pytest.mark.parametrize(
+    'file_tag, expected', [
+        (('py27', 'none', 'any'), 'py27-none-any'),
+        (('cp33', 'cp32dmu', 'linux_x86_64'), 'cp33-cp32dmu-linux_x86_64'),
+    ],
+)
 def test_format_tag(file_tag, expected):
     actual = wheel.format_tag(file_tag)
     assert actual == expected
@@ -165,12 +167,14 @@ def test_format_command_result__INFO(caplog):
     ]
 
 
-@pytest.mark.parametrize('command_output', [
-    # Test trailing newline.
-    'output line 1\noutput line 2\n',
-    # Test no trailing newline.
-    'output line 1\noutput line 2',
-])
+@pytest.mark.parametrize(
+    'command_output', [
+        # Test trailing newline.
+        'output line 1\noutput line 2\n',
+        # Test no trailing newline.
+        'output line 1\noutput line 2',
+    ],
+)
 def test_format_command_result__DEBUG(caplog, command_output):
     caplog.set_level(logging.DEBUG)
     actual = wheel.format_command_result(
@@ -249,19 +253,25 @@ def test_get_legacy_build_wheel_path__multiple_names(caplog):
     ]
 
 
-@pytest.mark.parametrize("console_scripts",
-                         ["pip = pip._internal.main:pip",
-                          "pip:pip = pip._internal.main:pip"])
+@pytest.mark.parametrize(
+    "console_scripts",
+    [
+        "pip = pip._internal.main:pip",
+        "pip:pip = pip._internal.main:pip",
+    ],
+)
 def test_get_entrypoints(tmpdir, console_scripts):
     entry_points = tmpdir.joinpath("entry_points.txt")
     with open(str(entry_points), "w") as fp:
-        fp.write("""
+        fp.write(
+            """
             [console_scripts]
             {}
             [section]
             common:one = module:func
             common:two = module:other_func
-        """.format(console_scripts))
+        """.format(console_scripts)
+        )
 
     assert wheel.get_entrypoints(str(entry_points)) == (
         dict([console_scripts.split(' = ')]),
@@ -273,33 +283,41 @@ def test_raise_for_invalid_entrypoint_ok():
     _raise_for_invalid_entrypoint("hello = hello:main")
 
 
-@pytest.mark.parametrize("entrypoint", [
-    "hello = hello",
-    "hello = hello:",
-])
+@pytest.mark.parametrize(
+    "entrypoint", [
+        "hello = hello",
+        "hello = hello:",
+    ],
+)
 def test_raise_for_invalid_entrypoint_fail(entrypoint):
     with pytest.raises(MissingCallableSuffix):
         _raise_for_invalid_entrypoint(entrypoint)
 
 
-@pytest.mark.parametrize("outrows, expected", [
-    ([
-        ('', '', 'a'),
-        ('', '', ''),
-    ], [
-        ('', '', ''),
-        ('', '', 'a'),
-    ]),
-    ([
-        # Include an int to check avoiding the following error:
-        # > TypeError: '<' not supported between instances of 'str' and 'int'
-        ('', '', 1),
-        ('', '', ''),
-    ], [
-        ('', '', ''),
-        ('', '', 1),
-    ]),
-])
+@pytest.mark.parametrize(
+    "outrows, expected", [
+        (
+            [
+                ('', '', 'a'),
+                ('', '', ''),
+            ], [
+                ('', '', ''),
+                ('', '', 'a'),
+            ],
+        ),
+        (
+            [
+                # Include an int to check avoiding the following error:
+                # > TypeError: '<' not supported between instances of 'str' and 'int'
+                ('', '', 1),
+                ('', '', ''),
+            ], [
+                ('', '', ''),
+                ('', '', 1),
+            ],
+        ),
+    ],
+)
 def test_sorted_outrows(outrows, expected):
     actual = wheel.sorted_outrows(outrows)
     assert actual == expected
@@ -359,7 +377,7 @@ def test_get_csv_rows_for_installed__long_lines(tmpdir, caplog):
     messages = [rec.message for rec in caplog.records]
     expected = [
         "RECORD line has more than three elements: ['a', 'b', 'c', 'd']",
-        "RECORD line has more than three elements: ['h', 'i', 'j', 'k']"
+        "RECORD line has more than three elements: ['h', 'i', 'j', 'k']",
     ]
     assert messages == expected
 
@@ -482,8 +500,10 @@ class TestWheelFile(object):
 
     @patch('sys.platform', 'darwin')
     @patch('pip._internal.pep425tags.get_abbr_impl', lambda: 'cp')
-    @patch('pip._internal.pep425tags.get_platform',
-           lambda: 'macosx_10_9_intel')
+    @patch(
+        'pip._internal.pep425tags.get_platform',
+        lambda: 'macosx_10_9_intel',
+    )
     def test_supported_osx_version(self):
         """
         Wheels built for macOS 10.6 are supported on 10.9
@@ -496,8 +516,10 @@ class TestWheelFile(object):
 
     @patch('sys.platform', 'darwin')
     @patch('pip._internal.pep425tags.get_abbr_impl', lambda: 'cp')
-    @patch('pip._internal.pep425tags.get_platform',
-           lambda: 'macosx_10_6_intel')
+    @patch(
+        'pip._internal.pep425tags.get_platform',
+        lambda: 'macosx_10_6_intel',
+    )
     def test_not_supported_osx_version(self):
         """
         Wheels built for macOS 10.9 are not supported on 10.6
@@ -512,23 +534,35 @@ class TestWheelFile(object):
         """
         Multi-arch wheels (intel) are supported on components (i386, x86_64)
         """
-        with patch('pip._internal.pep425tags.get_platform',
-                   lambda: 'macosx_10_5_universal'):
+        with patch(
+            'pip._internal.pep425tags.get_platform',
+            lambda: 'macosx_10_5_universal',
+        ):
             universal = pep425tags.get_supported(['27'], False)
-        with patch('pip._internal.pep425tags.get_platform',
-                   lambda: 'macosx_10_5_intel'):
+        with patch(
+            'pip._internal.pep425tags.get_platform',
+            lambda: 'macosx_10_5_intel',
+        ):
             intel = pep425tags.get_supported(['27'], False)
-        with patch('pip._internal.pep425tags.get_platform',
-                   lambda: 'macosx_10_5_x86_64'):
+        with patch(
+            'pip._internal.pep425tags.get_platform',
+            lambda: 'macosx_10_5_x86_64',
+        ):
             x64 = pep425tags.get_supported(['27'], False)
-        with patch('pip._internal.pep425tags.get_platform',
-                   lambda: 'macosx_10_5_i386'):
+        with patch(
+            'pip._internal.pep425tags.get_platform',
+            lambda: 'macosx_10_5_i386',
+        ):
             i386 = pep425tags.get_supported(['27'], False)
-        with patch('pip._internal.pep425tags.get_platform',
-                   lambda: 'macosx_10_5_ppc'):
+        with patch(
+            'pip._internal.pep425tags.get_platform',
+            lambda: 'macosx_10_5_ppc',
+        ):
             ppc = pep425tags.get_supported(['27'], False)
-        with patch('pip._internal.pep425tags.get_platform',
-                   lambda: 'macosx_10_5_ppc64'):
+        with patch(
+            'pip._internal.pep425tags.get_platform',
+            lambda: 'macosx_10_5_ppc64',
+        ):
             ppc64 = pep425tags.get_supported(['27'], False)
 
         w = wheel.Wheel('simple-0.1-cp27-none-macosx_10_5_intel.whl')
@@ -552,11 +586,15 @@ class TestWheelFile(object):
         """
         Single-arch wheels (x86_64) are not supported on multi-arch (intel)
         """
-        with patch('pip._internal.pep425tags.get_platform',
-                   lambda: 'macosx_10_5_universal'):
+        with patch(
+            'pip._internal.pep425tags.get_platform',
+            lambda: 'macosx_10_5_universal',
+        ):
             universal = pep425tags.get_supported(['27'], False)
-        with patch('pip._internal.pep425tags.get_platform',
-                   lambda: 'macosx_10_5_intel'):
+        with patch(
+            'pip._internal.pep425tags.get_platform',
+            lambda: 'macosx_10_5_intel',
+        ):
             intel = pep425tags.get_supported(['27'], False)
 
         w = wheel.Wheel('simple-0.1-cp27-none-macosx_10_5_i386.whl')
@@ -589,8 +627,10 @@ class TestWheelFile(object):
             w.support_index_min(tags=[])
 
     def test_unpack_wheel_no_flatten(self, tmpdir):
-        filepath = os.path.join(DATA_DIR, 'packages',
-                                'meta-1.0-py2.py3-none-any.whl')
+        filepath = os.path.join(
+            DATA_DIR, 'packages',
+            'meta-1.0-py2.py3-none-any.whl',
+        )
         unpack_file(filepath, tmpdir)
         assert os.path.isdir(os.path.join(tmpdir, 'meta-1.0.dist-info'))
 
@@ -601,10 +641,16 @@ class TestWheelFile(object):
         packages = [
             ("pure_wheel", data.packages.joinpath("pure_wheel-1.7"), True),
             ("plat_wheel", data.packages.joinpath("plat_wheel-1.7"), False),
-            ("pure_wheel", data.packages.joinpath(
-                "pure_wheel-_invalidversion_"), True),
-            ("plat_wheel", data.packages.joinpath(
-                "plat_wheel-_invalidversion_"), False),
+            (
+                "pure_wheel", data.packages.joinpath(
+                "pure_wheel-_invalidversion_",
+                ), True,
+            ),
+            (
+                "plat_wheel", data.packages.joinpath(
+                "plat_wheel-_invalidversion_",
+                ), False,
+            ),
         ]
 
         for name, path, expected in packages:
@@ -627,7 +673,8 @@ class TestMoveWheelFiles(object):
     def prep(self, data, tmpdir):
         self.name = 'sample'
         self.wheelpath = data.packages.joinpath(
-            'sample-1.2.0-py2.py3-none-any.whl')
+            'sample-1.2.0-py2.py3-none-any.whl',
+        )
         self.req = Requirement('sample')
         self.src = os.path.join(tmpdir, 'src')
         self.dest = os.path.join(tmpdir, 'dest')
@@ -638,14 +685,17 @@ class TestMoveWheelFiles(object):
             'data': os.path.join(self.dest, 'data'),
         }
         self.src_dist_info = os.path.join(
-            self.src, 'sample-1.2.0.dist-info')
+            self.src, 'sample-1.2.0.dist-info',
+        )
         self.dest_dist_info = os.path.join(
-            self.scheme['purelib'], 'sample-1.2.0.dist-info')
+            self.scheme['purelib'], 'sample-1.2.0.dist-info',
+        )
 
     def assert_installed(self):
         # lib
         assert os.path.isdir(
-            os.path.join(self.scheme['purelib'], 'sample'))
+            os.path.join(self.scheme['purelib'], 'sample'),
+        )
         # dist-info
         metadata = os.path.join(self.dest_dist_info, 'METADATA')
         assert os.path.isfile(metadata)
@@ -654,13 +704,15 @@ class TestMoveWheelFiles(object):
         assert os.path.isfile(data_file)
         # package data
         pkg_data = os.path.join(
-            self.scheme['purelib'], 'sample', 'package_data.dat')
+            self.scheme['purelib'], 'sample', 'package_data.dat',
+        )
         assert os.path.isfile(pkg_data)
 
     def test_std_install(self, data, tmpdir):
         self.prep(data, tmpdir)
         wheel.move_wheel_files(
-            self.name, self.req, self.src, scheme=self.scheme)
+            self.name, self.req, self.src, scheme=self.scheme,
+        )
         self.assert_installed()
 
     def test_install_prefix(self, data, tmpdir):
@@ -685,14 +737,17 @@ class TestMoveWheelFiles(object):
         # e.g. https://github.com/pypa/pip/issues/1632#issuecomment-38027275
         self.prep(data, tmpdir)
         src_empty_dir = os.path.join(
-            self.src_dist_info, 'empty_dir', 'empty_dir')
+            self.src_dist_info, 'empty_dir', 'empty_dir',
+        )
         os.makedirs(src_empty_dir)
         assert os.path.isdir(src_empty_dir)
         wheel.move_wheel_files(
-            self.name, self.req, self.src, scheme=self.scheme)
+            self.name, self.req, self.src, scheme=self.scheme,
+        )
         self.assert_installed()
         assert not os.path.isdir(
-            os.path.join(self.dest_dist_info, 'empty_dir'))
+            os.path.join(self.dest_dist_info, 'empty_dir'),
+        )
 
 
 class TestWheelBuilder(object):
@@ -720,14 +775,14 @@ class TestMessageAboutScriptsNotOnPATH(object):
     def test_no_script(self):
         retval = self._template(
             paths=['/a/b', '/c/d/bin'],
-            scripts=[]
+            scripts=[],
         )
         assert retval is None
 
     def test_single_script__single_dir_not_on_PATH(self):
         retval = self._template(
             paths=['/a/b', '/c/d/bin'],
-            scripts=['/c/d/foo']
+            scripts=['/c/d/foo'],
         )
         assert retval is not None
         assert "--no-warn-script-location" in retval
@@ -736,7 +791,7 @@ class TestMessageAboutScriptsNotOnPATH(object):
     def test_two_script__single_dir_not_on_PATH(self):
         retval = self._template(
             paths=['/a/b', '/c/d/bin'],
-            scripts=['/c/d/foo', '/c/d/baz']
+            scripts=['/c/d/foo', '/c/d/baz'],
         )
         assert retval is not None
         assert "--no-warn-script-location" in retval
@@ -745,7 +800,7 @@ class TestMessageAboutScriptsNotOnPATH(object):
     def test_multi_script__multi_dir_not_on_PATH(self):
         retval = self._template(
             paths=['/a/b', '/c/d/bin'],
-            scripts=['/c/d/foo', '/c/d/bar', '/c/d/baz', '/a/b/c/spam']
+            scripts=['/c/d/foo', '/c/d/bar', '/c/d/baz', '/a/b/c/spam'],
         )
         assert retval is not None
         assert "--no-warn-script-location" in retval
@@ -757,8 +812,8 @@ class TestMessageAboutScriptsNotOnPATH(object):
             paths=['/a/b', '/c/d/bin'],
             scripts=[
                 '/c/d/foo', '/c/d/bar', '/c/d/baz',
-                '/a/b/c/spam', '/a/b/c/eggs'
-            ]
+                '/a/b/c/spam', '/a/b/c/eggs',
+            ],
         )
         assert retval is not None
         assert "--no-warn-script-location" in retval
@@ -768,35 +823,35 @@ class TestMessageAboutScriptsNotOnPATH(object):
     def test_two_script__single_dir_on_PATH(self):
         retval = self._template(
             paths=['/a/b', '/c/d/bin'],
-            scripts=['/a/b/foo', '/a/b/baz']
+            scripts=['/a/b/foo', '/a/b/baz'],
         )
         assert retval is None
 
     def test_multi_script__multi_dir_on_PATH(self):
         retval = self._template(
             paths=['/a/b', '/c/d/bin'],
-            scripts=['/a/b/foo', '/a/b/bar', '/a/b/baz', '/c/d/bin/spam']
+            scripts=['/a/b/foo', '/a/b/bar', '/a/b/baz', '/c/d/bin/spam'],
         )
         assert retval is None
 
     def test_multi_script__single_dir_on_PATH(self):
         retval = self._template(
             paths=['/a/b', '/c/d/bin'],
-            scripts=['/a/b/foo', '/a/b/bar', '/a/b/baz']
+            scripts=['/a/b/foo', '/a/b/bar', '/a/b/baz'],
         )
         assert retval is None
 
     def test_single_script__single_dir_on_PATH(self):
         retval = self._template(
             paths=['/a/b', '/c/d/bin'],
-            scripts=['/a/b/foo']
+            scripts=['/a/b/foo'],
         )
         assert retval is None
 
     def test_PATH_check_case_insensitive_on_windows(self):
         retval = self._template(
             paths=['C:\\A\\b'],
-            scripts=['c:\\a\\b\\c', 'C:/A/b/d']
+            scripts=['c:\\a\\b\\c', 'C:/A/b/d'],
         )
         if WINDOWS:
             assert retval is None
@@ -806,7 +861,7 @@ class TestMessageAboutScriptsNotOnPATH(object):
     def test_trailing_ossep_removal(self):
         retval = self._template(
             paths=[os.path.join('a', 'b', '')],
-            scripts=[os.path.join('a', 'b', 'c')]
+            scripts=[os.path.join('a', 'b', 'c')],
         )
         assert retval is None
 

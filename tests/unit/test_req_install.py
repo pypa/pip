@@ -43,7 +43,7 @@ class TestInstallRequirementBuildDirectory(object):
             f.write('')
 
         requirement = install_req_from_line(
-            str(install_dir).replace(os.sep, os.altsep or os.sep)
+            str(install_dir).replace(os.sep, os.altsep or os.sep),
         )
 
         assert requirement.link is not None
@@ -69,8 +69,10 @@ class TestInstallRequirementFrom(object):
         when called with URL (PEP 508) but without comes_from.
         """
         # Test with a PEP 508 url install string:
-        wheel_url = ("https://download.pytorch.org/whl/cu90/"
-                     "torch-1.0.0-cp36-cp36m-win_amd64.whl")
+        wheel_url = (
+            "https://download.pytorch.org/whl/cu90/"
+            "torch-1.0.0-cp36-cp36m-win_amd64.whl"
+        )
         install_str = "torch@ " + wheel_url
         install_req = install_req_from_req_string(install_str)
 
@@ -87,18 +89,20 @@ class TestInstallRequirementFrom(object):
         does not have a link.
         """
         # Test with a PEP 508 url install string:
-        wheel_url = ("https://download.pytorch.org/whl/cu90/"
-                     "torch-1.0.0-cp36-cp36m-win_amd64.whl")
+        wheel_url = (
+            "https://download.pytorch.org/whl/cu90/"
+            "torch-1.0.0-cp36-cp36m-win_amd64.whl"
+        )
         install_str = "torch@ " + wheel_url
 
         # Dummy numpy "comes_from" requirement without link:
         comes_from = InstallRequirement(
-            Requirement("numpy>=1.15.0"), comes_from=None
+            Requirement("numpy>=1.15.0"), comes_from=None,
         )
 
         # Attempt install from install string comes:
         install_req = install_req_from_req_string(
-            install_str, comes_from=comes_from
+            install_str, comes_from=comes_from,
         )
 
         assert isinstance(install_req, InstallRequirement)

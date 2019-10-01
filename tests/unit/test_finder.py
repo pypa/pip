@@ -104,7 +104,7 @@ def test_finder_detects_latest_already_satisfied_find_links(data):
     satisfied_by = Mock(
         location="/path",
         parsed_version=parse_version(latest_version),
-        version=latest_version
+        version=latest_version,
     )
     req.satisfied_by = satisfied_by
     finder = make_test_finder(find_links=[data.find_links])
@@ -286,8 +286,10 @@ def test_finder_priority_file_over_page(data):
     all_versions = finder.find_all_candidates(req.name)
     # 1 file InstallationCandidate followed by all https ones
     assert all_versions[0].link.scheme == 'file'
-    assert all(version.link.scheme == 'https'
-               for version in all_versions[1:]), all_versions
+    assert all(
+        version.link.scheme == 'https'
+        for version in all_versions[1:]
+    ), all_versions
 
     link = finder.find_requirement(req, False)
     assert link.url.startswith("file://")
@@ -443,10 +445,12 @@ class TestLinkEvaluator(object):
             allow_yanked=True,
         )
 
-    @pytest.mark.parametrize('url, expected_version', [
-        ('http:/yo/pytest-1.0.tar.gz', '1.0'),
-        ('http:/yo/pytest-1.0-py2.py3-none-any.whl', '1.0'),
-    ])
+    @pytest.mark.parametrize(
+        'url, expected_version', [
+            ('http:/yo/pytest-1.0.tar.gz', '1.0'),
+            ('http:/yo/pytest-1.0-py2.py3-none-any.whl', '1.0'),
+        ],
+    )
     def test_evaluate_link__match(self, url, expected_version):
         """Test that 'pytest' archives match for 'pytest'"""
         link = Link(url)
@@ -454,14 +458,20 @@ class TestLinkEvaluator(object):
         actual = evaluator.evaluate_link(link)
         assert actual == (True, expected_version)
 
-    @pytest.mark.parametrize('url, expected_msg', [
-        # TODO: Uncomment this test case when #1217 is fixed.
-        # 'http:/yo/pytest-xdist-1.0.tar.gz',
-        ('http:/yo/pytest2-1.0.tar.gz',
-         'Missing project version for pytest'),
-        ('http:/yo/pytest_xdist-1.0-py2.py3-none-any.whl',
-         'wrong project name (not pytest)'),
-    ])
+    @pytest.mark.parametrize(
+        'url, expected_msg', [
+            # TODO: Uncomment this test case when #1217 is fixed.
+            # 'http:/yo/pytest-xdist-1.0.tar.gz',
+            (
+                'http:/yo/pytest2-1.0.tar.gz',
+                'Missing project version for pytest',
+            ),
+            (
+                'http:/yo/pytest_xdist-1.0-py2.py3-none-any.whl',
+                'wrong project name (not pytest)',
+            ),
+        ],
+    )
     def test_evaluate_link__substring_fails(self, url, expected_msg):
         """Test that 'pytest<something> archives won't match for 'pytest'."""
         link = Link(url)

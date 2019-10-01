@@ -60,7 +60,7 @@ if MYPY_CHECK_RUNNING:
     from pip._vendor.packaging.requirements import Requirement
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.operations.prepare import (
-        RequirementPreparer
+        RequirementPreparer,
     )
     from pip._internal.cache import WheelCache
     from pip._internal.pep425tags import Pep425Tag
@@ -97,7 +97,7 @@ def rehash(path, blocksize=1 << 20):
     """Return (encoded_digest, length) for path using hashlib.sha256()"""
     h, length = hash_file(path, blocksize)
     digest = 'sha256=' + urlsafe_b64encode(
-        h.digest()
+        h.digest(),
     ).decode('latin1').rstrip('=')
     # unicode/str python2 issues
     return (digest, str(length))  # type: ignore
@@ -143,8 +143,10 @@ def fix_script(path):
     return None
 
 
-dist_info_re = re.compile(r"""^(?P<namever>(?P<name>.+?)(-(?P<ver>.+?))?)
-                                \.dist-info$""", re.VERBOSE)
+dist_info_re = re.compile(
+    r"""^(?P<namever>(?P<name>.+?)(-(?P<ver>.+?))?)
+                                \.dist-info$""", re.VERBOSE,
+)
 
 
 def root_is_purelib(name, wheeldir):
@@ -236,12 +238,12 @@ def message_about_scripts_not_on_PATH(scripts):
             start_text = "script {} is".format(sorted_scripts[0])
         else:
             start_text = "scripts {} are".format(
-                ", ".join(sorted_scripts[:-1]) + " and " + sorted_scripts[-1]
+                ", ".join(sorted_scripts[:-1]) + " and " + sorted_scripts[-1],
             )
 
         msg_lines.append(
             "The {} installed in '{}' which is not on PATH."
-            .format(start_text, parent_dir)
+            .format(start_text, parent_dir),
         )
 
     last_line_fmt = (
@@ -294,7 +296,7 @@ def get_csv_rows_for_installed(
     for row in old_csv_rows:
         if len(row) > 3:
             logger.warning(
-                'RECORD line has more than three elements: {}'.format(row)
+                'RECORD line has more than three elements: {}'.format(row),
             )
         # Make a copy because we are mutating the row.
         row = list(row)
@@ -341,7 +343,7 @@ def move_wheel_files(
     scheme=None,  # type: Optional[Mapping[str, str]]
     isolated=False,  # type: bool
     prefix=None,  # type: Optional[str]
-    warn_script_location=True  # type: bool
+    warn_script_location=True,  # type: bool
 ):
     # type: (...) -> None
     """Install a wheel"""
@@ -401,13 +403,18 @@ def move_wheel_files(
                 if is_base and basedir == '' and destsubdir.endswith('.data'):
                     data_dirs.append(s)
                     continue
-                elif (is_base and
-                        s.endswith('.dist-info') and
-                        canonicalize_name(s).startswith(
-                            canonicalize_name(req.name))):
-                    assert not info_dir, ('Multiple .dist-info directories: ' +
-                                          destsubdir + ', ' +
-                                          ', '.join(info_dir))
+                elif (
+                    is_base and
+                    s.endswith('.dist-info') and
+                    canonicalize_name(s).startswith(
+                        canonicalize_name(req.name),
+                    )
+                ):
+                    assert not info_dir, (
+                        'Multiple .dist-info directories: ' +
+                        destsubdir + ', ' +
+                        ', '.join(info_dir)
+                    )
                     info_dir.append(destsubdir)
             for f in files:
                 # Skip unwanted files
@@ -550,11 +557,11 @@ def move_wheel_files(
 
         if os.environ.get("ENSUREPIP_OPTIONS", "") != "altinstall":
             scripts_to_generate.append(
-                'pip%s = %s' % (sys.version_info[0], pip_script)
+                'pip%s = %s' % (sys.version_info[0], pip_script),
             )
 
         scripts_to_generate.append(
-            'pip%s = %s' % (get_major_minor_version(), pip_script)
+            'pip%s = %s' % (get_major_minor_version(), pip_script),
         )
         # Delete any other versioned pip entry points
         pip_ep = [k for k in console if re.match(r'pip(\d(\.\d)?)?$', k)]
@@ -564,13 +571,13 @@ def move_wheel_files(
     if easy_install_script:
         if "ENSUREPIP_OPTIONS" not in os.environ:
             scripts_to_generate.append(
-                'easy_install = ' + easy_install_script
+                'easy_install = ' + easy_install_script,
             )
 
         scripts_to_generate.append(
             'easy_install-%s = %s' % (
-                get_major_minor_version(), easy_install_script
-            )
+                get_major_minor_version(), easy_install_script,
+            ),
         )
         # Delete any other versioned easy_install entry points
         easy_install_ep = [
@@ -595,7 +602,7 @@ def move_wheel_files(
         generated.extend(generated_console_scripts)
 
         generated.extend(
-            maker.make_multiple(gui_scripts_to_generate, {'gui': True})
+            maker.make_multiple(gui_scripts_to_generate, {'gui': True}),
         )
     except MissingCallableSuffix as e:
         entry = e.args[0]
@@ -603,7 +610,7 @@ def move_wheel_files(
             "Invalid script entry point: {} for req: {} - A callable "
             "suffix is required. Cf https://packaging.python.org/en/"
             "latest/distributing.html#console-scripts for more "
-            "information.".format(entry, req)
+            "information.".format(entry, req),
         )
 
     if warn_script_location:
@@ -672,12 +679,12 @@ def check_compatibility(version, name):
     """
     if not version:
         raise UnsupportedWheel(
-            "%s is in an unsupported or invalid wheel" % name
+            "%s is in an unsupported or invalid wheel" % name,
         )
     if version[0] > VERSION_COMPATIBLE[0]:
         raise UnsupportedWheel(
             "%s's Wheel-Version (%s) is not compatible with this version "
-            "of pip" % (name, '.'.join(map(str, version)))
+            "of pip" % (name, '.'.join(map(str, version))),
         )
     elif version > VERSION_COMPATIBLE:
         logger.warning(
@@ -706,7 +713,7 @@ class Wheel(object):
         r"""^(?P<namever>(?P<name>.+?)-(?P<ver>.*?))
         ((-(?P<build>\d[^-]*?))?-(?P<pyver>.+?)-(?P<abi>.+?)-(?P<plat>.+?)
         \.whl|\.dist-info)$""",
-        re.VERBOSE
+        re.VERBOSE,
     )
 
     def __init__(self, filename):
@@ -717,7 +724,7 @@ class Wheel(object):
         wheel_info = self.wheel_file_re.match(filename)
         if not wheel_info:
             raise InvalidWheelFilename(
-                "%s is not a valid wheel filename." % filename
+                "%s is not a valid wheel filename." % filename,
             )
         self.filename = filename
         self.name = wheel_info.group('name').replace('_', '-')
@@ -770,7 +777,8 @@ class Wheel(object):
 
 
 def _contains_egg_info(
-        s, _egg_info_re=re.compile(r'([a-z0-9_.]+)-([a-z0-9_.!+-]+)', re.I)):
+        s, _egg_info_re=re.compile(r'([a-z0-9_.]+)-([a-z0-9_.!+-]+)', re.I),
+):
     """Determine whether the string looks like an egg_info.
 
     :param s: The string to parse. E.g. foo-2.1
@@ -905,7 +913,7 @@ class WheelBuilder(object):
         build_options=None,  # type: Optional[List[str]]
         global_options=None,  # type: Optional[List[str]]
         check_binary_allowed=None,  # type: Optional[BinaryAllowedPredicate]
-        no_clean=False  # type: bool
+        no_clean=False,  # type: bool
     ):
         # type: (...) -> None
         if check_binary_allowed is None:
@@ -929,8 +937,10 @@ class WheelBuilder(object):
         """
         # Install build deps into temporary directory (PEP 518)
         with req.build_env:
-            return self._build_one_inside_env(req, output_dir,
-                                              python_tag=python_tag)
+            return self._build_one_inside_env(
+                req, output_dir,
+                python_tag=python_tag,
+            )
 
     def _build_one_inside_env(self, req, output_dir, python_tag=None):
         with TempDirectory(kind="wheel") as temp_dir:
@@ -945,10 +955,12 @@ class WheelBuilder(object):
                 try:
                     wheel_hash, length = hash_file(wheel_path)
                     shutil.move(wheel_path, dest_path)
-                    logger.info('Created wheel for %s: '
-                                'filename=%s size=%d sha256=%s',
-                                req.name, wheel_name, length,
-                                wheel_hash.hexdigest())
+                    logger.info(
+                        'Created wheel for %s: '
+                        'filename=%s size=%d sha256=%s',
+                        req.name, wheel_name, length,
+                        wheel_hash.hexdigest(),
+                    )
                     logger.info('Stored in directory: %s', output_dir)
                     return dest_path
                 except Exception:
@@ -965,7 +977,7 @@ class WheelBuilder(object):
         return make_setuptools_shim_args(
             req.setup_py_path,
             global_options=self.global_options,
-            unbuffered_output=True
+            unbuffered_output=True,
         )
 
     def _build_one_pep517(self, req, tempd, python_tag=None):
@@ -976,14 +988,16 @@ class WheelBuilder(object):
         assert req.metadata_directory is not None
         if self.build_options:
             # PEP 517 does not support --build-options
-            logger.error('Cannot build wheel for %s using PEP 517 when '
-                         '--build-options is present' % (req.name,))
+            logger.error(
+                'Cannot build wheel for %s using PEP 517 when '
+                '--build-options is present' % (req.name,),
+            )
             return None
         try:
             logger.debug('Destination directory: %s', tempd)
 
             runner = runner_with_spinner_message(
-                'Building wheel for {} (PEP 517)'.format(req.name)
+                'Building wheel for {} (PEP 517)'.format(req.name),
             )
             backend = req.pep517_backend
             with backend.subprocess_runner(runner):
@@ -998,7 +1012,7 @@ class WheelBuilder(object):
                 new_name = replace_python_tag(wheel_name, python_tag)
                 os.rename(
                     os.path.join(tempd, wheel_name),
-                    os.path.join(tempd, new_name)
+                    os.path.join(tempd, new_name),
                 )
                 # Reassign to simplify the return at the end of function
                 wheel_name = new_name
@@ -1059,7 +1073,7 @@ class WheelBuilder(object):
     def build(
         self,
         requirements,  # type: Iterable[InstallRequirement]
-        should_unpack=False  # type: bool
+        should_unpack=False,  # type: bool
     ):
         # type: (...) -> List[InstallRequirement]
         """Build wheels.
@@ -1095,7 +1109,7 @@ class WheelBuilder(object):
             if should_unpack:
                 if ephem_cache:
                     output_dir = self.wheel_cache.get_ephem_path_for_link(
-                        req.link
+                        req.link,
                     )
                 else:
                     output_dir = self.wheel_cache.get_path_for_link(req.link)
@@ -1150,13 +1164,14 @@ class WheelBuilder(object):
                             not has_delete_marker_file(req.source_dir)
                         ):
                             raise AssertionError(
-                                "bad source dir - missing marker")
+                                "bad source dir - missing marker",
+                            )
                         # Delete the source we built the wheel from
                         req.remove_temporary_source()
                         # set the build directory again - name is known from
                         # the work prepare_files did.
                         req.source_dir = req.ensure_build_location(
-                            self.preparer.build_dir
+                            self.preparer.build_dir,
                         )
                         # Update the link for this.
                         req.link = Link(path_to_url(wheel_file))

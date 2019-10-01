@@ -109,7 +109,7 @@ class TestRequirementSet(object):
         """
         reqset = RequirementSet()
         req = install_req_from_editable(
-            data.packages.joinpath("LocalEnvironMarker")
+            data.packages.joinpath("LocalEnvironMarker"),
         )
         req.is_direct = True
         reqset.add_requirement(req)
@@ -130,26 +130,34 @@ class TestRequirementSet(object):
         reqset = RequirementSet()
         # No flags here. This tests that detection of later flags nonetheless
         # requires earlier packages to have hashes:
-        reqset.add_requirement(get_processed_req_from_line(
-            'blessings==1.0', lineno=1
-        ))
+        reqset.add_requirement(
+            get_processed_req_from_line(
+                'blessings==1.0', lineno=1,
+            ),
+        )
         # This flag activates --require-hashes mode:
-        reqset.add_requirement(get_processed_req_from_line(
-            'tracefront==0.1 --hash=sha256:somehash', lineno=2,
-        ))
+        reqset.add_requirement(
+            get_processed_req_from_line(
+                'tracefront==0.1 --hash=sha256:somehash', lineno=2,
+            ),
+        )
         # This hash should be accepted because it came from the reqs file, not
         # from the internet:
-        reqset.add_requirement(get_processed_req_from_line(
-            'https://files.pythonhosted.org/packages/source/m/more-itertools/'
-            'more-itertools-1.0.tar.gz#md5=b21850c3cfa7efbb70fd662ab5413bdd',
-            lineno=3,
-        ))
+        reqset.add_requirement(
+            get_processed_req_from_line(
+                'https://files.pythonhosted.org/packages/source/m/more-itertools/'
+                'more-itertools-1.0.tar.gz#md5=b21850c3cfa7efbb70fd662ab5413bdd',
+                lineno=3,
+            ),
+        )
         # The error text should list this as a URL and not `peep==3.1.1`:
-        reqset.add_requirement(get_processed_req_from_line(
-            'https://files.pythonhosted.org/'
-            'packages/source/p/peep/peep-3.1.1.tar.gz',
-            lineno=4,
-        ))
+        reqset.add_requirement(
+            get_processed_req_from_line(
+                'https://files.pythonhosted.org/'
+                'packages/source/p/peep/peep-3.1.1.tar.gz',
+                lineno=4,
+            ),
+        )
         finder = make_test_finder(index_urls=['https://pypi.org/simple/'])
         resolver = self._basic_resolver(finder)
         assert_raises_regexp(
@@ -164,7 +172,7 @@ class TestRequirementSet(object):
             r'        Expected sha256 somehash\n'
             r'             Got        [0-9a-f]+$',
             resolver.resolve,
-            reqset
+            reqset,
         )
 
     def test_missing_hash_with_require_hashes(self, data):
@@ -172,9 +180,11 @@ class TestRequirementSet(object):
         are missing.
         """
         reqset = RequirementSet(require_hashes=True)
-        reqset.add_requirement(get_processed_req_from_line(
-            'simple==1.0', lineno=1
-        ))
+        reqset.add_requirement(
+            get_processed_req_from_line(
+                'simple==1.0', lineno=1,
+            ),
+        )
 
         finder = make_test_finder(find_links=[data.find_links])
         resolver = self._basic_resolver(finder)
@@ -186,7 +196,7 @@ class TestRequirementSet(object):
             r'    simple==1.0 --hash=sha256:393043e672415891885c9a2a0929b1af95'
             r'fb866d6ca016b42d2e6ce53619b653$',
             resolver.resolve,
-            reqset
+            reqset,
         )
 
     def test_missing_hash_with_require_hashes_in_reqs_file(self, data, tmpdir):
@@ -213,15 +223,19 @@ class TestRequirementSet(object):
 
         """
         reqset = RequirementSet(require_hashes=True)
-        reqset.add_requirement(get_processed_req_from_line(
-            'git+git://github.com/pypa/pip-test-package --hash=sha256:123',
-            lineno=1,
-        ))
+        reqset.add_requirement(
+            get_processed_req_from_line(
+                'git+git://github.com/pypa/pip-test-package --hash=sha256:123',
+                lineno=1,
+            ),
+        )
         dir_path = data.packages.joinpath('FSPkg')
-        reqset.add_requirement(get_processed_req_from_line(
-            'file://%s' % (dir_path,),
-            lineno=2,
-        ))
+        reqset.add_requirement(
+            get_processed_req_from_line(
+                'file://%s' % (dir_path,),
+                lineno=2,
+            ),
+        )
         finder = make_test_finder(find_links=[data.find_links])
         resolver = self._basic_resolver(finder)
         sep = os.path.sep
@@ -238,7 +252,8 @@ class TestRequirementSet(object):
             r"    file://.*{sep}data{sep}packages{sep}FSPkg "
             r"\(from -r file \(line 2\)\)".format(sep=sep),
             resolver.resolve,
-            reqset)
+            reqset,
+        )
 
     def test_unpinned_hash_checking(self, data):
         """Make sure prepare_files() raises an error when a requirement is not
@@ -246,16 +261,20 @@ class TestRequirementSet(object):
         """
         reqset = RequirementSet()
         # Test that there must be exactly 1 specifier:
-        reqset.add_requirement(get_processed_req_from_line(
-            'simple --hash=sha256:a90427ae31f5d1d0d7ec06ee97d9fcf2d0fc9a786985'
-            '250c1c83fd68df5911dd', lineno=1,
-        ))
+        reqset.add_requirement(
+            get_processed_req_from_line(
+                'simple --hash=sha256:a90427ae31f5d1d0d7ec06ee97d9fcf2d0fc9a786985'
+                '250c1c83fd68df5911dd', lineno=1,
+            ),
+        )
         # Test that the operator must be ==:
-        reqset.add_requirement(get_processed_req_from_line(
-            'simple2>1.0 --hash=sha256:3ad45e1e9aa48b4462af0'
-            '123f6a7e44a9115db1ef945d4d92c123dfe21815a06',
-            lineno=2,
-        ))
+        reqset.add_requirement(
+            get_processed_req_from_line(
+                'simple2>1.0 --hash=sha256:3ad45e1e9aa48b4462af0'
+                '123f6a7e44a9115db1ef945d4d92c123dfe21815a06',
+                lineno=2,
+            ),
+        )
         finder = make_test_finder(find_links=[data.find_links])
         resolver = self._basic_resolver(finder)
         assert_raises_regexp(
@@ -265,16 +284,20 @@ class TestRequirementSet(object):
             r'    simple .* \(from -r file \(line 1\)\)\n'
             r'    simple2>1.0 .* \(from -r file \(line 2\)\)',
             resolver.resolve,
-            reqset)
+            reqset,
+        )
 
     def test_hash_mismatch(self, data):
         """A hash mismatch should raise an error."""
         file_url = path_to_url(
-            (data.packages / 'simple-1.0.tar.gz').abspath)
+            (data.packages / 'simple-1.0.tar.gz').abspath,
+        )
         reqset = RequirementSet(require_hashes=True)
-        reqset.add_requirement(get_processed_req_from_line(
-            '%s --hash=sha256:badbad' % file_url, lineno=1,
-        ))
+        reqset.add_requirement(
+            get_processed_req_from_line(
+                '%s --hash=sha256:badbad' % file_url, lineno=1,
+            ),
+        )
         finder = make_test_finder(find_links=[data.find_links])
         resolver = self._basic_resolver(finder)
         assert_raises_regexp(
@@ -285,7 +308,8 @@ class TestRequirementSet(object):
             r'             Got        393043e672415891885c9a2a0929b1af95fb866d'
             r'6ca016b42d2e6ce53619b653$',
             resolver.resolve,
-            reqset)
+            reqset,
+        )
 
     def test_unhashed_deps_on_require_hashes(self, data):
         """Make sure unhashed, unpinned, or otherwise unrepeatable
@@ -293,19 +317,22 @@ class TestRequirementSet(object):
         reqset = RequirementSet()
         finder = make_test_finder(find_links=[data.find_links])
         resolver = self._basic_resolver(finder)
-        reqset.add_requirement(get_processed_req_from_line(
-            'TopoRequires2==0.0.1 '  # requires TopoRequires
-            '--hash=sha256:eaf9a01242c9f2f42cf2bd82a6a848cd'
-            'e3591d14f7896bdbefcf48543720c970',
-            lineno=1
-        ))
+        reqset.add_requirement(
+            get_processed_req_from_line(
+                'TopoRequires2==0.0.1 '  # requires TopoRequires
+                '--hash=sha256:eaf9a01242c9f2f42cf2bd82a6a848cd'
+                'e3591d14f7896bdbefcf48543720c970',
+                lineno=1,
+            ),
+        )
         assert_raises_regexp(
             HashErrors,
             r'In --require-hashes mode, all requirements must have their '
             r'versions pinned.*\n'
             r'    TopoRequires from .*$',
             resolver.resolve,
-            reqset)
+            reqset,
+        )
 
     def test_hashed_deps_on_require_hashes(self):
         """Make sure hashed dependencies get installed when --require-hashes
@@ -317,18 +344,22 @@ class TestRequirementSet(object):
 
         """
         reqset = RequirementSet()
-        reqset.add_requirement(get_processed_req_from_line(
-            'TopoRequires2==0.0.1 '  # requires TopoRequires
-            '--hash=sha256:eaf9a01242c9f2f42cf2bd82a6a848cd'
-            'e3591d14f7896bdbefcf48543720c970',
-            lineno=1
-        ))
-        reqset.add_requirement(get_processed_req_from_line(
-            'TopoRequires==0.0.1 '
-            '--hash=sha256:d6dd1e22e60df512fdcf3640ced3039b3b02a56ab2cee81ebcb'
-            '3d0a6d4e8bfa6',
-            lineno=2
-        ))
+        reqset.add_requirement(
+            get_processed_req_from_line(
+                'TopoRequires2==0.0.1 '  # requires TopoRequires
+                '--hash=sha256:eaf9a01242c9f2f42cf2bd82a6a848cd'
+                'e3591d14f7896bdbefcf48543720c970',
+                lineno=1,
+            ),
+        )
+        reqset.add_requirement(
+            get_processed_req_from_line(
+                'TopoRequires==0.0.1 '
+                '--hash=sha256:d6dd1e22e60df512fdcf3640ced3039b3b02a56ab2cee81ebcb'
+                '3d0a6d4e8bfa6',
+                lineno=2,
+            ),
+        )
 
 
 class TestInstallRequirement(object):
@@ -431,11 +462,13 @@ class TestInstallRequirement(object):
         req = install_req_from_editable(url)
         assert req.link.url == url
 
-    @pytest.mark.parametrize('path', (
-        '/path/to/foo.egg-info'.replace('/', os.path.sep),
-        # Tests issue fixed by https://github.com/pypa/pip/pull/2530
-        '/path/to/foo.egg-info/'.replace('/', os.path.sep),
-    ))
+    @pytest.mark.parametrize(
+        'path', (
+            '/path/to/foo.egg-info'.replace('/', os.path.sep),
+            # Tests issue fixed by https://github.com/pypa/pip/pull/2530
+            '/path/to/foo.egg-info/'.replace('/', os.path.sep),
+        ),
+    )
     def test_get_dist(self, path):
         req = install_req_from_line('foo')
         req.metadata_directory = path
@@ -557,7 +590,8 @@ class TestInstallRequirement(object):
     def test_unexisting_path(self):
         with pytest.raises(InstallationError) as e:
             install_req_from_line(
-                os.path.join('this', 'path', 'does', 'not', 'exist'))
+                os.path.join('this', 'path', 'does', 'not', 'exist'),
+            )
         err_msg = e.value.args[0]
         assert "Invalid requirement" in err_msg
         assert "It looks like a path." in err_msg
@@ -593,7 +627,8 @@ class TestInstallRequirement(object):
 @patch('pip._internal.req.req_install.os.path.exists')
 @patch('pip._internal.req.req_install.os.path.isdir')
 def test_parse_editable_local(
-        isdir_mock, exists_mock, abspath_mock):
+        isdir_mock, exists_mock, abspath_mock,
+):
     exists_mock.return_value = isdir_mock.return_value = True
     # mocks needed to support path operations on windows tests
     abspath_mock.return_value = "/some/path"
@@ -624,7 +659,8 @@ def test_parse_editable_vcs_extras():
 @patch('pip._internal.req.req_install.os.path.exists')
 @patch('pip._internal.req.req_install.os.path.isdir')
 def test_parse_editable_local_extras(
-        isdir_mock, exists_mock, abspath_mock):
+        isdir_mock, exists_mock, abspath_mock,
+):
     exists_mock.return_value = isdir_mock.return_value = True
     abspath_mock.return_value = "/some/path"
     assert parse_editable('.[extras]') == (
@@ -639,10 +675,12 @@ def test_parse_editable_local_extras(
 def test_exclusive_environment_markers():
     """Make sure RequirementSet accepts several excluding env markers"""
     eq36 = install_req_from_line(
-        "Django>=1.6.10,<1.7 ; python_version == '3.6'")
+        "Django>=1.6.10,<1.7 ; python_version == '3.6'",
+    )
     eq36.is_direct = True
     ne36 = install_req_from_line(
-        "Django>=1.6.10,<1.8 ; python_version != '3.6'")
+        "Django>=1.6.10,<1.8 ; python_version != '3.6'",
+    )
     ne36.is_direct = True
 
     req_set = RequirementSet()
@@ -655,8 +693,10 @@ def test_mismatched_versions(caplog, tmpdir):
     original_source = os.path.join(DATA_DIR, 'src', 'simplewheel-1.0')
     source_dir = os.path.join(tmpdir, 'simplewheel')
     shutil.copytree(original_source, source_dir)
-    req = InstallRequirement(req=Requirement('simplewheel==2.0'),
-                             comes_from=None, source_dir=source_dir)
+    req = InstallRequirement(
+        req=Requirement('simplewheel==2.0'),
+        comes_from=None, source_dir=source_dir,
+    )
     req.prepare_metadata()
     req.assert_source_matches_version()
     assert caplog.records[-1].message == (
@@ -665,59 +705,81 @@ def test_mismatched_versions(caplog, tmpdir):
     )
 
 
-@pytest.mark.parametrize('args, expected', [
-    # Test UNIX-like paths
-    (('/path/to/installable'), True),
-    # Test relative paths
-    (('./path/to/installable'), True),
-    # Test current path
-    (('.'), True),
-    # Test url paths
-    (('https://whatever.com/test-0.4-py2.py3-bogus-any.whl'), True),
-    # Test pep440 paths
-    (('test @ https://whatever.com/test-0.4-py2.py3-bogus-any.whl'), True),
-    # Test wheel
-    (('simple-0.1-py2.py3-none-any.whl'), False),
-])
+@pytest.mark.parametrize(
+    'args, expected', [
+        # Test UNIX-like paths
+        (('/path/to/installable'), True),
+        # Test relative paths
+        (('./path/to/installable'), True),
+        # Test current path
+        (('.'), True),
+        # Test url paths
+        (('https://whatever.com/test-0.4-py2.py3-bogus-any.whl'), True),
+        # Test pep440 paths
+        (('test @ https://whatever.com/test-0.4-py2.py3-bogus-any.whl'), True),
+        # Test wheel
+        (('simple-0.1-py2.py3-none-any.whl'), False),
+    ],
+)
 def test_looks_like_path(args, expected):
     assert _looks_like_path(args) == expected
 
 
 @pytest.mark.skipif(
     not sys.platform.startswith("win"),
-    reason='Test only available on Windows'
+    reason='Test only available on Windows',
 )
-@pytest.mark.parametrize('args, expected', [
-    # Test relative paths
-    (('.\\path\\to\\installable'), True),
-    (('relative\\path'), True),
-    # Test absolute paths
-    (('C:\\absolute\\path'), True),
-])
+@pytest.mark.parametrize(
+    'args, expected', [
+        # Test relative paths
+        (('.\\path\\to\\installable'), True),
+        (('relative\\path'), True),
+        # Test absolute paths
+        (('C:\\absolute\\path'), True),
+    ],
+)
 def test_looks_like_path_win(args, expected):
     assert _looks_like_path(args) == expected
 
 
-@pytest.mark.parametrize('args, mock_returns, expected', [
-    # Test pep440 urls
-    (('/path/to/foo @ git+http://foo.com@ref#egg=foo',
-     'foo @ git+http://foo.com@ref#egg=foo'), (False, False), None),
-    # Test pep440 urls without spaces
-    (('/path/to/foo@git+http://foo.com@ref#egg=foo',
-     'foo @ git+http://foo.com@ref#egg=foo'), (False, False), None),
-    # Test pep440 wheel
-    (('/path/to/test @ https://whatever.com/test-0.4-py2.py3-bogus-any.whl',
-     'test @ https://whatever.com/test-0.4-py2.py3-bogus-any.whl'),
-     (False, False), None),
-    # Test name is not a file
-    (('/path/to/simple==0.1',
-     'simple==0.1'),
-     (False, False), None),
-])
+@pytest.mark.parametrize(
+    'args, mock_returns, expected', [
+        # Test pep440 urls
+        (
+            (
+                '/path/to/foo @ git+http://foo.com@ref#egg=foo',
+                'foo @ git+http://foo.com@ref#egg=foo',
+            ), (False, False), None,
+        ),
+        # Test pep440 urls without spaces
+        (
+            (
+                '/path/to/foo@git+http://foo.com@ref#egg=foo',
+                'foo @ git+http://foo.com@ref#egg=foo',
+            ), (False, False), None,
+        ),
+        # Test pep440 wheel
+        (
+            (
+                '/path/to/test @ https://whatever.com/test-0.4-py2.py3-bogus-any.whl',
+                'test @ https://whatever.com/test-0.4-py2.py3-bogus-any.whl',
+            ),
+            (False, False), None,
+        ),
+        # Test name is not a file
+        (
+            (
+                '/path/to/simple==0.1',
+                'simple==0.1',
+            ),
+            (False, False), None,
+        ),
+    ],
+)
 @patch('pip._internal.req.req_install.os.path.isdir')
 @patch('pip._internal.req.req_install.os.path.isfile')
 def test_get_url_from_path(
-    isdir_mock, isfile_mock, args, mock_returns, expected
+    isdir_mock, isfile_mock, args, mock_returns, expected,
 ):
     isdir_mock.return_value = mock_returns[0]
     isfile_mock.return_value = mock_returns[1]

@@ -7,12 +7,14 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 from pip._internal.utils.urls import get_url_scheme, path_to_url, url_to_path
 
 
-@pytest.mark.parametrize("url,expected", [
-    ('http://localhost:8080/', 'http'),
-    ('file:c:/path/to/file', 'file'),
-    ('file:/dev/null', 'file'),
-    ('', None),
-])
+@pytest.mark.parametrize(
+    "url,expected", [
+        ('http://localhost:8080/', 'http'),
+        ('file:c:/path/to/file', 'file'),
+        ('file:/dev/null', 'file'),
+        ('', None),
+    ],
+)
 def test_get_url_scheme(url, expected):
     assert get_url_scheme(url) == expected
 
@@ -33,16 +35,18 @@ def test_path_to_url_win():
     assert path_to_url('file') == 'file:' + urllib_request.pathname2url(path)
 
 
-@pytest.mark.parametrize("url,win_expected,non_win_expected", [
-    ('file:tmp', 'tmp', 'tmp'),
-    ('file:c:/path/to/file', r'C:\path\to\file', 'c:/path/to/file'),
-    ('file:/path/to/file', r'\path\to\file', '/path/to/file'),
-    ('file://localhost/tmp/file', r'\tmp\file', '/tmp/file'),
-    ('file://localhost/c:/tmp/file', r'C:\tmp\file', '/c:/tmp/file'),
-    ('file://somehost/tmp/file', r'\\somehost\tmp\file', None),
-    ('file:///tmp/file', r'\tmp\file', '/tmp/file'),
-    ('file:///c:/tmp/file', r'C:\tmp\file', '/c:/tmp/file'),
-])
+@pytest.mark.parametrize(
+    "url,win_expected,non_win_expected", [
+        ('file:tmp', 'tmp', 'tmp'),
+        ('file:c:/path/to/file', r'C:\path\to\file', 'c:/path/to/file'),
+        ('file:/path/to/file', r'\path\to\file', '/path/to/file'),
+        ('file://localhost/tmp/file', r'\tmp\file', '/tmp/file'),
+        ('file://localhost/c:/tmp/file', r'C:\tmp\file', '/c:/tmp/file'),
+        ('file://somehost/tmp/file', r'\\somehost\tmp\file', None),
+        ('file:///tmp/file', r'\tmp\file', '/tmp/file'),
+        ('file:///c:/tmp/file', r'C:\tmp\file', '/c:/tmp/file'),
+    ],
+)
 def test_url_to_path(url, win_expected, non_win_expected):
     if sys.platform == 'win32':
         expected_path = win_expected
