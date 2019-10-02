@@ -105,7 +105,7 @@ def rehash(path, blocksize=1 << 20):
 
 
 def open_for_csv(name, mode, encoding='utf8'):
-    # type: (str, Text) -> IO
+    # type: (str, Text, str) -> IO
     if sys.version_info[0] < 3:
         nl = {}  # type: Dict[str, Any]
         bin = 'b'
