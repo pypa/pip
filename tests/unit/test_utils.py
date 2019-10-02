@@ -39,6 +39,7 @@ from pip._internal.utils.misc import (
     get_prog,
     hide_url,
     hide_value,
+    is_console_interactive,
     normalize_path,
     normalize_version_info,
     parse_netloc,
@@ -971,3 +972,18 @@ def test_make_setuptools_shim_args__unbuffered_output(unbuffered_output):
         unbuffered_output=unbuffered_output
     )
     assert ('-u' in args) == unbuffered_output
+
+
+@pytest.mark.parametrize('isatty,no_stdin,expected', [
+    (True, False, True),
+    (False, False, False),
+    (True, True, False),
+    (False, True, False),
+])
+def test_is_console_interactive(monkeypatch, isatty, no_stdin, expected):
+    monkeypatch.setattr(sys.stdin, 'isatty', Mock(return_value=isatty))
+
+    if no_stdin:
+        monkeypatch.setattr(sys, 'stdin', None)
+
+    assert is_console_interactive() is expected
