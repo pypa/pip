@@ -12,7 +12,7 @@ from pip._internal.utils.misc import (
     display_path,
     is_console_interactive,
     rmtree,
-    split_auth_from_netloc
+    split_auth_from_netloc,
 )
 from pip._internal.utils.subprocess import make_command
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
