@@ -50,7 +50,7 @@ from pip._internal.utils.misc import (
     rmtree,
     rmtree_errorhandler,
     split_auth_from_netloc,
-    split_auth_netloc_from_url
+    split_auth_netloc_from_url,
 )
 from pip._internal.utils.setuptools_build import make_setuptools_shim_args
 
@@ -974,27 +974,16 @@ def test_make_setuptools_shim_args__unbuffered_output(unbuffered_output):
     assert ('-u' in args) == unbuffered_output
 
 
-def mock_stdin_isatty(monkeypatch, return_value):
-    monkeypatch.setattr(sys.stdin, 'isatty', Mock(return_value=return_value))
+@pytest.mark.parametrize('isatty,no_stdin,expected', [
+    (True, False, True),
+    (False, False, False),
+    (True, True, False),
+    (False, True, False),
+])
+def test_is_console_interactive(monkeypatch, isatty, no_stdin, expected):
+    monkeypatch.setattr(sys.stdin, 'isatty', Mock(return_value=isatty))
 
+    if no_stdin:
+        monkeypatch.setattr(sys, 'stdin', None)
 
-def test_is_console_interactive_when_stdin_none_and_isatty(monkeypatch):
-    mock_stdin_isatty(monkeypatch, True)
-    monkeypatch.setattr(sys, 'stdin', None)
-    assert is_console_interactive() is False
-
-
-def test_is_console_interactive_when_stdin_none_and_not_isatty(monkeypatch):
-    mock_stdin_isatty(monkeypatch, False)
-    monkeypatch.setattr(sys, 'stdin', None)
-    assert is_console_interactive() is False
-
-
-def test_is_console_interactive_when_stdin_isatty(monkeypatch):
-    mock_stdin_isatty(monkeypatch, True)
-    assert is_console_interactive() is True
-
-
-def test_is_console_interactive_when_stdin_not_isatty(monkeypatch):
-    mock_stdin_isatty(monkeypatch, False)
-    assert is_console_interactive() is False
+    assert is_console_interactive() is expected
