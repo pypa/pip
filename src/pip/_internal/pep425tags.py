@@ -164,6 +164,32 @@ def get_platform():
     return result
 
 
+def is_linux_armhf():
+    # type: () -> bool
+    if get_platform() != "linux_armv7l":
+        return False
+    # hard-float ABI can be detected from the ELF header of the running
+    # process
+    try:
+        with open(sys.executable, 'rb') as f:
+            elf_header_raw = f.read(40)  # read 40 first bytes of ELF header
+    except (IOError, OSError, TypeError):
+        return False
+    if elf_header_raw is None or len(elf_header_raw) < 40:
+        return False
+    if isinstance(elf_header_raw, str):
+        elf_header = [ord(c) for c in elf_header_raw]
+    else:
+        elf_header = [b for b in elf_header_raw]
+    result = elf_header[0:4] == [0x7f, 0x45, 0x4c, 0x46]  # ELF magic number
+    result &= elf_header[4:5] == [1]  # 32-bit ELF
+    result &= elf_header[5:6] == [1]  # little-endian
+    result &= elf_header[18:20] == [0x28, 0]  # ARM machine
+    result &= elf_header[39:40] == [5]  # ARM EABIv5
+    result &= (elf_header[37:38][0] & 4) == 4  # EF_ARM_ABI_FLOAT_HARD
+    return result
+
+
 def is_manylinux1_compatible():
     # type: () -> bool
     # Only Linux, and only x86-64 / i686
@@ -202,10 +228,16 @@ def is_manylinux2010_compatible():
 
 def is_manylinux2014_compatible():
     # type: () -> bool
-    # Only Linux and only x86-64, i686, aarch64, armv7l, ppc64, ppc64le, s390x
-    if get_platform() not in {"linux_x86_64", "linux_i686", "linux_aarch64",
-                              "linux_armv7l", "linux_ppc64", "linux_ppc64le",
-                              "linux_s390x"}:
+    # Only Linux, and only supported architectures
+    platform = get_platform()
+    if platform not in {"linux_x86_64", "linux_i686", "linux_aarch64",
+                        "linux_armv7l", "linux_ppc64", "linux_ppc64le",
+                        "linux_s390x"}:
+        return False
+
+    # check for hard-float ABI in case we're running linux_armv7l not to
+    # install hard-float ABI wheel in a soft-float ABI environment
+    if platform == "linux_armv7l" and not is_linux_armhf():
         return False
 
     # Check for presence of _manylinux module
