@@ -1,2 +1,3 @@
-Remove undocumented support for http:// requirements pointing to SVN
-repositories.
+Remove undocumented support for un-prefixed URL requirements pointing
+to SVN repositories. Users relying on this can get the original behavior
+by prefixing their URL with ``svn+`` (which is backwards-compatible).

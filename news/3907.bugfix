@@ -1,0 +1,2 @@
+Abort installation if any archive contains a file which would be placed
+outside the extraction location.

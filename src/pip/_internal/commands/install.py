@@ -3,6 +3,7 @@
 # couple errors where we have to know req.name is str rather than
 # Optional[str] for the InstallRequirement req.
 # mypy: strict-optional=False
+# mypy: disallow-untyped-defs=False
 
 from __future__ import absolute_import
 
@@ -319,7 +320,6 @@ class InstallCommand(RequirementCommand):
 
             # Create a target directory for using with the target option
             target_temp_dir = TempDirectory(kind="target")
-            target_temp_dir.create()
             target_temp_dir_path = target_temp_dir.path
             install_options.append('--home=' + target_temp_dir_path)
 

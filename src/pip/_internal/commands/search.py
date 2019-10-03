@@ -1,3 +1,6 @@
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 from __future__ import absolute_import
 
 import logging
@@ -14,9 +17,9 @@ from pip._vendor.six.moves import xmlrpc_client  # type: ignore
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.req_command import SessionCommandMixin
 from pip._internal.cli.status_codes import NO_MATCHES_FOUND, SUCCESS
-from pip._internal.download import PipXmlrpcTransport
 from pip._internal.exceptions import CommandError
 from pip._internal.models.index import PyPI
+from pip._internal.network.xmlrpc import PipXmlrpcTransport
 from pip._internal.utils.compat import get_terminal_size
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import write_output

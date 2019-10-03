@@ -1,5 +1,6 @@
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
+# mypy: disallow-untyped-defs=False
 
 from __future__ import absolute_import
 
@@ -12,7 +13,6 @@ import os
 import posixpath
 import shutil
 import stat
-import subprocess
 import sys
 from collections import deque
 
@@ -21,13 +21,12 @@ from pip._vendor import pkg_resources
 #       why we ignore the type on this import.
 from pip._vendor.retrying import retry  # type: ignore
 from pip._vendor.six import PY2, text_type
-from pip._vendor.six.moves import input, shlex_quote
+from pip._vendor.six.moves import input
 from pip._vendor.six.moves.urllib import parse as urllib_parse
-from pip._vendor.six.moves.urllib import request as urllib_request
 from pip._vendor.six.moves.urllib.parse import unquote as urllib_unquote
 
 from pip import __version__
-from pip._internal.exceptions import CommandError, InstallationError
+from pip._internal.exceptions import CommandError
 from pip._internal.locations import (
     get_major_minor_version,
     site_packages,
@@ -35,7 +34,6 @@ from pip._internal.locations import (
 )
 from pip._internal.utils.compat import (
     WINDOWS,
-    console_to_str,
     expanduser,
     stdlib_pkgs,
     str_to_display,
@@ -54,14 +52,12 @@ else:
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Any, AnyStr, Container, Iterable, List, Mapping, Optional, Text,
+        Any, AnyStr, Container, Iterable, List, Optional, Text,
         Tuple, Union, cast,
     )
     from pip._vendor.pkg_resources import Distribution
-    from pip._internal.utils.ui import SpinnerInterface
 
     VersionInfo = Tuple[int, int, int]
-    CommandArgs = List[Union[str, 'HiddenText']]
 else:
     # typing's cast() is needed at runtime, but we don't want to import typing.
     # Thus, we use a dummy no-op version, which we tell mypy to ignore.
@@ -74,15 +70,11 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'format_size', 'is_installable_dir',
            'normalize_path',
            'renames', 'get_prog',
-           'call_subprocess',
            'captured_stdout', 'ensure_dir',
            'get_installed_version', 'remove_auth_from_url']
 
 
 logger = logging.getLogger(__name__)
-subprocess_logger = logging.getLogger('pip.subprocessor')
-
-LOG_DIVIDER = '----------------------------------------'
 
 
 def get_pip_version():
@@ -533,228 +525,6 @@ def dist_location(dist):
     return normalize_path(dist.location)
 
 
-def make_command(*args):
-    # type: (Union[str, HiddenText, CommandArgs]) -> CommandArgs
-    """
-    Create a CommandArgs object.
-    """
-    command_args = []  # type: CommandArgs
-    for arg in args:
-        # Check for list instead of CommandArgs since CommandArgs is
-        # only known during type-checking.
-        if isinstance(arg, list):
-            command_args.extend(arg)
-        else:
-            # Otherwise, arg is str or HiddenText.
-            command_args.append(arg)
-
-    return command_args
-
-
-def format_command_args(args):
-    # type: (Union[List[str], CommandArgs]) -> str
-    """
-    Format command arguments for display.
-    """
-    # For HiddenText arguments, display the redacted form by calling str().
-    # Also, we don't apply str() to arguments that aren't HiddenText since
-    # this can trigger a UnicodeDecodeError in Python 2 if the argument
-    # has type unicode and includes a non-ascii character.  (The type
-    # checker doesn't ensure the annotations are correct in all cases.)
-    return ' '.join(
-        shlex_quote(str(arg)) if isinstance(arg, HiddenText)
-        else shlex_quote(arg) for arg in args
-    )
-
-
-def reveal_command_args(args):
-    # type: (Union[List[str], CommandArgs]) -> List[str]
-    """
-    Return the arguments in their raw, unredacted form.
-    """
-    return [
-        arg.secret if isinstance(arg, HiddenText) else arg for arg in args
-    ]
-
-
-def make_subprocess_output_error(
-    cmd_args,     # type: Union[List[str], CommandArgs]
-    cwd,          # type: Optional[str]
-    lines,        # type: List[Text]
-    exit_status,  # type: int
-):
-    # type: (...) -> Text
-    """
-    Create and return the error message to use to log a subprocess error
-    with command output.
-
-    :param lines: A list of lines, each ending with a newline.
-    """
-    command = format_command_args(cmd_args)
-    # Convert `command` and `cwd` to text (unicode in Python 2) so we can use
-    # them as arguments in the unicode format string below. This avoids
-    # "UnicodeDecodeError: 'ascii' codec can't decode byte ..." in Python 2
-    # if either contains a non-ascii character.
-    command_display = str_to_display(command, desc='command bytes')
-    cwd_display = path_to_display(cwd)
-
-    # We know the joined output value ends in a newline.
-    output = ''.join(lines)
-    msg = (
-        # Use a unicode string to avoid "UnicodeEncodeError: 'ascii'
-        # codec can't encode character ..." in Python 2 when a format
-        # argument (e.g. `output`) has a non-ascii character.
-        u'Command errored out with exit status {exit_status}:\n'
-        ' command: {command_display}\n'
-        '     cwd: {cwd_display}\n'
-        'Complete output ({line_count} lines):\n{output}{divider}'
-    ).format(
-        exit_status=exit_status,
-        command_display=command_display,
-        cwd_display=cwd_display,
-        line_count=len(lines),
-        output=output,
-        divider=LOG_DIVIDER,
-    )
-    return msg
-
-
-def call_subprocess(
-    cmd,  # type: Union[List[str], CommandArgs]
-    show_stdout=False,  # type: bool
-    cwd=None,  # type: Optional[str]
-    on_returncode='raise',  # type: str
-    extra_ok_returncodes=None,  # type: Optional[Iterable[int]]
-    command_desc=None,  # type: Optional[str]
-    extra_environ=None,  # type: Optional[Mapping[str, Any]]
-    unset_environ=None,  # type: Optional[Iterable[str]]
-    spinner=None  # type: Optional[SpinnerInterface]
-):
-    # type: (...) -> Text
-    """
-    Args:
-      show_stdout: if true, use INFO to log the subprocess's stderr and
-        stdout streams.  Otherwise, use DEBUG.  Defaults to False.
-      extra_ok_returncodes: an iterable of integer return codes that are
-        acceptable, in addition to 0. Defaults to None, which means [].
-      unset_environ: an iterable of environment variable names to unset
-        prior to calling subprocess.Popen().
-    """
-    if extra_ok_returncodes is None:
-        extra_ok_returncodes = []
-    if unset_environ is None:
-        unset_environ = []
-    # Most places in pip use show_stdout=False. What this means is--
-    #
-    # - We connect the child's output (combined stderr and stdout) to a
-    #   single pipe, which we read.
-    # - We log this output to stderr at DEBUG level as it is received.
-    # - If DEBUG logging isn't enabled (e.g. if --verbose logging wasn't
-    #   requested), then we show a spinner so the user can still see the
-    #   subprocess is in progress.
-    # - If the subprocess exits with an error, we log the output to stderr
-    #   at ERROR level if it hasn't already been displayed to the console
-    #   (e.g. if --verbose logging wasn't enabled).  This way we don't log
-    #   the output to the console twice.
-    #
-    # If show_stdout=True, then the above is still done, but with DEBUG
-    # replaced by INFO.
-    if show_stdout:
-        # Then log the subprocess output at INFO level.
-        log_subprocess = subprocess_logger.info
-        used_level = logging.INFO
-    else:
-        # Then log the subprocess output using DEBUG.  This also ensures
-        # it will be logged to the log file (aka user_log), if enabled.
-        log_subprocess = subprocess_logger.debug
-        used_level = logging.DEBUG
-
-    # Whether the subprocess will be visible in the console.
-    showing_subprocess = subprocess_logger.getEffectiveLevel() <= used_level
-
-    # Only use the spinner if we're not showing the subprocess output
-    # and we have a spinner.
-    use_spinner = not showing_subprocess and spinner is not None
-
-    if command_desc is None:
-        command_desc = format_command_args(cmd)
-
-    log_subprocess("Running command %s", command_desc)
-    env = os.environ.copy()
-    if extra_environ:
-        env.update(extra_environ)
-    for name in unset_environ:
-        env.pop(name, None)
-    try:
-        proc = subprocess.Popen(
-            # Convert HiddenText objects to the underlying str.
-            reveal_command_args(cmd),
-            stderr=subprocess.STDOUT, stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE, cwd=cwd, env=env,
-        )
-        proc.stdin.close()
-    except Exception as exc:
-        subprocess_logger.critical(
-            "Error %s while executing command %s", exc, command_desc,
-        )
-        raise
-    all_output = []
-    while True:
-        # The "line" value is a unicode string in Python 2.
-        line = console_to_str(proc.stdout.readline())
-        if not line:
-            break
-        line = line.rstrip()
-        all_output.append(line + '\n')
-
-        # Show the line immediately.
-        log_subprocess(line)
-        # Update the spinner.
-        if use_spinner:
-            spinner.spin()
-    try:
-        proc.wait()
-    finally:
-        if proc.stdout:
-            proc.stdout.close()
-    proc_had_error = (
-        proc.returncode and proc.returncode not in extra_ok_returncodes
-    )
-    if use_spinner:
-        if proc_had_error:
-            spinner.finish("error")
-        else:
-            spinner.finish("done")
-    if proc_had_error:
-        if on_returncode == 'raise':
-            if not showing_subprocess:
-                # Then the subprocess streams haven't been logged to the
-                # console yet.
-                msg = make_subprocess_output_error(
-                    cmd_args=cmd,
-                    cwd=cwd,
-                    lines=all_output,
-                    exit_status=proc.returncode,
-                )
-                subprocess_logger.error(msg)
-            exc_msg = (
-                'Command errored out with exit status {}: {} '
-                'Check the logs for full command output.'
-            ).format(proc.returncode, command_desc)
-            raise InstallationError(exc_msg)
-        elif on_returncode == 'warn':
-            subprocess_logger.warning(
-                'Command "%s" had error code %s in %s',
-                command_desc, proc.returncode, cwd,
-            )
-        elif on_returncode == 'ignore':
-            pass
-        else:
-            raise ValueError('Invalid value: on_returncode=%s' %
-                             repr(on_returncode))
-    return ''.join(all_output)
-
-
 def write_output(msg, *args):
     # type: (str, str) -> None
     logger.info(msg, *args)
@@ -880,17 +650,6 @@ def enum(*sequential, **named):
     reverse = {value: key for key, value in enums.items()}
     enums['reverse_mapping'] = reverse
     return type('Enum', (), enums)
-
-
-def path_to_url(path):
-    # type: (Union[str, Text]) -> str
-    """
-    Convert a path to a file: URL.  The path will be made absolute and have
-    quoted path parts.
-    """
-    path = os.path.normpath(os.path.abspath(path))
-    url = urllib_parse.urljoin('file:', urllib_request.pathname2url(path))
-    return url
 
 
 def build_netloc(host, port):
@@ -1105,3 +864,10 @@ def protect_pip_from_modification_on_windows(modifying_pip):
             'To modify pip, please run the following command:\n{}'
             .format(" ".join(new_command))
         )
+
+
+def is_console_interactive():
+    # type: () -> bool
+    """Is this console interactive?
+    """
+    return sys.stdin is not None and sys.stdin.isatty()

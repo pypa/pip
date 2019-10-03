@@ -1,24 +1,24 @@
 from __future__ import absolute_import
 
+import os
+import re
+import shutil
+import site
+import subprocess
+import sys
+import textwrap
 from contextlib import contextmanager
 from textwrap import dedent
-import os
-import sys
-import re
-import textwrap
-import site
-import shutil
-import subprocess
 
 import pytest
 from scripttest import FoundDir, TestFileEnvironment
 
 from pip._internal.collector import LinkCollector
-from pip._internal.download import PipSession
 from pip._internal.index import PackageFinder
 from pip._internal.locations import get_major_minor_version
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
+from pip._internal.network.session import PipSession
 from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from tests.lib.path import Path, curdir
@@ -924,7 +924,7 @@ def create_basic_wheel_for_package(script, name, version,
         extras = {}
     files = {
         "{name}/__init__.py": """
-            __version__ = {version}
+            __version__ = {version!r}
             def hello():
                 return "Hello From {name}"
         """,

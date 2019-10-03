@@ -144,7 +144,7 @@ extra work on your end in order to solve the problems described above.
    ``pip/_vendor/``, then modify ``pip/_vendor/__init__.py`` so that the
    ``WHEEL_DIR`` variable points to the location you've placed them.
 
-6. *(optional)* Update the ``pip_version_check`` logic to use the
+6. *(optional)* Update the ``pip_self_version_check`` logic to use the
    appropriate logic for determining the latest available version of pip and
    prompt the user with the correct upgrade message.
 

@@ -1,3 +1,6 @@
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.utils.models import KeyBasedCompareMixin

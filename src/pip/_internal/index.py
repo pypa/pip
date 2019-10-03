@@ -2,6 +2,7 @@
 
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
+# mypy: disallow-untyped-defs=False
 
 from __future__ import absolute_import
 
@@ -34,7 +35,7 @@ from pip._internal.wheel import Wheel
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Any, FrozenSet, Iterable, List, Optional, Set, Text, Tuple,
+        FrozenSet, Iterable, List, Optional, Set, Text, Tuple, Union,
     )
     from pip._vendor.packaging.version import _BaseVersion
     from pip._internal.collector import LinkCollector
@@ -43,7 +44,7 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.pep425tags import Pep425Tag
     from pip._internal.utils.hashes import Hashes
 
-    BuildTag = Tuple[Any, ...]  # either empty tuple or Tuple[int, str]
+    BuildTag = Union[Tuple[()], Tuple[int, str]]
     CandidateSortingKey = (
         Tuple[int, int, int, _BaseVersion, BuildTag, Optional[int]]
     )
@@ -511,7 +512,7 @@ class CandidateEvaluator(object):
         """
         valid_tags = self._supported_tags
         support_num = len(valid_tags)
-        build_tag = tuple()  # type: BuildTag
+        build_tag = ()  # type: BuildTag
         binary_preference = 0
         link = candidate.link
         if link.is_wheel:

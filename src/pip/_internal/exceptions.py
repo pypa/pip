@@ -1,4 +1,8 @@
 """Exceptions used throughout package"""
+
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 from __future__ import absolute_import
 
 from itertools import chain, groupby, repeat
@@ -277,7 +281,6 @@ class HashMismatch(HashError):
                          for e in expecteds)
             lines.append('             Got        %s\n' %
                          self.gots[hash_name].hexdigest())
-            prefix = '    or'
         return '\n'.join(lines)
 
 

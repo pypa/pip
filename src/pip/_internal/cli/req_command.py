@@ -5,16 +5,19 @@ needing download / PackageFinder capability don't unnecessarily import the
 PackageFinder machinery and all its vendored dependencies, etc.
 """
 
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 import os
 from functools import partial
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.command_context import CommandContextMixIn
-from pip._internal.download import PipSession
 from pip._internal.exceptions import CommandError
 from pip._internal.index import PackageFinder
 from pip._internal.legacy_resolve import Resolver
 from pip._internal.models.selection_prefs import SelectionPreferences
+from pip._internal.network.session import PipSession
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req.constructors import (
     install_req_from_editable,
@@ -22,8 +25,11 @@ from pip._internal.req.constructors import (
     install_req_from_req_string,
 )
 from pip._internal.req.req_file import parse_requirements
+from pip._internal.self_outdated_check import (
+    make_link_collector,
+    pip_self_version_check,
+)
 from pip._internal.utils.misc import normalize_path
-from pip._internal.utils.outdated import make_link_collector, pip_version_check
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -133,7 +139,7 @@ class IndexGroupCommand(Command, SessionCommandMixin):
             timeout=min(5, options.timeout)
         )
         with session:
-            pip_version_check(session, options)
+            pip_self_version_check(session, options)
 
 
 class RequirementCommand(IndexGroupCommand):
