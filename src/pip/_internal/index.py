@@ -874,10 +874,15 @@ class PackageFinder(object):
         Returns a Link if found,
         Raises DistributionNotFound or BestVersionAlreadyInstalled otherwise
         """
-        hashes = req.hashes(trust_internet=False)
-        best_candidate_result = self.find_best_candidate(
-            req.name, specifier=req.specifier, hashes=hashes,
-        )
+        if req.is_pinned and req.satisfied_by is not None:
+            # Pinned version is already satisfied; no need to check
+            # the index for a better version.
+            best_candidate_result = BestCandidateResult([], [], None)
+        else:
+            hashes = req.hashes(trust_internet=False)
+            best_candidate_result = self.find_best_candidate(
+                req.name, specifier=req.specifier, hashes=hashes,
+            )
         best_candidate = best_candidate_result.best_candidate
 
         installed_version = None    # type: Optional[_BaseVersion]
