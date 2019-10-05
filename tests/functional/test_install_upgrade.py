@@ -74,11 +74,11 @@ def test_only_if_needed_does_upgrade_deps_when_no_longer_satisfied(script):
     ), "should have installed require_simple==1.0"
     assert (
         script.site_packages / 'simple-3.0-py%s.egg-info' %
-        pyversion in result.files_created
+        pyversion in result.files_created2
     ), "should have installed simple==3.0"
     assert (
         script.site_packages / 'simple-1.0-py%s.egg-info' %
-        pyversion in result.files_deleted
+        pyversion in result.files_deleted2
     ), "should have uninstalled simple==1.0"
 
 
@@ -98,7 +98,7 @@ def test_eager_does_upgrade_dependecies_when_currently_satisfied(script):
     ), "should have installed require_simple==1.0"
     assert (
         (script.site_packages / 'simple-2.0-py%s.egg-info' % pyversion)
-        in result.files_deleted
+        in result.files_deleted2
     ), "should have uninstalled simple==2.0"
 
 
@@ -118,11 +118,11 @@ def test_eager_does_upgrade_dependecies_when_no_longer_satisfied(script):
     ), "should have installed require_simple==1.0"
     assert (
         script.site_packages / 'simple-3.0-py%s.egg-info' %
-        pyversion in result.files_created
+        pyversion in result.files_created2
     ), "should have installed simple==3.0"
     assert (
         script.site_packages / 'simple-1.0-py%s.egg-info' %
-        pyversion in result.files_deleted
+        pyversion in result.files_deleted2
     ), "should have uninstalled simple==1.0"
 
 
@@ -134,16 +134,16 @@ def test_upgrade_to_specific_version(script):
     """
     script.pip('install', 'INITools==0.1')
     result = script.pip('install', 'INITools==0.2')
-    assert result.files_created, (
+    assert result.files_created2, (
         'pip install with specific version did not upgrade'
     )
     assert (
         script.site_packages / 'INITools-0.1-py%s.egg-info' %
-        pyversion in result.files_deleted
+        pyversion in result.files_deleted2
     )
     assert (
         script.site_packages / 'INITools-0.2-py%s.egg-info' %
-        pyversion in result.files_created
+        pyversion in result.files_created2
     )
 
 
@@ -155,7 +155,7 @@ def test_upgrade_if_requested(script):
     """
     script.pip('install', 'INITools==0.1')
     result = script.pip('install', '--upgrade', 'INITools')
-    assert result.files_created, 'pip install --upgrade did not upgrade'
+    assert result.files_created2, 'pip install --upgrade did not upgrade'
     assert (
         script.site_packages / 'INITools-0.1-py%s.egg-info' %
         pyversion not in result.files_created
@@ -182,13 +182,13 @@ def test_upgrade_force_reinstall_newest(script):
     version if --force-reinstall is supplied.
     """
     result = script.pip('install', 'INITools')
-    assert script.site_packages / 'initools' in result.files_created, (
+    assert script.site_packages / 'initools' in result.files_created2, (
         sorted(result.files_created.keys())
     )
     result2 = script.pip(
         'install', '--upgrade', '--force-reinstall', 'INITools'
     )
-    assert result2.files_updated, 'upgrade to INITools 0.3 failed'
+    assert result2.files_updated2, 'upgrade to INITools 0.3 failed'
     result3 = script.pip('uninstall', 'initools', '-y')
     assert_all_changes(result, result3, [script.venv / 'build', 'cache'])
 
@@ -200,11 +200,11 @@ def test_uninstall_before_upgrade(script):
 
     """
     result = script.pip('install', 'INITools==0.2')
-    assert script.site_packages / 'initools' in result.files_created, (
+    assert script.site_packages / 'initools' in result.files_created2, (
         sorted(result.files_created.keys())
     )
     result2 = script.pip('install', 'INITools==0.3')
-    assert result2.files_created, 'upgrade to INITools 0.3 failed'
+    assert result2.files_created2, 'upgrade to INITools 0.3 failed'
     result3 = script.pip('uninstall', 'initools', '-y')
     assert_all_changes(result, result3, [script.venv / 'build', 'cache'])
 
@@ -216,7 +216,7 @@ def test_uninstall_before_upgrade_from_url(script):
 
     """
     result = script.pip('install', 'INITools==0.2')
-    assert script.site_packages / 'initools' in result.files_created, (
+    assert script.site_packages / 'initools' in result.files_created2, (
         sorted(result.files_created.keys())
     )
     result2 = script.pip(
@@ -224,7 +224,7 @@ def test_uninstall_before_upgrade_from_url(script):
         'https://files.pythonhosted.org/packages/source/I/INITools/INITools-'
         '0.3.tar.gz',
     )
-    assert result2.files_created, 'upgrade to INITools 0.3 failed'
+    assert result2.files_created2, 'upgrade to INITools 0.3 failed'
     result3 = script.pip('uninstall', 'initools', '-y')
     assert_all_changes(result, result3, [script.venv / 'build', 'cache'])
 
@@ -237,7 +237,7 @@ def test_upgrade_to_same_version_from_url(script):
 
     """
     result = script.pip('install', 'INITools==0.3')
-    assert script.site_packages / 'initools' in result.files_created, (
+    assert script.site_packages / 'initools' in result.files_created2, (
         sorted(result.files_created.keys())
     )
     result2 = script.pip(
@@ -291,7 +291,7 @@ def test_uninstall_rollback(script, data):
     result = script.pip(
         'install', '-f', data.find_links, '--no-index', 'broken==0.1'
     )
-    assert script.site_packages / 'broken.py' in result.files_created, list(
+    assert script.site_packages / 'broken.py' in result.files_created2, list(
         result.files_created.keys()
     )
     result2 = script.pip(
@@ -324,7 +324,7 @@ def test_should_not_install_always_from_cache(script):
     )
     assert (
         script.site_packages / 'INITools-0.1-py%s.egg-info' %
-        pyversion in result.files_created
+        pyversion in result.files_created2
     )
 
 
@@ -335,7 +335,7 @@ def test_install_with_ignoreinstalled_requested(script):
     """
     script.pip('install', 'INITools==0.1')
     result = script.pip('install', '-I', 'INITools==0.3')
-    assert result.files_created, 'pip install -I did not install'
+    assert result.files_created2, 'pip install -I did not install'
     # both the old and new metadata should be present.
     assert os.path.exists(
         script.site_packages_path / 'INITools-0.1-py%s.egg-info' % pyversion

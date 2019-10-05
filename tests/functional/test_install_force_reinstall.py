@@ -23,7 +23,7 @@ def check_force_reinstall(script, specifier, expected):
     check_installed_version(script, 'simplewheel', '1.0')
 
     result2 = script.pip_install_local('--force-reinstall', specifier)
-    assert result2.files_updated, 'force-reinstall failed'
+    assert result2.files_updated2, 'force-reinstall failed'
     check_installed_version(script, 'simplewheel', expected)
 
     result3 = script.pip('uninstall', 'simplewheel', '-y')

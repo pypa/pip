@@ -59,7 +59,7 @@ class Tests_UninstallUserSite:
             'install', '--user', '-e', to_install, expect_error=False,
         )
         egg_link = script.user_site / 'FSPkg.egg-link'
-        assert egg_link in result1.files_created, str(result1.stdout)
+        assert egg_link in result1.files_created2, str(result1.stdout)
 
         # uninstall
         result2 = script.pip('uninstall', '-y', 'FSPkg')

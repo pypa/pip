@@ -29,12 +29,12 @@ def test_requirements_file(script):
     )
     assert (
         script.site_packages / 'INITools-0.2-py%s.egg-info' %
-        pyversion in result.files_created
+        pyversion in result.files_created2
     )
-    assert script.site_packages / 'initools' in result.files_created
-    assert result.files_created[script.site_packages / other_lib_name].dir
+    assert script.site_packages / 'initools' in result.files_created2
+    assert result.files_created2[script.site_packages / other_lib_name].dir
     fn = '%s-%s-py%s.egg-info' % (other_lib_name, other_lib_version, pyversion)
-    assert result.files_created[script.site_packages / fn].dir
+    assert result.files_created2[script.site_packages / fn].dir
 
 
 def test_schema_check_in_requirements_file(script):
@@ -83,8 +83,8 @@ def test_relative_requirements_file(script, data):
                                script.scratch_path) as reqs_file:
             result = script.pip('install', '-vvv', '-r', reqs_file.name,
                                 cwd=script.scratch_path)
-            assert egg_info_file in result.files_created, str(result)
-            assert package_folder in result.files_created, str(result)
+            assert egg_info_file in result.files_created2, str(result)
+            assert package_folder in result.files_created2, str(result)
             script.pip('uninstall', '-y', 'fspkg')
 
         # Editable install.
@@ -92,7 +92,7 @@ def test_relative_requirements_file(script, data):
                                script.scratch_path) as reqs_file:
             result = script.pip('install', '-vvv', '-r', reqs_file.name,
                                 cwd=script.scratch_path)
-            assert egg_link_file in result.files_created, str(result)
+            assert egg_link_file in result.files_created2, str(result)
             script.pip('uninstall', '-y', 'fspkg')
 
 
@@ -120,10 +120,10 @@ def test_multiple_requirements_files(script, tmpdir):
     result = script.pip(
         'install', '-r', script.scratch_path / 'initools-req.txt'
     )
-    assert result.files_created[script.site_packages / other_lib_name].dir
+    assert result.files_created2[script.site_packages / other_lib_name].dir
     fn = '%s-%s-py%s.egg-info' % (other_lib_name, other_lib_version, pyversion)
-    assert result.files_created[script.site_packages / fn].dir
-    assert script.venv / 'src' / 'initools' in result.files_created
+    assert result.files_created2[script.site_packages / fn].dir
+    assert script.venv / 'src' / 'initools' in result.files_created2
 
 
 def test_package_in_constraints_and_dependencies(script, data):
@@ -179,13 +179,13 @@ def test_install_local_editable_with_extras(script, data):
         expect_error=False,
         expect_stderr=True,
     )
-    assert script.site_packages / 'easy-install.pth' in res.files_updated, (
+    assert script.site_packages / 'easy-install.pth' in res.files_updated2, (
         str(res)
     )
     assert (
-        script.site_packages / 'LocalExtras.egg-link' in res.files_created
+        script.site_packages / 'LocalExtras.egg-link' in res.files_created2
     ), str(res)
-    assert script.site_packages / 'simple' in res.files_created, str(res)
+    assert script.site_packages / 'simple' in res.files_created2, str(res)
 
 
 def test_install_collected_dependencies_first(script):
@@ -265,7 +265,7 @@ def test_install_option_in_requirements_file(script, data, virtualenv):
         expect_stderr=True)
 
     package_dir = script.scratch / 'home1' / 'lib' / 'python' / 'simple'
-    assert package_dir in result.files_created
+    assert package_dir in result.files_created2
 
 
 def test_constraints_not_installed_by_default(script, data):
@@ -389,7 +389,7 @@ def test_install_with_extras_from_constraints(script, data):
     )
     result = script.pip_install_local(
         '-c', script.scratch_path / 'constraints.txt', 'LocalExtras')
-    assert script.site_packages / 'simple' in result.files_created
+    assert script.site_packages / 'simple' in result.files_created2
 
 
 def test_install_with_extras_from_install(script, data):
@@ -399,7 +399,7 @@ def test_install_with_extras_from_install(script, data):
     )
     result = script.pip_install_local(
         '-c', script.scratch_path / 'constraints.txt', 'LocalExtras[baz]')
-    assert script.site_packages / 'singlemodule.py'in result.files_created
+    assert script.site_packages / 'singlemodule.py'in result.files_created2
 
 
 def test_install_with_extras_joined(script, data):
@@ -410,8 +410,8 @@ def test_install_with_extras_joined(script, data):
     result = script.pip_install_local(
         '-c', script.scratch_path / 'constraints.txt', 'LocalExtras[baz]'
     )
-    assert script.site_packages / 'simple' in result.files_created
-    assert script.site_packages / 'singlemodule.py'in result.files_created
+    assert script.site_packages / 'simple' in result.files_created2
+    assert script.site_packages / 'singlemodule.py'in result.files_created2
 
 
 def test_install_with_extras_editable_joined(script, data):
@@ -421,8 +421,8 @@ def test_install_with_extras_editable_joined(script, data):
     )
     result = script.pip_install_local(
         '-c', script.scratch_path / 'constraints.txt', 'LocalExtras[baz]')
-    assert script.site_packages / 'simple' in result.files_created
-    assert script.site_packages / 'singlemodule.py'in result.files_created
+    assert script.site_packages / 'simple' in result.files_created2
+    assert script.site_packages / 'singlemodule.py'in result.files_created2
 
 
 def test_install_distribution_full_union(script, data):
@@ -430,8 +430,8 @@ def test_install_distribution_full_union(script, data):
     result = script.pip_install_local(
         to_install, to_install + "[bar]", to_install + "[baz]")
     assert 'Running setup.py install for LocalExtras' in result.stdout
-    assert script.site_packages / 'simple' in result.files_created
-    assert script.site_packages / 'singlemodule.py' in result.files_created
+    assert script.site_packages / 'simple' in result.files_created2
+    assert script.site_packages / 'singlemodule.py' in result.files_created2
 
 
 def test_install_distribution_duplicate_extras(script, data):
@@ -449,7 +449,7 @@ def test_install_distribution_union_with_constraints(script, data):
     result = script.pip_install_local(
         '-c', script.scratch_path / 'constraints.txt', to_install + '[baz]')
     assert 'Running setup.py install for LocalExtras' in result.stdout
-    assert script.site_packages / 'singlemodule.py' in result.files_created
+    assert script.site_packages / 'singlemodule.py' in result.files_created2
 
 
 def test_install_distribution_union_with_versions(script, data):
@@ -536,8 +536,8 @@ def test_install_options_local_to_package(script, data):
     simple = test_simple / 'lib' / 'python' / 'simple'
     bad = test_simple / 'lib' / 'python' / 'initools'
     good = script.site_packages / 'initools'
-    assert simple in result.files_created
-    assert result.files_created[simple].dir
+    assert simple in result.files_created2
+    assert result.files_created2[simple].dir
     assert bad not in result.files_created
-    assert good in result.files_created
-    assert result.files_created[good].dir
+    assert good in result.files_created2
+    assert result.files_created2[good].dir

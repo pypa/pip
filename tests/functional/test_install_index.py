@@ -20,8 +20,8 @@ def test_find_links_relative_path(script, data):
         script.site_packages / 'parent-0.1-py%s.egg-info' % pyversion
     )
     initools_folder = script.site_packages / 'parent'
-    assert egg_info_folder in result.files_created, str(result)
-    assert initools_folder in result.files_created, str(result)
+    assert egg_info_folder in result.files_created2, str(result)
+    assert initools_folder in result.files_created2, str(result)
 
 
 def test_find_links_requirements_file_relative_path(script, data):
@@ -41,8 +41,8 @@ def test_find_links_requirements_file_relative_path(script, data):
         script.site_packages / 'parent-0.1-py%s.egg-info' % pyversion
     )
     initools_folder = script.site_packages / 'parent'
-    assert egg_info_folder in result.files_created, str(result)
-    assert initools_folder in result.files_created, str(result)
+    assert egg_info_folder in result.files_created2, str(result)
+    assert initools_folder in result.files_created2, str(result)
 
 
 def test_install_from_file_index_hash_link(script, data):
@@ -54,7 +54,7 @@ def test_install_from_file_index_hash_link(script, data):
     egg_info_folder = (
         script.site_packages / 'simple-1.0-py%s.egg-info' % pyversion
     )
-    assert egg_info_folder in result.files_created, str(result)
+    assert egg_info_folder in result.files_created2, str(result)
 
 
 def test_file_index_url_quoting(script, data):
@@ -66,9 +66,9 @@ def test_file_index_url_quoting(script, data):
         'install', '-vvv', '--index-url', index_url, 'simple',
         expect_error=False,
     )
-    assert (script.site_packages / 'simple') in result.files_created, (
+    assert (script.site_packages / 'simple') in result.files_created2, (
         str(result.stdout)
     )
     assert (
         script.site_packages / 'simple-1.0-py%s.egg-info' % pyversion
-    ) in result.files_created, str(result)
+    ) in result.files_created2, str(result)

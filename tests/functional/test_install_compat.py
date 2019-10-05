@@ -30,7 +30,7 @@ def test_debian_egg_name_workaround(script):
     # so even if this test runs on a Debian/Ubuntu system with broken
     # setuptools, since our test runs inside a venv we'll still have the normal
     # .egg-info
-    assert egg_info in result.files_created, "Couldn't find %s" % egg_info
+    assert egg_info in result.files_created2, "Couldn't find %s" % egg_info
 
     # The Debian no-pyversion version of the .egg-info
     mangled = os.path.join(script.site_packages, "INITools-0.2.egg-info")
