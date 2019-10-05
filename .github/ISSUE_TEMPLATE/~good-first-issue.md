@@ -1,6 +1,7 @@
 ---
 name: (Maintainers Only) Good First Issue
 about: For maintainers, to create an issue that is good for new contributors
+labels: ["good first issue"]
 
 ---
 
