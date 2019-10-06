@@ -22,7 +22,7 @@ def run_with_build_env(script, setup_script_contents,
             import sys
 
             from pip._internal.build_env import BuildEnvironment
-            from pip._internal.collector import LinkCollector
+            from pip._internal.index.collector import LinkCollector
             from pip._internal.index.package_finder import PackageFinder
             from pip._internal.models.search_scope import SearchScope
             from pip._internal.models.selection_prefs import (
