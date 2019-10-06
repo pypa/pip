@@ -46,7 +46,7 @@ if MYPY_CHECK_RUNNING:
 
     from pip._internal.distributions import AbstractDistribution
     from pip._internal.network.session import PipSession
-    from pip._internal.index import PackageFinder
+    from pip._internal.index.package_finder import PackageFinder
     from pip._internal.operations.prepare import RequirementPreparer
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.req.req_set import RequirementSet

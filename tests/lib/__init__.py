@@ -13,8 +13,8 @@ from textwrap import dedent
 import pytest
 from scripttest import FoundDir, TestFileEnvironment
 
-from pip._internal.collector import LinkCollector
-from pip._internal.index import PackageFinder
+from pip._internal.index.collector import LinkCollector
+from pip._internal.index.package_finder import PackageFinder
 from pip._internal.locations import get_major_minor_version
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences

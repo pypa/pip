@@ -14,7 +14,7 @@ from functools import partial
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.command_context import CommandContextMixIn
 from pip._internal.exceptions import CommandError
-from pip._internal.index import PackageFinder
+from pip._internal.index.package_finder import PackageFinder
 from pip._internal.legacy_resolve import Resolver
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.network.session import PipSession

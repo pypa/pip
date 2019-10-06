@@ -12,7 +12,7 @@ from pip._internal.exceptions import (
     BestVersionAlreadyInstalled,
     DistributionNotFound,
 )
-from pip._internal.index import (
+from pip._internal.index.package_finder import (
     CandidateEvaluator,
     InstallationCandidate,
     Link,
