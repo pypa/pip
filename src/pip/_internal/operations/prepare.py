@@ -14,7 +14,6 @@ from pip._internal.distributions import (
     make_distribution_for_install_requirement,
 )
 from pip._internal.distributions.installed import InstalledDistribution
-from pip._internal.download import unpack_url
 from pip._internal.exceptions import (
     DirectoryUrlHashUnsupported,
     HashUnpinned,
@@ -22,6 +21,7 @@ from pip._internal.exceptions import (
     PreviousBuildDirError,
     VcsHashUnsupported,
 )
+from pip._internal.network.unpack import unpack_url
 from pip._internal.utils.compat import expanduser
 from pip._internal.utils.hashes import MissingHashes
 from pip._internal.utils.logging import indent_log

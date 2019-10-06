@@ -17,9 +17,9 @@ from pip._vendor.six.moves import filterfalse
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 from pip._internal.cli import cmdoptions
-from pip._internal.download import get_file_content
 from pip._internal.exceptions import RequirementsFileParseError
 from pip._internal.models.search_scope import SearchScope
+from pip._internal.network.unpack import get_file_content
 from pip._internal.req.constructors import (
     install_req_from_editable,
     install_req_from_line,
