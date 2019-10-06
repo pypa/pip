@@ -20,7 +20,7 @@ from pip._internal.wheel import InvalidWheelFilename, Wheel
 
 if MYPY_CHECK_RUNNING:
     from typing import Optional, Set, List, Any
-    from pip._internal.index import FormatControl
+    from pip._internal.models.format_control import FormatControl
     from pip._internal.pep425tags import Pep425Tag
 
 logger = logging.getLogger(__name__)
