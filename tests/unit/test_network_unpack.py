@@ -9,7 +9,10 @@ from tempfile import mkdtemp
 import pytest
 from mock import Mock, patch
 
-from pip._internal.download import (
+from pip._internal.exceptions import HashMismatch
+from pip._internal.models.link import Link
+from pip._internal.network.session import PipSession
+from pip._internal.network.unpack import (
     _copy_source_tree,
     _download_http_url,
     parse_content_disposition,
@@ -17,9 +20,6 @@ from pip._internal.download import (
     unpack_file_url,
     unpack_http_url,
 )
-from pip._internal.exceptions import HashMismatch
-from pip._internal.models.link import Link
-from pip._internal.network.session import PipSession
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.urls import path_to_url
 from tests.lib import create_file
