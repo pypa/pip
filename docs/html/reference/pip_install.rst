@@ -417,8 +417,8 @@ making fewer network calls).
 Mercurial
 ~~~~~~~~~
 
-The supported schemes are: ``hg+http``, ``hg+https``,
-``hg+static-http`` and ``hg+ssh``.
+The supported schemes are: ``hg+file``, ``hg+http``, ``hg+https``,
+``hg+static-http``, and ``hg+ssh``.
 
 Here are the supported forms::
 
