@@ -1,10 +1,10 @@
-Finding and choosing files (``index.py`` and ``PackageFinder``)
+Finding and choosing files (``index`` and ``PackageFinder``)
 ---------------------------------------------------------------
 
-The ``index.py`` module is a top-level module in pip responsible for deciding
+The ``pip._internal.index`` sub-package in pip responsible for deciding
 what file to download and from where, given a requirement for a project. The
-module's functionality is largely exposed through and coordinated by the
-module's ``PackageFinder`` class.
+package's functionality is largely exposed through and coordinated by the
+package's ``PackageFinder`` class.
 
 
 .. _index-py-overview:
@@ -133,8 +133,8 @@ method is the ``collect_links()`` method. The :ref:`PackageFinder
 <package-finder-class>` class invokes this method as the first step of its
 ``find_all_candidates()`` method.
 
-The ``LinkCollector`` class is the only class in the ``index.py`` module that
-makes network requests and is the only class in the module that depends
+The ``LinkCollector`` class is the only class in the ``index`` sub-package that
+makes network requests and is the only class in the sub-package that depends
 directly on ``PipSession``, which stores pip's configuration options and
 state for making requests.
 
