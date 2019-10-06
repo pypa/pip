@@ -10,7 +10,7 @@ from mock import patch
 from pip._vendor import pkg_resources
 
 from pip._internal import self_outdated_check
-from pip._internal.index import InstallationCandidate
+from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.network.session import PipSession
 from pip._internal.self_outdated_check import (
     SelfCheckState,
