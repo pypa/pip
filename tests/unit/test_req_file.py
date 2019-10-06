@@ -7,7 +7,7 @@ import pytest
 from mock import Mock, patch
 from pretend import stub
 
-import pip._internal.index
+import pip._internal.req.req_file  # this will be monkeypatched
 from pip._internal.exceptions import (
     InstallationError,
     RequirementsFileParseError,
@@ -272,7 +272,6 @@ class TestProcessLine(object):
     def test_nested_requirements_file(self, monkeypatch):
         line = '-r another_file'
         req = install_req_from_line('SomeProject')
-        import pip._internal.req.req_file
 
         def stub_parse_requirements(req_url, finder, comes_from, options,
                                     session, wheel_cache, constraint):
@@ -285,7 +284,6 @@ class TestProcessLine(object):
     def test_nested_constraints_file(self, monkeypatch):
         line = '-c another_file'
         req = install_req_from_line('SomeProject')
-        import pip._internal.req.req_file
 
         def stub_parse_requirements(req_url, finder, comes_from, options,
                                     session, wheel_cache, constraint):
