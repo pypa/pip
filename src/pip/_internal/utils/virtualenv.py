@@ -3,20 +3,30 @@ import site
 import sys
 
 
+def _running_under_venv():
+    # type: () -> bool
+    """Checks if sys.base_prefix and sys.prefix match.
+
+    This handles PEP 405 compliant virtual environments.
+    """
+    return sys.prefix != getattr(sys, "base_prefix", sys.prefix)
+
+
+def _running_under_regular_virtualenv():
+    # type: () -> bool
+    """Checks if sys.real_prefix is set.
+
+    This handles virtual environments created with pypa's virtualenv.
+    """
+    # pypa/virtualenv case
+    return hasattr(sys, 'real_prefix')
+
+
 def running_under_virtualenv():
     # type: () -> bool
+    """Return a boolean, whether running under a virtual environment.
     """
-    Return True if we're running inside a virtualenv, False otherwise.
-
-    """
-    if hasattr(sys, 'real_prefix'):
-        # pypa/virtualenv case
-        return True
-    elif sys.prefix != getattr(sys, "base_prefix", sys.prefix):
-        # PEP 405 venv
-        return True
-
-    return False
+    return _running_under_venv() or _running_under_regular_virtualenv()
 
 
 def virtualenv_no_global():
