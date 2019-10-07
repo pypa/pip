@@ -96,7 +96,8 @@ class TestDistutilsScheme:
         # This deals with nt/posix path differences
         install_scripts = os.path.normcase(os.path.abspath(
             os.path.join(os.path.sep, 'somewhere', 'else')))
-        f = tmpdir.mkdir("config").joinpath("setup.cfg")
+        f = tmpdir / "config" / "setup.cfg"
+        f.parent.mkdir()
         f.write_text("[install]\ninstall-scripts=" + install_scripts)
         from distutils.dist import Distribution
         # patch the function that returns what config files are present
@@ -116,7 +117,8 @@ class TestDistutilsScheme:
         # This deals with nt/posix path differences
         install_lib = os.path.normcase(os.path.abspath(
             os.path.join(os.path.sep, 'somewhere', 'else')))
-        f = tmpdir.mkdir("config").joinpath("setup.cfg")
+        f = tmpdir / "config" / "setup.cfg"
+        f.parent.mkdir()
         f.write_text("[install]\ninstall-lib=" + install_lib)
         from distutils.dist import Distribution
         # patch the function that returns what config files are present
