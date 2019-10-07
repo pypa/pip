@@ -5,15 +5,16 @@ import sys
 from setuptools import find_packages, setup
 
 
-def codopen(rel_path):
+def read(rel_path):
     here = os.path.abspath(os.path.dirname(__file__))
     # intentionally *not* adding an encoding option to open, See:
     #   https://github.com/pypa/virtualenv/issues/201#issuecomment-3145690
-    return codecs.open(os.path.join(here, rel_path), 'r')
+    with codecs.open(os.path.join(here, rel_path), 'r') as fp:
+        return fp.read()
 
 
 def get_version(rel_path):
-    for line in codopen(rel_path):
+    for line in read(rel_path).splitlines():
         if line.startswith('__version__'):
             # __version__ = "0.9"
             delim = '\"' if '\"' in line else '\''
@@ -22,7 +23,7 @@ def get_version(rel_path):
         raise RuntimeError("Unable to find version string.")
 
 
-long_description = codopen('README.rst').read()
+long_description = read('README.rst')
 
 setup(
     name="pip",
