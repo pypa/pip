@@ -270,7 +270,7 @@ class TestRequirementSet(object):
     def test_hash_mismatch(self, data):
         """A hash mismatch should raise an error."""
         file_url = path_to_url(
-            (data.packages / 'simple-1.0.tar.gz').abspath)
+            (data.packages / 'simple-1.0.tar.gz').resolve())
         reqset = RequirementSet(require_hashes=True)
         reqset.add_requirement(get_processed_req_from_line(
             '%s --hash=sha256:badbad' % file_url, lineno=1,

@@ -371,7 +371,7 @@ def test_double_install_spurious_hash_mismatch(
         # Install a package (and build its wheel):
         result = script.pip_install_local(
             '--find-links', data.find_links,
-            '-r', reqs_file.abspath, expect_error=False)
+            '-r', reqs_file.resolve(), expect_error=False)
         assert 'Successfully installed simple-1.0' in str(result)
 
         # Uninstall it:
@@ -381,7 +381,7 @@ def test_double_install_spurious_hash_mismatch(
         # package should install happily.
         result = script.pip_install_local(
             '--find-links', data.find_links,
-            '-r', reqs_file.abspath, expect_error=False)
+            '-r', reqs_file.resolve(), expect_error=False)
         assert 'Successfully installed simple-1.0' in str(result)
 
 

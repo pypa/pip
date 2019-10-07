@@ -456,14 +456,14 @@ def test_hashed_install_success(script, data, tmpdir):
 
     """
     file_url = path_to_url(
-        (data.packages / 'simple-1.0.tar.gz').abspath)
+        (data.packages / 'simple-1.0.tar.gz').resolve())
     with requirements_file(
             'simple2==1.0 --hash=sha256:9336af72ca661e6336eb87bc7de3e8844d853e'
             '3848c2b9bbd2e8bf01db88c2c7\n'
             '{simple} --hash=sha256:393043e672415891885c9a2a0929b1af95fb866d6c'
             'a016b42d2e6ce53619b653'.format(simple=file_url),
             tmpdir) as reqs_file:
-        script.pip_install_local('-r', reqs_file.abspath, expect_error=False)
+        script.pip_install_local('-r', reqs_file.resolve(), expect_error=False)
 
 
 def test_hashed_install_failure(script, tmpdir):
@@ -478,7 +478,7 @@ def test_hashed_install_failure(script, tmpdir):
                            'c7de3e8844d853e3848c2b9bbd2e8bf01db88c2c\n',
                            tmpdir) as reqs_file:
         result = script.pip_install_local('-r',
-                                          reqs_file.abspath,
+                                          reqs_file.resolve(),
                                           expect_error=True)
     assert len(result.files_created) == 0
 
