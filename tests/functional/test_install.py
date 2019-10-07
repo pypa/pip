@@ -1559,7 +1559,7 @@ def test_target_install_ignores_distutils_config_install_prefix(script):
     assert "Successfully installed simplewheel" in result.stdout
 
     relative_target = os.path.relpath(target, script.base_path)
-    relative_script_base = os.path.relpath(target, script.base_path)
+    relative_script_base = os.path.relpath(prefix, script.base_path)
     assert relative_target in result.files_created
     assert relative_script_base not in result.files_created
 
