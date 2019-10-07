@@ -447,7 +447,7 @@ class PipTestEnvironment(TestFileEnvironment):
             self.user_bin_path = scripts_base.joinpath('Scripts')
         else:
             self.user_bin_path = self.user_base_path.joinpath(
-                self.bin_path - self.venv_path
+                os.path.relpath(self.bin_path, self.venv_path)
             )
 
         # Create a Directory to use as a scratch pad
@@ -483,7 +483,10 @@ class PipTestEnvironment(TestFileEnvironment):
         for name in ["base", "venv", "bin", "lib", "site_packages",
                      "user_base", "user_site", "user_bin", "scratch"]:
             real_name = "%s_path" % name
-            setattr(self, name, getattr(self, real_name) - self.base_path)
+            relative_path = Path(os.path.relpath(
+                getattr(self, real_name), self.base_path
+            ))
+            setattr(self, name, relative_path)
 
         # Make sure temp_path is a Path object
         self.temp_path = Path(self.temp_path)
