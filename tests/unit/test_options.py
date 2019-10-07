@@ -421,26 +421,3 @@ class TestOptionsConfigFiles(object):
                 cmd._determine_file(options, need_value=False)
         else:
             assert expect == cmd._determine_file(options, need_value=False)
-
-    def test_config_file_venv_option(self, monkeypatch):
-        cmd = create_command('config')
-        # Replace a handler with a no-op to avoid side effects
-        monkeypatch.setattr(cmd, "get_name", lambda *a: None)
-
-        collected_warnings = []
-
-        def _warn(message, *a, **kw):
-            collected_warnings.append(message)
-        monkeypatch.setattr("warnings.warn", _warn)
-
-        options, args = cmd.parser.parse_args(["--venv", "get", "name"])
-        assert "site" == cmd._determine_file(options, need_value=False)
-        assert collected_warnings
-        assert "--site" in collected_warnings[0]
-
-        # No warning or error if both "--venv" and "--site" are specified
-        collected_warnings[:] = []
-        options, args = cmd.parser.parse_args(["--venv", "--site", "get",
-                                               "name"])
-        assert "site" == cmd._determine_file(options, need_value=False)
-        assert not collected_warnings
