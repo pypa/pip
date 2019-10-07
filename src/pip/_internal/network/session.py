@@ -12,6 +12,7 @@ import mimetypes
 import os
 import platform
 import sys
+import warnings
 
 from pip._vendor import requests, six, urllib3
 from pip._vendor.cachecontrol import CacheControlAdapter
@@ -19,6 +20,7 @@ from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
 from pip._vendor.requests.models import Response
 from pip._vendor.requests.structures import CaseInsensitiveDict
 from pip._vendor.six.moves.urllib import parse as urllib_parse
+from pip._vendor.urllib3.exceptions import InsecureRequestWarning
 
 from pip import __version__
 from pip._internal.network.auth import MultiDomainBasicAuth
@@ -46,6 +48,10 @@ if MYPY_CHECK_RUNNING:
 
 
 logger = logging.getLogger(__name__)
+
+
+# Ignore warning raised when using --trusted-host.
+warnings.filterwarnings("ignore", category=InsecureRequestWarning)
 
 
 SECURE_ORIGINS = [
