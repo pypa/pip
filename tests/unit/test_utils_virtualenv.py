@@ -32,20 +32,26 @@ def test_running_under_virtualenv(
 
 
 @pytest.mark.parametrize(
-    "running_under_virtualenv, no_global_file, expected", [
+    "under_virtualenv, no_global_file, expected", [
         (False, False, False),
         (False, True, False),
         (True, False, False),
         (True, True, True),
     ],
 )
-def test_virtualenv_no_global(
-        monkeypatch, tmpdir,
-        running_under_virtualenv, no_global_file, expected):
+def test_virtualenv_no_global_with_regular_virtualenv(
+    monkeypatch,
+    tmpdir,
+    under_virtualenv,
+    no_global_file,
+    expected,
+):
     monkeypatch.setattr(site, '__file__', tmpdir / 'site.py')
     monkeypatch.setattr(
-        virtualenv, 'running_under_virtualenv',
-        lambda: running_under_virtualenv)
+        virtualenv, '_running_under_regular_virtualenv',
+        lambda: under_virtualenv,
+    )
     if no_global_file:
         (tmpdir / 'no-global-site-packages.txt').touch()
+
     assert virtualenv.virtualenv_no_global() == expected

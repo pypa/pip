@@ -1,6 +1,9 @@
-import os.path
+import logging
+import os
 import site
 import sys
+
+logger = logging.getLogger(__name__)
 
 
 def _running_under_venv():
@@ -29,16 +32,26 @@ def running_under_virtualenv():
     return _running_under_venv() or _running_under_regular_virtualenv()
 
 
+def _no_global_under_regular_virtualenv():
+    # type: () -> bool
+    """Check if "no-global-site-packages.txt" exists beside site.py
+
+    This mirrors logic in pypa/virtualenv for determining whether system
+    site-packages are visible in the virtual environment.
+    """
+    site_mod_dir = os.path.dirname(os.path.abspath(site.__file__))
+    no_global_site_packages_file = os.path.join(
+        site_mod_dir, 'no-global-site-packages.txt',
+    )
+    return os.path.exists(no_global_site_packages_file)
+
+
 def virtualenv_no_global():
     # type: () -> bool
+    """Returns a boolean, whether running in venv with no system site-packages.
     """
-    Return True if in a venv and no system site packages.
-    """
-    # this mirrors the logic in virtualenv.py for locating the
-    # no-global-site-packages.txt file
-    site_mod_dir = os.path.dirname(os.path.abspath(site.__file__))
-    no_global_file = os.path.join(site_mod_dir, 'no-global-site-packages.txt')
-    if running_under_virtualenv() and os.path.isfile(no_global_file):
-        return True
-    else:
-        return False
+
+    if _running_under_regular_virtualenv():
+        return _no_global_under_regular_virtualenv()
+
+    return False
