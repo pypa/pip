@@ -94,7 +94,14 @@ class Command(CommandContextMixIn):
     def parse_args(self, args):
         # type: (List[str]) -> Tuple
         # factored out for testability
-        return self.parser.parse_args(args)
+        option, args = self.parser.parse_args(args)
+        if running_under_virtualenv() and option.use_user_site:
+            logger.warning(
+                "`user` option is set to true "
+                "inside of a virtual environment, ignoring."
+            )
+            option.use_user_site = False
+        return option, args
 
     def main(self, args):
         # type: (List[str]) -> int

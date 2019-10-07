@@ -1,0 +1,1 @@
+Ignore ``user`` setting when running inside of a virtual environment.
