@@ -407,7 +407,9 @@ def test_basic_install_relative_directory(script, data):
     package_folder = script.site_packages / 'fspkg'
 
     # Compute relative install path to FSPkg from scratch path.
-    full_rel_path = data.packages.joinpath('FSPkg') - script.scratch_path
+    full_rel_path = Path(
+        os.path.relpath(data.packages.joinpath('FSPkg'), script.scratch_path)
+    )
     full_rel_url = (
         'file:' + full_rel_path.replace(os.path.sep, '/') + '#egg=FSPkg'
     )
@@ -1553,11 +1555,13 @@ def test_target_install_ignores_distutils_config_install_prefix(script):
         ''' % str(prefix)))
     target = script.scratch_path / 'target'
     result = script.pip_install_local('simplewheel', '-t', target)
-    assert (
-        "Successfully installed simplewheel" in result.stdout and
-        (target - script.base_path) in result.files_created and
-        (prefix - script.base_path) not in result.files_created
-    ), str(result)
+
+    assert "Successfully installed simplewheel" in result.stdout
+
+    relative_target = os.path.relpath(target, script.base_path)
+    relative_script_base = os.path.relpath(target, script.base_path)
+    assert relative_target in result.files_created
+    assert relative_script_base not in result.files_created
 
 
 @pytest.mark.network
