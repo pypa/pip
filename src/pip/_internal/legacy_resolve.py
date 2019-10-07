@@ -267,10 +267,6 @@ class Resolver(object):
         # requirements we have to pull the tree down and inspect to assess
         # the version #, so it's handled way down.
         if not req_to_install.link:
-            if req_to_install.is_pinned:
-                # No need to check the index for a better version.
-                return 'already satisfied'
-
             try:
                 self.finder.find_requirement(req_to_install, upgrade=True)
             except BestVersionAlreadyInstalled:
