@@ -94,6 +94,12 @@ def test(session):
             "-w", LOCATIONS["common-wheels"],
             "-r", REQUIREMENTS["common-wheels"],
         )
+    else:
+        msg = (
+            "Re-using existing common-wheels at {}."
+            .format(LOCATIONS["common-wheels"])
+        )
+        session.log(msg)
 
     # Install sources
     run_with_protected_pip(session, "install", ".")
