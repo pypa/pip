@@ -66,23 +66,6 @@ class Path(_base):
 
     __itruediv__ = __idiv__
 
-    def __sub__(self, path):
-        """
-        Makes this path relative to another path.
-
-        >>> path_obj - '/home/a'
-        >>> path_obj - path_obj2
-        """
-        return Path(os.path.relpath(self, path))
-
-    def __rsub__(self, path):
-        """
-        Returns path relative to this path.
-
-        >>> "/home/a" - path_obj
-        """
-        return Path(os.path.relpath(path, self))
-
     def __add__(self, path):
         """
         >>> Path('/home/a') + 'bc.d'
