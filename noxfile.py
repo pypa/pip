@@ -101,8 +101,19 @@ def test(session):
         )
         session.log(msg)
 
-    # Install sources
-    run_with_protected_pip(session, "install", ".")
+    # Build source distribution
+    sdist_dir = os.path.join(session.virtualenv.location, "sdist")
+    session.run(
+        "python", "setup.py", "sdist",
+        "--formats=zip", "--dist-dir", sdist_dir,
+        silent=True,
+    )
+    generated_files = os.listdir(sdist_dir)
+    assert len(generated_files) == 1
+    generated_sdist = os.path.join(sdist_dir, generated_files[0])
+
+    # Install source distribution
+    run_with_protected_pip(session, "install", generated_sdist)
 
     # Install test dependencies
     run_with_protected_pip(session, "install", "-r", REQUIREMENTS["tests"])
