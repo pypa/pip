@@ -28,8 +28,8 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.models.target_python import TargetPython
 
 
-DATA_DIR = Path(__file__).parent.parent.joinpath("data").abspath
-SRC_DIR = Path(__file__).abspath.parent.parent.parent
+DATA_DIR = Path(__file__).parent.parent.joinpath("data").resolve()
+SRC_DIR = Path(__file__).resolve().parent.parent.parent
 
 pyversion = get_major_minor_version()
 pyversion_tuple = sys.version_info
@@ -65,7 +65,7 @@ def _test_path_to_file_url(path):
     Args:
       path: a tests.lib.path.Path object.
     """
-    return 'file://' + path.abspath.replace('\\', '/')
+    return 'file://' + path.resolve().replace('\\', '/')
 
 
 def create_file(path, contents=None):
@@ -155,7 +155,7 @@ class TestData(object):
 
     def __init__(self, root, source=None):
         self.source = source or DATA_DIR
-        self.root = Path(root).abspath
+        self.root = Path(root).resolve()
 
     @classmethod
     def copy(cls, root):

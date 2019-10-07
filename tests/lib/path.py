@@ -107,8 +107,7 @@ class Path(_base):
         """
         return Path(os.path.splitext(self)[1])
 
-    @property
-    def abspath(self):
+    def resolve(self):
         """
         './a/bc.d' -> '/home/a/bc.d'
         """

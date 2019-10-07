@@ -190,7 +190,7 @@ def pip_src(tmpdir_factory):
     # Copy over our source tree so that each use is self contained
     shutil.copytree(
         SRC_DIR,
-        pip_src.abspath,
+        pip_src.resolve(),
         ignore=not_code_files_and_folders,
     )
     return pip_src
@@ -222,7 +222,7 @@ def wheel_install(tmpdir_factory, common_wheels):
 
 def install_egg_link(venv, project_name, egg_info_dir):
     with open(venv.site / 'easy-install.pth', 'a') as fp:
-        fp.write(str(egg_info_dir.abspath) + '\n')
+        fp.write(str(egg_info_dir.resolve()) + '\n')
     with open(venv.site / (project_name + '.egg-link'), 'w') as fp:
         fp.write(str(egg_info_dir) + '\n.')
 
