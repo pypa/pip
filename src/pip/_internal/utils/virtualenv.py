@@ -1,3 +1,5 @@
+from __future__ import absolute_import
+
 import logging
 import os
 import site
@@ -47,7 +49,7 @@ def _get_pyvenv_cfg_lines():
     try:
         with open(pyvenv_cfg_file) as f:
             return f.read().splitlines()  # avoids trailing newlines
-    except OSError:
+    except IOError:
         return None
 
 
