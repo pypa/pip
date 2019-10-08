@@ -297,10 +297,11 @@ class InstallCommand(RequirementCommand):
                     "different installation locations"
                 )
             if virtualenv_no_global():
-                raise InstallationError(
-                    "Can not perform a '--user' install. User site-packages "
-                    "are not visible in this virtualenv."
+                logger.info(
+                    "Ignoring '--user', since user site-packages are not "
+                    "visible in this virtualenv."
                 )
+            options.use_user_site = False
             install_options.append('--user')
             install_options.append('--prefix=')
 
