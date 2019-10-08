@@ -73,7 +73,7 @@ class CacheCommand(Command):
         # type: (Values, List[Any]) -> None
         format_args = (
             options.cache_dir,
-            len(self._find_wheels(options, '*.whl'))
+            len(self._find_wheels(options, '*'))
         )
         result = textwrap.dedent(
             """\
@@ -112,11 +112,6 @@ class CacheCommand(Command):
         if not files:
             raise CommandError('No matching packages')
 
-        wheels = map(self._wheel_info, files)
-        result = 'Removing cached wheels for:\n'
-        for wheel in wheels:
-            result += '- %s\n' % wheel
-
         for filename in files:
             os.unlink(filename)
             logger.debug('Removed %s', filename)
@@ -128,9 +123,7 @@ class CacheCommand(Command):
 
     def _wheel_info(self, path):
         # type: (str) -> str
-        filename = os.path.splitext(os.path.basename(path))[0]
-        name, version = filename.split('-')[0:2]
-        return '%s-%s' % (name, version)
+        return os.path.basename(path)
 
     def _find_wheels(self, options, pattern):
         # type: (Values, str) -> List[str]

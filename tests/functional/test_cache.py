@@ -16,6 +16,9 @@ def test_cache_info(script, monkeypatch):
     cache_dir = _cache_dir(script)
 
     assert 'Location: %s' % cache_dir in result.stdout
+    # TODO(@duckinator): This should probably test that the number of
+    #   packages is actually correct, but I'm not sure how to do that
+    #   without pretty much re-implementing the entire cache info command.
     assert 'Packages: ' in result.stdout
 
 
