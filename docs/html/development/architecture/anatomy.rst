@@ -39,7 +39,7 @@ The ``README``, license, ``pyproject.toml``, ``setup.py``, and so on are in the 
 
 * ``news/`` *[pip stores news fragments… Every time pip makes a user-facing change, a file is added to this directory (usually a short note referring to a GitHub issue) with the right extension & name so it gets included in release notes…. So every release the maintainers will be deleting old files in this directory? Yes - we use the towncrier automation to generate a NEWS file, and auto-delete old stuff. There’s more about this in the contributor documentation!]*
 
-  * ``template.rst`` *[template for release notes -- this is a file towncrier uses…. Is this jinja? I don’t know, check towncrier docs]* 
+  * ``template.rst`` *[template for release notes -- this is a file towncrier uses…. Is this jinja? I don’t know, check towncrier docs]*
 
 * ``src/`` *[source; see below]*
 * ``tasks/`` *[invoke is a PyPI library which uses files in this directory to define automation commands that are used in pip’s development processes -- not discussing further right now. For instance, automating the release.]*

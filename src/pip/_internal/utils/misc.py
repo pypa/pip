@@ -1,5 +1,6 @@
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
+# mypy: disallow-untyped-defs=False
 
 from __future__ import absolute_import
 
@@ -12,7 +13,6 @@ import os
 import posixpath
 import shutil
 import stat
-import subprocess
 import sys
 from collections import deque
 
@@ -21,13 +21,12 @@ from pip._vendor import pkg_resources
 #       why we ignore the type on this import.
 from pip._vendor.retrying import retry  # type: ignore
 from pip._vendor.six import PY2, text_type
-from pip._vendor.six.moves import input, shlex_quote
+from pip._vendor.six.moves import input
 from pip._vendor.six.moves.urllib import parse as urllib_parse
-from pip._vendor.six.moves.urllib import request as urllib_request
 from pip._vendor.six.moves.urllib.parse import unquote as urllib_unquote
 
 from pip import __version__
-from pip._internal.exceptions import CommandError, InstallationError
+from pip._internal.exceptions import CommandError
 from pip._internal.locations import (
     get_major_minor_version,
     site_packages,
@@ -35,7 +34,6 @@ from pip._internal.locations import (
 )
 from pip._internal.utils.compat import (
     WINDOWS,
-    console_to_str,
     expanduser,
     stdlib_pkgs,
     str_to_display,
@@ -54,14 +52,12 @@ else:
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Any, AnyStr, Container, Iterable, List, Mapping, Optional, Text,
+        Any, AnyStr, Container, Iterable, List, Optional, Text,
         Tuple, Union, cast,
     )
     from pip._vendor.pkg_resources import Distribution
-    from pip._internal.utils.ui import SpinnerInterface
 
     VersionInfo = Tuple[int, int, int]
-    CommandArgs = List[Union[str, 'HiddenText']]
 else:
     # typing's cast() is needed at runtime, but we don't want to import typing.
     # Thus, we use a dummy no-op version, which we tell mypy to ignore.
@@ -74,15 +70,11 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'format_size', 'is_installable_dir',
            'normalize_path',
            'renames', 'get_prog',
-           'call_subprocess',
            'captured_stdout', 'ensure_dir',
            'get_installed_version', 'remove_auth_from_url']
 
 
 logger = logging.getLogger(__name__)
-subprocess_logger = logging.getLogger('pip.subprocessor')
-
-LOG_DIVIDER = '----------------------------------------'
 
 
 def get_pip_version():
@@ -885,17 +877,6 @@ def enum(*sequential, **named):
     return type('Enum', (), enums)
 
 
-def path_to_url(path):
-    # type: (Union[str, Text]) -> str
-    """
-    Convert a path to a file: URL.  The path will be made absolute and have
-    quoted path parts.
-    """
-    path = os.path.normpath(os.path.abspath(path))
-    url = urllib_parse.urljoin('file:', urllib_request.pathname2url(path))
-    return url
-
-
 def build_netloc(host, port):
     # type: (str, Optional[int]) -> str
     """
@@ -1108,3 +1089,10 @@ def protect_pip_from_modification_on_windows(modifying_pip):
             'To modify pip, please run the following command:\n{}'
             .format(" ".join(new_command))
         )
+
+
+def is_console_interactive():
+    # type: () -> bool
+    """Is this console interactive?
+    """
+    return sys.stdin is not None and sys.stdin.isatty()

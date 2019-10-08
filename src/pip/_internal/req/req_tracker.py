@@ -28,7 +28,6 @@ class RequirementTracker(object):
         self._root = os.environ.get('PIP_REQ_TRACKER')
         if self._root is None:
             self._temp_dir = TempDirectory(delete=False, kind='req-tracker')
-            self._temp_dir.create()
             self._root = os.environ['PIP_REQ_TRACKER'] = self._temp_dir.path
             logger.debug('Created requirements tracker %r', self._root)
         else:

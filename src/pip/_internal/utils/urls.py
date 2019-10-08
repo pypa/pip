@@ -1,3 +1,4 @@
+import os
 import sys
 
 from pip._vendor.six.moves.urllib import parse as urllib_parse
@@ -14,6 +15,17 @@ def get_url_scheme(url):
     if ':' not in url:
         return None
     return url.split(':', 1)[0].lower()
+
+
+def path_to_url(path):
+    # type: (Union[str, Text]) -> str
+    """
+    Convert a path to a file: URL.  The path will be made absolute and have
+    quoted path parts.
+    """
+    path = os.path.normpath(os.path.abspath(path))
+    url = urllib_parse.urljoin('file:', urllib_request.pathname2url(path))
+    return url
 
 
 def url_to_path(url):

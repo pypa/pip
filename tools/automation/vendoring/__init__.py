@@ -1,11 +1,14 @@
 """"Vendoring script, python 3.5 with requests needed"""
 
-from pathlib import Path
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 import os
 import re
 import shutil
 import tarfile
 import zipfile
+from pathlib import Path
 
 import invoke
 import requests

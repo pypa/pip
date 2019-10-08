@@ -227,10 +227,8 @@ class StashedUninstallPathSet(object):
 
         try:
             save_dir = AdjacentTempDirectory(path)  # type: TempDirectory
-            save_dir.create()
         except OSError:
             save_dir = TempDirectory(kind="uninstall")
-            save_dir.create()
         self._save_dirs[os.path.normcase(path)] = save_dir
 
         return save_dir.path
@@ -256,7 +254,6 @@ class StashedUninstallPathSet(object):
             # Did not find any suitable root
             head = os.path.dirname(path)
             save_dir = TempDirectory(kind='uninstall')
-            save_dir.create()
             self._save_dirs[head] = save_dir
 
         relpath = os.path.relpath(path, head)

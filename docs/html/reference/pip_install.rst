@@ -417,8 +417,8 @@ making fewer network calls).
 Mercurial
 ~~~~~~~~~
 
-The supported schemes are: ``hg+http``, ``hg+https``,
-``hg+static-http`` and ``hg+ssh``.
+The supported schemes are: ``hg+file``, ``hg+http``, ``hg+https``,
+``hg+static-http``, and ``hg+ssh``.
 
 Here are the supported forms::
 
@@ -572,7 +572,7 @@ each sdist that wheels are built from and places the resulting wheels inside.
 
 Pip attempts to choose the best wheels from those built in preference to
 building a new wheel. Note that this means when a package has both optional
-C extensions and builds `py` tagged wheels when the C extension can't be built
+C extensions and builds ``py`` tagged wheels when the C extension can't be built
 that pip will not attempt to build a better wheel for Pythons that would have
 supported it, once any generic wheel is built. To correct this, make sure that
 the wheels are built with Python specific tags - e.g. pp on PyPy.
@@ -826,7 +826,7 @@ Options
 Examples
 ********
 
-#. Install `SomePackage` and its dependencies from `PyPI`_ using :ref:`Requirement Specifiers`
+#. Install ``SomePackage`` and its dependencies from `PyPI`_ using :ref:`Requirement Specifiers`
 
     ::
 
@@ -842,7 +842,7 @@ Examples
       $ pip install -r requirements.txt
 
 
-#. Upgrade an already installed `SomePackage` to the latest from PyPI.
+#. Upgrade an already installed ``SomePackage`` to the latest from PyPI.
 
     ::
 

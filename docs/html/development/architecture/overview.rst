@@ -140,4 +140,3 @@ files on PyPI. It’s for getting all files of Flask.)
 .. _`tracking issue`: https://github.com/pypa/pip/issues/6831
 .. _PyPI: https://pypi.org/
 .. _PyPI Simple API: https://warehouse.readthedocs.io/api-reference/legacy/#simple-project-api
-

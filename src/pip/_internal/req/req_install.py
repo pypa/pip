@@ -1,5 +1,6 @@
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
+# mypy: disallow-untyped-defs=False
 
 from __future__ import absolute_import
 
@@ -37,7 +38,6 @@ from pip._internal.utils.misc import (
     _make_build_dir,
     ask_path_exists,
     backup_dir,
-    call_subprocess,
     display_path,
     dist_in_site_packages,
     dist_in_usersite,
@@ -49,15 +49,18 @@ from pip._internal.utils.misc import (
 )
 from pip._internal.utils.packaging import get_metadata
 from pip._internal.utils.setuptools_build import make_setuptools_shim_args
+from pip._internal.utils.subprocess import (
+    call_subprocess,
+    runner_with_spinner_message,
+)
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from pip._internal.utils.ui import open_spinner
 from pip._internal.utils.virtualenv import running_under_virtualenv
 from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Any, Dict, Iterable, List, Mapping, Optional, Sequence, Union,
+        Any, Dict, Iterable, List, Optional, Sequence, Union,
     )
     from pip._internal.build_env import BuildEnvironment
     from pip._internal.cache import WheelCache
@@ -121,7 +124,6 @@ class InstallRequirement(object):
             markers = req.marker
         self.markers = markers
 
-        self._egg_info_path = None  # type: Optional[str]
         # This holds the pkg_resources.Distribution object if this requirement
         # is already available:
         self.satisfied_by = None
@@ -338,7 +340,6 @@ class InstallRequirement(object):
             # builds (such as numpy). Thus, we ensure that the real path
             # is returned.
             self._temp_build_dir = TempDirectory(kind="req-build")
-            self._temp_build_dir.create()
             self._ideal_build_dir = build_dir
 
             return self._temp_build_dir.path
@@ -368,28 +369,33 @@ class InstallRequirement(object):
             return
         assert self.req is not None
         assert self._temp_build_dir
-        assert (self._ideal_build_dir is not None and
-                self._ideal_build_dir.path)  # type: ignore
+        assert (
+            self._ideal_build_dir is not None and
+            self._ideal_build_dir.path  # type: ignore
+        )
         old_location = self._temp_build_dir
-        self._temp_build_dir = None
+        self._temp_build_dir = None  # checked inside ensure_build_location
 
+        # Figure out the correct place to put the files.
         new_location = self.ensure_build_location(self._ideal_build_dir)
         if os.path.exists(new_location):
             raise InstallationError(
                 'A package already exists in %s; please remove it to continue'
-                % display_path(new_location))
+                % display_path(new_location)
+            )
+
+        # Move the files to the correct location.
         logger.debug(
             'Moving package %s from %s to new location %s',
             self, display_path(old_location.path), display_path(new_location),
         )
         shutil.move(old_location.path, new_location)
+
+        # Update directory-tracking variables, to be in line with new_location
+        self.source_dir = os.path.normpath(os.path.abspath(new_location))
         self._temp_build_dir = TempDirectory(
             path=new_location, kind="req-install",
         )
-
-        self._ideal_build_dir = None
-        self.source_dir = os.path.normpath(os.path.abspath(new_location))
-        self._egg_info_path = None
 
         # Correct the metadata directory, if it exists
         if self.metadata_directory:
@@ -398,6 +404,11 @@ class InstallRequirement(object):
             new_meta = os.path.join(new_location, rel)
             new_meta = os.path.normpath(os.path.abspath(new_meta))
             self.metadata_directory = new_meta
+
+        # Done with any "move built files" work, since have moved files to the
+        # "ideal" build location. Setting to None allows to clearly flag that
+        # no more moves are needed.
+        self._ideal_build_dir = None
 
     def remove_temporary_source(self):
         # type: () -> None
@@ -486,7 +497,7 @@ class InstallRequirement(object):
 
     # Things valid for sdists
     @property
-    def setup_py_dir(self):
+    def unpacked_source_directory(self):
         # type: () -> str
         return os.path.join(
             self.source_dir,
@@ -496,8 +507,7 @@ class InstallRequirement(object):
     def setup_py_path(self):
         # type: () -> str
         assert self.source_dir, "No source dir for %s" % self
-
-        setup_py = os.path.join(self.setup_py_dir, 'setup.py')
+        setup_py = os.path.join(self.unpacked_source_directory, 'setup.py')
 
         # Python2 __file__ should not be unicode
         if six.PY2 and isinstance(setup_py, six.text_type):
@@ -509,8 +519,7 @@ class InstallRequirement(object):
     def pyproject_toml_path(self):
         # type: () -> str
         assert self.source_dir, "No source dir for %s" % self
-
-        return make_pyproject_path(self.setup_py_dir)
+        return make_pyproject_path(self.unpacked_source_directory)
 
     def load_pyproject_toml(self):
         # type: () -> None
@@ -536,27 +545,9 @@ class InstallRequirement(object):
         requires, backend, check = pyproject_toml_data
         self.requirements_to_check = check
         self.pyproject_requires = requires
-        self.pep517_backend = Pep517HookCaller(self.setup_py_dir, backend)
-
-        # Use a custom function to call subprocesses
-        self.spin_message = ""
-
-        def runner(
-            cmd,  # type: List[str]
-            cwd=None,  # type: Optional[str]
-            extra_environ=None  # type: Optional[Mapping[str, Any]]
-        ):
-            # type: (...) -> None
-            with open_spinner(self.spin_message) as spinner:
-                call_subprocess(
-                    cmd,
-                    cwd=cwd,
-                    extra_environ=extra_environ,
-                    spinner=spinner
-                )
-            self.spin_message = ""
-
-        self.pep517_backend._subprocess_runner = runner
+        self.pep517_backend = Pep517HookCaller(
+            self.unpacked_source_directory, backend
+        )
 
     def prepare_metadata(self):
         # type: () -> None
@@ -569,7 +560,7 @@ class InstallRequirement(object):
 
         metadata_generator = get_metadata_generator(self)
         with indent_log():
-            metadata_generator(self)
+            self.metadata_directory = metadata_generator(self)
 
         if not self.req:
             if isinstance(parse_version(self.metadata["Version"]), Version):
@@ -595,85 +586,32 @@ class InstallRequirement(object):
                 )
                 self.req = Requirement(metadata_name)
 
-    def cleanup(self):
-        # type: () -> None
-        if self._temp_dir is not None:
-            self._temp_dir.cleanup()
-
     def prepare_pep517_metadata(self):
-        # type: () -> None
+        # type: () -> str
         assert self.pep517_backend is not None
 
         # NOTE: This needs to be refactored to stop using atexit
-        self._temp_dir = TempDirectory(delete=False, kind="req-install")
-        self._temp_dir.create()
+        temp_dir = TempDirectory(kind="modern-metadata")
+        atexit.register(temp_dir.cleanup)
+
         metadata_dir = os.path.join(
-            self._temp_dir.path,
+            temp_dir.path,
             'pip-wheel-metadata',
         )
-        atexit.register(self.cleanup)
-
         ensure_dir(metadata_dir)
 
         with self.build_env:
             # Note that Pep517HookCaller implements a fallback for
             # prepare_metadata_for_build_wheel, so we don't have to
             # consider the possibility that this hook doesn't exist.
+            runner = runner_with_spinner_message("Preparing wheel metadata")
             backend = self.pep517_backend
-            self.spin_message = "Preparing wheel metadata"
-            distinfo_dir = backend.prepare_metadata_for_build_wheel(
-                metadata_dir
-            )
-
-        self.metadata_directory = os.path.join(metadata_dir, distinfo_dir)
-
-    @property
-    def egg_info_path(self):
-        # type: () -> str
-        def looks_like_virtual_env(path):
-            return (
-                os.path.lexists(os.path.join(path, 'bin', 'python')) or
-                os.path.exists(os.path.join(path, 'Scripts', 'Python.exe'))
-            )
-
-        if self._egg_info_path is None:
-            if self.editable:
-                base = self.source_dir
-                filenames = []
-                for root, dirs, files in os.walk(base):
-                    for dir in vcs.dirnames:
-                        if dir in dirs:
-                            dirs.remove(dir)
-                    # Iterate over a copy of ``dirs``, since mutating
-                    # a list while iterating over it can cause trouble.
-                    # (See https://github.com/pypa/pip/pull/462.)
-                    for dir in list(dirs):
-                        if looks_like_virtual_env(os.path.join(root, dir)):
-                            dirs.remove(dir)
-                        # Also don't search through tests
-                        elif dir == 'test' or dir == 'tests':
-                            dirs.remove(dir)
-                    filenames.extend([os.path.join(root, dir)
-                                      for dir in dirs])
-                filenames = [f for f in filenames if f.endswith('.egg-info')]
-            else:
-                base = os.path.join(self.setup_py_dir, 'pip-egg-info')
-                filenames = os.listdir(base)
-
-            if not filenames:
-                raise InstallationError(
-                    "Files/directories not found in %s" % base
+            with backend.subprocess_runner(runner):
+                distinfo_dir = backend.prepare_metadata_for_build_wheel(
+                    metadata_dir
                 )
-            # if we have more than one match, we pick the toplevel one.  This
-            # can easily be the case if there is a dist folder which contains
-            # an extracted tarball for testing purposes.
-            if len(filenames) > 1:
-                filenames.sort(
-                    key=lambda x: x.count(os.path.sep) +
-                    (os.path.altsep and x.count(os.path.altsep) or 0)
-                )
-            self._egg_info_path = os.path.join(base, filenames[0])
-        return self._egg_info_path
+
+        return os.path.join(metadata_dir, distinfo_dir)
 
     @property
     def metadata(self):
@@ -686,16 +624,16 @@ class InstallRequirement(object):
     def get_dist(self):
         # type: () -> Distribution
         """Return a pkg_resources.Distribution for this requirement"""
-        if self.metadata_directory:
-            dist_dir = self.metadata_directory
-            dist_cls = pkg_resources.DistInfoDistribution
-        else:
-            dist_dir = self.egg_info_path.rstrip(os.path.sep)
-            # https://github.com/python/mypy/issues/1174
-            dist_cls = pkg_resources.Distribution  # type: ignore
+        dist_dir = self.metadata_directory.rstrip(os.sep)
 
-        # dist_dir_name can be of the form "<project>.dist-info" or
-        # e.g. "<project>.egg-info".
+        # Determine the correct Distribution object type.
+        if dist_dir.endswith(".egg-info"):
+            dist_cls = pkg_resources.Distribution
+        else:
+            assert dist_dir.endswith(".dist-info")
+            dist_cls = pkg_resources.DistInfoDistribution
+
+        # Build a PathMetadata object, from path to metadata. :wink:
         base_dir, dist_dir_name = os.path.split(dist_dir)
         dist_name = os.path.splitext(dist_dir_name)[0]
         metadata = pkg_resources.PathMetadata(base_dir, dist_dir)
@@ -763,8 +701,7 @@ class InstallRequirement(object):
                     base_cmd +
                     ['develop', '--no-deps'] +
                     list(install_options),
-
-                    cwd=self.setup_py_dir,
+                    cwd=self.unpacked_source_directory,
                 )
 
         self.install_succeeded = True
@@ -876,7 +813,9 @@ class InstallRequirement(object):
             archive_path, 'w', zipfile.ZIP_DEFLATED, allowZip64=True,
         )
         with zip_output:
-            dir = os.path.normcase(os.path.abspath(self.setup_py_dir))
+            dir = os.path.normcase(
+                os.path.abspath(self.unpacked_source_directory)
+            )
             for dirpath, dirnames, filenames in os.walk(dir):
                 if 'pip-egg-info' in dirnames:
                     dirnames.remove('pip-egg-info')
@@ -943,15 +882,15 @@ class InstallRequirement(object):
             install_args = self.get_install_args(
                 global_options, record_filename, root, prefix, pycompile,
             )
-            msg = 'Running setup.py install for %s' % (self.name,)
-            with open_spinner(msg) as spinner:
-                with indent_log():
-                    with self.build_env:
-                        call_subprocess(
-                            install_args + install_options,
-                            cwd=self.setup_py_dir,
-                            spinner=spinner,
-                        )
+
+            runner = runner_with_spinner_message(
+                "Running setup.py install for {}".format(self.name)
+            )
+            with indent_log(), self.build_env:
+                runner(
+                    cmd=install_args + install_options,
+                    cwd=self.unpacked_source_directory,
+                )
 
             if not os.path.exists(record_filename):
                 logger.debug('Record file %s not found', record_filename)

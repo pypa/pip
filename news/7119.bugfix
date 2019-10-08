@@ -1,0 +1,1 @@
+Fix a crash when ``sys.stdin`` is set to ``None``, such as on AWS Lambda.

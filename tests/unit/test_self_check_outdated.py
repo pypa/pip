@@ -9,14 +9,14 @@ import pytest
 from mock import patch
 from pip._vendor import pkg_resources
 
-from pip._internal.download import PipSession
+from pip._internal import self_outdated_check
 from pip._internal.index import InstallationCandidate
-from pip._internal.utils import outdated
-from pip._internal.utils.outdated import (
+from pip._internal.network.session import PipSession
+from pip._internal.self_outdated_check import (
     SelfCheckState,
     logger,
     make_link_collector,
-    pip_version_check,
+    pip_self_version_check,
 )
 from tests.lib.path import Path
 
@@ -133,7 +133,8 @@ class MockDistribution(object):
 
 
 def _options():
-    ''' Some default options that we pass to outdated.pip_version_check '''
+    ''' Some default options that we pass to
+    self_outdated_check.pip_self_version_check '''
     return pretend.stub(
         find_links=[], index_url='default_url', extra_index_urls=[],
         no_index=False, pre=False, cache_dir='',
@@ -160,12 +161,13 @@ def _options():
         ('1970-01-9T10:00:00Z', '6.9.0', '6.9.0', 'pip', False, False),
     ]
 )
-def test_pip_version_check(monkeypatch, stored_time, installed_ver, new_ver,
-                           installer, check_if_upgrade_required,
-                           check_warn_logs):
-    monkeypatch.setattr(outdated, 'get_installed_version',
+def test_pip_self_version_check(monkeypatch, stored_time, installed_ver,
+                                new_ver, installer,
+                                check_if_upgrade_required, check_warn_logs):
+    monkeypatch.setattr(self_outdated_check, 'get_installed_version',
                         lambda name: installed_ver)
-    monkeypatch.setattr(outdated, 'PackageFinder', MockPackageFinder)
+    monkeypatch.setattr(self_outdated_check, 'PackageFinder',
+                        MockPackageFinder)
     monkeypatch.setattr(logger, 'warning',
                         pretend.call_recorder(lambda *a, **kw: None))
     monkeypatch.setattr(logger, 'debug',
@@ -178,7 +180,7 @@ def test_pip_version_check(monkeypatch, stored_time, installed_ver, new_ver,
         save=pretend.call_recorder(lambda v, t: None),
     )
     monkeypatch.setattr(
-        outdated, 'SelfCheckState', lambda **kw: fake_state
+        self_outdated_check, 'SelfCheckState', lambda **kw: fake_state
     )
 
     with freezegun.freeze_time(
@@ -189,7 +191,7 @@ def test_pip_version_check(monkeypatch, stored_time, installed_ver, new_ver,
             "pip._vendor.requests.packages.urllib3.packages.six.moves",
         ]
     ):
-        latest_pypi_version = pip_version_check(None, _options())
+        latest_pypi_version = pip_self_version_check(None, _options())
 
     # See we return None if not installed_version
     if not installed_ver:
@@ -226,12 +228,12 @@ statefile_name_case_2 = (
     ("C:\\Users\\User\\Desktop\\venv", statefile_name_case_2),
 ])
 def test_get_statefile_name_known_values(key, expected):
-    assert expected == outdated._get_statefile_name(key)
+    assert expected == self_outdated_check._get_statefile_name(key)
 
 
 def _get_statefile_path(cache_dir, key):
     return os.path.join(
-        cache_dir, "selfcheck", outdated._get_statefile_name(key)
+        cache_dir, "selfcheck", self_outdated_check._get_statefile_name(key)
     )
 
 
@@ -245,7 +247,7 @@ def test_self_check_state_key_uses_sys_prefix(monkeypatch):
     key = "helloworld"
 
     monkeypatch.setattr(sys, "prefix", key)
-    state = outdated.SelfCheckState("")
+    state = self_outdated_check.SelfCheckState("")
 
     assert state.key == key
 
@@ -270,7 +272,7 @@ def test_self_check_state_reads_expected_statefile(monkeypatch, tmpdir):
         json.dump(content, f)
 
     monkeypatch.setattr(sys, "prefix", key)
-    state = outdated.SelfCheckState(str(cache_dir))
+    state = self_outdated_check.SelfCheckState(str(cache_dir))
 
     assert state.state["last_check"] == last_check
     assert state.state["pypi_version"] == pypi_version
@@ -283,12 +285,12 @@ def test_self_check_state_writes_expected_statefile(monkeypatch, tmpdir):
     statefile_path = _get_statefile_path(str(cache_dir), key)
 
     last_check = datetime.datetime.strptime(
-        "1970-01-02T11:00:00Z", outdated.SELFCHECK_DATE_FMT
+        "1970-01-02T11:00:00Z", self_outdated_check.SELFCHECK_DATE_FMT
     )
     pypi_version = "1.0"
 
     monkeypatch.setattr(sys, "prefix", key)
-    state = outdated.SelfCheckState(str(cache_dir))
+    state = self_outdated_check.SelfCheckState(str(cache_dir))
 
     state.save(pypi_version, last_check)
     with open(statefile_path) as f:
@@ -296,7 +298,8 @@ def test_self_check_state_writes_expected_statefile(monkeypatch, tmpdir):
 
     expected = {
         "key": key,
-        "last_check": last_check.strftime(outdated.SELFCHECK_DATE_FMT),
+        "last_check": last_check.strftime(
+            self_outdated_check.SELFCHECK_DATE_FMT),
         "pypi_version": pypi_version,
     }
     assert expected == saved

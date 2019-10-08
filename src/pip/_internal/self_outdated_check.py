@@ -1,3 +1,6 @@
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 from __future__ import absolute_import
 
 import datetime
@@ -33,7 +36,8 @@ if MYPY_CHECK_RUNNING:
     import optparse
     from optparse import Values
     from typing import Any, Dict, Text, Union
-    from pip._internal.download import PipSession
+
+    from pip._internal.network.session import PipSession
 
 
 SELFCHECK_DATE_FMT = "%Y-%m-%dT%H:%M:%SZ"
@@ -153,7 +157,7 @@ def was_installed_by_pip(pkg):
         return False
 
 
-def pip_version_check(session, options):
+def pip_self_version_check(session, options):
     # type: (PipSession, optparse.Values) -> None
     """Check for an update for pip.
 

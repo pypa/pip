@@ -8,12 +8,12 @@ from mock import Mock, patch
 from pretend import stub
 
 import pip._internal.index
-from pip._internal.download import PipSession
 from pip._internal.exceptions import (
     InstallationError,
     RequirementsFileParseError,
 )
 from pip._internal.models.format_control import FormatControl
+from pip._internal.network.session import PipSession
 from pip._internal.req.constructors import (
     install_req_from_editable,
     install_req_from_line,
@@ -677,7 +677,7 @@ class TestParseRequirements(object):
         '''.format(global_option=global_option, install_option=install_option)
 
         with requirements_file(content, tmpdir) as reqs_file:
-            req = next(parse_requirements(reqs_file.abspath,
+            req = next(parse_requirements(reqs_file.resolve(),
                                           finder=finder,
                                           options=options,
                                           session=session))

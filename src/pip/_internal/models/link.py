@@ -1,3 +1,7 @@
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
+import os
 import posixpath
 import re
 
@@ -5,14 +9,13 @@ from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 from pip._internal.utils.filetypes import WHEEL_EXTENSION
 from pip._internal.utils.misc import (
-    path_to_url,
     redact_auth_from_url,
     split_auth_from_netloc,
     splitext,
 )
 from pip._internal.utils.models import KeyBasedCompareMixin
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from pip._internal.utils.urls import url_to_path
+from pip._internal.utils.urls import path_to_url, url_to_path
 
 if MYPY_CHECK_RUNNING:
     from typing import Optional, Text, Tuple, Union
@@ -179,6 +182,15 @@ class Link(KeyBasedCompareMixin):
     def show_url(self):
         # type: () -> Optional[str]
         return posixpath.basename(self._url.split('#', 1)[0].split('?', 1)[0])
+
+    @property
+    def is_file(self):
+        # type: () -> bool
+        return self.scheme == 'file'
+
+    def is_existing_dir(self):
+        # type: () -> bool
+        return self.is_file and os.path.isdir(self.file_path)
 
     @property
     def is_wheel(self):

@@ -1,3 +1,6 @@
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 from __future__ import absolute_import
 
 import logging
@@ -6,9 +9,11 @@ import os
 from pip._vendor.six.moves import configparser
 
 from pip._internal.exceptions import BadCommand, InstallationError
-from pip._internal.utils.misc import display_path, make_command, path_to_url
+from pip._internal.utils.misc import display_path
+from pip._internal.utils.subprocess import make_command
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.urls import path_to_url
 from pip._internal.vcs.versioncontrol import VersionControl, vcs
 
 if MYPY_CHECK_RUNNING:
@@ -23,7 +28,9 @@ class Mercurial(VersionControl):
     name = 'hg'
     dirname = '.hg'
     repo_name = 'clone'
-    schemes = ('hg', 'hg+http', 'hg+https', 'hg+ssh', 'hg+static-http')
+    schemes = (
+        'hg', 'hg+file', 'hg+http', 'hg+https', 'hg+ssh', 'hg+static-http',
+    )
 
     @staticmethod
     def get_base_rev_args(rev):

@@ -2,6 +2,9 @@
 The main purpose of this module is to expose LinkCollector.collect_links().
 """
 
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 import cgi
 import itertools
 import logging
@@ -17,9 +20,9 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip._internal.models.link import Link
 from pip._internal.utils.filetypes import ARCHIVE_EXTENSIONS
-from pip._internal.utils.misc import path_to_url, redact_auth_from_url
+from pip._internal.utils.misc import redact_auth_from_url
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from pip._internal.utils.urls import url_to_path
+from pip._internal.utils.urls import path_to_url, url_to_path
 from pip._internal.vcs import is_url, vcs
 
 if MYPY_CHECK_RUNNING:
@@ -32,7 +35,7 @@ if MYPY_CHECK_RUNNING:
     from pip._vendor.requests import Response
 
     from pip._internal.models.search_scope import SearchScope
-    from pip._internal.download import PipSession
+    from pip._internal.network.session import PipSession
 
     HTMLElement = xml.etree.ElementTree.Element
     ResponseHeaders = MutableMapping[str, str]
@@ -156,7 +159,7 @@ def _get_html_response(url, session):
 
 
 def _get_encoding_from_headers(headers):
-    # type: (Optional[ResponseHeaders]) -> Optional[str]
+    # type: (ResponseHeaders) -> Optional[str]
     """Determine if we have any encoding information in our headers.
     """
     if headers and "Content-Type" in headers:
@@ -244,22 +247,18 @@ def _create_link_from_element(
     return link
 
 
-def parse_links(
-    html,      # type: bytes
-    encoding,  # type: Optional[str]
-    url,       # type: str
-):
-    # type: (...) -> Iterable[Link]
+def parse_links(page):
+    # type: (HTMLPage) -> Iterable[Link]
     """
     Parse an HTML document, and yield its anchor elements as Link objects.
-
-    :param url: the URL from which the HTML was downloaded.
     """
     document = html5lib.parse(
-        html,
-        transport_encoding=encoding,
+        page.content,
+        transport_encoding=page.encoding,
         namespaceHTMLElements=False,
     )
+
+    url = page.url
     base_url = _determine_base_url(document, url)
     for anchor in document.findall(".//a"):
         link = _create_link_from_element(
@@ -275,21 +274,23 @@ def parse_links(
 class HTMLPage(object):
     """Represents one page, along with its URL"""
 
-    def __init__(self, content, url, headers=None):
-        # type: (bytes, str, ResponseHeaders) -> None
+    def __init__(
+        self,
+        content,   # type: bytes
+        encoding,  # type: Optional[str]
+        url,       # type: str
+    ):
+        # type: (...) -> None
+        """
+        :param encoding: the encoding to decode the given content.
+        :param url: the URL from which the HTML was downloaded.
+        """
         self.content = content
+        self.encoding = encoding
         self.url = url
-        self.headers = headers
 
     def __str__(self):
         return redact_auth_from_url(self.url)
-
-    def iter_links(self):
-        # type: () -> Iterable[Link]
-        """Yields all links in the page"""
-        encoding = _get_encoding_from_headers(self.headers)
-        for link in parse_links(self.content, encoding=encoding, url=self.url):
-            yield link
 
 
 def _handle_get_page_fail(
@@ -301,6 +302,12 @@ def _handle_get_page_fail(
     if meth is None:
         meth = logger.debug
     meth("Could not fetch URL %s: %s - skipping", link, reason)
+
+
+def _make_html_page(response):
+    # type: (Response) -> HTMLPage
+    encoding = _get_encoding_from_headers(response.headers)
+    return HTMLPage(response.content, encoding=encoding, url=response.url)
 
 
 def _get_html_page(link, session=None):
@@ -353,7 +360,7 @@ def _get_html_page(link, session=None):
     except requests.Timeout:
         _handle_get_page_fail(link, "timed out")
     else:
-        return HTMLPage(resp.content, resp.url, resp.headers)
+        return _make_html_page(resp)
     return None
 
 
@@ -532,7 +539,7 @@ class LinkCollector(object):
 
         pages_links = {}
         for page in self._get_pages(url_locations):
-            pages_links[page.url] = list(page.iter_links())
+            pages_links[page.url] = list(parse_links(page))
 
         return CollectedLinks(
             files=file_links,

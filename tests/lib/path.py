@@ -66,23 +66,6 @@ class Path(_base):
 
     __itruediv__ = __idiv__
 
-    def __sub__(self, path):
-        """
-        Makes this path relative to another path.
-
-        >>> path_obj - '/home/a'
-        >>> path_obj - path_obj2
-        """
-        return Path(os.path.relpath(self, path))
-
-    def __rsub__(self, path):
-        """
-        Returns path relative to this path.
-
-        >>> "/home/a" - path_obj
-        """
-        return Path(os.path.relpath(path, self))
-
     def __add__(self, path):
         """
         >>> Path('/home/a') + 'bc.d'
@@ -124,8 +107,7 @@ class Path(_base):
         """
         return Path(os.path.splitext(self)[1])
 
-    @property
-    def abspath(self):
+    def resolve(self):
         """
         './a/bc.d' -> '/home/a/bc.d'
         """
@@ -154,18 +136,19 @@ class Path(_base):
         """
         return os.path.exists(self)
 
-    def mkdir(self, mode=0x1FF, parents=False):  # 0o777
+    def mkdir(self, mode=0x1FF, exist_ok=False, parents=False):  # 0o777
         """
         Creates a directory, if it doesn't exist already.
 
         :param parents: Whether to create parent directories.
         """
-        if self.exists():
-            return self
 
         maker_func = os.makedirs if parents else os.mkdir
-        maker_func(self, mode)
-        return self
+        try:
+            maker_func(self, mode)
+        except OSError:
+            if not exist_ok or not os.path.isdir(self):
+                raise
 
     def unlink(self):
         """

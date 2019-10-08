@@ -1,4 +1,8 @@
 """Handles all VCS (version control) support"""
+
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 from __future__ import absolute_import
 
 import errno
@@ -15,13 +19,12 @@ from pip._internal.utils.compat import samefile
 from pip._internal.utils.misc import (
     ask_path_exists,
     backup_dir,
-    call_subprocess,
     display_path,
     hide_url,
     hide_value,
-    make_command,
     rmtree,
 )
+from pip._internal.utils.subprocess import call_subprocess, make_command
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import get_url_scheme
 
@@ -30,7 +33,8 @@ if MYPY_CHECK_RUNNING:
         Any, Dict, Iterable, List, Mapping, Optional, Text, Tuple, Type, Union
     )
     from pip._internal.utils.ui import SpinnerInterface
-    from pip._internal.utils.misc import CommandArgs, HiddenText
+    from pip._internal.utils.misc import HiddenText
+    from pip._internal.utils.subprocess import CommandArgs
 
     AuthInfo = Tuple[Optional[str], Optional[str]]
 

@@ -89,6 +89,8 @@ from a description of the feature/change in one or more paragraphs, each wrapped
 at 80 characters. Remember that a news entry is meant for end users and should
 only contain details relevant to an end user.
 
+.. _`choosing-news-entry-type`:
+
 Choosing the type of NEWS entry
 -------------------------------
 

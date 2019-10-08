@@ -3,6 +3,7 @@ import os.path
 from textwrap import dedent
 
 import mock
+import pretend
 import pytest
 from mock import Mock, patch
 from pip._vendor import html5lib, requests
@@ -14,14 +15,16 @@ from pip._internal.collector import (
     _determine_base_url,
     _get_html_page,
     _get_html_response,
+    _make_html_page,
     _NotHTML,
     _NotHTTP,
     _remove_duplicate_links,
     group_locations,
+    parse_links,
 )
-from pip._internal.download import PipSession
 from pip._internal.models.index import PyPI
 from pip._internal.models.link import Link
+from pip._internal.network.session import PipSession
 from tests.lib import make_test_link_collector
 
 
@@ -239,40 +242,39 @@ def test_clean_link(url, clean_url):
     assert(_clean_link(url) == clean_url)
 
 
-class TestHTMLPage:
-
-    @pytest.mark.parametrize(
-        ('anchor_html, expected'),
-        [
-            # Test not present.
-            ('<a href="/pkg1-1.0.tar.gz"></a>', None),
-            # Test present with no value.
-            ('<a href="/pkg2-1.0.tar.gz" data-yanked></a>', ''),
-            # Test the empty string.
-            ('<a href="/pkg3-1.0.tar.gz" data-yanked=""></a>', ''),
-            # Test a non-empty string.
-            ('<a href="/pkg4-1.0.tar.gz" data-yanked="error"></a>', 'error'),
-            # Test a value with an escaped character.
-            ('<a href="/pkg4-1.0.tar.gz" data-yanked="version &lt 1"></a>',
-                'version < 1'),
-            # Test a yanked reason with a non-ascii character.
-            (u'<a href="/pkg-1.0.tar.gz" data-yanked="curlyquote \u2018"></a>',
-                u'curlyquote \u2018'),
-        ]
+@pytest.mark.parametrize('anchor_html, expected', [
+    # Test not present.
+    ('<a href="/pkg1-1.0.tar.gz"></a>', None),
+    # Test present with no value.
+    ('<a href="/pkg2-1.0.tar.gz" data-yanked></a>', ''),
+    # Test the empty string.
+    ('<a href="/pkg3-1.0.tar.gz" data-yanked=""></a>', ''),
+    # Test a non-empty string.
+    ('<a href="/pkg4-1.0.tar.gz" data-yanked="error"></a>', 'error'),
+    # Test a value with an escaped character.
+    ('<a href="/pkg4-1.0.tar.gz" data-yanked="version &lt 1"></a>',
+        'version < 1'),
+    # Test a yanked reason with a non-ascii character.
+    (u'<a href="/pkg-1.0.tar.gz" data-yanked="curlyquote \u2018"></a>',
+        u'curlyquote \u2018'),
+])
+def test_parse_links__yanked_reason(anchor_html, expected):
+    html = (
+        # Mark this as a unicode string for Python 2 since anchor_html
+        # can contain non-ascii.
+        u'<html><head><meta charset="utf-8"><head>'
+        '<body>{}</body></html>'
+    ).format(anchor_html)
+    html_bytes = html.encode('utf-8')
+    page = HTMLPage(
+        html_bytes,
+        encoding=None,
+        url='https://example.com/simple/',
     )
-    def test_iter_links__yanked_reason(self, anchor_html, expected):
-        html = (
-            # Mark this as a unicode string for Python 2 since anchor_html
-            # can contain non-ascii.
-            u'<html><head><meta charset="utf-8"><head>'
-            '<body>{}</body></html>'
-        ).format(anchor_html)
-        html_bytes = html.encode('utf-8')
-        page = HTMLPage(html_bytes, url='https://example.com/simple/')
-        links = list(page.iter_links())
-        link, = links
-        actual = link.yanked_reason
-        assert actual == expected
+    links = list(parse_links(page))
+    link, = links
+    actual = link.yanked_reason
+    assert actual == expected
 
 
 def test_request_http_error(caplog):
@@ -300,6 +302,20 @@ def test_request_retries(caplog):
     )
 
 
+def test_make_html_page():
+    headers = {'Content-Type': 'text/html; charset=UTF-8'}
+    response = pretend.stub(
+        content=b'<content>',
+        url='https://example.com/index.html',
+        headers=headers,
+    )
+
+    actual = _make_html_page(response)
+    assert actual.content == b'<content>'
+    assert actual.encoding == 'UTF-8'
+    assert actual.url == 'https://example.com/index.html'
+
+
 @pytest.mark.parametrize(
     "url, vcs_scheme",
     [
@@ -325,23 +341,42 @@ def test_get_html_page_invalid_scheme(caplog, url, vcs_scheme):
     ]
 
 
+def make_fake_html_response(url):
+    """
+    Create a fake requests.Response object.
+    """
+    html = dedent(u"""\
+    <html><head><meta name="api-version" value="2" /></head>
+    <body>
+    <a href="/abc-1.0.tar.gz#md5=000000000">abc-1.0.tar.gz</a>
+    </body></html>
+    """)
+    content = html.encode('utf-8')
+    return pretend.stub(content=content, url=url, headers={})
+
+
 def test_get_html_page_directory_append_index(tmpdir):
     """`_get_html_page()` should append "index.html" to a directory URL.
     """
-    dirpath = tmpdir.mkdir("something")
+    dirpath = tmpdir / "something"
+    dirpath.mkdir()
     dir_url = "file:///{}".format(
         urllib_request.pathname2url(dirpath).lstrip("/"),
     )
+    expected_url = "{}/index.html".format(dir_url.rstrip("/"))
 
     session = mock.Mock(PipSession)
+    fake_response = make_fake_html_response(expected_url)
     with mock.patch("pip._internal.collector._get_html_response") as mock_func:
-        _get_html_page(Link(dir_url), session=session)
+        mock_func.return_value = fake_response
+        actual = _get_html_page(Link(dir_url), session=session)
         assert mock_func.mock_calls == [
-            mock.call(
-                "{}/index.html".format(dir_url.rstrip("/")),
-                session=session,
-            ),
-        ]
+            mock.call(expected_url, session=session),
+        ], 'actual calls: {}'.format(mock_func.mock_calls)
+
+        assert actual.content == fake_response.content
+        assert actual.encoding is None
+        assert actual.url == expected_url
 
 
 def test_remove_duplicate_links():
@@ -386,18 +421,6 @@ def test_group_locations__non_existing_path():
     assert not urls and not files, "nothing should have been found"
 
 
-def make_fake_html_page(url):
-    html = dedent(u"""\
-    <html><head><meta name="api-version" value="2" /></head>
-    <body>
-    <a href="/abc-1.0.tar.gz#md5=000000000">abc-1.0.tar.gz</a>
-    </body></html>
-    """)
-    content = html.encode('utf-8')
-    headers = {}
-    return HTMLPage(content, url=url, headers=headers)
-
-
 def check_links_include(links, names):
     """
     Assert that the given list of Link objects includes, for each of the
@@ -417,7 +440,7 @@ class TestLinkCollector(object):
 
         expected_url = 'https://pypi.org/simple/twine/'
 
-        fake_page = make_fake_html_page(expected_url)
+        fake_page = make_fake_html_response(expected_url)
         mock_get_html_response.return_value = fake_page
 
         link_collector = make_test_link_collector(

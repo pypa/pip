@@ -12,6 +12,7 @@ for sub-dependencies
 
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
+# mypy: disallow-untyped-defs=False
 
 import logging
 import sys
@@ -44,7 +45,7 @@ if MYPY_CHECK_RUNNING:
     from pip._vendor import pkg_resources
 
     from pip._internal.distributions import AbstractDistribution
-    from pip._internal.download import PipSession
+    from pip._internal.network.session import PipSession
     from pip._internal.index import PackageFinder
     from pip._internal.operations.prepare import RequirementPreparer
     from pip._internal.req.req_install import InstallRequirement
