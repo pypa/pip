@@ -11,6 +11,7 @@ from pip._vendor import pkg_resources
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 from pip._internal.exceptions import BadCommand
+from pip._internal.utils.compat import samefile
 from pip._internal.utils.misc import (
     ask_path_exists,
     backup_dir,
@@ -236,11 +237,54 @@ class VersionControl(object):
         return not remote_url.lower().startswith('{}:'.format(cls.name))
 
     @classmethod
-    def get_subdirectory(cls, repo_dir):
+    def get_subdirectory(cls, location):
         """
         Return the path to setup.py, relative to the repo root.
+        Return None if setup.py is in the repo root.
         """
-        return None
+        # find the repo root
+        root_dir = cls.get_repo_root_dir(location)
+        if root_dir is None:
+            logger.warning(
+                "Repo root could not be detected for %s, "
+                "assuming it is the root.",
+                location)
+            return None
+        # find setup.py
+        orig_location = location
+        while not os.path.exists(os.path.join(location, 'setup.py')):
+            last_location = location
+            location = os.path.dirname(location)
+            if location == last_location:
+                # We've traversed up to the root of the filesystem without
+                # finding setup.py
+                logger.warning(
+                    "Could not find setup.py for directory %s (tried all "
+                    "parent directories)",
+                    orig_location,
+                )
+                return None
+        # relative path of setup.py to repo root
+        if samefile(root_dir, location):
+            return None
+        return os.path.relpath(location, root_dir)
+
+    @classmethod
+    def get_repo_root_dir(cls, location):
+        """
+        Return the absolute path to the repo root directory.
+
+        Return None if not found.
+        This can be overridden by subclasses to interrogate the vcs tool to
+        find the repo root.
+        """
+        while not cls.is_repository_directory(location):
+            last_location = location
+            location = os.path.dirname(location)
+            if location == last_location:
+                # We've traversed up to the root of the filesystem.
+                return None
+        return os.path.abspath(location)
 
     @classmethod
     def get_requirement_revision(cls, repo_dir):
@@ -578,7 +622,8 @@ class VersionControl(object):
         extra_ok_returncodes=None,  # type: Optional[Iterable[int]]
         command_desc=None,  # type: Optional[str]
         extra_environ=None,  # type: Optional[Mapping[str, Any]]
-        spinner=None  # type: Optional[SpinnerInterface]
+        spinner=None,  # type: Optional[SpinnerInterface]
+        log_failed_cmd=True
     ):
         # type: (...) -> Text
         """
@@ -594,7 +639,8 @@ class VersionControl(object):
                                    command_desc=command_desc,
                                    extra_environ=extra_environ,
                                    unset_environ=cls.unset_environ,
-                                   spinner=spinner)
+                                   spinner=spinner,
+                                   log_failed_cmd=log_failed_cmd)
         except OSError as e:
             # errno.ENOENT = no such file or directory
             # In other words, the VCS executable isn't available

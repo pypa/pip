@@ -628,7 +628,8 @@ def call_subprocess(
     command_desc=None,  # type: Optional[str]
     extra_environ=None,  # type: Optional[Mapping[str, Any]]
     unset_environ=None,  # type: Optional[Iterable[str]]
-    spinner=None  # type: Optional[SpinnerInterface]
+    spinner=None,  # type: Optional[SpinnerInterface]
+    log_failed_cmd=True  # type: Optional[bool]
 ):
     # type: (...) -> Text
     """
@@ -639,6 +640,7 @@ def call_subprocess(
         acceptable, in addition to 0. Defaults to None, which means [].
       unset_environ: an iterable of environment variable names to unset
         prior to calling subprocess.Popen().
+      log_failed_cmd: if false, failed commands are not logged, only raised.
     """
     if extra_ok_returncodes is None:
         extra_ok_returncodes = []
@@ -694,9 +696,10 @@ def call_subprocess(
         )
         proc.stdin.close()
     except Exception as exc:
-        subprocess_logger.critical(
-            "Error %s while executing command %s", exc, command_desc,
-        )
+        if log_failed_cmd:
+            subprocess_logger.critical(
+                "Error %s while executing command %s", exc, command_desc,
+            )
         raise
     all_output = []
     while True:
@@ -727,7 +730,7 @@ def call_subprocess(
             spinner.finish("done")
     if proc_had_error:
         if on_returncode == 'raise':
-            if not showing_subprocess:
+            if not showing_subprocess and log_failed_cmd:
                 # Then the subprocess streams haven't been logged to the
                 # console yet.
                 msg = make_subprocess_output_error(

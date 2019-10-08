@@ -333,16 +333,14 @@ def test_freeze_mercurial_clone_srcdir(script, tmpdir):
     pkg_version = _create_test_package_with_srcdir(script, vcs='hg')
 
     result = script.run(
-        'hg', 'clone', pkg_version, 'pip-test-package',
-        expect_stderr=True,
+        'hg', 'clone', pkg_version, 'pip-test-package'
     )
     repo_dir = script.scratch_path / 'pip-test-package'
     result = script.run(
         'python', 'setup.py', 'develop',
-        cwd=repo_dir / 'subdir',
-        expect_stderr=True,
+        cwd=repo_dir / 'subdir'
     )
-    result = script.pip('freeze', expect_stderr=True)
+    result = script.pip('freeze')
     expected = textwrap.dedent(
         """
             ...-e hg+...#egg=version_pkg&subdirectory=subdir
@@ -352,8 +350,7 @@ def test_freeze_mercurial_clone_srcdir(script, tmpdir):
     _check_output(result.stdout, expected)
 
     result = script.pip(
-        'freeze', '-f', '%s#egg=pip_test_package' % repo_dir,
-        expect_stderr=True,
+        'freeze', '-f', '%s#egg=pip_test_package' % repo_dir
     )
     expected = textwrap.dedent(
         """

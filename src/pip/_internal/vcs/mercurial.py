@@ -5,8 +5,7 @@ import os
 
 from pip._vendor.six.moves import configparser
 
-from pip._internal.exceptions import BadCommand
-from pip._internal.utils.compat import samefile
+from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.utils.misc import display_path, make_command, path_to_url
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -114,45 +113,25 @@ class Mercurial(VersionControl):
         return False
 
     @classmethod
-    def get_subdirectory(cls, location):
-        # find the repo root
-        root_dir = cls.run_command(['root'],
-                                   show_stdout=False, cwd=location).strip()
+    def get_repo_root_dir(cls, location):
+        root_dir = cls.run_command(
+            ['root'], show_stdout=False, cwd=location).strip()
         if not os.path.isabs(root_dir):
             root_dir = os.path.join(location, root_dir)
-        # find setup.py
-        orig_location = location
-        while not os.path.exists(os.path.join(location, 'setup.py')):
-            last_location = location
-            location = os.path.dirname(location)
-            if location == last_location:
-                # We've traversed up to the root of the filesystem without
-                # finding setup.py
-                logger.warning(
-                    "Could not find setup.py for directory %s (tried all "
-                    "parent directories)",
-                    orig_location,
-                )
-                return None
-        # relative path of setup.py to repo root
-        if samefile(root_dir, location):
-            return None
-        return os.path.relpath(location, root_dir)
+        return os.path.abspath(root_dir)
 
     @classmethod
     def controls_location(cls, location):
-        if not super(Mercurial, cls).controls_location(location):
-            return False
+        if super(Mercurial, cls).controls_location(location):
+            return True
         try:
-            r = cls.run_command(['identify'],
-                                cwd=location,
-                                show_stdout=False,
-                                on_returncode='ignore',
-                                extra_ok_returncodes=[255])
-            return not r.startswith('abort:')
-        except BadCommand:
-            logger.debug("could not determine if %s is under hg control "
-                         "because hg is not available", location)
+            cls.run_command(
+                ['identify'],
+                cwd=location,
+                show_stdout=False,
+                on_returncode='raise',
+                log_failed_cmd=False)
+        except (BadCommand, InstallationError):
             return False
 
 
