@@ -567,9 +567,16 @@ def egg_link_path(dist):
     """
     sites = []
     if running_under_virtualenv():
+<<<<<<< HEAD
         sites.append(site_packages)
         if not virtualenv_no_global() and user_site:
             sites.append(user_site)
+=======
+        if virtualenv_no_global():
+            sites.append(site_packages)
+            if user_site:
+                sites.append(user_site)
+>>>>>>> 9fec932cdea4a33df090c44eb5be91dad9843ac3
     else:
         if user_site:
             sites.append(user_site)
