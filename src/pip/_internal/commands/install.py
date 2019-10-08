@@ -301,7 +301,7 @@ class InstallCommand(RequirementCommand):
                     "Ignoring '--user', since user site-packages are not "
                     "visible in this virtualenv."
                 )
-            options.use_user_site = False
+                options.use_user_site = False
             install_options.append('--user')
             install_options.append('--prefix=')
 
