@@ -1,8 +1,6 @@
 import os
 import shutil
 
-from pip._internal.utils import appdirs
-
 
 def _cache_dir(script):
     results = script.run(

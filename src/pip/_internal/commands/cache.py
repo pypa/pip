@@ -5,50 +5,76 @@ import os
 import textwrap
 
 from pip._internal.cli.base_command import Command
-from pip._internal.exceptions import CommandError
+from pip._internal.cli.status_codes import ERROR, SUCCESS
+from pip._internal.exceptions import CommandError, PipError
 from pip._internal.utils.filesystem import find_files
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from optparse import Values
+    from typing import Any, List
+
 
 logger = logging.getLogger(__name__)
 
 
 class CacheCommand(Command):
-    """
-    Inspect and manage pip's caches.
+    """Inspect and manage pip's caches.
 
-    Subcommands:
-        info:
-            Show information about the caches.
-        list [name]:
-            List filenames of packages stored in the cache.
-        remove <pattern>:
-            Remove one or more package from the cache.
-            `pattern` can be a glob expression or a package name.
-        purge:
-            Remove all items from the cache.
+        Subcommands:
+
+        info: Show information about the caches.
+        list: List filenames of packages stored in the cache.
+        remove: Remove one or more package from the cache.
+        purge: Remove all items from the cache.
+
+        <pattern> can be a glob expression or a package name.
     """
     actions = ['info', 'list', 'remove', 'purge']
-    name = 'cache'
     usage = """
-      %prog <command>"""
-    summary = "View and manage which packages are available in pip's caches."
+        %prog info
+        %prog list [name]
+        %prog remove <pattern>
+        %prog purge
+    """
 
     def __init__(self, *args, **kw):
+        # type: (*Any, **Any) -> None
         super(CacheCommand, self).__init__(*args, **kw)
 
     def run(self, options, args):
-        if not args:
-            raise CommandError('Please provide a subcommand.')
+        # type: (Values, List[Any]) -> int
+        handlers = {
+            "info": self.get_cache_info,
+            "list": self.list_cache_items,
+            "remove": self.remove_cache_items,
+            "purge": self.purge_cache,
+        }
 
-        if args[0] not in self.actions:
-            raise CommandError('Invalid subcommand: %s' % args[0])
+        # Determine action
+        if not args or args[0] not in handlers:
+            logger.error("Need an action ({}) to perform.".format(
+                ", ".join(sorted(handlers)))
+            )
+            return ERROR
 
-        self.wheel_dir = os.path.join(options.cache_dir, 'wheels')
+        action = args[0]
 
-        method = getattr(self, 'action_%s' % args[0])
-        return method(options, args[1:])
+        # Error handling happens here, not in the action-handlers.
+        try:
+            handlers[action](options, args[1:])
+        except PipError as e:
+            logger.error(e.args[0])
+            return ERROR
 
-    def action_info(self, options, args):
-        format_args = (options.cache_dir, len(self.find_wheels('*.whl')))
+        return SUCCESS
+
+    def get_cache_info(self, options, args):
+        # type: (Values, List[Any]) -> None
+        format_args = (
+            options.cache_dir,
+            len(self._find_wheels(options, '*.whl'))
+        )
         result = textwrap.dedent(
             """\
             Cache info:
@@ -57,15 +83,16 @@ class CacheCommand(Command):
         )
         logger.info(result)
 
-    def action_list(self, options, args):
+    def list_cache_items(self, options, args):
+        # type: (Values, List[Any]) -> None
         if args and args[0]:
             pattern = args[0]
         else:
             pattern = '*'
 
-        files = self.find_wheels(pattern)
-        wheels = map(self._wheel_info, files)
-        wheels = sorted(set(wheels))
+        files = self._find_wheels(options, pattern)
+        wheels_ = map(self._wheel_info, files)
+        wheels = sorted(set(wheels_))
 
         if not wheels:
             logger.info('Nothing is currently cached.')
@@ -76,11 +103,12 @@ class CacheCommand(Command):
             result += ' - %s\n' % wheel
         logger.info(result.strip())
 
-    def action_remove(self, options, args):
+    def remove_cache_items(self, options, args):
+        # type: (Values, List[Any]) -> None
         if not args:
             raise CommandError('Please provide a pattern')
 
-        files = self.find_wheels(args[0])
+        files = self._find_wheels(options, args[0])
         if not files:
             raise CommandError('No matching packages')
 
@@ -94,13 +122,17 @@ class CacheCommand(Command):
             logger.debug('Removed %s', filename)
         logger.info('Removed %s files', len(files))
 
-    def action_purge(self, options, args):
-        return self.action_remove(options, '*')
+    def purge_cache(self, options, args):
+        # type: (Values, List[Any]) -> None
+        return self.remove_cache_items(options, ['*'])
 
     def _wheel_info(self, path):
+        # type: (str) -> str
         filename = os.path.splitext(os.path.basename(path))[0]
         name, version = filename.split('-')[0:2]
         return '%s-%s' % (name, version)
 
-    def find_wheels(self, pattern):
-        return find_files(self.wheel_dir, pattern + '-*.whl')
+    def _find_wheels(self, options, pattern):
+        # type: (Values, str) -> List[str]
+        wheel_dir = os.path.join(options.cache_dir, 'wheels')
+        return find_files(wheel_dir, pattern + '-*.whl')
