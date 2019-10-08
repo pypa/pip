@@ -19,14 +19,19 @@ logger = logging.getLogger(__name__)
 
 
 class CacheCommand(Command):
-    """Inspect and manage pip's caches.
+    """
+        Inspect and manage pip's caches.
 
         Subcommands:
 
-        info: Show information about the caches.
-        list: List filenames of packages stored in the cache.
-        remove: Remove one or more package from the cache.
-        purge: Remove all items from the cache.
+        info:
+            Show information about the caches.
+        list:
+            List filenames of packages stored in the cache.
+        remove:
+            Remove one or more package from the cache.
+        purge:
+            Remove all items from the cache.
 
         <pattern> can be a glob expression or a package name.
     """
