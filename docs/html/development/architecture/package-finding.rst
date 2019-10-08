@@ -1,7 +1,7 @@
 Finding and choosing files (``index`` and ``PackageFinder``)
 ---------------------------------------------------------------
 
-The ``pip._internal.index`` sub-package in pip responsible for deciding
+The ``pip._internal.index`` sub-package in pip is responsible for deciding
 what file to download and from where, given a requirement for a project. The
 package's functionality is largely exposed through and coordinated by the
 package's ``PackageFinder`` class.
