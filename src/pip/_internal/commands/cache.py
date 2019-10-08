@@ -30,7 +30,7 @@ class CacheCommand(Command):
 
         <pattern> can be a glob expression or a package name.
     """
-    actions = ['info', 'list', 'remove', 'purge']
+
     usage = """
         %prog info
         %prog list [name]
@@ -71,17 +71,15 @@ class CacheCommand(Command):
 
     def get_cache_info(self, options, args):
         # type: (Values, List[Any]) -> None
-        format_args = (
-            options.cache_dir,
-            len(self._find_wheels(options, '*'))
-        )
-        result = textwrap.dedent(
-            """\
+        num_packages = len(self._find_wheels(options, '*'))
+
+        results = textwrap.dedent("""\
             Cache info:
               Location: %s
-              Packages: %s""" % format_args
+              Packages: %s""" % (options.cache_dir, num_packages)
         )
-        logger.info(result)
+
+        logger.info(results)
 
     def list_cache_items(self, options, args):
         # type: (Values, List[Any]) -> None
@@ -91,8 +89,7 @@ class CacheCommand(Command):
             pattern = '*'
 
         files = self._find_wheels(options, pattern)
-        wheels_ = map(self._wheel_info, files)
-        wheels = sorted(set(wheels_))
+        wheels = sorted(set(map(lambda f: os.path.basename(f), files)))
 
         if not wheels:
             logger.info('Nothing is currently cached.')
@@ -120,10 +117,6 @@ class CacheCommand(Command):
     def purge_cache(self, options, args):
         # type: (Values, List[Any]) -> None
         return self.remove_cache_items(options, ['*'])
-
-    def _wheel_info(self, path):
-        # type: (str) -> str
-        return os.path.basename(path)
 
     def _find_wheels(self, options, pattern):
         # type: (Values, str) -> List[str]
