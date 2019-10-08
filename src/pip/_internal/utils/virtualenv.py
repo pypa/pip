@@ -8,7 +8,7 @@ import sys
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional, List
+    from typing import List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +34,7 @@ def _running_under_regular_virtualenv():
 
 def running_under_virtualenv():
     # type: () -> bool
-    """Return a boolean, whether running under a virtual environment.
+    """Return True if we're running inside a virtualenv, False otherwise.
     """
     return _running_under_venv() or _running_under_regular_virtualenv()
 
