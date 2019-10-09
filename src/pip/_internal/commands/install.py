@@ -292,32 +292,18 @@ class InstallCommand(RequirementCommand):
 
         options.src_dir = os.path.abspath(options.src_dir)
         install_options = options.install_options or []
+
+        options.use_user_site = decide_user_install(
+            options.use_user_site,
+            prefix_path=options.prefix_path,
+            target_dir=options.target_dir,
+            root_path=options.root_path,
+            isolated_mode=options.isolated_mode,
+        )
+
         if options.use_user_site:
-            if options.prefix_path:
-                raise CommandError(
-                    "Can not combine '--user' and '--prefix' as they imply "
-                    "different installation locations"
-                )
-            if virtualenv_no_global():
-                raise InstallationError(
-                    "Can not perform a '--user' install. User site-packages "
-                    "are not visible in this virtualenv."
-                )
             install_options.append('--user')
             install_options.append('--prefix=')
-
-        elif options.use_user_site is None:
-            if options.prefix_path or options.target_dir:
-                options.use_user_site = False
-            elif site_packages_writable(
-                    root=options.root_path,
-                    isolated=options.isolated_mode
-            ):
-                options.use_user_site = False
-            elif site.ENABLE_USER_SITE:
-                options.use_user_site = True
-                install_options.append('--user')
-                install_options.append('--prefix=')
 
         target_temp_dir = None  # type: Optional[TempDirectory]
         target_temp_dir_path = None  # type: Optional[str]
@@ -611,6 +597,44 @@ def get_lib_location_guesses(*args, **kwargs):
 def site_packages_writable(**kwargs):
     return all(
         test_writable_dir(d) for d in get_lib_location_guesses(**kwargs)
+    )
+
+
+def decide_user_install(
+        use_user_site,
+        prefix_path,
+        target_dir,
+        root_path,
+        isolated_mode,
+):
+    """Determine whether to do a user install based on the input options.
+
+    If use_user_site is True/False, that is checked for compatibility with
+    other options. If None, the default behaviour depends on other options
+    and the environment.
+    """
+    if use_user_site:
+        if prefix_path:
+            raise CommandError(
+                "Can not combine '--user' and '--prefix' as they imply "
+                "different installation locations"
+            )
+        if virtualenv_no_global():
+            raise InstallationError(
+                "Can not perform a '--user' install. User site-packages "
+                "are not visible in this virtualenv."
+            )
+    if use_user_site in (True, False):
+        return use_user_site
+
+    if prefix_path or target_dir:
+        return False  # user install incompatible with --prefix/--target
+
+    # Default behaviour: prefer non-user installation if that looks possible.
+    # If we don't have permission for that and user site-packages are visible,
+    # choose a user install.
+    return site.ENABLE_USER_SITE and not site_packages_writable(
+        root=root_path, isolated=isolated_mode
     )
 
 
