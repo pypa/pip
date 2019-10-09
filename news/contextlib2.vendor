@@ -1,1 +1,1 @@
-Add contextlib2 as a vendored dependency.
+Add contextlib2 0.6.0 as a vendored dependency.
