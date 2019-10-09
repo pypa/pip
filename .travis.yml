@@ -17,6 +17,7 @@ jobs:
     - stage: primary
       env: TOXENV=docs
     - env: TOXENV=lint
+    - env: TOXENV=vendoring
     # Latest CPython
     - env: GROUP=1
       python: 2.7
