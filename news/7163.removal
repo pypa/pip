@@ -1,0 +1,1 @@
+Remove the deprecated ``--venv`` option from ``pip config``.
