@@ -119,6 +119,7 @@ else:
 # test_writable_dir and _test_writable_dir_win are copied from Flit,
 # with the author's agreement to also place them under pip's license.
 def test_writable_dir(path):
+    # type: (str) -> bool
     """Check if a directory is writable.
 
     Uses os.access() on POSIX, tries creating files on Windows.
@@ -130,6 +131,7 @@ def test_writable_dir(path):
 
 
 def _test_writable_dir_win(path):
+    # type: (str) -> bool
     # os.access doesn't work on Windows: http://bugs.python.org/issue2528
     # and we can't use tempfile: http://bugs.python.org/issue22107
     basename = 'accesstest_deleteme_fishfingers_custard_'
