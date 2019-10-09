@@ -29,7 +29,7 @@ from pip._internal.exceptions import (
     InstallationError,
     PreviousBuildDirError,
 )
-from pip._internal.locations import distutils_scheme, site_packages
+from pip._internal.locations import distutils_scheme
 from pip._internal.operations.check import check_install_conflicts
 from pip._internal.req import RequirementSet, install_given_reqs
 from pip._internal.req.req_tracker import RequirementTracker
