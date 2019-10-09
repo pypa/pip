@@ -1,3 +1,4 @@
+import errno
 import os
 import os.path
 import random
@@ -142,13 +143,15 @@ def _test_writable_dir_win(path):
         try:
             with open(file, mode='xb'):
                 pass
-        except FileExistsError:
-            continue
-        except PermissionError:
-            # This could be because there's a directory with the same name.
-            # But it's highly unlikely there's a directory called that,
-            # so we'll assume it's because the parent directory is not writable.
-            return False
+        except OSError as e:
+            if e.errno == errno.EEXIST:
+                continue
+            if e.errno == errno.EPERM:
+                # This could be because there's a directory with the same name.
+                # But it's highly unlikely there's a directory called that,
+                # so we'll assume it's because the parent dir is not writable.
+                return False
+            raise
         else:
             os.unlink(file)
             return True
