@@ -1,18 +1,77 @@
 """contextlib2 - backports and enhancements to the contextlib module"""
 
+import abc
 import sys
 import warnings
 from collections import deque
 from functools import wraps
 
-__all__ = ["contextmanager", "closing", "ContextDecorator", "ExitStack",
+__all__ = ["contextmanager", "closing", "nullcontext",
+           "AbstractContextManager",
+           "ContextDecorator", "ExitStack",
            "redirect_stdout", "redirect_stderr", "suppress"]
 
 # Backwards compatibility
 __all__ += ["ContextStack"]
 
+
+# Backport abc.ABC
+if sys.version_info[:2] >= (3, 4):
+    _abc_ABC = abc.ABC
+else:
+    _abc_ABC = abc.ABCMeta('ABC', (object,), {'__slots__': ()})
+
+
+# Backport classic class MRO
+def _classic_mro(C, result):
+    if C in result:
+        return
+    result.append(C)
+    for B in C.__bases__:
+        _classic_mro(B, result)
+    return result
+
+
+# Backport _collections_abc._check_methods
+def _check_methods(C, *methods):
+    try:
+        mro = C.__mro__
+    except AttributeError:
+        mro = tuple(_classic_mro(C, []))
+
+    for method in methods:
+        for B in mro:
+            if method in B.__dict__:
+                if B.__dict__[method] is None:
+                    return NotImplemented
+                break
+        else:
+            return NotImplemented
+    return True
+
+
+class AbstractContextManager(_abc_ABC):
+    """An abstract base class for context managers."""
+
+    def __enter__(self):
+        """Return `self` upon entering the runtime context."""
+        return self
+
+    @abc.abstractmethod
+    def __exit__(self, exc_type, exc_value, traceback):
+        """Raise any exception triggered within the runtime context."""
+        return None
+
+    @classmethod
+    def __subclasshook__(cls, C):
+        """Check whether subclass is considered a subclass of this ABC."""
+        if cls is AbstractContextManager:
+            return _check_methods(C, "__enter__", "__exit__")
+        return NotImplemented
+
+
 class ContextDecorator(object):
-    "A base class or mixin that enables context managers to work as decorators."
+    """A base class or mixin that enables context managers to work as decorators."""
 
     def refresh_cm(self):
         """Returns the context manager used to actually wrap the call to the
@@ -176,8 +235,10 @@ class closing(object):
     """
     def __init__(self, thing):
         self.thing = thing
+
     def __enter__(self):
         return self.thing
+
     def __exit__(self, *exc_info):
         self.thing.close()
 
@@ -289,7 +350,7 @@ else:
     # but use exec to avoid SyntaxError in Python 3
     def _reraise_with_existing_context(exc_details):
         exc_type, exc_value, exc_tb = exc_details
-        exec ("raise exc_type, exc_value, exc_tb")
+        exec("raise exc_type, exc_value, exc_tb")
 
 # Handle old-style classes if they exist
 try:
@@ -302,8 +363,9 @@ else:
     def _get_type(obj):
         obj_type = type(obj)
         if obj_type is InstanceType:
-            return obj.__class__ # Old-style class
-        return obj_type # New-style class
+            return obj.__class__  # Old-style class
+        return obj_type  # New-style class
+
 
 # Inspired by discussions on http://bugs.python.org/issue13585
 class ExitStack(object):
@@ -417,6 +479,7 @@ class ExitStack(object):
             _reraise_with_existing_context(exc_details)
         return received_exc and suppressed_exc
 
+
 # Preserve backwards compatibility
 class ContextStack(ExitStack):
     """Backwards compatibility alias for ExitStack"""
@@ -434,3 +497,22 @@ class ContextStack(ExitStack):
 
     def preserve(self):
         return self.pop_all()
+
+
+class nullcontext(AbstractContextManager):
+    """Context manager that does no additional processing.
+    Used as a stand-in for a normal context manager, when a particular
+    block of code is only sometimes used with a normal context manager:
+    cm = optional_cm if condition else nullcontext()
+    with cm:
+        # Perform operation, using optional_cm if condition is True
+    """
+
+    def __init__(self, enter_result=None):
+        self.enter_result = enter_result
+
+    def __enter__(self):
+        return self.enter_result
+
+    def __exit__(self, *excinfo):
+        pass
