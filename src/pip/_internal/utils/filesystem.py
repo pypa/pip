@@ -141,8 +141,7 @@ def _test_writable_dir_win(path):
         name = basename + ''.join(random.choice(alphabet) for _ in range(6))
         file = os.path.join(path, name)
         try:
-            with open(file, mode='xb'):
-                pass
+            fd = os.open(file, os.O_RDWR | os.O_CREAT | os.O_EXCL)
         except OSError as e:
             if e.errno == errno.EEXIST:
                 continue
@@ -153,6 +152,7 @@ def _test_writable_dir_win(path):
                 return False
             raise
         else:
+            os.close(fd)
             os.unlink(file)
             return True
 
