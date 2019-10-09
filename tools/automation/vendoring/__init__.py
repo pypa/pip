@@ -280,6 +280,7 @@ def update_stubs(ctx):
         ],
         # Some projects should not have stubs coz they're single file modules
         "appdirs": [],
+        "contextlib2": [],
     }
 
     for lib in vendored_libs:
