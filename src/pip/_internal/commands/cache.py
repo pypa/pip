@@ -88,7 +88,10 @@ class CacheCommand(Command):
 
     def list_cache_items(self, options, args):
         # type: (Values, List[Any]) -> None
-        if args and args[0]:
+        if len(args) > 1:
+            raise CommandError('Too many arguments')
+
+        if args:
             pattern = args[0]
         else:
             pattern = '*'
@@ -107,6 +110,9 @@ class CacheCommand(Command):
 
     def remove_cache_items(self, options, args):
         # type: (Values, List[Any]) -> None
+        if len(args) > 1:
+            raise CommandError('Too many arguments')
+
         if not args:
             raise CommandError('Please provide a pattern')
 
@@ -121,6 +127,9 @@ class CacheCommand(Command):
 
     def purge_cache(self, options, args):
         # type: (Values, List[Any]) -> None
+        if args:
+            raise CommandError('Too many arguments')
+
         return self.remove_cache_items(options, ['*'])
 
     def _find_wheels(self, options, pattern):
