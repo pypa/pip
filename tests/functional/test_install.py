@@ -256,7 +256,6 @@ def test_basic_editable_install(script):
         in result.stderr
     )
     assert not result.files_created
-    assert not result.files_updated
 
 
 @need_svn
