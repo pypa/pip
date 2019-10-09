@@ -607,7 +607,9 @@ def get_lib_location_guesses(*args, **kwargs):
 
 
 def site_packages_writable(**kwargs):
-    return all(test_writable_dir(d) for d in get_lib_location_guesses(**kwargs))
+    return all(
+        test_writable_dir(d) for d in get_lib_location_guesses(**kwargs)
+    )
 
 
 def create_env_error_message(error, show_traceback, using_user_site):

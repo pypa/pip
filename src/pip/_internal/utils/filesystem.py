@@ -157,4 +157,6 @@ def _test_writable_dir_win(path):
             return True
 
     # This should never be reached
-    raise EnvironmentError('Unexpected condition testing for writable directory')
+    raise EnvironmentError(
+        'Unexpected condition testing for writable directory'
+    )
