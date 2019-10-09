@@ -316,6 +316,8 @@ class InstallCommand(RequirementCommand):
                 options.use_user_site = False
             elif site.ENABLE_USER_SITE:
                 options.use_user_site = True
+                install_options.append('--user')
+                install_options.append('--prefix=')
 
         target_temp_dir = None  # type: Optional[TempDirectory]
         target_temp_dir_path = None  # type: Optional[str]
