@@ -125,6 +125,13 @@ def test_writable_dir(path):
 
     Uses os.access() on POSIX, tries creating files on Windows.
     """
+    # If the directory doesn't exist, find the closest parent that does.
+    while not os.path.isdir(path):
+        parent = os.path.dirname(path)
+        if parent == path:
+            break  # Should never get here, but infinite loops are bad
+        path = parent
+
     if os.name == 'posix':
         return os.access(path, os.W_OK)
 
