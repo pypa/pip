@@ -78,13 +78,16 @@ class CacheCommand(Command):
         # type: (Values, List[Any]) -> None
         num_packages = len(self._find_wheels(options, '*'))
 
-        results = textwrap.dedent("""\
+        message = textwrap.dedent("""
             Cache info:
-              Location: %s
-              Packages: %s""" % (options.cache_dir, num_packages)
-        )
+              Location: {location}
+              Packages: {package_count}
+        """).format(
+            location=options.cache_dir,
+            package_count=num_packages,
+        ).strip()
 
-        logger.info(results)
+        logger.info(message)
 
     def list_cache_items(self, options, args):
         # type: (Values, List[Any]) -> None
