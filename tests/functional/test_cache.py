@@ -75,8 +75,8 @@ def test_cache_remove(script, monkeypatch):
 
 
 def test_cache_remove_too_many_args(script, monkeypatch):
-    result = script.pip('cache', 'remove', 'aaa', 'bbb',
-                        expect_error=True)
+    script.pip('cache', 'remove', 'aaa', 'bbb',
+               expect_error=True)
 
 
 def test_cache_purge(script, monkeypatch):
