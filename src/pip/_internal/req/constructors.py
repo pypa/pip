@@ -442,8 +442,12 @@ def install_req_from_req_string(
         options = None
 
         return InstallRequirement(
-            parts.requirement, comes_from, link=parts.link, markers=parts.markers,
-            use_pep517=use_pep517, isolated=isolated,
+            parts.requirement,
+            comes_from,
+            link=parts.link,
+            markers=parts.markers,
+            use_pep517=use_pep517,
+            isolated=isolated,
             options=options if options else {},
             wheel_cache=wheel_cache,
             constraint=constraint,
