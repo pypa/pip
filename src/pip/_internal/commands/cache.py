@@ -83,7 +83,7 @@ class CacheCommand(Command):
               Location: {location}
               Packages: {package_count}
         """).format(
-            location=options.cache_dir,
+            location=self._wheels_cache_dir(options),
             package_count=num_packages,
         ).strip()
 
@@ -135,7 +135,10 @@ class CacheCommand(Command):
 
         return self.remove_cache_items(options, ['*'])
 
+    def _wheels_cache_dir(self, options):
+        return os.path.join(options.cache_dir, 'wheels')
+
     def _find_wheels(self, options, pattern):
         # type: (Values, str) -> List[str]
-        wheel_dir = os.path.join(options.cache_dir, 'wheels')
+        wheel_dir = self._wheels_cache_dir(options)
         return find_files(wheel_dir, pattern + '*.whl')
