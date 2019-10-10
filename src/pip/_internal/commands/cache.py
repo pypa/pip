@@ -138,4 +138,4 @@ class CacheCommand(Command):
     def _find_wheels(self, options, pattern):
         # type: (Values, str) -> List[str]
         wheel_dir = os.path.join(options.cache_dir, 'wheels')
-        return find_files(wheel_dir, pattern + '-*.whl')
+        return find_files(wheel_dir, pattern + '*.whl')
