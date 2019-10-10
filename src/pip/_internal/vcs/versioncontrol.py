@@ -72,6 +72,33 @@ def make_vcs_requirement_url(repo_url, rev, project_name, subdir=None):
     return req
 
 
+def find_path_to_setup_from_repo_root(location, repo_root):
+    """
+    Find the path to `setup.py` by searching up the filesystem from `location`.
+    Return the path to `setup.py` relative to `repo_root`.
+    Return None if `setup.py` is in `repo_root` or cannot be found.
+    """
+    # find setup.py
+    orig_location = location
+    while not os.path.exists(os.path.join(location, 'setup.py')):
+        last_location = location
+        location = os.path.dirname(location)
+        if location == last_location:
+            # We've traversed up to the root of the filesystem without
+            # finding setup.py
+            logger.warning(
+                "Could not find setup.py for directory %s (tried all "
+                "parent directories)",
+                orig_location,
+            )
+            return None
+
+    if samefile(repo_root, location):
+        return None
+
+    return os.path.relpath(location, repo_root)
+
+
 class RemoteNotFoundError(Exception):
     pass
 
@@ -246,49 +273,7 @@ class VersionControl(object):
         Return the path to setup.py, relative to the repo root.
         Return None if setup.py is in the repo root.
         """
-        # find the repo root
-        root_dir = cls.get_repo_root_dir(location)
-        if root_dir is None:
-            logger.warning(
-                "Repo root could not be detected for %s, "
-                "assuming it is the root.",
-                location)
-            return None
-        # find setup.py
-        orig_location = location
-        while not os.path.exists(os.path.join(location, 'setup.py')):
-            last_location = location
-            location = os.path.dirname(location)
-            if location == last_location:
-                # We've traversed up to the root of the filesystem without
-                # finding setup.py
-                logger.warning(
-                    "Could not find setup.py for directory %s (tried all "
-                    "parent directories)",
-                    orig_location,
-                )
-                return None
-        # relative path of setup.py to repo root
-        if samefile(root_dir, location):
-            return None
-        return os.path.relpath(location, root_dir)
-
-    @classmethod
-    def get_repo_root_dir(cls, location):
-        """
-        Return the absolute path to the repo root directory.
-
-        Return None if not found.
-        This can be overridden by subclasses to interrogate the vcs tool to
-        find the repo root.
-        """
-        while not cls.is_repository_directory(location):
-            last_location = location
-            location = os.path.dirname(location)
-            if location == last_location:
-                # We've traversed up to the root of the filesystem.
-                return None
-        return os.path.abspath(location)
+        return None
 
     @classmethod
     def get_requirement_revision(cls, repo_dir):

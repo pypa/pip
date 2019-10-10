@@ -14,7 +14,11 @@ from pip._internal.utils.subprocess import make_command
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import path_to_url
-from pip._internal.vcs.versioncontrol import VersionControl, vcs
+from pip._internal.vcs.versioncontrol import (
+    VersionControl,
+    find_path_to_setup_from_repo_root,
+    vcs,
+)
 
 if MYPY_CHECK_RUNNING:
     from pip._internal.utils.misc import HiddenText
@@ -120,12 +124,17 @@ class Mercurial(VersionControl):
         return False
 
     @classmethod
-    def get_repo_root_dir(cls, location):
-        root_dir = cls.run_command(
+    def get_subdirectory(cls, location):
+        """
+        Return the path to setup.py, relative to the repo root.
+        Return None if setup.py is in the repo root.
+        """
+        # find the repo root
+        repo_root = cls.run_command(
             ['root'], show_stdout=False, cwd=location).strip()
-        if not os.path.isabs(root_dir):
-            root_dir = os.path.join(location, root_dir)
-        return os.path.abspath(root_dir)
+        if not os.path.isabs(repo_root):
+            repo_root = os.path.abspath(os.path.join(location, repo_root))
+        return find_path_to_setup_from_repo_root(location, repo_root)
 
     @classmethod
     def controls_location(cls, location):

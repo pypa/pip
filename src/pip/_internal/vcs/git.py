@@ -19,6 +19,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs.versioncontrol import (
     RemoteNotFoundError,
     VersionControl,
+    find_path_to_setup_from_repo_root,
     vcs,
 )
 
@@ -293,13 +294,19 @@ class Git(VersionControl):
         return current_rev.strip()
 
     @classmethod
-    def get_repo_root_dir(cls, location):
-        git_dir = cls.run_command(['rev-parse', '--git-dir'],
-                                  show_stdout=False, cwd=location).strip()
+    def get_subdirectory(cls, location):
+        """
+        Return the path to setup.py, relative to the repo root.
+        Return None if setup.py is in the repo root.
+        """
+        # find the repo root
+        git_dir = cls.run_command(
+            ['rev-parse', '--git-dir'],
+            show_stdout=False, cwd=location).strip()
         if not os.path.isabs(git_dir):
             git_dir = os.path.join(location, git_dir)
-        root_dir = os.path.join(git_dir, '..')
-        return os.path.abspath(root_dir)
+        repo_root = os.path.abspath(os.path.join(git_dir, '..'))
+        return find_path_to_setup_from_repo_root(location, repo_root)
 
     @classmethod
     def get_url_rev_and_auth(cls, url):
