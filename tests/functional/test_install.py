@@ -1607,7 +1607,7 @@ def test_install_pep508_with_url_in_install_requires_url_change_wheel(script):
     res = script.pip('install', pkga_path)
     assert "Successfully installed dep-1.0" in str(res), str(res)
 
-    pkga_path.rmtree()
+    pkga_path.unlink()
 
     # Updating the URL to the dependency installs the updated dependency
     pkga_path = create_basic_wheel_for_package(
@@ -1631,8 +1631,8 @@ def test_install_pep508_with_url_in_install_requires_url_change_directory(
 
     # Rename the package directory so it doesn't get overwritten when
     # creating the package for dep_v2
-    dep_v1_path.move(dep_v1_path.folder / 'dep_v1')
-    dep_v1_path = dep_v1_path.folder / 'dep_v1'
+    dep_v1_path.rename(dep_v1_path.parent / 'dep_v1')
+    dep_v1_path = dep_v1_path.parent / 'dep_v1'
 
     dep_v2_path = create_test_package_with_setup(
         script, name='dep', version='2.0',
@@ -1645,7 +1645,7 @@ def test_install_pep508_with_url_in_install_requires_url_change_directory(
     res = script.pip('install', pkga_path)
     assert "Successfully installed dep-1.0" in str(res), str(res)
 
-    pkga_path.rmtree()
+    pkga_path.unlink()
 
     # Updating the URL to the dependency installs the updated dependency
     pkga_path = create_basic_wheel_for_package(
