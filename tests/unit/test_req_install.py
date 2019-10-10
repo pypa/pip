@@ -130,6 +130,29 @@ class TestInstallRequirementFrom(object):
         assert install_req.use_pep517 == use_pep517
 
     @pytest.mark.parametrize("use_pep517", [None, True, False])
+    def test_install_req_from_string_pep508_url_wheel_extras(self, use_pep517):
+        """
+        install_req_from_string parses the version and extras from PEP 508 URLs
+        that point to wheels so that updating the URL reinstalls the package.
+        """
+        wheel_url = (
+            "https://files.pythonhosted.org/packages/51/bd/"
+            "23c926cd341ea6b7dd0b2a00aba99ae0f828be89d72b2190f27c11d4b7fb/"
+            "requests-2.22.0-py2.py3-none-any.whl"
+        )
+        install_str = "requests[security] @ " + wheel_url
+        install_req = install_req_from_req_string(
+            install_str, use_pep517=use_pep517
+        )
+
+        assert isinstance(install_req, InstallRequirement)
+        assert str(install_req.req) == "requests==2.22.0"
+        assert install_req.link.url == wheel_url
+        assert install_req.is_wheel
+        assert install_req.use_pep517 == use_pep517
+        assert install_req.extras == {"security"}
+
+    @pytest.mark.parametrize("use_pep517", [None, True, False])
     def test_install_req_from_string_pep508_url_not_a_wheel(
             self, use_pep517, tmpdir):
         """
