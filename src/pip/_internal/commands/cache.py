@@ -136,6 +136,7 @@ class CacheCommand(Command):
         return self.remove_cache_items(options, ['*'])
 
     def _wheels_cache_dir(self, options):
+        # type: (Values) -> str
         return os.path.join(options.cache_dir, 'wheels')
 
     def _find_wheels(self, options, pattern):
