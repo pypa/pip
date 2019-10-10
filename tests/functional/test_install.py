@@ -635,6 +635,7 @@ def test_install_global_option(script):
         'install', '--global-option=--version', "INITools==0.1",
         expect_stderr=True)
     assert 'INITools==0.1\n' in result.stdout
+    assert not result.files_created
 
 
 def test_install_with_hacked_egg_info(script, data):
