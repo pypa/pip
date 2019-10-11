@@ -147,6 +147,7 @@ class Mercurial(VersionControl):
                 show_stdout=False,
                 on_returncode='raise',
                 log_failed_cmd=False)
+            return True
         except (BadCommand, InstallationError):
             return False
 
