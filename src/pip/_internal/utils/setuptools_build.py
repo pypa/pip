@@ -3,7 +3,7 @@ import sys
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import List, Sequence
+    from typing import List, Optional, Sequence
 
 # Shim to wrap setup.py invocation with setuptools
 #
@@ -44,4 +44,28 @@ def make_setuptools_shim_args(
         args.extend(global_options)
     if no_user_config:
         args.append('--no-user-cfg')
+    return args
+
+
+def make_setuptools_develop_args(
+    setup_py_path,  # type: str
+    global_options,  # type: Sequence[str]
+    install_options,  # type: Sequence[str]
+    no_user_config,  # type: bool
+    prefix,  # type: Optional[str]
+):
+    # type: (...) -> List[str]
+    args = make_setuptools_shim_args(
+        setup_py_path,
+        global_options=global_options,
+        no_user_config=no_user_config,
+    )
+
+    args.extend(["develop", "--no-deps"])
+
+    args.extend(install_options)
+
+    if prefix:
+        args.extend(["--prefix", prefix])
+
     return args

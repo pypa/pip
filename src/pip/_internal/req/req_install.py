@@ -48,7 +48,10 @@ from pip._internal.utils.misc import (
     rmtree,
 )
 from pip._internal.utils.packaging import get_metadata
-from pip._internal.utils.setuptools_build import make_setuptools_shim_args
+from pip._internal.utils.setuptools_build import (
+    make_setuptools_develop_args,
+    make_setuptools_shim_args,
+)
 from pip._internal.utils.subprocess import (
     call_subprocess,
     runner_with_spinner_message,
@@ -687,18 +690,13 @@ class InstallRequirement(object):
         # type: (...) -> None
         logger.info('Running setup.py develop for %s', self.name)
 
-        args = make_setuptools_shim_args(
+        args = make_setuptools_develop_args(
             self.setup_py_path,
             global_options=global_options,
-            no_user_config=self.isolated
+            install_options=install_options,
+            no_user_config=self.isolated,
+            prefix=prefix,
         )
-
-        args.extend(["develop", "--no-deps"])
-
-        args.extend(install_options)
-
-        if prefix:
-            args.extend(["--prefix", prefix])
 
         with indent_log():
             with self.build_env:
