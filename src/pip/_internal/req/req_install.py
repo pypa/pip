@@ -687,20 +687,23 @@ class InstallRequirement(object):
         # type: (...) -> None
         logger.info('Running setup.py develop for %s', self.name)
 
-        if prefix:
-            prefix_param = ['--prefix={}'.format(prefix)]
-            install_options = list(install_options) + prefix_param
-        base_cmd = make_setuptools_shim_args(
+        args = make_setuptools_shim_args(
             self.setup_py_path,
             global_options=global_options,
             no_user_config=self.isolated
         )
+
+        args.extend(["develop", "--no-deps"])
+
+        args.extend(install_options)
+
+        if prefix:
+            args.extend(["--prefix", prefix])
+
         with indent_log():
             with self.build_env:
                 call_subprocess(
-                    base_cmd +
-                    ['develop', '--no-deps'] +
-                    list(install_options),
+                    args,
                     cwd=self.unpacked_source_directory,
                 )
 
