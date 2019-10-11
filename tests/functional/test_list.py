@@ -449,7 +449,7 @@ def test_outdated_formats(script, data):
         '--outdated', '--format=columns',
     )
     assert 'Name   Version Latest Type' in result.stdout
-    assert 'simple  1.0     1.1    wheel' in result.stdout
+    assert 'simple 1.0     1.1    wheel' in result.stdout
 
     # Check freeze
     result = script.pip(
