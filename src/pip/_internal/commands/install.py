@@ -119,7 +119,7 @@ class InstallCommand(RequirementCommand):
     - Local project directories.
     - Local or remote source archives.
 
-    pip also supports installing from "requirements files," which provide
+    pip also supports installing from "requirements files", which provide
     an easy way to specify a whole environment to be installed.
     """
 

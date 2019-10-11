@@ -13,9 +13,7 @@ from pip._internal.configuration import (
     kinds,
 )
 from pip._internal.exceptions import PipError
-from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.misc import get_prog, write_output
-from pip._internal.utils.virtualenv import running_under_virtualenv
 
 logger = logging.getLogger(__name__)
 
@@ -87,17 +85,6 @@ class ConfigurationCommand(Command):
             help='Use the current environment configuration file only'
         )
 
-        self.cmd_opts.add_option(
-            '--venv',
-            dest='venv_file',
-            action='store_true',
-            default=False,
-            help=(
-                '[Deprecated] Use the current environment configuration '
-                'file in a virtual environment only'
-            )
-        )
-
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
@@ -144,21 +131,6 @@ class ConfigurationCommand(Command):
         return SUCCESS
 
     def _determine_file(self, options, need_value):
-        # Convert legacy venv_file option to site_file or error
-        if options.venv_file and not options.site_file:
-            if running_under_virtualenv():
-                options.site_file = True
-                deprecated(
-                    "The --venv option has been deprecated.",
-                    replacement="--site",
-                    gone_in="19.3",
-                )
-            else:
-                raise PipError(
-                    "Legacy --venv option requires a virtual environment. "
-                    "Use --site instead."
-                )
-
         file_options = [key for key, value in (
             (kinds.USER, options.user_file),
             (kinds.GLOBAL, options.global_file),

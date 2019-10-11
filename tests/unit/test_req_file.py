@@ -677,7 +677,7 @@ class TestParseRequirements(object):
         '''.format(global_option=global_option, install_option=install_option)
 
         with requirements_file(content, tmpdir) as reqs_file:
-            req = next(parse_requirements(reqs_file.abspath,
+            req = next(parse_requirements(reqs_file.resolve(),
                                           finder=finder,
                                           options=options,
                                           session=session))

@@ -47,14 +47,18 @@ def get_author_list():
     return sorted(authors, key=lambda x: x.lower())
 
 
-def protected_pip(*arguments):
-    """Get arguments for session.run, that use a "protected" pip.
+def run_with_protected_pip(session, *arguments):
+    """Do a session.run("pip", *arguments), using a "protected" pip.
 
     This invokes a wrapper script, that forwards calls to original virtualenv
     (stable) version, and not the code being tested. This ensures pip being
     used is not the code being tested.
     """
-    return ("python", LOCATIONS["protected-pip"]) + arguments
+    env = {"VIRTUAL_ENV": session.virtualenv.location}
+
+    command = ("python", LOCATIONS["protected-pip"]) + arguments
+    kwargs = {"env": env, "silent": True}
+    session.run(*command, **kwargs)
 
 
 def should_update_common_wheels():
@@ -84,15 +88,35 @@ def should_update_common_wheels():
 def test(session):
     # Get the common wheels.
     if should_update_common_wheels():
-        session.run(*protected_pip(
+        run_with_protected_pip(
+            session,
             "wheel",
             "-w", LOCATIONS["common-wheels"],
             "-r", REQUIREMENTS["common-wheels"],
-        ))
+        )
+    else:
+        msg = (
+            "Re-using existing common-wheels at {}."
+            .format(LOCATIONS["common-wheels"])
+        )
+        session.log(msg)
 
-    # Install sources and dependencies
-    session.run(*protected_pip("install", "."))
-    session.run(*protected_pip("install", "-r", REQUIREMENTS["tests"]))
+    # Build source distribution
+    sdist_dir = os.path.join(session.virtualenv.location, "sdist")
+    session.run(
+        "python", "setup.py", "sdist",
+        "--formats=zip", "--dist-dir", sdist_dir,
+        silent=True,
+    )
+    generated_files = os.listdir(sdist_dir)
+    assert len(generated_files) == 1
+    generated_sdist = os.path.join(sdist_dir, generated_files[0])
+
+    # Install source distribution
+    run_with_protected_pip(session, "install", generated_sdist)
+
+    # Install test dependencies
+    run_with_protected_pip(session, "install", "-r", REQUIREMENTS["tests"])
 
     # Parallelize tests as much as possible, by default.
     arguments = session.posargs or ["-n", "auto"]

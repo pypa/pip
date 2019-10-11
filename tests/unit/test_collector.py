@@ -358,7 +358,8 @@ def make_fake_html_response(url):
 def test_get_html_page_directory_append_index(tmpdir):
     """`_get_html_page()` should append "index.html" to a directory URL.
     """
-    dirpath = tmpdir.mkdir("something")
+    dirpath = tmpdir / "something"
+    dirpath.mkdir()
     dir_url = "file:///{}".format(
         urllib_request.pathname2url(dirpath).lstrip("/"),
     )
