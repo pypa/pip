@@ -448,7 +448,7 @@ def test_outdated_formats(script, data):
         'list', '--no-index', '--find-links', wheelhouse_path,
         '--outdated', '--format=columns',
     )
-    assert 'Name Version Latest Type' in result.stdout
+    assert 'Name   Version Latest Type' in result.stdout
     assert 'simple  1.0     1.1    wheel' in result.stdout
 
     # Check freeze
