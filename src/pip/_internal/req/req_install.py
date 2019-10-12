@@ -878,14 +878,23 @@ class InstallRequirement(object):
         install_options = list(install_options) + \
             self.options.get('install_options', [])
 
+        header_dir = None  # type: Optional[str]
+        if running_under_virtualenv():
+            py_ver_str = 'python' + sysconfig.get_python_version()
+            header_dir = os.path.join(
+                sys.prefix, 'include', 'site', py_ver_str, self.name
+            )
+
         with TempDirectory(kind="record") as temp_dir:
             record_filename = os.path.join(temp_dir.path, 'install-record.txt')
             install_args = self.get_install_args(
                 self.setup_py_path,
                 global_options=global_options,
+                install_options=install_options,
                 record_filename=record_filename,
                 root=root,
                 prefix=prefix,
+                header_dir=header_dir,
                 no_user_config=self.isolated,
                 pycompile=pycompile,
             )
@@ -895,7 +904,7 @@ class InstallRequirement(object):
             )
             with indent_log(), self.build_env:
                 runner(
-                    cmd=install_args + install_options,
+                    cmd=install_args,
                     cwd=self.unpacked_source_directory,
                 )
 
@@ -944,9 +953,11 @@ class InstallRequirement(object):
         self,
         setup_py_path,  # type: str
         global_options,  # type: Sequence[str]
+        install_options,  # type: Sequence[str]
         record_filename,  # type: str
         root,  # type: Optional[str]
         prefix,  # type: Optional[str]
+        header_dir,  # type: Optional[str]
         no_user_config,  # type: bool
         pycompile  # type: bool
     ):
@@ -970,10 +981,9 @@ class InstallRequirement(object):
         else:
             install_args += ["--no-compile"]
 
-        if running_under_virtualenv():
-            py_ver_str = 'python' + sysconfig.get_python_version()
-            install_args += ['--install-headers',
-                             os.path.join(sys.prefix, 'include', 'site',
-                                          py_ver_str, self.name)]
+        if header_dir:
+            install_args += ['--install-headers', header_dir]
+
+        install_args += install_options
 
         return install_args
