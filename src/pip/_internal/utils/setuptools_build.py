@@ -21,10 +21,10 @@ _SETUPTOOLS_SHIM = (
 
 
 def make_setuptools_shim_args(
-        setup_py_path,  # type: str
-        global_options=None,  # type: Sequence[str]
-        no_user_config=False,  # type: bool
-        unbuffered_output=False  # type: bool
+    setup_py_path,  # type: str
+    global_options=None,  # type: Sequence[str]
+    no_user_config=False,  # type: bool
+    unbuffered_output=False  # type: bool
 ):
     # type: (...) -> List[str]
     """
@@ -38,12 +38,12 @@ def make_setuptools_shim_args(
     """
     args = [sys.executable]
     if unbuffered_output:
-        args.append('-u')
-    args.extend(['-c', _SETUPTOOLS_SHIM.format(setup_py_path)])
+        args += ["-u"]
+    args += ["-c", _SETUPTOOLS_SHIM.format(setup_py_path)]
     if global_options:
-        args.extend(global_options)
+        args += global_options
     if no_user_config:
-        args.append('--no-user-cfg')
+        args += ["--no-user-cfg"]
     return args
 
 
@@ -61,12 +61,12 @@ def make_setuptools_develop_args(
         no_user_config=no_user_config,
     )
 
-    args.extend(["develop", "--no-deps"])
+    args += ["develop", "--no-deps"]
 
-    args.extend(install_options)
+    args += install_options
 
     if prefix:
-        args.extend(["--prefix", prefix])
+        args += ["--prefix", prefix]
 
     return args
 
@@ -77,16 +77,16 @@ def make_setuptools_egg_info_args(
     no_user_config,  # type: bool
 ):
     # type: (...) -> List[str]
-    base_cmd = make_setuptools_shim_args(setup_py_path)
+    args = make_setuptools_shim_args(setup_py_path)
     if no_user_config:
-        base_cmd += ["--no-user-cfg"]
+        args += ["--no-user-cfg"]
 
-    base_cmd += ["egg_info"]
+    args += ["egg_info"]
 
     if egg_info_dir:
-        base_cmd += ['--egg-base', egg_info_dir]
+        args += ["--egg-base", egg_info_dir]
 
-    return base_cmd
+    return args
 
 
 def make_setuptools_install_args(
@@ -101,28 +101,28 @@ def make_setuptools_install_args(
     pycompile  # type: bool
 ):
     # type: (...) -> List[str]
-    install_args = make_setuptools_shim_args(
+    args = make_setuptools_shim_args(
         setup_py_path,
         global_options=global_options,
         no_user_config=no_user_config,
         unbuffered_output=True
     )
-    install_args += ['install', '--record', record_filename]
-    install_args += ['--single-version-externally-managed']
+    args += ["install", "--record", record_filename]
+    args += ["--single-version-externally-managed"]
 
     if root is not None:
-        install_args += ['--root', root]
+        args += ["--root", root]
     if prefix is not None:
-        install_args += ['--prefix', prefix]
+        args += ["--prefix", prefix]
 
     if pycompile:
-        install_args += ["--compile"]
+        args += ["--compile"]
     else:
-        install_args += ["--no-compile"]
+        args += ["--no-compile"]
 
     if header_dir:
-        install_args += ['--install-headers', header_dir]
+        args += ["--install-headers", header_dir]
 
-    install_args += install_options
+    args += install_options
 
-    return install_args
+    return args
