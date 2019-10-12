@@ -1,1 +1,1 @@
-Fix bug that prevented installation of PEP 517 packages without `setup.py`
+Fix bug that prevented installation of PEP 517 packages without ``setup.py``.
