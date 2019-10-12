@@ -332,7 +332,7 @@ class PipScriptMaker(ScriptMaker):
 
 def install_unpacked_wheel(
     name,  # type: str
-    req,  # type: Requirement
+    req,  # type: str
     wheeldir,  # type: str
     scheme,  # type: Mapping[str, str]
     pycompile=True,  # type: bool
@@ -393,7 +393,7 @@ def install_unpacked_wheel(
                 elif (is_base and
                         s.endswith('.dist-info') and
                         canonicalize_name(s).startswith(
-                            canonicalize_name(req.name))):
+                            canonicalize_name(name))):
                     assert not info_dir, ('Multiple .dist-info directories: ' +
                                           destsubdir + ', ' +
                                           ', '.join(info_dir))

@@ -484,7 +484,7 @@ class InstallRequirement(object):
         # type: (...) -> None
         wheel.install_unpacked_wheel(
             self.name,
-            self.req,
+            str(self.req),
             wheeldir,
             scheme=scheme,
             pycompile=pycompile,
