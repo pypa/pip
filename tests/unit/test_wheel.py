@@ -619,7 +619,7 @@ class TestWheelFile(object):
         assert w.version == '0.1-1'
 
 
-class TestMoveWheelFiles(object):
+class TestInstallUnpackedWheel(object):
     """
     Tests for moving files from wheel src to scheme paths
     """
@@ -659,14 +659,14 @@ class TestMoveWheelFiles(object):
 
     def test_std_install(self, data, tmpdir):
         self.prep(data, tmpdir)
-        wheel.move_wheel_files(
+        wheel.install_unpacked_wheel(
             self.name, self.req, self.src, scheme=self.scheme)
         self.assert_installed()
 
     def test_install_prefix(self, data, tmpdir):
         prefix = os.path.join(os.path.sep, 'some', 'path')
         self.prep(data, tmpdir)
-        wheel.move_wheel_files(
+        wheel.install_unpacked_wheel(
             self.name,
             self.req,
             self.src,
@@ -688,7 +688,7 @@ class TestMoveWheelFiles(object):
             self.src_dist_info, 'empty_dir', 'empty_dir')
         os.makedirs(src_empty_dir)
         assert os.path.isdir(src_empty_dir)
-        wheel.move_wheel_files(
+        wheel.install_unpacked_wheel(
             self.name, self.req, self.src, scheme=self.scheme)
         self.assert_installed()
         assert not os.path.isdir(

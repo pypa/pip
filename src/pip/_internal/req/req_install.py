@@ -484,7 +484,7 @@ class InstallRequirement(object):
         pycompile=True  # type: bool
     ):
         # type: (...) -> None
-        wheel.move_wheel_files(
+        wheel.install_unpacked_wheel(
             self.name, self.req, wheeldir,
             user=use_user_site,
             home=home,

@@ -330,7 +330,7 @@ class PipScriptMaker(ScriptMaker):
         return super(PipScriptMaker, self).make(specification, options)
 
 
-def move_wheel_files(
+def install_unpacked_wheel(
     name,  # type: str
     req,  # type: Requirement
     wheeldir,  # type: str
