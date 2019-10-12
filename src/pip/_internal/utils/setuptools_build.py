@@ -71,6 +71,24 @@ def make_setuptools_develop_args(
     return args
 
 
+def make_setuptools_egg_info_args(
+    setup_py_path,  # type: str
+    egg_info_dir,  # type: Optional[str]
+    no_user_config,  # type: bool
+):
+    # type: (...) -> List[str]
+    base_cmd = make_setuptools_shim_args(setup_py_path)
+    if no_user_config:
+        base_cmd += ["--no-user-cfg"]
+
+    base_cmd += ["egg_info"]
+
+    if egg_info_dir:
+        base_cmd += ['--egg-base', egg_info_dir]
+
+    return base_cmd
+
+
 def make_setuptools_install_args(
     setup_py_path,  # type: str
     global_options,  # type: Sequence[str]

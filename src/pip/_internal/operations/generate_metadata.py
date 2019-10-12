@@ -6,7 +6,7 @@ import os
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.utils.misc import ensure_dir
-from pip._internal.utils.setuptools_build import make_setuptools_shim_args
+from pip._internal.utils.setuptools_build import make_setuptools_egg_info_args
 from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs import vcs
@@ -100,13 +100,6 @@ def _generate_metadata_legacy(install_req):
         install_req.setup_py_path, req_details_str,
     )
 
-    # Compose arguments for subprocess call
-    base_cmd = make_setuptools_shim_args(install_req.setup_py_path)
-    if install_req.isolated:
-        base_cmd += ["--no-user-cfg"]
-
-    base_cmd += ["egg_info"]
-
     egg_info_dir = None  # type: Optional[str]
     # For non-editable installs, don't put the .egg-info files at the root,
     # to avoid confusion due to the source code being considered an installed
@@ -119,12 +112,15 @@ def _generate_metadata_legacy(install_req):
         # setuptools complains if the target directory does not exist.
         ensure_dir(egg_info_dir)
 
-    if egg_info_dir:
-        base_cmd += ['--egg-base', egg_info_dir]
+    args = make_setuptools_egg_info_args(
+        install_req.setup_py_path,
+        egg_info_dir=egg_info_dir,
+        no_user_config=install_req.isolated,
+    )
 
     with install_req.build_env:
         call_subprocess(
-            base_cmd,
+            args,
             cwd=install_req.unpacked_source_directory,
             command_desc='python setup.py egg_info',
         )
