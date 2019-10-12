@@ -881,7 +881,13 @@ class InstallRequirement(object):
         with TempDirectory(kind="record") as temp_dir:
             record_filename = os.path.join(temp_dir.path, 'install-record.txt')
             install_args = self.get_install_args(
-                global_options, record_filename, root, prefix, pycompile,
+                self.setup_py_path,
+                global_options=global_options,
+                record_filename=record_filename,
+                root=root,
+                prefix=prefix,
+                no_user_config=self.isolated,
+                pycompile=pycompile,
             )
 
             runner = runner_with_spinner_message(
@@ -936,17 +942,19 @@ class InstallRequirement(object):
 
     def get_install_args(
         self,
+        setup_py_path,  # type: str
         global_options,  # type: Sequence[str]
         record_filename,  # type: str
         root,  # type: Optional[str]
         prefix,  # type: Optional[str]
+        no_user_config,  # type: bool
         pycompile  # type: bool
     ):
         # type: (...) -> List[str]
         install_args = make_setuptools_shim_args(
-            self.setup_py_path,
+            setup_py_path,
             global_options=global_options,
-            no_user_config=self.isolated,
+            no_user_config=no_user_config,
             unbuffered_output=True
         )
         install_args += ['install', '--record', record_filename]
