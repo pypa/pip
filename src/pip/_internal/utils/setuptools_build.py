@@ -69,3 +69,42 @@ def make_setuptools_develop_args(
         args.extend(["--prefix", prefix])
 
     return args
+
+
+def make_setuptools_install_args(
+    setup_py_path,  # type: str
+    global_options,  # type: Sequence[str]
+    install_options,  # type: Sequence[str]
+    record_filename,  # type: str
+    root,  # type: Optional[str]
+    prefix,  # type: Optional[str]
+    header_dir,  # type: Optional[str]
+    no_user_config,  # type: bool
+    pycompile  # type: bool
+):
+    # type: (...) -> List[str]
+    install_args = make_setuptools_shim_args(
+        setup_py_path,
+        global_options=global_options,
+        no_user_config=no_user_config,
+        unbuffered_output=True
+    )
+    install_args += ['install', '--record', record_filename]
+    install_args += ['--single-version-externally-managed']
+
+    if root is not None:
+        install_args += ['--root', root]
+    if prefix is not None:
+        install_args += ['--prefix', prefix]
+
+    if pycompile:
+        install_args += ["--compile"]
+    else:
+        install_args += ["--no-compile"]
+
+    if header_dir:
+        install_args += ['--install-headers', header_dir]
+
+    install_args += install_options
+
+    return install_args

@@ -50,7 +50,7 @@ from pip._internal.utils.misc import (
 from pip._internal.utils.packaging import get_metadata
 from pip._internal.utils.setuptools_build import (
     make_setuptools_develop_args,
-    make_setuptools_shim_args,
+    make_setuptools_install_args,
 )
 from pip._internal.utils.subprocess import (
     call_subprocess,
@@ -887,7 +887,7 @@ class InstallRequirement(object):
 
         with TempDirectory(kind="record") as temp_dir:
             record_filename = os.path.join(temp_dir.path, 'install-record.txt')
-            install_args = self.get_install_args(
+            install_args = make_setuptools_install_args(
                 self.setup_py_path,
                 global_options=global_options,
                 install_options=install_options,
@@ -948,42 +948,3 @@ class InstallRequirement(object):
             inst_files_path = os.path.join(egg_info_dir, 'installed-files.txt')
             with open(inst_files_path, 'w') as f:
                 f.write('\n'.join(new_lines) + '\n')
-
-    def get_install_args(
-        self,
-        setup_py_path,  # type: str
-        global_options,  # type: Sequence[str]
-        install_options,  # type: Sequence[str]
-        record_filename,  # type: str
-        root,  # type: Optional[str]
-        prefix,  # type: Optional[str]
-        header_dir,  # type: Optional[str]
-        no_user_config,  # type: bool
-        pycompile  # type: bool
-    ):
-        # type: (...) -> List[str]
-        install_args = make_setuptools_shim_args(
-            setup_py_path,
-            global_options=global_options,
-            no_user_config=no_user_config,
-            unbuffered_output=True
-        )
-        install_args += ['install', '--record', record_filename]
-        install_args += ['--single-version-externally-managed']
-
-        if root is not None:
-            install_args += ['--root', root]
-        if prefix is not None:
-            install_args += ['--prefix', prefix]
-
-        if pycompile:
-            install_args += ["--compile"]
-        else:
-            install_args += ["--no-compile"]
-
-        if header_dir:
-            install_args += ['--install-headers', header_dir]
-
-        install_args += install_options
-
-        return install_args
