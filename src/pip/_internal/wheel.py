@@ -34,7 +34,7 @@ from pip._internal.exceptions import (
     InvalidWheelFilename,
     UnsupportedWheel,
 )
-from pip._internal.locations import distutils_scheme, get_major_minor_version
+from pip._internal.locations import get_major_minor_version
 from pip._internal.models.link import Link
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.marker_files import has_delete_marker_file
@@ -334,13 +334,8 @@ def install_unpacked_wheel(
     name,  # type: str
     req,  # type: Requirement
     wheeldir,  # type: str
-    user=False,  # type: bool
-    home=None,  # type: Optional[str]
-    root=None,  # type: Optional[str]
+    scheme,  # type: Mapping[str, str]
     pycompile=True,  # type: bool
-    scheme=None,  # type: Optional[Mapping[str, str]]
-    isolated=False,  # type: bool
-    prefix=None,  # type: Optional[str]
     warn_script_location=True  # type: bool
 ):
     # type: (...) -> None
@@ -348,12 +343,6 @@ def install_unpacked_wheel(
     # TODO: Investigate and break this up.
     # TODO: Look into moving this into a dedicated class for representing an
     #       installation.
-
-    if not scheme:
-        scheme = distutils_scheme(
-            name, user=user, home=home, root=root, isolated=isolated,
-            prefix=prefix,
-        )
 
     if root_is_purelib(name, wheeldir):
         lib_dir = scheme['purelib']

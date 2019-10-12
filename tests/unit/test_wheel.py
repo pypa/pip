@@ -10,6 +10,7 @@ from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal import pep425tags, wheel
 from pip._internal.exceptions import InvalidWheelFilename, UnsupportedWheel
+from pip._internal.locations import distutils_scheme
 from pip._internal.models.link import Link
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.compat import WINDOWS
@@ -666,12 +667,19 @@ class TestInstallUnpackedWheel(object):
     def test_install_prefix(self, data, tmpdir):
         prefix = os.path.join(os.path.sep, 'some', 'path')
         self.prep(data, tmpdir)
+        scheme = distutils_scheme(
+            self.name,
+            user=False,
+            home=None,
+            root=tmpdir,
+            isolated=False,
+            prefix=prefix,
+        )
         wheel.install_unpacked_wheel(
             self.name,
             self.req,
             self.src,
-            root=tmpdir,
-            prefix=prefix,
+            scheme=scheme,
         )
 
         bin_dir = 'Scripts' if WINDOWS else 'bin'
