@@ -25,7 +25,7 @@ jobs:
     - name: Set up Python ${{ matrix.env.PYTHON_VERSION || 3.7 }}
       uses: actions/setup-python@v1
       with:
-        version: ${{ matrix.env.PYTHON_VERSION || 3.7 }}
+        python-version: ${{ matrix.env.PYTHON_VERSION || 3.7 }}
     - name: Pre-configure global Git settings
       run: >-
         tools/travis/setup.sh
