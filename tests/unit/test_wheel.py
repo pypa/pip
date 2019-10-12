@@ -661,7 +661,11 @@ class TestInstallUnpackedWheel(object):
     def test_std_install(self, data, tmpdir):
         self.prep(data, tmpdir)
         wheel.install_unpacked_wheel(
-            self.name, str(self.req), self.src, scheme=self.scheme)
+            self.name,
+            self.src,
+            scheme=self.scheme,
+            req_description=str(self.req),
+        )
         self.assert_installed()
 
     def test_install_prefix(self, data, tmpdir):
@@ -677,9 +681,9 @@ class TestInstallUnpackedWheel(object):
         )
         wheel.install_unpacked_wheel(
             self.name,
-            str(self.req),
             self.src,
             scheme=scheme,
+            req_description=str(self.req),
         )
 
         bin_dir = 'Scripts' if WINDOWS else 'bin'
@@ -697,7 +701,11 @@ class TestInstallUnpackedWheel(object):
         os.makedirs(src_empty_dir)
         assert os.path.isdir(src_empty_dir)
         wheel.install_unpacked_wheel(
-            self.name, str(self.req), self.src, scheme=self.scheme)
+            self.name,
+            self.src,
+            scheme=self.scheme,
+            req_description=str(self.req),
+        )
         self.assert_installed()
         assert not os.path.isdir(
             os.path.join(self.dest_dist_info, 'empty_dir'))
