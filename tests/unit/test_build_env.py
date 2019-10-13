@@ -23,12 +23,12 @@ def run_with_build_env(script, setup_script_contents,
 
             from pip._internal.build_env import BuildEnvironment
             from pip._internal.collector import LinkCollector
-            from pip._internal.download import PipSession
             from pip._internal.index import PackageFinder
             from pip._internal.models.search_scope import SearchScope
             from pip._internal.models.selection_prefs import (
                 SelectionPreferences
             )
+            from pip._internal.network.session import PipSession
 
             link_collector = LinkCollector(
                 session=PipSession(),
