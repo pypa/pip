@@ -142,9 +142,6 @@ class Resolver(object):
         self.finder = finder
         self.session = session
 
-        # This is set in resolve
-        self.require_hashes = None  # type: Optional[bool]
-
         self.upgrade_strategy = upgrade_strategy
         self.force_reinstall = force_reinstall
         self.ignore_dependencies = ignore_dependencies
@@ -178,8 +175,10 @@ class Resolver(object):
             requirement_set.unnamed_requirements +
             list(requirement_set.requirements.values())
         )
-        self.require_hashes = (
-            requirement_set.require_hashes or
+
+        require_hashes_option = requirement_set.require_hashes
+        require_hashes = (
+            require_hashes_option or
             any(req.has_hash_options for req in root_reqs)
         )
 
@@ -198,7 +197,7 @@ class Resolver(object):
         for req in chain(root_reqs, discovered_reqs):
             try:
                 discovered_reqs.extend(
-                    self._resolve_one(requirement_set, req)
+                    self._resolve_one(requirement_set, req, require_hashes)
                 )
             except HashError as exc:
                 exc.req = req
@@ -281,18 +280,14 @@ class Resolver(object):
         self._set_req_to_reinstall(req_to_install)
         return None
 
-    def _get_abstract_dist_for(self, req):
-        # type: (InstallRequirement) -> AbstractDistribution
+    def _get_abstract_dist_for(self, req, require_hashes):
+        # type: (InstallRequirement, bool) -> AbstractDistribution
         """Takes a InstallRequirement and returns a single AbstractDist \
         representing a prepared variant of the same.
         """
-        assert self.require_hashes is not None, (
-            "require_hashes should have been set in Resolver.resolve()"
-        )
-
         if req.editable:
             return self.preparer.prepare_editable_requirement(
-                req, self.require_hashes, self.use_user_site, self.finder,
+                req, require_hashes, self.use_user_site, self.finder,
             )
 
         # satisfied_by is only evaluated by calling _check_skip_installed,
@@ -302,15 +297,15 @@ class Resolver(object):
 
         if req.satisfied_by:
             return self.preparer.prepare_installed_requirement(
-                req, self.require_hashes, skip_reason
+                req, require_hashes, skip_reason
             )
 
         upgrade_allowed = self._is_upgrade_allowed(req)
 
         # We eagerly populate the link, since that's our "legacy" behavior.
-        req.populate_link(self.finder, upgrade_allowed, self.require_hashes)
+        req.populate_link(self.finder, upgrade_allowed, require_hashes)
         abstract_dist = self.preparer.prepare_linked_requirement(
-            req, self.session, self.finder, self.require_hashes
+            req, self.session, self.finder, require_hashes
         )
 
         # NOTE
@@ -344,7 +339,8 @@ class Resolver(object):
     def _resolve_one(
         self,
         requirement_set,  # type: RequirementSet
-        req_to_install  # type: InstallRequirement
+        req_to_install,  # type: InstallRequirement
+        require_hashes,  # type: bool
     ):
         # type: (...) -> List[InstallRequirement]
         """Prepare a single requirements file.
@@ -362,7 +358,9 @@ class Resolver(object):
         # register tmp src for cleanup in case something goes wrong
         requirement_set.reqs_to_cleanup.append(req_to_install)
 
-        abstract_dist = self._get_abstract_dist_for(req_to_install)
+        abstract_dist = self._get_abstract_dist_for(
+            req_to_install, require_hashes
+        )
 
         # Parse and return dependencies
         dist = abstract_dist.get_pkg_resources_distribution()
