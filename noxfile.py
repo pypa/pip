@@ -23,6 +23,9 @@ REQUIREMENTS = {
     "common-wheels": "tools/requirements/tests-common_wheels.txt",
 }
 
+AUTHORS_FILE = "AUTHORS.txt"
+VERSION_FILE = "src/pip/__init__.py"
+
 
 def get_author_list():
     """Get the list of authors from Git commits.
@@ -76,6 +79,11 @@ def should_update_common_wheels():
         shutil.remove(LOCATIONS["common-wheels"], ignore_errors=True)
 
     return need_to_repopulate
+
+
+def update_version_file(new_version):
+    with open(VERSION_FILE, "w", encoding="utf-8") as f:
+        f.write('__version__ = "{}"\n'.format(new_version))
 
 
 # -----------------------------------------------------------------------------
@@ -174,7 +182,7 @@ def generate_authors(session):
 
     # Write our authors to the AUTHORS file
     session.log("Writing AUTHORS")
-    with io.open("AUTHORS.txt", "w", encoding="utf-8") as fp:
+    with io.open(AUTHORS_FILE, "w", encoding="utf-8") as fp:
         fp.write(u"\n".join(authors))
         fp.write(u"\n")
 
@@ -186,3 +194,50 @@ def generate_news(session):
 
     # You can pass 2 possible arguments: --draft, --yes
     session.run("towncrier", *session.posargs)
+
+
+@nox.session
+def release(session):
+    assert len(session.posargs) == 1, "A version number is expected"
+    new_version = session.posargs[0]
+    parts = new_version.split('.')
+    # Expect YY.N or YY.N.P
+    assert 2 <= len(parts) <= 3, parts
+    # Only integers
+    parts = list(map(int, parts))
+    session.log("Generating commits for version {}".format(new_version))
+
+    session.log("Checking that nothing is staged")
+    # Non-zero exit code means that something is already staged
+    session.run("git", "diff", "--staged", "--exit-code", external=True)
+
+    session.log(f"Updating {AUTHORS_FILE}")
+    generate_authors(session)
+    if subprocess.run(["git", "diff", "--exit-code"]).returncode:
+        session.run("git", "add", AUTHORS_FILE, external=True)
+        session.run(
+            "git", "commit", "-m", f"Updating {AUTHORS_FILE}",
+            external=True,
+        )
+    else:
+        session.log(f"No update needed for {AUTHORS_FILE}")
+
+    session.log("Generating NEWS")
+    session.install("towncrier")
+    session.run("towncrier", "--yes", "--version", new_version)
+
+    session.log("Updating version")
+    update_version_file(new_version)
+    session.run("git", "add", VERSION_FILE, external=True)
+    session.run("git", "commit", "-m", f"Release {new_version}", external=True)
+
+    session.log("Tagging release")
+    session.run(
+        "git", "tag", "-m", f"Release {new_version}", new_version,
+        external=True,
+    )
+
+    next_dev_version = f"{parts[0]}.{parts[1] + 1}.dev0"
+    update_version_file(next_dev_version)
+    session.run("git", "add", VERSION_FILE, external=True)
+    session.run("git", "commit", "-m", "Back to development", external=True)
