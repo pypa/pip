@@ -47,6 +47,44 @@ def make_setuptools_shim_args(
     return args
 
 
+def make_setuptools_bdist_wheel_args(
+    setup_py_path,  # type: str
+    global_options,  # type: Sequence[str]
+    build_options,  # type: Sequence[str]
+    destination_dir,  # type: str
+    python_tag,  # type: Optional[str]
+):
+    # type: (...) -> List[str]
+    # NOTE: Eventually, we'd want to also -S to the flags here, when we're
+    # isolating. Currently, it breaks Python in virtualenvs, because it
+    # relies on site.py to find parts of the standard library outside the
+    # virtualenv.
+    args = make_setuptools_shim_args(
+        setup_py_path,
+        global_options=global_options,
+        unbuffered_output=True
+    )
+    args += ["bdist_wheel", "-d", destination_dir]
+    args += build_options
+    if python_tag is not None:
+        args += ["--python-tag", python_tag]
+    return args
+
+
+def make_setuptools_clean_args(
+    setup_py_path,  # type: str
+    global_options,  # type: Sequence[str]
+):
+    # type: (...) -> List[str]
+    args = make_setuptools_shim_args(
+        setup_py_path,
+        global_options=global_options,
+        unbuffered_output=True
+    )
+    args += ["clean", "--all"]
+    return args
+
+
 def make_setuptools_develop_args(
     setup_py_path,  # type: str
     global_options,  # type: Sequence[str]
