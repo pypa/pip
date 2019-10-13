@@ -7,19 +7,16 @@ import cgi
 import logging
 import mimetypes
 import os
-import re
 import shutil
 import sys
 
 from pip._vendor import requests
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
 from pip._vendor.six import PY2
-from pip._vendor.six.moves.urllib import parse as urllib_parse
 
-from pip._internal.exceptions import HashMismatch, InstallationError
+from pip._internal.exceptions import HashMismatch
 from pip._internal.models.index import PyPI
 from pip._internal.network.session import PipSession
-from pip._internal.utils.encoding import auto_decode
 from pip._internal.utils.filesystem import copy2_fixed
 from pip._internal.utils.misc import (
     ask_path_exists,
@@ -36,12 +33,11 @@ from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import DownloadProgressProvider
 from pip._internal.utils.unpacking import unpack_file
-from pip._internal.utils.urls import get_url_scheme
 from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        IO, Callable, List, Optional, Text, Tuple,
+        Callable, IO, List, Optional, Tuple,
     )
 
     from mypy_extensions import TypedDict
@@ -72,65 +68,13 @@ if MYPY_CHECK_RUNNING:
         )
 
 
-__all__ = ['get_file_content',
-           'unpack_vcs_link',
+__all__ = ['unpack_vcs_link',
            'unpack_file_url',
            'unpack_http_url', 'unpack_url',
            'parse_content_disposition', 'sanitize_content_filename']
 
 
 logger = logging.getLogger(__name__)
-
-
-def get_file_content(url, comes_from=None, session=None):
-    # type: (str, Optional[str], Optional[PipSession]) -> Tuple[str, Text]
-    """Gets the content of a file; it may be a filename, file: URL, or
-    http: URL.  Returns (location, content).  Content is unicode.
-
-    :param url:         File path or url.
-    :param comes_from:  Origin description of requirements.
-    :param session:     Instance of pip.download.PipSession.
-    """
-    if session is None:
-        raise TypeError(
-            "get_file_content() missing 1 required keyword argument: 'session'"
-        )
-
-    scheme = get_url_scheme(url)
-
-    if scheme in ['http', 'https']:
-        # FIXME: catch some errors
-        resp = session.get(url)
-        resp.raise_for_status()
-        return resp.url, resp.text
-
-    elif scheme == 'file':
-        if comes_from and comes_from.startswith('http'):
-            raise InstallationError(
-                'Requirements file %s references URL %s, which is local'
-                % (comes_from, url))
-
-        path = url.split(':', 1)[1]
-        path = path.replace('\\', '/')
-        match = _url_slash_drive_re.match(path)
-        if match:
-            path = match.group(1) + ':' + path.split('|', 1)[1]
-        path = urllib_parse.unquote(path)
-        if path.startswith('/'):
-            path = '/' + path.lstrip('/')
-        url = path
-
-    try:
-        with open(url, 'rb') as f:
-            content = auto_decode(f.read())
-    except IOError as exc:
-        raise InstallationError(
-            'Could not open requirements file: %s' % str(exc)
-        )
-    return url, content
-
-
-_url_slash_drive_re = re.compile(r'/*([a-z])\|', re.I)
 
 
 def unpack_vcs_link(link, location):
