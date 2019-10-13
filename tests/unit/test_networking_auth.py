@@ -4,7 +4,11 @@ import pytest
 
 import pip._internal.network.auth
 from pip._internal.network.auth import MultiDomainBasicAuth
-from tests.unit.test_download import MockConnection, MockRequest, MockResponse
+from tests.unit.test_operations_prepare import (
+    MockConnection,
+    MockRequest,
+    MockResponse,
+)
 
 
 @pytest.mark.parametrize(["input_url", "url", "username", "password"], [
