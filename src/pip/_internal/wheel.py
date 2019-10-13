@@ -957,23 +957,43 @@ class WheelBuilder(object):
             self._clean_one(req)
             return None
 
-    def _make_setuptools_bdist_wheel_args(self, req):
+    def _make_setuptools_bdist_wheel_args(
+        self,
+        setup_py_path,  # type: str
+        global_options,  # type: Sequence[str]
+        build_options,  # type: Sequence[str]
+        destination_dir,  # type: str
+        python_tag,  # type: Optional[str]
+    ):
+        # type: (...) -> List[str]
         # NOTE: Eventually, we'd want to also -S to the flags here, when we're
         # isolating. Currently, it breaks Python in virtualenvs, because it
         # relies on site.py to find parts of the standard library outside the
         # virtualenv.
-        return make_setuptools_shim_args(
-            req.setup_py_path,
-            global_options=self.global_options,
+        args = make_setuptools_shim_args(
+            setup_py_path,
+            global_options=global_options,
             unbuffered_output=True
         )
+        args += ["bdist_wheel", "-d", destination_dir]
+        args += build_options
+        if python_tag is not None:
+            args += ["--python-tag", python_tag]
+        return args
 
-    def _make_setuptools_clean_args(self, req):
-        return make_setuptools_shim_args(
-            req.setup_py_path,
-            global_options=self.global_options,
+    def _make_setuptools_clean_args(
+        self,
+        setup_py_path,  # type: str
+        global_options,  # type: Sequence[str]
+    ):
+        # type: (...) -> List[str]
+        args = make_setuptools_shim_args(
+            setup_py_path,
+            global_options=global_options,
             unbuffered_output=True
         )
+        args += ["clean", "--all"]
+        return args
 
     def _build_one_pep517(self, req, tempd, python_tag=None):
         """Build one InstallRequirement using the PEP 517 build process.
@@ -1019,11 +1039,13 @@ class WheelBuilder(object):
 
         Returns path to wheel if successfully built. Otherwise, returns None.
         """
-        wheel_args = self._make_setuptools_bdist_wheel_args(req)
-        wheel_args += ['bdist_wheel', '-d', tempd]
-        wheel_args += self.build_options
-        if python_tag is not None:
-            wheel_args += ["--python-tag", python_tag]
+        wheel_args = self._make_setuptools_bdist_wheel_args(
+            req.setup_py_path,
+            global_options=self.global_options,
+            build_options=self.build_options,
+            destination_dir=tempd,
+            python_tag=python_tag,
+        )
 
         spin_message = 'Building wheel for %s (setup.py)' % (req.name,)
         with open_spinner(spin_message) as spinner:
@@ -1051,8 +1073,10 @@ class WheelBuilder(object):
             return wheel_path
 
     def _clean_one(self, req):
-        clean_args = self._make_setuptools_clean_args(req)
-        clean_args += ['clean', '--all']
+        clean_args = self._make_setuptools_clean_args(
+            req.setup_py_path,
+            global_options=self.global_options,
+        )
 
         logger.info('Running setup.py clean for %s', req.name)
         try:
