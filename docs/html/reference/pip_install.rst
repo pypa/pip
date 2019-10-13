@@ -148,6 +148,8 @@ and the newline following it is effectively ignored.
 
 Comments are stripped *before* line continuations are processed.
 
+To force interpretation of the requirement file as UTF-8, add ``# -*- coding: utf-8 -*-`` to the first or second line of the file.
+
 The following options are supported:
 
   *  :ref:`-i, --index-url <--index-url>`
