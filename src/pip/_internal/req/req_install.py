@@ -591,14 +591,10 @@ class InstallRequirement(object):
         assert self.pep517_backend is not None
 
         # NOTE: This needs to be refactored to stop using atexit
-        temp_dir = TempDirectory(kind="modern-metadata")
-        atexit.register(temp_dir.cleanup)
+        metadata_tmpdir = TempDirectory(kind="modern-metadata")
+        atexit.register(metadata_tmpdir.cleanup)
 
-        metadata_dir = os.path.join(
-            temp_dir.path,
-            'pip-wheel-metadata',
-        )
-        ensure_dir(metadata_dir)
+        metadata_dir = metadata_tmpdir.path
 
         with self.build_env:
             # Note that Pep517HookCaller implements a fallback for
