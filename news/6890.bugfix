@@ -1,2 +1,0 @@
-Hide security-sensitive strings like passwords in log messages related to
-version control system (aka VCS) command invocations.

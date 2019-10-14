@@ -469,6 +469,7 @@ Sumana Harihareswara <sh@changeset.nyc>
 Sviatoslav Sydorenko <wk.cvs.github@sydorenko.org.ua>
 Sviatoslav Sydorenko <wk@sydorenko.org.ua>
 Takayuki SHIMIZUKAWA <shimizukawa@gmail.com>
+tbeswick <tbeswick@enphaseenergy.com>
 Thijs Triemstra <info@collab.nl>
 Thomas Fenzl <thomas.fenzl@gmail.com>
 Thomas Grainger <tagrain@gmail.com>
@@ -486,7 +487,9 @@ Tom Forbes <tom@tomforb.es>
 Tom Freudenheim <tom.freudenheim@onepeloton.com>
 Tom V <tom@viner.tv>
 Tomer Chachamu <tomer.chachamu@gmail.com>
+Tony Beswick <tonybeswick@orcon.net.nz>
 Tony Zhaocheng Tan <tony@tonytan.io>
+TonyBeswick <TonyBeswick@users.noreply.github.com>
 Toshio Kuratomi <toshio@fedoraproject.org>
 Travis Swicegood <development@domain51.com>
 Tzu-ping Chung <uranusjr@gmail.com>
