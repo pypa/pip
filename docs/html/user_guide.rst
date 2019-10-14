@@ -809,7 +809,7 @@ There are various ways to disable the keyring. They are:
 
 - If the keyring version is 15.1.0 keyring can be disabled via command line using::
 
-  keyring --disable
-  
-- Set environment variable ``PYTHON_KEYRING_BACKEND`` to
-``keyring.backends.null.Keyring`` in a configuration file.
+keyring --disable
+
+- Set environment variable ``PYTHON_KEYRING_BACKEND`` to ``keyring.backends.null.Keyring``
+in a configuration file.
