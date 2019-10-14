@@ -79,7 +79,7 @@ def _find_egg_info(source_directory, is_editable):
 
     if not filenames:
         raise InstallationError(
-            "Files/directories not found in %s" % base
+            "Files/directories not found in {}".format(base)
         )
 
     # If we have more than one match, we pick the toplevel one.  This
@@ -95,8 +95,8 @@ def _generate_metadata_legacy(install_req):
     # type: (InstallRequirement) -> str
     req_details_str = install_req.name or "from {}".format(install_req.link)
     logger.debug(
-        'Running setup.py (path:%s) egg_info for package %s',
-        install_req.setup_py_path, req_details_str,
+        'Running setup.py (path:{}) egg_info for package {}'
+        .format(install_req.setup_py_path, req_details_str)
     )
 
     # Compose arguments for subprocess call
