@@ -8,6 +8,12 @@ This document is meant to get you setup to work on pip and to act as a guide and
 reference to the the development setup. If you face any issues during this
 process, please `open an issue`_ about it on the issue tracker.
 
+Get the repository
+--------------
+fork the repository : https://github.com/pypa/pip
+clone it to your machine using : git clone <url>
+cd into the directory with :  cd pip
+
 Development Environment
 -----------------------
 
