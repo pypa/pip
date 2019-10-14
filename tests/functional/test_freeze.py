@@ -12,6 +12,7 @@ from tests.lib import (
     _git_commit,
     need_bzr,
     need_mercurial,
+    need_svn,
     path_to_url,
 )
 
@@ -169,7 +170,7 @@ def test_freeze_editable_git_with_no_remote(script, tmpdir, deprecated_python):
     _check_output(result.stdout, expected)
 
 
-@pytest.mark.svn
+@need_svn
 def test_freeze_svn(script, tmpdir):
     """Test freezing a svn checkout"""
 
