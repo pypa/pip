@@ -791,3 +791,19 @@ of ability. Some examples that you could consider include:
 
 * ``distlib`` - Packaging and distribution utilities (including functions for
   interacting with PyPI).
+
+
+.. _`Disable Keyring`:
+
+(Optional) Disable Keyring
+***************************
+
+Keyring in certain cases can prevent the installing of certain packages and modules due to authentication errors. In such cases disabling the keyring is recommended.Keyring can be manually uninstalled but doing so may invalidate other packages that depends on Keyring.
+
+How to disable the keyring:
+- Set the password as null to preferred keyring for the relevant URL and username.
+- If the keyring version is 15.1.0 keyring can be disabled via command line using::
+
+  keyring --disable
+  
+- Set environment variable ``PYTHON_KEYRING_BACKEND`` to ``keyring.backends.null.Keyring`` in config file  
