@@ -86,6 +86,8 @@ def tmpdir(request, tmpdir):
     deleting the temporary directories at the end of each test case.
     """
     assert tmpdir.isdir()
+    print(tmpdir)
+    print(str(tmpdir))
     yield Path(str(tmpdir))
     # Clear out the temporary directory after the test has finished using it.
     # This should prevent us from needing a multiple gigabyte temporary
