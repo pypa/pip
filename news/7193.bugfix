@@ -1,0 +1,1 @@
+Skip running tests which require subversion, when svn isn't installed
