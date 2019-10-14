@@ -49,6 +49,15 @@ For more information and examples, see the :ref:`pip install` reference.
 .. _PyPI: https://pypi.org/
 
 
+Basic Authentication Credentials
+********************************
+
+pip support basic auhentication credentials. Basically, in the url there is 
+a username and password separated by ``:``.
+
+``https://[username[:password]]@pypi.company.com/simple``
+
+
 Using a Proxy Server
 ********************
 
