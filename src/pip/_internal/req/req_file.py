@@ -13,7 +13,6 @@ import re
 import shlex
 import sys
 
-from pip._vendor.six.moves import filterfalse
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 from pip._internal.cli import cmdoptions
@@ -128,7 +127,6 @@ def preprocess(content, options):
     lines_enum = enumerate(content.splitlines(), start=1)  # type: ReqFileLines
     lines_enum = join_lines(lines_enum)
     lines_enum = ignore_comments(lines_enum)
-    lines_enum = skip_regex(lines_enum, options)
     lines_enum = expand_env_variables(lines_enum)
     return lines_enum
 
@@ -359,20 +357,6 @@ def ignore_comments(lines_enum):
         line = line.strip()
         if line:
             yield line_number, line
-
-
-def skip_regex(lines_enum, options):
-    # type: (ReqFileLines, Optional[optparse.Values]) -> ReqFileLines
-    """
-    Skip lines that match '--skip-requirements-regex' pattern
-
-    Note: the regex pattern is only built once
-    """
-    skip_regex = options.skip_requirements_regex if options else None
-    if skip_regex:
-        pattern = re.compile(skip_regex)
-        lines_enum = filterfalse(lambda e: pattern.search(e[1]), lines_enum)
-    return lines_enum
 
 
 def expand_env_variables(lines_enum):

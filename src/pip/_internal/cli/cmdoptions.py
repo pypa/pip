@@ -261,16 +261,6 @@ timeout = partial(
     help='Set the socket timeout (default %default seconds).',
 )  # type: Callable[..., Option]
 
-skip_requirements_regex = partial(
-    Option,
-    # A regex to be used to skip requirements
-    '--skip-requirements-regex',
-    dest='skip_requirements_regex',
-    type='str',
-    default='',
-    help=SUPPRESS_HELP,
-)  # type: Callable[..., Option]
-
 
 def exists_action():
     # type: () -> Option
@@ -886,7 +876,6 @@ general_group = {
         proxy,
         retries,
         timeout,
-        skip_requirements_regex,
         exists_action,
         trusted_host,
         cert,
