@@ -843,3 +843,24 @@ of ability. Some examples that you could consider include:
   interacting with PyPI).
 
 .. _freeze: https://pip.pypa.io/en/latest/reference/pip_freeze/
+
+.. _`Disable Keyring`:
+
+Disable Keyring
+***************
+
+Keyring in certain cases can prevent the installing of certain packages and modules
+due to authentication errors. In such cases disabling the keyring is recommended.
+Keyring can be manually uninstalled but doing so may invalidate other packages that
+depends on Keyring.
+
+There are various ways to disable the keyring. They are:
+
+- Set the password as null to preferred keyring for the relevant URL and username.
+
+- keyring >= 15.1.0 can be disabled via command line using::
+
+    keyring --disable
+
+- Set environment variable ``PYTHON_KEYRING_BACKEND`` to
+  ``keyring.backends.null.Keyring`` in a configuration file.
