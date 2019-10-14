@@ -40,6 +40,12 @@ To run tests locally, run:
 
     $ tox -e py36
 
+Generally it takes long time to run tests. You can run tests in parallel, run:
+
+.. code-block:: console
+
+    $ tox -e py36 -- -n auto
+
 The example above runs tests against Python 3.6. You can also use other
 versions like ``py27`` and ``pypy3``.
 
