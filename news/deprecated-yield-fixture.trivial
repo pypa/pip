@@ -1,2 +1,0 @@
-Use normal ``fixture`` instead of ``yield_fixture``.
-It's been deprecated in pytest since 2.10 version.
