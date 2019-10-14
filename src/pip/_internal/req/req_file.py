@@ -107,7 +107,7 @@ def parse_requirements(
         filename, comes_from=comes_from, session=session
     )
 
-    lines_enum = preprocess(content, options)
+    lines_enum = preprocess(content)
 
     for line_number, line in lines_enum:
         req_iter = process_line(line, filename, line_number, finder,
@@ -117,7 +117,7 @@ def parse_requirements(
             yield req
 
 
-def preprocess(content, options):
+def preprocess(content):
     # type: (Text, Optional[optparse.Values]) -> ReqFileLines
     """Split, filter, and join lines, and return a line iterator
 
