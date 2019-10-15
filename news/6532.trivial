@@ -1,3 +1,0 @@
-Rename ``pip._internal.utils.outdated`` to
-``pip._internal.self_outdated_check`` and rename ``pip_version_check``
-to ``pip_self_version_check``.

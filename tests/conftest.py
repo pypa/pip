@@ -2,6 +2,7 @@ import compileall
 import fnmatch
 import io
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -246,7 +247,10 @@ def virtualenv_template(request, tmpdir_factory, pip_src,
     install_egg_link(venv, 'setuptools', setuptools_install)
     pip_editable = Path(str(tmpdir_factory.mktemp('pip'))) / 'pip'
     shutil.copytree(pip_src, pip_editable, symlinks=True)
-    assert compileall.compile_dir(str(pip_editable), quiet=1)
+    # noxfile.py is Python 3 only
+    assert compileall.compile_dir(
+        str(pip_editable), quiet=1, rx=re.compile("noxfile.py$"),
+    )
     subprocess.check_call([venv.bin / 'python', 'setup.py', '-q', 'develop'],
                           cwd=pip_editable)
 

@@ -101,6 +101,12 @@ Creating a new release
    setuptools) to ``Lib/ensurepip/_bundled``, removing the existing version, and
    adjusting the versions listed in ``Lib/ensurepip/__init__.py``.
 
+
+.. note::
+
+  Steps 3 to 6 are automated in ``nox -s release -- YY.N`` command.
+
+
 Creating a bug-fix release
 --------------------------
 

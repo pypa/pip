@@ -7,6 +7,85 @@
 
 .. towncrier release notes start
 
+19.3 (2019-10-14)
+=================
+
+Deprecations and Removals
+-------------------------
+
+- Remove undocumented support for un-prefixed URL requirements pointing
+  to SVN repositories. Users relying on this can get the original behavior
+  by prefixing their URL with ``svn+`` (which is backwards-compatible). (`#7037 <https://github.com/pypa/pip/issues/7037>`_)
+- Remove the deprecated ``--venv`` option from ``pip config``. (`#7163 <https://github.com/pypa/pip/issues/7163>`_)
+
+Features
+--------
+
+- Print a better error message when ``--no-binary`` or ``--only-binary`` is given
+  an argument starting with ``-``. (`#3191 <https://github.com/pypa/pip/issues/3191>`_)
+- Make ``pip show`` warn about packages not found. (`#6858 <https://github.com/pypa/pip/issues/6858>`_)
+- Support including a port number in ``--trusted-host`` for both HTTP and HTTPS. (`#6886 <https://github.com/pypa/pip/issues/6886>`_)
+- Redact single-part login credentials from URLs in log messages. (`#6891 <https://github.com/pypa/pip/issues/6891>`_)
+- Implement manylinux2014 platform tag support.  manylinux2014 is the successor
+  to manylinux2010.  It allows carefully compiled binary wheels to be installed
+  on compatible Linux platforms.  The manylinux2014 platform tag definition can
+  be found in `PEP599 <https://www.python.org/dev/peps/pep-0599/>`_. (`#7102 <https://github.com/pypa/pip/issues/7102>`_)
+
+Bug Fixes
+---------
+
+- Abort installation if any archive contains a file which would be placed
+  outside the extraction location. (`#3907 <https://github.com/pypa/pip/issues/3907>`_)
+- pip's CLI completion code no longer prints a Traceback if it is interrupted. (`#3942 <https://github.com/pypa/pip/issues/3942>`_)
+- Correct inconsistency related to the ``hg+file`` scheme. (`#4358 <https://github.com/pypa/pip/issues/4358>`_)
+- Fix ``rmtree_errorhandler`` to skip non-existing directories. (`#4910 <https://github.com/pypa/pip/issues/4910>`_)
+- Ignore errors copying socket files for local source installs (in Python 3). (`#5306 <https://github.com/pypa/pip/issues/5306>`_)
+- Fix requirement line parser to correctly handle PEP 440 requirements with a URL
+  pointing to an archive file. (`#6202 <https://github.com/pypa/pip/issues/6202>`_)
+- The ``pip-wheel-metadata`` directory does not need to persist between invocations of pip, use a temporary directory instead of the current ``setup.py`` directory. (`#6213 <https://github.com/pypa/pip/issues/6213>`_)
+- Fix ``--trusted-host`` processing under HTTPS to trust any port number used
+  with the host. (`#6705 <https://github.com/pypa/pip/issues/6705>`_)
+- Switch to new ``distlib`` wheel script template. This should be functionally
+  equivalent for end users. (`#6763 <https://github.com/pypa/pip/issues/6763>`_)
+- Skip copying .tox and .nox directories to temporary build directories (`#6770 <https://github.com/pypa/pip/issues/6770>`_)
+- Fix handling of tokens (single part credentials) in URLs. (`#6795 <https://github.com/pypa/pip/issues/6795>`_)
+- Fix a regression that caused ``~`` expansion not to occur in ``--find-links``
+  paths. (`#6804 <https://github.com/pypa/pip/issues/6804>`_)
+- Fix bypassed pip upgrade warning on Windows. (`#6841 <https://github.com/pypa/pip/issues/6841>`_)
+- Fix 'm' flag erroneously being appended to ABI tag in Python 3.8 on platforms that do not provide SOABI (`#6885 <https://github.com/pypa/pip/issues/6885>`_)
+- Hide security-sensitive strings like passwords in log messages related to
+  version control system (aka VCS) command invocations. (`#6890 <https://github.com/pypa/pip/issues/6890>`_)
+- Correctly uninstall symlinks that were installed in a virtualenv,
+  by tools such as ``flit install --symlink``. (`#6892 <https://github.com/pypa/pip/issues/6892>`_)
+- Don't fail installation using pip.exe on Windows when pip wouldn't be upgraded. (`#6924 <https://github.com/pypa/pip/issues/6924>`_)
+- Use canonical distribution names when computing ``Required-By`` in ``pip show``. (`#6947 <https://github.com/pypa/pip/issues/6947>`_)
+- Don't use hardlinks for locking selfcheck state file. (`#6954 <https://github.com/pypa/pip/issues/6954>`_)
+- Ignore "require_virtualenv" in ``pip config`` (`#6991 <https://github.com/pypa/pip/issues/6991>`_)
+- Fix ``pip freeze`` not showing correct entry for mercurial packages that use subdirectories. (`#7071 <https://github.com/pypa/pip/issues/7071>`_)
+- Fix a crash when ``sys.stdin`` is set to ``None``, such as on AWS Lambda. (`#7118 <https://github.com/pypa/pip/issues/7118>`_, `#7119 <https://github.com/pypa/pip/issues/7119>`_)
+
+Vendored Libraries
+------------------
+
+- Upgrade certifi to 2019.9.11
+- Add contextlib2 0.6.0 as a vendored dependency.
+- Remove Lockfile as a vendored dependency.
+- Upgrade msgpack to 0.6.2
+- Upgrade packaging to 19.2
+- Upgrade pep517 to 0.7.0
+- Upgrade pyparsing to 2.4.2
+- Upgrade pytoml to 0.1.21
+- Upgrade setuptools to 41.4.0
+- Upgrade urllib3 to 1.25.6
+
+Improved Documentation
+----------------------
+
+- Document caveats for UNC paths in uninstall and add .pth unit tests. (`#6516 <https://github.com/pypa/pip/issues/6516>`_)
+- Add architectural overview documentation. (`#6637 <https://github.com/pypa/pip/issues/6637>`_)
+- Document that ``--ignore-installed`` is dangerous. (`#6794 <https://github.com/pypa/pip/issues/6794>`_)
+
+
 19.2.3 (2019-08-25)
 ===================
 

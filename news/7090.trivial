@@ -1,2 +1,0 @@
-Move PipXmlrpcTransport from pip._internal.download to pip._internal.network.xmlrpc
-and move associated tests to tests.unit.test_network_xmlrpc
