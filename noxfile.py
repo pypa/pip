@@ -76,7 +76,7 @@ def should_update_common_wheels():
 
     # Clear the stale cache.
     if need_to_repopulate:
-        shutil.remove(LOCATIONS["common-wheels"], ignore_errors=True)
+        shutil.rmtree(LOCATIONS["common-wheels"], ignore_errors=True)
 
     return need_to_repopulate
 
