@@ -5,7 +5,10 @@ from __future__ import absolute_import
 
 import locale
 import logging
+import os
 import sys
+
+from pip._vendor.certifi import where
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
@@ -108,6 +111,15 @@ class DebugCommand(Command):
             'locale.getpreferredencoding', locale.getpreferredencoding(),
         )
         show_value('sys.platform', sys.platform)
+        show_value(
+            'os.environ.get(\'REQUESTS_CA_BUNDLE\')',
+            str(os.environ.get('REQUESTS_CA_BUNDLE'))
+        )
+        show_value(
+            'os.environ.get(\'CURL_CA_BUNDLE\')',
+            str(os.environ.get('CURL_CA_BUNDLE'))
+        )
+        show_value('pip._vendor.certifi.where()', where())
         show_sys_implementation()
 
         show_tags(options)

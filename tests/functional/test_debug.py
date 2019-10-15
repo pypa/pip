@@ -10,6 +10,9 @@ from pip._internal import pep425tags
     'locale.getpreferredencoding: ',
     'sys.platform: ',
     'sys.implementation:',
+    'os.environ.get(\'REQUESTS_CA_BUNDLE\')',
+    'os.environ.get(\'CURL_CA_BUNDLE\')',
+    'pip._vendor.certifi.where()'
 ])
 def test_debug(script, expected_text):
     """
