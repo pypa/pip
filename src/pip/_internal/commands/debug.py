@@ -5,7 +5,10 @@ from __future__ import absolute_import
 
 import locale
 import logging
+import os
 import sys
+
+from pip._vendor.certifi import where
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
@@ -17,14 +20,14 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.wheel import format_tag
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, List
+    from typing import Any, List, Optional
     from optparse import Values
 
 logger = logging.getLogger(__name__)
 
 
 def show_value(name, value):
-    # type: (str, str) -> None
+    # type: (str, Optional[str]) -> None
     logger.info('{}: {}'.format(name, value))
 
 
@@ -75,6 +78,25 @@ def show_tags(options):
             logger.info(msg)
 
 
+def ca_bundle_info(config):
+    levels = set()
+    for key, value in config.items():
+        levels.add(key.split('.')[0])
+
+    if not levels:
+        return "Not specified"
+
+    levels_that_override_global = ['install', 'wheel', 'download']
+    global_overriding_level = [
+        level for level in levels if level in levels_that_override_global
+    ]
+    if not global_overriding_level:
+        return 'global'
+
+    levels.remove('global')
+    return ", ".join(levels)
+
+
 class DebugCommand(Command):
     """
     Display debug information.
@@ -90,6 +112,7 @@ class DebugCommand(Command):
         cmd_opts = self.cmd_opts
         cmdoptions.add_target_python_options(cmd_opts)
         self.parser.insert_option_group(0, cmd_opts)
+        self.parser.config.load()
 
     def run(self, options, args):
         # type: (Values, List[Any]) -> int
@@ -109,6 +132,11 @@ class DebugCommand(Command):
         )
         show_value('sys.platform', sys.platform)
         show_sys_implementation()
+
+        show_value("REQUESTS_CA_BUNDLE", os.environ.get('REQUESTS_CA_BUNDLE'))
+        show_value("CURL_CA_BUNDLE", os.environ.get('CURL_CA_BUNDLE'))
+        show_value("pip._vendor.certifi.where()", where())
+        show_value("'cert' config value", ca_bundle_info(self.parser.config))
 
         show_tags(options)
 
