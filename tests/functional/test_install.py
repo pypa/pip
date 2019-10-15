@@ -21,6 +21,7 @@ from tests.lib import (
     create_test_package_with_setup,
     need_bzr,
     need_mercurial,
+    need_svn,
     path_to_url,
     pyversion,
     pyversion_tuple,
@@ -251,7 +252,7 @@ def test_basic_editable_install(script):
     assert not result.files_updated
 
 
-@pytest.mark.svn
+@need_svn
 def test_basic_install_editable_from_svn(script):
     """
     Test checking out from svn.
