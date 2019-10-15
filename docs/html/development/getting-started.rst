@@ -40,7 +40,8 @@ To run tests locally, run:
 
     $ tox -e py36
 
-Generally it takes long time to run tests. You can run tests in parallel, run:
+Generally, it takes long time to run pip's test suite. To run tests in parallel,
+which is faster, run:
 
 .. code-block:: console
 
