@@ -18,12 +18,14 @@ Just make sure to :ref:`upgrade pip <Upgrading pip>`.
 Installing with get-pip.py
 --------------------------
 
-To install pip, securely download `get-pip.py
-<https://bootstrap.pypa.io/get-pip.py>`_. [1]_::
+To install pip, securely [1]_ download ``get-pip.py`` by following
+this link: `get-pip.py
+<https://bootstrap.pypa.io/get-pip.py>`_. Alternatively, use ``curl``::
 
  curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
 
-Then run the following::
+Then run the following command in the folder where you
+have downloaded ``get-pip.py``::
 
  python get-pip.py
 
