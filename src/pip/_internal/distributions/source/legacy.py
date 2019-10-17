@@ -49,7 +49,7 @@ class SourceDistribution(AbstractDistribution):
                 requirement=self.req,
                 conflicting_with=conflicting_with,
                 description=', '.join(
-                    '%s is incompatible with %s' % (installed, wanted)
+                    '{} is incompatible with {}'.format(installed, wanted)
                     for installed, wanted in sorted(conflicting)
                 )
             )
