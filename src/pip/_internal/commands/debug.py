@@ -133,10 +133,10 @@ class DebugCommand(Command):
         show_value('sys.platform', sys.platform)
         show_sys_implementation()
 
+        show_value("'cert' config value", ca_bundle_info(self.parser.config))
         show_value("REQUESTS_CA_BUNDLE", os.environ.get('REQUESTS_CA_BUNDLE'))
         show_value("CURL_CA_BUNDLE", os.environ.get('CURL_CA_BUNDLE'))
         show_value("pip._vendor.certifi.where()", where())
-        show_value("'cert' config value", ca_bundle_info(self.parser.config))
 
         show_tags(options)
 
