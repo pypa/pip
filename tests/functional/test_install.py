@@ -21,6 +21,7 @@ from tests.lib import (
     create_test_package_with_setup,
     need_bzr,
     need_mercurial,
+    need_svn,
     path_to_url,
     pyversion,
     pyversion_tuple,
@@ -225,7 +226,7 @@ def test_basic_install_from_pypi(script):
     """
     Test installing a package from PyPI.
     """
-    result = script.pip('install', '-vvv', 'INITools==0.2')
+    result = script.pip('install', 'INITools==0.2')
     egg_info_folder = (
         script.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion
     )
@@ -236,6 +237,13 @@ def test_basic_install_from_pypi(script):
     # Should not display where it's looking for files
     assert "Looking in indexes: " not in result.stdout
     assert "Looking in links: " not in result.stdout
+
+    # Ensure that we don't print the full URL.
+    #    The URL should be trimmed to only the last part of the path in it,
+    #    when installing from PyPI. The assertion here only checks for
+    #    `https://` since that's likely to show up if we're not trimming in
+    #    the correct circumstances.
+    assert "https://" not in result.stdout
 
 
 def test_basic_editable_install(script):
@@ -251,7 +259,7 @@ def test_basic_editable_install(script):
     assert not result.files_updated
 
 
-@pytest.mark.svn
+@need_svn
 def test_basic_install_editable_from_svn(script):
     """
     Test checking out from svn.

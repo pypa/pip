@@ -5,6 +5,7 @@ import pytest
 
 from tests.lib import (
     _create_test_package_with_subdirectory,
+    need_svn,
     path_to_url,
     pyversion,
     requirements_file,
@@ -100,7 +101,7 @@ def test_relative_requirements_file(script, data):
 
 
 @pytest.mark.network
-@pytest.mark.svn
+@need_svn
 def test_multiple_requirements_files(script, tmpdir):
     """
     Test installing from multiple nested requirements files.

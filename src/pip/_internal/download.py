@@ -180,8 +180,6 @@ def _download_url(
     else:
         show_progress = False
 
-    show_url = link.show_url
-
     def resp_read(chunk_size):
         try:
             # Special case for urllib3.
@@ -226,8 +224,8 @@ def _download_url(
 
     progress_indicator = _progress_indicator
 
-    if link.netloc == PyPI.netloc:
-        url = show_url
+    if link.netloc == PyPI.file_storage_domain:
+        url = link.show_url
     else:
         url = link.url_without_fragment
 
