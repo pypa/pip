@@ -812,4 +812,4 @@ There are various ways to disable the keyring. They are:
     keyring --disable
 
 - Set environment variable ``PYTHON_KEYRING_BACKEND`` to
-``keyring.backends.null.Keyring`` in a configuration file.
+  ``keyring.backends.null.Keyring`` in a configuration file.
