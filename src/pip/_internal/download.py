@@ -224,7 +224,7 @@ def _download_url(
 
     progress_indicator = _progress_indicator
 
-    if link.netloc == PyPI.netloc:
+    if link.netloc == PyPI.file_storage_domain:
         url = link.show_url
     else:
         url = link.url_without_fragment
