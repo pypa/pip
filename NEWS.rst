@@ -7,6 +7,20 @@
 
 .. towncrier release notes start
 
+19.3.1 (2019-10-17)
+===================
+
+Features
+--------
+
+- Document Python 3.8 support. (`#7219 <https://github.com/pypa/pip/issues/7219>`_)
+
+Bug Fixes
+---------
+
+- Fix bug that prevented installation of PEP 517 packages without ``setup.py``. (`#6606 <https://github.com/pypa/pip/issues/6606>`_)
+
+
 19.3 (2019-10-14)
 =================
 
