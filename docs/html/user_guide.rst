@@ -796,7 +796,7 @@ of ability. Some examples that you could consider include:
 .. _`Disable Keyring`:
 
 Disable Keyring
-***************************
+***************
 
 Keyring in certain cases can prevent the installing of certain packages and modules
 due to authentication errors. In such cases disabling the keyring is recommended.
@@ -807,9 +807,9 @@ There are various ways to disable the keyring. They are:
 
 - Set the password as null to preferred keyring for the relevant URL and username.
 
-- If the keyring version is 15.1.0 keyring can be disabled via command line using::
+- keyring >= 15.1.0 can be disabled via command line using::
 
-keyring --disable
+    keyring --disable
 
 - Set environment variable ``PYTHON_KEYRING_BACKEND`` to ``keyring.backends.null.Keyring``
 in a configuration file.
