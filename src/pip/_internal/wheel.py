@@ -1,5 +1,4 @@
-"""
-Support for installing and building the "wheel" binary package format.
+"""Support for installing and building the "wheel" binary package format.
 """
 
 # The following comment should be removed at some point in the future.
@@ -116,8 +115,7 @@ def open_for_csv(name, mode):
 
 def replace_python_tag(wheelname, new_tag):
     # type: (str, str) -> str
-    """Replace the Python tag in a wheel file name with a new value.
-    """
+    """Replace the Python tag in a wheel file name with a new value."""
     parts = wheelname.split('-')
     parts[-3] = new_tag
     return '-'.join(parts)
@@ -126,7 +124,8 @@ def replace_python_tag(wheelname, new_tag):
 def fix_script(path):
     # type: (str) -> Optional[bool]
     """Replace #!python with #!/path/to/python
-    Return True if file was changed."""
+    Return True if file was changed.
+    """
     # XXX RECORD hashes will need to be updated
     if os.path.isfile(path):
         with open(path, 'rb') as script:
@@ -149,9 +148,7 @@ dist_info_re = re.compile(r"""^(?P<namever>(?P<name>.+?)(-(?P<ver>.+?))?)
 
 def root_is_purelib(name, wheeldir):
     # type: (str, str) -> bool
-    """
-    Return True if the extracted wheel in wheeldir should go into purelib.
-    """
+    """True if the extracted wheel in wheeldir should go into purelib."""
     name_folded = name.replace("-", "_")
     for item in os.listdir(wheeldir):
         match = dist_info_re.match(item)
@@ -186,8 +183,9 @@ def get_entrypoints(filename):
     gui = entry_points.get('gui_scripts', {})
 
     def _split_ep(s):
-        """get the string representation of EntryPoint, remove space and split
-        on '='"""
+        """get the string representation of EntryPoint, 
+        remove space and spliton '='
+        """
         return str(s).replace(" ", "").split("=")
 
     # convert the EntryPoint objects into strings with module:function
@@ -259,8 +257,7 @@ def message_about_scripts_not_on_PATH(scripts):
 
 def sorted_outrows(outrows):
     # type: (Iterable[InstalledCSVRow]) -> List[InstalledCSVRow]
-    """
-    Return the given rows of a RECORD file in sorted order.
+    """Return the given rows of a RECORD file in sorted order.
 
     Each row is a 3-tuple (path, hash, size) and corresponds to a record of
     a RECORD file (see PEP 376 and PEP 427 for details).  For the rows
@@ -638,9 +635,7 @@ def move_wheel_files(
 
 def wheel_version(source_dir):
     # type: (Optional[str]) -> Optional[Tuple[int, ...]]
-    """
-    Return the Wheel-Version of an extracted wheel, if possible.
-
+    """Return the Wheel-Version of an extracted wheel, if possible.
     Otherwise, return None if we couldn't parse / extract it.
     """
     try:
@@ -658,8 +653,7 @@ def wheel_version(source_dir):
 
 def check_compatibility(version, name):
     # type: (Optional[Tuple[int, ...]], str) -> None
-    """
-    Raises errors or warns if called with an incompatible Wheel-Version.
+    """Raises errors or warns if called with an incompatible Wheel-Version.
 
     Pip should refuse to install a Wheel-Version that's a major series
     ahead of what it's compatible with (e.g 2.0 > 1.1); and warn when
@@ -688,8 +682,7 @@ def check_compatibility(version, name):
 
 def format_tag(file_tag):
     # type: (Tuple[str, ...]) -> str
-    """
-    Format three tags in the form "<python_tag>-<abi_tag>-<platform_tag>".
+    """Format three tags in the form "<python_tag>-<abi_tag>-<platform_tag>".
 
     :param file_tag: A 3-tuple of tags (python_tag, abi_tag, platform_tag).
     """
@@ -737,15 +730,12 @@ class Wheel(object):
 
     def get_formatted_file_tags(self):
         # type: () -> List[str]
-        """
-        Return the wheel's tags as a sorted list of strings.
-        """
+        """Return the wheel's tags as a sorted list of strings."""
         return sorted(format_tag(tag) for tag in self.file_tags)
 
     def support_index_min(self, tags):
         # type: (List[Pep425Tag]) -> int
-        """
-        Return the lowest index that one of the wheel's file_tag combinations
+        """Return the lowest index that one of the wheel's file_tag combinations
         achieves in the given list of supported tags.
 
         For example, if there are 8 supported tags and one of the file tags
@@ -761,8 +751,7 @@ class Wheel(object):
 
     def supported(self, tags):
         # type: (List[Pep425Tag]) -> bool
-        """
-        Return whether the wheel is compatible with one of the given tags.
+        """Return whether the wheel is compatible with one of the given tags.
 
         :param tags: the PEP 425 tags to check the wheel against.
         """
@@ -785,8 +774,7 @@ def should_use_ephemeral_cache(
     check_binary_allowed,  # type: BinaryAllowedPredicate
 ):
     # type: (...) -> Optional[bool]
-    """
-    Return whether to build an InstallRequirement object using the
+    """Return whether to build an InstallRequirement object using the
     ephemeral cache.
 
     :param cache_available: whether a cache directory is available for the
@@ -841,9 +829,7 @@ def format_command_result(
     command_output,  # type: str
 ):
     # type: (...) -> str
-    """
-    Format command information for logging.
-    """
+    """Format command information for logging."""
     command_desc = format_command_args(command_args)
     text = 'Command arguments: {}\n'.format(command_desc)
 
@@ -867,9 +853,7 @@ def get_legacy_build_wheel_path(
     command_output,  # type: str
 ):
     # type: (...) -> Optional[str]
-    """
-    Return the path to the wheel in the temporary build directory.
-    """
+    """Return the path to the wheel in the temporary build directory."""
     # Sort for determinism.
     names = sorted(names)
     if not names:
