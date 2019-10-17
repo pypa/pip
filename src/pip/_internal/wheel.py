@@ -183,7 +183,7 @@ def get_entrypoints(filename):
     gui = entry_points.get('gui_scripts', {})
 
     def _split_ep(s):
-        """get the string representation of EntryPoint, 
+        """get the string representation of EntryPoint,
         remove space and spliton '='
         """
         return str(s).replace(" ", "").split("=")
@@ -197,7 +197,6 @@ def get_entrypoints(filename):
 def message_about_scripts_not_on_PATH(scripts):
     # type: (Sequence[str]) -> Optional[str]
     """Determine if any scripts are not on PATH and format a warning.
-
     Returns a warning message if one or more scripts are not on PATH,
     otherwise None.
     """
