@@ -184,7 +184,7 @@ def get_entrypoints(filename):
 
     def _split_ep(s):
         """get the string representation of EntryPoint,
-        remove space and spliton '='
+        remove space and split on '='
         """
         return str(s).replace(" ", "").split("=")
 
