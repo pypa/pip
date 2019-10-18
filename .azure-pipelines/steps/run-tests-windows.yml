@@ -2,6 +2,9 @@ parameters:
   runIntegrationTests:
 
 steps:
+- powershell: Set-MpPreference -DisableRealtimeMonitoring $true
+  displayName: Disable Windows Defender Monitoring
+
 - task: UsePythonVersion@0
   displayName: Use Python $(python.version)
   inputs:
