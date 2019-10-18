@@ -73,6 +73,32 @@ if MYPY_CHECK_RUNNING:
 logger = logging.getLogger(__name__)
 
 
+def _get_dist(metadata_directory):
+    # type: (str) -> Distribution
+    """Return a pkg_resources.Distribution for the provided
+    metadata directory.
+    """
+    dist_dir = metadata_directory.rstrip(os.sep)
+
+    # Determine the correct Distribution object type.
+    if dist_dir.endswith(".egg-info"):
+        dist_cls = pkg_resources.Distribution
+    else:
+        assert dist_dir.endswith(".dist-info")
+        dist_cls = pkg_resources.DistInfoDistribution
+
+    # Build a PathMetadata object, from path to metadata. :wink:
+    base_dir, dist_dir_name = os.path.split(dist_dir)
+    dist_name = os.path.splitext(dist_dir_name)[0]
+    metadata = pkg_resources.PathMetadata(base_dir, dist_dir)
+
+    return dist_cls(
+        base_dir,
+        project_name=dist_name,
+        metadata=metadata,
+    )
+
+
 class InstallRequirement(object):
     """
     Represents something that may be installed later on, may have information
@@ -619,26 +645,7 @@ class InstallRequirement(object):
 
     def get_dist(self):
         # type: () -> Distribution
-        """Return a pkg_resources.Distribution for this requirement"""
-        dist_dir = self.metadata_directory.rstrip(os.sep)
-
-        # Determine the correct Distribution object type.
-        if dist_dir.endswith(".egg-info"):
-            dist_cls = pkg_resources.Distribution
-        else:
-            assert dist_dir.endswith(".dist-info")
-            dist_cls = pkg_resources.DistInfoDistribution
-
-        # Build a PathMetadata object, from path to metadata. :wink:
-        base_dir, dist_dir_name = os.path.split(dist_dir)
-        dist_name = os.path.splitext(dist_dir_name)[0]
-        metadata = pkg_resources.PathMetadata(base_dir, dist_dir)
-
-        return dist_cls(
-            base_dir,
-            project_name=dist_name,
-            metadata=metadata,
-        )
+        return _get_dist(self.metadata_directory)
 
     def assert_source_matches_version(self):
         # type: () -> None

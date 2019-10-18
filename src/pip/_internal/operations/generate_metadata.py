@@ -79,7 +79,7 @@ def _find_egg_info(source_directory, is_editable):
 
     if not filenames:
         raise InstallationError(
-            "Files/directories not found in %s" % base
+            "Files/directories not found in {}".format(base)
         )
 
     # If we have more than one match, we pick the toplevel one.  This

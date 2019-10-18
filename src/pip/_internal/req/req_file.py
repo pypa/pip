@@ -17,14 +17,18 @@ from pip._vendor.six.moves import filterfalse
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 from pip._internal.cli import cmdoptions
-from pip._internal.download import get_file_content
-from pip._internal.exceptions import RequirementsFileParseError
+from pip._internal.exceptions import (
+    InstallationError,
+    RequirementsFileParseError,
+)
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.req.constructors import (
     install_req_from_editable,
     install_req_from_line,
 )
+from pip._internal.utils.encoding import auto_decode
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.urls import get_url_scheme
 
 if MYPY_CHECK_RUNNING:
     from typing import (
@@ -401,3 +405,54 @@ def expand_env_variables(lines_enum):
             line = line.replace(env_var, value)
 
         yield line_number, line
+
+
+def get_file_content(url, comes_from=None, session=None):
+    # type: (str, Optional[str], Optional[PipSession]) -> Tuple[str, Text]
+    """Gets the content of a file; it may be a filename, file: URL, or
+    http: URL.  Returns (location, content).  Content is unicode.
+
+    :param url:         File path or url.
+    :param comes_from:  Origin description of requirements.
+    :param session:     Instance of pip.download.PipSession.
+    """
+    if session is None:
+        raise TypeError(
+            "get_file_content() missing 1 required keyword argument: 'session'"
+        )
+
+    scheme = get_url_scheme(url)
+
+    if scheme in ['http', 'https']:
+        # FIXME: catch some errors
+        resp = session.get(url)
+        resp.raise_for_status()
+        return resp.url, resp.text
+
+    elif scheme == 'file':
+        if comes_from and comes_from.startswith('http'):
+            raise InstallationError(
+                'Requirements file %s references URL %s, which is local'
+                % (comes_from, url))
+
+        path = url.split(':', 1)[1]
+        path = path.replace('\\', '/')
+        match = _url_slash_drive_re.match(path)
+        if match:
+            path = match.group(1) + ':' + path.split('|', 1)[1]
+        path = urllib_parse.unquote(path)
+        if path.startswith('/'):
+            path = '/' + path.lstrip('/')
+        url = path
+
+    try:
+        with open(url, 'rb') as f:
+            content = auto_decode(f.read())
+    except IOError as exc:
+        raise InstallationError(
+            'Could not open requirements file: %s' % str(exc)
+        )
+    return url, content
+
+
+_url_slash_drive_re = re.compile(r'/*([a-z])\|', re.I)

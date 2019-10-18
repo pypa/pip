@@ -1282,6 +1282,19 @@ def test_install_no_binary_disables_building_wheels(script, data, with_wheel):
     assert "Running setup.py install for upper" in str(res), str(res)
 
 
+def test_install_no_binary_builds_pep_517_wheel(script, data, with_wheel):
+    to_install = data.packages.joinpath('pep517_setup_and_pyproject')
+    res = script.pip(
+        'install', '--no-binary=:all:', '-f', data.find_links, to_install
+    )
+    expected = ("Successfully installed pep517-setup-and-pyproject")
+    # Must have installed the package
+    assert expected in str(res), str(res)
+
+    assert "Building wheel for pep517-setup" in str(res), str(res)
+    assert "Running setup.py install for pep517-set" not in str(res), str(res)
+
+
 def test_install_no_binary_disables_cached_wheels(script, data, with_wheel):
     # Seed the cache
     script.pip(

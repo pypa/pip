@@ -543,15 +543,20 @@ def test_freeze_with_requirement_option(script):
 
     """
 
-    script.scratch_path.joinpath("hint.txt").write_text(textwrap.dedent("""\
+    script.scratch_path.joinpath("hint1.txt").write_text(textwrap.dedent("""\
         INITools==0.1
         NoExist==4.2  # A comment that ensures end of line comments work.
         simple==3.0; python_version > '1.0'
         """) + _freeze_req_opts)
+    script.scratch_path.joinpath("hint2.txt").write_text(textwrap.dedent("""\
+        iniTools==0.1
+        Noexist==4.2  # A comment that ensures end of line comments work.
+        Simple==3.0; python_version > '1.0'
+        """) + _freeze_req_opts)
     result = script.pip_install_local('initools==0.2')
     result = script.pip_install_local('simple')
     result = script.pip(
-        'freeze', '--requirement', 'hint.txt',
+        'freeze', '--requirement', 'hint1.txt',
         expect_stderr=True,
     )
     expected = textwrap.dedent("""\
@@ -562,8 +567,17 @@ def test_freeze_with_requirement_option(script):
     expected += "## The following requirements were added by pip freeze:..."
     _check_output(result.stdout, expected)
     assert (
-        "Requirement file [hint.txt] contains NoExist==4.2, but package "
+        "Requirement file [hint1.txt] contains NoExist==4.2, but package "
         "'NoExist' is not installed"
+    ) in result.stderr
+    result = script.pip(
+        'freeze', '--requirement', 'hint2.txt',
+        expect_stderr=True,
+    )
+    _check_output(result.stdout, expected)
+    assert (
+        "Requirement file [hint2.txt] contains Noexist==4.2, but package "
+        "'Noexist' is not installed"
     ) in result.stderr
 
 
