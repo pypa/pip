@@ -1,1 +1,1 @@
-Change `pip._internal.wheel` to respect docstring conventions.
+Change ``pip._internal.wheel`` to respect docstring conventions.
