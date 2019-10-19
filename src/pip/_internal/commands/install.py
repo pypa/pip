@@ -643,7 +643,7 @@ def decide_user_install(
     if not site.ENABLE_USER_SITE:
         return False
 
-    # If we don't have permissions for a non-user install, choose a user install
+    # If we don't have permission for a non-user install, choose a user install
     return not site_packages_writable(
         root=root_path, isolated=isolated_mode,
     )
