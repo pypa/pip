@@ -134,8 +134,11 @@ order to create one of these the changes should already be merged into the
 #. Create a new ``release/YY.N.Z+1`` branch off of the ``YY.N`` tag using the
    command ``git checkout -b release/YY.N.Z+1 YY.N``.
 #. Cherry pick the fixed commits off of the ``master`` branch, fixing any
-   conflicts and moving any changelog entries from the development version's
-   changelog section to the ``YY.N.Z+1`` section.
+   conflicts.
+#. Follow the steps 3 to 6 from above (or call ``nox -s release -- YY.N.Z+1``)
+#. Merge master into your release branch and drop the news files that have been
+   included in your release (otherwise they would also appear in the ``YY.N+1``
+   changelog)
 #. Push the ``release/YY.N.Z+1`` branch to github and submit a PR for it against
    the ``master`` branch and wait for the tests to run.
 #. Once tests run, merge the ``release/YY.N.Z+1`` branch into master, and follow
