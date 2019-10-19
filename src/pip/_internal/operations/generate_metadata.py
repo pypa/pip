@@ -1,13 +1,18 @@
 """Metadata generation logic for source distributions.
 """
 
+import atexit
 import logging
 import os
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.utils.misc import ensure_dir
 from pip._internal.utils.setuptools_build import make_setuptools_egg_info_args
-from pip._internal.utils.subprocess import call_subprocess
+from pip._internal.utils.subprocess import (
+    call_subprocess,
+    runner_with_spinner_message,
+)
+from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs import vcs
 
