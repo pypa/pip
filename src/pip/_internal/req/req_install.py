@@ -615,29 +615,6 @@ class InstallRequirement(object):
                 )
                 self.req = Requirement(metadata_name)
 
-    def prepare_pep517_metadata(self):
-        # type: () -> str
-        assert self.pep517_backend is not None
-
-        # NOTE: This needs to be refactored to stop using atexit
-        metadata_tmpdir = TempDirectory(kind="modern-metadata")
-        atexit.register(metadata_tmpdir.cleanup)
-
-        metadata_dir = metadata_tmpdir.path
-
-        with self.build_env:
-            # Note that Pep517HookCaller implements a fallback for
-            # prepare_metadata_for_build_wheel, so we don't have to
-            # consider the possibility that this hook doesn't exist.
-            runner = runner_with_spinner_message("Preparing wheel metadata")
-            backend = self.pep517_backend
-            with backend.subprocess_runner(runner):
-                distinfo_dir = backend.prepare_metadata_for_build_wheel(
-                    metadata_dir
-                )
-
-        return os.path.join(metadata_dir, distinfo_dir)
-
     @property
     def metadata(self):
         # type: () -> Any
