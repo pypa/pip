@@ -48,7 +48,10 @@ from pip._internal.utils.misc import (
     rmtree,
 )
 from pip._internal.utils.packaging import get_metadata
-from pip._internal.utils.setuptools_build import make_setuptools_shim_args
+from pip._internal.utils.setuptools_build import (
+    make_setuptools_develop_args,
+    make_setuptools_install_args,
+)
 from pip._internal.utils.subprocess import (
     call_subprocess,
     runner_with_spinner_message,
@@ -690,20 +693,18 @@ class InstallRequirement(object):
         # type: (...) -> None
         logger.info('Running setup.py develop for %s', self.name)
 
-        if prefix:
-            prefix_param = ['--prefix={}'.format(prefix)]
-            install_options = list(install_options) + prefix_param
-        base_cmd = make_setuptools_shim_args(
+        args = make_setuptools_develop_args(
             self.setup_py_path,
             global_options=global_options,
-            no_user_config=self.isolated
+            install_options=install_options,
+            no_user_config=self.isolated,
+            prefix=prefix,
         )
+
         with indent_log():
             with self.build_env:
                 call_subprocess(
-                    base_cmd +
-                    ['develop', '--no-deps'] +
-                    list(install_options),
+                    args,
                     cwd=self.unpacked_source_directory,
                 )
 
@@ -880,10 +881,25 @@ class InstallRequirement(object):
         install_options = list(install_options) + \
             self.options.get('install_options', [])
 
+        header_dir = None  # type: Optional[str]
+        if running_under_virtualenv():
+            py_ver_str = 'python' + sysconfig.get_python_version()
+            header_dir = os.path.join(
+                sys.prefix, 'include', 'site', py_ver_str, self.name
+            )
+
         with TempDirectory(kind="record") as temp_dir:
             record_filename = os.path.join(temp_dir.path, 'install-record.txt')
-            install_args = self.get_install_args(
-                global_options, record_filename, root, prefix, pycompile,
+            install_args = make_setuptools_install_args(
+                self.setup_py_path,
+                global_options=global_options,
+                install_options=install_options,
+                record_filename=record_filename,
+                root=root,
+                prefix=prefix,
+                header_dir=header_dir,
+                no_user_config=self.isolated,
+                pycompile=pycompile,
             )
 
             runner = runner_with_spinner_message(
@@ -891,7 +907,7 @@ class InstallRequirement(object):
             )
             with indent_log(), self.build_env:
                 runner(
-                    cmd=install_args + install_options,
+                    cmd=install_args,
                     cwd=self.unpacked_source_directory,
                 )
 
@@ -935,39 +951,3 @@ class InstallRequirement(object):
             inst_files_path = os.path.join(egg_info_dir, 'installed-files.txt')
             with open(inst_files_path, 'w') as f:
                 f.write('\n'.join(new_lines) + '\n')
-
-    def get_install_args(
-        self,
-        global_options,  # type: Sequence[str]
-        record_filename,  # type: str
-        root,  # type: Optional[str]
-        prefix,  # type: Optional[str]
-        pycompile  # type: bool
-    ):
-        # type: (...) -> List[str]
-        install_args = make_setuptools_shim_args(
-            self.setup_py_path,
-            global_options=global_options,
-            no_user_config=self.isolated,
-            unbuffered_output=True
-        )
-        install_args += ['install', '--record', record_filename]
-        install_args += ['--single-version-externally-managed']
-
-        if root is not None:
-            install_args += ['--root', root]
-        if prefix is not None:
-            install_args += ['--prefix', prefix]
-
-        if pycompile:
-            install_args += ["--compile"]
-        else:
-            install_args += ["--no-compile"]
-
-        if running_under_virtualenv():
-            py_ver_str = 'python' + sysconfig.get_python_version()
-            install_args += ['--install-headers',
-                             os.path.join(sys.prefix, 'include', 'site',
-                                          py_ver_str, self.name)]
-
-        return install_args
