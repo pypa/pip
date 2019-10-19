@@ -107,6 +107,23 @@ Creating a new release
   Steps 3 to 6 are automated in ``nox -s release -- YY.N`` command.
 
 
+.. note::
+
+  If the release dropped the support of an obsolete Python version ``M.m``,
+  a new ``M.m/get-pip.py`` needs to be published: update the ``all`` task from
+  ``tasks/generate.py`` in `get-pip repository`_ and make a pull request to
+  `psf-salt repository`_ to add the new ``get-pip.py`` (and its directory) to
+  ``salt/pypa/bootstrap/init.sls``.
+
+
+.. note::
+  If the ``get-pip.py`` script needs to be updated due to changes in pip internals
+  and if the last ``M.m/get-pip.py`` published still uses the default template, make
+  sure to first duplicate ``templates/default.py`` as ``templates/pre-YY.N.py``
+  before updating it and specify in ``tasks/generate.py`` that ``M.m/get-pip.py``
+  now needs to use ``templates/pre-YY.N.py``.
+
+
 Creating a bug-fix release
 --------------------------
 
@@ -125,4 +142,5 @@ order to create one of these the changes should already be merged into the
    the above release process starting with step 4.
 
 .. _`get-pip repository`: https://github.com/pypa/get-pip
+.. _`psf-salt repository`: https://github.com/python/psf-salt
 .. _`CPython`: https://github.com/pypa/cpython
