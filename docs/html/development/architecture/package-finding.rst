@@ -38,7 +38,7 @@ file to download for a package, given a requirement:
    <candidate-evaluator-class>` class).
 
 The remainder of this section is organized by documenting some of the
-classes inside ``index.py``, in the following order:
+classes inside the ``index`` package, in the following order:
 
 * the main :ref:`PackageFinder <package-finder-class>` class,
 * the :ref:`LinkCollector <link-collector-class>` class,
@@ -54,7 +54,7 @@ The ``PackageFinder`` class
 ***************************
 
 The ``PackageFinder`` class is the primary way through which code in pip
-interacts with ``index.py``. It is an umbrella class that encapsulates and
+interacts with ``index`` package. It is an umbrella class that encapsulates and
 groups together various package-finding functionality.
 
 The ``PackageFinder`` class is responsible for searching the network and file
