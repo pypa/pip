@@ -601,19 +601,25 @@ def site_packages_writable(**kwargs):
 
 
 def decide_user_install(
-        use_user_site,
-        prefix_path,
-        target_dir,
-        root_path,
-        isolated_mode,
+    use_user_site,  # type: Optional[bool]
+    prefix_path,  # type: Optional[str]
+    target_dir,  # type: Optional[str]
+    root_path,  # type: Optional[str]
+    isolated_mode,  # type: bool
 ):
+    # type: (...) -> bool
     """Determine whether to do a user install based on the input options.
 
-    If use_user_site is True/False, that is checked for compatibility with
-    other options. If None, the default behaviour depends on other options
-    and the environment.
+    If use_user_site is False, no additional checks are done.
+    If use_user_site is True, it is checked for compatibility with other
+    options.
+    If use_user_site is None, the default behaviour depends on the environment,
+    which is provided by the other arguments.
     """
-    if use_user_site:
+    if use_user_site is False:
+        return False
+
+    if use_user_site is True:
         if prefix_path:
             raise CommandError(
                 "Can not combine '--user' and '--prefix' as they imply "
@@ -624,17 +630,22 @@ def decide_user_install(
                 "Can not perform a '--user' install. User site-packages "
                 "are not visible in this virtualenv."
             )
-    if use_user_site in (True, False):
-        return use_user_site
+        return True
 
+    # If we are here, user installs have not been explicitly requested/avoided
+    assert use_user_site is None
+
+    # user install incompatible with --prefix/--target
     if prefix_path or target_dir:
-        return False  # user install incompatible with --prefix/--target
+        return False
 
-    # Default behaviour: prefer non-user installation if that looks possible.
-    # If we don't have permission for that and user site-packages are visible,
-    # choose a user install.
-    return site.ENABLE_USER_SITE and not site_packages_writable(
-        root=root_path, isolated=isolated_mode
+    # If user installs are not enabled, choose a non-user install
+    if not site.ENABLE_USER_SITE:
+        return False
+
+    # If we don't have permissions for a non-user install, choose a user install
+    return not site_packages_writable(
+        root=root_path, isolated=isolated_mode,
     )
 
 
