@@ -135,6 +135,8 @@ def _generate_metadata_legacy(install_req):
 def _generate_metadata(install_req):
     # type: (InstallRequirement) -> str
     assert install_req.pep517_backend is not None
+    build_env = install_req.build_env
+    backend = install_req.pep517_backend
 
     # NOTE: This needs to be refactored to stop using atexit
     metadata_tmpdir = TempDirectory(kind="modern-metadata")
@@ -142,12 +144,11 @@ def _generate_metadata(install_req):
 
     metadata_dir = metadata_tmpdir.path
 
-    with install_req.build_env:
+    with build_env:
         # Note that Pep517HookCaller implements a fallback for
         # prepare_metadata_for_build_wheel, so we don't have to
         # consider the possibility that this hook doesn't exist.
         runner = runner_with_spinner_message("Preparing wheel metadata")
-        backend = install_req.pep517_backend
         with backend.subprocess_runner(runner):
             distinfo_dir = backend.prepare_metadata_for_build_wheel(
                 metadata_dir
