@@ -22,6 +22,7 @@ from pip._vendor.pep517.wrappers import Pep517HookCaller
 from pip._internal import pep425tags, wheel
 from pip._internal.build_env import NoOpBuildEnvironment
 from pip._internal.exceptions import InstallationError
+from pip._internal.locations import distutils_scheme
 from pip._internal.models.link import Link
 from pip._internal.operations.generate_metadata import get_metadata_generator
 from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
@@ -62,7 +63,7 @@ from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Any, Dict, Iterable, List, Optional, Sequence, Union,
+        Any, Dict, Iterable, List, Mapping, Optional, Sequence, Union,
     )
     from pip._internal.build_env import BuildEnvironment
     from pip._internal.cache import WheelCache
@@ -504,22 +505,17 @@ class InstallRequirement(object):
     def move_wheel_files(
         self,
         wheeldir,  # type: str
-        root=None,  # type: Optional[str]
-        home=None,  # type: Optional[str]
-        prefix=None,  # type: Optional[str]
+        scheme,  # type: Mapping[str, str]
         warn_script_location=True,  # type: bool
-        use_user_site=False,  # type: bool
         pycompile=True  # type: bool
     ):
         # type: (...) -> None
-        wheel.move_wheel_files(
-            self.name, self.req, wheeldir,
-            user=use_user_site,
-            home=home,
-            root=root,
-            prefix=prefix,
+        wheel.install_unpacked_wheel(
+            self.name,
+            wheeldir,
+            scheme=scheme,
+            req_description=str(self.req),
             pycompile=pycompile,
-            isolated=self.isolated,
             warn_script_location=warn_script_location,
         )
 
@@ -839,10 +835,15 @@ class InstallRequirement(object):
             version = wheel.wheel_version(self.source_dir)
             wheel.check_compatibility(version, self.name)
 
+            scheme = distutils_scheme(
+                self.name, user=use_user_site, home=home, root=root,
+                isolated=self.isolated, prefix=prefix,
+            )
             self.move_wheel_files(
-                self.source_dir, root=root, prefix=prefix, home=home,
+                self.source_dir,
+                scheme=scheme,
                 warn_script_location=warn_script_location,
-                use_user_site=use_user_site, pycompile=pycompile,
+                pycompile=pycompile,
             )
             self.install_succeeded = True
             return

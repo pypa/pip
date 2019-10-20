@@ -115,9 +115,7 @@ class DownloadCommand(RequirementCommand):
             options.build_dir, delete=build_delete, kind="download"
         ) as directory:
 
-            requirement_set = RequirementSet(
-                require_hashes=options.require_hashes,
-            )
+            requirement_set = RequirementSet()
             self.populate_requirement_set(
                 requirement_set,
                 args,

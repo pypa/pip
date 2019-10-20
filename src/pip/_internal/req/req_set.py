@@ -24,13 +24,12 @@ logger = logging.getLogger(__name__)
 
 class RequirementSet(object):
 
-    def __init__(self, require_hashes=False, check_supported_wheels=True):
-        # type: (bool, bool) -> None
+    def __init__(self, check_supported_wheels=True):
+        # type: (bool) -> None
         """Create a RequirementSet.
         """
 
         self.requirements = OrderedDict()  # type: Dict[str, InstallRequirement]  # noqa: E501
-        self.require_hashes = require_hashes
         self.check_supported_wheels = check_supported_wheels
 
         self.unnamed_requirements = []  # type: List[InstallRequirement]

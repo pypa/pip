@@ -57,7 +57,7 @@ class TestRequirementSet(object):
         shutil.rmtree(self.tempdir, ignore_errors=True)
 
     @contextlib.contextmanager
-    def _basic_resolver(self, finder):
+    def _basic_resolver(self, finder, require_hashes=False):
         make_install_req = partial(
             install_req_from_req_string,
             isolated=False,
@@ -78,6 +78,7 @@ class TestRequirementSet(object):
                 finder=finder,
                 make_install_req=make_install_req,
                 preparer=preparer,
+                require_hashes=require_hashes,
                 session=PipSession(),
                 upgrade_strategy="to-satisfy-only",
                 force_reinstall=False,
@@ -178,14 +179,14 @@ class TestRequirementSet(object):
         """Setting --require-hashes explicitly should raise errors if hashes
         are missing.
         """
-        reqset = RequirementSet(require_hashes=True)
+        reqset = RequirementSet()
         reqset.add_requirement(get_processed_req_from_line(
             'simple==1.0', lineno=1
         ))
 
         finder = make_test_finder(find_links=[data.find_links])
 
-        with self._basic_resolver(finder) as resolver:
+        with self._basic_resolver(finder, require_hashes=True) as resolver:
             assert_raises_regexp(
                 HashErrors,
                 r'Hashes are required in --require-hashes mode, but they are '
@@ -193,14 +194,14 @@ class TestRequirementSet(object):
                 r'    simple==1.0 --hash=sha256:393043e672415891885c9a2a0929b1'
                 r'af95fb866d6ca016b42d2e6ce53619b653$',
                 resolver.resolve,
-                reqset
+                reqset,
             )
 
     def test_missing_hash_with_require_hashes_in_reqs_file(self, data, tmpdir):
         """--require-hashes in a requirements file should make its way to the
         RequirementSet.
         """
-        req_set = RequirementSet(require_hashes=False)
+        req_set = RequirementSet()
         finder = make_test_finder(find_links=[data.find_links])
         session = finder._link_collector.session
         command = create_command('install')
@@ -209,7 +210,7 @@ class TestRequirementSet(object):
             command.populate_requirement_set(
                 req_set, args, options, finder, session, wheel_cache=None,
             )
-        assert req_set.require_hashes
+        assert options.require_hashes
 
     def test_unsupported_hashes(self, data):
         """VCS and dir links should raise errors when --require-hashes is
@@ -219,7 +220,7 @@ class TestRequirementSet(object):
         should trump the presence or absence of a hash.
 
         """
-        reqset = RequirementSet(require_hashes=True)
+        reqset = RequirementSet()
         reqset.add_requirement(get_processed_req_from_line(
             'git+git://github.com/pypa/pip-test-package --hash=sha256:123',
             lineno=1,
@@ -282,7 +283,7 @@ class TestRequirementSet(object):
         """A hash mismatch should raise an error."""
         file_url = path_to_url(
             (data.packages / 'simple-1.0.tar.gz').resolve())
-        reqset = RequirementSet(require_hashes=True)
+        reqset = RequirementSet()
         reqset.add_requirement(get_processed_req_from_line(
             '%s --hash=sha256:badbad' % file_url, lineno=1,
         ))
