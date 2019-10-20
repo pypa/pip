@@ -445,13 +445,12 @@ class InstallRequirement(object):
             path=new_location, kind="req-install",
         )
 
-        # Correct the metadata directory, if it exists
-        if self.metadata_directory:
-            old_meta = self.metadata_directory
-            rel = os.path.relpath(old_meta, start=old_location.path)
-            new_meta = os.path.join(new_location, rel)
-            new_meta = os.path.normpath(os.path.abspath(new_meta))
-            self.metadata_directory = new_meta
+        # Correct the metadata directory
+        old_meta = self.metadata_directory
+        rel = os.path.relpath(old_meta, start=old_location.path)
+        new_meta = os.path.join(new_location, rel)
+        new_meta = os.path.normpath(os.path.abspath(new_meta))
+        self.metadata_directory = new_meta
 
         # Done with any "move built files" work, since have moved files to the
         # "ideal" build location. Setting to None allows to clearly flag that
