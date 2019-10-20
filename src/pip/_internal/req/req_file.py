@@ -117,7 +117,10 @@ def parse_requirements(
         filename, comes_from=comes_from, session=session
     )
 
-    lines_enum = preprocess(content, options)
+    skip_requirements_regex = (
+        options.skip_requirements_regex if options else None
+    )
+    lines_enum = preprocess(content, skip_requirements_regex)
 
     for line_number, line in lines_enum:
         req_iter = process_line(line, filename, line_number, finder,
@@ -127,8 +130,8 @@ def parse_requirements(
             yield req
 
 
-def preprocess(content, options):
-    # type: (Text, Optional[optparse.Values]) -> ReqFileLines
+def preprocess(content, skip_requirements_regex):
+    # type: (Text, Optional[str]) -> ReqFileLines
     """Split, filter, and join lines, and return a line iterator
 
     :param content: the content of the requirements file
@@ -137,7 +140,8 @@ def preprocess(content, options):
     lines_enum = enumerate(content.splitlines(), start=1)  # type: ReqFileLines
     lines_enum = join_lines(lines_enum)
     lines_enum = ignore_comments(lines_enum)
-    lines_enum = skip_regex(lines_enum, options)
+    if skip_requirements_regex:
+        lines_enum = skip_regex(lines_enum, skip_requirements_regex)
     lines_enum = expand_env_variables(lines_enum)
     return lines_enum
 
@@ -183,7 +187,7 @@ def process_line(
     # parse a nested requirements file
     if (
         not args_str and
-        not opts.editable and
+        not opts.editables and
         (opts.requirements or opts.constraints)
     ):
         if opts.requirements:
@@ -397,17 +401,15 @@ def ignore_comments(lines_enum):
             yield line_number, line
 
 
-def skip_regex(lines_enum, options):
-    # type: (ReqFileLines, Optional[optparse.Values]) -> ReqFileLines
+def skip_regex(lines_enum, pattern):
+    # type: (ReqFileLines, str) -> ReqFileLines
     """
-    Skip lines that match '--skip-requirements-regex' pattern
+    Skip lines that match the provided pattern
 
     Note: the regex pattern is only built once
     """
-    skip_regex = options.skip_requirements_regex if options else None
-    if skip_regex:
-        pattern = re.compile(skip_regex)
-        lines_enum = filterfalse(lambda e: pattern.search(e[1]), lines_enum)
+    matcher = re.compile(pattern)
+    lines_enum = filterfalse(lambda e: matcher.search(e[1]), lines_enum)
     return lines_enum
 
 
