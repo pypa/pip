@@ -83,12 +83,16 @@ class RequirementTracker(object):
         # type: () -> None
         for req in set(self._entries):
             self.remove(req)
-        remove = self._temp_dir is not None
-        if remove:
-            self._temp_dir.cleanup()
-        logger.debug('%s build tracker %r',
-                     'Removed' if remove else 'Cleaned',
-                     self._root)
+
+        if self._temp_dir is None:
+            # Did not setup the directory. No action needed.
+            logger.debug("Cleaned build tracker: %r", self._root)
+            return
+
+        # Cleanup the directory.
+        self._temp_dir.cleanup()
+        del os.environ['PIP_REQ_TRACKER']
+        logger.debug("Removed build tracker: %r", self._root)
 
     @contextlib.contextmanager
     def track(self, req):
