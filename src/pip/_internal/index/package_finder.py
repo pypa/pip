@@ -38,7 +38,7 @@ if MYPY_CHECK_RUNNING:
         FrozenSet, Iterable, List, Optional, Set, Text, Tuple, Union,
     )
     from pip._vendor.packaging.version import _BaseVersion
-    from pip._internal.collector import LinkCollector
+    from pip._internal.index.collector import LinkCollector
     from pip._internal.models.search_scope import SearchScope
     from pip._internal.req import InstallRequirement
     from pip._internal.pep425tags import Pep425Tag

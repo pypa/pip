@@ -61,7 +61,7 @@ if MYPY_CHECK_RUNNING:
     from mypy_extensions import TypedDict
 
     from pip._internal.distributions import AbstractDistribution
-    from pip._internal.index import PackageFinder
+    from pip._internal.index.package_finder import PackageFinder
     from pip._internal.models.link import Link
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.req.req_tracker import RequirementTracker

@@ -1,13 +1,13 @@
-Finding and choosing files (``index.py`` and ``PackageFinder``)
+Finding and choosing files (``index`` and ``PackageFinder``)
 ---------------------------------------------------------------
 
-The ``index.py`` module is a top-level module in pip responsible for deciding
+The ``pip._internal.index`` sub-package in pip is responsible for deciding
 what file to download and from where, given a requirement for a project. The
-module's functionality is largely exposed through and coordinated by the
-module's ``PackageFinder`` class.
+package's functionality is largely exposed through and coordinated by the
+package's ``PackageFinder`` class.
 
 
-.. _index-py-overview:
+.. _index-overview:
 
 Overview
 ********
@@ -38,7 +38,7 @@ file to download for a package, given a requirement:
    <candidate-evaluator-class>` class).
 
 The remainder of this section is organized by documenting some of the
-classes inside ``index.py``, in the following order:
+classes inside the ``index`` package, in the following order:
 
 * the main :ref:`PackageFinder <package-finder-class>` class,
 * the :ref:`LinkCollector <link-collector-class>` class,
@@ -54,7 +54,7 @@ The ``PackageFinder`` class
 ***************************
 
 The ``PackageFinder`` class is the primary way through which code in pip
-interacts with ``index.py``. It is an umbrella class that encapsulates and
+interacts with ``index`` package. It is an umbrella class that encapsulates and
 groups together various package-finding functionality.
 
 The ``PackageFinder`` class is responsible for searching the network and file
@@ -89,7 +89,7 @@ case, the ``PackageFinder`` instance is created by the
 ``self_outdated_check.py`` module's ``pip_self_version_check()`` function.
 
 The ``PackageFinder`` class is responsible for doing all of the things listed
-in the :ref:`Overview <index-py-overview>` section like fetching and parsing
+in the :ref:`Overview <index-overview>` section like fetching and parsing
 `PEP 503`_ simple repository HTML pages, evaluating which links in the simple
 repository pages are relevant for each requirement, and further filtering and
 sorting by preference the candidates for install coming from the relevant
@@ -105,7 +105,7 @@ One of ``PackageFinder``'s main top-level methods is
    :ref:`LinkEvaluator <link-evaluator-class>` object to filter out some of
    those links, and then returns a list of ``InstallationCandidates`` (aka
    candidates for install). This corresponds to steps 1-3 of the
-   :ref:`Overview <index-py-overview>` above.
+   :ref:`Overview <index-overview>` above.
 2. Constructs a ``CandidateEvaluator`` object and uses that to determine
    the best candidate. It does this by calling the ``CandidateEvaluator``
    class's ``compute_best_candidate()`` method on the return value of
@@ -133,8 +133,8 @@ method is the ``collect_links()`` method. The :ref:`PackageFinder
 <package-finder-class>` class invokes this method as the first step of its
 ``find_all_candidates()`` method.
 
-The ``LinkCollector`` class is the only class in the ``index.py`` module that
-makes network requests and is the only class in the module that depends
+The ``LinkCollector`` class is the only class in the ``index`` sub-package that
+makes network requests and is the only class in the sub-package that depends
 directly on ``PipSession``, which stores pip's configuration options and
 state for making requests.
 

@@ -67,7 +67,7 @@ if MYPY_CHECK_RUNNING:
     )
     from pip._internal.build_env import BuildEnvironment
     from pip._internal.cache import WheelCache
-    from pip._internal.index import PackageFinder
+    from pip._internal.index.package_finder import PackageFinder
     from pip._vendor.pkg_resources import Distribution
     from pip._vendor.packaging.specifiers import SpecifierSet
     from pip._vendor.packaging.markers import Marker

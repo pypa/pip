@@ -14,8 +14,8 @@ from pip._vendor import pkg_resources
 from pip._vendor.packaging import version as packaging_version
 from pip._vendor.six import ensure_binary
 
-from pip._internal.collector import LinkCollector
-from pip._internal.index import PackageFinder
+from pip._internal.index.collector import LinkCollector
+from pip._internal.index.package_finder import PackageFinder
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.utils.compat import WINDOWS
