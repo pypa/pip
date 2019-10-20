@@ -457,6 +457,17 @@ class InstallRequirement(object):
         # no more moves are needed.
         self._ideal_build_dir = None
 
+    def warn_on_mismatching_name(self):
+        metadata_name = canonicalize_name(self.metadata["Name"])
+        if canonicalize_name(self.req.name) != metadata_name:
+            logger.warning(
+                'Generating metadata for package %s '
+                'produced metadata for project name %s. Fix your '
+                '#egg=%s fragments.',
+                self.name, metadata_name, self.name
+            )
+            self.req = Requirement(metadata_name)
+
     def remove_temporary_source(self):
         # type: () -> None
         """Remove the source files from this requirement, if they are marked
@@ -607,15 +618,7 @@ class InstallRequirement(object):
         if not self.name:
             self.move_to_correct_build_directory()
         else:
-            metadata_name = canonicalize_name(self.metadata["Name"])
-            if canonicalize_name(self.req.name) != metadata_name:
-                logger.warning(
-                    'Generating metadata for package %s '
-                    'produced metadata for project name %s. Fix your '
-                    '#egg=%s fragments.',
-                    self.name, metadata_name, self.name
-                )
-                self.req = Requirement(metadata_name)
+            self.warn_on_mismatching_name()
 
     @property
     def metadata(self):
