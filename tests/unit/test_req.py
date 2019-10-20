@@ -755,3 +755,27 @@ def test_get_url_from_path__installable_error(isdir_mock):
         _get_url_from_path(path, name)
     err_msg = e.value.args[0]
     assert "Neither 'setup.py' nor 'pyproject.toml' found" in err_msg
+
+
+class TestRequirementTracker(object):
+    @pytest.fixture(autouse=True)
+    def blank_env(self):
+        with patch.dict(os.environ, clear=True):
+            yield
+
+    def test_no_side_effects_on_init(self):
+        RequirementTracker()
+        assert 'PIP_REQ_TRACKER' not in os.environ
+
+    def test_keeps_original_environ(self, tmpdir):
+        os.environ['PIP_REQ_TRACKER'] = str(tmpdir)
+        with RequirementTracker():
+            assert os.environ['PIP_REQ_TRACKER'] == str(tmpdir)
+        assert os.environ['PIP_REQ_TRACKER'] == str(tmpdir)
+
+    def test_setting_environ(self):
+        with RequirementTracker():
+            assert 'PIP_REQ_TRACKER' in os.environ
+
+        # Ensure that the cleanup is proper
+        assert 'PIP_REQ_TRACKER' not in os.environ
