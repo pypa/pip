@@ -459,14 +459,18 @@ class InstallRequirement(object):
 
     def warn_on_mismatching_name(self):
         metadata_name = canonicalize_name(self.metadata["Name"])
-        if canonicalize_name(self.req.name) != metadata_name:
-            logger.warning(
-                'Generating metadata for package %s '
-                'produced metadata for project name %s. Fix your '
-                '#egg=%s fragments.',
-                self.name, metadata_name, self.name
-            )
-            self.req = Requirement(metadata_name)
+        if canonicalize_name(self.req.name) == metadata_name:
+            # Everything is fine.
+            return
+
+        # If we're here, there's a mismatch. Log a warning about it.
+        logger.warning(
+            'Generating metadata for package %s '
+            'produced metadata for project name %s. Fix your '
+            '#egg=%s fragments.',
+            self.name, metadata_name, self.name
+        )
+        self.req = Requirement(metadata_name)
 
     def remove_temporary_source(self):
         # type: () -> None
