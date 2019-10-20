@@ -602,10 +602,10 @@ def site_packages_writable(**kwargs):
 
 def decide_user_install(
     use_user_site,  # type: Optional[bool]
-    prefix_path,  # type: Optional[str]
-    target_dir,  # type: Optional[str]
-    root_path,  # type: Optional[str]
-    isolated_mode,  # type: bool
+    prefix_path=None,  # type: Optional[str]
+    target_dir=None,  # type: Optional[str]
+    root_path=None,  # type: Optional[str]
+    isolated_mode=False,  # type: bool
 ):
     # type: (...) -> bool
     """Determine whether to do a user install based on the input options.
