@@ -1,6 +1,6 @@
 from mock import Mock, call, patch
 
-from pip._internal.commands.install import build_wheels
+from pip._internal.commands.install import build_wheels, decide_user_install
 
 
 class TestWheelCache:
@@ -61,3 +61,37 @@ class TestWheelCache:
         ]
 
         assert build_failures == ['a']
+
+
+class TestDecideUserInstall:
+    @patch('site.ENABLE_USER_SITE', True)
+    @patch('pip._internal.commands.install.site_packages_writable')
+    def test_prefix_and_target(self, sp_writable):
+        sp_writable.return_value = False
+
+        assert decide_user_install(
+            use_user_site=None, prefix_path='foo'
+        ) is False
+
+        assert decide_user_install(
+            use_user_site=None, target_dir='bar'
+        ) is False
+
+    @patch('pip._internal.commands.install.site_packages_writable')
+    def test_user_site_enabled(self, sp_writable):
+        sp_writable.return_value = False
+
+        with patch('site.ENABLE_USER_SITE', True):
+            assert decide_user_install(use_user_site=None) is True
+
+        with patch('site.ENABLE_USER_SITE', False):
+            assert decide_user_install(use_user_site=None) is False
+
+    @patch('site.ENABLE_USER_SITE', True)
+    @patch('pip._internal.commands.install.site_packages_writable')
+    def test_site_packages_access(self, sp_writable):
+        sp_writable.return_value = True
+        assert decide_user_install(use_user_site=None) is False
+
+        sp_writable.return_value = False
+        assert decide_user_install(use_user_site=None) is True
