@@ -232,7 +232,6 @@ def process_line(
         elif not SCHEME_RE.search(req_path):
             # do a join so relative paths work
             req_path = os.path.join(os.path.dirname(filename), req_path)
-        # TODO: Why not use `comes_from='-r {} (line {})'` here as well?
         parsed_reqs = parse_requirements(
             req_path, finder, comes_from, options, session,
             constraint=nested_constraint, wheel_cache=wheel_cache
