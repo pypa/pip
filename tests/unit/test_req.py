@@ -1,3 +1,4 @@
+import contextlib
 import os
 import shutil
 import sys
@@ -55,30 +56,32 @@ class TestRequirementSet(object):
     def teardown(self):
         shutil.rmtree(self.tempdir, ignore_errors=True)
 
+    @contextlib.contextmanager
     def _basic_resolver(self, finder):
-        preparer = RequirementPreparer(
-            build_dir=os.path.join(self.tempdir, 'build'),
-            src_dir=os.path.join(self.tempdir, 'src'),
-            download_dir=None,
-            wheel_download_dir=None,
-            progress_bar="on",
-            build_isolation=True,
-            req_tracker=RequirementTracker(),
-        )
         make_install_req = partial(
             install_req_from_req_string,
             isolated=False,
             wheel_cache=None,
             use_pep517=None,
         )
-        return Resolver(
-            preparer=preparer,
-            make_install_req=make_install_req,
-            session=PipSession(), finder=finder,
-            use_user_site=False, upgrade_strategy="to-satisfy-only",
-            ignore_dependencies=False, ignore_installed=False,
-            ignore_requires_python=False, force_reinstall=False,
-        )
+        with RequirementTracker() as tracker:
+            preparer = RequirementPreparer(
+                build_dir=os.path.join(self.tempdir, 'build'),
+                src_dir=os.path.join(self.tempdir, 'src'),
+                download_dir=None,
+                wheel_download_dir=None,
+                progress_bar="on",
+                build_isolation=True,
+                req_tracker=tracker,
+            )
+            yield Resolver(
+                preparer=preparer,
+                make_install_req=make_install_req,
+                session=PipSession(), finder=finder,
+                use_user_site=False, upgrade_strategy="to-satisfy-only",
+                ignore_dependencies=False, ignore_installed=False,
+                ignore_requires_python=False, force_reinstall=False,
+            )
 
     def test_no_reuse_existing_build_dir(self, data):
         """Test prepare_files raise exception with previous build dir"""
@@ -92,14 +95,14 @@ class TestRequirementSet(object):
         req.is_direct = True
         reqset.add_requirement(req)
         finder = make_test_finder(find_links=[data.find_links])
-        resolver = self._basic_resolver(finder)
-        assert_raises_regexp(
-            PreviousBuildDirError,
-            r"pip can't proceed with [\s\S]*%s[\s\S]*%s" %
-            (req, build_dir.replace('\\', '\\\\')),
-            resolver.resolve,
-            reqset,
-        )
+        with self._basic_resolver(finder) as resolver:
+            assert_raises_regexp(
+                PreviousBuildDirError,
+                r"pip can't proceed with [\s\S]*%s[\s\S]*%s" %
+                (req, build_dir.replace('\\', '\\\\')),
+                resolver.resolve,
+                reqset,
+            )
 
     # TODO: Update test when Python 2.7 is dropped.
     def test_environment_marker_extras(self, data):
@@ -114,8 +117,8 @@ class TestRequirementSet(object):
         req.is_direct = True
         reqset.add_requirement(req)
         finder = make_test_finder(find_links=[data.find_links])
-        resolver = self._basic_resolver(finder)
-        resolver.resolve(reqset)
+        with self._basic_resolver(finder) as resolver:
+            resolver.resolve(reqset)
         # This is hacky but does test both case in py2 and py3
         if sys.version_info[:2] == (2, 7):
             assert reqset.has_requirement('simple')
@@ -151,21 +154,21 @@ class TestRequirementSet(object):
             lineno=4,
         ))
         finder = make_test_finder(index_urls=['https://pypi.org/simple/'])
-        resolver = self._basic_resolver(finder)
-        assert_raises_regexp(
-            HashErrors,
-            r'Hashes are required in --require-hashes mode, but they are '
-            r'missing .*\n'
-            r'    https://files\.pythonhosted\.org/packages/source/p/peep/peep'
-            r'-3\.1\.1\.tar\.gz --hash=sha256:[0-9a-f]+\n'
-            r'    blessings==1.0 --hash=sha256:[0-9a-f]+\n'
-            r'THESE PACKAGES DO NOT MATCH THE HASHES.*\n'
-            r'    tracefront==0.1 .*:\n'
-            r'        Expected sha256 somehash\n'
-            r'             Got        [0-9a-f]+$',
-            resolver.resolve,
-            reqset
-        )
+        with self._basic_resolver(finder) as resolver:
+            assert_raises_regexp(
+                HashErrors,
+                r'Hashes are required in --require-hashes mode, but they are '
+                r'missing .*\n'
+                r'    https://files\.pythonhosted\.org/packages/source/p/peep/peep'
+                r'-3\.1\.1\.tar\.gz --hash=sha256:[0-9a-f]+\n'
+                r'    blessings==1.0 --hash=sha256:[0-9a-f]+\n'
+                r'THESE PACKAGES DO NOT MATCH THE HASHES.*\n'
+                r'    tracefront==0.1 .*:\n'
+                r'        Expected sha256 somehash\n'
+                r'             Got        [0-9a-f]+$',
+                resolver.resolve,
+                reqset
+            )
 
     def test_missing_hash_with_require_hashes(self, data):
         """Setting --require-hashes explicitly should raise errors if hashes
@@ -177,17 +180,17 @@ class TestRequirementSet(object):
         ))
 
         finder = make_test_finder(find_links=[data.find_links])
-        resolver = self._basic_resolver(finder)
 
-        assert_raises_regexp(
-            HashErrors,
-            r'Hashes are required in --require-hashes mode, but they are '
-            r'missing .*\n'
-            r'    simple==1.0 --hash=sha256:393043e672415891885c9a2a0929b1af95'
-            r'fb866d6ca016b42d2e6ce53619b653$',
-            resolver.resolve,
-            reqset
-        )
+        with self._basic_resolver(finder) as resolver:
+            assert_raises_regexp(
+                HashErrors,
+                r'Hashes are required in --require-hashes mode, but they are '
+                r'missing .*\n'
+                r'    simple==1.0 --hash=sha256:393043e672415891885c9a2a0929b1af95'
+                r'fb866d6ca016b42d2e6ce53619b653$',
+                resolver.resolve,
+                reqset
+            )
 
     def test_missing_hash_with_require_hashes_in_reqs_file(self, data, tmpdir):
         """--require-hashes in a requirements file should make its way to the
@@ -223,22 +226,25 @@ class TestRequirementSet(object):
             lineno=2,
         ))
         finder = make_test_finder(find_links=[data.find_links])
-        resolver = self._basic_resolver(finder)
+
         sep = os.path.sep
         if sep == '\\':
             sep = '\\\\'  # This needs to be escaped for the regex
-        assert_raises_regexp(
-            HashErrors,
-            r"Can't verify hashes for these requirements because we don't "
-            r"have a way to hash version control repositories:\n"
-            r"    git\+git://github\.com/pypa/pip-test-package \(from -r file "
-            r"\(line 1\)\)\n"
-            r"Can't verify hashes for these file:// requirements because they "
-            r"point to directories:\n"
-            r"    file://.*{sep}data{sep}packages{sep}FSPkg "
-            r"\(from -r file \(line 2\)\)".format(sep=sep),
-            resolver.resolve,
-            reqset)
+
+        with self._basic_resolver(finder) as resolver:
+            assert_raises_regexp(
+                HashErrors,
+                r"Can't verify hashes for these requirements because we don't "
+                r"have a way to hash version control repositories:\n"
+                r"    git\+git://github\.com/pypa/pip-test-package \(from -r file "
+                r"\(line 1\)\)\n"
+                r"Can't verify hashes for these file:// requirements because they "
+                r"point to directories:\n"
+                r"    file://.*{sep}data{sep}packages{sep}FSPkg "
+                r"\(from -r file \(line 2\)\)".format(sep=sep),
+                resolver.resolve,
+                reqset,
+            )
 
     def test_unpinned_hash_checking(self, data):
         """Make sure prepare_files() raises an error when a requirement is not
@@ -257,15 +263,16 @@ class TestRequirementSet(object):
             lineno=2,
         ))
         finder = make_test_finder(find_links=[data.find_links])
-        resolver = self._basic_resolver(finder)
-        assert_raises_regexp(
-            HashErrors,
-            # Make sure all failing requirements are listed:
-            r'versions pinned with ==. These do not:\n'
-            r'    simple .* \(from -r file \(line 1\)\)\n'
-            r'    simple2>1.0 .* \(from -r file \(line 2\)\)',
-            resolver.resolve,
-            reqset)
+        with self._basic_resolver(finder) as resolver:
+            assert_raises_regexp(
+                HashErrors,
+                # Make sure all failing requirements are listed:
+                r'versions pinned with ==. These do not:\n'
+                r'    simple .* \(from -r file \(line 1\)\)\n'
+                r'    simple2>1.0 .* \(from -r file \(line 2\)\)',
+                resolver.resolve,
+                reqset,
+            )
 
     def test_hash_mismatch(self, data):
         """A hash mismatch should raise an error."""
@@ -276,36 +283,39 @@ class TestRequirementSet(object):
             '%s --hash=sha256:badbad' % file_url, lineno=1,
         ))
         finder = make_test_finder(find_links=[data.find_links])
-        resolver = self._basic_resolver(finder)
-        assert_raises_regexp(
-            HashErrors,
-            r'THESE PACKAGES DO NOT MATCH THE HASHES.*\n'
-            r'    file:///.*/data/packages/simple-1\.0\.tar\.gz .*:\n'
-            r'        Expected sha256 badbad\n'
-            r'             Got        393043e672415891885c9a2a0929b1af95fb866d'
-            r'6ca016b42d2e6ce53619b653$',
-            resolver.resolve,
-            reqset)
+        with self._basic_resolver(finder) as resolver:
+            assert_raises_regexp(
+                HashErrors,
+                r'THESE PACKAGES DO NOT MATCH THE HASHES.*\n'
+                r'    file:///.*/data/packages/simple-1\.0\.tar\.gz .*:\n'
+                r'        Expected sha256 badbad\n'
+                r'             Got        393043e672415891885c9a2a0929b1af95fb866d'
+                r'6ca016b42d2e6ce53619b653$',
+                resolver.resolve,
+                reqset,
+            )
 
     def test_unhashed_deps_on_require_hashes(self, data):
         """Make sure unhashed, unpinned, or otherwise unrepeatable
         dependencies get complained about when --require-hashes is on."""
         reqset = RequirementSet()
         finder = make_test_finder(find_links=[data.find_links])
-        resolver = self._basic_resolver(finder)
         reqset.add_requirement(get_processed_req_from_line(
             'TopoRequires2==0.0.1 '  # requires TopoRequires
             '--hash=sha256:eaf9a01242c9f2f42cf2bd82a6a848cd'
             'e3591d14f7896bdbefcf48543720c970',
             lineno=1
         ))
-        assert_raises_regexp(
-            HashErrors,
-            r'In --require-hashes mode, all requirements must have their '
-            r'versions pinned.*\n'
-            r'    TopoRequires from .*$',
-            resolver.resolve,
-            reqset)
+
+        with self._basic_resolver(finder) as resolver:
+            assert_raises_regexp(
+                HashErrors,
+                r'In --require-hashes mode, all requirements must have their '
+                r'versions pinned.*\n'
+                r'    TopoRequires from .*$',
+                resolver.resolve,
+                reqset,
+            )
 
     def test_hashed_deps_on_require_hashes(self):
         """Make sure hashed dependencies get installed when --require-hashes
