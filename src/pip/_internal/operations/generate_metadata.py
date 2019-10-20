@@ -1,13 +1,18 @@
 """Metadata generation logic for source distributions.
 """
 
+import atexit
 import logging
 import os
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.utils.misc import ensure_dir
 from pip._internal.utils.setuptools_build import make_setuptools_egg_info_args
-from pip._internal.utils.subprocess import call_subprocess
+from pip._internal.utils.subprocess import (
+    call_subprocess,
+    runner_with_spinner_message,
+)
+from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs import vcs
 
@@ -134,4 +139,24 @@ def _generate_metadata_legacy(install_req):
 
 def _generate_metadata(install_req):
     # type: (InstallRequirement) -> str
-    return install_req.prepare_pep517_metadata()
+    assert install_req.pep517_backend is not None
+    build_env = install_req.build_env
+    backend = install_req.pep517_backend
+
+    # NOTE: This needs to be refactored to stop using atexit
+    metadata_tmpdir = TempDirectory(kind="modern-metadata")
+    atexit.register(metadata_tmpdir.cleanup)
+
+    metadata_dir = metadata_tmpdir.path
+
+    with build_env:
+        # Note that Pep517HookCaller implements a fallback for
+        # prepare_metadata_for_build_wheel, so we don't have to
+        # consider the possibility that this hook doesn't exist.
+        runner = runner_with_spinner_message("Preparing wheel metadata")
+        with backend.subprocess_runner(runner):
+            distinfo_dir = backend.prepare_metadata_for_build_wheel(
+                metadata_dir
+            )
+
+    return os.path.join(metadata_dir, distinfo_dir)
