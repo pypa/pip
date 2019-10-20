@@ -162,7 +162,7 @@ class InstallRequirement(object):
         # Temporary build location
         self._temp_build_dir = None  # type: Optional[TempDirectory]
         # Used to store the global directory where the _temp_build_dir should
-        # have been created. Cf move_to_correct_build_directory method.
+        # have been created. See move_to_correct_build_directory().
         self._ideal_build_dir = None  # type: Optional[str]
         # Set to True after successful installation
         self.install_succeeded = None  # type: Optional[bool]
@@ -385,7 +385,7 @@ class InstallRequirement(object):
 
     def move_to_correct_build_directory(self):
         # type: () -> None
-        """Move self._temp_build_dir to "self._ideal_build_dir/self.req.name"
+        """Move self._temp_build_dir to "self._ideal_build_dir/{metadata name}"
 
         For some requirements (e.g. a path to a directory), the name of the
         package is not available until we run egg_info, so the build_location
@@ -394,14 +394,33 @@ class InstallRequirement(object):
         This is only called to "fix" the build directory after generating
         metadata.
         """
+        assert self.req is None
+        assert self.metadata is not None
+
+        # Construct a Requirement object from the generated metadata
+        if isinstance(parse_version(self.metadata["Version"]), Version):
+            op = "=="
+        else:
+            op = "==="
+
+        self.req = Requirement(
+            "".join([
+                self.metadata["Name"],
+                op,
+                self.metadata["Version"],
+            ])
+        )
+
         if self.source_dir is not None:
             return
-        assert self.req is not None
+
         assert self._temp_build_dir
         assert (
             self._ideal_build_dir is not None and
             self._ideal_build_dir.path  # type: ignore
         )
+
+        # Backup directory for later use.
         old_location = self._temp_build_dir
         self._temp_build_dir = None  # checked inside ensure_build_location
 
@@ -586,18 +605,7 @@ class InstallRequirement(object):
         with indent_log():
             self.metadata_directory = metadata_generator(self)
 
-        if not self.req:
-            if isinstance(parse_version(self.metadata["Version"]), Version):
-                op = "=="
-            else:
-                op = "==="
-            self.req = Requirement(
-                "".join([
-                    self.metadata["Name"],
-                    op,
-                    self.metadata["Version"],
-                ])
-            )
+        if not self.name:
             self.move_to_correct_build_directory()
         else:
             metadata_name = canonicalize_name(self.metadata["Name"])
