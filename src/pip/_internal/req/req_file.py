@@ -31,15 +31,20 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import get_url_scheme
 
 if MYPY_CHECK_RUNNING:
+    from optparse import Values
     from typing import (
         Any, Callable, Iterator, List, NoReturn, Optional, Text, Tuple,
     )
+
     from pip._internal.req import InstallRequirement
     from pip._internal.cache import WheelCache
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.network.session import PipSession
 
     ReqFileLines = Iterator[Tuple[int, Text]]
+
+    LineParser = Callable[[Text], Tuple[str, Values]]
+
 
 __all__ = ['parse_requirements']
 
@@ -167,20 +172,9 @@ def process_line(
     :param constraint: If True, parsing a constraints file.
     :param options: OptionParser options that we may update
     """
-    parser = build_parser()
-    defaults = parser.get_default_values()
-    defaults.index_url = None
-    if finder:
-        defaults.format_control = finder.format_control
-    args_str, options_str = break_args_options(line)
-    # Prior to 2.7.3, shlex cannot deal with unicode entries
-    if sys.version_info < (2, 7, 3):
-        # https://github.com/python/mypy/issues/1174
-        options_str = options_str.encode('utf8')  # type: ignore
+    line_parser = get_line_parser(finder)
     try:
-        # https://github.com/python/mypy/issues/1174
-        opts, _ = parser.parse_args(
-            shlex.split(options_str), defaults)  # type: ignore
+        args_str, opts = line_parser(line)
     except OptionParsingError as e:
         # add offending line
         msg = 'Invalid requirement: %s\n%s' % (line, e.msg)
@@ -282,6 +276,31 @@ def process_line(
         for host in opts.trusted_hosts or []:
             source = 'line {} of {}'.format(line_number, filename)
             session.add_trusted_host(host, source=source)
+
+
+def get_line_parser(finder):
+    # type: (Optional[PackageFinder]) -> LineParser
+    parser = build_parser()
+    defaults = parser.get_default_values()
+    defaults.index_url = None
+    if finder:
+        defaults.format_control = finder.format_control
+
+    def parse_line(line):
+        # type: (Text) -> Tuple[str, Values]
+        args_str, options_str = break_args_options(line)
+        # Prior to 2.7.3, shlex cannot deal with unicode entries
+        if sys.version_info < (2, 7, 3):
+            # https://github.com/python/mypy/issues/1174
+            options_str = options_str.encode('utf8')  # type: ignore
+
+        # https://github.com/python/mypy/issues/1174
+        opts, _ = parser.parse_args(
+            shlex.split(options_str), defaults)  # type: ignore
+
+        return args_str, opts
+
+    return parse_line
 
 
 def break_args_options(line):
