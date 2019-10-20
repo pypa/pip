@@ -596,7 +596,7 @@ def get_lib_location_guesses(*args, **kwargs):
 
 def site_packages_writable(**kwargs):
     return all(
-        test_writable_dir(d) for d in get_lib_location_guesses(**kwargs)
+        test_writable_dir(d) for d in set(get_lib_location_guesses(**kwargs))
     )
 
 
