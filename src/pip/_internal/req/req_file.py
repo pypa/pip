@@ -180,6 +180,34 @@ def process_line(
         msg = 'Invalid requirement: %s\n%s' % (line, e.msg)
         raise RequirementsFileParseError(msg)
 
+    # parse a nested requirements file
+    if (
+        not args_str and
+        not opts.editable and
+        (opts.requirements or opts.constraints)
+    ):
+        if opts.requirements:
+            req_path = opts.requirements[0]
+            nested_constraint = False
+        else:
+            req_path = opts.constraints[0]
+            nested_constraint = True
+        # original file is over http
+        if SCHEME_RE.search(filename):
+            # do a url join so relative paths work
+            req_path = urllib_parse.urljoin(filename, req_path)
+        # original file and nested file are paths
+        elif not SCHEME_RE.search(req_path):
+            # do a join so relative paths work
+            req_path = os.path.join(os.path.dirname(filename), req_path)
+        parsed_reqs = parse_requirements(
+            req_path, finder, comes_from, options, session,
+            constraint=nested_constraint, wheel_cache=wheel_cache
+        )
+        for req in parsed_reqs:
+            yield req
+        return
+
     # preserve for the nested code path
     line_comes_from = '%s %s (line %s)' % (
         '-c' if constraint else '-r', filename, line_number,
@@ -215,29 +243,6 @@ def process_line(
             use_pep517=use_pep517,
             constraint=constraint, isolated=isolated, wheel_cache=wheel_cache
         )
-
-    # parse a nested requirements file
-    elif opts.requirements or opts.constraints:
-        if opts.requirements:
-            req_path = opts.requirements[0]
-            nested_constraint = False
-        else:
-            req_path = opts.constraints[0]
-            nested_constraint = True
-        # original file is over http
-        if SCHEME_RE.search(filename):
-            # do a url join so relative paths work
-            req_path = urllib_parse.urljoin(filename, req_path)
-        # original file and nested file are paths
-        elif not SCHEME_RE.search(req_path):
-            # do a join so relative paths work
-            req_path = os.path.join(os.path.dirname(filename), req_path)
-        parsed_reqs = parse_requirements(
-            req_path, finder, comes_from, options, session,
-            constraint=nested_constraint, wheel_cache=wheel_cache
-        )
-        for req in parsed_reqs:
-            yield req
 
     # percolate hash-checking option upward
     elif opts.require_hashes:
