@@ -2,6 +2,10 @@ parameters:
   runIntegrationTests:
 
 steps:
+- powershell: |
+    Invoke-WebRequest -Uri https://go.microsoft.com/fwlink/?linkid=2026036 -OutFile adksetup.exe
+    adksetup.exe /features OptionId.WindowsPerformanceToolkit /ceip off /installpath T:\ADK
+
 - task: UsePythonVersion@0
   displayName: Use Python $(python.version)
   inputs:
@@ -11,8 +15,20 @@ steps:
 - bash: pip install --upgrade setuptools tox
   displayName: Install Tox
 
+- script: '"C:\ADK\Windows Performance Toolkit\wpr.exe" -start GeneralProfile.light'
+  displayName: Start tracing
+
 - script: tox -e py -- -m unit -n 3 --junit-xml=junit/unit-test.xml
   displayName: Tox run unit tests
+
+- script: '"C:\ADK\Windows Performance Toolkit\wpr.exe" -stop T:\wpr-result.etl'
+  displayName: Stop tracing
+
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish trace results'
+  inputs:
+    pathtoPublish: T:\wpr-result.etl
+    artifactName: wpr-result.etl
 
 - ${{ if eq(parameters.runIntegrationTests, 'true') }}:
   - powershell: |
