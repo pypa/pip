@@ -617,6 +617,7 @@ def decide_user_install(
     which is provided by the other arguments.
     """
     if use_user_site is False:
+        logger.debug("Non-user install by explicit request")
         return False
 
     if use_user_site is True:
@@ -630,6 +631,7 @@ def decide_user_install(
                 "Can not perform a '--user' install. User site-packages "
                 "are not visible in this virtualenv."
             )
+        logger.debug("User install by explicit request")
         return True
 
     # If we are here, user installs have not been explicitly requested/avoided
@@ -637,16 +639,22 @@ def decide_user_install(
 
     # user install incompatible with --prefix/--target
     if prefix_path or target_dir:
+        logger.debug("Non-user install due to --prefix or --target option")
         return False
 
     # If user installs are not enabled, choose a non-user install
     if not site.ENABLE_USER_SITE:
+        logger.debug("Non-user install because user site-packages disabled")
         return False
 
     # If we don't have permission for a non-user install, choose a user install
-    return not site_packages_writable(
-        root=root_path, isolated=isolated_mode,
-    )
+    if site_packages_writable(root=root_path, isolated=isolated_mode):
+        logger.debug("Non-user install because site-packages writeable")
+        return False
+
+    logger.info("Defaulting to user installation because normal site-packages "
+                "is not writeable")
+    return True
 
 
 def create_env_error_message(error, show_traceback, using_user_site):
