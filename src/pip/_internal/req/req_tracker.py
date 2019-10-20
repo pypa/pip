@@ -86,9 +86,13 @@ class RequirementTracker(object):
 
     def remove(self, req):
         # type: (InstallRequirement) -> None
-        link = req.link
+        """Remove an InstallRequirement from build tracking.
+        """
+
+        # Delete the created file and the corresponding entries.
+        os.unlink(self._entry_path(req.link))
         self._entries.remove(req)
-        os.unlink(self._entry_path(link))
+
         logger.debug('Removed %s from build tracker %r', req, self._root)
 
     def cleanup(self):
