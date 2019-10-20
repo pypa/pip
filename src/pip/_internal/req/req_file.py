@@ -167,7 +167,7 @@ def process_line(
     :param constraint: If True, parsing a constraints file.
     :param options: OptionParser options that we may update
     """
-    parser = build_parser(line)
+    parser = build_parser()
     defaults = parser.get_default_values()
     defaults.index_url = None
     if finder:
@@ -177,9 +177,14 @@ def process_line(
     if sys.version_info < (2, 7, 3):
         # https://github.com/python/mypy/issues/1174
         options_str = options_str.encode('utf8')  # type: ignore
-    # https://github.com/python/mypy/issues/1174
-    opts, _ = parser.parse_args(
-        shlex.split(options_str), defaults)  # type: ignore
+    try:
+        # https://github.com/python/mypy/issues/1174
+        opts, _ = parser.parse_args(
+            shlex.split(options_str), defaults)  # type: ignore
+    except OptionParsingError as e:
+        # add offending line
+        msg = 'Invalid requirement: %s\n%s' % (line, e.msg)
+        raise RequirementsFileParseError(msg)
 
     # preserve for the nested code path
     line_comes_from = '%s %s (line %s)' % (
@@ -297,8 +302,14 @@ def break_args_options(line):
     return ' '.join(args), ' '.join(options)  # type: ignore
 
 
-def build_parser(line):
-    # type: (Text) -> optparse.OptionParser
+class OptionParsingError(Exception):
+    def __init__(self, msg):
+        # type: (str) -> None
+        self.msg = msg
+
+
+def build_parser():
+    # type: () -> optparse.OptionParser
     """
     Return a parser for parsing requirement lines
     """
@@ -313,9 +324,7 @@ def build_parser(line):
     # that in our own exception.
     def parser_exit(self, msg):
         # type: (Any, str) -> NoReturn
-        # add offending line
-        msg = 'Invalid requirement: %s\n%s' % (line, msg)
-        raise RequirementsFileParseError(msg)
+        raise OptionParsingError(msg)
     # NOTE: mypy disallows assigning to a method
     #       https://github.com/python/mypy/issues/2427
     parser.exit = parser_exit  # type: ignore
