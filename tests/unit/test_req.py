@@ -75,12 +75,16 @@ class TestRequirementSet(object):
                 req_tracker=tracker,
             )
             yield Resolver(
-                preparer=preparer,
+                finder=finder,
                 make_install_req=make_install_req,
-                session=PipSession(), finder=finder,
-                use_user_site=False, upgrade_strategy="to-satisfy-only",
-                ignore_dependencies=False, ignore_installed=False,
-                ignore_requires_python=False, force_reinstall=False,
+                preparer=preparer,
+                session=PipSession(),
+                upgrade_strategy="to-satisfy-only",
+                force_reinstall=False,
+                ignore_dependencies=False,
+                ignore_installed=False,
+                ignore_requires_python=False,
+                use_user_site=False,
             )
 
     def test_no_reuse_existing_build_dir(self, data):
