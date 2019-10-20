@@ -352,7 +352,6 @@ class InstallCommand(RequirementCommand):
             options.build_dir, delete=build_delete, kind="install"
         ) as directory:
             requirement_set = RequirementSet(
-                require_hashes=options.require_hashes,
                 check_supported_wheels=not options.target_dir,
             )
 
