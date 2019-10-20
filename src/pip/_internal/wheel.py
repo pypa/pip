@@ -34,7 +34,7 @@ from pip._internal.exceptions import (
     InvalidWheelFilename,
     UnsupportedWheel,
 )
-from pip._internal.locations import distutils_scheme, get_major_minor_version
+from pip._internal.locations import get_major_minor_version
 from pip._internal.models.link import Link
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.marker_files import has_delete_marker_file
@@ -60,7 +60,6 @@ if MYPY_CHECK_RUNNING:
         Dict, List, Optional, Sequence, Mapping, Tuple, IO, Text, Any,
         Iterable, Callable, Set, Union,
     )
-    from pip._vendor.packaging.requirements import Requirement
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.operations.prepare import (
         RequirementPreparer
@@ -333,30 +332,29 @@ class PipScriptMaker(ScriptMaker):
         return super(PipScriptMaker, self).make(specification, options)
 
 
-def move_wheel_files(
+def install_unpacked_wheel(
     name,  # type: str
-    req,  # type: Requirement
     wheeldir,  # type: str
-    user=False,  # type: bool
-    home=None,  # type: Optional[str]
-    root=None,  # type: Optional[str]
+    scheme,  # type: Mapping[str, str]
+    req_description,  # type: str
     pycompile=True,  # type: bool
-    scheme=None,  # type: Optional[Mapping[str, str]]
-    isolated=False,  # type: bool
-    prefix=None,  # type: Optional[str]
     warn_script_location=True  # type: bool
 ):
     # type: (...) -> None
-    """Install a wheel"""
+    """Install a wheel.
+
+    :param name: Name of the project to install
+    :param wheeldir: Base directory of the unpacked wheel
+    :param scheme: Distutils scheme dictating the install directories
+    :param req_description: String used in place of the requirement, for
+        logging
+    :param pycompile: Whether to byte-compile installed Python files
+    :param warn_script_location: Whether to check that scripts are installed
+        into a directory on PATH
+    """
     # TODO: Investigate and break this up.
     # TODO: Look into moving this into a dedicated class for representing an
     #       installation.
-
-    if not scheme:
-        scheme = distutils_scheme(
-            name, user=user, home=home, root=root, isolated=isolated,
-            prefix=prefix,
-        )
 
     if root_is_purelib(name, wheeldir):
         lib_dir = scheme['purelib']
@@ -404,13 +402,16 @@ def move_wheel_files(
                 if is_base and basedir == '' and destsubdir.endswith('.data'):
                     data_dirs.append(s)
                     continue
-                elif (is_base and
-                        s.endswith('.dist-info') and
-                        canonicalize_name(s).startswith(
-                            canonicalize_name(req.name))):
-                    assert not info_dir, ('Multiple .dist-info directories: ' +
-                                          destsubdir + ', ' +
-                                          ', '.join(info_dir))
+                elif (
+                    is_base and
+                    s.endswith('.dist-info') and
+                    canonicalize_name(s).startswith(canonicalize_name(name))
+                ):
+                    assert not info_dir, (
+                        'Multiple .dist-info directories: {}, '.format(
+                            destsubdir
+                        ) + ', '.join(info_dir)
+                    )
                     info_dir.append(destsubdir)
             for f in files:
                 # Skip unwanted files
@@ -463,7 +464,9 @@ def move_wheel_files(
 
     clobber(source, lib_dir, True)
 
-    assert info_dir, "%s .dist-info directory not found" % req
+    assert info_dir, "{} .dist-info directory not found".format(
+        req_description
+    )
 
     # Get the defined entry points
     ep_file = os.path.join(info_dir[0], 'entry_points.txt')
@@ -606,7 +609,7 @@ def move_wheel_files(
             "Invalid script entry point: {} for req: {} - A callable "
             "suffix is required. Cf https://packaging.python.org/en/"
             "latest/distributing.html#console-scripts for more "
-            "information.".format(entry, req)
+            "information.".format(entry, req_description)
         )
 
     if warn_script_location:

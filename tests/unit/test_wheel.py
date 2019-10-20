@@ -11,6 +11,7 @@ from pip._vendor.packaging.requirements import Requirement
 from pip._internal import pep425tags, wheel
 from pip._internal.commands.wheel import WheelCommand
 from pip._internal.exceptions import InvalidWheelFilename, UnsupportedWheel
+from pip._internal.locations import distutils_scheme
 from pip._internal.models.link import Link
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.compat import WINDOWS
@@ -620,7 +621,7 @@ class TestWheelFile(object):
         assert w.version == '0.1-1'
 
 
-class TestMoveWheelFiles(object):
+class TestInstallUnpackedWheel(object):
     """
     Tests for moving files from wheel src to scheme paths
     """
@@ -660,19 +661,30 @@ class TestMoveWheelFiles(object):
 
     def test_std_install(self, data, tmpdir):
         self.prep(data, tmpdir)
-        wheel.move_wheel_files(
-            self.name, self.req, self.src, scheme=self.scheme)
+        wheel.install_unpacked_wheel(
+            self.name,
+            self.src,
+            scheme=self.scheme,
+            req_description=str(self.req),
+        )
         self.assert_installed()
 
     def test_install_prefix(self, data, tmpdir):
         prefix = os.path.join(os.path.sep, 'some', 'path')
         self.prep(data, tmpdir)
-        wheel.move_wheel_files(
+        scheme = distutils_scheme(
             self.name,
-            self.req,
-            self.src,
+            user=False,
+            home=None,
             root=tmpdir,
+            isolated=False,
             prefix=prefix,
+        )
+        wheel.install_unpacked_wheel(
+            self.name,
+            self.src,
+            scheme=scheme,
+            req_description=str(self.req),
         )
 
         bin_dir = 'Scripts' if WINDOWS else 'bin'
@@ -689,8 +701,12 @@ class TestMoveWheelFiles(object):
             self.src_dist_info, 'empty_dir', 'empty_dir')
         os.makedirs(src_empty_dir)
         assert os.path.isdir(src_empty_dir)
-        wheel.move_wheel_files(
-            self.name, self.req, self.src, scheme=self.scheme)
+        wheel.install_unpacked_wheel(
+            self.name,
+            self.src,
+            scheme=self.scheme,
+            req_description=str(self.req),
+        )
         self.assert_installed()
         assert not os.path.isdir(
             os.path.join(self.dest_dist_info, 'empty_dir'))
