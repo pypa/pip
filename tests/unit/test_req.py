@@ -151,8 +151,8 @@ class TestRequirementSet(object):
                 HashErrors,
                 r'Hashes are required in --require-hashes mode, but they are '
                 r'missing .*\n'
-                r'    simple==1.0 --hash=sha256:393043e672415891885c9a2a0929b1af95'
-                r'fb866d6ca016b42d2e6ce53619b653$',
+                r'    simple==1.0 --hash=sha256:393043e672415891885c9a2a0929b1'
+                r'af95fb866d6ca016b42d2e6ce53619b653$',
                 resolver.resolve,
                 reqset
             )
@@ -201,10 +201,10 @@ class TestRequirementSet(object):
                 HashErrors,
                 r"Can't verify hashes for these requirements because we don't "
                 r"have a way to hash version control repositories:\n"
-                r"    git\+git://github\.com/pypa/pip-test-package \(from -r file "
-                r"\(line 1\)\)\n"
-                r"Can't verify hashes for these file:// requirements because they "
-                r"point to directories:\n"
+                r"    git\+git://github\.com/pypa/pip-test-package \(from -r "
+                r"file \(line 1\)\)\n"
+                r"Can't verify hashes for these file:// requirements because "
+                r"they point to directories:\n"
                 r"    file://.*{sep}data{sep}packages{sep}FSPkg "
                 r"\(from -r file \(line 2\)\)".format(sep=sep),
                 resolver.resolve,
@@ -254,8 +254,8 @@ class TestRequirementSet(object):
                 r'THESE PACKAGES DO NOT MATCH THE HASHES.*\n'
                 r'    file:///.*/data/packages/simple-1\.0\.tar\.gz .*:\n'
                 r'        Expected sha256 badbad\n'
-                r'             Got        393043e672415891885c9a2a0929b1af95fb866d'
-                r'6ca016b42d2e6ce53619b653$',
+                r'             Got        393043e672415891885c9a2a0929b1af95fb'
+                r'866d6ca016b42d2e6ce53619b653$',
                 resolver.resolve,
                 reqset,
             )
