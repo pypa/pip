@@ -26,17 +26,22 @@ class RequirementTracker(object):
     def __init__(self):
         # type: () -> None
         self._root = os.environ.get('PIP_REQ_TRACKER')
-        if self._root is None:
-            self._temp_dir = TempDirectory(delete=False, kind='req-tracker')
-            self._root = os.environ['PIP_REQ_TRACKER'] = self._temp_dir.path
-            logger.debug('Created requirements tracker %r', self._root)
-        else:
-            self._temp_dir = None
-            logger.debug('Re-using requirements tracker %r', self._root)
+        self._temp_dir = None  # type: Optional[TempDirectory]
         self._entries = set()  # type: Set[InstallRequirement]
 
     def __enter__(self):
         # type: () -> RequirementTracker
+        if self._root is not None:
+            logger.debug('Re-using requirements tracker %r', self._root)
+            return self
+
+        # Setup a directory for requirement tracking and export it via an
+        # environment variable for subprocesses.
+        self._temp_dir = TempDirectory(delete=False, kind='req-tracker')
+        os.environ['PIP_REQ_TRACKER'] = self._temp_dir.path
+        self._root = self._temp_dir.path
+        logger.debug('Created requirements tracker %r', self._root)
+
         return self
 
     def __exit__(
@@ -86,6 +91,8 @@ class RequirementTracker(object):
         remove = self._temp_dir is not None
         if remove:
             self._temp_dir.cleanup()
+            del os.environ['PIP_REQ_TRACKER']
+
         logger.debug('%s build tracker %r',
                      'Removed' if remove else 'Cleaned',
                      self._root)
