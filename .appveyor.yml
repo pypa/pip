@@ -1,12 +1,12 @@
 environment:
-  matrix:
+  matrix: []
     # Unit and integration tests.
-    - PYTHON: "C:\\Python27-x64"
-      RUN_INTEGRATION_TESTS: "True"
-    - PYTHON: "C:\\Python35-x64"
-      RUN_INTEGRATION_TESTS: "True"
-    - PYTHON: "C:\\Python36-x64"
-      RUN_INTEGRATION_TESTS: "True"
+    #- PYTHON: "C:\\Python27-x64"
+    #  RUN_INTEGRATION_TESTS: "True"
+    #- PYTHON: "C:\\Python35-x64"
+    #  RUN_INTEGRATION_TESTS: "True"
+    #- PYTHON: "C:\\Python36-x64"
+    #  RUN_INTEGRATION_TESTS: "True"
     # Unit tests only.
     # Nothing for the moment
 

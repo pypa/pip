@@ -12,45 +12,45 @@ stages:
 - secondary
 
 jobs:
-  include:
-    # Basic Checks
-    - stage: primary
-      env: TOXENV=docs
-    - env: TOXENV=lint
-    - env: TOXENV=vendoring
-    # Latest CPython
-    - env: GROUP=1
-      python: 2.7
-    - env: GROUP=2
-      python: 2.7
-    - env: GROUP=1
-    - env: GROUP=2
+  include: []
+    ## Basic Checks
+    #- stage: primary
+    #  env: TOXENV=docs
+    #- env: TOXENV=lint
+    #- env: TOXENV=vendoring
+    ## Latest CPython
+    #- env: GROUP=1
+    #  python: 2.7
+    #- env: GROUP=2
+    #  python: 2.7
+    #- env: GROUP=1
+    #- env: GROUP=2
 
-    # Complete checking for ensuring compatibility
-    # PyPy
-    - stage: secondary
-      env: GROUP=1
-      python: pypy3.5-6.0
-    - env: GROUP=2
-      python: pypy3.5-6.0
-    - env: GROUP=1
-      python: pypy2.7-6.0
-    - env: GROUP=2
-      python: pypy2.7-6.0
-    # Other Supported CPython
-    - env: GROUP=1
-      python: 3.6
-    - env: GROUP=2
-      python: 3.6
-    - env: GROUP=1
-      python: 3.5
-    - env: GROUP=2
-      python: 3.5
+    ## Complete checking for ensuring compatibility
+    ## PyPy
+    #- stage: secondary
+    #  env: GROUP=1
+    #  python: pypy3.5-6.0
+    #- env: GROUP=2
+    #  python: pypy3.5-6.0
+    #- env: GROUP=1
+    #  python: pypy2.7-6.0
+    #- env: GROUP=2
+    #  python: pypy2.7-6.0
+    ## Other Supported CPython
+    #- env: GROUP=1
+    #  python: 3.6
+    #- env: GROUP=2
+    #  python: 3.6
+    #- env: GROUP=1
+    #  python: 3.5
+    #- env: GROUP=2
+    #  python: 3.5
 
-    - env: GROUP=1
-      python: 3.8-dev
-    - env: GROUP=2
-      python: 3.8-dev
+    #- env: GROUP=1
+    #  python: 3.8-dev
+    #- env: GROUP=2
+    #  python: 3.8-dev
 
   fast_finish: true
   # It's okay to fail on the in-development CPython version.

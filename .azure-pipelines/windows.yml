@@ -3,6 +3,6 @@ jobs:
   parameters:
     vmImage: vs2017-win2016
 
-- template: jobs/package.yml
-  parameters:
-    vmImage: vs2017-win2016
+#- template: jobs/package.yml
+#  parameters:
+#    vmImage: vs2017-win2016
