@@ -123,21 +123,19 @@ class TestDecideUserInstall:
             use_user_site=None, target_dir='bar'
         ) is False
 
-    @patch('pip._internal.commands.install.site_packages_writable')
-    def test_user_site_enabled(self, sp_writable):
-        sp_writable.return_value = False
-
-        with patch('site.ENABLE_USER_SITE', True):
-            assert decide_user_install(use_user_site=None) is True
-
-        with patch('site.ENABLE_USER_SITE', False):
-            assert decide_user_install(use_user_site=None) is False
-
-    @patch('site.ENABLE_USER_SITE', True)
-    @patch('pip._internal.commands.install.site_packages_writable')
-    def test_site_packages_access(self, sp_writable):
-        sp_writable.return_value = True
-        assert decide_user_install(use_user_site=None) is False
-
-        sp_writable.return_value = False
-        assert decide_user_install(use_user_site=None) is True
+    @pytest.mark.parametrize(
+        "enable_user_site,site_packages_writable,result", [
+            (True, True, False),
+            (True, False, True),
+            (False, True, False),
+            (False, False, False),
+        ])
+    def test_most_cases(
+        self, enable_user_site, site_packages_writable, result, monkeypatch,
+    ):
+        monkeypatch.setattr('site.ENABLE_USER_SITE', enable_user_site)
+        monkeypatch.setattr(
+            'pip._internal.commands.install.site_packages_writable',
+            lambda **kw: site_packages_writable
+        )
+        assert decide_user_install(use_user_site=None) is result
