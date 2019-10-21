@@ -647,7 +647,8 @@ def decide_user_install(
         logger.debug("Non-user install because user site-packages disabled")
         return False
 
-    # If we don't have permission for a non-user install, choose a user install
+    # If we have permission for a non-user install, do that,
+    # otherwise do a user install.
     if site_packages_writable(root=root_path, isolated=isolated_mode):
         logger.debug("Non-user install because site-packages writeable")
         return False
