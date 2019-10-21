@@ -1,7 +1,6 @@
 language: python
 cache: pip
-dist: xenial
-python: 3.7
+python: 3.8
 addons:
   apt:
     packages:
@@ -30,14 +29,18 @@ jobs:
     # PyPy
     - stage: secondary
       env: GROUP=1
-      python: pypy3.5-6.0
+      python: pypy3
     - env: GROUP=2
-      python: pypy3.5-6.0
+      python: pypy3
     - env: GROUP=1
-      python: pypy2.7-6.0
+      python: pypy
     - env: GROUP=2
-      python: pypy2.7-6.0
+      python: pypy
     # Other Supported CPython
+    - env: GROUP=1
+      python: 3.7
+    - env: GROUP=2
+      python: 3.7
     - env: GROUP=1
       python: 3.6
     - env: GROUP=2
@@ -48,14 +51,14 @@ jobs:
       python: 3.5
 
     - env: GROUP=1
-      python: 3.8-dev
+      python: 3.8
     - env: GROUP=2
-      python: 3.8-dev
+      python: 3.8
 
   fast_finish: true
   # It's okay to fail on the in-development CPython version.
   allow_failures:
-    - python: 3.8-dev
+    - python: 3.9
 
 before_install: tools/travis/setup.sh
 install: travis_retry tools/travis/install.sh
