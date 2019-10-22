@@ -6,7 +6,7 @@ from mock import Mock, call, patch
 from pip._internal.commands.install import (
     build_wheels,
     create_env_error_message,
-    decide_user_install
+    decide_user_install,
 )
 
 
