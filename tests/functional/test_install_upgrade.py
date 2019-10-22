@@ -245,7 +245,9 @@ def test_upgrade_to_same_version_from_url(script):
         'https://files.pythonhosted.org/packages/source/I/INITools/INITools-'
         '0.3.tar.gz',
     )
-    assert not result2.files_updated, 'INITools 0.3 reinstalled same version'
+    assert script.site_packages / 'initools' not in result2.files_updated, (
+        'INITools 0.3 reinstalled same version'
+    )
     result3 = script.pip('uninstall', 'initools', '-y')
     assert_all_changes(result, result3, [script.venv / 'build', 'cache'])
 
