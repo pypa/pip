@@ -1,7 +1,13 @@
+import errno
+
 import pytest
 from mock import Mock, call, patch
 
-from pip._internal.commands.install import build_wheels, decide_user_install
+from pip._internal.commands.install import (
+    build_wheels,
+    create_env_error_message,
+    decide_user_install,
+)
 
 
 class TestWheelCache:
@@ -94,3 +100,42 @@ class TestDecideUserInstall:
             lambda **kw: site_packages_writable
         )
         assert decide_user_install(use_user_site=None) is result
+
+
+def error_creation_helper(with_errno=False):
+    env_error = EnvironmentError("No file permission")
+    if with_errno:
+        env_error.errno = errno.EACCES
+    return env_error
+
+
+@pytest.mark.parametrize('error, show_traceback, using_user_site, expected', [
+    # show_traceback = True, using_user_site = True
+    (error_creation_helper(), True, True, 'Could not install packages due to'
+        ' an EnvironmentError.\n'),
+    (error_creation_helper(True), True, True, 'Could not install packages due'
+        ' to an EnvironmentError.\nCheck the permissions.\n'),
+    # show_traceback = True, using_user_site = False
+    (error_creation_helper(), True, False, 'Could not install packages due to'
+        ' an EnvironmentError.\n'),
+    (error_creation_helper(True), True, False, 'Could not install packages due'
+        ' to an EnvironmentError.\nConsider using the `--user` option or check'
+        ' the permissions.\n'),
+    # show_traceback = False, using_user_site = True
+    (error_creation_helper(), False, True, 'Could not install packages due to'
+        ' an EnvironmentError: No file permission\n'),
+    (error_creation_helper(True), False, True, 'Could not install packages due'
+        ' to an EnvironmentError: No file permission\nCheck the'
+        ' permissions.\n'),
+    # show_traceback = False, using_user_site = False
+    (error_creation_helper(), False, False, 'Could not install packages due to'
+        ' an EnvironmentError: No file permission\n'),
+    (error_creation_helper(True), False, False, 'Could not install packages'
+        ' due to an EnvironmentError: No file permission\nConsider using the'
+        ' `--user` option or check the permissions.\n'),
+])
+def test_create_env_error_message(
+    error, show_traceback, using_user_site, expected
+):
+    msg = create_env_error_message(error, show_traceback, using_user_site)
+    assert msg == expected
