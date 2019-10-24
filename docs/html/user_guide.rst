@@ -58,7 +58,7 @@ a username and password separated by ``:``.
   ::
 
     https://[username[:password]]@pypi.company.com/simple
-    0123456789abcdef@pypi.company.com
+    https://0123456789abcdef@pypi.company.com
     https://aniruddha%24basak:gdg%24js%5Ejf%26l@pypi.company.com
 
 `Here <https://en.wikipedia.org/wiki/Percent-encoding>`_ you can find more about
