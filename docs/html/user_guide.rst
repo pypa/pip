@@ -55,11 +55,20 @@ Basic Authentication Credentials
 pip supports basic authentication credentials. Basically, in the url there is
 a username and password separated by ``:``.
 
-  ::
+``https://[username[:password]]@pypi.company.com/simple``
 
-    https://[username[:password]]@pypi.company.com/simple
-    https://0123456789abcdef@pypi.company.com
-    https://aniruddha%24basak:gdg%24js%5Ejf%26l@pypi.company.com
+Certain special characters are not valid in the authentication part of URLs.
+If the user or password part of your login credentials contain any of these
+special characters here then they must be percent-encoded. For example, for a
+user with username "user" and password "he//o" accessing a repository at
+pypi.company.com, the index URL with credentials would look like:
+
+``https://user:he%2F%2Fo@pypi.company.com``
+
+For indexes that only require single-part authentication tokens, provide the token
+as the "username" and do not provide a password, for example -
+
+``https://0123456789abcdef@pypi.company.com``
 
 `Here <https://en.wikipedia.org/wiki/Percent-encoding>`_ you can find more about
 percent encoding.
