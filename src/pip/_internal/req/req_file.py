@@ -84,6 +84,25 @@ SUPPORTED_OPTIONS_REQ = [
 SUPPORTED_OPTIONS_REQ_DEST = [str(o().dest) for o in SUPPORTED_OPTIONS_REQ]
 
 
+class ParsedLine(object):
+    def __init__(
+        self,
+        filename,  # type: str
+        lineno,  # type: int
+        comes_from,  # type: str
+        args,  # type: str
+        opts,  # type: Values
+        constraint,  # type: bool
+    ):
+        # type: (...) -> None
+        self.filename = filename
+        self.lineno = lineno
+        self.comes_from = comes_from
+        self.args = args
+        self.opts = opts
+        self.constraint = constraint
+
+
 def parse_requirements(
     filename,  # type: str
     finder=None,  # type: Optional[PackageFinder]
@@ -127,7 +146,8 @@ def parse_requirements(
                                 comes_from, options, session, wheel_cache,
                                 use_pep517=use_pep517, constraint=constraint)
         for req in req_iter:
-            yield req
+            if req is not None:
+                yield req
 
 
 def preprocess(content, skip_requirements_regex):
@@ -158,22 +178,8 @@ def process_line(
     use_pep517=None,  # type: Optional[bool]
     constraint=False,  # type: bool
 ):
-    # type: (...) -> Iterator[InstallRequirement]
-    """Process a single requirements line; This can result in creating/yielding
-    requirements, or updating the finder.
-
-    For lines that contain requirements, the only options that have an effect
-    are from SUPPORTED_OPTIONS_REQ, and they are scoped to the
-    requirement. Other options from SUPPORTED_OPTIONS may be present, but are
-    ignored.
-
-    For lines that do not contain requirements, the only options that have an
-    effect are from SUPPORTED_OPTIONS. Options from SUPPORTED_OPTIONS_REQ may
-    be present, but are ignored. These lines may contain multiple options
-    (although our docs imply only one is supported), and all our parsed and
-    affect the finder.
-
-    :param constraint: If True, parsing a constraints file.
+    # type: (...) -> Iterator[Optional[InstallRequirement]]
+    """
     :param options: OptionParser options that we may update
     """
     line_parser = get_line_parser(finder)
@@ -212,62 +218,96 @@ def process_line(
             yield req
         return
 
-    # preserve for the nested code path
-    line_comes_from = '%s %s (line %s)' % (
-        '-c' if constraint else '-r', filename, line_number,
+    parsed_line = ParsedLine(
+        filename, line_number, comes_from, args_str, opts, constraint
     )
 
-    # yield a line requirement
-    if args_str:
+    yield handle_line(
+        parsed_line, finder, options, session, wheel_cache, use_pep517
+    )
+
+
+def handle_line(
+    line,  # type: ParsedLine
+    finder=None,  # type: Optional[PackageFinder]
+    options=None,  # type: Optional[optparse.Values]
+    session=None,  # type: Optional[PipSession]
+    wheel_cache=None,  # type: Optional[WheelCache]
+    use_pep517=None,  # type: Optional[bool]
+):
+    # type: (...) -> Optional[InstallRequirement]
+    """Handle a single parsed requirements line; This can result in
+    creating/yielding requirements, or updating the finder.
+
+    For lines that contain requirements, the only options that have an effect
+    are from SUPPORTED_OPTIONS_REQ, and they are scoped to the
+    requirement. Other options from SUPPORTED_OPTIONS may be present, but are
+    ignored.
+
+    For lines that do not contain requirements, the only options that have an
+    effect are from SUPPORTED_OPTIONS. Options from SUPPORTED_OPTIONS_REQ may
+    be present, but are ignored. These lines may contain multiple options
+    (although our docs imply only one is supported), and all our parsed and
+    affect the finder.
+    """
+
+    # preserve for the nested code path
+    line_comes_from = '%s %s (line %s)' % (
+        '-c' if line.constraint else '-r', line.filename, line.lineno,
+    )
+
+    # return a line requirement
+    if line.args:
         isolated = options.isolated_mode if options else False
         if options:
-            cmdoptions.check_install_build_global(options, opts)
+            cmdoptions.check_install_build_global(options, line.opts)
         # get the options that apply to requirements
         req_options = {}
         for dest in SUPPORTED_OPTIONS_REQ_DEST:
-            if dest in opts.__dict__ and opts.__dict__[dest]:
-                req_options[dest] = opts.__dict__[dest]
-        line_source = 'line {} of {}'.format(line_number, filename)
-        yield install_req_from_line(
-            args_str,
+            if dest in line.opts.__dict__ and line.opts.__dict__[dest]:
+                req_options[dest] = line.opts.__dict__[dest]
+        line_source = 'line {} of {}'.format(line.lineno, line.filename)
+        return install_req_from_line(
+            line.args,
             comes_from=line_comes_from,
             use_pep517=use_pep517,
             isolated=isolated,
             options=req_options,
             wheel_cache=wheel_cache,
-            constraint=constraint,
+            constraint=line.constraint,
             line_source=line_source,
         )
 
-    # yield an editable requirement
-    elif opts.editables:
+    # return an editable requirement
+    elif line.opts.editables:
         isolated = options.isolated_mode if options else False
-        yield install_req_from_editable(
-            opts.editables[0], comes_from=line_comes_from,
+        return install_req_from_editable(
+            line.opts.editables[0], comes_from=line_comes_from,
             use_pep517=use_pep517,
-            constraint=constraint, isolated=isolated, wheel_cache=wheel_cache
+            constraint=line.constraint, isolated=isolated,
+            wheel_cache=wheel_cache
         )
 
     # percolate hash-checking option upward
-    elif opts.require_hashes:
-        options.require_hashes = opts.require_hashes
+    elif line.opts.require_hashes:
+        options.require_hashes = line.opts.require_hashes
 
     # set finder options
     elif finder:
         find_links = finder.find_links
         index_urls = finder.index_urls
-        if opts.index_url:
-            index_urls = [opts.index_url]
-        if opts.no_index is True:
+        if line.opts.index_url:
+            index_urls = [line.opts.index_url]
+        if line.opts.no_index is True:
             index_urls = []
-        if opts.extra_index_urls:
-            index_urls.extend(opts.extra_index_urls)
-        if opts.find_links:
+        if line.opts.extra_index_urls:
+            index_urls.extend(line.opts.extra_index_urls)
+        if line.opts.find_links:
             # FIXME: it would be nice to keep track of the source
             # of the find_links: support a find-links local path
             # relative to a requirements file.
-            value = opts.find_links[0]
-            req_dir = os.path.dirname(os.path.abspath(filename))
+            value = line.opts.find_links[0]
+            req_dir = os.path.dirname(os.path.abspath(line.filename))
             relative_to_reqs_file = os.path.join(req_dir, value)
             if os.path.exists(relative_to_reqs_file):
                 value = relative_to_reqs_file
@@ -279,11 +319,15 @@ def process_line(
         )
         finder.search_scope = search_scope
 
-        if opts.pre:
+        if line.opts.pre:
             finder.set_allow_all_prereleases()
-        for host in opts.trusted_hosts or []:
-            source = 'line {} of {}'.format(line_number, filename)
-            session.add_trusted_host(host, source=source)
+
+        if session:
+            for host in line.opts.trusted_hosts or []:
+                source = 'line {} of {}'.format(line.lineno, line.filename)
+                session.add_trusted_host(host, source=source)
+
+    return None
 
 
 def get_line_parser(finder):
