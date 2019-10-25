@@ -31,15 +31,20 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import get_url_scheme
 
 if MYPY_CHECK_RUNNING:
+    from optparse import Values
     from typing import (
         Any, Callable, Iterator, List, NoReturn, Optional, Text, Tuple,
     )
+
     from pip._internal.req import InstallRequirement
     from pip._internal.cache import WheelCache
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.network.session import PipSession
 
     ReqFileLines = Iterator[Tuple[int, Text]]
+
+    LineParser = Callable[[Text], Tuple[str, Values]]
+
 
 __all__ = ['parse_requirements']
 
@@ -112,7 +117,10 @@ def parse_requirements(
         filename, comes_from=comes_from, session=session
     )
 
-    lines_enum = preprocess(content, options)
+    skip_requirements_regex = (
+        options.skip_requirements_regex if options else None
+    )
+    lines_enum = preprocess(content, skip_requirements_regex)
 
     for line_number, line in lines_enum:
         req_iter = process_line(line, filename, line_number, finder,
@@ -122,8 +130,8 @@ def parse_requirements(
             yield req
 
 
-def preprocess(content, options):
-    # type: (Text, Optional[optparse.Values]) -> ReqFileLines
+def preprocess(content, skip_requirements_regex):
+    # type: (Text, Optional[str]) -> ReqFileLines
     """Split, filter, and join lines, and return a line iterator
 
     :param content: the content of the requirements file
@@ -132,7 +140,8 @@ def preprocess(content, options):
     lines_enum = enumerate(content.splitlines(), start=1)  # type: ReqFileLines
     lines_enum = join_lines(lines_enum)
     lines_enum = ignore_comments(lines_enum)
-    lines_enum = skip_regex(lines_enum, options)
+    if skip_requirements_regex:
+        lines_enum = skip_regex(lines_enum, skip_requirements_regex)
     lines_enum = expand_env_variables(lines_enum)
     return lines_enum
 
@@ -167,19 +176,41 @@ def process_line(
     :param constraint: If True, parsing a constraints file.
     :param options: OptionParser options that we may update
     """
-    parser = build_parser(line)
-    defaults = parser.get_default_values()
-    defaults.index_url = None
-    if finder:
-        defaults.format_control = finder.format_control
-    args_str, options_str = break_args_options(line)
-    # Prior to 2.7.3, shlex cannot deal with unicode entries
-    if sys.version_info < (2, 7, 3):
-        # https://github.com/python/mypy/issues/1174
-        options_str = options_str.encode('utf8')  # type: ignore
-    # https://github.com/python/mypy/issues/1174
-    opts, _ = parser.parse_args(
-        shlex.split(options_str), defaults)  # type: ignore
+    line_parser = get_line_parser(finder)
+    try:
+        args_str, opts = line_parser(line)
+    except OptionParsingError as e:
+        # add offending line
+        msg = 'Invalid requirement: %s\n%s' % (line, e.msg)
+        raise RequirementsFileParseError(msg)
+
+    # parse a nested requirements file
+    if (
+        not args_str and
+        not opts.editables and
+        (opts.requirements or opts.constraints)
+    ):
+        if opts.requirements:
+            req_path = opts.requirements[0]
+            nested_constraint = False
+        else:
+            req_path = opts.constraints[0]
+            nested_constraint = True
+        # original file is over http
+        if SCHEME_RE.search(filename):
+            # do a url join so relative paths work
+            req_path = urllib_parse.urljoin(filename, req_path)
+        # original file and nested file are paths
+        elif not SCHEME_RE.search(req_path):
+            # do a join so relative paths work
+            req_path = os.path.join(os.path.dirname(filename), req_path)
+        parsed_reqs = parse_requirements(
+            req_path, finder, comes_from, options, session,
+            constraint=nested_constraint, wheel_cache=wheel_cache
+        )
+        for req in parsed_reqs:
+            yield req
+        return
 
     # preserve for the nested code path
     line_comes_from = '%s %s (line %s)' % (
@@ -216,30 +247,6 @@ def process_line(
             use_pep517=use_pep517,
             constraint=constraint, isolated=isolated, wheel_cache=wheel_cache
         )
-
-    # parse a nested requirements file
-    elif opts.requirements or opts.constraints:
-        if opts.requirements:
-            req_path = opts.requirements[0]
-            nested_constraint = False
-        else:
-            req_path = opts.constraints[0]
-            nested_constraint = True
-        # original file is over http
-        if SCHEME_RE.search(filename):
-            # do a url join so relative paths work
-            req_path = urllib_parse.urljoin(filename, req_path)
-        # original file and nested file are paths
-        elif not SCHEME_RE.search(req_path):
-            # do a join so relative paths work
-            req_path = os.path.join(os.path.dirname(filename), req_path)
-        # TODO: Why not use `comes_from='-r {} (line {})'` here as well?
-        parsed_reqs = parse_requirements(
-            req_path, finder, comes_from, options, session,
-            constraint=nested_constraint, wheel_cache=wheel_cache
-        )
-        for req in parsed_reqs:
-            yield req
 
     # percolate hash-checking option upward
     elif opts.require_hashes:
@@ -279,6 +286,31 @@ def process_line(
             session.add_trusted_host(host, source=source)
 
 
+def get_line_parser(finder):
+    # type: (Optional[PackageFinder]) -> LineParser
+    parser = build_parser()
+    defaults = parser.get_default_values()
+    defaults.index_url = None
+    if finder:
+        defaults.format_control = finder.format_control
+
+    def parse_line(line):
+        # type: (Text) -> Tuple[str, Values]
+        args_str, options_str = break_args_options(line)
+        # Prior to 2.7.3, shlex cannot deal with unicode entries
+        if sys.version_info < (2, 7, 3):
+            # https://github.com/python/mypy/issues/1174
+            options_str = options_str.encode('utf8')  # type: ignore
+
+        # https://github.com/python/mypy/issues/1174
+        opts, _ = parser.parse_args(
+            shlex.split(options_str), defaults)  # type: ignore
+
+        return args_str, opts
+
+    return parse_line
+
+
 def break_args_options(line):
     # type: (Text) -> Tuple[str, Text]
     """Break up the line into an args and options string.  We only want to shlex
@@ -297,8 +329,14 @@ def break_args_options(line):
     return ' '.join(args), ' '.join(options)  # type: ignore
 
 
-def build_parser(line):
-    # type: (Text) -> optparse.OptionParser
+class OptionParsingError(Exception):
+    def __init__(self, msg):
+        # type: (str) -> None
+        self.msg = msg
+
+
+def build_parser():
+    # type: () -> optparse.OptionParser
     """
     Return a parser for parsing requirement lines
     """
@@ -313,9 +351,7 @@ def build_parser(line):
     # that in our own exception.
     def parser_exit(self, msg):
         # type: (Any, str) -> NoReturn
-        # add offending line
-        msg = 'Invalid requirement: %s\n%s' % (line, msg)
-        raise RequirementsFileParseError(msg)
+        raise OptionParsingError(msg)
     # NOTE: mypy disallows assigning to a method
     #       https://github.com/python/mypy/issues/2427
     parser.exit = parser_exit  # type: ignore
@@ -365,17 +401,15 @@ def ignore_comments(lines_enum):
             yield line_number, line
 
 
-def skip_regex(lines_enum, options):
-    # type: (ReqFileLines, Optional[optparse.Values]) -> ReqFileLines
+def skip_regex(lines_enum, pattern):
+    # type: (ReqFileLines, str) -> ReqFileLines
     """
-    Skip lines that match '--skip-requirements-regex' pattern
+    Skip lines that match the provided pattern
 
     Note: the regex pattern is only built once
     """
-    skip_regex = options.skip_requirements_regex if options else None
-    if skip_regex:
-        pattern = re.compile(skip_regex)
-        lines_enum = filterfalse(lambda e: pattern.search(e[1]), lines_enum)
+    matcher = re.compile(pattern)
+    lines_enum = filterfalse(lambda e: matcher.search(e[1]), lines_enum)
     return lines_enum
 
 
