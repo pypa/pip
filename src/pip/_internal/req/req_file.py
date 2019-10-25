@@ -132,22 +132,20 @@ def parse_requirements(
             "'session'"
         )
 
-    _, content = get_file_content(
-        filename, comes_from=comes_from, session=session
-    )
-
     skip_requirements_regex = (
         options.skip_requirements_regex if options else None
     )
-    lines_enum = preprocess(content, skip_requirements_regex)
+    line_parser = get_line_parser(finder)
+    parser = RequirementsFileParser(
+        session, line_parser, comes_from, skip_requirements_regex
+    )
 
-    for line_number, line in lines_enum:
-        req_iter = process_line(line, filename, line_number, finder,
-                                comes_from, options, session, wheel_cache,
-                                use_pep517=use_pep517, constraint=constraint)
-        for req in req_iter:
-            if req is not None:
-                yield req
+    for parsed_line in parser.parse(filename, constraint):
+        req = handle_line(
+            parsed_line, finder, options, session, wheel_cache, use_pep517
+        )
+        if req is not None:
+            yield req
 
 
 def preprocess(content, skip_requirements_regex):
@@ -330,16 +328,99 @@ def handle_line(
     return None
 
 
+class RequirementsFileParser(object):
+    def __init__(
+        self,
+        session,  # type: PipSession
+        line_parser,  # type: LineParser
+        comes_from,  # type: str
+        skip_requirements_regex,  # type: Optional[str]
+    ):
+        # type: (...) -> None
+        self._session = session
+        self._line_parser = line_parser
+        self._comes_from = comes_from
+        self._skip_requirements_regex = skip_requirements_regex
+
+    def parse(self, filename, constraint):
+        # type: (str, bool) -> Iterator[ParsedLine]
+        """Parse a given file, yielding parsed lines.
+        """
+        for line in self._parse_and_recurse(filename, constraint):
+            yield line
+
+    def _parse_and_recurse(self, filename, constraint):
+        # type: (str, bool) -> Iterator[ParsedLine]
+        for line in self._parse_file(filename, constraint):
+            if (
+                not line.args and
+                not line.opts.editables and
+                (line.opts.requirements or line.opts.constraints)
+            ):
+                # parse a nested requirements file
+                if line.opts.requirements:
+                    req_path = line.opts.requirements[0]
+                    nested_constraint = False
+                else:
+                    req_path = line.opts.constraints[0]
+                    nested_constraint = True
+
+                # original file is over http
+                if SCHEME_RE.search(filename):
+                    # do a url join so relative paths work
+                    req_path = urllib_parse.urljoin(filename, req_path)
+                # original file and nested file are paths
+                elif not SCHEME_RE.search(req_path):
+                    # do a join so relative paths work
+                    req_path = os.path.join(
+                        os.path.dirname(filename), req_path,
+                    )
+
+                for inner_line in self._parse_and_recurse(
+                    req_path, nested_constraint,
+                ):
+                    yield inner_line
+            else:
+                yield line
+
+    def _parse_file(self, filename, constraint):
+        # type: (str, bool) -> Iterator[ParsedLine]
+        _, content = get_file_content(
+            filename, comes_from=self._comes_from, session=self._session
+        )
+
+        lines_enum = preprocess(content, self._skip_requirements_regex)
+
+        for line_number, line in lines_enum:
+            try:
+                args_str, opts = self._line_parser(line)
+            except OptionParsingError as e:
+                # add offending line
+                msg = 'Invalid requirement: %s\n%s' % (line, e.msg)
+                raise RequirementsFileParseError(msg)
+
+            yield ParsedLine(
+                filename,
+                line_number,
+                self._comes_from,
+                args_str,
+                opts,
+                constraint,
+            )
+
+
 def get_line_parser(finder):
     # type: (Optional[PackageFinder]) -> LineParser
-    parser = build_parser()
-    defaults = parser.get_default_values()
-    defaults.index_url = None
-    if finder:
-        defaults.format_control = finder.format_control
-
     def parse_line(line):
         # type: (Text) -> Tuple[str, Values]
+        # Build new parser for each line since it accumulates appendable
+        # options.
+        parser = build_parser()
+        defaults = parser.get_default_values()
+        defaults.index_url = None
+        if finder:
+            defaults.format_control = finder.format_control
+
         args_str, options_str = break_args_options(line)
         # Prior to 2.7.3, shlex cannot deal with unicode entries
         if sys.version_info < (2, 7, 3):
