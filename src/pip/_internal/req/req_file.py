@@ -164,67 +164,6 @@ def preprocess(content, skip_requirements_regex):
     return lines_enum
 
 
-def process_line(
-    line,  # type: Text
-    filename,  # type: str
-    line_number,  # type: int
-    finder=None,  # type: Optional[PackageFinder]
-    comes_from=None,  # type: Optional[str]
-    options=None,  # type: Optional[optparse.Values]
-    session=None,  # type: Optional[PipSession]
-    wheel_cache=None,  # type: Optional[WheelCache]
-    use_pep517=None,  # type: Optional[bool]
-    constraint=False,  # type: bool
-):
-    # type: (...) -> Iterator[Optional[InstallRequirement]]
-    """
-    :param options: OptionParser options that we may update
-    """
-    line_parser = get_line_parser(finder)
-    try:
-        args_str, opts = line_parser(line)
-    except OptionParsingError as e:
-        # add offending line
-        msg = 'Invalid requirement: %s\n%s' % (line, e.msg)
-        raise RequirementsFileParseError(msg)
-
-    # parse a nested requirements file
-    if (
-        not args_str and
-        not opts.editables and
-        (opts.requirements or opts.constraints)
-    ):
-        if opts.requirements:
-            req_path = opts.requirements[0]
-            nested_constraint = False
-        else:
-            req_path = opts.constraints[0]
-            nested_constraint = True
-        # original file is over http
-        if SCHEME_RE.search(filename):
-            # do a url join so relative paths work
-            req_path = urllib_parse.urljoin(filename, req_path)
-        # original file and nested file are paths
-        elif not SCHEME_RE.search(req_path):
-            # do a join so relative paths work
-            req_path = os.path.join(os.path.dirname(filename), req_path)
-        parsed_reqs = parse_requirements(
-            req_path, finder, comes_from, options, session,
-            constraint=nested_constraint, wheel_cache=wheel_cache
-        )
-        for req in parsed_reqs:
-            yield req
-        return
-
-    parsed_line = ParsedLine(
-        filename, line_number, comes_from, args_str, opts, constraint
-    )
-
-    yield handle_line(
-        parsed_line, finder, options, session, wheel_cache, use_pep517
-    )
-
-
 def handle_line(
     line,  # type: ParsedLine
     finder=None,  # type: Optional[PackageFinder]

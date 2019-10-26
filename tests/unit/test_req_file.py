@@ -4,7 +4,7 @@ import subprocess
 import textwrap
 
 import pytest
-from mock import Mock, patch
+from mock import patch
 from pip._vendor.six import PY2
 from pretend import stub
 
@@ -25,7 +25,6 @@ from pip._internal.req.req_file import (
     join_lines,
     parse_requirements,
     preprocess,
-    process_line,
     skip_regex,
 )
 from tests.lib import make_test_finder, requirements_file
@@ -300,29 +299,21 @@ class TestProcessLine(object):
         assert repr(found_req) == repr(req)
         assert found_req.constraint is True
 
-    def test_nested_requirements_file(self, monkeypatch):
-        line = '-r another_file'
-        req = install_req_from_line('SomeProject')
+    def test_nested_constraints_file(self, monkeypatch, tmpdir):
+        req_name = 'hello'
+        req_file = tmpdir / 'parent' / 'req_file.txt'
+        req_file.parent.mkdir()
+        req_file.write_text('-c reqs.txt')
+        req_file.parent.joinpath('reqs.txt').write_text(req_name)
 
-        def stub_parse_requirements(req_url, finder, comes_from, options,
-                                    session, wheel_cache, constraint):
-            return [(req, constraint)]
-        parse_requirements_stub = stub(call=stub_parse_requirements)
-        monkeypatch.setattr(pip._internal.req.req_file, 'parse_requirements',
-                            parse_requirements_stub.call)
-        assert list(process_line(line, 'filename', 1)) == [(req, False)]
+        monkeypatch.chdir(str(tmpdir))
 
-    def test_nested_constraints_file(self, monkeypatch):
-        line = '-c another_file'
-        req = install_req_from_line('SomeProject')
-
-        def stub_parse_requirements(req_url, finder, comes_from, options,
-                                    session, wheel_cache, constraint):
-            return [(req, constraint)]
-        parse_requirements_stub = stub(call=stub_parse_requirements)
-        monkeypatch.setattr(pip._internal.req.req_file, 'parse_requirements',
-                            parse_requirements_stub.call)
-        assert list(process_line(line, 'filename', 1)) == [(req, True)]
+        reqs = list(
+            parse_requirements('./parent/req_file.txt', session=session)
+        )
+        assert len(reqs) == 1
+        assert reqs[0].name == req_name
+        assert reqs[0].constraint
 
     def test_options_on_a_requirement_line(self, line_processor):
         line = 'SomeProject --install-option=yo1 --install-option yo2 '\
@@ -437,70 +428,99 @@ class TestProcessLine(object):
         line_processor("--find-links=rel_path", req_file, 1, finder=finder)
         assert finder.find_links == [nested_link]
 
-    def test_relative_http_nested_req_files(self, finder, monkeypatch):
+    def test_relative_http_nested_req_files(
+        self, finder, session, monkeypatch
+    ):
         """
         Test a relative nested req file path is joined with the req file url
         """
+        req_name = 'hello'
         req_file = 'http://me.com/me/req_file.txt'
 
-        def parse(*args, **kwargs):
-            return iter([])
-        mock_parse = Mock()
-        mock_parse.side_effect = parse
-        monkeypatch.setattr(pip._internal.req.req_file, 'parse_requirements',
-                            mock_parse)
-        list(process_line("-r reqs.txt", req_file, 1, finder=finder))
-        call = mock_parse.mock_calls[0]
-        assert call[1][0] == 'http://me.com/me/reqs.txt'
+        def get_file_content(filename, *args, **kwargs):
+            if filename == req_file:
+                return None, '-r reqs.txt'
+            elif filename == 'http://me.com/me/reqs.txt':
+                return None, req_name
+            assert False, 'Unexpected file requested {}'.format(filename)
 
-    def test_relative_local_nested_req_files(self, finder, monkeypatch):
+        monkeypatch.setattr(
+            pip._internal.req.req_file, 'get_file_content', get_file_content
+        )
+
+        result = list(parse_requirements(req_file, session=session))
+        assert len(result) == 1
+        assert result[0].name == req_name
+        assert not result[0].constraint
+
+    def test_relative_local_nested_req_files(
+        self, session, monkeypatch, tmpdir
+    ):
         """
         Test a relative nested req file path is joined with the req file dir
         """
-        req_file = os.path.normpath('/path/req_file.txt')
+        req_name = 'hello'
+        req_file = tmpdir / 'parent' / 'req_file.txt'
+        req_file.parent.mkdir()
+        req_file.write_text('-r reqs.txt')
+        req_file.parent.joinpath('reqs.txt').write_text(req_name)
 
-        def parse(*args, **kwargs):
-            return iter([])
-        mock_parse = Mock()
-        mock_parse.side_effect = parse
-        monkeypatch.setattr(pip._internal.req.req_file, 'parse_requirements',
-                            mock_parse)
-        list(process_line("-r reqs.txt", req_file, 1, finder=finder))
-        call = mock_parse.mock_calls[0]
-        assert call[1][0] == os.path.normpath('/path/reqs.txt')
+        monkeypatch.chdir(str(tmpdir))
 
-    def test_absolute_local_nested_req_files(self, finder, monkeypatch):
+        reqs = list(
+            parse_requirements('./parent/req_file.txt', session=session)
+        )
+        assert len(reqs) == 1
+        assert reqs[0].name == req_name
+        assert not reqs[0].constraint
+
+    def test_absolute_local_nested_req_files(
+        self, session, monkeypatch, tmpdir
+    ):
         """
         Test an absolute nested req file path
         """
-        req_file = '/path/req_file.txt'
+        req_name = 'hello'
+        req_file = tmpdir / 'parent' / 'req_file.txt'
+        req_file.parent.mkdir()
+        other_req_file = tmpdir / 'other' / 'reqs.txt'
+        other_req_file.parent.mkdir()
+        # POSIX-ify the path, since Windows backslashes aren't supported.
+        other_req_file_str = str(other_req_file).replace('\\', '/')
 
-        def parse(*args, **kwargs):
-            return iter([])
-        mock_parse = Mock()
-        mock_parse.side_effect = parse
-        monkeypatch.setattr(pip._internal.req.req_file, 'parse_requirements',
-                            mock_parse)
-        list(process_line("-r /other/reqs.txt", req_file, 1, finder=finder))
-        call = mock_parse.mock_calls[0]
-        assert call[1][0] == '/other/reqs.txt'
+        req_file.write_text('-r {}'.format(other_req_file_str))
+        other_req_file.write_text(req_name)
 
-    def test_absolute_http_nested_req_file_in_local(self, finder, monkeypatch):
+        reqs = list(parse_requirements(str(req_file), session=session))
+        assert len(reqs) == 1
+        assert reqs[0].name == req_name
+        assert not reqs[0].constraint
+
+    def test_absolute_http_nested_req_file_in_local(
+        self, session, monkeypatch, tmpdir
+    ):
         """
         Test a nested req file url in a local req file
         """
-        req_file = '/path/req_file.txt'
+        req_name = 'hello'
+        req_file = tmpdir / 'req_file.txt'
+        nested_req_file = 'http://me.com/me/req_file.txt'
 
-        def parse(*args, **kwargs):
-            return iter([])
-        mock_parse = Mock()
-        mock_parse.side_effect = parse
-        monkeypatch.setattr(pip._internal.req.req_file, 'parse_requirements',
-                            mock_parse)
-        list(process_line("-r http://me.com/me/reqs.txt", req_file, 1,
-                          finder=finder))
-        call = mock_parse.mock_calls[0]
-        assert call[1][0] == 'http://me.com/me/reqs.txt'
+        def get_file_content(filename, *args, **kwargs):
+            if filename == str(req_file):
+                return None, '-r {}'.format(nested_req_file)
+            elif filename == nested_req_file:
+                return None, req_name
+            assert False, 'Unexpected file requested {}'.format(filename)
+
+        monkeypatch.setattr(
+            pip._internal.req.req_file, 'get_file_content', get_file_content
+        )
+
+        result = list(parse_requirements(req_file, session=session))
+        assert len(result) == 1
+        assert result[0].name == req_name
+        assert not result[0].constraint
 
 
 class TestBreakOptionsArgs(object):
@@ -524,24 +544,24 @@ class TestOptionVariants(object):
 
     # this suite is really just testing optparse, but added it anyway
 
-    def test_variant1(self, finder):
-        list(process_line("-i url", "file", 1, finder=finder))
+    def test_variant1(self, line_processor, finder):
+        line_processor("-i url", "file", 1, finder=finder)
         assert finder.index_urls == ['url']
 
-    def test_variant2(self, finder):
-        list(process_line("-i 'url'", "file", 1, finder=finder))
+    def test_variant2(self, line_processor, finder):
+        line_processor("-i 'url'", "file", 1, finder=finder)
         assert finder.index_urls == ['url']
 
-    def test_variant3(self, finder):
-        list(process_line("--index-url=url", "file", 1, finder=finder))
+    def test_variant3(self, line_processor, finder):
+        line_processor("--index-url=url", "file", 1, finder=finder)
         assert finder.index_urls == ['url']
 
-    def test_variant4(self, finder):
-        list(process_line("--index-url url", "file", 1, finder=finder))
+    def test_variant4(self, line_processor, finder):
+        line_processor("--index-url url", "file", 1, finder=finder)
         assert finder.index_urls == ['url']
 
-    def test_variant5(self, finder):
-        list(process_line("--index-url='url'", "file", 1, finder=finder))
+    def test_variant5(self, line_processor, finder):
+        line_processor("--index-url='url'", "file", 1, finder=finder)
         assert finder.index_urls == ['url']
 
 
