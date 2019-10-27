@@ -23,6 +23,25 @@ from pip._internal.wheel import (
 from tests.lib import DATA_DIR, assert_paths_equal
 
 
+class ReqMock:
+
+    def __init__(
+        self,
+        name="pendulum",
+        is_wheel=False,
+        editable=False,
+        link=None,
+        constraint=False,
+        source_dir="/tmp/pip-install-123/pendulum",
+    ):
+        self.name = name
+        self.is_wheel = is_wheel
+        self.editable = editable
+        self.link = link
+        self.constraint = constraint
+        self.source_dir = source_dir
+
+
 @pytest.mark.parametrize(
     "s, expected",
     [
@@ -80,6 +99,71 @@ def make_test_install_req(base_name=None):
 def test_format_tag(file_tag, expected):
     actual = wheel.format_tag(file_tag)
     assert actual == expected
+
+
+@pytest.mark.parametrize(
+    "req, need_wheel, disallow_binaries, expected",
+    [
+        # pip wheel (need_wheel=True)
+        (ReqMock(), True, False, True),
+        (ReqMock(), True, True, True),
+        (ReqMock(constraint=True), True, False, False),
+        (ReqMock(is_wheel=True), True, False, False),
+        (ReqMock(editable=True), True, False, True),
+        (ReqMock(source_dir=None), True, False, True),
+        (ReqMock(link=Link("git+https://g.c/org/repo")), True, False, True),
+        (ReqMock(link=Link("git+https://g.c/org/repo")), True, True, True),
+        # pip install (need_wheel=False)
+        (ReqMock(), False, False, True),
+        (ReqMock(), False, True, False),
+        (ReqMock(constraint=True), False, False, False),
+        (ReqMock(is_wheel=True), False, False, False),
+        (ReqMock(editable=True), False, False, False),
+        (ReqMock(source_dir=None), False, False, False),
+        # By default (i.e. when binaries are allowed), VCS requirements
+        # should be built in install mode.
+        (ReqMock(link=Link("git+https://g.c/org/repo")), False, False, True),
+        # Disallowing binaries, however, should cause them not to be built.
+        (ReqMock(link=Link("git+https://g.c/org/repo")), False, True, False),
+    ],
+)
+def test_should_build(req, need_wheel, disallow_binaries, expected):
+    should_build = wheel.should_build(
+        req,
+        need_wheel,
+        check_binary_allowed=lambda req: not disallow_binaries,
+    )
+    assert should_build is expected
+
+
+@pytest.mark.parametrize(
+    "req, disallow_binaries, expected",
+    [
+        (ReqMock(editable=True), False, False),
+        (ReqMock(source_dir=None), False, False),
+        (ReqMock(link=Link("git+https://g.c/org/repo")), False, False),
+        (ReqMock(link=Link("https://g.c/dist.tgz")), False, False),
+        (ReqMock(link=Link("https://g.c/dist-2.0.4.tgz")), False, True),
+        (ReqMock(editable=True), True, False),
+        (ReqMock(source_dir=None), True, False),
+        (ReqMock(link=Link("git+https://g.c/org/repo")), True, False),
+        (ReqMock(link=Link("https://g.c/dist.tgz")), True, False),
+        (ReqMock(link=Link("https://g.c/dist-2.0.4.tgz")), True, False),
+    ],
+)
+def test_should_cache(
+    req, disallow_binaries, expected
+):
+    def check_binary_allowed(req):
+        return not disallow_binaries
+
+    should_cache = wheel.should_cache(req, check_binary_allowed)
+    if not wheel.should_build(
+        req, need_wheel=False, check_binary_allowed=check_binary_allowed
+    ):
+        # never cache if pip install (need_wheel=False) would not have built)
+        assert not should_cache
+    assert should_cache is expected
 
 
 @pytest.mark.parametrize(
