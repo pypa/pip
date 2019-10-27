@@ -816,10 +816,11 @@ def should_cache(
     wheel cache, assuming the wheel cache is available, and should_build()
     has determined a wheel needs to be built.
     """
-    if req.editable or not req.source_dir:
-        return False
-
-    if not check_binary_allowed(req):
+    if not should_build(
+        req, need_wheel=False, check_binary_allowed=check_binary_allowed
+    ):
+        # never cache if pip install (need_wheel=False) would not have built
+        # (editable mode, etc)
         return False
 
     if req.link and req.link.is_vcs:
