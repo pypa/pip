@@ -21,6 +21,19 @@ if MYPY_CHECK_RUNNING:
 logger = logging.getLogger(__name__)
 
 
+@contextlib.contextmanager
+def get_requirement_tracker():
+    root = os.environ.get('PIP_REQ_TRACKER')
+    with contextlib2.ExitStack() as ctx:
+        if root is None:
+            root = ctx.enter_context(
+                TempDirectory(kind='req-tracker')
+            ).path
+            ctx.enter_context(update_env_context_manager(PIP_REQ_TRACKER=root))
+
+        yield RequirementTracker(root)
+
+
 class RequirementTracker(object):
 
     def __init__(self):
