@@ -162,7 +162,7 @@ class InstallRequirement(object):
         # Temporary build location
         self._temp_build_dir = None  # type: Optional[TempDirectory]
         # Used to store the global directory where the _temp_build_dir should
-        # have been created. Cf move_to_correct_build_directory method.
+        # have been created. See move_to_correct_build_directory().
         self._ideal_build_dir = None  # type: Optional[str]
         # Set to True after successful installation
         self.install_succeeded = None  # type: Optional[bool]
@@ -385,7 +385,7 @@ class InstallRequirement(object):
 
     def move_to_correct_build_directory(self):
         # type: () -> None
-        """Move self._temp_build_dir to "self._ideal_build_dir/self.req.name"
+        """Move self._temp_build_dir to "self._ideal_build_dir/{metadata name}"
 
         For some requirements (e.g. a path to a directory), the name of the
         package is not available until we run egg_info, so the build_location
@@ -394,14 +394,33 @@ class InstallRequirement(object):
         This is only called to "fix" the build directory after generating
         metadata.
         """
+        assert self.req is None
+        assert self.metadata is not None
+
+        # Construct a Requirement object from the generated metadata
+        if isinstance(parse_version(self.metadata["Version"]), Version):
+            op = "=="
+        else:
+            op = "==="
+
+        self.req = Requirement(
+            "".join([
+                self.metadata["Name"],
+                op,
+                self.metadata["Version"],
+            ])
+        )
+
         if self.source_dir is not None:
             return
-        assert self.req is not None
+
         assert self._temp_build_dir
         assert (
             self._ideal_build_dir is not None and
             self._ideal_build_dir.path  # type: ignore
         )
+
+        # Backup directory for later use.
         old_location = self._temp_build_dir
         self._temp_build_dir = None  # checked inside ensure_build_location
 
@@ -426,18 +445,32 @@ class InstallRequirement(object):
             path=new_location, kind="req-install",
         )
 
-        # Correct the metadata directory, if it exists
-        if self.metadata_directory:
-            old_meta = self.metadata_directory
-            rel = os.path.relpath(old_meta, start=old_location.path)
-            new_meta = os.path.join(new_location, rel)
-            new_meta = os.path.normpath(os.path.abspath(new_meta))
-            self.metadata_directory = new_meta
+        # Correct the metadata directory
+        old_meta = self.metadata_directory
+        rel = os.path.relpath(old_meta, start=old_location.path)
+        new_meta = os.path.join(new_location, rel)
+        new_meta = os.path.normpath(os.path.abspath(new_meta))
+        self.metadata_directory = new_meta
 
         # Done with any "move built files" work, since have moved files to the
         # "ideal" build location. Setting to None allows to clearly flag that
         # no more moves are needed.
         self._ideal_build_dir = None
+
+    def warn_on_mismatching_name(self):
+        metadata_name = canonicalize_name(self.metadata["Name"])
+        if canonicalize_name(self.req.name) == metadata_name:
+            # Everything is fine.
+            return
+
+        # If we're here, there's a mismatch. Log a warning about it.
+        logger.warning(
+            'Generating metadata for package %s '
+            'produced metadata for project name %s. Fix your '
+            '#egg=%s fragments.',
+            self.name, metadata_name, self.name
+        )
+        self.req = Requirement(metadata_name)
 
     def remove_temporary_source(self):
         # type: () -> None
@@ -586,29 +619,10 @@ class InstallRequirement(object):
         with indent_log():
             self.metadata_directory = metadata_generator(self)
 
-        if not self.req:
-            if isinstance(parse_version(self.metadata["Version"]), Version):
-                op = "=="
-            else:
-                op = "==="
-            self.req = Requirement(
-                "".join([
-                    self.metadata["Name"],
-                    op,
-                    self.metadata["Version"],
-                ])
-            )
+        if not self.name:
             self.move_to_correct_build_directory()
         else:
-            metadata_name = canonicalize_name(self.metadata["Name"])
-            if canonicalize_name(self.req.name) != metadata_name:
-                logger.warning(
-                    'Generating metadata for package %s '
-                    'produced metadata for project name %s. Fix your '
-                    '#egg=%s fragments.',
-                    self.name, metadata_name, self.name
-                )
-                self.req = Requirement(metadata_name)
+            self.warn_on_mismatching_name()
 
     @property
     def metadata(self):
