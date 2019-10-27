@@ -616,11 +616,13 @@ def decide_user_install(
     If use_user_site is None, the default behaviour depends on the environment,
     which is provided by the other arguments.
     """
-    if use_user_site is False:
+    # In some cases (config from tox), use_user_site can be set to an integer
+    # rather than a bool, which 'use_user_site is False' wouldn't catch.
+    if (use_user_site is not None) and (not use_user_site):
         logger.debug("Non-user install by explicit request")
         return False
 
-    if use_user_site is True:
+    if use_user_site:
         if prefix_path:
             raise CommandError(
                 "Can not combine '--user' and '--prefix' as they imply "

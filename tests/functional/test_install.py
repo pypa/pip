@@ -1586,6 +1586,20 @@ def test_target_install_ignores_distutils_config_install_prefix(script):
     assert relative_script_base not in result.files_created
 
 
+def test_user_config_accepted(script):
+    # user set in the config file is parsed as 0/1 instead of True/False.
+    # Check that this doesn't cause a problem.
+    config_file = script.scratch_path / 'pip.conf'
+    script.environ['PIP_CONFIG_FILE'] = str(config_file)
+    config_file.write_text("[install]\nuser = true")
+    result = script.pip_install_local('simplewheel')
+
+    assert "Successfully installed simplewheel" in result.stdout
+
+    relative_user = os.path.relpath(script.user_site_path, script.base_path)
+    assert join(relative_user, 'simplewheel') in result.files_created
+
+
 @pytest.mark.network
 @pytest.mark.skipif("sys.platform != 'win32'")
 @pytest.mark.parametrize('pip_name', [
