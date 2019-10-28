@@ -772,6 +772,72 @@ def _contains_egg_info(
     return bool(_egg_info_re.search(s))
 
 
+def should_build(
+    req,  # type: InstallRequirement
+    need_wheel,  # type: bool
+    check_binary_allowed,  # type: BinaryAllowedPredicate
+):
+    # type: (...) -> Optional[bool]
+    """Return whether an InstallRequirement should be built into a wheel."""
+    if req.constraint:
+        # never build requirements that are merely constraints
+        return False
+    if req.is_wheel:
+        if need_wheel:
+            logger.info(
+                'Skipping %s, due to already being wheel.', req.name,
+            )
+        return False
+
+    if need_wheel:
+        # i.e. pip wheel, not pip install
+        return True
+
+    if req.editable or not req.source_dir:
+        return False
+
+    if not check_binary_allowed(req):
+        logger.info(
+            "Skipping wheel build for %s, due to binaries "
+            "being disabled for it.", req.name,
+        )
+        return False
+
+    return True
+
+
+def should_cache(
+    req,  # type: InstallRequirement
+    check_binary_allowed,  # type: BinaryAllowedPredicate
+):
+    # type: (...) -> Optional[bool]
+    """
+    Return whether a built InstallRequirement can be stored in the persistent
+    wheel cache, assuming the wheel cache is available, and should_build()
+    has determined a wheel needs to be built.
+    """
+    if not should_build(
+        req, need_wheel=False, check_binary_allowed=check_binary_allowed
+    ):
+        # never cache if pip install (need_wheel=False) would not have built
+        # (editable mode, etc)
+        return False
+
+    if req.link and req.link.is_vcs:
+        # VCS checkout. Build wheel just for this run.
+        return False
+
+    link = req.link
+    base, ext = link.splitext()
+    if _contains_egg_info(base):
+        return True
+
+    # Otherwise, build the wheel just for this run using the ephemeral
+    # cache since we are either in the case of e.g. a local directory, or
+    # no cache directory is available to use.
+    return False
+
+
 def should_use_ephemeral_cache(
     req,  # type: InstallRequirement
     should_unpack,  # type: bool
@@ -788,14 +854,7 @@ def should_use_ephemeral_cache(
     :return: True or False to build the requirement with ephem_cache=True
         or False, respectively; or None not to build the requirement.
     """
-    if req.constraint:
-        # never build requirements that are merely constraints
-        return None
-    if req.is_wheel:
-        if not should_unpack:
-            logger.info(
-                'Skipping %s, due to already being wheel.', req.name,
-            )
+    if not should_build(req, not should_unpack, check_binary_allowed):
         return None
     if not should_unpack:
         # i.e. pip wheel, not pip install;
@@ -803,30 +862,9 @@ def should_use_ephemeral_cache(
         # in this case anyway, so this return merely means "build it".
         # TODO improve this behavior
         return False
-
-    if req.editable or not req.source_dir:
-        return None
-
-    if not check_binary_allowed(req):
-        logger.info(
-            "Skipping wheel build for %s, due to binaries "
-            "being disabled for it.", req.name,
-        )
-        return None
-
-    if req.link and req.link.is_vcs:
-        # VCS checkout. Build wheel just for this run.
+    if not cache_available:
         return True
-
-    link = req.link
-    base, ext = link.splitext()
-    if cache_available and _contains_egg_info(base):
-        return False
-
-    # Otherwise, build the wheel just for this run using the ephemeral
-    # cache since we are either in the case of e.g. a local directory, or
-    # no cache directory is available to use.
-    return True
+    return not should_cache(req, check_binary_allowed)
 
 
 def format_command_result(
