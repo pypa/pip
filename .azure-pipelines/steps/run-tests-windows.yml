@@ -43,7 +43,7 @@ steps:
       # https://bugs.python.org/issue18199
       $env:TEMP = "R:\Temp"
 
-      tox -e py -- -m integration -n auto --duration=5 --junit-xml=junit/integration-test.xml
+      tox -e py -- --use-venv -m integration -n auto --duration=5 --junit-xml=junit/integration-test.xml
     displayName: Tox run integration tests
 
 - task: PublishTestResults@2
