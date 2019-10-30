@@ -3,7 +3,6 @@
 
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
-# mypy: disallow-untyped-defs=False
 
 from __future__ import absolute_import
 
@@ -57,7 +56,7 @@ from pip._internal.utils.urls import path_to_url
 if MYPY_CHECK_RUNNING:
     from typing import (
         Dict, List, Optional, Sequence, Mapping, Tuple, IO, Text, Any,
-        Iterable, Callable, Set, Union,
+        Iterable, Callable, Set, Pattern, Union,
     )
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.operations.prepare import (
@@ -78,6 +77,7 @@ logger = logging.getLogger(__name__)
 
 
 def normpath(src, p):
+    # type: (str, str) -> str
     return os.path.relpath(src, p).replace(os.path.sep, '/')
 
 
@@ -185,10 +185,12 @@ def get_entrypoints(filename):
     gui = entry_points.get('gui_scripts', {})
 
     def _split_ep(s):
+        # type: (pkg_resources.EntryPoint) -> Tuple[str, str]
         """get the string representation of EntryPoint,
         remove space and split on '='
         """
-        return str(s).replace(" ", "").split("=")
+        split_parts = str(s).replace(" ", "").split("=")
+        return split_parts[0], split_parts[1]
 
     # convert the EntryPoint objects into strings with module:function
     console = dict(_split_ep(v) for v in console.values())
@@ -317,6 +319,7 @@ class MissingCallableSuffix(Exception):
 
 
 def _raise_for_invalid_entrypoint(specification):
+    # type: (str) -> None
     entry = get_export_entry(specification)
     if entry is not None and entry.suffix is None:
         raise MissingCallableSuffix(str(entry))
@@ -324,6 +327,7 @@ def _raise_for_invalid_entrypoint(specification):
 
 class PipScriptMaker(ScriptMaker):
     def make(self, specification, options=None):
+        # type: (str, Dict[str, Any]) -> List[str]
         _raise_for_invalid_entrypoint(specification)
         return super(PipScriptMaker, self).make(specification, options)
 
@@ -378,6 +382,7 @@ def install_unpacked_wheel(
         logger.debug(stdout.getvalue())
 
     def record_installed(srcfile, destfile, modified=False):
+        # type: (str, str, bool) -> None
         """Map archive RECORD paths to installation RECORD paths."""
         oldpath = normpath(srcfile, wheeldir)
         newpath = normpath(destfile, lib_dir)
@@ -385,7 +390,14 @@ def install_unpacked_wheel(
         if modified:
             changed.add(destfile)
 
-    def clobber(source, dest, is_base, fixer=None, filter=None):
+    def clobber(
+            source,  # type: str
+            dest,  # type: str
+            is_base,  # type: bool
+            fixer=None,  # type: Optional[Callable[[str], Any]]
+            filter=None  # type: Optional[Callable[[str], bool]]
+    ):
+        # type: (...) -> None
         ensure_dir(dest)  # common for the 'include' path
 
         for dir, subdirs, files in os.walk(source):
@@ -469,6 +481,7 @@ def install_unpacked_wheel(
     console, gui = get_entrypoints(ep_file)
 
     def is_entrypoint_wrapper(name):
+        # type: (str) -> bool
         # EP, EP.exe and EP-script.py are scripts generated for
         # entry point EP by setuptools
         if name.lower().endswith('.exe'):
@@ -765,6 +778,7 @@ class Wheel(object):
 
 def _contains_egg_info(
         s, _egg_info_re=re.compile(r'([a-z0-9_.]+)-([a-z0-9_.!+-]+)', re.I)):
+    # type: (str, Pattern) -> bool
     """Determine whether the string looks like an egg_info.
 
     :param s: The string to parse. E.g. foo-2.1
@@ -869,7 +883,7 @@ def should_use_ephemeral_cache(
 
 def format_command_result(
     command_args,  # type: List[str]
-    command_output,  # type: str
+    command_output,  # type: Text
 ):
     # type: (...) -> str
     """Format command information for logging."""
@@ -893,7 +907,7 @@ def get_legacy_build_wheel_path(
     temp_dir,  # type: str
     req,  # type: InstallRequirement
     command_args,  # type: List[str]
-    command_output,  # type: str
+    command_output,  # type: Text
 ):
     # type: (...) -> Optional[str]
     """Return the path to the wheel in the temporary build directory."""
@@ -919,6 +933,7 @@ def get_legacy_build_wheel_path(
 
 
 def _always_true(_):
+    # type: (Any) -> bool
     return True
 
 
@@ -954,7 +969,13 @@ class WheelBuilder(object):
         # file names of built wheel names
         self.wheel_filenames = []  # type: List[Union[bytes, Text]]
 
-    def _build_one(self, req, output_dir, python_tag=None):
+    def _build_one(
+        self,
+        req,  # type: InstallRequirement
+        output_dir,  # type: str
+        python_tag=None,  # type: Optional[str]
+    ):
+        # type: (...) -> Optional[str]
         """Build one wheel.
 
         :return: The filename of the built wheel, or None if the build failed.
@@ -964,7 +985,13 @@ class WheelBuilder(object):
             return self._build_one_inside_env(req, output_dir,
                                               python_tag=python_tag)
 
-    def _build_one_inside_env(self, req, output_dir, python_tag=None):
+    def _build_one_inside_env(
+        self,
+        req,  # type: InstallRequirement
+        output_dir,  # type: str
+        python_tag=None,  # type: Optional[str]
+    ):
+        # type: (...) -> Optional[str]
         with TempDirectory(kind="wheel") as temp_dir:
             if req.use_pep517:
                 builder = self._build_one_pep517
@@ -989,7 +1016,13 @@ class WheelBuilder(object):
             self._clean_one(req)
             return None
 
-    def _build_one_pep517(self, req, tempd, python_tag=None):
+    def _build_one_pep517(
+        self,
+        req,  # type: InstallRequirement
+        tempd,  # type: str
+        python_tag=None,  # type: Optional[str]
+    ):
+        # type: (...) -> Optional[str]
         """Build one InstallRequirement using the PEP 517 build process.
 
         Returns path to wheel if successfully built. Otherwise, returns None.
@@ -1028,7 +1061,13 @@ class WheelBuilder(object):
             return None
         return os.path.join(tempd, wheel_name)
 
-    def _build_one_legacy(self, req, tempd, python_tag=None):
+    def _build_one_legacy(
+        self,
+        req,  # type: InstallRequirement
+        tempd,  # type: str
+        python_tag=None,  # type: Optional[str]
+    ):
+        # type: (...) -> Optional[str]
         """Build one InstallRequirement using the "legacy" build process.
 
         Returns path to wheel if successfully built. Otherwise, returns None.
@@ -1067,6 +1106,7 @@ class WheelBuilder(object):
             return wheel_path
 
     def _clean_one(self, req):
+        # type: (InstallRequirement) -> bool
         clean_args = make_setuptools_clean_args(
             req.setup_py_path,
             global_options=self.global_options,
