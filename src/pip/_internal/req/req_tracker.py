@@ -63,16 +63,9 @@ def get_requirement_tracker():
 
 class RequirementTracker(object):
 
-    def __init__(self):
-        # type: () -> None
-        self._root = os.environ.get('PIP_REQ_TRACKER')
-        if self._root is None:
-            self._temp_dir = TempDirectory(delete=False, kind='req-tracker')
-            self._root = os.environ['PIP_REQ_TRACKER'] = self._temp_dir.path
-            logger.debug('Created requirements tracker %r', self._root)
-        else:
-            self._temp_dir = None
-            logger.debug('Re-using requirements tracker %r', self._root)
+    def __init__(self, root):
+        # type: (str) -> None
+        self._root = root
         self._entries = set()  # type: Set[InstallRequirement]
 
     def __enter__(self):
@@ -140,13 +133,6 @@ class RequirementTracker(object):
         for req in set(self._entries):
             self.remove(req)
 
-        if self._temp_dir is None:
-            # Did not setup the directory. No action needed.
-            logger.debug("Cleaned build tracker: %r", self._root)
-            return
-
-        # Cleanup the directory.
-        self._temp_dir.cleanup()
         logger.debug("Removed build tracker: %r", self._root)
 
     @contextlib.contextmanager
