@@ -9,6 +9,8 @@ import hashlib
 import logging
 import os
 
+from pip._vendor import contextlib2
+
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -19,6 +21,31 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.models.link import Link
 
 logger = logging.getLogger(__name__)
+
+
+@contextlib.contextmanager
+def update_env_context_manager(**changes):
+    target = os.environ
+
+    # Save values from the target and change them.
+    non_existent_marker = object()
+    saved_values = {}
+    for name, value in changes.items():
+        try:
+            saved_values[name] = target[name]
+        except KeyError:
+            saved_values[name] = non_existent_marker
+        target[name] = value
+
+    try:
+        yield
+    finally:
+        # Restore original values in the target.
+        for name, value in saved_values.items():
+            if value is non_existent_marker:
+                del target[name]
+            else:
+                target[name] = value
 
 
 @contextlib.contextmanager
