@@ -3,30 +3,35 @@ import os
 
 import pytest
 
+from tests.lib.path import Path
 
-def test_basic_list(script, data):
+
+@pytest.fixture(scope="session")
+def simple_script(tmpdir_factory, script_factory, shared_data):
+    tmpdir = Path(str(tmpdir_factory.mktemp("pip_test_package")))
+    script = script_factory(tmpdir.joinpath("workspace"))
+    script.pip(
+        'install', '-f', shared_data.find_links, '--no-index', 'simple==1.0',
+        'simple2==3.0',
+    )
+    return script
+
+
+def test_basic_list(simple_script):
     """
     Test default behavior of list command without format specifier.
 
     """
-    script.pip(
-        'install', '-f', data.find_links, '--no-index', 'simple==1.0',
-        'simple2==3.0',
-    )
-    result = script.pip('list')
+    result = simple_script.pip('list')
     assert 'simple     1.0' in result.stdout, str(result)
     assert 'simple2    3.0' in result.stdout, str(result)
 
 
-def test_verbose_flag(script, data):
+def test_verbose_flag(simple_script):
     """
     Test the list command with the '-v' option
     """
-    script.pip(
-        'install', '-f', data.find_links, '--no-index', 'simple==1.0',
-        'simple2==3.0',
-    )
-    result = script.pip('list', '-v', '--format=columns')
+    result = simple_script.pip('list', '-v', '--format=columns')
     assert 'Package' in result.stdout, str(result)
     assert 'Version' in result.stdout, str(result)
     assert 'Location' in result.stdout, str(result)
@@ -35,15 +40,11 @@ def test_verbose_flag(script, data):
     assert 'simple2    3.0' in result.stdout, str(result)
 
 
-def test_columns_flag(script, data):
+def test_columns_flag(simple_script):
     """
     Test the list command with the '--format=columns' option
     """
-    script.pip(
-        'install', '-f', data.find_links, '--no-index', 'simple==1.0',
-        'simple2==3.0',
-    )
-    result = script.pip('list', '--format=columns')
+    result = simple_script.pip('list', '--format=columns')
     assert 'Package' in result.stdout, str(result)
     assert 'Version' in result.stdout, str(result)
     assert 'simple (1.0)' not in result.stdout, str(result)
@@ -51,22 +52,18 @@ def test_columns_flag(script, data):
     assert 'simple2    3.0' in result.stdout, str(result)
 
 
-def test_format_priority(script, data):
+def test_format_priority(simple_script):
     """
     Test that latest format has priority over previous ones.
     """
-    script.pip(
-        'install', '-f', data.find_links, '--no-index', 'simple==1.0',
-        'simple2==3.0',
-    )
-    result = script.pip('list', '--format=columns', '--format=freeze',
-                        expect_stderr=True)
+    result = simple_script.pip('list', '--format=columns', '--format=freeze',
+                               expect_stderr=True)
     assert 'simple==1.0' in result.stdout, str(result)
     assert 'simple2==3.0' in result.stdout, str(result)
     assert 'simple     1.0' not in result.stdout, str(result)
     assert 'simple2    3.0' not in result.stdout, str(result)
 
-    result = script.pip('list', '--format=freeze', '--format=columns')
+    result = simple_script.pip('list', '--format=freeze', '--format=columns')
     assert 'Package' in result.stdout, str(result)
     assert 'Version' in result.stdout, str(result)
     assert 'simple==1.0' not in result.stdout, str(result)
@@ -75,23 +72,21 @@ def test_format_priority(script, data):
     assert 'simple2    3.0' in result.stdout, str(result)
 
 
-def test_local_flag(script, data):
+def test_local_flag(simple_script):
     """
     Test the behavior of --local flag in the list command
 
     """
-    script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
-    result = script.pip('list', '--local', '--format=json')
+    result = simple_script.pip('list', '--local', '--format=json')
     assert {"name": "simple", "version": "1.0"} in json.loads(result.stdout)
 
 
-def test_local_columns_flag(script, data):
+def test_local_columns_flag(simple_script):
     """
     Test the behavior of --local --format=columns flags in the list command
 
     """
-    script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
-    result = script.pip('list', '--local', '--format=columns')
+    result = simple_script.pip('list', '--local', '--format=columns')
     assert 'Package' in result.stdout
     assert 'Version' in result.stdout
     assert 'simple (1.0)' not in result.stdout
@@ -479,30 +474,22 @@ def test_not_required_flag(script, data):
     assert 'TopoRequires3 ' not in result.stdout
 
 
-def test_list_freeze(script, data):
+def test_list_freeze(simple_script):
     """
     Test freeze formatting of list command
 
     """
-    script.pip(
-        'install', '-f', data.find_links, '--no-index', 'simple==1.0',
-        'simple2==3.0',
-    )
-    result = script.pip('list', '--format=freeze')
+    result = simple_script.pip('list', '--format=freeze')
     assert 'simple==1.0' in result.stdout, str(result)
     assert 'simple2==3.0' in result.stdout, str(result)
 
 
-def test_list_json(script, data):
+def test_list_json(simple_script):
     """
     Test json formatting of list command
 
     """
-    script.pip(
-        'install', '-f', data.find_links, '--no-index', 'simple==1.0',
-        'simple2==3.0',
-    )
-    result = script.pip('list', '--format=json')
+    result = simple_script.pip('list', '--format=json')
     data = json.loads(result.stdout)
     assert {'name': 'simple', 'version': '1.0'} in data
     assert {'name': 'simple2', 'version': '3.0'} in data

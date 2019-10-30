@@ -343,6 +343,11 @@ def common_wheels():
     return DATA_DIR.joinpath('common_wheels')
 
 
+@pytest.fixture(scope="session")
+def shared_data(tmpdir_factory):
+    return TestData.copy(Path(tmpdir_factory.mktemp("data")))
+
+
 @pytest.fixture
 def data(tmpdir):
     return TestData.copy(tmpdir.joinpath("data"))
