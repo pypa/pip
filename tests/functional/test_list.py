@@ -242,50 +242,53 @@ def test_outdated_columns_flag(script, data):
     assert 'simple2' not in result.stdout, str(result)  # 3.0 is latest
 
 
-@pytest.mark.network
-def test_editables_flag(script, data):
-    """
-    Test the behavior of --editables flag in the list command
-    """
-    script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
-    result = script.pip(
+@pytest.fixture(scope="session")
+def pip_test_package_script(tmpdir_factory, script_factory, shared_data):
+    tmpdir = Path(str(tmpdir_factory.mktemp("pip_test_package")))
+    script = script_factory(tmpdir.joinpath("workspace"))
+    script.pip(
+        'install', '-f', shared_data.find_links, '--no-index', 'simple==1.0'
+    )
+    script.pip(
         'install', '-e',
         'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package'
     )
-    result = script.pip('list', '--editable', '--format=json')
-    result2 = script.pip('list', '--editable')
+    return script
+
+
+@pytest.mark.network
+def test_editables_flag(pip_test_package_script):
+    """
+    Test the behavior of --editables flag in the list command
+    """
+    result = pip_test_package_script.pip('list', '--editable', '--format=json')
+    result2 = pip_test_package_script.pip('list', '--editable')
     assert {"name": "simple", "version": "1.0"} \
         not in json.loads(result.stdout)
     assert os.path.join('src', 'pip-test-package') in result2.stdout
 
 
 @pytest.mark.network
-def test_exclude_editable_flag(script, data):
+def test_exclude_editable_flag(pip_test_package_script):
     """
     Test the behavior of --editables flag in the list command
     """
-    script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
-    result = script.pip(
-        'install', '-e',
-        'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package'
+    result = pip_test_package_script.pip(
+        'list', '--exclude-editable', '--format=json'
     )
-    result = script.pip('list', '--exclude-editable', '--format=json')
     assert {"name": "simple", "version": "1.0"} in json.loads(result.stdout)
     assert "pip-test-package" \
         not in {p["name"] for p in json.loads(result.stdout)}
 
 
 @pytest.mark.network
-def test_editables_columns_flag(script, data):
+def test_editables_columns_flag(pip_test_package_script):
     """
     Test the behavior of --editables flag in the list command
     """
-    script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
-    result = script.pip(
-        'install', '-e',
-        'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package'
+    result = pip_test_package_script.pip(
+        'list', '--editable', '--format=columns'
     )
-    result = script.pip('list', '--editable', '--format=columns')
     assert 'Package' in result.stdout
     assert 'Version' in result.stdout
     assert 'Location' in result.stdout
@@ -295,16 +298,11 @@ def test_editables_columns_flag(script, data):
 
 
 @pytest.mark.network
-def test_uptodate_editables_flag(script, data):
+def test_uptodate_editables_flag(pip_test_package_script, data):
     """
     test the behavior of --editable --uptodate flag in the list command
     """
-    script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
-    result = script.pip(
-        'install', '-e',
-        'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package'
-    )
-    result = script.pip(
+    result = pip_test_package_script.pip(
         'list', '-f', data.find_links, '--no-index',
         '--editable', '--uptodate',
     )
@@ -315,17 +313,12 @@ def test_uptodate_editables_flag(script, data):
 
 
 @pytest.mark.network
-def test_uptodate_editables_columns_flag(script, data):
+def test_uptodate_editables_columns_flag(pip_test_package_script, data):
     """
     test the behavior of --editable --uptodate --format=columns flag in the
     list command
     """
-    script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
-    result = script.pip(
-        'install', '-e',
-        'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package'
-    )
-    result = script.pip(
+    result = pip_test_package_script.pip(
         'list', '-f', data.find_links, '--no-index',
         '--editable', '--uptodate', '--format=columns',
     )

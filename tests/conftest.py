@@ -345,7 +345,7 @@ def common_wheels():
 
 @pytest.fixture(scope="session")
 def shared_data(tmpdir_factory):
-    return TestData.copy(Path(tmpdir_factory.mktemp("data")))
+    return TestData.copy(Path(str(tmpdir_factory.mktemp("data"))))
 
 
 @pytest.fixture
