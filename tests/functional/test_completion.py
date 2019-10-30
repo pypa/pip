@@ -3,6 +3,8 @@ import sys
 
 import pytest
 
+from tests.lib.path import Path
+
 COMPLETION_FOR_SUPPORTED_SHELLS_TESTS = (
     ('bash', """\
 _pip_completion()
@@ -52,20 +54,28 @@ def test_completion_for_supported_shells(script, pip_src, common_wheels,
     assert completion in result.stdout, str(result.stdout)
 
 
-def test_completion_for_unknown_shell(script):
+@pytest.fixture(scope="session")
+def autocomplete_script(tmpdir_factory, script_factory):
+    tmpdir = Path(str(tmpdir_factory.mktemp("autocomplete_script")))
+    return script_factory(tmpdir.joinpath("workspace"))
+
+
+def test_completion_for_unknown_shell(autocomplete_script):
     """
     Test getting completion for an unknown shell
     """
     error_msg = 'no such option: --myfooshell'
-    result = script.pip('completion', '--myfooshell', expect_error=True)
+    result = autocomplete_script.pip(
+        'completion', '--myfooshell', expect_error=True
+    )
     assert error_msg in result.stderr, 'tests for an unknown shell failed'
 
 
-def test_completion_alone(script):
+def test_completion_alone(autocomplete_script):
     """
     Test getting completion for none shell, just pip completion
     """
-    result = script.pip('completion', allow_stderr_error=True)
+    result = autocomplete_script.pip('completion', allow_stderr_error=True)
     assert 'ERROR: You must pass --bash or --fish or --zsh' in result.stderr, \
            'completion alone failed -- ' + result.stderr
 
@@ -285,10 +295,12 @@ def test_completion_path_after_option(script, data):
 
 
 @pytest.mark.parametrize('flag', ['--bash', '--zsh', '--fish'])
-def test_completion_uses_same_executable_name(script, flag, deprecated_python):
+def test_completion_uses_same_executable_name(
+    autocomplete_script, flag, deprecated_python
+):
     executable_name = 'pip{}'.format(sys.version_info[0])
     # Deprecated python versions produce an extra deprecation warning
-    result = script.run(
+    result = autocomplete_script.run(
         executable_name, 'completion', flag, expect_stderr=deprecated_python,
     )
     assert executable_name in result.stdout
