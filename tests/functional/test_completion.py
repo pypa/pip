@@ -37,20 +37,31 @@ compctl -K _pip_completion pip"""),
 )
 
 
+@pytest.fixture(scope="session")
+def script_with_launchers(
+    tmpdir_factory, script_factory, common_wheels, pip_src
+):
+    tmpdir = Path(str(tmpdir_factory.mktemp("script_with_launchers")))
+    script = script_factory(tmpdir.joinpath("workspace"))
+    # Re-install pip so we get the launchers.
+    script.pip_install_local('-f', common_wheels, pip_src)
+    return script
+
+
 @pytest.mark.parametrize(
     'shell, completion',
     COMPLETION_FOR_SUPPORTED_SHELLS_TESTS,
     ids=[t[0] for t in COMPLETION_FOR_SUPPORTED_SHELLS_TESTS],
 )
-def test_completion_for_supported_shells(script, pip_src, common_wheels,
-                                         shell, completion):
+def test_completion_for_supported_shells(
+    script_with_launchers, shell, completion
+):
     """
     Test getting completion for bash shell
     """
-    # Re-install pip so we get the launchers.
-    script.pip_install_local('-f', common_wheels, pip_src)
-
-    result = script.pip('completion', '--' + shell, use_module=False)
+    result = script_with_launchers.pip(
+        'completion', '--' + shell, use_module=False
+    )
     assert completion in result.stdout, str(result.stdout)
 
 
