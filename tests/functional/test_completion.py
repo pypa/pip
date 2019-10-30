@@ -60,6 +60,27 @@ def autocomplete_script(tmpdir_factory, script_factory):
     return script_factory(tmpdir.joinpath("workspace"))
 
 
+@pytest.fixture
+def autocomplete(autocomplete_script, monkeypatch):
+    monkeypatch.setattr(autocomplete_script, 'environ', os.environ.copy())
+    autocomplete_script.environ['PIP_AUTO_COMPLETE'] = '1'
+
+    def do_autocomplete(words, cword, cwd=None):
+        autocomplete_script.environ['COMP_WORDS'] = words
+        autocomplete_script.environ['COMP_CWORD'] = cword
+        result = autocomplete_script.run(
+            'python', '-c',
+            'from pip._internal.cli.autocompletion import autocomplete;'
+            'autocomplete()',
+            expect_error=True,
+            cwd=cwd,
+        )
+
+        return result, autocomplete_script
+
+    return do_autocomplete
+
+
 def test_completion_for_unknown_shell(autocomplete_script):
     """
     Test getting completion for an unknown shell
@@ -80,83 +101,64 @@ def test_completion_alone(autocomplete_script):
            'completion alone failed -- ' + result.stderr
 
 
-def setup_completion(script, words, cword, cwd=None):
-    script.environ = os.environ.copy()
-    script.environ['PIP_AUTO_COMPLETE'] = '1'
-    script.environ['COMP_WORDS'] = words
-    script.environ['COMP_CWORD'] = cword
-
-    # expect_error is True because autocomplete exists with 1 status code
-    result = script.run(
-        'python', '-c',
-        'from pip._internal.cli.autocompletion import autocomplete;'
-        'autocomplete()',
-        expect_error=True,
-        cwd=cwd,
-    )
-
-    return result, script
-
-
-def test_completion_for_un_snippet(script):
+def test_completion_for_un_snippet(autocomplete):
     """
     Test getting completion for ``un`` should return uninstall
     """
 
-    res, env = setup_completion(script, 'pip un', '1')
+    res, env = autocomplete('pip un', '1')
     assert res.stdout.strip().split() == ['uninstall'], res.stdout
 
 
-def test_completion_for_default_parameters(script):
+def test_completion_for_default_parameters(autocomplete):
     """
     Test getting completion for ``--`` should contain --help
     """
 
-    res, env = setup_completion(script, 'pip --', '1')
+    res, env = autocomplete('pip --', '1')
     assert '--help' in res.stdout,\
            "autocomplete function could not complete ``--``"
 
 
-def test_completion_option_for_command(script):
+def test_completion_option_for_command(autocomplete):
     """
     Test getting completion for ``--`` in command (e.g. ``pip search --``)
     """
 
-    res, env = setup_completion(script, 'pip search --', '2')
+    res, env = autocomplete('pip search --', '2')
     assert '--help' in res.stdout,\
            "autocomplete function could not complete ``--``"
 
 
-def test_completion_short_option(script):
+def test_completion_short_option(autocomplete):
     """
     Test getting completion for short options after ``-`` (eg. pip -)
     """
 
-    res, env = setup_completion(script, 'pip -', '1')
+    res, env = autocomplete('pip -', '1')
 
     assert '-h' in res.stdout.split(),\
            "autocomplete function could not complete short options after ``-``"
 
 
-def test_completion_short_option_for_command(script):
+def test_completion_short_option_for_command(autocomplete):
     """
     Test getting completion for short options after ``-`` in command
     (eg. pip search -)
     """
 
-    res, env = setup_completion(script, 'pip search -', '2')
+    res, env = autocomplete('pip search -', '2')
 
     assert '-h' in res.stdout.split(),\
            "autocomplete function could not complete short options after ``-``"
 
 
-def test_completion_files_after_option(script, data):
+def test_completion_files_after_option(autocomplete, data):
     """
     Test getting completion for <file> or <dir> after options in command
     (e.g. ``pip install -r``)
     """
-    res, env = setup_completion(
-        script=script,
+    res, env = autocomplete(
         words=('pip install -r r'),
         cword='3',
         cwd=data.completion_paths,
@@ -186,13 +188,12 @@ def test_completion_files_after_option(script, data):
     )
 
 
-def test_completion_not_files_after_option(script, data):
+def test_completion_not_files_after_option(autocomplete, data):
     """
     Test not getting completion files after options which not applicable
     (e.g. ``pip install``)
     """
-    res, env = setup_completion(
-        script=script,
+    res, env = autocomplete(
         words=('pip install r'),
         cword='2',
         cwd=data.completion_paths,
@@ -210,13 +211,14 @@ def test_completion_not_files_after_option(script, data):
 
 
 @pytest.mark.parametrize("cl_opts", ["-U", "--user", "-h"])
-def test_completion_not_files_after_nonexpecting_option(script, data, cl_opts):
+def test_completion_not_files_after_nonexpecting_option(
+    autocomplete, data, cl_opts
+):
     """
     Test not getting completion files after options which not applicable
     (e.g. ``pip install``)
     """
-    res, env = setup_completion(
-        script=script,
+    res, env = autocomplete(
         words=('pip install %s r' % cl_opts),
         cword='2',
         cwd=data.completion_paths,
@@ -233,13 +235,12 @@ def test_completion_not_files_after_nonexpecting_option(script, data, cl_opts):
     )
 
 
-def test_completion_directories_after_option(script, data):
+def test_completion_directories_after_option(autocomplete, data):
     """
     Test getting completion <dir> after options in command
     (e.g. ``pip --cache-dir``)
     """
-    res, env = setup_completion(
-        script=script,
+    res, env = autocomplete(
         words=('pip --cache-dir r'),
         cword='2',
         cwd=data.completion_paths,
@@ -258,13 +259,12 @@ def test_completion_directories_after_option(script, data):
         )
 
 
-def test_completion_subdirectories_after_option(script, data):
+def test_completion_subdirectories_after_option(autocomplete, data):
     """
     Test getting completion <dir> after options in command
     given path of a directory
     """
-    res, env = setup_completion(
-        script=script,
+    res, env = autocomplete(
         words=('pip --cache-dir ' + os.path.join('resources', '')),
         cword='2',
         cwd=data.completion_paths,
@@ -276,13 +276,12 @@ def test_completion_subdirectories_after_option(script, data):
     )
 
 
-def test_completion_path_after_option(script, data):
+def test_completion_path_after_option(autocomplete, data):
     """
     Test getting completion <path> after options in command
     given absolute path
     """
-    res, env = setup_completion(
-        script=script,
+    res, env = autocomplete(
         words=('pip install -e ' + os.path.join(data.completion_paths, 'R')),
         cword='3',
     )
