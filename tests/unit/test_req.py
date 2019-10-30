@@ -30,7 +30,7 @@ from pip._internal.req.constructors import (
     parse_editable,
 )
 from pip._internal.req.req_file import ParsedLine, get_line_parser, handle_line
-from pip._internal.req.req_tracker import RequirementTracker
+from pip._internal.req.req_tracker import get_requirement_tracker
 from pip._internal.utils.urls import path_to_url
 from tests.lib import assert_raises_regexp, make_test_finder, requirements_file
 
@@ -69,7 +69,7 @@ class TestRequirementSet(object):
             wheel_download_dir=None,
             progress_bar="on",
             build_isolation=True,
-            req_tracker=RequirementTracker(),
+            req_tracker=get_requirement_tracker(),
             session=PipSession(),
             finder=finder,
             require_hashes=require_hashes,
