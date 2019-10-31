@@ -463,13 +463,13 @@ class InstallCommand(RequirementCommand):
                 )
                 working_set = pkg_resources.WorkingSet(lib_locations)
 
-                reqs = sorted(installed, key=operator.attrgetter('name'))
+                installed.sort(key=operator.attrgetter('name'))
                 items = []
-                for req in reqs:
-                    item = req.name
+                for result in installed:
+                    item = result.name
                     try:
                         installed_version = get_installed_version(
-                            req.name, working_set=working_set
+                            result.name, working_set=working_set
                         )
                         if installed_version:
                             item += '-' + installed_version
