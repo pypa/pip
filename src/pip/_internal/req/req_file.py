@@ -84,6 +84,25 @@ SUPPORTED_OPTIONS_REQ = [
 SUPPORTED_OPTIONS_REQ_DEST = [str(o().dest) for o in SUPPORTED_OPTIONS_REQ]
 
 
+class ParsedLine(object):
+    def __init__(
+        self,
+        filename,  # type: str
+        lineno,  # type: int
+        comes_from,  # type: str
+        args,  # type: str
+        opts,  # type: Values
+        constraint,  # type: bool
+    ):
+        # type: (...) -> None
+        self.filename = filename
+        self.lineno = lineno
+        self.comes_from = comes_from
+        self.args = args
+        self.opts = opts
+        self.constraint = constraint
+
+
 def parse_requirements(
     filename,  # type: str
     finder=None,  # type: Optional[PackageFinder]
@@ -113,20 +132,19 @@ def parse_requirements(
             "'session'"
         )
 
-    _, content = get_file_content(
-        filename, comes_from=comes_from, session=session
-    )
-
     skip_requirements_regex = (
         options.skip_requirements_regex if options else None
     )
-    lines_enum = preprocess(content, skip_requirements_regex)
+    line_parser = get_line_parser(finder)
+    parser = RequirementsFileParser(
+        session, line_parser, comes_from, skip_requirements_regex
+    )
 
-    for line_number, line in lines_enum:
-        req_iter = process_line(line, filename, line_number, finder,
-                                comes_from, options, session, wheel_cache,
-                                use_pep517=use_pep517, constraint=constraint)
-        for req in req_iter:
+    for parsed_line in parser.parse(filename, constraint):
+        req = handle_line(
+            parsed_line, finder, options, session, wheel_cache, use_pep517
+        )
+        if req is not None:
             yield req
 
 
@@ -146,21 +164,17 @@ def preprocess(content, skip_requirements_regex):
     return lines_enum
 
 
-def process_line(
-    line,  # type: Text
-    filename,  # type: str
-    line_number,  # type: int
+def handle_line(
+    line,  # type: ParsedLine
     finder=None,  # type: Optional[PackageFinder]
-    comes_from=None,  # type: Optional[str]
     options=None,  # type: Optional[optparse.Values]
     session=None,  # type: Optional[PipSession]
     wheel_cache=None,  # type: Optional[WheelCache]
     use_pep517=None,  # type: Optional[bool]
-    constraint=False,  # type: bool
 ):
-    # type: (...) -> Iterator[InstallRequirement]
-    """Process a single requirements line; This can result in creating/yielding
-    requirements, or updating the finder.
+    # type: (...) -> Optional[InstallRequirement]
+    """Handle a single parsed requirements line; This can result in
+    creating/yielding requirements, or updating the finder.
 
     For lines that contain requirements, the only options that have an effect
     are from SUPPORTED_OPTIONS_REQ, and they are scoped to the
@@ -172,102 +186,65 @@ def process_line(
     be present, but are ignored. These lines may contain multiple options
     (although our docs imply only one is supported), and all our parsed and
     affect the finder.
-
-    :param constraint: If True, parsing a constraints file.
-    :param options: OptionParser options that we may update
     """
-    line_parser = get_line_parser(finder)
-    try:
-        args_str, opts = line_parser(line)
-    except OptionParsingError as e:
-        # add offending line
-        msg = 'Invalid requirement: %s\n%s' % (line, e.msg)
-        raise RequirementsFileParseError(msg)
-
-    # parse a nested requirements file
-    if (
-        not args_str and
-        not opts.editables and
-        (opts.requirements or opts.constraints)
-    ):
-        if opts.requirements:
-            req_path = opts.requirements[0]
-            nested_constraint = False
-        else:
-            req_path = opts.constraints[0]
-            nested_constraint = True
-        # original file is over http
-        if SCHEME_RE.search(filename):
-            # do a url join so relative paths work
-            req_path = urllib_parse.urljoin(filename, req_path)
-        # original file and nested file are paths
-        elif not SCHEME_RE.search(req_path):
-            # do a join so relative paths work
-            req_path = os.path.join(os.path.dirname(filename), req_path)
-        parsed_reqs = parse_requirements(
-            req_path, finder, comes_from, options, session,
-            constraint=nested_constraint, wheel_cache=wheel_cache
-        )
-        for req in parsed_reqs:
-            yield req
-        return
 
     # preserve for the nested code path
     line_comes_from = '%s %s (line %s)' % (
-        '-c' if constraint else '-r', filename, line_number,
+        '-c' if line.constraint else '-r', line.filename, line.lineno,
     )
 
-    # yield a line requirement
-    if args_str:
+    # return a line requirement
+    if line.args:
         isolated = options.isolated_mode if options else False
         if options:
-            cmdoptions.check_install_build_global(options, opts)
+            cmdoptions.check_install_build_global(options, line.opts)
         # get the options that apply to requirements
         req_options = {}
         for dest in SUPPORTED_OPTIONS_REQ_DEST:
-            if dest in opts.__dict__ and opts.__dict__[dest]:
-                req_options[dest] = opts.__dict__[dest]
-        line_source = 'line {} of {}'.format(line_number, filename)
-        yield install_req_from_line(
-            args_str,
+            if dest in line.opts.__dict__ and line.opts.__dict__[dest]:
+                req_options[dest] = line.opts.__dict__[dest]
+        line_source = 'line {} of {}'.format(line.lineno, line.filename)
+        return install_req_from_line(
+            line.args,
             comes_from=line_comes_from,
             use_pep517=use_pep517,
             isolated=isolated,
             options=req_options,
             wheel_cache=wheel_cache,
-            constraint=constraint,
+            constraint=line.constraint,
             line_source=line_source,
         )
 
-    # yield an editable requirement
-    elif opts.editables:
+    # return an editable requirement
+    elif line.opts.editables:
         isolated = options.isolated_mode if options else False
-        yield install_req_from_editable(
-            opts.editables[0], comes_from=line_comes_from,
+        return install_req_from_editable(
+            line.opts.editables[0], comes_from=line_comes_from,
             use_pep517=use_pep517,
-            constraint=constraint, isolated=isolated, wheel_cache=wheel_cache
+            constraint=line.constraint, isolated=isolated,
+            wheel_cache=wheel_cache
         )
 
     # percolate hash-checking option upward
-    elif opts.require_hashes:
-        options.require_hashes = opts.require_hashes
+    elif line.opts.require_hashes:
+        options.require_hashes = line.opts.require_hashes
 
     # set finder options
     elif finder:
         find_links = finder.find_links
         index_urls = finder.index_urls
-        if opts.index_url:
-            index_urls = [opts.index_url]
-        if opts.no_index is True:
+        if line.opts.index_url:
+            index_urls = [line.opts.index_url]
+        if line.opts.no_index is True:
             index_urls = []
-        if opts.extra_index_urls:
-            index_urls.extend(opts.extra_index_urls)
-        if opts.find_links:
+        if line.opts.extra_index_urls:
+            index_urls.extend(line.opts.extra_index_urls)
+        if line.opts.find_links:
             # FIXME: it would be nice to keep track of the source
             # of the find_links: support a find-links local path
             # relative to a requirements file.
-            value = opts.find_links[0]
-            req_dir = os.path.dirname(os.path.abspath(filename))
+            value = line.opts.find_links[0]
+            req_dir = os.path.dirname(os.path.abspath(line.filename))
             relative_to_reqs_file = os.path.join(req_dir, value)
             if os.path.exists(relative_to_reqs_file):
                 value = relative_to_reqs_file
@@ -279,23 +256,110 @@ def process_line(
         )
         finder.search_scope = search_scope
 
-        if opts.pre:
+        if line.opts.pre:
             finder.set_allow_all_prereleases()
-        for host in opts.trusted_hosts or []:
-            source = 'line {} of {}'.format(line_number, filename)
-            session.add_trusted_host(host, source=source)
+
+        if session:
+            for host in line.opts.trusted_hosts or []:
+                source = 'line {} of {}'.format(line.lineno, line.filename)
+                session.add_trusted_host(host, source=source)
+
+    return None
+
+
+class RequirementsFileParser(object):
+    def __init__(
+        self,
+        session,  # type: PipSession
+        line_parser,  # type: LineParser
+        comes_from,  # type: str
+        skip_requirements_regex,  # type: Optional[str]
+    ):
+        # type: (...) -> None
+        self._session = session
+        self._line_parser = line_parser
+        self._comes_from = comes_from
+        self._skip_requirements_regex = skip_requirements_regex
+
+    def parse(self, filename, constraint):
+        # type: (str, bool) -> Iterator[ParsedLine]
+        """Parse a given file, yielding parsed lines.
+        """
+        for line in self._parse_and_recurse(filename, constraint):
+            yield line
+
+    def _parse_and_recurse(self, filename, constraint):
+        # type: (str, bool) -> Iterator[ParsedLine]
+        for line in self._parse_file(filename, constraint):
+            if (
+                not line.args and
+                not line.opts.editables and
+                (line.opts.requirements or line.opts.constraints)
+            ):
+                # parse a nested requirements file
+                if line.opts.requirements:
+                    req_path = line.opts.requirements[0]
+                    nested_constraint = False
+                else:
+                    req_path = line.opts.constraints[0]
+                    nested_constraint = True
+
+                # original file is over http
+                if SCHEME_RE.search(filename):
+                    # do a url join so relative paths work
+                    req_path = urllib_parse.urljoin(filename, req_path)
+                # original file and nested file are paths
+                elif not SCHEME_RE.search(req_path):
+                    # do a join so relative paths work
+                    req_path = os.path.join(
+                        os.path.dirname(filename), req_path,
+                    )
+
+                for inner_line in self._parse_and_recurse(
+                    req_path, nested_constraint,
+                ):
+                    yield inner_line
+            else:
+                yield line
+
+    def _parse_file(self, filename, constraint):
+        # type: (str, bool) -> Iterator[ParsedLine]
+        _, content = get_file_content(
+            filename, comes_from=self._comes_from, session=self._session
+        )
+
+        lines_enum = preprocess(content, self._skip_requirements_regex)
+
+        for line_number, line in lines_enum:
+            try:
+                args_str, opts = self._line_parser(line)
+            except OptionParsingError as e:
+                # add offending line
+                msg = 'Invalid requirement: %s\n%s' % (line, e.msg)
+                raise RequirementsFileParseError(msg)
+
+            yield ParsedLine(
+                filename,
+                line_number,
+                self._comes_from,
+                args_str,
+                opts,
+                constraint,
+            )
 
 
 def get_line_parser(finder):
     # type: (Optional[PackageFinder]) -> LineParser
-    parser = build_parser()
-    defaults = parser.get_default_values()
-    defaults.index_url = None
-    if finder:
-        defaults.format_control = finder.format_control
-
     def parse_line(line):
         # type: (Text) -> Tuple[str, Values]
+        # Build new parser for each line since it accumulates appendable
+        # options.
+        parser = build_parser()
+        defaults = parser.get_default_values()
+        defaults.index_url = None
+        if finder:
+            defaults.format_control = finder.format_control
+
         args_str, options_str = break_args_options(line)
         # Prior to 2.7.3, shlex cannot deal with unicode entries
         if sys.version_info < (2, 7, 3):
