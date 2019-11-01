@@ -509,6 +509,7 @@ def get_file_content(url, comes_from=None, session=None):
     # type: (str, Optional[str], Optional[PipSession]) -> Tuple[str, Text]
     """Gets the content of a file; it may be a filename, file: URL, or
     http: URL.  Returns (location, content).  Content is unicode.
+    Respects # -*- coding: declarations on the retrieved files.
 
     :param url:         File path or url.
     :param comes_from:  Origin description of requirements.
