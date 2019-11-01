@@ -237,6 +237,16 @@ class VcsSupport(object):
                 return vcs_backend
         return None
 
+    def get_backend_for_scheme(self, scheme):
+        # type: (str) -> Optional[VersionControl]
+        """
+        Return a VersionControl object or None.
+        """
+        for vcs_backend in self._registry.values():
+            if scheme in vcs_backend.schemes:
+                return vcs_backend
+        return None
+
     def get_backend(self, name):
         # type: (str) -> Optional[VersionControl]
         """

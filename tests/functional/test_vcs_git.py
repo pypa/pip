@@ -6,8 +6,13 @@ import os
 
 import pytest
 
+from pip._internal.vcs import vcs
 from pip._internal.vcs.git import Git, RemoteNotFoundError
 from tests.lib import _create_test_package, _git_commit, _test_path_to_file_url
+
+
+def test_get_backend_for_scheme():
+    assert vcs.get_backend_for_scheme("git+https") is vcs.get_backend("Git")
 
 
 def get_head_sha(script, dest):

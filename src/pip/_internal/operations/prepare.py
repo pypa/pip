@@ -66,7 +66,6 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.req.req_tracker import RequirementTracker
     from pip._internal.utils.hashes import Hashes
-    from pip._internal.vcs.versioncontrol import VersionControl
 
     if PY2:
         CopytreeKwargs = TypedDict(
@@ -103,20 +102,9 @@ def _get_prepared_distribution(req, req_tracker, finder, build_isolation):
 
 def unpack_vcs_link(link, location):
     # type: (Link, str) -> None
-    vcs_backend = _get_used_vcs_backend(link)
+    vcs_backend = vcs.get_backend_for_scheme(link.scheme)
     assert vcs_backend is not None
     vcs_backend.unpack(location, url=hide_url(link.url))
-
-
-def _get_used_vcs_backend(link):
-    # type: (Link) -> Optional[VersionControl]
-    """
-    Return a VersionControl object or None.
-    """
-    for vcs_backend in vcs.backends:
-        if link.scheme in vcs_backend.schemes:
-            return vcs_backend
-    return None
 
 
 def _progress_indicator(iterable, *args, **kwargs):
