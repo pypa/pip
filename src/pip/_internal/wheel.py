@@ -852,35 +852,6 @@ def should_cache(
     return False
 
 
-def should_use_ephemeral_cache(
-    req,  # type: InstallRequirement
-    should_unpack,  # type: bool
-    cache_available,  # type: bool
-    check_binary_allowed,  # type: BinaryAllowedPredicate
-):
-    # type: (...) -> Optional[bool]
-    """Return whether to build an InstallRequirement object using the
-    ephemeral cache.
-
-    :param cache_available: whether a cache directory is available for the
-        should_unpack=True case.
-
-    :return: True or False to build the requirement with ephem_cache=True
-        or False, respectively; or None not to build the requirement.
-    """
-    if not should_build(req, not should_unpack, check_binary_allowed):
-        return None
-    if not should_unpack:
-        # i.e. pip wheel, not pip install;
-        # return False, knowing that the caller will never cache
-        # in this case anyway, so this return merely means "build it".
-        # TODO improve this behavior
-        return False
-    if not cache_available:
-        return True
-    return not should_cache(req, check_binary_allowed)
-
-
 def format_command_result(
     command_args,  # type: List[str]
     command_output,  # type: Text
@@ -1146,23 +1117,24 @@ class WheelBuilder(object):
         cache_available = bool(self.wheel_cache.cache_dir)
 
         for req in requirements:
-            ephem_cache = should_use_ephemeral_cache(
+            if not should_build(
                 req,
-                should_unpack=should_unpack,
-                cache_available=cache_available,
+                need_wheel=not should_unpack,
                 check_binary_allowed=self.check_binary_allowed,
-            )
-            if ephem_cache is None:
+            ):
                 continue
 
             # Determine where the wheel should go.
             if should_unpack:
-                if ephem_cache:
+                if (
+                    cache_available and
+                    should_cache(req, self.check_binary_allowed)
+                ):
+                    output_dir = self.wheel_cache.get_path_for_link(req.link)
+                else:
                     output_dir = self.wheel_cache.get_ephem_path_for_link(
                         req.link
                     )
-                else:
-                    output_dir = self.wheel_cache.get_path_for_link(req.link)
             else:
                 output_dir = self._wheel_dir
 
