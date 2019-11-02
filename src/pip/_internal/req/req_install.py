@@ -749,19 +749,20 @@ class InstallRequirement(object):
         uninstalled_pathset.remove(auto_confirm, verbose)
         return uninstalled_pathset
 
-    def _clean_zip_name(self, name, prefix):  # only used by archive.
-        # type: (str, str) -> str
-        assert name.startswith(prefix + os.path.sep), (
-            "name %r doesn't start with prefix %r" % (name, prefix)
-        )
-        name = name[len(prefix) + 1:]
-        name = name.replace(os.path.sep, '/')
-        return name
-
     def _get_archive_name(self, path, parentdir, rootdir):
         # type: (str, str, str) -> str
+
+        def _clean_zip_name(name, prefix):
+            # type: (str, str) -> str
+            assert name.startswith(prefix + os.path.sep), (
+                "name %r doesn't start with prefix %r" % (name, prefix)
+            )
+            name = name[len(prefix) + 1:]
+            name = name.replace(os.path.sep, '/')
+            return name
+
         path = os.path.join(parentdir, path)
-        name = self._clean_zip_name(path, rootdir)
+        name = _clean_zip_name(path, rootdir)
         return self.name + '/' + name
 
     def archive(self, build_dir):
