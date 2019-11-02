@@ -5,9 +5,8 @@ import atexit
 import logging
 import os
 
-from pip._internal.operations.build.metadata_legacy import (
-    _generate_metadata_legacy,
-)
+from pip._internal.operations.build.metadata_legacy import \
+    generate_metadata as _generate_metadata_legacy
 from pip._internal.utils.subprocess import runner_with_spinner_message
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING

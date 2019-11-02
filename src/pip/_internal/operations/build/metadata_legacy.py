@@ -78,7 +78,7 @@ def _find_egg_info(source_directory, is_editable):
     return os.path.join(base, filenames[0])
 
 
-def _generate_metadata_legacy(install_req):
+def generate_metadata(install_req):
     # type: (InstallRequirement) -> str
     assert install_req.unpacked_source_directory
 
