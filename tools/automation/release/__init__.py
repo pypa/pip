@@ -4,6 +4,7 @@ These are written according to the order they are called in.
 """
 
 import io
+import os
 import subprocess
 
 
@@ -102,3 +103,9 @@ def get_next_development_version(version):
         minor += 1
 
     return f"{major}.{minor}.dev0"
+
+
+def have_files_in_folder(folder_name):
+    if not os.path.exists(folder_name):
+        return False
+    return bool(os.listdir(folder_name))

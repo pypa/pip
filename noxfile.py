@@ -4,6 +4,7 @@
 # The following comment should be removed at some point in the future.
 # mypy: disallow-untyped-defs=False
 
+import glob
 import os
 import shutil
 import sys
@@ -182,3 +183,29 @@ def prepare_release(session):
     next_dev_version = release.get_next_development_version(version)
     release.update_version_file(next_dev_version, VERSION_FILE)
     release.commit_file(session, VERSION_FILE, message="Bump for development")
+
+
+@nox.session(name="build-release")
+def build_release(session):
+    version = release.get_version_from_arguments(session.posargs)
+    if not version:
+        session.error("Usage: nox -s upload-release -- YY.N[.P]")
+
+    session.log("# Ensure no files in dist/")
+    if release.have_files_in_folder("dist"):
+        session.error("There are files in dist/. Remove them and try again")
+
+    session.log("# Install dependencies")
+    session.install("setuptools", "wheel", "twine")
+
+    session.log("# Checkout the tag")
+    session.run("git", "checkout", version, external=True, silent=True)
+
+    session.log("# Build distributions")
+    session.run("python", "setup.py", "sdist", "bdist_wheel", silent=True)
+
+    session.log("# Verify distributions")
+    session.run("twine", "check", *glob.glob("dist/*"), silent=True)
+
+    session.log("# Checkout the master branch")
+    session.run("git", "checkout", "master", external=True, silent=True)
