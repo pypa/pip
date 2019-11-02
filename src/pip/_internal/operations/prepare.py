@@ -587,8 +587,8 @@ class RequirementPreparer(object):
 
         logger.critical('Could not find download directory')
         raise InstallationError(
-            "Could not find or access download directory '%s'"
-            % display_path(self.download_dir))
+            "Could not find or access download directory '{}'"
+            .format(self.download_dir))
 
     def prepare_linked_requirement(
         self,
@@ -623,12 +623,12 @@ class RequirementPreparer(object):
             # package unpacked in `req.source_dir`
             if os.path.exists(os.path.join(req.source_dir, 'setup.py')):
                 raise PreviousBuildDirError(
-                    "pip can't proceed with requirements '%s' due to a"
-                    " pre-existing build directory (%s). This is "
+                    "pip can't proceed with requirements '{}' due to a"
+                    " pre-existing build directory ({}). This is "
                     "likely due to a previous installation that failed"
                     ". pip is being responsible and not assuming it "
                     "can delete this. Please delete it and try again."
-                    % (req, req.source_dir)
+                    .format(req, req.source_dir)
                 )
 
             # Now that we have the real link, we can tell what kind of
@@ -682,9 +682,8 @@ class RequirementPreparer(object):
                     exc,
                 )
                 raise InstallationError(
-                    'Could not install requirement %s because of HTTP '
-                    'error %s for URL %s' %
-                    (req, exc, link)
+                    'Could not install requirement {} because of HTTP '
+                    'error {} for URL {}'.format(req, exc, link)
                 )
 
             if link.is_wheel:
@@ -729,9 +728,9 @@ class RequirementPreparer(object):
         with indent_log():
             if require_hashes:
                 raise InstallationError(
-                    'The editable requirement %s cannot be installed when '
+                    'The editable requirement {} cannot be installed when '
                     'requiring hashes, because there is no single file to '
-                    'hash.' % req
+                    'hash.'.format(req)
                 )
             req.ensure_has_source_dir(self.src_dir)
             req.update_editable(not self._download_should_save)
@@ -758,7 +757,7 @@ class RequirementPreparer(object):
         assert req.satisfied_by, "req should have been satisfied but isn't"
         assert skip_reason is not None, (
             "did not get skip reason skipped but req.satisfied_by "
-            "is set to %r" % (req.satisfied_by,)
+            "is set to {}".format(req.satisfied_by)
         )
         logger.info(
             'Requirement %s: %s (%s)',
