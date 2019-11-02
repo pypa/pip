@@ -6,9 +6,12 @@ These are written according to the order they are called in.
 import io
 import os
 import subprocess
+from typing import List, Optional, Set
+
+from nox.sessions import Session
 
 
-def get_version_from_arguments(arguments):
+def get_version_from_arguments(arguments: List[str]) -> Optional[str]:
     """Checks the arguments passed to `nox -s release`.
 
     If there is only 1 argument that looks like a pip version, returns that.
@@ -32,14 +35,14 @@ def get_version_from_arguments(arguments):
     return version
 
 
-def modified_files_in_git(*args):
+def modified_files_in_git(*args: str) -> int:
     return subprocess.run(
         ["git", "diff", "--no-patch", "--exit-code", *args],
         capture_output=True,
     ).returncode
 
 
-def get_author_list():
+def get_author_list() -> List[str]:
     """Get the list of authors from Git commits.
     """
     # subprocess because session.run doesn't give us stdout
@@ -51,7 +54,7 @@ def get_author_list():
 
     # Create a unique list.
     authors = []
-    seen_authors = set()
+    seen_authors: Set[str] = set()
     for author in result.stdout.splitlines():
         author = author.strip()
         if author.lower() not in seen_authors:
@@ -72,26 +75,28 @@ def generate_authors(filename: str) -> None:
         fp.write(u"\n")
 
 
-def commit_file(session, filename, *, message):
+def commit_file(session: Session, filename: str, *, message: str) -> None:
     session.run("git", "add", filename, external=True, silent=True)
     session.run("git", "commit", "-m", message, external=True, silent=True)
 
 
-def generate_news(session, version):
+def generate_news(session: Session, version: str) -> None:
     session.install("towncrier")
     session.run("towncrier", "--yes", "--version", version, silent=True)
 
 
-def update_version_file(new_version, filepath):
+def update_version_file(version: str, filepath: str) -> None:
     with open(filepath, "w", encoding="utf-8") as f:
-        f.write('__version__ = "{}"\n'.format(new_version))
+        f.write('__version__ = "{}"\n'.format(version))
 
 
-def create_git_tag(session, tag_name, *, message):
-    session.run("git", "tag", "-m", message, tag_name, external=True, silent=True)
+def create_git_tag(session: Session, tag_name: str, *, message: str) -> None:
+    session.run(
+        "git", "tag", "-m", message, tag_name, external=True, silent=True,
+    )
 
 
-def get_next_development_version(version):
+def get_next_development_version(version: str) -> str:
     major, minor, *_ = map(int, version.split("."))
 
     # We have at most 4 releases, starting with 0. Once we reach 3, we'd want
@@ -105,7 +110,7 @@ def get_next_development_version(version):
     return f"{major}.{minor}.dev0"
 
 
-def have_files_in_folder(folder_name):
+def have_files_in_folder(folder_name: str) -> bool:
     if not os.path.exists(folder_name):
         return False
     return bool(os.listdir(folder_name))
