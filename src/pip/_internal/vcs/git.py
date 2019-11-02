@@ -64,7 +64,17 @@ class Git(VersionControl):
         _, rev_options = self.get_url_rev_options(hide_url(url))
         if not rev_options.rev:
             return False
-        return self.is_commit_id_equal(dest, rev_options.rev)
+        if not self.is_commit_id_equal(dest, rev_options.rev):
+            # the current commit is different from rev,
+            # which means rev was something else than a commit hash
+            return False
+        # return False in the rare case rev is both a commit hash
+        # and a tag or a branch; we don't want to cache in that case
+        # because that branch/tag could point to something else in the future
+        is_tag_or_branch = bool(
+            self.get_revision_sha(dest, rev_options.rev)[0]
+        )
+        return not is_tag_or_branch
 
     def get_git_version(self):
         VERSION_PFX = 'git version '
