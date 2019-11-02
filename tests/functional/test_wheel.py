@@ -62,6 +62,30 @@ def test_pip_wheel_success(script, data):
     assert "Successfully built simple" in result.stdout, result.stdout
 
 
+def test_pip_wheel_build_cache(script, data):
+    """
+    Test 'pip wheel' builds and caches.
+    """
+    result = script.pip(
+        'wheel', '--no-index', '-f', data.find_links,
+        'simple==3.0',
+    )
+    wheel_file_name = 'simple-3.0-py%s-none-any.whl' % pyversion[0]
+    wheel_file_path = script.scratch / wheel_file_name
+    assert wheel_file_path in result.files_created, result.stdout
+    assert "Successfully built simple" in result.stdout, result.stdout
+    # remove target file
+    (script.scratch_path / wheel_file_name).unlink()
+    # pip wheel again and test that no build occurs since
+    # we get the wheel from cache
+    result = script.pip(
+        'wheel', '--no-index', '-f', data.find_links,
+        'simple==3.0',
+    )
+    assert wheel_file_path in result.files_created, result.stdout
+    assert "Successfully built simple" not in result.stdout, result.stdout
+
+
 def test_basic_pip_wheel_downloads_wheels(script, data):
     """
     Test 'pip wheel' downloads wheels

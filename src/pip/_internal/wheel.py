@@ -1102,7 +1102,7 @@ class WheelBuilder(object):
         :param should_unpack: If True, after building the wheel, unpack it
             and replace the sdist with the unpacked version in preparation
             for installation.
-        :return: True if all the wheels built correctly.
+        :return: The list of InstallRequirement that failed to build.
         """
         # pip install uses should_unpack=True.
         # pip install never provides a _wheel_dir.
@@ -1124,19 +1124,15 @@ class WheelBuilder(object):
             ):
                 continue
 
-            # Determine where the wheel should go.
-            if should_unpack:
-                if (
-                    cache_available and
-                    should_cache(req, self.check_binary_allowed)
-                ):
-                    output_dir = self.wheel_cache.get_path_for_link(req.link)
-                else:
-                    output_dir = self.wheel_cache.get_ephem_path_for_link(
-                        req.link
-                    )
+            if (
+                cache_available and
+                should_cache(req, self.check_binary_allowed)
+            ):
+                output_dir = self.wheel_cache.get_path_for_link(req.link)
             else:
-                output_dir = self._wheel_dir
+                output_dir = self.wheel_cache.get_ephem_path_for_link(
+                    req.link
+                )
 
             buildset.append((req, output_dir))
 
@@ -1174,10 +1170,6 @@ class WheelBuilder(object):
                     python_tag=python_tag,
                 )
                 if wheel_file:
-                    build_success.append(req)
-                    self.wheel_filenames.append(
-                        os.path.relpath(wheel_file, output_dir)
-                    )
                     if should_unpack:
                         # XXX: This is mildly duplicative with prepare_files,
                         # but not close enough to pull out to a single common
@@ -1202,6 +1194,25 @@ class WheelBuilder(object):
                         assert req.link.is_wheel
                         # extract the wheel into the dir
                         unpack_file(req.link.file_path, req.source_dir)
+                    else:
+                        # copy from cache to target directory
+                        try:
+                            ensure_dir(self._wheel_dir)
+                            shutil.copy(
+                                os.path.join(output_dir, wheel_file),
+                                self._wheel_dir,
+                            )
+                        except OSError as e:
+                            logger.warning(
+                                "Building wheel for %s failed: %s",
+                                req.name, e,
+                            )
+                            build_failure.append(req)
+                            continue
+                    self.wheel_filenames.append(
+                        os.path.relpath(wheel_file, output_dir)
+                    )
+                    build_success.append(req)
                 else:
                     build_failure.append(req)
 
