@@ -29,6 +29,7 @@ from pip._internal.exceptions import (
     VcsHashUnsupported,
 )
 from pip._internal.models.index import PyPI
+from pip._internal.network.cache import is_from_cache
 from pip._internal.network.session import PipSession
 from pip._internal.network.utils import response_chunks
 from pip._internal.utils.compat import expanduser
@@ -125,10 +126,9 @@ def _download_url(
     except (ValueError, KeyError, TypeError):
         total_length = 0
 
-    cached_resp = getattr(resp, "from_cache", False)
     if logger.getEffectiveLevel() > logging.INFO:
         show_progress = False
-    elif cached_resp:
+    elif is_from_cache(resp):
         show_progress = False
     elif total_length > (40 * 1000):
         show_progress = True
@@ -155,7 +155,7 @@ def _download_url(
 
     if total_length:
         logger.info("Downloading %s (%s)", url, format_size(total_length))
-    elif cached_resp:
+    elif is_from_cache(resp):
         logger.info("Using cached %s", url)
     else:
         logger.info("Downloading %s", url)
