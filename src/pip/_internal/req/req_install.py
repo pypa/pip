@@ -24,7 +24,7 @@ from pip._internal.build_env import NoOpBuildEnvironment
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import distutils_scheme
 from pip._internal.models.link import Link
-from pip._internal.operations.generate_metadata import get_metadata_generator
+from pip._internal.operations.build.metadata import get_metadata_generator
 from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
 from pip._internal.req.req_uninstall import UninstallPathSet
 from pip._internal.utils.compat import native_str
