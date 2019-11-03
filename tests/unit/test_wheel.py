@@ -16,6 +16,7 @@ from pip._internal.locations import distutils_scheme
 from pip._internal.models.link import Link
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.compat import WINDOWS
+from pip._internal.utils.misc import hash_file
 from pip._internal.utils.unpacking import unpack_file
 from pip._internal.wheel import (
     MissingCallableSuffix,
@@ -887,7 +888,7 @@ class TestWheelHashCalculators(object):
 
     def test_hash_file(self, tmpdir):
         self.prep(tmpdir)
-        h, length = pip._internal.wheel_builder.hash_file(self.test_file)
+        h, length = hash_file(self.test_file)
         assert length == self.test_file_len
         assert h.hexdigest() == self.test_file_hash
 

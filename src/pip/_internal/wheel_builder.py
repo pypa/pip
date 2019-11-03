@@ -13,7 +13,7 @@ from pip._internal import pep425tags
 from pip._internal.models.link import Link
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.marker_files import has_delete_marker_file
-from pip._internal.utils.misc import ensure_dir, read_chunks
+from pip._internal.utils.misc import ensure_dir, hash_file
 from pip._internal.utils.setuptools_build import (
     make_setuptools_bdist_wheel_args,
     make_setuptools_clean_args,
@@ -33,7 +33,7 @@ from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Any, Callable, Iterable, List, Optional, Pattern, Text, Tuple, Union,
+        Any, Callable, Iterable, List, Optional, Pattern, Text, Union,
     )
 
     from pip._internal.cache import WheelCache
@@ -45,18 +45,6 @@ if MYPY_CHECK_RUNNING:
     BinaryAllowedPredicate = Callable[[InstallRequirement], bool]
 
 logger = logging.getLogger(__name__)
-
-
-def hash_file(path, blocksize=1 << 20):
-    # type: (str, int) -> Tuple[Any, int]
-    """Return (hash, length) for path using hashlib.sha256()"""
-    h = hashlib.sha256()
-    length = 0
-    with open(path, 'rb') as f:
-        for block in read_chunks(f, size=blocksize):
-            length += len(block)
-            h.update(block)
-    return (h, length)  # type: ignore
 
 
 def replace_python_tag(wheelname, new_tag):

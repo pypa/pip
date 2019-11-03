@@ -31,9 +31,8 @@ from pip._internal.exceptions import (
     UnsupportedWheel,
 )
 from pip._internal.locations import get_major_minor_version
-from pip._internal.utils.misc import captured_stdout, ensure_dir
+from pip._internal.utils.misc import captured_stdout, ensure_dir, hash_file
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from pip._internal.wheel_builder import hash_file
 
 if MYPY_CHECK_RUNNING:
     from typing import (
