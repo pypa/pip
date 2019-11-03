@@ -2,6 +2,7 @@ import distutils
 import glob
 import os
 import shutil
+import ssl
 import sys
 import textwrap
 from os.path import curdir, join, pardir
@@ -30,6 +31,12 @@ from tests.lib import (
 from tests.lib.filesystem import make_socket_file
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
+from tests.lib.server import (
+    file_response,
+    make_mock_server,
+    package_page,
+    server_running,
+)
 
 skip_if_python2 = pytest.mark.skipif(PY2, reason="Non-Python 2 only")
 skip_if_not_python2 = pytest.mark.skipif(not PY2, reason="Python 2 only")
@@ -1729,3 +1736,39 @@ def test_install_yanked_file_and_print_warning(script, data):
     assert expected_warning in result.stderr, str(result)
     # Make sure a "yanked" release is installed
     assert 'Successfully installed simple-3.0\n' in result.stdout, str(result)
+
+
+@pytest.mark.parametrize("install_args", [
+    (),
+    ("--trusted-host", "localhost"),
+])
+def test_install_sends_client_cert(install_args, script, cert_factory, data):
+    cert_path = cert_factory()
+    ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+    ctx.load_cert_chain(cert_path, cert_path)
+    ctx.load_verify_locations(cafile=cert_path)
+    ctx.verify_mode = ssl.CERT_REQUIRED
+
+    server = make_mock_server(ssl_context=ctx)
+    server.mock.side_effect = [
+        package_page({
+            "simple-3.0.tar.gz": "/files/simple-3.0.tar.gz",
+        }),
+        file_response(str(data.packages / "simple-3.0.tar.gz")),
+    ]
+
+    url = "https://{}:{}/simple".format(server.host, server.port)
+
+    args = ["install", "-vvv", "--cert", cert_path, "--client-cert", cert_path]
+    args.extend(["--index-url", url])
+    args.extend(install_args)
+    args.append("simple")
+
+    with server_running(server):
+        script.pip(*args)
+
+    assert server.mock.call_count == 2
+    for call_args in server.mock.call_args_list:
+        environ, _ = call_args.args
+        assert "SSL_CLIENT_CERT" in environ
+        assert environ["SSL_CLIENT_CERT"]
