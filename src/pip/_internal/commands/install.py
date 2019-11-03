@@ -364,11 +364,11 @@ class InstallCommand(RequirementCommand):
                     temp_build_dir=directory,
                     options=options,
                     req_tracker=req_tracker,
+                    session=session,
                 )
                 resolver = self.make_resolver(
                     preparer=preparer,
                     finder=finder,
-                    session=session,
                     options=options,
                     wheel_cache=wheel_cache,
                     use_user_site=options.use_user_site,

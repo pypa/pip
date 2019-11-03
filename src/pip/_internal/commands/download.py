@@ -129,13 +129,13 @@ class DownloadCommand(RequirementCommand):
                 temp_build_dir=directory,
                 options=options,
                 req_tracker=req_tracker,
+                session=session,
                 download_dir=options.download_dir,
             )
 
             resolver = self.make_resolver(
                 preparer=preparer,
                 finder=finder,
-                session=session,
                 options=options,
                 py_version_info=options.python_version,
             )

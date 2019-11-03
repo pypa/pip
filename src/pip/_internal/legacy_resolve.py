@@ -45,7 +45,6 @@ if MYPY_CHECK_RUNNING:
     from pip._vendor import pkg_resources
 
     from pip._internal.distributions import AbstractDistribution
-    from pip._internal.network.session import PipSession
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.operations.prepare import RequirementPreparer
     from pip._internal.req.req_install import InstallRequirement
@@ -116,7 +115,6 @@ class Resolver(object):
     def __init__(
         self,
         preparer,  # type: RequirementPreparer
-        session,  # type: PipSession
         finder,  # type: PackageFinder
         make_install_req,  # type: InstallRequirementProvider
         use_user_site,  # type: bool
@@ -141,7 +139,6 @@ class Resolver(object):
 
         self.preparer = preparer
         self.finder = finder
-        self.session = session
 
         self.require_hashes_option = require_hashes
 
@@ -307,7 +304,7 @@ class Resolver(object):
         # We eagerly populate the link, since that's our "legacy" behavior.
         req.populate_link(self.finder, upgrade_allowed, require_hashes)
         abstract_dist = self.preparer.prepare_linked_requirement(
-            req, self.session, self.finder, require_hashes
+            req, self.finder, require_hashes
         )
 
         # NOTE

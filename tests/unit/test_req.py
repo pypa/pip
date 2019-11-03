@@ -75,6 +75,7 @@ class TestRequirementSet(object):
             progress_bar="on",
             build_isolation=True,
             req_tracker=RequirementTracker(),
+            session=PipSession(),
         )
         make_install_req = partial(
             install_req_from_req_string,
@@ -85,7 +86,7 @@ class TestRequirementSet(object):
         return Resolver(
             preparer=preparer,
             make_install_req=make_install_req,
-            session=PipSession(), finder=finder,
+            finder=finder,
             use_user_site=False, upgrade_strategy="to-satisfy-only",
             ignore_dependencies=False, ignore_installed=False,
             ignore_requires_python=False, force_reinstall=False,

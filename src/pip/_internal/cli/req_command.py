@@ -149,6 +149,7 @@ class RequirementCommand(IndexGroupCommand):
         temp_build_dir,           # type: TempDirectory
         options,                  # type: Values
         req_tracker,              # type: RequirementTracker
+        session,                  # type: PipSession
         download_dir=None,        # type: str
         wheel_download_dir=None,  # type: str
     ):
@@ -166,12 +167,12 @@ class RequirementCommand(IndexGroupCommand):
             progress_bar=options.progress_bar,
             build_isolation=options.build_isolation,
             req_tracker=req_tracker,
+            session=session,
         )
 
     @staticmethod
     def make_resolver(
         preparer,                            # type: RequirementPreparer
-        session,                             # type: PipSession
         finder,                              # type: PackageFinder
         options,                             # type: Values
         wheel_cache=None,                    # type: Optional[WheelCache]
@@ -195,7 +196,6 @@ class RequirementCommand(IndexGroupCommand):
         )
         return Resolver(
             preparer=preparer,
-            session=session,
             finder=finder,
             make_install_req=make_install_req,
             use_user_site=use_user_site,

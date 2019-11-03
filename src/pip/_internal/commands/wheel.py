@@ -173,13 +173,13 @@ class WheelCommand(RequirementCommand):
                     temp_build_dir=directory,
                     options=options,
                     req_tracker=req_tracker,
+                    session=session,
                     wheel_download_dir=options.wheel_dir,
                 )
 
                 resolver = self.make_resolver(
                     preparer=preparer,
                     finder=finder,
-                    session=session,
                     options=options,
                     wheel_cache=wheel_cache,
                     ignore_requires_python=options.ignore_requires_python,
