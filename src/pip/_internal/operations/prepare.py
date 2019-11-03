@@ -126,6 +126,18 @@ def _download_url(
     except (ValueError, KeyError, TypeError):
         total_length = 0
 
+    if link.netloc == PyPI.file_storage_domain:
+        url = link.show_url
+    else:
+        url = link.url_without_fragment
+
+    if total_length:
+        logger.info("Downloading %s (%s)", url, format_size(total_length))
+    elif is_from_cache(resp):
+        logger.info("Using cached %s", url)
+    else:
+        logger.info("Downloading %s", url)
+
     if logger.getEffectiveLevel() > logging.INFO:
         show_progress = False
     elif is_from_cache(resp):
@@ -144,21 +156,9 @@ def _download_url(
 
     progress_indicator = _progress_indicator
 
-    if link.netloc == PyPI.file_storage_domain:
-        url = link.show_url
-    else:
-        url = link.url_without_fragment
-
     if show_progress:  # We don't show progress on cached responses
         progress_indicator = DownloadProgressProvider(progress_bar,
                                                       max=total_length)
-
-    if total_length:
-        logger.info("Downloading %s (%s)", url, format_size(total_length))
-    elif is_from_cache(resp):
-        logger.info("Using cached %s", url)
-    else:
-        logger.info("Downloading %s", url)
 
     downloaded_chunks = written_chunks(
         progress_indicator(
