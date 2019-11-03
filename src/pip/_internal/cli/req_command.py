@@ -173,7 +173,6 @@ class RequirementCommand(IndexGroupCommand):
     @staticmethod
     def make_resolver(
         preparer,                            # type: RequirementPreparer
-        session,                             # type: PipSession
         finder,                              # type: PackageFinder
         options,                             # type: Values
         wheel_cache=None,                    # type: Optional[WheelCache]
@@ -197,7 +196,6 @@ class RequirementCommand(IndexGroupCommand):
         )
         return Resolver(
             preparer=preparer,
-            session=session,
             finder=finder,
             make_install_req=make_install_req,
             use_user_site=use_user_site,

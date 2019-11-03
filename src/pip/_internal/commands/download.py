@@ -136,7 +136,6 @@ class DownloadCommand(RequirementCommand):
             resolver = self.make_resolver(
                 preparer=preparer,
                 finder=finder,
-                session=session,
                 options=options,
                 py_version_info=options.python_version,
             )

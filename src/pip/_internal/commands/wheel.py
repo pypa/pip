@@ -180,7 +180,6 @@ class WheelCommand(RequirementCommand):
                 resolver = self.make_resolver(
                     preparer=preparer,
                     finder=finder,
-                    session=session,
                     options=options,
                     wheel_cache=wheel_cache,
                     ignore_requires_python=options.ignore_requires_python,
