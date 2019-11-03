@@ -22,11 +22,10 @@ class SourceDistribution(AbstractDistribution):
         return self.req.get_dist()
 
     def prepare_distribution_metadata(self, finder, build_isolation):
-        # Prepare for building. We need to:
-        #   1. Load pyproject.toml (if it exists)
-        #   2. Set up the build environment
-
+        # Load pyproject.toml, to determine whether PEP 517 is to be used
         self.req.load_pyproject_toml()
+
+        # Set up the build isolation, if this requirement should be isolated
         should_isolate = self.req.use_pep517 and build_isolation
         if should_isolate:
             self._setup_isolation(finder)

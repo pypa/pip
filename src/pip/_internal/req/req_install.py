@@ -618,6 +618,7 @@ class InstallRequirement(object):
         with indent_log():
             self.metadata_directory = generate_metadata(self)
 
+        # Act on the newly generated metadata, based on the name and version.
         if not self.name:
             self.move_to_correct_build_directory()
         else:
