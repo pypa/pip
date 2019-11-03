@@ -212,8 +212,9 @@ class LocalFSAdapter(BaseAdapter):
 class InsecureHTTPAdapter(HTTPAdapter):
 
     def cert_verify(self, conn, url, verify, cert):
-        conn.cert_reqs = 'CERT_NONE'
-        conn.ca_certs = None
+        super(InsecureHTTPAdapter, self).cert_verify(
+            conn=conn, url=url, verify=False, cert=cert
+        )
 
 
 class PipSession(requests.Session):
