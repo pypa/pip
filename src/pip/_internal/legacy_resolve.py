@@ -307,7 +307,7 @@ class Resolver(object):
         # We eagerly populate the link, since that's our "legacy" behavior.
         req.populate_link(self.finder, upgrade_allowed, require_hashes)
         abstract_dist = self.preparer.prepare_linked_requirement(
-            req, self.session, self.finder, require_hashes
+            req, self.finder, require_hashes
         )
 
         # NOTE

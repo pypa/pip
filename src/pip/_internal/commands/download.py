@@ -129,6 +129,7 @@ class DownloadCommand(RequirementCommand):
                 temp_build_dir=directory,
                 options=options,
                 req_tracker=req_tracker,
+                session=session,
                 download_dir=options.download_dir,
             )
 

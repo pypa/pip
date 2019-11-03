@@ -544,7 +544,8 @@ class RequirementPreparer(object):
         wheel_download_dir,  # type: Optional[str]
         progress_bar,  # type: str
         build_isolation,  # type: bool
-        req_tracker  # type: RequirementTracker
+        req_tracker,  # type: RequirementTracker
+        session,  # type: PipSession
     ):
         # type: (...) -> None
         super(RequirementPreparer, self).__init__()
@@ -552,6 +553,7 @@ class RequirementPreparer(object):
         self.src_dir = src_dir
         self.build_dir = build_dir
         self.req_tracker = req_tracker
+        self.session = session
 
         # Where still-packed archives should be written to. If None, they are
         # not saved, and are deleted immediately after unpacking.
@@ -593,7 +595,6 @@ class RequirementPreparer(object):
     def prepare_linked_requirement(
         self,
         req,  # type: InstallRequirement
-        session,  # type: PipSession
         finder,  # type: PackageFinder
         require_hashes,  # type: bool
     ):
@@ -672,7 +673,7 @@ class RequirementPreparer(object):
             try:
                 unpack_url(
                     link, req.source_dir, download_dir,
-                    session=session, hashes=hashes,
+                    session=self.session, hashes=hashes,
                     progress_bar=self.progress_bar
                 )
             except requests.HTTPError as exc:
