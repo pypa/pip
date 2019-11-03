@@ -8,6 +8,7 @@ import pytest
 from mock import Mock, patch
 from pip._vendor.packaging.requirements import Requirement
 
+import pip._internal.wheel_builder
 from pip._internal import pep425tags, wheel
 from pip._internal.commands.wheel import WheelCommand
 from pip._internal.exceptions import InvalidWheelFilename, UnsupportedWheel
@@ -58,7 +59,7 @@ class ReqMock:
     ],
 )
 def test_contains_egg_info(s, expected):
-    result = wheel._contains_egg_info(s)
+    result = pip._internal.wheel_builder._contains_egg_info(s)
     assert result == expected
 
 
@@ -128,7 +129,7 @@ def test_format_tag(file_tag, expected):
     ],
 )
 def test_should_build(req, need_wheel, disallow_binaries, expected):
-    should_build = wheel.should_build(
+    should_build = pip._internal.wheel_builder.should_build(
         req,
         need_wheel,
         check_binary_allowed=lambda req: not disallow_binaries,
@@ -157,8 +158,10 @@ def test_should_cache(
     def check_binary_allowed(req):
         return not disallow_binaries
 
-    should_cache = wheel.should_cache(req, check_binary_allowed)
-    if not wheel.should_build(
+    should_cache = pip._internal.wheel_builder.should_cache(
+        req, check_binary_allowed
+    )
+    if not pip._internal.wheel_builder.should_build(
         req, need_wheel=False, check_binary_allowed=check_binary_allowed
     ):
         # never cache if pip install (need_wheel=False) would not have built)
@@ -183,7 +186,7 @@ def test_should_cache_git_sha(script, tmpdir):
 
 def test_format_command_result__INFO(caplog):
     caplog.set_level(logging.INFO)
-    actual = wheel.format_command_result(
+    actual = pip._internal.wheel_builder.format_command_result(
         # Include an argument with a space to test argument quoting.
         command_args=['arg1', 'second arg'],
         command_output='output line 1\noutput line 2\n',
@@ -202,7 +205,7 @@ def test_format_command_result__INFO(caplog):
 ])
 def test_format_command_result__DEBUG(caplog, command_output):
     caplog.set_level(logging.DEBUG)
-    actual = wheel.format_command_result(
+    actual = pip._internal.wheel_builder.format_command_result(
         command_args=['arg1', 'arg2'],
         command_output=command_output,
     )
@@ -218,7 +221,7 @@ def test_format_command_result__DEBUG(caplog, command_output):
 @pytest.mark.parametrize('log_level', ['DEBUG', 'INFO'])
 def test_format_command_result__empty_output(caplog, log_level):
     caplog.set_level(log_level)
-    actual = wheel.format_command_result(
+    actual = pip._internal.wheel_builder.format_command_result(
         command_args=['arg1', 'arg2'],
         command_output='',
     )
@@ -230,7 +233,7 @@ def test_format_command_result__empty_output(caplog, log_level):
 
 def call_get_legacy_build_wheel_path(caplog, names):
     req = make_test_install_req()
-    wheel_path = wheel.get_legacy_build_wheel_path(
+    wheel_path = pip._internal.wheel_builder.get_legacy_build_wheel_path(
         names=names,
         temp_dir='/tmp/abcd',
         req=req,
@@ -416,8 +419,9 @@ def test_python_tag():
         'simplewheel-1.0-py37-none-any.whl',
         'simplewheel-2.0-1-py37-none-any.whl',
     ]
-    for name, new in zip(wheelnames, newnames):
-        assert wheel.replace_python_tag(name, 'py37') == new
+    for name, expected in zip(wheelnames, newnames):
+        result = pip._internal.wheel_builder.replace_python_tag(name, 'py37')
+        assert result == expected
 
 
 def test_check_compatibility():
@@ -745,7 +749,7 @@ class TestWheelBuilder(object):
         with patch('pip._internal.wheel.WheelBuilder._build_one') \
                 as mock_build_one:
             wheel_req = Mock(is_wheel=True, editable=False, constraint=False)
-            wb = wheel.WheelBuilder(
+            wb = pip._internal.wheel_builder.WheelBuilder(
                 preparer=Mock(),
                 wheel_cache=Mock(cache_dir=None),
             )
@@ -883,7 +887,7 @@ class TestWheelHashCalculators(object):
 
     def test_hash_file(self, tmpdir):
         self.prep(tmpdir)
-        h, length = wheel.hash_file(self.test_file)
+        h, length = pip._internal.wheel_builder.hash_file(self.test_file)
         assert length == self.test_file_len
         assert h.hexdigest() == self.test_file_hash
 

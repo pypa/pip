@@ -16,7 +16,7 @@ from pip._internal.req import RequirementSet
 from pip._internal.req.req_tracker import RequirementTracker
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from pip._internal.wheel import WheelBuilder
+from pip._internal.wheel_builder import WheelBuilder
 
 if MYPY_CHECK_RUNNING:
     from optparse import Values
