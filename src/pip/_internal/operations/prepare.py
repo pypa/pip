@@ -30,6 +30,7 @@ from pip._internal.exceptions import (
 )
 from pip._internal.models.index import PyPI
 from pip._internal.network.session import PipSession
+from pip._internal.network.utils import response_chunks
 from pip._internal.utils.compat import expanduser
 from pip._internal.utils.filesystem import copy2_fixed
 from pip._internal.utils.hashes import MissingHashes
@@ -136,43 +137,6 @@ def _download_url(
     else:
         show_progress = False
 
-    def resp_read(chunk_size):
-        try:
-            # Special case for urllib3.
-            for chunk in resp.raw.stream(
-                    chunk_size,
-                    # We use decode_content=False here because we don't
-                    # want urllib3 to mess with the raw bytes we get
-                    # from the server. If we decompress inside of
-                    # urllib3 then we cannot verify the checksum
-                    # because the checksum will be of the compressed
-                    # file. This breakage will only occur if the
-                    # server adds a Content-Encoding header, which
-                    # depends on how the server was configured:
-                    # - Some servers will notice that the file isn't a
-                    #   compressible file and will leave the file alone
-                    #   and with an empty Content-Encoding
-                    # - Some servers will notice that the file is
-                    #   already compressed and will leave the file
-                    #   alone and will add a Content-Encoding: gzip
-                    #   header
-                    # - Some servers won't notice anything at all and
-                    #   will take a file that's already been compressed
-                    #   and compress it again and set the
-                    #   Content-Encoding: gzip header
-                    #
-                    # By setting this not to decode automatically we
-                    # hope to eliminate problems with the second case.
-                    decode_content=False):
-                yield chunk
-        except AttributeError:
-            # Standard file-like object.
-            while True:
-                chunk = resp.raw.read(chunk_size)
-                if not chunk:
-                    break
-                yield chunk
-
     def written_chunks(chunks):
         for chunk in chunks:
             content_file.write(chunk)
@@ -199,7 +163,7 @@ def _download_url(
 
     downloaded_chunks = written_chunks(
         progress_indicator(
-            resp_read(CONTENT_CHUNK_SIZE),
+            response_chunks(resp, CONTENT_CHUNK_SIZE),
             CONTENT_CHUNK_SIZE
         )
     )
