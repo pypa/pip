@@ -32,7 +32,6 @@ class SourceDistribution(AbstractDistribution):
             self._setup_isolation(finder)
 
         self.req.prepare_metadata()
-        self.req.assert_source_matches_version()
 
     def _setup_isolation(self, finder):
         def _raise_conflicts(conflicting_with, conflicting_reqs):

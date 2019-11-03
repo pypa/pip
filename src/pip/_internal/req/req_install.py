@@ -623,6 +623,8 @@ class InstallRequirement(object):
         else:
             self.warn_on_mismatching_name()
 
+        self.assert_source_matches_version()
+
     @property
     def metadata(self):
         # type: () -> Any
