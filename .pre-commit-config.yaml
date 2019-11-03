@@ -32,7 +32,7 @@ repos:
     args: []
   - id: mypy
     name: mypy, for Py2
-    exclude: noxfile.py|docs|tests
+    exclude: noxfile.py|tools/automation/release|docs|tests
     args: ["-2"]
 
 - repo: https://github.com/pre-commit/pygrep-hooks
