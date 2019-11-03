@@ -12,25 +12,20 @@ from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Callable
-
     from pip._internal.req.req_install import InstallRequirement
 
 logger = logging.getLogger(__name__)
 
 
-def get_metadata_generator(install_req):
-    # type: (InstallRequirement) -> Callable[[InstallRequirement], str]
-    """Return a callable metadata generator for this InstallRequirement.
-
-    A metadata generator takes an InstallRequirement (install_req) as an input,
-    generates metadata via the appropriate process for that install_req and
-    returns the generated metadata directory.
+def generate_metadata(install_req):
+    # type: (InstallRequirement) -> str
+    """Generate metadata and return the metadata directory.
     """
+    func = _generate_metadata
     if not install_req.use_pep517:
-        return _generate_metadata_legacy
+        func = _generate_metadata_legacy
 
-    return _generate_metadata
+    return func(install_req)
 
 
 def _generate_metadata(install_req):

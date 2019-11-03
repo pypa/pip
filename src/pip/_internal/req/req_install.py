@@ -24,7 +24,7 @@ from pip._internal.build_env import NoOpBuildEnvironment
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import distutils_scheme
 from pip._internal.models.link import Link
-from pip._internal.operations.build.metadata import get_metadata_generator
+from pip._internal.operations.build.metadata import generate_metadata
 from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
 from pip._internal.req.req_uninstall import UninstallPathSet
 from pip._internal.utils.compat import native_str
@@ -615,9 +615,8 @@ class InstallRequirement(object):
         """
         assert self.source_dir
 
-        metadata_generator = get_metadata_generator(self)
         with indent_log():
-            self.metadata_directory = metadata_generator(self)
+            self.metadata_directory = generate_metadata(self)
 
         if not self.name:
             self.move_to_correct_build_directory()
