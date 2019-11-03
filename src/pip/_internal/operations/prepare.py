@@ -152,10 +152,9 @@ def _download_url(
     if show_progress:  # We don't show progress on cached responses
         progress_indicator = DownloadProgressProvider(progress_bar,
                                                       max=total_length)
-        if total_length:
-            logger.info("Downloading %s (%s)", url, format_size(total_length))
-        else:
-            logger.info("Downloading %s", url)
+
+    if total_length:
+        logger.info("Downloading %s (%s)", url, format_size(total_length))
     elif cached_resp:
         logger.info("Using cached %s", url)
     else:
