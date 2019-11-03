@@ -71,3 +71,9 @@ Examples
 
       $ pip wheel --wheel-dir=/tmp/wheelhouse SomePackage
       $ pip install --no-index --find-links=/tmp/wheelhouse SomePackage
+
+#. Build a wheel for a package from source
+
+    ::
+
+      $ pip wheel --no-binary SomePackage SomePackage

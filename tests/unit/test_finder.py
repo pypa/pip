@@ -12,7 +12,7 @@ from pip._internal.exceptions import (
     BestVersionAlreadyInstalled,
     DistributionNotFound,
 )
-from pip._internal.index import (
+from pip._internal.index.package_finder import (
     CandidateEvaluator,
     InstallationCandidate,
     Link,
@@ -62,7 +62,10 @@ def test_no_partial_name_match(data):
 
 def test_tilde():
     """Finder can accept a path with ~ in it and will normalize it."""
-    with patch('pip._internal.collector.os.path.exists', return_value=True):
+    patched_exists = patch(
+        'pip._internal.index.collector.os.path.exists', return_value=True
+    )
+    with patched_exists:
         finder = make_test_finder(find_links=['~/python-pkgs'])
     req = install_req_from_line("gmpy")
     with pytest.raises(DistributionNotFound):

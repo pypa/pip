@@ -23,6 +23,9 @@ REQUIREMENTS = {
     "common-wheels": "tools/requirements/tests-common_wheels.txt",
 }
 
+AUTHORS_FILE = "AUTHORS.txt"
+VERSION_FILE = "src/pip/__init__.py"
+
 
 def get_author_list():
     """Get the list of authors from Git commits.
@@ -47,14 +50,18 @@ def get_author_list():
     return sorted(authors, key=lambda x: x.lower())
 
 
-def protected_pip(*arguments):
-    """Get arguments for session.run, that use a "protected" pip.
+def run_with_protected_pip(session, *arguments):
+    """Do a session.run("pip", *arguments), using a "protected" pip.
 
     This invokes a wrapper script, that forwards calls to original virtualenv
     (stable) version, and not the code being tested. This ensures pip being
     used is not the code being tested.
     """
-    return ("python", LOCATIONS["protected-pip"]) + arguments
+    env = {"VIRTUAL_ENV": session.virtualenv.location}
+
+    command = ("python", LOCATIONS["protected-pip"]) + arguments
+    kwargs = {"env": env, "silent": True}
+    session.run(*command, **kwargs)
 
 
 def should_update_common_wheels():
@@ -69,9 +76,14 @@ def should_update_common_wheels():
 
     # Clear the stale cache.
     if need_to_repopulate:
-        shutil.remove(LOCATIONS["common-wheels"], ignore_errors=True)
+        shutil.rmtree(LOCATIONS["common-wheels"], ignore_errors=True)
 
     return need_to_repopulate
+
+
+def update_version_file(new_version):
+    with open(VERSION_FILE, "w", encoding="utf-8") as f:
+        f.write('__version__ = "{}"\n'.format(new_version))
 
 
 # -----------------------------------------------------------------------------
@@ -84,15 +96,35 @@ def should_update_common_wheels():
 def test(session):
     # Get the common wheels.
     if should_update_common_wheels():
-        session.run(*protected_pip(
+        run_with_protected_pip(
+            session,
             "wheel",
             "-w", LOCATIONS["common-wheels"],
             "-r", REQUIREMENTS["common-wheels"],
-        ))
+        )
+    else:
+        msg = (
+            "Re-using existing common-wheels at {}."
+            .format(LOCATIONS["common-wheels"])
+        )
+        session.log(msg)
 
-    # Install sources and dependencies
-    session.run(*protected_pip("install", "."))
-    session.run(*protected_pip("install", "-r", REQUIREMENTS["tests"]))
+    # Build source distribution
+    sdist_dir = os.path.join(session.virtualenv.location, "sdist")
+    session.run(
+        "python", "setup.py", "sdist",
+        "--formats=zip", "--dist-dir", sdist_dir,
+        silent=True,
+    )
+    generated_files = os.listdir(sdist_dir)
+    assert len(generated_files) == 1
+    generated_sdist = os.path.join(sdist_dir, generated_files[0])
+
+    # Install source distribution
+    run_with_protected_pip(session, "install", generated_sdist)
+
+    # Install test dependencies
+    run_with_protected_pip(session, "install", "-r", REQUIREMENTS["tests"])
 
     # Parallelize tests as much as possible, by default.
     arguments = session.posargs or ["-n", "auto"]
@@ -150,7 +182,7 @@ def generate_authors(session):
 
     # Write our authors to the AUTHORS file
     session.log("Writing AUTHORS")
-    with io.open("AUTHORS.txt", "w", encoding="utf-8") as fp:
+    with io.open(AUTHORS_FILE, "w", encoding="utf-8") as fp:
         fp.write(u"\n".join(authors))
         fp.write(u"\n")
 
@@ -162,3 +194,50 @@ def generate_news(session):
 
     # You can pass 2 possible arguments: --draft, --yes
     session.run("towncrier", *session.posargs)
+
+
+@nox.session
+def release(session):
+    assert len(session.posargs) == 1, "A version number is expected"
+    new_version = session.posargs[0]
+    parts = new_version.split('.')
+    # Expect YY.N or YY.N.P
+    assert 2 <= len(parts) <= 3, parts
+    # Only integers
+    parts = list(map(int, parts))
+    session.log("Generating commits for version {}".format(new_version))
+
+    session.log("Checking that nothing is staged")
+    # Non-zero exit code means that something is already staged
+    session.run("git", "diff", "--staged", "--exit-code", external=True)
+
+    session.log(f"Updating {AUTHORS_FILE}")
+    generate_authors(session)
+    if subprocess.run(["git", "diff", "--exit-code"]).returncode:
+        session.run("git", "add", AUTHORS_FILE, external=True)
+        session.run(
+            "git", "commit", "-m", f"Updating {AUTHORS_FILE}",
+            external=True,
+        )
+    else:
+        session.log(f"No update needed for {AUTHORS_FILE}")
+
+    session.log("Generating NEWS")
+    session.install("towncrier")
+    session.run("towncrier", "--yes", "--version", new_version)
+
+    session.log("Updating version")
+    update_version_file(new_version)
+    session.run("git", "add", VERSION_FILE, external=True)
+    session.run("git", "commit", "-m", f"Release {new_version}", external=True)
+
+    session.log("Tagging release")
+    session.run(
+        "git", "tag", "-m", f"Release {new_version}", new_version,
+        external=True,
+    )
+
+    next_dev_version = f"{parts[0]}.{parts[1] + 1}.dev0"
+    update_version_file(next_dev_version)
+    session.run("git", "add", VERSION_FILE, external=True)
+    session.run("git", "commit", "-m", "Back to development", external=True)

@@ -9,7 +9,9 @@ from mock import Mock, patch
 from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal import pep425tags, wheel
+from pip._internal.commands.wheel import WheelCommand
 from pip._internal.exceptions import InvalidWheelFilename, UnsupportedWheel
+from pip._internal.locations import distutils_scheme
 from pip._internal.models.link import Link
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.compat import WINDOWS
@@ -19,6 +21,25 @@ from pip._internal.wheel import (
     _raise_for_invalid_entrypoint,
 )
 from tests.lib import DATA_DIR, assert_paths_equal
+
+
+class ReqMock:
+
+    def __init__(
+        self,
+        name="pendulum",
+        is_wheel=False,
+        editable=False,
+        link=None,
+        constraint=False,
+        source_dir="/tmp/pip-install-123/pendulum",
+    ):
+        self.name = name
+        self.is_wheel = is_wheel
+        self.editable = editable
+        self.link = link
+        self.constraint = constraint
+        self.source_dir = source_dir
 
 
 @pytest.mark.parametrize(
@@ -81,75 +102,68 @@ def test_format_tag(file_tag, expected):
 
 
 @pytest.mark.parametrize(
-    "base_name, should_unpack, cache_available, expected",
+    "req, need_wheel, disallow_binaries, expected",
     [
-        ('pendulum-2.0.4', False, False, False),
-        # The following cases test should_unpack=True.
-        # Test _contains_egg_info() returning True.
-        ('pendulum-2.0.4', True, True, False),
-        ('pendulum-2.0.4', True, False, True),
-        # Test _contains_egg_info() returning False.
-        ('pendulum', True, True, True),
-        ('pendulum', True, False, True),
+        # pip wheel (need_wheel=True)
+        (ReqMock(), True, False, True),
+        (ReqMock(), True, True, True),
+        (ReqMock(constraint=True), True, False, False),
+        (ReqMock(is_wheel=True), True, False, False),
+        (ReqMock(editable=True), True, False, True),
+        (ReqMock(source_dir=None), True, False, True),
+        (ReqMock(link=Link("git+https://g.c/org/repo")), True, False, True),
+        (ReqMock(link=Link("git+https://g.c/org/repo")), True, True, True),
+        # pip install (need_wheel=False)
+        (ReqMock(), False, False, True),
+        (ReqMock(), False, True, False),
+        (ReqMock(constraint=True), False, False, False),
+        (ReqMock(is_wheel=True), False, False, False),
+        (ReqMock(editable=True), False, False, False),
+        (ReqMock(source_dir=None), False, False, False),
+        # By default (i.e. when binaries are allowed), VCS requirements
+        # should be built in install mode.
+        (ReqMock(link=Link("git+https://g.c/org/repo")), False, False, True),
+        # Disallowing binaries, however, should cause them not to be built.
+        (ReqMock(link=Link("git+https://g.c/org/repo")), False, True, False),
     ],
 )
-def test_should_use_ephemeral_cache__issue_6197(
-    base_name, should_unpack, cache_available, expected,
-):
-    """
-    Regression test for: https://github.com/pypa/pip/issues/6197
-    """
-    req = make_test_install_req(base_name=base_name)
-    assert not req.is_wheel
-    assert not req.link.is_vcs
-
-    always_true = Mock(return_value=True)
-
-    ephem_cache = wheel.should_use_ephemeral_cache(
-        req, should_unpack=should_unpack,
-        cache_available=cache_available, check_binary_allowed=always_true,
+def test_should_build(req, need_wheel, disallow_binaries, expected):
+    should_build = wheel.should_build(
+        req,
+        need_wheel,
+        check_binary_allowed=lambda req: not disallow_binaries,
     )
-    assert ephem_cache is expected
+    assert should_build is expected
 
 
 @pytest.mark.parametrize(
-    "disallow_binaries, expected",
+    "req, disallow_binaries, expected",
     [
-        # By default (i.e. when binaries are allowed), VCS requirements
-        # should be built.
-        (False, True),
-        # Disallowing binaries, however, should cause them not to be built.
-        (True, None),
+        (ReqMock(editable=True), False, False),
+        (ReqMock(source_dir=None), False, False),
+        (ReqMock(link=Link("git+https://g.c/org/repo")), False, False),
+        (ReqMock(link=Link("https://g.c/dist.tgz")), False, False),
+        (ReqMock(link=Link("https://g.c/dist-2.0.4.tgz")), False, True),
+        (ReqMock(editable=True), True, False),
+        (ReqMock(source_dir=None), True, False),
+        (ReqMock(link=Link("git+https://g.c/org/repo")), True, False),
+        (ReqMock(link=Link("https://g.c/dist.tgz")), True, False),
+        (ReqMock(link=Link("https://g.c/dist-2.0.4.tgz")), True, False),
     ],
 )
-def test_should_use_ephemeral_cache__disallow_binaries_and_vcs_checkout(
-    disallow_binaries, expected,
+def test_should_cache(
+    req, disallow_binaries, expected
 ):
-    """
-    Test that disallowing binaries (e.g. from passing --global-option)
-    causes should_use_ephemeral_cache() to return None for VCS checkouts.
-    """
-    req = Requirement('pendulum')
-    link = Link(url='git+https://git.example.com/pendulum.git')
-    req = InstallRequirement(
-        req=req,
-        comes_from=None,
-        constraint=False,
-        editable=False,
-        link=link,
-        source_dir='/tmp/pip-install-9py5m2z1/pendulum',
-    )
-    assert not req.is_wheel
-    assert req.link.is_vcs
+    def check_binary_allowed(req):
+        return not disallow_binaries
 
-    check_binary_allowed = Mock(return_value=not disallow_binaries)
-
-    # The cache_available value doesn't matter for this test.
-    ephem_cache = wheel.should_use_ephemeral_cache(
-        req, should_unpack=True,
-        cache_available=True, check_binary_allowed=check_binary_allowed,
-    )
-    assert ephem_cache is expected
+    should_cache = wheel.should_cache(req, check_binary_allowed)
+    if not wheel.should_build(
+        req, need_wheel=False, check_binary_allowed=check_binary_allowed
+    ):
+        # never cache if pip install (need_wheel=False) would not have built)
+        assert not should_cache
+    assert should_cache is expected
 
 
 def test_format_command_result__INFO(caplog):
@@ -619,7 +633,7 @@ class TestWheelFile(object):
         assert w.version == '0.1-1'
 
 
-class TestMoveWheelFiles(object):
+class TestInstallUnpackedWheel(object):
     """
     Tests for moving files from wheel src to scheme paths
     """
@@ -659,19 +673,30 @@ class TestMoveWheelFiles(object):
 
     def test_std_install(self, data, tmpdir):
         self.prep(data, tmpdir)
-        wheel.move_wheel_files(
-            self.name, self.req, self.src, scheme=self.scheme)
+        wheel.install_unpacked_wheel(
+            self.name,
+            self.src,
+            scheme=self.scheme,
+            req_description=str(self.req),
+        )
         self.assert_installed()
 
     def test_install_prefix(self, data, tmpdir):
         prefix = os.path.join(os.path.sep, 'some', 'path')
         self.prep(data, tmpdir)
-        wheel.move_wheel_files(
+        scheme = distutils_scheme(
             self.name,
-            self.req,
-            self.src,
+            user=False,
+            home=None,
             root=tmpdir,
+            isolated=False,
             prefix=prefix,
+        )
+        wheel.install_unpacked_wheel(
+            self.name,
+            self.src,
+            scheme=scheme,
+            req_description=str(self.req),
         )
 
         bin_dir = 'Scripts' if WINDOWS else 'bin'
@@ -688,8 +713,12 @@ class TestMoveWheelFiles(object):
             self.src_dist_info, 'empty_dir', 'empty_dir')
         os.makedirs(src_empty_dir)
         assert os.path.isdir(src_empty_dir)
-        wheel.move_wheel_files(
-            self.name, self.req, self.src, scheme=self.scheme)
+        wheel.install_unpacked_wheel(
+            self.name,
+            self.src,
+            scheme=self.scheme,
+            req_description=str(self.req),
+        )
         self.assert_installed()
         assert not os.path.isdir(
             os.path.join(self.dest_dist_info, 'empty_dir'))
@@ -848,3 +877,30 @@ class TestWheelHashCalculators(object):
         h, length = wheel.rehash(self.test_file)
         assert length == str(self.test_file_len)
         assert h == self.test_file_hash_encoded
+
+
+class TestWheelCommand(object):
+
+    def test_save_wheelnames(self, tmpdir):
+        wheel_filenames = ['Flask-1.1.dev0-py2.py3-none-any.whl']
+        links_filenames = [
+            'flask',
+            'Werkzeug-0.15.4-py2.py3-none-any.whl',
+            'Jinja2-2.10.1-py2.py3-none-any.whl',
+            'itsdangerous-1.1.0-py2.py3-none-any.whl',
+            'Click-7.0-py2.py3-none-any.whl'
+        ]
+
+        expected = wheel_filenames + links_filenames[1:]
+        expected = [filename + '\n' for filename in expected]
+        temp_file = tmpdir.joinpath('wheelfiles')
+
+        WheelCommand('name', 'summary').save_wheelnames(
+            links_filenames,
+            temp_file,
+            wheel_filenames
+        )
+
+        with open(temp_file, 'r') as f:
+            test_content = f.readlines()
+        assert test_content == expected

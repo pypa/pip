@@ -102,6 +102,16 @@ class WheelCommand(RequirementCommand):
         cmd_opts.add_option(cmdoptions.no_clean())
         cmd_opts.add_option(cmdoptions.require_hashes())
 
+        cmd_opts.add_option(
+            '--save-wheel-names',
+            dest='path_to_wheelnames',
+            action='store',
+            metavar='path',
+            help=("Store the filenames of the built or downloaded wheels "
+                  "in a new file of given path. Filenames are separated "
+                  "by new line and file ends with new line"),
+        )
+
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,
             self.parser,
@@ -109,6 +119,28 @@ class WheelCommand(RequirementCommand):
 
         self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, cmd_opts)
+
+    def save_wheelnames(
+        self,
+        links_filenames,
+        path_to_wheelnames,
+        wheel_filenames,
+    ):
+        if path_to_wheelnames is None:
+            return
+
+        entries_to_save = wheel_filenames + links_filenames
+        entries_to_save = [
+            filename + '\n' for filename in entries_to_save
+            if filename.endswith('whl')
+        ]
+        try:
+            with open(path_to_wheelnames, 'w') as f:
+                f.writelines(entries_to_save)
+        except EnvironmentError as e:
+            logger.error('Cannot write to the given path: %s\n%s' %
+                         (path_to_wheelnames, e))
+            raise
 
     def run(self, options, args):
         # type: (Values, List[Any]) -> None
@@ -129,9 +161,7 @@ class WheelCommand(RequirementCommand):
             options.build_dir, delete=build_delete, kind="wheel"
         ) as directory:
 
-            requirement_set = RequirementSet(
-                require_hashes=options.require_hashes,
-            )
+            requirement_set = RequirementSet()
 
             try:
                 self.populate_requirement_set(
@@ -163,9 +193,17 @@ class WheelCommand(RequirementCommand):
                     build_options=options.build_options or [],
                     global_options=options.global_options or [],
                     no_clean=options.no_clean,
+                    path_to_wheelnames=options.path_to_wheelnames
                 )
                 build_failures = wb.build(
                     requirement_set.requirements.values(),
+                )
+                self.save_wheelnames(
+                    [req.link.filename for req in
+                     requirement_set.successfully_downloaded
+                     if req.link is not None],
+                    wb.path_to_wheelnames,
+                    wb.wheel_filenames,
                 )
                 if len(build_failures) != 0:
                     raise CommandError(

@@ -1,1 +1,0 @@
-Use canonical distribution names when computing ``Required-By`` in ``pip show``.

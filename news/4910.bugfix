@@ -1,1 +1,0 @@
-Fix ``rmtree_errorhandler`` to skip non-existing directories.

@@ -51,7 +51,7 @@ class Tests_UninstallUserSite:
         """
         Test uninstall editable local user install
         """
-        script.user_site_path.mkdir(parents=True)
+        assert script.user_site_path.exists()
 
         # install
         to_install = data.packages.joinpath("FSPkg")

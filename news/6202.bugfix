@@ -1,2 +1,0 @@
-Fix requirement line parser to correctly handle PEP 440 requirements with a URL
-pointing to an archive file.

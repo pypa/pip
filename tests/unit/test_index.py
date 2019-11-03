@@ -3,8 +3,8 @@ import logging
 import pytest
 from pip._vendor.packaging.specifiers import SpecifierSet
 
-from pip._internal.collector import LinkCollector
-from pip._internal.index import (
+from pip._internal.index.collector import LinkCollector
+from pip._internal.index.package_finder import (
     CandidateEvaluator,
     CandidatePreferences,
     FormatControl,

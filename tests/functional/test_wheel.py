@@ -1,6 +1,7 @@
 """'pip wheel' tests"""
 import os
 import re
+import stat
 from os.path import exists
 
 import pytest
@@ -255,3 +256,65 @@ def test_legacy_wheels_are_not_confused_with_other_files(script, tmpdir, data):
     wheel_file_name = 'simplewheel-1.0-py%s-none-any.whl' % pyversion[0]
     wheel_file_path = script.scratch / wheel_file_name
     assert wheel_file_path in result.files_created, result.stdout
+
+
+def test_pip_option_save_wheel_name(script, data):
+    """Check if the option saves the filenames of built wheels
+    """
+    script.pip(
+        'wheel', '--no-index', '-f', data.find_links,
+        'require_simple==1.0',
+        '--save-wheel-name', 'wheelnames',
+    )
+
+    wheel_file_names = [
+        'require_simple-1.0-py%s-none-any.whl' % pyversion[0],
+        'simple-3.0-py%s-none-any.whl' % pyversion[0],
+    ]
+    wheelnames_path = script.scratch_path / 'wheelnames'
+    with open(wheelnames_path, 'r') as wheelnames_file:
+        wheelnames_entries = (wheelnames_file.read()).splitlines()
+    assert wheel_file_names == wheelnames_entries
+
+
+def test_pip_option_save_wheel_name_Permission_error(script, data):
+
+    temp_file = script.base_path / 'scratch' / 'wheelnames'
+
+    wheel_file_names = [
+        'require_simple-1.0-py%s-none-any.whl' % pyversion[0],
+        'simple-3.0-py%s-none-any.whl' % pyversion[0],
+    ]
+
+    script.pip(
+        'wheel', '--no-index', '-f', data.find_links,
+        'require_simple==1.0',
+        '--save-wheel-name', 'wheelnames',
+    )
+    os.chmod(temp_file, stat.S_IREAD)
+    result = script.pip(
+        'wheel', '--no-index', '-f', data.find_links,
+        'require_simple==1.0',
+        '--save-wheel-name', 'wheelnames', expect_error=True,
+    )
+    os.chmod(temp_file, stat.S_IREAD | stat.S_IWRITE)
+
+    assert "ERROR: Cannot write to the given path: wheelnames\n" \
+           "[Errno 13] Permission denied: 'wheelnames'\n" in result.stderr
+
+    with open(temp_file) as f:
+        result = f.read().splitlines()
+    # check that file stays same
+    assert result == wheel_file_names
+
+
+def test_pip_option_save_wheel_name_error_during_build(script, data):
+    script.pip(
+        'wheel', '--no-index', '--save-wheel-name', 'wheelnames',
+        '-f', data.find_links, 'wheelbroken==0.1',
+        expect_error=True,
+    )
+    wheelnames_path = script.base_path / 'scratch' / 'wheelnames'
+    with open(wheelnames_path) as f:
+        wheelnames = f.read().splitlines()
+    assert wheelnames == []

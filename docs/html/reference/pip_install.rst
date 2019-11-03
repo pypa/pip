@@ -148,6 +148,9 @@ and the newline following it is effectively ignored.
 
 Comments are stripped *before* line continuations are processed.
 
+To interpret the requirements file in UTF-8 format add a comment
+``# -*- coding: utf-8 -*-`` to the first or second line of the file.
+
 The following options are supported:
 
   *  :ref:`-i, --index-url <--index-url>`
@@ -417,8 +420,8 @@ making fewer network calls).
 Mercurial
 ~~~~~~~~~
 
-The supported schemes are: ``hg+http``, ``hg+https``,
-``hg+static-http`` and ``hg+ssh``.
+The supported schemes are: ``hg+file``, ``hg+http``, ``hg+https``,
+``hg+static-http``, and ``hg+ssh``.
 
 Here are the supported forms::
 

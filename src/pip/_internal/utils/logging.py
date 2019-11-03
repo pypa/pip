@@ -9,13 +9,13 @@ import logging
 import logging.handlers
 import os
 import sys
-from logging import Filter
+from logging import Filter, getLogger
 
 from pip._vendor.six import PY2
 
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
-from pip._internal.utils.misc import ensure_dir, subprocess_logger
+from pip._internal.utils.misc import ensure_dir
 
 try:
     import threading
@@ -53,6 +53,7 @@ else:
 
 _log_state = threading.local()
 _log_state.indentation = 0
+subprocess_logger = getLogger('pip.subprocessor')
 
 
 class BrokenStdoutLoggingError(Exception):

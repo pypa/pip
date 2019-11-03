@@ -14,7 +14,7 @@ from functools import partial
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.command_context import CommandContextMixIn
 from pip._internal.exceptions import CommandError
-from pip._internal.index import PackageFinder
+from pip._internal.index.package_finder import PackageFinder
 from pip._internal.legacy_resolve import Resolver
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.network.session import PipSession
@@ -25,8 +25,11 @@ from pip._internal.req.constructors import (
     install_req_from_req_string,
 )
 from pip._internal.req.req_file import parse_requirements
+from pip._internal.self_outdated_check import (
+    make_link_collector,
+    pip_self_version_check,
+)
 from pip._internal.utils.misc import normalize_path
-from pip._internal.utils.outdated import make_link_collector, pip_version_check
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -136,7 +139,7 @@ class IndexGroupCommand(Command, SessionCommandMixin):
             timeout=min(5, options.timeout)
         )
         with session:
-            pip_version_check(session, options)
+            pip_self_version_check(session, options)
 
 
 class RequirementCommand(IndexGroupCommand):
@@ -201,7 +204,8 @@ class RequirementCommand(IndexGroupCommand):
             ignore_requires_python=ignore_requires_python,
             force_reinstall=force_reinstall,
             upgrade_strategy=upgrade_strategy,
-            py_version_info=py_version_info
+            py_version_info=py_version_info,
+            require_hashes=options.require_hashes,
         )
 
     def populate_requirement_set(
@@ -255,9 +259,6 @@ class RequirementCommand(IndexGroupCommand):
                     use_pep517=options.use_pep517):
                 req_to_add.is_direct = True
                 requirement_set.add_requirement(req_to_add)
-        # If --require-hashes was a line in a requirements file, tell
-        # RequirementSet about it:
-        requirement_set.require_hashes = options.require_hashes
 
         if not (args or options.editables or options.requirements):
             opts = {'name': self.name}

@@ -12,6 +12,7 @@ from tests.lib import (
     _git_commit,
     need_bzr,
     need_mercurial,
+    need_svn,
     path_to_url,
 )
 
@@ -169,7 +170,7 @@ def test_freeze_editable_git_with_no_remote(script, tmpdir, deprecated_python):
     _check_output(result.stdout, expected)
 
 
-@pytest.mark.svn
+@need_svn
 def test_freeze_svn(script, tmpdir):
     """Test freezing a svn checkout"""
 
@@ -316,6 +317,46 @@ def test_freeze_git_clone_srcdir(script, tmpdir):
         """
             -f %(repo)s#egg=pip_test_package...
             -e git+...#egg=version_pkg&subdirectory=subdir
+            ...
+        """ % {'repo': repo_dir},
+    ).strip()
+    _check_output(result.stdout, expected)
+
+
+@need_mercurial
+def test_freeze_mercurial_clone_srcdir(script, tmpdir):
+    """
+    Test freezing a Mercurial clone where setup.py is in a subdirectory
+    relative to the repo root and the source code is in a subdirectory
+    relative to setup.py.
+    """
+    # Returns path to a generated package called "version_pkg"
+    pkg_version = _create_test_package_with_srcdir(script, vcs='hg')
+
+    result = script.run(
+        'hg', 'clone', pkg_version, 'pip-test-package'
+    )
+    repo_dir = script.scratch_path / 'pip-test-package'
+    result = script.run(
+        'python', 'setup.py', 'develop',
+        cwd=repo_dir / 'subdir'
+    )
+    result = script.pip('freeze')
+    expected = textwrap.dedent(
+        """
+            ...-e hg+...#egg=version_pkg&subdirectory=subdir
+            ...
+        """
+    ).strip()
+    _check_output(result.stdout, expected)
+
+    result = script.pip(
+        'freeze', '-f', '%s#egg=pip_test_package' % repo_dir
+    )
+    expected = textwrap.dedent(
+        """
+            -f %(repo)s#egg=pip_test_package...
+            -e hg+...#egg=version_pkg&subdirectory=subdir
             ...
         """ % {'repo': repo_dir},
     ).strip()
@@ -502,15 +543,20 @@ def test_freeze_with_requirement_option(script):
 
     """
 
-    script.scratch_path.joinpath("hint.txt").write_text(textwrap.dedent("""\
+    script.scratch_path.joinpath("hint1.txt").write_text(textwrap.dedent("""\
         INITools==0.1
         NoExist==4.2  # A comment that ensures end of line comments work.
         simple==3.0; python_version > '1.0'
         """) + _freeze_req_opts)
+    script.scratch_path.joinpath("hint2.txt").write_text(textwrap.dedent("""\
+        iniTools==0.1
+        Noexist==4.2  # A comment that ensures end of line comments work.
+        Simple==3.0; python_version > '1.0'
+        """) + _freeze_req_opts)
     result = script.pip_install_local('initools==0.2')
     result = script.pip_install_local('simple')
     result = script.pip(
-        'freeze', '--requirement', 'hint.txt',
+        'freeze', '--requirement', 'hint1.txt',
         expect_stderr=True,
     )
     expected = textwrap.dedent("""\
@@ -521,8 +567,17 @@ def test_freeze_with_requirement_option(script):
     expected += "## The following requirements were added by pip freeze:..."
     _check_output(result.stdout, expected)
     assert (
-        "Requirement file [hint.txt] contains NoExist==4.2, but package "
+        "Requirement file [hint1.txt] contains NoExist==4.2, but package "
         "'NoExist' is not installed"
+    ) in result.stderr
+    result = script.pip(
+        'freeze', '--requirement', 'hint2.txt',
+        expect_stderr=True,
+    )
+    _check_output(result.stdout, expected)
+    assert (
+        "Requirement file [hint2.txt] contains Noexist==4.2, but package "
+        "'Noexist' is not installed"
     ) in result.stderr
 
 

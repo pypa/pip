@@ -1,1 +1,0 @@
-Don't use hardlinks for locking selfcheck state file.

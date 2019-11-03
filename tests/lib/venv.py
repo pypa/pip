@@ -75,7 +75,7 @@ class VirtualEnvironment(object):
                 context = builder.ensure_directories(self.location)
                 builder.create_configuration(context)
                 builder.setup_python(context)
-                self.site.mkdir(parents=True)
+                self.site.mkdir(parents=True, exist_ok=True)
             self.sitecustomize = self._sitecustomize
             self.user_site_packages = self._user_site_packages
 

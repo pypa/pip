@@ -5,11 +5,13 @@ import pytest
 
 from tests.lib import (
     _create_test_package_with_subdirectory,
+    need_svn,
     path_to_url,
     pyversion,
     requirements_file,
 )
 from tests.lib.local_repos import local_checkout
+from tests.lib.path import Path
 
 
 @pytest.mark.network
@@ -70,7 +72,9 @@ def test_relative_requirements_file(script, data):
     package_folder = script.site_packages / 'fspkg'
 
     # Compute relative install path to FSPkg from scratch path.
-    full_rel_path = data.packages.joinpath('FSPkg') - script.scratch_path
+    full_rel_path = Path(
+        os.path.relpath(data.packages.joinpath('FSPkg'), script.scratch_path)
+    )
     full_rel_url = 'file:' + full_rel_path + '#egg=FSPkg'
     embedded_rel_path = script.scratch_path.joinpath(full_rel_path)
 
@@ -97,7 +101,7 @@ def test_relative_requirements_file(script, data):
 
 
 @pytest.mark.network
-@pytest.mark.svn
+@need_svn
 def test_multiple_requirements_files(script, tmpdir):
     """
     Test installing from multiple nested requirements files.
@@ -368,7 +372,7 @@ def test_double_install_spurious_hash_mismatch(
         # Install a package (and build its wheel):
         result = script.pip_install_local(
             '--find-links', data.find_links,
-            '-r', reqs_file.abspath, expect_error=False)
+            '-r', reqs_file.resolve(), expect_error=False)
         assert 'Successfully installed simple-1.0' in str(result)
 
         # Uninstall it:
@@ -378,7 +382,7 @@ def test_double_install_spurious_hash_mismatch(
         # package should install happily.
         result = script.pip_install_local(
             '--find-links', data.find_links,
-            '-r', reqs_file.abspath, expect_error=False)
+            '-r', reqs_file.resolve(), expect_error=False)
         assert 'Successfully installed simple-1.0' in str(result)
 
 

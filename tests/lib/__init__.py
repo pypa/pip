@@ -13,8 +13,8 @@ from textwrap import dedent
 import pytest
 from scripttest import FoundDir, TestFileEnvironment
 
-from pip._internal.collector import LinkCollector
-from pip._internal.index import PackageFinder
+from pip._internal.index.collector import LinkCollector
+from pip._internal.index.package_finder import PackageFinder
 from pip._internal.locations import get_major_minor_version
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
@@ -28,8 +28,8 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.models.target_python import TargetPython
 
 
-DATA_DIR = Path(__file__).parent.parent.joinpath("data").abspath
-SRC_DIR = Path(__file__).abspath.parent.parent.parent
+DATA_DIR = Path(__file__).parent.parent.joinpath("data").resolve()
+SRC_DIR = Path(__file__).resolve().parent.parent.parent
 
 pyversion = get_major_minor_version()
 pyversion_tuple = sys.version_info
@@ -65,7 +65,7 @@ def _test_path_to_file_url(path):
     Args:
       path: a tests.lib.path.Path object.
     """
-    return 'file://' + path.abspath.replace('\\', '/')
+    return 'file://' + path.resolve().replace('\\', '/')
 
 
 def create_file(path, contents=None):
@@ -155,7 +155,7 @@ class TestData(object):
 
     def __init__(self, root, source=None):
         self.source = source or DATA_DIR
-        self.root = Path(root).abspath
+        self.root = Path(root).resolve()
 
     @classmethod
     def copy(cls, root):
@@ -447,11 +447,12 @@ class PipTestEnvironment(TestFileEnvironment):
             self.user_bin_path = scripts_base.joinpath('Scripts')
         else:
             self.user_bin_path = self.user_base_path.joinpath(
-                self.bin_path - self.venv_path
+                os.path.relpath(self.bin_path, self.venv_path)
             )
 
         # Create a Directory to use as a scratch pad
-        self.scratch_path = base_path.joinpath("scratch").mkdir()
+        self.scratch_path = base_path.joinpath("scratch")
+        self.scratch_path.mkdir()
 
         # Set our default working directory
         kwargs.setdefault("cwd", self.scratch_path)
@@ -482,7 +483,10 @@ class PipTestEnvironment(TestFileEnvironment):
         for name in ["base", "venv", "bin", "lib", "site_packages",
                      "user_base", "user_site", "user_bin", "scratch"]:
             real_name = "%s_path" % name
-            setattr(self, name, getattr(self, real_name) - self.base_path)
+            relative_path = Path(os.path.relpath(
+                getattr(self, real_name), self.base_path
+            ))
+            setattr(self, name, relative_path)
 
         # Make sure temp_path is a Path object
         self.temp_path = Path(self.temp_path)
@@ -924,7 +928,7 @@ def create_basic_wheel_for_package(script, name, version,
         extras = {}
     files = {
         "{name}/__init__.py": """
-            __version__ = {version}
+            __version__ = {version!r}
             def hello():
                 return "Hello From {name}"
         """,
@@ -988,7 +992,7 @@ def create_basic_wheel_for_package(script, name, version,
 
     for fname in files:
         path = script.temp_path / fname
-        path.parent.mkdir()
+        path.parent.mkdir(exist_ok=True)
         path.write_text(files[fname])
 
     retval = script.scratch_path / archive_name
@@ -1030,6 +1034,12 @@ def is_svn_installed():
 def need_bzr(fn):
     return pytest.mark.bzr(need_executable(
         'Bazaar', ('bzr', 'version', '--short')
+    )(fn))
+
+
+def need_svn(fn):
+    return pytest.mark.svn(need_executable(
+        'Subversion', ('svn', '--version')
     )(fn))
 
 

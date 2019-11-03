@@ -9,7 +9,7 @@ from mock import Mock, patch
 from pip._vendor import html5lib, requests
 from pip._vendor.six.moves.urllib import request as urllib_request
 
-from pip._internal.collector import (
+from pip._internal.index.collector import (
     HTMLPage,
     _clean_link,
     _determine_base_url,
@@ -334,7 +334,7 @@ def test_get_html_page_invalid_scheme(caplog, url, vcs_scheme):
     assert page is None
     assert caplog.record_tuples == [
         (
-            "pip._internal.collector",
+            "pip._internal.index.collector",
             logging.DEBUG,
             "Cannot look at {} URL {}".format(vcs_scheme, url),
         ),
@@ -358,7 +358,8 @@ def make_fake_html_response(url):
 def test_get_html_page_directory_append_index(tmpdir):
     """`_get_html_page()` should append "index.html" to a directory URL.
     """
-    dirpath = tmpdir.mkdir("something")
+    dirpath = tmpdir / "something"
+    dirpath.mkdir()
     dir_url = "file:///{}".format(
         urllib_request.pathname2url(dirpath).lstrip("/"),
     )
@@ -366,7 +367,8 @@ def test_get_html_page_directory_append_index(tmpdir):
 
     session = mock.Mock(PipSession)
     fake_response = make_fake_html_response(expected_url)
-    with mock.patch("pip._internal.collector._get_html_response") as mock_func:
+    mock_func = mock.patch("pip._internal.index.collector._get_html_response")
+    with mock_func as mock_func:
         mock_func.return_value = fake_response
         actual = _get_html_page(Link(dir_url), session=session)
         assert mock_func.mock_calls == [
@@ -433,7 +435,7 @@ def check_links_include(links, names):
 
 class TestLinkCollector(object):
 
-    @patch('pip._internal.collector._get_html_response')
+    @patch('pip._internal.index.collector._get_html_response')
     def test_collect_links(self, mock_get_html_response, caplog, data):
         caplog.set_level(logging.DEBUG)
 
@@ -473,5 +475,5 @@ class TestLinkCollector(object):
         1 location(s) to search for versions of twine:
         * https://pypi.org/simple/twine/""")
         assert caplog.record_tuples == [
-            ('pip._internal.collector', logging.DEBUG, expected_message),
+            ('pip._internal.index.collector', logging.DEBUG, expected_message),
         ]

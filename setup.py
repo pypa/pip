@@ -52,6 +52,7 @@ setup(
         "Programming Language :: Python :: 3.5",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
         "Programming Language :: Python :: Implementation :: CPython",
         "Programming Language :: Python :: Implementation :: PyPy",
     ],
@@ -75,8 +76,8 @@ setup(
     entry_points={
         "console_scripts": [
             "pip=pip._internal.main:main",
-            "pip%s=pip._internal.main:main" % sys.version_info[:1],
-            "pip%s.%s=pip._internal.main:main" % sys.version_info[:2],
+            "pip{}=pip._internal.main:main".format(sys.version_info[0]),
+            "pip{}.{}=pip._internal.main:main".format(*sys.version_info[:2]),
         ],
     },
 

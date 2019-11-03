@@ -8,11 +8,17 @@ import os
 
 from pip._vendor.six.moves import configparser
 
-from pip._internal.utils.misc import display_path, make_command
+from pip._internal.exceptions import BadCommand, InstallationError
+from pip._internal.utils.misc import display_path
+from pip._internal.utils.subprocess import make_command
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import path_to_url
-from pip._internal.vcs.versioncontrol import VersionControl, vcs
+from pip._internal.vcs.versioncontrol import (
+    VersionControl,
+    find_path_to_setup_from_repo_root,
+    vcs,
+)
 
 if MYPY_CHECK_RUNNING:
     from pip._internal.utils.misc import HiddenText
@@ -26,7 +32,9 @@ class Mercurial(VersionControl):
     name = 'hg'
     dirname = '.hg'
     repo_name = 'clone'
-    schemes = ('hg', 'hg+http', 'hg+https', 'hg+ssh', 'hg+static-http')
+    schemes = (
+        'hg', 'hg+file', 'hg+http', 'hg+https', 'hg+ssh', 'hg+static-http',
+    )
 
     @staticmethod
     def get_base_rev_args(rev):
@@ -114,6 +122,34 @@ class Mercurial(VersionControl):
     def is_commit_id_equal(cls, dest, name):
         """Always assume the versions don't match"""
         return False
+
+    @classmethod
+    def get_subdirectory(cls, location):
+        """
+        Return the path to setup.py, relative to the repo root.
+        Return None if setup.py is in the repo root.
+        """
+        # find the repo root
+        repo_root = cls.run_command(
+            ['root'], show_stdout=False, cwd=location).strip()
+        if not os.path.isabs(repo_root):
+            repo_root = os.path.abspath(os.path.join(location, repo_root))
+        return find_path_to_setup_from_repo_root(location, repo_root)
+
+    @classmethod
+    def controls_location(cls, location):
+        if super(Mercurial, cls).controls_location(location):
+            return True
+        try:
+            cls.run_command(
+                ['identify'],
+                cwd=location,
+                show_stdout=False,
+                on_returncode='raise',
+                log_failed_cmd=False)
+            return True
+        except (BadCommand, InstallationError):
+            return False
 
 
 vcs.register(Mercurial)

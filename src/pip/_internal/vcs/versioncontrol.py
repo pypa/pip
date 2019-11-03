@@ -15,16 +15,16 @@ from pip._vendor import pkg_resources
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 from pip._internal.exceptions import BadCommand
+from pip._internal.utils.compat import samefile
 from pip._internal.utils.misc import (
     ask_path_exists,
     backup_dir,
-    call_subprocess,
     display_path,
     hide_url,
     hide_value,
-    make_command,
     rmtree,
 )
+from pip._internal.utils.subprocess import call_subprocess, make_command
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import get_url_scheme
 
@@ -33,7 +33,8 @@ if MYPY_CHECK_RUNNING:
         Any, Dict, Iterable, List, Mapping, Optional, Text, Tuple, Type, Union
     )
     from pip._internal.utils.ui import SpinnerInterface
-    from pip._internal.utils.misc import CommandArgs, HiddenText
+    from pip._internal.utils.misc import HiddenText
+    from pip._internal.utils.subprocess import CommandArgs
 
     AuthInfo = Tuple[Optional[str], Optional[str]]
 
@@ -69,6 +70,33 @@ def make_vcs_requirement_url(repo_url, rev, project_name, subdir=None):
         req += '&subdirectory={}'.format(subdir)
 
     return req
+
+
+def find_path_to_setup_from_repo_root(location, repo_root):
+    """
+    Find the path to `setup.py` by searching up the filesystem from `location`.
+    Return the path to `setup.py` relative to `repo_root`.
+    Return None if `setup.py` is in `repo_root` or cannot be found.
+    """
+    # find setup.py
+    orig_location = location
+    while not os.path.exists(os.path.join(location, 'setup.py')):
+        last_location = location
+        location = os.path.dirname(location)
+        if location == last_location:
+            # We've traversed up to the root of the filesystem without
+            # finding setup.py
+            logger.warning(
+                "Could not find setup.py for directory %s (tried all "
+                "parent directories)",
+                orig_location,
+            )
+            return None
+
+    if samefile(repo_root, location):
+        return None
+
+    return os.path.relpath(location, repo_root)
 
 
 class RemoteNotFoundError(Exception):
@@ -209,6 +237,16 @@ class VcsSupport(object):
                 return vcs_backend
         return None
 
+    def get_backend_for_scheme(self, scheme):
+        # type: (str) -> Optional[VersionControl]
+        """
+        Return a VersionControl object or None.
+        """
+        for vcs_backend in self._registry.values():
+            if scheme in vcs_backend.schemes:
+                return vcs_backend
+        return None
+
     def get_backend(self, name):
         # type: (str) -> Optional[VersionControl]
         """
@@ -240,9 +278,10 @@ class VersionControl(object):
         return not remote_url.lower().startswith('{}:'.format(cls.name))
 
     @classmethod
-    def get_subdirectory(cls, repo_dir):
+    def get_subdirectory(cls, location):
         """
         Return the path to setup.py, relative to the repo root.
+        Return None if setup.py is in the repo root.
         """
         return None
 
@@ -582,7 +621,8 @@ class VersionControl(object):
         extra_ok_returncodes=None,  # type: Optional[Iterable[int]]
         command_desc=None,  # type: Optional[str]
         extra_environ=None,  # type: Optional[Mapping[str, Any]]
-        spinner=None  # type: Optional[SpinnerInterface]
+        spinner=None,  # type: Optional[SpinnerInterface]
+        log_failed_cmd=True
     ):
         # type: (...) -> Text
         """
@@ -598,7 +638,8 @@ class VersionControl(object):
                                    command_desc=command_desc,
                                    extra_environ=extra_environ,
                                    unset_environ=cls.unset_environ,
-                                   spinner=spinner)
+                                   spinner=spinner,
+                                   log_failed_cmd=log_failed_cmd)
         except OSError as e:
             # errno.ENOENT = no such file or directory
             # In other words, the VCS executable isn't available

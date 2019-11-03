@@ -6,7 +6,7 @@ from os.path import curdir, isdir, isfile
 
 import pytest
 
-from tests.lib import pyversion
+from tests.lib import need_svn, pyversion
 from tests.lib.local_repos import local_checkout
 
 
@@ -41,7 +41,7 @@ class Tests_UserSite:
         assert 'INITools' == project_name, project_name
 
     @pytest.mark.network
-    @pytest.mark.svn
+    @need_svn
     def test_install_subversion_usersite_editable_with_distribute(
             self, script, tmpdir):
         """

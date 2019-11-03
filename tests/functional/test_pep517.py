@@ -7,7 +7,8 @@ from tests.lib import make_test_finder, path_to_url
 
 
 def make_project(tmpdir, requires=[], backend=None):
-    project_dir = (tmpdir / 'project').mkdir()
+    project_dir = tmpdir / 'project'
+    project_dir.mkdir()
     buildsys = {'requires': requires}
     if backend:
         buildsys['build-backend'] = backend
@@ -125,7 +126,8 @@ def test_pep517_install_with_no_cache_dir(script, tmpdir, data):
 
 
 def make_pyproject_with_setup(tmpdir, build_system=True, set_backend=True):
-    project_dir = (tmpdir / 'project').mkdir()
+    project_dir = tmpdir / 'project'
+    project_dir.mkdir()
     setup_script = (
         'from setuptools import setup\n'
     )
@@ -161,7 +163,8 @@ def make_pyproject_with_setup(tmpdir, build_system=True, set_backend=True):
 
     project_dir.joinpath('pyproject.toml').write_text(project_data)
     project_dir.joinpath('setup.py').write_text(setup_script)
-    package_dir = (project_dir / "pep517_test").mkdir()
+    package_dir = project_dir / "pep517_test"
+    package_dir.mkdir()
     package_dir.joinpath('__init__.py').write_text('__version__ = "0.1"')
     return project_dir, "pep517_test"
 

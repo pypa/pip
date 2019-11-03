@@ -21,6 +21,7 @@ from tests.lib import (
     create_test_package_with_setup,
     need_bzr,
     need_mercurial,
+    need_svn,
     path_to_url,
     pyversion,
     pyversion_tuple,
@@ -225,7 +226,7 @@ def test_basic_install_from_pypi(script):
     """
     Test installing a package from PyPI.
     """
-    result = script.pip('install', '-vvv', 'INITools==0.2')
+    result = script.pip('install', 'INITools==0.2')
     egg_info_folder = (
         script.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion
     )
@@ -236,6 +237,13 @@ def test_basic_install_from_pypi(script):
     # Should not display where it's looking for files
     assert "Looking in indexes: " not in result.stdout
     assert "Looking in links: " not in result.stdout
+
+    # Ensure that we don't print the full URL.
+    #    The URL should be trimmed to only the last part of the path in it,
+    #    when installing from PyPI. The assertion here only checks for
+    #    `https://` since that's likely to show up if we're not trimming in
+    #    the correct circumstances.
+    assert "https://" not in result.stdout
 
 
 def test_basic_editable_install(script):
@@ -248,10 +256,9 @@ def test_basic_editable_install(script):
         in result.stderr
     )
     assert not result.files_created
-    assert not result.files_updated
 
 
-@pytest.mark.svn
+@need_svn
 def test_basic_install_editable_from_svn(script):
     """
     Test checking out from svn.
@@ -334,9 +341,11 @@ def test_install_editable_uninstalls_existing_from_path(script, data):
 
 @need_mercurial
 def test_basic_install_editable_from_hg(script, tmpdir):
-    """Test cloning from Mercurial."""
+    """Test cloning and hg+file install from Mercurial."""
     pkg_path = _create_test_package(script, name='testpackage', vcs='hg')
-    args = ['install', '-e', 'hg+%s#egg=testpackage' % path_to_url(pkg_path)]
+    url = 'hg+{}#egg=testpackage'.format(path_to_url(pkg_path))
+    assert url.startswith('hg+file')
+    args = ['install', '-e', url]
     result = script.pip(*args)
     result.assert_installed('testpackage', with_files=['.hg'])
 
@@ -405,7 +414,9 @@ def test_basic_install_relative_directory(script, data):
     package_folder = script.site_packages / 'fspkg'
 
     # Compute relative install path to FSPkg from scratch path.
-    full_rel_path = data.packages.joinpath('FSPkg') - script.scratch_path
+    full_rel_path = Path(
+        os.path.relpath(data.packages.joinpath('FSPkg'), script.scratch_path)
+    )
     full_rel_url = (
         'file:' + full_rel_path.replace(os.path.sep, '/') + '#egg=FSPkg'
     )
@@ -452,14 +463,14 @@ def test_hashed_install_success(script, data, tmpdir):
 
     """
     file_url = path_to_url(
-        (data.packages / 'simple-1.0.tar.gz').abspath)
+        (data.packages / 'simple-1.0.tar.gz').resolve())
     with requirements_file(
             'simple2==1.0 --hash=sha256:9336af72ca661e6336eb87bc7de3e8844d853e'
             '3848c2b9bbd2e8bf01db88c2c7\n'
             '{simple} --hash=sha256:393043e672415891885c9a2a0929b1af95fb866d6c'
             'a016b42d2e6ce53619b653'.format(simple=file_url),
             tmpdir) as reqs_file:
-        script.pip_install_local('-r', reqs_file.abspath, expect_error=False)
+        script.pip_install_local('-r', reqs_file.resolve(), expect_error=False)
 
 
 def test_hashed_install_failure(script, tmpdir):
@@ -474,7 +485,7 @@ def test_hashed_install_failure(script, tmpdir):
                            'c7de3e8844d853e3848c2b9bbd2e8bf01db88c2c\n',
                            tmpdir) as reqs_file:
         result = script.pip_install_local('-r',
-                                          reqs_file.abspath,
+                                          reqs_file.resolve(),
                                           expect_error=True)
     assert len(result.files_created) == 0
 
@@ -549,7 +560,8 @@ def test_editable_install__local_dir_no_setup_py_with_pyproject(
     Test installing in editable mode from a local directory with no setup.py
     but that does have pyproject.toml.
     """
-    local_dir = script.scratch_path.joinpath('temp').mkdir()
+    local_dir = script.scratch_path.joinpath('temp')
+    local_dir.mkdir()
     pyproject_path = local_dir.joinpath('pyproject.toml')
     pyproject_path.write_text('')
 
@@ -630,6 +642,7 @@ def test_install_global_option(script):
         'install', '--global-option=--version', "INITools==0.1",
         expect_stderr=True)
     assert 'INITools==0.1\n' in result.stdout
+    assert not result.files_created
 
 
 def test_install_with_hacked_egg_info(script, data):
@@ -1268,6 +1281,19 @@ def test_install_no_binary_disables_building_wheels(script, data, with_wheel):
     assert "Running setup.py install for upper" in str(res), str(res)
 
 
+def test_install_no_binary_builds_pep_517_wheel(script, data, with_wheel):
+    to_install = data.packages.joinpath('pep517_setup_and_pyproject')
+    res = script.pip(
+        'install', '--no-binary=:all:', '-f', data.find_links, to_install
+    )
+    expected = ("Successfully installed pep517-setup-and-pyproject")
+    # Must have installed the package
+    assert expected in str(res), str(res)
+
+    assert "Building wheel for pep517-setup" in str(res), str(res)
+    assert "Running setup.py install for pep517-set" not in str(res), str(res)
+
+
 def test_install_no_binary_disables_cached_wheels(script, data, with_wheel):
     # Seed the cache
     script.pip(
@@ -1551,11 +1577,27 @@ def test_target_install_ignores_distutils_config_install_prefix(script):
         ''' % str(prefix)))
     target = script.scratch_path / 'target'
     result = script.pip_install_local('simplewheel', '-t', target)
-    assert (
-        "Successfully installed simplewheel" in result.stdout and
-        (target - script.base_path) in result.files_created and
-        (prefix - script.base_path) not in result.files_created
-    ), str(result)
+
+    assert "Successfully installed simplewheel" in result.stdout
+
+    relative_target = os.path.relpath(target, script.base_path)
+    relative_script_base = os.path.relpath(prefix, script.base_path)
+    assert relative_target in result.files_created
+    assert relative_script_base not in result.files_created
+
+
+def test_user_config_accepted(script):
+    # user set in the config file is parsed as 0/1 instead of True/False.
+    # Check that this doesn't cause a problem.
+    config_file = script.scratch_path / 'pip.conf'
+    script.environ['PIP_CONFIG_FILE'] = str(config_file)
+    config_file.write_text("[install]\nuser = true")
+    result = script.pip_install_local('simplewheel')
+
+    assert "Successfully installed simplewheel" in result.stdout
+
+    relative_user = os.path.relpath(script.user_site_path, script.base_path)
+    assert join(relative_user, 'simplewheel') in result.files_created
 
 
 @pytest.mark.network
