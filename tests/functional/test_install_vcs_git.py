@@ -67,7 +67,7 @@ def _github_checkout(url_path, temp_dir, rev=None, egg=None, scheme=None):
     return local_url
 
 
-def _make_version_pkg_url(path, rev=None):
+def _make_version_pkg_url(path, rev=None, name="version_pkg"):
     """
     Return a "git+file://" URL to the version_pkg test package.
 
@@ -78,7 +78,7 @@ def _make_version_pkg_url(path, rev=None):
     """
     file_url = _test_path_to_file_url(path)
     url_rev = '' if rev is None else '@{}'.format(rev)
-    url = 'git+{}{}#egg=version_pkg'.format(file_url, url_rev)
+    url = 'git+{}{}#egg={}'.format(file_url, url_rev, name)
 
     return url
 
@@ -476,3 +476,40 @@ def test_check_submodule_addition(script):
         script.venv / 'src/version-pkg/testpkg/static/testfile2'
         in update_result.files_created
     )
+
+
+def test_install_git_branch_not_cached(script, with_wheel):
+    """
+    Installing git urls with a branch revision does not cause wheel caching.
+    """
+    PKG = "gitbranchnotcached"
+    repo_dir = _create_test_package(script, name=PKG)
+    url = _make_version_pkg_url(repo_dir, rev="master", name=PKG)
+    result = script.pip("install", url, "--only-binary=:all:")
+    assert "Successfully built {}".format(PKG) in result.stdout, result.stdout
+    script.pip("uninstall", "-y", PKG)
+    # build occurs on the second install too because it is not cached
+    result = script.pip("install", url)
+    assert (
+        "Successfully built {}".format(PKG) in result.stdout
+    ), result.stdout
+
+
+def test_install_git_sha_cached(script, with_wheel):
+    """
+    Installing git urls with a sha revision does cause wheel caching.
+    """
+    PKG = "gitshacached"
+    repo_dir = _create_test_package(script, name=PKG)
+    commit = script.run(
+        'git', 'rev-parse', 'HEAD', cwd=repo_dir
+    ).stdout.strip()
+    url = _make_version_pkg_url(repo_dir, rev=commit, name=PKG)
+    result = script.pip("install", url)
+    assert "Successfully built {}".format(PKG) in result.stdout, result.stdout
+    script.pip("uninstall", "-y", PKG)
+    # build does not occur on the second install because it is cached
+    result = script.pip("install", url)
+    assert (
+        "Successfully built {}".format(PKG) not in result.stdout
+    ), result.stdout

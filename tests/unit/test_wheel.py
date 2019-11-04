@@ -20,7 +20,7 @@ from pip._internal.wheel import (
     MissingCallableSuffix,
     _raise_for_invalid_entrypoint,
 )
-from tests.lib import DATA_DIR, assert_paths_equal
+from tests.lib import DATA_DIR, _create_test_package, assert_paths_equal
 
 
 class ReqMock:
@@ -164,6 +164,21 @@ def test_should_cache(
         # never cache if pip install (need_wheel=False) would not have built)
         assert not should_cache
     assert should_cache is expected
+
+
+def test_should_cache_git_sha(script, tmpdir):
+    repo_path = _create_test_package(script, name="mypkg")
+    commit = script.run(
+        "git", "rev-parse", "HEAD", cwd=repo_path
+    ).stdout.strip()
+    # a link referencing a sha should be cached
+    url = "git+https://g.c/o/r@" + commit + "#egg=mypkg"
+    req = ReqMock(link=Link(url), source_dir=repo_path)
+    assert wheel.should_cache(req, check_binary_allowed=lambda r: True)
+    # a link not referencing a sha should not be cached
+    url = "git+https://g.c/o/r@master#egg=mypkg"
+    req = ReqMock(link=Link(url), source_dir=repo_path)
+    assert not wheel.should_cache(req, check_binary_allowed=lambda r: True)
 
 
 def test_format_command_result__INFO(caplog):
