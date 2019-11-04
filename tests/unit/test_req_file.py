@@ -665,7 +665,8 @@ class TestParseRequirements(object):
 
     def test_req_file_parse_no_only_binary(self, data, finder):
         list(parse_requirements(
-            data.reqfiles.joinpath("supported_options2.txt"), finder,
+            data.reqfiles.joinpath("supported_options2.txt"),
+            finder=finder,
             session=PipSession()))
         expected = FormatControl({'fred'}, {'wilma'})
         assert finder.format_control == expected
@@ -677,7 +678,8 @@ class TestParseRequirements(object):
         with open(tmpdir.joinpath("req1.txt"), "w") as fp:
             fp.write("# Comment ")
 
-        reqs = list(parse_requirements(tmpdir.joinpath("req1.txt"), finder,
+        reqs = list(parse_requirements(tmpdir.joinpath("req1.txt"),
+                    finder=finder,
                     session=PipSession()))
 
         assert not reqs
@@ -689,7 +691,8 @@ class TestParseRequirements(object):
         with open(tmpdir.joinpath("req1.txt"), "w") as fp:
             fp.write("https://example.com/foo.tar.gz # Comment ")
 
-        reqs = list(parse_requirements(tmpdir.joinpath("req1.txt"), finder,
+        reqs = list(parse_requirements(tmpdir.joinpath("req1.txt"),
+                    finder=finder,
                     session=PipSession()))
 
         assert len(reqs) == 1
@@ -702,7 +705,8 @@ class TestParseRequirements(object):
         with open(tmpdir.joinpath("req1.txt"), "w") as fp:
             fp.write("https://example.com/foo.tar.gz#egg=wat")
 
-        reqs = list(parse_requirements(tmpdir.joinpath("req1.txt"), finder,
+        reqs = list(parse_requirements(tmpdir.joinpath("req1.txt"),
+                    finder=finder,
                     session=PipSession()))
 
         assert len(reqs) == 1
