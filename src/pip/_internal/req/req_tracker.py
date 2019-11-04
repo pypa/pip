@@ -107,7 +107,6 @@ class RequirementTracker(object):
 
         # Cleanup the directory.
         self._temp_dir.cleanup()
-        del os.environ['PIP_REQ_TRACKER']
         logger.debug("Removed build tracker: %r", self._root)
 
     @contextlib.contextmanager
