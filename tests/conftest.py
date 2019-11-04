@@ -13,6 +13,7 @@ from setuptools.wheel import Wheel
 
 from pip._internal.main import main as pip_entry_point
 from tests.lib import DATA_DIR, SRC_DIR, TestData
+from tests.lib.certs import make_tls_cert, serialize_cert, serialize_key
 from tests.lib.path import Path
 from tests.lib.scripttest import PipTestEnvironment
 from tests.lib.venv import VirtualEnvironment
@@ -385,3 +386,21 @@ def in_memory_pip():
 def deprecated_python():
     """Used to indicate whether pip deprecated this python version"""
     return sys.version_info[:2] in [(2, 7)]
+
+
+@pytest.fixture(scope="session")
+def cert_factory(tmpdir_factory):
+    def factory():
+        # type: () -> str
+        """Returns path to cert/key file.
+        """
+        output_path = Path(str(tmpdir_factory.mktemp("certs"))) / "cert.pem"
+        # Must be Text on PY2.
+        cert, key = make_tls_cert(u"localhost")
+        with open(str(output_path), "wb") as f:
+            f.write(serialize_cert(cert))
+            f.write(serialize_key(key))
+
+        return str(output_path)
+
+    return factory
