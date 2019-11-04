@@ -554,17 +554,6 @@ class UninstallPathSet(object):
                 dist, dist.location,
             )
 
-        # find distutils scripts= scripts
-        if dist.has_metadata('scripts') and dist.metadata_isdir('scripts'):
-            for script in dist.metadata_listdir('scripts'):
-                if dist_in_usersite(dist):
-                    bin_dir = bin_user
-                else:
-                    bin_dir = bin_py
-                paths_to_remove.add(os.path.join(bin_dir, script))
-                if WINDOWS:
-                    paths_to_remove.add(os.path.join(bin_dir, script) + '.bat')
-
         # find console_scripts
         _scripts_to_remove = []
         console_scripts = dist.get_entry_map(group='console_scripts')
