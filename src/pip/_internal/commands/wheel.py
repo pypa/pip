@@ -192,7 +192,6 @@ class WheelCommand(RequirementCommand):
                     preparer, wheel_cache,
                     build_options=options.build_options or [],
                     global_options=options.global_options or [],
-                    no_clean=options.no_clean,
                     path_to_wheelnames=options.path_to_wheelnames
                 )
                 build_failures = wb.build(
