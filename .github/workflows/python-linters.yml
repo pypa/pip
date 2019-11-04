@@ -22,10 +22,10 @@ jobs:
         - TOXENV: lint
     steps:
     - uses: actions/checkout@master
-    - name: Set up Python ${{ matrix.env.PYTHON_VERSION || 3.7 }}
+    - name: Set up Python ${{ matrix.env.PYTHON_VERSION || 3.8 }}
       uses: actions/setup-python@v1
       with:
-        python-version: ${{ matrix.env.PYTHON_VERSION || 3.7 }}
+        python-version: ${{ matrix.env.PYTHON_VERSION || 3.8 }}
     - name: Pre-configure global Git settings
       run: >-
         tools/travis/setup.sh
