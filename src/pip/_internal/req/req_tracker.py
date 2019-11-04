@@ -55,40 +55,59 @@ class RequirementTracker(object):
 
     def add(self, req):
         # type: (InstallRequirement) -> None
-        link = req.link
-        info = str(req)
-        entry_path = self._entry_path(link)
+        """Add an InstallRequirement to build tracking.
+        """
+
+        # Get the file to write information about this requirement.
+        entry_path = self._entry_path(req.link)
+
+        # Try reading from the file. If it exists and can be read from, a build
+        # is already in progress, so a LookupError is raised.
         try:
             with open(entry_path) as fp:
-                # Error, these's already a build in progress.
-                raise LookupError('%s is already being built: %s'
-                                  % (link, fp.read()))
+                contents = fp.read()
         except IOError as e:
+            # if the error is anything other than "file does not exist", raise.
             if e.errno != errno.ENOENT:
                 raise
-            assert req not in self._entries
-            with open(entry_path, 'w') as fp:
-                fp.write(info)
-            self._entries.add(req)
-            logger.debug('Added %s to build tracker %r', req, self._root)
+        else:
+            message = '%s is already being built: %s' % (req.link, contents)
+            raise LookupError(message)
+
+        # If we're here, req should really not be building already.
+        assert req not in self._entries
+
+        # Start tracking this requirement.
+        with open(entry_path, 'w') as fp:
+            fp.write(str(req))
+        self._entries.add(req)
+
+        logger.debug('Added %s to build tracker %r', req, self._root)
 
     def remove(self, req):
         # type: (InstallRequirement) -> None
-        link = req.link
+        """Remove an InstallRequirement from build tracking.
+        """
+
+        # Delete the created file and the corresponding entries.
+        os.unlink(self._entry_path(req.link))
         self._entries.remove(req)
-        os.unlink(self._entry_path(link))
+
         logger.debug('Removed %s from build tracker %r', req, self._root)
 
     def cleanup(self):
         # type: () -> None
         for req in set(self._entries):
             self.remove(req)
-        remove = self._temp_dir is not None
-        if remove:
-            self._temp_dir.cleanup()
-        logger.debug('%s build tracker %r',
-                     'Removed' if remove else 'Cleaned',
-                     self._root)
+
+        if self._temp_dir is None:
+            # Did not setup the directory. No action needed.
+            logger.debug("Cleaned build tracker: %r", self._root)
+            return
+
+        # Cleanup the directory.
+        self._temp_dir.cleanup()
+        logger.debug("Removed build tracker: %r", self._root)
 
     @contextlib.contextmanager
     def track(self, req):
