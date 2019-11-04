@@ -105,10 +105,10 @@ class ParsedLine(object):
 
 def parse_requirements(
     filename,  # type: str
+    session,  # type: PipSession
     finder=None,  # type: Optional[PackageFinder]
     comes_from=None,  # type: Optional[str]
     options=None,  # type: Optional[optparse.Values]
-    session=None,  # type: Optional[PipSession]
     constraint=False,  # type: bool
     wheel_cache=None,  # type: Optional[WheelCache]
     use_pep517=None  # type: Optional[bool]
@@ -117,21 +117,15 @@ def parse_requirements(
     """Parse a requirements file and yield InstallRequirement instances.
 
     :param filename:    Path or url of requirements file.
+    :param session:     PipSession instance.
     :param finder:      Instance of pip.index.PackageFinder.
     :param comes_from:  Origin description of requirements.
     :param options:     cli options.
-    :param session:     Instance of pip.download.PipSession.
     :param constraint:  If true, parsing a constraint file rather than
         requirements file.
     :param wheel_cache: Instance of pip.wheel.WheelCache
     :param use_pep517:  Value of the --use-pep517 option.
     """
-    if session is None:
-        raise TypeError(
-            "parse_requirements() missing 1 required keyword argument: "
-            "'session'"
-        )
-
     skip_requirements_regex = (
         options.skip_requirements_regex if options else None
     )
@@ -325,7 +319,7 @@ class RequirementsFileParser(object):
     def _parse_file(self, filename, constraint):
         # type: (str, bool) -> Iterator[ParsedLine]
         _, content = get_file_content(
-            filename, comes_from=self._comes_from, session=self._session
+            filename, self._session, comes_from=self._comes_from
         )
 
         lines_enum = preprocess(content, self._skip_requirements_regex)
@@ -505,21 +499,16 @@ def expand_env_variables(lines_enum):
         yield line_number, line
 
 
-def get_file_content(url, comes_from=None, session=None):
-    # type: (str, Optional[str], Optional[PipSession]) -> Tuple[str, Text]
+def get_file_content(url, session, comes_from=None):
+    # type: (str, PipSession, Optional[str]) -> Tuple[str, Text]
     """Gets the content of a file; it may be a filename, file: URL, or
     http: URL.  Returns (location, content).  Content is unicode.
     Respects # -*- coding: declarations on the retrieved files.
 
     :param url:         File path or url.
+    :param session:     PipSession instance.
     :param comes_from:  Origin description of requirements.
-    :param session:     Instance of pip.download.PipSession.
     """
-    if session is None:
-        raise TypeError(
-            "get_file_content() missing 1 required keyword argument: 'session'"
-        )
-
     scheme = get_url_scheme(url)
 
     if scheme in ['http', 'https']:
