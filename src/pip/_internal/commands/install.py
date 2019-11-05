@@ -360,6 +360,7 @@ class InstallCommand(RequirementCommand):
                     options=options,
                     req_tracker=req_tracker,
                     session=session,
+                    finder=finder,
                 )
                 resolver = self.make_resolver(
                     preparer=preparer,

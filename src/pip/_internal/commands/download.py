@@ -130,6 +130,7 @@ class DownloadCommand(RequirementCommand):
                 options=options,
                 req_tracker=req_tracker,
                 session=session,
+                finder=finder,
                 download_dir=options.download_dir,
             )
 

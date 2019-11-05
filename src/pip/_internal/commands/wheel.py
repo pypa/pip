@@ -174,6 +174,7 @@ class WheelCommand(RequirementCommand):
                     options=options,
                     req_tracker=req_tracker,
                     session=session,
+                    finder=finder,
                     wheel_download_dir=options.wheel_dir,
                 )
 

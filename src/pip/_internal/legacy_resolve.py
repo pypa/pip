@@ -280,7 +280,7 @@ class Resolver(object):
         """
         if req.editable:
             return self.preparer.prepare_editable_requirement(
-                req, require_hashes, self.use_user_site, self.finder,
+                req, require_hashes, self.use_user_site,
             )
 
         # satisfied_by is only evaluated by calling _check_skip_installed,
@@ -298,7 +298,7 @@ class Resolver(object):
         # We eagerly populate the link, since that's our "legacy" behavior.
         req.populate_link(self.finder, upgrade_allowed, require_hashes)
         abstract_dist = self.preparer.prepare_linked_requirement(
-            req, self.finder, require_hashes
+            req, require_hashes
         )
 
         # NOTE

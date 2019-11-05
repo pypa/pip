@@ -153,6 +153,7 @@ class RequirementCommand(IndexGroupCommand):
         options,                  # type: Values
         req_tracker,              # type: RequirementTracker
         session,                  # type: PipSession
+        finder,                   # type: PackageFinder
         download_dir=None,        # type: str
         wheel_download_dir=None,  # type: str
     ):
@@ -171,6 +172,7 @@ class RequirementCommand(IndexGroupCommand):
             build_isolation=options.build_isolation,
             req_tracker=req_tracker,
             session=session,
+            finder=finder,
         )
 
     @staticmethod
