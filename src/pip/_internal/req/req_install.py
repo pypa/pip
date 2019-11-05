@@ -675,6 +675,7 @@ class InstallRequirement(object):
         install_options,  # type: List[str]
         global_options,  # type: Sequence[str]
         prefix,  # type: Optional[str]
+        use_user_site,  # type: bool
     ):
         # type: (...) -> None
         logger.info('Running setup.py develop for %s', self.name)
@@ -685,6 +686,7 @@ class InstallRequirement(object):
             install_options=install_options,
             no_user_config=self.isolated,
             prefix=prefix,
+            use_user_site=use_user_site,
         )
 
         with indent_log():
@@ -843,7 +845,10 @@ class InstallRequirement(object):
         global_options = global_options if global_options is not None else []
         if self.editable:
             self.install_editable(
-                install_options, global_options, prefix=prefix,
+                install_options,
+                global_options,
+                prefix=prefix,
+                use_user_site=use_user_site,
             )
             return
         if self.is_wheel:
@@ -890,6 +895,7 @@ class InstallRequirement(object):
                 root=root,
                 prefix=prefix,
                 header_dir=header_dir,
+                use_user_site=use_user_site,
                 no_user_config=self.isolated,
                 pycompile=pycompile,
             )

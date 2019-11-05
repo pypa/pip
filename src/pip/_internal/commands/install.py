@@ -302,10 +302,6 @@ class InstallCommand(RequirementCommand):
             isolated_mode=options.isolated_mode,
         )
 
-        if options.use_user_site:
-            install_options.append('--user')
-            install_options.append('--prefix=')
-
         target_temp_dir = None  # type: Optional[TempDirectory]
         target_temp_dir_path = None  # type: Optional[str]
         if options.target_dir:
