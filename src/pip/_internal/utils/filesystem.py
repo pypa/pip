@@ -13,8 +13,7 @@ from pip._vendor.retrying import retry  # type: ignore
 from pip._vendor.six import PY2
 
 from pip._internal.utils.compat import get_path_uid
-from pip._internal.utils.misc import cast
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING, cast
 
 if MYPY_CHECK_RUNNING:
     from typing import BinaryIO, Iterator

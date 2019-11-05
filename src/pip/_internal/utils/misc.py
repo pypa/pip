@@ -39,7 +39,7 @@ from pip._internal.utils.compat import (
     str_to_display,
 )
 from pip._internal.utils.marker_files import write_delete_marker_file
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING, cast
 from pip._internal.utils.virtualenv import (
     running_under_virtualenv,
     virtualenv_no_global,
@@ -53,16 +53,11 @@ else:
 if MYPY_CHECK_RUNNING:
     from typing import (
         Any, AnyStr, Container, Iterable, List, Optional, Text,
-        Tuple, Union, cast,
+        Tuple, Union,
     )
     from pip._vendor.pkg_resources import Distribution
 
     VersionInfo = Tuple[int, int, int]
-else:
-    # typing's cast() is needed at runtime, but we don't want to import typing.
-    # Thus, we use a dummy no-op version, which we tell mypy to ignore.
-    def cast(type_, value):  # type: ignore
-        return value
 
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
