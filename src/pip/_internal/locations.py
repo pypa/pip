@@ -106,7 +106,6 @@ def distutils_scheme(dist_name, user=False, home=None, root=None,
     dist_args.update(extra_dist_args)
 
     d = Distribution(dist_args)
-    # Ignoring, typeshed issue reported python/typeshed/issues/2567
     d.parse_config_files()
     # NOTE: Ignoring type since mypy can't find attributes on 'Command'
     i = d.get_command_obj('install', create=True)  # type: Any
@@ -131,9 +130,7 @@ def distutils_scheme(dist_name, user=False, home=None, root=None,
     # platlib).  Note, i.install_lib is *always* set after
     # finalize_options(); we only want to override here if the user
     # has explicitly requested it hence going back to the config
-
-    # Ignoring, typeshed issue reported python/typeshed/issues/2567
-    if 'install_lib' in d.get_option_dict('install'):  # type: ignore
+    if 'install_lib' in d.get_option_dict('install'):
         scheme.update(dict(purelib=i.install_lib, platlib=i.install_lib))
 
     if running_under_virtualenv():
