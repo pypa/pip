@@ -675,6 +675,7 @@ class InstallRequirement(object):
         install_options,  # type: List[str]
         global_options,  # type: Sequence[str]
         prefix,  # type: Optional[str]
+        home,  # type: Optional[str]
         use_user_site,  # type: bool
     ):
         # type: (...) -> None
@@ -686,6 +687,7 @@ class InstallRequirement(object):
             install_options=install_options,
             no_user_config=self.isolated,
             prefix=prefix,
+            home=home,
             use_user_site=use_user_site,
         )
 
@@ -848,6 +850,7 @@ class InstallRequirement(object):
                 install_options,
                 global_options,
                 prefix=prefix,
+                home=home,
                 use_user_site=use_user_site,
             )
             return
@@ -895,6 +898,7 @@ class InstallRequirement(object):
                 root=root,
                 prefix=prefix,
                 header_dir=header_dir,
+                home=home,
                 use_user_site=use_user_site,
                 no_user_config=self.isolated,
                 pycompile=pycompile,

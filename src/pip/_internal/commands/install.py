@@ -317,7 +317,6 @@ class InstallCommand(RequirementCommand):
             # Create a target directory for using with the target option
             target_temp_dir = TempDirectory(kind="target")
             target_temp_dir_path = target_temp_dir.path
-            install_options.append('--home=' + target_temp_dir_path)
 
         global_options = options.global_options or []
 

@@ -91,6 +91,7 @@ def make_setuptools_develop_args(
     install_options,  # type: Sequence[str]
     no_user_config,  # type: bool
     prefix,  # type: Optional[str]
+    home,  # type: Optional[str]
     use_user_site,  # type: bool
 ):
     # type: (...) -> List[str]
@@ -108,6 +109,8 @@ def make_setuptools_develop_args(
 
     if prefix:
         args += ["--prefix", prefix]
+    if home is not None:
+        args += ["--home", home]
 
     if use_user_site:
         args += ["--user", "--prefix="]
@@ -141,6 +144,7 @@ def make_setuptools_install_args(
     root,  # type: Optional[str]
     prefix,  # type: Optional[str]
     header_dir,  # type: Optional[str]
+    home,  # type: Optional[str]
     use_user_site,  # type: bool
     no_user_config,  # type: bool
     pycompile  # type: bool
@@ -162,6 +166,8 @@ def make_setuptools_install_args(
         args += ["--root", root]
     if prefix is not None:
         args += ["--prefix", prefix]
+    if home is not None:
+        args += ["--home", home]
     if use_user_site:
         args += ["--user", "--prefix="]
 
