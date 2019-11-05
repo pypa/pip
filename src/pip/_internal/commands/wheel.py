@@ -185,6 +185,9 @@ class WheelCommand(RequirementCommand):
                     ignore_requires_python=options.ignore_requires_python,
                     use_pep517=options.use_pep517,
                 )
+
+                self.trace_basic_info(finder)
+
                 resolver.resolve(requirement_set)
 
                 # build wheels

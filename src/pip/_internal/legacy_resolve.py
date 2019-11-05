@@ -181,12 +181,6 @@ class Resolver(object):
             any(req.has_hash_options for req in root_reqs)
         )
 
-        # Display where finder is looking for packages
-        search_scope = self.finder.search_scope
-        locations = search_scope.get_formatted_locations()
-        if locations:
-            logger.info(locations)
-
         # Actually prepare the files, and collect any exceptions. Most hash
         # exceptions cannot be checked ahead of time, because
         # req.populate_link() needs to be called before we can make decisions

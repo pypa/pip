@@ -8,6 +8,7 @@ PackageFinder machinery and all its vendored dependencies, etc.
 # The following comment should be removed at some point in the future.
 # mypy: disallow-untyped-defs=False
 
+import logging
 import os
 from functools import partial
 
@@ -40,6 +41,8 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.req.req_set import RequirementSet
     from pip._internal.req.req_tracker import RequirementTracker
     from pip._internal.utils.temp_dir import TempDirectory
+
+logger = logging.getLogger(__name__)
 
 
 class SessionCommandMixin(CommandContextMixIn):
@@ -271,6 +274,18 @@ class RequirementCommand(IndexGroupCommand):
                 raise CommandError(
                     'You must give at least one requirement to %(name)s '
                     '(see "pip help %(name)s")' % opts)
+
+    @staticmethod
+    def trace_basic_info(finder):
+        # type: (PackageFinder) -> None
+        """
+        Trace basic information about the provided objects.
+        """
+        # Display where finder is looking for packages
+        search_scope = finder.search_scope
+        locations = search_scope.get_formatted_locations()
+        if locations:
+            logger.info(locations)
 
     def _build_package_finder(
         self,
