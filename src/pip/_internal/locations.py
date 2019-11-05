@@ -96,14 +96,9 @@ def distutils_scheme(dist_name, user=False, home=None, root=None,
     """
     from distutils.dist import Distribution
 
-    scheme = {}
-
-    if isolated:
-        extra_dist_args = {"script_args": ["--no-user-cfg"]}
-    else:
-        extra_dist_args = {}
     dist_args = {'name': dist_name}  # type: Dict[str, Union[str, List[str]]]
-    dist_args.update(extra_dist_args)
+    if isolated:
+        dist_args["script_args"] = ["--no-user-cfg"]
 
     d = Distribution(dist_args)
     d.parse_config_files()
@@ -122,6 +117,8 @@ def distutils_scheme(dist_name, user=False, home=None, root=None,
     i.home = home or i.home
     i.root = root or i.root
     i.finalize_options()
+
+    scheme = {}
     for key in SCHEME_KEYS:
         scheme[key] = getattr(i, 'install_' + key)
 
