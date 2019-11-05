@@ -42,7 +42,7 @@ from pip._internal.utils.misc import (
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.virtualenv import virtualenv_no_global
-from pip._internal.wheel import WheelBuilder
+from pip._internal.wheel_builder import WheelBuilder
 
 if MYPY_CHECK_RUNNING:
     from optparse import Values
@@ -50,7 +50,7 @@ if MYPY_CHECK_RUNNING:
 
     from pip._internal.models.format_control import FormatControl
     from pip._internal.req.req_install import InstallRequirement
-    from pip._internal.wheel import BinaryAllowedPredicate
+    from pip._internal.wheel_builder import BinaryAllowedPredicate
 
 
 logger = logging.getLogger(__name__)

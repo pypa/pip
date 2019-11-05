@@ -7,6 +7,7 @@ from __future__ import absolute_import
 import contextlib
 import errno
 import getpass
+import hashlib
 import io
 import logging
 import os
@@ -868,3 +869,17 @@ def is_console_interactive():
     """Is this console interactive?
     """
     return sys.stdin is not None and sys.stdin.isatty()
+
+
+def hash_file(path, blocksize=1 << 20):
+    # type: (str, int) -> Tuple[Any, int]
+    """Return (hash, length) for path using hashlib.sha256()
+    """
+
+    h = hashlib.sha256()
+    length = 0
+    with open(path, 'rb') as f:
+        for block in read_chunks(f, size=blocksize):
+            length += len(block)
+            h.update(block)
+    return (h, length)  # type: ignore
