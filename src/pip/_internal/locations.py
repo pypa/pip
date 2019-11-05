@@ -91,8 +91,9 @@ else:
         bin_py = '/usr/local/bin'
 
 
-def distutils_scheme(dist_name, user=False, home=None, root=None,
-                     isolated=False, prefix=None):
+def distutils_scheme(
+    dist_name, user=False, home=None, root=None, isolated=False, prefix=None
+):
     # type:(str, bool, str, str, bool, str) -> dict
     """
     Return a distutils install scheme
