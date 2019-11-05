@@ -673,8 +673,8 @@ class InstallRequirement(object):
     def install_editable(
         self,
         install_options,  # type: List[str]
-        global_options=(),  # type: Sequence[str]
-        prefix=None  # type: Optional[str]
+        global_options,  # type: Sequence[str]
+        prefix,  # type: Optional[str]
     ):
         # type: (...) -> None
         logger.info('Running setup.py develop for %s', self.name)
