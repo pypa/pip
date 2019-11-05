@@ -14,14 +14,17 @@ import sys
 import sysconfig
 from distutils import sysconfig as distutils_sysconfig
 from distutils.command.install import SCHEME_KEYS  # type: ignore
+from distutils.command.install import install as distutils_install_command
 
 from pip._internal.utils import appdirs
 from pip._internal.utils.compat import WINDOWS
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING, cast
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Union, Dict, List, Optional
+    from typing import Dict, List, Optional, Union
+
+    from distutils.cmd import Command as DistutilsCommand
 
 
 # Application Directories
@@ -102,9 +105,10 @@ def distutils_scheme(dist_name, user=False, home=None, root=None,
 
     d = Distribution(dist_args)
     d.parse_config_files()
-    # NOTE: Ignoring type since mypy can't find attributes on 'Command'
-    i = d.get_command_obj('install', create=True)  # type: Any
-    assert i is not None
+    obj = None  # type: Optional[DistutilsCommand]
+    obj = d.get_command_obj('install', create=True)
+    assert obj is not None
+    i = cast(distutils_install_command, obj)
     # NOTE: setting user or home has the side-effect of creating the home dir
     # or user base for installations during finalize_options()
     # ideally, we'd prefer a scheme class that has no side-effects.
