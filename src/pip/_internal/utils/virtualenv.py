@@ -2,6 +2,7 @@ from __future__ import absolute_import
 
 import logging
 import os
+import re
 import site
 import sys
 
@@ -11,6 +12,9 @@ if MYPY_CHECK_RUNNING:
     from typing import List, Optional
 
 logger = logging.getLogger(__name__)
+_INCLUDE_SYSTEM_SITE_PACKAGES_REGEX = re.compile(
+    r"include-system-site-packages\s*=\s*(?P<value>true|false)"
+)
 
 
 def _running_under_venv():
@@ -76,7 +80,11 @@ def _no_global_under_venv():
         )
         return True
 
-    return "include-system-site-packages = false" in cfg_lines
+    for line in cfg_lines:
+        match = _INCLUDE_SYSTEM_SITE_PACKAGES_REGEX.match(line)
+        if match is not None and match.group('value') == 'false':
+            return True
+    return False
 
 
 def _no_global_under_regular_virtualenv():
