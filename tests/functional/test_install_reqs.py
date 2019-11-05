@@ -227,6 +227,7 @@ def test_install_local_with_subdirectory(script):
     result.assert_installed('version_subpkg.py', editable=False)
 
 
+@pytest.mark.incompatible_with_test_venv
 def test_wheel_user_with_prefix_in_pydistutils_cfg(
         script, data, with_wheel):
     if os.name == 'posix':

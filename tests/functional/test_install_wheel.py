@@ -233,6 +233,7 @@ def test_wheel_record_lines_in_deterministic_order(script, data):
     assert record_lines == sorted(record_lines)
 
 
+@pytest.mark.incompatible_with_test_venv
 def test_install_user_wheel(script, data, with_wheel):
     """
     Test user install from wheel (that has a script)

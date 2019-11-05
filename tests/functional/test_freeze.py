@@ -703,6 +703,7 @@ def test_freeze_with_requirement_option_package_repeated_multi_file(script):
 
 
 @pytest.mark.network
+@pytest.mark.incompatible_with_test_venv
 def test_freeze_user(script, virtualenv, data):
     """
     Testing freeze with --user, first we have to install some stuff.
@@ -733,6 +734,7 @@ def test_freeze_path(tmpdir, script, data):
     _check_output(result.stdout, expected)
 
 
+@pytest.mark.incompatible_with_test_venv
 def test_freeze_path_exclude_user(tmpdir, script, data):
     """
     Test freeze with --path and make sure packages from --user are not picked
