@@ -205,7 +205,6 @@ class WheelBuilder(object):
         build_options=None,  # type: Optional[List[str]]
         global_options=None,  # type: Optional[List[str]]
         check_binary_allowed=None,  # type: Optional[BinaryAllowedPredicate]
-        no_clean=False,  # type: bool
         path_to_wheelnames=None,  # type: Optional[Union[bytes, Text]]
     ):
         # type: (...) -> None
@@ -221,7 +220,6 @@ class WheelBuilder(object):
         self.build_options = build_options or []
         self.global_options = global_options or []
         self.check_binary_allowed = check_binary_allowed
-        self.no_clean = no_clean
         # path where to save built names of built wheels
         self.path_to_wheelnames = path_to_wheelnames
         # file names of built wheel names
