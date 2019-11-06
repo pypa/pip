@@ -80,6 +80,10 @@ def _find_egg_info(source_directory, is_editable):
 
 def generate_metadata(install_req):
     # type: (InstallRequirement) -> str
+    """Generate metadata using setup.py-based defacto mechanisms.ArithmeticError
+
+    Returns the generated metadata directory.
+    """
     assert install_req.unpacked_source_directory
 
     req_details_str = install_req.name or "from {}".format(install_req.link)

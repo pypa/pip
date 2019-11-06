@@ -16,28 +16,21 @@ class SourceDistribution(AbstractDistribution):
 
     The preparation step for these needs metadata for the packages to be
     generated, either using PEP 517 or using the legacy `setup.py egg_info`.
-
-    NOTE from @pradyunsg (14 June 2019)
-    I expect SourceDistribution class will need to be split into
-    `legacy_source` (setup.py based) and `source` (PEP 517 based) when we start
-    bringing logic for preparation out of InstallRequirement into this class.
     """
 
     def get_pkg_resources_distribution(self):
         return self.req.get_dist()
 
     def prepare_distribution_metadata(self, finder, build_isolation):
-        # Prepare for building. We need to:
-        #   1. Load pyproject.toml (if it exists)
-        #   2. Set up the build environment
-
+        # Load pyproject.toml, to determine whether PEP 517 is to be used
         self.req.load_pyproject_toml()
+
+        # Set up the build isolation, if this requirement should be isolated
         should_isolate = self.req.use_pep517 and build_isolation
         if should_isolate:
             self._setup_isolation(finder)
 
         self.req.prepare_metadata()
-        self.req.assert_source_matches_version()
 
     def _setup_isolation(self, finder):
         def _raise_conflicts(conflicting_with, conflicting_reqs):

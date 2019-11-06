@@ -5,36 +5,22 @@ import atexit
 import logging
 import os
 
-from pip._internal.operations.build.metadata_legacy import \
-    generate_metadata as _generate_metadata_legacy
 from pip._internal.utils.subprocess import runner_with_spinner_message
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Callable
-
     from pip._internal.req.req_install import InstallRequirement
 
 logger = logging.getLogger(__name__)
 
 
-def get_metadata_generator(install_req):
-    # type: (InstallRequirement) -> Callable[[InstallRequirement], str]
-    """Return a callable metadata generator for this InstallRequirement.
-
-    A metadata generator takes an InstallRequirement (install_req) as an input,
-    generates metadata via the appropriate process for that install_req and
-    returns the generated metadata directory.
-    """
-    if not install_req.use_pep517:
-        return _generate_metadata_legacy
-
-    return _generate_metadata
-
-
-def _generate_metadata(install_req):
+def generate_metadata(install_req):
     # type: (InstallRequirement) -> str
+    """Generate metadata using mechanisms described in PEP 517.
+
+    Returns the generated metadata directory.
+    """
     assert install_req.pep517_backend is not None
     build_env = install_req.build_env
     backend = install_req.pep517_backend

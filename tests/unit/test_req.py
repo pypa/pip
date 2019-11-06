@@ -32,12 +32,7 @@ from pip._internal.req.constructors import (
 from pip._internal.req.req_file import ParsedLine, get_line_parser, handle_line
 from pip._internal.req.req_tracker import RequirementTracker
 from pip._internal.utils.urls import path_to_url
-from tests.lib import (
-    DATA_DIR,
-    assert_raises_regexp,
-    make_test_finder,
-    requirements_file,
-)
+from tests.lib import assert_raises_regexp, make_test_finder, requirements_file
 
 
 def get_processed_req_from_line(line, fname='file', lineno=1):
@@ -664,17 +659,17 @@ def test_exclusive_environment_markers():
     assert req_set.has_requirement('Django')
 
 
-def test_mismatched_versions(caplog, tmpdir):
-    original_source = os.path.join(DATA_DIR, 'src', 'simplewheel-1.0')
-    source_dir = os.path.join(tmpdir, 'simplewheel')
-    shutil.copytree(original_source, source_dir)
-    req = InstallRequirement(req=Requirement('simplewheel==2.0'),
-                             comes_from=None, source_dir=source_dir)
-    req.prepare_metadata()
+def test_mismatched_versions(caplog):
+    req = InstallRequirement(
+        req=Requirement('simplewheel==2.0'),
+        comes_from=None,
+        source_dir="/tmp/somewhere",
+    )
+    # Monkeypatch!
+    req._metadata = {"name": "simplewheel", "version": "1.0"}
     req.assert_source_matches_version()
     assert caplog.records[-1].message == (
-        'Requested simplewheel==2.0, '
-        'but installing version 1.0'
+        'Requested simplewheel==2.0, but installing version 1.0'
     )
 
 
