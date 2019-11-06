@@ -124,6 +124,7 @@ def test_pep518_allows_missing_requires(script, data, common_wheels):
     assert result.files_created
 
 
+@pytest.mark.incompatible_with_test_venv
 def test_pep518_with_user_pip(script, pip_src, data, common_wheels):
     """
     Check that build dependencies are installed into the build
@@ -1593,6 +1594,7 @@ def test_target_install_ignores_distutils_config_install_prefix(script):
     assert relative_script_base not in result.files_created
 
 
+@pytest.mark.incompatible_with_test_venv
 def test_user_config_accepted(script):
     # user set in the config file is parsed as 0/1 instead of True/False.
     # Check that this doesn't cause a problem.

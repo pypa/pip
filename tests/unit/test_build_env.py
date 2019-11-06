@@ -162,6 +162,7 @@ def test_build_env_overlay_prefix_has_priority(script):
     assert result.stdout.strip() == '2.0', str(result)
 
 
+@pytest.mark.incompatible_with_test_venv
 def test_build_env_isolation(script):
 
     # Create dummy `pkg` wheel.

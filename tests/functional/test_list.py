@@ -94,6 +94,7 @@ def test_local_columns_flag(simple_script):
 
 
 @pytest.mark.network
+@pytest.mark.incompatible_with_test_venv
 def test_user_flag(script, data):
     """
     Test the behavior of --user flag in the list command
@@ -110,6 +111,7 @@ def test_user_flag(script, data):
 
 
 @pytest.mark.network
+@pytest.mark.incompatible_with_test_venv
 def test_user_columns_flag(script, data):
     """
     Test the behavior of --user --format=columns flags in the list command
@@ -502,6 +504,7 @@ def test_list_path(tmpdir, script, data):
     assert {'name': 'simple', 'version': '2.0'} in json_result
 
 
+@pytest.mark.incompatible_with_test_venv
 def test_list_path_exclude_user(tmpdir, script, data):
     """
     Test list with --path and make sure packages from --user are not picked
