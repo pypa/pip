@@ -28,6 +28,7 @@ from pip._internal.operations.build.metadata import get_metadata_generator
 from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
 from pip._internal.req.req_uninstall import UninstallPathSet
 from pip._internal.utils.compat import native_str
+from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.marker_files import (
@@ -932,10 +933,21 @@ class InstallRequirement(object):
                         egg_info_dir = prepend_root(directory)
                         break
                 else:
-                    logger.warning(
-                        'Could not find .egg-info directory in install record'
-                        ' for %s',
-                        self,
+                    deprecated(
+                        reason=(
+                            "{} did not indicate that it installed an "
+                            ".egg-info directory. Only setup.py projects "
+                            "generating .egg-info directories are supported."
+                        ).format(self),
+                        replacement=(
+                            "for maintainers: updating the setup.py of {0}. "
+                            "For users: contact the maintainers of {0} to let "
+                            "them know to update their setup.py.".format(
+                                self.name
+                            )
+                        ),
+                        gone_in="20.2",
+                        issue=6998,
                     )
                     # FIXME: put the record somewhere
                     return
