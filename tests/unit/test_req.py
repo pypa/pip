@@ -71,6 +71,7 @@ class TestRequirementSet(object):
             build_isolation=True,
             req_tracker=RequirementTracker(),
             session=PipSession(),
+            finder=finder,
         )
         make_install_req = partial(
             install_req_from_req_string,

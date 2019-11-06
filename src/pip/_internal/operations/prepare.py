@@ -509,6 +509,7 @@ class RequirementPreparer(object):
         build_isolation,  # type: bool
         req_tracker,  # type: RequirementTracker
         session,  # type: PipSession
+        finder,  # type: PackageFinder
     ):
         # type: (...) -> None
         super(RequirementPreparer, self).__init__()
@@ -517,6 +518,7 @@ class RequirementPreparer(object):
         self.build_dir = build_dir
         self.req_tracker = req_tracker
         self.session = session
+        self.finder = finder
 
         # Where still-packed archives should be written to. If None, they are
         # not saved, and are deleted immediately after unpacking.
@@ -558,7 +560,6 @@ class RequirementPreparer(object):
     def prepare_linked_requirement(
         self,
         req,  # type: InstallRequirement
-        finder,  # type: PackageFinder
         require_hashes,  # type: bool
     ):
         # type: (...) -> AbstractDistribution
@@ -666,7 +667,7 @@ class RequirementPreparer(object):
                 write_delete_marker_file(req.source_dir)
 
             abstract_dist = _get_prepared_distribution(
-                req, self.req_tracker, finder, self.build_isolation,
+                req, self.req_tracker, self.finder, self.build_isolation,
             )
 
             if self._download_should_save:
@@ -680,7 +681,6 @@ class RequirementPreparer(object):
         req,  # type: InstallRequirement
         require_hashes,  # type: bool
         use_user_site,  # type: bool
-        finder  # type: PackageFinder
     ):
         # type: (...) -> AbstractDistribution
         """Prepare an editable requirement
@@ -700,7 +700,7 @@ class RequirementPreparer(object):
             req.update_editable(not self._download_should_save)
 
             abstract_dist = _get_prepared_distribution(
-                req, self.req_tracker, finder, self.build_isolation,
+                req, self.req_tracker, self.finder, self.build_isolation,
             )
 
             if self._download_should_save:

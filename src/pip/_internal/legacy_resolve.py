@@ -181,12 +181,6 @@ class Resolver(object):
             any(req.has_hash_options for req in root_reqs)
         )
 
-        # Display where finder is looking for packages
-        search_scope = self.finder.search_scope
-        locations = search_scope.get_formatted_locations()
-        if locations:
-            logger.info(locations)
-
         # Actually prepare the files, and collect any exceptions. Most hash
         # exceptions cannot be checked ahead of time, because
         # req.populate_link() needs to be called before we can make decisions
@@ -286,7 +280,7 @@ class Resolver(object):
         """
         if req.editable:
             return self.preparer.prepare_editable_requirement(
-                req, require_hashes, self.use_user_site, self.finder,
+                req, require_hashes, self.use_user_site,
             )
 
         # satisfied_by is only evaluated by calling _check_skip_installed,
@@ -304,7 +298,7 @@ class Resolver(object):
         # We eagerly populate the link, since that's our "legacy" behavior.
         req.populate_link(self.finder, upgrade_allowed, require_hashes)
         abstract_dist = self.preparer.prepare_linked_requirement(
-            req, self.finder, require_hashes
+            req, require_hashes
         )
 
         # NOTE

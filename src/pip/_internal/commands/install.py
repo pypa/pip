@@ -360,6 +360,7 @@ class InstallCommand(RequirementCommand):
                     options=options,
                     req_tracker=req_tracker,
                     session=session,
+                    finder=finder,
                 )
                 resolver = self.make_resolver(
                     preparer=preparer,
@@ -373,6 +374,9 @@ class InstallCommand(RequirementCommand):
                     upgrade_strategy=upgrade_strategy,
                     use_pep517=options.use_pep517,
                 )
+
+                self.trace_basic_info(finder)
+
                 resolver.resolve(requirement_set)
 
                 try:

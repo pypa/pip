@@ -130,6 +130,7 @@ class DownloadCommand(RequirementCommand):
                 options=options,
                 req_tracker=req_tracker,
                 session=session,
+                finder=finder,
                 download_dir=options.download_dir,
             )
 
@@ -139,6 +140,9 @@ class DownloadCommand(RequirementCommand):
                 options=options,
                 py_version_info=options.python_version,
             )
+
+            self.trace_basic_info(finder)
+
             resolver.resolve(requirement_set)
 
             downloaded = ' '.join([
