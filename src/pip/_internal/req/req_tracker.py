@@ -61,7 +61,8 @@ def get_requirement_tracker():
             ).path
             ctx.enter_context(update_env_context_manager(PIP_REQ_TRACKER=root))
 
-        yield RequirementTracker(root)
+        with RequirementTracker(root) as tracker:
+            yield tracker
 
 
 class RequirementTracker(object):
