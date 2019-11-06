@@ -62,6 +62,12 @@ class TestRequirementSet(object):
         shutil.rmtree(self.tempdir, ignore_errors=True)
 
     def _basic_resolver(self, finder, require_hashes=False):
+        make_install_req = partial(
+            install_req_from_req_string,
+            isolated=False,
+            wheel_cache=None,
+            use_pep517=None,
+        )
         preparer = RequirementPreparer(
             build_dir=os.path.join(self.tempdir, 'build'),
             src_dir=os.path.join(self.tempdir, 'src'),
@@ -73,12 +79,6 @@ class TestRequirementSet(object):
             session=PipSession(),
             finder=finder,
             require_hashes=require_hashes,
-        )
-        make_install_req = partial(
-            install_req_from_req_string,
-            isolated=False,
-            wheel_cache=None,
-            use_pep517=None,
         )
         return Resolver(
             preparer=preparer,
