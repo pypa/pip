@@ -11,8 +11,9 @@ from pip._vendor.packaging.requirements import Requirement
 from pip._internal import pep425tags, wheel
 from pip._internal.commands.wheel import WheelCommand
 from pip._internal.exceptions import InvalidWheelFilename, UnsupportedWheel
-from pip._internal.locations import distutils_scheme
+from pip._internal.locations import get_scheme
 from pip._internal.models.link import Link
+from pip._internal.models.scheme import Scheme
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import hash_file
@@ -482,29 +483,31 @@ class TestInstallUnpackedWheel(object):
         self.src = os.path.join(tmpdir, 'src')
         self.dest = os.path.join(tmpdir, 'dest')
         unpack_file(self.wheelpath, self.src)
-        self.scheme = {
-            'scripts': os.path.join(self.dest, 'bin'),
-            'purelib': os.path.join(self.dest, 'lib'),
-            'data': os.path.join(self.dest, 'data'),
-        }
+        self.scheme = Scheme(
+            purelib=os.path.join(self.dest, 'lib'),
+            platlib=os.path.join(self.dest, 'lib'),
+            headers=os.path.join(self.dest, 'headers'),
+            scripts=os.path.join(self.dest, 'bin'),
+            data=os.path.join(self.dest, 'data'),
+        )
         self.src_dist_info = os.path.join(
             self.src, 'sample-1.2.0.dist-info')
         self.dest_dist_info = os.path.join(
-            self.scheme['purelib'], 'sample-1.2.0.dist-info')
+            self.scheme.purelib, 'sample-1.2.0.dist-info')
 
     def assert_installed(self):
         # lib
         assert os.path.isdir(
-            os.path.join(self.scheme['purelib'], 'sample'))
+            os.path.join(self.scheme.purelib, 'sample'))
         # dist-info
         metadata = os.path.join(self.dest_dist_info, 'METADATA')
         assert os.path.isfile(metadata)
         # data files
-        data_file = os.path.join(self.scheme['data'], 'my_data', 'data_file')
+        data_file = os.path.join(self.scheme.data, 'my_data', 'data_file')
         assert os.path.isfile(data_file)
         # package data
         pkg_data = os.path.join(
-            self.scheme['purelib'], 'sample', 'package_data.dat')
+            self.scheme.purelib, 'sample', 'package_data.dat')
         assert os.path.isfile(pkg_data)
 
     def test_std_install(self, data, tmpdir):
@@ -520,7 +523,7 @@ class TestInstallUnpackedWheel(object):
     def test_install_prefix(self, data, tmpdir):
         prefix = os.path.join(os.path.sep, 'some', 'path')
         self.prep(data, tmpdir)
-        scheme = distutils_scheme(
+        scheme = get_scheme(
             self.name,
             user=False,
             home=None,

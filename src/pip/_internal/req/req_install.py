@@ -22,7 +22,7 @@ from pip._vendor.pep517.wrappers import Pep517HookCaller
 from pip._internal import pep425tags, wheel
 from pip._internal.build_env import NoOpBuildEnvironment
 from pip._internal.exceptions import InstallationError
-from pip._internal.locations import distutils_scheme
+from pip._internal.locations import get_scheme
 from pip._internal.models.link import Link
 from pip._internal.operations.build.metadata import generate_metadata
 from pip._internal.operations.build.metadata_legacy import \
@@ -65,11 +65,12 @@ from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Any, Dict, Iterable, List, Mapping, Optional, Sequence, Union,
+        Any, Dict, Iterable, List, Optional, Sequence, Union,
     )
     from pip._internal.build_env import BuildEnvironment
     from pip._internal.cache import WheelCache
     from pip._internal.index.package_finder import PackageFinder
+    from pip._internal.models.scheme import Scheme
     from pip._vendor.pkg_resources import Distribution
     from pip._vendor.packaging.specifiers import SpecifierSet
     from pip._vendor.packaging.markers import Marker
@@ -540,7 +541,7 @@ class InstallRequirement(object):
     def move_wheel_files(
         self,
         wheeldir,  # type: str
-        scheme,  # type: Mapping[str, str]
+        scheme,  # type: Scheme
         warn_script_location=True,  # type: bool
         pycompile=True  # type: bool
     ):
@@ -852,7 +853,7 @@ class InstallRequirement(object):
         pycompile=True  # type: bool
     ):
         # type: (...) -> None
-        scheme = distutils_scheme(
+        scheme = get_scheme(
             self.name,
             user=use_user_site,
             home=home,
