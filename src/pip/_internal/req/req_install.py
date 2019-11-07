@@ -8,7 +8,6 @@ import logging
 import os
 import shutil
 import sys
-import sysconfig
 import zipfile
 from distutils.util import change_root
 
@@ -896,12 +895,7 @@ class InstallRequirement(object):
         install_options = list(install_options) + \
             self.options.get('install_options', [])
 
-        header_dir = None  # type: Optional[str]
-        if running_under_virtualenv():
-            py_ver_str = 'python' + sysconfig.get_python_version()
-            header_dir = os.path.join(
-                sys.prefix, 'include', 'site', py_ver_str, self.name
-            )
+        header_dir = scheme.headers
 
         with TempDirectory(kind="record") as temp_dir:
             record_filename = os.path.join(temp_dir.path, 'install-record.txt')
