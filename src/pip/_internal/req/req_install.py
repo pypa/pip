@@ -852,6 +852,15 @@ class InstallRequirement(object):
         pycompile=True  # type: bool
     ):
         # type: (...) -> None
+        scheme = distutils_scheme(
+            self.name,
+            user=use_user_site,
+            home=home,
+            root=root,
+            isolated=self.isolated,
+            prefix=prefix,
+        )
+
         global_options = global_options if global_options is not None else []
         if self.editable:
             self.install_editable(
@@ -862,14 +871,11 @@ class InstallRequirement(object):
                 use_user_site=use_user_site,
             )
             return
+
         if self.is_wheel:
             version = wheel.wheel_version(self.source_dir)
             wheel.check_compatibility(version, self.name)
 
-            scheme = distutils_scheme(
-                self.name, user=use_user_site, home=home, root=root,
-                isolated=self.isolated, prefix=prefix,
-            )
             self.move_wheel_files(
                 self.source_dir,
                 scheme=scheme,
