@@ -1,7 +1,13 @@
+import errno
+
 import pytest
 from mock import Mock, call, patch
 
-from pip._internal.commands.install import build_wheels, decide_user_install
+from pip._internal.commands.install import (
+    build_wheels,
+    create_env_error_message,
+    decide_user_install,
+)
 
 
 class TestWheelCache:
@@ -94,3 +100,39 @@ class TestDecideUserInstall:
             lambda **kw: site_packages_writable
         )
         assert decide_user_install(use_user_site=None) is result
+
+
+@pytest.mark.parametrize('error, show_traceback, using_user_site, expected', [
+    # show_traceback = True, using_user_site = True
+    (EnvironmentError("Illegal byte sequence"), True, True, 'Could not install'
+        ' packages due to an EnvironmentError.\n'),
+    (EnvironmentError(errno.EACCES, "No file permission"), True, True, 'Could'
+        ' not install packages due to an EnvironmentError.\nCheck the'
+        ' permissions.\n'),
+    # show_traceback = True, using_user_site = False
+    (EnvironmentError("Illegal byte sequence"), True, False, 'Could not'
+        ' install packages due to an EnvironmentError.\n'),
+    (EnvironmentError(errno.EACCES, "No file permission"), True, False, 'Could'
+        ' not install packages due to an EnvironmentError.\nConsider using the'
+        ' `--user` option or check the permissions.\n'),
+    # show_traceback = False, using_user_site = True
+    (EnvironmentError("Illegal byte sequence"), False, True, 'Could not'
+        ' install packages due to an EnvironmentError: Illegal byte'
+        ' sequence\n'),
+    (EnvironmentError(errno.EACCES, "No file permission"), False, True, 'Could'
+        ' not install packages due to an EnvironmentError: [Errno 13] No file'
+        ' permission\nCheck the permissions.\n'),
+    # show_traceback = False, using_user_site = False
+    (EnvironmentError("Illegal byte sequence"), False, False, 'Could not'
+        ' install packages due to an EnvironmentError: Illegal byte sequence'
+        '\n'),
+    (EnvironmentError(errno.EACCES, "No file permission"), False, False,
+        'Could not install packages due to an EnvironmentError: [Errno 13] No'
+        ' file permission\nConsider using the `--user` option or check the'
+        ' permissions.\n'),
+])
+def test_create_env_error_message(
+    error, show_traceback, using_user_site, expected
+):
+    msg = create_env_error_message(error, show_traceback, using_user_site)
+    assert msg == expected
