@@ -255,7 +255,13 @@ class WheelBuilder(object):
                 )
             else:
                 wheel_path = self._build_one_legacy(
-                    req, temp_dir.path, python_tag=python_tag
+                    name=req.name,
+                    setup_py_path=req.setup_py_path,
+                    source_dir=req.unpacked_source_directory,
+                    global_options=self.global_options,
+                    build_options=self.build_options,
+                    tempd=temp_dir.path,
+                    python_tag=python_tag,
                 )
 
             if wheel_path is not None:
@@ -323,7 +329,11 @@ class WheelBuilder(object):
 
     def _build_one_legacy(
         self,
-        req,  # type: InstallRequirement
+        name,  # type: str
+        setup_py_path,  # type: str
+        source_dir,  # type: str
+        global_options,  # type: List[str]
+        build_options,  # type: List[str]
         tempd,  # type: str
         python_tag=None,  # type: Optional[str]
     ):
@@ -333,33 +343,33 @@ class WheelBuilder(object):
         Returns path to wheel if successfully built. Otherwise, returns None.
         """
         wheel_args = make_setuptools_bdist_wheel_args(
-            req.setup_py_path,
-            global_options=self.global_options,
-            build_options=self.build_options,
+            setup_py_path,
+            global_options=global_options,
+            build_options=build_options,
             destination_dir=tempd,
             python_tag=python_tag,
         )
 
-        spin_message = 'Building wheel for %s (setup.py)' % (req.name,)
+        spin_message = 'Building wheel for %s (setup.py)' % (name,)
         with open_spinner(spin_message) as spinner:
             logger.debug('Destination directory: %s', tempd)
 
             try:
                 output = call_subprocess(
                     wheel_args,
-                    cwd=req.unpacked_source_directory,
+                    cwd=source_dir,
                     spinner=spinner,
                 )
             except Exception:
                 spinner.finish("error")
-                logger.error('Failed building wheel for %s', req.name)
+                logger.error('Failed building wheel for %s', name)
                 return None
 
             names = os.listdir(tempd)
             wheel_path = get_legacy_build_wheel_path(
                 names=names,
                 temp_dir=tempd,
-                name=req.name,
+                name=name,
                 command_args=wheel_args,
                 command_output=output,
             )
