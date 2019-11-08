@@ -250,10 +250,14 @@ class WheelBuilder(object):
         # type: (...) -> Optional[str]
         with TempDirectory(kind="wheel") as temp_dir:
             if req.use_pep517:
-                builder = self._build_one_pep517
+                wheel_path = self._build_one_pep517(
+                    req, temp_dir.path, python_tag=python_tag
+                )
             else:
-                builder = self._build_one_legacy
-            wheel_path = builder(req, temp_dir.path, python_tag=python_tag)
+                wheel_path = self._build_one_legacy(
+                    req, temp_dir.path, python_tag=python_tag
+                )
+
             if wheel_path is not None:
                 wheel_name = os.path.basename(wheel_path)
                 dest_path = os.path.join(output_dir, wheel_name)
