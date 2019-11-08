@@ -190,6 +190,54 @@ def get_legacy_build_wheel_path(
     return os.path.join(temp_dir, names[0])
 
 
+def _build_wheel_legacy(
+    name,  # type: str
+    setup_py_path,  # type: str
+    source_dir,  # type: str
+    global_options,  # type: List[str]
+    build_options,  # type: List[str]
+    tempd,  # type: str
+    python_tag=None,  # type: Optional[str]
+):
+    # type: (...) -> Optional[str]
+    """Build one InstallRequirement using the "legacy" build process.
+
+    Returns path to wheel if successfully built. Otherwise, returns None.
+    """
+    wheel_args = make_setuptools_bdist_wheel_args(
+        setup_py_path,
+        global_options=global_options,
+        build_options=build_options,
+        destination_dir=tempd,
+        python_tag=python_tag,
+    )
+
+    spin_message = 'Building wheel for %s (setup.py)' % (name,)
+    with open_spinner(spin_message) as spinner:
+        logger.debug('Destination directory: %s', tempd)
+
+        try:
+            output = call_subprocess(
+                wheel_args,
+                cwd=source_dir,
+                spinner=spinner,
+            )
+        except Exception:
+            spinner.finish("error")
+            logger.error('Failed building wheel for %s', name)
+            return None
+
+        names = os.listdir(tempd)
+        wheel_path = get_legacy_build_wheel_path(
+            names=names,
+            temp_dir=tempd,
+            name=name,
+            command_args=wheel_args,
+            command_output=output,
+        )
+        return wheel_path
+
+
 def _always_true(_):
     # type: (Any) -> bool
     return True
@@ -254,7 +302,7 @@ class WheelBuilder(object):
                     req, temp_dir.path, python_tag=python_tag
                 )
             else:
-                wheel_path = self._build_one_legacy(
+                wheel_path = _build_wheel_legacy(
                     name=req.name,
                     setup_py_path=req.setup_py_path,
                     source_dir=req.unpacked_source_directory,
@@ -326,54 +374,6 @@ class WheelBuilder(object):
             logger.error('Failed building wheel for %s', req.name)
             return None
         return os.path.join(tempd, wheel_name)
-
-    def _build_one_legacy(
-        self,
-        name,  # type: str
-        setup_py_path,  # type: str
-        source_dir,  # type: str
-        global_options,  # type: List[str]
-        build_options,  # type: List[str]
-        tempd,  # type: str
-        python_tag=None,  # type: Optional[str]
-    ):
-        # type: (...) -> Optional[str]
-        """Build one InstallRequirement using the "legacy" build process.
-
-        Returns path to wheel if successfully built. Otherwise, returns None.
-        """
-        wheel_args = make_setuptools_bdist_wheel_args(
-            setup_py_path,
-            global_options=global_options,
-            build_options=build_options,
-            destination_dir=tempd,
-            python_tag=python_tag,
-        )
-
-        spin_message = 'Building wheel for %s (setup.py)' % (name,)
-        with open_spinner(spin_message) as spinner:
-            logger.debug('Destination directory: %s', tempd)
-
-            try:
-                output = call_subprocess(
-                    wheel_args,
-                    cwd=source_dir,
-                    spinner=spinner,
-                )
-            except Exception:
-                spinner.finish("error")
-                logger.error('Failed building wheel for %s', name)
-                return None
-
-            names = os.listdir(tempd)
-            wheel_path = get_legacy_build_wheel_path(
-                names=names,
-                temp_dir=tempd,
-                name=name,
-                command_args=wheel_args,
-                command_output=output,
-            )
-            return wheel_path
 
     def _clean_one(self, req):
         # type: (InstallRequirement) -> bool
