@@ -200,7 +200,7 @@ def _build_wheel_legacy(
     python_tag=None,  # type: Optional[str]
 ):
     # type: (...) -> Optional[str]
-    """Build one InstallRequirement using the "legacy" build process.
+    """Build one unpacked package using the "legacy" build process.
 
     Returns path to wheel if successfully built. Otherwise, returns None.
     """
