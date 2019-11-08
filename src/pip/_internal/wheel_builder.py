@@ -163,7 +163,7 @@ def format_command_result(
 def get_legacy_build_wheel_path(
     names,  # type: List[str]
     temp_dir,  # type: str
-    req,  # type: InstallRequirement
+    name,  # type: str
     command_args,  # type: List[str]
     command_output,  # type: Text
 ):
@@ -174,7 +174,7 @@ def get_legacy_build_wheel_path(
     if not names:
         msg = (
             'Legacy build of wheel for {!r} created no files.\n'
-        ).format(req.name)
+        ).format(name)
         msg += format_command_result(command_args, command_output)
         logger.warning(msg)
         return None
@@ -183,7 +183,7 @@ def get_legacy_build_wheel_path(
         msg = (
             'Legacy build of wheel for {!r} created more than one file.\n'
             'Filenames (choosing first): {}\n'
-        ).format(req.name, names)
+        ).format(name, names)
         msg += format_command_result(command_args, command_output)
         logger.warning(msg)
 
@@ -359,7 +359,7 @@ class WheelBuilder(object):
             wheel_path = get_legacy_build_wheel_path(
                 names=names,
                 temp_dir=tempd,
-                req=req,
+                name=req.name,
                 command_args=wheel_args,
                 command_output=output,
             )

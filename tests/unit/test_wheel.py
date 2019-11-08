@@ -12,9 +12,7 @@ from pip._internal import pep425tags, wheel
 from pip._internal.commands.wheel import WheelCommand
 from pip._internal.exceptions import InvalidWheelFilename, UnsupportedWheel
 from pip._internal.locations import get_scheme
-from pip._internal.models.link import Link
 from pip._internal.models.scheme import Scheme
-from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import hash_file
 from pip._internal.utils.unpacking import unpack_file
@@ -24,36 +22,6 @@ from pip._internal.wheel import (
 )
 from pip._internal.wheel_builder import get_legacy_build_wheel_path
 from tests.lib import DATA_DIR, assert_paths_equal
-
-
-def make_test_install_req(base_name=None):
-    """
-    Return an InstallRequirement object for testing purposes.
-    """
-    if base_name is None:
-        base_name = 'pendulum-2.0.4'
-
-    req = Requirement('pendulum')
-    link_url = (
-        'https://files.pythonhosted.org/packages/aa/{base_name}.tar.gz'
-        '#sha256=cf535d36c063575d4752af36df928882b2e0e31541b4482c97d637527'
-        '85f9fcb'
-    ).format(base_name=base_name)
-    link = Link(
-        url=link_url,
-        comes_from='https://pypi.org/simple/pendulum/',
-        requires_python='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*',
-    )
-    req = InstallRequirement(
-        req=req,
-        comes_from=None,
-        constraint=False,
-        editable=False,
-        link=link,
-        source_dir='/tmp/pip-install-9py5m2z1/pendulum',
-    )
-
-    return req
 
 
 @pytest.mark.parametrize('file_tag, expected', [
@@ -66,11 +34,10 @@ def test_format_tag(file_tag, expected):
 
 
 def call_get_legacy_build_wheel_path(caplog, names):
-    req = make_test_install_req()
     wheel_path = get_legacy_build_wheel_path(
         names=names,
         temp_dir='/tmp/abcd',
-        req=req,
+        name='pendulum',
         command_args=['arg1', 'arg2'],
         command_output='output line 1\noutput line 2\n',
     )
