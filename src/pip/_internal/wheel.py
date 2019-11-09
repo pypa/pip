@@ -36,9 +36,11 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Dict, List, Optional, Sequence, Mapping, Tuple, IO, Text, Any,
+        Dict, List, Optional, Sequence, Tuple, IO, Text, Any,
         Iterable, Callable, Set,
     )
+
+    from pip._internal.models.scheme import Scheme
     from pip._internal.pep425tags import Pep425Tag
 
     InstalledCSVRow = Tuple[str, ...]
@@ -289,7 +291,7 @@ class PipScriptMaker(ScriptMaker):
 def install_unpacked_wheel(
     name,  # type: str
     wheeldir,  # type: str
-    scheme,  # type: Mapping[str, str]
+    scheme,  # type: Scheme
     req_description,  # type: str
     pycompile=True,  # type: bool
     warn_script_location=True  # type: bool
@@ -311,9 +313,9 @@ def install_unpacked_wheel(
     #       installation.
 
     if root_is_purelib(name, wheeldir):
-        lib_dir = scheme['purelib']
+        lib_dir = scheme.purelib
     else:
-        lib_dir = scheme['platlib']
+        lib_dir = scheme.platlib
 
     info_dir = []  # type: List[str]
     data_dirs = []
@@ -458,10 +460,10 @@ def install_unpacked_wheel(
                 fixer = fix_script
                 filter = is_entrypoint_wrapper
             source = os.path.join(wheeldir, datadir, subdir)
-            dest = scheme[subdir]
+            dest = getattr(scheme, subdir)
             clobber(source, dest, False, fixer=fixer, filter=filter)
 
-    maker = PipScriptMaker(None, scheme['scripts'])
+    maker = PipScriptMaker(None, scheme.scripts)
 
     # Ensure old scripts are overwritten.
     # See https://github.com/pypa/pip/issues/1800
