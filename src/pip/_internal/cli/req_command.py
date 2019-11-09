@@ -226,9 +226,6 @@ class RequirementCommand(IndexGroupCommand):
         """
         Marshal cmd line args into a requirement set.
         """
-        # NOTE: As a side-effect, options.require_hashes and
-        #       requirement_set.require_hashes may be updated
-
         for filename in options.constraints:
             for req_to_add in parse_requirements(
                     filename,
@@ -256,6 +253,7 @@ class RequirementCommand(IndexGroupCommand):
             req_to_add.is_direct = True
             requirement_set.add_requirement(req_to_add)
 
+        # NOTE: options.require_hashes may be set if --require-hashes is True
         for filename in options.requirements:
             for req_to_add in parse_requirements(
                     filename,
@@ -264,6 +262,14 @@ class RequirementCommand(IndexGroupCommand):
                     use_pep517=options.use_pep517):
                 req_to_add.is_direct = True
                 requirement_set.add_requirement(req_to_add)
+
+        # If any requirement has hash options, enable hash checking.
+        requirements = (
+            requirement_set.unnamed_requirements +
+            list(requirement_set.requirements.values())
+        )
+        if any(req.has_hash_options for req in requirements):
+            options.require_hashes = True
 
         if not (args or options.editables or options.requirements):
             opts = {'name': self.name}

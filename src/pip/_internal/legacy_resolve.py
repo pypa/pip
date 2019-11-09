@@ -176,11 +176,6 @@ class Resolver(object):
             list(requirement_set.requirements.values())
         )
 
-        require_hashes = (
-            self.require_hashes_option or
-            any(req.has_hash_options for req in root_reqs)
-        )
-
         # Actually prepare the files, and collect any exceptions. Most hash
         # exceptions cannot be checked ahead of time, because
         # req.populate_link() needs to be called before we can make decisions
@@ -190,7 +185,9 @@ class Resolver(object):
         for req in chain(root_reqs, discovered_reqs):
             try:
                 discovered_reqs.extend(
-                    self._resolve_one(requirement_set, req, require_hashes)
+                    self._resolve_one(
+                        requirement_set, req, self.require_hashes_option
+                    )
                 )
             except HashError as exc:
                 exc.req = req
