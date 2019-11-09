@@ -173,6 +173,7 @@ class RequirementCommand(IndexGroupCommand):
             req_tracker=req_tracker,
             session=session,
             finder=finder,
+            require_hashes=options.require_hashes,
         )
 
     @staticmethod

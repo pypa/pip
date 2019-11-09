@@ -510,6 +510,7 @@ class RequirementPreparer(object):
         req_tracker,  # type: RequirementTracker
         session,  # type: PipSession
         finder,  # type: PackageFinder
+        require_hashes,  # type: bool
     ):
         # type: (...) -> None
         super(RequirementPreparer, self).__init__()
@@ -542,6 +543,9 @@ class RequirementPreparer(object):
 
         # Is build isolation allowed?
         self.build_isolation = build_isolation
+
+        # Should hash-checking be required?
+        self.require_hashes = require_hashes
 
     @property
     def _download_should_save(self):
@@ -600,7 +604,7 @@ class RequirementPreparer(object):
             # requirements we have and raise some more informative errors
             # than otherwise. (For example, we can raise VcsHashUnsupported
             # for a VCS URL rather than HashMissing.)
-            if require_hashes:
+            if self.require_hashes:
                 # We could check these first 2 conditions inside
                 # unpack_url and save repetition of conditions, but then
                 # we would report less-useful error messages for
@@ -620,8 +624,8 @@ class RequirementPreparer(object):
                     # about them not being pinned.
                     raise HashUnpinned()
 
-            hashes = req.hashes(trust_internet=not require_hashes)
-            if require_hashes and not hashes:
+            hashes = req.hashes(trust_internet=not self.require_hashes)
+            if self.require_hashes and not hashes:
                 # Known-good hashes are missing for this requirement, so
                 # shim it with a facade object that will provoke hash
                 # computation and then raise a HashMissing exception
@@ -690,7 +694,7 @@ class RequirementPreparer(object):
         logger.info('Obtaining %s', req)
 
         with indent_log():
-            if require_hashes:
+            if self.require_hashes:
                 raise InstallationError(
                     'The editable requirement {} cannot be installed when '
                     'requiring hashes, because there is no single file to '
@@ -728,7 +732,7 @@ class RequirementPreparer(object):
             skip_reason, req, req.satisfied_by.version
         )
         with indent_log():
-            if require_hashes:
+            if self.require_hashes:
                 logger.debug(
                     'Since it is already installed, we are trusting this '
                     'package without checking its hash. To ensure a '
