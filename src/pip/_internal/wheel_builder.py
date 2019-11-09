@@ -9,7 +9,6 @@ import os.path
 import re
 import shutil
 
-from pip._internal import pep425tags
 from pip._internal.models.link import Link
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.marker_files import has_delete_marker_file
@@ -447,10 +446,6 @@ class WheelBuilder(object):
             ', '.join([req.name for (req, _) in buildset]),
         )
 
-        python_tag = None
-        if should_unpack:
-            python_tag = pep425tags.implementation_tag
-
         with indent_log():
             build_success, build_failure = [], []
             for req, output_dir in buildset:
@@ -464,10 +459,7 @@ class WheelBuilder(object):
                     build_failure.append(req)
                     continue
 
-                wheel_file = self._build_one(
-                    req, output_dir,
-                    python_tag=python_tag,
-                )
+                wheel_file = self._build_one(req, output_dir)
                 if wheel_file:
                     if should_unpack:
                         # XXX: This is mildly duplicative with prepare_files,

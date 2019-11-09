@@ -1,0 +1,5 @@
+Make sure ``pip wheel`` never outputs pure python wheels with a
+python implementation tag. Better fix/workaround for
+`#3025 <https://github.com/pypa/pip/issues/3025>`_ by
+using a per-implementation wheel cache instead of caching pure python
+wheels with an implementation tag in their name.

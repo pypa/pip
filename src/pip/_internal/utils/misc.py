@@ -11,6 +11,7 @@ import hashlib
 import io
 import logging
 import os
+import platform
 import posixpath
 import shutil
 import stat
@@ -879,3 +880,13 @@ def hash_file(path, blocksize=1 << 20):
             length += len(block)
             h.update(block)
     return (h, length)  # type: ignore
+
+
+def interpreter_name():
+    # type: () -> str
+    try:
+        name = sys.implementation.name  # type: ignore
+    except AttributeError:  # pragma: no cover
+        # Python 2.7 compatibility.
+        name = platform.python_implementation().lower()
+    return name

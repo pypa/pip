@@ -8,6 +8,7 @@ import errno
 import hashlib
 import logging
 import os
+import sys
 
 from pip._vendor.packaging.utils import canonicalize_name
 
@@ -15,6 +16,7 @@ from pip._internal.exceptions import InvalidWheelFilename
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
 from pip._internal.utils.compat import expanduser
+from pip._internal.utils.misc import interpreter_name
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import path_to_url
@@ -65,11 +67,23 @@ class Cache(object):
             )
         key_url = "#".join(key_parts)
 
+        # Include interpreter name, major and minor version in cache key
+        # to cope with ill-behaved sdists that build a different wheel
+        # depending on the python version their setup.py is being run on,
+        # and don't encode the difference in compatibility tags.
+        # https://github.com/pypa/pip/issues/7296
+        key = "{}-{}.{} {}".format(
+            interpreter_name(),
+            sys.version_info[0],
+            sys.version_info[1],
+            key_url,
+        )
+
         # Encode our key url with sha224, we'll use this because it has similar
         # security properties to sha256, but with a shorter total output (and
         # thus less secure). However the differences don't make a lot of
         # difference for our use case here.
-        hashed = hashlib.sha224(key_url.encode()).hexdigest()
+        hashed = hashlib.sha224(key.encode()).hexdigest()
 
         # We want to nest the directories some to prevent having a ton of top
         # level directories where we might run out of sub directories on some
