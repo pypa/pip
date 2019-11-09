@@ -331,7 +331,6 @@ class TestWheelFile(object):
         w = wheel.Wheel('simple-0.1-py2-none-any.whl')
         assert not w.supported(tags=[('py1', 'none', 'any')])
 
-    @patch('sys.platform', 'darwin')
     @patch('pip._internal.pep425tags.get_abbr_impl', lambda: 'cp')
     @patch('pip._internal.pep425tags.get_platform',
            lambda: 'macosx_10_9_intel')
@@ -345,7 +344,6 @@ class TestWheelFile(object):
         w = wheel.Wheel('simple-0.1-cp27-none-macosx_10_9_intel.whl')
         assert w.supported(tags=tags)
 
-    @patch('sys.platform', 'darwin')
     @patch('pip._internal.pep425tags.get_abbr_impl', lambda: 'cp')
     @patch('pip._internal.pep425tags.get_platform',
            lambda: 'macosx_10_6_intel')
@@ -357,7 +355,6 @@ class TestWheelFile(object):
         w = wheel.Wheel('simple-0.1-cp27-none-macosx_10_9_intel.whl')
         assert not w.supported(tags=tags)
 
-    @patch('sys.platform', 'darwin')
     @patch('pip._internal.pep425tags.get_abbr_impl', lambda: 'cp')
     def test_supported_multiarch_darwin(self):
         """
@@ -397,7 +394,6 @@ class TestWheelFile(object):
         assert w.supported(tags=ppc)
         assert w.supported(tags=ppc64)
 
-    @patch('sys.platform', 'darwin')
     @patch('pip._internal.pep425tags.get_abbr_impl', lambda: 'cp')
     def test_not_supported_multiarch_darwin(self):
         """
