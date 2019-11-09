@@ -485,7 +485,7 @@ def test_process_project_url(data):
 
     assert len(actual) == 1
     package_link = actual[0]
-    assert package_link.project == 'simple'
+    assert package_link.name == 'simple'
     assert str(package_link.version) == '1.0'
 
 

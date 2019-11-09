@@ -759,7 +759,7 @@ class PackageFinder(object):
             return None
 
         return InstallationCandidate(
-            project=link_evaluator.project_name,
+            name=link_evaluator.project_name,
             link=link,
             # Convert the Text result to str since InstallationCandidate
             # accepts str.
