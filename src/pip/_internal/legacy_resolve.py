@@ -388,7 +388,9 @@ class Resolver(object):
             # can refer to it when adding dependencies.
             if not requirement_set.has_requirement(req_to_install.name):
                 # 'unnamed' requirements will get added here
-                req_to_install.is_direct = True
+                # 'unnamed' requirements can only come from being directly
+                # provided by the user.
+                assert req_to_install.is_direct
                 requirement_set.add_requirement(
                     req_to_install, parent_req_name=None,
                 )
