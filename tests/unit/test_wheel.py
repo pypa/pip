@@ -331,53 +331,50 @@ class TestWheelFile(object):
         w = wheel.Wheel('simple-0.1-py2-none-any.whl')
         assert not w.supported(tags=[('py1', 'none', 'any')])
 
-    @patch('pip._internal.pep425tags.get_abbr_impl', lambda: 'cp')
-    @patch('pip._internal.pep425tags.get_platform',
-           lambda: 'macosx_10_9_intel')
     def test_supported_osx_version(self):
         """
         Wheels built for macOS 10.6 are supported on 10.9
         """
-        tags = pep425tags.get_supported(['27'], False)
+        tags = pep425tags.get_supported(
+            ['27'], platform='macosx_10_9_intel', impl='cp'
+        )
         w = wheel.Wheel('simple-0.1-cp27-none-macosx_10_6_intel.whl')
         assert w.supported(tags=tags)
         w = wheel.Wheel('simple-0.1-cp27-none-macosx_10_9_intel.whl')
         assert w.supported(tags=tags)
 
-    @patch('pip._internal.pep425tags.get_abbr_impl', lambda: 'cp')
-    @patch('pip._internal.pep425tags.get_platform',
-           lambda: 'macosx_10_6_intel')
     def test_not_supported_osx_version(self):
         """
         Wheels built for macOS 10.9 are not supported on 10.6
         """
-        tags = pep425tags.get_supported(['27'], False)
+        tags = pep425tags.get_supported(
+            ['27'], platform='macosx_10_6_intel', impl='cp'
+        )
         w = wheel.Wheel('simple-0.1-cp27-none-macosx_10_9_intel.whl')
         assert not w.supported(tags=tags)
 
-    @patch('pip._internal.pep425tags.get_abbr_impl', lambda: 'cp')
     def test_supported_multiarch_darwin(self):
         """
         Multi-arch wheels (intel) are supported on components (i386, x86_64)
         """
-        with patch('pip._internal.pep425tags.get_platform',
-                   lambda: 'macosx_10_5_universal'):
-            universal = pep425tags.get_supported(['27'], False)
-        with patch('pip._internal.pep425tags.get_platform',
-                   lambda: 'macosx_10_5_intel'):
-            intel = pep425tags.get_supported(['27'], False)
-        with patch('pip._internal.pep425tags.get_platform',
-                   lambda: 'macosx_10_5_x86_64'):
-            x64 = pep425tags.get_supported(['27'], False)
-        with patch('pip._internal.pep425tags.get_platform',
-                   lambda: 'macosx_10_5_i386'):
-            i386 = pep425tags.get_supported(['27'], False)
-        with patch('pip._internal.pep425tags.get_platform',
-                   lambda: 'macosx_10_5_ppc'):
-            ppc = pep425tags.get_supported(['27'], False)
-        with patch('pip._internal.pep425tags.get_platform',
-                   lambda: 'macosx_10_5_ppc64'):
-            ppc64 = pep425tags.get_supported(['27'], False)
+        universal = pep425tags.get_supported(
+            ['27'], platform='macosx_10_5_universal', impl='cp'
+        )
+        intel = pep425tags.get_supported(
+            ['27'], platform='macosx_10_5_intel', impl='cp'
+        )
+        x64 = pep425tags.get_supported(
+            ['27'], platform='macosx_10_5_x86_64', impl='cp'
+        )
+        i386 = pep425tags.get_supported(
+            ['27'], platform='macosx_10_5_i386', impl='cp'
+        )
+        ppc = pep425tags.get_supported(
+            ['27'], platform='macosx_10_5_ppc', impl='cp'
+        )
+        ppc64 = pep425tags.get_supported(
+            ['27'], platform='macosx_10_5_ppc64', impl='cp'
+        )
 
         w = wheel.Wheel('simple-0.1-cp27-none-macosx_10_5_intel.whl')
         assert w.supported(tags=intel)
@@ -394,17 +391,16 @@ class TestWheelFile(object):
         assert w.supported(tags=ppc)
         assert w.supported(tags=ppc64)
 
-    @patch('pip._internal.pep425tags.get_abbr_impl', lambda: 'cp')
     def test_not_supported_multiarch_darwin(self):
         """
         Single-arch wheels (x86_64) are not supported on multi-arch (intel)
         """
-        with patch('pip._internal.pep425tags.get_platform',
-                   lambda: 'macosx_10_5_universal'):
-            universal = pep425tags.get_supported(['27'], False)
-        with patch('pip._internal.pep425tags.get_platform',
-                   lambda: 'macosx_10_5_intel'):
-            intel = pep425tags.get_supported(['27'], False)
+        universal = pep425tags.get_supported(
+            ['27'], platform='macosx_10_5_universal', impl='cp'
+        )
+        intel = pep425tags.get_supported(
+            ['27'], platform='macosx_10_5_intel', impl='cp'
+        )
 
         w = wheel.Wheel('simple-0.1-cp27-none-macosx_10_5_i386.whl')
         assert not w.supported(tags=intel)
