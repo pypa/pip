@@ -232,7 +232,7 @@ class TestRequirementSet(object):
             lineno=2,
         ))
         finder = make_test_finder(find_links=[data.find_links])
-        resolver = self._basic_resolver(finder)
+        resolver = self._basic_resolver(finder, require_hashes=True)
         sep = os.path.sep
         if sep == '\\':
             sep = '\\\\'  # This needs to be escaped for the regex
@@ -266,7 +266,7 @@ class TestRequirementSet(object):
             lineno=2,
         ))
         finder = make_test_finder(find_links=[data.find_links])
-        resolver = self._basic_resolver(finder)
+        resolver = self._basic_resolver(finder, require_hashes=True)
         assert_raises_regexp(
             HashErrors,
             # Make sure all failing requirements are listed:
@@ -285,7 +285,7 @@ class TestRequirementSet(object):
             '%s --hash=sha256:badbad' % file_url, lineno=1,
         ))
         finder = make_test_finder(find_links=[data.find_links])
-        resolver = self._basic_resolver(finder)
+        resolver = self._basic_resolver(finder, require_hashes=True)
         assert_raises_regexp(
             HashErrors,
             r'THESE PACKAGES DO NOT MATCH THE HASHES.*\n'
@@ -301,7 +301,7 @@ class TestRequirementSet(object):
         dependencies get complained about when --require-hashes is on."""
         reqset = RequirementSet()
         finder = make_test_finder(find_links=[data.find_links])
-        resolver = self._basic_resolver(finder)
+        resolver = self._basic_resolver(finder, require_hashes=True)
         reqset.add_requirement(get_processed_req_from_line(
             'TopoRequires2==0.0.1 '  # requires TopoRequires
             '--hash=sha256:eaf9a01242c9f2f42cf2bd82a6a848cd'
