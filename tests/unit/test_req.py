@@ -72,6 +72,7 @@ class TestRequirementSet(object):
             req_tracker=RequirementTracker(),
             session=PipSession(),
             finder=finder,
+            require_hashes=require_hashes,
         )
         make_install_req = partial(
             install_req_from_req_string,
@@ -86,7 +87,6 @@ class TestRequirementSet(object):
             use_user_site=False, upgrade_strategy="to-satisfy-only",
             ignore_dependencies=False, ignore_installed=False,
             ignore_requires_python=False, force_reinstall=False,
-            require_hashes=require_hashes,
         )
 
     def test_no_reuse_existing_build_dir(self, data):
