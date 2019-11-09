@@ -564,7 +564,6 @@ class RequirementPreparer(object):
     def prepare_linked_requirement(
         self,
         req,  # type: InstallRequirement
-        require_hashes,  # type: bool
     ):
         # type: (...) -> AbstractDistribution
         """Prepare a requirement that would be obtained from req.link
@@ -683,7 +682,6 @@ class RequirementPreparer(object):
     def prepare_editable_requirement(
         self,
         req,  # type: InstallRequirement
-        require_hashes,  # type: bool
         use_user_site,  # type: bool
     ):
         # type: (...) -> AbstractDistribution
@@ -716,7 +714,6 @@ class RequirementPreparer(object):
     def prepare_installed_requirement(
         self,
         req,  # type: InstallRequirement
-        require_hashes,  # type: bool
         skip_reason  # type: str
     ):
         # type: (...) -> AbstractDistribution
