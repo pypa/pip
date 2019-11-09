@@ -1,6 +1,7 @@
 import distutils
 import glob
 import os
+import re
 import shutil
 import ssl
 import sys
@@ -496,6 +497,41 @@ def test_hashed_install_failure(script, tmpdir):
                                           reqs_file.resolve(),
                                           expect_error=True)
     assert len(result.files_created) == 0
+
+
+def assert_re_match(pattern, text):
+    assert re.search(pattern, text), (
+        "Could not find {!r} in {!r}".format(pattern, text)
+    )
+
+
+@pytest.mark.network
+def test_hashed_install_failure_later_flag(script, tmpdir):
+    with requirements_file(
+        "blessings==1.0\n"
+        "tracefront==0.1 --hash=sha256:somehash\n"
+        "https://files.pythonhosted.org/packages/source/m/more-itertools/"
+        "more-itertools-1.0.tar.gz#md5=b21850c3cfa7efbb70fd662ab5413bdd\n"
+        "https://files.pythonhosted.org/"
+        "packages/source/p/peep/peep-3.1.1.tar.gz\n",
+        tmpdir,
+    ) as reqs_file:
+        result = script.pip(
+            "install", "-r", reqs_file.resolve(), expect_error=True
+        )
+
+    assert_re_match(
+        r'Hashes are required in --require-hashes mode, but they are '
+        r'missing .*\n'
+        r'    https://files\.pythonhosted\.org/packages/source/p/peep/peep'
+        r'-3\.1\.1\.tar\.gz --hash=sha256:[0-9a-f]+\n'
+        r'    blessings==1.0 --hash=sha256:[0-9a-f]+\n'
+        r'THESE PACKAGES DO NOT MATCH THE HASHES.*\n'
+        r'    tracefront==0.1 .*:\n'
+        r'        Expected sha256 somehash\n'
+        r'             Got        [0-9a-f]+',
+        result.stderr,
+    )
 
 
 def test_install_from_local_directory_with_symlinks_to_directories(
