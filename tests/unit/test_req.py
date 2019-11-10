@@ -72,6 +72,7 @@ class TestRequirementSet(object):
             req_tracker=RequirementTracker(),
             session=PipSession(),
             finder=finder,
+            require_hashes=require_hashes,
         )
         make_install_req = partial(
             install_req_from_req_string,
@@ -86,7 +87,6 @@ class TestRequirementSet(object):
             use_user_site=False, upgrade_strategy="to-satisfy-only",
             ignore_dependencies=False, ignore_installed=False,
             ignore_requires_python=False, force_reinstall=False,
-            require_hashes=require_hashes,
         )
 
     def test_no_reuse_existing_build_dir(self, data):
@@ -130,51 +130,6 @@ class TestRequirementSet(object):
             assert reqset.has_requirement('simple')
         else:
             assert not reqset.has_requirement('simple')
-
-    @pytest.mark.network
-    def test_missing_hash_checking(self):
-        """Make sure prepare_files() raises an error when a requirement has no
-        hash in implicit hash-checking mode.
-        """
-        reqset = RequirementSet()
-        # No flags here. This tests that detection of later flags nonetheless
-        # requires earlier packages to have hashes:
-        reqset.add_requirement(get_processed_req_from_line(
-            'blessings==1.0', lineno=1
-        ))
-        # This flag activates --require-hashes mode:
-        reqset.add_requirement(get_processed_req_from_line(
-            'tracefront==0.1 --hash=sha256:somehash', lineno=2,
-        ))
-        # This hash should be accepted because it came from the reqs file, not
-        # from the internet:
-        reqset.add_requirement(get_processed_req_from_line(
-            'https://files.pythonhosted.org/packages/source/m/more-itertools/'
-            'more-itertools-1.0.tar.gz#md5=b21850c3cfa7efbb70fd662ab5413bdd',
-            lineno=3,
-        ))
-        # The error text should list this as a URL and not `peep==3.1.1`:
-        reqset.add_requirement(get_processed_req_from_line(
-            'https://files.pythonhosted.org/'
-            'packages/source/p/peep/peep-3.1.1.tar.gz',
-            lineno=4,
-        ))
-        finder = make_test_finder(index_urls=['https://pypi.org/simple/'])
-        resolver = self._basic_resolver(finder)
-        assert_raises_regexp(
-            HashErrors,
-            r'Hashes are required in --require-hashes mode, but they are '
-            r'missing .*\n'
-            r'    https://files\.pythonhosted\.org/packages/source/p/peep/peep'
-            r'-3\.1\.1\.tar\.gz --hash=sha256:[0-9a-f]+\n'
-            r'    blessings==1.0 --hash=sha256:[0-9a-f]+\n'
-            r'THESE PACKAGES DO NOT MATCH THE HASHES.*\n'
-            r'    tracefront==0.1 .*:\n'
-            r'        Expected sha256 somehash\n'
-            r'             Got        [0-9a-f]+$',
-            resolver.resolve,
-            reqset
-        )
 
     def test_missing_hash_with_require_hashes(self, data):
         """Setting --require-hashes explicitly should raise errors if hashes
@@ -232,7 +187,7 @@ class TestRequirementSet(object):
             lineno=2,
         ))
         finder = make_test_finder(find_links=[data.find_links])
-        resolver = self._basic_resolver(finder)
+        resolver = self._basic_resolver(finder, require_hashes=True)
         sep = os.path.sep
         if sep == '\\':
             sep = '\\\\'  # This needs to be escaped for the regex
@@ -266,7 +221,7 @@ class TestRequirementSet(object):
             lineno=2,
         ))
         finder = make_test_finder(find_links=[data.find_links])
-        resolver = self._basic_resolver(finder)
+        resolver = self._basic_resolver(finder, require_hashes=True)
         assert_raises_regexp(
             HashErrors,
             # Make sure all failing requirements are listed:
@@ -285,7 +240,7 @@ class TestRequirementSet(object):
             '%s --hash=sha256:badbad' % file_url, lineno=1,
         ))
         finder = make_test_finder(find_links=[data.find_links])
-        resolver = self._basic_resolver(finder)
+        resolver = self._basic_resolver(finder, require_hashes=True)
         assert_raises_regexp(
             HashErrors,
             r'THESE PACKAGES DO NOT MATCH THE HASHES.*\n'
@@ -301,7 +256,7 @@ class TestRequirementSet(object):
         dependencies get complained about when --require-hashes is on."""
         reqset = RequirementSet()
         finder = make_test_finder(find_links=[data.find_links])
-        resolver = self._basic_resolver(finder)
+        resolver = self._basic_resolver(finder, require_hashes=True)
         reqset.add_requirement(get_processed_req_from_line(
             'TopoRequires2==0.0.1 '  # requires TopoRequires
             '--hash=sha256:eaf9a01242c9f2f42cf2bd82a6a848cd'
