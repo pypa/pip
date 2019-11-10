@@ -1,3 +1,5 @@
+from textwrap import dedent
+
 import pytest
 
 from pip._internal.exceptions import InstallationError
@@ -39,3 +41,23 @@ def test_disabling_pep517_invalid(shared_data, source, msg):
     err_msg = e.value.args[0]
     assert "Disabling PEP 517 processing is invalid" in err_msg
     assert msg in err_msg
+
+
+@pytest.mark.parametrize(
+    ("spec",), [("./foo",), ("git+https://example.com/pkg@dev#egg=myproj",)]
+)
+def test_pep517_parsing_checks_requirements(tmpdir, spec):
+    tmpdir.joinpath("pyproject.toml").write_text(dedent(
+        """
+        [build-system]
+        requires = [{!r}]
+        build-backend = "foo"
+        """.format(spec)
+    ))
+    req = InstallRequirement(None, None, source_dir=tmpdir)
+
+    with pytest.raises(InstallationError) as e:
+        req.load_pyproject_toml()
+
+    err_msg = e.value.args[0]
+    assert "contains an invalid requirement" in err_msg
