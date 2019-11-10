@@ -13,8 +13,6 @@ from pathlib import Path
 import invoke
 import requests
 
-TASK_NAME = 'update'
-
 FILE_WHITE_LIST = (
     'Makefile',
     'vendor.txt',
@@ -49,7 +47,7 @@ def remove_all(paths):
 
 
 def log(msg):
-    print('[vendoring.%s] %s' % (TASK_NAME, msg))
+    print('[vendoring.update] ' + msg)
 
 
 def _get_vendor_dir(ctx):
@@ -299,7 +297,7 @@ def update_stubs(ctx):
             f_path.write_text("from %s import *" % selector)
 
 
-@invoke.task(name=TASK_NAME, post=[update_stubs])
+@invoke.task(name="update", post=[update_stubs])
 def main(ctx):
     vendor_dir = _get_vendor_dir(ctx)
     log('Using vendor dir: %s' % vendor_dir)
