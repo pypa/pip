@@ -58,6 +58,10 @@ class Cache(object):
         key_parts = [link.url_without_fragment]
         if link.hash_name is not None and link.hash is not None:
             key_parts.append("=".join([link.hash_name, link.hash]))
+        if link.subdirectory_fragment:
+            key_parts.append(
+                "=".join(["subdirectory", link.subdirectory_fragment])
+            )
         key_url = "#".join(key_parts)
 
         # Encode our key url with sha224, we'll use this because it has similar
@@ -168,10 +172,16 @@ class SimpleWheelCache(Cache):
         # type: (...) -> Link
         candidates = []
 
+        canonical_package_name = None
+        if package_name:
+            canonical_package_name = canonicalize_name(package_name)
         for wheel_name in self._get_candidates(link, package_name):
             try:
                 wheel = Wheel(wheel_name)
             except InvalidWheelFilename:
+                continue
+            assert canonical_package_name
+            if wheel.name != canonical_package_name:
                 continue
             if not wheel.supported(supported_tags):
                 # Built for a different python/arch/etc
