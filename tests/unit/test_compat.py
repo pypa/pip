@@ -10,7 +10,6 @@ from pip._internal.utils.compat import (
     console_to_str,
     expanduser,
     get_path_uid,
-    native_str,
     str_to_display,
 )
 
@@ -126,13 +125,6 @@ def test_console_to_str_warning(monkeypatch):
     monkeypatch.setattr(locale, 'getpreferredencoding', lambda: 'utf-8')
     monkeypatch.setattr(pip_compat.logger, 'warning', check_warning)
     console_to_str(some_bytes)
-
-
-def test_to_native_str_type():
-    some_bytes = b"test\xE9 et approuv\xC3\xE9"
-    some_unicode = b"test\xE9 et approuv\xE9".decode('iso-8859-15')
-    assert isinstance(native_str(some_bytes, True), str)
-    assert isinstance(native_str(some_unicode, True), str)
 
 
 @pytest.mark.parametrize("home,path,expanded", [

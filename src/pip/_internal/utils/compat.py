@@ -41,7 +41,7 @@ except ImportError:
 
 
 __all__ = [
-    "ipaddress", "uses_pycache", "console_to_str", "native_str",
+    "ipaddress", "uses_pycache", "console_to_str",
     "get_path_uid", "stdlib_pkgs", "WINDOWS", "samefile", "get_terminal_size",
     "get_extension_suffixes",
 ]
@@ -157,22 +157,6 @@ def console_to_str(data):
     """Return a string, safe for output, of subprocess output.
     """
     return str_to_display(data, desc='Subprocess output')
-
-
-if PY2:
-    def native_str(s, replace=False):
-        # type: (str, bool) -> str
-        # Replace is ignored -- unicode to UTF-8 can't fail
-        if isinstance(s, text_type):
-            return s.encode('utf-8')
-        return s
-
-else:
-    def native_str(s, replace=False):
-        # type: (str, bool) -> str
-        if isinstance(s, bytes):
-            return s.decode('utf-8', 'replace' if replace else 'strict')
-        return s
 
 
 def get_path_uid(path):
