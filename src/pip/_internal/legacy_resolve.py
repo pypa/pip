@@ -269,9 +269,7 @@ class Resolver(object):
         representing a prepared variant of the same.
         """
         if req.editable:
-            return self.preparer.prepare_editable_requirement(
-                req, self.use_user_site
-            )
+            return self.preparer.prepare_editable_requirement(req)
 
         # satisfied_by is only evaluated by calling _check_skip_installed,
         # so it must be None here.
