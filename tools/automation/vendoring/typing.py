@@ -10,7 +10,7 @@ import os
 from pathlib import Path
 from typing import Dict, Iterable, List, Tuple
 
-extra_stubs_needed = {
+EXTRA_STUBS_NEEDED = {
     # Some projects need stubs other than a simple <name>.pyi
     "six": [
         "six.__init__",
@@ -26,12 +26,12 @@ extra_stubs_needed = {
 def determine_stub_files(lib):
     # type: (str) -> Iterable[Tuple[str, str]]
     # There's no special handling needed -- a <libname>.pyi file is good enough
-    if lib not in extra_stubs_needed:
+    if lib not in EXTRA_STUBS_NEEDED:
         yield lib + ".pyi", lib
         return
 
     # Need to generate the given stubs, with the correct import names
-    for import_name in extra_stubs_needed[lib]:
+    for import_name in EXTRA_STUBS_NEEDED[lib]:
         rel_location = import_name.replace(".", os.sep) + ".pyi"
 
         # Writing an __init__.pyi file -> don't import from `pkg.__init__`
