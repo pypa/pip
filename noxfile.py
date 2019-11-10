@@ -189,7 +189,7 @@ def prepare_release(session):
 def build_release(session):
     version = release.get_version_from_arguments(session.posargs)
     if not version:
-        session.error("Usage: nox -s upload-release -- YY.N[.P]")
+        session.error("Usage: nox -s build-release -- YY.N[.P]")
 
     session.log("# Ensure no files in dist/")
     if release.have_files_in_folder("dist"):
