@@ -83,14 +83,6 @@ def get_impl_version_info():
         return sys.version_info[0], sys.version_info[1]
 
 
-def get_impl_tag():
-    # type: () -> str
-    """
-    Returns the Tag for this specific implementation.
-    """
-    return "{}{}".format(get_abbr_impl(), get_impl_ver())
-
-
 def get_flag(var, fallback, expected=True, warn=True):
     # type: (str, Callable[..., bool], Union[bool, int], bool) -> bool
     """Use a fallback method for determining SOABI flags if the needed config
@@ -459,6 +451,3 @@ def get_supported(
         supported.append(('py%s' % (version,), 'none', 'any'))
 
     return supported
-
-
-implementation_tag = get_impl_tag()
