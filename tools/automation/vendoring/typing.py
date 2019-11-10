@@ -17,7 +17,7 @@ EXTRA_STUBS_NEEDED = {
         "six.moves.__init__",
         "six.moves.configparser",
     ],
-    # Some projects should not have stubs coz they're single file modules
+    # Some projects should not have stubs because they're a single module
     "appdirs": [],
     "contextlib2": [],
 }  # type: Dict[str, List[str]]
