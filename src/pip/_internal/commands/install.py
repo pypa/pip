@@ -361,6 +361,7 @@ class InstallCommand(RequirementCommand):
                     req_tracker=req_tracker,
                     session=session,
                     finder=finder,
+                    use_user_site=options.use_user_site,
                 )
                 resolver = self.make_resolver(
                     preparer=preparer,
