@@ -10,7 +10,7 @@ from pip._internal.cli import cmdoptions
 from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.cli.req_command import RequirementCommand
 from pip._internal.req import RequirementSet
-from pip._internal.req.req_tracker import RequirementTracker
+from pip._internal.req.req_tracker import get_requirement_tracker
 from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.misc import ensure_dir, normalize_path, write_output
 from pip._internal.utils.temp_dir import TempDirectory
@@ -111,7 +111,7 @@ class DownloadCommand(RequirementCommand):
             )
             options.cache_dir = None
 
-        with RequirementTracker() as req_tracker, TempDirectory(
+        with get_requirement_tracker() as req_tracker, TempDirectory(
             options.build_dir, delete=build_delete, kind="download"
         ) as directory:
 

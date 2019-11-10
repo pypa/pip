@@ -9,34 +9,74 @@ import hashlib
 import logging
 import os
 
+from pip._vendor import contextlib2
+
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from types import TracebackType
-    from typing import Iterator, Optional, Set, Type
+    from typing import Dict, Iterator, Optional, Set, Type, Union
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.models.link import Link
 
 logger = logging.getLogger(__name__)
 
 
+@contextlib.contextmanager
+def update_env_context_manager(**changes):
+    # type: (str) -> Iterator[None]
+    target = os.environ
+
+    # Save values from the target and change them.
+    non_existent_marker = object()
+    saved_values = {}  # type: Dict[str, Union[object, str]]
+    for name, new_value in changes.items():
+        try:
+            saved_values[name] = target[name]
+        except KeyError:
+            saved_values[name] = non_existent_marker
+        target[name] = new_value
+
+    try:
+        yield
+    finally:
+        # Restore original values in the target.
+        for name, original_value in saved_values.items():
+            if original_value is non_existent_marker:
+                del target[name]
+            else:
+                assert isinstance(original_value, str)  # for mypy
+                target[name] = original_value
+
+
+@contextlib.contextmanager
+def get_requirement_tracker():
+    # type: () -> Iterator[RequirementTracker]
+    root = os.environ.get('PIP_REQ_TRACKER')
+    with contextlib2.ExitStack() as ctx:
+        if root is None:
+            root = ctx.enter_context(
+                TempDirectory(kind='req-tracker')
+            ).path
+            ctx.enter_context(update_env_context_manager(PIP_REQ_TRACKER=root))
+            logger.debug("Initialized build tracking at %s", root)
+
+        with RequirementTracker(root) as tracker:
+            yield tracker
+
+
 class RequirementTracker(object):
 
-    def __init__(self):
-        # type: () -> None
-        self._root = os.environ.get('PIP_REQ_TRACKER')
-        if self._root is None:
-            self._temp_dir = TempDirectory(delete=False, kind='req-tracker')
-            self._root = os.environ['PIP_REQ_TRACKER'] = self._temp_dir.path
-            logger.debug('Created requirements tracker %r', self._root)
-        else:
-            self._temp_dir = None
-            logger.debug('Re-using requirements tracker %r', self._root)
+    def __init__(self, root):
+        # type: (str) -> None
+        self._root = root
         self._entries = set()  # type: Set[InstallRequirement]
+        logger.debug("Created build tracker: %s", self._root)
 
     def __enter__(self):
         # type: () -> RequirementTracker
+        logger.debug("Entered build tracker: %s", self._root)
         return self
 
     def __exit__(
@@ -100,13 +140,6 @@ class RequirementTracker(object):
         for req in set(self._entries):
             self.remove(req)
 
-        if self._temp_dir is None:
-            # Did not setup the directory. No action needed.
-            logger.debug("Cleaned build tracker: %r", self._root)
-            return
-
-        # Cleanup the directory.
-        self._temp_dir.cleanup()
         logger.debug("Removed build tracker: %r", self._root)
 
     @contextlib.contextmanager
