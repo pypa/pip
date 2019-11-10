@@ -189,7 +189,7 @@ def prepare_release(session):
 def build_release(session):
     version = release.get_version_from_arguments(session.posargs)
     if not version:
-        session.error("Usage: nox -s upload-release -- YY.N[.P]")
+        session.error("Usage: nox -s build-release -- YY.N[.P]")
 
     session.log("# Ensure no files in dist/")
     if release.have_files_in_folder("dist"):
@@ -209,3 +209,36 @@ def build_release(session):
 
     session.log("# Checkout the master branch")
     session.run("git", "checkout", "master", external=True, silent=True)
+
+
+@nox.session(name="upload-release")
+def upload_release(session):
+    version = release.get_version_from_arguments(session.posargs)
+    if not version:
+        session.error("Usage: nox -s upload-release -- YY.N[.P]")
+
+    session.log("# Install dependencies")
+    session.install("twine")
+
+    distribution_files = glob.glob("dist/*")
+    session.log(f"# Distribution files: {distribution_files}")
+
+    # Sanity check: Make sure there's 2 distribution files.
+    count = len(distribution_files)
+    if count != 2:
+        session.error(
+            f"Expected 2 distribution files for upload, got {count}. "
+            f"Remove dist/ and run 'nox -s build-release -- {version}'"
+        )
+    # Sanity check: Make sure the files are correctly named.
+    expected_distribution_files = [
+        f"pip-{version}-py2.py3-none-any.whl",
+        f"pip-{version}.tar.gz",
+    ]
+    if sorted(distribution_files) != sorted(expected_distribution_files):
+        session.error(
+            f"Distribution files do not seem to be for {version} release."
+        )
+
+    session.log("# Upload distributions")
+    session.run("twine", "upload", *distribution_files)
