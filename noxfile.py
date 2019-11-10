@@ -87,6 +87,8 @@ def test(session):
 
     # Build source distribution
     sdist_dir = os.path.join(session.virtualenv.location, "sdist")
+    if os.path.exists(sdist_dir):
+        shutil.rmtree(sdist_dir, ignore_errors=True)
     session.run(
         "python", "setup.py", "sdist",
         "--formats=zip", "--dist-dir", sdist_dir,
