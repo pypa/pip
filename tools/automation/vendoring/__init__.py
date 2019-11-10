@@ -10,6 +10,8 @@ import tarfile
 import zipfile
 from pathlib import Path
 
+from .typing import generate_stubs
+
 import invoke
 import requests
 
@@ -268,33 +270,7 @@ def update_stubs(ctx):
     vendored_libs = detect_vendored_libs(vendor_dir)
 
     print("[vendoring.update_stubs] Add mypy stubs")
-
-    extra_stubs_needed = {
-        # Some projects need stubs other than a simple <name>.pyi
-        "six": [
-            "six.__init__",
-            "six.moves.__init__",
-            "six.moves.configparser",
-        ],
-        # Some projects should not have stubs coz they're single file modules
-        "appdirs": [],
-        "contextlib2": [],
-    }
-
-    for lib in vendored_libs:
-        if lib not in extra_stubs_needed:
-            (vendor_dir / (lib + ".pyi")).write_text("from %s import *" % lib)
-            continue
-
-        for selector in extra_stubs_needed[lib]:
-            fname = selector.replace(".", os.sep) + ".pyi"
-            if selector.endswith(".__init__"):
-                selector = selector[:-9]
-
-            f_path = vendor_dir / fname
-            if not f_path.parent.exists():
-                f_path.parent.mkdir()
-            f_path.write_text("from %s import *" % selector)
+    generate_stubs(vendor_dir, vendored_libs)
 
 
 @invoke.task(name="update", post=[update_stubs])
