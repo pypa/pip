@@ -7,6 +7,8 @@ is able to find the correct declarations using these files.
 """
 
 import os
+from pathlib import Path
+from typing import Dict, Iterable, List, Tuple
 
 extra_stubs_needed = {
     # Some projects need stubs other than a simple <name>.pyi
@@ -18,21 +20,40 @@ extra_stubs_needed = {
     # Some projects should not have stubs coz they're single file modules
     "appdirs": [],
     "contextlib2": [],
-}
+}  # type: Dict[str, List[str]]
 
 
-def generate_stubs(vendor_dir, vendored_libs):
-    for lib in vendored_libs:
-        if lib not in extra_stubs_needed:
-            (vendor_dir / (lib + ".pyi")).write_text("from %s import *" % lib)
-            continue
+def determine_stub_files(lib):
+    # type: (str) -> Iterable[Tuple[str, str]]
+    # There's no special handling needed -- a <libname>.pyi file is good enough
+    if lib not in extra_stubs_needed:
+        yield lib + ".pyi", lib
+        return
 
-        for selector in extra_stubs_needed[lib]:
-            fname = selector.replace(".", os.sep) + ".pyi"
-            if selector.endswith(".__init__"):
-                selector = selector[:-9]
+    # Need to generate the given stubs, with the correct import names
+    for import_name in extra_stubs_needed[lib]:
+        rel_location = import_name.replace(".", os.sep) + ".pyi"
 
-            f_path = vendor_dir / fname
-            if not f_path.parent.exists():
-                f_path.parent.mkdir()
-            f_path.write_text("from %s import *" % selector)
+        # Writing an __init__.pyi file -> don't import from `pkg.__init__`
+        if import_name.endswith(".__init__"):
+            import_name = import_name[:-9]
+
+        yield rel_location, import_name
+
+
+def write_stub(destination, import_name):
+    # type: (Path, str) -> None
+    # Create the parent directories if needed.
+    if not destination.parent.exists():
+        destination.parent.mkdir()
+
+    # Write `from ... import *` in the stub file.
+    destination.write_text("from %s import *" % import_name)
+
+
+def generate_stubs(vendor_dir, libraries):
+    # type: (Path, List[str]) -> None
+    for lib in libraries:
+        for rel_location, import_name in determine_stub_files(lib):
+            destination = vendor_dir / rel_location
+            write_stub(destination, import_name)

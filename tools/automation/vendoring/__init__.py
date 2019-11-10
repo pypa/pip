@@ -3,17 +3,16 @@
 # The following comment should be removed at some point in the future.
 # mypy: disallow-untyped-defs=False
 
-import os
 import re
 import shutil
 import tarfile
 import zipfile
 from pathlib import Path
 
-from .typing import generate_stubs
-
 import invoke
 import requests
+
+from .typing import generate_stubs
 
 FILE_WHITE_LIST = (
     'Makefile',
