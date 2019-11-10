@@ -28,7 +28,6 @@ from pip._internal.operations.build.metadata_legacy import \
     generate_metadata as generate_metadata_legacy
 from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
 from pip._internal.req.req_uninstall import UninstallPathSet
-from pip._internal.utils.compat import native_str
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.logging import indent_log
@@ -272,7 +271,7 @@ class InstallRequirement(object):
         # type: () -> Optional[str]
         if self.req is None:
             return None
-        return native_str(pkg_resources.safe_name(self.req.name))
+        return six.ensure_str(pkg_resources.safe_name(self.req.name))
 
     @property
     def specifier(self):
