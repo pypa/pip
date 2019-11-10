@@ -5,6 +5,7 @@ import os
 import sys
 
 from pip._vendor import pytoml, six
+from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -149,6 +150,21 @@ def load_pyproject_toml(
             package=req_name,
             reason="'build-system.requires' is not a list of strings.",
         ))
+
+    # Each requirement must be valid as per PEP 508
+    for requirement in requires:
+        try:
+            Requirement(requirement)
+        except InvalidRequirement:
+            raise InstallationError(
+                error_template.format(
+                    package=req_name,
+                    reason=(
+                        "'build-system.requires' contains an invalid "
+                        "requirement: {!r}".format(requirement)
+                    ),
+                )
+            )
 
     backend = build_system.get("build-backend")
     check = []  # type: List[str]
