@@ -52,7 +52,6 @@ def make_setuptools_bdist_wheel_args(
     global_options,  # type: Sequence[str]
     build_options,  # type: Sequence[str]
     destination_dir,  # type: str
-    python_tag,  # type: Optional[str]
 ):
     # type: (...) -> List[str]
     # NOTE: Eventually, we'd want to also -S to the flags here, when we're
@@ -66,8 +65,6 @@ def make_setuptools_bdist_wheel_args(
     )
     args += ["bdist_wheel", "-d", destination_dir]
     args += build_options
-    if python_tag is not None:
-        args += ["--python-tag", python_tag]
     return args
 
 

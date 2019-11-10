@@ -46,14 +46,6 @@ if MYPY_CHECK_RUNNING:
 logger = logging.getLogger(__name__)
 
 
-def replace_python_tag(wheelname, new_tag):
-    # type: (str, str) -> str
-    """Replace the Python tag in a wheel file name with a new value."""
-    parts = wheelname.split('-')
-    parts[-3] = new_tag
-    return '-'.join(parts)
-
-
 def _contains_egg_info(
         s, _egg_info_re=re.compile(r'([a-z0-9_.]+)-([a-z0-9_.!+-]+)', re.I)):
     # type: (str, Pattern[str]) -> bool
@@ -196,7 +188,6 @@ def _build_wheel_legacy(
     global_options,  # type: List[str]
     build_options,  # type: List[str]
     tempd,  # type: str
-    python_tag=None,  # type: Optional[str]
 ):
     # type: (...) -> Optional[str]
     """Build one unpacked package using the "legacy" build process.
@@ -208,7 +199,6 @@ def _build_wheel_legacy(
         global_options=global_options,
         build_options=build_options,
         destination_dir=tempd,
-        python_tag=python_tag,
     )
 
     spin_message = 'Building wheel for %s (setup.py)' % (name,)
@@ -276,7 +266,6 @@ class WheelBuilder(object):
         self,
         req,  # type: InstallRequirement
         output_dir,  # type: str
-        python_tag=None,  # type: Optional[str]
     ):
         # type: (...) -> Optional[str]
         """Build one wheel.
@@ -285,21 +274,17 @@ class WheelBuilder(object):
         """
         # Install build deps into temporary directory (PEP 518)
         with req.build_env:
-            return self._build_one_inside_env(req, output_dir,
-                                              python_tag=python_tag)
+            return self._build_one_inside_env(req, output_dir)
 
     def _build_one_inside_env(
         self,
         req,  # type: InstallRequirement
         output_dir,  # type: str
-        python_tag=None,  # type: Optional[str]
     ):
         # type: (...) -> Optional[str]
         with TempDirectory(kind="wheel") as temp_dir:
             if req.use_pep517:
-                wheel_path = self._build_one_pep517(
-                    req, temp_dir.path, python_tag=python_tag
-                )
+                wheel_path = self._build_one_pep517(req, temp_dir.path)
             else:
                 wheel_path = _build_wheel_legacy(
                     name=req.name,
@@ -308,7 +293,6 @@ class WheelBuilder(object):
                     global_options=self.global_options,
                     build_options=self.build_options,
                     tempd=temp_dir.path,
-                    python_tag=python_tag,
                 )
 
             if wheel_path is not None:
@@ -333,7 +317,6 @@ class WheelBuilder(object):
         self,
         req,  # type: InstallRequirement
         tempd,  # type: str
-        python_tag=None,  # type: Optional[str]
     ):
         # type: (...) -> Optional[str]
         """Build one InstallRequirement using the PEP 517 build process.
@@ -358,17 +341,6 @@ class WheelBuilder(object):
                     tempd,
                     metadata_directory=req.metadata_directory,
                 )
-            if python_tag:
-                # General PEP 517 backends don't necessarily support
-                # a "--python-tag" option, so we rename the wheel
-                # file directly.
-                new_name = replace_python_tag(wheel_name, python_tag)
-                os.rename(
-                    os.path.join(tempd, wheel_name),
-                    os.path.join(tempd, new_name)
-                )
-                # Reassign to simplify the return at the end of function
-                wheel_name = new_name
         except Exception:
             logger.error('Failed building wheel for %s', req.name)
             return None

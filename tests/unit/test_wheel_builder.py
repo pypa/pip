@@ -182,22 +182,6 @@ def test_format_command_result__empty_output(caplog, log_level):
     ]
 
 
-def test_python_tag():
-    wheelnames = [
-        'simplewheel-1.0-py2.py3-none-any.whl',
-        'simplewheel-1.0-py27-none-any.whl',
-        'simplewheel-2.0-1-py2.py3-none-any.whl',
-    ]
-    newnames = [
-        'simplewheel-1.0-py37-none-any.whl',
-        'simplewheel-1.0-py37-none-any.whl',
-        'simplewheel-2.0-1-py37-none-any.whl',
-    ]
-    for name, expected in zip(wheelnames, newnames):
-        result = wheel_builder.replace_python_tag(name, 'py37')
-        assert result == expected
-
-
 class TestWheelBuilder(object):
 
     def test_skip_building_wheels(self, caplog):
