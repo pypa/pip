@@ -68,7 +68,7 @@ def should_update_common_wheels():
 #   completely to nox for all our automation. Contributors should prefer using
 #   `tox -e ...` until this note is removed.
 # -----------------------------------------------------------------------------
-@nox.session(python=["2.7", "3.5", "3.6", "3.7", "pypy"])
+@nox.session(python=["2.7", "3.5", "3.6", "3.7", "3.8", "pypy", "pypy3"])
 def test(session):
     # Get the common wheels.
     if should_update_common_wheels():
@@ -87,6 +87,8 @@ def test(session):
 
     # Build source distribution
     sdist_dir = os.path.join(session.virtualenv.location, "sdist")
+    if os.path.exists(sdist_dir):
+        shutil.rmtree(sdist_dir, ignore_errors=True)
     session.run(
         "python", "setup.py", "sdist",
         "--formats=zip", "--dist-dir", sdist_dir,
