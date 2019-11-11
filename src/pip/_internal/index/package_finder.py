@@ -474,11 +474,13 @@ class CandidateEvaluator(object):
             c for c in candidates if str(c.version) in versions
         ]
 
-        return filter_unallowed_hashes(
+        filtered_applicable_candidates = filter_unallowed_hashes(
             candidates=applicable_candidates,
             hashes=self._hashes,
             project_name=self._project_name,
         )
+
+        return sorted(filtered_applicable_candidates, key=self._sort_key)
 
     def _sort_key(self, candidate):
         # type: (InstallationCandidate) -> CandidateSortingKey

@@ -187,12 +187,11 @@ user, and other user preferences, etc.
 
 Specifically, the class has a ``get_applicable_candidates()`` method.
 This accepts the ``InstallationCandidate`` objects resulting from the links
-accepted by the ``LinkEvaluator`` class's ``evaluate_link()`` method, and
-it further filters them to a list of "applicable" candidates.
+accepted by the ``LinkEvaluator`` class's ``evaluate_link()`` method, filters
+them to a list of "applicable" candidates and orders them by preference.
 
 The ``CandidateEvaluator`` class also has a ``sort_best_candidate()`` method
-that orders the applicable candidates by preference, and then returns the
-best (i.e. most preferred).
+that returns the best (i.e. most preferred) candidate.
 
 Finally, the class has a ``compute_best_candidate()`` method that calls
 ``get_applicable_candidates()`` followed by ``sort_best_candidate()``, and
