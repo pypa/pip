@@ -132,6 +132,7 @@ class DownloadCommand(RequirementCommand):
                 session=session,
                 finder=finder,
                 download_dir=options.download_dir,
+                use_user_site=False,
             )
 
             resolver = self.make_resolver(

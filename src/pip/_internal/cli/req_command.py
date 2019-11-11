@@ -154,6 +154,7 @@ class RequirementCommand(IndexGroupCommand):
         req_tracker,              # type: RequirementTracker
         session,                  # type: PipSession
         finder,                   # type: PackageFinder
+        use_user_site,            # type: bool
         download_dir=None,        # type: str
         wheel_download_dir=None,  # type: str
     ):
@@ -174,6 +175,7 @@ class RequirementCommand(IndexGroupCommand):
             session=session,
             finder=finder,
             require_hashes=options.require_hashes,
+            use_user_site=use_user_site,
         )
 
     @staticmethod

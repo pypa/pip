@@ -176,6 +176,7 @@ class WheelCommand(RequirementCommand):
                     session=session,
                     finder=finder,
                     wheel_download_dir=options.wheel_dir,
+                    use_user_site=False,
                 )
 
                 resolver = self.make_resolver(

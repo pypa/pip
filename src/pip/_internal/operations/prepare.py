@@ -511,6 +511,7 @@ class RequirementPreparer(object):
         session,  # type: PipSession
         finder,  # type: PackageFinder
         require_hashes,  # type: bool
+        use_user_site,  # type: bool
     ):
         # type: (...) -> None
         super(RequirementPreparer, self).__init__()
@@ -546,6 +547,9 @@ class RequirementPreparer(object):
 
         # Should hash-checking be required?
         self.require_hashes = require_hashes
+
+        # Should install in user site-packages?
+        self.use_user_site = use_user_site
 
     @property
     def _download_should_save(self):
@@ -682,7 +686,6 @@ class RequirementPreparer(object):
     def prepare_editable_requirement(
         self,
         req,  # type: InstallRequirement
-        use_user_site,  # type: bool
     ):
         # type: (...) -> AbstractDistribution
         """Prepare an editable requirement
@@ -707,7 +710,7 @@ class RequirementPreparer(object):
 
             if self._download_should_save:
                 req.archive(self.download_dir)
-            req.check_if_exists(use_user_site)
+            req.check_if_exists(self.use_user_site)
 
         return abstract_dist
 

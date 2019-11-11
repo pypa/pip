@@ -83,6 +83,7 @@ class TestRequirementSet(object):
                 session=PipSession(),
                 finder=finder,
                 require_hashes=require_hashes,
+                use_user_site=False,
             )
             yield Resolver(
                 preparer=preparer,
