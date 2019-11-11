@@ -80,13 +80,13 @@ Creating a new release
 ----------------------
 
 #. Checkout the current pip ``master`` branch.
-#. Ensure you have the latest ``nox`` and ``twine`` installed.
+#. Ensure you have the latest ``nox`` installed.
 #. Prepare for release using ``nox -s prepare-release -- YY.N``.
    This will update the relevant files and tag the correct commit.
 #. Build the release artifacts using ``nox -s build-release -- YY.N``.
    This will checkout the tag, generate the distribution files to be
    uploaded and checkout the master branch again.
-#. Upload the distribution files to PyPI using ``twine upload dist/*``.
+#. Upload the release to PyPI using ``nox -s upload-release -- YY.N``.
 #. Push all of the changes including the tag.
 #. Regenerate the ``get-pip.py`` script in the `get-pip repository`_ (as
    documented there) and commit the results.

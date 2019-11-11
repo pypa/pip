@@ -19,6 +19,7 @@ from pip._internal.exceptions import (
     InvalidWheelFilename,
     UnsupportedWheel,
 )
+from pip._internal.index.collector import parse_links
 from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.format_control import FormatControl
 from pip._internal.models.link import Link
@@ -778,6 +779,25 @@ class PackageFinder(object):
 
         return candidates
 
+    def process_project_url(self, project_url, link_evaluator):
+        # type: (Link, LinkEvaluator) -> List[InstallationCandidate]
+        logger.debug(
+            'Fetching project page and analyzing links: %s', project_url,
+        )
+        html_page = self._link_collector.fetch_page(project_url)
+        if html_page is None:
+            return []
+
+        page_links = list(parse_links(html_page))
+
+        with indent_log():
+            package_links = self.evaluate_links(
+                link_evaluator,
+                links=page_links,
+            )
+
+        return package_links
+
     def find_all_candidates(self, project_name):
         # type: (str) -> List[InstallationCandidate]
         """Find all available InstallationCandidate for project_name
@@ -798,14 +818,11 @@ class PackageFinder(object):
         )
 
         page_versions = []
-        for page_url, page_links in collected_links.pages.items():
-            logger.debug('Analyzing links from page %s', page_url)
-            with indent_log():
-                new_versions = self.evaluate_links(
-                    link_evaluator,
-                    links=page_links,
-                )
-                page_versions.extend(new_versions)
+        for project_url in collected_links.project_urls:
+            package_links = self.process_project_url(
+                project_url, link_evaluator=link_evaluator,
+            )
+            page_versions.extend(package_links)
 
         file_versions = self.evaluate_links(
             link_evaluator,

@@ -394,8 +394,8 @@ set like this:
     ignore-installed = true
     no-dependencies = yes
 
-To enable the boolean options ``--no-compile`` and ``--no-cache-dir``, falsy
-values have to be used:
+To enable the boolean options ``--no-compile``, ``--no-warn-script-location``
+and ``--no-cache-dir``, falsy values have to be used:
 
 .. code-block:: ini
 
@@ -404,6 +404,7 @@ values have to be used:
 
     [install]
     no-compile = no
+    no-warn-script-location = false
 
 Appending options like ``--find-links`` can be written on multiple lines:
 

@@ -31,7 +31,7 @@ from pip._internal.exceptions import (
 from pip._internal.locations import distutils_scheme
 from pip._internal.operations.check import check_install_conflicts
 from pip._internal.req import RequirementSet, install_given_reqs
-from pip._internal.req.req_tracker import RequirementTracker
+from pip._internal.req.req_tracker import get_requirement_tracker
 from pip._internal.utils.filesystem import check_path_owner, test_writable_dir
 from pip._internal.utils.misc import (
     ensure_dir,
@@ -343,7 +343,7 @@ class InstallCommand(RequirementCommand):
             )
             options.cache_dir = None
 
-        with RequirementTracker() as req_tracker, TempDirectory(
+        with get_requirement_tracker() as req_tracker, TempDirectory(
             options.build_dir, delete=build_delete, kind="install"
         ) as directory:
             requirement_set = RequirementSet(
