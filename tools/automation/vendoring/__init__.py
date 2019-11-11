@@ -28,10 +28,10 @@ LIBRARY_DIRNAMES = {
 }
 
 # from time to time, remove the no longer needed ones
-_github_license = "https://github.com/{}/raw/master/LICENSE"
 HARDCODED_LICENSE_URLS = {
-    'pytoml': _github_license.format('avakar/pytoml'),
-    'webencodings': _github_license.format('SimonSapin/python-webencodings')
+    'pytoml': 'https://github.com/avakar/pytoml/raw/master/LICENSE',
+    'webencodings': 'https://github.com/SimonSapin/python-webencodings/raw/'
+                    'master/LICENSE',
 }
 
 
