@@ -15,17 +15,16 @@ Overview
 Here is a rough description of the process that pip uses to choose what
 file to download for a package, given a requirement:
 
-1. Access the various network and file system locations configured for pip
-   that contain package files. These locations can include, for example,
-   pip's :ref:`--index-url <--index-url>` (with default
-   https://pypi.org/simple/ ) and any configured
-   :ref:`--extra-index-url <--extra-index-url>` locations.
-   Each of these locations is a `PEP 503`_ "simple repository" page, which
-   is an HTML page of anchor links.
-2. Collect together all of the links (e.g. by parsing the anchor links
-   from the HTML pages) and create ``Link`` objects from each of these.
-   The :ref:`LinkCollector <link-collector-class>` class is responsible
-   for both this step and the previous.
+1. Collect together the various network and file system locations containing
+   project package files. These locations are derived, for example, from pip's
+   :ref:`--index-url <--index-url>` (with default https://pypi.org/simple/ )
+   setting and any configured :ref:`--extra-index-url <--extra-index-url>`
+   locations. Each of the project page URL's is an HTML page of anchor links,
+   as defined in `PEP 503`_, the "Simple Repository API."
+2. For each project page URL, fetch the HTML and parse out the anchor links,
+   creating a ``Link`` object from each one. The :ref:`LinkCollector
+   <link-collector-class>` class is responsible for both the previous step
+   and fetching the HTML over the network.
 3. Determine which of the links are minimally relevant, using the
    :ref:`LinkEvaluator <link-evaluator-class>` class.  Create an
    ``InstallationCandidate`` object (aka candidate for install) for each
@@ -111,6 +110,12 @@ One of ``PackageFinder``'s main top-level methods is
    class's ``compute_best_candidate()`` method on the return value of
    ``find_all_candidates()``. This corresponds to steps 4-5 of the Overview.
 
+``PackageFinder`` also has a ``process_project_url()`` method (called by
+``find_best_candidate()``) to process a `PEP 503`_ "simple repository"
+project page. This method fetches and parses the HTML from a PEP 503 project
+page URL, extracts the anchor elements and creates ``Link`` objects from
+them, and then evaluates those links.
+
 
 .. _link-collector-class:
 
@@ -119,12 +124,8 @@ The ``LinkCollector`` class
 
 The :ref:`LinkCollector <link-collector-class>` class is the class
 responsible for collecting the raw list of "links" to package files
-(represented as ``Link`` objects). An instance of the class accesses the
-various `PEP 503`_ HTML "simple repository" pages, parses their HTML,
-extracts the links from the anchor elements, and creates ``Link`` objects
-from that information. The ``LinkCollector`` class is "unintelligent" in that
-it doesn't do any evaluation of whether the links are relevant to the
-original requirement; it just collects them.
+(represented as ``Link`` objects) from file system locations, as well as the
+`PEP 503`_ project page URL's that ``PackageFinder`` should access.
 
 The ``LinkCollector`` class takes into account the user's :ref:`--find-links
 <--find-links>`, :ref:`--extra-index-url <--extra-index-url>`, and related
@@ -132,6 +133,10 @@ options when deciding which locations to collect links from. The class's main
 method is the ``collect_links()`` method. The :ref:`PackageFinder
 <package-finder-class>` class invokes this method as the first step of its
 ``find_all_candidates()`` method.
+
+``LinkCollector`` also has a ``fetch_page()`` method to fetch the HTML from a
+project page URL. This method is "unintelligent" in that it doesn't parse the
+HTML.
 
 The ``LinkCollector`` class is the only class in the ``index`` sub-package that
 makes network requests and is the only class in the sub-package that depends
