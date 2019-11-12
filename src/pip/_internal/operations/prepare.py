@@ -157,8 +157,9 @@ def _download_url(
     progress_indicator = _progress_indicator
 
     if show_progress:  # We don't show progress on cached responses
-        progress_indicator = DownloadProgressProvider(progress_bar,
-                                                      max=total_length)
+        progress_indicator = DownloadProgressProvider(
+            progress_bar, max=total_length
+        )
 
     downloaded_chunks = written_chunks(
         progress_indicator(
@@ -177,8 +178,11 @@ def _copy_file(filename, location, link):
     download_location = os.path.join(location, link.filename)
     if os.path.exists(download_location):
         response = ask_path_exists(
-            'The file %s exists. (i)gnore, (w)ipe, (b)ackup, (a)abort' %
-            display_path(download_location), ('i', 'w', 'b', 'a'))
+            'The file {} exists. (i)gnore, (w)ipe, (b)ackup, (a)abort'.format(
+                display_path(download_location)
+            ),
+            ('i', 'w', 'b', 'a'),
+        )
         if response == 'i':
             copy = False
         elif response == 'w':
@@ -212,20 +216,18 @@ def unpack_http_url(
         # If a download dir is specified, is the file already downloaded there?
         already_downloaded_path = None
         if download_dir:
-            already_downloaded_path = _check_download_dir(link,
-                                                          download_dir,
-                                                          hashes)
+            already_downloaded_path = _check_download_dir(
+                link, download_dir, hashes
+            )
 
         if already_downloaded_path:
             from_path = already_downloaded_path
             content_type = mimetypes.guess_type(from_path)[0]
         else:
             # let's download to a tmp dir
-            from_path, content_type = _download_http_url(link,
-                                                         session,
-                                                         temp_dir.path,
-                                                         hashes,
-                                                         progress_bar)
+            from_path, content_type = _download_http_url(
+                link, session, temp_dir.path, hashes, progress_bar
+            )
 
         # unpack the archive to the build dir location. even when only
         # downloading archives, they have to be unpacked to parse dependencies
@@ -312,9 +314,9 @@ def unpack_file_url(
     # If a download dir is specified, is the file already there and valid?
     already_downloaded_path = None
     if download_dir:
-        already_downloaded_path = _check_download_dir(link,
-                                                      download_dir,
-                                                      hashes)
+        already_downloaded_path = _check_download_dir(
+            link, download_dir, hashes
+        )
 
     if already_downloaded_path:
         from_path = already_downloaded_path
