@@ -345,7 +345,7 @@ class WheelBuilder(object):
         if self.build_options:
             # PEP 517 does not support --build-options
             logger.error('Cannot build wheel for %s using PEP 517 when '
-                         '--build-options is present' % (req.name,))
+                         '--build-option is present' % (req.name,))
             return None
         try:
             logger.debug('Destination directory: %s', tempd)
