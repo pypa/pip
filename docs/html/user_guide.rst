@@ -515,7 +515,7 @@ $ pip wheel --wheel-dir DIR -r requirements.txt
 
 
 Then, to install from local only, you'll be using :ref:`--find-links
-<--find-links>` and :ref:`--no-index <--no-index>` like so::
+<install_--find-links>` and :ref:`--no-index <install_--no-index>` like so::
 
 $ pip install --no-index --find-links=DIR -r requirements.txt
 

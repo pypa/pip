@@ -17,10 +17,11 @@ file to download for a package, given a requirement:
 
 1. Collect together the various network and file system locations containing
    project package files. These locations are derived, for example, from pip's
-   :ref:`--index-url <--index-url>` (with default https://pypi.org/simple/ )
-   setting and any configured :ref:`--extra-index-url <--extra-index-url>`
-   locations. Each of the project page URL's is an HTML page of anchor links,
-   as defined in `PEP 503`_, the "Simple Repository API."
+   :ref:`--index-url <install_--index-url>` (with default
+   https://pypi.org/simple/ ) setting and any configured
+   :ref:`--extra-index-url <install_--extra-index-url>` locations. Each of the
+   project page URL's is an HTML page of anchor links, as defined in
+   `PEP 503`_, the "Simple Repository API."
 2. For each project page URL, fetch the HTML and parse out the anchor links,
    creating a ``Link`` object from each one. The :ref:`LinkCollector
    <link-collector-class>` class is responsible for both the previous step
@@ -128,9 +129,9 @@ responsible for collecting the raw list of "links" to package files
 `PEP 503`_ project page URL's that ``PackageFinder`` should access.
 
 The ``LinkCollector`` class takes into account the user's :ref:`--find-links
-<--find-links>`, :ref:`--extra-index-url <--extra-index-url>`, and related
-options when deciding which locations to collect links from. The class's main
-method is the ``collect_links()`` method. The :ref:`PackageFinder
+<install_--find-links>`, :ref:`--extra-index-url <install_--extra-index-url>`,
+and related options when deciding which locations to collect links from. The
+class's main method is the ``collect_links()`` method. The :ref:`PackageFinder
 <package-finder-class>` class invokes this method as the first step of its
 ``find_all_candidates()`` method.
 
