@@ -66,7 +66,7 @@ pypi.company.com, the index URL with credentials would look like:
 ``https://user:he%2F%2Fo@pypi.company.com``
 
 Support for percent-encoded authentication in index URLs was added in pip 10.0.0
-(in `#3236 <https://github.com/pypa/pip/issues/3236>`). Users that must use authentication
+(in `#3236 <https://github.com/pypa/pip/issues/3236>`_). Users that must use authentication
 for their Python repository on systems with older pip versions should make the latest
 get-pip.py available in their environment to bootstrap pip to a recent-enough version.
 
