@@ -202,17 +202,12 @@ def _copy_file(filename, location, link):
 def unpack_http_url(
     link,  # type: Link
     location,  # type: str
+    session,  # type: PipSession
     download_dir=None,  # type: Optional[str]
-    session=None,  # type: Optional[PipSession]
     hashes=None,  # type: Optional[Hashes]
     progress_bar="on"  # type: str
 ):
     # type: (...) -> None
-    if session is None:
-        raise TypeError(
-            "unpack_http_url() missing 1 required keyword argument: 'session'"
-        )
-
     with TempDirectory(kind="unpack") as temp_dir:
         # If a download dir is specified, is the file already downloaded there?
         already_downloaded_path = None
@@ -340,8 +335,8 @@ def unpack_file_url(
 def unpack_url(
     link,  # type: Link
     location,  # type: str
+    session,  # type: PipSession
     download_dir=None,  # type: Optional[str]
-    session=None,  # type: Optional[PipSession]
     hashes=None,  # type: Optional[Hashes]
     progress_bar="on"  # type: str
 ):
@@ -370,14 +365,11 @@ def unpack_url(
 
     # http urls
     else:
-        if session is None:
-            session = PipSession()
-
         unpack_http_url(
             link,
             location,
-            download_dir,
             session,
+            download_dir,
             hashes=hashes,
             progress_bar=progress_bar
         )
@@ -643,8 +635,8 @@ class RequirementPreparer(object):
 
             try:
                 unpack_url(
-                    link, req.source_dir, download_dir,
-                    session=self.session, hashes=hashes,
+                    link, req.source_dir, self.session, download_dir,
+                    hashes=hashes,
                     progress_bar=self.progress_bar
                 )
             except requests.HTTPError as exc:
