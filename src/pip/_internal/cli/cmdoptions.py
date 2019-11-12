@@ -83,8 +83,8 @@ def check_install_build_global(options, check_options=None):
         control = options.format_control
         control.disallow_binaries()
         warnings.warn(
-            'Disabling all use of wheels due to the use of --build-options '
-            '/ --global-options / --install-options.', stacklevel=2,
+            'Disabling all use of wheels due to the use of --build-option '
+            '/ --global-option / --install-option.', stacklevel=2,
         )
 
 
