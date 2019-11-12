@@ -214,4 +214,4 @@ def test_pep517_and_build_options(script, tmpdir, data, common_wheels):
         expect_error=True
     )
     assert 'Cannot build wheel' in result.stderr
-    assert 'when --build-options is present' in result.stderr
+    assert 'when --build-option is present' in result.stderr
