@@ -57,7 +57,7 @@ from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Callable, IO, List, Optional, Tuple,
+        Any, Callable, IO, List, Optional, Tuple,
     )
 
     from mypy_extensions import TypedDict
@@ -116,7 +116,7 @@ def _progress_indicator(iterable, *args, **kwargs):
 def _download_url(
     resp,  # type: Response
     link,  # type: Link
-    content_file,  # type: IO
+    content_file,  # type: IO[Any]
     hashes,  # type: Optional[Hashes]
     progress_bar  # type: str
 ):

@@ -53,6 +53,7 @@ if MYPY_CHECK_RUNNING:
     InstallRequirementProvider = Callable[
         [str, InstallRequirement], InstallRequirement
     ]
+    DiscoveredDependencies = DefaultDict[str, List[InstallRequirement]]
 
 logger = logging.getLogger(__name__)
 
@@ -148,7 +149,7 @@ class Resolver(object):
         self._make_install_req = make_install_req
 
         self._discovered_dependencies = \
-            defaultdict(list)  # type: DefaultDict[str, List]
+            defaultdict(list)  # type: DiscoveredDependencies
 
     def resolve(self, requirement_set):
         # type: (RequirementSet) -> None

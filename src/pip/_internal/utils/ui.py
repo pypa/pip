@@ -279,7 +279,7 @@ def DownloadProgressProvider(progress_bar, max=None):
 
 @contextlib.contextmanager
 def hidden_cursor(file):
-    # type: (IO) -> Iterator[None]
+    # type: (IO[Any]) -> Iterator[None]
     # The Windows terminal does not support the hide/show cursor ANSI codes,
     # even via colorama. So don't even try.
     if WINDOWS:

@@ -57,7 +57,7 @@ def replace_python_tag(wheelname, new_tag):
 
 def _contains_egg_info(
         s, _egg_info_re=re.compile(r'([a-z0-9_.]+)-([a-z0-9_.!+-]+)', re.I)):
-    # type: (str, Pattern) -> bool
+    # type: (str, Pattern[str]) -> bool
     """Determine whether the string looks like an egg_info.
 
     :param s: The string to parse. E.g. foo-2.1
