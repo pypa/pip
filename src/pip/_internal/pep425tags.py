@@ -326,7 +326,7 @@ def get_all_minor_versions_as_strings(version_info):
 
 
 def get_supported(
-    versions=None,  # type: Optional[List[str]]
+    version=None,  # type: Optional[str]
     platform=None,  # type: Optional[str]
     impl=None,  # type: Optional[str]
     abi=None  # type: Optional[str]
@@ -335,8 +335,8 @@ def get_supported(
     """Return a list of supported tags for each version specified in
     `versions`.
 
-    :param versions: a list of string versions, of the form ["33", "32"],
-        or None. The first version will be assumed to support our ABI.
+    :param version: a string version, of the form "33" or "32",
+        or None. The version will be assumed to support our ABI.
     :param platform: specify the exact platform you want valid
         tags for, or None. If None, use the local system platform.
     :param impl: specify the exact implementation you want valid
@@ -347,9 +347,11 @@ def get_supported(
     supported = []
 
     # Versions must be given with respect to the preference
-    if versions is None:
+    if version is None:
         version_info = get_impl_version_info()
         versions = get_all_minor_versions_as_strings(version_info)
+    else:
+        versions = [version]
 
     impl = impl or get_abbr_impl()
 

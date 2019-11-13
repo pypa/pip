@@ -64,20 +64,20 @@ class TestTargetPython:
         actual = target_python.format_given()
         assert actual == expected
 
-    @pytest.mark.parametrize('py_version_info, expected_versions', [
-        ((), ['']),
-        ((2, ), ['2']),
-        ((3, ), ['3']),
-        ((3, 7), ['37']),
-        ((3, 7, 3), ['37']),
+    @pytest.mark.parametrize('py_version_info, expected_version', [
+        ((), ''),
+        ((2, ), '2'),
+        ((3, ), '3'),
+        ((3, 7), '37'),
+        ((3, 7, 3), '37'),
         # Check a minor version with two digits.
-        ((3, 10, 1), ['310']),
+        ((3, 10, 1), '310'),
         # Check that versions=None is passed to get_tags().
         (None, None),
     ])
     @patch('pip._internal.models.target_python.get_supported')
     def test_get_tags(
-        self, mock_get_supported, py_version_info, expected_versions,
+        self, mock_get_supported, py_version_info, expected_version,
     ):
         mock_get_supported.return_value = ['tag-1', 'tag-2']
 
@@ -85,8 +85,8 @@ class TestTargetPython:
         actual = target_python.get_tags()
         assert actual == ['tag-1', 'tag-2']
 
-        actual = mock_get_supported.call_args[1]['versions']
-        assert actual == expected_versions
+        actual = mock_get_supported.call_args[1]['version']
+        assert actual == expected_version
 
         # Check that the value was cached.
         assert target_python._valid_tags == ['tag-1', 'tag-2']

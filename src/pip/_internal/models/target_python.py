@@ -91,12 +91,12 @@ class TargetPython(object):
             # versions=None uses special default logic.
             py_version_info = self._given_py_version_info
             if py_version_info is None:
-                versions = None
+                version = None
             else:
-                versions = [version_info_to_nodot(py_version_info)]
+                version = version_info_to_nodot(py_version_info)
 
             tags = get_supported(
-                versions=versions,
+                version=version,
                 platform=self.platform,
                 abi=self.abi,
                 impl=self.implementation,
