@@ -181,6 +181,12 @@ class SimpleWheelCache(Cache):
             except InvalidWheelFilename:
                 continue
             if canonicalize_name(wheel.name) != canonical_package_name:
+                logger.debug(
+                    "Ignoring cached wheel {} for {} as it "
+                    "does not match the expected distribution name {}.".format(
+                        wheel_name, link, package_name
+                    )
+                )
                 continue
             if not wheel.supported(supported_tags):
                 # Built for a different python/arch/etc
