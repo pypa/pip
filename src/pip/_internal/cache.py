@@ -172,15 +172,15 @@ class SimpleWheelCache(Cache):
         # type: (...) -> Link
         candidates = []
 
-        canonical_package_name = None
-        if package_name:
-            canonical_package_name = canonicalize_name(package_name)
+        if not package_name:
+            return link
+
+        canonical_package_name = canonicalize_name(package_name)
         for wheel_name in self._get_candidates(link, package_name):
             try:
                 wheel = Wheel(wheel_name)
             except InvalidWheelFilename:
                 continue
-            assert canonical_package_name
             if wheel.name != canonical_package_name:
                 continue
             if not wheel.supported(supported_tags):
