@@ -153,17 +153,17 @@ To interpret the requirements file in UTF-8 format add a comment
 
 The following options are supported:
 
-  *  :ref:`-i, --index-url <--index-url>`
-  *  :ref:`--extra-index-url <--extra-index-url>`
-  *  :ref:`--no-index <--no-index>`
-  *  :ref:`-f, --find-links <--find-links>`
+  *  :ref:`-i, --index-url <install_--index-url>`
+  *  :ref:`--extra-index-url <install_--extra-index-url>`
+  *  :ref:`--no-index <install_--no-index>`
+  *  :ref:`-f, --find-links <install_--find-links>`
   *  :ref:`--no-binary <install_--no-binary>`
   *  :ref:`--only-binary <install_--only-binary>`
-  *  :ref:`--require-hashes <--require-hashes>`
+  *  :ref:`--require-hashes <install_--require-hashes>`
   *  :ref:`--trusted-host <--trusted-host>`
 
-For example, to specify :ref:`--no-index <--no-index>` and two
-:ref:`--find-links <--find-links>` locations:
+For example, to specify :ref:`--no-index <install_--no-index>` and two
+:ref:`--find-links <install_--find-links>` locations:
 
 ::
 
@@ -824,7 +824,7 @@ Options
 
 .. pip-command-options:: install
 
-.. pip-index-options::
+.. pip-index-options:: install
 
 
 .. _`pip install Examples`:
