@@ -387,7 +387,7 @@ So if your repository layout is:
       - some_file
     - some_other_file
 
-You'll need to use ``pip install -e vcs+protocol://repo_url/#egg=pkg&subdirectory=pkg_dir``.
+You'll need to use ``pip install -e "vcs+protocol://repo_url/#egg=pkg&subdirectory=pkg_dir"``.
 
 
 Git
