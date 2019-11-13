@@ -49,6 +49,35 @@ For more information and examples, see the :ref:`pip install` reference.
 .. _PyPI: https://pypi.org/
 
 
+Basic Authentication Credentials
+********************************
+
+pip supports basic authentication credentials. Basically, in the url there is
+a username and password separated by ``:``.
+
+``https://[username[:password]@]pypi.company.com/simple``
+
+Certain special characters are not valid in the authentication part of URLs.
+If the user or password part of your login credentials contain any of the
+special characters
+`here <https://en.wikipedia.org/wiki/Percent-encoding#Percent-encoding_reserved_characters>`_
+then they must be percent-encoded. For example, for a
+user with username "user" and password "he//o" accessing a repository at
+pypi.company.com, the index URL with credentials would look like:
+
+``https://user:he%2F%2Fo@pypi.company.com``
+
+Support for percent-encoded authentication in index URLs was added in pip 10.0.0
+(in `#3236 <https://github.com/pypa/pip/issues/3236>`_). Users that must use authentication
+for their Python repository on systems with older pip versions should make the latest
+get-pip.py available in their environment to bootstrap pip to a recent-enough version.
+
+For indexes that only require single-part authentication tokens, provide the token
+as the "username" and do not provide a password, for example -
+
+``https://0123456789abcdef@pypi.company.com``
+
+
 Using a Proxy Server
 ********************
 
