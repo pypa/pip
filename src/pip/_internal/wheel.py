@@ -211,9 +211,9 @@ def message_about_scripts_not_on_PATH(scripts):
         msg_lines.append(last_line_fmt.format("these directories"))
 
     # Add a note if any directory starts with ~
-    warn_for_tilde = any([
+    warn_for_tilde = any(
         i[0] == "~" for i in os.environ.get("PATH", "").split(os.pathsep) if i
-    ])
+    )
     if warn_for_tilde:
         tilde_warning_msg = (
             "NOTE: The current PATH contains path(s) starting with `~`, "
