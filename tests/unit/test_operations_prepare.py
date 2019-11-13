@@ -52,8 +52,8 @@ def test_unpack_http_url_with_urllib_response_without_content_type(data):
         unpack_http_url(
             link,
             temp_dir,
-            download_dir=None,
             session=session,
+            download_dir=None,
         )
         assert set(os.listdir(temp_dir)) == {
             'PKG-INFO', 'setup.cfg', 'setup.py', 'simple', 'simple.egg-info'
@@ -140,8 +140,8 @@ def test_unpack_http_url_bad_downloaded_checksum(mock_unpack_file):
         unpack_http_url(
             link,
             'location',
-            download_dir=download_dir,
             session=session,
+            download_dir=download_dir,
             hashes=Hashes({'sha1': [download_hash.hexdigest()]})
         )
 
