@@ -1,6 +1,5 @@
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
-# mypy: disallow-untyped-defs=False
 
 from pip._vendor.packaging.utils import canonicalize_name
 
@@ -26,12 +25,15 @@ class FormatControl(object):
         self.only_binary = only_binary
 
     def __eq__(self, other):
+        # type: (object) -> bool
         return self.__dict__ == other.__dict__
 
     def __ne__(self, other):
+        # type: (object) -> bool
         return not self.__eq__(other)
 
     def __repr__(self):
+        # type: () -> str
         return "{}({}, {})".format(
             self.__class__.__name__,
             self.no_binary,
