@@ -116,7 +116,7 @@ class LinkEvaluator(object):
         self,
         project_name,    # type: str
         canonical_name,  # type: str
-        formats,         # type: FrozenSet
+        formats,         # type: FrozenSet[str]
         target_python,   # type: TargetPython
         allow_yanked,    # type: bool
         ignore_requires_python=None,  # type: Optional[bool]

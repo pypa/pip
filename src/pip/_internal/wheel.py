@@ -69,7 +69,7 @@ def rehash(path, blocksize=1 << 20):
 
 
 def open_for_csv(name, mode):
-    # type: (str, Text) -> IO
+    # type: (str, Text) -> IO[Any]
     if sys.version_info[0] < 3:
         nl = {}  # type: Dict[str, Any]
         bin = 'b'
@@ -237,7 +237,7 @@ def sorted_outrows(outrows):
 def get_csv_rows_for_installed(
     old_csv_rows,  # type: Iterable[List[str]]
     installed,  # type: Dict[str, str]
-    changed,  # type: set
+    changed,  # type: Set[str]
     generated,  # type: List[str]
     lib_dir,  # type: str
 ):

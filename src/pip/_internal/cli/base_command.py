@@ -92,7 +92,7 @@ class Command(CommandContextMixIn):
         raise NotImplementedError
 
     def parse_args(self, args):
-        # type: (List[str]) -> Tuple
+        # type: (List[str]) -> Tuple[Any, Any]
         # factored out for testability
         return self.parser.parse_args(args)
 

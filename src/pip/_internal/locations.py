@@ -95,7 +95,7 @@ else:
 def distutils_scheme(
     dist_name, user=False, home=None, root=None, isolated=False, prefix=None
 ):
-    # type:(str, bool, str, str, bool, str) -> dict
+    # type:(str, bool, str, str, bool, str) -> Dict[str, str]
     """
     Return a distutils install scheme
     """
