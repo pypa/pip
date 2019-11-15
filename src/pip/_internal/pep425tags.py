@@ -433,9 +433,6 @@ def get_supported(
 
     # No abi / arch, but requires our implementation:
     supported.append(('%s%s' % (impl, versions[0]), 'none', 'any'))
-    # Tagged specifically as being cross-version compatible
-    # (with just the major version specified)
-    supported.append(('%s%s' % (impl, versions[0][0]), 'none', 'any'))
 
     # No abi / arch, generic Python
     for i, version in enumerate(versions):
