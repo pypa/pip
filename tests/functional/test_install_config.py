@@ -133,6 +133,7 @@ def test_command_line_appends_correctly(script, data):
     ), 'stdout: {}'.format(result.stdout)
 
 
+@pytest.mark.network
 def test_config_file_override_stack(script, virtualenv):
     """
     Test config files (global, overriding a global config with a

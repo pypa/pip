@@ -721,6 +721,7 @@ def test_freeze_user(script, virtualenv, data):
     assert 'simple2' not in result.stdout
 
 
+@pytest.mark.network
 def test_freeze_path(tmpdir, script, data):
     """
     Test freeze with --path.
@@ -734,6 +735,7 @@ def test_freeze_path(tmpdir, script, data):
     _check_output(result.stdout, expected)
 
 
+@pytest.mark.network
 @pytest.mark.incompatible_with_test_venv
 def test_freeze_path_exclude_user(tmpdir, script, data):
     """
@@ -756,6 +758,7 @@ def test_freeze_path_exclude_user(tmpdir, script, data):
     _check_output(result.stdout, expected)
 
 
+@pytest.mark.network
 def test_freeze_path_multiple(tmpdir, script, data):
     """
     Test freeze with multiple --path arguments.
