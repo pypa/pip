@@ -366,11 +366,11 @@ def test_rmtree_retries(tmpdir, monkeypatch):
     rmtree('foo')
 
 
-def test_rmtree_retries_for_3sec(tmpdir, monkeypatch):
+def test_rmtree_retries_for_12sec(tmpdir, monkeypatch):
     """
-    Test pip._internal.utils.rmtree will retry failures for no more than 3 sec
+    Test pip._internal.utils.rmtree will retry failures for no more than 12 sec
     """
-    monkeypatch.setattr(shutil, 'rmtree', Failer(duration=5).call)
+    monkeypatch.setattr(shutil, 'rmtree', Failer(duration=14).call)
     with pytest.raises(OSError):
         rmtree('foo')
 

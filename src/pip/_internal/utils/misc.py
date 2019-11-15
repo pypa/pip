@@ -132,8 +132,8 @@ def get_prog():
     return 'pip'
 
 
-# Retry every half second for up to 3 seconds
-@retry(stop_max_delay=3000, wait_fixed=500)
+# Retry every half second for up to 12 seconds
+@retry(stop_max_delay=12000, wait_fixed=500)
 def rmtree(dir, ignore_errors=False):
     # type: (str, bool) -> None
     shutil.rmtree(dir, ignore_errors=ignore_errors,
