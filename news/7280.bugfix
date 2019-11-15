@@ -1,0 +1,1 @@
+Increase retry wait for rmtree to allow more time for virus scanners to release files on windows.
