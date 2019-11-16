@@ -22,11 +22,23 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import path_to_url
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional, Set, List, Any
+    from typing import Optional, Set, List, Any, Dict
     from pip._internal.models.format_control import FormatControl
     from pip._internal.pep425tags import Pep425Tag
 
 logger = logging.getLogger(__name__)
+
+
+def _hash_dict(d):
+    # type: (Dict[str, str]) -> str
+    """Return a sha224 of a dictionary where keys and values are strings."""
+    h = hashlib.new('sha224')
+    for k in sorted(d.keys()):
+        h.update(k.encode())
+        h.update("=".encode())
+        h.update(d[k].encode())
+        h.update(b"\0")
+    return h.hexdigest()
 
 
 class Cache(object):
@@ -58,32 +70,28 @@ class Cache(object):
         # We want to generate an url to use as our cache key, we don't want to
         # just re-use the URL because it might have other items in the fragment
         # and we don't care about those.
-        key_parts = [link.url_without_fragment]
+        key_parts = {"url": link.url_without_fragment}
         if link.hash_name is not None and link.hash is not None:
-            key_parts.append("=".join([link.hash_name, link.hash]))
+            key_parts[link.hash_name] = link.hash
         if link.subdirectory_fragment:
-            key_parts.append(
-                "=".join(["subdirectory", link.subdirectory_fragment])
-            )
-        key_url = "#".join(key_parts)
+            key_parts["subdirectory"] = link.subdirectory_fragment
 
         # Include interpreter name, major and minor version in cache key
         # to cope with ill-behaved sdists that build a different wheel
         # depending on the python version their setup.py is being run on,
         # and don't encode the difference in compatibility tags.
         # https://github.com/pypa/pip/issues/7296
-        key = "{}-{}.{} {}".format(
+        key_parts["interpreter"] = "{}-{}.{}".format(
             interpreter_name(),
             sys.version_info[0],
             sys.version_info[1],
-            key_url,
         )
 
         # Encode our key url with sha224, we'll use this because it has similar
         # security properties to sha256, but with a shorter total output (and
         # thus less secure). However the differences don't make a lot of
         # difference for our use case here.
-        hashed = hashlib.sha224(key.encode()).hexdigest()
+        hashed = _hash_dict(key_parts)
 
         # We want to nest the directories some to prevent having a ton of top
         # level directories where we might run out of sub directories on some

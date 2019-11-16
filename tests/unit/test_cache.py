@@ -1,6 +1,6 @@
 import os
 
-from pip._internal.cache import WheelCache
+from pip._internal.cache import WheelCache, _hash_dict
 from pip._internal.models.format_control import FormatControl
 from pip._internal.models.link import Link
 from pip._internal.utils.compat import expanduser
@@ -42,3 +42,10 @@ def test_wheel_name_filter(tmpdir):
     assert wc.get(link, "package", [("py3", "none", "any")]) is not link
     # package2 does not match wheel name
     assert wc.get(link, "package2", [("py3", "none", "any")]) is link
+
+
+def test_cache_hash():
+    h = _hash_dict({"url": "https://g.c/o/r"})
+    assert h == "c7d60d08b1079254d236e983501fa26c016d58d16010725b27ed0af2"
+    h = _hash_dict({"url": "https://g.c/o/r", "subdirectory": "sd"})
+    assert h == "9cba35d4ccf04b7cde751b44db347fd0f21fa47d1276e32f9d47864c"
