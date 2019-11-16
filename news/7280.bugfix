@@ -1,0 +1,3 @@
+Wrap rmtree again so that it does special handling only for removing files
+on windows where often virus scanners can interfere with file deletion by
+holding onto files while pip tries to delete them.
