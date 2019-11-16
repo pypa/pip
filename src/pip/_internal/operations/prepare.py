@@ -168,8 +168,7 @@ def _download_url(
 
     downloaded_chunks = written_chunks(
         progress_indicator(
-            response_chunks(resp, CONTENT_CHUNK_SIZE),
-            CONTENT_CHUNK_SIZE
+            response_chunks(resp, CONTENT_CHUNK_SIZE)
         )
     )
     if hashes:
