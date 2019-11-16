@@ -13,12 +13,11 @@ from collections import OrderedDict
 from pip._vendor.six import PY2
 
 import pip._internal.utils.glibc
-from pip._internal.utils.compat import get_extension_suffixes
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Tuple, Callable, List, Optional, Union, Dict, Set
+        Tuple, Callable, List, Optional, Union, Dict
     )
 
     Pep425Tag = Tuple[str, str, str]
