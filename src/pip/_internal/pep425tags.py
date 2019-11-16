@@ -326,6 +326,22 @@ def get_all_minor_versions_as_strings(version_info):
     return versions
 
 
+def _mac_platforms(arch):
+    # type: (str) -> List[str]
+    match = _osx_arch_pat.match(arch)
+    if match:
+        name, major, minor, actual_arch = match.groups()
+        tpl = '{}_{}_%i_%s'.format(name, major)
+        arches = []
+        for m in reversed(range(int(minor) + 1)):
+            for a in get_darwin_arches(int(major), m, actual_arch):
+                arches.append(tpl % (m, a))
+    else:
+        # arch pattern didn't match (?!)
+        arches = [arch]
+    return arches
+
+
 def get_supported(
     version=None,  # type: Optional[str]
     platform=None,  # type: Optional[str]
@@ -372,18 +388,7 @@ def get_supported(
     arch = platform or get_platform()
     arch_prefix, arch_sep, arch_suffix = arch.partition('_')
     if arch.startswith('macosx'):
-        # support macosx-10.6-intel on macosx-10.9-x86_64
-        match = _osx_arch_pat.match(arch)
-        if match:
-            name, major, minor, actual_arch = match.groups()
-            tpl = '{}_{}_%i_%s'.format(name, major)
-            arches = []
-            for m in reversed(range(int(minor) + 1)):
-                for a in get_darwin_arches(int(major), m, actual_arch):
-                    arches.append(tpl % (m, a))
-        else:
-            # arch pattern didn't match (?!)
-            arches = [arch]
+        arches = _mac_platforms(arch)
     elif arch_prefix == 'manylinux2014':
         arches = [arch]
         # manylinux1/manylinux2010 wheels run on most manylinux2014 systems
