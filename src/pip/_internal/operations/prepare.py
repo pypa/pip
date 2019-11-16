@@ -442,7 +442,6 @@ def _download_http_url(
         )
         raise
 
-    content_type = resp.headers.get('content-type', '')
     filename = link.filename  # fallback
     # Have a look at the Content-Disposition header for a better guess
     content_disposition = resp.headers.get('content-disposition')
@@ -450,7 +449,9 @@ def _download_http_url(
         filename = parse_content_disposition(content_disposition, filename)
     ext = splitext(filename)[1]  # type: Optional[str]
     if not ext:
-        ext = mimetypes.guess_extension(content_type)
+        ext = mimetypes.guess_extension(
+            resp.headers.get('content-type', '')
+        )
         if ext:
             filename += ext
     if not ext and link.url != resp.url:
@@ -460,7 +461,7 @@ def _download_http_url(
     file_path = os.path.join(temp_dir, filename)
     with open(file_path, 'wb') as content_file:
         _download_url(resp, link, content_file, hashes, progress_bar)
-    return file_path, content_type
+    return file_path, resp.headers.get('content-type', '')
 
 
 def _check_download_dir(link, download_dir, hashes):
