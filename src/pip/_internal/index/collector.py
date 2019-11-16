@@ -2,9 +2,6 @@
 The main purpose of this module is to expose LinkCollector.collect_links().
 """
 
-# The following comment should be removed at some point in the future.
-# mypy: disallow-untyped-defs=False
-
 import cgi
 import itertools
 import logging
@@ -290,6 +287,7 @@ class HTMLPage(object):
         self.url = url
 
     def __str__(self):
+        # type: () -> str
         return redact_auth_from_url(self.url)
 
 
@@ -385,6 +383,7 @@ def group_locations(locations, expand_dir=False):
 
     # puts the url for the given file path into the appropriate list
     def sort_path(path):
+        # type: (str) -> None
         url = path_to_url(path)
         if mimetypes.guess_type(url, strict=False)[0] == 'text/html':
             urls.append(url)
