@@ -113,6 +113,14 @@ def _progress_indicator(iterable, *args, **kwargs):
     return iterable
 
 
+def _get_http_response_size(resp):
+    # type: (Response) -> Optional[int]
+    try:
+        return int(resp.headers['content-length'])
+    except (ValueError, KeyError, TypeError):
+        return None
+
+
 def _download_url(
     resp,  # type: Response
     link,  # type: Link
@@ -121,10 +129,7 @@ def _download_url(
     progress_bar  # type: str
 ):
     # type: (...) -> None
-    try:
-        total_length = int(resp.headers['content-length'])
-    except (ValueError, KeyError, TypeError):
-        total_length = 0
+    total_length = _get_http_response_size(resp)
 
     if link.netloc == PyPI.file_storage_domain:
         url = link.show_url
@@ -142,9 +147,9 @@ def _download_url(
         show_progress = False
     elif is_from_cache(resp):
         show_progress = False
-    elif total_length > (40 * 1000):
-        show_progress = True
     elif not total_length:
+        show_progress = True
+    elif total_length > (40 * 1000):
         show_progress = True
     else:
         show_progress = False
