@@ -391,6 +391,8 @@ def get_supported(
         versions = get_all_minor_versions_as_strings(version_info)
     else:
         versions = [version]
+    current_version = versions[0]
+    other_versions = versions[1:]
 
     impl = impl or get_abbr_impl()
 
@@ -428,11 +430,11 @@ def get_supported(
     # Current version, current API (built specifically for our Python):
     for abi in abis:
         for arch in arches:
-            supported.append(('%s%s' % (impl, versions[0]), abi, arch))
+            supported.append(('%s%s' % (impl, current_version), abi, arch))
 
     # abi3 modules compatible with older version of Python
     if supports_abi3:
-        for version in versions[1:]:
+        for version in other_versions:
             # abi3 was introduced in Python 3.2
             if version in {'31', '30'}:
                 break
@@ -441,16 +443,16 @@ def get_supported(
 
     # Has binaries, does not use the Python API:
     for arch in arches:
-        supported.append(('py%s' % (versions[0][0]), 'none', arch))
+        supported.append(('py%s' % (current_version[0]), 'none', arch))
 
     # No abi / arch, but requires our implementation:
-    supported.append(('%s%s' % (impl, versions[0]), 'none', 'any'))
+    supported.append(('%s%s' % (impl, current_version), 'none', 'any'))
 
     # No abi / arch, generic Python
-    for i, version in enumerate(versions):
+    supported.append(('py%s' % (current_version,), 'none', 'any'))
+    supported.append(('py%s' % (current_version[0]), 'none', 'any'))
+    for version in other_versions:
         supported.append(('py%s' % (version,), 'none', 'any'))
-        if i == 0:
-            supported.append(('py%s' % (version[0]), 'none', 'any'))
 
     return supported
 
