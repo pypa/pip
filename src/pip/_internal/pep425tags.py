@@ -342,6 +342,28 @@ def _mac_platforms(arch):
     return arches
 
 
+def _custom_manylinux_platforms(arch):
+    # type: (str) -> List[str]
+    arches = [arch]
+    arch_prefix, arch_sep, arch_suffix = arch.partition('_')
+    if arch_prefix == 'manylinux2014':
+        # manylinux1/manylinux2010 wheels run on most manylinux2014 systems
+        # with the exception of wheels depending on ncurses. PEP 599 states
+        # manylinux1/manylinux2010 wheels should be considered
+        # manylinux2014 wheels:
+        # https://www.python.org/dev/peps/pep-0599/#backwards-compatibility-with-manylinux2010-wheels
+        if arch_suffix in {'i686', 'x86_64'}:
+            arches.append('manylinux2010' + arch_sep + arch_suffix)
+            arches.append('manylinux1' + arch_sep + arch_suffix)
+    elif arch_prefix == 'manylinux2010':
+        # manylinux1 wheels run on most manylinux2010 systems with the
+        # exception of wheels depending on ncurses. PEP 571 states
+        # manylinux1 wheels should be considered manylinux2010 wheels:
+        # https://www.python.org/dev/peps/pep-0571/#backwards-compatibility-with-manylinux1-wheels
+        arches.append('manylinux1' + arch_sep + arch_suffix)
+    return arches
+
+
 def get_supported(
     version=None,  # type: Optional[str]
     platform=None,  # type: Optional[str]
@@ -389,22 +411,8 @@ def get_supported(
     arch_prefix, arch_sep, arch_suffix = arch.partition('_')
     if arch.startswith('macosx'):
         arches = _mac_platforms(arch)
-    elif arch_prefix == 'manylinux2014':
-        arches = [arch]
-        # manylinux1/manylinux2010 wheels run on most manylinux2014 systems
-        # with the exception of wheels depending on ncurses. PEP 599 states
-        # manylinux1/manylinux2010 wheels should be considered
-        # manylinux2014 wheels:
-        # https://www.python.org/dev/peps/pep-0599/#backwards-compatibility-with-manylinux2010-wheels
-        if arch_suffix in {'i686', 'x86_64'}:
-            arches.append('manylinux2010' + arch_sep + arch_suffix)
-            arches.append('manylinux1' + arch_sep + arch_suffix)
-    elif arch_prefix == 'manylinux2010':
-        # manylinux1 wheels run on most manylinux2010 systems with the
-        # exception of wheels depending on ncurses. PEP 571 states
-        # manylinux1 wheels should be considered manylinux2010 wheels:
-        # https://www.python.org/dev/peps/pep-0571/#backwards-compatibility-with-manylinux1-wheels
-        arches = [arch, 'manylinux1' + arch_sep + arch_suffix]
+    elif arch_prefix in ['manylinux2014', 'manylinux2010']:
+        arches = _custom_manylinux_platforms(arch)
     elif platform is None:
         arches = []
         if is_manylinux2014_compatible():
