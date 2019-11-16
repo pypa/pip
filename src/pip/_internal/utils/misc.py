@@ -131,10 +131,34 @@ def get_prog():
         pass
     return 'pip'
 
+def is_win_access_error(e):
+    """returns True if the OSError is a Windows access error which indicates
+    that another process is preventing the object from being deleted."""
+    return e.errno == errno.EACCES and getattr(e, "winerror", None) == 5
+
+def rmtree(dir, ignore_errors=False, n_tries=5):
+    """remove directory tree and on Windows will handle the case where
+    another process like a virus scanner is still holding onto a file
+    inside the target directory tree."""
+    last_error = None
+    for i in range(n_tries):
+        try:
+            rmtree_internal(dir, ignore_errors)
+            return # succeeded, done.
+        except OSError as e:
+            if is_win_access_error(e):
+                logger.warning(
+                    'failed to remove %s - possibly held by another process - %s',
+                    dir, e.strerror)
+            else:
+                raise
+            last_error = e
+    # re-raise last error if we've run out of attempts
+    raise last_error
 
 # Retry every half second for up to 3 seconds
 @retry(stop_max_delay=3000, wait_fixed=500)
-def rmtree(dir, ignore_errors=False):
+def rmtree_internal(dir, ignore_errors=False):
     # type: (str, bool) -> None
     shutil.rmtree(dir, ignore_errors=ignore_errors,
                   onerror=rmtree_errorhandler)
