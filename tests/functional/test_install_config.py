@@ -4,6 +4,8 @@ import textwrap
 
 import pytest
 
+from tests.lib.server import file_response, package_page
+
 
 def test_options_from_env_vars(script):
     """
@@ -122,45 +124,54 @@ def test_command_line_appends_correctly(script, data):
     ), 'stdout: {}'.format(result.stdout)
 
 
-@pytest.mark.network
-def test_config_file_override_stack(script, virtualenv):
+def test_config_file_override_stack(
+    script, virtualenv, mock_server, shared_data
+):
     """
     Test config files (global, overriding a global config with a
     local, overriding all with a command line flag).
     """
+    mock_server.set_responses([
+        package_page({}),
+        package_page({}),
+        package_page({"INITools-0.2.tar.gz": "/files/INITools-0.2.tar.gz"}),
+        file_response(shared_data.packages.joinpath("INITools-0.2.tar.gz")),
+    ])
+    mock_server.start()
+    base_address = "http://{}:{}".format(mock_server.host, mock_server.port)
+
     config_file = script.scratch_path / "test-pip.cfg"
 
     # set this to make pip load it
     script.environ['PIP_CONFIG_FILE'] = str(config_file)
+
     config_file.write_text(textwrap.dedent("""\
         [global]
-        index-url = https://download.zope.org/ppix
-        """))
-    result = script.pip('install', '-vvv', 'INITools', expect_error=True)
-    assert (
-        "Getting page https://download.zope.org/ppix/initools" in result.stdout
-    )
+        index-url = {}/simple1
+        """.format(base_address)))
+    script.pip('install', '-vvv', 'INITools', expect_error=True)
     virtualenv.clear()
+
     config_file.write_text(textwrap.dedent("""\
         [global]
-        index-url = https://download.zope.org/ppix
+        index-url = {address}/simple1
         [install]
-        index-url = https://pypi.gocept.com/
-        """))
-    result = script.pip('install', '-vvv', 'INITools', expect_error=True)
-    assert "Getting page https://pypi.gocept.com/initools" in result.stdout
-    result = script.pip(
-        'install', '-vvv', '--index-url', 'https://pypi.org/simple/',
+        index-url = {address}/simple2
+        """.format(address=base_address))
+    )
+    script.pip('install', '-vvv', 'INITools', expect_error=True)
+    script.pip(
+        'install', '-vvv', '--index-url', "{}/simple3".format(base_address),
         'INITools',
     )
-    assert (
-        "Getting page http://download.zope.org/ppix/INITools"
-        not in result.stdout
-    )
-    assert "Getting page https://pypi.gocept.com/INITools" not in result.stdout
-    assert (
-        "Getting page https://pypi.org/simple/initools" in result.stdout
-    )
+
+    mock_server.stop()
+    requests = mock_server.get_requests()
+    assert len(requests) == 4
+    assert requests[0]["PATH_INFO"] == "/simple1/initools/"
+    assert requests[1]["PATH_INFO"] == "/simple2/initools/"
+    assert requests[2]["PATH_INFO"] == "/simple3/initools/"
+    assert requests[3]["PATH_INFO"] == "/files/INITools-0.2.tar.gz"
 
 
 def test_options_from_venv_config(script, virtualenv):
