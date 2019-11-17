@@ -1325,6 +1325,7 @@ def test_install_no_binary_disables_building_wheels(script, data, with_wheel):
     assert "Running setup.py install for upper" in str(res), str(res)
 
 
+@pytest.mark.network
 def test_install_no_binary_builds_pep_517_wheel(script, data, with_wheel):
     to_install = data.packages.joinpath('pep517_setup_and_pyproject')
     res = script.pip(
