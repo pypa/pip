@@ -4,7 +4,6 @@
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
 
-import errno
 import hashlib
 import logging
 import os
@@ -62,6 +61,34 @@ class Cache(object):
         _valid_formats = {"source", "binary"}
         assert self.allowed_formats.union(_valid_formats) == _valid_formats
 
+    def _get_cache_path_parts_legacy(self, link):
+        # type: (Link) -> List[str]
+        """Get parts of part that must be os.path.joined with cache_dir
+
+        Legacy cache key (pip < 20) for compatibility with older caches.
+        """
+
+        # We want to generate an url to use as our cache key, we don't want to
+        # just re-use the URL because it might have other items in the fragment
+        # and we don't care about those.
+        key_parts = [link.url_without_fragment]
+        if link.hash_name is not None and link.hash is not None:
+            key_parts.append("=".join([link.hash_name, link.hash]))
+        key_url = "#".join(key_parts)
+
+        # Encode our key url with sha224, we'll use this because it has similar
+        # security properties to sha256, but with a shorter total output (and
+        # thus less secure). However the differences don't make a lot of
+        # difference for our use case here.
+        hashed = hashlib.sha224(key_url.encode()).hexdigest()
+
+        # We want to nest the directories some to prevent having a ton of top
+        # level directories where we might run out of sub directories on some
+        # FS.
+        parts = [hashed[:2], hashed[2:4], hashed[4:6], hashed[6:]]
+
+        return parts
+
     def _get_cache_path_parts(self, link):
         # type: (Link) -> List[str]
         """Get parts of part that must be os.path.joined with cache_dir
@@ -116,13 +143,19 @@ class Cache(object):
         if not self.allowed_formats.intersection(formats):
             return []
 
-        root = self.get_path_for_link(link)
-        try:
-            return os.listdir(root)
-        except OSError as err:
-            if err.errno in {errno.ENOENT, errno.ENOTDIR}:
-                return []
-            raise
+        candidates = []
+        path = self.get_path_for_link(link)
+        if os.path.isdir(path):
+            candidates.extend(os.listdir(path))
+        # TODO remove legacy path lookup in pip>=21
+        legacy_path = self.get_path_for_link_legacy(link)
+        if os.path.isdir(legacy_path):
+            candidates.extend(os.listdir(legacy_path))
+        return candidates
+
+    def get_path_for_link_legacy(self, link):
+        # type: (Link) -> str
+        raise NotImplementedError()
 
     def get_path_for_link(self, link):
         # type: (Link) -> str
@@ -163,6 +196,11 @@ class SimpleWheelCache(Cache):
         super(SimpleWheelCache, self).__init__(
             cache_dir, format_control, {"binary"}
         )
+
+    def get_path_for_link_legacy(self, link):
+        # type: (Link) -> str
+        parts = self._get_cache_path_parts_legacy(link)
+        return os.path.join(self.cache_dir, "wheels", *parts)
 
     def get_path_for_link(self, link):
         # type: (Link) -> str
@@ -255,6 +293,10 @@ class WheelCache(Cache):
         )
         self._wheel_cache = SimpleWheelCache(cache_dir, format_control)
         self._ephem_cache = EphemWheelCache(format_control)
+
+    def get_path_for_link_legacy(self, link):
+        # type: (Link) -> str
+        return self._wheel_cache.get_path_for_link_legacy(link)
 
     def get_path_for_link(self, link):
         # type: (Link) -> str

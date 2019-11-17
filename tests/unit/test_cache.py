@@ -49,3 +49,23 @@ def test_cache_hash():
     assert h == "c7d60d08b1079254d236e983501fa26c016d58d16010725b27ed0af2"
     h = _hash_dict({"url": "https://g.c/o/r", "subdirectory": "sd"})
     assert h == "9cba35d4ccf04b7cde751b44db347fd0f21fa47d1276e32f9d47864c"
+
+
+def test_get_path_for_link_legacy(tmpdir):
+    """
+    Test that an existing cache entry that was created with the legacy hashing
+    mechanism is used.
+    """
+    wc = WheelCache(tmpdir, FormatControl())
+    link = Link("https://g.c/o/r")
+    path = wc.get_path_for_link(link)
+    legacy_path = wc.get_path_for_link_legacy(link)
+    assert path != legacy_path
+    ensure_dir(path)
+    with open(os.path.join(path, "test-pyz-none-any.whl"), "w"):
+        pass
+    ensure_dir(legacy_path)
+    with open(os.path.join(legacy_path, "test-pyx-none-any.whl"), "w"):
+        pass
+    expected_candidates = {"test-pyx-none-any.whl", "test-pyz-none-any.whl"}
+    assert set(wc._get_candidates(link, "test")) == expected_candidates
