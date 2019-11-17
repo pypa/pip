@@ -40,7 +40,6 @@ from pip._internal.utils.marker_files import write_delete_marker_file
 from pip._internal.utils.misc import (
     ask_path_exists,
     backup_dir,
-    consume,
     display_path,
     format_size,
     hide_url,
@@ -58,7 +57,7 @@ from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Any, Callable, IO, List, Optional, Tuple,
+        Callable, Iterable, List, Optional, Tuple,
     )
 
     from mypy_extensions import TypedDict
@@ -122,13 +121,12 @@ def _get_http_response_size(resp):
         return None
 
 
-def _download_url(
+def _prepare_download(
     resp,  # type: Response
     link,  # type: Link
-    content_file,  # type: IO[Any]
     progress_bar  # type: str
 ):
-    # type: (...) -> None
+    # type: (...) -> Iterable[bytes]
     total_length = _get_http_response_size(resp)
 
     if link.netloc == PyPI.file_storage_domain:
@@ -158,11 +156,6 @@ def _download_url(
     else:
         show_progress = False
 
-    def written_chunks(chunks):
-        for chunk in chunks:
-            content_file.write(chunk)
-            yield chunk
-
     progress_indicator = _progress_indicator
 
     if show_progress:  # We don't show progress on cached responses
@@ -170,12 +163,9 @@ def _download_url(
             progress_bar, max=total_length
         )
 
-    downloaded_chunks = written_chunks(
-        progress_indicator(
-            response_chunks(resp, CONTENT_CHUNK_SIZE)
-        )
+    return progress_indicator(
+        response_chunks(resp, CONTENT_CHUNK_SIZE)
     )
-    consume(downloaded_chunks)
 
 
 def _copy_file(filename, location, link):
@@ -480,7 +470,8 @@ def _download_http_url(
     filename = _get_http_response_filename(resp, link)
     file_path = os.path.join(temp_dir, filename)
     with open(file_path, 'wb') as content_file:
-        _download_url(resp, link, content_file, progress_bar)
+        for chunk in _prepare_download(resp, link, progress_bar):
+            content_file.write(chunk)
 
     if hashes:
         hashes.check_against_path(file_path)
