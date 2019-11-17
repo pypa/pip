@@ -126,7 +126,6 @@ def _download_url(
     resp,  # type: Response
     link,  # type: Link
     content_file,  # type: IO[Any]
-    hashes,  # type: Optional[Hashes]
     progress_bar  # type: str
 ):
     # type: (...) -> None
@@ -176,10 +175,7 @@ def _download_url(
             response_chunks(resp, CONTENT_CHUNK_SIZE)
         )
     )
-    if hashes:
-        hashes.check_against_chunks(downloaded_chunks)
-    else:
-        consume(downloaded_chunks)
+    consume(downloaded_chunks)
 
 
 def _copy_file(filename, location, link):
@@ -484,7 +480,11 @@ def _download_http_url(
     filename = _get_http_response_filename(resp, link)
     file_path = os.path.join(temp_dir, filename)
     with open(file_path, 'wb') as content_file:
-        _download_url(resp, link, content_file, hashes, progress_bar)
+        _download_url(resp, link, content_file, progress_bar)
+
+    if hashes:
+        hashes.check_against_path(file_path)
+
     return file_path, resp.headers.get('content-type', '')
 
 
