@@ -46,6 +46,7 @@ from pip._internal.utils.misc import (
     hide_url,
     normalize_path,
     path_to_display,
+    redact_auth_from_url,
     rmtree,
     splitext,
 )
@@ -131,12 +132,16 @@ def _download_url(
     else:
         url = link.url_without_fragment
 
+    redacted_url = redact_auth_from_url(url)
+
     if total_length:
-        logger.info("Downloading %s (%s)", url, format_size(total_length))
+        logger.info(
+            "Downloading %s (%s)", redacted_url, format_size(total_length)
+        )
     elif is_from_cache(resp):
-        logger.info("Using cached %s", url)
+        logger.info("Using cached %s", redacted_url)
     else:
-        logger.info("Downloading %s", url)
+        logger.info("Downloading %s", redacted_url)
 
     if logger.getEffectiveLevel() > logging.INFO:
         show_progress = False
