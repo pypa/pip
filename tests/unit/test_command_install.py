@@ -2,12 +2,16 @@ import errno
 
 import pytest
 from mock import Mock, call, patch
+from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.commands.install import (
     build_wheels,
     create_env_error_message,
     decide_user_install,
+    warn_deprecated_install_options,
 )
+from pip._internal.req.req_install import InstallRequirement
+from pip._internal.req.req_set import RequirementSet
 
 
 class TestWheelCache:
@@ -100,6 +104,44 @@ class TestDecideUserInstall:
             lambda **kw: site_packages_writable
         )
         assert decide_user_install(use_user_site=None) is result
+
+
+def test_deprecation_notice_for_pip_install_options(recwarn):
+    install_options = ["--prefix=/hello"]
+    req_set = RequirementSet()
+    warn_deprecated_install_options(req_set, install_options)
+
+    assert len(recwarn) == 1
+    message = recwarn[0].message.args[0]
+    assert "['--prefix'] from command line" in message
+
+
+def test_deprecation_notice_for_requirement_options(recwarn):
+    install_options = []
+    req_set = RequirementSet()
+
+    bad_named_req_options = {"install_options": ["--home=/wow"]}
+    bad_named_req = InstallRequirement(
+        Requirement("hello"), "requirements.txt", options=bad_named_req_options
+    )
+    req_set.add_named_requirement(bad_named_req)
+
+    bad_unnamed_req_options = {"install_options": ["--install-lib=/lib"]}
+    bad_unnamed_req = InstallRequirement(
+        None, "requirements2.txt", options=bad_unnamed_req_options
+    )
+    req_set.add_unnamed_requirement(bad_unnamed_req)
+
+    warn_deprecated_install_options(req_set, install_options)
+
+    assert len(recwarn) == 1
+    message = recwarn[0].message.args[0]
+
+    assert (
+        "['--install-lib'] from <InstallRequirement> (from requirements2.txt)"
+        in message
+    )
+    assert "['--home'] from hello (from requirements.txt)" in message
 
 
 @pytest.mark.parametrize('error, show_traceback, using_user_site, expected', [
