@@ -44,26 +44,15 @@ def test_command_line_options_override_env_vars(script, virtualenv):
 def test_env_vars_override_config_file(script, virtualenv):
     """
     Test that environmental variables override settings in config files.
-
     """
-    fd, config_file = tempfile.mkstemp('-pip.cfg', 'test-')
-    try:
-        _test_env_vars_override_config_file(script, virtualenv, config_file)
-    finally:
-        # `os.close` is a workaround for a bug in subprocess
-        # https://bugs.python.org/issue3210
-        os.close(fd)
-        os.remove(config_file)
-
-
-def _test_env_vars_override_config_file(script, virtualenv, config_file):
+    config_file = script.scratch_path / "test-pip.cfg"
     # set this to make pip load it
-    script.environ['PIP_CONFIG_FILE'] = config_file
+    script.environ['PIP_CONFIG_FILE'] = str(config_file)
     # It's important that we test this particular config value ('no-index')
     # because there is/was a bug which only shows up in cases in which
     # 'config-item' and 'config_item' hash to the same value modulo the size
     # of the config dictionary.
-    (script.scratch_path / config_file).write_text(textwrap.dedent("""\
+    config_file.write_text(textwrap.dedent("""\
         [global]
         no-index = 1
         """))
@@ -138,22 +127,12 @@ def test_config_file_override_stack(script, virtualenv):
     """
     Test config files (global, overriding a global config with a
     local, overriding all with a command line flag).
-
     """
-    fd, config_file = tempfile.mkstemp('-pip.cfg', 'test-')
-    try:
-        _test_config_file_override_stack(script, virtualenv, config_file)
-    finally:
-        # `os.close` is a workaround for a bug in subprocess
-        # https://bugs.python.org/issue3210
-        os.close(fd)
-        os.remove(config_file)
+    config_file = script.scratch_path / "test-pip.cfg"
 
-
-def _test_config_file_override_stack(script, virtualenv, config_file):
     # set this to make pip load it
-    script.environ['PIP_CONFIG_FILE'] = config_file
-    (script.scratch_path / config_file).write_text(textwrap.dedent("""\
+    script.environ['PIP_CONFIG_FILE'] = str(config_file)
+    config_file.write_text(textwrap.dedent("""\
         [global]
         index-url = https://download.zope.org/ppix
         """))
@@ -162,7 +141,7 @@ def _test_config_file_override_stack(script, virtualenv, config_file):
         "Getting page https://download.zope.org/ppix/initools" in result.stdout
     )
     virtualenv.clear()
-    (script.scratch_path / config_file).write_text(textwrap.dedent("""\
+    config_file.write_text(textwrap.dedent("""\
         [global]
         index-url = https://download.zope.org/ppix
         [install]
