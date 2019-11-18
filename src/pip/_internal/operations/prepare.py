@@ -201,10 +201,9 @@ def _copy_file(filename, location, link):
 def unpack_http_url(
     link,  # type: Link
     location,  # type: str
-    session,  # type: PipSession
+    downloader,  # type: Downloader
     download_dir=None,  # type: Optional[str]
     hashes=None,  # type: Optional[Hashes]
-    progress_bar="on"  # type: str
 ):
     # type: (...) -> None
     with TempDirectory(kind="unpack") as temp_dir:
@@ -219,7 +218,6 @@ def unpack_http_url(
             from_path = already_downloaded_path
             content_type = mimetypes.guess_type(from_path)[0]
         else:
-            downloader = Downloader(session, progress_bar)
             # let's download to a tmp dir
             from_path, content_type = _download_http_url(
                 link, downloader, temp_dir.path, hashes
@@ -363,13 +361,14 @@ def unpack_url(
 
     # http urls
     else:
+        downloader = Downloader(session, progress_bar)
+
         unpack_http_url(
             link,
             location,
-            session,
+            downloader,
             download_dir,
             hashes=hashes,
-            progress_bar=progress_bar
         )
 
 
