@@ -48,7 +48,7 @@ from pip._internal.utils.misc import (
     redact_netloc,
     remove_auth_from_url,
     rmtree,
-    rmtree_internal,
+    rmtree_minimal_retry,
     rmtree_errorhandler,
     split_auth_from_netloc,
     split_auth_netloc_from_url,
@@ -346,7 +346,7 @@ def test_rmtree_skips_nonexistent_directory():
     Test wrapped rmtree doesn't raise an error
     by the given nonexistent directory.
     """
-    rmtree_internal.__wrapped__('nonexistent-subdir')
+    rmtree_minimal_retry.__wrapped__('nonexistent-subdir')
 
 
 class Failer:
@@ -379,13 +379,14 @@ def test_rmtree_retries_for_3sec(tmpdir, monkeypatch):
     with pytest.raises(OSError):
         rmtree('foo')
 
+winerror5 = OSError(13, 'Access is denied', 'foo', 5)
+
 @pytest.mark.skipif("sys.platform != 'win32'")
 def test_rmtree_retries_longer_for_winerror5(tmpdir, monkeypatch):
     """
     Test pip._internal.utils.rmtree will retry longer for winerror5
     """
-    winerror5 = OSError(13, 'Access is denied', 'foo', 5)
-    monkeypatch.setattr(shutil, 'rmtree', Failer(duration=4, exception=winerror5).call)
+    monkeypatch.setattr(shutil, 'rmtree', Failer(duration=5, exception=winerror5).call)
     rmtree('foo')
 
 @pytest.mark.skipif("sys.platform != 'win32'")
@@ -393,10 +394,9 @@ def test_rmtree_retries_for_winerror5_can_be_limited(tmpdir, monkeypatch):
     """
     Test pip._internal.utils.rmtree will retry longer for winerror5
     """
-    winerror5 = OSError(13, 'Access is denied', 'foo', 5)
-    monkeypatch.setattr(shutil, 'rmtree', Failer(duration=8, exception=winerror5).call)
+    monkeypatch.setattr(shutil, 'rmtree', Failer(duration=17, exception=winerror5).call)
     with pytest.raises(OSError):
-        rmtree('foo', n_tries=2)
+        rmtree('foo')
 
 @pytest.mark.parametrize('path, fs_encoding, expected', [
     (None, None, None),

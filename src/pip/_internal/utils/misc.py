@@ -131,38 +131,44 @@ def get_prog():
         pass
     return 'pip'
 
-def is_win_access_error(e):
-    """returns True if the OSError is a Windows access error which indicates
-    that another process is preventing the object from being deleted."""
-    return e.errno == errno.EACCES and getattr(e, "winerror", None) == 5
-
-def rmtree(dir, ignore_errors=False, n_tries=5):
-    """remove directory tree and on Windows will handle the case where
-    another process like a virus scanner is still holding onto a file
-    inside the target directory tree."""
-    last_error = None
-    for i in range(n_tries):
-        try:
-            rmtree_internal(dir, ignore_errors)
-            return # succeeded, done.
-        except OSError as e:
-            if is_win_access_error(e):
-                logger.warning(
-                    'failed to remove %s - possibly held by another process - %s',
-                    dir, e.strerror)
-            else:
-                raise
-            last_error = e
-    # re-raise last error if we've run out of attempts
-    raise last_error
-
-# Retry every half second for up to 3 seconds
-@retry(stop_max_delay=3000, wait_fixed=500)
-def rmtree_internal(dir, ignore_errors=False):
+def rmtree(dir, ignore_errors=False):
     # type: (str, bool) -> None
+    """remove directory tree, with appropriate retry logic per OS."""
+    rmtree_impl(dir, ignore_errors)
+
+@retry(stop_max_delay=3000, wait_fixed=500)
+def rmtree_minimal_retry(dir, ignore_errors=False):
+    # type: (str, bool) -> None
+    """remove directory tree, retry up to 3 seconds."""
     shutil.rmtree(dir, ignore_errors=ignore_errors,
                   onerror=rmtree_errorhandler)
 
+# default rmtree implementation
+rmtree_impl = rmtree_minimal_retry
+# on win32, wrap rmtree with more retries.
+# this helps remediate the case when another when a virus scanner (or any
+# other process) is still holding a handle to the file being deleted.
+if sys.platform == "win32":
+    def possibly_held_by_another_process(e):
+        """returns True if the error is a Windows access error which indicates
+        that another process is preventing the object from being deleted."""
+        held_by_another = (
+            isinstance(e, OSError) and
+            e.errno == errno.EACCES and
+            e.winerror == 5
+            )
+        if held_by_another:
+            logger.warning(
+                "%s (possibly held by another process). can't remove '%s'",
+            e.strerror, e.filename)
+            return True
+        else:
+            return False
+
+    rmtree_impl = retry(
+        stop_max_attempt_number=5,
+        retry_on_exception=possibly_held_by_another_process
+        )(rmtree_minimal_retry)
 
 def rmtree_errorhandler(func, path, exc_info):
     """On Windows, the files in .svn are read-only, so when rmtree() tries to
