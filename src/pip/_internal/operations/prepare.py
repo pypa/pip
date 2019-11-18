@@ -558,7 +558,7 @@ class RequirementPreparer(object):
         self.src_dir = src_dir
         self.build_dir = build_dir
         self.req_tracker = req_tracker
-        self.session = session
+        self.downloader = Downloader(session, progress_bar)
         self.finder = finder
 
         # Where still-packed archives should be written to. If None, they are
@@ -578,8 +578,6 @@ class RequirementPreparer(object):
         # download_dir and wheel_download_dir overlap semantically and may
         # be combined if we're willing to have non-wheel archives present in
         # the wheelhouse output by 'pip wheel'.
-
-        self.progress_bar = progress_bar
 
         # Is build isolation allowed?
         self.build_isolation = build_isolation
@@ -680,11 +678,9 @@ class RequirementPreparer(object):
                 # dedicated dir.
                 download_dir = self.wheel_download_dir
 
-            downloader = Downloader(self.session, self.progress_bar)
-
             try:
                 unpack_url(
-                    link, req.source_dir, downloader, download_dir,
+                    link, req.source_dir, self.downloader, download_dir,
                     hashes=hashes,
                 )
             except requests.HTTPError as exc:
