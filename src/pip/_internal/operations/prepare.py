@@ -219,9 +219,10 @@ def unpack_http_url(
             from_path = already_downloaded_path
             content_type = mimetypes.guess_type(from_path)[0]
         else:
+            downloader = Downloader(session, progress_bar)
             # let's download to a tmp dir
             from_path, content_type = _download_http_url(
-                link, session, temp_dir.path, hashes, progress_bar
+                link, downloader, temp_dir.path, hashes
             )
 
         # unpack the archive to the build dir location. even when only
@@ -492,15 +493,12 @@ class Downloader(object):
 
 def _download_http_url(
     link,  # type: Link
-    session,  # type: PipSession
+    downloader,  # type: Downloader
     temp_dir,  # type: str
     hashes,  # type: Optional[Hashes]
-    progress_bar  # type: str
 ):
     # type: (...) -> Tuple[str, str]
     """Download link url into temp_dir using provided session"""
-    downloader = Downloader(session, progress_bar)
-
     download = downloader(link)
 
     file_path = os.path.join(temp_dir, download.filename)

@@ -13,6 +13,7 @@ from pip._internal.exceptions import HashMismatch
 from pip._internal.models.link import Link
 from pip._internal.network.session import PipSession
 from pip._internal.operations.prepare import (
+    Downloader,
     _copy_source_tree,
     _download_http_url,
     parse_content_disposition,
@@ -228,15 +229,15 @@ def test_download_http_url__no_directory_traversal(tmpdir):
         'content-disposition': 'attachment;filename="../out_dir_file"'
     }
     session.get.return_value = resp
+    downloader = Downloader(session, progress_bar="on")
 
     download_dir = tmpdir.joinpath('download')
     os.mkdir(download_dir)
     file_path, content_type = _download_http_url(
         link,
-        session,
+        downloader,
         download_dir,
         hashes=None,
-        progress_bar='on',
     )
     # The file should be downloaded to download_dir.
     actual = os.listdir(download_dir)
