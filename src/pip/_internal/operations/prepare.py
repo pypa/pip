@@ -463,6 +463,33 @@ class Download(object):
         self.chunks = chunks
 
 
+class Downloader(object):
+    def __init__(
+        self,
+        session,  # type: PipSession
+        progress_bar,  # type: str
+    ):
+        # type: (...) -> None
+        self._session = session
+        self._progress_bar = progress_bar
+
+    def __call__(self, link):
+        # type: (Link) -> Download
+        try:
+            resp = _http_get_download(self._session, link)
+        except requests.HTTPError as e:
+            logger.critical(
+                "HTTP error %s while getting %s", e.response.status_code, link
+            )
+            raise
+
+        return Download(
+            resp,
+            _get_http_response_filename(resp, link),
+            _prepare_download(resp, link, self._progress_bar),
+        )
+
+
 def _download_http_url(
     link,  # type: Link
     session,  # type: PipSession
@@ -472,19 +499,9 @@ def _download_http_url(
 ):
     # type: (...) -> Tuple[str, str]
     """Download link url into temp_dir using provided session"""
-    try:
-        resp = _http_get_download(session, link)
-    except requests.HTTPError as exc:
-        logger.critical(
-            "HTTP error %s while getting %s", exc.response.status_code, link,
-        )
-        raise
+    downloader = Downloader(session, progress_bar)
 
-    download = Download(
-        resp,
-        _get_http_response_filename(resp, link),
-        _prepare_download(resp, link, progress_bar),
-    )
+    download = downloader(link)
 
     file_path = os.path.join(temp_dir, download.filename)
     with open(file_path, 'wb') as content_file:
