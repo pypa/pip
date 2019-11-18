@@ -331,10 +331,9 @@ def unpack_file_url(
 def unpack_url(
     link,  # type: Link
     location,  # type: str
-    session,  # type: PipSession
+    downloader,  # type: Downloader
     download_dir=None,  # type: Optional[str]
     hashes=None,  # type: Optional[Hashes]
-    progress_bar="on"  # type: str
 ):
     # type: (...) -> None
     """Unpack link.
@@ -361,8 +360,6 @@ def unpack_url(
 
     # http urls
     else:
-        downloader = Downloader(session, progress_bar)
-
         unpack_http_url(
             link,
             location,
@@ -683,11 +680,12 @@ class RequirementPreparer(object):
                 # dedicated dir.
                 download_dir = self.wheel_download_dir
 
+            downloader = Downloader(self.session, self.progress_bar)
+
             try:
                 unpack_url(
-                    link, req.source_dir, self.session, download_dir,
+                    link, req.source_dir, downloader, download_dir,
                     hashes=hashes,
-                    progress_bar=self.progress_bar
                 )
             except requests.HTTPError as exc:
                 logger.critical(
