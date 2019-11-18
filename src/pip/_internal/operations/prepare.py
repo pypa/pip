@@ -450,6 +450,19 @@ def _http_get_download(session, link):
     return resp
 
 
+class Download(object):
+    def __init__(
+        self,
+        response,  # type: Response
+        filename,  # type: str
+        chunks,  # type: Iterable[bytes]
+    ):
+        # type: (...) -> None
+        self.response = response
+        self.filename = filename
+        self.chunks = chunks
+
+
 def _download_http_url(
     link,  # type: Link
     session,  # type: PipSession
@@ -467,16 +480,21 @@ def _download_http_url(
         )
         raise
 
-    filename = _get_http_response_filename(resp, link)
-    file_path = os.path.join(temp_dir, filename)
+    download = Download(
+        resp,
+        _get_http_response_filename(resp, link),
+        _prepare_download(resp, link, progress_bar),
+    )
+
+    file_path = os.path.join(temp_dir, download.filename)
     with open(file_path, 'wb') as content_file:
-        for chunk in _prepare_download(resp, link, progress_bar):
+        for chunk in download.chunks:
             content_file.write(chunk)
 
     if hashes:
         hashes.check_against_path(file_path)
 
-    return file_path, resp.headers.get('content-type', '')
+    return file_path, download.response.headers.get('content-type', '')
 
 
 def _check_download_dir(link, download_dir, hashes):
