@@ -2,7 +2,6 @@
 
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
-# mypy: disallow-untyped-defs=False
 
 from __future__ import absolute_import
 
@@ -42,6 +41,7 @@ def get_major_minor_version():
 
 
 def get_src_prefix():
+    # type: () -> str
     if running_under_virtualenv():
         src_prefix = os.path.join(sys.prefix, 'src')
     else:
