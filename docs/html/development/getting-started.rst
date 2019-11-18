@@ -8,6 +8,18 @@ This document is meant to get you setup to work on pip and to act as a guide and
 reference to the the development setup. If you face any issues during this
 process, please `open an issue`_ about it on the issue tracker.
 
+Get the source code
+-------------------
+
+To work on pip, you first need to get the source code of pip. The source code is
+available on `GitHub`_.
+
+.. code-block:: console
+
+    $ git clone https://github.com/pypa/pip
+    $ cd pip
+
+
 Development Environment
 -----------------------
 
@@ -103,3 +115,4 @@ The built documentation can be found in the ``docs/build`` folder.
 .. _`install Python`: https://realpython.com/installing-python/
 .. _`PEP 484 type-comments`: https://www.python.org/dev/peps/pep-0484/#suggested-syntax-for-python-2-7-and-straddling-code
 .. _`rich CLI`: https://docs.pytest.org/en/latest/usage.html#specifying-tests-selecting-tests
+.. _`GitHub`: https://github.com/pypa/pip
