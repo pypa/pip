@@ -131,10 +131,12 @@ def get_prog():
         pass
     return 'pip'
 
+
 def rmtree(dir, ignore_errors=False):
     # type: (str, bool) -> None
     """remove directory tree, with appropriate retry logic per OS."""
     rmtree_impl(dir, ignore_errors)
+
 
 @retry(stop_max_delay=3000, wait_fixed=500)
 def rmtree_minimal_retry(dir, ignore_errors=False):
@@ -142,6 +144,7 @@ def rmtree_minimal_retry(dir, ignore_errors=False):
     """remove directory tree, retry up to 3 seconds."""
     shutil.rmtree(dir, ignore_errors=ignore_errors,
                   onerror=rmtree_errorhandler)
+
 
 # default rmtree implementation
 rmtree_impl = rmtree_minimal_retry
@@ -156,11 +159,12 @@ if sys.platform == "win32":
             isinstance(e, OSError) and
             e.errno == errno.EACCES and
             e.winerror == 5
-            )
+        )
         if held_by_another:
             logger.warning(
                 "%s (possibly held by another process). can't remove '%s'",
-            e.strerror, e.filename)
+                e.strerror, e.filename
+            )
             return True
         else:
             return False
@@ -168,7 +172,8 @@ if sys.platform == "win32":
     rmtree_impl = retry(
         stop_max_attempt_number=5,
         retry_on_exception=possibly_held_by_another_process
-        )(rmtree_minimal_retry)
+    )(rmtree_minimal_retry)
+
 
 def rmtree_errorhandler(func, path, exc_info):
     """On Windows, the files in .svn are read-only, so when rmtree() tries to
