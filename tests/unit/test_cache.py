@@ -46,9 +46,11 @@ def test_wheel_name_filter(tmpdir):
 
 def test_cache_hash():
     h = _hash_dict({"url": "https://g.c/o/r"})
-    assert h == "c7d60d08b1079254d236e983501fa26c016d58d16010725b27ed0af2"
+    assert h == "72aa79d3315c181d2cc23239d7109a782de663b6f89982624d8c1e86"
     h = _hash_dict({"url": "https://g.c/o/r", "subdirectory": "sd"})
-    assert h == "9cba35d4ccf04b7cde751b44db347fd0f21fa47d1276e32f9d47864c"
+    assert h == "8b13391b6791bf7f3edeabb41ea4698d21bcbdbba7f9c7dc9339750d"
+    h = _hash_dict({"subdirectory": u"/\xe9e"})
+    assert h == "f83b32dfa27a426dec08c21bf006065dd003d0aac78e7fc493d9014d"
 
 
 def test_get_path_for_link_legacy(tmpdir):

@@ -5,6 +5,7 @@
 # mypy: strict-optional=False
 
 import hashlib
+import json
 import logging
 import os
 import sys
@@ -30,14 +31,9 @@ logger = logging.getLogger(__name__)
 
 def _hash_dict(d):
     # type: (Dict[str, str]) -> str
-    """Return a sha224 of a dictionary where keys and values are strings."""
-    h = hashlib.new('sha224')
-    for k in sorted(d.keys()):
-        h.update(k.encode())
-        h.update("=".encode())
-        h.update(d[k].encode())
-        h.update(b"\0")
-    return h.hexdigest()
+    """Return a stable sha224 of a dictionary."""
+    s = json.dumps(d, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    return hashlib.sha224(s.encode("ascii")).hexdigest()
 
 
 class Cache(object):
