@@ -156,7 +156,19 @@ def get_platform():
 
     # XXX remove distutils dependency
     result = distutils.util.get_platform().replace('.', '_').replace('-', '_')
-    if result == "linux_x86_64" and _is_running_32bit():
+
+    # AIX tag with PEP425 support starts as "AIX"
+    # without pep425 support it starts as "aix"
+    # rather than provide the tag in this file it comes from a seperate
+    # support module while CPython catches up.
+    if result[:3] == "aix":
+        try:
+            from ._AIX_platform import get_platform
+            result = get_platform()
+        except ImportError:
+            # The AIX module is not avaliable, leave `result` asis
+            pass
+    elif result == "linux_x86_64" and _is_running_32bit():
         # 32 bit Python program (running on a 64 bit Linux): pip should only
         # install and run 32 bit compiled extensions in that case.
         result = "linux_i686"
