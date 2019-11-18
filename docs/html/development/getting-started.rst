@@ -115,4 +115,4 @@ The built documentation can be found in the ``docs/build`` folder.
 .. _`install Python`: https://realpython.com/installing-python/
 .. _`PEP 484 type-comments`: https://www.python.org/dev/peps/pep-0484/#suggested-syntax-for-python-2-7-and-straddling-code
 .. _`rich CLI`: https://docs.pytest.org/en/latest/usage.html#specifying-tests-selecting-tests
-.. `GitHub`: https://github.com/pypa/pip
+.. _`GitHub`: https://github.com/pypa/pip
