@@ -1,6 +1,5 @@
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
-# mypy: disallow-untyped-defs=False
 
 from __future__ import absolute_import
 
@@ -460,6 +459,7 @@ class InstallRequirement(object):
         self._ideal_build_dir = None
 
     def warn_on_mismatching_name(self):
+        # type: () -> None
         metadata_name = canonicalize_name(self.metadata["Name"])
         if canonicalize_name(self.req.name) == metadata_name:
             # Everything is fine.
