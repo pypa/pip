@@ -380,28 +380,39 @@ def test_rmtree_retries_for_3sec(tmpdir, monkeypatch):
         rmtree('foo')
 
 
-winerror5 = OSError(13, 'Access is denied', 'foo', 5)
+# windows access error for tests
+if sys.platform == "win32":
+    if sys.version_info >= (3,):
+        # windows access error on python 3
+        win32_access_error = OSError(13, 'Access is denied', 'foo', 5)
+    else:
+        # windows access error on python 2.7
+        win32_access_error = WindowsError()
+        win32_access_error.errno = 41
+        win32_access_error.strerror = 'The directory is not empty'
+        win32_access_error.filename = 'foo'
+        win32_access_error.winerror = 145
 
 
 @pytest.mark.skipif("sys.platform != 'win32'")
-def test_rmtree_retries_longer_for_winerror5(tmpdir, monkeypatch):
+def test_rmtree_retry_extra_on_win32(tmpdir, monkeypatch):
     """
-    Test pip._internal.utils.rmtree will retry longer for winerror5
+    Test pip._internal.utils.rmtree will retry beyond 3 sec on windows.
     """
     monkeypatch.setattr(
         shutil, 'rmtree',
-        Failer(duration=5, exception=winerror5).call)
+        Failer(duration=7, exception=win32_access_error).call)
     rmtree('foo')
 
 
 @pytest.mark.skipif("sys.platform != 'win32'")
-def test_rmtree_retries_for_winerror5_can_be_limited(tmpdir, monkeypatch):
+def test_rmtree_retry_limit_on_win32(tmpdir, monkeypatch):
     """
-    Test pip._internal.utils.rmtree will retry longer for winerror5
+    Test pip._internal.utils.rmtree will retry no more than 15 sec on windows.
     """
     monkeypatch.setattr(
         shutil, 'rmtree',
-        Failer(duration=17, exception=winerror5).call)
+        Failer(duration=17, exception=win32_access_error).call)
     with pytest.raises(OSError):
         rmtree('foo')
 
