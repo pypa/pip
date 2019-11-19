@@ -58,19 +58,19 @@ COMMENT_RE = re.compile(r'(^|\s+)#.*$')
 ENV_VAR_RE = re.compile(r'(?P<var>\$\{(?P<name>[A-Z0-9_]+)\})')
 
 SUPPORTED_OPTIONS = [
-    cmdoptions.constraints,
-    cmdoptions.editable,
-    cmdoptions.requirements,
-    cmdoptions.no_index,
     cmdoptions.index_url,
-    cmdoptions.find_links,
     cmdoptions.extra_index_url,
-    cmdoptions.always_unzip,
+    cmdoptions.no_index,
+    cmdoptions.constraints,
+    cmdoptions.requirements,
+    cmdoptions.editable,
+    cmdoptions.find_links,
     cmdoptions.no_binary,
     cmdoptions.only_binary,
+    cmdoptions.require_hashes,
     cmdoptions.pre,
     cmdoptions.trusted_host,
-    cmdoptions.require_hashes,
+    cmdoptions.always_unzip,  # Deprecated
 ]  # type: List[Callable[..., optparse.Option]]
 
 # options to be passed to requirements
