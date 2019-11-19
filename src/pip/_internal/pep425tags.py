@@ -10,13 +10,14 @@ import sysconfig
 import warnings
 from collections import OrderedDict
 
+from pip._vendor.six import PY2
+
 import pip._internal.utils.glibc
-from pip._internal.utils.compat import get_extension_suffixes
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Tuple, Callable, List, Optional, Union, Dict, Set
+        Tuple, Callable, List, Optional, Union, Dict
     )
 
     Pep425Tag = Tuple[str, str, str]
@@ -361,12 +362,10 @@ def get_supported(
     if abi:
         abis[0:0] = [abi]
 
-    abi3s = set()  # type: Set[str]
-    for suffix in get_extension_suffixes():
-        if suffix.startswith('.abi'):
-            abi3s.add(suffix.split('.', 2)[1])
+    supports_abi3 = not PY2 and impl == "cp"
 
-    abis.extend(sorted(list(abi3s)))
+    if supports_abi3:
+        abis.append("abi3")
 
     abis.append('none')
 
@@ -419,13 +418,13 @@ def get_supported(
             supported.append(('%s%s' % (impl, versions[0]), abi, arch))
 
     # abi3 modules compatible with older version of Python
-    for version in versions[1:]:
-        # abi3 was introduced in Python 3.2
-        if version in {'31', '30'}:
-            break
-        for abi in abi3s:   # empty set if not Python 3
+    if supports_abi3:
+        for version in versions[1:]:
+            # abi3 was introduced in Python 3.2
+            if version in {'31', '30'}:
+                break
             for arch in arches:
-                supported.append(("%s%s" % (impl, version), abi, arch))
+                supported.append(("%s%s" % (impl, version), "abi3", arch))
 
     # Has binaries, does not use the Python API:
     for arch in arches:
