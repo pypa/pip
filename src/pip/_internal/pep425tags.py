@@ -326,6 +326,44 @@ def get_all_minor_versions_as_strings(version_info):
     return versions
 
 
+def _mac_platforms(arch):
+    # type: (str) -> List[str]
+    match = _osx_arch_pat.match(arch)
+    if match:
+        name, major, minor, actual_arch = match.groups()
+        tpl = '{}_{}_%i_%s'.format(name, major)
+        arches = []
+        for m in reversed(range(int(minor) + 1)):
+            for a in get_darwin_arches(int(major), m, actual_arch):
+                arches.append(tpl % (m, a))
+    else:
+        # arch pattern didn't match (?!)
+        arches = [arch]
+    return arches
+
+
+def _custom_manylinux_platforms(arch):
+    # type: (str) -> List[str]
+    arches = [arch]
+    arch_prefix, arch_sep, arch_suffix = arch.partition('_')
+    if arch_prefix == 'manylinux2014':
+        # manylinux1/manylinux2010 wheels run on most manylinux2014 systems
+        # with the exception of wheels depending on ncurses. PEP 599 states
+        # manylinux1/manylinux2010 wheels should be considered
+        # manylinux2014 wheels:
+        # https://www.python.org/dev/peps/pep-0599/#backwards-compatibility-with-manylinux2010-wheels
+        if arch_suffix in {'i686', 'x86_64'}:
+            arches.append('manylinux2010' + arch_sep + arch_suffix)
+            arches.append('manylinux1' + arch_sep + arch_suffix)
+    elif arch_prefix == 'manylinux2010':
+        # manylinux1 wheels run on most manylinux2010 systems with the
+        # exception of wheels depending on ncurses. PEP 571 states
+        # manylinux1 wheels should be considered manylinux2010 wheels:
+        # https://www.python.org/dev/peps/pep-0571/#backwards-compatibility-with-manylinux1-wheels
+        arches.append('manylinux1' + arch_sep + arch_suffix)
+    return arches
+
+
 def get_supported(
     version=None,  # type: Optional[str]
     platform=None,  # type: Optional[str]
@@ -353,6 +391,8 @@ def get_supported(
         versions = get_all_minor_versions_as_strings(version_info)
     else:
         versions = [version]
+    current_version = versions[0]
+    other_versions = versions[1:]
 
     impl = impl or get_abbr_impl()
 
@@ -372,34 +412,9 @@ def get_supported(
     arch = platform or get_platform()
     arch_prefix, arch_sep, arch_suffix = arch.partition('_')
     if arch.startswith('macosx'):
-        # support macosx-10.6-intel on macosx-10.9-x86_64
-        match = _osx_arch_pat.match(arch)
-        if match:
-            name, major, minor, actual_arch = match.groups()
-            tpl = '{}_{}_%i_%s'.format(name, major)
-            arches = []
-            for m in reversed(range(int(minor) + 1)):
-                for a in get_darwin_arches(int(major), m, actual_arch):
-                    arches.append(tpl % (m, a))
-        else:
-            # arch pattern didn't match (?!)
-            arches = [arch]
-    elif arch_prefix == 'manylinux2014':
-        arches = [arch]
-        # manylinux1/manylinux2010 wheels run on most manylinux2014 systems
-        # with the exception of wheels depending on ncurses. PEP 599 states
-        # manylinux1/manylinux2010 wheels should be considered
-        # manylinux2014 wheels:
-        # https://www.python.org/dev/peps/pep-0599/#backwards-compatibility-with-manylinux2010-wheels
-        if arch_suffix in {'i686', 'x86_64'}:
-            arches.append('manylinux2010' + arch_sep + arch_suffix)
-            arches.append('manylinux1' + arch_sep + arch_suffix)
-    elif arch_prefix == 'manylinux2010':
-        # manylinux1 wheels run on most manylinux2010 systems with the
-        # exception of wheels depending on ncurses. PEP 571 states
-        # manylinux1 wheels should be considered manylinux2010 wheels:
-        # https://www.python.org/dev/peps/pep-0571/#backwards-compatibility-with-manylinux1-wheels
-        arches = [arch, 'manylinux1' + arch_sep + arch_suffix]
+        arches = _mac_platforms(arch)
+    elif arch_prefix in ['manylinux2014', 'manylinux2010']:
+        arches = _custom_manylinux_platforms(arch)
     elif platform is None:
         arches = []
         if is_manylinux2014_compatible():
@@ -415,11 +430,11 @@ def get_supported(
     # Current version, current API (built specifically for our Python):
     for abi in abis:
         for arch in arches:
-            supported.append(('%s%s' % (impl, versions[0]), abi, arch))
+            supported.append(('%s%s' % (impl, current_version), abi, arch))
 
     # abi3 modules compatible with older version of Python
     if supports_abi3:
-        for version in versions[1:]:
+        for version in other_versions:
             # abi3 was introduced in Python 3.2
             if version in {'31', '30'}:
                 break
@@ -428,16 +443,16 @@ def get_supported(
 
     # Has binaries, does not use the Python API:
     for arch in arches:
-        supported.append(('py%s' % (versions[0][0]), 'none', arch))
+        supported.append(('py%s' % (current_version[0]), 'none', arch))
 
     # No abi / arch, but requires our implementation:
-    supported.append(('%s%s' % (impl, versions[0]), 'none', 'any'))
+    supported.append(('%s%s' % (impl, current_version), 'none', 'any'))
 
     # No abi / arch, generic Python
-    for i, version in enumerate(versions):
+    supported.append(('py%s' % (current_version,), 'none', 'any'))
+    supported.append(('py%s' % (current_version[0]), 'none', 'any'))
+    for version in other_versions:
         supported.append(('py%s' % (version,), 'none', 'any'))
-        if i == 0:
-            supported.append(('py%s' % (version[0]), 'none', 'any'))
 
     return supported
 
