@@ -114,6 +114,14 @@ def _progress_indicator(iterable, *args, **kwargs):
     return iterable
 
 
+def _get_http_response_size(resp):
+    # type: (Response) -> Optional[int]
+    try:
+        return int(resp.headers['content-length'])
+    except (ValueError, KeyError, TypeError):
+        return None
+
+
 def _download_url(
     resp,  # type: Response
     link,  # type: Link
@@ -122,10 +130,7 @@ def _download_url(
     progress_bar  # type: str
 ):
     # type: (...) -> None
-    try:
-        total_length = int(resp.headers['content-length'])
-    except (ValueError, KeyError, TypeError):
-        total_length = 0
+    total_length = _get_http_response_size(resp)
 
     if link.netloc == PyPI.file_storage_domain:
         url = link.show_url
@@ -147,9 +152,9 @@ def _download_url(
         show_progress = False
     elif is_from_cache(resp):
         show_progress = False
-    elif total_length > (40 * 1000):
-        show_progress = True
     elif not total_length:
+        show_progress = True
+    elif total_length > (40 * 1000):
         show_progress = True
     else:
         show_progress = False
@@ -168,8 +173,7 @@ def _download_url(
 
     downloaded_chunks = written_chunks(
         progress_indicator(
-            response_chunks(resp, CONTENT_CHUNK_SIZE),
-            CONTENT_CHUNK_SIZE
+            response_chunks(resp, CONTENT_CHUNK_SIZE)
         )
     )
     if hashes:
@@ -405,6 +409,61 @@ def parse_content_disposition(content_disposition, default_filename):
     return filename or default_filename
 
 
+def _get_http_response_filename(resp, link):
+    # type: (Response, Link) -> str
+    """Get an ideal filename from the given HTTP response, falling back to
+    the link filename if not provided.
+    """
+    filename = link.filename  # fallback
+    # Have a look at the Content-Disposition header for a better guess
+    content_disposition = resp.headers.get('content-disposition')
+    if content_disposition:
+        filename = parse_content_disposition(content_disposition, filename)
+    ext = splitext(filename)[1]  # type: Optional[str]
+    if not ext:
+        ext = mimetypes.guess_extension(
+            resp.headers.get('content-type', '')
+        )
+        if ext:
+            filename += ext
+    if not ext and link.url != resp.url:
+        ext = os.path.splitext(resp.url)[1]
+        if ext:
+            filename += ext
+    return filename
+
+
+def _http_get_download(session, link):
+    # type: (PipSession, Link) -> Response
+    target_url = link.url.split('#', 1)[0]
+    resp = session.get(
+        target_url,
+        # We use Accept-Encoding: identity here because requests
+        # defaults to accepting compressed responses. This breaks in
+        # a variety of ways depending on how the server is configured.
+        # - Some servers will notice that the file isn't a compressible
+        #   file and will leave the file alone and with an empty
+        #   Content-Encoding
+        # - Some servers will notice that the file is already
+        #   compressed and will leave the file alone and will add a
+        #   Content-Encoding: gzip header
+        # - Some servers won't notice anything at all and will take
+        #   a file that's already been compressed and compress it again
+        #   and set the Content-Encoding: gzip header
+        # By setting this to request only the identity encoding We're
+        # hoping to eliminate the third case. Hopefully there does not
+        # exist a server which when given a file will notice it is
+        # already compressed and that you're not asking for a
+        # compressed file and will then decompress it before sending
+        # because if that's the case I don't think it'll ever be
+        # possible to make this work.
+        headers={"Accept-Encoding": "identity"},
+        stream=True,
+    )
+    resp.raise_for_status()
+    return resp
+
+
 def _download_http_url(
     link,  # type: Link
     session,  # type: PipSession
@@ -414,58 +473,19 @@ def _download_http_url(
 ):
     # type: (...) -> Tuple[str, str]
     """Download link url into temp_dir using provided session"""
-    target_url = link.url.split('#', 1)[0]
     try:
-        resp = session.get(
-            target_url,
-            # We use Accept-Encoding: identity here because requests
-            # defaults to accepting compressed responses. This breaks in
-            # a variety of ways depending on how the server is configured.
-            # - Some servers will notice that the file isn't a compressible
-            #   file and will leave the file alone and with an empty
-            #   Content-Encoding
-            # - Some servers will notice that the file is already
-            #   compressed and will leave the file alone and will add a
-            #   Content-Encoding: gzip header
-            # - Some servers won't notice anything at all and will take
-            #   a file that's already been compressed and compress it again
-            #   and set the Content-Encoding: gzip header
-            # By setting this to request only the identity encoding We're
-            # hoping to eliminate the third case. Hopefully there does not
-            # exist a server which when given a file will notice it is
-            # already compressed and that you're not asking for a
-            # compressed file and will then decompress it before sending
-            # because if that's the case I don't think it'll ever be
-            # possible to make this work.
-            headers={"Accept-Encoding": "identity"},
-            stream=True,
-        )
-        resp.raise_for_status()
+        resp = _http_get_download(session, link)
     except requests.HTTPError as exc:
         logger.critical(
             "HTTP error %s while getting %s", exc.response.status_code, link,
         )
         raise
 
-    content_type = resp.headers.get('content-type', '')
-    filename = link.filename  # fallback
-    # Have a look at the Content-Disposition header for a better guess
-    content_disposition = resp.headers.get('content-disposition')
-    if content_disposition:
-        filename = parse_content_disposition(content_disposition, filename)
-    ext = splitext(filename)[1]  # type: Optional[str]
-    if not ext:
-        ext = mimetypes.guess_extension(content_type)
-        if ext:
-            filename += ext
-    if not ext and link.url != resp.url:
-        ext = os.path.splitext(resp.url)[1]
-        if ext:
-            filename += ext
+    filename = _get_http_response_filename(resp, link)
     file_path = os.path.join(temp_dir, filename)
     with open(file_path, 'wb') as content_file:
         _download_url(resp, link, content_file, hashes, progress_bar)
-    return file_path, content_type
+    return file_path, resp.headers.get('content-type', '')
 
 
 def _check_download_dir(link, download_dir, hashes):

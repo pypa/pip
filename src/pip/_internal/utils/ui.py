@@ -156,10 +156,10 @@ class DownloadProgressMixin(object):
             return "eta %s" % self.eta_td
         return ""
 
-    def iter(self, it, n=1):
+    def iter(self, it):
         for x in it:
             yield x
-            self.next(n)
+            self.next(len(x))
         self.finish()
 
 
