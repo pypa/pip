@@ -10,7 +10,6 @@ InstallRequirement.
 
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
-# mypy: disallow-untyped-defs=False
 
 import logging
 import os
@@ -347,6 +346,7 @@ def parse_req_from_line(name, line_source):
     extras = convert_extras(extras_as_string)
 
     def with_source(text):
+        # type: (str) -> str
         if not line_source:
             return text
         return '{} (from {})'.format(text, line_source)
