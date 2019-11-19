@@ -1,8 +1,5 @@
 """Handles all VCS (version control) support"""
 
-# The following comment should be removed at some point in the future.
-# mypy: disallow-untyped-defs=False
-
 from __future__ import absolute_import
 
 import errno
@@ -30,7 +27,8 @@ from pip._internal.utils.urls import get_url_scheme
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Any, Dict, Iterable, List, Mapping, Optional, Text, Tuple, Type, Union
+        Any, Dict, Iterable, Iterator, List, Mapping, Optional, Text, Tuple,
+        Type, Union
     )
     from pip._internal.utils.ui import SpinnerInterface
     from pip._internal.utils.misc import HiddenText
@@ -57,6 +55,7 @@ def is_url(name):
 
 
 def make_vcs_requirement_url(repo_url, rev, project_name, subdir=None):
+    # type: (str, str, str, Optional[str]) -> str
     """
     Return the URL for a VCS requirement.
 
@@ -73,6 +72,7 @@ def make_vcs_requirement_url(repo_url, rev, project_name, subdir=None):
 
 
 def find_path_to_setup_from_repo_root(location, repo_root):
+    # type: (str, str) -> Optional[str]
     """
     Find the path to `setup.py` by searching up the filesystem from `location`.
     Return the path to `setup.py` relative to `repo_root`.
@@ -134,6 +134,7 @@ class RevOptions(object):
         self.branch_name = None  # type: Optional[str]
 
     def __repr__(self):
+        # type: () -> str
         return '<RevOptions {}: rev={!r}>'.format(self.vc_class.name, self.rev)
 
     @property
@@ -190,6 +191,7 @@ class VcsSupport(object):
         super(VcsSupport, self).__init__()
 
     def __iter__(self):
+        # type: () -> Iterator[str]
         return self._registry.__iter__()
 
     @property
@@ -271,6 +273,7 @@ class VersionControl(object):
 
     @classmethod
     def should_add_vcs_url_prefix(cls, remote_url):
+        # type: (str) -> bool
         """
         Return whether the vcs prefix (e.g. "git+") should be added to a
         repository's remote url when used in a requirement.
@@ -279,6 +282,7 @@ class VersionControl(object):
 
     @classmethod
     def get_subdirectory(cls, location):
+        # type: (str) -> Optional[str]
         """
         Return the path to setup.py, relative to the repo root.
         Return None if setup.py is in the repo root.
@@ -287,6 +291,7 @@ class VersionControl(object):
 
     @classmethod
     def get_requirement_revision(cls, repo_dir):
+        # type: (str) -> str
         """
         Return the revision string that should be used in a requirement.
         """
@@ -294,6 +299,7 @@ class VersionControl(object):
 
     @classmethod
     def get_src_requirement(cls, repo_dir, project_name):
+        # type: (str, str) -> Optional[str]
         """
         Return the requirement string to use to redownload the files
         currently at the given repository directory.
@@ -321,6 +327,7 @@ class VersionControl(object):
 
     @staticmethod
     def get_base_rev_args(rev):
+        # type: (str) -> List[str]
         """
         Return the base revision arguments for a vcs command.
 
@@ -377,6 +384,7 @@ class VersionControl(object):
 
     @classmethod
     def get_netloc_and_auth(cls, netloc, scheme):
+        # type: (str, str) -> Tuple[str, Tuple[Optional[str], Optional[str]]]
         """
         Parse the repository URL's netloc, and return the new netloc to use
         along with auth information.
@@ -494,6 +502,7 @@ class VersionControl(object):
 
     @classmethod
     def is_commit_id_equal(cls, dest, name):
+        # type: (str, Optional[str]) -> bool
         """
         Return whether the id of the current commit equals the given name.
 
@@ -610,6 +619,7 @@ class VersionControl(object):
 
     @classmethod
     def get_remote_url(cls, location):
+        # type: (str) -> str
         """
         Return the url used at location
 
@@ -620,6 +630,7 @@ class VersionControl(object):
 
     @classmethod
     def get_revision(cls, location):
+        # type: (str) -> str
         """
         Return the current commit id of the files at the given location.
         """
@@ -636,7 +647,7 @@ class VersionControl(object):
         command_desc=None,  # type: Optional[str]
         extra_environ=None,  # type: Optional[Mapping[str, Any]]
         spinner=None,  # type: Optional[SpinnerInterface]
-        log_failed_cmd=True
+        log_failed_cmd=True  # type: bool
     ):
         # type: (...) -> Text
         """
