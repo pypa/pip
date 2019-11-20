@@ -156,10 +156,14 @@ The following options are supported:
   *  :ref:`-i, --index-url <install_--index-url>`
   *  :ref:`--extra-index-url <install_--extra-index-url>`
   *  :ref:`--no-index <install_--no-index>`
+  *  :ref:`-c, --constraint <install_--constraint>`
+  *  :ref:`-r, --requirement <install_--requirement>`
+  *  :ref:`-e, --editable <install_--editable>`
   *  :ref:`-f, --find-links <install_--find-links>`
   *  :ref:`--no-binary <install_--no-binary>`
   *  :ref:`--only-binary <install_--only-binary>`
   *  :ref:`--require-hashes <install_--require-hashes>`
+  *  :ref:`--pre <install_--pre>`
   *  :ref:`--trusted-host <--trusted-host>`
 
 For example, to specify :ref:`--no-index <install_--no-index>` and two
