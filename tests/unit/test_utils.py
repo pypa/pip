@@ -380,41 +380,51 @@ def test_rmtree_retries_for_3sec(tmpdir, monkeypatch):
         rmtree('foo')
 
 
-# windows access error for tests
-if sys.platform == "win32":
-    if sys.version_info >= (3,):
-        # windows access error on python 3
-        win32_access_error = OSError(13, 'Access is denied', 'foo', 5)
-    else:
-        # windows access error on python 2.7
-        win32_access_error = WindowsError()
-        win32_access_error.errno = 41
-        win32_access_error.strerror = 'The directory is not empty'
-        win32_access_error.filename = 'foo'
-        win32_access_error.winerror = 145
-
-
 @pytest.mark.skipif("sys.platform != 'win32'")
-def test_rmtree_retry_extra_on_win32(tmpdir, monkeypatch):
-    """
-    Test pip._internal.utils.rmtree will retry beyond 3 sec on windows.
-    """
-    monkeypatch.setattr(
-        shutil, 'rmtree',
-        Failer(duration=7, exception=win32_access_error).call)
-    rmtree('foo')
+class TestVirusScanningIssuesOnWin32(object):
+    """tests to simulate rmtree problems caused by virus scanners preventing
+    files from being deleted."""
 
-
-@pytest.mark.skipif("sys.platform != 'win32'")
-def test_rmtree_retry_limit_on_win32(tmpdir, monkeypatch):
-    """
-    Test pip._internal.utils.rmtree will retry no more than 15 sec on windows.
-    """
-    monkeypatch.setattr(
-        shutil, 'rmtree',
-        Failer(duration=17, exception=win32_access_error).call)
-    with pytest.raises(OSError):
+    def test_rmtree_retry_beyond_minimum(self, monkeypatch):
+        """
+        Test pip._internal.utils.rmtree will retry beyond 3 sec on windows.
+        """
+        monkeypatch.setattr(shutil, 'rmtree', self.virus_scan_failure(5))
         rmtree('foo')
+
+    def test_rmtree_retry_limit(self, tmpdir, monkeypatch):
+        """
+        Test pip._internal.utils.rmtree will retry no more than 15 sec on
+        windows.
+        """
+        monkeypatch.setattr(shutil, 'rmtree', self.virus_scan_failure(17))
+        with pytest.raises(OSError):
+            rmtree('foo')
+
+    def virus_scan_failure(self, seconds):
+        """simulate rmtree failure caused by virus scanner for specified
+        number of seconds."""
+        return Failer(duration=seconds, exception=self.access_error()).call
+
+    def access_error(self):
+        """simulated error raised when a privileged process is preventing
+        pip from deleting a file."""
+        if sys.version_info >= (3,):
+            return self.access_error_on_py3()
+        else:
+            return self.access_error_on_py27()
+
+    def access_error_on_py3(self):
+        e = OSError(13, 'Access is denied', 'foo', 5)
+        return e
+
+    def access_error_on_py27(self):
+        e = WindowsError()
+        e.errno = 41
+        e.strerror = 'The directory is not empty'
+        e.filename = 'foo'
+        e.winerror = 145
+        return e
 
 
 @pytest.mark.parametrize('path, fs_encoding, expected', [
