@@ -4,7 +4,11 @@
 # mypy: disallow-untyped-defs=False
 
 import operator
-from typing import List
+
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from typing import List
 
 
 class Base(object):
