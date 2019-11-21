@@ -6,9 +6,13 @@
 import operator
 
 
-class KeyBasedCompareMixin(object):
+class Base(object):
+    __slots__ = []
+
+class KeyBasedCompareMixin(Base):
     """Provides comparison capabilities that is based on a key
     """
+    __slots__ = ['_compare_key', '_defining_class']
 
     def __init__(self, key, defining_class):
         self._compare_key = key

@@ -24,6 +24,14 @@ class Link(KeyBasedCompareMixin):
     """Represents a parsed link from a Package Index's simple URL
     """
 
+    __slots__ = [
+        "_parsed_url",
+        "_url",
+        "comes_from",
+        "requires_python",
+        "yanked_reason",
+    ]
+
     def __init__(
         self,
         url,                   # type: str

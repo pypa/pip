@@ -5,6 +5,7 @@ from pip._internal.utils.compatibility_tags import (
     version_info_to_nodot,
 )
 from pip._internal.utils.misc import normalize_version_info
+from pip._internal.utils.models import Base
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -13,12 +14,22 @@ if MYPY_CHECK_RUNNING:
     from pip._vendor.packaging.tags import Tag
 
 
-class TargetPython(object):
+class TargetPython(Base):
 
     """
     Encapsulates the properties of a Python interpreter one is targeting
     for a package install, download, etc.
     """
+
+    __slots__ = [
+        "_given_py_version_info",
+        "abi",
+        "implementation",
+        "platform",
+        "py_version",
+        "py_version_info",
+        "_valid_tags",
+    ]
 
     def __init__(
         self,

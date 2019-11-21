@@ -1,15 +1,19 @@
+import operator
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.exceptions import CommandError
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.models import Base
 
 if MYPY_CHECK_RUNNING:
     from typing import Optional, Set, FrozenSet
 
 
-class FormatControl(object):
+class FormatControl(Base):
     """Helper for managing formats from which a package can be installed.
     """
+
+    __slots__ = ["no_binary", "only_binary"]
 
     def __init__(self, no_binary=None, only_binary=None):
         # type: (Optional[Set[str]], Optional[Set[str]]) -> None
@@ -23,7 +27,12 @@ class FormatControl(object):
 
     def __eq__(self, other):
         # type: (object) -> bool
-        return self.__dict__ == other.__dict__
+        if isinstance(other, self.__class__):
+            if self.__slots__ == other.__slots__:
+                 attr_getters = [operator.attrgetter(attr) for attr in self.__slots__]
+                 return all(getter(self) == getter(other) for getter in attr_getters)
+
+        return False
 
     def __ne__(self, other):
         # type: (object) -> bool
