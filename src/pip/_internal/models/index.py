@@ -1,4 +1,5 @@
 from pip._vendor.six.moves.urllib import parse as urllib_parse
+
 from pip._internal.utils.models import Base
 
 
@@ -6,7 +7,8 @@ class PackageIndex(Base):
     """Represents a Package Index and provides easier access to endpoints
     """
 
-    __slots__ = ["url", "netloc", "simple_url", "pypi_url", "file_storage_domain"]
+    __slots__ = ['url', 'netloc', 'simple_url', 'pypi_url',
+                 'file_storage_domain']
 
     def __init__(self, url, file_storage_domain):
         # type: (str, str) -> None

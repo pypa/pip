@@ -4,10 +4,12 @@
 # mypy: disallow-untyped-defs=False
 
 import operator
+from typing import List
 
 
 class Base(object):
-    __slots__ = []
+    __slots__ = []  # type: List[str]
+
 
 class KeyBasedCompareMixin(Base):
     """Provides comparison capabilities that is based on a key

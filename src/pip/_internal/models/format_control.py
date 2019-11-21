@@ -2,8 +2,8 @@ import operator
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.exceptions import CommandError
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.models import Base
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import Optional, Set, FrozenSet
@@ -29,8 +29,10 @@ class FormatControl(Base):
         # type: (object) -> bool
         if isinstance(other, self.__class__):
             if self.__slots__ == other.__slots__:
-                 attr_getters = [operator.attrgetter(attr) for attr in self.__slots__]
-                 return all(getter(self) == getter(other) for getter in attr_getters)
+                attr_getters = [operator.attrgetter(attr)
+                                for attr in self.__slots__]
+                return all(getter(self) == getter(other)
+                           for getter in attr_getters)
 
         return False
 
