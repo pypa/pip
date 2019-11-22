@@ -134,16 +134,15 @@ def _prepare_download(
     else:
         url = link.url_without_fragment
 
-    redacted_url = redact_auth_from_url(url)
+    logged_url = redact_auth_from_url(url)
 
     if total_length:
-        logger.info(
-            "Downloading %s (%s)", redacted_url, format_size(total_length)
-        )
-    elif is_from_cache(resp):
-        logger.info("Using cached %s", redacted_url)
+        logged_url = '{} ({})'.format(logged_url, format_size(total_length))
+
+    if is_from_cache(resp):
+        logger.info("Using cached %s", logged_url)
     else:
-        logger.info("Downloading %s", redacted_url)
+        logger.info("Downloading %s", logged_url)
 
     if logger.getEffectiveLevel() > logging.INFO:
         show_progress = False
