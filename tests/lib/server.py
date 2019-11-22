@@ -51,9 +51,9 @@ else:
             signal.pthread_sigmask(signal.SIG_SETMASK, old_mask)
 
 
-class RequestHandler(WSGIRequestHandler):
+class _RequestHandler(WSGIRequestHandler):
     def make_environ(self):
-        environ = super(RequestHandler, self).make_environ()
+        environ = super(_RequestHandler, self).make_environ()
 
         # From pallets/werkzeug#1469, will probably be in release after
         # 0.16.0.
@@ -76,7 +76,7 @@ class RequestHandler(WSGIRequestHandler):
         return environ
 
 
-def mock_wsgi_adapter(mock):
+def _mock_wsgi_adapter(mock):
     # type: (Callable[[Environ, StartResponse], Responder]) -> Responder
     """Uses a mock to record function arguments and provide
     the actual function that should respond.
@@ -91,10 +91,39 @@ def mock_wsgi_adapter(mock):
 
 def make_mock_server(**kwargs):
     # type: (Any) -> MockServer
-    kwargs.setdefault("request_handler", RequestHandler)
+    """Creates a mock HTTP(S) server listening on a random port on localhost.
+
+    The `mock` property of the returned server provides and records all WSGI
+    interactions, so one approach to testing could be
+
+        server = make_mock_server()
+        server.mock.side_effects = [
+            page1,
+            page2,
+        ]
+
+        with server_running(server):
+            # ... use server...
+            ...
+
+        assert server.mock.call_count > 0
+        call_args_list = server.mock.call_args_list
+
+        # `environ` is a dictionary defined as per PEP 3333 with the associated
+        # contents. Additional properties may be added by werkzeug.
+        environ, _ = call_args_list[0].args
+        assert environ["PATH_INFO"].startswith("/hello/simple")
+
+    Note that the server interactions take place in a different thread, so you
+    do not want to touch the server.mock within the `server_running` block.
+
+    Note also for pip interactions that "localhost" is a "secure origin", so
+    be careful using this for failure tests of `--trusted-host`.
+    """
+    kwargs.setdefault("request_handler", _RequestHandler)
 
     mock = Mock()
-    app = mock_wsgi_adapter(mock)
+    app = _mock_wsgi_adapter(mock)
     server = _make_server("localhost", 0, app=app, **kwargs)
     server.mock = mock
     return server
@@ -103,6 +132,8 @@ def make_mock_server(**kwargs):
 @contextmanager
 def server_running(server):
     # type: (BaseWSGIServer) -> None
+    """Context manager for running the provided server in a separate thread.
+    """
     thread = threading.Thread(target=server.serve_forever)
     thread.daemon = True
     with blocked_signals():

@@ -6,17 +6,26 @@ import re
 import shutil
 import subprocess
 import sys
+from contextlib import contextmanager
 
 import pytest
 import six
+from pip._vendor.contextlib2 import ExitStack
 from setuptools.wheel import Wheel
 
 from pip._internal.main import main as pip_entry_point
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from tests.lib import DATA_DIR, SRC_DIR, TestData
 from tests.lib.certs import make_tls_cert, serialize_cert, serialize_key
 from tests.lib.path import Path
 from tests.lib.scripttest import PipTestEnvironment
+from tests.lib.server import make_mock_server, server_running
 from tests.lib.venv import VirtualEnvironment
+
+if MYPY_CHECK_RUNNING:
+    from typing import Dict, Iterable
+
+    from tests.lib.server import MockServer as _MockServer, Responder
 
 
 def pytest_addoption(parser):
@@ -404,3 +413,60 @@ def cert_factory(tmpdir_factory):
         return str(output_path)
 
     return factory
+
+
+class MockServer(object):
+    def __init__(self, server):
+        # type: (_MockServer) -> None
+        self._server = server
+        self._running = False
+        self.context = ExitStack()
+
+    @property
+    def port(self):
+        return self._server.port
+
+    @property
+    def host(self):
+        return self._server.host
+
+    def set_responses(self, responses):
+        # type: (Iterable[Responder]) -> None
+        assert not self._running, "responses cannot be set on running server"
+        self._server.mock.side_effect = responses
+
+    def start(self):
+        # type: () -> None
+        assert not self._running, "running server cannot be started"
+        self.context.enter_context(server_running(self._server))
+        self.context.enter_context(self._set_running())
+
+    @contextmanager
+    def _set_running(self):
+        self._running = True
+        try:
+            yield
+        finally:
+            self._running = False
+
+    def stop(self):
+        # type: () -> None
+        assert self._running, "idle server cannot be stopped"
+        self.context.close()
+
+    def get_requests(self):
+        # type: () -> Dict[str, str]
+        """Get environ for each received request.
+        """
+        assert not self._running, "cannot get mock from running server"
+        return [
+            call.args[0] for call in self._server.mock.call_args_list
+        ]
+
+
+@pytest.fixture
+def mock_server():
+    server = make_mock_server()
+    test_server = MockServer(server)
+    with test_server.context:
+        yield test_server
