@@ -40,7 +40,6 @@ from pip._internal.utils.marker_files import write_delete_marker_file
 from pip._internal.utils.misc import (
     ask_path_exists,
     backup_dir,
-    consume,
     display_path,
     format_size,
     hide_url,
@@ -58,7 +57,7 @@ from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Any, Callable, IO, List, Optional, Tuple,
+        Callable, Iterable, List, Optional, Tuple,
     )
 
     from mypy_extensions import TypedDict
@@ -122,14 +121,12 @@ def _get_http_response_size(resp):
         return None
 
 
-def _download_url(
+def _prepare_download(
     resp,  # type: Response
     link,  # type: Link
-    content_file,  # type: IO[Any]
-    hashes,  # type: Optional[Hashes]
     progress_bar  # type: str
 ):
-    # type: (...) -> None
+    # type: (...) -> Iterable[bytes]
     total_length = _get_http_response_size(resp)
 
     if link.netloc == PyPI.file_storage_domain:
@@ -159,11 +156,6 @@ def _download_url(
     else:
         show_progress = False
 
-    def written_chunks(chunks):
-        for chunk in chunks:
-            content_file.write(chunk)
-            yield chunk
-
     progress_indicator = _progress_indicator
 
     if show_progress:  # We don't show progress on cached responses
@@ -171,15 +163,9 @@ def _download_url(
             progress_bar, max=total_length
         )
 
-    downloaded_chunks = written_chunks(
-        progress_indicator(
-            response_chunks(resp, CONTENT_CHUNK_SIZE)
-        )
+    return progress_indicator(
+        response_chunks(resp, CONTENT_CHUNK_SIZE)
     )
-    if hashes:
-        hashes.check_against_chunks(downloaded_chunks)
-    else:
-        consume(downloaded_chunks)
 
 
 def _copy_file(filename, location, link):
@@ -215,10 +201,9 @@ def _copy_file(filename, location, link):
 def unpack_http_url(
     link,  # type: Link
     location,  # type: str
-    session,  # type: PipSession
+    downloader,  # type: Downloader
     download_dir=None,  # type: Optional[str]
     hashes=None,  # type: Optional[Hashes]
-    progress_bar="on"  # type: str
 ):
     # type: (...) -> None
     with TempDirectory(kind="unpack") as temp_dir:
@@ -235,7 +220,7 @@ def unpack_http_url(
         else:
             # let's download to a tmp dir
             from_path, content_type = _download_http_url(
-                link, session, temp_dir.path, hashes, progress_bar
+                link, downloader, temp_dir.path, hashes
             )
 
         # unpack the archive to the build dir location. even when only
@@ -346,10 +331,9 @@ def unpack_file_url(
 def unpack_url(
     link,  # type: Link
     location,  # type: str
-    session,  # type: PipSession
+    downloader,  # type: Downloader
     download_dir=None,  # type: Optional[str]
     hashes=None,  # type: Optional[Hashes]
-    progress_bar="on"  # type: str
 ):
     # type: (...) -> None
     """Unpack link.
@@ -379,10 +363,9 @@ def unpack_url(
         unpack_http_url(
             link,
             location,
-            session,
+            downloader,
             download_dir,
             hashes=hashes,
-            progress_bar=progress_bar
         )
 
 
@@ -464,28 +447,65 @@ def _http_get_download(session, link):
     return resp
 
 
+class Download(object):
+    def __init__(
+        self,
+        response,  # type: Response
+        filename,  # type: str
+        chunks,  # type: Iterable[bytes]
+    ):
+        # type: (...) -> None
+        self.response = response
+        self.filename = filename
+        self.chunks = chunks
+
+
+class Downloader(object):
+    def __init__(
+        self,
+        session,  # type: PipSession
+        progress_bar,  # type: str
+    ):
+        # type: (...) -> None
+        self._session = session
+        self._progress_bar = progress_bar
+
+    def __call__(self, link):
+        # type: (Link) -> Download
+        try:
+            resp = _http_get_download(self._session, link)
+        except requests.HTTPError as e:
+            logger.critical(
+                "HTTP error %s while getting %s", e.response.status_code, link
+            )
+            raise
+
+        return Download(
+            resp,
+            _get_http_response_filename(resp, link),
+            _prepare_download(resp, link, self._progress_bar),
+        )
+
+
 def _download_http_url(
     link,  # type: Link
-    session,  # type: PipSession
+    downloader,  # type: Downloader
     temp_dir,  # type: str
     hashes,  # type: Optional[Hashes]
-    progress_bar  # type: str
 ):
     # type: (...) -> Tuple[str, str]
     """Download link url into temp_dir using provided session"""
-    try:
-        resp = _http_get_download(session, link)
-    except requests.HTTPError as exc:
-        logger.critical(
-            "HTTP error %s while getting %s", exc.response.status_code, link,
-        )
-        raise
+    download = downloader(link)
 
-    filename = _get_http_response_filename(resp, link)
-    file_path = os.path.join(temp_dir, filename)
+    file_path = os.path.join(temp_dir, download.filename)
     with open(file_path, 'wb') as content_file:
-        _download_url(resp, link, content_file, hashes, progress_bar)
-    return file_path, resp.headers.get('content-type', '')
+        for chunk in download.chunks:
+            content_file.write(chunk)
+
+    if hashes:
+        hashes.check_against_path(file_path)
+
+    return file_path, download.response.headers.get('content-type', '')
 
 
 def _check_download_dir(link, download_dir, hashes):
@@ -538,7 +558,7 @@ class RequirementPreparer(object):
         self.src_dir = src_dir
         self.build_dir = build_dir
         self.req_tracker = req_tracker
-        self.session = session
+        self.downloader = Downloader(session, progress_bar)
         self.finder = finder
 
         # Where still-packed archives should be written to. If None, they are
@@ -558,8 +578,6 @@ class RequirementPreparer(object):
         # download_dir and wheel_download_dir overlap semantically and may
         # be combined if we're willing to have non-wheel archives present in
         # the wheelhouse output by 'pip wheel'.
-
-        self.progress_bar = progress_bar
 
         # Is build isolation allowed?
         self.build_isolation = build_isolation
@@ -662,9 +680,8 @@ class RequirementPreparer(object):
 
             try:
                 unpack_url(
-                    link, req.source_dir, self.session, download_dir,
+                    link, req.source_dir, self.downloader, download_dir,
                     hashes=hashes,
-                    progress_bar=self.progress_bar
                 )
             except requests.HTTPError as exc:
                 logger.critical(

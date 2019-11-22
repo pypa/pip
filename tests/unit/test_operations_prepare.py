@@ -13,6 +13,7 @@ from pip._internal.exceptions import HashMismatch
 from pip._internal.models.link import Link
 from pip._internal.network.session import PipSession
 from pip._internal.operations.prepare import (
+    Downloader,
     _copy_source_tree,
     _download_http_url,
     parse_content_disposition,
@@ -44,6 +45,7 @@ def test_unpack_http_url_with_urllib_response_without_content_type(data):
 
     session = Mock()
     session.get = _fake_session_get
+    downloader = Downloader(session, progress_bar="on")
 
     uri = path_to_url(data.packages.joinpath("simple-1.0.tar.gz"))
     link = Link(uri)
@@ -52,7 +54,7 @@ def test_unpack_http_url_with_urllib_response_without_content_type(data):
         unpack_http_url(
             link,
             temp_dir,
-            session=session,
+            downloader=downloader,
             download_dir=None,
         )
         assert set(os.listdir(temp_dir)) == {
@@ -131,6 +133,7 @@ def test_unpack_http_url_bad_downloaded_checksum(mock_unpack_file):
     response = session.get.return_value = MockResponse(contents)
     response.headers = {'content-type': 'application/x-tar'}
     response.url = base_url
+    downloader = Downloader(session, progress_bar="on")
 
     download_dir = mkdtemp()
     try:
@@ -140,7 +143,7 @@ def test_unpack_http_url_bad_downloaded_checksum(mock_unpack_file):
         unpack_http_url(
             link,
             'location',
-            session=session,
+            downloader=downloader,
             download_dir=download_dir,
             hashes=Hashes({'sha1': [download_hash.hexdigest()]})
         )
@@ -228,15 +231,15 @@ def test_download_http_url__no_directory_traversal(tmpdir):
         'content-disposition': 'attachment;filename="../out_dir_file"'
     }
     session.get.return_value = resp
+    downloader = Downloader(session, progress_bar="on")
 
     download_dir = tmpdir.joinpath('download')
     os.mkdir(download_dir)
     file_path, content_type = _download_http_url(
         link,
-        session,
+        downloader,
         download_dir,
         hashes=None,
-        progress_bar='on',
     )
     # The file should be downloaded to download_dir.
     actual = os.listdir(download_dir)
