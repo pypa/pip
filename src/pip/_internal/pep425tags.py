@@ -294,6 +294,201 @@ def _get_custom_platforms(arch, platform):
     return arches
 
 
+def _cpython_tags(
+    version=None,  # type: Optional[str]
+    platform=None,  # type: Optional[str]
+    impl=None,  # type: Optional[str]
+    abi=None,  # type: Optional[str]
+):
+    # type: (...) -> List[Tuple[str, str, str]]
+    supported = []  # type: List[Tuple[str, str, str]]
+
+    # Versions must be given with respect to the preference
+    if version is None:
+        version_info = get_impl_version_info()
+        versions = get_all_minor_versions_as_strings(version_info)
+    else:
+        versions = [version]
+    current_version = versions[0]
+    other_versions = versions[1:]
+
+    impl = impl or interpreter_name()
+
+    abis = []  # type: List[str]
+
+    abi = abi or get_abi_tag()
+    if abi:
+        abis[0:0] = [abi]
+
+    supports_abi3 = not PY2 and impl == "cp"
+
+    if supports_abi3:
+        abis.append("abi3")
+
+    abis.append('none')
+
+    arches = _get_custom_platforms(platform or get_platform(), platform)
+
+    # Current version, current API (built specifically for our Python):
+    for abi in abis:
+        for arch in arches:
+            supported.append(('%s%s' % (impl, current_version), abi, arch))
+
+    # abi3 modules compatible with older version of Python
+    if supports_abi3:
+        for version in other_versions:
+            # abi3 was introduced in Python 3.2
+            if version in {'31', '30'}:
+                break
+            for arch in arches:
+                supported.append(("%s%s" % (impl, version), "abi3", arch))
+
+    # Has binaries, does not use the Python API:
+    for arch in arches:
+        supported.append(('py%s' % (current_version[0]), 'none', arch))
+
+    # No abi / arch, but requires our implementation:
+    supported.append(('%s%s' % (impl, current_version), 'none', 'any'))
+
+    # No abi / arch, generic Python
+    supported.append(('py%s' % (current_version,), 'none', 'any'))
+    supported.append(('py%s' % (current_version[0]), 'none', 'any'))
+    for version in other_versions:
+        supported.append(('py%s' % (version,), 'none', 'any'))
+
+    return supported
+
+
+def _generic_tags(
+    version=None,  # type: Optional[str]
+    platform=None,  # type: Optional[str]
+    impl=None,  # type: Optional[str]
+    abi=None,  # type: Optional[str]
+):
+    # type: (...) -> List[Tuple[str, str, str]]
+    supported = []  # type: List[Tuple[str, str, str]]
+
+    # Versions must be given with respect to the preference
+    if version is None:
+        version_info = get_impl_version_info()
+        versions = get_all_minor_versions_as_strings(version_info)
+    else:
+        versions = [version]
+    current_version = versions[0]
+    other_versions = versions[1:]
+
+    impl = impl or interpreter_name()
+
+    abis = []  # type: List[str]
+
+    abi = abi or get_abi_tag()
+    if abi:
+        abis[0:0] = [abi]
+
+    supports_abi3 = not PY2 and impl == "cp"
+
+    if supports_abi3:
+        abis.append("abi3")
+
+    abis.append('none')
+
+    arches = _get_custom_platforms(platform or get_platform(), platform)
+
+    # Current version, current API (built specifically for our Python):
+    for abi in abis:
+        for arch in arches:
+            supported.append(('%s%s' % (impl, current_version), abi, arch))
+
+    # abi3 modules compatible with older version of Python
+    if supports_abi3:
+        for version in other_versions:
+            # abi3 was introduced in Python 3.2
+            if version in {'31', '30'}:
+                break
+            for arch in arches:
+                supported.append(("%s%s" % (impl, version), "abi3", arch))
+
+    # Has binaries, does not use the Python API:
+    for arch in arches:
+        supported.append(('py%s' % (current_version[0]), 'none', arch))
+
+    # No abi / arch, but requires our implementation:
+    supported.append(('%s%s' % (impl, current_version), 'none', 'any'))
+
+    # No abi / arch, generic Python
+    supported.append(('py%s' % (current_version,), 'none', 'any'))
+    supported.append(('py%s' % (current_version[0]), 'none', 'any'))
+    for version in other_versions:
+        supported.append(('py%s' % (version,), 'none', 'any'))
+
+    return supported
+
+
+def _compatible_tags(
+    version=None,  # type: Optional[str]
+    platform=None,  # type: Optional[str]
+    impl=None,  # type: Optional[str]
+    abi=None,  # type: Optional[str]
+):
+    # type: (...) -> List[Tuple[str, str, str]]
+    supported = []  # type: List[Tuple[str, str, str]]
+
+    # Versions must be given with respect to the preference
+    if version is None:
+        version_info = get_impl_version_info()
+        versions = get_all_minor_versions_as_strings(version_info)
+    else:
+        versions = [version]
+    current_version = versions[0]
+    other_versions = versions[1:]
+
+    impl = impl or interpreter_name()
+
+    abis = []  # type: List[str]
+
+    abi = abi or get_abi_tag()
+    if abi:
+        abis[0:0] = [abi]
+
+    supports_abi3 = not PY2 and impl == "cp"
+
+    if supports_abi3:
+        abis.append("abi3")
+
+    abis.append('none')
+
+    arches = _get_custom_platforms(platform or get_platform(), platform)
+
+    # Current version, current API (built specifically for our Python):
+    for abi in abis:
+        for arch in arches:
+            supported.append(('%s%s' % (impl, current_version), abi, arch))
+
+    # abi3 modules compatible with older version of Python
+    if supports_abi3:
+        for version in other_versions:
+            # abi3 was introduced in Python 3.2
+            if version in {'31', '30'}:
+                break
+            for arch in arches:
+                supported.append(("%s%s" % (impl, version), "abi3", arch))
+
+    # Has binaries, does not use the Python API:
+    for arch in arches:
+        supported.append(('py%s' % (current_version[0]), 'none', arch))
+
+    # No abi / arch, but requires our implementation:
+    supported.append(('%s%s' % (impl, current_version), 'none', 'any'))
+
+    # No abi / arch, generic Python
+    supported.append(('py%s' % (current_version,), 'none', 'any'))
+    supported.append(('py%s' % (current_version[0]), 'none', 'any'))
+    for version in other_versions:
+        supported.append(('py%s' % (version,), 'none', 'any'))
+
+    return supported
+
+
 def get_supported(
     version=None,  # type: Optional[str]
     platform=None,  # type: Optional[str]
