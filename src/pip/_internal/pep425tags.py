@@ -315,30 +315,6 @@ def _get_custom_interpreter(implementation=None, version=None):
     return "{}{}".format(implementation, version)
 
 
-def _generic_tags(
-    version=None,  # type: Optional[str]
-    platform=None,  # type: Optional[str]
-    impl=None,  # type: Optional[str]
-    abi=None,  # type: Optional[str]
-):
-    # type: (...) -> Iterator[Tag]
-    interpreter = _get_custom_interpreter(impl, version)
-
-    abis = None  # type: Optional[List[str]]
-    if abi:
-        abis = [abi]
-
-    platforms = None  # type: Optional[List[str]]
-    if platform is not None:
-        platforms = _get_custom_platforms(platform, platform)
-
-    return generic_tags(
-        interpreter=interpreter,
-        abis=abis,
-        platforms=platforms,
-    )
-
-
 def _stable_unique_tags(tags):
     # type: (List[Tag]) -> Iterator[Tag]
     observed = set()  # type: Set[Tag]
@@ -393,7 +369,13 @@ def get_supported(
             )
         )
     else:
-        supported.extend(_generic_tags(version, platform, impl, abi))
+        supported.extend(
+            generic_tags(
+                interpreter=interpreter,
+                abis=abis,
+                platforms=platforms,
+            )
+        )
     supported.extend(
         compatible_tags(
             python_version=python_version,
