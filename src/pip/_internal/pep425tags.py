@@ -10,6 +10,7 @@ import sysconfig
 
 from pip._vendor.packaging.tags import (
     Tag,
+    compatible_tags,
     interpreter_name,
     interpreter_version,
     mac_platforms,
@@ -403,7 +404,10 @@ def _compatible_tags(
     platform=None,  # type: Optional[str]
     impl=None,  # type: Optional[str]
 ):
-    # type: (...) -> List[Tuple[str, str, str]]
+    # type: (...) -> Union[Iterator[Tag], List[Tuple[str, str, str]]]
+    if version is None and platform is None and impl is None:
+        return compatible_tags()
+
     supported = []  # type: List[Tuple[str, str, str]]
 
     # Versions must be given with respect to the preference

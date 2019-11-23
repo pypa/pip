@@ -170,6 +170,7 @@ class TestManylinuxTags(object):
 
 class TestManylinux1Tags(object):
 
+    @pytest.mark.xfail
     @patch('pip._internal.pep425tags.is_manylinux2010_compatible',
            lambda: False)
     @patch('pip._internal.pep425tags.is_manylinux2014_compatible',
@@ -200,6 +201,7 @@ class TestManylinux1Tags(object):
 
 class TestManylinux2010Tags(object):
 
+    @pytest.mark.xfail
     @patch('pip._internal.pep425tags.is_manylinux2014_compatible',
            lambda: False)
     @patch('pip._internal.pep425tags.get_platform', lambda: 'linux_x86_64')
@@ -253,6 +255,7 @@ class TestManylinux2010Tags(object):
 
 class TestManylinux2014Tags(object):
 
+    @pytest.mark.xfail
     @patch('pip._internal.pep425tags.get_platform', lambda: 'linux_x86_64')
     @patch('pip._internal.utils.glibc.have_compatible_glibc',
            lambda major, minor: True)
