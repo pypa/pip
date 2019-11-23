@@ -366,6 +366,27 @@ def _custom_manylinux_platforms(arch):
     return arches
 
 
+def _get_custom_platforms(arch, platform):
+    # type: (str, Optional[str]) -> List[str]
+    arch_prefix, arch_sep, arch_suffix = arch.partition('_')
+    if arch.startswith('macosx'):
+        arches = _mac_platforms(arch)
+    elif arch_prefix in ['manylinux2014', 'manylinux2010']:
+        arches = _custom_manylinux_platforms(arch)
+    elif platform is None:
+        arches = []
+        if is_manylinux2014_compatible():
+            arches.append('manylinux2014' + arch_sep + arch_suffix)
+        if is_manylinux2010_compatible():
+            arches.append('manylinux2010' + arch_sep + arch_suffix)
+        if is_manylinux1_compatible():
+            arches.append('manylinux1' + arch_sep + arch_suffix)
+        arches.append(arch)
+    else:
+        arches = [arch]
+    return arches
+
+
 def get_supported(
     version=None,  # type: Optional[str]
     platform=None,  # type: Optional[str]
@@ -411,23 +432,7 @@ def get_supported(
 
     abis.append('none')
 
-    arch = platform or get_platform()
-    arch_prefix, arch_sep, arch_suffix = arch.partition('_')
-    if arch.startswith('macosx'):
-        arches = _mac_platforms(arch)
-    elif arch_prefix in ['manylinux2014', 'manylinux2010']:
-        arches = _custom_manylinux_platforms(arch)
-    elif platform is None:
-        arches = []
-        if is_manylinux2014_compatible():
-            arches.append('manylinux2014' + arch_sep + arch_suffix)
-        if is_manylinux2010_compatible():
-            arches.append('manylinux2010' + arch_sep + arch_suffix)
-        if is_manylinux1_compatible():
-            arches.append('manylinux1' + arch_sep + arch_suffix)
-        arches.append(arch)
-    else:
-        arches = [arch]
+    arches = _get_custom_platforms(platform or get_platform(), platform)
 
     # Current version, current API (built specifically for our Python):
     for abi in abis:
