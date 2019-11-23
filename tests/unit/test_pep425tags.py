@@ -119,55 +119,6 @@ class TestPEP425Tags(object):
         self.abi_tag_unicode('dm', {'Py_DEBUG': True, 'WITH_PYMALLOC': True})
 
 
-@pytest.mark.parametrize('is_manylinux_compatible', [
-    pep425tags.is_manylinux1_compatible,
-    pep425tags.is_manylinux2010_compatible,
-    pep425tags.is_manylinux2014_compatible,
-])
-class TestManylinuxTags(object):
-    """
-    Tests common to all manylinux tags (e.g. manylinux1, manylinux2010,
-    ...)
-    """
-    @patch('pip._internal.pep425tags.get_platform', lambda: 'linux_x86_64')
-    @patch('pip._internal.utils.glibc.have_compatible_glibc',
-           lambda major, minor: True)
-    def test_manylinux_compatible_on_linux_x86_64(self,
-                                                  is_manylinux_compatible):
-        """
-        Test that manylinuxes are enabled on linux_x86_64
-        """
-        assert is_manylinux_compatible()
-
-    @patch('pip._internal.pep425tags.get_platform', lambda: 'linux_i686')
-    @patch('pip._internal.utils.glibc.have_compatible_glibc',
-           lambda major, minor: True)
-    def test_manylinux_compatible_on_linux_i686(self,
-                                                is_manylinux_compatible):
-        """
-        Test that manylinuxes are enabled on linux_i686
-        """
-        assert is_manylinux_compatible()
-
-    @patch('pip._internal.pep425tags.get_platform', lambda: 'linux_x86_64')
-    @patch('pip._internal.utils.glibc.have_compatible_glibc',
-           lambda major, minor: False)
-    def test_manylinux_2(self, is_manylinux_compatible):
-        """
-        Test that manylinuxes are disabled with incompatible glibc
-        """
-        assert not is_manylinux_compatible()
-
-    @patch('pip._internal.pep425tags.get_platform', lambda: 'arm6vl')
-    @patch('pip._internal.utils.glibc.have_compatible_glibc',
-           lambda major, minor: True)
-    def test_manylinux_3(self, is_manylinux_compatible):
-        """
-        Test that manylinuxes are disabled on arm6vl
-        """
-        assert not is_manylinux_compatible()
-
-
 class TestManylinux2010Tags(object):
 
     @pytest.mark.parametrize("manylinux2010,manylinux1", [
