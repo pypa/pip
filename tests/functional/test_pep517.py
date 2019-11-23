@@ -6,7 +6,7 @@ from pip._internal.req import InstallRequirement
 from tests.lib import make_test_finder, path_to_url
 
 
-def make_project(tmpdir, requires=[], backend=None, backend_path=[]):
+def make_project(tmpdir, requires=[], backend=None, backend_path=None):
     project_dir = tmpdir / 'project'
     project_dir.mkdir()
     buildsys = {'requires': requires}
