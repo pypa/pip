@@ -34,7 +34,7 @@ def make_pyproject_path(unpacked_source_directory):
     return path
 
 
-BuildsystemDetails = namedtuple('BuildsystemDetails', [
+BuildSystemDetails = namedtuple('BuildSystemDetails', [
     'requires', 'backend', 'check', 'backend_path'
 ])
 
@@ -45,7 +45,7 @@ def load_pyproject_toml(
     setup_py,  # type: str
     req_name  # type: str
 ):
-    # type: (...) -> Optional[BuildsystemDetails]
+    # type: (...) -> Optional[BuildSystemDetails]
     """Load the pyproject.toml file.
 
     Parameters:
@@ -193,4 +193,4 @@ def load_pyproject_toml(
         backend = "setuptools.build_meta:__legacy__"
         check = ["setuptools>=40.8.0", "wheel"]
 
-    return BuildsystemDetails(requires, backend, check, backend_path)
+    return BuildSystemDetails(requires, backend, check, backend_path)
