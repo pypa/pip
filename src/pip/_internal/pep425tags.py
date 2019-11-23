@@ -23,7 +23,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Callable, Iterator, List, Optional, Set, Tuple, Union
+        Callable, List, Optional, Tuple, Union
     )
 
     from pip._vendor.packaging.tags import PythonVersion
@@ -315,15 +315,6 @@ def _get_custom_interpreter(implementation=None, version=None):
     return "{}{}".format(implementation, version)
 
 
-def _stable_unique_tags(tags):
-    # type: (List[Tag]) -> Iterator[Tag]
-    observed = set()  # type: Set[Tag]
-    for tag in tags:
-        if tag not in observed:
-            observed.add(tag)
-            yield tag
-
-
 def get_supported(
     version=None,  # type: Optional[str]
     platform=None,  # type: Optional[str]
@@ -343,7 +334,7 @@ def get_supported(
     :param abi: specify the exact abi you want valid
         tags for, or None. If None, use the local interpreter abi.
     """
-    supported = []  # type: List[Union[Tag, Tuple[str, str, str]]]
+    supported = []  # type: List[Tag]
 
     python_version = None  # type: Optional[PythonVersion]
     if version is not None:
@@ -384,8 +375,4 @@ def get_supported(
         )
     )
 
-    tags = [
-        parts if isinstance(parts, Tag) else Tag(*parts)
-        for parts in supported
-    ]
-    return list(_stable_unique_tags(tags))
+    return supported
