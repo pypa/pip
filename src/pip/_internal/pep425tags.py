@@ -423,7 +423,7 @@ def _compatible_tags(
     platform=None,  # type: Optional[str]
     impl=None,  # type: Optional[str]
 ):
-    # type: (...) -> Union[Iterator[Tag], List[Tuple[str, str, str]]]
+    # type: (...) -> Iterator[Tag]
     python_version = None  # type: Optional[PythonVersion]
     if version is not None:
         python_version = _get_python_version(version)
@@ -434,42 +434,11 @@ def _compatible_tags(
     if platform is not None:
         platforms = _get_custom_platforms(platform, platform)
 
-    if True:
-        return compatible_tags(
-            python_version=python_version,
-            interpreter=interpreter,
-            platforms=platforms,
-        )
-
-    supported = []  # type: List[Tuple[str, str, str]]
-
-    # Versions must be given with respect to the preference
-    if version is None:
-        version_info = get_impl_version_info()
-        versions = get_all_minor_versions_as_strings(version_info)
-    else:
-        versions = [version]
-    current_version = versions[0]
-    other_versions = versions[1:]
-
-    impl = impl or interpreter_name()
-
-    arches = _get_custom_platforms(platform or get_platform(), platform)
-
-    # Has binaries, does not use the Python API:
-    for arch in arches:
-        supported.append(('py%s' % (current_version[0]), 'none', arch))
-
-    # No abi / arch, but requires our implementation:
-    supported.append(('%s%s' % (impl, current_version), 'none', 'any'))
-
-    # No abi / arch, generic Python
-    supported.append(('py%s' % (current_version,), 'none', 'any'))
-    supported.append(('py%s' % (current_version[0]), 'none', 'any'))
-    for version in other_versions:
-        supported.append(('py%s' % (version,), 'none', 'any'))
-
-    return supported
+    return compatible_tags(
+        python_version=python_version,
+        interpreter=interpreter,
+        platforms=platforms,
+    )
 
 
 def _stable_unique_tags(tags):
