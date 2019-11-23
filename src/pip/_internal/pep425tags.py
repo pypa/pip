@@ -6,7 +6,6 @@ import logging
 import platform
 import re
 import sys
-import sysconfig
 
 from pip._vendor.packaging.tags import (
     Tag,
@@ -21,20 +20,13 @@ from pip._vendor.packaging.tags import (
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import (
-        Callable, List, Optional, Tuple, Union
-    )
+    from typing import List, Optional, Tuple
 
     from pip._vendor.packaging.tags import PythonVersion
 
 logger = logging.getLogger(__name__)
 
 _osx_arch_pat = re.compile(r'(.+)_(\d+)_(\d+)_(.+)')
-
-
-def get_config_var(var):
-    # type: (str) -> Optional[str]
-    return sysconfig.get_config_var(var)
 
 
 def version_info_to_nodot(version_info):
@@ -55,52 +47,6 @@ def get_impl_version_info():
                 sys.pypy_version_info.minor)  # type: ignore
     else:
         return sys.version_info[0], sys.version_info[1]
-
-
-def get_flag(var, fallback, expected=True, warn=True):
-    # type: (str, Callable[..., bool], Union[bool, int], bool) -> bool
-    """Use a fallback method for determining SOABI flags if the needed config
-    var is unset or unavailable."""
-    val = get_config_var(var)
-    if val is None:
-        if warn:
-            logger.debug("Config variable '%s' is unset, Python ABI tag may "
-                         "be incorrect", var)
-        return fallback()
-    return val == expected
-
-
-def get_abi_tag():
-    # type: () -> Optional[str]
-    """Return the ABI tag based on SOABI (if available) or emulate SOABI
-    (CPython 2, PyPy)."""
-    soabi = get_config_var('SOABI')
-    impl = interpreter_name()
-    abi = None  # type: Optional[str]
-
-    if not soabi and impl in {'cp', 'pp'} and hasattr(sys, 'maxunicode'):
-        d = ''
-        m = ''
-        u = ''
-        is_cpython = (impl == 'cp')
-        if get_flag(
-                'Py_DEBUG', lambda: hasattr(sys, 'gettotalrefcount'),
-                warn=is_cpython):
-            d = 'd'
-        if sys.version_info < (3, 8) and get_flag(
-                'WITH_PYMALLOC', lambda: is_cpython, warn=is_cpython):
-            m = 'm'
-        if sys.version_info < (3, 3) and get_flag(
-                'Py_UNICODE_SIZE', lambda: sys.maxunicode == 0x10ffff,
-                expected=4, warn=is_cpython):
-            u = 'u'
-        abi = '%s%s%s%s%s' % (impl, interpreter_version(), d, m, u)
-    elif soabi and soabi.startswith('cpython-'):
-        abi = 'cp' + soabi.split('-')[1]
-    elif soabi:
-        abi = soabi.replace('.', '_').replace('-', '_')
-
-    return abi
 
 
 def _is_running_32bit():

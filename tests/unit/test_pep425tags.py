@@ -1,8 +1,7 @@
-import sys
+import sysconfig
 
 import pytest
 from mock import patch
-from pip._vendor.packaging.tags import interpreter_name, interpreter_version
 
 from pip._internal import pep425tags
 
@@ -28,54 +27,13 @@ class TestPEP425Tags(object):
         """
         Patch sysconfig.get_config_var for arbitrary keys.
         """
-        import pip._internal.pep425tags
-
-        get_config_var = pip._internal.pep425tags.sysconfig.get_config_var
+        get_config_var = sysconfig.get_config_var
 
         def _mock_get_config_var(var):
             if var in kwd:
                 return kwd[var]
             return get_config_var(var)
         return _mock_get_config_var
-
-    def abi_tag_unicode(self, flags, config_vars):
-        """
-        Used to test ABI tags, verify correct use of the `u` flag
-        """
-        import pip._internal.pep425tags
-
-        config_vars.update({'SOABI': None})
-        base = interpreter_name() + interpreter_version()
-
-        if sys.version_info >= (3, 8):
-            # Python 3.8 removes the m flag, so don't look for it.
-            flags = flags.replace('m', '')
-
-        if sys.version_info < (3, 3):
-            config_vars.update({'Py_UNICODE_SIZE': 2})
-            mock_gcf = self.mock_get_config_var(**config_vars)
-            with patch('pip._internal.pep425tags.sysconfig.get_config_var',
-                       mock_gcf):
-                abi_tag = pip._internal.pep425tags.get_abi_tag()
-                assert abi_tag == base + flags
-
-            config_vars.update({'Py_UNICODE_SIZE': 4})
-            mock_gcf = self.mock_get_config_var(**config_vars)
-            with patch('pip._internal.pep425tags.sysconfig.get_config_var',
-                       mock_gcf):
-                abi_tag = pip._internal.pep425tags.get_abi_tag()
-                assert abi_tag == base + flags + 'u'
-
-        else:
-            # On Python >= 3.3, UCS-4 is essentially permanently enabled, and
-            # Py_UNICODE_SIZE is None. SOABI on these builds does not include
-            # the 'u' so manual SOABI detection should not do so either.
-            config_vars.update({'Py_UNICODE_SIZE': None})
-            mock_gcf = self.mock_get_config_var(**config_vars)
-            with patch('pip._internal.pep425tags.sysconfig.get_config_var',
-                       mock_gcf):
-                abi_tag = pip._internal.pep425tags.get_abi_tag()
-                assert abi_tag == base + flags
 
     def test_no_hyphen_tag(self):
         """
@@ -85,38 +43,13 @@ class TestPEP425Tags(object):
 
         mock_gcf = self.mock_get_config_var(SOABI='cpython-35m-darwin')
 
-        with patch('pip._internal.pep425tags.sysconfig.get_config_var',
-                   mock_gcf):
+        with patch('sysconfig.get_config_var', mock_gcf):
             supported = pip._internal.pep425tags.get_supported()
 
         for tag in supported:
             assert '-' not in tag.interpreter
             assert '-' not in tag.abi
             assert '-' not in tag.platform
-
-    def test_manual_abi_noflags(self):
-        """
-        Test that no flags are set on a non-PyDebug, non-Pymalloc ABI tag.
-        """
-        self.abi_tag_unicode('', {'Py_DEBUG': False, 'WITH_PYMALLOC': False})
-
-    def test_manual_abi_d_flag(self):
-        """
-        Test that the `d` flag is set on a PyDebug, non-Pymalloc ABI tag.
-        """
-        self.abi_tag_unicode('d', {'Py_DEBUG': True, 'WITH_PYMALLOC': False})
-
-    def test_manual_abi_m_flag(self):
-        """
-        Test that the `m` flag is set on a non-PyDebug, Pymalloc ABI tag.
-        """
-        self.abi_tag_unicode('m', {'Py_DEBUG': False, 'WITH_PYMALLOC': True})
-
-    def test_manual_abi_dm_flags(self):
-        """
-        Test that the `dm` flags are set on a PyDebug, Pymalloc ABI tag.
-        """
-        self.abi_tag_unicode('dm', {'Py_DEBUG': True, 'WITH_PYMALLOC': True})
 
 
 class TestManylinux2010Tags(object):
