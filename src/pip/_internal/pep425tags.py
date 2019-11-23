@@ -315,31 +315,6 @@ def _get_custom_interpreter(implementation=None, version=None):
     return "{}{}".format(implementation, version)
 
 
-def _cpython_tags(
-    version=None,  # type: Optional[str]
-    platform=None,  # type: Optional[str]
-    abi=None,  # type: Optional[str]
-):
-    # type: (...) -> Iterator[Tag]
-    python_version = None  # type: Optional[PythonVersion]
-    if version is not None:
-        python_version = _get_python_version(version)
-
-    abis = None  # type: Optional[List[str]]
-    if abi is not None:
-        abis = [abi]
-
-    platforms = None  # type: Optional[List[str]]
-    if platform is not None:
-        platforms = _get_custom_platforms(platform, platform)
-
-    return cpython_tags(
-        python_version=python_version,
-        abis=abis,
-        platforms=platforms,
-    )
-
-
 def _generic_tags(
     version=None,  # type: Optional[str]
     platform=None,  # type: Optional[str]
@@ -428,13 +403,23 @@ def get_supported(
 
     interpreter = _get_custom_interpreter(impl, version)
 
+    abis = None  # type: Optional[List[str]]
+    if abi is not None:
+        abis = [abi]
+
     platforms = None  # type: Optional[List[str]]
     if platform is not None:
         platforms = _get_custom_platforms(platform, platform)
 
     is_cpython = (impl or interpreter_name()) == "cp"
     if is_cpython:
-        supported.extend(_cpython_tags(version, platform, abi))
+        supported.extend(
+            cpython_tags(
+                python_version=python_version,
+                abis=abis,
+                platforms=platforms,
+            )
+        )
     else:
         supported.extend(_generic_tags(version, platform, impl, abi))
     supported.extend(
