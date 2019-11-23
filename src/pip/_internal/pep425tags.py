@@ -21,7 +21,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Tuple, Callable, List, Optional, Union, Dict
+        Callable, Dict, List, Optional, Tuple, Union
     )
 
 logger = logging.getLogger(__name__)
