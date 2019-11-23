@@ -322,8 +322,10 @@ def _generic_tags(
     abi=None,  # type: Optional[str]
 ):
     # type: (...) -> Union[Iterator[Tag], List[Tuple[str, str, str]]]
-    if version is None and platform is None and impl is None and abi is None:
-        return generic_tags()
+    interpreter = _get_custom_interpreter(impl, version)
+
+    if platform is None and abi is None:
+        return generic_tags(interpreter=interpreter)
 
     supported = []  # type: List[Tuple[str, str, str]]
 
