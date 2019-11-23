@@ -329,8 +329,16 @@ def _cpython_tags(
     if abi is not None:
         abis = [abi]
 
-    if platform is None:
-        return cpython_tags(python_version=python_version, abis=abis)
+    platforms = None  # type: Optional[List[str]]
+    if platform is not None:
+        platforms = _get_custom_platforms(platform, platform)
+
+    if True:
+        return cpython_tags(
+            python_version=python_version,
+            abis=abis,
+            platforms=platforms,
+        )
 
     supported = []  # type: List[Tuple[str, str, str]]
 
