@@ -59,6 +59,25 @@ def test_backend_path(tmpdir, data):
         assert req.pep517_backend.build_wheel("dir") == "Backend called"
 
 
+def test_backend_path_and_dep(tmpdir, data):
+    """Check we can call a requirement's backend successfully"""
+    project_dir = make_project(
+        tmpdir, backend="dummy_internal_backend", backend_path=['.']
+    )
+    (project_dir / 'dummy_internal_backend.py').write_text(
+        "from dummy_backend import build_wheel"
+    )
+    req = InstallRequirement(None, None, source_dir=project_dir)
+    req.load_pyproject_toml()
+    env = BuildEnvironment()
+    finder = make_test_finder(find_links=[data.backends])
+    env.install_requirements(finder, ["dummy_backend"], 'normal', "Installing")
+
+    assert hasattr(req.pep517_backend, 'build_wheel')
+    with env:
+        assert req.pep517_backend.build_wheel("dir") == "Backend called"
+
+
 def test_pep517_install(script, tmpdir, data):
     """Check we can build with a custom backend"""
     project_dir = make_project(
