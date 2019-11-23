@@ -29,15 +29,6 @@ logger = logging.getLogger(__name__)
 _osx_arch_pat = re.compile(r'(.+)_(\d+)_(\d+)_(.+)')
 
 
-def format_tag(file_tag):
-    # type: (Tuple[str, ...]) -> str
-    """Format three tags in the form "<python_tag>-<abi_tag>-<platform_tag>".
-
-    :param file_tag: A 3-tuple of tags (python_tag, abi_tag, platform_tag).
-    """
-    return '-'.join(file_tag)
-
-
 def get_config_var(var):
     # type: (str) -> Optional[str]
     return sysconfig.get_config_var(var)
