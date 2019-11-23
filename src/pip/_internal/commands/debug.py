@@ -14,7 +14,6 @@ from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.cli.status_codes import SUCCESS
-from pip._internal.pep425tags import format_tag
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import get_pip_version
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -68,7 +67,7 @@ def show_tags(options):
 
     with indent_log():
         for tag in tags:
-            logger.info(format_tag(tag))
+            logger.info(str(tag))
 
         if tags_limited:
             msg = (

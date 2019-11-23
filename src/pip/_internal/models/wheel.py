@@ -3,14 +3,13 @@ name that have meaning.
 """
 import re
 
+from pip._vendor.packaging.tags import Tag
+
 from pip._internal.exceptions import InvalidWheelFilename
-from pip._internal.pep425tags import format_tag
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import List
-
-    from pip._internal.pep425tags import Pep425Tag
 
 
 class Wheel(object):
@@ -45,17 +44,17 @@ class Wheel(object):
 
         # All the tag combinations from this file
         self.file_tags = {
-            (x, y, z) for x in self.pyversions
+            Tag(x, y, z) for x in self.pyversions
             for y in self.abis for z in self.plats
         }
 
     def get_formatted_file_tags(self):
         # type: () -> List[str]
         """Return the wheel's tags as a sorted list of strings."""
-        return sorted(format_tag(tag) for tag in self.file_tags)
+        return sorted(str(tag) for tag in self.file_tags)
 
     def support_index_min(self, tags):
-        # type: (List[Pep425Tag]) -> int
+        # type: (List[Tag]) -> int
         """Return the lowest index that one of the wheel's file_tag combinations
         achieves in the given list of supported tags.
 
@@ -71,7 +70,7 @@ class Wheel(object):
         return min(tags.index(tag) for tag in self.file_tags if tag in tags)
 
     def supported(self, tags):
-        # type: (List[Pep425Tag]) -> bool
+        # type: (List[Tag]) -> bool
         """Return whether the wheel is compatible with one of the given tags.
 
         :param tags: the PEP 425 tags to check the wheel against.

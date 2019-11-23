@@ -37,11 +37,13 @@ if MYPY_CHECK_RUNNING:
     from typing import (
         FrozenSet, Iterable, List, Optional, Set, Text, Tuple, Union,
     )
+
+    from pip._vendor.packaging.tags import Tag
     from pip._vendor.packaging.version import _BaseVersion
+
     from pip._internal.index.collector import LinkCollector
     from pip._internal.models.search_scope import SearchScope
     from pip._internal.req import InstallRequirement
-    from pip._internal.pep425tags import Pep425Tag
     from pip._internal.utils.hashes import Hashes
 
     BuildTag = Union[Tuple[()], Tuple[int, str]]
@@ -425,7 +427,7 @@ class CandidateEvaluator(object):
     def __init__(
         self,
         project_name,         # type: str
-        supported_tags,       # type: List[Pep425Tag]
+        supported_tags,       # type: List[Tag]
         specifier,            # type: specifiers.BaseSpecifier
         prefer_binary=False,  # type: bool
         allow_all_prereleases=False,  # type: bool
