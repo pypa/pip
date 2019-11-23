@@ -9,13 +9,12 @@ import json
 import logging
 import os
 
-from pip._vendor.packaging.tags import interpreter_version
+from pip._vendor.packaging.tags import interpreter_name, interpreter_version
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.exceptions import InvalidWheelFilename
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
-from pip._internal.pep425tags import interpreter_name
 from pip._internal.utils.compat import expanduser
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
