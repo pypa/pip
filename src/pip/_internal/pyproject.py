@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import io
 import os
 import sys
+from collections import namedtuple
 
 from pip._vendor import pytoml, six
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
@@ -11,7 +12,7 @@ from pip._internal.exceptions import InstallationError
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Tuple, Optional, List
+    from typing import Any, Optional, List
 
 
 def _is_list_of_str(obj):
@@ -33,13 +34,18 @@ def make_pyproject_path(unpacked_source_directory):
     return path
 
 
+BuildsystemDetails = namedtuple('BuildsystemDetails', [
+    'requires', 'backend', 'check', 'backend_path'
+])
+
+
 def load_pyproject_toml(
     use_pep517,  # type: Optional[bool]
     pyproject_toml,  # type: str
     setup_py,  # type: str
     req_name  # type: str
 ):
-    # type: (...) -> Optional[Tuple[List[str], str, List[str], List[str]]]
+    # type: (...) -> Optional[BuildsystemDetails]
     """Load the pyproject.toml file.
 
     Parameters:
@@ -187,4 +193,4 @@ def load_pyproject_toml(
         backend = "setuptools.build_meta:__legacy__"
         check = ["setuptools>=40.8.0", "wheel"]
 
-    return (requires, backend, check, backend_path)
+    return BuildsystemDetails(requires, backend, check, backend_path)
