@@ -321,8 +321,12 @@ def _cpython_tags(
     abi=None,  # type: Optional[str]
 ):
     # type: (...) -> Union[Iterator[Tag], List[Tuple[str, str, str]]]
-    if version is None and platform is None and abi is None:
-        return cpython_tags()
+    python_version = None  # type: Optional[PythonVersion]
+    if version is not None:
+        python_version = _get_python_version(version)
+
+    if platform is None and abi is None:
+        return cpython_tags(python_version=python_version)
 
     supported = []  # type: List[Tuple[str, str, str]]
 
