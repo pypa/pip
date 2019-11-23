@@ -50,9 +50,6 @@ def test_backend_path(tmpdir, data):
         tmpdir, backend="dummy_backend", backend_path=['.']
     )
     (project_dir / 'dummy_backend.py').write_text(dummy_backend_code)
-    print(project_dir)
-    import os
-    print(os.listdir(project_dir))
     req = InstallRequirement(None, None, source_dir=project_dir)
     req.load_pyproject_toml()
 
