@@ -317,7 +317,6 @@ def _get_custom_interpreter(implementation=None, version=None):
 def _cpython_tags(
     version=None,  # type: Optional[str]
     platform=None,  # type: Optional[str]
-    impl=None,  # type: Optional[str]
     abi=None,  # type: Optional[str]
 ):
     # type: (...) -> List[Tuple[str, str, str]]
@@ -332,15 +331,13 @@ def _cpython_tags(
     current_version = versions[0]
     other_versions = versions[1:]
 
-    impl = impl or interpreter_name()
-
     abis = []  # type: List[str]
 
     abi = abi or get_abi_tag()
     if abi:
         abis[0:0] = [abi]
 
-    supports_abi3 = not PY2 and impl == "cp"
+    supports_abi3 = not PY2
 
     if supports_abi3:
         abis.append("abi3")
@@ -352,7 +349,7 @@ def _cpython_tags(
     # Current version, current API (built specifically for our Python):
     for abi in abis:
         for arch in arches:
-            supported.append(('%s%s' % (impl, current_version), abi, arch))
+            supported.append(('cp%s' % current_version, abi, arch))
 
     # abi3 modules compatible with older version of Python
     if supports_abi3:
@@ -361,7 +358,7 @@ def _cpython_tags(
             if version in {'31', '30'}:
                 break
             for arch in arches:
-                supported.append(("%s%s" % (impl, version), "abi3", arch))
+                supported.append(("cp%s" % version, "abi3", arch))
 
     return supported
 
@@ -460,7 +457,7 @@ def get_supported(
 
     is_cpython = (impl or interpreter_name()) == "cp"
     if is_cpython:
-        supported.extend(_cpython_tags(version, platform, impl, abi))
+        supported.extend(_cpython_tags(version, platform, abi))
     else:
         supported.extend(_generic_tags(version, platform, impl, abi))
     supported.extend(
