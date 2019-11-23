@@ -458,8 +458,11 @@ def get_supported(
     if platform is not None:
         platforms = _get_custom_platforms(platform, platform)
 
-    supported.extend(_cpython_tags(version, platform, impl, abi))
-    supported.extend(_generic_tags(version, platform, impl, abi))
+    is_cpython = (impl or interpreter_name()) == "cp"
+    if is_cpython:
+        supported.extend(_cpython_tags(version, platform, impl, abi))
+    else:
+        supported.extend(_generic_tags(version, platform, impl, abi))
     supported.extend(
         compatible_tags(
             python_version=python_version,
