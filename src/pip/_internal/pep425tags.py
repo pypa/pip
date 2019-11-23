@@ -313,7 +313,7 @@ def get_supported(
     :param abi: specify the exact abi you want valid
         tags for, or None. If None, use the local interpreter abi.
     """
-    supported = []
+    supported = []  # type: List[Union[Tag, Tuple[str, str, str]]]
 
     # Versions must be given with respect to the preference
     if version is None:
@@ -368,4 +368,7 @@ def get_supported(
     for version in other_versions:
         supported.append(('py%s' % (version,), 'none', 'any'))
 
-    return [Tag(*parts) for parts in supported]
+    return [
+        parts if isinstance(parts, Tag) else Tag(*parts)
+        for parts in supported
+    ]
