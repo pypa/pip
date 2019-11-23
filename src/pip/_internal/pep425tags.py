@@ -16,7 +16,6 @@ from pip._vendor.packaging.tags import (
     interpreter_version,
     mac_platforms,
 )
-from pip._vendor.six import PY2
 
 import pip._internal.utils.glibc
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -331,7 +330,6 @@ def _generic_tags(
     else:
         versions = [version]
     current_version = versions[0]
-    other_versions = versions[1:]
 
     impl = impl or interpreter_name()
 
@@ -341,11 +339,6 @@ def _generic_tags(
     if abi:
         abis[0:0] = [abi]
 
-    supports_abi3 = not PY2 and impl == "cp"
-
-    if supports_abi3:
-        abis.append("abi3")
-
     abis.append('none')
 
     arches = _get_custom_platforms(platform or get_platform(), platform)
@@ -354,15 +347,6 @@ def _generic_tags(
     for abi in abis:
         for arch in arches:
             supported.append(('%s%s' % (impl, current_version), abi, arch))
-
-    # abi3 modules compatible with older version of Python
-    if supports_abi3:
-        for version in other_versions:
-            # abi3 was introduced in Python 3.2
-            if version in {'31', '30'}:
-                break
-            for arch in arches:
-                supported.append(("%s%s" % (impl, version), "abi3", arch))
 
     return supported
 
