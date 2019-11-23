@@ -321,7 +321,7 @@ def _generic_tags(
     impl=None,  # type: Optional[str]
     abi=None,  # type: Optional[str]
 ):
-    # type: (...) -> Union[Iterator[Tag], List[Tuple[str, str, str]]]
+    # type: (...) -> Iterator[Tag]
     interpreter = _get_custom_interpreter(impl, version)
 
     abis = None  # type: Optional[List[str]]
@@ -332,41 +332,11 @@ def _generic_tags(
     if platform is not None:
         platforms = _get_custom_platforms(platform, platform)
 
-    if True:
-        return generic_tags(
-            interpreter=interpreter,
-            abis=abis,
-            platforms=platforms,
-        )
-
-    supported = []  # type: List[Tuple[str, str, str]]
-
-    # Versions must be given with respect to the preference
-    if version is None:
-        version_info = get_impl_version_info()
-        versions = get_all_minor_versions_as_strings(version_info)
-    else:
-        versions = [version]
-    current_version = versions[0]
-
-    impl = impl or interpreter_name()
-
-    abis = []  # type: ignore  # we will be removing this soon
-
-    abi = abi or get_abi_tag()
-    if abi:
-        abis[0:0] = [abi]
-
-    abis.append('none')
-
-    arches = _get_custom_platforms(platform or get_platform(), platform)
-
-    # Current version, current API (built specifically for our Python):
-    for abi in abis:
-        for arch in arches:
-            supported.append(('%s%s' % (impl, current_version), abi, arch))
-
-    return supported
+    return generic_tags(
+        interpreter=interpreter,
+        abis=abis,
+        platforms=platforms,
+    )
 
 
 def _stable_unique_tags(tags):
