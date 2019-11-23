@@ -276,7 +276,9 @@ def test_uninstall_easy_installed_console_scripts(script):
     """
     Test uninstalling package with console_scripts that is easy_installed.
     """
-    result = script.easy_install('discover')
+    # setuptools >= 42.0.0 deprecates easy_install and prints a warning when
+    # used
+    result = script.easy_install('discover', allow_stderr_warning=True)
     assert script.bin / 'discover' + script.exe in result.files_created, (
         sorted(result.files_created.keys())
     )
