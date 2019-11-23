@@ -168,69 +168,7 @@ class TestManylinuxTags(object):
         assert not is_manylinux_compatible()
 
 
-class TestManylinux1Tags(object):
-
-    @pytest.mark.xfail
-    @patch('pip._internal.pep425tags.is_manylinux2010_compatible',
-           lambda: False)
-    @patch('pip._internal.pep425tags.is_manylinux2014_compatible',
-           lambda: False)
-    @patch('pip._internal.pep425tags.get_platform', lambda: 'linux_x86_64')
-    @patch('pip._internal.utils.glibc.have_compatible_glibc',
-           lambda major, minor: True)
-    @patch('sys.platform', 'linux2')
-    def test_manylinux1_tag_is_first(self):
-        """
-        Test that the more specific tag manylinux1 comes first.
-        """
-        groups = {}
-        for tag in pep425tags.get_supported():
-            groups.setdefault(
-                (tag.interpreter, tag.abi), []
-            ).append(tag.platform)
-
-        for arches in groups.values():
-            if arches == ['any']:
-                continue
-            # Expect the most specific arch first:
-            if len(arches) == 3:
-                assert arches == ['manylinux1_x86_64', 'linux_x86_64', 'any']
-            else:
-                assert arches == ['manylinux1_x86_64', 'linux_x86_64']
-
-
 class TestManylinux2010Tags(object):
-
-    @pytest.mark.xfail
-    @patch('pip._internal.pep425tags.is_manylinux2014_compatible',
-           lambda: False)
-    @patch('pip._internal.pep425tags.get_platform', lambda: 'linux_x86_64')
-    @patch('pip._internal.utils.glibc.have_compatible_glibc',
-           lambda major, minor: True)
-    @patch('sys.platform', 'linux2')
-    def test_manylinux2010_tag_is_first(self):
-        """
-        Test that the more specific tag manylinux2010 comes first.
-        """
-        groups = {}
-        for tag in pep425tags.get_supported():
-            groups.setdefault(
-                (tag.interpreter, tag.abi), []
-            ).append(tag.platform)
-
-        for arches in groups.values():
-            if arches == ['any']:
-                continue
-            # Expect the most specific arch first:
-            if len(arches) == 4:
-                assert arches == ['manylinux2010_x86_64',
-                                  'manylinux1_x86_64',
-                                  'linux_x86_64',
-                                  'any']
-            else:
-                assert arches == ['manylinux2010_x86_64',
-                                  'manylinux1_x86_64',
-                                  'linux_x86_64']
 
     @pytest.mark.parametrize("manylinux2010,manylinux1", [
         ("manylinux2010_x86_64", "manylinux1_x86_64"),
@@ -254,37 +192,6 @@ class TestManylinux2010Tags(object):
 
 
 class TestManylinux2014Tags(object):
-
-    @pytest.mark.xfail
-    @patch('pip._internal.pep425tags.get_platform', lambda: 'linux_x86_64')
-    @patch('pip._internal.utils.glibc.have_compatible_glibc',
-           lambda major, minor: True)
-    @patch('sys.platform', 'linux2')
-    def test_manylinux2014_tag_is_first(self):
-        """
-        Test that the more specific tag manylinux2014 comes first.
-        """
-        groups = {}
-        for tag in pep425tags.get_supported():
-            groups.setdefault(
-                (tag.interpreter, tag.abi), []
-            ).append(tag.platform)
-
-        for arches in groups.values():
-            if arches == ['any']:
-                continue
-            # Expect the most specific arch first:
-            if len(arches) == 5:
-                assert arches == ['manylinux2014_x86_64',
-                                  'manylinux2010_x86_64',
-                                  'manylinux1_x86_64',
-                                  'linux_x86_64',
-                                  'any']
-            else:
-                assert arches == ['manylinux2014_x86_64',
-                                  'manylinux2010_x86_64',
-                                  'manylinux1_x86_64',
-                                  'linux_x86_64']
 
     @pytest.mark.parametrize("manylinuxA,manylinuxB", [
         ("manylinux2014_x86_64", ["manylinux2010_x86_64",

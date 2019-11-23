@@ -11,6 +11,7 @@ import sysconfig
 from pip._vendor.packaging.tags import (
     Tag,
     compatible_tags,
+    cpython_tags,
     interpreter_name,
     interpreter_version,
     mac_platforms,
@@ -319,7 +320,10 @@ def _cpython_tags(
     platform=None,  # type: Optional[str]
     abi=None,  # type: Optional[str]
 ):
-    # type: (...) -> List[Tuple[str, str, str]]
+    # type: (...) -> Union[Iterator[Tag], List[Tuple[str, str, str]]]
+    if version is None and platform is None and abi is None:
+        return cpython_tags()
+
     supported = []  # type: List[Tuple[str, str, str]]
 
     # Versions must be given with respect to the preference
