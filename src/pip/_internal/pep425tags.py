@@ -402,7 +402,6 @@ def _compatible_tags(
     version=None,  # type: Optional[str]
     platform=None,  # type: Optional[str]
     impl=None,  # type: Optional[str]
-    abi=None,  # type: Optional[str]
 ):
     # type: (...) -> List[Tuple[str, str, str]]
     supported = []  # type: List[Tuple[str, str, str]]
@@ -468,7 +467,7 @@ def get_supported(
 
     supported.extend(_cpython_tags(version, platform, impl, abi))
     supported.extend(_generic_tags(version, platform, impl, abi))
-    supported.extend(_compatible_tags(version, platform, impl, abi))
+    supported.extend(_compatible_tags(version, platform, impl))
 
     tags = [
         parts if isinstance(parts, Tag) else Tag(*parts)
