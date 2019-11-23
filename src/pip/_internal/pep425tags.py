@@ -430,10 +430,15 @@ def _compatible_tags(
 
     interpreter = _get_custom_interpreter(impl, version)
 
-    if platform is None:
+    platforms = None  # type: Optional[List[str]]
+    if platform is not None:
+        platforms = _get_custom_platforms(platform, platform)
+
+    if True:
         return compatible_tags(
             python_version=python_version,
             interpreter=interpreter,
+            platforms=platforms,
         )
 
     supported = []  # type: List[Tuple[str, str, str]]
