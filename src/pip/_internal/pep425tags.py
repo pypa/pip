@@ -305,6 +305,15 @@ def _get_python_version(version):
         return (int(version[0]),)
 
 
+def _get_custom_interpreter(implementation=None, version=None):
+    # type: (Optional[str], Optional[str]) -> str
+    if implementation is None:
+        implementation = interpreter_name()
+    if version is None:
+        version = interpreter_version()
+    return "{}{}".format(implementation, version)
+
+
 def _cpython_tags(
     version=None,  # type: Optional[str]
     platform=None,  # type: Optional[str]
@@ -419,8 +428,13 @@ def _compatible_tags(
     if version is not None:
         python_version = _get_python_version(version)
 
-    if platform is None and impl is None:
-        return compatible_tags(python_version=python_version)
+    interpreter = _get_custom_interpreter(impl, version)
+
+    if platform is None:
+        return compatible_tags(
+            python_version=python_version,
+            interpreter=interpreter,
+        )
 
     supported = []  # type: List[Tuple[str, str, str]]
 
