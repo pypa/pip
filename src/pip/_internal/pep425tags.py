@@ -328,8 +328,16 @@ def _generic_tags(
     if abi:
         abis = [abi]
 
-    if platform is None:
-        return generic_tags(interpreter=interpreter, abis=abis)
+    platforms = None  # type: Optional[List[str]]
+    if platform is not None:
+        platforms = _get_custom_platforms(platform, platform)
+
+    if True:
+        return generic_tags(
+            interpreter=interpreter,
+            abis=abis,
+            platforms=platforms,
+        )
 
     supported = []  # type: List[Tuple[str, str, str]]
 
