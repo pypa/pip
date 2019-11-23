@@ -39,7 +39,7 @@ def load_pyproject_toml(
     setup_py,  # type: str
     req_name  # type: str
 ):
-    # type: (...) -> Optional[Tuple[List[str], str, List[str]]]
+    # type: (...) -> Optional[Tuple[List[str], str, List[str], List[str]]]
     """Load the pyproject.toml file.
 
     Parameters:
@@ -57,6 +57,8 @@ def load_pyproject_toml(
             name of PEP 517 backend,
             requirements we should check are installed after setting
                 up the build environment
+            directory paths to import the backend from (backend-path),
+                relative to the project root.
         )
     """
     has_pyproject = os.path.isfile(pyproject_toml)
@@ -167,6 +169,7 @@ def load_pyproject_toml(
             )
 
     backend = build_system.get("build-backend")
+    backend_path = build_system.get("backend-path", [])
     check = []  # type: List[str]
     if backend is None:
         # If the user didn't specify a backend, we assume they want to use
@@ -184,4 +187,4 @@ def load_pyproject_toml(
         backend = "setuptools.build_meta:__legacy__"
         check = ["setuptools>=40.8.0", "wheel"]
 
-    return (requires, backend, check)
+    return (requires, backend, check, backend_path)

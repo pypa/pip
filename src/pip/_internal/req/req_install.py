@@ -601,11 +601,11 @@ class InstallRequirement(object):
             return
 
         self.use_pep517 = True
-        requires, backend, check = pyproject_toml_data
+        requires, backend, check, backend_path = pyproject_toml_data
         self.requirements_to_check = check
         self.pyproject_requires = requires
         self.pep517_backend = Pep517HookCaller(
-            self.unpacked_source_directory, backend
+            self.unpacked_source_directory, backend, backend_path=backend_path,
         )
 
     def prepare_metadata(self):
