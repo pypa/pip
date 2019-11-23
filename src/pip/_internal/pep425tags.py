@@ -3,7 +3,6 @@ from __future__ import absolute_import
 
 import logging
 import re
-import sys
 
 from pip._vendor.packaging.tags import (
     Tag,
@@ -31,30 +30,6 @@ def version_info_to_nodot(version_info):
     # type: (Tuple[int, ...]) -> str
     # Only use up to the first two numbers.
     return ''.join(map(str, version_info[:2]))
-
-
-def get_impl_version_info():
-    # type: () -> Tuple[int, ...]
-    """Return sys.version_info-like tuple for use in decrementing the minor
-    version."""
-    if interpreter_name() == 'pp':
-        # as per https://github.com/pypa/pip/issues/2882
-        # attrs exist only on pypy
-        return (sys.version_info[0],
-                sys.pypy_version_info.major,  # type: ignore
-                sys.pypy_version_info.minor)  # type: ignore
-    else:
-        return sys.version_info[0], sys.version_info[1]
-
-
-def get_all_minor_versions_as_strings(version_info):
-    # type: (Tuple[int, ...]) -> List[str]
-    versions = []
-    major = version_info[:-1]
-    # Support all previous minor Python versions.
-    for minor in range(version_info[-1], -1, -1):
-        versions.append(''.join(map(str, major + (minor,))))
-    return versions
 
 
 def _mac_platforms(arch):
