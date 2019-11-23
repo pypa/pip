@@ -325,8 +325,12 @@ def _cpython_tags(
     if version is not None:
         python_version = _get_python_version(version)
 
-    if platform is None and abi is None:
-        return cpython_tags(python_version=python_version)
+    abis = None  # type: Optional[List[str]]
+    if abi is not None:
+        abis = [abi]
+
+    if platform is None:
+        return cpython_tags(python_version=python_version, abis=abis)
 
     supported = []  # type: List[Tuple[str, str, str]]
 
@@ -339,7 +343,7 @@ def _cpython_tags(
     current_version = versions[0]
     other_versions = versions[1:]
 
-    abis = []  # type: List[str]
+    abis = []  # type: ignore  # we will be removing this soon
 
     abi = abi or get_abi_tag()
     if abi:
