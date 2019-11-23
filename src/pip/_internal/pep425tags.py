@@ -277,22 +277,13 @@ def _custom_manylinux_platforms(arch):
     return arches
 
 
-def _get_custom_platforms(arch, platform):
-    # type: (str, Optional[str]) -> List[str]
+def _get_custom_platforms(arch):
+    # type: (str) -> List[str]
     arch_prefix, arch_sep, arch_suffix = arch.partition('_')
     if arch.startswith('macosx'):
         arches = _mac_platforms(arch)
     elif arch_prefix in ['manylinux2014', 'manylinux2010']:
         arches = _custom_manylinux_platforms(arch)
-    elif platform is None:
-        arches = []
-        if is_manylinux2014_compatible():
-            arches.append('manylinux2014' + arch_sep + arch_suffix)
-        if is_manylinux2010_compatible():
-            arches.append('manylinux2010' + arch_sep + arch_suffix)
-        if is_manylinux1_compatible():
-            arches.append('manylinux1' + arch_sep + arch_suffix)
-        arches.append(arch)
     else:
         arches = [arch]
     return arches
@@ -348,7 +339,7 @@ def get_supported(
 
     platforms = None  # type: Optional[List[str]]
     if platform is not None:
-        platforms = _get_custom_platforms(platform, platform)
+        platforms = _get_custom_platforms(platform)
 
     is_cpython = (impl or interpreter_name()) == "cp"
     if is_cpython:
