@@ -320,7 +320,7 @@ def _cpython_tags(
     platform=None,  # type: Optional[str]
     abi=None,  # type: Optional[str]
 ):
-    # type: (...) -> Union[Iterator[Tag], List[Tuple[str, str, str]]]
+    # type: (...) -> Iterator[Tag]
     python_version = None  # type: Optional[PythonVersion]
     if version is not None:
         python_version = _get_python_version(version)
@@ -333,54 +333,11 @@ def _cpython_tags(
     if platform is not None:
         platforms = _get_custom_platforms(platform, platform)
 
-    if True:
-        return cpython_tags(
-            python_version=python_version,
-            abis=abis,
-            platforms=platforms,
-        )
-
-    supported = []  # type: List[Tuple[str, str, str]]
-
-    # Versions must be given with respect to the preference
-    if version is None:
-        version_info = get_impl_version_info()
-        versions = get_all_minor_versions_as_strings(version_info)
-    else:
-        versions = [version]
-    current_version = versions[0]
-    other_versions = versions[1:]
-
-    abis = []  # type: ignore  # we will be removing this soon
-
-    abi = abi or get_abi_tag()
-    if abi:
-        abis[0:0] = [abi]
-
-    supports_abi3 = not PY2
-
-    if supports_abi3:
-        abis.append("abi3")
-
-    abis.append('none')
-
-    arches = _get_custom_platforms(platform or get_platform(), platform)
-
-    # Current version, current API (built specifically for our Python):
-    for abi in abis:
-        for arch in arches:
-            supported.append(('cp%s' % current_version, abi, arch))
-
-    # abi3 modules compatible with older version of Python
-    if supports_abi3:
-        for version in other_versions:
-            # abi3 was introduced in Python 3.2
-            if version in {'31', '30'}:
-                break
-            for arch in arches:
-                supported.append(("cp%s" % version, "abi3", arch))
-
-    return supported
+    return cpython_tags(
+        python_version=python_version,
+        abis=abis,
+        platforms=platforms,
+    )
 
 
 def _generic_tags(
