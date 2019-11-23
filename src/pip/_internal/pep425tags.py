@@ -9,6 +9,7 @@ import sys
 import sysconfig
 from collections import OrderedDict
 
+from pip._vendor.packaging.tags import interpreter_version
 from pip._vendor.six import PY2
 
 import pip._internal.utils.glibc
@@ -63,18 +64,6 @@ def version_info_to_nodot(version_info):
     return ''.join(map(str, version_info[:2]))
 
 
-def get_impl_ver():
-    # type: () -> str
-    """Return implementation version."""
-    impl_ver = get_config_var("py_version_nodot")
-    if not impl_ver or get_abbr_impl() == 'pp':
-        impl_ver = ''.join(map(str, get_impl_version_info()))
-    return impl_ver
-
-
-interpreter_version = get_impl_ver
-
-
 def get_impl_version_info():
     # type: () -> Tuple[int, ...]
     """Return sys.version_info-like tuple for use in decrementing the minor
@@ -126,7 +115,7 @@ def get_abi_tag():
                 'Py_UNICODE_SIZE', lambda: sys.maxunicode == 0x10ffff,
                 expected=4, warn=is_cpython):
             u = 'u'
-        abi = '%s%s%s%s%s' % (impl, get_impl_ver(), d, m, u)
+        abi = '%s%s%s%s%s' % (impl, interpreter_version(), d, m, u)
     elif soabi and soabi.startswith('cpython-'):
         abi = 'cp' + soabi.split('-')[1]
     elif soabi:

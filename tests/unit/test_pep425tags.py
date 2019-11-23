@@ -2,6 +2,7 @@ import sys
 
 import pytest
 from mock import patch
+from pip._vendor.packaging.tags import interpreter_version
 
 from pip._internal import pep425tags
 
@@ -53,8 +54,7 @@ class TestPEP425Tags(object):
         import pip._internal.pep425tags
 
         config_vars.update({'SOABI': None})
-        base = pip._internal.pep425tags.get_abbr_impl() + \
-            pip._internal.pep425tags.get_impl_ver()
+        base = pip._internal.pep425tags.get_abbr_impl() + interpreter_version()
 
         if sys.version_info >= (3, 8):
             # Python 3.8 removes the m flag, so don't look for it.
