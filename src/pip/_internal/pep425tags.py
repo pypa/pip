@@ -418,29 +418,6 @@ def _generic_tags(
     return supported
 
 
-def _compatible_tags(
-    version=None,  # type: Optional[str]
-    platform=None,  # type: Optional[str]
-    impl=None,  # type: Optional[str]
-):
-    # type: (...) -> Iterator[Tag]
-    python_version = None  # type: Optional[PythonVersion]
-    if version is not None:
-        python_version = _get_python_version(version)
-
-    interpreter = _get_custom_interpreter(impl, version)
-
-    platforms = None  # type: Optional[List[str]]
-    if platform is not None:
-        platforms = _get_custom_platforms(platform, platform)
-
-    return compatible_tags(
-        python_version=python_version,
-        interpreter=interpreter,
-        platforms=platforms,
-    )
-
-
 def _stable_unique_tags(tags):
     # type: (List[Tag]) -> Iterator[Tag]
     observed = set()  # type: Set[Tag]
@@ -471,9 +448,25 @@ def get_supported(
     """
     supported = []  # type: List[Union[Tag, Tuple[str, str, str]]]
 
+    python_version = None  # type: Optional[PythonVersion]
+    if version is not None:
+        python_version = _get_python_version(version)
+
+    interpreter = _get_custom_interpreter(impl, version)
+
+    platforms = None  # type: Optional[List[str]]
+    if platform is not None:
+        platforms = _get_custom_platforms(platform, platform)
+
     supported.extend(_cpython_tags(version, platform, impl, abi))
     supported.extend(_generic_tags(version, platform, impl, abi))
-    supported.extend(_compatible_tags(version, platform, impl))
+    supported.extend(
+        compatible_tags(
+            python_version=python_version,
+            interpreter=interpreter,
+            platforms=platforms,
+        )
+    )
 
     tags = [
         parts if isinstance(parts, Tag) else Tag(*parts)
