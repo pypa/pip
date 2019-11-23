@@ -21,7 +21,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Callable, List, Optional, Tuple, Union
+        Callable, Iterator, List, Optional, Set, Tuple, Union
     )
 
 logger = logging.getLogger(__name__)
@@ -489,6 +489,15 @@ def _compatible_tags(
     return supported
 
 
+def _stable_unique_tags(tags):
+    # type: (List[Tag]) -> Iterator[Tag]
+    observed = set()  # type: Set[Tag]
+    for tag in tags:
+        if tag not in observed:
+            observed.add(tag)
+            yield tag
+
+
 def get_supported(
     version=None,  # type: Optional[str]
     platform=None,  # type: Optional[str]
@@ -510,60 +519,12 @@ def get_supported(
     """
     supported = []  # type: List[Union[Tag, Tuple[str, str, str]]]
 
-    # Versions must be given with respect to the preference
-    if version is None:
-        version_info = get_impl_version_info()
-        versions = get_all_minor_versions_as_strings(version_info)
-    else:
-        versions = [version]
-    current_version = versions[0]
-    other_versions = versions[1:]
+    supported.extend(_cpython_tags(version, platform, impl, abi))
+    supported.extend(_generic_tags(version, platform, impl, abi))
+    supported.extend(_compatible_tags(version, platform, impl, abi))
 
-    impl = impl or interpreter_name()
-
-    abis = []  # type: List[str]
-
-    abi = abi or get_abi_tag()
-    if abi:
-        abis[0:0] = [abi]
-
-    supports_abi3 = not PY2 and impl == "cp"
-
-    if supports_abi3:
-        abis.append("abi3")
-
-    abis.append('none')
-
-    arches = _get_custom_platforms(platform or get_platform(), platform)
-
-    # Current version, current API (built specifically for our Python):
-    for abi in abis:
-        for arch in arches:
-            supported.append(('%s%s' % (impl, current_version), abi, arch))
-
-    # abi3 modules compatible with older version of Python
-    if supports_abi3:
-        for version in other_versions:
-            # abi3 was introduced in Python 3.2
-            if version in {'31', '30'}:
-                break
-            for arch in arches:
-                supported.append(("%s%s" % (impl, version), "abi3", arch))
-
-    # Has binaries, does not use the Python API:
-    for arch in arches:
-        supported.append(('py%s' % (current_version[0]), 'none', arch))
-
-    # No abi / arch, but requires our implementation:
-    supported.append(('%s%s' % (impl, current_version), 'none', 'any'))
-
-    # No abi / arch, generic Python
-    supported.append(('py%s' % (current_version,), 'none', 'any'))
-    supported.append(('py%s' % (current_version[0]), 'none', 'any'))
-    for version in other_versions:
-        supported.append(('py%s' % (version,), 'none', 'any'))
-
-    return [
+    tags = [
         parts if isinstance(parts, Tag) else Tag(*parts)
         for parts in supported
     ]
+    return list(_stable_unique_tags(tags))
