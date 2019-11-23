@@ -25,6 +25,8 @@ if MYPY_CHECK_RUNNING:
         Callable, Iterator, List, Optional, Set, Tuple, Union
     )
 
+    from pip._vendor.packaging.tags import PythonVersion
+
 logger = logging.getLogger(__name__)
 
 _osx_arch_pat = re.compile(r'(.+)_(\d+)_(\d+)_(.+)')
@@ -295,6 +297,14 @@ def _get_custom_platforms(arch, platform):
     return arches
 
 
+def _get_python_version(version):
+    # type: (str) -> PythonVersion
+    if len(version) > 1:
+        return int(version[0]), int(version[1:])
+    else:
+        return (int(version[0]),)
+
+
 def _cpython_tags(
     version=None,  # type: Optional[str]
     platform=None,  # type: Optional[str]
@@ -405,8 +415,12 @@ def _compatible_tags(
     impl=None,  # type: Optional[str]
 ):
     # type: (...) -> Union[Iterator[Tag], List[Tuple[str, str, str]]]
-    if version is None and platform is None and impl is None:
-        return compatible_tags()
+    python_version = None  # type: Optional[PythonVersion]
+    if version is not None:
+        python_version = _get_python_version(version)
+
+    if platform is None and impl is None:
+        return compatible_tags(python_version=python_version)
 
     supported = []  # type: List[Tuple[str, str, str]]
 
