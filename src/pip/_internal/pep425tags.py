@@ -54,6 +54,9 @@ def get_abbr_impl():
     return pyimpl
 
 
+interpreter_name = get_abbr_impl
+
+
 def version_info_to_nodot(version_info):
     # type: (Tuple[int, ...]) -> str
     # Only use up to the first two numbers.
@@ -67,6 +70,9 @@ def get_impl_ver():
     if not impl_ver or get_abbr_impl() == 'pp':
         impl_ver = ''.join(map(str, get_impl_version_info()))
     return impl_ver
+
+
+interpreter_version = get_impl_ver
 
 
 def get_impl_version_info():

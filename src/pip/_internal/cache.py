@@ -8,15 +8,14 @@ import hashlib
 import json
 import logging
 import os
-import sys
 
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.exceptions import InvalidWheelFilename
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
+from pip._internal.pep425tags import interpreter_name, interpreter_version
 from pip._internal.utils.compat import expanduser
-from pip._internal.utils.misc import interpreter_name
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import path_to_url
@@ -104,11 +103,8 @@ class Cache(object):
         # depending on the python version their setup.py is being run on,
         # and don't encode the difference in compatibility tags.
         # https://github.com/pypa/pip/issues/7296
-        key_parts["interpreter"] = "{}-{}.{}".format(
-            interpreter_name(),
-            sys.version_info[0],
-            sys.version_info[1],
-        )
+        key_parts["interpreter_name"] = interpreter_name()
+        key_parts["interpreter_version"] = interpreter_version()
 
         # Encode our key url with sha224, we'll use this because it has similar
         # security properties to sha256, but with a shorter total output (and
