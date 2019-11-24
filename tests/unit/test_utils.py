@@ -35,6 +35,7 @@ from pip._internal.utils.misc import (
     build_netloc,
     build_url_from_netloc,
     egg_link_path,
+    format_size,
     get_installed_distributions,
     get_prog,
     hide_url,
@@ -991,3 +992,13 @@ def test_is_console_interactive(monkeypatch, isatty, no_stdin, expected):
         monkeypatch.setattr(sys, 'stdin', None)
 
     assert is_console_interactive() is expected
+
+
+@pytest.mark.parametrize('size,expected', [
+    (123, "123bytes"),
+    (1234, "1.2kB"),
+    (123456, "123kB"),
+    (1234567890, "1234.6MB"),
+])
+def test_format_size(size, expected):
+    assert format_size(size) == expected
