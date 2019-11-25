@@ -1339,6 +1339,21 @@ def test_install_no_binary_builds_pep_517_wheel(script, data, with_wheel):
     assert "Running setup.py install for pep517-set" not in str(res), str(res)
 
 
+@pytest.mark.network
+def test_install_no_binary_uses_local_backend(
+        script, data, with_wheel, tmpdir):
+    to_install = data.packages.joinpath('pep517_wrapper_buildsys')
+    script.environ['PIP_TEST_MARKER_FILE'] = marker = str(tmpdir / 'marker')
+    res = script.pip(
+        'install', '--no-binary=:all:', '-f', data.find_links, to_install
+    )
+    expected = "Successfully installed pep517-wrapper-buildsys"
+    # Must have installed the package
+    assert expected in str(res), str(res)
+
+    assert os.path.isfile(marker), "Local PEP 517 backend not used"
+
+
 def test_install_no_binary_disables_cached_wheels(script, data, with_wheel):
     # Seed the cache
     script.pip(

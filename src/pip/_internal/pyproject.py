@@ -3,6 +3,7 @@ from __future__ import absolute_import
 import io
 import os
 import sys
+from collections import namedtuple
 
 from pip._vendor import pytoml, six
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
@@ -11,7 +12,7 @@ from pip._internal.exceptions import InstallationError
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Tuple, Optional, List
+    from typing import Any, Optional, List
 
 
 def _is_list_of_str(obj):
@@ -33,13 +34,18 @@ def make_pyproject_path(unpacked_source_directory):
     return path
 
 
+BuildSystemDetails = namedtuple('BuildSystemDetails', [
+    'requires', 'backend', 'check', 'backend_path'
+])
+
+
 def load_pyproject_toml(
     use_pep517,  # type: Optional[bool]
     pyproject_toml,  # type: str
     setup_py,  # type: str
     req_name  # type: str
 ):
-    # type: (...) -> Optional[Tuple[List[str], str, List[str]]]
+    # type: (...) -> Optional[BuildSystemDetails]
     """Load the pyproject.toml file.
 
     Parameters:
@@ -57,6 +63,8 @@ def load_pyproject_toml(
             name of PEP 517 backend,
             requirements we should check are installed after setting
                 up the build environment
+            directory paths to import the backend from (backend-path),
+                relative to the project root.
         )
     """
     has_pyproject = os.path.isfile(pyproject_toml)
@@ -167,6 +175,7 @@ def load_pyproject_toml(
             )
 
     backend = build_system.get("build-backend")
+    backend_path = build_system.get("backend-path", [])
     check = []  # type: List[str]
     if backend is None:
         # If the user didn't specify a backend, we assume they want to use
@@ -184,4 +193,4 @@ def load_pyproject_toml(
         backend = "setuptools.build_meta:__legacy__"
         check = ["setuptools>=40.8.0", "wheel"]
 
-    return (requires, backend, check)
+    return BuildSystemDetails(requires, backend, check, backend_path)
