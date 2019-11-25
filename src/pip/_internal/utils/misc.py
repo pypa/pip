@@ -266,13 +266,13 @@ def ask_password(message):
 def format_size(bytes):
     # type: (float) -> str
     if bytes > 1000 * 1000:
-        return '%.1fMB' % (bytes / 1000.0 / 1000)
+        return '%.1f MB' % (bytes / 1000.0 / 1000)
     elif bytes > 10 * 1000:
-        return '%ikB' % (bytes / 1000)
+        return '%i kB' % (bytes / 1000)
     elif bytes > 1000:
-        return '%.1fkB' % (bytes / 1000.0)
+        return '%.1f kB' % (bytes / 1000.0)
     else:
-        return '%ibytes' % bytes
+        return '%i bytes' % bytes
 
 
 def is_installable_dir(path):
