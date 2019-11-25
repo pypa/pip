@@ -7,7 +7,6 @@ import platform
 import re
 import sys
 import sysconfig
-import warnings
 from collections import OrderedDict
 
 from pip._vendor.six import PY2
@@ -29,11 +28,7 @@ _osx_arch_pat = re.compile(r'(.+)_(\d+)_(\d+)_(.+)')
 
 def get_config_var(var):
     # type: (str) -> Optional[str]
-    try:
-        return sysconfig.get_config_var(var)
-    except IOError as e:  # Issue #1074
-        warnings.warn("{}".format(e), RuntimeWarning)
-        return None
+    return sysconfig.get_config_var(var)
 
 
 def get_abbr_impl():

@@ -77,21 +77,6 @@ class TestPEP425Tags(object):
                 abi_tag = pip._internal.pep425tags.get_abi_tag()
                 assert abi_tag == base + flags
 
-    def test_broken_sysconfig(self):
-        """
-        Test that pep425tags still works when sysconfig is broken.
-        Can be a problem on Python 2.7
-        Issue #1074.
-        """
-        import pip._internal.pep425tags
-
-        def raises_ioerror(var):
-            raise IOError("I have the wrong path!")
-
-        with patch('pip._internal.pep425tags.sysconfig.get_config_var',
-                   raises_ioerror):
-            assert len(pip._internal.pep425tags.get_supported())
-
     def test_no_hyphen_tag(self):
         """
         Test that no tag contains a hyphen.
