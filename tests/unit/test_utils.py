@@ -995,10 +995,10 @@ def test_is_console_interactive(monkeypatch, isatty, no_stdin, expected):
 
 
 @pytest.mark.parametrize('size,expected', [
-    (123, "123bytes"),
-    (1234, "1.2kB"),
-    (123456, "123kB"),
-    (1234567890, "1234.6MB"),
+    (123, "123 bytes"),
+    (1234, "1.2 kB"),
+    (123456, "123 kB"),
+    (1234567890, "1234.6 MB"),
 ])
 def test_format_size(size, expected):
     assert format_size(size) == expected
