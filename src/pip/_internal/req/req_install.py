@@ -397,6 +397,7 @@ class InstallRequirement(object):
         """
         assert self.req is None
         assert self.metadata is not None
+        assert self.source_dir is not None
 
         # Construct a Requirement object from the generated metadata
         if isinstance(parse_version(self.metadata["Version"]), Version):
@@ -411,53 +412,6 @@ class InstallRequirement(object):
                 self.metadata["Version"],
             ])
         )
-
-        assert self.source_dir is not None
-
-        return
-
-        assert self._temp_build_dir
-        assert (
-            self._ideal_build_dir is not None and
-            self._ideal_build_dir.path  # type: ignore
-        )
-
-        # Backup directory for later use.
-        old_location = self._temp_build_dir
-        self._temp_build_dir = None  # checked inside ensure_build_location
-
-        # Figure out the correct place to put the files.
-        new_location = self.ensure_build_location(self._ideal_build_dir)
-        if os.path.exists(new_location):
-            raise InstallationError(
-                'A package already exists in %s; please remove it to continue'
-                % display_path(new_location)
-            )
-
-        # Move the files to the correct location.
-        logger.debug(
-            'Moving package %s from %s to new location %s',
-            self, display_path(old_location.path), display_path(new_location),
-        )
-        shutil.move(old_location.path, new_location)
-
-        # Update directory-tracking variables, to be in line with new_location
-        self.source_dir = os.path.normpath(os.path.abspath(new_location))
-        self._temp_build_dir = TempDirectory(
-            path=new_location, kind="req-install",
-        )
-
-        # Correct the metadata directory
-        old_meta = self.metadata_directory
-        rel = os.path.relpath(old_meta, start=old_location.path)
-        new_meta = os.path.join(new_location, rel)
-        new_meta = os.path.normpath(os.path.abspath(new_meta))
-        self.metadata_directory = new_meta
-
-        # Done with any "move built files" work, since have moved files to the
-        # "ideal" build location. Setting to None allows to clearly flag that
-        # no more moves are needed.
-        self._ideal_build_dir = None
 
     def warn_on_mismatching_name(self):
         # type: () -> None
