@@ -412,8 +412,9 @@ class InstallRequirement(object):
             ])
         )
 
-        if self.source_dir is not None:
-            return
+        assert self.source_dir is not None
+
+        return
 
         assert self._temp_build_dir
         assert (
