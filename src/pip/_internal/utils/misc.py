@@ -152,16 +152,15 @@ rmtree_impl = rmtree_minimal_retry
 # this helps remediate the case when another when a virus scanner (or any
 # other process) is still holding a handle to the file being deleted.
 if sys.platform == "win32":
-    if sys.version_info >= (3,):
-        def is_locked(e):
-            """on windows python 3, returns True if the OSError indicates
-            that another process has a handle on the file."""
-            return e.errno == errno.EACCES and e.winerror == 5
-    else:
-        def is_locked(e):
-            """on windows python 2.7, returns True if the OSError indicates
-            that another process has a handle on the file."""
+    def is_locked(e):
+        """
+        on Windows, returns True if the OSError indicates that virus scanner
+        is preventing access to the file.
+        """
+        if PY2:
             return e.errno == 41 and e.winerror == 145
+        else:
+            return e.errno == errno.EACCES and e.winerror == 5
 
     def possibly_held_by_another_process(e):
         """returns True if the error is a Windows access error which indicates
