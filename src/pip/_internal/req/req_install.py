@@ -162,9 +162,6 @@ class InstallRequirement(object):
         self.conflicts_with = None
         # Temporary build location
         self._temp_build_dir = None  # type: Optional[TempDirectory]
-        # Used to store the global directory where the _temp_build_dir should
-        # have been created. See move_to_correct_build_directory().
-        self._ideal_build_dir = None  # type: Optional[str]
         # Set to True after successful installation
         self.install_succeeded = None  # type: Optional[bool]
         self.options = options if options else {}
@@ -362,15 +359,10 @@ class InstallRequirement(object):
             assert self._temp_build_dir.path
             return self._temp_build_dir.path
         if self.req is None:
-            # for requirement via a path to a directory: the name of the
-            # package is not available yet so we create a temp directory
-            # Once run_egg_info will have run, we'll be able to fix it via
-            # move_to_correct_build_directory().
             # Some systems have /tmp as a symlink which confuses custom
             # builds (such as numpy). Thus, we ensure that the real path
             # is returned.
             self._temp_build_dir = TempDirectory(kind="req-build")
-            self._ideal_build_dir = build_dir
 
             return self._temp_build_dir.path
         if self.editable:
@@ -384,16 +376,9 @@ class InstallRequirement(object):
             _make_build_dir(build_dir)
         return os.path.join(build_dir, name)
 
-    def move_to_correct_build_directory(self):
+    def _set_requirement(self):
         # type: () -> None
-        """Move self._temp_build_dir to "self._ideal_build_dir/{metadata name}"
-
-        For some requirements (e.g. a path to a directory), the name of the
-        package is not available until we run egg_info, so the build_location
-        will return a temporary directory and store the _ideal_build_dir.
-
-        This is only called to "fix" the build directory after generating
-        metadata.
+        """Set requirement after generating metadata.
         """
         assert self.req is None
         assert self.metadata is not None
@@ -581,7 +566,7 @@ class InstallRequirement(object):
 
         # Act on the newly generated metadata, based on the name and version.
         if not self.name:
-            self.move_to_correct_build_directory()
+            self._set_requirement()
         else:
             self.warn_on_mismatching_name()
 
