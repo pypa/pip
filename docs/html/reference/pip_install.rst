@@ -148,19 +148,26 @@ and the newline following it is effectively ignored.
 
 Comments are stripped *before* line continuations are processed.
 
+To interpret the requirements file in UTF-8 format add a comment
+``# -*- coding: utf-8 -*-`` to the first or second line of the file.
+
 The following options are supported:
 
-  *  :ref:`-i, --index-url <--index-url>`
-  *  :ref:`--extra-index-url <--extra-index-url>`
-  *  :ref:`--no-index <--no-index>`
-  *  :ref:`-f, --find-links <--find-links>`
+  *  :ref:`-i, --index-url <install_--index-url>`
+  *  :ref:`--extra-index-url <install_--extra-index-url>`
+  *  :ref:`--no-index <install_--no-index>`
+  *  :ref:`-c, --constraint <install_--constraint>`
+  *  :ref:`-r, --requirement <install_--requirement>`
+  *  :ref:`-e, --editable <install_--editable>`
+  *  :ref:`-f, --find-links <install_--find-links>`
   *  :ref:`--no-binary <install_--no-binary>`
   *  :ref:`--only-binary <install_--only-binary>`
-  *  :ref:`--require-hashes <--require-hashes>`
+  *  :ref:`--require-hashes <install_--require-hashes>`
+  *  :ref:`--pre <install_--pre>`
   *  :ref:`--trusted-host <--trusted-host>`
 
-For example, to specify :ref:`--no-index <--no-index>` and two
-:ref:`--find-links <--find-links>` locations:
+For example, to specify :ref:`--no-index <install_--no-index>` and two
+:ref:`--find-links <install_--find-links>` locations:
 
 ::
 
@@ -244,7 +251,8 @@ pip supports installing from a package index using a :term:`requirement
 specifier <pypug:Requirement Specifier>`. Generally speaking, a requirement
 specifier is composed of a project name followed by optional :term:`version
 specifiers <pypug:Version Specifier>`.  :pep:`508` contains a full specification
-of the format of a requirement.
+of the format of a requirement. Since version 18.1 pip supports the
+``url_req``-form specification.
 
 Some examples:
 
@@ -384,7 +392,7 @@ So if your repository layout is:
       - some_file
     - some_other_file
 
-You'll need to use ``pip install -e vcs+protocol://repo_url/#egg=pkg&subdirectory=pkg_dir``.
+You'll need to use ``pip install -e "vcs+protocol://repo_url/#egg=pkg&subdirectory=pkg_dir"``.
 
 
 Git
@@ -569,6 +577,9 @@ and use any packages found there. This is disabled via the same
 ``--no-cache-dir`` option that disables the HTTP cache. The internal structure
 of that is not part of the pip API. As of 7.0, pip makes a subdirectory for
 each sdist that wheels are built from and places the resulting wheels inside.
+
+As of version 20.0, pip also caches wheels when building from an immutable Git
+reference (i.e. a commit hash).
 
 Pip attempts to choose the best wheels from those built in preference to
 building a new wheel. Note that this means when a package has both optional
@@ -818,7 +829,7 @@ Options
 
 .. pip-command-options:: install
 
-.. pip-index-options::
+.. pip-index-options:: install
 
 
 .. _`pip install Examples`:

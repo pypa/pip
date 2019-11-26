@@ -1,4 +1,5 @@
 import hashlib
+import logging
 import os
 import shutil
 import sys
@@ -9,17 +10,19 @@ from tempfile import mkdtemp
 import pytest
 from mock import Mock, patch
 
-from pip._internal.download import (
+from pip._internal.exceptions import HashMismatch
+from pip._internal.models.link import Link
+from pip._internal.network.session import PipSession
+from pip._internal.operations.prepare import (
+    Downloader,
     _copy_source_tree,
     _download_http_url,
+    _prepare_download,
     parse_content_disposition,
     sanitize_content_filename,
     unpack_file_url,
     unpack_http_url,
 )
-from pip._internal.exceptions import HashMismatch
-from pip._internal.models.link import Link
-from pip._internal.network.session import PipSession
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.urls import path_to_url
 from tests.lib import create_file
@@ -44,6 +47,7 @@ def test_unpack_http_url_with_urllib_response_without_content_type(data):
 
     session = Mock()
     session.get = _fake_session_get
+    downloader = Downloader(session, progress_bar="on")
 
     uri = path_to_url(data.packages.joinpath("simple-1.0.tar.gz"))
     link = Link(uri)
@@ -52,8 +56,8 @@ def test_unpack_http_url_with_urllib_response_without_content_type(data):
         unpack_http_url(
             link,
             temp_dir,
+            downloader=downloader,
             download_dir=None,
-            session=session,
         )
         assert set(os.listdir(temp_dir)) == {
             'PKG-INFO', 'setup.cfg', 'setup.py', 'simple', 'simple.egg-info'
@@ -116,7 +120,7 @@ class MockRequest(object):
         self.hooks.setdefault(event_name, []).append(callback)
 
 
-@patch('pip._internal.download.unpack_file')
+@patch('pip._internal.operations.prepare.unpack_file')
 def test_unpack_http_url_bad_downloaded_checksum(mock_unpack_file):
     """
     If already-downloaded file has bad checksum, re-download.
@@ -131,6 +135,7 @@ def test_unpack_http_url_bad_downloaded_checksum(mock_unpack_file):
     response = session.get.return_value = MockResponse(contents)
     response.headers = {'content-type': 'application/x-tar'}
     response.url = base_url
+    downloader = Downloader(session, progress_bar="on")
 
     download_dir = mkdtemp()
     try:
@@ -140,8 +145,8 @@ def test_unpack_http_url_bad_downloaded_checksum(mock_unpack_file):
         unpack_http_url(
             link,
             'location',
+            downloader=downloader,
             download_dir=download_dir,
-            session=session,
             hashes=Hashes({'sha1': [download_hash.hexdigest()]})
         )
 
@@ -228,19 +233,49 @@ def test_download_http_url__no_directory_traversal(tmpdir):
         'content-disposition': 'attachment;filename="../out_dir_file"'
     }
     session.get.return_value = resp
+    downloader = Downloader(session, progress_bar="on")
 
     download_dir = tmpdir.joinpath('download')
     os.mkdir(download_dir)
     file_path, content_type = _download_http_url(
         link,
-        session,
+        downloader,
         download_dir,
         hashes=None,
-        progress_bar='on',
     )
     # The file should be downloaded to download_dir.
     actual = os.listdir(download_dir)
     assert actual == ['out_dir_file']
+
+
+@pytest.mark.parametrize("url, headers, from_cache, expected", [
+    ('http://example.com/foo.tgz', {}, False,
+        "Downloading http://example.com/foo.tgz"),
+    ('http://example.com/foo.tgz', {'content-length': 2}, False,
+        "Downloading http://example.com/foo.tgz (2 bytes)"),
+    ('http://example.com/foo.tgz', {'content-length': 2}, True,
+        "Using cached http://example.com/foo.tgz (2 bytes)"),
+    ('https://files.pythonhosted.org/foo.tgz', {}, False,
+        "Downloading foo.tgz"),
+    ('https://files.pythonhosted.org/foo.tgz', {'content-length': 2}, False,
+        "Downloading foo.tgz (2 bytes)"),
+    ('https://files.pythonhosted.org/foo.tgz', {'content-length': 2}, True,
+        "Using cached foo.tgz"),
+])
+def test_prepare_download__log(caplog, url, headers, from_cache, expected):
+    caplog.set_level(logging.INFO)
+    resp = MockResponse(b'')
+    resp.url = url
+    resp.headers = headers
+    if from_cache:
+        resp.from_cache = from_cache
+    link = Link(url)
+    _prepare_download(resp, link, progress_bar="on")
+
+    assert len(caplog.records) == 1
+    record = caplog.records[0]
+    assert record.levelname == 'INFO'
+    assert expected in record.message
 
 
 @pytest.fixture

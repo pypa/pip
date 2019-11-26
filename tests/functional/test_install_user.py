@@ -6,7 +6,7 @@ from os.path import curdir, isdir, isfile
 
 import pytest
 
-from tests.lib import pyversion
+from tests.lib import need_svn, pyversion
 from tests.lib.local_repos import local_checkout
 
 
@@ -27,6 +27,7 @@ def _patch_dist_in_site_packages(virtualenv):
 class Tests_UserSite:
 
     @pytest.mark.network
+    @pytest.mark.incompatible_with_test_venv
     def test_reset_env_system_site_packages_usersite(self, script):
         """
         Check user site works as expected.
@@ -41,7 +42,8 @@ class Tests_UserSite:
         assert 'INITools' == project_name, project_name
 
     @pytest.mark.network
-    @pytest.mark.svn
+    @need_svn
+    @pytest.mark.incompatible_with_test_venv
     def test_install_subversion_usersite_editable_with_distribute(
             self, script, tmpdir):
         """
@@ -55,6 +57,7 @@ class Tests_UserSite:
         )
         result.assert_installed('INITools', use_user_site=True)
 
+    @pytest.mark.incompatible_with_test_venv
     def test_install_from_current_directory_into_usersite(
             self, script, data, with_wheel):
         """
@@ -75,7 +78,6 @@ class Tests_UserSite:
         )
         assert dist_info_folder in result.files_created
 
-    @pytest.mark.incompatible_with_test_venv
     def test_install_user_venv_nositepkgs_fails(self, virtualenv,
                                                 script, data):
         """
@@ -96,6 +98,7 @@ class Tests_UserSite:
         )
 
     @pytest.mark.network
+    @pytest.mark.incompatible_with_test_venv
     def test_install_user_conflict_in_usersite(self, script):
         """
         Test user install with conflict in usersite updates usersite.
@@ -119,6 +122,7 @@ class Tests_UserSite:
         assert not isfile(initools_v3_file), initools_v3_file
 
     @pytest.mark.network
+    @pytest.mark.incompatible_with_test_venv
     def test_install_user_conflict_in_globalsite(self, virtualenv, script):
         """
         Test user install with conflict in global site ignores site and
@@ -149,6 +153,7 @@ class Tests_UserSite:
         assert isdir(initools_folder)
 
     @pytest.mark.network
+    @pytest.mark.incompatible_with_test_venv
     def test_upgrade_user_conflict_in_globalsite(self, virtualenv, script):
         """
         Test user install/upgrade with conflict in global site ignores site and
@@ -178,6 +183,7 @@ class Tests_UserSite:
         assert isdir(initools_folder)
 
     @pytest.mark.network
+    @pytest.mark.incompatible_with_test_venv
     def test_install_user_conflict_in_globalsite_and_usersite(
             self, virtualenv, script):
         """
@@ -214,6 +220,7 @@ class Tests_UserSite:
         assert isdir(initools_folder)
 
     @pytest.mark.network
+    @pytest.mark.incompatible_with_test_venv
     def test_install_user_in_global_virtualenv_with_conflict_fails(
             self, script):
         """

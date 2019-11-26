@@ -3,8 +3,6 @@ environment:
     # Unit and integration tests.
     - PYTHON: "C:\\Python27-x64"
       RUN_INTEGRATION_TESTS: "True"
-    - PYTHON: "C:\\Python35-x64"
-      RUN_INTEGRATION_TESTS: "True"
     - PYTHON: "C:\\Python36-x64"
       RUN_INTEGRATION_TESTS: "True"
     # Unit tests only.
@@ -64,8 +62,8 @@ test_script:
             subst T: $env:TEMP
             $env:TEMP = "T:\"
             $env:TMP = "T:\"
-            tox -e py -- -m unit
+            tox -e py -- -m unit -n auto
             if ($LastExitCode -eq 0 -and $env:RUN_INTEGRATION_TESTS -eq "True") {
-                tox -e py -- --use-venv -m integration -n2 --durations=20
+                tox -e py -- --use-venv -m integration -n auto --durations=20
             }
         }

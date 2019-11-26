@@ -5,70 +5,23 @@ import os
 import textwrap
 
 import pytest
-from mock import Mock, patch
+from mock import patch
 from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal import pep425tags, wheel
+from pip._internal.commands.wheel import WheelCommand
 from pip._internal.exceptions import InvalidWheelFilename, UnsupportedWheel
-from pip._internal.models.link import Link
-from pip._internal.req.req_install import InstallRequirement
+from pip._internal.locations import get_scheme
+from pip._internal.models.scheme import Scheme
 from pip._internal.utils.compat import WINDOWS
+from pip._internal.utils.misc import hash_file
 from pip._internal.utils.unpacking import unpack_file
 from pip._internal.wheel import (
     MissingCallableSuffix,
     _raise_for_invalid_entrypoint,
 )
+from pip._internal.wheel_builder import get_legacy_build_wheel_path
 from tests.lib import DATA_DIR, assert_paths_equal
-
-
-@pytest.mark.parametrize(
-    "s, expected",
-    [
-        # Trivial.
-        ("pip-18.0", True),
-
-        # Ambiguous.
-        ("foo-2-2", True),
-        ("im-valid", True),
-
-        # Invalid.
-        ("invalid", False),
-        ("im_invalid", False),
-    ],
-)
-def test_contains_egg_info(s, expected):
-    result = wheel._contains_egg_info(s)
-    assert result == expected
-
-
-def make_test_install_req(base_name=None):
-    """
-    Return an InstallRequirement object for testing purposes.
-    """
-    if base_name is None:
-        base_name = 'pendulum-2.0.4'
-
-    req = Requirement('pendulum')
-    link_url = (
-        'https://files.pythonhosted.org/packages/aa/{base_name}.tar.gz'
-        '#sha256=cf535d36c063575d4752af36df928882b2e0e31541b4482c97d637527'
-        '85f9fcb'
-    ).format(base_name=base_name)
-    link = Link(
-        url=link_url,
-        comes_from='https://pypi.org/simple/pendulum/',
-        requires_python='>=2.7, !=3.0.*, !=3.1.*, !=3.2.*, !=3.3.*',
-    )
-    req = InstallRequirement(
-        req=req,
-        comes_from=None,
-        constraint=False,
-        editable=False,
-        link=link,
-        source_dir='/tmp/pip-install-9py5m2z1/pendulum',
-    )
-
-    return req
 
 
 @pytest.mark.parametrize('file_tag, expected', [
@@ -80,131 +33,11 @@ def test_format_tag(file_tag, expected):
     assert actual == expected
 
 
-@pytest.mark.parametrize(
-    "base_name, should_unpack, cache_available, expected",
-    [
-        ('pendulum-2.0.4', False, False, False),
-        # The following cases test should_unpack=True.
-        # Test _contains_egg_info() returning True.
-        ('pendulum-2.0.4', True, True, False),
-        ('pendulum-2.0.4', True, False, True),
-        # Test _contains_egg_info() returning False.
-        ('pendulum', True, True, True),
-        ('pendulum', True, False, True),
-    ],
-)
-def test_should_use_ephemeral_cache__issue_6197(
-    base_name, should_unpack, cache_available, expected,
-):
-    """
-    Regression test for: https://github.com/pypa/pip/issues/6197
-    """
-    req = make_test_install_req(base_name=base_name)
-    assert not req.is_wheel
-    assert not req.link.is_vcs
-
-    always_true = Mock(return_value=True)
-
-    ephem_cache = wheel.should_use_ephemeral_cache(
-        req, should_unpack=should_unpack,
-        cache_available=cache_available, check_binary_allowed=always_true,
-    )
-    assert ephem_cache is expected
-
-
-@pytest.mark.parametrize(
-    "disallow_binaries, expected",
-    [
-        # By default (i.e. when binaries are allowed), VCS requirements
-        # should be built.
-        (False, True),
-        # Disallowing binaries, however, should cause them not to be built.
-        (True, None),
-    ],
-)
-def test_should_use_ephemeral_cache__disallow_binaries_and_vcs_checkout(
-    disallow_binaries, expected,
-):
-    """
-    Test that disallowing binaries (e.g. from passing --global-option)
-    causes should_use_ephemeral_cache() to return None for VCS checkouts.
-    """
-    req = Requirement('pendulum')
-    link = Link(url='git+https://git.example.com/pendulum.git')
-    req = InstallRequirement(
-        req=req,
-        comes_from=None,
-        constraint=False,
-        editable=False,
-        link=link,
-        source_dir='/tmp/pip-install-9py5m2z1/pendulum',
-    )
-    assert not req.is_wheel
-    assert req.link.is_vcs
-
-    check_binary_allowed = Mock(return_value=not disallow_binaries)
-
-    # The cache_available value doesn't matter for this test.
-    ephem_cache = wheel.should_use_ephemeral_cache(
-        req, should_unpack=True,
-        cache_available=True, check_binary_allowed=check_binary_allowed,
-    )
-    assert ephem_cache is expected
-
-
-def test_format_command_result__INFO(caplog):
-    caplog.set_level(logging.INFO)
-    actual = wheel.format_command_result(
-        # Include an argument with a space to test argument quoting.
-        command_args=['arg1', 'second arg'],
-        command_output='output line 1\noutput line 2\n',
-    )
-    assert actual.splitlines() == [
-        "Command arguments: arg1 'second arg'",
-        'Command output: [use --verbose to show]',
-    ]
-
-
-@pytest.mark.parametrize('command_output', [
-    # Test trailing newline.
-    'output line 1\noutput line 2\n',
-    # Test no trailing newline.
-    'output line 1\noutput line 2',
-])
-def test_format_command_result__DEBUG(caplog, command_output):
-    caplog.set_level(logging.DEBUG)
-    actual = wheel.format_command_result(
-        command_args=['arg1', 'arg2'],
-        command_output=command_output,
-    )
-    assert actual.splitlines() == [
-        "Command arguments: arg1 arg2",
-        'Command output:',
-        'output line 1',
-        'output line 2',
-        '----------------------------------------',
-    ]
-
-
-@pytest.mark.parametrize('log_level', ['DEBUG', 'INFO'])
-def test_format_command_result__empty_output(caplog, log_level):
-    caplog.set_level(log_level)
-    actual = wheel.format_command_result(
-        command_args=['arg1', 'arg2'],
-        command_output='',
-    )
-    assert actual.splitlines() == [
-        "Command arguments: arg1 arg2",
-        'Command output: None',
-    ]
-
-
 def call_get_legacy_build_wheel_path(caplog, names):
-    req = make_test_install_req()
-    wheel_path = wheel.get_legacy_build_wheel_path(
+    wheel_path = get_legacy_build_wheel_path(
         names=names,
         temp_dir='/tmp/abcd',
-        req=req,
+        name='pendulum',
         command_args=['arg1', 'arg2'],
         command_output='output line 1\noutput line 2\n',
     )
@@ -376,21 +209,6 @@ def test_wheel_version(tmpdir, data):
     assert not wheel.wheel_version(tmpdir + 'broken')
 
 
-def test_python_tag():
-    wheelnames = [
-        'simplewheel-1.0-py2.py3-none-any.whl',
-        'simplewheel-1.0-py27-none-any.whl',
-        'simplewheel-2.0-1-py2.py3-none-any.whl',
-    ]
-    newnames = [
-        'simplewheel-1.0-py37-none-any.whl',
-        'simplewheel-1.0-py37-none-any.whl',
-        'simplewheel-2.0-1-py37-none-any.whl',
-    ]
-    for name, new in zip(wheelnames, newnames):
-        assert wheel.replace_python_tag(name, 'py37') == new
-
-
 def test_check_compatibility():
     name = 'test'
     vc = wheel.VERSION_COMPATIBLE
@@ -480,56 +298,50 @@ class TestWheelFile(object):
         w = wheel.Wheel('simple-0.1-py2-none-any.whl')
         assert not w.supported(tags=[('py1', 'none', 'any')])
 
-    @patch('sys.platform', 'darwin')
-    @patch('pip._internal.pep425tags.get_abbr_impl', lambda: 'cp')
-    @patch('pip._internal.pep425tags.get_platform',
-           lambda: 'macosx_10_9_intel')
     def test_supported_osx_version(self):
         """
         Wheels built for macOS 10.6 are supported on 10.9
         """
-        tags = pep425tags.get_supported(['27'], False)
+        tags = pep425tags.get_supported(
+            '27', platform='macosx_10_9_intel', impl='cp'
+        )
         w = wheel.Wheel('simple-0.1-cp27-none-macosx_10_6_intel.whl')
         assert w.supported(tags=tags)
         w = wheel.Wheel('simple-0.1-cp27-none-macosx_10_9_intel.whl')
         assert w.supported(tags=tags)
 
-    @patch('sys.platform', 'darwin')
-    @patch('pip._internal.pep425tags.get_abbr_impl', lambda: 'cp')
-    @patch('pip._internal.pep425tags.get_platform',
-           lambda: 'macosx_10_6_intel')
     def test_not_supported_osx_version(self):
         """
         Wheels built for macOS 10.9 are not supported on 10.6
         """
-        tags = pep425tags.get_supported(['27'], False)
+        tags = pep425tags.get_supported(
+            '27', platform='macosx_10_6_intel', impl='cp'
+        )
         w = wheel.Wheel('simple-0.1-cp27-none-macosx_10_9_intel.whl')
         assert not w.supported(tags=tags)
 
-    @patch('sys.platform', 'darwin')
-    @patch('pip._internal.pep425tags.get_abbr_impl', lambda: 'cp')
     def test_supported_multiarch_darwin(self):
         """
         Multi-arch wheels (intel) are supported on components (i386, x86_64)
         """
-        with patch('pip._internal.pep425tags.get_platform',
-                   lambda: 'macosx_10_5_universal'):
-            universal = pep425tags.get_supported(['27'], False)
-        with patch('pip._internal.pep425tags.get_platform',
-                   lambda: 'macosx_10_5_intel'):
-            intel = pep425tags.get_supported(['27'], False)
-        with patch('pip._internal.pep425tags.get_platform',
-                   lambda: 'macosx_10_5_x86_64'):
-            x64 = pep425tags.get_supported(['27'], False)
-        with patch('pip._internal.pep425tags.get_platform',
-                   lambda: 'macosx_10_5_i386'):
-            i386 = pep425tags.get_supported(['27'], False)
-        with patch('pip._internal.pep425tags.get_platform',
-                   lambda: 'macosx_10_5_ppc'):
-            ppc = pep425tags.get_supported(['27'], False)
-        with patch('pip._internal.pep425tags.get_platform',
-                   lambda: 'macosx_10_5_ppc64'):
-            ppc64 = pep425tags.get_supported(['27'], False)
+        universal = pep425tags.get_supported(
+            '27', platform='macosx_10_5_universal', impl='cp'
+        )
+        intel = pep425tags.get_supported(
+            '27', platform='macosx_10_5_intel', impl='cp'
+        )
+        x64 = pep425tags.get_supported(
+            '27', platform='macosx_10_5_x86_64', impl='cp'
+        )
+        i386 = pep425tags.get_supported(
+            '27', platform='macosx_10_5_i386', impl='cp'
+        )
+        ppc = pep425tags.get_supported(
+            '27', platform='macosx_10_5_ppc', impl='cp'
+        )
+        ppc64 = pep425tags.get_supported(
+            '27', platform='macosx_10_5_ppc64', impl='cp'
+        )
 
         w = wheel.Wheel('simple-0.1-cp27-none-macosx_10_5_intel.whl')
         assert w.supported(tags=intel)
@@ -546,18 +358,16 @@ class TestWheelFile(object):
         assert w.supported(tags=ppc)
         assert w.supported(tags=ppc64)
 
-    @patch('sys.platform', 'darwin')
-    @patch('pip._internal.pep425tags.get_abbr_impl', lambda: 'cp')
     def test_not_supported_multiarch_darwin(self):
         """
         Single-arch wheels (x86_64) are not supported on multi-arch (intel)
         """
-        with patch('pip._internal.pep425tags.get_platform',
-                   lambda: 'macosx_10_5_universal'):
-            universal = pep425tags.get_supported(['27'], False)
-        with patch('pip._internal.pep425tags.get_platform',
-                   lambda: 'macosx_10_5_intel'):
-            intel = pep425tags.get_supported(['27'], False)
+        universal = pep425tags.get_supported(
+            '27', platform='macosx_10_5_universal', impl='cp'
+        )
+        intel = pep425tags.get_supported(
+            '27', platform='macosx_10_5_intel', impl='cp'
+        )
 
         w = wheel.Wheel('simple-0.1-cp27-none-macosx_10_5_i386.whl')
         assert not w.supported(tags=intel)
@@ -619,7 +429,7 @@ class TestWheelFile(object):
         assert w.version == '0.1-1'
 
 
-class TestMoveWheelFiles(object):
+class TestInstallUnpackedWheel(object):
     """
     Tests for moving files from wheel src to scheme paths
     """
@@ -632,46 +442,59 @@ class TestMoveWheelFiles(object):
         self.src = os.path.join(tmpdir, 'src')
         self.dest = os.path.join(tmpdir, 'dest')
         unpack_file(self.wheelpath, self.src)
-        self.scheme = {
-            'scripts': os.path.join(self.dest, 'bin'),
-            'purelib': os.path.join(self.dest, 'lib'),
-            'data': os.path.join(self.dest, 'data'),
-        }
+        self.scheme = Scheme(
+            purelib=os.path.join(self.dest, 'lib'),
+            platlib=os.path.join(self.dest, 'lib'),
+            headers=os.path.join(self.dest, 'headers'),
+            scripts=os.path.join(self.dest, 'bin'),
+            data=os.path.join(self.dest, 'data'),
+        )
         self.src_dist_info = os.path.join(
             self.src, 'sample-1.2.0.dist-info')
         self.dest_dist_info = os.path.join(
-            self.scheme['purelib'], 'sample-1.2.0.dist-info')
+            self.scheme.purelib, 'sample-1.2.0.dist-info')
 
     def assert_installed(self):
         # lib
         assert os.path.isdir(
-            os.path.join(self.scheme['purelib'], 'sample'))
+            os.path.join(self.scheme.purelib, 'sample'))
         # dist-info
         metadata = os.path.join(self.dest_dist_info, 'METADATA')
         assert os.path.isfile(metadata)
         # data files
-        data_file = os.path.join(self.scheme['data'], 'my_data', 'data_file')
+        data_file = os.path.join(self.scheme.data, 'my_data', 'data_file')
         assert os.path.isfile(data_file)
         # package data
         pkg_data = os.path.join(
-            self.scheme['purelib'], 'sample', 'package_data.dat')
+            self.scheme.purelib, 'sample', 'package_data.dat')
         assert os.path.isfile(pkg_data)
 
     def test_std_install(self, data, tmpdir):
         self.prep(data, tmpdir)
-        wheel.move_wheel_files(
-            self.name, self.req, self.src, scheme=self.scheme)
+        wheel.install_unpacked_wheel(
+            self.name,
+            self.src,
+            scheme=self.scheme,
+            req_description=str(self.req),
+        )
         self.assert_installed()
 
     def test_install_prefix(self, data, tmpdir):
         prefix = os.path.join(os.path.sep, 'some', 'path')
         self.prep(data, tmpdir)
-        wheel.move_wheel_files(
+        scheme = get_scheme(
             self.name,
-            self.req,
-            self.src,
+            user=False,
+            home=None,
             root=tmpdir,
+            isolated=False,
             prefix=prefix,
+        )
+        wheel.install_unpacked_wheel(
+            self.name,
+            self.src,
+            scheme=scheme,
+            req_description=str(self.req),
         )
 
         bin_dir = 'Scripts' if WINDOWS else 'bin'
@@ -688,30 +511,23 @@ class TestMoveWheelFiles(object):
             self.src_dist_info, 'empty_dir', 'empty_dir')
         os.makedirs(src_empty_dir)
         assert os.path.isdir(src_empty_dir)
-        wheel.move_wheel_files(
-            self.name, self.req, self.src, scheme=self.scheme)
+        wheel.install_unpacked_wheel(
+            self.name,
+            self.src,
+            scheme=self.scheme,
+            req_description=str(self.req),
+        )
         self.assert_installed()
         assert not os.path.isdir(
             os.path.join(self.dest_dist_info, 'empty_dir'))
 
 
-class TestWheelBuilder(object):
-
-    def test_skip_building_wheels(self, caplog):
-        with patch('pip._internal.wheel.WheelBuilder._build_one') \
-                as mock_build_one:
-            wheel_req = Mock(is_wheel=True, editable=False, constraint=False)
-            wb = wheel.WheelBuilder(
-                preparer=Mock(),
-                wheel_cache=Mock(cache_dir=None),
-            )
-            with caplog.at_level(logging.INFO):
-                wb.build([wheel_req])
-            assert "due to already being wheel" in caplog.text
-            assert mock_build_one.mock_calls == []
-
-
 class TestMessageAboutScriptsNotOnPATH(object):
+
+    tilde_warning_msg = (
+        "NOTE: The current PATH contains path(s) starting with `~`, "
+        "which may not be expanded by all applications."
+    )
 
     def _template(self, paths, scripts):
         with patch.dict('os.environ', {'PATH': os.pathsep.join(paths)}):
@@ -732,6 +548,7 @@ class TestMessageAboutScriptsNotOnPATH(object):
         assert retval is not None
         assert "--no-warn-script-location" in retval
         assert "foo is installed in '/c/d'" in retval
+        assert self.tilde_warning_msg not in retval
 
     def test_two_script__single_dir_not_on_PATH(self):
         retval = self._template(
@@ -741,6 +558,7 @@ class TestMessageAboutScriptsNotOnPATH(object):
         assert retval is not None
         assert "--no-warn-script-location" in retval
         assert "baz and foo are installed in '/c/d'" in retval
+        assert self.tilde_warning_msg not in retval
 
     def test_multi_script__multi_dir_not_on_PATH(self):
         retval = self._template(
@@ -751,6 +569,7 @@ class TestMessageAboutScriptsNotOnPATH(object):
         assert "--no-warn-script-location" in retval
         assert "bar, baz and foo are installed in '/c/d'" in retval
         assert "spam is installed in '/a/b/c'" in retval
+        assert self.tilde_warning_msg not in retval
 
     def test_multi_script_all__multi_dir_not_on_PATH(self):
         retval = self._template(
@@ -764,6 +583,7 @@ class TestMessageAboutScriptsNotOnPATH(object):
         assert "--no-warn-script-location" in retval
         assert "bar, baz and foo are installed in '/c/d'" in retval
         assert "eggs and spam are installed in '/a/b/c'" in retval
+        assert self.tilde_warning_msg not in retval
 
     def test_two_script__single_dir_on_PATH(self):
         retval = self._template(
@@ -802,6 +622,7 @@ class TestMessageAboutScriptsNotOnPATH(object):
             assert retval is None
         else:
             assert retval is not None
+            assert self.tilde_warning_msg not in retval
 
     def test_trailing_ossep_removal(self):
         retval = self._template(
@@ -823,6 +644,42 @@ class TestMessageAboutScriptsNotOnPATH(object):
 
         assert retval_missing == retval_empty
 
+    def test_no_script_tilde_in_path(self):
+        retval = self._template(
+            paths=['/a/b', '/c/d/bin', '~/e', '/f/g~g'],
+            scripts=[]
+        )
+        assert retval is None
+
+    def test_multi_script_all_tilde__multi_dir_not_on_PATH(self):
+        retval = self._template(
+            paths=['/a/b', '/c/d/bin', '~e/f'],
+            scripts=[
+                '/c/d/foo', '/c/d/bar', '/c/d/baz',
+                '/a/b/c/spam', '/a/b/c/eggs', '/e/f/tilde'
+            ]
+        )
+        assert retval is not None
+        assert "--no-warn-script-location" in retval
+        assert "bar, baz and foo are installed in '/c/d'" in retval
+        assert "eggs and spam are installed in '/a/b/c'" in retval
+        assert "tilde is installed in '/e/f'" in retval
+        assert self.tilde_warning_msg in retval
+
+    def test_multi_script_all_tilde_not_at_start__multi_dir_not_on_PATH(self):
+        retval = self._template(
+            paths=['/e/f~f', '/c/d/bin'],
+            scripts=[
+                '/c/d/foo', '/c/d/bar', '/c/d/baz',
+                '/e/f~f/c/spam', '/e/f~f/c/eggs'
+            ]
+        )
+        assert retval is not None
+        assert "--no-warn-script-location" in retval
+        assert "bar, baz and foo are installed in '/c/d'" in retval
+        assert "eggs and spam are installed in '/e/f~f/c'" in retval
+        assert self.tilde_warning_msg not in retval
+
 
 class TestWheelHashCalculators(object):
 
@@ -839,7 +696,7 @@ class TestWheelHashCalculators(object):
 
     def test_hash_file(self, tmpdir):
         self.prep(tmpdir)
-        h, length = wheel.hash_file(self.test_file)
+        h, length = hash_file(self.test_file)
         assert length == self.test_file_len
         assert h.hexdigest() == self.test_file_hash
 
@@ -848,3 +705,30 @@ class TestWheelHashCalculators(object):
         h, length = wheel.rehash(self.test_file)
         assert length == str(self.test_file_len)
         assert h == self.test_file_hash_encoded
+
+
+class TestWheelCommand(object):
+
+    def test_save_wheelnames(self, tmpdir):
+        wheel_filenames = ['Flask-1.1.dev0-py2.py3-none-any.whl']
+        links_filenames = [
+            'flask',
+            'Werkzeug-0.15.4-py2.py3-none-any.whl',
+            'Jinja2-2.10.1-py2.py3-none-any.whl',
+            'itsdangerous-1.1.0-py2.py3-none-any.whl',
+            'Click-7.0-py2.py3-none-any.whl'
+        ]
+
+        expected = wheel_filenames + links_filenames[1:]
+        expected = [filename + '\n' for filename in expected]
+        temp_file = tmpdir.joinpath('wheelfiles')
+
+        WheelCommand('name', 'summary').save_wheelnames(
+            links_filenames,
+            temp_file,
+            wheel_filenames
+        )
+
+        with open(temp_file, 'r') as f:
+            test_content = f.readlines()
+        assert test_content == expected

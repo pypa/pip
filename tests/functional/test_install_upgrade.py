@@ -8,6 +8,7 @@ from tests.lib import assert_all_changes, pyversion
 from tests.lib.local_repos import local_checkout
 
 
+@pytest.mark.network
 def test_no_upgrade_unless_requested(script):
     """
     No upgrade if not specifically requested.
@@ -245,7 +246,9 @@ def test_upgrade_to_same_version_from_url(script):
         'https://files.pythonhosted.org/packages/source/I/INITools/INITools-'
         '0.3.tar.gz',
     )
-    assert not result2.files_updated, 'INITools 0.3 reinstalled same version'
+    assert script.site_packages / 'initools' not in result2.files_updated, (
+        'INITools 0.3 reinstalled same version'
+    )
     result3 = script.pip('uninstall', 'initools', '-y')
     assert_all_changes(result, result3, [script.venv / 'build', 'cache'])
 

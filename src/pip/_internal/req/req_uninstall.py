@@ -59,7 +59,7 @@ def _script_names(dist, script_name, is_gui):
 
 
 def _unique(fn):
-    # type: (Callable) -> Callable[..., Iterator[Any]]
+    # type: (Callable[..., Iterator[Any]]) -> Callable[..., Iterator[Any]]
     @functools.wraps(fn)
     def unique(*args, **kw):
         # type: (Any, Any) -> Iterator[Any]

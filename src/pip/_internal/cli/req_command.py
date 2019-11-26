@@ -8,13 +8,14 @@ PackageFinder machinery and all its vendored dependencies, etc.
 # The following comment should be removed at some point in the future.
 # mypy: disallow-untyped-defs=False
 
+import logging
 import os
 from functools import partial
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.command_context import CommandContextMixIn
 from pip._internal.exceptions import CommandError
-from pip._internal.index import PackageFinder
+from pip._internal.index.package_finder import PackageFinder
 from pip._internal.legacy_resolve import Resolver
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.network.session import PipSession
@@ -40,6 +41,8 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.req.req_set import RequirementSet
     from pip._internal.req.req_tracker import RequirementTracker
     from pip._internal.utils.temp_dir import TempDirectory
+
+logger = logging.getLogger(__name__)
 
 
 class SessionCommandMixin(CommandContextMixIn):
@@ -149,6 +152,9 @@ class RequirementCommand(IndexGroupCommand):
         temp_build_dir,           # type: TempDirectory
         options,                  # type: Values
         req_tracker,              # type: RequirementTracker
+        session,                  # type: PipSession
+        finder,                   # type: PackageFinder
+        use_user_site,            # type: bool
         download_dir=None,        # type: str
         wheel_download_dir=None,  # type: str
     ):
@@ -166,12 +172,15 @@ class RequirementCommand(IndexGroupCommand):
             progress_bar=options.progress_bar,
             build_isolation=options.build_isolation,
             req_tracker=req_tracker,
+            session=session,
+            finder=finder,
+            require_hashes=options.require_hashes,
+            use_user_site=use_user_site,
         )
 
     @staticmethod
     def make_resolver(
         preparer,                            # type: RequirementPreparer
-        session,                             # type: PipSession
         finder,                              # type: PackageFinder
         options,                             # type: Values
         wheel_cache=None,                    # type: Optional[WheelCache]
@@ -195,7 +204,6 @@ class RequirementCommand(IndexGroupCommand):
         )
         return Resolver(
             preparer=preparer,
-            session=session,
             finder=finder,
             make_install_req=make_install_req,
             use_user_site=use_user_site,
@@ -204,7 +212,7 @@ class RequirementCommand(IndexGroupCommand):
             ignore_requires_python=ignore_requires_python,
             force_reinstall=force_reinstall,
             upgrade_strategy=upgrade_strategy,
-            py_version_info=py_version_info
+            py_version_info=py_version_info,
         )
 
     def populate_requirement_set(
@@ -220,9 +228,6 @@ class RequirementCommand(IndexGroupCommand):
         """
         Marshal cmd line args into a requirement set.
         """
-        # NOTE: As a side-effect, options.require_hashes and
-        #       requirement_set.require_hashes may be updated
-
         for filename in options.constraints:
             for req_to_add in parse_requirements(
                     filename,
@@ -250,6 +255,7 @@ class RequirementCommand(IndexGroupCommand):
             req_to_add.is_direct = True
             requirement_set.add_requirement(req_to_add)
 
+        # NOTE: options.require_hashes may be set if --require-hashes is True
         for filename in options.requirements:
             for req_to_add in parse_requirements(
                     filename,
@@ -258,9 +264,14 @@ class RequirementCommand(IndexGroupCommand):
                     use_pep517=options.use_pep517):
                 req_to_add.is_direct = True
                 requirement_set.add_requirement(req_to_add)
-        # If --require-hashes was a line in a requirements file, tell
-        # RequirementSet about it:
-        requirement_set.require_hashes = options.require_hashes
+
+        # If any requirement has hash options, enable hash checking.
+        requirements = (
+            requirement_set.unnamed_requirements +
+            list(requirement_set.requirements.values())
+        )
+        if any(req.has_hash_options for req in requirements):
+            options.require_hashes = True
 
         if not (args or options.editables or options.requirements):
             opts = {'name': self.name}
@@ -273,6 +284,18 @@ class RequirementCommand(IndexGroupCommand):
                 raise CommandError(
                     'You must give at least one requirement to %(name)s '
                     '(see "pip help %(name)s")' % opts)
+
+    @staticmethod
+    def trace_basic_info(finder):
+        # type: (PackageFinder) -> None
+        """
+        Trace basic information about the provided objects.
+        """
+        # Display where finder is looking for packages
+        search_scope = finder.search_scope
+        locations = search_scope.get_formatted_locations()
+        if locations:
+            logger.info(locations)
 
     def _build_package_finder(
         self,

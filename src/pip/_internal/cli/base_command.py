@@ -92,7 +92,7 @@ class Command(CommandContextMixIn):
         raise NotImplementedError
 
     def parse_args(self, args):
-        # type: (List[str]) -> Tuple
+        # type: (List[str]) -> Tuple[Any, Any]
         # factored out for testability
         return self.parser.parse_args(args)
 
@@ -130,6 +130,17 @@ class Command(CommandContextMixIn):
                     "won't be maintained after that date. "
                 ) + message
             deprecated(message, replacement=None, gone_in=None)
+
+        if options.skip_requirements_regex:
+            deprecated(
+                "--skip-requirements-regex is unsupported and will be removed",
+                replacement=(
+                    "manage requirements/constraints files explicitly, "
+                    "possibly generating them from metadata"
+                ),
+                gone_in="20.1",
+                issue=7297,
+            )
 
         # TODO: Try to get these passing down from the command?
         #       without resorting to os.environ to hold these.

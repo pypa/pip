@@ -13,7 +13,7 @@ from pip._internal.vcs.git import Git, looks_like_hash
 from pip._internal.vcs.mercurial import Mercurial
 from pip._internal.vcs.subversion import Subversion
 from pip._internal.vcs.versioncontrol import RevOptions, VersionControl
-from tests.lib import is_svn_installed, pyversion
+from tests.lib import is_svn_installed, need_svn, pyversion
 
 if pyversion >= '3':
     VERBOSE_FALSE = False
@@ -411,7 +411,7 @@ def test_subversion__init_use_interactive(
     assert svn.use_interactive == expected
 
 
-@pytest.mark.svn
+@need_svn
 def test_subversion__call_vcs_version():
     """
     Test Subversion.call_vcs_version() against local ``svn``.

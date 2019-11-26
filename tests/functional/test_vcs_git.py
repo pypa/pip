@@ -6,8 +6,13 @@ import os
 
 import pytest
 
+from pip._internal.vcs import vcs
 from pip._internal.vcs.git import Git, RemoteNotFoundError
 from tests.lib import _create_test_package, _git_commit, _test_path_to_file_url
+
+
+def test_get_backend_for_scheme():
+    assert vcs.get_backend_for_scheme("git+https") is vcs.get_backend("Git")
 
 
 def get_head_sha(script, dest):
@@ -216,3 +221,20 @@ def test_is_commit_id_equal(script):
     assert not Git.is_commit_id_equal(version_pkg_path, 'abc123')
     # Also check passing a None value.
     assert not Git.is_commit_id_equal(version_pkg_path, None)
+
+
+def test_is_immutable_rev_checkout(script):
+    version_pkg_path = _create_test_package(script)
+    commit = script.run(
+        'git', 'rev-parse', 'HEAD',
+        cwd=version_pkg_path
+    ).stdout.strip()
+    assert Git().is_immutable_rev_checkout(
+        "git+https://g.c/o/r@" + commit, version_pkg_path
+    )
+    assert not Git().is_immutable_rev_checkout(
+        "git+https://g.c/o/r", version_pkg_path
+    )
+    assert not Git().is_immutable_rev_checkout(
+        "git+https://g.c/o/r@master", version_pkg_path
+    )

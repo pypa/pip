@@ -80,20 +80,13 @@ Creating a new release
 ----------------------
 
 #. Checkout the current pip ``master`` branch.
-#. Ensure you have the latest ``wheel``, ``setuptools``, ``twine`` and ``nox`` packages installed.
-#. Generate a new ``AUTHORS.txt`` (``nox -s generate_authors``) and commit the
-   results.
-#. Bump the version in ``pip/__init__.py`` to the release version and commit
-   the results. Usually this involves dropping just the ``.devN`` suffix on the
-   version.
-#. Generate a new ``NEWS.rst`` (``nox -s generate_news``) and commit the
-   results.
-#. Create a tag at the current commit, of the form ``YY.N``
-   (``git tag YY.N``).
-#. Checkout the tag (``git checkout YY.N``).
-#. Create the distribution files (``python setup.py sdist bdist_wheel``).
-#. Upload the distribution files to PyPI using twine
-   (``twine upload dist/*``).
+#. Ensure you have the latest ``nox`` installed.
+#. Prepare for release using ``nox -s prepare-release -- YY.N``.
+   This will update the relevant files and tag the correct commit.
+#. Build the release artifacts using ``nox -s build-release -- YY.N``.
+   This will checkout the tag, generate the distribution files to be
+   uploaded and checkout the master branch again.
+#. Upload the release to PyPI using ``nox -s upload-release -- YY.N``.
 #. Push all of the changes including the tag.
 #. Regenerate the ``get-pip.py`` script in the `get-pip repository`_ (as
    documented there) and commit the results.
@@ -104,7 +97,20 @@ Creating a new release
 
 .. note::
 
-  Steps 3 to 6 are automated in ``nox -s release -- YY.N`` command.
+  If the release dropped the support of an obsolete Python version ``M.m``,
+  a new ``M.m/get-pip.py`` needs to be published: update the ``all`` task from
+  ``tasks/generate.py`` in `get-pip repository`_ and make a pull request to
+  `psf-salt repository`_ to add the new ``get-pip.py`` (and its directory) to
+  ``salt/pypa/bootstrap/init.sls``.
+
+
+.. note::
+
+  If the ``get-pip.py`` script needs to be updated due to changes in pip internals
+  and if the last ``M.m/get-pip.py`` published still uses the default template, make
+  sure to first duplicate ``templates/default.py`` as ``templates/pre-YY.N.py``
+  before updating it and specify in ``tasks/generate.py`` that ``M.m/get-pip.py``
+  now needs to use ``templates/pre-YY.N.py``.
 
 
 Creating a bug-fix release
@@ -117,12 +123,16 @@ order to create one of these the changes should already be merged into the
 #. Create a new ``release/YY.N.Z+1`` branch off of the ``YY.N`` tag using the
    command ``git checkout -b release/YY.N.Z+1 YY.N``.
 #. Cherry pick the fixed commits off of the ``master`` branch, fixing any
-   conflicts and moving any changelog entries from the development version's
-   changelog section to the ``YY.N.Z+1`` section.
+   conflicts.
+#. Run ``nox -s prepare-release -- YY.N.Z+1``.
+#. Merge master into your release branch and drop the news files that have been
+   included in your release (otherwise they would also appear in the ``YY.N+1``
+   changelog)
 #. Push the ``release/YY.N.Z+1`` branch to github and submit a PR for it against
    the ``master`` branch and wait for the tests to run.
 #. Once tests run, merge the ``release/YY.N.Z+1`` branch into master, and follow
    the above release process starting with step 4.
 
 .. _`get-pip repository`: https://github.com/pypa/get-pip
+.. _`psf-salt repository`: https://github.com/python/psf-salt
 .. _`CPython`: https://github.com/pypa/cpython

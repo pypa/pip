@@ -9,7 +9,7 @@ from mock import Mock, patch
 from pip._vendor import html5lib, requests
 from pip._vendor.six.moves.urllib import request as urllib_request
 
-from pip._internal.collector import (
+from pip._internal.index.collector import (
     HTMLPage,
     _clean_link,
     _determine_base_url,
@@ -334,7 +334,7 @@ def test_get_html_page_invalid_scheme(caplog, url, vcs_scheme):
     assert page is None
     assert caplog.record_tuples == [
         (
-            "pip._internal.collector",
+            "pip._internal.index.collector",
             logging.DEBUG,
             "Cannot look at {} URL {}".format(vcs_scheme, url),
         ),
@@ -367,7 +367,8 @@ def test_get_html_page_directory_append_index(tmpdir):
 
     session = mock.Mock(PipSession)
     fake_response = make_fake_html_response(expected_url)
-    with mock.patch("pip._internal.collector._get_html_response") as mock_func:
+    mock_func = mock.patch("pip._internal.index.collector._get_html_response")
+    with mock_func as mock_func:
         mock_func.return_value = fake_response
         actual = _get_html_page(Link(dir_url), session=session)
         assert mock_func.mock_calls == [
@@ -434,14 +435,29 @@ def check_links_include(links, names):
 
 class TestLinkCollector(object):
 
-    @patch('pip._internal.collector._get_html_response')
-    def test_collect_links(self, mock_get_html_response, caplog, data):
+    @patch('pip._internal.index.collector._get_html_response')
+    def test_fetch_page(self, mock_get_html_response):
+        url = 'https://pypi.org/simple/twine/'
+
+        fake_response = make_fake_html_response(url)
+        mock_get_html_response.return_value = fake_response
+
+        location = Link(url)
+        link_collector = make_test_link_collector()
+        actual = link_collector.fetch_page(location)
+
+        assert actual.content == fake_response.content
+        assert actual.encoding is None
+        assert actual.url == url
+
+        # Also check that the right session object was passed to
+        # _get_html_response().
+        mock_get_html_response.assert_called_once_with(
+            url, session=link_collector.session,
+        )
+
+    def test_collect_links(self, caplog, data):
         caplog.set_level(logging.DEBUG)
-
-        expected_url = 'https://pypi.org/simple/twine/'
-
-        fake_page = make_fake_html_response(expected_url)
-        mock_get_html_response.return_value = fake_page
 
         link_collector = make_test_link_collector(
             find_links=[data.find_links],
@@ -451,10 +467,6 @@ class TestLinkCollector(object):
         )
         actual = link_collector.collect_links('twine')
 
-        mock_get_html_response.assert_called_once_with(
-            expected_url, session=link_collector.session,
-        )
-
         # Spot-check the CollectedLinks return value.
         assert len(actual.files) > 20
         check_links_include(actual.files, names=['simple-1.0.tar.gz'])
@@ -462,17 +474,11 @@ class TestLinkCollector(object):
         assert len(actual.find_links) == 1
         check_links_include(actual.find_links, names=['packages'])
 
-        actual_pages = actual.pages
-        assert list(actual_pages) == [expected_url]
-        actual_page_links = actual_pages[expected_url]
-        assert len(actual_page_links) == 1
-        assert actual_page_links[0].url == (
-            'https://pypi.org/abc-1.0.tar.gz#md5=000000000'
-        )
+        assert actual.project_urls == [Link('https://pypi.org/simple/twine/')]
 
         expected_message = dedent("""\
         1 location(s) to search for versions of twine:
         * https://pypi.org/simple/twine/""")
         assert caplog.record_tuples == [
-            ('pip._internal.collector', logging.DEBUG, expected_message),
+            ('pip._internal.index.collector', logging.DEBUG, expected_message),
         ]

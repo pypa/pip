@@ -23,6 +23,16 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 
+class InstallationResult(object):
+    def __init__(self, name):
+        # type: (str) -> None
+        self.name = name
+
+    def __repr__(self):
+        # type: () -> str
+        return "InstallationResult(name={!r})".format(self.name)
+
+
 def install_given_reqs(
     to_install,  # type: List[InstallRequirement]
     install_options,  # type: List[str]
@@ -30,7 +40,7 @@ def install_given_reqs(
     *args,  # type: Any
     **kwargs  # type: Any
 ):
-    # type: (...) -> List[InstallRequirement]
+    # type: (...) -> List[InstallationResult]
     """
     Install everything in the given list.
 
@@ -42,6 +52,8 @@ def install_given_reqs(
             'Installing collected packages: %s',
             ', '.join([req.name for req in to_install]),
         )
+
+    installed = []
 
     with indent_log():
         for requirement in to_install:
@@ -79,4 +91,6 @@ def install_given_reqs(
                     uninstalled_pathset.commit()
             requirement.remove_temporary_source()
 
-    return to_install
+            installed.append(InstallationResult(requirement.name))
+
+    return installed

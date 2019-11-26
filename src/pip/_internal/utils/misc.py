@@ -7,6 +7,7 @@ from __future__ import absolute_import
 import contextlib
 import errno
 import getpass
+import hashlib
 import io
 import logging
 import os
@@ -39,7 +40,7 @@ from pip._internal.utils.compat import (
     str_to_display,
 )
 from pip._internal.utils.marker_files import write_delete_marker_file
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING, cast
 from pip._internal.utils.virtualenv import (
     running_under_virtualenv,
     virtualenv_no_global,
@@ -53,16 +54,11 @@ else:
 if MYPY_CHECK_RUNNING:
     from typing import (
         Any, AnyStr, Container, Iterable, List, Optional, Text,
-        Tuple, Union, cast,
+        Tuple, Union,
     )
     from pip._vendor.pkg_resources import Distribution
 
     VersionInfo = Tuple[int, int, int]
-else:
-    # typing's cast() is needed at runtime, but we don't want to import typing.
-    # Thus, we use a dummy no-op version, which we tell mypy to ignore.
-    def cast(type_, value):  # type: ignore
-        return value
 
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
@@ -270,13 +266,13 @@ def ask_password(message):
 def format_size(bytes):
     # type: (float) -> str
     if bytes > 1000 * 1000:
-        return '%.1fMB' % (bytes / 1000.0 / 1000)
+        return '%.1f MB' % (bytes / 1000.0 / 1000)
     elif bytes > 10 * 1000:
-        return '%ikB' % (bytes / 1000)
+        return '%i kB' % (bytes / 1000)
     elif bytes > 1000:
-        return '%.1fkB' % (bytes / 1000.0)
+        return '%.1f kB' % (bytes / 1000.0)
     else:
-        return '%ibytes' % bytes
+        return '%i bytes' % bytes
 
 
 def is_installable_dir(path):
@@ -868,3 +864,17 @@ def is_console_interactive():
     """Is this console interactive?
     """
     return sys.stdin is not None and sys.stdin.isatty()
+
+
+def hash_file(path, blocksize=1 << 20):
+    # type: (str, int) -> Tuple[Any, int]
+    """Return (hash, length) for path using hashlib.sha256()
+    """
+
+    h = hashlib.sha256()
+    length = 0
+    with open(path, 'rb') as f:
+        for block in read_chunks(f, size=blocksize):
+            length += len(block)
+            h.update(block)
+    return (h, length)  # type: ignore

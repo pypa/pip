@@ -1,15 +1,12 @@
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
-# mypy: disallow-untyped-defs=False
 
 from __future__ import absolute_import
 
-import atexit
 import logging
 import os
 import shutil
 import sys
-import sysconfig
 import zipfile
 from distutils.util import change_root
 
@@ -23,11 +20,14 @@ from pip._vendor.pep517.wrappers import Pep517HookCaller
 from pip._internal import pep425tags, wheel
 from pip._internal.build_env import NoOpBuildEnvironment
 from pip._internal.exceptions import InstallationError
+from pip._internal.locations import get_scheme
 from pip._internal.models.link import Link
-from pip._internal.operations.generate_metadata import get_metadata_generator
+from pip._internal.operations.build.metadata import generate_metadata
+from pip._internal.operations.build.metadata_legacy import \
+    generate_metadata as generate_metadata_legacy
 from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
 from pip._internal.req.req_uninstall import UninstallPathSet
-from pip._internal.utils.compat import native_str
+from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.marker_files import (
@@ -48,7 +48,10 @@ from pip._internal.utils.misc import (
     rmtree,
 )
 from pip._internal.utils.packaging import get_metadata
-from pip._internal.utils.setuptools_build import make_setuptools_shim_args
+from pip._internal.utils.setuptools_build import (
+    make_setuptools_develop_args,
+    make_setuptools_install_args,
+)
 from pip._internal.utils.subprocess import (
     call_subprocess,
     runner_with_spinner_message,
@@ -64,13 +67,40 @@ if MYPY_CHECK_RUNNING:
     )
     from pip._internal.build_env import BuildEnvironment
     from pip._internal.cache import WheelCache
-    from pip._internal.index import PackageFinder
+    from pip._internal.index.package_finder import PackageFinder
+    from pip._internal.models.scheme import Scheme
     from pip._vendor.pkg_resources import Distribution
     from pip._vendor.packaging.specifiers import SpecifierSet
     from pip._vendor.packaging.markers import Marker
 
 
 logger = logging.getLogger(__name__)
+
+
+def _get_dist(metadata_directory):
+    # type: (str) -> Distribution
+    """Return a pkg_resources.Distribution for the provided
+    metadata directory.
+    """
+    dist_dir = metadata_directory.rstrip(os.sep)
+
+    # Determine the correct Distribution object type.
+    if dist_dir.endswith(".egg-info"):
+        dist_cls = pkg_resources.Distribution
+    else:
+        assert dist_dir.endswith(".dist-info")
+        dist_cls = pkg_resources.DistInfoDistribution
+
+    # Build a PathMetadata object, from path to metadata. :wink:
+    base_dir, dist_dir_name = os.path.split(dist_dir)
+    dist_name = os.path.splitext(dist_dir_name)[0]
+    metadata = pkg_resources.PathMetadata(base_dir, dist_dir)
+
+    return dist_cls(
+        base_dir,
+        project_name=dist_name,
+        metadata=metadata,
+    )
 
 
 class InstallRequirement(object):
@@ -133,7 +163,7 @@ class InstallRequirement(object):
         # Temporary build location
         self._temp_build_dir = None  # type: Optional[TempDirectory]
         # Used to store the global directory where the _temp_build_dir should
-        # have been created. Cf move_to_correct_build_directory method.
+        # have been created. See move_to_correct_build_directory().
         self._ideal_build_dir = None  # type: Optional[str]
         # Set to True after successful installation
         self.install_succeeded = None  # type: Optional[bool]
@@ -240,7 +270,7 @@ class InstallRequirement(object):
         # type: () -> Optional[str]
         if self.req is None:
             return None
-        return native_str(pkg_resources.safe_name(self.req.name))
+        return six.ensure_str(pkg_resources.safe_name(self.req.name))
 
     @property
     def specifier(self):
@@ -356,7 +386,7 @@ class InstallRequirement(object):
 
     def move_to_correct_build_directory(self):
         # type: () -> None
-        """Move self._temp_build_dir to "self._ideal_build_dir/self.req.name"
+        """Move self._temp_build_dir to "self._ideal_build_dir/{metadata name}"
 
         For some requirements (e.g. a path to a directory), the name of the
         package is not available until we run egg_info, so the build_location
@@ -365,14 +395,33 @@ class InstallRequirement(object):
         This is only called to "fix" the build directory after generating
         metadata.
         """
+        assert self.req is None
+        assert self.metadata is not None
+
+        # Construct a Requirement object from the generated metadata
+        if isinstance(parse_version(self.metadata["Version"]), Version):
+            op = "=="
+        else:
+            op = "==="
+
+        self.req = Requirement(
+            "".join([
+                self.metadata["Name"],
+                op,
+                self.metadata["Version"],
+            ])
+        )
+
         if self.source_dir is not None:
             return
-        assert self.req is not None
+
         assert self._temp_build_dir
         assert (
             self._ideal_build_dir is not None and
             self._ideal_build_dir.path  # type: ignore
         )
+
+        # Backup directory for later use.
         old_location = self._temp_build_dir
         self._temp_build_dir = None  # checked inside ensure_build_location
 
@@ -397,18 +446,33 @@ class InstallRequirement(object):
             path=new_location, kind="req-install",
         )
 
-        # Correct the metadata directory, if it exists
-        if self.metadata_directory:
-            old_meta = self.metadata_directory
-            rel = os.path.relpath(old_meta, start=old_location.path)
-            new_meta = os.path.join(new_location, rel)
-            new_meta = os.path.normpath(os.path.abspath(new_meta))
-            self.metadata_directory = new_meta
+        # Correct the metadata directory
+        old_meta = self.metadata_directory
+        rel = os.path.relpath(old_meta, start=old_location.path)
+        new_meta = os.path.join(new_location, rel)
+        new_meta = os.path.normpath(os.path.abspath(new_meta))
+        self.metadata_directory = new_meta
 
         # Done with any "move built files" work, since have moved files to the
         # "ideal" build location. Setting to None allows to clearly flag that
         # no more moves are needed.
         self._ideal_build_dir = None
+
+    def warn_on_mismatching_name(self):
+        # type: () -> None
+        metadata_name = canonicalize_name(self.metadata["Name"])
+        if canonicalize_name(self.req.name) == metadata_name:
+            # Everything is fine.
+            return
+
+        # If we're here, there's a mismatch. Log a warning about it.
+        logger.warning(
+            'Generating metadata for package %s '
+            'produced metadata for project name %s. Fix your '
+            '#egg=%s fragments.',
+            self.name, metadata_name, self.name
+        )
+        self.req = Requirement(metadata_name)
 
     def remove_temporary_source(self):
         # type: () -> None
@@ -476,22 +540,17 @@ class InstallRequirement(object):
     def move_wheel_files(
         self,
         wheeldir,  # type: str
-        root=None,  # type: Optional[str]
-        home=None,  # type: Optional[str]
-        prefix=None,  # type: Optional[str]
+        scheme,  # type: Scheme
         warn_script_location=True,  # type: bool
-        use_user_site=False,  # type: bool
         pycompile=True  # type: bool
     ):
         # type: (...) -> None
-        wheel.move_wheel_files(
-            self.name, self.req, wheeldir,
-            user=use_user_site,
-            home=home,
-            root=root,
-            prefix=prefix,
+        wheel.install_unpacked_wheel(
+            self.name,
+            wheeldir,
+            scheme=scheme,
+            req_description=str(self.req),
             pycompile=pycompile,
-            isolated=self.isolated,
             warn_script_location=warn_script_location,
         )
 
@@ -542,11 +601,11 @@ class InstallRequirement(object):
             return
 
         self.use_pep517 = True
-        requires, backend, check = pyproject_toml_data
+        requires, backend, check, backend_path = pyproject_toml_data
         self.requirements_to_check = check
         self.pyproject_requires = requires
         self.pep517_backend = Pep517HookCaller(
-            self.unpacked_source_directory, backend
+            self.unpacked_source_directory, backend, backend_path=backend_path,
         )
 
     def prepare_metadata(self):
@@ -558,56 +617,20 @@ class InstallRequirement(object):
         """
         assert self.source_dir
 
-        metadata_generator = get_metadata_generator(self)
+        metadata_generator = generate_metadata
+        if not self.use_pep517:
+            metadata_generator = generate_metadata_legacy
+
         with indent_log():
             self.metadata_directory = metadata_generator(self)
 
-        if not self.req:
-            if isinstance(parse_version(self.metadata["Version"]), Version):
-                op = "=="
-            else:
-                op = "==="
-            self.req = Requirement(
-                "".join([
-                    self.metadata["Name"],
-                    op,
-                    self.metadata["Version"],
-                ])
-            )
+        # Act on the newly generated metadata, based on the name and version.
+        if not self.name:
             self.move_to_correct_build_directory()
         else:
-            metadata_name = canonicalize_name(self.metadata["Name"])
-            if canonicalize_name(self.req.name) != metadata_name:
-                logger.warning(
-                    'Generating metadata for package %s '
-                    'produced metadata for project name %s. Fix your '
-                    '#egg=%s fragments.',
-                    self.name, metadata_name, self.name
-                )
-                self.req = Requirement(metadata_name)
+            self.warn_on_mismatching_name()
 
-    def prepare_pep517_metadata(self):
-        # type: () -> str
-        assert self.pep517_backend is not None
-
-        # NOTE: This needs to be refactored to stop using atexit
-        metadata_tmpdir = TempDirectory(kind="modern-metadata")
-        atexit.register(metadata_tmpdir.cleanup)
-
-        metadata_dir = metadata_tmpdir.path
-
-        with self.build_env:
-            # Note that Pep517HookCaller implements a fallback for
-            # prepare_metadata_for_build_wheel, so we don't have to
-            # consider the possibility that this hook doesn't exist.
-            runner = runner_with_spinner_message("Preparing wheel metadata")
-            backend = self.pep517_backend
-            with backend.subprocess_runner(runner):
-                distinfo_dir = backend.prepare_metadata_for_build_wheel(
-                    metadata_dir
-                )
-
-        return os.path.join(metadata_dir, distinfo_dir)
+        self.assert_source_matches_version()
 
     @property
     def metadata(self):
@@ -619,26 +642,7 @@ class InstallRequirement(object):
 
     def get_dist(self):
         # type: () -> Distribution
-        """Return a pkg_resources.Distribution for this requirement"""
-        dist_dir = self.metadata_directory.rstrip(os.sep)
-
-        # Determine the correct Distribution object type.
-        if dist_dir.endswith(".egg-info"):
-            dist_cls = pkg_resources.Distribution
-        else:
-            assert dist_dir.endswith(".dist-info")
-            dist_cls = pkg_resources.DistInfoDistribution
-
-        # Build a PathMetadata object, from path to metadata. :wink:
-        base_dir, dist_dir_name = os.path.split(dist_dir)
-        dist_name = os.path.splitext(dist_dir_name)[0]
-        metadata = pkg_resources.PathMetadata(base_dir, dist_dir)
-
-        return dist_cls(
-            base_dir,
-            project_name=dist_name,
-            metadata=metadata,
-        )
+        return _get_dist(self.metadata_directory)
 
     def assert_source_matches_version(self):
         # type: () -> None
@@ -677,26 +681,28 @@ class InstallRequirement(object):
     def install_editable(
         self,
         install_options,  # type: List[str]
-        global_options=(),  # type: Sequence[str]
-        prefix=None  # type: Optional[str]
+        global_options,  # type: Sequence[str]
+        prefix,  # type: Optional[str]
+        home,  # type: Optional[str]
+        use_user_site,  # type: bool
     ):
         # type: (...) -> None
         logger.info('Running setup.py develop for %s', self.name)
 
-        if prefix:
-            prefix_param = ['--prefix={}'.format(prefix)]
-            install_options = list(install_options) + prefix_param
-        base_cmd = make_setuptools_shim_args(
+        args = make_setuptools_develop_args(
             self.setup_py_path,
             global_options=global_options,
-            no_user_config=self.isolated
+            install_options=install_options,
+            no_user_config=self.isolated,
+            prefix=prefix,
+            home=home,
+            use_user_site=use_user_site,
         )
+
         with indent_log():
             with self.build_env:
                 call_subprocess(
-                    base_cmd +
-                    ['develop', '--no-deps'] +
-                    list(install_options),
+                    args,
                     cwd=self.unpacked_source_directory,
                 )
 
@@ -755,19 +761,20 @@ class InstallRequirement(object):
         uninstalled_pathset.remove(auto_confirm, verbose)
         return uninstalled_pathset
 
-    def _clean_zip_name(self, name, prefix):  # only used by archive.
-        # type: (str, str) -> str
-        assert name.startswith(prefix + os.path.sep), (
-            "name %r doesn't start with prefix %r" % (name, prefix)
-        )
-        name = name[len(prefix) + 1:]
-        name = name.replace(os.path.sep, '/')
-        return name
-
     def _get_archive_name(self, path, parentdir, rootdir):
         # type: (str, str, str) -> str
+
+        def _clean_zip_name(name, prefix):
+            # type: (str, str) -> str
+            assert name.startswith(prefix + os.path.sep), (
+                "name %r doesn't start with prefix %r" % (name, prefix)
+            )
+            name = name[len(prefix) + 1:]
+            name = name.replace(os.path.sep, '/')
+            return name
+
         path = os.path.join(parentdir, path)
-        name = self._clean_zip_name(path, rootdir)
+        name = _clean_zip_name(path, rootdir)
         return self.name + '/' + name
 
     def archive(self, build_dir):
@@ -845,20 +852,35 @@ class InstallRequirement(object):
         pycompile=True  # type: bool
     ):
         # type: (...) -> None
+        scheme = get_scheme(
+            self.name,
+            user=use_user_site,
+            home=home,
+            root=root,
+            isolated=self.isolated,
+            prefix=prefix,
+        )
+
         global_options = global_options if global_options is not None else []
         if self.editable:
             self.install_editable(
-                install_options, global_options, prefix=prefix,
+                install_options,
+                global_options,
+                prefix=prefix,
+                home=home,
+                use_user_site=use_user_site,
             )
             return
+
         if self.is_wheel:
             version = wheel.wheel_version(self.source_dir)
             wheel.check_compatibility(version, self.name)
 
             self.move_wheel_files(
-                self.source_dir, root=root, prefix=prefix, home=home,
+                self.source_dir,
+                scheme=scheme,
                 warn_script_location=warn_script_location,
-                use_user_site=use_user_site, pycompile=pycompile,
+                pycompile=pycompile,
             )
             self.install_succeeded = True
             return
@@ -873,10 +895,22 @@ class InstallRequirement(object):
         install_options = list(install_options) + \
             self.options.get('install_options', [])
 
+        header_dir = scheme.headers
+
         with TempDirectory(kind="record") as temp_dir:
             record_filename = os.path.join(temp_dir.path, 'install-record.txt')
-            install_args = self.get_install_args(
-                global_options, record_filename, root, prefix, pycompile,
+            install_args = make_setuptools_install_args(
+                self.setup_py_path,
+                global_options=global_options,
+                install_options=install_options,
+                record_filename=record_filename,
+                root=root,
+                prefix=prefix,
+                header_dir=header_dir,
+                home=home,
+                use_user_site=use_user_site,
+                no_user_config=self.isolated,
+                pycompile=pycompile,
             )
 
             runner = runner_with_spinner_message(
@@ -884,7 +918,7 @@ class InstallRequirement(object):
             )
             with indent_log(), self.build_env:
                 runner(
-                    cmd=install_args + install_options,
+                    cmd=install_args,
                     cwd=self.unpacked_source_directory,
                 )
 
@@ -907,10 +941,21 @@ class InstallRequirement(object):
                         egg_info_dir = prepend_root(directory)
                         break
                 else:
-                    logger.warning(
-                        'Could not find .egg-info directory in install record'
-                        ' for %s',
-                        self,
+                    deprecated(
+                        reason=(
+                            "{} did not indicate that it installed an "
+                            ".egg-info directory. Only setup.py projects "
+                            "generating .egg-info directories are supported."
+                        ).format(self),
+                        replacement=(
+                            "for maintainers: updating the setup.py of {0}. "
+                            "For users: contact the maintainers of {0} to let "
+                            "them know to update their setup.py.".format(
+                                self.name
+                            )
+                        ),
+                        gone_in="20.2",
+                        issue=6998,
                     )
                     # FIXME: put the record somewhere
                     return
@@ -928,39 +973,3 @@ class InstallRequirement(object):
             inst_files_path = os.path.join(egg_info_dir, 'installed-files.txt')
             with open(inst_files_path, 'w') as f:
                 f.write('\n'.join(new_lines) + '\n')
-
-    def get_install_args(
-        self,
-        global_options,  # type: Sequence[str]
-        record_filename,  # type: str
-        root,  # type: Optional[str]
-        prefix,  # type: Optional[str]
-        pycompile  # type: bool
-    ):
-        # type: (...) -> List[str]
-        install_args = make_setuptools_shim_args(
-            self.setup_py_path,
-            global_options=global_options,
-            no_user_config=self.isolated,
-            unbuffered_output=True
-        )
-        install_args += ['install', '--record', record_filename]
-        install_args += ['--single-version-externally-managed']
-
-        if root is not None:
-            install_args += ['--root', root]
-        if prefix is not None:
-            install_args += ['--prefix', prefix]
-
-        if pycompile:
-            install_args += ["--compile"]
-        else:
-            install_args += ["--no-compile"]
-
-        if running_under_virtualenv():
-            py_ver_str = 'python' + sysconfig.get_python_version()
-            install_args += ['--install-headers',
-                             os.path.join(sys.prefix, 'include', 'site',
-                                          py_ver_str, self.name)]
-
-        return install_args

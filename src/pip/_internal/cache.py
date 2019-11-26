@@ -20,7 +20,7 @@ from pip._internal.wheel import InvalidWheelFilename, Wheel
 
 if MYPY_CHECK_RUNNING:
     from typing import Optional, Set, List, Any
-    from pip._internal.index import FormatControl
+    from pip._internal.models.format_control import FormatControl
     from pip._internal.pep425tags import Pep425Tag
 
 logger = logging.getLogger(__name__)
@@ -58,6 +58,10 @@ class Cache(object):
         key_parts = [link.url_without_fragment]
         if link.hash_name is not None and link.hash is not None:
             key_parts.append("=".join([link.hash_name, link.hash]))
+        if link.subdirectory_fragment:
+            key_parts.append(
+                "=".join(["subdirectory", link.subdirectory_fragment])
+            )
         key_url = "#".join(key_parts)
 
         # Encode our key url with sha224, we'll use this because it has similar
@@ -73,19 +77,18 @@ class Cache(object):
 
         return parts
 
-    def _get_candidates(self, link, package_name):
+    def _get_candidates(self, link, canonical_package_name):
         # type: (Link, Optional[str]) -> List[Any]
         can_not_cache = (
             not self.cache_dir or
-            not package_name or
+            not canonical_package_name or
             not link
         )
         if can_not_cache:
             return []
 
-        canonical_name = canonicalize_name(package_name)
         formats = self.format_control.get_allowed_formats(
-            canonical_name
+            canonical_package_name
         )
         if not self.allowed_formats.intersection(formats):
             return []
@@ -168,10 +171,22 @@ class SimpleWheelCache(Cache):
         # type: (...) -> Link
         candidates = []
 
-        for wheel_name in self._get_candidates(link, package_name):
+        if not package_name:
+            return link
+
+        canonical_package_name = canonicalize_name(package_name)
+        for wheel_name in self._get_candidates(link, canonical_package_name):
             try:
                 wheel = Wheel(wheel_name)
             except InvalidWheelFilename:
+                continue
+            if canonicalize_name(wheel.name) != canonical_package_name:
+                logger.debug(
+                    "Ignoring cached wheel {} for {} as it "
+                    "does not match the expected distribution name {}.".format(
+                        wheel_name, link, package_name
+                    )
+                )
                 continue
             if not wheel.supported(supported_tags):
                 # Built for a different python/arch/etc

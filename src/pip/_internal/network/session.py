@@ -212,8 +212,9 @@ class LocalFSAdapter(BaseAdapter):
 class InsecureHTTPAdapter(HTTPAdapter):
 
     def cert_verify(self, conn, url, verify, cert):
-        conn.cert_reqs = 'CERT_NONE'
-        conn.ca_certs = None
+        super(InsecureHTTPAdapter, self).cert_verify(
+            conn=conn, url=url, verify=False, cert=cert
+        )
 
 
 class PipSession(requests.Session):
@@ -360,22 +361,13 @@ class PipSession(requests.Session):
                 continue
 
             try:
-                # We need to do this decode dance to ensure that we have a
-                # unicode object, even on Python 2.x.
                 addr = ipaddress.ip_address(
-                    origin_host
-                    if (
-                        isinstance(origin_host, six.text_type) or
-                        origin_host is None
-                    )
-                    else origin_host.decode("utf8")
+                    None
+                    if origin_host is None
+                    else six.ensure_text(origin_host)
                 )
                 network = ipaddress.ip_network(
-                    secure_host
-                    if isinstance(secure_host, six.text_type)
-                    # setting secure_host to proper Union[bytes, str]
-                    # creates problems in other places
-                    else secure_host.decode("utf8")  # type: ignore
+                    six.ensure_text(secure_host)
                 )
             except ValueError:
                 # We don't have both a valid address or a valid network, so

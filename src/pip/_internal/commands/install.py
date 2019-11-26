@@ -1,4 +1,3 @@
-
 # The following comment should be removed at some point in the future.
 # It's included for now because without it InstallCommand.run() has a
 # couple errors where we have to know req.name is str rather than
@@ -13,6 +12,7 @@ import logging
 import operator
 import os
 import shutil
+import site
 from optparse import SUPPRESS_HELP
 
 from pip._vendor import pkg_resources
@@ -31,8 +31,8 @@ from pip._internal.exceptions import (
 from pip._internal.locations import distutils_scheme
 from pip._internal.operations.check import check_install_conflicts
 from pip._internal.req import RequirementSet, install_given_reqs
-from pip._internal.req.req_tracker import RequirementTracker
-from pip._internal.utils.filesystem import check_path_owner
+from pip._internal.req.req_tracker import get_requirement_tracker
+from pip._internal.utils.filesystem import check_path_owner, test_writable_dir
 from pip._internal.utils.misc import (
     ensure_dir,
     get_installed_version,
@@ -42,7 +42,7 @@ from pip._internal.utils.misc import (
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.virtualenv import virtualenv_no_global
-from pip._internal.wheel import WheelBuilder
+from pip._internal.wheel_builder import WheelBuilder
 
 if MYPY_CHECK_RUNNING:
     from optparse import Values
@@ -50,7 +50,7 @@ if MYPY_CHECK_RUNNING:
 
     from pip._internal.models.format_control import FormatControl
     from pip._internal.req.req_install import InstallRequirement
-    from pip._internal.wheel import BinaryAllowedPredicate
+    from pip._internal.wheel_builder import BinaryAllowedPredicate
 
 
 logger = logging.getLogger(__name__)
@@ -102,6 +102,8 @@ def get_check_binary_allowed(format_control):
     # type: (FormatControl) -> BinaryAllowedPredicate
     def check_binary_allowed(req):
         # type: (InstallRequirement) -> bool
+        if req.use_pep517:
+            return True
         canonical_name = canonicalize_name(req.name)
         allowed_formats = format_control.get_allowed_formats(canonical_name)
         return "binary" in allowed_formats
@@ -291,19 +293,14 @@ class InstallCommand(RequirementCommand):
 
         options.src_dir = os.path.abspath(options.src_dir)
         install_options = options.install_options or []
-        if options.use_user_site:
-            if options.prefix_path:
-                raise CommandError(
-                    "Can not combine '--user' and '--prefix' as they imply "
-                    "different installation locations"
-                )
-            if virtualenv_no_global():
-                raise InstallationError(
-                    "Can not perform a '--user' install. User site-packages "
-                    "are not visible in this virtualenv."
-                )
-            install_options.append('--user')
-            install_options.append('--prefix=')
+
+        options.use_user_site = decide_user_install(
+            options.use_user_site,
+            prefix_path=options.prefix_path,
+            target_dir=options.target_dir,
+            root_path=options.root_path,
+            isolated_mode=options.isolated_mode,
+        )
 
         target_temp_dir = None  # type: Optional[TempDirectory]
         target_temp_dir_path = None  # type: Optional[str]
@@ -320,7 +317,6 @@ class InstallCommand(RequirementCommand):
             # Create a target directory for using with the target option
             target_temp_dir = TempDirectory(kind="target")
             target_temp_dir_path = target_temp_dir.path
-            install_options.append('--home=' + target_temp_dir_path)
 
         global_options = options.global_options or []
 
@@ -347,11 +343,10 @@ class InstallCommand(RequirementCommand):
             )
             options.cache_dir = None
 
-        with RequirementTracker() as req_tracker, TempDirectory(
+        with get_requirement_tracker() as req_tracker, TempDirectory(
             options.build_dir, delete=build_delete, kind="install"
         ) as directory:
             requirement_set = RequirementSet(
-                require_hashes=options.require_hashes,
                 check_supported_wheels=not options.target_dir,
             )
 
@@ -364,11 +359,13 @@ class InstallCommand(RequirementCommand):
                     temp_build_dir=directory,
                     options=options,
                     req_tracker=req_tracker,
+                    session=session,
+                    finder=finder,
+                    use_user_site=options.use_user_site,
                 )
                 resolver = self.make_resolver(
                     preparer=preparer,
                     finder=finder,
-                    session=session,
                     options=options,
                     wheel_cache=wheel_cache,
                     use_user_site=options.use_user_site,
@@ -378,6 +375,9 @@ class InstallCommand(RequirementCommand):
                     upgrade_strategy=upgrade_strategy,
                     use_pep517=options.use_pep517,
                 )
+
+                self.trace_basic_info(finder)
+
                 resolver.resolve(requirement_set)
 
                 try:
@@ -463,13 +463,13 @@ class InstallCommand(RequirementCommand):
                 )
                 working_set = pkg_resources.WorkingSet(lib_locations)
 
-                reqs = sorted(installed, key=operator.attrgetter('name'))
+                installed.sort(key=operator.attrgetter('name'))
                 items = []
-                for req in reqs:
-                    item = req.name
+                for result in installed:
+                    item = result.name
                     try:
                         installed_version = get_installed_version(
-                            req.name, working_set=working_set
+                            result.name, working_set=working_set
                         )
                         if installed_version:
                             item += '-' + installed_version
@@ -592,6 +592,72 @@ class InstallCommand(RequirementCommand):
 def get_lib_location_guesses(*args, **kwargs):
     scheme = distutils_scheme('', *args, **kwargs)
     return [scheme['purelib'], scheme['platlib']]
+
+
+def site_packages_writable(**kwargs):
+    return all(
+        test_writable_dir(d) for d in set(get_lib_location_guesses(**kwargs))
+    )
+
+
+def decide_user_install(
+    use_user_site,  # type: Optional[bool]
+    prefix_path=None,  # type: Optional[str]
+    target_dir=None,  # type: Optional[str]
+    root_path=None,  # type: Optional[str]
+    isolated_mode=False,  # type: bool
+):
+    # type: (...) -> bool
+    """Determine whether to do a user install based on the input options.
+
+    If use_user_site is False, no additional checks are done.
+    If use_user_site is True, it is checked for compatibility with other
+    options.
+    If use_user_site is None, the default behaviour depends on the environment,
+    which is provided by the other arguments.
+    """
+    # In some cases (config from tox), use_user_site can be set to an integer
+    # rather than a bool, which 'use_user_site is False' wouldn't catch.
+    if (use_user_site is not None) and (not use_user_site):
+        logger.debug("Non-user install by explicit request")
+        return False
+
+    if use_user_site:
+        if prefix_path:
+            raise CommandError(
+                "Can not combine '--user' and '--prefix' as they imply "
+                "different installation locations"
+            )
+        if virtualenv_no_global():
+            raise InstallationError(
+                "Can not perform a '--user' install. User site-packages "
+                "are not visible in this virtualenv."
+            )
+        logger.debug("User install by explicit request")
+        return True
+
+    # If we are here, user installs have not been explicitly requested/avoided
+    assert use_user_site is None
+
+    # user install incompatible with --prefix/--target
+    if prefix_path or target_dir:
+        logger.debug("Non-user install due to --prefix or --target option")
+        return False
+
+    # If user installs are not enabled, choose a non-user install
+    if not site.ENABLE_USER_SITE:
+        logger.debug("Non-user install because user site-packages disabled")
+        return False
+
+    # If we have permission for a non-user install, do that,
+    # otherwise do a user install.
+    if site_packages_writable(root=root_path, isolated=isolated_mode):
+        logger.debug("Non-user install because site-packages writeable")
+        return False
+
+    logger.info("Defaulting to user installation because normal site-packages "
+                "is not writeable")
+    return True
 
 
 def create_env_error_message(error, show_traceback, using_user_site):

@@ -23,7 +23,7 @@ from pip._internal.utils.ui import open_spinner
 
 if MYPY_CHECK_RUNNING:
     from typing import Tuple, Set, Iterable, Optional, List
-    from pip._internal.index import PackageFinder
+    from pip._internal.index.package_finder import PackageFinder
 
 logger = logging.getLogger(__name__)
 

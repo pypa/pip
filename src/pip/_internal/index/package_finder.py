@@ -19,6 +19,7 @@ from pip._internal.exceptions import (
     InvalidWheelFilename,
     UnsupportedWheel,
 )
+from pip._internal.index.collector import parse_links
 from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.format_control import FormatControl
 from pip._internal.models.link import Link
@@ -38,7 +39,7 @@ if MYPY_CHECK_RUNNING:
         FrozenSet, Iterable, List, Optional, Set, Text, Tuple, Union,
     )
     from pip._vendor.packaging.version import _BaseVersion
-    from pip._internal.collector import LinkCollector
+    from pip._internal.index.collector import LinkCollector
     from pip._internal.models.search_scope import SearchScope
     from pip._internal.req import InstallRequirement
     from pip._internal.pep425tags import Pep425Tag
@@ -115,7 +116,7 @@ class LinkEvaluator(object):
         self,
         project_name,    # type: str
         canonical_name,  # type: str
-        formats,         # type: FrozenSet
+        formats,         # type: FrozenSet[str]
         target_python,   # type: TargetPython
         allow_yanked,    # type: bool
         ignore_requires_python=None,  # type: Optional[bool]
@@ -473,11 +474,13 @@ class CandidateEvaluator(object):
             c for c in candidates if str(c.version) in versions
         ]
 
-        return filter_unallowed_hashes(
+        filtered_applicable_candidates = filter_unallowed_hashes(
             candidates=applicable_candidates,
             hashes=self._hashes,
             project_name=self._project_name,
         )
+
+        return sorted(filtered_applicable_candidates, key=self._sort_key)
 
     def _sort_key(self, candidate):
         # type: (InstallationCandidate) -> CandidateSortingKey
@@ -758,7 +761,7 @@ class PackageFinder(object):
             return None
 
         return InstallationCandidate(
-            project=link_evaluator.project_name,
+            name=link_evaluator.project_name,
             link=link,
             # Convert the Text result to str since InstallationCandidate
             # accepts str.
@@ -777,6 +780,25 @@ class PackageFinder(object):
                 candidates.append(candidate)
 
         return candidates
+
+    def process_project_url(self, project_url, link_evaluator):
+        # type: (Link, LinkEvaluator) -> List[InstallationCandidate]
+        logger.debug(
+            'Fetching project page and analyzing links: %s', project_url,
+        )
+        html_page = self._link_collector.fetch_page(project_url)
+        if html_page is None:
+            return []
+
+        page_links = list(parse_links(html_page))
+
+        with indent_log():
+            package_links = self.evaluate_links(
+                link_evaluator,
+                links=page_links,
+            )
+
+        return package_links
 
     def find_all_candidates(self, project_name):
         # type: (str) -> List[InstallationCandidate]
@@ -798,14 +820,11 @@ class PackageFinder(object):
         )
 
         page_versions = []
-        for page_url, page_links in collected_links.pages.items():
-            logger.debug('Analyzing links from page %s', page_url)
-            with indent_log():
-                new_versions = self.evaluate_links(
-                    link_evaluator,
-                    links=page_links,
-                )
-                page_versions.extend(new_versions)
+        for project_url in collected_links.project_urls:
+            package_links = self.process_project_url(
+                project_url, link_evaluator=link_evaluator,
+            )
+            page_versions.extend(package_links)
 
         file_versions = self.evaluate_links(
             link_evaluator,

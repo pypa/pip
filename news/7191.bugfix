@@ -1,0 +1,1 @@
+Change method from shutil.remove to shutil.rmtree in noxfile.py.

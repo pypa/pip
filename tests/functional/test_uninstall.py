@@ -13,7 +13,11 @@ import pytest
 
 from pip._internal.req.constructors import install_req_from_line
 from pip._internal.utils.misc import rmtree
-from tests.lib import assert_all_changes, create_test_package_with_setup
+from tests.lib import (
+    assert_all_changes,
+    create_test_package_with_setup,
+    need_svn,
+)
 from tests.lib.local_repos import local_checkout, local_repo
 
 
@@ -272,7 +276,9 @@ def test_uninstall_easy_installed_console_scripts(script):
     """
     Test uninstalling package with console_scripts that is easy_installed.
     """
-    result = script.easy_install('discover')
+    # setuptools >= 42.0.0 deprecates easy_install and prints a warning when
+    # used
+    result = script.easy_install('discover', allow_stderr_warning=True)
     assert script.bin / 'discover' + script.exe in result.files_created, (
         sorted(result.files_created.keys())
     )
@@ -289,6 +295,7 @@ def test_uninstall_easy_installed_console_scripts(script):
 
 
 @pytest.mark.network
+@need_svn
 def test_uninstall_editable_from_svn(script, tmpdir):
     """
     Test uninstalling an editable installation from svn.
@@ -352,7 +359,7 @@ def _test_uninstall_editable_with_source_outside_venv(
 
 
 @pytest.mark.network
-@pytest.mark.svn
+@need_svn
 def test_uninstall_from_reqs_file(script, tmpdir):
     """
     Test uninstall from a requirements file.

@@ -1,0 +1,1 @@
+Fix case sensitive comparison of pip freeze when used with -r option.

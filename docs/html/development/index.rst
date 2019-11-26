@@ -14,6 +14,7 @@ or the `pypa-dev mailing list`_, to ask questions or get involved.
 
     getting-started
     contributing
+    ci
     issue-triage
     architecture/index
     release-process

@@ -4,12 +4,16 @@
 # The following comment should be removed at some point in the future.
 # mypy: disallow-untyped-defs=False
 
-import io
+import glob
 import os
 import shutil
-import subprocess
+import sys
 
 import nox
+
+sys.path.append(".")
+from tools.automation import release  # isort:skip  # noqa
+sys.path.pop()
 
 nox.options.reuse_existing_virtualenvs = True
 nox.options.sessions = ["lint"]
@@ -25,29 +29,6 @@ REQUIREMENTS = {
 
 AUTHORS_FILE = "AUTHORS.txt"
 VERSION_FILE = "src/pip/__init__.py"
-
-
-def get_author_list():
-    """Get the list of authors from Git commits.
-    """
-    # subprocess because session.run doesn't give us stdout
-    result = subprocess.run(
-        ["git", "log", "--use-mailmap", "--format=%aN <%aE>"],
-        capture_output=True,
-        encoding="utf-8",
-    )
-
-    # Create a unique list.
-    authors = []
-    seen_authors = set()
-    for author in result.stdout.splitlines():
-        author = author.strip()
-        if author.lower() not in seen_authors:
-            seen_authors.add(author.lower())
-            authors.append(author)
-
-    # Sort our list of Authors by their case insensitive name
-    return sorted(authors, key=lambda x: x.lower())
 
 
 def run_with_protected_pip(session, *arguments):
@@ -76,14 +57,9 @@ def should_update_common_wheels():
 
     # Clear the stale cache.
     if need_to_repopulate:
-        shutil.remove(LOCATIONS["common-wheels"], ignore_errors=True)
+        shutil.rmtree(LOCATIONS["common-wheels"], ignore_errors=True)
 
     return need_to_repopulate
-
-
-def update_version_file(new_version):
-    with open(VERSION_FILE, "w", encoding="utf-8") as f:
-        f.write('__version__ = "{}"\n'.format(new_version))
 
 
 # -----------------------------------------------------------------------------
@@ -92,7 +68,7 @@ def update_version_file(new_version):
 #   completely to nox for all our automation. Contributors should prefer using
 #   `tox -e ...` until this note is removed.
 # -----------------------------------------------------------------------------
-@nox.session(python=["2.7", "3.5", "3.6", "3.7", "pypy"])
+@nox.session(python=["2.7", "3.5", "3.6", "3.7", "3.8", "pypy", "pypy3"])
 def test(session):
     # Get the common wheels.
     if should_update_common_wheels():
@@ -111,6 +87,8 @@ def test(session):
 
     # Build source distribution
     sdist_dir = os.path.join(session.virtualenv.location, "sdist")
+    if os.path.exists(sdist_dir):
+        shutil.rmtree(sdist_dir, ignore_errors=True)
     session.run(
         "python", "setup.py", "sdist",
         "--formats=zip", "--dist-dir", sdist_dir,
@@ -174,70 +152,95 @@ def lint(session):
 # -----------------------------------------------------------------------------
 # Release Commands
 # -----------------------------------------------------------------------------
-@nox.session(python=False)
-def generate_authors(session):
-    # Get our list of authors
-    session.log("Collecting author names")
-    authors = get_author_list()
+@nox.session(name="prepare-release")
+def prepare_release(session):
+    version = release.get_version_from_arguments(session.posargs)
+    if not version:
+        session.error("Usage: nox -s prepare-release -- YY.N[.P]")
 
-    # Write our authors to the AUTHORS file
-    session.log("Writing AUTHORS")
-    with io.open(AUTHORS_FILE, "w", encoding="utf-8") as fp:
-        fp.write(u"\n".join(authors))
-        fp.write(u"\n")
+    session.log("# Ensure nothing is staged")
+    if release.modified_files_in_git("--staged"):
+        session.error("There are files staged in git")
 
-
-@nox.session
-def generate_news(session):
-    session.log("Generating NEWS")
-    session.install("towncrier")
-
-    # You can pass 2 possible arguments: --draft, --yes
-    session.run("towncrier", *session.posargs)
-
-
-@nox.session
-def release(session):
-    assert len(session.posargs) == 1, "A version number is expected"
-    new_version = session.posargs[0]
-    parts = new_version.split('.')
-    # Expect YY.N or YY.N.P
-    assert 2 <= len(parts) <= 3, parts
-    # Only integers
-    parts = list(map(int, parts))
-    session.log("Generating commits for version {}".format(new_version))
-
-    session.log("Checking that nothing is staged")
-    # Non-zero exit code means that something is already staged
-    session.run("git", "diff", "--staged", "--exit-code", external=True)
-
-    session.log(f"Updating {AUTHORS_FILE}")
-    generate_authors(session)
-    if subprocess.run(["git", "diff", "--exit-code"]).returncode:
-        session.run("git", "add", AUTHORS_FILE, external=True)
-        session.run(
-            "git", "commit", "-m", f"Updating {AUTHORS_FILE}",
-            external=True,
+    session.log(f"# Updating {AUTHORS_FILE}")
+    release.generate_authors(AUTHORS_FILE)
+    if release.modified_files_in_git():
+        release.commit_file(
+            session, AUTHORS_FILE, message=f"Update {AUTHORS_FILE}",
         )
     else:
-        session.log(f"No update needed for {AUTHORS_FILE}")
+        session.log(f"# No changes to {AUTHORS_FILE}")
 
-    session.log("Generating NEWS")
-    session.install("towncrier")
-    session.run("towncrier", "--yes", "--version", new_version)
+    session.log("# Generating NEWS")
+    release.generate_news(session, version)
 
-    session.log("Updating version")
-    update_version_file(new_version)
-    session.run("git", "add", VERSION_FILE, external=True)
-    session.run("git", "commit", "-m", f"Release {new_version}", external=True)
+    session.log(f"# Bumping for release {version}")
+    release.update_version_file(version, VERSION_FILE)
+    release.commit_file(session, VERSION_FILE, message="Bump for release")
 
-    session.log("Tagging release")
-    session.run(
-        "git", "tag", "-m", f"Release {new_version}", new_version,
-        external=True,
-    )
+    session.log("# Tagging release")
+    release.create_git_tag(session, version, message=f"Release {version}")
 
-    next_dev_version = f"{parts[0]}.{parts[1] + 1}.dev0"
-    update_version_file(next_dev_version)
-    session.run("git", "add", VERSION_FILE, external=True)
-    session.run("git", "commit", "-m", "Back to development", external=True)
+    session.log("# Bumping for development")
+    next_dev_version = release.get_next_development_version(version)
+    release.update_version_file(next_dev_version, VERSION_FILE)
+    release.commit_file(session, VERSION_FILE, message="Bump for development")
+
+
+@nox.session(name="build-release")
+def build_release(session):
+    version = release.get_version_from_arguments(session.posargs)
+    if not version:
+        session.error("Usage: nox -s build-release -- YY.N[.P]")
+
+    session.log("# Ensure no files in dist/")
+    if release.have_files_in_folder("dist"):
+        session.error("There are files in dist/. Remove them and try again")
+
+    session.log("# Install dependencies")
+    session.install("setuptools", "wheel", "twine")
+
+    session.log("# Checkout the tag")
+    session.run("git", "checkout", version, external=True, silent=True)
+
+    session.log("# Build distributions")
+    session.run("python", "setup.py", "sdist", "bdist_wheel", silent=True)
+
+    session.log("# Verify distributions")
+    session.run("twine", "check", *glob.glob("dist/*"), silent=True)
+
+    session.log("# Checkout the master branch")
+    session.run("git", "checkout", "master", external=True, silent=True)
+
+
+@nox.session(name="upload-release")
+def upload_release(session):
+    version = release.get_version_from_arguments(session.posargs)
+    if not version:
+        session.error("Usage: nox -s upload-release -- YY.N[.P]")
+
+    session.log("# Install dependencies")
+    session.install("twine")
+
+    distribution_files = glob.glob("dist/*")
+    session.log(f"# Distribution files: {distribution_files}")
+
+    # Sanity check: Make sure there's 2 distribution files.
+    count = len(distribution_files)
+    if count != 2:
+        session.error(
+            f"Expected 2 distribution files for upload, got {count}. "
+            f"Remove dist/ and run 'nox -s build-release -- {version}'"
+        )
+    # Sanity check: Make sure the files are correctly named.
+    expected_distribution_files = [
+        f"pip-{version}-py2.py3-none-any.whl",
+        f"pip-{version}.tar.gz",
+    ]
+    if sorted(distribution_files) != sorted(expected_distribution_files):
+        session.error(
+            f"Distribution files do not seem to be for {version} release."
+        )
+
+    session.log("# Upload distributions")
+    session.run("twine", "upload", *distribution_files)

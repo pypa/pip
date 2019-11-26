@@ -247,7 +247,7 @@ and they will initiate a vote among the existing maintainers.
     - CI Administration capabilities
     - ReadTheDocs Administration capabilities
 
-.. _`Studies have shown`: https://smartbear.com/smartbear/media/pdfs/wp-cc-11-best-practices-of-peer-code-review.pdf
+.. _`Studies have shown`: https://www.kessler.de/prd/smartbear/BestPracticesForPeerCodeReview.pdf
 .. _`resolve merge conflicts`: https://help.github.com/articles/resolving-a-merge-conflict-using-the-command-line/
 .. _`Travis CI`: https://travis-ci.org/
 .. _`Appveyor CI`: https://www.appveyor.com/

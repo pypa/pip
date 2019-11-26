@@ -1,7 +1,9 @@
 import distutils
 import glob
 import os
+import re
 import shutil
+import ssl
 import sys
 import textwrap
 from os.path import curdir, join, pardir
@@ -21,6 +23,7 @@ from tests.lib import (
     create_test_package_with_setup,
     need_bzr,
     need_mercurial,
+    need_svn,
     path_to_url,
     pyversion,
     pyversion_tuple,
@@ -29,6 +32,12 @@ from tests.lib import (
 from tests.lib.filesystem import make_socket_file
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
+from tests.lib.server import (
+    file_response,
+    make_mock_server,
+    package_page,
+    server_running,
+)
 
 skip_if_python2 = pytest.mark.skipif(PY2, reason="Non-Python 2 only")
 skip_if_not_python2 = pytest.mark.skipif(not PY2, reason="Python 2 only")
@@ -116,6 +125,7 @@ def test_pep518_allows_missing_requires(script, data, common_wheels):
     assert result.files_created
 
 
+@pytest.mark.incompatible_with_test_venv
 def test_pep518_with_user_pip(script, pip_src, data, common_wheels):
     """
     Check that build dependencies are installed into the build
@@ -225,7 +235,7 @@ def test_basic_install_from_pypi(script):
     """
     Test installing a package from PyPI.
     """
-    result = script.pip('install', '-vvv', 'INITools==0.2')
+    result = script.pip('install', 'INITools==0.2')
     egg_info_folder = (
         script.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion
     )
@@ -236,6 +246,13 @@ def test_basic_install_from_pypi(script):
     # Should not display where it's looking for files
     assert "Looking in indexes: " not in result.stdout
     assert "Looking in links: " not in result.stdout
+
+    # Ensure that we don't print the full URL.
+    #    The URL should be trimmed to only the last part of the path in it,
+    #    when installing from PyPI. The assertion here only checks for
+    #    `https://` since that's likely to show up if we're not trimming in
+    #    the correct circumstances.
+    assert "https://" not in result.stdout
 
 
 def test_basic_editable_install(script):
@@ -248,10 +265,9 @@ def test_basic_editable_install(script):
         in result.stderr
     )
     assert not result.files_created
-    assert not result.files_updated
 
 
-@pytest.mark.svn
+@need_svn
 def test_basic_install_editable_from_svn(script):
     """
     Test checking out from svn.
@@ -481,6 +497,41 @@ def test_hashed_install_failure(script, tmpdir):
                                           reqs_file.resolve(),
                                           expect_error=True)
     assert len(result.files_created) == 0
+
+
+def assert_re_match(pattern, text):
+    assert re.search(pattern, text), (
+        "Could not find {!r} in {!r}".format(pattern, text)
+    )
+
+
+@pytest.mark.network
+def test_hashed_install_failure_later_flag(script, tmpdir):
+    with requirements_file(
+        "blessings==1.0\n"
+        "tracefront==0.1 --hash=sha256:somehash\n"
+        "https://files.pythonhosted.org/packages/source/m/more-itertools/"
+        "more-itertools-1.0.tar.gz#md5=b21850c3cfa7efbb70fd662ab5413bdd\n"
+        "https://files.pythonhosted.org/"
+        "packages/source/p/peep/peep-3.1.1.tar.gz\n",
+        tmpdir,
+    ) as reqs_file:
+        result = script.pip(
+            "install", "-r", reqs_file.resolve(), expect_error=True
+        )
+
+    assert_re_match(
+        r'Hashes are required in --require-hashes mode, but they are '
+        r'missing .*\n'
+        r'    https://files\.pythonhosted\.org/packages/source/p/peep/peep'
+        r'-3\.1\.1\.tar\.gz --hash=sha256:[0-9a-f]+\n'
+        r'    blessings==1.0 --hash=sha256:[0-9a-f]+\n'
+        r'THESE PACKAGES DO NOT MATCH THE HASHES.*\n'
+        r'    tracefront==0.1 .*:\n'
+        r'        Expected sha256 somehash\n'
+        r'             Got        [0-9a-f]+',
+        result.stderr,
+    )
 
 
 def test_install_from_local_directory_with_symlinks_to_directories(
@@ -1274,6 +1325,35 @@ def test_install_no_binary_disables_building_wheels(script, data, with_wheel):
     assert "Running setup.py install for upper" in str(res), str(res)
 
 
+@pytest.mark.network
+def test_install_no_binary_builds_pep_517_wheel(script, data, with_wheel):
+    to_install = data.packages.joinpath('pep517_setup_and_pyproject')
+    res = script.pip(
+        'install', '--no-binary=:all:', '-f', data.find_links, to_install
+    )
+    expected = ("Successfully installed pep517-setup-and-pyproject")
+    # Must have installed the package
+    assert expected in str(res), str(res)
+
+    assert "Building wheel for pep517-setup" in str(res), str(res)
+    assert "Running setup.py install for pep517-set" not in str(res), str(res)
+
+
+@pytest.mark.network
+def test_install_no_binary_uses_local_backend(
+        script, data, with_wheel, tmpdir):
+    to_install = data.packages.joinpath('pep517_wrapper_buildsys')
+    script.environ['PIP_TEST_MARKER_FILE'] = marker = str(tmpdir / 'marker')
+    res = script.pip(
+        'install', '--no-binary=:all:', '-f', data.find_links, to_install
+    )
+    expected = "Successfully installed pep517-wrapper-buildsys"
+    # Must have installed the package
+    assert expected in str(res), str(res)
+
+    assert os.path.isfile(marker), "Local PEP 517 backend not used"
+
+
 def test_install_no_binary_disables_cached_wheels(script, data, with_wheel):
     # Seed the cache
     script.pip(
@@ -1566,6 +1646,21 @@ def test_target_install_ignores_distutils_config_install_prefix(script):
     assert relative_script_base not in result.files_created
 
 
+@pytest.mark.incompatible_with_test_venv
+def test_user_config_accepted(script):
+    # user set in the config file is parsed as 0/1 instead of True/False.
+    # Check that this doesn't cause a problem.
+    config_file = script.scratch_path / 'pip.conf'
+    script.environ['PIP_CONFIG_FILE'] = str(config_file)
+    config_file.write_text("[install]\nuser = true")
+    result = script.pip_install_local('simplewheel')
+
+    assert "Successfully installed simplewheel" in result.stdout
+
+    relative_user = os.path.relpath(script.user_site_path, script.base_path)
+    assert join(relative_user, 'simplewheel') in result.files_created
+
+
 @pytest.mark.network
 @pytest.mark.skipif("sys.platform != 'win32'")
 @pytest.mark.parametrize('pip_name', [
@@ -1695,3 +1790,39 @@ def test_install_yanked_file_and_print_warning(script, data):
     assert expected_warning in result.stderr, str(result)
     # Make sure a "yanked" release is installed
     assert 'Successfully installed simple-3.0\n' in result.stdout, str(result)
+
+
+@pytest.mark.parametrize("install_args", [
+    (),
+    ("--trusted-host", "localhost"),
+])
+def test_install_sends_client_cert(install_args, script, cert_factory, data):
+    cert_path = cert_factory()
+    ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+    ctx.load_cert_chain(cert_path, cert_path)
+    ctx.load_verify_locations(cafile=cert_path)
+    ctx.verify_mode = ssl.CERT_REQUIRED
+
+    server = make_mock_server(ssl_context=ctx)
+    server.mock.side_effect = [
+        package_page({
+            "simple-3.0.tar.gz": "/files/simple-3.0.tar.gz",
+        }),
+        file_response(str(data.packages / "simple-3.0.tar.gz")),
+    ]
+
+    url = "https://{}:{}/simple".format(server.host, server.port)
+
+    args = ["install", "-vvv", "--cert", cert_path, "--client-cert", cert_path]
+    args.extend(["--index-url", url])
+    args.extend(install_args)
+    args.append("simple")
+
+    with server_running(server):
+        script.pip(*args)
+
+    assert server.mock.call_count == 2
+    for call_args in server.mock.call_args_list:
+        environ, _ = call_args.args
+        assert "SSL_CLIENT_CERT" in environ
+        assert environ["SSL_CLIENT_CERT"]

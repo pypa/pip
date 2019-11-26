@@ -47,7 +47,7 @@ Options
 
 .. pip-command-options:: download
 
-.. pip-index-options::
+.. pip-index-options:: download
 
 
 Examples

@@ -59,7 +59,7 @@ Options
 
 .. pip-command-options:: wheel
 
-.. pip-index-options::
+.. pip-index-options:: wheel
 
 
 Examples

@@ -1,4 +1,4 @@
-"""Metadata generation logic for source distributions.
+"""Metadata generation logic for legacy source distributions.
 """
 
 import logging
@@ -6,30 +6,17 @@ import os
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.utils.misc import ensure_dir
-from pip._internal.utils.setuptools_build import make_setuptools_shim_args
+from pip._internal.utils.setuptools_build import make_setuptools_egg_info_args
 from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
-    from typing import Callable, List
+    from typing import List, Optional
+
     from pip._internal.req.req_install import InstallRequirement
 
 logger = logging.getLogger(__name__)
-
-
-def get_metadata_generator(install_req):
-    # type: (InstallRequirement) -> Callable[[InstallRequirement], str]
-    """Return a callable metadata generator for this InstallRequirement.
-
-    A metadata generator takes an InstallRequirement (install_req) as an input,
-    generates metadata via the appropriate process for that install_req and
-    returns the generated metadata directory.
-    """
-    if not install_req.use_pep517:
-        return _generate_metadata_legacy
-
-    return _generate_metadata
 
 
 def _find_egg_info(source_directory, is_editable):
@@ -79,7 +66,7 @@ def _find_egg_info(source_directory, is_editable):
 
     if not filenames:
         raise InstallationError(
-            "Files/directories not found in %s" % base
+            "Files/directories not found in {}".format(base)
         )
 
     # If we have more than one match, we pick the toplevel one.  This
@@ -91,35 +78,41 @@ def _find_egg_info(source_directory, is_editable):
     return os.path.join(base, filenames[0])
 
 
-def _generate_metadata_legacy(install_req):
+def generate_metadata(install_req):
     # type: (InstallRequirement) -> str
+    """Generate metadata using setup.py-based defacto mechanisms.ArithmeticError
+
+    Returns the generated metadata directory.
+    """
+    assert install_req.unpacked_source_directory
+
     req_details_str = install_req.name or "from {}".format(install_req.link)
     logger.debug(
         'Running setup.py (path:%s) egg_info for package %s',
         install_req.setup_py_path, req_details_str,
     )
 
-    # Compose arguments for subprocess call
-    base_cmd = make_setuptools_shim_args(install_req.setup_py_path)
-    if install_req.isolated:
-        base_cmd += ["--no-user-cfg"]
-
+    egg_info_dir = None  # type: Optional[str]
     # For non-editable installs, don't put the .egg-info files at the root,
     # to avoid confusion due to the source code being considered an installed
     # egg.
-    egg_base_option = []  # type: List[str]
     if not install_req.editable:
         egg_info_dir = os.path.join(
             install_req.unpacked_source_directory, 'pip-egg-info',
         )
-        egg_base_option = ['--egg-base', egg_info_dir]
 
         # setuptools complains if the target directory does not exist.
         ensure_dir(egg_info_dir)
 
+    args = make_setuptools_egg_info_args(
+        install_req.setup_py_path,
+        egg_info_dir=egg_info_dir,
+        no_user_config=install_req.isolated,
+    )
+
     with install_req.build_env:
         call_subprocess(
-            base_cmd + ["egg_info"] + egg_base_option,
+            args,
             cwd=install_req.unpacked_source_directory,
             command_desc='python setup.py egg_info',
         )
@@ -129,8 +122,3 @@ def _generate_metadata_legacy(install_req):
         install_req.unpacked_source_directory,
         install_req.editable,
     )
-
-
-def _generate_metadata(install_req):
-    # type: (InstallRequirement) -> str
-    return install_req.prepare_pep517_metadata()

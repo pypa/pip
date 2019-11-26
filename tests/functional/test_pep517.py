@@ -6,12 +6,14 @@ from pip._internal.req import InstallRequirement
 from tests.lib import make_test_finder, path_to_url
 
 
-def make_project(tmpdir, requires=[], backend=None):
+def make_project(tmpdir, requires=[], backend=None, backend_path=None):
     project_dir = tmpdir / 'project'
     project_dir.mkdir()
     buildsys = {'requires': requires}
     if backend:
         buildsys['build-backend'] = backend
+    if backend_path:
+        buildsys['backend-path'] = backend_path
     data = pytoml.dumps({'build-system': buildsys})
     project_dir.joinpath('pyproject.toml').write_text(data)
     return project_dir
@@ -27,6 +29,50 @@ def test_backend(tmpdir, data):
     env.install_requirements(finder, ["dummy_backend"], 'normal', "Installing")
     conflicting, missing = env.check_requirements(["dummy_backend"])
     assert not conflicting and not missing
+    assert hasattr(req.pep517_backend, 'build_wheel')
+    with env:
+        assert req.pep517_backend.build_wheel("dir") == "Backend called"
+
+
+dummy_backend_code = """\
+def build_wheel(
+    wheel_directory,
+    config_settings=None,
+    metadata_directory=None
+):
+    return "Backend called"
+"""
+
+
+def test_backend_path(tmpdir, data):
+    """Check we can call a backend inside the project"""
+    project_dir = make_project(
+        tmpdir, backend="dummy_backend", backend_path=['.']
+    )
+    (project_dir / 'dummy_backend.py').write_text(dummy_backend_code)
+    req = InstallRequirement(None, None, source_dir=project_dir)
+    req.load_pyproject_toml()
+
+    env = BuildEnvironment()
+    assert hasattr(req.pep517_backend, 'build_wheel')
+    with env:
+        assert req.pep517_backend.build_wheel("dir") == "Backend called"
+
+
+def test_backend_path_and_dep(tmpdir, data):
+    """Check we can call a requirement's backend successfully"""
+    project_dir = make_project(
+        tmpdir, backend="dummy_internal_backend", backend_path=['.']
+    )
+    (project_dir / 'dummy_internal_backend.py').write_text(
+        "from dummy_backend import build_wheel"
+    )
+    req = InstallRequirement(None, None, source_dir=project_dir)
+    req.load_pyproject_toml()
+    env = BuildEnvironment()
+    finder = make_test_finder(find_links=[data.backends])
+    env.install_requirements(finder, ["dummy_backend"], 'normal', "Installing")
+
     assert hasattr(req.pep517_backend, 'build_wheel')
     with env:
         assert req.pep517_backend.build_wheel("dir") == "Backend called"
@@ -214,4 +260,4 @@ def test_pep517_and_build_options(script, tmpdir, data, common_wheels):
         expect_error=True
     )
     assert 'Cannot build wheel' in result.stderr
-    assert 'when --build-options is present' in result.stderr
+    assert 'when --build-option is present' in result.stderr

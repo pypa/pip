@@ -22,13 +22,13 @@ def run_with_build_env(script, setup_script_contents,
             import sys
 
             from pip._internal.build_env import BuildEnvironment
-            from pip._internal.collector import LinkCollector
-            from pip._internal.download import PipSession
-            from pip._internal.index import PackageFinder
+            from pip._internal.index.collector import LinkCollector
+            from pip._internal.index.package_finder import PackageFinder
             from pip._internal.models.search_scope import SearchScope
             from pip._internal.models.selection_prefs import (
                 SelectionPreferences
             )
+            from pip._internal.network.session import PipSession
 
             link_collector = LinkCollector(
                 session=PipSession(),
@@ -162,6 +162,7 @@ def test_build_env_overlay_prefix_has_priority(script):
     assert result.stdout.strip() == '2.0', str(result)
 
 
+@pytest.mark.incompatible_with_test_venv
 def test_build_env_isolation(script):
 
     # Create dummy `pkg` wheel.

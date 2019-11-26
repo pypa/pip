@@ -621,20 +621,6 @@ def test_download_specify_implementation(script, data):
     )
 
     data.reset()
-    fake_wheel(data, 'fake-1.0-fk2.fk3-none-any.whl')
-    result = script.pip(
-        'download', '--no-index', '--find-links', data.find_links,
-        '--only-binary=:all:',
-        '--dest', '.',
-        '--implementation', 'fk',
-        'fake'
-    )
-    assert (
-        Path('scratch') / 'fake-1.0-fk2.fk3-none-any.whl'
-        in result.files_created
-    )
-
-    data.reset()
     fake_wheel(data, 'fake-1.0-fk3-none-any.whl')
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
