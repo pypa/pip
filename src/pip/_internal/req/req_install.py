@@ -162,9 +162,6 @@ class InstallRequirement(object):
         self.conflicts_with = None
         # Temporary build location
         self._temp_build_dir = None  # type: Optional[TempDirectory]
-        # Used to store the global directory where the _temp_build_dir should
-        # have been created. See move_to_correct_build_directory().
-        self._ideal_build_dir = None  # type: Optional[str]
         # Set to True after successful installation
         self.install_succeeded = None  # type: Optional[bool]
         self.options = options if options else {}
@@ -362,15 +359,10 @@ class InstallRequirement(object):
             assert self._temp_build_dir.path
             return self._temp_build_dir.path
         if self.req is None:
-            # for requirement via a path to a directory: the name of the
-            # package is not available yet so we create a temp directory
-            # Once run_egg_info will have run, we'll be able to fix it via
-            # move_to_correct_build_directory().
             # Some systems have /tmp as a symlink which confuses custom
             # builds (such as numpy). Thus, we ensure that the real path
             # is returned.
             self._temp_build_dir = TempDirectory(kind="req-build")
-            self._ideal_build_dir = build_dir
 
             return self._temp_build_dir.path
         if self.editable:
@@ -384,19 +376,13 @@ class InstallRequirement(object):
             _make_build_dir(build_dir)
         return os.path.join(build_dir, name)
 
-    def move_to_correct_build_directory(self):
+    def _set_requirement(self):
         # type: () -> None
-        """Move self._temp_build_dir to "self._ideal_build_dir/{metadata name}"
-
-        For some requirements (e.g. a path to a directory), the name of the
-        package is not available until we run egg_info, so the build_location
-        will return a temporary directory and store the _ideal_build_dir.
-
-        This is only called to "fix" the build directory after generating
-        metadata.
+        """Set requirement after generating metadata.
         """
         assert self.req is None
         assert self.metadata is not None
+        assert self.source_dir is not None
 
         # Construct a Requirement object from the generated metadata
         if isinstance(parse_version(self.metadata["Version"]), Version):
@@ -411,52 +397,6 @@ class InstallRequirement(object):
                 self.metadata["Version"],
             ])
         )
-
-        if self.source_dir is not None:
-            return
-
-        assert self._temp_build_dir
-        assert (
-            self._ideal_build_dir is not None and
-            self._ideal_build_dir.path  # type: ignore
-        )
-
-        # Backup directory for later use.
-        old_location = self._temp_build_dir
-        self._temp_build_dir = None  # checked inside ensure_build_location
-
-        # Figure out the correct place to put the files.
-        new_location = self.ensure_build_location(self._ideal_build_dir)
-        if os.path.exists(new_location):
-            raise InstallationError(
-                'A package already exists in %s; please remove it to continue'
-                % display_path(new_location)
-            )
-
-        # Move the files to the correct location.
-        logger.debug(
-            'Moving package %s from %s to new location %s',
-            self, display_path(old_location.path), display_path(new_location),
-        )
-        shutil.move(old_location.path, new_location)
-
-        # Update directory-tracking variables, to be in line with new_location
-        self.source_dir = os.path.normpath(os.path.abspath(new_location))
-        self._temp_build_dir = TempDirectory(
-            path=new_location, kind="req-install",
-        )
-
-        # Correct the metadata directory
-        old_meta = self.metadata_directory
-        rel = os.path.relpath(old_meta, start=old_location.path)
-        new_meta = os.path.join(new_location, rel)
-        new_meta = os.path.normpath(os.path.abspath(new_meta))
-        self.metadata_directory = new_meta
-
-        # Done with any "move built files" work, since have moved files to the
-        # "ideal" build location. Setting to None allows to clearly flag that
-        # no more moves are needed.
-        self._ideal_build_dir = None
 
     def warn_on_mismatching_name(self):
         # type: () -> None
@@ -626,7 +566,7 @@ class InstallRequirement(object):
 
         # Act on the newly generated metadata, based on the name and version.
         if not self.name:
-            self.move_to_correct_build_directory()
+            self._set_requirement()
         else:
             self.warn_on_mismatching_name()
 
