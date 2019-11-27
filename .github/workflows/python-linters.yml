@@ -22,10 +22,10 @@ jobs:
         - TOXENV: lint
     steps:
     - uses: actions/checkout@master
-    - name: Set up Python ${{ matrix.env.PYTHON_VERSION || 3.7 }}
+    - name: Set up Python ${{ matrix.env.PYTHON_VERSION || 3.8 }}
       uses: actions/setup-python@v1
       with:
-        python-version: ${{ matrix.env.PYTHON_VERSION || 3.7 }}
+        python-version: ${{ matrix.env.PYTHON_VERSION || 3.8 }}
     - name: set PY
       run: echo "::set-env name=PY::$(python -VV | sha256sum | cut -d' ' -f1)"
     - uses: actions/cache@v1
