@@ -1,13 +1,13 @@
 """Shared AIX support functions."""
 
-import sys
 import subprocess
+import sys
 from sysconfig import get_config_var
 
 from ._typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:  # pragma: no cover
-    from typing import List
+    from typing import List, Tuple
 
 """
 AIX filesets are identified by four decimal values: V.R.M.F.
@@ -25,9 +25,9 @@ values of the build system then the bdist modules are binary compatible
 with the AIX kernel.
 
 For pep425 purposes the AIX platform tag becomes:
-"AIX.{}.{:04d}.{}".format(vmtl, builddate, bitsize)
-e.g., "AIX.6107.1415.32" for AIX 6.1 TL7 bd 1415, 32-bit
-and, "AIX.6107.1415.64" for AIX 6.1 TL7 bd 1415, 64-bit
+"AIX-{:1x}{:1d}{:02d}-{:04d}-{}".format(v, r, tl, builddate, bitsize)
+e.g., "AIX-6107-1415-32" for AIX 6.1 TL7 bd 1415, 32-bit
+and, "AIX-6107-1415-64" for AIX 6.1 TL7 bd 1415, 64-bit
 """
 
 # _bd - set to impossible setting year98-week98 if None
@@ -37,42 +37,44 @@ _bgt = get_config_var("BUILD_GNU_TYPE")
 _is_32bit = sys.maxsize == 2147483647
 
 
-def _aix_tag(vrtl, bd):
-    # type: (int, int) -> str
+def _aix_tag(v, bd):
+    # type: (List[int], int) -> str
+    # v is used as variable name so line below passes pep8 length test
+    # v[version, release, technology_level]
     sz = 32 if _is_32bit else 64
-    return "AIX.{}.{:04d}.{}".format(vrtl, bd, sz)
+    return "AIX-{:1x}{:1d}{:02d}-{:04d}-{}".format(v[0], v[1], v[2], bd, sz)
 
 
 # compute vrtl from the VRMF string
 def _aix_vrtl(vrmf):
-    # type: (str) -> int
+    # type: (str) -> List[int]
     v, r, tl = vrmf.split(".")[:3]
-    return int("{}{}{:02d}".format(v[-1], r, int(tl)))
+    return [int(v[-1]), int(r), int(tl)]
 
 
 def _aix_bosmp64():
-    # type: () -> List[str]
+    # type: () -> Tuple[str, int]
     """
     The fileset bos.mp64 is the AIX kernel. It's VRMF and builddate
     reflect the current levels of the runtime environment.
     """
-    tmp = subprocess.check_output(["/usr/bin/lslpp", "-Lqc", "bos.mp64"])
-    tmp = tmp.decode("utf-8").strip().split(":")  # type: ignore
-    # lpp, vrmf, bd = list(tmp[index] for index in [0, 2, -1])  # type: ignore
-    # e.g., ['bos.mp64', '7.1.4.34', '1806']
-    return list(tmp[index] for index in [0, 2, -1])
+    out = subprocess.check_output(["/usr/bin/lslpp", "-Lqc", "bos.mp64"])
+    out = out.decode("utf-8").strip().split(":")  # type: ignore
+    # vrmf, bd = list(out[index] for index in [2, -1])  # type: ignore
+    # e.g., ['7.1.4.34', '1806']
+    # Use str() and int() to help mypy see types
+    return str(out[2]), int(out[-1])
 
 
 def aix_platform():
     # type: () -> str
-    lpp, vrmf, bd = _aix_bosmp64()
-    assert lpp == "bos.mp64", "%s != %s" % (lpp, "bos.mp64")
-    return _aix_tag(_aix_vrtl(vrmf), int(bd))
+    vrmf, bd = _aix_bosmp64()
+    return _aix_tag(_aix_vrtl(vrmf), bd)
 
 
 # extract vrtl from the BUILD_GNU_TYPE as an int
 def _aix_bgt():
-    # type: () -> int
+    # type: () -> List[int]
     assert _bgt
     return _aix_vrtl(_bgt)
 

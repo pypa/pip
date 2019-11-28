@@ -163,8 +163,8 @@ def get_platform():
     # support module while CPython catches up.
     if result[:3] == "aix":
         try:
-            from ._AIX_platform import get_platform
-            result = get_platform()
+            from ._AIX_platform import aix_platform
+            result = aix_platform()
         except ImportError:
             # The AIX module is not avaliable, leave `result` asis
             pass
