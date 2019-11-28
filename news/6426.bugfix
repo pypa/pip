@@ -1,1 +1,1 @@
-ensure_dir() should also check for ENOTEMPTY
+Make ``ensure_dir()`` also ignore ``ENOTEMPTY`` as seen on Windows.
