@@ -34,15 +34,14 @@ and, "AIX-6107-1415-64" for AIX 6.1 TL7 bd 1415, 64-bit
 _tmp = str(get_config_var("AIX_BUILDDATE"))
 _bd = 9898 if (_tmp == "None") else int(_tmp)
 _bgt = get_config_var("BUILD_GNU_TYPE")
-_is_32bit = sys.maxsize == 2147483647
+_sz = 32 if sys.maxsize == 2147483647 else 64
 
 
 def _aix_tag(v, bd):
     # type: (List[int], int) -> str
     # v is used as variable name so line below passes pep8 length test
     # v[version, release, technology_level]
-    sz = 32 if _is_32bit else 64
-    return "AIX-{:1x}{:1d}{:02d}-{:04d}-{}".format(v[0], v[1], v[2], bd, sz)
+    return "AIX-{:1x}{:1d}{:02d}-{:04d}-{}".format(v[0], v[1], v[2], bd, _sz)
 
 
 # compute vrtl from the VRMF string
