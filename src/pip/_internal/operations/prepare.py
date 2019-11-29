@@ -157,7 +157,7 @@ def _prepare_download(
 
     progress_indicator = _progress_indicator
 
-    if show_progress:  # We don't show progress on cached responses
+    if show_progress:
         progress_indicator = DownloadProgressProvider(
             progress_bar, max=total_length
         )
