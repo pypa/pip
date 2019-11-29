@@ -109,10 +109,6 @@ def unpack_vcs_link(link, location):
     vcs_backend.unpack(location, url=hide_url(link.url))
 
 
-def _progress_indicator(iterable, *args, **kwargs):
-    return iterable
-
-
 def _get_http_response_size(resp):
     # type: (Response) -> Optional[int]
     try:
@@ -157,14 +153,12 @@ def _prepare_download(
 
     chunks = response_chunks(resp, CONTENT_CHUNK_SIZE)
 
-    progress_indicator = _progress_indicator
+    if not show_progress:
+        return chunks
 
-    if show_progress:
-        progress_indicator = DownloadProgressProvider(
-            progress_bar, max=total_length
-        )
-
-    return progress_indicator(chunks)
+    return DownloadProgressProvider(
+        progress_bar, max=total_length
+    )(chunks)
 
 
 def _copy_file(filename, location, link):
