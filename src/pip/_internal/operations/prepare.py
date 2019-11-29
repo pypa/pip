@@ -29,9 +29,9 @@ from pip._internal.exceptions import (
 )
 from pip._internal.network.download import (
     _get_http_response_filename,
+    _http_get_download,
     _prepare_download,
 )
-from pip._internal.network.session import PipSession
 from pip._internal.utils.compat import expanduser
 from pip._internal.utils.filesystem import copy2_fixed
 from pip._internal.utils.hashes import MissingHashes
@@ -61,6 +61,7 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.distributions import AbstractDistribution
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.models.link import Link
+    from pip._internal.network.session import PipSession
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.req.req_tracker import RequirementTracker
     from pip._internal.utils.hashes import Hashes
@@ -304,37 +305,6 @@ def unpack_url(
             download_dir,
             hashes=hashes,
         )
-
-
-def _http_get_download(session, link):
-    # type: (PipSession, Link) -> Response
-    target_url = link.url.split('#', 1)[0]
-    resp = session.get(
-        target_url,
-        # We use Accept-Encoding: identity here because requests
-        # defaults to accepting compressed responses. This breaks in
-        # a variety of ways depending on how the server is configured.
-        # - Some servers will notice that the file isn't a compressible
-        #   file and will leave the file alone and with an empty
-        #   Content-Encoding
-        # - Some servers will notice that the file is already
-        #   compressed and will leave the file alone and will add a
-        #   Content-Encoding: gzip header
-        # - Some servers won't notice anything at all and will take
-        #   a file that's already been compressed and compress it again
-        #   and set the Content-Encoding: gzip header
-        # By setting this to request only the identity encoding We're
-        # hoping to eliminate the third case. Hopefully there does not
-        # exist a server which when given a file will notice it is
-        # already compressed and that you're not asking for a
-        # compressed file and will then decompress it before sending
-        # because if that's the case I don't think it'll ever be
-        # possible to make this work.
-        headers={"Accept-Encoding": "identity"},
-        stream=True,
-    )
-    resp.raise_for_status()
-    return resp
 
 
 class Download(object):
