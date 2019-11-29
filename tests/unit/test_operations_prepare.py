@@ -3,7 +3,6 @@ import logging
 import os
 import shutil
 import sys
-from io import BytesIO
 from shutil import copy, rmtree
 from tempfile import mkdtemp
 
@@ -32,6 +31,7 @@ from tests.lib.filesystem import (
     make_unreadable_file,
 )
 from tests.lib.path import Path
+from tests.lib.requests_mocks import MockResponse
 
 
 def test_unpack_http_url_with_urllib_response_without_content_type(data):
@@ -64,60 +64,6 @@ def test_unpack_http_url_with_urllib_response_without_content_type(data):
         }
     finally:
         rmtree(temp_dir)
-
-
-class FakeStream(object):
-
-    def __init__(self, contents):
-        self._io = BytesIO(contents)
-
-    def read(self, size, decode_content=None):
-        return self._io.read(size)
-
-    def stream(self, size, decode_content=None):
-        yield self._io.read(size)
-
-    def release_conn(self):
-        pass
-
-
-class MockResponse(object):
-
-    def __init__(self, contents):
-        self.raw = FakeStream(contents)
-        self.content = contents
-        self.request = None
-        self.status_code = 200
-        self.connection = None
-        self.url = None
-        self.headers = {}
-        self.history = []
-
-    def raise_for_status(self):
-        pass
-
-
-class MockConnection(object):
-
-    def _send(self, req, **kwargs):
-        raise NotImplementedError("_send must be overridden for tests")
-
-    def send(self, req, **kwargs):
-        resp = self._send(req, **kwargs)
-        for cb in req.hooks.get("response", []):
-            cb(resp)
-        return resp
-
-
-class MockRequest(object):
-
-    def __init__(self, url):
-        self.url = url
-        self.headers = {}
-        self.hooks = {}
-
-    def register_hook(self, event_name, callback):
-        self.hooks.setdefault(event_name, []).append(callback)
 
 
 @patch('pip._internal.operations.prepare.unpack_file')
