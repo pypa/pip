@@ -13,7 +13,7 @@ import shutil
 import sys
 
 from pip._vendor import requests
-from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
+from pip._vendor.requests.models import Response
 from pip._vendor.six import PY2
 
 from pip._internal.distributions import (
@@ -28,11 +28,8 @@ from pip._internal.exceptions import (
     PreviousBuildDirError,
     VcsHashUnsupported,
 )
-from pip._internal.models.index import PyPI
-from pip._internal.network.cache import is_from_cache
-from pip._internal.network.download import _get_http_response_size
+from pip._internal.network.download import _prepare_download
 from pip._internal.network.session import PipSession
-from pip._internal.network.utils import response_chunks
 from pip._internal.utils.compat import expanduser
 from pip._internal.utils.filesystem import copy2_fixed
 from pip._internal.utils.hashes import MissingHashes
@@ -42,17 +39,14 @@ from pip._internal.utils.misc import (
     ask_path_exists,
     backup_dir,
     display_path,
-    format_size,
     hide_url,
     normalize_path,
     path_to_display,
-    redact_auth_from_url,
     rmtree,
     splitext,
 )
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from pip._internal.utils.ui import DownloadProgressProvider
 from pip._internal.utils.unpacking import unpack_file
 from pip._internal.vcs import vcs
 
@@ -108,50 +102,6 @@ def unpack_vcs_link(link, location):
     vcs_backend = vcs.get_backend_for_scheme(link.scheme)
     assert vcs_backend is not None
     vcs_backend.unpack(location, url=hide_url(link.url))
-
-
-def _prepare_download(
-    resp,  # type: Response
-    link,  # type: Link
-    progress_bar  # type: str
-):
-    # type: (...) -> Iterable[bytes]
-    total_length = _get_http_response_size(resp)
-
-    if link.netloc == PyPI.file_storage_domain:
-        url = link.show_url
-    else:
-        url = link.url_without_fragment
-
-    logged_url = redact_auth_from_url(url)
-
-    if total_length:
-        logged_url = '{} ({})'.format(logged_url, format_size(total_length))
-
-    if is_from_cache(resp):
-        logger.info("Using cached %s", logged_url)
-    else:
-        logger.info("Downloading %s", logged_url)
-
-    if logger.getEffectiveLevel() > logging.INFO:
-        show_progress = False
-    elif is_from_cache(resp):
-        show_progress = False
-    elif not total_length:
-        show_progress = True
-    elif total_length > (40 * 1000):
-        show_progress = True
-    else:
-        show_progress = False
-
-    chunks = response_chunks(resp, CONTENT_CHUNK_SIZE)
-
-    if not show_progress:
-        return chunks
-
-    return DownloadProgressProvider(
-        progress_bar, max=total_length
-    )(chunks)
 
 
 def _copy_file(filename, location, link):
