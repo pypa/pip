@@ -5,7 +5,6 @@
 # mypy: strict-optional=False
 # mypy: disallow-untyped-defs=False
 
-import cgi
 import logging
 import mimetypes
 import os
@@ -30,7 +29,7 @@ from pip._internal.exceptions import (
 )
 from pip._internal.network.download import (
     _prepare_download,
-    sanitize_content_filename,
+    parse_content_disposition,
 )
 from pip._internal.network.session import PipSession
 from pip._internal.utils.compat import expanduser
@@ -306,21 +305,6 @@ def unpack_url(
             download_dir,
             hashes=hashes,
         )
-
-
-def parse_content_disposition(content_disposition, default_filename):
-    # type: (str, str) -> str
-    """
-    Parse the "filename" value from a Content-Disposition header, and
-    return the default filename if the result is empty.
-    """
-    _type, params = cgi.parse_header(content_disposition)
-    filename = params.get('filename')
-    if filename:
-        # We need to sanitize the filename to prevent directory traversal
-        # in case the filename contains ".." path parts.
-        filename = sanitize_content_filename(filename)
-    return filename or default_filename
 
 
 def _get_http_response_filename(resp, link):

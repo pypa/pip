@@ -6,6 +6,7 @@ import pytest
 from pip._internal.models.link import Link
 from pip._internal.network.download import (
     _prepare_download,
+    parse_content_disposition,
     sanitize_content_filename,
 )
 from tests.lib.requests_mocks import MockResponse
@@ -77,3 +78,15 @@ def test_sanitize_content_filename__platform_dependent(
     else:
         expected = non_win_expected
     assert sanitize_content_filename(filename) == expected
+
+
+@pytest.mark.parametrize("content_disposition, default_filename, expected", [
+    ('attachment;filename="../file"', 'df', 'file'),
+])
+def test_parse_content_disposition(
+    content_disposition,
+    default_filename,
+    expected
+):
+    actual = parse_content_disposition(content_disposition, default_filename)
+    assert actual == expected

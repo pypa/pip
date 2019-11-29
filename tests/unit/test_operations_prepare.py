@@ -14,7 +14,6 @@ from pip._internal.operations.prepare import (
     Downloader,
     _copy_source_tree,
     _download_http_url,
-    parse_content_disposition,
     unpack_file_url,
     unpack_http_url,
 )
@@ -104,18 +103,6 @@ def test_unpack_http_url_bad_downloaded_checksum(mock_unpack_file):
 
     finally:
         rmtree(download_dir)
-
-
-@pytest.mark.parametrize("content_disposition, default_filename, expected", [
-    ('attachment;filename="../file"', 'df', 'file'),
-])
-def test_parse_content_disposition(
-    content_disposition,
-    default_filename,
-    expected
-):
-    actual = parse_content_disposition(content_disposition, default_filename)
-    assert actual == expected
 
 
 def test_download_http_url__no_directory_traversal(tmpdir):

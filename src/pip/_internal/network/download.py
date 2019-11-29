@@ -1,5 +1,6 @@
 """Download files with progress indicators.
 """
+import cgi
 import logging
 import os
 
@@ -80,3 +81,18 @@ def sanitize_content_filename(filename):
     Sanitize the "filename" value from a Content-Disposition header.
     """
     return os.path.basename(filename)
+
+
+def parse_content_disposition(content_disposition, default_filename):
+    # type: (str, str) -> str
+    """
+    Parse the "filename" value from a Content-Disposition header, and
+    return the default filename if the result is empty.
+    """
+    _type, params = cgi.parse_header(content_disposition)
+    filename = params.get('filename')
+    if filename:
+        # We need to sanitize the filename to prevent directory traversal
+        # in case the filename contains ".." path parts.
+        filename = sanitize_content_filename(filename)
+    return filename or default_filename
