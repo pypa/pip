@@ -28,8 +28,8 @@ from pip._internal.exceptions import (
     VcsHashUnsupported,
 )
 from pip._internal.network.download import (
+    _get_http_response_filename,
     _prepare_download,
-    parse_content_disposition,
 )
 from pip._internal.network.session import PipSession
 from pip._internal.utils.compat import expanduser
@@ -45,7 +45,6 @@ from pip._internal.utils.misc import (
     normalize_path,
     path_to_display,
     rmtree,
-    splitext,
 )
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -305,30 +304,6 @@ def unpack_url(
             download_dir,
             hashes=hashes,
         )
-
-
-def _get_http_response_filename(resp, link):
-    # type: (Response, Link) -> str
-    """Get an ideal filename from the given HTTP response, falling back to
-    the link filename if not provided.
-    """
-    filename = link.filename  # fallback
-    # Have a look at the Content-Disposition header for a better guess
-    content_disposition = resp.headers.get('content-disposition')
-    if content_disposition:
-        filename = parse_content_disposition(content_disposition, filename)
-    ext = splitext(filename)[1]  # type: Optional[str]
-    if not ext:
-        ext = mimetypes.guess_extension(
-            resp.headers.get('content-type', '')
-        )
-        if ext:
-            filename += ext
-    if not ext and link.url != resp.url:
-        ext = os.path.splitext(resp.url)[1]
-        if ext:
-            filename += ext
-    return filename
 
 
 def _http_get_download(session, link):

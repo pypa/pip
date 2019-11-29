@@ -2,6 +2,7 @@
 """
 import cgi
 import logging
+import mimetypes
 import os
 
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE
@@ -9,7 +10,11 @@ from pip._vendor.requests.models import CONTENT_CHUNK_SIZE
 from pip._internal.models.index import PyPI
 from pip._internal.network.cache import is_from_cache
 from pip._internal.network.utils import response_chunks
-from pip._internal.utils.misc import format_size, redact_auth_from_url
+from pip._internal.utils.misc import (
+    format_size,
+    redact_auth_from_url,
+    splitext,
+)
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import DownloadProgressProvider
 
@@ -96,3 +101,27 @@ def parse_content_disposition(content_disposition, default_filename):
         # in case the filename contains ".." path parts.
         filename = sanitize_content_filename(filename)
     return filename or default_filename
+
+
+def _get_http_response_filename(resp, link):
+    # type: (Response, Link) -> str
+    """Get an ideal filename from the given HTTP response, falling back to
+    the link filename if not provided.
+    """
+    filename = link.filename  # fallback
+    # Have a look at the Content-Disposition header for a better guess
+    content_disposition = resp.headers.get('content-disposition')
+    if content_disposition:
+        filename = parse_content_disposition(content_disposition, filename)
+    ext = splitext(filename)[1]  # type: Optional[str]
+    if not ext:
+        ext = mimetypes.guess_extension(
+            resp.headers.get('content-type', '')
+        )
+        if ext:
+            filename += ext
+    if not ext and link.url != resp.url:
+        ext = os.path.splitext(resp.url)[1]
+        if ext:
+            filename += ext
+    return filename
