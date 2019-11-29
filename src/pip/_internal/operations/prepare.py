@@ -30,6 +30,7 @@ from pip._internal.exceptions import (
 )
 from pip._internal.models.index import PyPI
 from pip._internal.network.cache import is_from_cache
+from pip._internal.network.download import _get_http_response_size
 from pip._internal.network.session import PipSession
 from pip._internal.network.utils import response_chunks
 from pip._internal.utils.compat import expanduser
@@ -107,14 +108,6 @@ def unpack_vcs_link(link, location):
     vcs_backend = vcs.get_backend_for_scheme(link.scheme)
     assert vcs_backend is not None
     vcs_backend.unpack(location, url=hide_url(link.url))
-
-
-def _get_http_response_size(resp):
-    # type: (Response) -> Optional[int]
-    try:
-        return int(resp.headers['content-length'])
-    except (ValueError, KeyError, TypeError):
-        return None
 
 
 def _prepare_download(
