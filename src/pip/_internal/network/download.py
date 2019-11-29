@@ -1,6 +1,7 @@
 """Download files with progress indicators.
 """
 import logging
+import os
 
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE
 
@@ -71,3 +72,11 @@ def _prepare_download(
     return DownloadProgressProvider(
         progress_bar, max=total_length
     )(chunks)
+
+
+def sanitize_content_filename(filename):
+    # type: (str) -> str
+    """
+    Sanitize the "filename" value from a Content-Disposition header.
+    """
+    return os.path.basename(filename)

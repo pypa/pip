@@ -1,8 +1,13 @@
-import pytest
 import logging
+import sys
+
+import pytest
 
 from pip._internal.models.link import Link
-from pip._internal.network.download import _prepare_download
+from pip._internal.network.download import (
+    _prepare_download,
+    sanitize_content_filename,
+)
 from tests.lib.requests_mocks import MockResponse
 
 
@@ -34,3 +39,41 @@ def test_prepare_download__log(caplog, url, headers, from_cache, expected):
     record = caplog.records[0]
     assert record.levelname == 'INFO'
     assert expected in record.message
+
+
+@pytest.mark.parametrize("filename, expected", [
+    ('dir/file', 'file'),
+    ('../file', 'file'),
+    ('../../file', 'file'),
+    ('../', ''),
+    ('../..', '..'),
+    ('/', ''),
+])
+def test_sanitize_content_filename(filename, expected):
+    """
+    Test inputs where the result is the same for Windows and non-Windows.
+    """
+    assert sanitize_content_filename(filename) == expected
+
+
+@pytest.mark.parametrize("filename, win_expected, non_win_expected", [
+    ('dir\\file', 'file', 'dir\\file'),
+    ('..\\file', 'file', '..\\file'),
+    ('..\\..\\file', 'file', '..\\..\\file'),
+    ('..\\', '', '..\\'),
+    ('..\\..', '..', '..\\..'),
+    ('\\', '', '\\'),
+])
+def test_sanitize_content_filename__platform_dependent(
+    filename,
+    win_expected,
+    non_win_expected
+):
+    """
+    Test inputs where the result is different for Windows and non-Windows.
+    """
+    if sys.platform == 'win32':
+        expected = win_expected
+    else:
+        expected = non_win_expected
+    assert sanitize_content_filename(filename) == expected

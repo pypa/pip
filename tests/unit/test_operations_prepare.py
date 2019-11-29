@@ -1,7 +1,6 @@
 import hashlib
 import os
 import shutil
-import sys
 from shutil import copy, rmtree
 from tempfile import mkdtemp
 
@@ -16,7 +15,6 @@ from pip._internal.operations.prepare import (
     _copy_source_tree,
     _download_http_url,
     parse_content_disposition,
-    sanitize_content_filename,
     unpack_file_url,
     unpack_http_url,
 )
@@ -106,44 +104,6 @@ def test_unpack_http_url_bad_downloaded_checksum(mock_unpack_file):
 
     finally:
         rmtree(download_dir)
-
-
-@pytest.mark.parametrize("filename, expected", [
-    ('dir/file', 'file'),
-    ('../file', 'file'),
-    ('../../file', 'file'),
-    ('../', ''),
-    ('../..', '..'),
-    ('/', ''),
-])
-def test_sanitize_content_filename(filename, expected):
-    """
-    Test inputs where the result is the same for Windows and non-Windows.
-    """
-    assert sanitize_content_filename(filename) == expected
-
-
-@pytest.mark.parametrize("filename, win_expected, non_win_expected", [
-    ('dir\\file', 'file', 'dir\\file'),
-    ('..\\file', 'file', '..\\file'),
-    ('..\\..\\file', 'file', '..\\..\\file'),
-    ('..\\', '', '..\\'),
-    ('..\\..', '..', '..\\..'),
-    ('\\', '', '\\'),
-])
-def test_sanitize_content_filename__platform_dependent(
-    filename,
-    win_expected,
-    non_win_expected
-):
-    """
-    Test inputs where the result is different for Windows and non-Windows.
-    """
-    if sys.platform == 'win32':
-        expected = win_expected
-    else:
-        expected = non_win_expected
-    assert sanitize_content_filename(filename) == expected
 
 
 @pytest.mark.parametrize("content_disposition, default_filename, expected", [

@@ -28,7 +28,10 @@ from pip._internal.exceptions import (
     PreviousBuildDirError,
     VcsHashUnsupported,
 )
-from pip._internal.network.download import _prepare_download
+from pip._internal.network.download import (
+    _prepare_download,
+    sanitize_content_filename,
+)
 from pip._internal.network.session import PipSession
 from pip._internal.utils.compat import expanduser
 from pip._internal.utils.filesystem import copy2_fixed
@@ -303,14 +306,6 @@ def unpack_url(
             download_dir,
             hashes=hashes,
         )
-
-
-def sanitize_content_filename(filename):
-    # type: (str) -> str
-    """
-    Sanitize the "filename" value from a Content-Disposition header.
-    """
-    return os.path.basename(filename)
 
 
 def parse_content_disposition(content_disposition, default_filename):
