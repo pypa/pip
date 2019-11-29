@@ -180,7 +180,7 @@ class Link(KeyBasedCompareMixin):
 
     @property
     def show_url(self):
-        # type: () -> Optional[str]
+        # type: () -> str
         return posixpath.basename(self._url.split('#', 1)[0].split('?', 1)[0])
 
     @property
