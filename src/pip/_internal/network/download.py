@@ -5,6 +5,7 @@ import logging
 import mimetypes
 import os
 
+from pip._vendor import requests
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE
 
 from pip._internal.models.index import PyPI
@@ -157,3 +158,43 @@ def _http_get_download(session, link):
     )
     resp.raise_for_status()
     return resp
+
+
+class Download(object):
+    def __init__(
+        self,
+        response,  # type: Response
+        filename,  # type: str
+        chunks,  # type: Iterable[bytes]
+    ):
+        # type: (...) -> None
+        self.response = response
+        self.filename = filename
+        self.chunks = chunks
+
+
+class Downloader(object):
+    def __init__(
+        self,
+        session,  # type: PipSession
+        progress_bar,  # type: str
+    ):
+        # type: (...) -> None
+        self._session = session
+        self._progress_bar = progress_bar
+
+    def __call__(self, link):
+        # type: (Link) -> Download
+        try:
+            resp = _http_get_download(self._session, link)
+        except requests.HTTPError as e:
+            logger.critical(
+                "HTTP error %s while getting %s", e.response.status_code, link
+            )
+            raise
+
+        return Download(
+            resp,
+            _get_http_response_filename(resp, link),
+            _prepare_download(resp, link, self._progress_bar),
+        )

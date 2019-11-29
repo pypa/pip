@@ -12,7 +12,6 @@ import shutil
 import sys
 
 from pip._vendor import requests
-from pip._vendor.requests.models import Response
 from pip._vendor.six import PY2
 
 from pip._internal.distributions import (
@@ -27,11 +26,7 @@ from pip._internal.exceptions import (
     PreviousBuildDirError,
     VcsHashUnsupported,
 )
-from pip._internal.network.download import (
-    _get_http_response_filename,
-    _http_get_download,
-    _prepare_download,
-)
+from pip._internal.network.download import Downloader
 from pip._internal.utils.compat import expanduser
 from pip._internal.utils.filesystem import copy2_fixed
 from pip._internal.utils.hashes import MissingHashes
@@ -53,7 +48,7 @@ from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Callable, Iterable, List, Optional, Tuple,
+        Callable, List, Optional, Tuple,
     )
 
     from mypy_extensions import TypedDict
@@ -304,46 +299,6 @@ def unpack_url(
             downloader,
             download_dir,
             hashes=hashes,
-        )
-
-
-class Download(object):
-    def __init__(
-        self,
-        response,  # type: Response
-        filename,  # type: str
-        chunks,  # type: Iterable[bytes]
-    ):
-        # type: (...) -> None
-        self.response = response
-        self.filename = filename
-        self.chunks = chunks
-
-
-class Downloader(object):
-    def __init__(
-        self,
-        session,  # type: PipSession
-        progress_bar,  # type: str
-    ):
-        # type: (...) -> None
-        self._session = session
-        self._progress_bar = progress_bar
-
-    def __call__(self, link):
-        # type: (Link) -> Download
-        try:
-            resp = _http_get_download(self._session, link)
-        except requests.HTTPError as e:
-            logger.critical(
-                "HTTP error %s while getting %s", e.response.status_code, link
-            )
-            raise
-
-        return Download(
-            resp,
-            _get_http_response_filename(resp, link),
-            _prepare_download(resp, link, self._progress_bar),
         )
 
 
