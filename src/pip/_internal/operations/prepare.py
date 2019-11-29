@@ -155,6 +155,8 @@ def _prepare_download(
     else:
         show_progress = False
 
+    chunks = response_chunks(resp, CONTENT_CHUNK_SIZE)
+
     progress_indicator = _progress_indicator
 
     if show_progress:
@@ -162,9 +164,7 @@ def _prepare_download(
             progress_bar, max=total_length
         )
 
-    return progress_indicator(
-        response_chunks(resp, CONTENT_CHUNK_SIZE)
-    )
+    return progress_indicator(chunks)
 
 
 def _copy_file(filename, location, link):
