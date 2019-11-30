@@ -1,0 +1,1 @@
+Deprecate passing install-location-related options via ``--install-option``.

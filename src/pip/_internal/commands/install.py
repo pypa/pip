@@ -32,6 +32,8 @@ from pip._internal.locations import distutils_scheme
 from pip._internal.operations.check import check_install_conflicts
 from pip._internal.req import RequirementSet, install_given_reqs
 from pip._internal.req.req_tracker import get_requirement_tracker
+from pip._internal.utils.deprecation import deprecated
+from pip._internal.utils.distutils_args import parse_distutils_args
 from pip._internal.utils.filesystem import check_path_owner, test_writable_dir
 from pip._internal.utils.misc import (
     ensure_dir,
@@ -46,7 +48,7 @@ from pip._internal.wheel_builder import WheelBuilder
 
 if MYPY_CHECK_RUNNING:
     from optparse import Values
-    from typing import Any, List, Optional
+    from typing import Any, Iterable, List, Optional
 
     from pip._internal.models.format_control import FormatControl
     from pip._internal.req.req_install import InstallRequirement
@@ -355,6 +357,11 @@ class InstallCommand(RequirementCommand):
                     requirement_set, args, options, finder, session,
                     wheel_cache
                 )
+
+                warn_deprecated_install_options(
+                    requirement_set, options.install_options
+                )
+
                 preparer = self.make_requirement_preparer(
                     temp_build_dir=directory,
                     options=options,
@@ -658,6 +665,61 @@ def decide_user_install(
     logger.info("Defaulting to user installation because normal site-packages "
                 "is not writeable")
     return True
+
+
+def warn_deprecated_install_options(requirement_set, options):
+    # type: (RequirementSet, Optional[List[str]]) -> None
+    """If any location-changing --install-option arguments were passed for
+    requirements or on the command-line, then show a deprecation warning.
+    """
+    def format_options(option_names):
+        # type: (Iterable[str]) -> List[str]
+        return ["--{}".format(name.replace("_", "-")) for name in option_names]
+
+    requirements = (
+        requirement_set.unnamed_requirements +
+        list(requirement_set.requirements.values())
+    )
+
+    offenders = []
+
+    for requirement in requirements:
+        install_options = requirement.options.get("install_options", [])
+        location_options = parse_distutils_args(install_options)
+        if location_options:
+            offenders.append(
+                "{!r} from {}".format(
+                    format_options(location_options.keys()), requirement
+                )
+            )
+
+    if options:
+        location_options = parse_distutils_args(options)
+        if location_options:
+            offenders.append(
+                "{!r} from command line".format(
+                    format_options(location_options.keys())
+                )
+            )
+
+    if not offenders:
+        return
+
+    deprecated(
+        reason=(
+            "Location-changing options found in --install-option: {}. "
+            "This configuration may cause unexpected behavior and is "
+            "unsupported.".format(
+                "; ".join(offenders)
+            )
+        ),
+        replacement=(
+            "using pip-level options like --user, --prefix, --root, and "
+            "--target"
+        ),
+        gone_in="20.2",
+        issue=7309,
+    )
 
 
 def create_env_error_message(error, show_traceback, using_user_site):

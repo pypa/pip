@@ -536,6 +536,7 @@ def test_install_options_local_to_package(script, data):
         'install',
         '--no-index', '-f', data.find_links,
         '-r', reqs_file,
+        expect_stderr=True,
     )
 
     simple = test_simple / 'lib' / 'python' / 'simple'
