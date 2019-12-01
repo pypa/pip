@@ -11,12 +11,13 @@ import os
 
 from pip._vendor.packaging.utils import canonicalize_name
 
+from pip._internal.exceptions import InvalidWheelFilename
 from pip._internal.models.link import Link
+from pip._internal.models.wheel import Wheel
 from pip._internal.utils.compat import expanduser
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import path_to_url
-from pip._internal.wheel import InvalidWheelFilename, Wheel
 
 if MYPY_CHECK_RUNNING:
     from typing import Optional, Set, List, Any
