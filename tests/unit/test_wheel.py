@@ -24,15 +24,6 @@ from pip._internal.wheel_builder import get_legacy_build_wheel_path
 from tests.lib import DATA_DIR, assert_paths_equal
 
 
-@pytest.mark.parametrize('file_tag, expected', [
-    (('py27', 'none', 'any'), 'py27-none-any'),
-    (('cp33', 'cp32dmu', 'linux_x86_64'), 'cp33-cp32dmu-linux_x86_64'),
-])
-def test_format_tag(file_tag, expected):
-    actual = wheel.format_tag(file_tag)
-    assert actual == expected
-
-
 def call_get_legacy_build_wheel_path(caplog, names):
     wheel_path = get_legacy_build_wheel_path(
         names=names,

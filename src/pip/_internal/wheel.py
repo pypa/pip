@@ -31,6 +31,7 @@ from pip._internal.exceptions import (
     UnsupportedWheel,
 )
 from pip._internal.locations import get_major_minor_version
+from pip._internal.pep425tags import format_tag
 from pip._internal.utils.misc import captured_stdout, ensure_dir, hash_file
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -663,15 +664,6 @@ def check_compatibility(version, name):
             'Installing from a newer Wheel-Version (%s)',
             '.'.join(map(str, version)),
         )
-
-
-def format_tag(file_tag):
-    # type: (Tuple[str, ...]) -> str
-    """Format three tags in the form "<python_tag>-<abi_tag>-<platform_tag>".
-
-    :param file_tag: A 3-tuple of tags (python_tag, abi_tag, platform_tag).
-    """
-    return '-'.join(file_tag)
 
 
 class Wheel(object):

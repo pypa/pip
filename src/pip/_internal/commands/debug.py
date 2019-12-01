@@ -14,10 +14,10 @@ from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.cli.status_codes import SUCCESS
+from pip._internal.pep425tags import format_tag
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import get_pip_version
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from pip._internal.wheel import format_tag
 
 if MYPY_CHECK_RUNNING:
     from typing import Any, List, Optional
