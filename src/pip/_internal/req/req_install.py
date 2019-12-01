@@ -814,9 +814,6 @@ class InstallRequirement(object):
             return
 
         if self.is_wheel:
-            version = wheel.wheel_version(self.source_dir)
-            wheel.check_compatibility(version, self.name)
-
             self.move_wheel_files(
                 self.source_dir,
                 scheme=scheme,

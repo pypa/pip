@@ -313,10 +313,15 @@ def install_unpacked_wheel(
     :param pycompile: Whether to byte-compile installed Python files
     :param warn_script_location: Whether to check that scripts are installed
         into a directory on PATH
+    :raises UnsupportedWheel: when the directory holds an unpacked wheel with
+        incompatible Wheel-Version
     """
     # TODO: Investigate and break this up.
     # TODO: Look into moving this into a dedicated class for representing an
     #       installation.
+
+    version = wheel_version(wheeldir)
+    check_compatibility(version, name)
 
     if root_is_purelib(name, wheeldir):
         lib_dir = scheme.purelib
