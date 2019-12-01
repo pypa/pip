@@ -678,7 +678,6 @@ class Wheel(object):
     """A wheel file"""
 
     # TODO: Maybe move the class into the models sub-package
-    # TODO: Maybe move the install code into this class
 
     wheel_file_re = re.compile(
         r"""^(?P<namever>(?P<name>.+?)-(?P<ver>.*?))
