@@ -10,9 +10,9 @@ from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal import pep425tags
 from pip._internal.exceptions import InstallationError
+from pip._internal.models.wheel import Wheel
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from pip._internal.wheel import Wheel
 
 if MYPY_CHECK_RUNNING:
     from typing import Dict, Iterable, List, Optional, Tuple
