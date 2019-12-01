@@ -7,3 +7,5 @@
 
 setuptools >= 40.8.0
 wheel
+# As required by pytest-cov.
+coverage >= 4.4

@@ -1,4 +1,0 @@
-[run]
-branch = True
-omit =
-  src/pip/_vendor/*
