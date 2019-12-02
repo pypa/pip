@@ -157,11 +157,11 @@ if sys.platform == "win32":
         VIRUS_SCAN_ERROR.errno = 41
         VIRUS_SCAN_ERROR.strerror = 'The directory is not empty'
         VIRUS_SCAN_ERROR.filename = 'foo'
-        # from https://docs.microsoft.com/en-us/windows/win32/debug/system-error-codes--0-499-
+        # from http://bit.ly/2r3ZEjt
         # 145 = ERROR_DIR_NOT_EMPTY: The directory is not empty.
         VIRUS_SCAN_ERROR.winerror = 145
     else:
-        # from https://docs.microsoft.com/en-us/windows/win32/debug/system-error-codes--0-499-
+        # from http://bit.ly/2r3ZEjt
         # 5 = ERROR_ACCESS_DENIED: Access is denied.
         VIRUS_SCAN_ERROR = OSError(errno.EACCES, 'Access is denied', 'foo', 5)
 

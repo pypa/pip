@@ -60,6 +60,7 @@ if sys.platform == "win32":
         VIRUS_SCAN_ERROR
     )
 
+
 class Tests_EgglinkPath:
     "util.egg_link_path() tests"
 
