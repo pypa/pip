@@ -152,24 +152,30 @@ rmtree_impl = rmtree_minimal_retry
 # this helps remediate the case when another when a virus scanner (or any
 # other process) is still holding a handle to the file being deleted.
 if sys.platform == "win32":
-    def is_locked(e):
-        """
-        on Windows, returns True if the OSError indicates that virus scanner
-        is preventing access to the file.
-        """
-        if PY2:
-            return e.errno == 41 and e.winerror == 145
-        else:
-            return e.errno == errno.EACCES and e.winerror == 5
+    if PY2:
+        VIRUS_SCAN_ERROR = WindowsError()
+        VIRUS_SCAN_ERROR.errno = 41
+        VIRUS_SCAN_ERROR.strerror = 'The directory is not empty'
+        VIRUS_SCAN_ERROR.filename = 'foo'
+        # from https://docs.microsoft.com/en-us/windows/win32/debug/system-error-codes--0-499-
+        # 145 = ERROR_DIR_NOT_EMPTY: The directory is not empty.
+        VIRUS_SCAN_ERROR.winerror = 145
+    else:
+        # from https://docs.microsoft.com/en-us/windows/win32/debug/system-error-codes--0-499-
+        # 5 = ERROR_ACCESS_DENIED: Access is denied.
+        VIRUS_SCAN_ERROR = OSError(errno.EACCES, 'Access is denied', 'foo', 5)
 
-    def possibly_held_by_another_process(e):
+    def possibly_held_by_virus_scanner(e):
         """returns True if the error is a Windows access error which indicates
-        that another process is preventing the object from being deleted."""
-        if not isinstance(e, OSError):
-            return False
-        if is_locked(e):
+        that a virus scanner is preventing the object from being deleted."""
+        is_denied_access = (
+            isinstance(e, OSError) and
+            e.errno == VIRUS_SCAN_ERROR.errno and
+            e.winerror == VIRUS_SCAN_ERROR.winerror
+        )
+        if is_denied_access:
             logger.warning(
-                "%s (file may be locked by another process). "
+                "%s (virus scanner may be holding it). "
                 "can't remove '%s'",
                 e.strerror, e.filename
             )
@@ -179,7 +185,7 @@ if sys.platform == "win32":
 
     rmtree_impl = retry(
         stop_max_attempt_number=5,
-        retry_on_exception=possibly_held_by_another_process
+        retry_on_exception=possibly_held_by_virus_scanner
     )(rmtree_minimal_retry)
 
 

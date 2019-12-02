@@ -55,6 +55,10 @@ from pip._internal.utils.misc import (
 )
 from pip._internal.utils.setuptools_build import make_setuptools_shim_args
 
+if sys.platform == "win32":
+    from pip._internal.utils.misc import (
+        VIRUS_SCAN_ERROR
+    )
 
 class Tests_EgglinkPath:
     "util.egg_link_path() tests"
@@ -404,27 +408,7 @@ class TestVirusScanningIssuesOnWin32(object):
     def virus_scan_failure(self, seconds):
         """simulate rmtree failure caused by virus scanner for specified
         number of seconds."""
-        return Failer(duration=seconds, exception=self.access_error()).call
-
-    def access_error(self):
-        """simulated error raised when a privileged process is preventing
-        pip from deleting a file."""
-        if sys.version_info >= (3,):
-            return self.access_error_on_py3()
-        else:
-            return self.access_error_on_py27()
-
-    def access_error_on_py3(self):
-        e = OSError(13, 'Access is denied', 'foo', 5)
-        return e
-
-    def access_error_on_py27(self):
-        e = WindowsError()
-        e.errno = 41
-        e.strerror = 'The directory is not empty'
-        e.filename = 'foo'
-        e.winerror = 145
-        return e
+        return Failer(duration=seconds, exception=VIRUS_SCAN_ERROR).call
 
 
 @pytest.mark.parametrize('path, fs_encoding, expected', [
