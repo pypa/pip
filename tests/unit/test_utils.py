@@ -393,6 +393,8 @@ class TestVirusScanningIssuesOnWin32(object):
         """
         Test pip._internal.utils.rmtree will retry beyond 3 sec on windows.
         """
+        # the 5 here is 2 sec more than the 3 sec done by the standard
+        # retries tested in test_rmtree_retries_for_3sec
         monkeypatch.setattr(shutil, 'rmtree', self.virus_scan_failure(5))
         rmtree('foo')
 
@@ -401,6 +403,8 @@ class TestVirusScanningIssuesOnWin32(object):
         Test pip._internal.utils.rmtree will retry no more than 15 sec on
         windows.
         """
+        # the 17 here is 2 sec more than the total time waited by
+        # retrying 5 times the standard 3 sec wait.
         monkeypatch.setattr(shutil, 'rmtree', self.virus_scan_failure(17))
         with pytest.raises(OSError):
             rmtree('foo')
