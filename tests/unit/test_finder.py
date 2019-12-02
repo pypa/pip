@@ -7,7 +7,6 @@ from pip._vendor.packaging.specifiers import SpecifierSet
 from pkg_resources import parse_version
 
 import pip._internal.pep425tags
-import pip._internal.wheel
 from pip._internal.exceptions import (
     BestVersionAlreadyInstalled,
     DistributionNotFound,
