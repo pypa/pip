@@ -1,3 +1,3 @@
 The pip>=20 wheel cache is not retro-compatible with previous versions. Until
-version 21, pip will still be able to take advantage of existing legacy cache
+pip 21.0, pip will continue to take advantage of existing legacy cache
 entries.
