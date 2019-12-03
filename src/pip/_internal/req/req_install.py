@@ -470,6 +470,49 @@ class InstallRequirement(object):
                 return True
         return True
 
+    def check_if_exists_uninstall(self, use_user_site):
+        # type: (bool) -> bool
+        """Find an installed distribution that satisfies or conflicts
+        with this requirement, and set self.satisfied_by or
+        self.conflicts_with appropriately.
+        """
+        if self.req is None:
+            return False
+        # get_distribution() will resolve the entire list of requirements
+        # anyway, and we've already determined that we need the requirement
+        # in question, so strip the marker so that we don't try to
+        # evaluate it.
+        no_marker = Requirement(str(self.req))
+        no_marker.marker = None
+        try:
+            self.satisfied_by = pkg_resources.get_distribution(str(no_marker))
+        except pkg_resources.DistributionNotFound:
+            return False
+        except pkg_resources.VersionConflict:
+            existing_dist = pkg_resources.get_distribution(
+                self.req.name
+            )
+            if use_user_site:
+                if dist_in_usersite(existing_dist):
+                    self.conflicts_with = existing_dist
+                elif (running_under_virtualenv() and
+                        dist_in_site_packages(existing_dist)):
+                    raise InstallationError(
+                        "Will not install to the user site because it will "
+                        "lack sys.path precedence to %s in %s" %
+                        (existing_dist.project_name, existing_dist.location)
+                    )
+            else:
+                self.conflicts_with = existing_dist
+        else:
+            if self.editable and self.satisfied_by:
+                self.conflicts_with = self.satisfied_by
+                # when installing editables, nothing pre-existing should ever
+                # satisfy
+                self.satisfied_by = None
+                return True
+        return True
+
     # Things valid for wheels
     @property
     def is_wheel(self):
@@ -692,7 +735,7 @@ class InstallRequirement(object):
         linked to global site-packages.
 
         """
-        if not self.check_if_exists(False):
+        if not self.check_if_exists_uninstall(False):
             logger.warning("Skipping %s as it is not installed.", self.name)
             return None
         dist = self.satisfied_by or self.conflicts_with
