@@ -1,2 +1,2 @@
-Add option ``--no-warn-python-deprecation`` to silence warnings
+Add option ``--no-python-version-warning`` to silence warnings
 related to deprecation of Python versions.

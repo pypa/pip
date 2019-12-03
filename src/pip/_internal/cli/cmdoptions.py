@@ -868,10 +868,10 @@ def check_list_path_option(options):
         )
 
 
-silence_python_deprecation_warnings = partial(
+no_python_version_warning = partial(
     Option,
-    '--no-warn-python-deprecation',
-    dest='silence_python_deprecation_warnings',
+    '--no-python-version-warning',
+    dest='no_python_version_warning',
     action='store_true',
     default=False,
     help='Silence deprecation warnings for upcoming unsupported Pythons.',
@@ -905,7 +905,7 @@ general_group = {
         no_cache,
         disable_pip_version_check,
         no_color,
-        silence_python_deprecation_warnings,
+        no_python_version_warning,
     ]
 }  # type: Dict[str, Any]
 
