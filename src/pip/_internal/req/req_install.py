@@ -471,7 +471,7 @@ class InstallRequirement(object):
         return True
 
     def check_if_exists_uninstall(self):
-        # type: () -> bool
+        # type: () -> Optional[Distribution]
         """Find an installed distribution that satisfies or conflicts
         with this requirement, and set self.satisfied_by or
         self.conflicts_with appropriately.
@@ -486,7 +486,7 @@ class InstallRequirement(object):
         try:
             self.satisfied_by = pkg_resources.get_distribution(str(no_marker))
         except pkg_resources.DistributionNotFound:
-            return False
+            return None
         except pkg_resources.VersionConflict:
             self.conflicts_with = pkg_resources.get_distribution(self.req.name)
         else:
@@ -495,8 +495,8 @@ class InstallRequirement(object):
                 # when installing editables, nothing pre-existing should ever
                 # satisfy
                 self.satisfied_by = None
-                return True
-        return True
+                return self.satisfied_by or self.conflicts_with
+        return self.satisfied_by or self.conflicts_with
 
     # Things valid for wheels
     @property
@@ -720,14 +720,8 @@ class InstallRequirement(object):
         linked to global site-packages.
 
         """
-        def wrapper():
-            # type: () -> Optional[Distribution]
-            if not self.check_if_exists_uninstall():
-                return None
-            return self.satisfied_by or self.conflicts_with
-
         assert self.req
-        dist = wrapper()
+        dist = self.check_if_exists_uninstall()
         if not dist:
             logger.warning("Skipping %s as it is not installed.", self.name)
             return None
