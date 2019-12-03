@@ -470,8 +470,8 @@ class InstallRequirement(object):
                 return True
         return True
 
-    def check_if_exists_uninstall(self, use_user_site):
-        # type: (bool) -> bool
+    def check_if_exists_uninstall(self):
+        # type: () -> bool
         """Find an installed distribution that satisfies or conflicts
         with this requirement, and set self.satisfied_by or
         self.conflicts_with appropriately.
@@ -492,7 +492,7 @@ class InstallRequirement(object):
             existing_dist = pkg_resources.get_distribution(
                 self.req.name
             )
-            if use_user_site:
+            if False:
                 if dist_in_usersite(existing_dist):
                     self.conflicts_with = existing_dist
                 elif (running_under_virtualenv() and
@@ -735,7 +735,7 @@ class InstallRequirement(object):
         linked to global site-packages.
 
         """
-        if not self.check_if_exists_uninstall(False):
+        if not self.check_if_exists_uninstall():
             logger.warning("Skipping %s as it is not installed.", self.name)
             return None
         dist = self.satisfied_by or self.conflicts_with
