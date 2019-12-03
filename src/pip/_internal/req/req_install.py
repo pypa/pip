@@ -488,8 +488,7 @@ class InstallRequirement(object):
         except pkg_resources.DistributionNotFound:
             return None
         except pkg_resources.VersionConflict:
-            self.conflicts_with = pkg_resources.get_distribution(self.req.name)
-        return None or self.conflicts_with
+            return pkg_resources.get_distribution(self.req.name)
 
     # Things valid for wheels
     @property
