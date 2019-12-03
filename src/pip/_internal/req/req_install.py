@@ -429,13 +429,13 @@ class InstallRequirement(object):
         self.build_env.cleanup()
 
     def check_if_exists(self, use_user_site):
-        # type: (bool) -> bool
+        # type: (bool) -> None
         """Find an installed distribution that satisfies or conflicts
         with this requirement, and set self.satisfied_by or
         self.conflicts_with appropriately.
         """
         if self.req is None:
-            return False
+            return
         # get_distribution() will resolve the entire list of requirements
         # anyway, and we've already determined that we need the requirement
         # in question, so strip the marker so that we don't try to
@@ -445,7 +445,7 @@ class InstallRequirement(object):
         try:
             self.satisfied_by = pkg_resources.get_distribution(str(no_marker))
         except pkg_resources.DistributionNotFound:
-            return False
+            pass
         except pkg_resources.VersionConflict:
             existing_dist = pkg_resources.get_distribution(
                 self.req.name
@@ -468,8 +468,6 @@ class InstallRequirement(object):
                 # when installing editables, nothing pre-existing should ever
                 # satisfy
                 self.satisfied_by = None
-                return True
-        return True
 
     # Things valid for wheels
     @property
