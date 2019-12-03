@@ -476,8 +476,7 @@ class InstallRequirement(object):
         with this requirement, and set self.satisfied_by or
         self.conflicts_with appropriately.
         """
-        if self.req is None:
-            return False
+        assert self.req
         # get_distribution() will resolve the entire list of requirements
         # anyway, and we've already determined that we need the requirement
         # in question, so strip the marker so that we don't try to
@@ -721,6 +720,7 @@ class InstallRequirement(object):
         linked to global site-packages.
 
         """
+        assert self.req
         if not self.check_if_exists_uninstall():
             logger.warning("Skipping %s as it is not installed.", self.name)
             return None

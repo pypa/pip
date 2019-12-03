@@ -56,6 +56,7 @@ class UninstallCommand(Command, SessionCommandMixin):
                 name, isolated=options.isolated_mode,
             )
             if req.name:
+                assert req.req
                 reqs_to_uninstall[canonicalize_name(req.name)] = req
         for filename in options.requirements:
             for req in parse_requirements(
@@ -63,6 +64,7 @@ class UninstallCommand(Command, SessionCommandMixin):
                     options=options,
                     session=session):
                 if req.name:
+                    assert req.req
                     reqs_to_uninstall[canonicalize_name(req.name)] = req
         if not reqs_to_uninstall:
             raise InstallationError(
@@ -75,6 +77,7 @@ class UninstallCommand(Command, SessionCommandMixin):
         )
 
         for req in reqs_to_uninstall.values():
+            assert req.req
             uninstall_pathset = req.uninstall(
                 auto_confirm=options.yes, verbose=self.verbosity > 0,
             )

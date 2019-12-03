@@ -63,6 +63,7 @@ def install_given_reqs(
                     requirement.conflicts_with,
                 )
                 with indent_log():
+                    assert requirement.req
                     uninstalled_pathset = requirement.uninstall(
                         auto_confirm=True
                     )
