@@ -492,8 +492,7 @@ class InstallRequirement(object):
             self.conflicts_with = pkg_resources.get_distribution(self.req.name)
         else:
             if self.editable and self.satisfied_by:
-                self.conflicts_with = self.satisfied_by
-                return self.conflicts_with
+                return self.satisfied_by
         return self.satisfied_by or self.conflicts_with
 
     # Things valid for wheels
