@@ -714,8 +714,6 @@ class InstallRequirement(object):
         """
         assert self.req
         dist = self.check_if_exists_uninstall()
-        self.satisfied_by = None
-        self.conflicts_with = None
         if not dist:
             logger.warning("Skipping %s as it is not installed.", self.name)
             return None
