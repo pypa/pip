@@ -491,10 +491,7 @@ class InstallRequirement(object):
         except pkg_resources.VersionConflict:
             self.conflicts_with = pkg_resources.get_distribution(self.req.name)
         else:
-            if self.editable:
-                return self.satisfied_by
-            else:
-                return self.satisfied_by
+            return self.satisfied_by
         return self.satisfied_by or self.conflicts_with
 
     # Things valid for wheels
