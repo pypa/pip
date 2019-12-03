@@ -679,9 +679,8 @@ class InstallRequirement(object):
                 % (self.link, vc_type))
 
     # Top-level Actions
-    def uninstall(self, auto_confirm=False, verbose=False,
-                  use_user_site=False):
-        # type: (bool, bool, bool) -> Optional[UninstallPathSet]
+    def uninstall(self, auto_confirm=False, verbose=False):
+        # type: (bool, bool) -> Optional[UninstallPathSet]
         """
         Uninstall the distribution currently satisfying this requirement.
 
@@ -694,10 +693,12 @@ class InstallRequirement(object):
         linked to global site-packages.
 
         """
-        if not self.check_if_exists(use_user_site):
+        assert self.req
+        try:
+            dist = pkg_resources.get_distribution(self.req.name)
+        except pkg_resources.DistributionNotFound:
             logger.warning("Skipping %s as it is not installed.", self.name)
             return None
-        dist = self.satisfied_by or self.conflicts_with
 
         uninstalled_pathset = UninstallPathSet.from_dist(dist)
         uninstalled_pathset.remove(auto_confirm, verbose)
