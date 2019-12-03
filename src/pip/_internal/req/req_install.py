@@ -485,13 +485,11 @@ class InstallRequirement(object):
         no_marker = Requirement(str(self.req))
         no_marker.marker = None
         try:
-            self.satisfied_by = pkg_resources.get_distribution(str(no_marker))
+            return pkg_resources.get_distribution(str(no_marker))
         except pkg_resources.DistributionNotFound:
             return None
         except pkg_resources.VersionConflict:
             self.conflicts_with = pkg_resources.get_distribution(self.req.name)
-        else:
-            return self.satisfied_by
         return self.satisfied_by or self.conflicts_with
 
     # Things valid for wheels
