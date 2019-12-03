@@ -489,10 +489,7 @@ class InstallRequirement(object):
         except pkg_resources.DistributionNotFound:
             return False
         except pkg_resources.VersionConflict:
-            existing_dist = pkg_resources.get_distribution(
-                self.req.name
-            )
-            self.conflicts_with = existing_dist
+            self.conflicts_with = pkg_resources.get_distribution(self.req.name)
         else:
             if self.editable and self.satisfied_by:
                 self.conflicts_with = self.satisfied_by
