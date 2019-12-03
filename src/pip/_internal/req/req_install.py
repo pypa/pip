@@ -17,7 +17,7 @@ from pip._vendor.packaging.version import Version
 from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.pep517.wrappers import Pep517HookCaller
 
-from pip._internal import pep425tags, wheel
+from pip._internal import pep425tags
 from pip._internal.build_env import NoOpBuildEnvironment
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_scheme
@@ -25,6 +25,7 @@ from pip._internal.models.link import Link
 from pip._internal.operations.build.metadata import generate_metadata
 from pip._internal.operations.build.metadata_legacy import \
     generate_metadata as generate_metadata_legacy
+from pip._internal.operations.install.wheel import install_unpacked_wheel
 from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
 from pip._internal.req.req_uninstall import UninstallPathSet
 from pip._internal.utils.deprecation import deprecated
@@ -486,7 +487,7 @@ class InstallRequirement(object):
         pycompile=True  # type: bool
     ):
         # type: (...) -> None
-        wheel.install_unpacked_wheel(
+        install_unpacked_wheel(
             self.name,
             wheeldir,
             scheme=scheme,

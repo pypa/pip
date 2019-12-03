@@ -8,18 +8,18 @@ import pytest
 from mock import patch
 from pip._vendor.packaging.requirements import Requirement
 
-from pip._internal import wheel
 from pip._internal.commands.wheel import WheelCommand
 from pip._internal.exceptions import UnsupportedWheel
 from pip._internal.locations import get_scheme
 from pip._internal.models.scheme import Scheme
-from pip._internal.utils.compat import WINDOWS
-from pip._internal.utils.misc import hash_file
-from pip._internal.utils.unpacking import unpack_file
-from pip._internal.wheel import (
+from pip._internal.operations.install import wheel
+from pip._internal.operations.install.wheel import (
     MissingCallableSuffix,
     _raise_for_invalid_entrypoint,
 )
+from pip._internal.utils.compat import WINDOWS
+from pip._internal.utils.misc import hash_file
+from pip._internal.utils.unpacking import unpack_file
 from pip._internal.wheel_builder import get_legacy_build_wheel_path
 from tests.lib import DATA_DIR, assert_paths_equal
 
