@@ -477,12 +477,6 @@ class InstallRequirement(object):
         self.conflicts_with appropriately.
         """
         assert self.req
-        # get_distribution() will resolve the entire list of requirements
-        # anyway, and we've already determined that we need the requirement
-        # in question, so strip the marker so that we don't try to
-        # evaluate it.
-        no_marker = Requirement(str(self.req))
-        no_marker.marker = None
         try:
             return pkg_resources.get_distribution(self.req.name)
         except pkg_resources.DistributionNotFound:
