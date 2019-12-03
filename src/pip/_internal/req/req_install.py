@@ -493,6 +493,8 @@ class InstallRequirement(object):
         else:
             if self.editable:
                 return self.satisfied_by
+            else:
+                return self.satisfied_by or self.conflicts_with
         return self.satisfied_by or self.conflicts_with
 
     # Things valid for wheels
