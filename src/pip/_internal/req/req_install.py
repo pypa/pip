@@ -484,11 +484,9 @@ class InstallRequirement(object):
         no_marker = Requirement(str(self.req))
         no_marker.marker = None
         try:
-            return pkg_resources.get_distribution(str(no_marker))
+            return pkg_resources.get_distribution(self.req.name)
         except pkg_resources.DistributionNotFound:
             return None
-        except pkg_resources.VersionConflict:
-            return pkg_resources.get_distribution(self.req.name)
 
     # Things valid for wheels
     @property
