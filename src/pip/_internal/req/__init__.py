@@ -58,6 +58,7 @@ def install_given_reqs(
     with indent_log():
         for requirement in to_install:
             if requirement.conflicts_with:
+                assert requirement.satisfied_by is None
                 logger.info(
                     'Found existing installation: %s',
                     requirement.conflicts_with,
