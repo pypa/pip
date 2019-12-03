@@ -493,10 +493,7 @@ class InstallRequirement(object):
         else:
             if self.editable and self.satisfied_by:
                 self.conflicts_with = self.satisfied_by
-                # when installing editables, nothing pre-existing should ever
-                # satisfy
-                self.satisfied_by = None
-                return self.satisfied_by or self.conflicts_with
+                return self.conflicts_with
         return self.satisfied_by or self.conflicts_with
 
     # Things valid for wheels
