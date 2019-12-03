@@ -492,18 +492,7 @@ class InstallRequirement(object):
             existing_dist = pkg_resources.get_distribution(
                 self.req.name
             )
-            if False:
-                if dist_in_usersite(existing_dist):
-                    self.conflicts_with = existing_dist
-                elif (running_under_virtualenv() and
-                        dist_in_site_packages(existing_dist)):
-                    raise InstallationError(
-                        "Will not install to the user site because it will "
-                        "lack sys.path precedence to %s in %s" %
-                        (existing_dist.project_name, existing_dist.location)
-                    )
-            else:
-                self.conflicts_with = existing_dist
+            self.conflicts_with = existing_dist
         else:
             if self.editable and self.satisfied_by:
                 self.conflicts_with = self.satisfied_by
