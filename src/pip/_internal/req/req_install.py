@@ -720,11 +720,17 @@ class InstallRequirement(object):
         linked to global site-packages.
 
         """
+        def wrapper():
+            # type: () -> Optional[Distribution]
+            if not self.check_if_exists_uninstall():
+                return None
+            return self.satisfied_by or self.conflicts_with
+
         assert self.req
-        if not self.check_if_exists_uninstall():
+        dist = wrapper()
+        if not dist:
             logger.warning("Skipping %s as it is not installed.", self.name)
             return None
-        dist = self.satisfied_by or self.conflicts_with
 
         uninstalled_pathset = UninstallPathSet.from_dist(dist)
         uninstalled_pathset.remove(auto_confirm, verbose)
