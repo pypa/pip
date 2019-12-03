@@ -477,7 +477,6 @@ class InstallRequirement(object):
         self.conflicts_with appropriately.
         """
         assert self.req
-        assert self.satisfied_by is None
         # get_distribution() will resolve the entire list of requirements
         # anyway, and we've already determined that we need the requirement
         # in question, so strip the marker so that we don't try to
@@ -490,7 +489,7 @@ class InstallRequirement(object):
             return None
         except pkg_resources.VersionConflict:
             self.conflicts_with = pkg_resources.get_distribution(self.req.name)
-        return self.satisfied_by or self.conflicts_with
+        return None or self.conflicts_with
 
     # Things valid for wheels
     @property
@@ -715,7 +714,6 @@ class InstallRequirement(object):
 
         """
         assert self.req
-        assert self.satisfied_by is None
         dist = self.check_if_exists_uninstall()
         self.satisfied_by = None
         self.conflicts_with = None

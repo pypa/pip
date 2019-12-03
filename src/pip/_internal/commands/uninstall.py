@@ -78,7 +78,6 @@ class UninstallCommand(Command, SessionCommandMixin):
 
         for req in reqs_to_uninstall.values():
             assert req.req
-            assert req.satisfied_by is None
             uninstall_pathset = req.uninstall(
                 auto_confirm=options.yes, verbose=self.verbosity > 0,
             )
