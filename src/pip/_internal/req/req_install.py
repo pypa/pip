@@ -477,6 +477,7 @@ class InstallRequirement(object):
         self.conflicts_with appropriately.
         """
         assert self.req
+        assert self.satisfied_by is None
         # get_distribution() will resolve the entire list of requirements
         # anyway, and we've already determined that we need the requirement
         # in question, so strip the marker so that we don't try to
@@ -721,6 +722,7 @@ class InstallRequirement(object):
 
         """
         assert self.req
+        assert self.satisfied_by is None
         dist = self.check_if_exists_uninstall()
         if not dist:
             logger.warning("Skipping %s as it is not installed.", self.name)
