@@ -470,18 +470,6 @@ class InstallRequirement(object):
                 return True
         return True
 
-    def check_if_exists_uninstall(self):
-        # type: () -> Optional[Distribution]
-        """Find an installed distribution that satisfies or conflicts
-        with this requirement, and set self.satisfied_by or
-        self.conflicts_with appropriately.
-        """
-        assert self.req
-        try:
-            return pkg_resources.get_distribution(self.req.name)
-        except pkg_resources.DistributionNotFound:
-            return None
-
     # Things valid for wheels
     @property
     def is_wheel(self):
@@ -705,8 +693,9 @@ class InstallRequirement(object):
 
         """
         assert self.req
-        dist = self.check_if_exists_uninstall()
-        if not dist:
+        try:
+            dist = pkg_resources.get_distribution(self.req.name)
+        except pkg_resources.DistributionNotFound:
             logger.warning("Skipping %s as it is not installed.", self.name)
             return None
 
