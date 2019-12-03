@@ -874,7 +874,7 @@ silence_python_deprecation_warnings = partial(
     dest='silence_python_deprecation_warnings',
     action='store_true',
     default=False,
-    help='Silence deprecation warns for Python versions.',
+    help='Silence deprecation warnings for upcoming unsupported Pythons.',
 )  # type: Callable[..., Option]
 
 
