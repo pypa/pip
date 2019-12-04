@@ -445,7 +445,7 @@ class InstallRequirement(object):
         try:
             self.satisfied_by = pkg_resources.get_distribution(str(no_marker))
         except pkg_resources.DistributionNotFound:
-            pass
+            return
         except pkg_resources.VersionConflict:
             existing_dist = pkg_resources.get_distribution(
                 self.req.name
