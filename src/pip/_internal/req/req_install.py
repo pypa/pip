@@ -648,8 +648,6 @@ class InstallRequirement(object):
                     cwd=self.unpacked_source_directory,
                 )
 
-        self.install_succeeded = True
-
     def update_editable(self, obtain=True):
         # type: (bool) -> None
         if not self.link:
@@ -813,6 +811,7 @@ class InstallRequirement(object):
                 home=home,
                 use_user_site=use_user_site,
             )
+            self.install_succeeded = True
             return
 
         if self.is_wheel:
