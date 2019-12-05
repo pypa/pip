@@ -58,10 +58,7 @@ def install_given_reqs(
     with indent_log():
         for requirement in to_install:
             if requirement.conflicts_with:
-                logger.info(
-                    'Found existing installation: %s',
-                    requirement.conflicts_with,
-                )
+                logger.info('Attempting uninstall: %s', requirement.name)
                 with indent_log():
                     uninstalled_pathset = requirement.uninstall(
                         auto_confirm=True

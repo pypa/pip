@@ -695,6 +695,8 @@ class InstallRequirement(object):
         except pkg_resources.DistributionNotFound:
             logger.warning("Skipping %s as it is not installed.", self.name)
             return None
+        else:
+            logger.info('Found existing installation: %s', dist)
 
         uninstalled_pathset = UninstallPathSet.from_dist(dist)
         uninstalled_pathset.remove(auto_confirm, verbose)
