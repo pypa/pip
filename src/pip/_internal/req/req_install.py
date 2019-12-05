@@ -161,6 +161,9 @@ class InstallRequirement(object):
         # This hold the pkg_resources.Distribution object if this requirement
         # conflicts with another installed distribution:
         self.conflicts_with = None
+        # Whether the installation process should try to uninstall an existing
+        # distribution before installing this requirement.
+        self.should_reinstall = False
         # Temporary build location
         self._temp_build_dir = None  # type: Optional[TempDirectory]
         # Set to True after successful installation
@@ -453,6 +456,7 @@ class InstallRequirement(object):
             if use_user_site:
                 if dist_in_usersite(existing_dist):
                     self.conflicts_with = existing_dist
+                    self.should_reinstall = True
                 elif (running_under_virtualenv() and
                         dist_in_site_packages(existing_dist)):
                     raise InstallationError(
@@ -462,9 +466,11 @@ class InstallRequirement(object):
                     )
             else:
                 self.conflicts_with = existing_dist
+                self.should_reinstall = True
         else:
             if self.editable and self.satisfied_by:
                 self.conflicts_with = self.satisfied_by
+                self.should_reinstall = True
                 # when installing editables, nothing pre-existing should ever
                 # satisfy
                 self.satisfied_by = None

@@ -209,6 +209,7 @@ class Resolver(object):
         # conflict is not a user install.
         if not self.use_user_site or dist_in_usersite(req.satisfied_by):
             req.conflicts_with = req.satisfied_by
+            req.should_reinstall = True
         req.satisfied_by = None
 
     def _check_skip_installed(self, req_to_install):

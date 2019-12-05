@@ -57,7 +57,7 @@ def install_given_reqs(
 
     with indent_log():
         for requirement in to_install:
-            if requirement.conflicts_with:
+            if requirement.should_reinstall:
                 logger.info('Attempting uninstall: %s', requirement.name)
                 with indent_log():
                     uninstalled_pathset = requirement.uninstall(
@@ -72,7 +72,7 @@ def install_given_reqs(
                 )
             except Exception:
                 should_rollback = (
-                    requirement.conflicts_with and
+                    requirement.should_reinstall and
                     not requirement.install_succeeded
                 )
                 # if install did not succeed, rollback previous uninstall
@@ -81,7 +81,7 @@ def install_given_reqs(
                 raise
             else:
                 should_commit = (
-                    requirement.conflicts_with and
+                    requirement.should_reinstall and
                     requirement.install_succeeded
                 )
                 if should_commit:
