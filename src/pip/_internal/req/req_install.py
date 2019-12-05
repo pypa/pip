@@ -153,9 +153,9 @@ class InstallRequirement(object):
         # This holds the pkg_resources.Distribution object if this requirement
         # is already available:
         self.satisfied_by = None
-        # This hold the pkg_resources.Distribution object if this requirement
-        # conflicts with another installed distribution:
-        self.conflicts_with = None
+        # Whether the installation process should try to uninstall an existing
+        # distribution before installing this requirement.
+        self.should_reinstall = False
         # Temporary build location
         self._temp_build_dir = None  # type: Optional[TempDirectory]
         # Set to True after successful installation
@@ -427,7 +427,7 @@ class InstallRequirement(object):
         # type: (bool) -> None
         """Find an installed distribution that satisfies or conflicts
         with this requirement, and set self.satisfied_by or
-        self.conflicts_with appropriately.
+        self.should_reinstall appropriately.
         """
         if self.req is None:
             return
@@ -447,7 +447,7 @@ class InstallRequirement(object):
             )
             if use_user_site:
                 if dist_in_usersite(existing_dist):
-                    self.conflicts_with = existing_dist
+                    self.should_reinstall = True
                 elif (running_under_virtualenv() and
                         dist_in_site_packages(existing_dist)):
                     raise InstallationError(
@@ -456,10 +456,10 @@ class InstallRequirement(object):
                         (existing_dist.project_name, existing_dist.location)
                     )
             else:
-                self.conflicts_with = existing_dist
+                self.should_reinstall = True
         else:
             if self.editable and self.satisfied_by:
-                self.conflicts_with = self.satisfied_by
+                self.should_reinstall = True
                 # when installing editables, nothing pre-existing should ever
                 # satisfy
                 self.satisfied_by = None
@@ -645,6 +645,8 @@ class InstallRequirement(object):
         except pkg_resources.DistributionNotFound:
             logger.warning("Skipping %s as it is not installed.", self.name)
             return None
+        else:
+            logger.info('Found existing installation: %s', dist)
 
         uninstalled_pathset = UninstallPathSet.from_dist(dist)
         uninstalled_pathset.remove(auto_confirm, verbose)
