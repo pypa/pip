@@ -69,7 +69,6 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.build_env import BuildEnvironment
     from pip._internal.cache import WheelCache
     from pip._internal.index.package_finder import PackageFinder
-    from pip._internal.models.scheme import Scheme
     from pip._vendor.pkg_resources import Distribution
     from pip._vendor.packaging.specifiers import SpecifierSet
     from pip._vendor.packaging.markers import Marker
@@ -477,23 +476,6 @@ class InstallRequirement(object):
             return False
         return self.link.is_wheel
 
-    def move_wheel_files(
-        self,
-        wheeldir,  # type: str
-        scheme,  # type: Scheme
-        warn_script_location=True,  # type: bool
-        pycompile=True  # type: bool
-    ):
-        # type: (...) -> None
-        install_unpacked_wheel(
-            self.name,
-            wheeldir,
-            scheme=scheme,
-            req_description=str(self.req),
-            pycompile=pycompile,
-            warn_script_location=warn_script_location,
-        )
-
     # Things valid for sdists
     @property
     def unpacked_source_directory(self):
@@ -813,11 +795,13 @@ class InstallRequirement(object):
             return
 
         if self.is_wheel:
-            self.move_wheel_files(
+            install_unpacked_wheel(
+                self.name,
                 self.source_dir,
                 scheme=scheme,
-                warn_script_location=warn_script_location,
+                req_description=str(self.req),
                 pycompile=pycompile,
+                warn_script_location=warn_script_location,
             )
             self.install_succeeded = True
             return
