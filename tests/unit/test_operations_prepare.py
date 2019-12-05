@@ -1,9 +1,6 @@
 import hashlib
-import logging
 import os
 import shutil
-import sys
-from io import BytesIO
 from shutil import copy, rmtree
 from tempfile import mkdtemp
 
@@ -17,9 +14,6 @@ from pip._internal.operations.prepare import (
     Downloader,
     _copy_source_tree,
     _download_http_url,
-    _prepare_download,
-    parse_content_disposition,
-    sanitize_content_filename,
     unpack_file_url,
     unpack_http_url,
 )
@@ -32,6 +26,7 @@ from tests.lib.filesystem import (
     make_unreadable_file,
 )
 from tests.lib.path import Path
+from tests.lib.requests_mocks import MockResponse
 
 
 def test_unpack_http_url_with_urllib_response_without_content_type(data):
@@ -64,60 +59,6 @@ def test_unpack_http_url_with_urllib_response_without_content_type(data):
         }
     finally:
         rmtree(temp_dir)
-
-
-class FakeStream(object):
-
-    def __init__(self, contents):
-        self._io = BytesIO(contents)
-
-    def read(self, size, decode_content=None):
-        return self._io.read(size)
-
-    def stream(self, size, decode_content=None):
-        yield self._io.read(size)
-
-    def release_conn(self):
-        pass
-
-
-class MockResponse(object):
-
-    def __init__(self, contents):
-        self.raw = FakeStream(contents)
-        self.content = contents
-        self.request = None
-        self.status_code = 200
-        self.connection = None
-        self.url = None
-        self.headers = {}
-        self.history = []
-
-    def raise_for_status(self):
-        pass
-
-
-class MockConnection(object):
-
-    def _send(self, req, **kwargs):
-        raise NotImplementedError("_send must be overridden for tests")
-
-    def send(self, req, **kwargs):
-        resp = self._send(req, **kwargs)
-        for cb in req.hooks.get("response", []):
-            cb(resp)
-        return resp
-
-
-class MockRequest(object):
-
-    def __init__(self, url):
-        self.url = url
-        self.headers = {}
-        self.hooks = {}
-
-    def register_hook(self, event_name, callback):
-        self.hooks.setdefault(event_name, []).append(callback)
 
 
 @patch('pip._internal.operations.prepare.unpack_file')
@@ -164,56 +105,6 @@ def test_unpack_http_url_bad_downloaded_checksum(mock_unpack_file):
         rmtree(download_dir)
 
 
-@pytest.mark.parametrize("filename, expected", [
-    ('dir/file', 'file'),
-    ('../file', 'file'),
-    ('../../file', 'file'),
-    ('../', ''),
-    ('../..', '..'),
-    ('/', ''),
-])
-def test_sanitize_content_filename(filename, expected):
-    """
-    Test inputs where the result is the same for Windows and non-Windows.
-    """
-    assert sanitize_content_filename(filename) == expected
-
-
-@pytest.mark.parametrize("filename, win_expected, non_win_expected", [
-    ('dir\\file', 'file', 'dir\\file'),
-    ('..\\file', 'file', '..\\file'),
-    ('..\\..\\file', 'file', '..\\..\\file'),
-    ('..\\', '', '..\\'),
-    ('..\\..', '..', '..\\..'),
-    ('\\', '', '\\'),
-])
-def test_sanitize_content_filename__platform_dependent(
-    filename,
-    win_expected,
-    non_win_expected
-):
-    """
-    Test inputs where the result is different for Windows and non-Windows.
-    """
-    if sys.platform == 'win32':
-        expected = win_expected
-    else:
-        expected = non_win_expected
-    assert sanitize_content_filename(filename) == expected
-
-
-@pytest.mark.parametrize("content_disposition, default_filename, expected", [
-    ('attachment;filename="../file"', 'df', 'file'),
-])
-def test_parse_content_disposition(
-    content_disposition,
-    default_filename,
-    expected
-):
-    actual = parse_content_disposition(content_disposition, default_filename)
-    assert actual == expected
-
-
 def test_download_http_url__no_directory_traversal(tmpdir):
     """
     Test that directory traversal doesn't happen on download when the
@@ -246,36 +137,6 @@ def test_download_http_url__no_directory_traversal(tmpdir):
     # The file should be downloaded to download_dir.
     actual = os.listdir(download_dir)
     assert actual == ['out_dir_file']
-
-
-@pytest.mark.parametrize("url, headers, from_cache, expected", [
-    ('http://example.com/foo.tgz', {}, False,
-        "Downloading http://example.com/foo.tgz"),
-    ('http://example.com/foo.tgz', {'content-length': 2}, False,
-        "Downloading http://example.com/foo.tgz (2 bytes)"),
-    ('http://example.com/foo.tgz', {'content-length': 2}, True,
-        "Using cached http://example.com/foo.tgz (2 bytes)"),
-    ('https://files.pythonhosted.org/foo.tgz', {}, False,
-        "Downloading foo.tgz"),
-    ('https://files.pythonhosted.org/foo.tgz', {'content-length': 2}, False,
-        "Downloading foo.tgz (2 bytes)"),
-    ('https://files.pythonhosted.org/foo.tgz', {'content-length': 2}, True,
-        "Using cached foo.tgz"),
-])
-def test_prepare_download__log(caplog, url, headers, from_cache, expected):
-    caplog.set_level(logging.INFO)
-    resp = MockResponse(b'')
-    resp.url = url
-    resp.headers = headers
-    if from_cache:
-        resp.from_cache = from_cache
-    link = Link(url)
-    _prepare_download(resp, link, progress_bar="on")
-
-    assert len(caplog.records) == 1
-    record = caplog.records[0]
-    assert record.levelname == 'INFO'
-    assert expected in record.message
 
 
 @pytest.fixture
