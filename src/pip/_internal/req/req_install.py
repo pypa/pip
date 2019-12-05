@@ -625,25 +625,30 @@ class InstallRequirement(object):
         prefix,  # type: Optional[str]
         home,  # type: Optional[str]
         use_user_site,  # type: bool
+        name,  # type: str
+        setup_py_path,  # type: str
+        isolated,  # type: bool
+        build_env,  # type: BuildEnvironment
+        unpacked_source_directory,  # type: str
     ):
         # type: (...) -> None
-        logger.info('Running setup.py develop for %s', self.name)
+        logger.info('Running setup.py develop for %s', name)
 
         args = make_setuptools_develop_args(
-            self.setup_py_path,
+            setup_py_path,
             global_options=global_options,
             install_options=install_options,
-            no_user_config=self.isolated,
+            no_user_config=isolated,
             prefix=prefix,
             home=home,
             use_user_site=use_user_site,
         )
 
         with indent_log():
-            with self.build_env:
+            with build_env:
                 call_subprocess(
                     args,
-                    cwd=self.unpacked_source_directory,
+                    cwd=unpacked_source_directory,
                 )
 
     def update_editable(self, obtain=True):
@@ -808,6 +813,11 @@ class InstallRequirement(object):
                 prefix=prefix,
                 home=home,
                 use_user_site=use_user_site,
+                name=self.name,
+                setup_py_path=self.setup_py_path,
+                isolated=self.isolated,
+                build_env=self.build_env,
+                unpacked_source_directory=self.unpacked_source_directory,
             )
             self.install_succeeded = True
             return
