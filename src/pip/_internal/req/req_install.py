@@ -25,6 +25,8 @@ from pip._internal.models.link import Link
 from pip._internal.operations.build.metadata import generate_metadata
 from pip._internal.operations.build.metadata_legacy import \
     generate_metadata as generate_metadata_legacy
+from pip._internal.operations.install.editable_legacy import \
+    install as install_editable_legacy
 from pip._internal.operations.install.wheel import install_unpacked_wheel
 from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
 from pip._internal.req.req_uninstall import UninstallPathSet
@@ -49,14 +51,8 @@ from pip._internal.utils.misc import (
     rmtree,
 )
 from pip._internal.utils.packaging import get_metadata
-from pip._internal.utils.setuptools_build import (
-    make_setuptools_develop_args,
-    make_setuptools_install_args,
-)
-from pip._internal.utils.subprocess import (
-    call_subprocess,
-    runner_with_spinner_message,
-)
+from pip._internal.utils.setuptools_build import make_setuptools_install_args
+from pip._internal.utils.subprocess import runner_with_spinner_message
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.virtualenv import running_under_virtualenv
@@ -618,39 +614,6 @@ class InstallRequirement(object):
             self.source_dir = self.ensure_build_location(parent_dir)
 
     # For editable installations
-    def install_editable(
-        self,
-        install_options,  # type: List[str]
-        global_options,  # type: Sequence[str]
-        prefix,  # type: Optional[str]
-        home,  # type: Optional[str]
-        use_user_site,  # type: bool
-        name,  # type: str
-        setup_py_path,  # type: str
-        isolated,  # type: bool
-        build_env,  # type: BuildEnvironment
-        unpacked_source_directory,  # type: str
-    ):
-        # type: (...) -> None
-        logger.info('Running setup.py develop for %s', name)
-
-        args = make_setuptools_develop_args(
-            setup_py_path,
-            global_options=global_options,
-            install_options=install_options,
-            no_user_config=isolated,
-            prefix=prefix,
-            home=home,
-            use_user_site=use_user_site,
-        )
-
-        with indent_log():
-            with build_env:
-                call_subprocess(
-                    args,
-                    cwd=unpacked_source_directory,
-                )
-
     def update_editable(self, obtain=True):
         # type: (bool) -> None
         if not self.link:
@@ -807,7 +770,7 @@ class InstallRequirement(object):
 
         global_options = global_options if global_options is not None else []
         if self.editable:
-            self.install_editable(
+            install_editable_legacy(
                 install_options,
                 global_options,
                 prefix=prefix,
