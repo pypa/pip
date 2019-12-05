@@ -1,3 +1,5 @@
+"""Legacy installation process, i.e. `setup.py develop`.
+"""
 import logging
 
 from pip._internal.utils.logging import indent_log
@@ -27,6 +29,9 @@ def install(
     unpacked_source_directory,  # type: str
 ):
     # type: (...) -> None
+    """Install a package in editable mode. Most arguments are pass-through
+    to setuptools.
+    """
     logger.info('Running setup.py develop for %s', name)
 
     args = make_setuptools_develop_args(
