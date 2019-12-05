@@ -635,6 +635,12 @@ def decide_user_install(
                 "Can not combine '--user' and '--prefix' as they imply "
                 "different installation locations"
             )
+        if not running_under_virtualenv():
+                # create_virtualenv()
+                raise InstallationError(
+                    "Can not perform a '--user' install. "
+                    "Virtualenv folder is not visible"
+                )
         if virtualenv_no_global():
             raise InstallationError(
                 "Can not perform a '--user' install. User site-packages "
@@ -755,4 +761,10 @@ def create_env_error_message(error, show_traceback, using_user_site):
             parts.append(permissions_part)
         parts.append(".\n")
 
-    return "".join(parts).strip() + "\n"
+def create_virtualenv():
+    """
+    Find existing virtualenv wrapper
+    Activate wrapper, and if not found
+    Create the virtualenv wrapper and activate it
+    """
+    ## To be implemented for macos, linux and windows
