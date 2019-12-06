@@ -19,6 +19,7 @@ from pip._internal.exceptions import (
     PreviousBuildDirError,
 )
 from pip._internal.legacy_resolve import Resolver
+from pip._internal.network.download import Downloader
 from pip._internal.network.session import PipSession
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import InstallRequirement, RequirementSet
@@ -77,10 +78,9 @@ class TestRequirementSet(object):
                 src_dir=os.path.join(self.tempdir, 'src'),
                 download_dir=None,
                 wheel_download_dir=None,
-                progress_bar="on",
                 build_isolation=True,
                 req_tracker=tracker,
-                session=PipSession(),
+                downloader=Downloader(PipSession(), progress_bar="on"),
                 finder=finder,
                 require_hashes=require_hashes,
                 use_user_site=False,

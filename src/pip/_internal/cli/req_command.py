@@ -18,6 +18,7 @@ from pip._internal.exceptions import CommandError
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.legacy_resolve import Resolver
 from pip._internal.models.selection_prefs import SelectionPreferences
+from pip._internal.network.download import Downloader
 from pip._internal.network.session import PipSession
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req.constructors import (
@@ -162,17 +163,19 @@ class RequirementCommand(IndexGroupCommand):
         """
         Create a RequirementPreparer instance for the given parameters.
         """
+        downloader = Downloader(session, progress_bar=options.progress_bar)
+
         temp_build_dir_path = temp_build_dir.path
         assert temp_build_dir_path is not None
+
         return RequirementPreparer(
             build_dir=temp_build_dir_path,
             src_dir=options.src_dir,
             download_dir=download_dir,
             wheel_download_dir=wheel_download_dir,
-            progress_bar=options.progress_bar,
             build_isolation=options.build_isolation,
             req_tracker=req_tracker,
-            session=session,
+            downloader=downloader,
             finder=finder,
             require_hashes=options.require_hashes,
             use_user_site=use_user_site,

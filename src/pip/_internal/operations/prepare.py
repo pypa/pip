@@ -26,7 +26,6 @@ from pip._internal.exceptions import (
     PreviousBuildDirError,
     VcsHashUnsupported,
 )
-from pip._internal.network.download import Downloader
 from pip._internal.utils.compat import expanduser
 from pip._internal.utils.filesystem import copy2_fixed
 from pip._internal.utils.hashes import MissingHashes
@@ -56,7 +55,7 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.distributions import AbstractDistribution
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.models.link import Link
-    from pip._internal.network.session import PipSession
+    from pip._internal.network.download import Downloader
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.req.req_tracker import RequirementTracker
     from pip._internal.utils.hashes import Hashes
@@ -359,10 +358,9 @@ class RequirementPreparer(object):
         download_dir,  # type: Optional[str]
         src_dir,  # type: str
         wheel_download_dir,  # type: Optional[str]
-        progress_bar,  # type: str
         build_isolation,  # type: bool
         req_tracker,  # type: RequirementTracker
-        session,  # type: PipSession
+        downloader,  # type: Downloader
         finder,  # type: PackageFinder
         require_hashes,  # type: bool
         use_user_site,  # type: bool
@@ -373,7 +371,7 @@ class RequirementPreparer(object):
         self.src_dir = src_dir
         self.build_dir = build_dir
         self.req_tracker = req_tracker
-        self.downloader = Downloader(session, progress_bar)
+        self.downloader = downloader
         self.finder = finder
 
         # Where still-packed archives should be written to. If None, they are
