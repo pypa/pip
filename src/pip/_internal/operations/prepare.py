@@ -56,7 +56,6 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.models.link import Link
     from pip._internal.network.download import Downloader
-    from pip._internal.network.session import PipSession
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.req.req_tracker import RequirementTracker
     from pip._internal.utils.hashes import Hashes
@@ -359,10 +358,8 @@ class RequirementPreparer(object):
         download_dir,  # type: Optional[str]
         src_dir,  # type: str
         wheel_download_dir,  # type: Optional[str]
-        progress_bar,  # type: str
         build_isolation,  # type: bool
         req_tracker,  # type: RequirementTracker
-        session,  # type: PipSession
         downloader,  # type: Downloader
         finder,  # type: PackageFinder
         require_hashes,  # type: bool
