@@ -9,9 +9,9 @@ from mock import Mock, patch
 
 from pip._internal.exceptions import HashMismatch
 from pip._internal.models.link import Link
+from pip._internal.network.download import Downloader
 from pip._internal.network.session import PipSession
 from pip._internal.operations.prepare import (
-    Downloader,
     _copy_source_tree,
     _download_http_url,
     unpack_file_url,
