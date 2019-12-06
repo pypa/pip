@@ -97,6 +97,13 @@ To use linters locally, run:
 
     $ tox -e lint
 
+.. note::
+
+    Avoid using ``# noqa`` comments to suppress linter warnings - wherever
+    possible, warnings should be fixed instead. ``# noqa`` comments are
+    reserved for rare cases where the recommended style causes severe
+    readability problems.
+
 Building Documentation
 ----------------------
 
