@@ -111,7 +111,7 @@ class RequirementTracker(object):
             if e.errno != errno.ENOENT:
                 raise
         else:
-            message = '%s is already being built: %s' % (req.link, contents)
+            message = '{} is already being built: {}'.format(req.link, contents)
             raise LookupError(message)
 
         # If we're here, req should really not be building already.

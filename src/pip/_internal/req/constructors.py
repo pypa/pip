@@ -123,8 +123,8 @@ def parse_editable(editable_req):
             return package_name, url_no_extras, None
 
     for version_control in vcs:
-        if url.lower().startswith('%s:' % version_control):
-            url = '%s+%s' % (version_control, url)
+        if url.lower().startswith('{}:'.format(version_control)):
+            url = '{}+{}'.format(version_control, url)
             break
 
     if '+' not in url:
@@ -137,7 +137,7 @@ def parse_editable(editable_req):
     vc_type = url.split('+', 1)[0].lower()
 
     if not vcs.get_backend(vc_type):
-        error_message = 'For --editable=%s only ' % editable_req + \
+        error_message = 'For --editable={} only '.format(editable_req) + \
             ', '.join([backend.name + '+URL' for backend in vcs.backends]) + \
             ' is currently supported'
         raise InstallationError(error_message)
@@ -145,8 +145,8 @@ def parse_editable(editable_req):
     package_name = Link(url).egg_fragment
     if not package_name:
         raise InstallationError(
-            "Could not detect requirement name for '%s', please specify one "
-            "with #egg=your_package_name" % editable_req
+            "Could not detect requirement name for '{}', please specify one "
+            "with #egg=your_package_name".format(editable_req)
         )
     return package_name, url, None
 
@@ -167,15 +167,15 @@ def deduce_helpful_msg(req):
                 # parse first line only
                 next(parse_requirements(fp.read()))
                 msg += " The argument you provided " + \
-                    "(%s) appears to be a" % (req) + \
+                    "({}) appears to be a".format(req) + \
                     " requirements file. If that is the" + \
                     " case, use the '-r' flag to install" + \
                     " the packages specified within it."
         except RequirementParseError:
-            logger.debug("Cannot parse '%s' as requirements \
-            file" % (req), exc_info=True)
+            logger.debug("Cannot parse '{0}' as requirements \
+            file".format(req), exc_info=True)
     else:
-        msg += " File '%s' does not exist." % (req)
+        msg += " File '{}' does not exist.".format(req)
     return msg
 
 
@@ -201,7 +201,7 @@ def parse_req_from_editable(editable_req):
         try:
             req = Requirement(name)
         except InvalidRequirement:
-            raise InstallationError("Invalid requirement: '%s'" % name)
+            raise InstallationError("Invalid requirement: '{}'".format(name))
     else:
         req = None
 
@@ -275,8 +275,8 @@ def _get_url_from_path(path, name):
         if is_installable_dir(path):
             return path_to_url(path)
         raise InstallationError(
-            "Directory %r is not installable. Neither 'setup.py' "
-            "nor 'pyproject.toml' found." % name
+            "Directory {!r} is not installable. Neither 'setup.py' "
+            "nor 'pyproject.toml' found.".format(name)
         )
     if not is_archive_file(path):
         return None
@@ -333,7 +333,7 @@ def parse_req_from_line(name, line_source):
         # wheel file
         if link.is_wheel:
             wheel = Wheel(link.filename)  # can raise InvalidWheelFilename
-            req_as_string = "%s==%s" % (wheel.name, wheel.version)
+            req_as_string = "{}=={}".format(wheel.name, wheel.version)
         else:
             # set the req to the egg fragment.  when it's not there, this
             # will become an 'unnamed' requirement
@@ -415,7 +415,7 @@ def install_req_from_req_string(
     try:
         req = Requirement(req_string)
     except InvalidRequirement:
-        raise InstallationError("Invalid requirement: '%s'" % req_string)
+        raise InstallationError("Invalid requirement: '{}'".format(req_string))
 
     domains_not_allowed = [
         PyPI.file_storage_domain,
@@ -427,7 +427,7 @@ def install_req_from_req_string(
         raise InstallationError(
             "Packages installed from PyPI cannot depend on packages "
             "which are not also hosted on PyPI.\n"
-            "%s depends on %s " % (comes_from.name, req)
+            "{} depends on {} ".format(comes_from.name, req)
         )
 
     return InstallRequirement(

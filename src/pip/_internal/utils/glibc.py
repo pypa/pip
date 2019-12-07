@@ -78,7 +78,7 @@ def check_glibc_version(version_str, required_major, minimum_minor):
     m = re.match(r"(?P<major>[0-9]+)\.(?P<minor>[0-9]+)", version_str)
     if not m:
         warnings.warn("Expected glibc version with 2 components major.minor,"
-                      " got: %s" % version_str, RuntimeWarning)
+                      " got: {}".format(version_str), RuntimeWarning)
         return False
     return (int(m.group("major")) == required_major and
             int(m.group("minor")) >= minimum_minor)

@@ -60,7 +60,7 @@ def freeze(
         skip_match = re.compile(skip_regex).search
 
     for link in find_links:
-        yield '-f %s' % link
+        yield '-f {}'.format(link)
     installations = {}  # type: Dict[str, FrozenRequirement]
     for dist in get_installed_distributions(local_only=local_only,
                                             skip=(),
@@ -261,5 +261,5 @@ class FrozenRequirement(object):
     def __str__(self):
         req = self.req
         if self.editable:
-            req = '-e %s' % req
+            req = '-e {}'.format(req)
         return '\n'.join(list(self.comments) + [str(req)]) + '\n'

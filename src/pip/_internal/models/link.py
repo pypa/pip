@@ -68,17 +68,17 @@ class Link(KeyBasedCompareMixin):
 
     def __str__(self):
         if self.requires_python:
-            rp = ' (requires-python:%s)' % self.requires_python
+            rp = ' (requires-python:{})'.format(self.requires_python)
         else:
             rp = ''
         if self.comes_from:
-            return '%s (from %s)%s' % (redact_auth_from_url(self._url),
+            return '{} (from {}){}'.format(redact_auth_from_url(self._url),
                                        self.comes_from, rp)
         else:
             return redact_auth_from_url(str(self._url))
 
     def __repr__(self):
-        return '<Link %s>' % self
+        return '<Link {}>'.format(self)
 
     @property
     def url(self):
@@ -97,7 +97,7 @@ class Link(KeyBasedCompareMixin):
             return netloc
 
         name = urllib_parse.unquote(name)
-        assert name, ('URL %r produced no filename' % self._url)
+        assert name, ('URL {} produced no filename'.format(self._url))
         return name
 
     @property

@@ -195,25 +195,25 @@ class InstallRequirement(object):
         if self.req:
             s = str(self.req)
             if self.link:
-                s += ' from %s' % redact_auth_from_url(self.link.url)
+                s += ' from {0}'.format(redact_auth_from_url(self.link.url))
         elif self.link:
             s = redact_auth_from_url(self.link.url)
         else:
             s = '<InstallRequirement>'
         if self.satisfied_by is not None:
-            s += ' in %s' % display_path(self.satisfied_by.location)
+            s += ' in {}'.format(display_path(self.satisfied_by.location))
         if self.comes_from:
             if isinstance(self.comes_from, six.string_types):
                 comes_from = self.comes_from  # type: Optional[str]
             else:
                 comes_from = self.comes_from.from_path()
             if comes_from:
-                s += ' (from %s)' % comes_from
+                s += ' (from {})'.format(comes_from)
         return s
 
     def __repr__(self):
         # type: () -> str
-        return '<%s object: %s editable=%r>' % (
+        return '<{} object: {} editable={!r}>'.format(
             self.__class__.__name__, str(self), self.editable)
 
     def format_debug(self):
@@ -452,8 +452,7 @@ class InstallRequirement(object):
                         dist_in_site_packages(existing_dist)):
                     raise InstallationError(
                         "Will not install to the user site because it will "
-                        "lack sys.path precedence to %s in %s" %
-                        (existing_dist.project_name, existing_dist.location)
+                        "lack sys.path precedence to {} in {}".format(existing_dist.project_name, existing_dist.location)
                     )
             else:
                 self.should_reinstall = True
@@ -483,7 +482,7 @@ class InstallRequirement(object):
     @property
     def setup_py_path(self):
         # type: () -> str
-        assert self.source_dir, "No source dir for %s" % self
+        assert self.source_dir, "No source dir for {}".format(self)
         setup_py = os.path.join(self.unpacked_source_directory, 'setup.py')
 
         # Python2 __file__ should not be unicode
@@ -495,7 +494,7 @@ class InstallRequirement(object):
     @property
     def pyproject_toml_path(self):
         # type: () -> str
-        assert self.source_dir, "No source dir for %s" % self
+        assert self.source_dir, "No source dir for {}".format(self)
         return make_pyproject_path(self.unpacked_source_directory)
 
     def load_pyproject_toml(self):
@@ -610,7 +609,7 @@ class InstallRequirement(object):
         if self.link.scheme == 'file':
             # Static paths don't get updated
             return
-        assert '+' in self.link.url, "bad url: %r" % self.link.url
+        assert '+' in self.link.url, "bad url: {!r}".format(self.link.url)
         vc_type, url = self.link.url.split('+', 1)
         vcs_backend = vcs.get_backend(vc_type)
         if vcs_backend:
@@ -621,8 +620,7 @@ class InstallRequirement(object):
                 vcs_backend.export(self.source_dir, url=hidden_url)
         else:
             assert 0, (
-                'Unexpected version control type (in %s): %s'
-                % (self.link, vc_type))
+                'Unexpected version control type (in {}): {}'.format(self.link, vc_type))
 
     # Top-level Actions
     def uninstall(self, auto_confirm=False, verbose=False):
@@ -658,7 +656,7 @@ class InstallRequirement(object):
         def _clean_zip_name(name, prefix):
             # type: (str, str) -> str
             assert name.startswith(prefix + os.path.sep), (
-                "name %r doesn't start with prefix %r" % (name, prefix)
+                "name {!r} doesn't start with prefix {!r}".format(name, prefix)
             )
             name = name[len(prefix) + 1:]
             name = name.replace(os.path.sep, '/')
@@ -677,13 +675,13 @@ class InstallRequirement(object):
         assert self.source_dir
 
         create_archive = True
-        archive_name = '%s-%s.zip' % (self.name, self.metadata["version"])
+        archive_name = '{}-{}.zip'.format(self.name, self.metadata["version"])
         archive_path = os.path.join(build_dir, archive_name)
 
         if os.path.exists(archive_path):
             response = ask_path_exists(
-                'The file %s exists. (i)gnore, (w)ipe, (b)ackup, (a)bort ' %
-                display_path(archive_path), ('i', 'w', 'b', 'a'))
+                'The file {} exists. (i)gnore, (w)ipe, (b)ackup, (a)bort '.format(display_path(archive_path)),
+                 ('i', 'w', 'b', 'a'))
             if response == 'i':
                 create_archive = False
             elif response == 'w':

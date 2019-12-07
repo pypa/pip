@@ -65,7 +65,7 @@ class FreezeCommand(Command):
             dest='freeze_all',
             action='store_true',
             help='Do not skip these packages in the output:'
-                 ' %s' % ', '.join(DEV_PKGS))
+                 ' {}'.format(', '.join(DEV_PKGS)))
         self.cmd_opts.add_option(
             '--exclude-editable',
             dest='exclude_editable',

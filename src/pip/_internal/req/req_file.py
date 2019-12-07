@@ -183,7 +183,7 @@ def handle_line(
     """
 
     # preserve for the nested code path
-    line_comes_from = '%s %s (line %s)' % (
+    line_comes_from = '{} {} (line {})'.format(
         '-c' if line.constraint else '-r', line.filename, line.lineno,
     )
 
@@ -329,7 +329,7 @@ class RequirementsFileParser(object):
                 args_str, opts = self._line_parser(line)
             except OptionParsingError as e:
                 # add offending line
-                msg = 'Invalid requirement: %s\n%s' % (line, e.msg)
+                msg = 'Invalid requirement: {}\n{}'.format(line, e.msg)
                 raise RequirementsFileParseError(msg)
 
             yield ParsedLine(
@@ -520,8 +520,7 @@ def get_file_content(url, session, comes_from=None):
     elif scheme == 'file':
         if comes_from and comes_from.startswith('http'):
             raise InstallationError(
-                'Requirements file %s references URL %s, which is local'
-                % (comes_from, url))
+                'Requirements file {} references URL {}, which is local'.format(comes_from, url))
 
         path = url.split(':', 1)[1]
         path = path.replace('\\', '/')
@@ -538,7 +537,7 @@ def get_file_content(url, session, comes_from=None):
             content = auto_decode(f.read())
     except IOError as exc:
         raise InstallationError(
-            'Could not open requirements file: %s' % str(exc)
+            'Could not open requirements file: {}'.format(str(exc))
         )
     return url, content
 

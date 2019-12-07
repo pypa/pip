@@ -128,7 +128,7 @@ def get_abi_tag():
                 'Py_UNICODE_SIZE', lambda: sys.maxunicode == 0x10ffff,
                 expected=4, warn=is_cpython):
             u = 'u'
-        abi = '%s%s%s%s%s' % (impl, get_impl_ver(), d, m, u)
+        abi = '{}{}{}{}{}'.format(impl, get_impl_ver(), d, m, u)
     elif soabi and soabi.startswith('cpython-'):
         abi = 'cp' + soabi.split('-')[1]
     elif soabi:
@@ -335,7 +335,7 @@ def _mac_platforms(arch):
     match = _osx_arch_pat.match(arch)
     if match:
         name, major, minor, actual_arch = match.groups()
-        tpl = '{}_{}_%i_%s'.format(name, major)
+        tpl = '{}_{}_{}_{}'.format(name, major)
         arches = []
         for m in reversed(range(int(minor) + 1)):
             for a in get_darwin_arches(int(major), m, actual_arch):
@@ -434,7 +434,7 @@ def get_supported(
     # Current version, current API (built specifically for our Python):
     for abi in abis:
         for arch in arches:
-            supported.append(('%s%s' % (impl, current_version), abi, arch))
+            supported.append(('{}{}'.format(impl, current_version), abi, arch))
 
     # abi3 modules compatible with older version of Python
     if supports_abi3:
@@ -443,20 +443,20 @@ def get_supported(
             if version in {'31', '30'}:
                 break
             for arch in arches:
-                supported.append(("%s%s" % (impl, version), "abi3", arch))
+                supported.append(("{}{}".format(impl, version), "abi3", arch))
 
     # Has binaries, does not use the Python API:
     for arch in arches:
-        supported.append(('py%s' % (current_version[0]), 'none', arch))
+        supported.append(('py{}'.format(current_version[0]), 'none', arch))
 
     # No abi / arch, but requires our implementation:
-    supported.append(('%s%s' % (impl, current_version), 'none', 'any'))
+    supported.append(('{}{}'.format(impl, current_version), 'none', 'any'))
 
     # No abi / arch, generic Python
-    supported.append(('py%s' % (current_version,), 'none', 'any'))
-    supported.append(('py%s' % (current_version[0]), 'none', 'any'))
+    supported.append(('py{}'.format(current_version,), 'none', 'any'))
+    supported.append(('py{}'.format(current_version[0]), 'none', 'any'))
     for version in other_versions:
-        supported.append(('py%s' % (version,), 'none', 'any'))
+        supported.append(('py{}'.format(version), 'none', 'any'))
 
     return supported
 

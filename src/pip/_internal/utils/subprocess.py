@@ -248,8 +248,7 @@ def call_subprocess(
         elif on_returncode == 'ignore':
             pass
         else:
-            raise ValueError('Invalid value: on_returncode=%s' %
-                             repr(on_returncode))
+            raise ValueError('Invalid value: on_returncode={}'.format(repr(on_returncode)))
     return ''.join(all_output)
 
 

@@ -532,11 +532,11 @@ def install_unpacked_wheel(
 
         if os.environ.get("ENSUREPIP_OPTIONS", "") != "altinstall":
             scripts_to_generate.append(
-                'pip%s = %s' % (sys.version_info[0], pip_script)
+                'pip{} = {}'.format(sys.version_info[0], pip_script)
             )
 
         scripts_to_generate.append(
-            'pip%s = %s' % (get_major_minor_version(), pip_script)
+            'pip{} = {}'.format(get_major_minor_version(), pip_script)
         )
         # Delete any other versioned pip entry points
         pip_ep = [k for k in console if re.match(r'pip(\d(\.\d)?)?$', k)]
@@ -550,7 +550,7 @@ def install_unpacked_wheel(
             )
 
         scripts_to_generate.append(
-            'easy_install-%s = %s' % (
+            'easy_install-{} = {}'.format(
                 get_major_minor_version(), easy_install_script
             )
         )
@@ -563,11 +563,11 @@ def install_unpacked_wheel(
 
     # Generate the console and GUI entry points specified in the wheel
     scripts_to_generate.extend(
-        '%s = %s' % kv for kv in console.items()
+        '{} = {}'.format(*kv) for kv in console.items()
     )
 
     gui_scripts_to_generate = [
-        '%s = %s' % kv for kv in gui.items()
+        '{} = {}'.format(*kv) for kv in gui.items()
     ]
 
     generated_console_scripts = []  # type: List[str]
@@ -651,12 +651,12 @@ def check_compatibility(version, name):
     """
     if not version:
         raise UnsupportedWheel(
-            "%s is in an unsupported or invalid wheel" % name
+            "{} is in an unsupported or invalid wheel".format(name)
         )
     if version[0] > VERSION_COMPATIBLE[0]:
         raise UnsupportedWheel(
-            "%s's Wheel-Version (%s) is not compatible with this version "
-            "of pip" % (name, '.'.join(map(str, version)))
+            "{}'s Wheel-Version ({}) is not compatible with this version "
+            "of pip".format((name, '.'.join(map(str, version))))
         )
     elif version > VERSION_COMPATIBLE:
         logger.warning(

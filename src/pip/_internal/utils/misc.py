@@ -121,7 +121,7 @@ def get_prog():
     try:
         prog = os.path.basename(sys.argv[0])
         if prog in ('__main__.py', '-c'):
-            return "%s -m pip" % sys.executable
+            return "{} -m pip".format(sys.executable)
         else:
             return prog
     except (AttributeError, TypeError, IndexError):
@@ -229,8 +229,7 @@ def _check_no_input(message):
     """Raise an error if no input is allowed."""
     if os.environ.get('PIP_NO_INPUT'):
         raise Exception(
-            'No input was expected ($PIP_NO_INPUT set); question: %s' %
-            message
+            'No input was expected ($PIP_NO_INPUT set); question: {}'.format(message)
         )
 
 
@@ -243,8 +242,8 @@ def ask(message, options):
         response = response.strip().lower()
         if response not in options:
             print(
-                'Your response (%r) was not one of the expected responses: '
-                '%s' % (response, ', '.join(options))
+                'Your response ({!r}) was not one of the expected responses: '
+                '{}'.format(response, ', '.join(options))
             )
         else:
             return response
@@ -267,13 +266,13 @@ def ask_password(message):
 def format_size(bytes):
     # type: (float) -> str
     if bytes > 1000 * 1000:
-        return '%.1f MB' % (bytes / 1000.0 / 1000)
+        return '{:.1f} MB'.format(bytes / 1000.0 / 1000)
     elif bytes > 10 * 1000:
-        return '%i kB' % (bytes / 1000)
+        return '{} kB'.format(bytes / 1000)
     elif bytes > 1000:
-        return '%.1f kB' % (bytes / 1000.0)
+        return '{:.1f} kB'.format(bytes / 1000.0)
     else:
-        return '%i bytes' % bytes
+        return '{} bytes'.format(bytes)
 
 
 def is_installable_dir(path):
