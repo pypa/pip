@@ -3,6 +3,8 @@ import textwrap
 import pytest
 import platform
 
+from tests.lib import skip_if_python2, skip_if_not_python2
+
 
 @pytest.fixture
 def warnings_demo(tmpdir):
@@ -35,14 +37,14 @@ DEPRECATION_TEXT = "drop support for Python 2.7"
 CPYTHON_DEPRECATION_TEXT = "January 1st, 2020"
 
 
-@pytest.mark.skipif("sys.version_info[:2] in [(2, 7)]")
+@skip_if_python2
 def test_version_warning_is_not_shown_if_python_version_is_not_27(script):
     result = script.pip("debug", allow_stderr_warning=True)
     assert DEPRECATION_TEXT not in result.stderr, str(result)
     assert CPYTHON_DEPRECATION_TEXT not in result.stderr, str(result)
 
 
-@pytest.mark.skipif("not sys.version_info[:2] in [(2, 7)]")
+@skip_if_not_python2
 def test_version_warning_is_shown_if_python_version_is_27(script):
     result = script.pip("debug", allow_stderr_warning=True)
     assert DEPRECATION_TEXT in result.stderr, str(result)
@@ -52,7 +54,7 @@ def test_version_warning_is_shown_if_python_version_is_27(script):
         assert CPYTHON_DEPRECATION_TEXT not in result.stderr, str(result)
 
 
-@pytest.mark.skipif("not sys.version_info[:2] in [(2, 7)]")
+@skip_if_not_python2
 def test_version_warning_is_not_shown_when_flag_is_passed(script):
     result = script.pip(
         "debug", "--no-python-version-warning", allow_stderr_warning=True

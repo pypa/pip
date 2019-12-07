@@ -9,7 +9,6 @@ import textwrap
 from os.path import curdir, join, pardir
 
 import pytest
-from pip._vendor.six import PY2
 
 from pip import __version__ as pip_current_version
 from pip._internal import pep425tags
@@ -28,6 +27,8 @@ from tests.lib import (
     pyversion,
     pyversion_tuple,
     requirements_file,
+    skip_if_python2,
+    skip_if_not_python2
 )
 from tests.lib.filesystem import make_socket_file
 from tests.lib.local_repos import local_checkout
@@ -38,9 +39,6 @@ from tests.lib.server import (
     package_page,
     server_running,
 )
-
-skip_if_python2 = pytest.mark.skipif(PY2, reason="Non-Python 2 only")
-skip_if_not_python2 = pytest.mark.skipif(not PY2, reason="Python 2 only")
 
 
 @pytest.mark.parametrize('command', ('install', 'wheel'))

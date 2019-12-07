@@ -21,6 +21,7 @@ from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.network.session import PipSession
 from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._vendor.six import PY2
 from tests.lib.path import Path, curdir
 
 if MYPY_CHECK_RUNNING:
@@ -1047,3 +1048,7 @@ def need_mercurial(fn):
     return pytest.mark.mercurial(need_executable(
         'Mercurial', ('hg', 'version')
     )(fn))
+
+
+skip_if_python2 = pytest.mark.skipif(PY2, reason="Non-Python 2 only")
+skip_if_not_python2 = pytest.mark.skipif(not PY2, reason="Python 2 only")
