@@ -125,9 +125,9 @@ class Command(CommandContextMixIn):
             )
             if platform.python_implementation() == "CPython":
                 message = (
-                    "Python 2.7 will reach the end of its life on January "
+                    "Python 2.7 reached the end of its life on January "
                     "1st, 2020. Please upgrade your Python as Python 2.7 "
-                    "won't be maintained after that date. "
+                    "is no longer maintained. "
                 ) + message
             deprecated(message, replacement=None, gone_in=None)
 
