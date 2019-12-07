@@ -834,7 +834,10 @@ class InstallRequirement(object):
             # setuptools writes the file using distutils.file_util.write_file,
             # which does not specify an encoding.
             with open(record_filename) as f:
-                for line in f:
+                record_lines = f.read().splitlines()
+
+            if True:
+                for line in record_lines:
                     directory = os.path.dirname(line)
                     if directory.endswith('.egg-info'):
                         egg_info_dir = prepend_root(directory)
@@ -859,8 +862,8 @@ class InstallRequirement(object):
                     # FIXME: put the record somewhere
                     return
             new_lines = []
-            with open(record_filename) as f:
-                for line in f:
+            if True:
+                for line in record_lines:
                     filename = line.strip()
                     if os.path.isdir(filename):
                         filename += os.path.sep
