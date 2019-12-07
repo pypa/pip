@@ -823,18 +823,18 @@ class InstallRequirement(object):
                 return
             self.install_succeeded = True
 
+            # We intentionally do not use any encoding to read the file because
+            # setuptools writes the file using distutils.file_util.write_file,
+            # which does not specify an encoding.
+            with open(record_filename) as f:
+                record_lines = f.read().splitlines()
+
             def prepend_root(path):
                 # type: (str) -> str
                 if root is None or not os.path.isabs(path):
                     return path
                 else:
                     return change_root(root, path)
-
-            # We intentionally do not use any encoding to read the file because
-            # setuptools writes the file using distutils.file_util.write_file,
-            # which does not specify an encoding.
-            with open(record_filename) as f:
-                record_lines = f.read().splitlines()
 
             if True:
                 for line in record_lines:
