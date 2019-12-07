@@ -60,7 +60,8 @@ def test_version_warning_is_shown_if_python_version_is_27(script):
     "not (sys.version_info[:2] in [(2, 7)] "
     "and platform.python_implementation() == 'CPython')")
 def test_version_warning_is_not_shown_when_flag_is_passed(script):
-    result = script.pip("debug", "--no-python-version-warning",
-                        allow_stderr_warning=True)
+    result = script.pip(
+        "debug", "--no-python-version-warning", allow_stderr_warning=True
+    )
     assert deprecation_message not in result.stderr, str(result)
     assert "--no-python-version-warning" not in result.stderr
