@@ -829,6 +829,7 @@ class InstallRequirement(object):
             with open(record_filename) as f:
                 record_lines = f.read().splitlines()
 
+        if True:
             def prepend_root(path):
                 # type: (str) -> str
                 if root is None or not os.path.isabs(path):
