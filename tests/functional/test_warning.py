@@ -1,9 +1,9 @@
+import platform
 import textwrap
 
 import pytest
-import platform
 
-from tests.lib import skip_if_python2, skip_if_not_python2
+from tests.lib import skip_if_not_python2, skip_if_python2
 
 
 @pytest.fixture

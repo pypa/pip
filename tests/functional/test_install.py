@@ -27,8 +27,8 @@ from tests.lib import (
     pyversion,
     pyversion_tuple,
     requirements_file,
+    skip_if_not_python2,
     skip_if_python2,
-    skip_if_not_python2
 )
 from tests.lib.filesystem import make_socket_file
 from tests.lib.local_repos import local_checkout

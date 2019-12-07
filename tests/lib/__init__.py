@@ -11,6 +11,7 @@ from contextlib import contextmanager
 from textwrap import dedent
 
 import pytest
+from pip._vendor.six import PY2
 from scripttest import FoundDir, TestFileEnvironment
 
 from pip._internal.index.collector import LinkCollector
@@ -21,7 +22,6 @@ from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.network.session import PipSession
 from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from pip._vendor.six import PY2
 from tests.lib.path import Path, curdir
 
 if MYPY_CHECK_RUNNING:
