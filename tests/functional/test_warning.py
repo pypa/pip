@@ -44,6 +44,11 @@ def test_version_warning_is_not_shown_if_python_version_is_not_2(script):
     assert CPYTHON_DEPRECATION_TEXT not in result.stderr, str(result)
 
 
+@skip_if_python2
+def test_flag_does_nothing_if_python_version_is_not_2(script):
+    script.pip("list", "--no-python-version-warning")
+
+
 @skip_if_not_python2
 def test_version_warning_is_shown_if_python_version_is_2(script):
     result = script.pip("debug", allow_stderr_warning=True)
