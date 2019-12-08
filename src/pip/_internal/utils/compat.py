@@ -85,6 +85,11 @@ else:
     backslashreplace_decode = "backslashreplace"
 
 
+def has_tls():
+    # type: () -> bool
+    return HAS_TLS
+
+
 def str_to_display(data, desc=None):
     # type: (Union[bytes, Text], Optional[str]) -> Text
     """

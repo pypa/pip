@@ -26,7 +26,7 @@ from pip import __version__
 from pip._internal.network.auth import MultiDomainBasicAuth
 from pip._internal.network.cache import SafeFileCache
 # Import ssl from compat so the initial import occurs in only one place.
-from pip._internal.utils.compat import HAS_TLS, ipaddress, ssl
+from pip._internal.utils.compat import has_tls, ipaddress, ssl
 from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.glibc import libc_ver
 from pip._internal.utils.misc import (
@@ -153,7 +153,7 @@ def user_agent():
     if platform.machine():
         data["cpu"] = platform.machine()
 
-    if HAS_TLS:
+    if has_tls():
         data["openssl_version"] = ssl.OPENSSL_VERSION
 
     setuptools_version = get_installed_version("setuptools")
