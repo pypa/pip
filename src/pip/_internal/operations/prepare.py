@@ -163,9 +163,6 @@ def unpack_http_url(
         if download_dir and not already_downloaded_path:
             _copy_file(from_path, download_dir, link)
 
-        if not already_downloaded_path:
-            os.unlink(from_path)
-
 
 def _copy2_ignoring_special_files(src, dest):
     # type: (str, str) -> None
