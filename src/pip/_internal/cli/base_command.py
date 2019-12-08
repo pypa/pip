@@ -33,6 +33,7 @@ from pip._internal.exceptions import (
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.logging import BrokenStdoutLoggingError, setup_logging
 from pip._internal.utils.misc import get_prog
+from pip._internal.utils.temp_dir import global_tempdir_manager
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
@@ -106,6 +107,10 @@ class Command(CommandContextMixIn):
 
     def _main(self, args):
         # type: (List[str]) -> int
+        # Intentionally set as early as possible so globally-managed temporary
+        # directories are available to the rest of the code.
+        self.enter_context(global_tempdir_manager())
+
         options, args = self.parse_args(args)
 
         # Set verbosity so that it can be used elsewhere.
