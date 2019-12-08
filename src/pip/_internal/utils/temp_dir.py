@@ -8,15 +8,33 @@ import itertools
 import logging
 import os.path
 import tempfile
+from contextlib import contextmanager
+
+from pip._vendor.contextlib2 import ExitStack
 
 from pip._internal.utils.misc import rmtree
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional
+    from typing import Iterator, Optional
 
 
 logger = logging.getLogger(__name__)
+
+
+_tempdir_manager = None  # type: Optional[ExitStack]
+
+
+@contextmanager
+def global_tempdir_manager():
+    # type: () -> Iterator[None]
+    global _tempdir_manager
+    with ExitStack() as stack:
+        old_tempdir_manager, _tempdir_manager = _tempdir_manager, stack
+        try:
+            yield
+        finally:
+            _tempdir_manager = old_tempdir_manager
 
 
 class TempDirectory(object):
@@ -44,7 +62,8 @@ class TempDirectory(object):
         self,
         path=None,    # type: Optional[str]
         delete=None,  # type: Optional[bool]
-        kind="temp"
+        kind="temp",  # type: str
+        globally_managed=False,  # type: bool
     ):
         super(TempDirectory, self).__init__()
 
@@ -60,6 +79,10 @@ class TempDirectory(object):
         self._deleted = False
         self.delete = delete
         self.kind = kind
+
+        if globally_managed:
+            assert _tempdir_manager is not None
+            _tempdir_manager.enter_context(self)
 
     @property
     def path(self):
