@@ -823,52 +823,53 @@ class InstallRequirement(object):
                 return
             self.install_succeeded = True
 
-            def prepend_root(path):
-                # type: (str) -> str
-                if root is None or not os.path.isabs(path):
-                    return path
-                else:
-                    return change_root(root, path)
-
             # We intentionally do not use any encoding to read the file because
             # setuptools writes the file using distutils.file_util.write_file,
             # which does not specify an encoding.
             with open(record_filename) as f:
-                for line in f:
-                    directory = os.path.dirname(line)
-                    if directory.endswith('.egg-info'):
-                        egg_info_dir = prepend_root(directory)
-                        break
-                else:
-                    deprecated(
-                        reason=(
-                            "{} did not indicate that it installed an "
-                            ".egg-info directory. Only setup.py projects "
-                            "generating .egg-info directories are supported."
-                        ).format(self),
-                        replacement=(
-                            "for maintainers: updating the setup.py of {0}. "
-                            "For users: contact the maintainers of {0} to let "
-                            "them know to update their setup.py.".format(
-                                self.name
-                            )
-                        ),
-                        gone_in="20.2",
-                        issue=6998,
+                record_lines = f.read().splitlines()
+
+        def prepend_root(path):
+            # type: (str) -> str
+            if root is None or not os.path.isabs(path):
+                return path
+            else:
+                return change_root(root, path)
+
+        for line in record_lines:
+            directory = os.path.dirname(line)
+            if directory.endswith('.egg-info'):
+                egg_info_dir = prepend_root(directory)
+                break
+        else:
+            deprecated(
+                reason=(
+                    "{} did not indicate that it installed an "
+                    ".egg-info directory. Only setup.py projects "
+                    "generating .egg-info directories are supported."
+                ).format(self),
+                replacement=(
+                    "for maintainers: updating the setup.py of {0}. "
+                    "For users: contact the maintainers of {0} to let "
+                    "them know to update their setup.py.".format(
+                        self.name
                     )
-                    # FIXME: put the record somewhere
-                    return
-            new_lines = []
-            with open(record_filename) as f:
-                for line in f:
-                    filename = line.strip()
-                    if os.path.isdir(filename):
-                        filename += os.path.sep
-                    new_lines.append(
-                        os.path.relpath(prepend_root(filename), egg_info_dir)
-                    )
-            new_lines.sort()
-            ensure_dir(egg_info_dir)
-            inst_files_path = os.path.join(egg_info_dir, 'installed-files.txt')
-            with open(inst_files_path, 'w') as f:
-                f.write('\n'.join(new_lines) + '\n')
+                ),
+                gone_in="20.2",
+                issue=6998,
+            )
+            # FIXME: put the record somewhere
+            return
+        new_lines = []
+        for line in record_lines:
+            filename = line.strip()
+            if os.path.isdir(filename):
+                filename += os.path.sep
+            new_lines.append(
+                os.path.relpath(prepend_root(filename), egg_info_dir)
+            )
+        new_lines.sort()
+        ensure_dir(egg_info_dir)
+        inst_files_path = os.path.join(egg_info_dir, 'installed-files.txt')
+        with open(inst_files_path, 'w') as f:
+            f.write('\n'.join(new_lines) + '\n')
