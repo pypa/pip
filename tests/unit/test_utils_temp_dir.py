@@ -5,8 +5,13 @@ import tempfile
 
 import pytest
 
+from pip._internal.utils import temp_dir
 from pip._internal.utils.misc import ensure_dir
-from pip._internal.utils.temp_dir import AdjacentTempDirectory, TempDirectory
+from pip._internal.utils.temp_dir import (
+    AdjacentTempDirectory,
+    TempDirectory,
+    global_tempdir_manager,
+)
 
 
 # No need to test symlinked directories on Windows
@@ -188,3 +193,17 @@ def test_adjacent_directory_permission_error(monkeypatch):
         with pytest.raises(OSError):
             with AdjacentTempDirectory(original):
                 pass
+
+
+def test_global_tempdir_manager():
+    with global_tempdir_manager():
+        d = TempDirectory(globally_managed=True)
+        path = d.path
+        assert os.path.exists(path)
+    assert not os.path.exists(path)
+
+
+def test_tempdirectory_asserts_global_tempdir(monkeypatch):
+    monkeypatch.setattr(temp_dir, "_tempdir_manager", None)
+    with pytest.raises(AssertionError):
+        TempDirectory(globally_managed=True)
