@@ -1,7 +1,6 @@
 """Metadata generation logic for source distributions.
 """
 
-import atexit
 import logging
 import os
 
@@ -25,9 +24,9 @@ def generate_metadata(install_req):
     build_env = install_req.build_env
     backend = install_req.pep517_backend
 
-    # NOTE: This needs to be refactored to stop using atexit
-    metadata_tmpdir = TempDirectory(kind="modern-metadata")
-    atexit.register(metadata_tmpdir.cleanup)
+    metadata_tmpdir = TempDirectory(
+        kind="modern-metadata", globally_managed=True
+    )
 
     metadata_dir = metadata_tmpdir.path
 

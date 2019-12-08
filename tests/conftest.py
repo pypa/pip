@@ -14,6 +14,7 @@ from pip._vendor.contextlib2 import ExitStack
 from setuptools.wheel import Wheel
 
 from pip._internal.main import main as pip_entry_point
+from pip._internal.utils.temp_dir import global_tempdir_manager
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from tests.lib import DATA_DIR, SRC_DIR, TestData
 from tests.lib.certs import make_tls_cert, serialize_cert, serialize_key
@@ -175,6 +176,17 @@ def isolate(tmpdir):
         fp.write(
             b"[user]\n\tname = pip\n\temail = pypa-dev@googlegroups.com\n"
         )
+
+
+@pytest.fixture(autouse=True)
+def scoped_global_tempdir_manager():
+    """Make unit tests with globally-managed tempdirs easier
+
+    Each test function gets its own individual scope for globally-managed
+    temporary directories in the application.
+    """
+    with global_tempdir_manager():
+        yield
 
 
 @pytest.fixture(scope='session')
