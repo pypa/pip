@@ -15,7 +15,9 @@ import posixpath
 import shutil
 import stat
 import sys
+import tempfile
 from collections import deque
+from functools import partial
 
 from pip._vendor import pkg_resources
 # NOTE: retrying is not annotated in typeshed as on 2017-07-17, which is
@@ -53,7 +55,7 @@ else:
 if MYPY_CHECK_RUNNING:
     from typing import (
         Any, AnyStr, Container, Iterable, Iterator, List, Optional, Text,
-        Tuple, Union,
+        Tuple, Union, Callable
     )
     from pip._vendor.pkg_resources import Distribution
 
@@ -130,16 +132,39 @@ def get_prog():
 
 # Retry every half second for up to 3 seconds
 @retry(stop_max_delay=3000, wait_fixed=500)
-def rmtree(dir, ignore_errors=False):
-    # type: (Text, bool) -> None
+def rmtree(dir, ignore_errors=False, trashdir=None):
+    # type: (Text, bool, Optional[Text]) -> None
+    """
+    :param str dir:
+        Directory to remove
+    :param bool ignore_errors:
+        If `True` then all errors are ignored.
+    :param str trashdir:
+        An optional 'trash' directory path where files that cannot be
+        unlinked (but can be moved) are moved (on windows .dll, .exe, ...
+        files cannot be unlinked if they are used by another process).
+        `trashdir` must be on the same volume as `dir`.
+        If `None` then nothing is done and the errors are propagated to the
+        caller. If `ignore_errors` is `True` `trashdir` is ignored.
+    """
     shutil.rmtree(dir, ignore_errors=ignore_errors,
-                  onerror=rmtree_errorhandler)
+                  onerror=partial(rmtree_errorhandler, trashdir=trashdir))
 
 
-def rmtree_errorhandler(func, path, exc_info):
-    """On Windows, the files in .svn are read-only, so when rmtree() tries to
-    remove them, an exception is thrown.  We catch that here, remove the
-    read-only attribute, and hopefully continue without problems."""
+def rmtree_errorhandler(func, path, exc_info, **kwargs):
+    """
+    `rmtree` error handler to 'force' a file remove.
+
+    * If a file is readonly then the write flag is set and operation is
+      retried.
+
+    * On Windows a some files cannot be unlinked because of sharing semantics
+      (FILE_SHARE_DELETE), most notably .exe and .dll of running processes.
+      But they can be renamed/moved on the same volume. Such files are moved
+      to `trashdir` and (if possible) scheduled for deletion on next reboot.
+    """
+    # trashdir a keyword only param
+    trashdir = kwargs.pop("trashdir", None)  # type: Optional[Text]
     try:
         has_attr_readonly = not (os.stat(path).st_mode & stat.S_IWRITE)
     except (IOError, OSError):
@@ -150,10 +175,45 @@ def rmtree_errorhandler(func, path, exc_info):
         # convert to read/write
         os.chmod(path, stat.S_IWRITE)
         # use the original function to repeat the operation
-        func(path)
-        return
-    else:
-        raise
+        try:
+            func(path)
+            return
+        except OSError:
+            pass
+
+    if exc_info is None:
+        exc_info = sys.exc_info()
+    exc_val = exc_info[1]
+
+    if sys.platform == "win32" and isinstance(exc_val, OSError) \
+            and exc_val.errno == errno.EACCES \
+            and func == os.unlink and trashdir is not None:
+        # On win32 a loaded .exe, .dll, ... cannot be unlinked, but it can be
+        # renamed and scheduled for removal at next reboot. Move and rename to
+        # a unique filename in `trashdir` (must be on the same volume as
+        # `path`)
+        ensure_dir(trashdir)
+        trashname = tempfile.mktemp(
+            suffix=".pip-trash", prefix=".{}-".format(os.path.basename(path)),
+            dir=trashdir)
+        try:
+            logging.debug("os.rename(%r, %r)", path, trashname)
+            os.rename(path, trashname)
+        except OSError:
+            pass  # fallthrough to the end and re-raise the original exception
+        else:
+            logging.debug("MoveFileEx(%r, None, MOVEFILE_DELAY_UNTIL_REBOOT)",
+                          trashname)
+            try:
+                _winapi.MoveFileEx(trashname, None,
+                                   _winapi.MOVEFILE_DELAY_UNTIL_REBOOT)
+            except (OSError, WindowsError):
+                # MOVEFILE_DELAY_UNTIL_REBOOT requires that the user is in
+                # administrators group, but can also fail e.g. if `trashdir`
+                # is on a network mount, ... Just log the error and continue.
+                logging.debug("MoveFileEx failed", exc_info=True)
+            return
+    raise
 
 
 def path_to_display(path):
@@ -891,3 +951,38 @@ def pairwise(iterable):
     """
     iterable = iter(iterable)
     return zip_longest(iterable, iterable)
+
+
+class _winapi(object):
+    # Minimal ctypes winapi to expose MoveFileExW
+    # https://msdn.microsoft.com/en-us/library/windows/desktop/aa365240(v=vs.85).aspx
+    MOVEFILE_REPLACE_EXISTING = 0x1
+    MOVEFILE_DELAY_UNTIL_REBOOT = 0x4
+
+    _MoveFileEx = \
+        None  # type: Optional[Callable[[str, Optional[str], int], None]]
+
+    @classmethod
+    def MoveFileEx(cls, old, new, flags):
+        # type: (str, Optional[str], int) -> None
+        import ctypes.util
+        from ctypes import wintypes
+        if cls._MoveFileEx is None:
+            kernel32 = ctypes.WinDLL(   # type: ignore
+                ctypes.util.find_library("kernel32"), use_last_error=True
+            )
+            _MoveFileExW = kernel32.MoveFileExW
+            _MoveFileExW.argtypes = [
+                wintypes.LPCWSTR,  # lpExistingFileName
+                wintypes.LPCWSTR,  # lpNewFileName
+                wintypes.DWORD  # dwFlags
+            ]
+            _MoveFileExW.restype = wintypes.BOOL
+            cls._MoveFileEx = cast(
+                'Callable[[str, Optional[str], int], None]',
+                _MoveFileExW,
+            )
+        MoveFileEx = cls._MoveFileEx
+        assert MoveFileEx is not None
+        if not MoveFileEx(old, new, flags):
+            raise ctypes.WinError(code=ctypes.get_last_error())  # type: ignore

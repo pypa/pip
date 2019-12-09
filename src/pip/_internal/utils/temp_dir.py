@@ -194,9 +194,16 @@ class TempDirectory(object):
         """
         self._deleted = True
         if os.path.exists(self._path):
+            dname, basename = os.path.split(self._path)
+            # use a trash dir next to `_path`, do not create it yet though,
+            # the rmtree will create it if necessary,
+            trashdir = os.path.join(dname, ".pip-trash")
             # Make sure to pass unicode on Python 2 to make the contents also
             # use unicode, ensuring non-ASCII names and can be represented.
-            rmtree(ensure_text(self._path))
+            rmtree(ensure_text(self._path), trashdir=ensure_text(trashdir))
+            if os.path.isdir(trashdir):
+                # clean trash that might be removable now (from previous runs)
+                rmtree(ensure_text(trashdir), ignore_errors=True)
 
 
 class AdjacentTempDirectory(TempDirectory):

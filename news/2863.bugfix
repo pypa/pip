@@ -1,0 +1,5 @@
+Handle permission access errors from FILE_SHARE_DELETE sharing violation on
+windows when upgrading an in-use .exe, .dll file.
+
+Move such files to a .pip-trash directory and schedule delete on next reboot
+if possible.
