@@ -11,6 +11,7 @@ import stat
 import sys
 import sysconfig
 import urllib.parse
+from functools import partial
 from io import StringIO
 from itertools import filterfalse, tee, zip_longest
 from types import TracebackType
@@ -123,15 +124,35 @@ def get_prog() -> str:
 # Retry every half second for up to 3 seconds
 # Tenacity raises RetryError by default, explicitly raise the original exception
 @retry(reraise=True, stop=stop_after_delay(3), wait=wait_fixed(0.5))
-def rmtree(dir: str, ignore_errors: bool = False) -> None:
+def rmtree(
+    dir: str,
+    ignore_errors: bool = False,
+    onexc: Optional[Callable[[Any, Any, Any], Any]] = None,
+) -> None:
+    if ignore_errors:
+        onexc = _onerror_ignore
+    elif onexc is None:
+        onexc = _onerror_reraise
     if sys.version_info >= (3, 12):
-        shutil.rmtree(dir, ignore_errors=ignore_errors, onexc=rmtree_errorhandler)
+        shutil.rmtree(dir, onexc=partial(rmtree_errorhandler, onexc=onexc))
     else:
-        shutil.rmtree(dir, ignore_errors=ignore_errors, onerror=rmtree_errorhandler)
+        shutil.rmtree(dir, onerror=partial(rmtree_errorhandler, onexc=onexc))
+
+
+def _onerror_ignore(*_args: Any) -> None:
+    pass
+
+
+def _onerror_reraise(*_args: Any) -> None:
+    raise
 
 
 def rmtree_errorhandler(
-    func: Callable[..., Any], path: str, exc_info: Union[ExcInfo, BaseException]
+    func: Callable[..., Any],
+    path: str,
+    exc_info: Union[ExcInfo, BaseException],
+    *,
+    onexc: Callable[..., Any] = _onerror_reraise,
 ) -> None:
     """On Windows, the files in .svn are read-only, so when rmtree() tries to
     remove them, an exception is thrown.  We catch that here, remove the
@@ -146,10 +167,13 @@ def rmtree_errorhandler(
         # convert to read/write
         os.chmod(path, stat.S_IWRITE)
         # use the original function to repeat the operation
-        func(path)
-        return
-    else:
-        raise
+        try:
+            func(path)
+            return
+        except OSError:
+            pass
+
+    onexc(func, path, exc_info)
 
 
 def display_path(path: str) -> str:
