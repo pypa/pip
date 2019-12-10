@@ -127,7 +127,7 @@ pygments_style = 'sphinx'
 extlinks = {
     'issue': ('https://github.com/pypa/pip/issues/%s', '#'),
     'pull': ('https://github.com/pypa/pip/pull/%s', 'PR #'),
-    'pypi': ('https://pypi.org/project/%s', ''),
+    'pypi': ('https://pypi.org/project/%s/', ''),
 }
 
 # -- Options for HTML output --------------------------------------------------

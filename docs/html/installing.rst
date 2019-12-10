@@ -89,7 +89,7 @@ Using Linux Package Managers
 
 See :ref:`pypug:Installing pip/setuptools/wheel with Linux Package Managers` in
 the `Python Packaging User Guide
-<https://packaging.python.org/en/latest/current/>`_.
+<https://packaging.python.org/guides/tool-recommendations/>`_.
 
 .. _`Upgrading pip`:
 
