@@ -34,7 +34,7 @@ typical benefits of reusing libraries instead of reinventing the wheel like
 higher quality and more battle tested code, centralization of bug fixes
 (particularly security sensitive ones), and better/more features for less work.
 
-However, there is several issues with having dependencies in the traditional
+However, there are several issues with having dependencies in the traditional
 way (via ``install_requires``) for pip. These issues are:
 
 * **Fragility.** When pip depends on another library to function then if for
