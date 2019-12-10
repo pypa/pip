@@ -135,4 +135,4 @@ order to create one of these the changes should already be merged into the
 
 .. _`get-pip repository`: https://github.com/pypa/get-pip
 .. _`psf-salt repository`: https://github.com/python/psf-salt
-.. _`CPython`: https://github.com/pypa/cpython
+.. _`CPython`: https://github.com/python/cpython

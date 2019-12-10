@@ -583,8 +583,8 @@ def install_unpacked_wheel(
         entry = e.args[0]
         raise InstallationError(
             "Invalid script entry point: {} for req: {} - A callable "
-            "suffix is required. Cf https://packaging.python.org/en/"
-            "latest/distributing.html#console-scripts for more "
+            "suffix is required. Cf https://packaging.python.org/"
+            "specifications/entry-points/#use-for-scripts for more "
             "information.".format(entry, req_description)
         )
 

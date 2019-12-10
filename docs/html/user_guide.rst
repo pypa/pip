@@ -402,7 +402,7 @@ look like this:
 Each subcommand can be configured optionally in its own section so that every
 global setting with the same name will be overridden; e.g. decreasing the
 ``timeout`` to ``10`` seconds when running the ``freeze``
-(`Freezing Requirements <./#freezing-requirements>`_) command and using
+(:ref:`pip freeze`) command and using
 ``60`` seconds for all other commands is possible with:
 
 .. code-block:: ini

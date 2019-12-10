@@ -69,7 +69,7 @@ provides free executors for open source packages:
 
 .. _`Travis CI`: https://travis-ci.org/
 .. _`Appveyor CI`: https://www.appveyor.com/
-.. _`Azure DevOps CI`: https://dev.azure.com/
+.. _`Azure DevOps CI`: https://azure.microsoft.com/en-us/services/devops/
 .. _`GitHub Actions`: https://github.com/features/actions
 
 
