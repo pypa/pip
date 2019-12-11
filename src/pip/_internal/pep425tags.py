@@ -337,9 +337,9 @@ def _mac_platforms(arch):
         name, major, minor, actual_arch = match.groups()
         tpl = '{}_{}_%i_%s'.format(name, major)
         arches = []
-        for m in reversed(range(int(minor) + 1)):
-            for a in get_darwin_arches(int(major), m, actual_arch):
-                arches.append(tpl % (m, a))
+        minor = int(minor)
+        for a in get_darwin_arches(int(major), minor, actual_arch):
+            arches.append(tpl % (minor, a))
     else:
         # arch pattern didn't match (?!)
         arches = [arch]
