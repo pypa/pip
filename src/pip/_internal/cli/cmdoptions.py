@@ -679,11 +679,22 @@ no_deps = partial(
     help="Don't install package dependencies.",
 )  # type: Callable[..., Option]
 
+
+def _handle_build_dir(option, opt, value, parser):
+    # type: (Option, str, str, OptionParser) -> None
+    if value:
+        value = os.path.abspath(value)
+    setattr(parser.values, option.dest, value)
+
+
 build_dir = partial(
     Option,
     '-b', '--build', '--build-dir', '--build-directory',
     dest='build_dir',
+    type='str',
     metavar='dir',
+    action='callback',
+    callback=_handle_build_dir,
     help='Directory to unpack packages into and build in. Note that '
          'an initial build still takes place in a temporary directory. '
          'The location of temporary directories can be controlled by setting '
