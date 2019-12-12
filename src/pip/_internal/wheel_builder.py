@@ -40,6 +40,7 @@ if MYPY_CHECK_RUNNING:
         RequirementPreparer
     )
     from pip._internal.req.req_install import InstallRequirement
+    from pip._vendor.pep517.wrappers import Pep517HookCaller
 
     BinaryAllowedPredicate = Callable[[InstallRequirement], bool]
 
@@ -228,7 +229,9 @@ def _build_wheel_legacy(
 
 
 def _build_wheel_pep517(
-    req,  # type: InstallRequirement
+    name,  # type: str
+    backend,  # type: Pep517HookCaller
+    metadata_directory,  # type: str
     build_options,  # type: List[str]
     tempd,  # type: str
 ):
@@ -237,26 +240,25 @@ def _build_wheel_pep517(
 
     Returns path to wheel if successfully built. Otherwise, returns None.
     """
-    assert req.metadata_directory is not None
+    assert metadata_directory is not None
     if build_options:
         # PEP 517 does not support --build-options
         logger.error('Cannot build wheel for %s using PEP 517 when '
-                     '--build-option is present' % (req.name,))
+                     '--build-option is present' % (name,))
         return None
     try:
         logger.debug('Destination directory: %s', tempd)
 
         runner = runner_with_spinner_message(
-            'Building wheel for {} (PEP 517)'.format(req.name)
+            'Building wheel for {} (PEP 517)'.format(name)
         )
-        backend = req.pep517_backend
         with backend.subprocess_runner(runner):
             wheel_name = backend.build_wheel(
                 tempd,
-                metadata_directory=req.metadata_directory,
+                metadata_directory=metadata_directory,
             )
     except Exception:
-        logger.error('Failed building wheel for %s', req.name)
+        logger.error('Failed building wheel for %s', name)
         return None
     return os.path.join(tempd, wheel_name)
 
@@ -319,7 +321,9 @@ class WheelBuilder(object):
         with TempDirectory(kind="wheel") as temp_dir:
             if req.use_pep517:
                 wheel_path = _build_wheel_pep517(
-                    req,
+                    name=req.name,
+                    backend=req.pep517_backend,
+                    metadata_directory=req.metadata_directory,
                     build_options=self.build_options,
                     tempd=temp_dir.path,
                 )
