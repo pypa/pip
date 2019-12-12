@@ -8,7 +8,6 @@ import pytest
 from mock import patch
 from pip._vendor.packaging.requirements import Requirement
 
-from pip._internal.commands.wheel import WheelCommand
 from pip._internal.exceptions import UnsupportedWheel
 from pip._internal.locations import get_scheme
 from pip._internal.models.scheme import Scheme
@@ -525,30 +524,3 @@ class TestWheelHashCalculators(object):
         h, length = wheel.rehash(self.test_file)
         assert length == str(self.test_file_len)
         assert h == self.test_file_hash_encoded
-
-
-class TestWheelCommand(object):
-
-    def test_save_wheelnames(self, tmpdir):
-        wheel_filenames = ['Flask-1.1.dev0-py2.py3-none-any.whl']
-        links_filenames = [
-            'flask',
-            'Werkzeug-0.15.4-py2.py3-none-any.whl',
-            'Jinja2-2.10.1-py2.py3-none-any.whl',
-            'itsdangerous-1.1.0-py2.py3-none-any.whl',
-            'Click-7.0-py2.py3-none-any.whl'
-        ]
-
-        expected = wheel_filenames + links_filenames[1:]
-        expected = [filename + '\n' for filename in expected]
-        temp_file = tmpdir.joinpath('wheelfiles')
-
-        WheelCommand('name', 'summary').save_wheelnames(
-            links_filenames,
-            temp_file,
-            wheel_filenames
-        )
-
-        with open(temp_file, 'r') as f:
-            test_content = f.readlines()
-        assert test_content == expected
