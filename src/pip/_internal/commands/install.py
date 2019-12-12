@@ -293,7 +293,6 @@ class InstallCommand(RequirementCommand):
 
         cmdoptions.check_dist_restriction(options, check_target=True)
 
-        options.src_dir = os.path.abspath(options.src_dir)
         install_options = options.install_options or []
 
         options.use_user_site = decide_user_install(

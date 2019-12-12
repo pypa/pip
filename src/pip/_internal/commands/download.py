@@ -86,7 +86,6 @@ class DownloadCommand(RequirementCommand):
 
         cmdoptions.check_dist_restriction(options)
 
-        options.src_dir = os.path.abspath(options.src_dir)
         options.download_dir = normalize_path(options.download_dir)
 
         ensure_dir(options.download_dir)
