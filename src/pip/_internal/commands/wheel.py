@@ -149,8 +149,6 @@ class WheelCommand(RequirementCommand):
         if options.build_dir:
             options.build_dir = os.path.abspath(options.build_dir)
 
-        options.src_dir = os.path.abspath(options.src_dir)
-
         session = self.get_default_session(options)
 
         finder = self._build_package_finder(options, session)
