@@ -196,6 +196,7 @@ class WheelCommand(RequirementCommand):
                 )
                 build_failures = wb.build(
                     requirement_set.requirements.values(),
+                    should_unpack=False,
                 )
                 self.save_wheelnames(
                     [req.link.filename for req in

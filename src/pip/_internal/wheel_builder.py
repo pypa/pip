@@ -369,7 +369,7 @@ class WheelBuilder(object):
     def build(
         self,
         requirements,  # type: Iterable[InstallRequirement]
-        should_unpack=False  # type: bool
+        should_unpack,  # type: bool
     ):
         # type: (...) -> List[InstallRequirement]
         """Build wheels.

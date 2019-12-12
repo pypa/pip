@@ -193,7 +193,7 @@ class TestWheelBuilder(object):
 
         wheel_req = Mock(is_wheel=True, editable=False, constraint=False)
         with caplog.at_level(logging.INFO):
-            wb.build([wheel_req])
+            wb.build([wheel_req], should_unpack=False)
 
         assert "due to already being wheel" in caplog.text
         assert mock_build_one.mock_calls == []
