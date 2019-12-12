@@ -457,8 +457,7 @@ def get_installed_distributions(
         def user_test(d):
             return True
 
-    # because of pkg_resources vendoring, mypy cannot find stub in typeshed
-    return [d for d in working_set  # type: ignore
+    return [d for d in working_set
             if local_test(d) and
             d.key not in skip and
             editable_test(d) and
@@ -878,4 +877,4 @@ def hash_file(path, blocksize=1 << 20):
         for block in read_chunks(f, size=blocksize):
             length += len(block)
             h.update(block)
-    return (h, length)  # type: ignore
+    return h, length
