@@ -34,7 +34,7 @@ logger = logging.getLogger(__name__)
 # call to main.
 #
 # This still has all of the issues with running pip in-process, but
-# ensures that you don’t rely on the (internal) name of the main
+# ensures that you don't rely on the (internal) name of the main
 # function.
 
 def main(args=None):
