@@ -19,6 +19,24 @@ from pip._internal.utils import deprecation
 logger = logging.getLogger(__name__)
 
 
+# Do not run this directly! Running pip in-process is unsupported and
+# unsafe.
+#
+# Also, the location of this function may change, so calling it directly
+# is not portable across different pip versions.  If you have to call
+# this function, and understand and accept the implications of doing so,
+# the best approach is to use runpy as follows:
+#
+#     sys.argv = ["pip", your, args, here]
+#     runpy.run_module("pip", run_name="__main__")
+#
+# Note that this will exit the process after running, unlike a direct
+# call to main.
+#
+# This still has all of the issues with running pip in-process, but
+# ensures that you don’t rely on the (internal) name of the main
+# function.
+
 def main(args=None):
     if args is None:
         args = sys.argv[1:]
