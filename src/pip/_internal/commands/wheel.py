@@ -146,9 +146,6 @@ class WheelCommand(RequirementCommand):
         # type: (Values, List[Any]) -> None
         cmdoptions.check_install_build_global(options)
 
-        if options.build_dir:
-            options.build_dir = os.path.abspath(options.build_dir)
-
         session = self.get_default_session(options)
 
         finder = self._build_package_finder(options, session)
