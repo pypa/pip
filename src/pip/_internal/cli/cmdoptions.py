@@ -14,6 +14,7 @@ pass on state. To be consistent, all options will follow this design.
 from __future__ import absolute_import
 
 import logging
+import os
 import textwrap
 import warnings
 from distutils.util import strtobool
@@ -410,12 +411,21 @@ def editable():
     )
 
 
+def _handle_src(option, opt_str, value, parser):
+    # type: (Option, str, str, OptionParser) -> None
+    value = os.path.abspath(value)
+    setattr(parser.values, option.dest, value)
+
+
 src = partial(
     Option,
     '--src', '--source', '--source-dir', '--source-directory',
     dest='src_dir',
+    type='str',
     metavar='dir',
     default=get_src_prefix(),
+    action='callback',
+    callback=_handle_src,
     help='Directory to check out editable projects into. '
     'The default in a virtualenv is "<venv path>/src". '
     'The default for global installs is "<current dir>/src".'
