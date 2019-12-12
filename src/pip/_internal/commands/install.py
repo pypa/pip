@@ -288,9 +288,6 @@ class InstallCommand(RequirementCommand):
         if options.upgrade:
             upgrade_strategy = options.upgrade_strategy
 
-        if options.build_dir:
-            options.build_dir = os.path.abspath(options.build_dir)
-
         cmdoptions.check_dist_restriction(options, check_target=True)
 
         install_options = options.install_options or []
