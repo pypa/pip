@@ -3,7 +3,6 @@
 
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
-# mypy: disallow-untyped-defs=False
 
 import logging
 import mimetypes
@@ -84,7 +83,13 @@ if MYPY_CHECK_RUNNING:
 logger = logging.getLogger(__name__)
 
 
-def _get_prepared_distribution(req, req_tracker, finder, build_isolation):
+def _get_prepared_distribution(
+        req,  # type: InstallRequirement
+        req_tracker,  # type: RequirementTracker
+        finder,  # type: PackageFinder
+        build_isolation  # type: bool
+):
+    # type: (...) -> AbstractDistribution
     """Prepare a distribution for installation.
     """
     abstract_dist = make_distribution_for_install_requirement(req)
@@ -101,6 +106,7 @@ def unpack_vcs_link(link, location):
 
 
 def _copy_file(filename, location, link):
+    # type: (str, str, Link) -> None
     copy = True
     download_location = os.path.join(location, link.filename)
     if os.path.exists(download_location):
@@ -188,6 +194,7 @@ def _copy2_ignoring_special_files(src, dest):
 def _copy_source_tree(source, target):
     # type: (str, str) -> None
     def ignore(d, names):
+        # type: (str, List[str]) -> List[str]
         # Pulling in those directories can potentially be very slow,
         # exclude the following directories if they appear in the top
         # level dir (and only it).

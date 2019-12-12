@@ -1,12 +1,17 @@
-# The following comment should be removed at some point in the future.
-# mypy: disallow-untyped-defs=False
-
 import logging
 
 from pip._internal.build_env import BuildEnvironment
 from pip._internal.distributions.base import AbstractDistribution
 from pip._internal.exceptions import InstallationError
 from pip._internal.utils.subprocess import runner_with_spinner_message
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from typing import Set, Tuple
+
+    from pip._vendor.pkg_resources import Distribution
+    from pip._internal.index.package_finder import PackageFinder
+
 
 logger = logging.getLogger(__name__)
 
@@ -19,9 +24,11 @@ class SourceDistribution(AbstractDistribution):
     """
 
     def get_pkg_resources_distribution(self):
+        # type: () -> Distribution
         return self.req.get_dist()
 
     def prepare_distribution_metadata(self, finder, build_isolation):
+        # type: (PackageFinder, bool) -> None
         # Load pyproject.toml, to determine whether PEP 517 is to be used
         self.req.load_pyproject_toml()
 
@@ -33,7 +40,9 @@ class SourceDistribution(AbstractDistribution):
         self.req.prepare_metadata()
 
     def _setup_isolation(self, finder):
+        # type: (PackageFinder) -> None
         def _raise_conflicts(conflicting_with, conflicting_reqs):
+            # type: (str, Set[Tuple[str, str]]) -> None
             format_string = (
                 "Some build dependencies for {requirement} "
                 "conflict with {conflicting_with}: {description}."
@@ -50,9 +59,12 @@ class SourceDistribution(AbstractDistribution):
 
         # Isolate in a BuildEnvironment and install the build-time
         # requirements.
+        pyproject_requires = self.req.pyproject_requires
+        assert pyproject_requires is not None
+
         self.req.build_env = BuildEnvironment()
         self.req.build_env.install_requirements(
-            finder, self.req.pyproject_requires, 'overlay',
+            finder, pyproject_requires, 'overlay',
             "Installing build dependencies"
         )
         conflicting, missing = self.req.build_env.check_requirements(
@@ -79,6 +91,7 @@ class SourceDistribution(AbstractDistribution):
                 "Getting requirements to build wheel"
             )
             backend = self.req.pep517_backend
+            assert backend is not None
             with backend.subprocess_runner(runner):
                 reqs = backend.get_requires_for_build_wheel()
 

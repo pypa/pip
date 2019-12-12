@@ -152,7 +152,7 @@ class InstallRequirement(object):
 
         # This holds the pkg_resources.Distribution object if this requirement
         # is already available:
-        self.satisfied_by = None
+        self.satisfied_by = None  # type: Optional[Distribution]
         # Whether the installation process should try to uninstall an existing
         # distribution before installing this requirement.
         self.should_reinstall = False
