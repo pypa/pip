@@ -12,7 +12,6 @@ import pytest
 from pip._vendor.six import PY2
 
 from pip import __version__ as pip_current_version
-from pip._internal import pep425tags
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.utils.misc import rmtree
@@ -1297,9 +1296,9 @@ def test_install_builds_wheels(script, data, with_wheel):
     assert "Running setup.py install for requir" not in str(res), str(res)
     # wheelbroken has to run install
     assert "Running setup.py install for wheelb" in str(res), str(res)
-    # We want to make sure we used the correct implementation tag
+    # We want to make sure pure python wheels do not have an implementation tag
     assert wheels == [
-        "Upper-2.0-{}-none-any.whl".format(pep425tags.implementation_tag),
+        "Upper-2.0-py{}-none-any.whl".format(sys.version_info[0]),
     ]
 
 

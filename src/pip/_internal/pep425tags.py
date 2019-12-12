@@ -54,6 +54,9 @@ def get_abbr_impl():
     return pyimpl
 
 
+interpreter_name = get_abbr_impl
+
+
 def version_info_to_nodot(version_info):
     # type: (Tuple[int, ...]) -> str
     # Only use up to the first two numbers.
@@ -69,6 +72,9 @@ def get_impl_ver():
     return impl_ver
 
 
+interpreter_version = get_impl_ver
+
+
 def get_impl_version_info():
     # type: () -> Tuple[int, ...]
     """Return sys.version_info-like tuple for use in decrementing the minor
@@ -81,14 +87,6 @@ def get_impl_version_info():
                 sys.pypy_version_info.minor)  # type: ignore
     else:
         return sys.version_info[0], sys.version_info[1]
-
-
-def get_impl_tag():
-    # type: () -> str
-    """
-    Returns the Tag for this specific implementation.
-    """
-    return "{}{}".format(get_abbr_impl(), get_impl_ver())
 
 
 def get_flag(var, fallback, expected=True, warn=True):
@@ -459,6 +457,3 @@ def get_supported(
         supported.append(('py%s' % (version,), 'none', 'any'))
 
     return supported
-
-
-implementation_tag = get_impl_tag()
