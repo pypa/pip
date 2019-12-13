@@ -32,7 +32,7 @@ from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Any, Callable, Iterable, List, Optional, Pattern, Text, Tuple, Union,
+        Any, Callable, Iterable, List, Optional, Pattern, Text, Tuple,
     )
 
     from pip._internal.cache import WheelCache
@@ -323,8 +323,6 @@ class WheelBuilder(object):
         self.build_options = build_options or []
         self.global_options = global_options or []
         self.check_binary_allowed = check_binary_allowed
-        # file names of built wheel names
-        self.wheel_filenames = []  # type: List[Union[bytes, Text]]
 
     def _build_one(
         self,
