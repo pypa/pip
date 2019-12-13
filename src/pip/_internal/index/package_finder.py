@@ -2,7 +2,6 @@
 
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
-# mypy: disallow-untyped-defs=False
 
 from __future__ import absolute_import
 
@@ -904,6 +903,7 @@ class PackageFinder(object):
             installed_version = parse_version(req.satisfied_by.version)
 
         def _format_versions(cand_iter):
+            # type: (Iterable[InstallationCandidate]) -> str
             # This repeated parse_version and str() conversion is needed to
             # handle different vendoring sources from pip and pkg_resources.
             # If we stop using the pkg_resources provided specifier and start

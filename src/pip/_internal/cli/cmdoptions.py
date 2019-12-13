@@ -9,7 +9,6 @@ pass on state. To be consistent, all options will follow this design.
 
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
-# mypy: disallow-untyped-defs=False
 
 from __future__ import absolute_import
 
@@ -40,6 +39,7 @@ logger = logging.getLogger(__name__)
 
 
 def raise_option_error(parser, option, msg):
+    # type: (OptionParser, Option, str) -> None
     """
     Raise an option parsing error using parser.error().
 
@@ -78,6 +78,7 @@ def check_install_build_global(options, check_options=None):
         check_options = options
 
     def getname(n):
+        # type: (str) -> Optional[Any]
         return getattr(check_options, n, None)
     names = ["build_options", "global_options", "install_options"]
     if any(map(getname, names)):
@@ -323,6 +324,7 @@ index_url = partial(
 
 
 def extra_index_url():
+    # type: () -> Option
     return Option(
         '--extra-index-url',
         dest='extra_index_urls',
