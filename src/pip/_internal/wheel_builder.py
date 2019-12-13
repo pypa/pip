@@ -32,7 +32,7 @@ from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Any, Callable, Iterable, List, Optional, Pattern, Text, Union,
+        Any, Callable, Iterable, List, Optional, Pattern, Text, Tuple, Union,
     )
 
     from pip._internal.cache import WheelCache
@@ -367,6 +367,33 @@ class WheelBuilder(object):
             logger.error('Failed cleaning build dir for %s', req.name)
             return False
 
+    def _collect_buildset(
+        self,
+        requirements,  # type: Iterable[InstallRequirement]
+        need_wheel,  # type: bool
+    ):
+        # type: (...) -> List[Tuple[InstallRequirement, str]]
+        buildset = []
+        cache_available = bool(self.wheel_cache.cache_dir)
+        for req in requirements:
+            if not should_build(
+                req,
+                need_wheel=need_wheel,
+                check_binary_allowed=self.check_binary_allowed,
+            ):
+                continue
+            if (
+                cache_available and
+                should_cache(req, self.check_binary_allowed)
+            ):
+                output_dir = self.wheel_cache.get_path_for_link(req.link)
+            else:
+                output_dir = self.wheel_cache.get_ephem_path_for_link(
+                    req.link
+                )
+            buildset.append((req, output_dir))
+        return buildset
+
     def build(
         self,
         requirements,  # type: Iterable[InstallRequirement]
@@ -389,29 +416,9 @@ class WheelBuilder(object):
             (not should_unpack and self._wheel_dir)
         )
 
-        buildset = []
-        cache_available = bool(self.wheel_cache.cache_dir)
-
-        for req in requirements:
-            if not should_build(
-                req,
-                need_wheel=not should_unpack,
-                check_binary_allowed=self.check_binary_allowed,
-            ):
-                continue
-
-            if (
-                cache_available and
-                should_cache(req, self.check_binary_allowed)
-            ):
-                output_dir = self.wheel_cache.get_path_for_link(req.link)
-            else:
-                output_dir = self.wheel_cache.get_ephem_path_for_link(
-                    req.link
-                )
-
-            buildset.append((req, output_dir))
-
+        buildset = self._collect_buildset(
+            requirements, need_wheel=not should_unpack
+        )
         if not buildset:
             return []
 
