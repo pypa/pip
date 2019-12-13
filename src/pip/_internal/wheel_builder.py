@@ -476,10 +476,7 @@ class WheelBuilder(object):
                         # copy from cache to target directory
                         try:
                             ensure_dir(self._wheel_dir)
-                            shutil.copy(
-                                os.path.join(cache_dir, wheel_file),
-                                self._wheel_dir,
-                            )
+                            shutil.copy(wheel_file, self._wheel_dir)
                         except OSError as e:
                             logger.warning(
                                 "Building wheel for %s failed: %s",
