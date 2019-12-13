@@ -163,6 +163,7 @@ class WheelCommand(RequirementCommand):
                 )
                 build_failures = wb.build(
                     requirement_set.requirements.values(),
+                    should_unpack=False,
                 )
                 if len(build_failures) != 0:
                     raise CommandError(

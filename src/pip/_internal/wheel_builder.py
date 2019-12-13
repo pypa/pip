@@ -40,6 +40,7 @@ if MYPY_CHECK_RUNNING:
         RequirementPreparer
     )
     from pip._internal.req.req_install import InstallRequirement
+    from pip._vendor.pep517.wrappers import Pep517HookCaller
 
     BinaryAllowedPredicate = Callable[[InstallRequirement], bool]
 
@@ -227,6 +228,41 @@ def _build_wheel_legacy(
         return wheel_path
 
 
+def _build_wheel_pep517(
+    name,  # type: str
+    backend,  # type: Pep517HookCaller
+    metadata_directory,  # type: str
+    build_options,  # type: List[str]
+    tempd,  # type: str
+):
+    # type: (...) -> Optional[str]
+    """Build one InstallRequirement using the PEP 517 build process.
+
+    Returns path to wheel if successfully built. Otherwise, returns None.
+    """
+    assert metadata_directory is not None
+    if build_options:
+        # PEP 517 does not support --build-options
+        logger.error('Cannot build wheel for %s using PEP 517 when '
+                     '--build-option is present' % (name,))
+        return None
+    try:
+        logger.debug('Destination directory: %s', tempd)
+
+        runner = runner_with_spinner_message(
+            'Building wheel for {} (PEP 517)'.format(name)
+        )
+        with backend.subprocess_runner(runner):
+            wheel_name = backend.build_wheel(
+                tempd,
+                metadata_directory=metadata_directory,
+            )
+    except Exception:
+        logger.error('Failed building wheel for %s', name)
+        return None
+    return os.path.join(tempd, wheel_name)
+
+
 def _always_true(_):
     # type: (Any) -> bool
     return True
@@ -281,7 +317,13 @@ class WheelBuilder(object):
         # type: (...) -> Optional[str]
         with TempDirectory(kind="wheel") as temp_dir:
             if req.use_pep517:
-                wheel_path = self._build_one_pep517(req, temp_dir.path)
+                wheel_path = _build_wheel_pep517(
+                    name=req.name,
+                    backend=req.pep517_backend,
+                    metadata_directory=req.metadata_directory,
+                    build_options=self.build_options,
+                    tempd=temp_dir.path,
+                )
             else:
                 wheel_path = _build_wheel_legacy(
                     name=req.name,
@@ -310,39 +352,6 @@ class WheelBuilder(object):
             self._clean_one(req)
             return None
 
-    def _build_one_pep517(
-        self,
-        req,  # type: InstallRequirement
-        tempd,  # type: str
-    ):
-        # type: (...) -> Optional[str]
-        """Build one InstallRequirement using the PEP 517 build process.
-
-        Returns path to wheel if successfully built. Otherwise, returns None.
-        """
-        assert req.metadata_directory is not None
-        if self.build_options:
-            # PEP 517 does not support --build-options
-            logger.error('Cannot build wheel for %s using PEP 517 when '
-                         '--build-option is present' % (req.name,))
-            return None
-        try:
-            logger.debug('Destination directory: %s', tempd)
-
-            runner = runner_with_spinner_message(
-                'Building wheel for {} (PEP 517)'.format(req.name)
-            )
-            backend = req.pep517_backend
-            with backend.subprocess_runner(runner):
-                wheel_name = backend.build_wheel(
-                    tempd,
-                    metadata_directory=req.metadata_directory,
-                )
-        except Exception:
-            logger.error('Failed building wheel for %s', req.name)
-            return None
-        return os.path.join(tempd, wheel_name)
-
     def _clean_one(self, req):
         # type: (InstallRequirement) -> bool
         clean_args = make_setuptools_clean_args(
@@ -361,7 +370,7 @@ class WheelBuilder(object):
     def build(
         self,
         requirements,  # type: Iterable[InstallRequirement]
-        should_unpack=False  # type: bool
+        should_unpack,  # type: bool
     ):
         # type: (...) -> List[InstallRequirement]
         """Build wheels.
