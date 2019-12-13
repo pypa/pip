@@ -5,9 +5,6 @@ needing download / PackageFinder capability don't unnecessarily import the
 PackageFinder machinery and all its vendored dependencies, etc.
 """
 
-# The following comment should be removed at some point in the future.
-# mypy: disallow-untyped-defs=False
-
 import logging
 import os
 from functools import partial
@@ -52,11 +49,13 @@ class SessionCommandMixin(CommandContextMixIn):
     A class mixin for command classes needing _build_session().
     """
     def __init__(self):
+        # type: () -> None
         super(SessionCommandMixin, self).__init__()
         self._session = None  # Optional[PipSession]
 
     @classmethod
     def _get_index_urls(cls, options):
+        # type: (Values) -> Optional[List[str]]
         """Return a list of index urls from user-provided options."""
         index_urls = []
         if not getattr(options, "no_index", False):
@@ -74,6 +73,10 @@ class SessionCommandMixin(CommandContextMixIn):
         """Get a default-managed session."""
         if self._session is None:
             self._session = self.enter_context(self._build_session(options))
+            # there's no type annotation on requests.Session, so it's
+            # automatically ContextManager[Any] and self._session becomes Any,
+            # then https://github.com/python/mypy/issues/7696 kicks in
+            assert self._session is not None
         return self._session
 
     def _build_session(self, options, retries=None, timeout=None):
