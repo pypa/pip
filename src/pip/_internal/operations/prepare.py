@@ -144,7 +144,8 @@ def unpack_http_url(
     hashes=None,  # type: Optional[Hashes]
 ):
     # type: (...) -> None
-    with TempDirectory(kind="unpack") as temp_dir:
+    temp_dir = TempDirectory(kind="unpack", globally_managed=True)
+    if True:
         # If a download dir is specified, is the file already downloaded there?
         already_downloaded_path = None
         if download_dir:
