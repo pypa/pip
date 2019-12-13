@@ -231,11 +231,12 @@ def _build_one_inside_env(
                     req.name, e,
                 )
         # Ignore return, we can't do anything else useful.
-        _clean_one(req, global_options)
+        if not req.use_pep517:
+            _clean_one_legacy(req, global_options)
         return None
 
 
-def _clean_one(req, global_options):
+def _clean_one_legacy(req, global_options):
     # type: (InstallRequirement, List[str]) -> bool
     clean_args = make_setuptools_clean_args(
         req.setup_py_path,
