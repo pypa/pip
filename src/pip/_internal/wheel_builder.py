@@ -373,6 +373,10 @@ class WheelBuilder(object):
         need_wheel,  # type: bool
     ):
         # type: (...) -> List[Tuple[InstallRequirement, str]]
+        """Return the list of InstallRequirement that need to be built,
+        with the persistent or temporary cache directory where the built
+        wheel needs to be stored.
+        """
         buildset = []
         cache_available = bool(self.wheel_cache.cache_dir)
         for req in requirements:
@@ -386,12 +390,10 @@ class WheelBuilder(object):
                 cache_available and
                 should_cache(req, self.check_binary_allowed)
             ):
-                output_dir = self.wheel_cache.get_path_for_link(req.link)
+                cache_dir = self.wheel_cache.get_path_for_link(req.link)
             else:
-                output_dir = self.wheel_cache.get_ephem_path_for_link(
-                    req.link
-                )
-            buildset.append((req, output_dir))
+                cache_dir = self.wheel_cache.get_ephem_path_for_link(req.link)
+            buildset.append((req, cache_dir))
         return buildset
 
     def build(
@@ -433,9 +435,9 @@ class WheelBuilder(object):
 
         with indent_log():
             build_success, build_failure = [], []
-            for req, output_dir in buildset:
+            for req, cache_dir in buildset:
                 try:
-                    ensure_dir(output_dir)
+                    ensure_dir(cache_dir)
                 except OSError as e:
                     logger.warning(
                         "Building wheel for %s failed: %s",
@@ -444,7 +446,7 @@ class WheelBuilder(object):
                     build_failure.append(req)
                     continue
 
-                wheel_file = self._build_one(req, output_dir)
+                wheel_file = self._build_one(req, cache_dir)
                 if wheel_file:
                     if should_unpack:
                         # XXX: This is mildly duplicative with prepare_files,
@@ -475,7 +477,7 @@ class WheelBuilder(object):
                         try:
                             ensure_dir(self._wheel_dir)
                             shutil.copy(
-                                os.path.join(output_dir, wheel_file),
+                                os.path.join(cache_dir, wheel_file),
                                 self._wheel_dir,
                             )
                         except OSError as e:
