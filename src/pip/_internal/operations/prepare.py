@@ -167,6 +167,9 @@ def unpack_http_url(
 
         # a download dir is specified; let's copy the archive there
         if download_dir and not already_downloaded_path:
+            assert not os.path.exists(
+                os.path.join(download_dir, link.filename)
+            )
             _copy_file(from_path, download_dir, link)
 
 
@@ -261,6 +264,7 @@ def unpack_file_url(
 
     # a download dir is specified and not already downloaded
     if download_dir and not already_downloaded_path:
+        assert not os.path.exists(os.path.join(download_dir, link.filename))
         _copy_file(from_path, download_dir, link)
 
 
