@@ -1,6 +1,3 @@
-# The following comment should be removed at some point in the future.
-# mypy: disallow-untyped-defs=False
-
 from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.utils.models import KeyBasedCompareMixin
@@ -33,6 +30,7 @@ class InstallationCandidate(KeyBasedCompareMixin):
         )
 
     def __str__(self):
+        # type: () -> str
         return '{!r} candidate (version {} at {})'.format(
             self.name, self.version, self.link,
         )

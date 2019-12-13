@@ -1,8 +1,5 @@
 """Primary application entrypoint.
 """
-# The following comment should be removed at some point in the future.
-# mypy: disallow-untyped-defs=False
-
 from __future__ import absolute_import
 
 import locale
@@ -15,6 +12,10 @@ from pip._internal.cli.main_parser import parse_command
 from pip._internal.commands import create_command
 from pip._internal.exceptions import PipError
 from pip._internal.utils import deprecation
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from typing import List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +47,7 @@ logger = logging.getLogger(__name__)
 # main, this should not be an issue in practice.
 
 def main(args=None):
+    # type: (Optional[List[str]]) -> int
     if args is None:
         args = sys.argv[1:]
 

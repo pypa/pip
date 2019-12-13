@@ -1,6 +1,3 @@
-# The following comment should be removed at some point in the future.
-# mypy: disallow-untyped-defs=False
-
 import itertools
 import logging
 import os
@@ -101,6 +98,7 @@ class SearchScope(object):
         """
 
         def mkurl_pypi_url(url):
+            # type: (str) -> str
             loc = posixpath.join(
                 url,
                 urllib_parse.quote(canonicalize_name(project_name)))
