@@ -145,32 +145,31 @@ def unpack_http_url(
 ):
     # type: (...) -> None
     temp_dir = TempDirectory(kind="unpack", globally_managed=True)
-    if True:
-        # If a download dir is specified, is the file already downloaded there?
-        already_downloaded_path = None
-        if download_dir:
-            already_downloaded_path = _check_download_dir(
-                link, download_dir, hashes
-            )
+    # If a download dir is specified, is the file already downloaded there?
+    already_downloaded_path = None
+    if download_dir:
+        already_downloaded_path = _check_download_dir(
+            link, download_dir, hashes
+        )
 
-        if already_downloaded_path:
-            from_path = already_downloaded_path
-            content_type = mimetypes.guess_type(from_path)[0]
-        else:
-            # let's download to a tmp dir
-            from_path, content_type = _download_http_url(
-                link, downloader, temp_dir.path, hashes
-            )
+    if already_downloaded_path:
+        from_path = already_downloaded_path
+        content_type = mimetypes.guess_type(from_path)[0]
+    else:
+        # let's download to a tmp dir
+        from_path, content_type = _download_http_url(
+            link, downloader, temp_dir.path, hashes
+        )
 
-        # unpack the archive to the build dir location. even when only
-        # downloading archives, they have to be unpacked to parse dependencies
-        unpack_file(from_path, location, content_type)
+    # unpack the archive to the build dir location. even when only
+    # downloading archives, they have to be unpacked to parse dependencies
+    unpack_file(from_path, location, content_type)
 
-        # a download dir is specified; let's copy the archive there
-        if download_dir and not os.path.exists(
-            os.path.join(download_dir, link.filename)
-        ):
-            _copy_file(from_path, download_dir, link)
+    # a download dir is specified; let's copy the archive there
+    if download_dir and not os.path.exists(
+        os.path.join(download_dir, link.filename)
+    ):
+        _copy_file(from_path, download_dir, link)
 
 
 def _copy2_ignoring_special_files(src, dest):
