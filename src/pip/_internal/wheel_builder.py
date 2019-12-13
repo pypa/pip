@@ -263,6 +263,37 @@ def _build_wheel_pep517(
     return os.path.join(tempd, wheel_name)
 
 
+def _collect_buildset(
+    requirements,  # type: Iterable[InstallRequirement]
+    wheel_cache,  # type: WheelCache
+    check_binary_allowed,  # type: BinaryAllowedPredicate
+    need_wheel,  # type: bool
+):
+    # type: (...) -> List[Tuple[InstallRequirement, str]]
+    """Return the list of InstallRequirement that need to be built,
+    with the persistent or temporary cache directory where the built
+    wheel needs to be stored.
+    """
+    buildset = []
+    cache_available = bool(wheel_cache.cache_dir)
+    for req in requirements:
+        if not should_build(
+            req,
+            need_wheel=need_wheel,
+            check_binary_allowed=check_binary_allowed,
+        ):
+            continue
+        if (
+            cache_available and
+            should_cache(req, check_binary_allowed)
+        ):
+            cache_dir = wheel_cache.get_path_for_link(req.link)
+        else:
+            cache_dir = wheel_cache.get_ephem_path_for_link(req.link)
+        buildset.append((req, cache_dir))
+    return buildset
+
+
 def _always_true(_):
     # type: (Any) -> bool
     return True
@@ -367,35 +398,6 @@ class WheelBuilder(object):
             logger.error('Failed cleaning build dir for %s', req.name)
             return False
 
-    def _collect_buildset(
-        self,
-        requirements,  # type: Iterable[InstallRequirement]
-        need_wheel,  # type: bool
-    ):
-        # type: (...) -> List[Tuple[InstallRequirement, str]]
-        """Return the list of InstallRequirement that need to be built,
-        with the persistent or temporary cache directory where the built
-        wheel needs to be stored.
-        """
-        buildset = []
-        cache_available = bool(self.wheel_cache.cache_dir)
-        for req in requirements:
-            if not should_build(
-                req,
-                need_wheel=need_wheel,
-                check_binary_allowed=self.check_binary_allowed,
-            ):
-                continue
-            if (
-                cache_available and
-                should_cache(req, self.check_binary_allowed)
-            ):
-                cache_dir = self.wheel_cache.get_path_for_link(req.link)
-            else:
-                cache_dir = self.wheel_cache.get_ephem_path_for_link(req.link)
-            buildset.append((req, cache_dir))
-        return buildset
-
     def build(
         self,
         requirements,  # type: Iterable[InstallRequirement]
@@ -418,8 +420,11 @@ class WheelBuilder(object):
             (not should_unpack and self._wheel_dir)
         )
 
-        buildset = self._collect_buildset(
-            requirements, need_wheel=not should_unpack
+        buildset = _collect_buildset(
+            requirements,
+            wheel_cache=self.wheel_cache,
+            check_binary_allowed=self.check_binary_allowed,
+            need_wheel=not should_unpack,
         )
         if not buildset:
             return []
