@@ -1,6 +1,7 @@
 import os.path
 import shutil
 import textwrap
+from hashlib import sha256
 
 import pytest
 
@@ -747,3 +748,22 @@ def test_download_file_url(shared_script, shared_data, tmpdir):
 
     assert downloaded_path.exists()
     assert simple_pkg.read_bytes() == downloaded_path.read_bytes()
+
+
+def test_download_file_url_existing_ok_download(
+    shared_script, shared_data, tmpdir
+):
+    download_dir = tmpdir / 'download'
+    download_dir.mkdir()
+    downloaded_path = download_dir / 'simple-1.0.tar.gz'
+    fake_existing_package = shared_data.packages / 'simple-2.0.tar.gz'
+    shutil.copy(str(fake_existing_package), str(downloaded_path))
+    downloaded_path_bytes = downloaded_path.read_bytes()
+    digest = sha256(downloaded_path_bytes).hexdigest()
+
+    simple_pkg = shared_data.packages / 'simple-1.0.tar.gz'
+    url = "{}#sha256={}".format(path_to_url(simple_pkg), digest)
+
+    shared_script.pip('download', '-d', str(download_dir), url)
+
+    assert downloaded_path_bytes == downloaded_path.read_bytes()

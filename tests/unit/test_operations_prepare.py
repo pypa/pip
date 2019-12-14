@@ -239,22 +239,6 @@ class Test_unpack_file_url(object):
         assert not os.path.isfile(
             os.path.join(self.download_dir, self.dist_file))
 
-    def test_unpack_file_url_download_already_exists(self, tmpdir,
-                                                     data, monkeypatch):
-        self.prep(tmpdir, data)
-        # add in previous download (copy simple-2.0 as simple-1.0)
-        # so we can tell it didn't get overwritten
-        dest_file = os.path.join(self.download_dir, self.dist_file)
-        copy(self.dist_path2, dest_file)
-        with open(self.dist_path2, 'rb') as f:
-            dist_path2_md5 = hashlib.md5(f.read()).hexdigest()
-
-        unpack_file_url(self.dist_url, self.build_dir,
-                        download_dir=self.download_dir)
-        # our hash should be the same, i.e. not overwritten by simple-1.0 hash
-        with open(dest_file, 'rb') as f:
-            assert dist_path2_md5 == hashlib.md5(f.read()).hexdigest()
-
     def test_unpack_file_url_bad_hash(self, tmpdir, data,
                                       monkeypatch):
         """
