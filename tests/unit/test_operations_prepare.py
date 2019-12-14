@@ -239,13 +239,6 @@ class Test_unpack_file_url(object):
         assert not os.path.isfile(
             os.path.join(self.download_dir, self.dist_file))
 
-    def test_unpack_file_url_and_download(self, tmpdir, data):
-        self.prep(tmpdir, data)
-        unpack_file_url(self.dist_url, self.build_dir,
-                        download_dir=self.download_dir)
-        assert os.path.isdir(os.path.join(self.build_dir, 'simple'))
-        assert os.path.isfile(os.path.join(self.download_dir, self.dist_file))
-
     def test_unpack_file_url_download_already_exists(self, tmpdir,
                                                      data, monkeypatch):
         self.prep(tmpdir, data)

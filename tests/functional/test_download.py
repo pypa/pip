@@ -5,6 +5,7 @@ import textwrap
 import pytest
 
 from pip._internal.cli.status_codes import ERROR
+from pip._internal.utils.urls import path_to_url
 from tests.lib.path import Path
 
 
@@ -720,3 +721,29 @@ def test_download_prefer_binary_when_only_tarball_exists(script, data):
         Path('scratch') / 'source-1.0.tar.gz'
         in result.files_created
     )
+
+
+@pytest.fixture(scope="session")
+def shared_script(tmpdir_factory, script_factory):
+    tmpdir = Path(str(tmpdir_factory.mktemp("download_shared_script")))
+    script = script_factory(tmpdir.joinpath("workspace"))
+    return script
+
+
+def test_download_file_url(shared_script, shared_data, tmpdir):
+    download_dir = tmpdir / 'download'
+    download_dir.mkdir()
+    downloaded_path = download_dir / 'simple-1.0.tar.gz'
+
+    simple_pkg = shared_data.packages / 'simple-1.0.tar.gz'
+
+    shared_script.pip(
+        'download',
+        '-d',
+        str(download_dir),
+        '--no-index',
+        path_to_url(str(simple_pkg)),
+    )
+
+    assert downloaded_path.exists()
+    assert simple_pkg.read_bytes() == downloaded_path.read_bytes()
