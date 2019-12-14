@@ -143,7 +143,7 @@ def unpack_http_url(
     download_dir=None,  # type: Optional[str]
     hashes=None,  # type: Optional[Hashes]
 ):
-    # type: (...) -> None
+    # type: (...) -> str
     temp_dir = TempDirectory(kind="unpack", globally_managed=True)
     # If a download dir is specified, is the file already downloaded there?
     already_downloaded_path = None
@@ -170,6 +170,8 @@ def unpack_http_url(
         os.path.join(download_dir, link.filename)
     ):
         _copy_file(from_path, download_dir, link)
+
+    return from_path
 
 
 def _copy2_ignoring_special_files(src, dest):
@@ -219,7 +221,7 @@ def unpack_file_url(
     download_dir=None,  # type: Optional[str]
     hashes=None  # type: Optional[Hashes]
 ):
-    # type: (...) -> None
+    # type: (...) -> Optional[str]
     """Unpack link into location.
 
     If download_dir is provided and link points to a file, make a copy
@@ -233,7 +235,7 @@ def unpack_file_url(
         _copy_source_tree(link_path, location)
         if download_dir:
             logger.info('Link is a directory, ignoring download_dir')
-        return
+        return None
 
     # If --require-hashes is off, `hashes` is either empty, the
     # link's embedded hash, or MissingHashes; it is required to
@@ -267,6 +269,8 @@ def unpack_file_url(
     ):
         _copy_file(from_path, download_dir, link)
 
+    return from_path
+
 
 def unpack_url(
     link,  # type: Link
@@ -275,7 +279,7 @@ def unpack_url(
     download_dir=None,  # type: Optional[str]
     hashes=None,  # type: Optional[Hashes]
 ):
-    # type: (...) -> None
+    # type: (...) -> Optional[str]
     """Unpack link.
        If link is a VCS link:
          if only_download, export into download_dir and ignore location
@@ -293,14 +297,15 @@ def unpack_url(
     # non-editable vcs urls
     if link.is_vcs:
         unpack_vcs_link(link, location)
+        return None
 
     # file urls
     elif link.is_file:
-        unpack_file_url(link, location, download_dir, hashes=hashes)
+        return unpack_file_url(link, location, download_dir, hashes=hashes)
 
     # http urls
     else:
-        unpack_http_url(
+        return unpack_http_url(
             link,
             location,
             downloader,
@@ -500,7 +505,7 @@ class RequirementPreparer(object):
                 download_dir = self.wheel_download_dir
 
             try:
-                unpack_url(
+                local_path = unpack_url(
                     link, req.source_dir, self.downloader, download_dir,
                     hashes=hashes,
                 )
@@ -514,6 +519,11 @@ class RequirementPreparer(object):
                     'Could not install requirement {} because of HTTP '
                     'error {} for URL {}'.format(req, exc, link)
                 )
+
+            # For use in later processing, preserve the file path on the
+            # requirement.
+            if local_path:
+                req.local_file_path = local_path
 
             if link.is_wheel:
                 if download_dir:

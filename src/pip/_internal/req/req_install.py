@@ -137,6 +137,10 @@ class InstallRequirement(object):
             # PEP 508 URL requirement
             link = Link(req.url)
         self.link = self.original_link = link
+        # Path to any downloaded or already-existing package.
+        self.local_file_path = None  # type: Optional[str]
+        if self.link and self.link.is_file:
+            self.local_file_path = self.link.file_path
 
         if extras:
             self.extras = extras
