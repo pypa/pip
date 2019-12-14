@@ -1,7 +1,7 @@
 import hashlib
 import os
 import shutil
-from shutil import copy, rmtree
+from shutil import rmtree
 from tempfile import mkdtemp
 
 import pytest
@@ -251,37 +251,6 @@ class Test_unpack_file_url(object):
             unpack_file_url(dist_url,
                             self.build_dir,
                             hashes=Hashes({'md5': ['bogus']}))
-
-    def test_unpack_file_url_download_bad_hash(self, tmpdir, data,
-                                               monkeypatch):
-        """
-        Test when existing download has different hash from the file url
-        fragment
-        """
-        self.prep(tmpdir, data)
-
-        # add in previous download (copy simple-2.0 as simple-1.0 so it's wrong
-        # hash)
-        dest_file = os.path.join(self.download_dir, self.dist_file)
-        copy(self.dist_path2, dest_file)
-
-        with open(self.dist_path, 'rb') as f:
-            dist_path_md5 = hashlib.md5(f.read()).hexdigest()
-        with open(dest_file, 'rb') as f:
-            dist_path2_md5 = hashlib.md5(f.read()).hexdigest()
-
-        assert dist_path_md5 != dist_path2_md5
-
-        url = '{}#md5={}'.format(self.dist_url.url, dist_path_md5)
-        dist_url = Link(url)
-        unpack_file_url(dist_url, self.build_dir,
-                        download_dir=self.download_dir,
-                        hashes=Hashes({'md5': [dist_path_md5]}))
-
-        # confirm hash is for simple1-1.0
-        # the previous bad download has been removed
-        with open(dest_file, 'rb') as f:
-            assert hashlib.md5(f.read()).hexdigest() == dist_path_md5
 
     def test_unpack_file_url_thats_a_dir(self, tmpdir, data):
         self.prep(tmpdir, data)
