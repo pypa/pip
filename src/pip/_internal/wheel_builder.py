@@ -375,7 +375,11 @@ class WheelBuilder(object):
                                 wheel_hash.hexdigest())
                     logger.info('Stored in directory: %s', output_dir)
                     return dest_path
-                except Exception:
+                except Exception as e:
+                    logger.warning(
+                        "Building wheel for %s failed: %s",
+                        req.name, e,
+                    )
                     pass
             # Ignore return, we can't do anything else useful.
             self._clean_one(req)
