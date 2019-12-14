@@ -627,13 +627,16 @@ def install_wheel(
     req_description,  # type: str
     pycompile=True,  # type: bool
     warn_script_location=True,  # type: bool
+    _temp_dir_for_testing=None,  # type: Optional[str]
 ):
     # type: (...) -> None
-    with TempDirectory(kind="unpacked-wheel") as unpacked_dir:
-        unpack_file(wheel_path, unpacked_dir)
+    with TempDirectory(
+        path=_temp_dir_for_testing, kind="unpacked-wheel"
+    ) as unpacked_dir:
+        unpack_file(wheel_path, unpacked_dir.path)
         install_unpacked_wheel(
             name=name,
-            wheeldir=unpacked_dir,
+            wheeldir=unpacked_dir.path,
             scheme=scheme,
             req_description=req_description,
             pycompile=pycompile,
