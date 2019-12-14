@@ -98,6 +98,18 @@ def test_basic_pip_wheel_downloads_wheels(script, data):
     assert "Saved" in result.stdout, result.stdout
 
 
+def test_pip_wheel_build_relative_cachedir(script, data):
+    """
+    Test 'pip wheel' builds and caches with a non-absolute cache directory.
+    """
+    result = script.pip(
+        'wheel', '--no-index', '-f', data.find_links,
+        '--cache-dir', './cache',
+        'simple==3.0',
+    )
+    assert result.returncode == 0
+
+
 def test_pip_wheel_builds_when_no_binary_set(script, data):
     data.packages.joinpath('simple-3.0-py2.py3-none-any.whl').touch()
     # Check that the wheel package is ignored
