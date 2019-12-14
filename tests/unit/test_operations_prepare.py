@@ -1,11 +1,10 @@
-import hashlib
 import os
 import shutil
 from shutil import rmtree
 from tempfile import mkdtemp
 
 import pytest
-from mock import Mock, patch
+from mock import Mock
 
 from pip._internal.exceptions import HashMismatch
 from pip._internal.models.link import Link
@@ -19,7 +18,6 @@ from pip._internal.operations.prepare import (
 )
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.urls import path_to_url
-from tests.lib import create_file
 from tests.lib.filesystem import (
     get_filelist,
     make_socket_file,
@@ -59,50 +57,6 @@ def test_unpack_http_url_with_urllib_response_without_content_type(data):
         }
     finally:
         rmtree(temp_dir)
-
-
-@patch('pip._internal.operations.prepare.unpack_file')
-def test_unpack_http_url_bad_downloaded_checksum(mock_unpack_file):
-    """
-    If already-downloaded file has bad checksum, re-download.
-    """
-    base_url = 'http://www.example.com/somepackage.tgz'
-    contents = b'downloaded'
-    download_hash = hashlib.new('sha1', contents)
-    link = Link(base_url + '#sha1=' + download_hash.hexdigest())
-
-    session = Mock()
-    session.get = Mock()
-    response = session.get.return_value = MockResponse(contents)
-    response.headers = {'content-type': 'application/x-tar'}
-    response.url = base_url
-    downloader = Downloader(session, progress_bar="on")
-
-    download_dir = mkdtemp()
-    try:
-        downloaded_file = os.path.join(download_dir, 'somepackage.tgz')
-        create_file(downloaded_file, 'some contents')
-
-        unpack_http_url(
-            link,
-            'location',
-            downloader=downloader,
-            download_dir=download_dir,
-            hashes=Hashes({'sha1': [download_hash.hexdigest()]})
-        )
-
-        # despite existence of downloaded file with bad hash, downloaded again
-        session.get.assert_called_once_with(
-            'http://www.example.com/somepackage.tgz',
-            headers={"Accept-Encoding": "identity"},
-            stream=True,
-        )
-        # cached file is replaced with newly downloaded file
-        with open(downloaded_file) as fh:
-            assert fh.read() == 'downloaded'
-
-    finally:
-        rmtree(download_dir)
 
 
 def test_download_http_url__no_directory_traversal(tmpdir):

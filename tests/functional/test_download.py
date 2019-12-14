@@ -8,6 +8,7 @@ import pytest
 from pip._internal.cli.status_codes import ERROR
 from pip._internal.utils.urls import path_to_url
 from tests.lib.path import Path
+from tests.lib.server import file_response
 
 
 def fake_wheel(data, wheel_path):
@@ -786,3 +787,33 @@ def test_download_file_url_existing_bad_download(
     shared_script.pip('download', '-d', str(download_dir), url)
 
     assert simple_pkg_bytes == downloaded_path.read_bytes()
+
+
+def test_download_http_url_bad_hash(
+    shared_script, shared_data, tmpdir, mock_server
+):
+    download_dir = tmpdir / 'download'
+    download_dir.mkdir()
+    downloaded_path = download_dir / 'simple-1.0.tar.gz'
+    fake_existing_package = shared_data.packages / 'simple-2.0.tar.gz'
+    shutil.copy(str(fake_existing_package), str(downloaded_path))
+
+    simple_pkg = shared_data.packages / 'simple-1.0.tar.gz'
+    simple_pkg_bytes = simple_pkg.read_bytes()
+    digest = sha256(simple_pkg_bytes).hexdigest()
+    mock_server.set_responses([
+        file_response(simple_pkg)
+    ])
+    mock_server.start()
+    base_address = 'http://{}:{}'.format(mock_server.host, mock_server.port)
+    url = "{}/simple-1.0.tar.gz#sha256={}".format(base_address, digest)
+
+    shared_script.pip('download', '-d', str(download_dir), url)
+
+    assert simple_pkg_bytes == downloaded_path.read_bytes()
+
+    mock_server.stop()
+    requests = mock_server.get_requests()
+    assert len(requests) == 1
+    assert requests[0]['PATH_INFO'] == '/simple-1.0.tar.gz'
+    assert requests[0]['HTTP_ACCEPT_ENCODING'] == 'identity'
