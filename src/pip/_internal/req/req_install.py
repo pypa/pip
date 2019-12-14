@@ -27,7 +27,7 @@ from pip._internal.operations.build.metadata_legacy import \
     generate_metadata as generate_metadata_legacy
 from pip._internal.operations.install.editable_legacy import \
     install as install_editable_legacy
-from pip._internal.operations.install.wheel import install_unpacked_wheel
+from pip._internal.operations.install.wheel import install_wheel
 from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
 from pip._internal.req.req_uninstall import UninstallPathSet
 from pip._internal.utils.deprecation import deprecated
@@ -774,9 +774,10 @@ class InstallRequirement(object):
             return
 
         if self.is_wheel:
-            install_unpacked_wheel(
+            assert self.local_file_path
+            install_wheel(
                 self.name,
-                self.source_dir,
+                self.local_file_path,
                 scheme=scheme,
                 req_description=str(self.req),
                 pycompile=pycompile,
