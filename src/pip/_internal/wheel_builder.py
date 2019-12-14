@@ -444,16 +444,6 @@ class WheelBuilder(object):
         with indent_log():
             build_success, build_failure = [], []
             for req, cache_dir in buildset:
-                try:
-                    ensure_dir(cache_dir)
-                except OSError as e:
-                    logger.warning(
-                        "Building wheel for %s failed: %s",
-                        req.name, e,
-                    )
-                    build_failure.append(req)
-                    continue
-
                 wheel_file = self._build_one(req, cache_dir)
                 if wheel_file:
                     if should_unpack:
