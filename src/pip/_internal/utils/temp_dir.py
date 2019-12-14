@@ -13,7 +13,7 @@ from pip._internal.utils.misc import rmtree
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Iterator, Optional, TypeVar
+    from typing import Any, Dict, Iterator, Optional, TypeVar
 
     _T = TypeVar('_T', bound='TempDirectory')
 
@@ -34,6 +34,47 @@ def global_tempdir_manager():
             yield
         finally:
             _tempdir_manager = old_tempdir_manager
+
+
+class TempDirectoryTypeRegistry(object):
+    """Manages temp directory behavior
+    """
+
+    def __init__(self):
+        # type: () -> None
+        self._should_delete = {}  # type: Dict[str, bool]
+
+    def set_delete(self, kind, value):
+        # type: (str, bool) -> None
+        """Indicate whether a TempDirectory of the given kind should be
+        auto-deleted.
+        """
+        self._should_delete[kind] = value
+
+    def get_delete(self, kind):
+        # type: (str) -> bool
+        """Get configured auto-delete flag for a given TempDirectory type,
+        default True.
+        """
+        return self._should_delete.get(kind, True)
+
+
+_tempdir_registry = None  # type: Optional[TempDirectoryTypeRegistry]
+
+
+@contextmanager
+def tempdir_registry():
+    # type: () -> Iterator[TempDirectoryTypeRegistry]
+    """Provides a scoped global tempdir registry that can be used to dictate
+    whether directories should be deleted.
+    """
+    global _tempdir_registry
+    old_tempdir_registry = _tempdir_registry
+    _tempdir_registry = TempDirectoryTypeRegistry()
+    try:
+        yield _tempdir_registry
+    finally:
+        _tempdir_registry = old_tempdir_registry
 
 
 class TempDirectory(object):
@@ -68,8 +109,11 @@ class TempDirectory(object):
 
         if path is None and delete is None:
             # If we were not given an explicit directory, and we were not given
-            # an explicit delete option, then we'll default to deleting.
+            # an explicit delete option, then we'll default to deleting unless
+            # the tempdir_registry says otherwise.
             delete = True
+            if _tempdir_registry:
+                delete = _tempdir_registry.get_delete(kind)
 
         if path is None:
             path = self._create(kind)
