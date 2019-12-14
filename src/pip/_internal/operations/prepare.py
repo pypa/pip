@@ -235,14 +235,6 @@ def unpack_file_url(
             logger.info('Link is a directory, ignoring download_dir')
         return
 
-    # If --require-hashes is off, `hashes` is either empty, the
-    # link's embedded hash, or MissingHashes; it is required to
-    # match. If --require-hashes is on, we are satisfied by any
-    # hash in `hashes` matching: a URL-based or an option-based
-    # one; no internet-sourced hash will be in `hashes`.
-    if hashes:
-        hashes.check_against_path(link_path)
-
     # If a download dir is specified, is the file already there and valid?
     already_downloaded_path = None
     if download_dir:
@@ -254,6 +246,14 @@ def unpack_file_url(
         from_path = already_downloaded_path
     else:
         from_path = link_path
+
+    # If --require-hashes is off, `hashes` is either empty, the
+    # link's embedded hash, or MissingHashes; it is required to
+    # match. If --require-hashes is on, we are satisfied by any
+    # hash in `hashes` matching: a URL-based or an option-based
+    # one; no internet-sourced hash will be in `hashes`.
+    if hashes:
+        hashes.check_against_path(from_path)
 
     content_type = mimetypes.guess_type(from_path)[0]
 
