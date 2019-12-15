@@ -39,7 +39,9 @@ def test_wheel_name_filter(tmpdir):
     with open(os.path.join(cache_path, "package-1.0-py3-none-any.whl"), "w"):
         pass
     # package matches wheel name
-    assert wc.get(link, "package", [("py3", "none", "any")]) is not link
+    cached_link = wc.get(link, "package", [("py3", "none", "any")])
+    assert cached_link is not link
+    assert os.path.exists(cached_link.file_path)
     # package2 does not match wheel name
     assert wc.get(link, "package2", [("py3", "none", "any")]) is link
 
