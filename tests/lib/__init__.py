@@ -11,6 +11,7 @@ from contextlib import contextmanager
 from textwrap import dedent
 
 import pytest
+from pip._vendor.six import PY2
 from scripttest import FoundDir, TestFileEnvironment
 
 from pip._internal.index.collector import LinkCollector
@@ -1047,3 +1048,7 @@ def need_mercurial(fn):
     return pytest.mark.mercurial(need_executable(
         'Mercurial', ('hg', 'version')
     )(fn))
+
+
+skip_if_python2 = pytest.mark.skipif(PY2, reason="Non-Python 2 only")
+skip_if_not_python2 = pytest.mark.skipif(not PY2, reason="Python 2 only")

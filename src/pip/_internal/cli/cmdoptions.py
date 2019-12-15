@@ -891,6 +891,16 @@ def check_list_path_option(options):
         )
 
 
+no_python_version_warning = partial(
+    Option,
+    '--no-python-version-warning',
+    dest='no_python_version_warning',
+    action='store_true',
+    default=False,
+    help='Silence deprecation warnings for upcoming unsupported Pythons.',
+)  # type: Callable[..., Option]
+
+
 ##########
 # groups #
 ##########
@@ -918,6 +928,7 @@ general_group = {
         no_cache,
         disable_pip_version_check,
         no_color,
+        no_python_version_warning,
     ]
 }  # type: Dict[str, Any]
 
