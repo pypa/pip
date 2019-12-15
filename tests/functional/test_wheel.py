@@ -120,6 +120,7 @@ def test_pip_wheel_builds_when_no_binary_set(script, data):
     assert "Building wheel for simple" in str(res), str(res)
 
 
+@pytest.mark.skipif("sys.platform == 'win32'")
 def test_pip_wheel_readonly_cache(script, data, tmpdir):
     cache_dir = tmpdir / "cache"
     cache_dir.mkdir()
@@ -133,7 +134,7 @@ def test_pip_wheel_readonly_cache(script, data, tmpdir):
         allow_stderr_warning=True,
     )
     assert res.returncode == 0
-    assert "caching wheels has been disabled" in str(res), str(res)
+    assert "The cache has been disabled." in str(res), str(res)
 
 
 def test_pip_wheel_builds_editable_deps(script, data):

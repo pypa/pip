@@ -27,7 +27,6 @@ from pip._internal.network.auth import MultiDomainBasicAuth
 from pip._internal.network.cache import SafeFileCache
 # Import ssl from compat so the initial import occurs in only one place.
 from pip._internal.utils.compat import has_tls, ipaddress
-from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.glibc import libc_ver
 from pip._internal.utils.misc import (
     build_url_from_netloc,
@@ -263,19 +262,6 @@ class PipSession(requests.Session):
             # order to prevent hammering the service.
             backoff_factor=0.25,
         )
-
-        # Check to ensure that the directory containing our cache directory
-        # is owned by the user current executing pip. If it does not exist
-        # we will check the parent directory until we find one that does exist.
-        if cache and not check_path_owner(cache):
-            logger.warning(
-                "The directory '%s' or its parent directory is not owned by "
-                "the current user and the cache has been disabled. Please "
-                "check the permissions and owner of that directory. If "
-                "executing pip with sudo, you may want sudo's -H flag.",
-                cache,
-            )
-            cache = None
 
         # We want to _only_ cache responses on securely fetched origins. We do
         # this because we can't validate the response of an insecurely fetched

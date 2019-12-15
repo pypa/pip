@@ -34,7 +34,7 @@ from pip._internal.req import RequirementSet, install_given_reqs
 from pip._internal.req.req_tracker import get_requirement_tracker
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.distutils_args import parse_distutils_args
-from pip._internal.utils.filesystem import check_path_owner, test_writable_dir
+from pip._internal.utils.filesystem import test_writable_dir
 from pip._internal.utils.misc import (
     ensure_dir,
     get_installed_version,
@@ -329,17 +329,6 @@ class InstallCommand(RequirementCommand):
         )
         build_delete = (not (options.no_clean or options.build_dir))
         wheel_cache = WheelCache(options.cache_dir, options.format_control)
-
-        if options.cache_dir and not check_path_owner(options.cache_dir):
-            logger.warning(
-                "The directory '%s' or its parent directory is not owned "
-                "by the current user and caching wheels has been "
-                "disabled. check the permissions and owner of that "
-                "directory. If executing pip with sudo, you may want "
-                "sudo's -H flag.",
-                options.cache_dir,
-            )
-            options.cache_dir = None
 
         with get_requirement_tracker() as req_tracker, TempDirectory(
             options.build_dir, delete=build_delete, kind="install"
