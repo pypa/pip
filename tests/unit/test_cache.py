@@ -58,7 +58,7 @@ def test_cache_hash():
 def test_get_path_for_link_legacy(tmpdir):
     """
     Test that an existing cache entry that was created with the legacy hashing
-    mechanism is used.
+    mechanism is returned by WheelCache._get_candidates().
     """
     wc = WheelCache(tmpdir, FormatControl())
     link = Link("https://g.c/o/r")
@@ -66,13 +66,16 @@ def test_get_path_for_link_legacy(tmpdir):
     legacy_path = wc.get_path_for_link_legacy(link)
     assert path != legacy_path
     ensure_dir(path)
-    with open(os.path.join(path, "test-pyz-none-any.whl"), "w"):
+    with open(os.path.join(path, "test-1.0.0-pyz-none-any.whl"), "w"):
         pass
     ensure_dir(legacy_path)
-    with open(os.path.join(legacy_path, "test-pyx-none-any.whl"), "w"):
+    with open(os.path.join(legacy_path, "test-1.0.0-pyx-none-any.whl"), "w"):
         pass
-    expected_candidates = {"test-pyx-none-any.whl", "test-pyz-none-any.whl"}
-    assert set(wc._get_candidates(link, "test")) == expected_candidates
+    expected_candidates = {
+        "test-1.0.0-pyx-none-any.whl", "test-1.0.0-pyz-none-any.whl"
+    }
+    candidates = {c[0] for c in wc._get_candidates(link, "test")}
+    assert candidates == expected_candidates
 
 
 def test_get_with_legacy_entry_only(tmpdir):

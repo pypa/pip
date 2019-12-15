@@ -138,11 +138,15 @@ class Cache(object):
         candidates = []
         path = self.get_path_for_link(link)
         if os.path.isdir(path):
-            candidates.extend(os.listdir(path))
+            for candidate in os.listdir(path):
+                candidates.append((candidate, os.path.join(path, candidate)))
         # TODO remove legacy path lookup in pip>=21
         legacy_path = self.get_path_for_link_legacy(link)
         if os.path.isdir(legacy_path):
-            candidates.extend(os.listdir(legacy_path))
+            for candidate in os.listdir(legacy_path):
+                candidates.append(
+                    (candidate, os.path.join(legacy_path, candidate))
+                )
         return candidates
 
     def get_path_for_link_legacy(self, link):
@@ -166,13 +170,6 @@ class Cache(object):
         passed link.
         """
         raise NotImplementedError()
-
-    def _link_for_candidate(self, link, candidate):
-        # type: (Link, str) -> Link
-        root = self.get_path_for_link(link)
-        path = os.path.join(root, candidate)
-
-        return Link(path_to_url(path))
 
     def cleanup(self):
         # type: () -> None
@@ -228,7 +225,9 @@ class SimpleWheelCache(Cache):
             return link
 
         canonical_package_name = canonicalize_name(package_name)
-        for wheel_name in self._get_candidates(link, canonical_package_name):
+        for wheel_name, wheel_path in self._get_candidates(
+            link, canonical_package_name
+        ):
             try:
                 wheel = Wheel(wheel_name)
             except InvalidWheelFilename:
@@ -245,13 +244,17 @@ class SimpleWheelCache(Cache):
                 # Built for a different python/arch/etc
                 continue
             candidates.append(
-                (wheel.support_index_min(supported_tags), wheel_name)
+                (
+                    wheel.support_index_min(supported_tags),
+                    wheel_name,
+                    wheel_path,
+                )
             )
 
         if not candidates:
             return link
 
-        return self._link_for_candidate(link, min(candidates)[1])
+        return Link(path_to_url(min(candidates)[2]))
 
 
 class EphemWheelCache(SimpleWheelCache):
