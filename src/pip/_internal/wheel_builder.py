@@ -334,6 +334,15 @@ class WheelBuilder(object):
 
         :return: The filename of the built wheel, or None if the build failed.
         """
+        try:
+            ensure_dir(output_dir)
+        except OSError as e:
+            logger.warning(
+                "Building wheel for %s failed: %s",
+                req.name, e,
+            )
+            return None
+
         # Install build deps into temporary directory (PEP 518)
         with req.build_env:
             return self._build_one_inside_env(req, output_dir)
@@ -367,7 +376,6 @@ class WheelBuilder(object):
                 wheel_name = os.path.basename(wheel_path)
                 dest_path = os.path.join(output_dir, wheel_name)
                 try:
-                    ensure_dir(output_dir)
                     wheel_hash, length = hash_file(wheel_path)
                     shutil.move(wheel_path, dest_path)
                     logger.info('Created wheel for %s: '
