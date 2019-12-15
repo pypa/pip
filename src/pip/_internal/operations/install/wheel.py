@@ -28,7 +28,9 @@ from pip._vendor.six import StringIO
 from pip._internal.exceptions import InstallationError, UnsupportedWheel
 from pip._internal.locations import get_major_minor_version
 from pip._internal.utils.misc import captured_stdout, ensure_dir, hash_file
+from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.unpacking import unpack_file
 
 if MYPY_CHECK_RUNNING:
     from typing import (
@@ -616,6 +618,30 @@ def install_unpacked_wheel(
             for row in sorted_outrows(outrows):
                 writer.writerow(row)
     shutil.move(temp_record, record)
+
+
+def install_wheel(
+    name,  # type: str
+    wheel_path,  # type: str
+    scheme,  # type: Scheme
+    req_description,  # type: str
+    pycompile=True,  # type: bool
+    warn_script_location=True,  # type: bool
+    _temp_dir_for_testing=None,  # type: Optional[str]
+):
+    # type: (...) -> None
+    with TempDirectory(
+        path=_temp_dir_for_testing, kind="unpacked-wheel"
+    ) as unpacked_dir:
+        unpack_file(wheel_path, unpacked_dir.path)
+        install_unpacked_wheel(
+            name=name,
+            wheeldir=unpacked_dir.path,
+            scheme=scheme,
+            req_description=req_description,
+            pycompile=pycompile,
+            warn_script_location=warn_script_location,
+        )
 
 
 def wheel_version(source_dir):

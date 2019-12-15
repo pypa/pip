@@ -260,7 +260,6 @@ class TestInstallUnpackedWheel(object):
         self.req = Requirement('sample')
         self.src = os.path.join(tmpdir, 'src')
         self.dest = os.path.join(tmpdir, 'dest')
-        unpack_file(self.wheelpath, self.src)
         self.scheme = Scheme(
             purelib=os.path.join(self.dest, 'lib'),
             platlib=os.path.join(self.dest, 'lib'),
@@ -290,9 +289,9 @@ class TestInstallUnpackedWheel(object):
 
     def test_std_install(self, data, tmpdir):
         self.prep(data, tmpdir)
-        wheel.install_unpacked_wheel(
+        wheel.install_wheel(
             self.name,
-            self.src,
+            self.wheelpath,
             scheme=self.scheme,
             req_description=str(self.req),
         )
@@ -309,9 +308,9 @@ class TestInstallUnpackedWheel(object):
             isolated=False,
             prefix=prefix,
         )
-        wheel.install_unpacked_wheel(
+        wheel.install_wheel(
             self.name,
-            self.src,
+            self.wheelpath,
             scheme=scheme,
             req_description=str(self.req),
         )
@@ -330,11 +329,12 @@ class TestInstallUnpackedWheel(object):
             self.src_dist_info, 'empty_dir', 'empty_dir')
         os.makedirs(src_empty_dir)
         assert os.path.isdir(src_empty_dir)
-        wheel.install_unpacked_wheel(
+        wheel.install_wheel(
             self.name,
-            self.src,
+            self.wheelpath,
             scheme=self.scheme,
             req_description=str(self.req),
+            _temp_dir_for_testing=self.src,
         )
         self.assert_installed()
         assert not os.path.isdir(

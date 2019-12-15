@@ -27,7 +27,7 @@ from pip._internal.operations.build.metadata_legacy import \
     generate_metadata as generate_metadata_legacy
 from pip._internal.operations.install.editable_legacy import \
     install as install_editable_legacy
-from pip._internal.operations.install.wheel import install_unpacked_wheel
+from pip._internal.operations.install.wheel import install_wheel
 from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
 from pip._internal.req.req_uninstall import UninstallPathSet
 from pip._internal.utils.deprecation import deprecated
@@ -137,6 +137,10 @@ class InstallRequirement(object):
             # PEP 508 URL requirement
             link = Link(req.url)
         self.link = self.original_link = link
+        # Path to any downloaded or already-existing package.
+        self.local_file_path = None  # type: Optional[str]
+        if self.link and self.link.is_file:
+            self.local_file_path = self.link.file_path
 
         if extras:
             self.extras = extras
@@ -770,9 +774,10 @@ class InstallRequirement(object):
             return
 
         if self.is_wheel:
-            install_unpacked_wheel(
+            assert self.local_file_path
+            install_wheel(
                 self.name,
-                self.source_dir,
+                self.local_file_path,
                 scheme=scheme,
                 req_description=str(self.req),
                 pycompile=pycompile,

@@ -472,6 +472,7 @@ class WheelBuilder(object):
                         )
                         # Update the link for this.
                         req.link = Link(path_to_url(wheel_file))
+                        req.local_file_path = req.link.file_path
                         assert req.link.is_wheel
                         # extract the wheel into the dir
                         unpack_file(req.link.file_path, req.source_dir)
