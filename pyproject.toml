@@ -30,8 +30,8 @@ patches-dir = "tools/automation/vendoring/patches"
 [tool.vendoring.transformations]
 substitute = [
   # pkg_resource's vendored packages are directly vendored in pip.
-  { match='pkg_resources\.extern', replace='pip._vendor' },
-  { match='from \.extern', replace='from pip._vendor' },
+  { match='pkg_resources\.extern', replace="pip._vendor" },
+  { match='from \.extern', replace="from pip._vendor" },
 ]
 drop = [
   # contains unnecessary scripts
