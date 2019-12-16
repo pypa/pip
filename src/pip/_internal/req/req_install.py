@@ -530,6 +530,14 @@ class InstallRequirement(object):
             self.unpacked_source_directory, backend, backend_path=backend_path,
         )
 
+    def _generate_metadata(self):
+        # type: () -> str
+        """Invokes metadata generator functions, with the required arguments.
+        """
+        if not self.use_pep517:
+            return generate_metadata_legacy(self)
+        return generate_metadata(self)
+
     def prepare_metadata(self):
         # type: () -> None
         """Ensure that project metadata is available.
@@ -539,12 +547,8 @@ class InstallRequirement(object):
         """
         assert self.source_dir
 
-        metadata_generator = generate_metadata
-        if not self.use_pep517:
-            metadata_generator = generate_metadata_legacy
-
         with indent_log():
-            self.metadata_directory = metadata_generator(self)
+            self.metadata_directory = self._generate_metadata()
 
         # Act on the newly generated metadata, based on the name and version.
         if not self.name:
