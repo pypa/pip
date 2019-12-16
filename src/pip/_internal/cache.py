@@ -139,14 +139,12 @@ class Cache(object):
         path = self.get_path_for_link(link)
         if os.path.isdir(path):
             for candidate in os.listdir(path):
-                candidates.append((candidate, os.path.join(path, candidate)))
+                candidates.append((candidate, path))
         # TODO remove legacy path lookup in pip>=21
         legacy_path = self.get_path_for_link_legacy(link)
         if os.path.isdir(legacy_path):
             for candidate in os.listdir(legacy_path):
-                candidates.append(
-                    (candidate, os.path.join(legacy_path, candidate))
-                )
+                candidates.append((candidate, legacy_path))
         return candidates
 
     def get_path_for_link_legacy(self, link):
@@ -225,7 +223,7 @@ class SimpleWheelCache(Cache):
             return link
 
         canonical_package_name = canonicalize_name(package_name)
-        for wheel_name, wheel_path in self._get_candidates(
+        for wheel_name, wheel_dir in self._get_candidates(
             link, canonical_package_name
         ):
             try:
@@ -247,14 +245,15 @@ class SimpleWheelCache(Cache):
                 (
                     wheel.support_index_min(supported_tags),
                     wheel_name,
-                    wheel_path,
+                    wheel_dir,
                 )
             )
 
         if not candidates:
             return link
 
-        return Link(path_to_url(min(candidates)[2]))
+        _, wheel_name, wheel_dir = min(candidates)
+        return Link(path_to_url(os.path.join(wheel_dir, wheel_name)))
 
 
 class EphemWheelCache(SimpleWheelCache):
