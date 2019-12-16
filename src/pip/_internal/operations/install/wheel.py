@@ -22,7 +22,6 @@ from email.parser import Parser
 from pip._vendor import pkg_resources
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor.distlib.util import get_export_entry
-from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.six import StringIO
 
 from pip._internal.exceptions import InstallationError, UnsupportedWheel
@@ -381,8 +380,7 @@ def install_unpacked_wheel(
                     continue
                 elif (
                     is_base and
-                    s.endswith('.dist-info') and
-                    canonicalize_name(s).startswith(canonicalize_name(name))
+                    s.endswith('.dist-info')
                 ):
                     assert not info_dir, (
                         'Multiple .dist-info directories: {}, '.format(
