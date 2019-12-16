@@ -389,7 +389,6 @@ class WheelBuilder(object):
                         "Building wheel for %s failed: %s",
                         req.name, e,
                     )
-                    pass
             # Ignore return, we can't do anything else useful.
             self._clean_one(req)
             return None
