@@ -9,20 +9,19 @@ from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from pip._internal.req.req_install import InstallRequirement
+    from pip._internal.build_env import BuildEnvironment
+    from pip._vendor.pep517.wrappers import Pep517HookCaller
 
 logger = logging.getLogger(__name__)
 
 
-def generate_metadata(install_req):
-    # type: (InstallRequirement) -> str
+def generate_metadata(build_env, backend):
+    # type: (BuildEnvironment, Pep517HookCaller) -> str
     """Generate metadata using mechanisms described in PEP 517.
 
     Returns the generated metadata directory.
     """
-    assert install_req.pep517_backend is not None
-    build_env = install_req.build_env
-    backend = install_req.pep517_backend
+    assert backend is not None
 
     metadata_tmpdir = TempDirectory(
         kind="modern-metadata", globally_managed=True

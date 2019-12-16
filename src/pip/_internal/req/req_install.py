@@ -543,7 +543,11 @@ class InstallRequirement(object):
                 isolated=self.isolated,
                 details=self.name or "from {}".format(self.link)
             )
-        return generate_metadata(self)
+
+        return generate_metadata(
+            build_env=self.build_env,
+            backend=self.pep517_backend,
+        )
 
     def prepare_metadata(self):
         # type: () -> None
