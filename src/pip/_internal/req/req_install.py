@@ -535,7 +535,14 @@ class InstallRequirement(object):
         """Invokes metadata generator functions, with the required arguments.
         """
         if not self.use_pep517:
-            return generate_metadata_legacy(self)
+            return generate_metadata_legacy(
+                build_env=self.build_env,
+                setup_py_path=self.setup_py_path,
+                source_dir=self.unpacked_source_directory,
+                editable=self.editable,
+                isolated=self.isolated,
+                details=self.name or "from {}".format(self.link)
+            )
         return generate_metadata(self)
 
     def prepare_metadata(self):

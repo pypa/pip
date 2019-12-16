@@ -14,7 +14,7 @@ from pip._internal.vcs import vcs
 if MYPY_CHECK_RUNNING:
     from typing import List, Optional
 
-    from pip._internal.req.req_install import InstallRequirement
+    from pip._internal.build_env import BuildEnvironment
 
 logger = logging.getLogger(__name__)
 
@@ -78,47 +78,47 @@ def _find_egg_info(source_directory, is_editable):
     return os.path.join(base, filenames[0])
 
 
-def generate_metadata(install_req):
-    # type: (InstallRequirement) -> str
-    """Generate metadata using setup.py-based defacto mechanisms.ArithmeticError
+def generate_metadata(
+    build_env,  # type: BuildEnvironment
+    setup_py_path,  # type: str
+    source_dir,  # type: str
+    editable,  # type: bool
+    isolated,  # type: bool
+    details,  # type: str
+):
+    # type: (...) -> str
+    """Generate metadata using setup.py-based defacto mechanisms.
 
     Returns the generated metadata directory.
     """
-    assert install_req.unpacked_source_directory
+    assert source_dir
 
-    req_details_str = install_req.name or "from {}".format(install_req.link)
     logger.debug(
         'Running setup.py (path:%s) egg_info for package %s',
-        install_req.setup_py_path, req_details_str,
+        setup_py_path, details,
     )
 
     egg_info_dir = None  # type: Optional[str]
     # For non-editable installs, don't put the .egg-info files at the root,
     # to avoid confusion due to the source code being considered an installed
     # egg.
-    if not install_req.editable:
-        egg_info_dir = os.path.join(
-            install_req.unpacked_source_directory, 'pip-egg-info',
-        )
-
+    if not editable:
+        egg_info_dir = os.path.join(source_dir, 'pip-egg-info')
         # setuptools complains if the target directory does not exist.
         ensure_dir(egg_info_dir)
 
     args = make_setuptools_egg_info_args(
-        install_req.setup_py_path,
+        setup_py_path,
         egg_info_dir=egg_info_dir,
-        no_user_config=install_req.isolated,
+        no_user_config=isolated,
     )
 
-    with install_req.build_env:
+    with build_env:
         call_subprocess(
             args,
-            cwd=install_req.unpacked_source_directory,
+            cwd=source_dir,
             command_desc='python setup.py egg_info',
         )
 
     # Return the .egg-info directory.
-    return _find_egg_info(
-        install_req.unpacked_source_directory,
-        install_req.editable,
-    )
+    return _find_egg_info(source_dir, editable)
