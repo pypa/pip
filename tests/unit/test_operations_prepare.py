@@ -1,11 +1,10 @@
-import hashlib
 import os
 import shutil
-from shutil import copy, rmtree
+from shutil import rmtree
 from tempfile import mkdtemp
 
 import pytest
-from mock import Mock, patch
+from mock import Mock
 
 from pip._internal.exceptions import HashMismatch
 from pip._internal.models.link import Link
@@ -19,7 +18,6 @@ from pip._internal.operations.prepare import (
 )
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.urls import path_to_url
-from tests.lib import create_file
 from tests.lib.filesystem import (
     get_filelist,
     make_socket_file,
@@ -59,50 +57,6 @@ def test_unpack_http_url_with_urllib_response_without_content_type(data):
         }
     finally:
         rmtree(temp_dir)
-
-
-@patch('pip._internal.operations.prepare.unpack_file')
-def test_unpack_http_url_bad_downloaded_checksum(mock_unpack_file):
-    """
-    If already-downloaded file has bad checksum, re-download.
-    """
-    base_url = 'http://www.example.com/somepackage.tgz'
-    contents = b'downloaded'
-    download_hash = hashlib.new('sha1', contents)
-    link = Link(base_url + '#sha1=' + download_hash.hexdigest())
-
-    session = Mock()
-    session.get = Mock()
-    response = session.get.return_value = MockResponse(contents)
-    response.headers = {'content-type': 'application/x-tar'}
-    response.url = base_url
-    downloader = Downloader(session, progress_bar="on")
-
-    download_dir = mkdtemp()
-    try:
-        downloaded_file = os.path.join(download_dir, 'somepackage.tgz')
-        create_file(downloaded_file, 'some contents')
-
-        unpack_http_url(
-            link,
-            'location',
-            downloader=downloader,
-            download_dir=download_dir,
-            hashes=Hashes({'sha1': [download_hash.hexdigest()]})
-        )
-
-        # despite existence of downloaded file with bad hash, downloaded again
-        session.get.assert_called_once_with(
-            'http://www.example.com/somepackage.tgz',
-            headers={"Accept-Encoding": "identity"},
-            stream=True,
-        )
-        # cached file is replaced with newly downloaded file
-        with open(downloaded_file) as fh:
-            assert fh.read() == 'downloaded'
-
-    finally:
-        rmtree(download_dir)
 
 
 def test_download_http_url__no_directory_traversal(tmpdir):
@@ -239,29 +193,6 @@ class Test_unpack_file_url(object):
         assert not os.path.isfile(
             os.path.join(self.download_dir, self.dist_file))
 
-    def test_unpack_file_url_and_download(self, tmpdir, data):
-        self.prep(tmpdir, data)
-        unpack_file_url(self.dist_url, self.build_dir,
-                        download_dir=self.download_dir)
-        assert os.path.isdir(os.path.join(self.build_dir, 'simple'))
-        assert os.path.isfile(os.path.join(self.download_dir, self.dist_file))
-
-    def test_unpack_file_url_download_already_exists(self, tmpdir,
-                                                     data, monkeypatch):
-        self.prep(tmpdir, data)
-        # add in previous download (copy simple-2.0 as simple-1.0)
-        # so we can tell it didn't get overwritten
-        dest_file = os.path.join(self.download_dir, self.dist_file)
-        copy(self.dist_path2, dest_file)
-        with open(self.dist_path2, 'rb') as f:
-            dist_path2_md5 = hashlib.md5(f.read()).hexdigest()
-
-        unpack_file_url(self.dist_url, self.build_dir,
-                        download_dir=self.download_dir)
-        # our hash should be the same, i.e. not overwritten by simple-1.0 hash
-        with open(dest_file, 'rb') as f:
-            assert dist_path2_md5 == hashlib.md5(f.read()).hexdigest()
-
     def test_unpack_file_url_bad_hash(self, tmpdir, data,
                                       monkeypatch):
         """
@@ -274,37 +205,6 @@ class Test_unpack_file_url(object):
             unpack_file_url(dist_url,
                             self.build_dir,
                             hashes=Hashes({'md5': ['bogus']}))
-
-    def test_unpack_file_url_download_bad_hash(self, tmpdir, data,
-                                               monkeypatch):
-        """
-        Test when existing download has different hash from the file url
-        fragment
-        """
-        self.prep(tmpdir, data)
-
-        # add in previous download (copy simple-2.0 as simple-1.0 so it's wrong
-        # hash)
-        dest_file = os.path.join(self.download_dir, self.dist_file)
-        copy(self.dist_path2, dest_file)
-
-        with open(self.dist_path, 'rb') as f:
-            dist_path_md5 = hashlib.md5(f.read()).hexdigest()
-        with open(dest_file, 'rb') as f:
-            dist_path2_md5 = hashlib.md5(f.read()).hexdigest()
-
-        assert dist_path_md5 != dist_path2_md5
-
-        url = '{}#md5={}'.format(self.dist_url.url, dist_path_md5)
-        dist_url = Link(url)
-        unpack_file_url(dist_url, self.build_dir,
-                        download_dir=self.download_dir,
-                        hashes=Hashes({'md5': [dist_path_md5]}))
-
-        # confirm hash is for simple1-1.0
-        # the previous bad download has been removed
-        with open(dest_file, 'rb') as f:
-            assert hashlib.md5(f.read()).hexdigest() == dist_path_md5
 
     def test_unpack_file_url_thats_a_dir(self, tmpdir, data):
         self.prep(tmpdir, data)

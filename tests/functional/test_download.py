@@ -1,11 +1,14 @@
 import os.path
 import shutil
 import textwrap
+from hashlib import sha256
 
 import pytest
 
 from pip._internal.cli.status_codes import ERROR
+from pip._internal.utils.urls import path_to_url
 from tests.lib.path import Path
+from tests.lib.server import file_response
 
 
 def fake_wheel(data, wheel_path):
@@ -720,3 +723,97 @@ def test_download_prefer_binary_when_only_tarball_exists(script, data):
         Path('scratch') / 'source-1.0.tar.gz'
         in result.files_created
     )
+
+
+@pytest.fixture(scope="session")
+def shared_script(tmpdir_factory, script_factory):
+    tmpdir = Path(str(tmpdir_factory.mktemp("download_shared_script")))
+    script = script_factory(tmpdir.joinpath("workspace"))
+    return script
+
+
+def test_download_file_url(shared_script, shared_data, tmpdir):
+    download_dir = tmpdir / 'download'
+    download_dir.mkdir()
+    downloaded_path = download_dir / 'simple-1.0.tar.gz'
+
+    simple_pkg = shared_data.packages / 'simple-1.0.tar.gz'
+
+    shared_script.pip(
+        'download',
+        '-d',
+        str(download_dir),
+        '--no-index',
+        path_to_url(str(simple_pkg)),
+    )
+
+    assert downloaded_path.exists()
+    assert simple_pkg.read_bytes() == downloaded_path.read_bytes()
+
+
+def test_download_file_url_existing_ok_download(
+    shared_script, shared_data, tmpdir
+):
+    download_dir = tmpdir / 'download'
+    download_dir.mkdir()
+    downloaded_path = download_dir / 'simple-1.0.tar.gz'
+    fake_existing_package = shared_data.packages / 'simple-2.0.tar.gz'
+    shutil.copy(str(fake_existing_package), str(downloaded_path))
+    downloaded_path_bytes = downloaded_path.read_bytes()
+    digest = sha256(downloaded_path_bytes).hexdigest()
+
+    simple_pkg = shared_data.packages / 'simple-1.0.tar.gz'
+    url = "{}#sha256={}".format(path_to_url(simple_pkg), digest)
+
+    shared_script.pip('download', '-d', str(download_dir), url)
+
+    assert downloaded_path_bytes == downloaded_path.read_bytes()
+
+
+def test_download_file_url_existing_bad_download(
+    shared_script, shared_data, tmpdir
+):
+    download_dir = tmpdir / 'download'
+    download_dir.mkdir()
+    downloaded_path = download_dir / 'simple-1.0.tar.gz'
+    fake_existing_package = shared_data.packages / 'simple-2.0.tar.gz'
+    shutil.copy(str(fake_existing_package), str(downloaded_path))
+
+    simple_pkg = shared_data.packages / 'simple-1.0.tar.gz'
+    simple_pkg_bytes = simple_pkg.read_bytes()
+    digest = sha256(simple_pkg_bytes).hexdigest()
+    url = "{}#sha256={}".format(path_to_url(simple_pkg), digest)
+
+    shared_script.pip('download', '-d', str(download_dir), url)
+
+    assert simple_pkg_bytes == downloaded_path.read_bytes()
+
+
+def test_download_http_url_bad_hash(
+    shared_script, shared_data, tmpdir, mock_server
+):
+    download_dir = tmpdir / 'download'
+    download_dir.mkdir()
+    downloaded_path = download_dir / 'simple-1.0.tar.gz'
+    fake_existing_package = shared_data.packages / 'simple-2.0.tar.gz'
+    shutil.copy(str(fake_existing_package), str(downloaded_path))
+
+    simple_pkg = shared_data.packages / 'simple-1.0.tar.gz'
+    simple_pkg_bytes = simple_pkg.read_bytes()
+    digest = sha256(simple_pkg_bytes).hexdigest()
+    mock_server.set_responses([
+        file_response(simple_pkg)
+    ])
+    mock_server.start()
+    base_address = 'http://{}:{}'.format(mock_server.host, mock_server.port)
+    url = "{}/simple-1.0.tar.gz#sha256={}".format(base_address, digest)
+
+    shared_script.pip('download', '-d', str(download_dir), url)
+
+    assert simple_pkg_bytes == downloaded_path.read_bytes()
+
+    mock_server.stop()
+    requests = mock_server.get_requests()
+    assert len(requests) == 1
+    assert requests[0]['PATH_INFO'] == '/simple-1.0.tar.gz'
+    assert requests[0]['HTTP_ACCEPT_ENCODING'] == 'identity'

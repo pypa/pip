@@ -178,6 +178,11 @@ class Path(_base):
     def join(self, *parts):
         raise RuntimeError('Path.join is invalid, use joinpath instead.')
 
+    def read_bytes(self):
+        # type: () -> bytes
+        with open(self, "rb") as fp:
+            return fp.read()
+
     def read_text(self):
         with open(self, "r") as fp:
             return fp.read()
