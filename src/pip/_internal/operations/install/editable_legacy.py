@@ -1,4 +1,4 @@
-"""Legacy installation process, i.e. `setup.py develop`.
+"""Legacy editable installation process, i.e. `setup.py develop`.
 """
 import logging
 
@@ -16,7 +16,7 @@ if MYPY_CHECK_RUNNING:
 logger = logging.getLogger(__name__)
 
 
-def install(
+def install_editable(
     install_options,  # type: List[str]
     global_options,  # type: Sequence[str]
     prefix,  # type: Optional[str]

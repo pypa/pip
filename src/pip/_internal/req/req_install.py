@@ -26,7 +26,7 @@ from pip._internal.operations.build.metadata import generate_metadata
 from pip._internal.operations.build.metadata_legacy import \
     generate_metadata as generate_metadata_legacy
 from pip._internal.operations.install.editable_legacy import \
-    install as install_editable_legacy
+    install_editable as install_editable_legacy
 from pip._internal.operations.install.wheel import install_wheel
 from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
 from pip._internal.req.req_uninstall import UninstallPathSet
