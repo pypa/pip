@@ -32,13 +32,6 @@ class Bazaar(VersionControl):
         'bzr+lp',
     )
 
-    def __init__(self, *args, **kwargs):
-        super(Bazaar, self).__init__(*args, **kwargs)
-        # This is only needed for python <2.7.5
-        # Register lp but do not expose as a scheme to support bzr+lp.
-        if getattr(urllib_parse, 'uses_fragment', None):
-            urllib_parse.uses_fragment.extend(['lp'])
-
     @staticmethod
     def get_base_rev_args(rev):
         return ['-r', rev]

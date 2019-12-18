@@ -355,10 +355,6 @@ def get_line_parser(finder):
             defaults.format_control = finder.format_control
 
         args_str, options_str = break_args_options(line)
-        # Prior to 2.7.3, shlex cannot deal with unicode entries
-        if sys.version_info < (2, 7, 3):
-            # https://github.com/python/mypy/issues/1174
-            options_str = options_str.encode('utf8')  # type: ignore
 
         # https://github.com/python/mypy/issues/1174
         opts, _ = parser.parse_args(
