@@ -11,7 +11,6 @@ import optparse
 import os
 import re
 import shlex
-import sys
 
 from pip._vendor.six.moves import filterfalse
 from pip._vendor.six.moves.urllib import parse as urllib_parse
