@@ -18,7 +18,7 @@ Vendoring Policy
 
 * Any modifications made to libraries **MUST** be noted in
   ``pip/_vendor/README.rst`` and their corresponding patches **MUST** be
-  included ``tasks/vendoring/patches``.
+  included ``tools/automation/vendoring/patches``.
 
 * Vendored libraries should have corresponding ``vendored()`` entries in
   ``pip/_vendor/__init__.py``.
@@ -109,11 +109,10 @@ Modifications
 Automatic Vendoring
 -------------------
 
-Vendoring is automated via the ``vendoring.update`` task (defined in
-``tasks/vendoring/__init__.py``) from the content of
+Vendoring is automated via the ``vendoring`` tool from the content of
 ``pip/_vendor/vendor.txt`` and the different patches in
-``tasks/vendoring/patches/``.
-Launch it via ``invoke vendoring.update`` (requires ``invoke>=0.13.0``).
+``tools/automation/vendoring/patches``.
+Launch it via ``vendoring sync . -v`` (requires ``vendoring>=0.2.2``).
 
 
 Debundling
