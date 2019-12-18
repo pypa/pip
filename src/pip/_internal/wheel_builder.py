@@ -334,6 +334,15 @@ class WheelBuilder(object):
 
         :return: The filename of the built wheel, or None if the build failed.
         """
+        try:
+            ensure_dir(output_dir)
+        except OSError as e:
+            logger.warning(
+                "Building wheel for %s failed: %s",
+                req.name, e,
+            )
+            return None
+
         # Install build deps into temporary directory (PEP 518)
         with req.build_env:
             return self._build_one_inside_env(req, output_dir)
@@ -375,8 +384,11 @@ class WheelBuilder(object):
                                 wheel_hash.hexdigest())
                     logger.info('Stored in directory: %s', output_dir)
                     return dest_path
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning(
+                        "Building wheel for %s failed: %s",
+                        req.name, e,
+                    )
             # Ignore return, we can't do anything else useful.
             self._clean_one(req)
             return None
@@ -439,16 +451,6 @@ class WheelBuilder(object):
         with indent_log():
             build_success, build_failure = [], []
             for req, cache_dir in buildset:
-                try:
-                    ensure_dir(cache_dir)
-                except OSError as e:
-                    logger.warning(
-                        "Building wheel for %s failed: %s",
-                        req.name, e,
-                    )
-                    build_failure.append(req)
-                    continue
-
                 wheel_file = self._build_one(req, cache_dir)
                 if wheel_file:
                     if should_unpack:
