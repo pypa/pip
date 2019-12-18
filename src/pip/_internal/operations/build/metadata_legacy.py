@@ -91,8 +91,6 @@ def generate_metadata(
 
     Returns the generated metadata directory.
     """
-    assert source_dir
-
     logger.debug(
         'Running setup.py (path:%s) egg_info for package %s',
         setup_py_path, details,

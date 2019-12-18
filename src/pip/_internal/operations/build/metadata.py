@@ -21,8 +21,6 @@ def generate_metadata(build_env, backend):
 
     Returns the generated metadata directory.
     """
-    assert backend is not None
-
     metadata_tmpdir = TempDirectory(
         kind="modern-metadata", globally_managed=True
     )

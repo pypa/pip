@@ -535,6 +535,8 @@ class InstallRequirement(object):
         """Invokes metadata generator functions, with the required arguments.
         """
         if not self.use_pep517:
+            assert self.unpacked_source_directory
+
             return generate_metadata_legacy(
                 build_env=self.build_env,
                 setup_py_path=self.setup_py_path,
@@ -543,6 +545,8 @@ class InstallRequirement(object):
                 isolated=self.isolated,
                 details=self.name or "from {}".format(self.link)
             )
+
+        assert self.pep517_backend is not None
 
         return generate_metadata(
             build_env=self.build_env,
