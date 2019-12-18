@@ -58,7 +58,7 @@ def test_make_link_collector(
     assert search_scope.index_urls == expected_index_urls
 
 
-@patch('pip._internal.utils.misc.expanduser')
+@patch('os.path.expanduser')
 def test_make_link_collector__find_links_expansion(mock_expanduser, tmpdir):
     """
     Test "~" expansion in --find-links paths.

@@ -33,12 +33,7 @@ from pip._internal.locations import (
     site_packages,
     user_site,
 )
-from pip._internal.utils.compat import (
-    WINDOWS,
-    expanduser,
-    stdlib_pkgs,
-    str_to_display,
-)
+from pip._internal.utils.compat import WINDOWS, stdlib_pkgs, str_to_display
 from pip._internal.utils.marker_files import write_delete_marker_file
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING, cast
 from pip._internal.utils.virtualenv import (
@@ -306,7 +301,7 @@ def normalize_path(path, resolve_symlinks=True):
     Convert a path to its canonical, case-normalized, absolute version.
 
     """
-    path = expanduser(path)
+    path = os.path.expanduser(path)
     if resolve_symlinks:
         path = os.path.realpath(path)
     else:

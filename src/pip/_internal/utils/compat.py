@@ -189,19 +189,6 @@ def get_path_uid(path):
     return file_uid
 
 
-def expanduser(path):
-    # type: (str) -> str
-    """
-    Expand ~ and ~user constructions.
-
-    Includes a workaround for https://bugs.python.org/issue14768
-    """
-    expanded = os.path.expanduser(path)
-    if path.startswith('~/') and expanded.startswith('//'):
-        expanded = expanded[1:]
-    return expanded
-
-
 # packages in the stdlib that may have installation metadata, but should not be
 # considered 'installed'.  this theoretically could be determined based on
 # dist.location (py27:`sysconfig.get_paths()['stdlib']`,

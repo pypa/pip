@@ -3,13 +3,12 @@ import os
 from pip._internal.cache import WheelCache, _hash_dict
 from pip._internal.models.format_control import FormatControl
 from pip._internal.models.link import Link
-from pip._internal.utils.compat import expanduser
 from pip._internal.utils.misc import ensure_dir
 
 
 def test_expands_path():
     wc = WheelCache("~/.foo/", None)
-    assert wc.cache_dir == expanduser("~/.foo/")
+    assert wc.cache_dir == os.path.expanduser("~/.foo/")
 
 
 def test_falsey_path_none():
