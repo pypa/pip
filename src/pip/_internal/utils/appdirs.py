@@ -2,7 +2,7 @@
 This code wraps the vendored appdirs module to so the return values are
 compatible for the current pip code base.
 
-The intention is to rewrite current usages guradually, keeping the tests pass,
+The intention is to rewrite current usages gradually, keeping the tests pass,
 and eventually drop this after all usages are changed.
 """
 
