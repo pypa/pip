@@ -36,6 +36,6 @@ def user_data_dir(appname, roaming=False):
 def site_config_dirs(appname):
     # type: (str) -> List[str]
     dirval = _appdirs.site_config_dir(appname, appauthor=False, multipath=True)
-    if _appdirs.system == "linux2":
+    if _appdirs.system not in ["win32", "darwin"]:
         return dirval.split(os.pathsep)
     return [dirval]
