@@ -247,7 +247,7 @@ def site_config_dir(appname=None, appauthor=None, version=None, multipath=False)
         # XDG default for $XDG_CONFIG_DIRS
         # only first, if multipath is False
         path = os.getenv('XDG_CONFIG_DIRS', '/etc/xdg')
-        pathlist = [os.path.expanduser(x.rstrip(os.sep)) for x in path.split(os.pathsep)]
+        pathlist = [os.path.expanduser(x.rstrip(os.sep)) for x in path.split(os.pathsep) if x]
         if appname:
             if version:
                 appname = os.path.join(appname, version)

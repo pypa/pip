@@ -138,6 +138,14 @@ class TestSiteConfigDirs:
             '/etc'
         ]
 
+    def test_site_config_dirs_linux_empty(self, monkeypatch):
+        monkeypatch.setattr(_appdirs, "system", "linux2")
+        monkeypatch.setattr(os, "path", posixpath)
+        monkeypatch.setattr(os, "pathsep", ':')
+        monkeypatch.setenv("XDG_CONFIG_DIRS", "")
+        monkeypatch.setattr(sys, "platform", "linux2")
+        assert appdirs.site_config_dirs("pip") == ['/etc']
+
 
 class TestUserDataDir:
 

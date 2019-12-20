@@ -1,5 +1,5 @@
 diff --git a/src/pip/_vendor/appdirs.py b/src/pip/_vendor/appdirs.py
-index ae67001a..92b80251 100644
+index ae67001a..e9ff1aa4 100644
 --- a/src/pip/_vendor/appdirs.py
 +++ b/src/pip/_vendor/appdirs.py
 @@ -64,7 +64,7 @@ def user_data_dir(appname=None, appauthor=None, version=None, roaming=False):
@@ -40,7 +40,12 @@ index ae67001a..92b80251 100644
  def site_config_dir(appname=None, appauthor=None, version=None, multipath=False):
      r"""Return full path to the user-shared data dir for this application.
  
-@@ -245,7 +251,9 @@ def site_config_dir(appname=None, appauthor=None, version=None, multipath=False)
+@@ -241,11 +247,13 @@ def site_config_dir(appname=None, appauthor=None, version=None, multipath=False)
+         # XDG default for $XDG_CONFIG_DIRS
+         # only first, if multipath is False
+         path = os.getenv('XDG_CONFIG_DIRS', '/etc/xdg')
+-        pathlist = [os.path.expanduser(x.rstrip(os.sep)) for x in path.split(os.pathsep)]
++        pathlist = [os.path.expanduser(x.rstrip(os.sep)) for x in path.split(os.pathsep) if x]
          if appname:
              if version:
                  appname = os.path.join(appname, version)
