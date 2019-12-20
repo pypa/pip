@@ -29,5 +29,6 @@ def test_entrypoints_work(entrypoint, script):
 
     script.pip("install", "-vvv", str(fake_pkg))
     result = script.pip("-V")
-    result2 = script.run("fake_pip", "-V")
+    result2 = script.run("fake_pip", "-V", allow_stderr_warning=True)
     assert result.stdout == result2.stdout
+    assert "old script wrapper" in result2.stderr

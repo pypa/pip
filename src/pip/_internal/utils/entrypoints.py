@@ -1,3 +1,5 @@
+import sys
+
 from pip._internal.cli.main import main
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -18,4 +20,12 @@ def _wrapper(args=None):
     directing them to an appropriate place for help, we now define all of
     our old entrypoints as wrappers for the current one.
     """
+    sys.stderr.write(
+        "WARNING: pip is being invoked by an old script wrapper. This will "
+        "fail in a future version of pip.\n"
+        "Please see https://github.com/pypa/pip/issues/5599 for advice on "
+        "fixing the underlying issue.\n"
+        "To avoid this problem you can invoke Python with '-m pip' instead of "
+        "running pip directly.\n"
+    )
     return main(args)
