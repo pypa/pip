@@ -2,6 +2,7 @@ import ntpath
 import os
 import posixpath
 import sys
+import types
 
 import pretend
 
@@ -300,3 +301,78 @@ class TestUserConfigDir:
         monkeypatch.setattr(sys, "platform", "linux2")
 
         assert appdirs.user_config_dir("pip") == "/.config/pip"
+
+
+class TestGetWinFolder:
+
+    def test_win_folder_ctypes(self, monkeypatch):
+        if sys.platform != 'win32':
+            return
+
+        @pretend.call_recorder
+        def _get_win_folder_from_registry(csidl_name):
+            return "return-value-from-registry"
+
+        @pretend.call_recorder
+        def _get_win_folder_with_ctypes(csidl_name):
+            return "return-value-from-ctypes"
+
+        monkeypatch.setitem(sys.modules, 'ctypes', types.ModuleType('ctypes'))
+        monkeypatch.setattr(
+            appdirs,
+            "_get_win_folder_from_registry",
+            _get_win_folder_from_registry,
+            raising=False,
+        )
+        monkeypatch.setattr(
+            appdirs,
+            "_get_win_folder_with_ctypes",
+            _get_win_folder_with_ctypes,
+            raising=False,
+        )
+
+        assert (
+            appdirs._get_win_folder("place-holder") ==
+            "return-value-from-ctypes"
+        )
+        assert (
+            _get_win_folder_with_ctypes.calls ==
+            [pretend.call("place-holder")]
+        )
+        assert _get_win_folder_from_registry.calls == []
+
+    def test_win_folder_registry(self, monkeypatch):
+        if sys.platform != 'win32':
+            return
+
+        @pretend.call_recorder
+        def _get_win_folder_from_registry(csidl_name):
+            return "return-value-from-registry"
+
+        @pretend.call_recorder
+        def _get_win_folder_with_ctypes(csidl_name):
+            return "return-value-from-ctypes"
+
+        monkeypatch.setitem(sys.modules, 'ctypes', None)
+        monkeypatch.setattr(
+            appdirs,
+            "_get_win_folder_from_registry",
+            _get_win_folder_from_registry,
+            raising=False,
+        )
+        monkeypatch.setattr(
+            appdirs,
+            "_get_win_folder_with_ctypes",
+            _get_win_folder_with_ctypes,
+            raising=False,
+        )
+
+        assert (
+            appdirs._get_win_folder("place-holder") ==
+            "return-value-from-registry"
+        )
+        assert _get_win_folder_with_ctypes.calls == []
+        assert (
+            _get_win_folder_from_registry.calls ==
+            [pretend.call("place-holder")]
+        )
