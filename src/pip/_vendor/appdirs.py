@@ -37,6 +37,10 @@ if sys.platform.startswith('java'):
         # are actually checked for and the rest of the module expects
         # *sys.platform* style strings.
         system = 'linux2'
+elif sys.platform == 'cli' and os.name == 'nt':
+    # Detect Windows in IronPython to match pip._internal.utils.compat.WINDOWS
+    # Discussion: <https://github.com/pypa/pip/pull/7501>
+    system = 'win32'
 else:
     system = sys.platform
 
