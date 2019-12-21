@@ -22,6 +22,7 @@ from email.parser import Parser
 from pip._vendor import pkg_resources
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor.distlib.util import get_export_entry
+from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.six import StringIO
 
 from pip._internal.exceptions import InstallationError, UnsupportedWheel
@@ -314,8 +315,10 @@ def install_unpacked_wheel(
     :param pycompile: Whether to byte-compile installed Python files
     :param warn_script_location: Whether to check that scripts are installed
         into a directory on PATH
-    :raises UnsupportedWheel: when the directory holds an unpacked wheel with
-        incompatible Wheel-Version
+    :raises UnsupportedWheel:
+        * when the directory holds an unpacked wheel with incompatible
+          Wheel-Version
+        * when the .dist-info dir does not match the wheel
     """
     # TODO: Investigate and break this up.
     # TODO: Look into moving this into a dedicated class for representing an
@@ -442,6 +445,15 @@ def install_unpacked_wheel(
     assert info_dir, "{} .dist-info directory not found".format(
         req_description
     )
+
+    info_dir_name = canonicalize_name(os.path.basename(info_dir[0]))
+    canonical_name = canonicalize_name(name)
+    if not info_dir_name.startswith(canonical_name):
+        raise UnsupportedWheel(
+            "{} .dist-info directory {!r} does not start with {!r}".format(
+                req_description, os.path.basename(info_dir[0]), canonical_name
+            )
+        )
 
     # Get the defined entry points
     ep_file = os.path.join(info_dir[0], 'entry_points.txt')

@@ -1,6 +1,7 @@
 import distutils
 import glob
 import os
+import shutil
 
 import pytest
 
@@ -451,3 +452,23 @@ def test_wheel_install_fails_with_extra_dist_info(script):
         "install", "--no-cache-dir", "--no-index", package, expect_error=True
     )
     assert "Multiple .dist-info directories" in result.stderr
+
+
+def test_wheel_install_fails_with_unrelated_dist_info(script):
+    package = create_basic_wheel_for_package(script, "simple", "0.1.0")
+    new_name = "unrelated-2.0.0-py2.py3-none-any.whl"
+    new_package = os.path.join(os.path.dirname(package), new_name)
+    shutil.move(package, new_package)
+
+    result = script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        new_package,
+        expect_error=True,
+    )
+
+    assert (
+        "'simple-0.1.0.dist-info' does not start with 'unrelated'"
+        in result.stderr
+    )
