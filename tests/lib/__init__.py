@@ -921,8 +921,9 @@ def create_test_package_with_setup(script, **setup_kwargs):
     return pkg_path
 
 
-def create_basic_wheel_for_package(script, name, version,
-                                   depends=None, extras=None):
+def create_basic_wheel_for_package(
+    script, name, version, depends=None, extras=None, extra_files=None
+):
     if depends is None:
         depends = []
     if extras is None:
@@ -965,6 +966,9 @@ def create_basic_wheel_for_package(script, name, version,
         # Have an empty RECORD because we don't want to be checking hashes.
         "{dist_info}/RECORD": ""
     }
+
+    if extra_files:
+        files.update(extra_files)
 
     # Some useful shorthands
     archive_name = "{name}-{version}-py2.py3-none-any.whl".format(

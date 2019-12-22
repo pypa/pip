@@ -1,9 +1,11 @@
 import distutils
 import glob
 import os
+import shutil
 
 import pytest
 
+from tests.lib import create_basic_wheel_for_package
 from tests.lib.path import Path
 
 
@@ -432,3 +434,41 @@ def test_wheel_install_with_no_cache_dir(script, tmpdir, data):
     package = data.packages.joinpath("simple.dist-0.1-py2.py3-none-any.whl")
     result = script.pip('install', '--no-cache-dir', '--no-index', package)
     result.assert_installed('simpledist', editable=False)
+
+
+def test_wheel_install_fails_with_extra_dist_info(script):
+    package = create_basic_wheel_for_package(
+        script,
+        "simple",
+        "0.1.0",
+        extra_files={
+            "unrelated-2.0.0.dist-info/WHEEL": "Wheel-Version: 1.0",
+            "unrelated-2.0.0.dist-info/METADATA": (
+                "Name: unrelated\nVersion: 2.0.0\n"
+            ),
+        },
+    )
+    result = script.pip(
+        "install", "--no-cache-dir", "--no-index", package, expect_error=True
+    )
+    assert "Multiple .dist-info directories" in result.stderr
+
+
+def test_wheel_install_fails_with_unrelated_dist_info(script):
+    package = create_basic_wheel_for_package(script, "simple", "0.1.0")
+    new_name = "unrelated-2.0.0-py2.py3-none-any.whl"
+    new_package = os.path.join(os.path.dirname(package), new_name)
+    shutil.move(package, new_package)
+
+    result = script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        new_package,
+        expect_error=True,
+    )
+
+    assert (
+        "'simple-0.1.0.dist-info' does not start with 'unrelated'"
+        in result.stderr
+    )
