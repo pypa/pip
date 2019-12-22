@@ -13,7 +13,7 @@ import six
 from pip._vendor.contextlib2 import ExitStack
 from setuptools.wheel import Wheel
 
-from pip._internal.main import main as pip_entry_point
+from pip._internal.cli.main import main as pip_entry_point
 from pip._internal.utils.temp_dir import global_tempdir_manager
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from tests.lib import DATA_DIR, SRC_DIR, TestData
