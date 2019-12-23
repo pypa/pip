@@ -144,7 +144,7 @@ class TestSiteConfigDirs:
         monkeypatch.setattr(os, "pathsep", ':')
         monkeypatch.setenv("XDG_CONFIG_DIRS", "")
         monkeypatch.setattr(sys, "platform", "linux2")
-        assert appdirs.site_config_dirs("pip") == ['/etc']
+        assert appdirs.site_config_dirs("pip") == ['/etc/xdg/pip', '/etc']
 
 
 class TestUserDataDir:

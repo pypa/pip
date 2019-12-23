@@ -248,9 +248,10 @@ def site_config_dir(appname=None, appauthor=None, version=None, multipath=False)
         if appname and version:
             path = os.path.join(path, version)
     else:
-        # XDG default for $XDG_CONFIG_DIRS
+        # XDG default for $XDG_CONFIG_DIRS (missing or empty)
+        # see <https://github.com/pypa/pip/pull/7501#discussion_r360624829>
         # only first, if multipath is False
-        path = os.getenv('XDG_CONFIG_DIRS', '/etc/xdg')
+        path = os.getenv('XDG_CONFIG_DIRS') or '/etc/xdg'
         pathlist = [os.path.expanduser(x.rstrip(os.sep)) for x in path.split(os.pathsep) if x]
         if appname:
             if version:

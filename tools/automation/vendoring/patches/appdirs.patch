@@ -1,5 +1,5 @@
 diff --git a/src/pip/_vendor/appdirs.py b/src/pip/_vendor/appdirs.py
-index ae67001a..87a1e0a6 100644
+index ae67001a..3a52b758 100644
 --- a/src/pip/_vendor/appdirs.py
 +++ b/src/pip/_vendor/appdirs.py
 @@ -37,6 +37,10 @@ if sys.platform.startswith('java'):
@@ -12,10 +12,10 @@ index ae67001a..87a1e0a6 100644
 +    system = 'win32'
  else:
      system = sys.platform
-
+ 
 @@ -64,7 +68,7 @@ def user_data_dir(appname=None, appauthor=None, version=None, roaming=False):
              for a discussion of issues.
-
+ 
      Typical user data directories are:
 -        Mac OS X:               ~/Library/Application Support/<AppName>
 +        Mac OS X:               ~/Library/Application Support/<AppName>  # or ~/.config/<AppName>, if the other does not exist
@@ -39,23 +39,29 @@ index ae67001a..87a1e0a6 100644
                  appname = os.path.join(appname, version)
 -            pathlist = [os.sep.join([x, appname]) for x in pathlist]
 +            pathlist = [os.path.join(x, appname) for x in pathlist]
-
+ 
          if multipath:
              path = os.pathsep.join(pathlist)
 @@ -203,6 +211,8 @@ def user_config_dir(appname=None, appauthor=None, version=None, roaming=False):
      return path
-
-
+ 
+ 
 +# for the discussion regarding site_config_dir locations
 +# see <https://github.com/pypa/pip/issues/1733>
  def site_config_dir(appname=None, appauthor=None, version=None, multipath=False):
      r"""Return full path to the user-shared data dir for this application.
-
-@@ -241,11 +251,13 @@ def site_config_dir(appname=None, appauthor=None, version=None, multipath=False)
-         # XDG default for $XDG_CONFIG_DIRS
+ 
+@@ -238,14 +248,17 @@ def site_config_dir(appname=None, appauthor=None, version=None, multipath=False)
+         if appname and version:
+             path = os.path.join(path, version)
+     else:
+-        # XDG default for $XDG_CONFIG_DIRS
++        # XDG default for $XDG_CONFIG_DIRS (missing or empty)
++        # see <https://github.com/pypa/pip/pull/7501#discussion_r360624829>
          # only first, if multipath is False
-         path = os.getenv('XDG_CONFIG_DIRS', '/etc/xdg')
+-        path = os.getenv('XDG_CONFIG_DIRS', '/etc/xdg')
 -        pathlist = [os.path.expanduser(x.rstrip(os.sep)) for x in path.split(os.pathsep)]
++        path = os.getenv('XDG_CONFIG_DIRS') or '/etc/xdg'
 +        pathlist = [os.path.expanduser(x.rstrip(os.sep)) for x in path.split(os.pathsep) if x]
          if appname:
              if version:
@@ -64,10 +70,10 @@ index ae67001a..87a1e0a6 100644
 +            pathlist = [os.path.join(x, appname) for x in pathlist]
 +        # always look in /etc directly as well
 +        pathlist.append('/etc')
-
+ 
          if multipath:
              path = os.pathsep.join(pathlist)
-@@ -291,6 +303,10 @@ def user_cache_dir(appname=None, appauthor=None, version=None, opinion=True):
+@@ -291,6 +304,10 @@ def user_cache_dir(appname=None, appauthor=None, version=None, opinion=True):
          if appauthor is None:
              appauthor = appname
          path = os.path.normpath(_get_win_folder("CSIDL_LOCAL_APPDATA"))
@@ -78,8 +84,8 @@ index ae67001a..87a1e0a6 100644
          if appname:
              if appauthor is not False:
                  path = os.path.join(path, appauthor, appname)
-@@ -557,18 +573,32 @@ def _get_win_folder_with_jna(csidl_name):
-
+@@ -557,18 +574,32 @@ def _get_win_folder_with_jna(csidl_name):
+ 
  if system == "win32":
      try:
 -        import win32com.shell
@@ -117,6 +123,6 @@ index ae67001a..87a1e0a6 100644
 +        except (UnicodeEncodeError, LookupError):
 +            pass
 +    return path
-
-
+ 
+ 
  #---- self test code
