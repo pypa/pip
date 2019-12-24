@@ -233,8 +233,6 @@ def unpack_file_url(
         if os.path.isdir(location):
             rmtree(location)
         _copy_source_tree(link_path, location)
-        if download_dir:
-            logger.info('Link is a directory, ignoring download_dir')
         return None
 
     # If a download dir is specified, is the file already there and valid?
@@ -543,6 +541,10 @@ class RequirementPreparer(object):
             abstract_dist = _get_prepared_distribution(
                 req, self.req_tracker, self.finder, self.build_isolation,
             )
+
+            if link.is_existing_dir():
+                if download_dir:
+                    logger.info('Link is a directory, ignoring download_dir')
 
             if self._download_should_save:
                 # Make a .zip of the source_dir we already created.
