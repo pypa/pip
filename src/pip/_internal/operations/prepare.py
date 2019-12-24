@@ -542,8 +542,8 @@ class RequirementPreparer(object):
                 req, self.req_tracker, self.finder, self.build_isolation,
             )
 
-            if link.is_existing_dir():
-                if download_dir:
+            if download_dir:
+                if link.is_existing_dir():
                     logger.info('Link is a directory, ignoring download_dir')
 
             if self._download_should_save:
