@@ -453,6 +453,10 @@ class WheelBuilder(object):
             for req, cache_dir in buildset:
                 wheel_file = self._build_one(req, cache_dir)
                 if wheel_file:
+                    # Update the link for this.
+                    req.link = Link(path_to_url(wheel_file))
+                    req.local_file_path = req.link.file_path
+                    assert req.link.is_wheel
                     if should_unpack:
                         # XXX: This is mildly duplicative with prepare_files,
                         # but not close enough to pull out to a single common
@@ -472,10 +476,6 @@ class WheelBuilder(object):
                         req.source_dir = req.ensure_build_location(
                             self.preparer.build_dir
                         )
-                        # Update the link for this.
-                        req.link = Link(path_to_url(wheel_file))
-                        req.local_file_path = req.link.file_path
-                        assert req.link.is_wheel
                         # extract the wheel into the dir
                         unpack_file(req.link.file_path, req.source_dir)
                     else:
