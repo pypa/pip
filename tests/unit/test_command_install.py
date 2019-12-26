@@ -26,7 +26,7 @@ class TestWheelCache:
         """
         def build(reqs, **kwargs):
             # Fail the first requirement.
-            return [reqs[0]]
+            return ([], [reqs[0]])
 
         builder = Mock()
         builder.build.side_effect = build

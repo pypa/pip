@@ -161,7 +161,7 @@ class WheelCommand(RequirementCommand):
                     build_options=options.build_options or [],
                     global_options=options.global_options or [],
                 )
-                build_failures = wb.build(
+                _, build_failures = wb.build(
                     requirement_set.requirements.values(),
                     should_unpack=False,
                 )

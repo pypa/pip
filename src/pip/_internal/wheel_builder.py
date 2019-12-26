@@ -43,6 +43,7 @@ if MYPY_CHECK_RUNNING:
     from pip._vendor.pep517.wrappers import Pep517HookCaller
 
     BinaryAllowedPredicate = Callable[[InstallRequirement], bool]
+    BuildResult = Tuple[List[InstallRequirement], List[InstallRequirement]]
 
 logger = logging.getLogger(__name__)
 
@@ -413,7 +414,7 @@ class WheelBuilder(object):
         requirements,  # type: Iterable[InstallRequirement]
         should_unpack,  # type: bool
     ):
-        # type: (...) -> List[InstallRequirement]
+        # type: (...) -> BuildResult
         """Build wheels.
 
         :param should_unpack: If True, after building the wheel, unpack it
@@ -437,7 +438,7 @@ class WheelBuilder(object):
             need_wheel=not should_unpack,
         )
         if not buildset:
-            return []
+            return [], []
 
         # TODO by @pradyunsg
         # Should break up this method into 2 separate methods.
@@ -449,7 +450,7 @@ class WheelBuilder(object):
         )
 
         with indent_log():
-            build_success, build_failure = [], []
+            build_successes, build_failures = [], []
             for req, cache_dir in buildset:
                 wheel_file = self._build_one(req, cache_dir)
                 if wheel_file:
@@ -488,22 +489,22 @@ class WheelBuilder(object):
                                 "Building wheel for %s failed: %s",
                                 req.name, e,
                             )
-                            build_failure.append(req)
+                            build_failures.append(req)
                             continue
-                    build_success.append(req)
+                    build_successes.append(req)
                 else:
-                    build_failure.append(req)
+                    build_failures.append(req)
 
         # notify success/failure
-        if build_success:
+        if build_successes:
             logger.info(
                 'Successfully built %s',
-                ' '.join([req.name for req in build_success]),
+                ' '.join([req.name for req in build_successes]),
             )
-        if build_failure:
+        if build_failures:
             logger.info(
                 'Failed to build %s',
-                ' '.join([req.name for req in build_failure]),
+                ' '.join([req.name for req in build_failures]),
             )
         # Return a list of requirements that failed to build
-        return build_failure
+        return build_successes, build_failures
