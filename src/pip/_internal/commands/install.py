@@ -38,6 +38,7 @@ from pip._internal.utils.filesystem import check_path_owner, test_writable_dir
 from pip._internal.utils.misc import (
     ensure_dir,
     get_installed_version,
+    is_wheel_installed,
     protect_pip_from_modification_on_windows,
     write_output,
 )
@@ -56,18 +57,6 @@ if MYPY_CHECK_RUNNING:
 
 
 logger = logging.getLogger(__name__)
-
-
-def is_wheel_installed():
-    """
-    Return whether the wheel package is installed.
-    """
-    try:
-        import wheel  # noqa: F401
-    except ImportError:
-        return False
-
-    return True
 
 
 def build_wheels(
