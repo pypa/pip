@@ -878,3 +878,15 @@ def hash_file(path, blocksize=1 << 20):
             length += len(block)
             h.update(block)
     return h, length
+
+
+def is_wheel_installed():
+    """
+    Return whether the wheel package is installed.
+    """
+    try:
+        import wheel  # noqa: F401
+    except ImportError:
+        return False
+
+    return True
