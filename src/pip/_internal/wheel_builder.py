@@ -13,7 +13,7 @@ from pip._internal.models.link import Link
 from pip._internal.operations.build.wheel import build_wheel_pep517
 from pip._internal.operations.build.wheel_legacy import build_wheel_legacy
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.misc import ensure_dir, hash_file
+from pip._internal.utils.misc import ensure_dir, hash_file, is_wheel_installed
 from pip._internal.utils.setuptools_build import make_setuptools_clean_args
 from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory
@@ -68,6 +68,13 @@ def should_build(
     if need_wheel:
         # i.e. pip wheel, not pip install
         return True
+
+    # From this point, this concerns the pip install command only
+    # (need_wheel=False).
+
+    if not req.use_pep517 and not is_wheel_installed():
+        # we don't build legacy requirements if wheel is not installed
+        return False
 
     if req.editable or not req.source_dir:
         return False
