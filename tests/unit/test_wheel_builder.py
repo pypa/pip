@@ -1,7 +1,7 @@
 import logging
 
 import pytest
-from mock import Mock
+from mock import Mock, patch
 
 from pip._internal import wheel_builder
 from pip._internal.models.link import Link
@@ -38,6 +38,7 @@ class ReqMock:
         link=None,
         constraint=False,
         source_dir="/tmp/pip-install-123/pendulum",
+        use_pep517=True,
     ):
         self.name = name
         self.is_wheel = is_wheel
@@ -45,6 +46,7 @@ class ReqMock:
         self.link = link
         self.constraint = constraint
         self.source_dir = source_dir
+        self.use_pep517 = use_pep517
 
 
 @pytest.mark.parametrize(
@@ -80,6 +82,30 @@ def test_should_build(req, need_wheel, disallow_binaries, expected):
         check_binary_allowed=lambda req: not disallow_binaries,
     )
     assert should_build is expected
+
+
+@patch("pip._internal.wheel_builder.is_wheel_installed")
+def test_should_build_legacy_wheel_not_installed(is_wheel_installed):
+    is_wheel_installed.return_value = False
+    legacy_req = ReqMock(use_pep517=False)
+    should_build = wheel_builder.should_build(
+        legacy_req,
+        need_wheel=False,
+        check_binary_allowed=lambda req: True,
+    )
+    assert not should_build
+
+
+@patch("pip._internal.wheel_builder.is_wheel_installed")
+def test_should_build_legacy_wheel_installed(is_wheel_installed):
+    is_wheel_installed.return_value = True
+    legacy_req = ReqMock(use_pep517=False)
+    should_build = wheel_builder.should_build(
+        legacy_req,
+        need_wheel=False,
+        check_binary_allowed=lambda req: True,
+    )
+    assert should_build
 
 
 @pytest.mark.parametrize(
