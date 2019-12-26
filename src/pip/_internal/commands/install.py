@@ -421,11 +421,14 @@ class InstallCommand(RequirementCommand):
 
                 # If we're using PEP 517, we cannot do a direct install
                 # so we fail here.
-                if build_failures:
+                pep517_build_failures = [
+                    r for r in build_failures if r.use_pep517
+                ]
+                if pep517_build_failures:
                     raise InstallationError(
                         "Could not build wheels for {} which use"
                         " PEP 517 and cannot be installed directly".format(
-                            ", ".join(r.name for r in build_failures)))
+                            ", ".join(r.name for r in pep517_build_failures)))
 
                 to_install = resolver.get_installation_order(
                     requirement_set
