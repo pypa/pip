@@ -319,8 +319,6 @@ class WheelBuilder(object):
         self.preparer = preparer
         self.wheel_cache = wheel_cache
 
-        self._wheel_dir = preparer.wheel_download_dir
-
         self.build_options = build_options or []
         self.global_options = global_options or []
         self.check_binary_allowed = check_binary_allowed
@@ -422,15 +420,6 @@ class WheelBuilder(object):
             for installation.
         :return: The list of InstallRequirement that failed to build.
         """
-        # pip install uses should_unpack=True.
-        # pip install never provides a _wheel_dir.
-        # pip wheel uses should_unpack=False.
-        # pip wheel always provides a _wheel_dir (via the preparer).
-        assert (
-            (should_unpack and not self._wheel_dir) or
-            (not should_unpack and self._wheel_dir)
-        )
-
         buildset = _collect_buildset(
             requirements,
             wheel_cache=self.wheel_cache,
