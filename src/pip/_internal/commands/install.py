@@ -38,7 +38,6 @@ from pip._internal.utils.filesystem import check_path_owner, test_writable_dir
 from pip._internal.utils.misc import (
     ensure_dir,
     get_installed_version,
-    is_wheel_installed,
     protect_pip_from_modification_on_windows,
     write_output,
 )
@@ -57,36 +56,6 @@ if MYPY_CHECK_RUNNING:
 
 
 logger = logging.getLogger(__name__)
-
-
-def build_wheels(
-    builder,              # type: WheelBuilder
-    pep517_requirements,  # type: List[InstallRequirement]
-    legacy_requirements,  # type: List[InstallRequirement]
-):
-    # type: (...) -> List[InstallRequirement]
-    """
-    Build wheels for requirements, depending on whether wheel is installed.
-    """
-    # We don't build wheels for legacy requirements if wheel is not installed.
-    should_build_legacy = is_wheel_installed()
-
-    # Always build PEP 517 requirements
-    build_failures = builder.build(
-        pep517_requirements,
-        should_unpack=True,
-    )
-
-    if should_build_legacy:
-        # We don't care about failures building legacy
-        # requirements, as we'll fall through to a direct
-        # install for those.
-        builder.build(
-            legacy_requirements,
-            should_unpack=True,
-        )
-
-    return build_failures
 
 
 def get_check_binary_allowed(format_control):
@@ -387,14 +356,6 @@ class InstallCommand(RequirementCommand):
                 check_binary_allowed = get_check_binary_allowed(
                     finder.format_control
                 )
-                # Consider legacy and PEP517-using requirements separately
-                legacy_requirements = []
-                pep517_requirements = []
-                for req in requirement_set.requirements.values():
-                    if req.use_pep517:
-                        pep517_requirements.append(req)
-                    else:
-                        legacy_requirements.append(req)
 
                 wheel_builder = WheelBuilder(
                     preparer, wheel_cache,
@@ -402,10 +363,9 @@ class InstallCommand(RequirementCommand):
                     check_binary_allowed=check_binary_allowed,
                 )
 
-                build_failures = build_wheels(
-                    builder=wheel_builder,
-                    pep517_requirements=pep517_requirements,
-                    legacy_requirements=legacy_requirements,
+                build_failures = wheel_builder.build(
+                    requirement_set.requirements.values(),
+                    should_unpack=True,
                 )
 
                 # If we're using PEP 517, we cannot do a direct install
