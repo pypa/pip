@@ -7,6 +7,7 @@ from __future__ import absolute_import
 
 import logging
 import os
+import shutil
 
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
@@ -14,6 +15,7 @@ from pip._internal.cli.req_command import RequirementCommand
 from pip._internal.exceptions import CommandError, PreviousBuildDirError
 from pip._internal.req import RequirementSet
 from pip._internal.req.req_tracker import get_requirement_tracker
+from pip._internal.utils.misc import ensure_dir
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.wheel_builder import WheelBuilder
@@ -161,10 +163,23 @@ class WheelCommand(RequirementCommand):
                     build_options=options.build_options or [],
                     global_options=options.global_options or [],
                 )
-                _, build_failures = wb.build(
+                build_successes, build_failures = wb.build(
                     requirement_set.requirements.values(),
                     should_unpack=False,
                 )
+                for req in build_successes:
+                    assert req.link and req.link.is_wheel
+                    assert req.local_file_path
+                    # copy from cache to target directory
+                    try:
+                        ensure_dir(options.wheel_dir)
+                        shutil.copy(req.local_file_path, options.wheel_dir)
+                    except OSError as e:
+                        logger.warning(
+                            "Building wheel for %s failed: %s",
+                            req.name, e,
+                        )
+                        build_failures.append(req)
                 if len(build_failures) != 0:
                     raise CommandError(
                         "Failed to build one or more wheels"

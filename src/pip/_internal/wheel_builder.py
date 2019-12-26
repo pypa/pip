@@ -479,18 +479,6 @@ class WheelBuilder(object):
                         )
                         # extract the wheel into the dir
                         unpack_file(req.link.file_path, req.source_dir)
-                    else:
-                        # copy from cache to target directory
-                        try:
-                            ensure_dir(self._wheel_dir)
-                            shutil.copy(wheel_file, self._wheel_dir)
-                        except OSError as e:
-                            logger.warning(
-                                "Building wheel for %s failed: %s",
-                                req.name, e,
-                            )
-                            build_failures.append(req)
-                            continue
                     build_successes.append(req)
                 else:
                     build_failures.append(req)
