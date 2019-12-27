@@ -418,7 +418,8 @@ class WheelBuilder(object):
         :param should_unpack: If True, after building the wheel, unpack it
             and replace the sdist with the unpacked version in preparation
             for installation.
-        :return: The list of InstallRequirement that failed to build.
+        :return: The list of InstallRequirement that succeeded to build and
+            the list of InstallRequirement that failed to build.
         """
         buildset = _collect_buildset(
             requirements,
