@@ -997,7 +997,7 @@ def create_basic_wheel_for_package(
 
     for fname in files:
         path = script.temp_path / fname
-        path.parent.mkdir(exist_ok=True)
+        path.parent.mkdir(exist_ok=True, parents=True)
         path.write_text(files[fname])
 
     retval = script.scratch_path / archive_name

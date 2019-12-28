@@ -383,6 +383,7 @@ def install_unpacked_wheel(
                     continue
                 elif (
                     is_base and
+                    basedir == '' and
                     s.endswith('.dist-info')
                 ):
                     assert not info_dir, (
