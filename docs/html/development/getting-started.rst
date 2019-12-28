@@ -5,7 +5,7 @@ Getting Started
 We’re pleased that you are interested in working on pip.
 
 This document is meant to get you setup to work on pip and to act as a guide and
-reference to the the development setup. If you face any issues during this
+reference to the development setup. If you face any issues during this
 process, please `open an issue`_ about it on the issue tracker.
 
 Get the source code
