@@ -5,6 +5,7 @@ from __future__ import absolute_import
 
 import os
 import re
+import sys
 import warnings
 
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -26,6 +27,8 @@ def glibc_version_string_confstr():
     # to be broken or missing. This strategy is used in the standard library
     # platform module:
     # https://github.com/python/cpython/blob/fcf1d003bf4f0100c9d0921ff3d70e1127ca1b71/Lib/platform.py#L175-L183
+    if sys.platform == "win32":
+        return None
     try:
         # os.confstr("CS_GNU_LIBC_VERSION") returns a string like "glibc 2.17":
         _, version = os.confstr("CS_GNU_LIBC_VERSION").split()

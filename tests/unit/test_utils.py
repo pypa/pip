@@ -570,12 +570,14 @@ class TestGlibc(object):
                     # Didn't find the warning we were expecting
                     assert False
 
+    @pytest.mark.skipif("sys.platform == 'win32'")
     def test_glibc_version_string(self, monkeypatch):
         monkeypatch.setattr(
             os, "confstr", lambda x: "glibc 2.20", raising=False,
         )
         assert glibc_version_string() == "2.20"
 
+    @pytest.mark.skipif("sys.platform == 'win32'")
     def test_glibc_version_string_confstr(self, monkeypatch):
         monkeypatch.setattr(
             os, "confstr", lambda x: "glibc 2.20", raising=False,
