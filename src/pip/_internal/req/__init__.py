@@ -86,7 +86,6 @@ def install_given_reqs(
                 )
                 if should_commit:
                     uninstalled_pathset.commit()
-            requirement.remove_temporary_source()
 
             installed.append(InstallationResult(requirement.name))
 
