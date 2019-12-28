@@ -5,6 +5,7 @@ from mock import Mock
 
 from pip._internal import wheel_builder
 from pip._internal.models.link import Link
+from pip._internal.operations.build.wheel_legacy import format_command_result
 from tests.lib import _create_test_package
 
 
@@ -137,7 +138,7 @@ def test_should_cache_git_sha(script, tmpdir):
 
 def test_format_command_result__INFO(caplog):
     caplog.set_level(logging.INFO)
-    actual = wheel_builder.format_command_result(
+    actual = format_command_result(
         # Include an argument with a space to test argument quoting.
         command_args=['arg1', 'second arg'],
         command_output='output line 1\noutput line 2\n',
@@ -156,7 +157,7 @@ def test_format_command_result__INFO(caplog):
 ])
 def test_format_command_result__DEBUG(caplog, command_output):
     caplog.set_level(logging.DEBUG)
-    actual = wheel_builder.format_command_result(
+    actual = format_command_result(
         command_args=['arg1', 'arg2'],
         command_output=command_output,
     )
@@ -172,7 +173,7 @@ def test_format_command_result__DEBUG(caplog, command_output):
 @pytest.mark.parametrize('log_level', ['DEBUG', 'INFO'])
 def test_format_command_result__empty_output(caplog, log_level):
     caplog.set_level(log_level)
-    actual = wheel_builder.format_command_result(
+    actual = format_command_result(
         command_args=['arg1', 'arg2'],
         command_output='',
     )

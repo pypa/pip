@@ -11,6 +11,9 @@ from pip._vendor.packaging.requirements import Requirement
 from pip._internal.exceptions import UnsupportedWheel
 from pip._internal.locations import get_scheme
 from pip._internal.models.scheme import Scheme
+from pip._internal.operations.build.wheel_legacy import (
+    get_legacy_build_wheel_path,
+)
 from pip._internal.operations.install import wheel
 from pip._internal.operations.install.wheel import (
     MissingCallableSuffix,
@@ -19,7 +22,6 @@ from pip._internal.operations.install.wheel import (
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import hash_file
 from pip._internal.utils.unpacking import unpack_file
-from pip._internal.wheel_builder import get_legacy_build_wheel_path
 from tests.lib import DATA_DIR, assert_paths_equal
 
 
