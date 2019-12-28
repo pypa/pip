@@ -31,6 +31,7 @@ from pip._internal.exceptions import (
     UninstallationError,
 )
 from pip._internal.utils.deprecation import deprecated
+from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.logging import BrokenStdoutLoggingError, setup_logging
 from pip._internal.utils.misc import get_prog
 from pip._internal.utils.temp_dir import global_tempdir_manager
@@ -167,6 +168,18 @@ class Command(CommandContextMixIn):
                     'Could not find an activated virtualenv (required).'
                 )
                 sys.exit(VIRTUALENV_NOT_FOUND)
+
+        if options.cache_dir:
+            if not check_path_owner(options.cache_dir):
+                logger.warning(
+                    "The directory '%s' or its parent directory is not owned "
+                    "or is not writable by the current user. The cache "
+                    "has been disabled. Check the permissions and owner of "
+                    "that directory. If executing pip with sudo, you may want "
+                    "sudo's -H flag.",
+                    options.cache_dir,
+                )
+                options.cache_dir = None
 
         try:
             status = self.run(options, args)

@@ -11,7 +11,6 @@ from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.cli.req_command import RequirementCommand
 from pip._internal.req import RequirementSet
 from pip._internal.req.req_tracker import get_requirement_tracker
-from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.misc import ensure_dir, normalize_path, write_output
 from pip._internal.utils.temp_dir import TempDirectory
 
@@ -99,16 +98,6 @@ class DownloadCommand(RequirementCommand):
             target_python=target_python,
         )
         build_delete = (not (options.no_clean or options.build_dir))
-        if options.cache_dir and not check_path_owner(options.cache_dir):
-            logger.warning(
-                "The directory '%s' or its parent directory is not owned "
-                "by the current user and caching wheels has been "
-                "disabled. check the permissions and owner of that "
-                "directory. If executing pip with sudo, you may want "
-                "sudo's -H flag.",
-                options.cache_dir,
-            )
-            options.cache_dir = None
 
         with get_requirement_tracker() as req_tracker, TempDirectory(
             options.build_dir, delete=build_delete, kind="download"

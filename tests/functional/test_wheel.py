@@ -120,6 +120,23 @@ def test_pip_wheel_builds_when_no_binary_set(script, data):
     assert "Building wheel for simple" in str(res), str(res)
 
 
+@pytest.mark.skipif("sys.platform == 'win32'")
+def test_pip_wheel_readonly_cache(script, data, tmpdir):
+    cache_dir = tmpdir / "cache"
+    cache_dir.mkdir()
+    os.chmod(cache_dir, 0o400)  # read-only cache
+    # Check that the wheel package is ignored
+    res = script.pip(
+        'wheel', '--no-index',
+        '-f', data.find_links,
+        '--cache-dir', cache_dir,
+        'simple==3.0',
+        allow_stderr_warning=True,
+    )
+    assert res.returncode == 0
+    assert "The cache has been disabled." in str(res), str(res)
+
+
 def test_pip_wheel_builds_editable_deps(script, data):
     """
     Test 'pip wheel' finds and builds dependencies of editables
