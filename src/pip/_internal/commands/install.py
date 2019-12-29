@@ -52,7 +52,7 @@ if MYPY_CHECK_RUNNING:
 
     from pip._internal.models.format_control import FormatControl
     from pip._internal.req.req_install import InstallRequirement
-    from pip._internal.wheel_builder import BinaryAllowedPredicate, BuildResult
+    from pip._internal.wheel_builder import BinaryAllowedPredicate
 
 
 logger = logging.getLogger(__name__)
@@ -68,51 +68,6 @@ def is_wheel_installed():
         return False
 
     return True
-
-
-def build_wheels(
-    builder,              # type: WheelBuilder
-    pep517_requirements,  # type: List[InstallRequirement]
-    legacy_requirements,  # type: List[InstallRequirement]
-    wheel_cache,           # type: WheelCache
-    build_options,         # type: List[str]
-    global_options,        # type: List[str]
-    check_binary_allowed,  # type: BinaryAllowedPredicate
-):
-    # type: (...) -> BuildResult
-    """
-    Build wheels for requirements, depending on whether wheel is installed.
-    """
-    # We don't build wheels for legacy requirements if wheel is not installed.
-    should_build_legacy = is_wheel_installed()
-
-    # Always build PEP 517 requirements
-    pep517_build_successes, pep517_build_failures = builder.build(
-        pep517_requirements,
-        should_unpack=True,
-        wheel_cache=wheel_cache,
-        build_options=build_options,
-        global_options=global_options,
-        check_binary_allowed=check_binary_allowed,
-    )
-
-    if should_build_legacy:
-        # We don't care about failures building legacy
-        # requirements, as we'll fall through to a direct
-        # install for those.
-        legacy_build_successes, legacy_build_failures = builder.build(
-            legacy_requirements,
-            should_unpack=True,
-            wheel_cache=wheel_cache,
-            build_options=build_options,
-            global_options=global_options,
-            check_binary_allowed=check_binary_allowed,
-        )
-
-    return (
-        pep517_build_successes + legacy_build_successes,
-        pep517_build_failures + legacy_build_failures,
-    )
 
 
 def get_check_binary_allowed(format_control):
