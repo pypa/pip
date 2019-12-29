@@ -352,6 +352,21 @@ def install_unpacked_wheel(
                 compileall.compile_dir(source, force=True, quiet=True)
         logger.debug(stdout.getvalue())
 
+    def populate_dirs(
+        source,  # type: str
+        dest,  # type: str
+        is_base,  # type: bool
+    ):
+        # type: (...) -> None
+        for dir, subdirs, files in os.walk(source):
+            basedir = dir[len(source):].lstrip(os.path.sep)
+            destdir = os.path.join(dest, basedir)
+            if is_base and basedir == '':
+                data_dirs.extend(s for s in subdirs if s.endswith('.data'))
+                for s in subdirs:
+                    if s.endswith('.dist-info'):
+                        info_dirs.append(s)
+
     def record_installed(srcfile, destfile, modified=False):
         # type: (str, str, bool) -> None
         """Map archive RECORD paths to installation RECORD paths."""
@@ -375,10 +390,6 @@ def install_unpacked_wheel(
             basedir = dir[len(source):].lstrip(os.path.sep)
             destdir = os.path.join(dest, basedir)
             if is_base and basedir == '':
-                data_dirs.extend(s for s in subdirs if s.endswith('.data'))
-                for s in subdirs:
-                    if s.endswith('.dist-info'):
-                        info_dirs.append(s)
                 subdirs[:] = [s for s in subdirs if not s.endswith('.data')]
             for f in files:
                 # Skip unwanted files
@@ -428,6 +439,8 @@ def install_unpacked_wheel(
                 if fixer:
                     changed = fixer(destfile)
                 record_installed(srcfile, destfile, changed)
+
+    populate_dirs(source, lib_dir, True)
 
     clobber(source, lib_dir, True)
 
