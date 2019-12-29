@@ -376,22 +376,19 @@ def install_unpacked_wheel(
             destdir = os.path.join(dest, basedir)
             if is_base and basedir.split(os.path.sep, 1)[0].endswith('.data'):
                 continue
-            for s in subdirs:
-                destsubdir = os.path.join(dest, basedir, s)
-                if is_base and basedir == '' and destsubdir.endswith('.data'):
-                    data_dirs.append(s)
-                    continue
-                elif (
-                    is_base and
-                    basedir == '' and
-                    s.endswith('.dist-info')
-                ):
-                    assert not info_dir, (
-                        'Multiple .dist-info directories: {}, '.format(
-                            destsubdir
-                        ) + ', '.join(info_dir)
-                    )
-                    info_dir.append(destsubdir)
+            if is_base and basedir == '':
+                for s in subdirs:
+                    destsubdir = os.path.join(dest, basedir, s)
+                    if destsubdir.endswith('.data'):
+                        data_dirs.append(s)
+                        continue
+                    elif s.endswith('.dist-info'):
+                        assert not info_dir, (
+                            'Multiple .dist-info directories: {}, '.format(
+                                destsubdir
+                            ) + ', '.join(info_dir)
+                        )
+                        info_dir.append(destsubdir)
             for f in files:
                 # Skip unwanted files
                 if filter and filter(f):
