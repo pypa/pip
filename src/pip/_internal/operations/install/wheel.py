@@ -379,11 +379,6 @@ def install_unpacked_wheel(
                 for s in subdirs:
                     if s.endswith('.dist-info'):
                         destsubdir = os.path.join(dest, s)
-                        assert not info_dirs, (
-                            'Multiple .dist-info directories: {}, '.format(
-                                destsubdir
-                            ) + ', '.join(info_dirs)
-                        )
                         info_dirs.append(destsubdir)
                 subdirs[:] = [s for s in subdirs if not s.endswith('.data')]
             for f in files:
@@ -439,6 +434,12 @@ def install_unpacked_wheel(
 
     assert info_dirs, "{} .dist-info directory not found".format(
         req_description
+    )
+
+    assert len(info_dirs) == 1, (
+        '{} multiple .dist-info directories found: {}'.format(
+            req_description, ', '.join(info_dirs)
+        )
     )
 
     info_dir = info_dirs[0]
