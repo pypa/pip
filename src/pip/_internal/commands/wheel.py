@@ -15,7 +15,7 @@ from pip._internal.cli.req_command import RequirementCommand
 from pip._internal.exceptions import CommandError, PreviousBuildDirError
 from pip._internal.req import RequirementSet
 from pip._internal.req.req_tracker import get_requirement_tracker
-from pip._internal.utils.misc import ensure_dir
+from pip._internal.utils.misc import ensure_dir, normalize_path
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.wheel_builder import WheelBuilder
@@ -122,6 +122,7 @@ class WheelCommand(RequirementCommand):
         build_delete = (not (options.no_clean or options.build_dir))
         wheel_cache = WheelCache(options.cache_dir, options.format_control)
 
+        options.wheel_dir = normalize_path(options.wheel_dir)
         ensure_dir(options.wheel_dir)
 
         with get_requirement_tracker() as req_tracker, TempDirectory(
