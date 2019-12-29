@@ -354,12 +354,11 @@ def install_unpacked_wheel(
 
     def populate_dirs(
         source,  # type: str
-        is_base,  # type: bool
     ):
         # type: (...) -> None
         for dir, subdirs, files in os.walk(source):
             basedir = dir[len(source):].lstrip(os.path.sep)
-            if is_base and basedir == '':
+            if basedir == '':
                 data_dirs.extend(s for s in subdirs if s.endswith('.data'))
                 for s in subdirs:
                     if s.endswith('.dist-info'):
