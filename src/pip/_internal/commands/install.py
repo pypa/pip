@@ -83,7 +83,7 @@ def build_wheels(
     should_build_legacy = is_wheel_installed()
 
     # Always build PEP 517 requirements
-    build_failures = builder.build(
+    _, build_failures = builder.build(
         pep517_requirements,
         should_unpack=True,
     )

@@ -38,6 +38,7 @@ if MYPY_CHECK_RUNNING:
     from pip._vendor.pep517.wrappers import Pep517HookCaller
 
     BinaryAllowedPredicate = Callable[[InstallRequirement], bool]
+    BuildResult = Tuple[List[InstallRequirement], List[InstallRequirement]]
 
 logger = logging.getLogger(__name__)
 
@@ -216,8 +217,6 @@ class WheelBuilder(object):
         self.preparer = preparer
         self.wheel_cache = wheel_cache
 
-        self._wheel_dir = preparer.wheel_download_dir
-
         self.build_options = build_options or []
         self.global_options = global_options or []
         self.check_binary_allowed = check_binary_allowed
@@ -311,23 +310,15 @@ class WheelBuilder(object):
         requirements,  # type: Iterable[InstallRequirement]
         should_unpack,  # type: bool
     ):
-        # type: (...) -> List[InstallRequirement]
+        # type: (...) -> BuildResult
         """Build wheels.
 
         :param should_unpack: If True, after building the wheel, unpack it
             and replace the sdist with the unpacked version in preparation
             for installation.
-        :return: The list of InstallRequirement that failed to build.
+        :return: The list of InstallRequirement that succeeded to build and
+            the list of InstallRequirement that failed to build.
         """
-        # pip install uses should_unpack=True.
-        # pip install never provides a _wheel_dir.
-        # pip wheel uses should_unpack=False.
-        # pip wheel always provides a _wheel_dir (via the preparer).
-        assert (
-            (should_unpack and not self._wheel_dir) or
-            (not should_unpack and self._wheel_dir)
-        )
-
         buildset = _collect_buildset(
             requirements,
             wheel_cache=self.wheel_cache,
@@ -335,7 +326,7 @@ class WheelBuilder(object):
             need_wheel=not should_unpack,
         )
         if not buildset:
-            return []
+            return [], []
 
         # TODO by @pradyunsg
         # Should break up this method into 2 separate methods.
@@ -347,7 +338,7 @@ class WheelBuilder(object):
         )
 
         with indent_log():
-            build_success, build_failure = [], []
+            build_successes, build_failures = [], []
             for req, cache_dir in buildset:
                 wheel_file = self._build_one(req, cache_dir)
                 if wheel_file:
@@ -376,32 +367,20 @@ class WheelBuilder(object):
                         )
                         # extract the wheel into the dir
                         unpack_file(req.link.file_path, req.source_dir)
-                    else:
-                        # copy from cache to target directory
-                        try:
-                            ensure_dir(self._wheel_dir)
-                            shutil.copy(wheel_file, self._wheel_dir)
-                        except OSError as e:
-                            logger.warning(
-                                "Building wheel for %s failed: %s",
-                                req.name, e,
-                            )
-                            build_failure.append(req)
-                            continue
-                    build_success.append(req)
+                    build_successes.append(req)
                 else:
-                    build_failure.append(req)
+                    build_failures.append(req)
 
         # notify success/failure
-        if build_success:
+        if build_successes:
             logger.info(
                 'Successfully built %s',
-                ' '.join([req.name for req in build_success]),
+                ' '.join([req.name for req in build_successes]),
             )
-        if build_failure:
+        if build_failures:
             logger.info(
                 'Failed to build %s',
-                ' '.join([req.name for req in build_failure]),
+                ' '.join([req.name for req in build_failures]),
             )
         # Return a list of requirements that failed to build
-        return build_failure
+        return build_successes, build_failures
