@@ -332,7 +332,7 @@ def install_unpacked_wheel(
     else:
         lib_dir = scheme.platlib
 
-    info_dir = []  # type: List[str]
+    info_dirs = []  # type: List[str]
     data_dirs = []
     source = wheeldir.rstrip(os.path.sep) + os.path.sep
 
@@ -379,12 +379,12 @@ def install_unpacked_wheel(
                 for s in subdirs:
                     if s.endswith('.dist-info'):
                         destsubdir = os.path.join(dest, s)
-                        assert not info_dir, (
+                        assert not info_dirs, (
                             'Multiple .dist-info directories: {}, '.format(
                                 destsubdir
-                            ) + ', '.join(info_dir)
+                            ) + ', '.join(info_dirs)
                         )
-                        info_dir.append(destsubdir)
+                        info_dirs.append(destsubdir)
                 subdirs[:] = [s for s in subdirs if not s.endswith('.data')]
             for f in files:
                 # Skip unwanted files
@@ -437,21 +437,23 @@ def install_unpacked_wheel(
 
     clobber(source, lib_dir, True)
 
-    assert info_dir, "{} .dist-info directory not found".format(
+    assert info_dirs, "{} .dist-info directory not found".format(
         req_description
     )
 
-    info_dir_name = canonicalize_name(os.path.basename(info_dir[0]))
+    info_dir = info_dirs[0]
+
+    info_dir_name = canonicalize_name(os.path.basename(info_dir))
     canonical_name = canonicalize_name(name)
     if not info_dir_name.startswith(canonical_name):
         raise UnsupportedWheel(
             "{} .dist-info directory {!r} does not start with {!r}".format(
-                req_description, os.path.basename(info_dir[0]), canonical_name
+                req_description, os.path.basename(info_dir), canonical_name
             )
         )
 
     # Get the defined entry points
-    ep_file = os.path.join(info_dir[0], 'entry_points.txt')
+    ep_file = os.path.join(info_dir, 'entry_points.txt')
     console, gui = get_entrypoints(ep_file)
 
     def is_entrypoint_wrapper(name):
@@ -601,16 +603,16 @@ def install_unpacked_wheel(
             logger.warning(msg)
 
     # Record pip as the installer
-    installer = os.path.join(info_dir[0], 'INSTALLER')
-    temp_installer = os.path.join(info_dir[0], 'INSTALLER.pip')
+    installer = os.path.join(info_dir, 'INSTALLER')
+    temp_installer = os.path.join(info_dir, 'INSTALLER.pip')
     with open(temp_installer, 'wb') as installer_file:
         installer_file.write(b'pip\n')
     shutil.move(temp_installer, installer)
     generated.append(installer)
 
     # Record details of all files installed
-    record = os.path.join(info_dir[0], 'RECORD')
-    temp_record = os.path.join(info_dir[0], 'RECORD.pip')
+    record = os.path.join(info_dir, 'RECORD')
+    temp_record = os.path.join(info_dir, 'RECORD.pip')
     with open_for_csv(record, 'r') as record_in:
         with open_for_csv(temp_record, 'w+') as record_out:
             reader = csv.reader(record_in)
