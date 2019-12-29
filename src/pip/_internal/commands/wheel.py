@@ -122,6 +122,8 @@ class WheelCommand(RequirementCommand):
         build_delete = (not (options.no_clean or options.build_dir))
         wheel_cache = WheelCache(options.cache_dir, options.format_control)
 
+        ensure_dir(options.wheel_dir)
+
         with get_requirement_tracker() as req_tracker, TempDirectory(
             options.build_dir, delete=build_delete, kind="wheel"
         ) as directory:
@@ -172,7 +174,6 @@ class WheelCommand(RequirementCommand):
                     assert req.local_file_path
                     # copy from cache to target directory
                     try:
-                        ensure_dir(options.wheel_dir)
                         shutil.copy(req.local_file_path, options.wheel_dir)
                     except OSError as e:
                         logger.warning(
