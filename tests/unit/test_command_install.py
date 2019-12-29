@@ -38,6 +38,7 @@ class TestWheelCache:
             builder=builder,
             pep517_requirements=pep517_requirements,
             legacy_requirements=legacy_requirements,
+            wheel_cache=Mock(cache_dir=None),
             build_options=[],
             global_options=[],
             check_binary_allowed=None,

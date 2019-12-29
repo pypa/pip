@@ -257,16 +257,15 @@ class WheelBuilder(object):
     def __init__(
         self,
         preparer,  # type: RequirementPreparer
-        wheel_cache,  # type: WheelCache
     ):
         # type: (...) -> None
         self.preparer = preparer
-        self.wheel_cache = wheel_cache
 
     def build(
         self,
         requirements,  # type: Iterable[InstallRequirement]
         should_unpack,  # type: bool
+        wheel_cache,  # type: WheelCache
         build_options,  # type: List[str]
         global_options,  # type: List[str]
         check_binary_allowed=None,  # type: Optional[BinaryAllowedPredicate]
@@ -286,7 +285,7 @@ class WheelBuilder(object):
 
         buildset = _collect_buildset(
             requirements,
-            wheel_cache=self.wheel_cache,
+            wheel_cache=wheel_cache,
             check_binary_allowed=check_binary_allowed,
             need_wheel=not should_unpack,
         )

@@ -74,6 +74,7 @@ def build_wheels(
     builder,              # type: WheelBuilder
     pep517_requirements,  # type: List[InstallRequirement]
     legacy_requirements,  # type: List[InstallRequirement]
+    wheel_cache,           # type: WheelCache
     build_options,         # type: List[str]
     global_options,        # type: List[str]
     check_binary_allowed,  # type: BinaryAllowedPredicate
@@ -89,6 +90,7 @@ def build_wheels(
     _, build_failures = builder.build(
         pep517_requirements,
         should_unpack=True,
+        wheel_cache=wheel_cache,
         build_options=build_options,
         global_options=global_options,
         check_binary_allowed=check_binary_allowed,
@@ -101,6 +103,7 @@ def build_wheels(
         builder.build(
             legacy_requirements,
             should_unpack=True,
+            wheel_cache=wheel_cache,
             build_options=build_options,
             global_options=global_options,
             check_binary_allowed=check_binary_allowed,
@@ -405,11 +408,12 @@ class InstallCommand(RequirementCommand):
                     else:
                         legacy_requirements.append(req)
 
-                wheel_builder = WheelBuilder(preparer, wheel_cache)
+                wheel_builder = WheelBuilder(preparer)
                 build_failures = build_wheels(
                     builder=wheel_builder,
                     pep517_requirements=pep517_requirements,
                     legacy_requirements=legacy_requirements,
+                    wheel_cache=wheel_cache,
                     build_options=[],
                     global_options=[],
                     check_binary_allowed=check_binary_allowed,

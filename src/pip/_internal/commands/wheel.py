@@ -158,10 +158,11 @@ class WheelCommand(RequirementCommand):
                 resolver.resolve(requirement_set)
 
                 # build wheels
-                wb = WheelBuilder(preparer, wheel_cache)
+                wb = WheelBuilder(preparer)
                 build_successes, build_failures = wb.build(
                     requirement_set.requirements.values(),
                     should_unpack=False,
+                    wheel_cache=wheel_cache,
                     build_options=options.build_options or [],
                     global_options=options.global_options or [],
                 )

@@ -186,10 +186,7 @@ def test_format_command_result__empty_output(caplog, log_level):
 class TestWheelBuilder(object):
 
     def test_skip_building_wheels(self, caplog):
-        wb = wheel_builder.WheelBuilder(
-            preparer=Mock(),
-            wheel_cache=Mock(cache_dir=None),
-        )
+        wb = wheel_builder.WheelBuilder(preparer=Mock())
         wb._build_one = mock_build_one = Mock()
 
         wheel_req = Mock(is_wheel=True, editable=False, constraint=False)
@@ -197,6 +194,7 @@ class TestWheelBuilder(object):
             wb.build(
                 [wheel_req],
                 should_unpack=False,
+                wheel_cache=Mock(cache_dir=None),
                 build_options=[],
                 global_options=[],
             )
