@@ -402,20 +402,21 @@ class InstallCommand(RequirementCommand):
                 check_binary_allowed = get_check_binary_allowed(
                     finder.format_control
                 )
-                # Consider legacy and PEP517-using requirements separately
-                legacy_requirements = []
-                pep517_requirements = []
-                for req in requirement_set.requirements.values():
-                    if req.use_pep517:
-                        pep517_requirements.append(req)
-                    else:
-                        legacy_requirements.append(req)
+
+                if is_wheel_installed():
+                    reqs_to_build = list(requirement_set.requirements.values())
+                else:
+                    # We don't build wheels for legacy requirements
+                    # if wheel is not installed.
+                    reqs_to_build = [
+                        r for r in requirement_set.requirements.values()
+                        if r.use_pep517
+                    ]
 
                 wheel_builder = WheelBuilder(preparer)
-                _, build_failures = build_wheels(
-                    builder=wheel_builder,
-                    pep517_requirements=pep517_requirements,
-                    legacy_requirements=legacy_requirements,
+                _, build_failures = wheel_builder.build(
+                    reqs_to_build,
+                    should_unpack=True,
                     wheel_cache=wheel_cache,
                     build_options=[],
                     global_options=[],
@@ -424,6 +425,9 @@ class InstallCommand(RequirementCommand):
 
                 # If we're using PEP 517, we cannot do a direct install
                 # so we fail here.
+                # We don't care about failures building legacy
+                # requirements, as we'll fall through to a direct
+                # install for those.
                 pep517_build_failures = [
                     r for r in build_failures if r.use_pep517
                 ]
