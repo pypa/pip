@@ -453,8 +453,10 @@ def install_unpacked_wheel(
             )
         )
 
+    dest_info_dir = info_dir
+
     # Get the defined entry points
-    ep_file = os.path.join(info_dir, 'entry_points.txt')
+    ep_file = os.path.join(dest_info_dir, 'entry_points.txt')
     console, gui = get_entrypoints(ep_file)
 
     def is_entrypoint_wrapper(name):
@@ -604,16 +606,16 @@ def install_unpacked_wheel(
             logger.warning(msg)
 
     # Record pip as the installer
-    installer = os.path.join(info_dir, 'INSTALLER')
-    temp_installer = os.path.join(info_dir, 'INSTALLER.pip')
+    installer = os.path.join(dest_info_dir, 'INSTALLER')
+    temp_installer = os.path.join(dest_info_dir, 'INSTALLER.pip')
     with open(temp_installer, 'wb') as installer_file:
         installer_file.write(b'pip\n')
     shutil.move(temp_installer, installer)
     generated.append(installer)
 
     # Record details of all files installed
-    record = os.path.join(info_dir, 'RECORD')
-    temp_record = os.path.join(info_dir, 'RECORD.pip')
+    record = os.path.join(dest_info_dir, 'RECORD')
+    temp_record = os.path.join(dest_info_dir, 'RECORD.pip')
     with open_for_csv(record, 'r') as record_in:
         with open_for_csv(temp_record, 'w+') as record_out:
             reader = csv.reader(record_in)
