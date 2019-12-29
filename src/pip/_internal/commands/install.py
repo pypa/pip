@@ -52,7 +52,7 @@ if MYPY_CHECK_RUNNING:
 
     from pip._internal.models.format_control import FormatControl
     from pip._internal.req.req_install import InstallRequirement
-    from pip._internal.wheel_builder import BinaryAllowedPredicate
+    from pip._internal.wheel_builder import BinaryAllowedPredicate, BuildResult
 
 
 logger = logging.getLogger(__name__)
@@ -79,15 +79,17 @@ def build_wheels(
     global_options,        # type: List[str]
     check_binary_allowed,  # type: BinaryAllowedPredicate
 ):
-    # type: (...) -> List[InstallRequirement]
+    # type: (...) -> BuildResult
     """
     Build wheels for requirements, depending on whether wheel is installed.
+
+    Return failures only for PEP 517 requirements.
     """
     # We don't build wheels for legacy requirements if wheel is not installed.
     should_build_legacy = is_wheel_installed()
 
     # Always build PEP 517 requirements
-    _, build_failures = builder.build(
+    pep517_build_successes, build_failures = builder.build(
         pep517_requirements,
         should_unpack=True,
         wheel_cache=wheel_cache,
@@ -100,7 +102,7 @@ def build_wheels(
         # We don't care about failures building legacy
         # requirements, as we'll fall through to a direct
         # install for those.
-        builder.build(
+        legacy_build_successes, _ = builder.build(
             legacy_requirements,
             should_unpack=True,
             wheel_cache=wheel_cache,
@@ -109,7 +111,7 @@ def build_wheels(
             check_binary_allowed=check_binary_allowed,
         )
 
-    return build_failures
+    return pep517_build_successes + legacy_build_successes, build_failures
 
 
 def get_check_binary_allowed(format_control):
@@ -409,7 +411,7 @@ class InstallCommand(RequirementCommand):
                         legacy_requirements.append(req)
 
                 wheel_builder = WheelBuilder(preparer)
-                build_failures = build_wheels(
+                _, build_failures = build_wheels(
                     builder=wheel_builder,
                     pep517_requirements=pep517_requirements,
                     legacy_requirements=legacy_requirements,
