@@ -356,13 +356,11 @@ def install_unpacked_wheel(
         source,  # type: str
     ):
         # type: (...) -> None
-        for dir, subdirs, files in os.walk(source):
-            basedir = dir[len(source):].lstrip(os.path.sep)
-            if basedir == '':
-                data_dirs.extend(s for s in subdirs if s.endswith('.data'))
-                for s in subdirs:
-                    if s.endswith('.dist-info'):
-                        info_dirs.append(s)
+        subdirs = os.listdir(source)
+        data_dirs.extend(s for s in subdirs if s.endswith('.data'))
+        for s in subdirs:
+            if s.endswith('.dist-info'):
+                info_dirs.append(s)
 
     def record_installed(srcfile, destfile, modified=False):
         # type: (str, str, bool) -> None
@@ -437,7 +435,7 @@ def install_unpacked_wheel(
                     changed = fixer(destfile)
                 record_installed(srcfile, destfile, changed)
 
-    populate_dirs(source, True)
+    populate_dirs(source)
 
     clobber(source, lib_dir, True)
 
