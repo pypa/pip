@@ -374,8 +374,6 @@ def install_unpacked_wheel(
         for dir, subdirs, files in os.walk(source):
             basedir = dir[len(source):].lstrip(os.path.sep)
             destdir = os.path.join(dest, basedir)
-            if is_base and basedir.split(os.path.sep, 1)[0].endswith('.data'):
-                continue
             if is_base and basedir == '':
                 data_dirs.extend(s for s in subdirs if s.endswith('.data'))
                 for s in subdirs:
@@ -387,6 +385,7 @@ def install_unpacked_wheel(
                             ) + ', '.join(info_dir)
                         )
                         info_dir.append(destsubdir)
+                subdirs[:] = [s for s in subdirs if not s.endswith('.data')]
             for f in files:
                 # Skip unwanted files
                 if filter and filter(f):
