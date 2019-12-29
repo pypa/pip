@@ -165,12 +165,6 @@ def unpack_http_url(
     # downloading archives, they have to be unpacked to parse dependencies
     unpack_file(from_path, location, content_type)
 
-    # a download dir is specified; let's copy the archive there
-    if download_dir and not os.path.exists(
-        os.path.join(download_dir, link.filename)
-    ):
-        _copy_file(from_path, download_dir, link)
-
     return from_path
 
 
@@ -223,9 +217,6 @@ def unpack_file_url(
 ):
     # type: (...) -> Optional[str]
     """Unpack link into location.
-
-    If download_dir is provided and link points to a file, make a copy
-    of the link file inside download_dir.
     """
     link_path = link.file_path
     # If it's a url to a local directory
@@ -233,8 +224,6 @@ def unpack_file_url(
         if os.path.isdir(location):
             rmtree(location)
         _copy_source_tree(link_path, location)
-        if download_dir:
-            logger.info('Link is a directory, ignoring download_dir')
         return None
 
     # If a download dir is specified, is the file already there and valid?
@@ -263,12 +252,6 @@ def unpack_file_url(
     # archives, they have to be unpacked to parse dependencies
     unpack_file(from_path, location, content_type)
 
-    # a download dir is specified and not already downloaded
-    if download_dir and not os.path.exists(
-        os.path.join(download_dir, link.filename)
-    ):
-        _copy_file(from_path, download_dir, link)
-
     return from_path
 
 
@@ -280,14 +263,7 @@ def unpack_url(
     hashes=None,  # type: Optional[Hashes]
 ):
     # type: (...) -> Optional[str]
-    """Unpack link.
-       If link is a VCS link:
-         if only_download, export into download_dir and ignore location
-          else unpack into location
-       for other types of link:
-         - unpack into location
-         - if download_dir, copy the file into download_dir
-         - if only_download, mark location for deletion
+    """Unpack link into location, downloading if required.
 
     :param hashes: A Hashes object, one of whose embedded hashes must match,
         or HashMismatch will be raised. If the Hashes is empty, no matches are
@@ -543,6 +519,14 @@ class RequirementPreparer(object):
             abstract_dist = _get_prepared_distribution(
                 req, self.req_tracker, self.finder, self.build_isolation,
             )
+
+            if download_dir:
+                if link.is_existing_dir():
+                    logger.info('Link is a directory, ignoring download_dir')
+                elif local_path and not os.path.exists(
+                    os.path.join(download_dir, link.filename)
+                ):
+                    _copy_file(local_path, download_dir, link)
 
             if self._download_should_save:
                 # Make a .zip of the source_dir we already created.
