@@ -378,11 +378,11 @@ def install_unpacked_wheel(
                 continue
             if is_base and basedir == '':
                 for s in subdirs:
-                    destsubdir = os.path.join(dest, basedir, s)
-                    if destsubdir.endswith('.data'):
+                    if s.endswith('.data'):
                         data_dirs.append(s)
                         continue
                     elif s.endswith('.dist-info'):
+                        destsubdir = os.path.join(dest, basedir, s)
                         assert not info_dir, (
                             'Multiple .dist-info directories: {}, '.format(
                                 destsubdir
