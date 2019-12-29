@@ -334,7 +334,7 @@ def install_unpacked_wheel(
 
     source = wheeldir.rstrip(os.path.sep) + os.path.sep
     subdirs = os.listdir(source)
-    info_dirs = []  # type: List[str]
+    info_dirs = [s for s in subdirs if s.endswith('.dist-info')]
     data_dirs = [s for s in subdirs if s.endswith('.data')]
 
     # Record details of the files moved
@@ -352,15 +352,6 @@ def install_unpacked_wheel(
                 warnings.filterwarnings('ignore')
                 compileall.compile_dir(source, force=True, quiet=True)
         logger.debug(stdout.getvalue())
-
-    def populate_dirs(
-        source,  # type: str
-    ):
-        # type: (...) -> None
-        subdirs = os.listdir(source)
-        for s in subdirs:
-            if s.endswith('.dist-info'):
-                info_dirs.append(s)
 
     def record_installed(srcfile, destfile, modified=False):
         # type: (str, str, bool) -> None
@@ -434,8 +425,6 @@ def install_unpacked_wheel(
                 if fixer:
                     changed = fixer(destfile)
                 record_installed(srcfile, destfile, changed)
-
-    populate_dirs(source)
 
     clobber(source, lib_dir, True)
 
