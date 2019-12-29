@@ -354,13 +354,11 @@ def install_unpacked_wheel(
 
     def populate_dirs(
         source,  # type: str
-        dest,  # type: str
         is_base,  # type: bool
     ):
         # type: (...) -> None
         for dir, subdirs, files in os.walk(source):
             basedir = dir[len(source):].lstrip(os.path.sep)
-            destdir = os.path.join(dest, basedir)
             if is_base and basedir == '':
                 data_dirs.extend(s for s in subdirs if s.endswith('.data'))
                 for s in subdirs:
@@ -440,7 +438,7 @@ def install_unpacked_wheel(
                     changed = fixer(destfile)
                 record_installed(srcfile, destfile, changed)
 
-    populate_dirs(source, lib_dir, True)
+    populate_dirs(source, True)
 
     clobber(source, lib_dir, True)
 
