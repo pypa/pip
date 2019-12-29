@@ -332,9 +332,10 @@ def install_unpacked_wheel(
     else:
         lib_dir = scheme.platlib
 
-    info_dirs = []  # type: List[str]
-    data_dirs = []
     source = wheeldir.rstrip(os.path.sep) + os.path.sep
+    subdirs = os.listdir(source)
+    info_dirs = []  # type: List[str]
+    data_dirs = [s for s in subdirs if s.endswith('.data')]
 
     # Record details of the files moved
     #   installed = files copied from the wheel to the destination
@@ -357,7 +358,6 @@ def install_unpacked_wheel(
     ):
         # type: (...) -> None
         subdirs = os.listdir(source)
-        data_dirs.extend(s for s in subdirs if s.endswith('.data'))
         for s in subdirs:
             if s.endswith('.dist-info'):
                 info_dirs.append(s)
