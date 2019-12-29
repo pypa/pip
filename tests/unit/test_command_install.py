@@ -1,7 +1,7 @@
 import errno
 
 import pytest
-from mock import Mock, call, patch
+from mock import Mock, patch
 from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.commands.install import (
@@ -24,8 +24,11 @@ class TestWheelCache:
         """
         Return: (mock_calls, return_value).
         """
+        built_reqs = []
+
         def build(reqs, **kwargs):
             # Fail the first requirement.
+            built_reqs.append(reqs)
             return ([], [reqs[0]])
 
         builder = Mock()
@@ -35,24 +38,24 @@ class TestWheelCache:
             builder=builder,
             pep517_requirements=pep517_requirements,
             legacy_requirements=legacy_requirements,
+            build_options=[],
+            global_options=[],
+            check_binary_allowed=None,
         )
 
-        return (builder.build.mock_calls, build_failures)
+        return (built_reqs, build_failures)
 
     @patch('pip._internal.commands.install.is_wheel_installed')
     def test_build_wheels__wheel_installed(self, is_wheel_installed):
         is_wheel_installed.return_value = True
 
-        mock_calls, build_failures = self.check_build_wheels(
+        built_reqs, build_failures = self.check_build_wheels(
             pep517_requirements=['a', 'b'],
             legacy_requirements=['c', 'd'],
         )
 
         # Legacy requirements were built.
-        assert mock_calls == [
-            call(['a', 'b'], should_unpack=True),
-            call(['c', 'd'], should_unpack=True),
-        ]
+        assert built_reqs == [['a', 'b'], ['c', 'd']]
 
         # Legacy build failures are not included in the return value.
         assert build_failures == ['a']
@@ -61,15 +64,13 @@ class TestWheelCache:
     def test_build_wheels__wheel_not_installed(self, is_wheel_installed):
         is_wheel_installed.return_value = False
 
-        mock_calls, build_failures = self.check_build_wheels(
+        built_reqs, build_failures = self.check_build_wheels(
             pep517_requirements=['a', 'b'],
             legacy_requirements=['c', 'd'],
         )
 
         # Legacy requirements were not built.
-        assert mock_calls == [
-            call(['a', 'b'], should_unpack=True),
-        ]
+        assert built_reqs == [['a', 'b']]
 
         assert build_failures == ['a']
 

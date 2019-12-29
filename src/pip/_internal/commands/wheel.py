@@ -158,14 +158,12 @@ class WheelCommand(RequirementCommand):
                 resolver.resolve(requirement_set)
 
                 # build wheels
-                wb = WheelBuilder(
-                    preparer, wheel_cache,
-                    build_options=options.build_options or [],
-                    global_options=options.global_options or [],
-                )
+                wb = WheelBuilder(preparer, wheel_cache)
                 build_successes, build_failures = wb.build(
                     requirement_set.requirements.values(),
                     should_unpack=False,
+                    build_options=options.build_options or [],
+                    global_options=options.global_options or [],
                 )
                 for req in build_successes:
                     assert req.link and req.link.is_wheel

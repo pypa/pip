@@ -74,6 +74,9 @@ def build_wheels(
     builder,              # type: WheelBuilder
     pep517_requirements,  # type: List[InstallRequirement]
     legacy_requirements,  # type: List[InstallRequirement]
+    build_options,         # type: List[str]
+    global_options,        # type: List[str]
+    check_binary_allowed,  # type: BinaryAllowedPredicate
 ):
     # type: (...) -> List[InstallRequirement]
     """
@@ -86,6 +89,9 @@ def build_wheels(
     _, build_failures = builder.build(
         pep517_requirements,
         should_unpack=True,
+        build_options=build_options,
+        global_options=global_options,
+        check_binary_allowed=check_binary_allowed,
     )
 
     if should_build_legacy:
@@ -95,6 +101,9 @@ def build_wheels(
         builder.build(
             legacy_requirements,
             should_unpack=True,
+            build_options=build_options,
+            global_options=global_options,
+            check_binary_allowed=check_binary_allowed,
         )
 
     return build_failures
@@ -396,16 +405,14 @@ class InstallCommand(RequirementCommand):
                     else:
                         legacy_requirements.append(req)
 
-                wheel_builder = WheelBuilder(
-                    preparer, wheel_cache,
-                    build_options=[], global_options=[],
-                    check_binary_allowed=check_binary_allowed,
-                )
-
+                wheel_builder = WheelBuilder(preparer, wheel_cache)
                 build_failures = build_wheels(
                     builder=wheel_builder,
                     pep517_requirements=pep517_requirements,
                     legacy_requirements=legacy_requirements,
+                    build_options=[],
+                    global_options=[],
+                    check_binary_allowed=check_binary_allowed,
                 )
 
                 # If we're using PEP 517, we cannot do a direct install
