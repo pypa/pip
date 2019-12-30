@@ -148,28 +148,24 @@ def should_cache(
     return False
 
 
-def _collect_buildset(
-    requirements,  # type: Iterable[InstallRequirement]
+def _get_cache_dir(
+    req,  # type: InstallRequirement
     wheel_cache,  # type: WheelCache
     check_binary_allowed,  # type: BinaryAllowedPredicate
 ):
-    # type: (...) -> List[Tuple[InstallRequirement, str]]
-    """Return the list of InstallRequirement,
-    with the persistent or temporary cache directory where the built
-    wheel needs to be stored.
+    # type: (...) -> str
+    """Return the persistent or temporary cache directory where the built
+    wheel need to be stored.
     """
-    buildset = []
     cache_available = bool(wheel_cache.cache_dir)
-    for req in requirements:
-        if (
-            cache_available and
-            should_cache(req, check_binary_allowed)
-        ):
-            cache_dir = wheel_cache.get_path_for_link(req.link)
-        else:
-            cache_dir = wheel_cache.get_ephem_path_for_link(req.link)
-        buildset.append((req, cache_dir))
-    return buildset
+    if (
+        cache_available and
+        should_cache(req, check_binary_allowed)
+    ):
+        cache_dir = wheel_cache.get_path_for_link(req.link)
+    else:
+        cache_dir = wheel_cache.get_ephem_path_for_link(req.link)
+    return cache_dir
 
 
 def _always_true(_):
@@ -301,12 +297,7 @@ class WheelBuilder(object):
             # Binaries allowed by default.
             check_binary_allowed = _always_true
 
-        buildset = _collect_buildset(
-            requirements,
-            wheel_cache=wheel_cache,
-            check_binary_allowed=check_binary_allowed,
-        )
-        if not buildset:
+        if not requirements:
             return [], []
 
         # TODO by @pradyunsg
@@ -315,12 +306,15 @@ class WheelBuilder(object):
         # Build the wheels.
         logger.info(
             'Building wheels for collected packages: %s',
-            ', '.join([req.name for (req, _) in buildset]),
+            ', '.join(req.name for req in requirements),
         )
 
         with indent_log():
             build_successes, build_failures = [], []
-            for req, cache_dir in buildset:
+            for req in requirements:
+                cache_dir = _get_cache_dir(
+                    req, wheel_cache, check_binary_allowed
+                )
                 wheel_file = _build_one(
                     req, cache_dir, build_options, global_options
                 )
