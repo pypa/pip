@@ -1,0 +1,2 @@
+When pip is installing or removing a package and is unable to remove a temporary directory on Windows, this is likely due to a Virus Scan operation.
+Warn the user and continue rather than preventing the operation.
