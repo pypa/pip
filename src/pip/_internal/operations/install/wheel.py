@@ -332,9 +332,10 @@ def install_unpacked_wheel(
     else:
         lib_dir = scheme.platlib
 
-    info_dir = []  # type: List[str]
-    data_dirs = []
     source = wheeldir.rstrip(os.path.sep) + os.path.sep
+    subdirs = os.listdir(source)
+    info_dirs = [s for s in subdirs if s.endswith('.dist-info')]
+    data_dirs = [s for s in subdirs if s.endswith('.data')]
 
     # Record details of the files moved
     #   installed = files copied from the wheel to the destination
@@ -374,24 +375,8 @@ def install_unpacked_wheel(
         for dir, subdirs, files in os.walk(source):
             basedir = dir[len(source):].lstrip(os.path.sep)
             destdir = os.path.join(dest, basedir)
-            if is_base and basedir.split(os.path.sep, 1)[0].endswith('.data'):
-                continue
-            for s in subdirs:
-                destsubdir = os.path.join(dest, basedir, s)
-                if is_base and basedir == '' and destsubdir.endswith('.data'):
-                    data_dirs.append(s)
-                    continue
-                elif (
-                    is_base and
-                    basedir == '' and
-                    s.endswith('.dist-info')
-                ):
-                    assert not info_dir, (
-                        'Multiple .dist-info directories: {}, '.format(
-                            destsubdir
-                        ) + ', '.join(info_dir)
-                    )
-                    info_dir.append(destsubdir)
+            if is_base and basedir == '':
+                subdirs[:] = [s for s in subdirs if not s.endswith('.data')]
             for f in files:
                 # Skip unwanted files
                 if filter and filter(f):
@@ -443,21 +428,31 @@ def install_unpacked_wheel(
 
     clobber(source, lib_dir, True)
 
-    assert info_dir, "{} .dist-info directory not found".format(
+    assert info_dirs, "{} .dist-info directory not found".format(
         req_description
     )
 
-    info_dir_name = canonicalize_name(os.path.basename(info_dir[0]))
+    assert len(info_dirs) == 1, (
+        '{} multiple .dist-info directories found: {}'.format(
+            req_description, ', '.join(info_dirs)
+        )
+    )
+
+    info_dir = info_dirs[0]
+
+    info_dir_name = canonicalize_name(info_dir)
     canonical_name = canonicalize_name(name)
     if not info_dir_name.startswith(canonical_name):
         raise UnsupportedWheel(
             "{} .dist-info directory {!r} does not start with {!r}".format(
-                req_description, os.path.basename(info_dir[0]), canonical_name
+                req_description, info_dir, canonical_name
             )
         )
 
+    dest_info_dir = os.path.join(lib_dir, info_dir)
+
     # Get the defined entry points
-    ep_file = os.path.join(info_dir[0], 'entry_points.txt')
+    ep_file = os.path.join(dest_info_dir, 'entry_points.txt')
     console, gui = get_entrypoints(ep_file)
 
     def is_entrypoint_wrapper(name):
@@ -607,16 +602,16 @@ def install_unpacked_wheel(
             logger.warning(msg)
 
     # Record pip as the installer
-    installer = os.path.join(info_dir[0], 'INSTALLER')
-    temp_installer = os.path.join(info_dir[0], 'INSTALLER.pip')
+    installer = os.path.join(dest_info_dir, 'INSTALLER')
+    temp_installer = os.path.join(dest_info_dir, 'INSTALLER.pip')
     with open(temp_installer, 'wb') as installer_file:
         installer_file.write(b'pip\n')
     shutil.move(temp_installer, installer)
     generated.append(installer)
 
     # Record details of all files installed
-    record = os.path.join(info_dir[0], 'RECORD')
-    temp_record = os.path.join(info_dir[0], 'RECORD.pip')
+    record = os.path.join(dest_info_dir, 'RECORD')
+    temp_record = os.path.join(dest_info_dir, 'RECORD.pip')
     with open_for_csv(record, 'r') as record_in:
         with open_for_csv(temp_record, 'w+') as record_out:
             reader = csv.reader(record_in)

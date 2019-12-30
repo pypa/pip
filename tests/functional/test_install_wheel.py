@@ -451,7 +451,7 @@ def test_wheel_install_fails_with_extra_dist_info(script):
     result = script.pip(
         "install", "--no-cache-dir", "--no-index", package, expect_error=True
     )
-    assert "Multiple .dist-info directories" in result.stderr
+    assert "multiple .dist-info directories" in result.stderr
 
 
 def test_wheel_install_fails_with_unrelated_dist_info(script):
