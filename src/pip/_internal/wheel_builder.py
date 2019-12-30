@@ -82,6 +82,25 @@ def should_build(
     return True
 
 
+def should_build_for_wheel_command(
+    req,  # type: InstallRequirement
+):
+    # type: (...) -> Optional[bool]
+    return should_build(
+        req, need_wheel=True, check_binary_allowed=_always_true
+    )
+
+
+def should_build_for_install_command(
+    req,  # type: InstallRequirement
+    check_binary_allowed,  # type: BinaryAllowedPredicate
+):
+    # type: (...) -> Optional[bool]
+    return should_build(
+        req, need_wheel=False, check_binary_allowed=check_binary_allowed
+    )
+
+
 def should_cache(
     req,  # type: InstallRequirement
     check_binary_allowed,  # type: BinaryAllowedPredicate
