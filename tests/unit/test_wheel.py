@@ -5,7 +5,8 @@ import os
 import textwrap
 
 import pytest
-from mock import patch
+from mock import Mock, patch
+from pip._vendor import pkg_resources
 from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.exceptions import UnsupportedWheel
@@ -199,6 +200,14 @@ def test_wheel_version(tmpdir, data):
 
     assert wheel.wheel_version(tmpdir + 'future') == future_version
     assert not wheel.wheel_version(tmpdir + 'broken')
+
+
+def test_wheel_version_fails_on_error(monkeypatch):
+    err = RuntimeError("example")
+    monkeypatch.setattr(pkg_resources, "find_on_path", Mock(side_effect=err))
+    with pytest.raises(UnsupportedWheel) as e:
+        wheel.wheel_version(".")
+    assert repr(err) in str(e.value)
 
 
 def test_check_compatibility():

@@ -324,7 +324,13 @@ def install_unpacked_wheel(
     # TODO: Look into moving this into a dedicated class for representing an
     #       installation.
 
-    version = wheel_version(wheeldir)
+    try:
+        version = wheel_version(wheeldir)
+    except UnsupportedWheel as e:
+        raise UnsupportedWheel(
+            "{} has an invalid wheel, {}".format(name, str(e))
+        )
+
     check_compatibility(version, name)
 
     if root_is_purelib(name, wheeldir):
@@ -653,10 +659,17 @@ def install_wheel(
 def wheel_version(source_dir):
     # type: (Optional[str]) -> Optional[Tuple[int, ...]]
     """Return the Wheel-Version of an extracted wheel, if possible.
-    Otherwise, return None if we couldn't parse / extract it.
+    Otherwise, return None or raise UnsupportedWheel if we couldn't
+    parse / extract it.
     """
     try:
         dists = [d for d in pkg_resources.find_on_path(None, source_dir)]
+    except Exception as e:
+        raise UnsupportedWheel(
+            "could not find a contained distribution due to: {!r}".format(e)
+        )
+
+    try:
         dist = dists[0]
 
         wheel_data = dist.get_metadata('WHEEL')
