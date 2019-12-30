@@ -690,8 +690,9 @@ def wheel_version(source_dir):
     if version_text is None:
         raise UnsupportedWheel("WHEEL is missing Wheel-Version")
 
+    version = version_text.strip()
+
     try:
-        version = version_text.strip()
         version = tuple(map(int, version.split('.')))
         return version
     except Exception:
