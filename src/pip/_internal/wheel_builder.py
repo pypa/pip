@@ -152,22 +152,15 @@ def _collect_buildset(
     requirements,  # type: Iterable[InstallRequirement]
     wheel_cache,  # type: WheelCache
     check_binary_allowed,  # type: BinaryAllowedPredicate
-    need_wheel,  # type: bool
 ):
     # type: (...) -> List[Tuple[InstallRequirement, str]]
-    """Return the list of InstallRequirement that need to be built,
+    """Return the list of InstallRequirement,
     with the persistent or temporary cache directory where the built
     wheel needs to be stored.
     """
     buildset = []
     cache_available = bool(wheel_cache.cache_dir)
     for req in requirements:
-        if not should_build(
-            req,
-            need_wheel=need_wheel,
-            check_binary_allowed=check_binary_allowed,
-        ):
-            continue
         if (
             cache_available and
             should_cache(req, check_binary_allowed)
@@ -312,7 +305,6 @@ class WheelBuilder(object):
             requirements,
             wheel_cache=wheel_cache,
             check_binary_allowed=check_binary_allowed,
-            need_wheel=not should_unpack,
         )
         if not buildset:
             return [], []

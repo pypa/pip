@@ -1,7 +1,7 @@
 import logging
 
 import pytest
-from mock import Mock, patch
+from mock import patch
 
 from pip._internal import wheel_builder
 from pip._internal.models.link import Link
@@ -207,23 +207,3 @@ def test_format_command_result__empty_output(caplog, log_level):
         "Command arguments: arg1 arg2",
         'Command output: None',
     ]
-
-
-class TestWheelBuilder(object):
-
-    def test_skip_building_wheels(self, caplog):
-        wb = wheel_builder.WheelBuilder(preparer=Mock())
-        wb._build_one = mock_build_one = Mock()
-
-        wheel_req = Mock(is_wheel=True, editable=False, constraint=False)
-        with caplog.at_level(logging.INFO):
-            wb.build(
-                [wheel_req],
-                should_unpack=False,
-                wheel_cache=Mock(cache_dir=None),
-                build_options=[],
-                global_options=[],
-            )
-
-        assert "due to already being wheel" in caplog.text
-        assert mock_build_one.mock_calls == []
