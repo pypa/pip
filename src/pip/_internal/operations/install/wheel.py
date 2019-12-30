@@ -692,8 +692,7 @@ def wheel_version(source_dir):
     version = version_text.strip()
 
     try:
-        version = tuple(map(int, version.split('.')))
-        return version
+        return tuple(map(int, version.split('.')))
     except ValueError:
         raise UnsupportedWheel("invalid Wheel-Version: {!r}".format(version))
 
