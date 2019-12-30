@@ -38,14 +38,16 @@ from pip._internal.utils.filesystem import test_writable_dir
 from pip._internal.utils.misc import (
     ensure_dir,
     get_installed_version,
-    is_wheel_installed,
     protect_pip_from_modification_on_windows,
     write_output,
 )
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.virtualenv import virtualenv_no_global
-from pip._internal.wheel_builder import WheelBuilder
+from pip._internal.wheel_builder import (
+    WheelBuilder,
+    should_build_for_install_command,
+)
 
 if MYPY_CHECK_RUNNING:
     from optparse import Values
@@ -347,15 +349,12 @@ class InstallCommand(RequirementCommand):
                     finder.format_control
                 )
 
-                if is_wheel_installed():
-                    reqs_to_build = list(requirement_set.requirements.values())
-                else:
-                    # We don't build wheels for legacy requirements
-                    # if wheel is not installed.
-                    reqs_to_build = [
-                        r for r in requirement_set.requirements.values()
-                        if r.use_pep517
-                    ]
+                reqs_to_build = [
+                    r for r in requirement_set.requirements.values()
+                    if should_build_for_install_command(
+                        r, check_binary_allowed
+                    )
+                ]
 
                 wheel_builder = WheelBuilder(preparer)
                 _, build_failures = wheel_builder.build(
