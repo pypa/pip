@@ -675,8 +675,8 @@ def wheel_version(source_dir):
     dist = dists[0]
 
     try:
-        wheel_data = dist.get_metadata('WHEEL')
-        wheel_data = Parser().parsestr(wheel_data)
+        wheel_text = dist.get_metadata('WHEEL')
+        wheel_data = Parser().parsestr(wheel_text)
 
         version = wheel_data['Wheel-Version'].strip()
         version = tuple(map(int, version.split('.')))
