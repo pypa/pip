@@ -681,9 +681,12 @@ def wheel_version(source_dir):
     except UnicodeDecodeError as e:
         raise UnsupportedWheel("error decoding WHEEL: {!r}".format(e))
 
-    try:
-        wheel_data = Parser().parsestr(wheel_text)
+    # FeedParser (used by Parser) does not raise any exceptions. The returned
+    # message may have .defects populated, but for backwards-compatibility we
+    # currently ignore them.
+    wheel_data = Parser().parsestr(wheel_text)
 
+    try:
         version = wheel_data['Wheel-Version'].strip()
         version = tuple(map(int, version.split('.')))
         return version
