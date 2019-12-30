@@ -23,7 +23,7 @@ from pip._internal.operations.install.wheel import (
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import hash_file
 from pip._internal.utils.unpacking import unpack_file
-from tests.lib import DATA_DIR, assert_paths_equal
+from tests.lib import DATA_DIR, assert_paths_equal, skip_if_python2
 
 
 def call_get_legacy_build_wheel_path(caplog, names):
@@ -221,6 +221,18 @@ def test_wheel_version_fails_missing_wheel(tmpdir):
     with pytest.raises(UnsupportedWheel) as e:
         wheel.wheel_version(str(tmpdir))
     assert "could not read WHEEL file" in str(e.value)
+
+
+@skip_if_python2
+def test_wheel_version_fails_on_bad_encoding(tmpdir):
+    dist_info_dir = tmpdir / "simple-0.1.0.dist-info"
+    dist_info_dir.mkdir()
+    dist_info_dir.joinpath("METADATA").touch()
+    dist_info_dir.joinpath("WHEEL").write_bytes(b"\xff")
+
+    with pytest.raises(UnsupportedWheel) as e:
+        wheel.wheel_version(str(tmpdir))
+    assert "error decoding WHEEL" in str(e.value)
 
 
 def test_check_compatibility():

@@ -678,8 +678,8 @@ def wheel_version(source_dir):
         wheel_text = dist.get_metadata('WHEEL')
     except (IOError, OSError) as e:
         raise UnsupportedWheel("could not read WHEEL file: {!r}".format(e))
-    except Exception:
-        return None
+    except UnicodeDecodeError as e:
+        raise UnsupportedWheel("error decoding WHEEL: {!r}".format(e))
 
     try:
         wheel_data = Parser().parsestr(wheel_text)
