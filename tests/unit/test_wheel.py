@@ -210,6 +210,12 @@ def test_wheel_version_fails_on_error(monkeypatch):
     assert repr(err) in str(e.value)
 
 
+def test_wheel_version_fails_no_dists(tmpdir):
+    with pytest.raises(UnsupportedWheel) as e:
+        wheel.wheel_version(str(tmpdir))
+    assert "no contained distribution found" in str(e.value)
+
+
 def test_check_compatibility():
     name = 'test'
     vc = wheel.VERSION_COMPATIBLE

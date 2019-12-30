@@ -669,9 +669,12 @@ def wheel_version(source_dir):
             "could not find a contained distribution due to: {!r}".format(e)
         )
 
-    try:
-        dist = dists[0]
+    if not dists:
+        raise UnsupportedWheel("no contained distribution found")
 
+    dist = dists[0]
+
+    try:
         wheel_data = dist.get_metadata('WHEEL')
         wheel_data = Parser().parsestr(wheel_data)
 
