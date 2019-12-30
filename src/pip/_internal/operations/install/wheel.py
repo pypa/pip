@@ -698,7 +698,7 @@ def wheel_version(source_dir):
 
 
 def check_compatibility(version, name):
-    # type: (Optional[Tuple[int, ...]], str) -> None
+    # type: (Tuple[int, ...], str) -> None
     """Raises errors or warns if called with an incompatible Wheel-Version.
 
     Pip should refuse to install a Wheel-Version that's a major series
@@ -710,10 +710,6 @@ def check_compatibility(version, name):
 
     :raises UnsupportedWheel: when an incompatible Wheel-Version is given
     """
-    if not version:
-        raise UnsupportedWheel(
-            "%s is in an unsupported or invalid wheel" % name
-        )
     if version[0] > VERSION_COMPATIBLE[0]:
         raise UnsupportedWheel(
             "%s's Wheel-Version (%s) is not compatible with this version "
