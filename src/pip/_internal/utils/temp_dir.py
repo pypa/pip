@@ -4,6 +4,7 @@ import errno
 import itertools
 import logging
 import os.path
+import sys
 import tempfile
 from contextlib import contextmanager
 
@@ -124,7 +125,16 @@ class TempDirectory(object):
         """
         self._deleted = True
         if os.path.exists(self._path):
-            rmtree(self._path)
+            try:
+                rmtree(self._path)
+            except OSError as e:
+                if sys.platform == 'win32' and e.errno == errno.EACCES:
+                    logger.warning(
+                        "%s (virus scanner may be holding it)."
+                        "cannot remove '%s'",
+                        e.strerror, e.filename)
+                else:
+                    raise
 
 
 class AdjacentTempDirectory(TempDirectory):

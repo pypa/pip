@@ -1,7 +1,10 @@
 import itertools
+import logging
 import os
+import shutil
 import stat
 import tempfile
+import time
 
 import pytest
 
@@ -12,6 +15,7 @@ from pip._internal.utils.temp_dir import (
     TempDirectory,
     global_tempdir_manager,
 )
+from tests.lib.filesystem import FileOpener
 
 
 # No need to test symlinked directories on Windows
@@ -207,3 +211,33 @@ def test_tempdirectory_asserts_global_tempdir(monkeypatch):
     monkeypatch.setattr(temp_dir, "_tempdir_manager", None)
     with pytest.raises(AssertionError):
         TempDirectory(globally_managed=True)
+
+
+@pytest.mark.skipif("sys.platform != 'win32'")
+def test_temp_dir_warns_if_cannot_clean(caplog):
+    temp_dir = TempDirectory()
+    temp_dir_path = temp_dir.path
+
+    stime = time.time()
+
+    # Capture only at WARNING level and up
+    with caplog.at_level(logging.WARNING, 'pip._internal.utils.temp_dir'):
+        # open a file within the temporary directory in a sub-process
+        with FileOpener() as opener:
+            subpath = os.path.join(temp_dir_path, 'foo.txt')
+            with open(subpath, 'w') as f:
+                f.write('Cannot be deleted')
+            opener.send(subpath)
+            # with the file open, attempt to remove the log directory
+            temp_dir.cleanup()
+
+        # assert that a WARNING was logged about virus scanner
+        assert 'WARNING' in caplog.text
+        assert 'virus scanner' in caplog.text
+
+    # Assure that the cleanup was properly retried
+    duration = time.time() - stime
+    assert duration >= 2.0
+
+    # Clean-up for failed TempDirectory cleanup
+    shutil.rmtree(temp_dir_path, ignore_errors=True)
