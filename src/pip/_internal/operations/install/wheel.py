@@ -686,8 +686,11 @@ def wheel_version(source_dir):
     # currently ignore them.
     wheel_data = Parser().parsestr(wheel_text)
 
+    version_text = wheel_data["Wheel-Version"]
+    if version_text is None:
+        raise UnsupportedWheel("WHEEL is missing Wheel-Version")
+
     try:
-        version_text = wheel_data["Wheel-Version"]
         version = version_text.strip()
         version = tuple(map(int, version.split('.')))
         return version

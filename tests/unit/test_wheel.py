@@ -235,6 +235,17 @@ def test_wheel_version_fails_on_bad_encoding(tmpdir):
     assert "error decoding WHEEL" in str(e.value)
 
 
+def test_wheel_version_fails_on_no_wheel_version(tmpdir):
+    dist_info_dir = tmpdir / "simple-0.1.0.dist-info"
+    dist_info_dir.mkdir()
+    dist_info_dir.joinpath("METADATA").touch()
+    dist_info_dir.joinpath("WHEEL").touch()
+
+    with pytest.raises(UnsupportedWheel) as e:
+        wheel.wheel_version(str(tmpdir))
+    assert "missing Wheel-Version" in str(e.value)
+
+
 def test_check_compatibility():
     name = 'test'
     vc = wheel.VERSION_COMPATIBLE
