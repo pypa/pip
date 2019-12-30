@@ -246,6 +246,24 @@ def test_wheel_version_fails_on_no_wheel_version(tmpdir):
     assert "missing Wheel-Version" in str(e.value)
 
 
+@pytest.mark.parametrize("version", [
+    ("",),
+    ("1.b",),
+    ("1.",),
+])
+def test_wheel_version_fails_on_bad_wheel_version(tmpdir, version):
+    dist_info_dir = tmpdir / "simple-0.1.0.dist-info"
+    dist_info_dir.mkdir()
+    dist_info_dir.joinpath("METADATA").touch()
+    dist_info_dir.joinpath("WHEEL").write_text(
+        "Wheel-Version: {}".format(version)
+    )
+
+    with pytest.raises(UnsupportedWheel) as e:
+        wheel.wheel_version(str(tmpdir))
+    assert "invalid Wheel-Version" in str(e.value)
+
+
 def test_check_compatibility():
     name = 'test'
     vc = wheel.VERSION_COMPATIBLE

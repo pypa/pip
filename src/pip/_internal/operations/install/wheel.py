@@ -657,10 +657,9 @@ def install_wheel(
 
 
 def wheel_version(source_dir):
-    # type: (Optional[str]) -> Optional[Tuple[int, ...]]
+    # type: (Optional[str]) -> Tuple[int, ...]
     """Return the Wheel-Version of an extracted wheel, if possible.
-    Otherwise, return None or raise UnsupportedWheel if we couldn't
-    parse / extract it.
+    Otherwise, raise UnsupportedWheel if we couldn't parse / extract it.
     """
     try:
         dists = [d for d in pkg_resources.find_on_path(None, source_dir)]
@@ -695,8 +694,8 @@ def wheel_version(source_dir):
     try:
         version = tuple(map(int, version.split('.')))
         return version
-    except Exception:
-        return None
+    except ValueError:
+        raise UnsupportedWheel("invalid Wheel-Version: {!r}".format(version))
 
 
 def check_compatibility(version, name):
