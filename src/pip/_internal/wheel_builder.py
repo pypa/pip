@@ -53,7 +53,7 @@ def should_build(
     need_wheel,  # type: bool
     check_binary_allowed,  # type: BinaryAllowedPredicate
 ):
-    # type: (...) -> Optional[bool]
+    # type: (...) -> bool
     """Return whether an InstallRequirement should be built into a wheel."""
     if req.constraint:
         # never build requirements that are merely constraints
@@ -92,7 +92,7 @@ def should_build(
 def should_build_for_wheel_command(
     req,  # type: InstallRequirement
 ):
-    # type: (...) -> Optional[bool]
+    # type: (...) -> bool
     return should_build(
         req, need_wheel=True, check_binary_allowed=_always_true
     )
@@ -102,7 +102,7 @@ def should_build_for_install_command(
     req,  # type: InstallRequirement
     check_binary_allowed,  # type: BinaryAllowedPredicate
 ):
-    # type: (...) -> Optional[bool]
+    # type: (...) -> bool
     return should_build(
         req, need_wheel=False, check_binary_allowed=check_binary_allowed
     )
