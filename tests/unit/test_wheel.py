@@ -192,14 +192,11 @@ def test_get_csv_rows_for_installed__long_lines(tmpdir, caplog):
 
 def test_wheel_version(tmpdir, data):
     future_wheel = 'futurewheel-1.9-py2.py3-none-any.whl'
-    broken_wheel = 'brokenwheel-1.0-py2.py3-none-any.whl'
     future_version = (1, 9)
 
     unpack_file(data.packages.joinpath(future_wheel), tmpdir + 'future')
-    unpack_file(data.packages.joinpath(broken_wheel), tmpdir + 'broken')
 
     assert wheel.wheel_version(tmpdir + 'future') == future_version
-    assert not wheel.wheel_version(tmpdir + 'broken')
 
 
 def test_wheel_version_fails_on_error(monkeypatch):
@@ -214,6 +211,16 @@ def test_wheel_version_fails_no_dists(tmpdir):
     with pytest.raises(UnsupportedWheel) as e:
         wheel.wheel_version(str(tmpdir))
     assert "no contained distribution found" in str(e.value)
+
+
+def test_wheel_version_fails_missing_wheel(tmpdir):
+    dist_info_dir = tmpdir / "simple-0.1.0.dist-info"
+    dist_info_dir.mkdir()
+    dist_info_dir.joinpath("METADATA").touch()
+
+    with pytest.raises(UnsupportedWheel) as e:
+        wheel.wheel_version(str(tmpdir))
+    assert "could not read WHEEL file" in str(e.value)
 
 
 def test_check_compatibility():

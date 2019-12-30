@@ -676,6 +676,12 @@ def wheel_version(source_dir):
 
     try:
         wheel_text = dist.get_metadata('WHEEL')
+    except (IOError, OSError) as e:
+        raise UnsupportedWheel("could not read WHEEL file: {!r}".format(e))
+    except Exception:
+        return None
+
+    try:
         wheel_data = Parser().parsestr(wheel_text)
 
         version = wheel_data['Wheel-Version'].strip()
