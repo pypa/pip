@@ -656,7 +656,8 @@ def wheel_version(source_dir):
     Otherwise, return None if we couldn't parse / extract it.
     """
     try:
-        dist = [d for d in pkg_resources.find_on_path(None, source_dir)][0]
+        dists = [d for d in pkg_resources.find_on_path(None, source_dir)]
+        dist = dists[0]
 
         wheel_data = dist.get_metadata('WHEEL')
         wheel_data = Parser().parsestr(wheel_data)
