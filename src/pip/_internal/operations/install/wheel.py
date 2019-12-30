@@ -687,7 +687,8 @@ def wheel_version(source_dir):
     wheel_data = Parser().parsestr(wheel_text)
 
     try:
-        version = wheel_data['Wheel-Version'].strip()
+        version_text = wheel_data["Wheel-Version"]
+        version = version_text.strip()
         version = tuple(map(int, version.split('.')))
         return version
     except Exception:
