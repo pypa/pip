@@ -314,7 +314,7 @@ def install_unpacked_wheel(
     source = wheeldir.rstrip(os.path.sep) + os.path.sep
 
     try:
-        info_dir = wheel_dist_info_dir(source, req_description, name)
+        info_dir = wheel_dist_info_dir(source, name)
         metadata = wheel_metadata(wheeldir)
         version = wheel_version(metadata)
     except UnsupportedWheel as e:
@@ -624,8 +624,8 @@ def install_wheel(
         )
 
 
-def wheel_dist_info_dir(source, req_description, name):
-    # type: (str, str, str) -> str
+def wheel_dist_info_dir(source, name):
+    # type: (str, str) -> str
     """Returns the name of the contained .dist-info directory.
 
     Raises AssertionError or UnsupportedWheel if not found, >1 found, or

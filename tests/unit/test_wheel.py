@@ -194,27 +194,27 @@ def test_get_csv_rows_for_installed__long_lines(tmpdir, caplog):
 def test_wheel_dist_info_dir_found(tmpdir):
     expected = "simple-0.1.dist-info"
     tmpdir.joinpath(expected).mkdir()
-    assert wheel.wheel_dist_info_dir(str(tmpdir), "", "simple") == expected
+    assert wheel.wheel_dist_info_dir(str(tmpdir), "simple") == expected
 
 
 def test_wheel_dist_info_dir_multiple(tmpdir):
     tmpdir.joinpath("simple-0.1.dist-info").mkdir()
     tmpdir.joinpath("unrelated-0.1.dist-info").mkdir()
     with pytest.raises(UnsupportedWheel) as e:
-        wheel.wheel_dist_info_dir(str(tmpdir), "", "simple")
+        wheel.wheel_dist_info_dir(str(tmpdir), "simple")
     assert "multiple .dist-info directories found" in str(e.value)
 
 
 def test_wheel_dist_info_dir_none(tmpdir):
     with pytest.raises(UnsupportedWheel) as e:
-        wheel.wheel_dist_info_dir(str(tmpdir), "", "simple")
+        wheel.wheel_dist_info_dir(str(tmpdir), "simple")
     assert "directory not found" in str(e.value)
 
 
 def test_wheel_dist_info_dir_wrong_name(tmpdir):
     tmpdir.joinpath("unrelated-0.1.dist-info").mkdir()
     with pytest.raises(UnsupportedWheel) as e:
-        wheel.wheel_dist_info_dir(str(tmpdir), "", "simple")
+        wheel.wheel_dist_info_dir(str(tmpdir), "simple")
     assert "does not start with 'simple'" in str(e.value)
 
 
