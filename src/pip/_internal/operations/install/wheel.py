@@ -634,15 +634,15 @@ def wheel_dist_info_dir(source, req_description, name):
     subdirs = os.listdir(source)
     info_dirs = [s for s in subdirs if s.endswith('.dist-info')]
 
-    assert info_dirs, "{} .dist-info directory not found".format(
-        req_description
-    )
+    if not info_dirs:
+        raise UnsupportedWheel(".dist-info directory not found")
 
-    assert len(info_dirs) == 1, (
-        '{} multiple .dist-info directories found: {}'.format(
-            req_description, ', '.join(info_dirs)
+    if len(info_dirs) > 1:
+        raise UnsupportedWheel(
+            "multiple .dist-info directories found: {}".format(
+                ", ".join(info_dirs)
+            )
         )
-    )
 
     info_dir = info_dirs[0]
 

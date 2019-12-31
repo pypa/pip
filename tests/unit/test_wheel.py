@@ -200,13 +200,13 @@ def test_wheel_dist_info_dir_found(tmpdir):
 def test_wheel_dist_info_dir_multiple(tmpdir):
     tmpdir.joinpath("simple-0.1.dist-info").mkdir()
     tmpdir.joinpath("unrelated-0.1.dist-info").mkdir()
-    with pytest.raises(AssertionError) as e:
+    with pytest.raises(UnsupportedWheel) as e:
         wheel.wheel_dist_info_dir(str(tmpdir), "", "simple")
     assert "multiple .dist-info directories found" in str(e.value)
 
 
 def test_wheel_dist_info_dir_none(tmpdir):
-    with pytest.raises(AssertionError) as e:
+    with pytest.raises(UnsupportedWheel) as e:
         wheel.wheel_dist_info_dir(str(tmpdir), "", "simple")
     assert "directory not found" in str(e.value)
 
