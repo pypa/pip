@@ -98,25 +98,6 @@ def fix_script(path):
     return None
 
 
-dist_info_re = re.compile(r"""^(?P<namever>(?P<name>.+?)(-(?P<ver>.+?))?)
-                                \.dist-info$""", re.VERBOSE)
-
-
-def root_is_purelib(name, wheeldir):
-    # type: (str, str) -> bool
-    """True if the extracted wheel in wheeldir should go into purelib."""
-    name_folded = name.replace("-", "_")
-    for item in os.listdir(wheeldir):
-        match = dist_info_re.match(item)
-        if match and match.group('name') == name_folded:
-            with open(os.path.join(wheeldir, item, 'WHEEL')) as wheel:
-                for line in wheel:
-                    line = line.lower().rstrip()
-                    if line == "root-is-purelib: true":
-                        return True
-    return False
-
-
 def wheel_root_is_purelib(metadata):
     # type: (Message) -> bool
     return metadata.get("Root-Is-Purelib", "").lower() == "true"
