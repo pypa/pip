@@ -25,7 +25,6 @@ from pip._internal.exceptions import (
     PreviousBuildDirError,
     VcsHashUnsupported,
 )
-from pip._internal.utils.compat import expanduser
 from pip._internal.utils.filesystem import copy2_fixed
 from pip._internal.utils.hashes import MissingHashes
 from pip._internal.utils.logging import indent_log
@@ -364,8 +363,6 @@ class RequirementPreparer(object):
 
         # Where still-packed archives should be written to. If None, they are
         # not saved, and are deleted immediately after unpacking.
-        if download_dir:
-            download_dir = expanduser(download_dir)
         self.download_dir = download_dir
 
         # Where still-packed .whl files should be written to. If None, they are
