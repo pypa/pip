@@ -312,29 +312,7 @@ def install_unpacked_wheel(
     #       installation.
 
     source = wheeldir.rstrip(os.path.sep) + os.path.sep
-    subdirs = os.listdir(source)
-    info_dirs = [s for s in subdirs if s.endswith('.dist-info')]
-
-    assert info_dirs, "{} .dist-info directory not found".format(
-        req_description
-    )
-
-    assert len(info_dirs) == 1, (
-        '{} multiple .dist-info directories found: {}'.format(
-            req_description, ', '.join(info_dirs)
-        )
-    )
-
-    info_dir = info_dirs[0]
-
-    info_dir_name = canonicalize_name(info_dir)
-    canonical_name = canonicalize_name(name)
-    if not info_dir_name.startswith(canonical_name):
-        raise UnsupportedWheel(
-            "{} .dist-info directory {!r} does not start with {!r}".format(
-                req_description, info_dir, canonical_name
-            )
-        )
+    info_dir = wheel_dist_info_dir(source, req_description, name)
 
     try:
         metadata = wheel_metadata(wheeldir)
@@ -351,6 +329,7 @@ def install_unpacked_wheel(
     else:
         lib_dir = scheme.platlib
 
+    subdirs = os.listdir(source)
     data_dirs = [s for s in subdirs if s.endswith('.data')]
 
     # Record details of the files moved
@@ -643,6 +622,40 @@ def install_wheel(
             pycompile=pycompile,
             warn_script_location=warn_script_location,
         )
+
+
+def wheel_dist_info_dir(source, req_description, name):
+    # type: (str, str, str) -> str
+    """Returns the name of the contained .dist-info directory.
+
+    Raises AssertionError or UnsupportedWheel if not found, >1 found, or
+    it doesn't match the provided name.
+    """
+    subdirs = os.listdir(source)
+    info_dirs = [s for s in subdirs if s.endswith('.dist-info')]
+
+    assert info_dirs, "{} .dist-info directory not found".format(
+        req_description
+    )
+
+    assert len(info_dirs) == 1, (
+        '{} multiple .dist-info directories found: {}'.format(
+            req_description, ', '.join(info_dirs)
+        )
+    )
+
+    info_dir = info_dirs[0]
+
+    info_dir_name = canonicalize_name(info_dir)
+    canonical_name = canonicalize_name(name)
+    if not info_dir_name.startswith(canonical_name):
+        raise UnsupportedWheel(
+            "{} .dist-info directory {!r} does not start with {!r}".format(
+                req_description, info_dir, canonical_name
+            )
+        )
+
+    return info_dir
 
 
 def wheel_metadata(source_dir):
