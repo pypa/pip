@@ -23,7 +23,7 @@ from pip._vendor import pkg_resources
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor.distlib.util import get_export_entry
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.six import StringIO
+from pip._vendor.six import StringIO, ensure_str
 
 from pip._internal.exceptions import InstallationError, UnsupportedWheel
 from pip._internal.locations import get_major_minor_version
@@ -662,8 +662,11 @@ def wheel_metadata(source_dir):
 
     dist = dists[0]
 
+    dist_info_dir = os.path.basename(dist.egg_info)
+
     try:
-        wheel_text = dist.get_metadata('WHEEL')
+        with open(os.path.join(source_dir, dist_info_dir, "WHEEL"), "rb") as f:
+            wheel_text = ensure_str(f.read())
     except (IOError, OSError) as e:
         raise UnsupportedWheel("could not read WHEEL file: {!r}".format(e))
     except UnicodeDecodeError as e:
