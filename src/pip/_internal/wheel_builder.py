@@ -118,17 +118,16 @@ def should_cache(
     wheel cache, assuming the wheel cache is available, and should_build()
     has determined a wheel needs to be built.
     """
-    if not should_build(
-        req, need_wheel=False, check_binary_allowed=check_binary_allowed
+    if not should_build_for_install_command(
+        req, check_binary_allowed=check_binary_allowed
     ):
-        # never cache if pip install (need_wheel=False) would not have built
+        # never cache if pip install would not have built
         # (editable mode, etc)
         return False
 
     if req.link and req.link.is_vcs:
-        # VCS checkout. Build wheel just for this run
-        # unless it points to an immutable commit hash in which
-        # case it can be cached.
+        # VCS checkout. Do not cache
+        # unless it points to an immutable commit hash.
         assert not req.editable
         assert req.source_dir
         vcs_backend = vcs.get_backend_for_scheme(req.link.scheme)
@@ -137,14 +136,11 @@ def should_cache(
             return True
         return False
 
-    link = req.link
-    base, ext = link.splitext()
+    base, ext = req.link.splitext()
     if _contains_egg_info(base):
         return True
 
-    # Otherwise, build the wheel just for this run using the ephemeral
-    # cache since we are either in the case of e.g. a local directory, or
-    # no cache directory is available to use.
+    # Otherwise, do not cache.
     return False
 
 
