@@ -183,6 +183,11 @@ class Path(_base):
         with open(self, "rb") as fp:
             return fp.read()
 
+    def write_bytes(self, content):
+        # type: (bytes) -> None
+        with open(self, "wb") as f:
+            f.write(content)
+
     def read_text(self):
         with open(self, "r") as fp:
             return fp.read()

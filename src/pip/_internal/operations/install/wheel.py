@@ -324,7 +324,13 @@ def install_unpacked_wheel(
     # TODO: Look into moving this into a dedicated class for representing an
     #       installation.
 
-    version = wheel_version(wheeldir)
+    try:
+        version = wheel_version(wheeldir)
+    except UnsupportedWheel as e:
+        raise UnsupportedWheel(
+            "{} has an invalid wheel, {}".format(name, str(e))
+        )
+
     check_compatibility(version, name)
 
     if root_is_purelib(name, wheeldir):
@@ -651,25 +657,48 @@ def install_wheel(
 
 
 def wheel_version(source_dir):
-    # type: (Optional[str]) -> Optional[Tuple[int, ...]]
+    # type: (Optional[str]) -> Tuple[int, ...]
     """Return the Wheel-Version of an extracted wheel, if possible.
-    Otherwise, return None if we couldn't parse / extract it.
+    Otherwise, raise UnsupportedWheel if we couldn't parse / extract it.
     """
     try:
-        dist = [d for d in pkg_resources.find_on_path(None, source_dir)][0]
+        dists = [d for d in pkg_resources.find_on_path(None, source_dir)]
+    except Exception as e:
+        raise UnsupportedWheel(
+            "could not find a contained distribution due to: {!r}".format(e)
+        )
 
-        wheel_data = dist.get_metadata('WHEEL')
-        wheel_data = Parser().parsestr(wheel_data)
+    if not dists:
+        raise UnsupportedWheel("no contained distribution found")
 
-        version = wheel_data['Wheel-Version'].strip()
-        version = tuple(map(int, version.split('.')))
-        return version
-    except Exception:
-        return None
+    dist = dists[0]
+
+    try:
+        wheel_text = dist.get_metadata('WHEEL')
+    except (IOError, OSError) as e:
+        raise UnsupportedWheel("could not read WHEEL file: {!r}".format(e))
+    except UnicodeDecodeError as e:
+        raise UnsupportedWheel("error decoding WHEEL: {!r}".format(e))
+
+    # FeedParser (used by Parser) does not raise any exceptions. The returned
+    # message may have .defects populated, but for backwards-compatibility we
+    # currently ignore them.
+    wheel_data = Parser().parsestr(wheel_text)
+
+    version_text = wheel_data["Wheel-Version"]
+    if version_text is None:
+        raise UnsupportedWheel("WHEEL is missing Wheel-Version")
+
+    version = version_text.strip()
+
+    try:
+        return tuple(map(int, version.split('.')))
+    except ValueError:
+        raise UnsupportedWheel("invalid Wheel-Version: {!r}".format(version))
 
 
 def check_compatibility(version, name):
-    # type: (Optional[Tuple[int, ...]], str) -> None
+    # type: (Tuple[int, ...], str) -> None
     """Raises errors or warns if called with an incompatible Wheel-Version.
 
     Pip should refuse to install a Wheel-Version that's a major series
@@ -681,10 +710,6 @@ def check_compatibility(version, name):
 
     :raises UnsupportedWheel: when an incompatible Wheel-Version is given
     """
-    if not version:
-        raise UnsupportedWheel(
-            "%s is in an unsupported or invalid wheel" % name
-        )
     if version[0] > VERSION_COMPATIBLE[0]:
         raise UnsupportedWheel(
             "%s's Wheel-Version (%s) is not compatible with this version "

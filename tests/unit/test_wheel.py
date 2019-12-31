@@ -5,7 +5,8 @@ import os
 import textwrap
 
 import pytest
-from mock import patch
+from mock import Mock, patch
+from pip._vendor import pkg_resources
 from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.exceptions import UnsupportedWheel
@@ -22,7 +23,7 @@ from pip._internal.operations.install.wheel import (
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import hash_file
 from pip._internal.utils.unpacking import unpack_file
-from tests.lib import DATA_DIR, assert_paths_equal
+from tests.lib import DATA_DIR, assert_paths_equal, skip_if_python2
 
 
 def call_get_legacy_build_wheel_path(caplog, names):
@@ -191,14 +192,76 @@ def test_get_csv_rows_for_installed__long_lines(tmpdir, caplog):
 
 def test_wheel_version(tmpdir, data):
     future_wheel = 'futurewheel-1.9-py2.py3-none-any.whl'
-    broken_wheel = 'brokenwheel-1.0-py2.py3-none-any.whl'
     future_version = (1, 9)
 
     unpack_file(data.packages.joinpath(future_wheel), tmpdir + 'future')
-    unpack_file(data.packages.joinpath(broken_wheel), tmpdir + 'broken')
 
     assert wheel.wheel_version(tmpdir + 'future') == future_version
-    assert not wheel.wheel_version(tmpdir + 'broken')
+
+
+def test_wheel_version_fails_on_error(monkeypatch):
+    err = RuntimeError("example")
+    monkeypatch.setattr(pkg_resources, "find_on_path", Mock(side_effect=err))
+    with pytest.raises(UnsupportedWheel) as e:
+        wheel.wheel_version(".")
+    assert repr(err) in str(e.value)
+
+
+def test_wheel_version_fails_no_dists(tmpdir):
+    with pytest.raises(UnsupportedWheel) as e:
+        wheel.wheel_version(str(tmpdir))
+    assert "no contained distribution found" in str(e.value)
+
+
+def test_wheel_version_fails_missing_wheel(tmpdir):
+    dist_info_dir = tmpdir / "simple-0.1.0.dist-info"
+    dist_info_dir.mkdir()
+    dist_info_dir.joinpath("METADATA").touch()
+
+    with pytest.raises(UnsupportedWheel) as e:
+        wheel.wheel_version(str(tmpdir))
+    assert "could not read WHEEL file" in str(e.value)
+
+
+@skip_if_python2
+def test_wheel_version_fails_on_bad_encoding(tmpdir):
+    dist_info_dir = tmpdir / "simple-0.1.0.dist-info"
+    dist_info_dir.mkdir()
+    dist_info_dir.joinpath("METADATA").touch()
+    dist_info_dir.joinpath("WHEEL").write_bytes(b"\xff")
+
+    with pytest.raises(UnsupportedWheel) as e:
+        wheel.wheel_version(str(tmpdir))
+    assert "error decoding WHEEL" in str(e.value)
+
+
+def test_wheel_version_fails_on_no_wheel_version(tmpdir):
+    dist_info_dir = tmpdir / "simple-0.1.0.dist-info"
+    dist_info_dir.mkdir()
+    dist_info_dir.joinpath("METADATA").touch()
+    dist_info_dir.joinpath("WHEEL").touch()
+
+    with pytest.raises(UnsupportedWheel) as e:
+        wheel.wheel_version(str(tmpdir))
+    assert "missing Wheel-Version" in str(e.value)
+
+
+@pytest.mark.parametrize("version", [
+    ("",),
+    ("1.b",),
+    ("1.",),
+])
+def test_wheel_version_fails_on_bad_wheel_version(tmpdir, version):
+    dist_info_dir = tmpdir / "simple-0.1.0.dist-info"
+    dist_info_dir.mkdir()
+    dist_info_dir.joinpath("METADATA").touch()
+    dist_info_dir.joinpath("WHEEL").write_text(
+        "Wheel-Version: {}".format(version)
+    )
+
+    with pytest.raises(UnsupportedWheel) as e:
+        wheel.wheel_version(str(tmpdir))
+    assert "invalid Wheel-Version" in str(e.value)
 
 
 def test_check_compatibility():
