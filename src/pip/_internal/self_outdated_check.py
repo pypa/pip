@@ -18,7 +18,6 @@ from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
-from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.filesystem import (
     adjacent_tmp_file,
     check_path_owner,
@@ -225,12 +224,11 @@ def pip_self_version_check(session, options):
         if not local_version_is_older:
             return
 
-        # Advise "python -m pip" on Windows to avoid issues
-        # with overwriting pip.exe.
-        if WINDOWS:
-            pip_cmd = "python -m pip"
-        else:
-            pip_cmd = "pip"
+        # We cannot tell how the current pip is available in the current
+        # command context, so be pragmatic here and suggest the command
+        # that's always available. This doea not accomodate spaces in
+        # `sys.executable`.
+        pip_cmd = "{} -m pip".format(sys.executable)
         logger.warning(
             "You are using pip version %s; however, version %s is "
             "available.\nYou should consider upgrading via the "
