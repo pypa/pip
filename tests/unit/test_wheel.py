@@ -196,42 +196,43 @@ def test_wheel_version(tmpdir, data):
 
     unpack_file(data.packages.joinpath(future_wheel), tmpdir + 'future')
 
-    assert wheel.wheel_version(tmpdir + 'future') == future_version
+    metadata = wheel.wheel_metadata(tmpdir + 'future')
+    assert wheel.wheel_version(metadata) == future_version
 
 
-def test_wheel_version_fails_on_error(monkeypatch):
+def test_wheel_metadata_fails_on_error(monkeypatch):
     err = RuntimeError("example")
     monkeypatch.setattr(pkg_resources, "find_on_path", Mock(side_effect=err))
     with pytest.raises(UnsupportedWheel) as e:
-        wheel.wheel_version(".")
+        wheel.wheel_metadata(".")
     assert repr(err) in str(e.value)
 
 
-def test_wheel_version_fails_no_dists(tmpdir):
+def test_wheel_metadata_fails_no_dists(tmpdir):
     with pytest.raises(UnsupportedWheel) as e:
-        wheel.wheel_version(str(tmpdir))
+        wheel.wheel_metadata(str(tmpdir))
     assert "no contained distribution found" in str(e.value)
 
 
-def test_wheel_version_fails_missing_wheel(tmpdir):
+def test_wheel_metadata_fails_missing_wheel(tmpdir):
     dist_info_dir = tmpdir / "simple-0.1.0.dist-info"
     dist_info_dir.mkdir()
     dist_info_dir.joinpath("METADATA").touch()
 
     with pytest.raises(UnsupportedWheel) as e:
-        wheel.wheel_version(str(tmpdir))
+        wheel.wheel_metadata(str(tmpdir))
     assert "could not read WHEEL file" in str(e.value)
 
 
 @skip_if_python2
-def test_wheel_version_fails_on_bad_encoding(tmpdir):
+def test_wheel_metadata_fails_on_bad_encoding(tmpdir):
     dist_info_dir = tmpdir / "simple-0.1.0.dist-info"
     dist_info_dir.mkdir()
     dist_info_dir.joinpath("METADATA").touch()
     dist_info_dir.joinpath("WHEEL").write_bytes(b"\xff")
 
     with pytest.raises(UnsupportedWheel) as e:
-        wheel.wheel_version(str(tmpdir))
+        wheel.wheel_metadata(str(tmpdir))
     assert "error decoding WHEEL" in str(e.value)
 
 
@@ -241,8 +242,9 @@ def test_wheel_version_fails_on_no_wheel_version(tmpdir):
     dist_info_dir.joinpath("METADATA").touch()
     dist_info_dir.joinpath("WHEEL").touch()
 
+    metadata = wheel.wheel_metadata(str(tmpdir))
     with pytest.raises(UnsupportedWheel) as e:
-        wheel.wheel_version(str(tmpdir))
+        wheel.wheel_version(metadata)
     assert "missing Wheel-Version" in str(e.value)
 
 
@@ -259,8 +261,9 @@ def test_wheel_version_fails_on_bad_wheel_version(tmpdir, version):
         "Wheel-Version: {}".format(version)
     )
 
+    metadata = wheel.wheel_metadata(str(tmpdir))
     with pytest.raises(UnsupportedWheel) as e:
-        wheel.wheel_version(str(tmpdir))
+        wheel.wheel_version(metadata)
     assert "invalid Wheel-Version" in str(e.value)
 
 

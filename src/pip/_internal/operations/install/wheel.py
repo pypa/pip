@@ -33,6 +33,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.unpacking import unpack_file
 
 if MYPY_CHECK_RUNNING:
+    from email.message import Message
     from typing import (
         Dict, List, Optional, Sequence, Tuple, IO, Text, Any,
         Iterable, Callable, Set,
@@ -350,7 +351,8 @@ def install_unpacked_wheel(
         )
 
     try:
-        version = wheel_version(wheeldir)
+        metadata = wheel_metadata(wheeldir)
+        version = wheel_version(metadata)
     except UnsupportedWheel as e:
         raise UnsupportedWheel(
             "{} has an invalid wheel, {}".format(name, str(e))
@@ -657,10 +659,10 @@ def install_wheel(
         )
 
 
-def wheel_version(source_dir):
-    # type: (Optional[str]) -> Tuple[int, ...]
-    """Return the Wheel-Version of an extracted wheel, if possible.
-    Otherwise, raise UnsupportedWheel if we couldn't parse / extract it.
+def wheel_metadata(source_dir):
+    # type: (Optional[str]) -> Message
+    """Return the WHEEL metadata of an extracted wheel, if possible.
+    Otherwise, raise UnsupportedWheel.
     """
     try:
         dists = [d for d in pkg_resources.find_on_path(None, source_dir)]
@@ -684,8 +686,14 @@ def wheel_version(source_dir):
     # FeedParser (used by Parser) does not raise any exceptions. The returned
     # message may have .defects populated, but for backwards-compatibility we
     # currently ignore them.
-    wheel_data = Parser().parsestr(wheel_text)
+    return Parser().parsestr(wheel_text)
 
+
+def wheel_version(wheel_data):
+    # type: (Message) -> Tuple[int, ...]
+    """Given WHEEL metadata, return the parsed Wheel-Version.
+    Otherwise, raise UnsupportedWheel.
+    """
     version_text = wheel_data["Wheel-Version"]
     if version_text is None:
         raise UnsupportedWheel("WHEEL is missing Wheel-Version")
