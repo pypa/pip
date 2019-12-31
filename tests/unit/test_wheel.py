@@ -256,6 +256,18 @@ def test_wheel_version_fails_on_bad_wheel_version(version):
     assert "invalid Wheel-Version" in str(e.value)
 
 
+@pytest.mark.parametrize("text,expected", [
+    ("Root-Is-Purelib: true", True),
+    ("Root-Is-Purelib: false", False),
+    ("Root-Is-Purelib: hello", False),
+    ("", False),
+    ("root-is-purelib: true", True),
+    ("root-is-purelib: True", True),
+])
+def test_wheel_root_is_purelib(text, expected):
+    assert wheel.wheel_root_is_purelib(message_from_string(text)) == expected
+
+
 def test_check_compatibility():
     name = 'test'
     vc = wheel.VERSION_COMPATIBLE

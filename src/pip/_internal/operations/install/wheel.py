@@ -117,6 +117,11 @@ def root_is_purelib(name, wheeldir):
     return False
 
 
+def wheel_root_is_purelib(metadata):
+    # type: (Message) -> bool
+    return metadata.get("Root-Is-Purelib", "").lower() == "true"
+
+
 def get_entrypoints(filename):
     # type: (str) -> Tuple[Dict[str, str], Dict[str, str]]
     if not os.path.exists(filename):
@@ -360,7 +365,7 @@ def install_unpacked_wheel(
 
     check_compatibility(version, name)
 
-    if root_is_purelib(name, wheeldir):
+    if wheel_root_is_purelib(metadata):
         lib_dir = scheme.purelib
     else:
         lib_dir = scheme.platlib
