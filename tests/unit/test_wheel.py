@@ -6,8 +6,7 @@ import textwrap
 from email import message_from_string
 
 import pytest
-from mock import Mock, patch
-from pip._vendor import pkg_resources
+from mock import patch
 from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.exceptions import UnsupportedWheel
@@ -224,27 +223,13 @@ def test_wheel_version_ok(tmpdir, data):
     ) == (1, 9)
 
 
-def test_wheel_metadata_fails_on_error(monkeypatch):
-    err = RuntimeError("example")
-    monkeypatch.setattr(pkg_resources, "find_on_path", Mock(side_effect=err))
-    with pytest.raises(UnsupportedWheel) as e:
-        wheel.wheel_metadata(".")
-    assert repr(err) in str(e.value)
-
-
-def test_wheel_metadata_fails_no_dists(tmpdir):
-    with pytest.raises(UnsupportedWheel) as e:
-        wheel.wheel_metadata(str(tmpdir))
-    assert "no contained distribution found" in str(e.value)
-
-
 def test_wheel_metadata_fails_missing_wheel(tmpdir):
     dist_info_dir = tmpdir / "simple-0.1.0.dist-info"
     dist_info_dir.mkdir()
     dist_info_dir.joinpath("METADATA").touch()
 
     with pytest.raises(UnsupportedWheel) as e:
-        wheel.wheel_metadata(str(tmpdir))
+        wheel.wheel_metadata(str(tmpdir), dist_info_dir.name)
     assert "could not read WHEEL file" in str(e.value)
 
 
@@ -256,7 +241,7 @@ def test_wheel_metadata_fails_on_bad_encoding(tmpdir):
     dist_info_dir.joinpath("WHEEL").write_bytes(b"\xff")
 
     with pytest.raises(UnsupportedWheel) as e:
-        wheel.wheel_metadata(str(tmpdir))
+        wheel.wheel_metadata(str(tmpdir), dist_info_dir.name)
     assert "error decoding WHEEL" in str(e.value)
 
 

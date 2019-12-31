@@ -315,7 +315,7 @@ def install_unpacked_wheel(
 
     try:
         info_dir = wheel_dist_info_dir(source, name)
-        metadata = wheel_metadata(wheeldir)
+        metadata = wheel_metadata(source, info_dir)
         version = wheel_version(metadata)
     except UnsupportedWheel as e:
         raise UnsupportedWheel(
@@ -658,27 +658,13 @@ def wheel_dist_info_dir(source, name):
     return info_dir
 
 
-def wheel_metadata(source_dir):
-    # type: (Optional[str]) -> Message
+def wheel_metadata(source, dist_info_dir):
+    # type: (str, str) -> Message
     """Return the WHEEL metadata of an extracted wheel, if possible.
     Otherwise, raise UnsupportedWheel.
     """
     try:
-        dists = [d for d in pkg_resources.find_on_path(None, source_dir)]
-    except Exception as e:
-        raise UnsupportedWheel(
-            "could not find a contained distribution due to: {!r}".format(e)
-        )
-
-    if not dists:
-        raise UnsupportedWheel("no contained distribution found")
-
-    dist = dists[0]
-
-    dist_info_dir = os.path.basename(dist.egg_info)
-
-    try:
-        with open(os.path.join(source_dir, dist_info_dir, "WHEEL"), "rb") as f:
+        with open(os.path.join(source, dist_info_dir, "WHEEL"), "rb") as f:
             wheel_text = ensure_str(f.read())
     except (IOError, OSError) as e:
         raise UnsupportedWheel("could not read WHEEL file: {!r}".format(e))
