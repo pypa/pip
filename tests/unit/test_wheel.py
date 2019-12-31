@@ -218,14 +218,10 @@ def test_wheel_dist_info_dir_wrong_name(tmpdir):
     assert "does not start with 'simple'" in str(e.value)
 
 
-def test_wheel_version(tmpdir, data):
-    future_wheel = 'futurewheel-1.9-py2.py3-none-any.whl'
-    future_version = (1, 9)
-
-    unpack_file(data.packages.joinpath(future_wheel), tmpdir + 'future')
-
-    metadata = wheel.wheel_metadata(tmpdir + 'future')
-    assert wheel.wheel_version(metadata) == future_version
+def test_wheel_version_ok(tmpdir, data):
+    assert wheel.wheel_version(
+        message_from_string("Wheel-Version: 1.9")
+    ) == (1, 9)
 
 
 def test_wheel_metadata_fails_on_error(monkeypatch):
