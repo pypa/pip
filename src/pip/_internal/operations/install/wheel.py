@@ -312,9 +312,9 @@ def install_unpacked_wheel(
     #       installation.
 
     source = wheeldir.rstrip(os.path.sep) + os.path.sep
-    info_dir = wheel_dist_info_dir(source, req_description, name)
 
     try:
+        info_dir = wheel_dist_info_dir(source, req_description, name)
         metadata = wheel_metadata(wheeldir)
         version = wheel_version(metadata)
     except UnsupportedWheel as e:
@@ -650,8 +650,8 @@ def wheel_dist_info_dir(source, req_description, name):
     canonical_name = canonicalize_name(name)
     if not info_dir_name.startswith(canonical_name):
         raise UnsupportedWheel(
-            "{} .dist-info directory {!r} does not start with {!r}".format(
-                req_description, info_dir, canonical_name
+            ".dist-info directory {!r} does not start with {!r}".format(
+                info_dir, canonical_name
             )
         )
 
