@@ -324,6 +324,31 @@ def install_unpacked_wheel(
     # TODO: Look into moving this into a dedicated class for representing an
     #       installation.
 
+    source = wheeldir.rstrip(os.path.sep) + os.path.sep
+    subdirs = os.listdir(source)
+    info_dirs = [s for s in subdirs if s.endswith('.dist-info')]
+
+    assert info_dirs, "{} .dist-info directory not found".format(
+        req_description
+    )
+
+    assert len(info_dirs) == 1, (
+        '{} multiple .dist-info directories found: {}'.format(
+            req_description, ', '.join(info_dirs)
+        )
+    )
+
+    info_dir = info_dirs[0]
+
+    info_dir_name = canonicalize_name(info_dir)
+    canonical_name = canonicalize_name(name)
+    if not info_dir_name.startswith(canonical_name):
+        raise UnsupportedWheel(
+            "{} .dist-info directory {!r} does not start with {!r}".format(
+                req_description, info_dir, canonical_name
+            )
+        )
+
     try:
         version = wheel_version(wheeldir)
     except UnsupportedWheel as e:
@@ -338,9 +363,6 @@ def install_unpacked_wheel(
     else:
         lib_dir = scheme.platlib
 
-    source = wheeldir.rstrip(os.path.sep) + os.path.sep
-    subdirs = os.listdir(source)
-    info_dirs = [s for s in subdirs if s.endswith('.dist-info')]
     data_dirs = [s for s in subdirs if s.endswith('.data')]
 
     # Record details of the files moved
@@ -433,27 +455,6 @@ def install_unpacked_wheel(
                 record_installed(srcfile, destfile, changed)
 
     clobber(source, lib_dir, True)
-
-    assert info_dirs, "{} .dist-info directory not found".format(
-        req_description
-    )
-
-    assert len(info_dirs) == 1, (
-        '{} multiple .dist-info directories found: {}'.format(
-            req_description, ', '.join(info_dirs)
-        )
-    )
-
-    info_dir = info_dirs[0]
-
-    info_dir_name = canonicalize_name(info_dir)
-    canonical_name = canonicalize_name(name)
-    if not info_dir_name.startswith(canonical_name):
-        raise UnsupportedWheel(
-            "{} .dist-info directory {!r} does not start with {!r}".format(
-                req_description, info_dir, canonical_name
-            )
-        )
 
     dest_info_dir = os.path.join(lib_dir, info_dir)
 
