@@ -192,13 +192,19 @@ def test_get_csv_rows_for_installed__long_lines(tmpdir, caplog):
 
 def test_wheel_dist_info_dir_found(tmpdir):
     expected = "simple-0.1.dist-info"
-    tmpdir.joinpath(expected).mkdir()
+    dist_info_dir = tmpdir / expected
+    dist_info_dir.mkdir()
+    dist_info_dir.joinpath("WHEEL").touch()
     assert wheel.wheel_dist_info_dir(str(tmpdir), "simple") == expected
 
 
 def test_wheel_dist_info_dir_multiple(tmpdir):
-    tmpdir.joinpath("simple-0.1.dist-info").mkdir()
-    tmpdir.joinpath("unrelated-0.1.dist-info").mkdir()
+    dist_info_dir_1 = tmpdir / "simple-0.1.dist-info"
+    dist_info_dir_1.mkdir()
+    dist_info_dir_1.joinpath("WHEEL").touch()
+    dist_info_dir_2 = tmpdir / "unrelated-0.1.dist-info"
+    dist_info_dir_2.mkdir()
+    dist_info_dir_2.joinpath("WHEEL").touch()
     with pytest.raises(UnsupportedWheel) as e:
         wheel.wheel_dist_info_dir(str(tmpdir), "simple")
     assert "multiple .dist-info directories found" in str(e.value)
@@ -211,7 +217,9 @@ def test_wheel_dist_info_dir_none(tmpdir):
 
 
 def test_wheel_dist_info_dir_wrong_name(tmpdir):
-    tmpdir.joinpath("unrelated-0.1.dist-info").mkdir()
+    dist_info_dir = tmpdir / "unrelated-0.1.dist-info"
+    dist_info_dir.mkdir()
+    dist_info_dir.joinpath("WHEEL").touch()
     with pytest.raises(UnsupportedWheel) as e:
         wheel.wheel_dist_info_dir(str(tmpdir), "simple")
     assert "does not start with 'simple'" in str(e.value)
