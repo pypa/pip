@@ -37,7 +37,7 @@ if MYPY_CHECK_RUNNING:
     from email.message import Message
     from typing import (
         Dict, List, Optional, Sequence, Tuple, IO, Text, Any,
-        Iterable, Callable, Set,
+        Iterable, Callable, Set, Union,
     )
 
     from pip._internal.models.scheme import Scheme
@@ -317,7 +317,7 @@ def install_unpacked_wheel(
     source = wheeldir.rstrip(os.path.sep) + os.path.sep
 
     try:
-        info_dir = wheel_dist_info_dir(source, name)
+        info_dir = wheel_dist_info_dir(wheel_zip, name)
         metadata = wheel_metadata(source, info_dir)
         version = wheel_version(metadata)
     except UnsupportedWheel as e:
@@ -629,13 +629,18 @@ def install_wheel(
 
 
 def wheel_dist_info_dir(source, name):
-    # type: (str, str) -> str
+    # type: (Union[str, ZipFile], str) -> str
     """Returns the name of the contained .dist-info directory.
 
     Raises AssertionError or UnsupportedWheel if not found, >1 found, or
     it doesn't match the provided name.
     """
-    subdirs = os.listdir(source)
+    if isinstance(source, ZipFile):
+        # Zip file path separators must be /
+        subdirs = list(set(p.split("/")[0] for p in source.namelist()))
+    else:
+        subdirs = os.listdir(source)
+
     info_dirs = [s for s in subdirs if s.endswith('.dist-info')]
 
     if not info_dirs:
@@ -659,7 +664,9 @@ def wheel_dist_info_dir(source, name):
             )
         )
 
-    return info_dir
+    # Zip file paths can be unicode or str depending on the zip entry flags,
+    # so normalize it.
+    return ensure_str(info_dir)
 
 
 def wheel_metadata(source, dist_info_dir):

@@ -4,9 +4,12 @@ import logging
 import os
 import textwrap
 from email import message_from_string
+from io import BytesIO
+from zipfile import ZipFile
 
 import pytest
 from mock import patch
+from pip._vendor.contextlib2 import ExitStack
 from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.exceptions import UnsupportedWheel
@@ -22,8 +25,14 @@ from pip._internal.operations.install.wheel import (
 )
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import hash_file
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.unpacking import unpack_file
 from tests.lib import DATA_DIR, assert_paths_equal, skip_if_python2
+
+if MYPY_CHECK_RUNNING:
+    from typing import Union
+
+    from tests.lib.path import Path
 
 
 def call_get_legacy_build_wheel_path(caplog, names):
@@ -190,15 +199,50 @@ def test_get_csv_rows_for_installed__long_lines(tmpdir, caplog):
     assert messages == expected
 
 
-def test_wheel_dist_info_dir_found(tmpdir):
+@pytest.fixture
+def zip_dir():
+    def make_zip(path):
+        # type: (Path) -> ZipFile
+        buf = BytesIO()
+        with ZipFile(buf, "w", allowZip64=True) as z:
+            for dirpath, dirnames, filenames in os.walk(path):
+                for filename in filenames:
+                    file_path = os.path.join(path, dirpath, filename)
+                    # Zip files must always have / as path separator
+                    archive_path = os.path.relpath(file_path, path).replace(
+                        os.pathsep, "/"
+                    )
+                    z.write(file_path, archive_path)
+
+        return stack.enter_context(ZipFile(buf, "r", allowZip64=True))
+
+    stack = ExitStack()
+    with stack:
+        yield make_zip
+
+
+@pytest.fixture(params=[True, False])
+def zip_or_dir(request, zip_dir):
+    """Test both with directory and zip file representing directory.
+    """
+    def get_zip_or_dir(path):
+        # type: (Path) -> Union[str, ZipFile]
+        if request.param:
+            return zip_dir(path)
+        return str(path)
+
+    return get_zip_or_dir
+
+
+def test_wheel_dist_info_dir_found(tmpdir, zip_or_dir):
     expected = "simple-0.1.dist-info"
     dist_info_dir = tmpdir / expected
     dist_info_dir.mkdir()
     dist_info_dir.joinpath("WHEEL").touch()
-    assert wheel.wheel_dist_info_dir(str(tmpdir), "simple") == expected
+    assert wheel.wheel_dist_info_dir(zip_or_dir(tmpdir), "simple") == expected
 
 
-def test_wheel_dist_info_dir_multiple(tmpdir):
+def test_wheel_dist_info_dir_multiple(tmpdir, zip_or_dir):
     dist_info_dir_1 = tmpdir / "simple-0.1.dist-info"
     dist_info_dir_1.mkdir()
     dist_info_dir_1.joinpath("WHEEL").touch()
@@ -206,22 +250,22 @@ def test_wheel_dist_info_dir_multiple(tmpdir):
     dist_info_dir_2.mkdir()
     dist_info_dir_2.joinpath("WHEEL").touch()
     with pytest.raises(UnsupportedWheel) as e:
-        wheel.wheel_dist_info_dir(str(tmpdir), "simple")
+        wheel.wheel_dist_info_dir(zip_or_dir(tmpdir), "simple")
     assert "multiple .dist-info directories found" in str(e.value)
 
 
-def test_wheel_dist_info_dir_none(tmpdir):
+def test_wheel_dist_info_dir_none(tmpdir, zip_or_dir):
     with pytest.raises(UnsupportedWheel) as e:
-        wheel.wheel_dist_info_dir(str(tmpdir), "simple")
+        wheel.wheel_dist_info_dir(zip_or_dir(tmpdir), "simple")
     assert "directory not found" in str(e.value)
 
 
-def test_wheel_dist_info_dir_wrong_name(tmpdir):
+def test_wheel_dist_info_dir_wrong_name(tmpdir, zip_or_dir):
     dist_info_dir = tmpdir / "unrelated-0.1.dist-info"
     dist_info_dir.mkdir()
     dist_info_dir.joinpath("WHEEL").touch()
     with pytest.raises(UnsupportedWheel) as e:
-        wheel.wheel_dist_info_dir(str(tmpdir), "simple")
+        wheel.wheel_dist_info_dir(zip_or_dir(tmpdir), "simple")
     assert "does not start with 'simple'" in str(e.value)
 
 
