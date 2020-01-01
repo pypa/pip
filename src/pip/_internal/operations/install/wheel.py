@@ -629,17 +629,14 @@ def install_wheel(
 
 
 def wheel_dist_info_dir(source, name):
-    # type: (Union[str, ZipFile], str) -> str
+    # type: (ZipFile, str) -> str
     """Returns the name of the contained .dist-info directory.
 
     Raises AssertionError or UnsupportedWheel if not found, >1 found, or
     it doesn't match the provided name.
     """
-    if isinstance(source, ZipFile):
-        # Zip file path separators must be /
-        subdirs = list(set(p.split("/")[0] for p in source.namelist()))
-    else:
-        subdirs = os.listdir(source)
+    # Zip file path separators must be /
+    subdirs = list(set(p.split("/")[0] for p in source.namelist()))
 
     info_dirs = [s for s in subdirs if s.endswith('.dist-info')]
 

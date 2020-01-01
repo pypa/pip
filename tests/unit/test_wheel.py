@@ -234,15 +234,15 @@ def zip_or_dir(request, zip_dir):
     return get_zip_or_dir
 
 
-def test_wheel_dist_info_dir_found(tmpdir, zip_or_dir):
+def test_wheel_dist_info_dir_found(tmpdir, zip_dir):
     expected = "simple-0.1.dist-info"
     dist_info_dir = tmpdir / expected
     dist_info_dir.mkdir()
     dist_info_dir.joinpath("WHEEL").touch()
-    assert wheel.wheel_dist_info_dir(zip_or_dir(tmpdir), "simple") == expected
+    assert wheel.wheel_dist_info_dir(zip_dir(tmpdir), "simple") == expected
 
 
-def test_wheel_dist_info_dir_multiple(tmpdir, zip_or_dir):
+def test_wheel_dist_info_dir_multiple(tmpdir, zip_dir):
     dist_info_dir_1 = tmpdir / "simple-0.1.dist-info"
     dist_info_dir_1.mkdir()
     dist_info_dir_1.joinpath("WHEEL").touch()
@@ -250,22 +250,22 @@ def test_wheel_dist_info_dir_multiple(tmpdir, zip_or_dir):
     dist_info_dir_2.mkdir()
     dist_info_dir_2.joinpath("WHEEL").touch()
     with pytest.raises(UnsupportedWheel) as e:
-        wheel.wheel_dist_info_dir(zip_or_dir(tmpdir), "simple")
+        wheel.wheel_dist_info_dir(zip_dir(tmpdir), "simple")
     assert "multiple .dist-info directories found" in str(e.value)
 
 
-def test_wheel_dist_info_dir_none(tmpdir, zip_or_dir):
+def test_wheel_dist_info_dir_none(tmpdir, zip_dir):
     with pytest.raises(UnsupportedWheel) as e:
-        wheel.wheel_dist_info_dir(zip_or_dir(tmpdir), "simple")
+        wheel.wheel_dist_info_dir(zip_dir(tmpdir), "simple")
     assert "directory not found" in str(e.value)
 
 
-def test_wheel_dist_info_dir_wrong_name(tmpdir, zip_or_dir):
+def test_wheel_dist_info_dir_wrong_name(tmpdir, zip_dir):
     dist_info_dir = tmpdir / "unrelated-0.1.dist-info"
     dist_info_dir.mkdir()
     dist_info_dir.joinpath("WHEEL").touch()
     with pytest.raises(UnsupportedWheel) as e:
-        wheel.wheel_dist_info_dir(zip_or_dir(tmpdir), "simple")
+        wheel.wheel_dist_info_dir(zip_dir(tmpdir), "simple")
     assert "does not start with 'simple'" in str(e.value)
 
 
