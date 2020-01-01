@@ -18,6 +18,7 @@ import sys
 import warnings
 from base64 import urlsafe_b64encode
 from email.parser import Parser
+from zipfile import ZipFile
 
 from pip._vendor import pkg_resources
 from pip._vendor.distlib.scripts import ScriptMaker
@@ -286,6 +287,7 @@ class PipScriptMaker(ScriptMaker):
 def install_unpacked_wheel(
     name,  # type: str
     wheeldir,  # type: str
+    wheel_zip,  # type: ZipFile
     scheme,  # type: Scheme
     req_description,  # type: str
     pycompile=True,  # type: bool
@@ -296,6 +298,7 @@ def install_unpacked_wheel(
 
     :param name: Name of the project to install
     :param wheeldir: Base directory of the unpacked wheel
+    :param wheel_zip: open ZipFile for wheel being installed
     :param scheme: Distutils scheme dictating the install directories
     :param req_description: String used in place of the requirement, for
         logging
@@ -612,11 +615,12 @@ def install_wheel(
     # type: (...) -> None
     with TempDirectory(
         path=_temp_dir_for_testing, kind="unpacked-wheel"
-    ) as unpacked_dir:
+    ) as unpacked_dir, ZipFile(wheel_path, allowZip64=True) as z:
         unpack_file(wheel_path, unpacked_dir.path)
         install_unpacked_wheel(
             name=name,
             wheeldir=unpacked_dir.path,
+            wheel_zip=z,
             scheme=scheme,
             req_description=req_description,
             pycompile=pycompile,
