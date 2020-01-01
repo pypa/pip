@@ -24,7 +24,7 @@ from pip._vendor import pkg_resources
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor.distlib.util import get_export_entry
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.six import StringIO, ensure_str
+from pip._vendor.six import PY2, StringIO, ensure_str
 
 from pip._internal.exceptions import InstallationError, UnsupportedWheel
 from pip._internal.locations import get_major_minor_version
@@ -43,6 +43,11 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.models.scheme import Scheme
 
     InstalledCSVRow = Tuple[str, ...]
+
+if PY2:
+    from zipfile import BadZipfile as BadZipFile
+else:
+    from zipfile import BadZipFile
 
 
 VERSION_COMPATIBLE = (1, 0)
@@ -318,7 +323,7 @@ def install_unpacked_wheel(
 
     try:
         info_dir = wheel_dist_info_dir(wheel_zip, name)
-        metadata = wheel_metadata(source, info_dir)
+        metadata = wheel_metadata(wheel_zip, info_dir)
         version = wheel_version(metadata)
     except UnsupportedWheel as e:
         raise UnsupportedWheel(
@@ -667,15 +672,24 @@ def wheel_dist_info_dir(source, name):
 
 
 def wheel_metadata(source, dist_info_dir):
-    # type: (str, str) -> Message
+    # type: (Union[str, ZipFile], str) -> Message
     """Return the WHEEL metadata of an extracted wheel, if possible.
     Otherwise, raise UnsupportedWheel.
     """
-    try:
-        with open(os.path.join(source, dist_info_dir, "WHEEL"), "rb") as f:
-            wheel_contents = f.read()
-    except (IOError, OSError) as e:
-        raise UnsupportedWheel("could not read WHEEL file: {!r}".format(e))
+    if isinstance(source, ZipFile):
+        try:
+            # Zip file path separators must be /
+            wheel_contents = source.read("{}/WHEEL".format(dist_info_dir))
+            # BadZipFile for general corruption, KeyError for missing entry,
+            # and RuntimeError for password-protected files
+        except (BadZipFile, KeyError, RuntimeError) as e:
+            raise UnsupportedWheel("could not read WHEEL file: {!r}".format(e))
+    else:
+        try:
+            with open(os.path.join(source, dist_info_dir, "WHEEL"), "rb") as f:
+                wheel_contents = f.read()
+        except (IOError, OSError) as e:
+            raise UnsupportedWheel("could not read WHEEL file: {!r}".format(e))
 
     try:
         wheel_text = ensure_str(wheel_contents)
