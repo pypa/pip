@@ -673,9 +673,12 @@ def wheel_metadata(source, dist_info_dir):
     """
     try:
         with open(os.path.join(source, dist_info_dir, "WHEEL"), "rb") as f:
-            wheel_text = ensure_str(f.read())
+            wheel_contents = f.read()
     except (IOError, OSError) as e:
         raise UnsupportedWheel("could not read WHEEL file: {!r}".format(e))
+
+    try:
+        wheel_text = ensure_str(wheel_contents)
     except UnicodeDecodeError as e:
         raise UnsupportedWheel("error decoding WHEEL: {!r}".format(e))
 
