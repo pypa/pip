@@ -321,16 +321,7 @@ def install_unpacked_wheel(
 
     source = wheeldir.rstrip(os.path.sep) + os.path.sep
 
-    try:
-        info_dir = wheel_dist_info_dir(wheel_zip, name)
-        metadata = wheel_metadata(wheel_zip, info_dir)
-        version = wheel_version(metadata)
-    except UnsupportedWheel as e:
-        raise UnsupportedWheel(
-            "{} has an invalid wheel, {}".format(name, str(e))
-        )
-
-    check_compatibility(version, name)
+    info_dir, metadata = parse_wheel(wheel_zip, name)
 
     if wheel_root_is_purelib(metadata):
         lib_dir = scheme.purelib
@@ -631,6 +622,27 @@ def install_wheel(
             pycompile=pycompile,
             warn_script_location=warn_script_location,
         )
+
+
+def parse_wheel(wheel_zip, name):
+    # type: (ZipFile, str) -> Tuple[str, Message]
+    """Extract information from the provided wheel, ensuring it meets basic
+    standards.
+
+    Returns the name of the .dist-info directory and the parsed WHEEL metadata.
+    """
+    try:
+        info_dir = wheel_dist_info_dir(wheel_zip, name)
+        metadata = wheel_metadata(wheel_zip, info_dir)
+        version = wheel_version(metadata)
+    except UnsupportedWheel as e:
+        raise UnsupportedWheel(
+            "{} has an invalid wheel, {}".format(name, str(e))
+        )
+
+    check_compatibility(version, name)
+
+    return info_dir, metadata
 
 
 def wheel_dist_info_dir(source, name):
