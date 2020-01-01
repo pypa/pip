@@ -130,6 +130,17 @@ def check_dist_restriction(options, check_target=False):
             )
 
 
+def _path_option_check(option, opt, value):
+    # type: (Option, str, str) -> str
+    return os.path.expanduser(value)
+
+
+class _PathOption(Option):
+    TYPES = Option.TYPES + ("path",)
+    TYPE_CHECKER = Option.TYPE_CHECKER.copy()
+    TYPE_CHECKER["path"] = _path_option_check
+
+
 ###########
 # options #
 ###########
@@ -217,10 +228,11 @@ progress_bar = partial(
 )  # type: Callable[..., Option]
 
 log = partial(
-    Option,
+    _PathOption,
     "--log", "--log-file", "--local-log",
     dest="log",
     metavar="path",
+    type="path",
     help="Path to a verbose appending log."
 )  # type: Callable[..., Option]
 
@@ -291,19 +303,19 @@ def exists_action():
 
 
 cert = partial(
-    Option,
+    _PathOption,
     '--cert',
     dest='cert',
-    type='str',
+    type='path',
     metavar='path',
     help="Path to alternate CA bundle.",
 )  # type: Callable[..., Option]
 
 client_cert = partial(
-    Option,
+    _PathOption,
     '--client-cert',
     dest='client_cert',
-    type='str',
+    type='path',
     default=None,
     metavar='path',
     help="Path to SSL client certificate, a single file containing the "
@@ -349,12 +361,13 @@ no_index = partial(
 
 def find_links():
     # type: () -> Option
-    return Option(
+    return _PathOption(
         '-f', '--find-links',
         dest='find_links',
         action='append',
         default=[],
         metavar='url',
+        type='path',
         help="If a url or path to an html file, then parse for links to "
              "archives. If a local path or file:// url that's a directory, "
              "then look for archives in the directory listing.",
@@ -376,12 +389,13 @@ def trusted_host():
 
 def constraints():
     # type: () -> Option
-    return Option(
+    return _PathOption(
         '-c', '--constraint',
         dest='constraints',
         action='append',
         default=[],
         metavar='file',
+        type='path',
         help='Constrain versions using the given constraints file. '
         'This option can be used multiple times.'
     )
@@ -389,12 +403,13 @@ def constraints():
 
 def requirements():
     # type: () -> Option
-    return Option(
+    return _PathOption(
         '-r', '--requirement',
         dest='requirements',
         action='append',
         default=[],
         metavar='file',
+        type='path',
         help='Install from the given requirements file. '
         'This option can be used multiple times.'
     )
@@ -402,12 +417,13 @@ def requirements():
 
 def editable():
     # type: () -> Option
-    return Option(
+    return _PathOption(
         '-e', '--editable',
         dest='editables',
         action='append',
         default=[],
         metavar='path/url',
+        type='path',
         help=('Install a project in editable mode (i.e. setuptools '
               '"develop mode") from a local project path or a VCS url.'),
     )
@@ -420,10 +436,10 @@ def _handle_src(option, opt_str, value, parser):
 
 
 src = partial(
-    Option,
+    _PathOption,
     '--src', '--source', '--source-dir', '--source-directory',
     dest='src_dir',
-    type='str',
+    type='path',
     metavar='dir',
     default=get_src_prefix(),
     action='callback',
@@ -626,11 +642,12 @@ def prefer_binary():
 
 
 cache_dir = partial(
-    Option,
+    _PathOption,
     "--cache-dir",
     dest="cache_dir",
     default=USER_CACHE_DIR,
     metavar="dir",
+    type='path',
     help="Store the cache data in <dir>."
 )  # type: Callable[..., Option]
 
@@ -690,10 +707,10 @@ def _handle_build_dir(option, opt, value, parser):
 
 
 build_dir = partial(
-    Option,
+    _PathOption,
     '-b', '--build', '--build-dir', '--build-directory',
     dest='build_dir',
-    type='str',
+    type='path',
     metavar='dir',
     action='callback',
     callback=_handle_build_dir,
@@ -874,9 +891,10 @@ require_hashes = partial(
 
 
 list_path = partial(
-    Option,
+    _PathOption,
     '--path',
     dest='path',
+    type='path',
     action='append',
     help='Restrict to the specified installation path for listing '
          'packages (can be used multiple times).'
