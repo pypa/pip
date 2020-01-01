@@ -226,7 +226,7 @@ def pip_self_version_check(session, options):
 
         # We cannot tell how the current pip is available in the current
         # command context, so be pragmatic here and suggest the command
-        # that's always available. This doea not accomodate spaces in
+        # that's always available. This does not accommodate spaces in
         # `sys.executable`.
         pip_cmd = "{} -m pip".format(sys.executable)
         logger.warning(
