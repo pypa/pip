@@ -23,7 +23,7 @@ from pip._vendor import pkg_resources
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor.distlib.util import get_export_entry
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.six import StringIO
+from pip._vendor.six import StringIO, ensure_str
 
 from pip._internal.exceptions import InstallationError, UnsupportedWheel
 from pip._internal.locations import get_major_minor_version
@@ -33,6 +33,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.unpacking import unpack_file
 
 if MYPY_CHECK_RUNNING:
+    from email.message import Message
     from typing import (
         Dict, List, Optional, Sequence, Tuple, IO, Text, Any,
         Iterable, Callable, Set,
@@ -97,23 +98,9 @@ def fix_script(path):
     return None
 
 
-dist_info_re = re.compile(r"""^(?P<namever>(?P<name>.+?)(-(?P<ver>.+?))?)
-                                \.dist-info$""", re.VERBOSE)
-
-
-def root_is_purelib(name, wheeldir):
-    # type: (str, str) -> bool
-    """True if the extracted wheel in wheeldir should go into purelib."""
-    name_folded = name.replace("-", "_")
-    for item in os.listdir(wheeldir):
-        match = dist_info_re.match(item)
-        if match and match.group('name') == name_folded:
-            with open(os.path.join(wheeldir, item, 'WHEEL')) as wheel:
-                for line in wheel:
-                    line = line.lower().rstrip()
-                    if line == "root-is-purelib: true":
-                        return True
-    return False
+def wheel_root_is_purelib(metadata):
+    # type: (Message) -> bool
+    return metadata.get("Root-Is-Purelib", "").lower() == "true"
 
 
 def get_entrypoints(filename):
@@ -324,8 +311,12 @@ def install_unpacked_wheel(
     # TODO: Look into moving this into a dedicated class for representing an
     #       installation.
 
+    source = wheeldir.rstrip(os.path.sep) + os.path.sep
+
     try:
-        version = wheel_version(wheeldir)
+        info_dir = wheel_dist_info_dir(source, name)
+        metadata = wheel_metadata(source, info_dir)
+        version = wheel_version(metadata)
     except UnsupportedWheel as e:
         raise UnsupportedWheel(
             "{} has an invalid wheel, {}".format(name, str(e))
@@ -333,14 +324,12 @@ def install_unpacked_wheel(
 
     check_compatibility(version, name)
 
-    if root_is_purelib(name, wheeldir):
+    if wheel_root_is_purelib(metadata):
         lib_dir = scheme.purelib
     else:
         lib_dir = scheme.platlib
 
-    source = wheeldir.rstrip(os.path.sep) + os.path.sep
     subdirs = os.listdir(source)
-    info_dirs = [s for s in subdirs if s.endswith('.dist-info')]
     data_dirs = [s for s in subdirs if s.endswith('.data')]
 
     # Record details of the files moved
@@ -433,27 +422,6 @@ def install_unpacked_wheel(
                 record_installed(srcfile, destfile, changed)
 
     clobber(source, lib_dir, True)
-
-    assert info_dirs, "{} .dist-info directory not found".format(
-        req_description
-    )
-
-    assert len(info_dirs) == 1, (
-        '{} multiple .dist-info directories found: {}'.format(
-            req_description, ', '.join(info_dirs)
-        )
-    )
-
-    info_dir = info_dirs[0]
-
-    info_dir_name = canonicalize_name(info_dir)
-    canonical_name = canonicalize_name(name)
-    if not info_dir_name.startswith(canonical_name):
-        raise UnsupportedWheel(
-            "{} .dist-info directory {!r} does not start with {!r}".format(
-                req_description, info_dir, canonical_name
-            )
-        )
 
     dest_info_dir = os.path.join(lib_dir, info_dir)
 
@@ -656,25 +624,48 @@ def install_wheel(
         )
 
 
-def wheel_version(source_dir):
-    # type: (Optional[str]) -> Tuple[int, ...]
-    """Return the Wheel-Version of an extracted wheel, if possible.
-    Otherwise, raise UnsupportedWheel if we couldn't parse / extract it.
+def wheel_dist_info_dir(source, name):
+    # type: (str, str) -> str
+    """Returns the name of the contained .dist-info directory.
+
+    Raises AssertionError or UnsupportedWheel if not found, >1 found, or
+    it doesn't match the provided name.
     """
-    try:
-        dists = [d for d in pkg_resources.find_on_path(None, source_dir)]
-    except Exception as e:
+    subdirs = os.listdir(source)
+    info_dirs = [s for s in subdirs if s.endswith('.dist-info')]
+
+    if not info_dirs:
+        raise UnsupportedWheel(".dist-info directory not found")
+
+    if len(info_dirs) > 1:
         raise UnsupportedWheel(
-            "could not find a contained distribution due to: {!r}".format(e)
+            "multiple .dist-info directories found: {}".format(
+                ", ".join(info_dirs)
+            )
         )
 
-    if not dists:
-        raise UnsupportedWheel("no contained distribution found")
+    info_dir = info_dirs[0]
 
-    dist = dists[0]
+    info_dir_name = canonicalize_name(info_dir)
+    canonical_name = canonicalize_name(name)
+    if not info_dir_name.startswith(canonical_name):
+        raise UnsupportedWheel(
+            ".dist-info directory {!r} does not start with {!r}".format(
+                info_dir, canonical_name
+            )
+        )
 
+    return info_dir
+
+
+def wheel_metadata(source, dist_info_dir):
+    # type: (str, str) -> Message
+    """Return the WHEEL metadata of an extracted wheel, if possible.
+    Otherwise, raise UnsupportedWheel.
+    """
     try:
-        wheel_text = dist.get_metadata('WHEEL')
+        with open(os.path.join(source, dist_info_dir, "WHEEL"), "rb") as f:
+            wheel_text = ensure_str(f.read())
     except (IOError, OSError) as e:
         raise UnsupportedWheel("could not read WHEEL file: {!r}".format(e))
     except UnicodeDecodeError as e:
@@ -683,8 +674,14 @@ def wheel_version(source_dir):
     # FeedParser (used by Parser) does not raise any exceptions. The returned
     # message may have .defects populated, but for backwards-compatibility we
     # currently ignore them.
-    wheel_data = Parser().parsestr(wheel_text)
+    return Parser().parsestr(wheel_text)
 
+
+def wheel_version(wheel_data):
+    # type: (Message) -> Tuple[int, ...]
+    """Given WHEEL metadata, return the parsed Wheel-Version.
+    Otherwise, raise UnsupportedWheel.
+    """
     version_text = wheel_data["Wheel-Version"]
     if version_text is None:
         raise UnsupportedWheel("WHEEL is missing Wheel-Version")

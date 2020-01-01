@@ -3,10 +3,10 @@ import csv
 import logging
 import os
 import textwrap
+from email import message_from_string
 
 import pytest
-from mock import Mock, patch
-from pip._vendor import pkg_resources
+from mock import patch
 from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.exceptions import UnsupportedWheel
@@ -190,59 +190,64 @@ def test_get_csv_rows_for_installed__long_lines(tmpdir, caplog):
     assert messages == expected
 
 
-def test_wheel_version(tmpdir, data):
-    future_wheel = 'futurewheel-1.9-py2.py3-none-any.whl'
-    future_version = (1, 9)
-
-    unpack_file(data.packages.joinpath(future_wheel), tmpdir + 'future')
-
-    assert wheel.wheel_version(tmpdir + 'future') == future_version
+def test_wheel_dist_info_dir_found(tmpdir):
+    expected = "simple-0.1.dist-info"
+    tmpdir.joinpath(expected).mkdir()
+    assert wheel.wheel_dist_info_dir(str(tmpdir), "simple") == expected
 
 
-def test_wheel_version_fails_on_error(monkeypatch):
-    err = RuntimeError("example")
-    monkeypatch.setattr(pkg_resources, "find_on_path", Mock(side_effect=err))
+def test_wheel_dist_info_dir_multiple(tmpdir):
+    tmpdir.joinpath("simple-0.1.dist-info").mkdir()
+    tmpdir.joinpath("unrelated-0.1.dist-info").mkdir()
     with pytest.raises(UnsupportedWheel) as e:
-        wheel.wheel_version(".")
-    assert repr(err) in str(e.value)
+        wheel.wheel_dist_info_dir(str(tmpdir), "simple")
+    assert "multiple .dist-info directories found" in str(e.value)
 
 
-def test_wheel_version_fails_no_dists(tmpdir):
+def test_wheel_dist_info_dir_none(tmpdir):
     with pytest.raises(UnsupportedWheel) as e:
-        wheel.wheel_version(str(tmpdir))
-    assert "no contained distribution found" in str(e.value)
+        wheel.wheel_dist_info_dir(str(tmpdir), "simple")
+    assert "directory not found" in str(e.value)
 
 
-def test_wheel_version_fails_missing_wheel(tmpdir):
+def test_wheel_dist_info_dir_wrong_name(tmpdir):
+    tmpdir.joinpath("unrelated-0.1.dist-info").mkdir()
+    with pytest.raises(UnsupportedWheel) as e:
+        wheel.wheel_dist_info_dir(str(tmpdir), "simple")
+    assert "does not start with 'simple'" in str(e.value)
+
+
+def test_wheel_version_ok(tmpdir, data):
+    assert wheel.wheel_version(
+        message_from_string("Wheel-Version: 1.9")
+    ) == (1, 9)
+
+
+def test_wheel_metadata_fails_missing_wheel(tmpdir):
     dist_info_dir = tmpdir / "simple-0.1.0.dist-info"
     dist_info_dir.mkdir()
     dist_info_dir.joinpath("METADATA").touch()
 
     with pytest.raises(UnsupportedWheel) as e:
-        wheel.wheel_version(str(tmpdir))
+        wheel.wheel_metadata(str(tmpdir), dist_info_dir.name)
     assert "could not read WHEEL file" in str(e.value)
 
 
 @skip_if_python2
-def test_wheel_version_fails_on_bad_encoding(tmpdir):
+def test_wheel_metadata_fails_on_bad_encoding(tmpdir):
     dist_info_dir = tmpdir / "simple-0.1.0.dist-info"
     dist_info_dir.mkdir()
     dist_info_dir.joinpath("METADATA").touch()
     dist_info_dir.joinpath("WHEEL").write_bytes(b"\xff")
 
     with pytest.raises(UnsupportedWheel) as e:
-        wheel.wheel_version(str(tmpdir))
+        wheel.wheel_metadata(str(tmpdir), dist_info_dir.name)
     assert "error decoding WHEEL" in str(e.value)
 
 
-def test_wheel_version_fails_on_no_wheel_version(tmpdir):
-    dist_info_dir = tmpdir / "simple-0.1.0.dist-info"
-    dist_info_dir.mkdir()
-    dist_info_dir.joinpath("METADATA").touch()
-    dist_info_dir.joinpath("WHEEL").touch()
-
+def test_wheel_version_fails_on_no_wheel_version():
     with pytest.raises(UnsupportedWheel) as e:
-        wheel.wheel_version(str(tmpdir))
+        wheel.wheel_version(message_from_string(""))
     assert "missing Wheel-Version" in str(e.value)
 
 
@@ -251,17 +256,24 @@ def test_wheel_version_fails_on_no_wheel_version(tmpdir):
     ("1.b",),
     ("1.",),
 ])
-def test_wheel_version_fails_on_bad_wheel_version(tmpdir, version):
-    dist_info_dir = tmpdir / "simple-0.1.0.dist-info"
-    dist_info_dir.mkdir()
-    dist_info_dir.joinpath("METADATA").touch()
-    dist_info_dir.joinpath("WHEEL").write_text(
-        "Wheel-Version: {}".format(version)
-    )
-
+def test_wheel_version_fails_on_bad_wheel_version(version):
     with pytest.raises(UnsupportedWheel) as e:
-        wheel.wheel_version(str(tmpdir))
+        wheel.wheel_version(
+            message_from_string("Wheel-Version: {}".format(version))
+        )
     assert "invalid Wheel-Version" in str(e.value)
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("Root-Is-Purelib: true", True),
+    ("Root-Is-Purelib: false", False),
+    ("Root-Is-Purelib: hello", False),
+    ("", False),
+    ("root-is-purelib: true", True),
+    ("root-is-purelib: True", True),
+])
+def test_wheel_root_is_purelib(text, expected):
+    assert wheel.wheel_root_is_purelib(message_from_string(text)) == expected
 
 
 def test_check_compatibility():
@@ -295,22 +307,6 @@ class TestWheelFile(object):
                                 'meta-1.0-py2.py3-none-any.whl')
         unpack_file(filepath, tmpdir)
         assert os.path.isdir(os.path.join(tmpdir, 'meta-1.0.dist-info'))
-
-    def test_purelib_platlib(self, data):
-        """
-        Test the "wheel is purelib/platlib" code.
-        """
-        packages = [
-            ("pure_wheel", data.packages.joinpath("pure_wheel-1.7"), True),
-            ("plat_wheel", data.packages.joinpath("plat_wheel-1.7"), False),
-            ("pure_wheel", data.packages.joinpath(
-                "pure_wheel-_invalidversion_"), True),
-            ("plat_wheel", data.packages.joinpath(
-                "plat_wheel-_invalidversion_"), False),
-        ]
-
-        for name, path, expected in packages:
-            assert wheel.root_is_purelib(name, path) == expected
 
 
 class TestInstallUnpackedWheel(object):
