@@ -35,7 +35,6 @@ from pip._internal.utils.misc import (
     backup_dir,
     display_path,
     hide_url,
-    normalize_path,
     path_to_display,
     rmtree,
 )
@@ -372,8 +371,6 @@ class RequirementPreparer(object):
         # Where still-packed .whl files should be written to. If None, they are
         # written to the download_dir parameter. Separate to download_dir to
         # permit only keeping wheel archives for pip wheel.
-        if wheel_download_dir:
-            wheel_download_dir = normalize_path(wheel_download_dir)
         self.wheel_download_dir = wheel_download_dir
 
         # NOTE

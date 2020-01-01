@@ -29,11 +29,7 @@ from pip._internal.exceptions import (
     UnsupportedPythonVersion,
 )
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.misc import (
-    dist_in_usersite,
-    ensure_dir,
-    normalize_version_info,
-)
+from pip._internal.utils.misc import dist_in_usersite, normalize_version_info
 from pip._internal.utils.packaging import (
     check_requires_python,
     get_requires_python,
@@ -163,10 +159,6 @@ class Resolver(object):
         possible to move the preparation to become a step separated from
         dependency resolution.
         """
-        # make the wheelhouse
-        if self.preparer.wheel_download_dir:
-            ensure_dir(self.preparer.wheel_download_dir)
-
         # If any top-level requirement has a hash specified, enter
         # hash-checking mode, which requires hashes from all.
         root_reqs = (
