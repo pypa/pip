@@ -30,8 +30,6 @@ from pip._internal.utils.unpacking import unpack_file
 from tests.lib import DATA_DIR, assert_paths_equal, skip_if_python2
 
 if MYPY_CHECK_RUNNING:
-    from typing import Union
-
     from tests.lib.path import Path
 
 
@@ -221,19 +219,6 @@ def zip_dir():
         yield make_zip
 
 
-@pytest.fixture(params=[True, False])
-def zip_or_dir(request, zip_dir):
-    """Test both with directory and zip file representing directory.
-    """
-    def get_zip_or_dir(path):
-        # type: (Path) -> Union[str, ZipFile]
-        if request.param:
-            return zip_dir(path)
-        return str(path)
-
-    return get_zip_or_dir
-
-
 def test_wheel_dist_info_dir_found(tmpdir, zip_dir):
     expected = "simple-0.1.dist-info"
     dist_info_dir = tmpdir / expected
@@ -275,25 +260,25 @@ def test_wheel_version_ok(tmpdir, data):
     ) == (1, 9)
 
 
-def test_wheel_metadata_fails_missing_wheel(tmpdir, zip_or_dir):
+def test_wheel_metadata_fails_missing_wheel(tmpdir, zip_dir):
     dist_info_dir = tmpdir / "simple-0.1.0.dist-info"
     dist_info_dir.mkdir()
     dist_info_dir.joinpath("METADATA").touch()
 
     with pytest.raises(UnsupportedWheel) as e:
-        wheel.wheel_metadata(zip_or_dir(tmpdir), dist_info_dir.name)
+        wheel.wheel_metadata(zip_dir(tmpdir), dist_info_dir.name)
     assert "could not read WHEEL file" in str(e.value)
 
 
 @skip_if_python2
-def test_wheel_metadata_fails_on_bad_encoding(tmpdir, zip_or_dir):
+def test_wheel_metadata_fails_on_bad_encoding(tmpdir, zip_dir):
     dist_info_dir = tmpdir / "simple-0.1.0.dist-info"
     dist_info_dir.mkdir()
     dist_info_dir.joinpath("METADATA").touch()
     dist_info_dir.joinpath("WHEEL").write_bytes(b"\xff")
 
     with pytest.raises(UnsupportedWheel) as e:
-        wheel.wheel_metadata(zip_or_dir(tmpdir), dist_info_dir.name)
+        wheel.wheel_metadata(zip_dir(tmpdir), dist_info_dir.name)
     assert "error decoding WHEEL" in str(e.value)
 
 

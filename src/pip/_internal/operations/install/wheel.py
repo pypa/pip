@@ -37,7 +37,7 @@ if MYPY_CHECK_RUNNING:
     from email.message import Message
     from typing import (
         Dict, List, Optional, Sequence, Tuple, IO, Text, Any,
-        Iterable, Callable, Set, Union,
+        Iterable, Callable, Set,
     )
 
     from pip._internal.models.scheme import Scheme
@@ -672,24 +672,17 @@ def wheel_dist_info_dir(source, name):
 
 
 def wheel_metadata(source, dist_info_dir):
-    # type: (Union[str, ZipFile], str) -> Message
+    # type: (ZipFile, str) -> Message
     """Return the WHEEL metadata of an extracted wheel, if possible.
     Otherwise, raise UnsupportedWheel.
     """
-    if isinstance(source, ZipFile):
-        try:
-            # Zip file path separators must be /
-            wheel_contents = source.read("{}/WHEEL".format(dist_info_dir))
-            # BadZipFile for general corruption, KeyError for missing entry,
-            # and RuntimeError for password-protected files
-        except (BadZipFile, KeyError, RuntimeError) as e:
-            raise UnsupportedWheel("could not read WHEEL file: {!r}".format(e))
-    else:
-        try:
-            with open(os.path.join(source, dist_info_dir, "WHEEL"), "rb") as f:
-                wheel_contents = f.read()
-        except (IOError, OSError) as e:
-            raise UnsupportedWheel("could not read WHEEL file: {!r}".format(e))
+    try:
+        # Zip file path separators must be /
+        wheel_contents = source.read("{}/WHEEL".format(dist_info_dir))
+        # BadZipFile for general corruption, KeyError for missing entry,
+        # and RuntimeError for password-protected files
+    except (BadZipFile, KeyError, RuntimeError) as e:
+        raise UnsupportedWheel("could not read WHEEL file: {!r}".format(e))
 
     try:
         wheel_text = ensure_str(wheel_contents)
