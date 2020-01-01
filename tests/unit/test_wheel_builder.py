@@ -51,37 +51,42 @@ class ReqMock:
 
 
 @pytest.mark.parametrize(
-    "req, need_wheel, disallow_binaries, expected",
+    "req, disallow_binaries, expected",
     [
-        # pip wheel (need_wheel=True)
-        (ReqMock(), True, False, True),
-        (ReqMock(), True, True, True),
-        (ReqMock(constraint=True), True, False, False),
-        (ReqMock(is_wheel=True), True, False, False),
-        (ReqMock(editable=True), True, False, True),
-        (ReqMock(source_dir=None), True, False, True),
-        (ReqMock(link=Link("git+https://g.c/org/repo")), True, False, True),
-        (ReqMock(link=Link("git+https://g.c/org/repo")), True, True, True),
-        # pip install (need_wheel=False)
-        (ReqMock(), False, False, True),
-        (ReqMock(), False, True, False),
-        (ReqMock(constraint=True), False, False, False),
-        (ReqMock(is_wheel=True), False, False, False),
-        (ReqMock(editable=True), False, False, False),
-        (ReqMock(source_dir=None), False, False, False),
+        (ReqMock(), False, True),
+        (ReqMock(), True, False),
+        (ReqMock(constraint=True), False, False),
+        (ReqMock(is_wheel=True), False, False),
+        (ReqMock(editable=True), False, False),
+        (ReqMock(source_dir=None), False, False),
         # By default (i.e. when binaries are allowed), VCS requirements
         # should be built in install mode.
-        (ReqMock(link=Link("git+https://g.c/org/repo")), False, False, True),
+        (ReqMock(link=Link("git+https://g.c/org/repo")), False, True),
         # Disallowing binaries, however, should cause them not to be built.
-        (ReqMock(link=Link("git+https://g.c/org/repo")), False, True, False),
+        (ReqMock(link=Link("git+https://g.c/org/repo")), True, False),
     ],
 )
-def test_should_build(req, need_wheel, disallow_binaries, expected):
-    should_build = wheel_builder._should_build(
+def test_should_build_for_install_command(req, disallow_binaries, expected):
+    should_build = wheel_builder.should_build_for_install_command(
         req,
-        need_wheel,
         check_binary_allowed=lambda req: not disallow_binaries,
     )
+    assert should_build is expected
+
+
+@pytest.mark.parametrize(
+    "req, expected",
+    [
+        (ReqMock(), True),
+        (ReqMock(constraint=True), False),
+        (ReqMock(is_wheel=True), False),
+        (ReqMock(editable=True), True),
+        (ReqMock(source_dir=None), True),
+        (ReqMock(link=Link("git+https://g.c/org/repo")), True),
+    ],
+)
+def test_should_build_for_wheel_command(req, expected):
+    should_build = wheel_builder.should_build_for_wheel_command(req)
     assert should_build is expected
 
 
@@ -89,9 +94,8 @@ def test_should_build(req, need_wheel, disallow_binaries, expected):
 def test_should_build_legacy_wheel_not_installed(is_wheel_installed):
     is_wheel_installed.return_value = False
     legacy_req = ReqMock(use_pep517=False)
-    should_build = wheel_builder._should_build(
+    should_build = wheel_builder.should_build_for_install_command(
         legacy_req,
-        need_wheel=False,
         check_binary_allowed=lambda req: True,
     )
     assert not should_build
@@ -101,9 +105,8 @@ def test_should_build_legacy_wheel_not_installed(is_wheel_installed):
 def test_should_build_legacy_wheel_installed(is_wheel_installed):
     is_wheel_installed.return_value = True
     legacy_req = ReqMock(use_pep517=False)
-    should_build = wheel_builder._should_build(
+    should_build = wheel_builder.should_build_for_install_command(
         legacy_req,
-        need_wheel=False,
         check_binary_allowed=lambda req: True,
     )
     assert should_build
@@ -133,10 +136,10 @@ def test_should_cache(
     should_cache = wheel_builder._should_cache(
         req, check_binary_allowed
     )
-    if not wheel_builder._should_build(
-        req, need_wheel=False, check_binary_allowed=check_binary_allowed
+    if not wheel_builder.should_build_for_install_command(
+        req, check_binary_allowed=check_binary_allowed
     ):
-        # never cache if pip install (need_wheel=False) would not have built)
+        # never cache if pip install would not have built)
         assert not should_cache
     assert should_cache is expected
 
