@@ -1256,6 +1256,7 @@ def test_cleanup_after_failed_wheel(script, with_wheel):
     shebang = open(script_py, 'r').readline().strip()
     assert shebang != '#!python', shebang
     # OK, assert that we *said* we were cleaning up:
+    # /!\ if in need to change this, also change test_pep517_no_legacy_cleanup
     assert "Running setup.py clean for wheelbrokenafter" in str(res), str(res)
 
 
