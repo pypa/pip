@@ -48,7 +48,7 @@ def _contains_egg_info(
     return bool(_egg_info_re.search(s))
 
 
-def should_build(
+def _should_build(
     req,  # type: InstallRequirement
     need_wheel,  # type: bool
     check_binary_allowed,  # type: BinaryAllowedPredicate
@@ -93,7 +93,7 @@ def should_build_for_wheel_command(
     req,  # type: InstallRequirement
 ):
     # type: (...) -> bool
-    return should_build(
+    return _should_build(
         req, need_wheel=True, check_binary_allowed=_always_true
     )
 
@@ -103,19 +103,19 @@ def should_build_for_install_command(
     check_binary_allowed,  # type: BinaryAllowedPredicate
 ):
     # type: (...) -> bool
-    return should_build(
+    return _should_build(
         req, need_wheel=False, check_binary_allowed=check_binary_allowed
     )
 
 
-def should_cache(
+def _should_cache(
     req,  # type: InstallRequirement
     check_binary_allowed,  # type: BinaryAllowedPredicate
 ):
     # type: (...) -> Optional[bool]
     """
     Return whether a built InstallRequirement can be stored in the persistent
-    wheel cache, assuming the wheel cache is available, and should_build()
+    wheel cache, assuming the wheel cache is available, and _should_build()
     has determined a wheel needs to be built.
     """
     if not should_build_for_install_command(
@@ -156,7 +156,7 @@ def _get_cache_dir(
     cache_available = bool(wheel_cache.cache_dir)
     if (
         cache_available and
-        should_cache(req, check_binary_allowed)
+        _should_cache(req, check_binary_allowed)
     ):
         cache_dir = wheel_cache.get_path_for_link(req.link)
     else:
