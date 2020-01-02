@@ -28,7 +28,6 @@ from pip._internal.self_outdated_check import (
     make_link_collector,
     pip_self_version_check,
 )
-from pip._internal.utils.misc import normalize_path
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -81,9 +80,10 @@ class SessionCommandMixin(CommandContextMixIn):
 
     def _build_session(self, options, retries=None, timeout=None):
         # type: (Values, Optional[int], Optional[int]) -> PipSession
+        assert not options.cache_dir or os.path.isabs(options.cache_dir)
         session = PipSession(
             cache=(
-                normalize_path(os.path.join(options.cache_dir, "http"))
+                os.path.join(options.cache_dir, "http")
                 if options.cache_dir else None
             ),
             retries=retries if retries is not None else options.retries,
