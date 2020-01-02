@@ -361,13 +361,12 @@ no_index = partial(
 
 def find_links():
     # type: () -> Option
-    return _PathOption(
+    return Option(
         '-f', '--find-links',
         dest='find_links',
         action='append',
         default=[],
         metavar='url',
-        type='path',
         help="If a url or path to an html file, then parse for links to "
              "archives. If a local path or file:// url that's a directory, "
              "then look for archives in the directory listing.",
@@ -389,13 +388,12 @@ def trusted_host():
 
 def constraints():
     # type: () -> Option
-    return _PathOption(
+    return Option(
         '-c', '--constraint',
         dest='constraints',
         action='append',
         default=[],
         metavar='file',
-        type='path',
         help='Constrain versions using the given constraints file. '
         'This option can be used multiple times.'
     )
@@ -403,13 +401,12 @@ def constraints():
 
 def requirements():
     # type: () -> Option
-    return _PathOption(
+    return Option(
         '-r', '--requirement',
         dest='requirements',
         action='append',
         default=[],
         metavar='file',
-        type='path',
         help='Install from the given requirements file. '
         'This option can be used multiple times.'
     )
@@ -417,13 +414,12 @@ def requirements():
 
 def editable():
     # type: () -> Option
-    return _PathOption(
+    return Option(
         '-e', '--editable',
         dest='editables',
         action='append',
         default=[],
         metavar='path/url',
-        type='path',
         help=('Install a project in editable mode (i.e. setuptools '
               '"develop mode") from a local project path or a VCS url.'),
     )
