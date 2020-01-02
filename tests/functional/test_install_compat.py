@@ -55,4 +55,4 @@ def test_setup_py_with_dos_line_endings(script, data):
     Refs https://github.com/pypa/pip/issues/237
     """
     to_install = data.packages.joinpath("LineEndings")
-    script.pip('install', to_install, expect_error=False)
+    script.pip('install', to_install)

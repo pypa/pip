@@ -63,8 +63,7 @@ def test_file_index_url_quoting(script, data):
     """
     index_url = data.index_url(urllib_parse.quote("in dex"))
     result = script.pip(
-        'install', '-vvv', '--index-url', index_url, 'simple',
-        expect_error=False,
+        'install', '-vvv', '--index-url', index_url, 'simple'
     )
     assert (script.site_packages / 'simple') in result.files_created, (
         str(result.stdout)

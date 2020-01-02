@@ -170,11 +170,11 @@ def test_uninstall_overlapping_package(script, data):
     parent_pkg = data.packages.joinpath("parent-0.1.tar.gz")
     child_pkg = data.packages.joinpath("child-0.1.tar.gz")
 
-    result1 = script.pip('install', parent_pkg, expect_error=False)
+    result1 = script.pip('install', parent_pkg)
     assert join(script.site_packages, 'parent') in result1.files_created, (
         sorted(result1.files_created.keys())
     )
-    result2 = script.pip('install', child_pkg, expect_error=False)
+    result2 = script.pip('install', child_pkg)
     assert join(script.site_packages, 'child') in result2.files_created, (
         sorted(result2.files_created.keys())
     )
@@ -184,7 +184,7 @@ def test_uninstall_overlapping_package(script, data):
     # The import forces the generation of __pycache__ if the version of python
     #  supports it
     script.run('python', '-c', "import parent.plugins.child_plugin, child")
-    result3 = script.pip('uninstall', '-y', 'child', expect_error=False)
+    result3 = script.pip('uninstall', '-y', 'child')
     assert join(script.site_packages, 'child') in result3.files_deleted, (
         sorted(result3.files_created.keys())
     )
