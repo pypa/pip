@@ -4,9 +4,12 @@ import logging
 import os
 import textwrap
 from email import message_from_string
+from io import BytesIO
+from zipfile import ZipFile
 
 import pytest
 from mock import patch
+from pip._vendor.contextlib2 import ExitStack
 from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.exceptions import UnsupportedWheel
@@ -22,8 +25,12 @@ from pip._internal.operations.install.wheel import (
 )
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import hash_file
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.unpacking import unpack_file
 from tests.lib import DATA_DIR, assert_paths_equal, skip_if_python2
+
+if MYPY_CHECK_RUNNING:
+    from tests.lib.path import Path
 
 
 def call_get_legacy_build_wheel_path(caplog, names):
@@ -190,30 +197,60 @@ def test_get_csv_rows_for_installed__long_lines(tmpdir, caplog):
     assert messages == expected
 
 
-def test_wheel_dist_info_dir_found(tmpdir):
+@pytest.fixture
+def zip_dir():
+    def make_zip(path):
+        # type: (Path) -> ZipFile
+        buf = BytesIO()
+        with ZipFile(buf, "w", allowZip64=True) as z:
+            for dirpath, dirnames, filenames in os.walk(path):
+                for filename in filenames:
+                    file_path = os.path.join(path, dirpath, filename)
+                    # Zip files must always have / as path separator
+                    archive_path = os.path.relpath(file_path, path).replace(
+                        os.pathsep, "/"
+                    )
+                    z.write(file_path, archive_path)
+
+        return stack.enter_context(ZipFile(buf, "r", allowZip64=True))
+
+    stack = ExitStack()
+    with stack:
+        yield make_zip
+
+
+def test_wheel_dist_info_dir_found(tmpdir, zip_dir):
     expected = "simple-0.1.dist-info"
-    tmpdir.joinpath(expected).mkdir()
-    assert wheel.wheel_dist_info_dir(str(tmpdir), "simple") == expected
+    dist_info_dir = tmpdir / expected
+    dist_info_dir.mkdir()
+    dist_info_dir.joinpath("WHEEL").touch()
+    assert wheel.wheel_dist_info_dir(zip_dir(tmpdir), "simple") == expected
 
 
-def test_wheel_dist_info_dir_multiple(tmpdir):
-    tmpdir.joinpath("simple-0.1.dist-info").mkdir()
-    tmpdir.joinpath("unrelated-0.1.dist-info").mkdir()
+def test_wheel_dist_info_dir_multiple(tmpdir, zip_dir):
+    dist_info_dir_1 = tmpdir / "simple-0.1.dist-info"
+    dist_info_dir_1.mkdir()
+    dist_info_dir_1.joinpath("WHEEL").touch()
+    dist_info_dir_2 = tmpdir / "unrelated-0.1.dist-info"
+    dist_info_dir_2.mkdir()
+    dist_info_dir_2.joinpath("WHEEL").touch()
     with pytest.raises(UnsupportedWheel) as e:
-        wheel.wheel_dist_info_dir(str(tmpdir), "simple")
+        wheel.wheel_dist_info_dir(zip_dir(tmpdir), "simple")
     assert "multiple .dist-info directories found" in str(e.value)
 
 
-def test_wheel_dist_info_dir_none(tmpdir):
+def test_wheel_dist_info_dir_none(tmpdir, zip_dir):
     with pytest.raises(UnsupportedWheel) as e:
-        wheel.wheel_dist_info_dir(str(tmpdir), "simple")
+        wheel.wheel_dist_info_dir(zip_dir(tmpdir), "simple")
     assert "directory not found" in str(e.value)
 
 
-def test_wheel_dist_info_dir_wrong_name(tmpdir):
-    tmpdir.joinpath("unrelated-0.1.dist-info").mkdir()
+def test_wheel_dist_info_dir_wrong_name(tmpdir, zip_dir):
+    dist_info_dir = tmpdir / "unrelated-0.1.dist-info"
+    dist_info_dir.mkdir()
+    dist_info_dir.joinpath("WHEEL").touch()
     with pytest.raises(UnsupportedWheel) as e:
-        wheel.wheel_dist_info_dir(str(tmpdir), "simple")
+        wheel.wheel_dist_info_dir(zip_dir(tmpdir), "simple")
     assert "does not start with 'simple'" in str(e.value)
 
 
@@ -223,25 +260,25 @@ def test_wheel_version_ok(tmpdir, data):
     ) == (1, 9)
 
 
-def test_wheel_metadata_fails_missing_wheel(tmpdir):
+def test_wheel_metadata_fails_missing_wheel(tmpdir, zip_dir):
     dist_info_dir = tmpdir / "simple-0.1.0.dist-info"
     dist_info_dir.mkdir()
     dist_info_dir.joinpath("METADATA").touch()
 
     with pytest.raises(UnsupportedWheel) as e:
-        wheel.wheel_metadata(str(tmpdir), dist_info_dir.name)
+        wheel.wheel_metadata(zip_dir(tmpdir), dist_info_dir.name)
     assert "could not read WHEEL file" in str(e.value)
 
 
 @skip_if_python2
-def test_wheel_metadata_fails_on_bad_encoding(tmpdir):
+def test_wheel_metadata_fails_on_bad_encoding(tmpdir, zip_dir):
     dist_info_dir = tmpdir / "simple-0.1.0.dist-info"
     dist_info_dir.mkdir()
     dist_info_dir.joinpath("METADATA").touch()
     dist_info_dir.joinpath("WHEEL").write_bytes(b"\xff")
 
     with pytest.raises(UnsupportedWheel) as e:
-        wheel.wheel_metadata(str(tmpdir), dist_info_dir.name)
+        wheel.wheel_metadata(zip_dir(tmpdir), dist_info_dir.name)
     assert "error decoding WHEEL" in str(e.value)
 
 
