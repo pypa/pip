@@ -64,6 +64,7 @@ def external_file_opener(conn):
             # Open the file
             try:
                 f = open(path, 'r')
+                # NOTE: action is for future use and may be unused
                 if action == 'lock':
                     lock_action(f)
                 elif action == 'noread':

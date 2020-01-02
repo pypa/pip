@@ -128,12 +128,7 @@ class TempDirectory(object):
             try:
                 rmtree(self._path)
             except OSError as e:
-                skip_error = (
-                    sys.platform == 'win32' and
-                    e.errno == errno.EACCES and
-                    getattr(e, 'winerror', 0) in {5, 32}
-                )
-                if skip_error:
+                if sys.platform == 'win32' and e.errno == errno.EACCES:
                     logger.warning(
                         "%s (virus scanner may be holding it)."
                         "cannot remove '%s'",
