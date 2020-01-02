@@ -15,7 +15,6 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._internal.exceptions import InvalidWheelFilename
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
-from pip._internal.utils.compat import expanduser
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import path_to_url
@@ -51,7 +50,8 @@ class Cache(object):
     def __init__(self, cache_dir, format_control, allowed_formats):
         # type: (str, FormatControl, Set[str]) -> None
         super(Cache, self).__init__()
-        self.cache_dir = expanduser(cache_dir) if cache_dir else None
+        assert not cache_dir or os.path.isabs(cache_dir)
+        self.cache_dir = cache_dir or None
         self.format_control = format_control
         self.allowed_formats = allowed_formats
 
