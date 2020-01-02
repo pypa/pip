@@ -5,7 +5,7 @@ import shutil
 
 import pytest
 
-from tests.lib import create_basic_wheel_for_package
+from tests.lib import create_basic_wheel_for_package, skip_if_python2
 from tests.lib.path import Path
 
 
@@ -534,3 +534,38 @@ def test_wheel_installs_ok_with_nested_dist_info(script):
     script.pip(
         "install", "--no-cache-dir", "--no-index", package
     )
+
+
+def test_wheel_installs_ok_with_badly_encoded_irrelevant_dist_info_file(
+    script
+):
+    package = create_basic_wheel_for_package(
+        script,
+        "simple",
+        "0.1.0",
+        extra_files={
+            "simple-0.1.0.dist-info/AUTHORS.txt": b"\xff"
+        },
+    )
+    script.pip(
+        "install", "--no-cache-dir", "--no-index", package
+    )
+
+
+# Metadata is not decoded on Python 2.
+@skip_if_python2
+def test_wheel_install_fails_with_badly_encoded_metadata(script):
+    package = create_basic_wheel_for_package(
+        script,
+        "simple",
+        "0.1.0",
+        extra_files={
+            "simple-0.1.0.dist-info/METADATA": b"\xff"
+        },
+    )
+    result = script.pip(
+        "install", "--no-cache-dir", "--no-index", package, expect_error=True
+    )
+    assert "Error decoding metadata for" in result.stderr
+    assert "simple-0.1.0-py2.py3-none-any.whl" in result.stderr
+    assert "METADATA" in result.stderr
