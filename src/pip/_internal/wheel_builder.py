@@ -13,13 +13,11 @@ from pip._internal.models.link import Link
 from pip._internal.operations.build.wheel import build_wheel_pep517
 from pip._internal.operations.build.wheel_legacy import build_wheel_legacy
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.marker_files import has_delete_marker_file
 from pip._internal.utils.misc import ensure_dir, hash_file
 from pip._internal.utils.setuptools_build import make_setuptools_clean_args
 from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from pip._internal.utils.unpacking import unpack_file
 from pip._internal.utils.urls import path_to_url
 from pip._internal.vcs import vcs
 
@@ -313,27 +311,6 @@ class WheelBuilder(object):
                     req.link = Link(path_to_url(wheel_file))
                     req.local_file_path = req.link.file_path
                     assert req.link.is_wheel
-                    if should_unpack:
-                        # XXX: This is mildly duplicative with prepare_files,
-                        # but not close enough to pull out to a single common
-                        # method.
-                        # The code below assumes temporary source dirs -
-                        # prevent it doing bad things.
-                        if (
-                            req.source_dir and
-                            not has_delete_marker_file(req.source_dir)
-                        ):
-                            raise AssertionError(
-                                "bad source dir - missing marker")
-                        # Delete the source we built the wheel from
-                        req.remove_temporary_source()
-                        # set the build directory again - name is known from
-                        # the work prepare_files did.
-                        req.source_dir = req.ensure_build_location(
-                            self.preparer.build_dir
-                        )
-                        # extract the wheel into the dir
-                        unpack_file(req.link.file_path, req.source_dir)
                     build_successes.append(req)
                 else:
                     build_failures.append(req)
