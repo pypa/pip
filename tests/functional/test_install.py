@@ -398,7 +398,7 @@ def test_basic_install_from_local_directory(script, data):
     Test installing from a local directory.
     """
     to_install = data.packages.joinpath("FSPkg")
-    result = script.pip('install', to_install, expect_error=False)
+    result = script.pip('install', to_install)
     fspkg_folder = script.site_packages / 'fspkg'
     egg_info_folder = (
         script.site_packages / 'FSPkg-0.1.dev0-py%s.egg-info' % pyversion
@@ -454,7 +454,7 @@ def test_install_quiet(script, data):
     #   https://github.com/pypa/pip/issues/3418
     #   https://github.com/docker-library/python/issues/83
     to_install = data.packages.joinpath("FSPkg")
-    result = script.pip('install', '-qqq', to_install, expect_error=False)
+    result = script.pip('install', '-qqq', to_install)
     assert result.stdout == ""
     assert result.stderr == ""
 
@@ -476,7 +476,7 @@ def test_hashed_install_success(script, data, tmpdir):
             '{simple} --hash=sha256:393043e672415891885c9a2a0929b1af95fb866d6c'
             'a016b42d2e6ce53619b653'.format(simple=file_url),
             tmpdir) as reqs_file:
-        script.pip_install_local('-r', reqs_file.resolve(), expect_error=False)
+        script.pip_install_local('-r', reqs_file.resolve())
 
 
 def test_hashed_install_failure(script, tmpdir):
@@ -537,7 +537,7 @@ def test_install_from_local_directory_with_symlinks_to_directories(
     Test installing from a local directory containing symlinks to directories.
     """
     to_install = data.packages.joinpath("symlinks")
-    result = script.pip('install', to_install, expect_error=False)
+    result = script.pip('install', to_install)
     pkg_folder = script.site_packages / 'symlinks'
     egg_info_folder = (
         script.site_packages / 'symlinks-0.1.dev0-py%s.egg-info' % pyversion
@@ -563,7 +563,7 @@ def test_install_from_local_directory_with_socket_file(script, data, tmpdir):
     socket_file_path = os.path.join(to_install, "example")
     make_socket_file(socket_file_path)
 
-    result = script.pip("install", "--verbose", to_install, expect_error=False)
+    result = script.pip("install", "--verbose", to_install)
     assert package_folder in result.files_created, str(result.stdout)
     assert egg_info_file in result.files_created, str(result)
     assert str(socket_file_path) in result.stderr
@@ -650,7 +650,7 @@ def test_install_curdir(script, data):
     egg_info = join(run_from, "FSPkg.egg-info")
     if os.path.isdir(egg_info):
         rmtree(egg_info)
-    result = script.pip('install', curdir, cwd=run_from, expect_error=False)
+    result = script.pip('install', curdir, cwd=run_from)
     fspkg_folder = script.site_packages / 'fspkg'
     egg_info_folder = (
         script.site_packages / 'FSPkg-0.1.dev0-py%s.egg-info' % pyversion
@@ -664,7 +664,7 @@ def test_install_pardir(script, data):
     Test installing parent directory ('..').
     """
     run_from = data.packages.joinpath("FSPkg", "fspkg")
-    result = script.pip('install', pardir, cwd=run_from, expect_error=False)
+    result = script.pip('install', pardir, cwd=run_from)
     fspkg_folder = script.site_packages / 'fspkg'
     egg_info_folder = (
         script.site_packages / 'FSPkg-0.1.dev0-py%s.egg-info' % pyversion
@@ -1237,7 +1237,7 @@ def test_install_log(script, data, tmpdir):
 
 def test_install_topological_sort(script, data):
     args = ['install', 'TopoRequires4', '--no-index', '-f', data.packages]
-    res = str(script.pip(*args, expect_error=False))
+    res = str(script.pip(*args))
     order1 = 'TopoRequires, TopoRequires2, TopoRequires3, TopoRequires4'
     order2 = 'TopoRequires, TopoRequires3, TopoRequires2, TopoRequires4'
     assert order1 in res or order2 in res, res
@@ -1407,8 +1407,7 @@ def test_double_install(script):
     """
     Test double install passing with two same version requirements
     """
-    result = script.pip('install', 'pip', 'pip',
-                        expect_error=False)
+    result = script.pip('install', 'pip', 'pip')
     msg = "Double requirement given: pip (already in pip, name='pip')"
     assert msg not in result.stderr
 
@@ -1564,7 +1563,7 @@ def test_installed_files_recorded_in_deterministic_order(script, data):
     order, to make installs reproducible.
     """
     to_install = data.packages.joinpath("FSPkg")
-    result = script.pip('install', to_install, expect_error=False)
+    result = script.pip('install', to_install)
     fspkg_folder = script.site_packages / 'fspkg'
     egg_info = 'FSPkg-0.1.dev0-py%s.egg-info' % pyversion
     installed_files_path = (

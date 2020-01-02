@@ -67,7 +67,6 @@ class Tests_UserSite:
         result = script.pip(
             'install', '-vvv', '--user', curdir,
             cwd=run_from,
-            expect_error=False,
         )
 
         fspkg_folder = script.user_site / 'fspkg'
