@@ -15,7 +15,6 @@ from pip._internal.utils.temp_dir import (
     TempDirectory,
     global_tempdir_manager,
 )
-
 from tests.lib.filesystem import FileOpener
 
 
@@ -223,7 +222,7 @@ def test_temp_dir_warns_if_cannot_clean(caplog):
 
     # Capture only at WARNING level and up
     with caplog.at_level(logging.WARNING, 'pip._internal.utils.temp_dir'):
-        # open a file within the temporary directory in a sub-process, so it cannot be cleaned up
+        # open a file within the temporary directory in a sub-process
         with FileOpener() as opener:
             subpath = os.path.join(temp_dir_path, 'foo.txt')
             with open(subpath, 'w') as f:
@@ -232,11 +231,11 @@ def test_temp_dir_warns_if_cannot_clean(caplog):
             # with the file open, attempt to remove the log directory
             temp_dir.cleanup()
 
-        # assert that a WARNING was logged and that it contains a note about a potential virus scanner
+        # assert that a WARNING was logged about virus scanner
         assert 'WARNING' in caplog.text
         assert 'virus scanner' in caplog.text
 
-    # Assure that the cleanup was properly retried; this fix did not change retries
+    # Assure that the cleanup was properly retried
     duration = time.time() - stime
     assert duration >= 2.0
 
