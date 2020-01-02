@@ -3,9 +3,13 @@ import csv
 import logging
 import os
 import textwrap
+from email import message_from_string
+from io import BytesIO
+from zipfile import ZipFile
 
 import pytest
 from mock import patch
+from pip._vendor.contextlib2 import ExitStack
 from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.exceptions import UnsupportedWheel
@@ -21,8 +25,12 @@ from pip._internal.operations.install.wheel import (
 )
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import hash_file
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.unpacking import unpack_file
-from tests.lib import DATA_DIR, assert_paths_equal
+from tests.lib import DATA_DIR, assert_paths_equal, skip_if_python2
+
+if MYPY_CHECK_RUNNING:
+    from tests.lib.path import Path
 
 
 def call_get_legacy_build_wheel_path(caplog, names):
@@ -189,16 +197,120 @@ def test_get_csv_rows_for_installed__long_lines(tmpdir, caplog):
     assert messages == expected
 
 
-def test_wheel_version(tmpdir, data):
-    future_wheel = 'futurewheel-1.9-py2.py3-none-any.whl'
-    broken_wheel = 'brokenwheel-1.0-py2.py3-none-any.whl'
-    future_version = (1, 9)
+@pytest.fixture
+def zip_dir():
+    def make_zip(path):
+        # type: (Path) -> ZipFile
+        buf = BytesIO()
+        with ZipFile(buf, "w", allowZip64=True) as z:
+            for dirpath, dirnames, filenames in os.walk(path):
+                for filename in filenames:
+                    file_path = os.path.join(path, dirpath, filename)
+                    # Zip files must always have / as path separator
+                    archive_path = os.path.relpath(file_path, path).replace(
+                        os.pathsep, "/"
+                    )
+                    z.write(file_path, archive_path)
 
-    unpack_file(data.packages.joinpath(future_wheel), tmpdir + 'future')
-    unpack_file(data.packages.joinpath(broken_wheel), tmpdir + 'broken')
+        return stack.enter_context(ZipFile(buf, "r", allowZip64=True))
 
-    assert wheel.wheel_version(tmpdir + 'future') == future_version
-    assert not wheel.wheel_version(tmpdir + 'broken')
+    stack = ExitStack()
+    with stack:
+        yield make_zip
+
+
+def test_wheel_dist_info_dir_found(tmpdir, zip_dir):
+    expected = "simple-0.1.dist-info"
+    dist_info_dir = tmpdir / expected
+    dist_info_dir.mkdir()
+    dist_info_dir.joinpath("WHEEL").touch()
+    assert wheel.wheel_dist_info_dir(zip_dir(tmpdir), "simple") == expected
+
+
+def test_wheel_dist_info_dir_multiple(tmpdir, zip_dir):
+    dist_info_dir_1 = tmpdir / "simple-0.1.dist-info"
+    dist_info_dir_1.mkdir()
+    dist_info_dir_1.joinpath("WHEEL").touch()
+    dist_info_dir_2 = tmpdir / "unrelated-0.1.dist-info"
+    dist_info_dir_2.mkdir()
+    dist_info_dir_2.joinpath("WHEEL").touch()
+    with pytest.raises(UnsupportedWheel) as e:
+        wheel.wheel_dist_info_dir(zip_dir(tmpdir), "simple")
+    assert "multiple .dist-info directories found" in str(e.value)
+
+
+def test_wheel_dist_info_dir_none(tmpdir, zip_dir):
+    with pytest.raises(UnsupportedWheel) as e:
+        wheel.wheel_dist_info_dir(zip_dir(tmpdir), "simple")
+    assert "directory not found" in str(e.value)
+
+
+def test_wheel_dist_info_dir_wrong_name(tmpdir, zip_dir):
+    dist_info_dir = tmpdir / "unrelated-0.1.dist-info"
+    dist_info_dir.mkdir()
+    dist_info_dir.joinpath("WHEEL").touch()
+    with pytest.raises(UnsupportedWheel) as e:
+        wheel.wheel_dist_info_dir(zip_dir(tmpdir), "simple")
+    assert "does not start with 'simple'" in str(e.value)
+
+
+def test_wheel_version_ok(tmpdir, data):
+    assert wheel.wheel_version(
+        message_from_string("Wheel-Version: 1.9")
+    ) == (1, 9)
+
+
+def test_wheel_metadata_fails_missing_wheel(tmpdir, zip_dir):
+    dist_info_dir = tmpdir / "simple-0.1.0.dist-info"
+    dist_info_dir.mkdir()
+    dist_info_dir.joinpath("METADATA").touch()
+
+    with pytest.raises(UnsupportedWheel) as e:
+        wheel.wheel_metadata(zip_dir(tmpdir), dist_info_dir.name)
+    assert "could not read WHEEL file" in str(e.value)
+
+
+@skip_if_python2
+def test_wheel_metadata_fails_on_bad_encoding(tmpdir, zip_dir):
+    dist_info_dir = tmpdir / "simple-0.1.0.dist-info"
+    dist_info_dir.mkdir()
+    dist_info_dir.joinpath("METADATA").touch()
+    dist_info_dir.joinpath("WHEEL").write_bytes(b"\xff")
+
+    with pytest.raises(UnsupportedWheel) as e:
+        wheel.wheel_metadata(zip_dir(tmpdir), dist_info_dir.name)
+    assert "error decoding WHEEL" in str(e.value)
+
+
+def test_wheel_version_fails_on_no_wheel_version():
+    with pytest.raises(UnsupportedWheel) as e:
+        wheel.wheel_version(message_from_string(""))
+    assert "missing Wheel-Version" in str(e.value)
+
+
+@pytest.mark.parametrize("version", [
+    ("",),
+    ("1.b",),
+    ("1.",),
+])
+def test_wheel_version_fails_on_bad_wheel_version(version):
+    with pytest.raises(UnsupportedWheel) as e:
+        wheel.wheel_version(
+            message_from_string("Wheel-Version: {}".format(version))
+        )
+    assert "invalid Wheel-Version" in str(e.value)
+
+
+@pytest.mark.parametrize("text,expected", [
+    ("Root-Is-Purelib: true", True),
+    ("Root-Is-Purelib: false", False),
+    ("Root-Is-Purelib: hello", False),
+    ("", False),
+    ("root-is-purelib: true", True),
+    ("root-is-purelib: True", True),
+])
+def test_wheel_root_is_purelib(text, expected):
+    assert wheel.wheel_root_is_purelib(message_from_string(text)) == expected
 
 
 def test_check_compatibility():
@@ -232,22 +344,6 @@ class TestWheelFile(object):
                                 'meta-1.0-py2.py3-none-any.whl')
         unpack_file(filepath, tmpdir)
         assert os.path.isdir(os.path.join(tmpdir, 'meta-1.0.dist-info'))
-
-    def test_purelib_platlib(self, data):
-        """
-        Test the "wheel is purelib/platlib" code.
-        """
-        packages = [
-            ("pure_wheel", data.packages.joinpath("pure_wheel-1.7"), True),
-            ("plat_wheel", data.packages.joinpath("plat_wheel-1.7"), False),
-            ("pure_wheel", data.packages.joinpath(
-                "pure_wheel-_invalidversion_"), True),
-            ("plat_wheel", data.packages.joinpath(
-                "plat_wheel-_invalidversion_"), False),
-        ]
-
-        for name, path, expected in packages:
-            assert wheel.root_is_purelib(name, path) == expected
 
 
 class TestInstallUnpackedWheel(object):

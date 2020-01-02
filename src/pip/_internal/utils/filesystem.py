@@ -4,6 +4,7 @@ import os.path
 import random
 import shutil
 import stat
+import sys
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
 
@@ -29,7 +30,7 @@ def check_path_owner(path):
     # type: (str) -> bool
     # If we don't have a way to check the effective uid of this process, then
     # we'll just assume that we own the directory.
-    if not hasattr(os, "geteuid"):
+    if sys.platform == "win32" or not hasattr(os, "geteuid"):
         return True
 
     previous = None

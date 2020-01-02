@@ -257,12 +257,13 @@ else:
             return cr
         cr = ioctl_GWINSZ(0) or ioctl_GWINSZ(1) or ioctl_GWINSZ(2)
         if not cr:
-            try:
-                fd = os.open(os.ctermid(), os.O_RDONLY)
-                cr = ioctl_GWINSZ(fd)
-                os.close(fd)
-            except Exception:
-                pass
+            if sys.platform != "win32":
+                try:
+                    fd = os.open(os.ctermid(), os.O_RDONLY)
+                    cr = ioctl_GWINSZ(fd)
+                    os.close(fd)
+                except Exception:
+                    pass
         if not cr:
             cr = (os.environ.get('LINES', 25), os.environ.get('COLUMNS', 80))
         return int(cr[1]), int(cr[0])

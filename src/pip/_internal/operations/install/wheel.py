@@ -18,12 +18,13 @@ import sys
 import warnings
 from base64 import urlsafe_b64encode
 from email.parser import Parser
+from zipfile import ZipFile
 
 from pip._vendor import pkg_resources
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor.distlib.util import get_export_entry
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.six import StringIO
+from pip._vendor.six import PY2, StringIO, ensure_str
 
 from pip._internal.exceptions import InstallationError, UnsupportedWheel
 from pip._internal.locations import get_major_minor_version
@@ -33,6 +34,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.unpacking import unpack_file
 
 if MYPY_CHECK_RUNNING:
+    from email.message import Message
     from typing import (
         Dict, List, Optional, Sequence, Tuple, IO, Text, Any,
         Iterable, Callable, Set,
@@ -41,6 +43,11 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.models.scheme import Scheme
 
     InstalledCSVRow = Tuple[str, ...]
+
+if PY2:
+    from zipfile import BadZipfile as BadZipFile
+else:
+    from zipfile import BadZipFile
 
 
 VERSION_COMPATIBLE = (1, 0)
@@ -97,23 +104,9 @@ def fix_script(path):
     return None
 
 
-dist_info_re = re.compile(r"""^(?P<namever>(?P<name>.+?)(-(?P<ver>.+?))?)
-                                \.dist-info$""", re.VERBOSE)
-
-
-def root_is_purelib(name, wheeldir):
-    # type: (str, str) -> bool
-    """True if the extracted wheel in wheeldir should go into purelib."""
-    name_folded = name.replace("-", "_")
-    for item in os.listdir(wheeldir):
-        match = dist_info_re.match(item)
-        if match and match.group('name') == name_folded:
-            with open(os.path.join(wheeldir, item, 'WHEEL')) as wheel:
-                for line in wheel:
-                    line = line.lower().rstrip()
-                    if line == "root-is-purelib: true":
-                        return True
-    return False
+def wheel_root_is_purelib(metadata):
+    # type: (Message) -> bool
+    return metadata.get("Root-Is-Purelib", "").lower() == "true"
 
 
 def get_entrypoints(filename):
@@ -299,6 +292,7 @@ class PipScriptMaker(ScriptMaker):
 def install_unpacked_wheel(
     name,  # type: str
     wheeldir,  # type: str
+    wheel_zip,  # type: ZipFile
     scheme,  # type: Scheme
     req_description,  # type: str
     pycompile=True,  # type: bool
@@ -309,6 +303,7 @@ def install_unpacked_wheel(
 
     :param name: Name of the project to install
     :param wheeldir: Base directory of the unpacked wheel
+    :param wheel_zip: open ZipFile for wheel being installed
     :param scheme: Distutils scheme dictating the install directories
     :param req_description: String used in place of the requirement, for
         logging
@@ -324,17 +319,16 @@ def install_unpacked_wheel(
     # TODO: Look into moving this into a dedicated class for representing an
     #       installation.
 
-    version = wheel_version(wheeldir)
-    check_compatibility(version, name)
+    source = wheeldir.rstrip(os.path.sep) + os.path.sep
 
-    if root_is_purelib(name, wheeldir):
+    info_dir, metadata = parse_wheel(wheel_zip, name)
+
+    if wheel_root_is_purelib(metadata):
         lib_dir = scheme.purelib
     else:
         lib_dir = scheme.platlib
 
-    source = wheeldir.rstrip(os.path.sep) + os.path.sep
     subdirs = os.listdir(source)
-    info_dirs = [s for s in subdirs if s.endswith('.dist-info')]
     data_dirs = [s for s in subdirs if s.endswith('.data')]
 
     # Record details of the files moved
@@ -427,27 +421,6 @@ def install_unpacked_wheel(
                 record_installed(srcfile, destfile, changed)
 
     clobber(source, lib_dir, True)
-
-    assert info_dirs, "{} .dist-info directory not found".format(
-        req_description
-    )
-
-    assert len(info_dirs) == 1, (
-        '{} multiple .dist-info directories found: {}'.format(
-            req_description, ', '.join(info_dirs)
-        )
-    )
-
-    info_dir = info_dirs[0]
-
-    info_dir_name = canonicalize_name(info_dir)
-    canonical_name = canonicalize_name(name)
-    if not info_dir_name.startswith(canonical_name):
-        raise UnsupportedWheel(
-            "{} .dist-info directory {!r} does not start with {!r}".format(
-                req_description, info_dir, canonical_name
-            )
-        )
 
     dest_info_dir = os.path.join(lib_dir, info_dir)
 
@@ -638,11 +611,12 @@ def install_wheel(
     # type: (...) -> None
     with TempDirectory(
         path=_temp_dir_for_testing, kind="unpacked-wheel"
-    ) as unpacked_dir:
+    ) as unpacked_dir, ZipFile(wheel_path, allowZip64=True) as z:
         unpack_file(wheel_path, unpacked_dir.path)
         install_unpacked_wheel(
             name=name,
             wheeldir=unpacked_dir.path,
+            wheel_zip=z,
             scheme=scheme,
             req_description=req_description,
             pycompile=pycompile,
@@ -650,26 +624,108 @@ def install_wheel(
         )
 
 
-def wheel_version(source_dir):
-    # type: (Optional[str]) -> Optional[Tuple[int, ...]]
-    """Return the Wheel-Version of an extracted wheel, if possible.
-    Otherwise, return None if we couldn't parse / extract it.
+def parse_wheel(wheel_zip, name):
+    # type: (ZipFile, str) -> Tuple[str, Message]
+    """Extract information from the provided wheel, ensuring it meets basic
+    standards.
+
+    Returns the name of the .dist-info directory and the parsed WHEEL metadata.
     """
     try:
-        dist = [d for d in pkg_resources.find_on_path(None, source_dir)][0]
+        info_dir = wheel_dist_info_dir(wheel_zip, name)
+        metadata = wheel_metadata(wheel_zip, info_dir)
+        version = wheel_version(metadata)
+    except UnsupportedWheel as e:
+        raise UnsupportedWheel(
+            "{} has an invalid wheel, {}".format(name, str(e))
+        )
 
-        wheel_data = dist.get_metadata('WHEEL')
-        wheel_data = Parser().parsestr(wheel_data)
+    check_compatibility(version, name)
 
-        version = wheel_data['Wheel-Version'].strip()
-        version = tuple(map(int, version.split('.')))
-        return version
-    except Exception:
-        return None
+    return info_dir, metadata
+
+
+def wheel_dist_info_dir(source, name):
+    # type: (ZipFile, str) -> str
+    """Returns the name of the contained .dist-info directory.
+
+    Raises AssertionError or UnsupportedWheel if not found, >1 found, or
+    it doesn't match the provided name.
+    """
+    # Zip file path separators must be /
+    subdirs = list(set(p.split("/")[0] for p in source.namelist()))
+
+    info_dirs = [s for s in subdirs if s.endswith('.dist-info')]
+
+    if not info_dirs:
+        raise UnsupportedWheel(".dist-info directory not found")
+
+    if len(info_dirs) > 1:
+        raise UnsupportedWheel(
+            "multiple .dist-info directories found: {}".format(
+                ", ".join(info_dirs)
+            )
+        )
+
+    info_dir = info_dirs[0]
+
+    info_dir_name = canonicalize_name(info_dir)
+    canonical_name = canonicalize_name(name)
+    if not info_dir_name.startswith(canonical_name):
+        raise UnsupportedWheel(
+            ".dist-info directory {!r} does not start with {!r}".format(
+                info_dir, canonical_name
+            )
+        )
+
+    # Zip file paths can be unicode or str depending on the zip entry flags,
+    # so normalize it.
+    return ensure_str(info_dir)
+
+
+def wheel_metadata(source, dist_info_dir):
+    # type: (ZipFile, str) -> Message
+    """Return the WHEEL metadata of an extracted wheel, if possible.
+    Otherwise, raise UnsupportedWheel.
+    """
+    try:
+        # Zip file path separators must be /
+        wheel_contents = source.read("{}/WHEEL".format(dist_info_dir))
+        # BadZipFile for general corruption, KeyError for missing entry,
+        # and RuntimeError for password-protected files
+    except (BadZipFile, KeyError, RuntimeError) as e:
+        raise UnsupportedWheel("could not read WHEEL file: {!r}".format(e))
+
+    try:
+        wheel_text = ensure_str(wheel_contents)
+    except UnicodeDecodeError as e:
+        raise UnsupportedWheel("error decoding WHEEL: {!r}".format(e))
+
+    # FeedParser (used by Parser) does not raise any exceptions. The returned
+    # message may have .defects populated, but for backwards-compatibility we
+    # currently ignore them.
+    return Parser().parsestr(wheel_text)
+
+
+def wheel_version(wheel_data):
+    # type: (Message) -> Tuple[int, ...]
+    """Given WHEEL metadata, return the parsed Wheel-Version.
+    Otherwise, raise UnsupportedWheel.
+    """
+    version_text = wheel_data["Wheel-Version"]
+    if version_text is None:
+        raise UnsupportedWheel("WHEEL is missing Wheel-Version")
+
+    version = version_text.strip()
+
+    try:
+        return tuple(map(int, version.split('.')))
+    except ValueError:
+        raise UnsupportedWheel("invalid Wheel-Version: {!r}".format(version))
 
 
 def check_compatibility(version, name):
-    # type: (Optional[Tuple[int, ...]], str) -> None
+    # type: (Tuple[int, ...], str) -> None
     """Raises errors or warns if called with an incompatible Wheel-Version.
 
     Pip should refuse to install a Wheel-Version that's a major series
@@ -681,10 +737,6 @@ def check_compatibility(version, name):
 
     :raises UnsupportedWheel: when an incompatible Wheel-Version is given
     """
-    if not version:
-        raise UnsupportedWheel(
-            "%s is in an unsupported or invalid wheel" % name
-        )
     if version[0] > VERSION_COMPATIBLE[0]:
         raise UnsupportedWheel(
             "%s's Wheel-Version (%s) is not compatible with this version "

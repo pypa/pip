@@ -160,117 +160,116 @@ def _always_true(_):
     return True
 
 
+def _build_one(
+    req,  # type: InstallRequirement
+    output_dir,  # type: str
+    build_options,  # type: List[str]
+    global_options,  # type: List[str]
+):
+    # type: (...) -> Optional[str]
+    """Build one wheel.
+
+    :return: The filename of the built wheel, or None if the build failed.
+    """
+    try:
+        ensure_dir(output_dir)
+    except OSError as e:
+        logger.warning(
+            "Building wheel for %s failed: %s",
+            req.name, e,
+        )
+        return None
+
+    # Install build deps into temporary directory (PEP 518)
+    with req.build_env:
+        return _build_one_inside_env(
+            req, output_dir, build_options, global_options
+        )
+
+
+def _build_one_inside_env(
+    req,  # type: InstallRequirement
+    output_dir,  # type: str
+    build_options,  # type: List[str]
+    global_options,  # type: List[str]
+):
+    # type: (...) -> Optional[str]
+    with TempDirectory(kind="wheel") as temp_dir:
+        if req.use_pep517:
+            wheel_path = build_wheel_pep517(
+                name=req.name,
+                backend=req.pep517_backend,
+                metadata_directory=req.metadata_directory,
+                build_options=build_options,
+                tempd=temp_dir.path,
+            )
+        else:
+            wheel_path = build_wheel_legacy(
+                name=req.name,
+                setup_py_path=req.setup_py_path,
+                source_dir=req.unpacked_source_directory,
+                global_options=global_options,
+                build_options=build_options,
+                tempd=temp_dir.path,
+            )
+
+        if wheel_path is not None:
+            wheel_name = os.path.basename(wheel_path)
+            dest_path = os.path.join(output_dir, wheel_name)
+            try:
+                wheel_hash, length = hash_file(wheel_path)
+                shutil.move(wheel_path, dest_path)
+                logger.info('Created wheel for %s: '
+                            'filename=%s size=%d sha256=%s',
+                            req.name, wheel_name, length,
+                            wheel_hash.hexdigest())
+                logger.info('Stored in directory: %s', output_dir)
+                return dest_path
+            except Exception as e:
+                logger.warning(
+                    "Building wheel for %s failed: %s",
+                    req.name, e,
+                )
+        # Ignore return, we can't do anything else useful.
+        if not req.use_pep517:
+            _clean_one_legacy(req, global_options)
+        return None
+
+
+def _clean_one_legacy(req, global_options):
+    # type: (InstallRequirement, List[str]) -> bool
+    clean_args = make_setuptools_clean_args(
+        req.setup_py_path,
+        global_options=global_options,
+    )
+
+    logger.info('Running setup.py clean for %s', req.name)
+    try:
+        call_subprocess(clean_args, cwd=req.source_dir)
+        return True
+    except Exception:
+        logger.error('Failed cleaning build dir for %s', req.name)
+        return False
+
+
 class WheelBuilder(object):
     """Build wheels from a RequirementSet."""
 
     def __init__(
         self,
         preparer,  # type: RequirementPreparer
-        wheel_cache,  # type: WheelCache
-        build_options=None,  # type: Optional[List[str]]
-        global_options=None,  # type: Optional[List[str]]
-        check_binary_allowed=None,  # type: Optional[BinaryAllowedPredicate]
     ):
         # type: (...) -> None
-        if check_binary_allowed is None:
-            # Binaries allowed by default.
-            check_binary_allowed = _always_true
-
         self.preparer = preparer
-        self.wheel_cache = wheel_cache
-
-        self.build_options = build_options or []
-        self.global_options = global_options or []
-        self.check_binary_allowed = check_binary_allowed
-
-    def _build_one(
-        self,
-        req,  # type: InstallRequirement
-        output_dir,  # type: str
-    ):
-        # type: (...) -> Optional[str]
-        """Build one wheel.
-
-        :return: The filename of the built wheel, or None if the build failed.
-        """
-        try:
-            ensure_dir(output_dir)
-        except OSError as e:
-            logger.warning(
-                "Building wheel for %s failed: %s",
-                req.name, e,
-            )
-            return None
-
-        # Install build deps into temporary directory (PEP 518)
-        with req.build_env:
-            return self._build_one_inside_env(req, output_dir)
-
-    def _build_one_inside_env(
-        self,
-        req,  # type: InstallRequirement
-        output_dir,  # type: str
-    ):
-        # type: (...) -> Optional[str]
-        with TempDirectory(kind="wheel") as temp_dir:
-            if req.use_pep517:
-                wheel_path = build_wheel_pep517(
-                    name=req.name,
-                    backend=req.pep517_backend,
-                    metadata_directory=req.metadata_directory,
-                    build_options=self.build_options,
-                    tempd=temp_dir.path,
-                )
-            else:
-                wheel_path = build_wheel_legacy(
-                    name=req.name,
-                    setup_py_path=req.setup_py_path,
-                    source_dir=req.unpacked_source_directory,
-                    global_options=self.global_options,
-                    build_options=self.build_options,
-                    tempd=temp_dir.path,
-                )
-
-            if wheel_path is not None:
-                wheel_name = os.path.basename(wheel_path)
-                dest_path = os.path.join(output_dir, wheel_name)
-                try:
-                    wheel_hash, length = hash_file(wheel_path)
-                    shutil.move(wheel_path, dest_path)
-                    logger.info('Created wheel for %s: '
-                                'filename=%s size=%d sha256=%s',
-                                req.name, wheel_name, length,
-                                wheel_hash.hexdigest())
-                    logger.info('Stored in directory: %s', output_dir)
-                    return dest_path
-                except Exception as e:
-                    logger.warning(
-                        "Building wheel for %s failed: %s",
-                        req.name, e,
-                    )
-            # Ignore return, we can't do anything else useful.
-            self._clean_one(req)
-            return None
-
-    def _clean_one(self, req):
-        # type: (InstallRequirement) -> bool
-        clean_args = make_setuptools_clean_args(
-            req.setup_py_path,
-            global_options=self.global_options,
-        )
-
-        logger.info('Running setup.py clean for %s', req.name)
-        try:
-            call_subprocess(clean_args, cwd=req.source_dir)
-            return True
-        except Exception:
-            logger.error('Failed cleaning build dir for %s', req.name)
-            return False
 
     def build(
         self,
         requirements,  # type: Iterable[InstallRequirement]
         should_unpack,  # type: bool
+        wheel_cache,  # type: WheelCache
+        build_options,  # type: List[str]
+        global_options,  # type: List[str]
+        check_binary_allowed=None,  # type: Optional[BinaryAllowedPredicate]
     ):
         # type: (...) -> BuildResult
         """Build wheels.
@@ -281,10 +280,14 @@ class WheelBuilder(object):
         :return: The list of InstallRequirement that succeeded to build and
             the list of InstallRequirement that failed to build.
         """
+        if check_binary_allowed is None:
+            # Binaries allowed by default.
+            check_binary_allowed = _always_true
+
         buildset = _collect_buildset(
             requirements,
-            wheel_cache=self.wheel_cache,
-            check_binary_allowed=self.check_binary_allowed,
+            wheel_cache=wheel_cache,
+            check_binary_allowed=check_binary_allowed,
             need_wheel=not should_unpack,
         )
         if not buildset:
@@ -302,7 +305,9 @@ class WheelBuilder(object):
         with indent_log():
             build_successes, build_failures = [], []
             for req, cache_dir in buildset:
-                wheel_file = self._build_one(req, cache_dir)
+                wheel_file = _build_one(
+                    req, cache_dir, build_options, global_options
+                )
                 if wheel_file:
                     # Update the link for this.
                     req.link = Link(path_to_url(wheel_file))
