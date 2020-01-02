@@ -93,18 +93,21 @@ def wheel_metadata(source, dist_info_dir):
     """Return the WHEEL metadata of an extracted wheel, if possible.
     Otherwise, raise UnsupportedWheel.
     """
+    # Zip file path separators must be /
+    path = "{}/WHEEL".format(dist_info_dir)
     try:
-        # Zip file path separators must be /
-        wheel_contents = source.read("{}/WHEEL".format(dist_info_dir))
+        wheel_contents = source.read(path)
         # BadZipFile for general corruption, KeyError for missing entry,
         # and RuntimeError for password-protected files
     except (BadZipFile, KeyError, RuntimeError) as e:
-        raise UnsupportedWheel("could not read WHEEL file: {!r}".format(e))
+        raise UnsupportedWheel(
+            "could not read {!r} file: {!r}".format(path, e)
+        )
 
     try:
         wheel_text = ensure_str(wheel_contents)
     except UnicodeDecodeError as e:
-        raise UnsupportedWheel("error decoding WHEEL: {!r}".format(e))
+        raise UnsupportedWheel("error decoding {!r}: {!r}".format(path, e))
 
     # FeedParser (used by Parser) does not raise any exceptions. The returned
     # message may have .defects populated, but for backwards-compatibility we

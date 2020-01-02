@@ -85,7 +85,7 @@ def test_wheel_metadata_fails_missing_wheel(tmpdir, zip_dir):
 
     with pytest.raises(UnsupportedWheel) as e:
         wheel.wheel_metadata(zip_dir(tmpdir), dist_info_dir.name)
-    assert "could not read WHEEL file" in str(e.value)
+    assert "could not read" in str(e.value)
 
 
 @skip_if_python2
@@ -97,7 +97,7 @@ def test_wheel_metadata_fails_on_bad_encoding(tmpdir, zip_dir):
 
     with pytest.raises(UnsupportedWheel) as e:
         wheel.wheel_metadata(zip_dir(tmpdir), dist_info_dir.name)
-    assert "error decoding WHEEL" in str(e.value)
+    assert "error decoding" in str(e.value)
 
 
 def test_wheel_version_fails_on_no_wheel_version():
