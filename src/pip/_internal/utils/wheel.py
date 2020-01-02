@@ -88,21 +88,26 @@ def wheel_dist_info_dir(source, name):
     return ensure_str(info_dir)
 
 
-def wheel_metadata(source, dist_info_dir):
-    # type: (ZipFile, str) -> Message
-    """Return the WHEEL metadata of an extracted wheel, if possible.
-    Otherwise, raise UnsupportedWheel.
-    """
-    # Zip file path separators must be /
-    path = "{}/WHEEL".format(dist_info_dir)
+def read_wheel_metadata_file(source, path):
+    # type: (ZipFile, str) -> bytes
     try:
-        wheel_contents = source.read(path)
+        return source.read(path)
         # BadZipFile for general corruption, KeyError for missing entry,
         # and RuntimeError for password-protected files
     except (BadZipFile, KeyError, RuntimeError) as e:
         raise UnsupportedWheel(
             "could not read {!r} file: {!r}".format(path, e)
         )
+
+
+def wheel_metadata(source, dist_info_dir):
+    # type: (ZipFile, str) -> Message
+    """Return the WHEEL metadata of an extracted wheel, if possible.
+    Otherwise, raise UnsupportedWheel.
+    """
+    path = "{}/WHEEL".format(dist_info_dir)
+    # Zip file path separators must be /
+    wheel_contents = read_wheel_metadata_file(source, path)
 
     try:
         wheel_text = ensure_str(wheel_contents)
