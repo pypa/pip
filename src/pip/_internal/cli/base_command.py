@@ -33,7 +33,7 @@ from pip._internal.exceptions import (
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.logging import BrokenStdoutLoggingError, setup_logging
-from pip._internal.utils.misc import get_prog
+from pip._internal.utils.misc import get_prog, normalize_path
 from pip._internal.utils.temp_dir import global_tempdir_manager
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.virtualenv import running_under_virtualenv
@@ -170,6 +170,7 @@ class Command(CommandContextMixIn):
                 sys.exit(VIRTUALENV_NOT_FOUND)
 
         if options.cache_dir:
+            options.cache_dir = normalize_path(options.cache_dir)
             if not check_path_owner(options.cache_dir):
                 logger.warning(
                     "The directory '%s' or its parent directory is not owned "
