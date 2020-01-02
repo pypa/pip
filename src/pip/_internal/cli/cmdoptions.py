@@ -226,12 +226,11 @@ log = partial(
 
 no_input = partial(
     Option,
-    # Don't ask for input
     '--no-input',
     dest='no_input',
     action='store_true',
     default=False,
-    help=SUPPRESS_HELP
+    help="Immediately exit if interactive input is required"
 )  # type: Callable[..., Option]
 
 proxy = partial(
