@@ -70,10 +70,8 @@ def external_file_opener(conn):
                     lock_action(f)
                 elif action == 'noread':
                     make_unreadable_file(path)
-            # IOError is OSError post PEP 3151
-            except OSError:
-                traceback.print_exc(None, sys.stderr)
-            except IOError:
+            except (OSError, IOError):
+                # IOError is OSError post PEP 3151
                 traceback.print_exc(None, sys.stderr)
 
             # Indicate the file is opened
