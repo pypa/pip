@@ -30,6 +30,7 @@ from pip._internal.operations.install.legacy import install as install_legacy
 from pip._internal.operations.install.wheel import install_wheel
 from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
 from pip._internal.req.req_uninstall import UninstallPathSet
+from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.marker_files import (
@@ -633,6 +634,18 @@ class InstallRequirement(object):
         vc_type, url = self.link.url.split('+', 1)
         vcs_backend = vcs.get_backend(vc_type)
         if vcs_backend:
+            if not self.link.is_vcs:
+                reason = (
+                    "This form of VCS requirement is being deprecated: {}."
+                ).format(
+                    self.link.url
+                )
+                replacement = None
+                if self.link.url.startswith("git+git@"):
+                    replacement = (
+                        "git+https:// or git+ssh://"
+                    )
+                deprecated(reason, replacement, gone_in="21.0")
             hidden_url = hide_url(self.link.url)
             if obtain:
                 vcs_backend.obtain(self.source_dir, url=hidden_url)
