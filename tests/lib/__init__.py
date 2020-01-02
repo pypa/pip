@@ -7,8 +7,12 @@ import site
 import subprocess
 import sys
 import textwrap
+from base64 import urlsafe_b64encode
 from contextlib import contextmanager
+from hashlib import sha256
+from io import BytesIO
 from textwrap import dedent
+from zipfile import ZipFile
 
 import pytest
 from pip._vendor.six import PY2
@@ -919,6 +923,44 @@ def create_test_package_with_setup(script, **setup_kwargs):
         setup(**kwargs)
     """) % setup_kwargs)
     return pkg_path
+
+
+def urlsafe_b64encode_nopad(data):
+    # type: (bytes) -> str
+    return urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
+
+
+def create_really_basic_wheel(name, version):
+    # type: (str, str) -> bytes
+    def digest(contents):
+        return "sha256={}".format(
+            urlsafe_b64encode_nopad(sha256(contents).digest())
+        )
+
+    def add_file(path, text):
+        contents = text.encode("utf-8")
+        z.writestr(path, contents)
+        records.append((path, digest(contents), str(len(contents))))
+
+    dist_info = "{}-{}.dist-info".format(name, version)
+    record_path = "{}/RECORD".format(dist_info)
+    records = [(record_path, "", "")]
+    buf = BytesIO()
+    with ZipFile(buf, "w") as z:
+        add_file("{}/WHEEL".format(dist_info), "Wheel-Version: 1.0")
+        add_file(
+            "{}/METADATA".format(dist_info),
+            dedent(
+                """\
+                Metadata-Version: 2.1
+                Name: {}
+                Version: {}
+                """.format(name, version)
+            ),
+        )
+        z.writestr(record_path, "\n".join(",".join(r) for r in records))
+    buf.seek(0)
+    return buf.read()
 
 
 def create_basic_wheel_for_package(
