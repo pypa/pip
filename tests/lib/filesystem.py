@@ -70,7 +70,8 @@ def external_file_opener(conn):
                     lock_action(f)
                 elif action == 'noread':
                     make_unreadable_file(path)
-            except (IOError, OSError):
+            # IOError *is* OSError in modern Python
+            except IOError:
                 traceback.print_exc(None, sys.stderr)
 
             # Indicate the file is opened
