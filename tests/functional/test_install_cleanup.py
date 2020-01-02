@@ -136,3 +136,19 @@ def test_cleanup_prevented_upon_build_dir_exception(script, data):
     assert result.returncode == PREVIOUS_BUILD_DIR_ERROR, str(result)
     assert "pip can't proceed" in result.stderr, str(result)
     assert exists(build_simple), str(result)
+
+
+@pytest.mark.network
+def test_pep517_no_legacy_cleanup(script, data, with_wheel):
+    """Test a PEP 517 failed build does not attempt a legacy cleanup"""
+    to_install = data.packages.joinpath('pep517_wrapper_buildsys')
+    script.environ["PIP_TEST_FAIL_BUILD_WHEEL"] = "1"
+    res = script.pip(
+        'install', '-f', data.find_links, to_install,
+        expect_error=True
+    )
+    # Must not have built the package
+    expected = "Failed building wheel for pep517-wrapper-buildsys"
+    assert expected in str(res)
+    # Must not have attempted legacy cleanup
+    assert "setup.py clean" not in str(res)
