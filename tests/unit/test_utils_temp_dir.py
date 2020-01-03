@@ -270,3 +270,31 @@ def test_tempdir_registry_lazy(should_delete):
             registry.set_delete("test-for-lazy", should_delete)
             assert os.path.exists(path)
         assert os.path.exists(path) == (not should_delete)
+
+
+@pytest.mark.skipif("sys.platform != 'win32'")
+def test_winapi_move_file_ex():
+    import subprocess
+    from pip._internal.utils.misc import _winapi as winapi
+    fd, filename = tempfile.mkstemp()
+    os.close(fd)
+    winapi.MoveFileEx(filename, filename + "moved", 0)
+    assert not os.path.exists(filename)
+    assert os.path.exists(filename + "moved")
+    filename = os.path.normcase(filename + "moved")
+    try:
+        winapi.MoveFileEx(filename, None, winapi.MOVEFILE_DELAY_UNTIL_REBOOT)
+    except PermissionError:
+        pass  # need admin rights to schedule delayed delete;
+    else:
+        # https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-movefileexw
+        # check that the name is in recorded.
+        # Cannot use winreg to read 'PendingFileRenameOperations' (issue6443)
+        # so use reg utility
+        res = subprocess.check_output(
+            r'reg query '
+            r' "HKLM\SYSTEM\CurrentControlSet\Control\Session Manager" '
+            r' /v PendingFileRenameOperations', shell=True,
+            universal_newlines=True
+        )
+        assert filename in res
