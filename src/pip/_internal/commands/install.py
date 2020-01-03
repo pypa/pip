@@ -44,10 +44,7 @@ from pip._internal.utils.misc import (
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.virtualenv import virtualenv_no_global
-from pip._internal.wheel_builder import (
-    WheelBuilder,
-    should_build_for_install_command,
-)
+from pip._internal.wheel_builder import build, should_build_for_install_command
 
 if MYPY_CHECK_RUNNING:
     from optparse import Values
@@ -356,8 +353,7 @@ class InstallCommand(RequirementCommand):
                     )
                 ]
 
-                wheel_builder = WheelBuilder(preparer)
-                _, build_failures = wheel_builder.build(
+                _, build_failures = build(
                     reqs_to_build,
                     should_unpack=True,
                     wheel_cache=wheel_cache,

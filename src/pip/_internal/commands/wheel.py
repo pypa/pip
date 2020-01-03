@@ -18,10 +18,7 @@ from pip._internal.req.req_tracker import get_requirement_tracker
 from pip._internal.utils.misc import ensure_dir, normalize_path
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from pip._internal.wheel_builder import (
-    WheelBuilder,
-    should_build_for_wheel_command,
-)
+from pip._internal.wheel_builder import build, should_build_for_wheel_command
 
 if MYPY_CHECK_RUNNING:
     from optparse import Values
@@ -169,8 +166,7 @@ class WheelCommand(RequirementCommand):
                 ]
 
                 # build wheels
-                wb = WheelBuilder(preparer)
-                build_successes, build_failures = wb.build(
+                build_successes, build_failures = build(
                     reqs_to_build,
                     should_unpack=False,
                     wheel_cache=wheel_cache,

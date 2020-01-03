@@ -27,9 +27,6 @@ if MYPY_CHECK_RUNNING:
     )
 
     from pip._internal.cache import WheelCache
-    from pip._internal.operations.prepare import (
-        RequirementPreparer
-    )
     from pip._internal.req.req_install import InstallRequirement
 
     BinaryAllowedPredicate = Callable[[InstallRequirement], bool]
@@ -261,78 +258,67 @@ def _clean_one_legacy(req, global_options):
         return False
 
 
-class WheelBuilder(object):
-    """Build wheels from a RequirementSet."""
+def build(
+    requirements,  # type: Iterable[InstallRequirement]
+    should_unpack,  # type: bool
+    wheel_cache,  # type: WheelCache
+    build_options,  # type: List[str]
+    global_options,  # type: List[str]
+    check_binary_allowed=None,  # type: Optional[BinaryAllowedPredicate]
+):
+    # type: (...) -> BuildResult
+    """Build wheels.
 
-    def __init__(
-        self,
-        preparer,  # type: RequirementPreparer
-    ):
-        # type: (...) -> None
-        self.preparer = preparer
+    :param should_unpack: If True, after building the wheel, unpack it
+        and replace the sdist with the unpacked version in preparation
+        for installation.
+    :return: The list of InstallRequirement that succeeded to build and
+        the list of InstallRequirement that failed to build.
+    """
+    if check_binary_allowed is None:
+        # Binaries allowed by default.
+        check_binary_allowed = _always_true
 
-    def build(
-        self,
-        requirements,  # type: Iterable[InstallRequirement]
-        should_unpack,  # type: bool
-        wheel_cache,  # type: WheelCache
-        build_options,  # type: List[str]
-        global_options,  # type: List[str]
-        check_binary_allowed=None,  # type: Optional[BinaryAllowedPredicate]
-    ):
-        # type: (...) -> BuildResult
-        """Build wheels.
+    if not requirements:
+        return [], []
 
-        :param should_unpack: If True, after building the wheel, unpack it
-            and replace the sdist with the unpacked version in preparation
-            for installation.
-        :return: The list of InstallRequirement that succeeded to build and
-            the list of InstallRequirement that failed to build.
-        """
-        if check_binary_allowed is None:
-            # Binaries allowed by default.
-            check_binary_allowed = _always_true
+    # TODO by @pradyunsg
+    # Should break up this method into 2 separate methods.
 
-        if not requirements:
-            return [], []
+    # Build the wheels.
+    logger.info(
+        'Building wheels for collected packages: %s',
+        ', '.join(req.name for req in requirements),
+    )
 
-        # TODO by @pradyunsg
-        # Should break up this method into 2 separate methods.
+    with indent_log():
+        build_successes, build_failures = [], []
+        for req in requirements:
+            cache_dir = _get_cache_dir(
+                req, wheel_cache, check_binary_allowed
+            )
+            wheel_file = _build_one(
+                req, cache_dir, build_options, global_options
+            )
+            if wheel_file:
+                # Update the link for this.
+                req.link = Link(path_to_url(wheel_file))
+                req.local_file_path = req.link.file_path
+                assert req.link.is_wheel
+                build_successes.append(req)
+            else:
+                build_failures.append(req)
 
-        # Build the wheels.
+    # notify success/failure
+    if build_successes:
         logger.info(
-            'Building wheels for collected packages: %s',
-            ', '.join(req.name for req in requirements),
+            'Successfully built %s',
+            ' '.join([req.name for req in build_successes]),
         )
-
-        with indent_log():
-            build_successes, build_failures = [], []
-            for req in requirements:
-                cache_dir = _get_cache_dir(
-                    req, wheel_cache, check_binary_allowed
-                )
-                wheel_file = _build_one(
-                    req, cache_dir, build_options, global_options
-                )
-                if wheel_file:
-                    # Update the link for this.
-                    req.link = Link(path_to_url(wheel_file))
-                    req.local_file_path = req.link.file_path
-                    assert req.link.is_wheel
-                    build_successes.append(req)
-                else:
-                    build_failures.append(req)
-
-        # notify success/failure
-        if build_successes:
-            logger.info(
-                'Successfully built %s',
-                ' '.join([req.name for req in build_successes]),
-            )
-        if build_failures:
-            logger.info(
-                'Failed to build %s',
-                ' '.join([req.name for req in build_failures]),
-            )
-        # Return a list of requirements that failed to build
-        return build_successes, build_failures
+    if build_failures:
+        logger.info(
+            'Failed to build %s',
+            ' '.join([req.name for req in build_failures]),
+        )
+    # Return a list of requirements that failed to build
+    return build_successes, build_failures
