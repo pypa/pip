@@ -47,7 +47,7 @@ def test_basic_install_from_wheel(script, data):
     """
     result = script.pip(
         'install', 'has.script==1.0', '--no-index',
-        '--find-links=' + data.find_links,
+        '--find-links', data.find_links,
     )
     dist_info_folder = script.site_packages / 'has.script-1.0.dist-info'
     assert dist_info_folder in result.files_created, (dist_info_folder,
@@ -63,7 +63,7 @@ def test_basic_install_from_wheel_with_extras(script, data):
     """
     result = script.pip(
         'install', 'complex-dist[simple]', '--no-index',
-        '--find-links=' + data.find_links,
+        '--find-links', data.find_links,
     )
     dist_info_folder = script.site_packages / 'complex_dist-0.1.dist-info'
     assert dist_info_folder in result.files_created, (dist_info_folder,
@@ -117,7 +117,7 @@ def test_install_wheel_with_target(script, data, with_wheel):
     target_dir = script.scratch_path / 'target'
     result = script.pip(
         'install', 'simple.dist==0.1', '-t', target_dir,
-        '--no-index', '--find-links=' + data.find_links,
+        '--no-index', '--find-links', data.find_links,
     )
     assert Path('scratch') / 'target' / 'simpledist' in result.files_created, (
         str(result)
@@ -166,7 +166,7 @@ def test_install_wheel_with_root(script, data):
     root_dir = script.scratch_path / 'root'
     result = script.pip(
         'install', 'simple.dist==0.1', '--root', root_dir,
-        '--no-index', '--find-links=' + data.find_links,
+        '--no-index', '--find-links', data.find_links,
     )
     assert Path('scratch') / 'root' in result.files_created
 
@@ -178,7 +178,7 @@ def test_install_wheel_with_prefix(script, data):
     prefix_dir = script.scratch_path / 'prefix'
     result = script.pip(
         'install', 'simple.dist==0.1', '--prefix', prefix_dir,
-        '--no-index', '--find-links=' + data.find_links,
+        '--no-index', '--find-links', data.find_links,
     )
     lib = distutils.sysconfig.get_python_lib(prefix=Path('scratch') / 'prefix')
     assert lib in result.files_created, str(result)
@@ -238,7 +238,7 @@ def test_install_user_wheel(script, data, with_wheel):
     """
     result = script.pip(
         'install', 'has.script==1.0', '--user', '--no-index',
-        '--find-links=' + data.find_links,
+        '--find-links', data.find_links,
     )
     egg_info_folder = script.user_site / 'has.script-1.0.dist-info'
     assert egg_info_folder in result.files_created, str(result)
@@ -252,7 +252,7 @@ def test_install_from_wheel_gen_entrypoint(script, data):
     """
     result = script.pip(
         'install', 'script.wheel1a==0.1', '--no-index',
-        '--find-links=' + data.find_links,
+        '--find-links', data.find_links,
     )
     if os.name == 'nt':
         wrapper_file = script.bin / 't1.exe'
@@ -270,7 +270,7 @@ def test_install_from_wheel_gen_uppercase_entrypoint(script, data):
     """
     result = script.pip(
         'install', 'console-scripts-uppercase==1.0', '--no-index',
-        '--find-links=' + data.find_links,
+        '--find-links', data.find_links,
     )
     if os.name == 'nt':
         # Case probably doesn't make any difference on NT
@@ -289,7 +289,7 @@ def test_install_from_wheel_with_legacy(script, data):
     """
     result = script.pip(
         'install', 'script.wheel2a==0.1', '--no-index',
-        '--find-links=' + data.find_links,
+        '--find-links', data.find_links,
     )
 
     legacy_file1 = script.bin / 'testscript1.bat'
@@ -306,7 +306,7 @@ def test_install_from_wheel_no_setuptools_entrypoint(script, data):
     """
     result = script.pip(
         'install', 'script.wheel1==0.1', '--no-index',
-        '--find-links=' + data.find_links,
+        '--find-links', data.find_links,
     )
     if os.name == 'nt':
         wrapper_file = script.bin / 't1.exe'
@@ -330,7 +330,7 @@ def test_skipping_setuptools_doesnt_skip_legacy(script, data):
     """
     result = script.pip(
         'install', 'script.wheel2==0.1', '--no-index',
-        '--find-links=' + data.find_links,
+        '--find-links', data.find_links,
     )
 
     legacy_file1 = script.bin / 'testscript1.bat'
@@ -348,7 +348,7 @@ def test_install_from_wheel_gui_entrypoint(script, data):
     """
     result = script.pip(
         'install', 'script.wheel3==0.1', '--no-index',
-        '--find-links=' + data.find_links,
+        '--find-links', data.find_links,
     )
     if os.name == 'nt':
         wrapper_file = script.bin / 't1.exe'
@@ -363,7 +363,7 @@ def test_wheel_compiles_pyc(script, data):
     """
     script.pip(
         "install", "--compile", "simple.dist==0.1", "--no-index",
-        "--find-links=" + data.find_links
+        "--find-links", data.find_links
     )
     # There are many locations for the __init__.pyc file so attempt to find
     #   any of them
@@ -384,7 +384,7 @@ def test_wheel_no_compiles_pyc(script, data):
     """
     script.pip(
         "install", "--no-compile", "simple.dist==0.1", "--no-index",
-        "--find-links=" + data.find_links
+        "--find-links", data.find_links
     )
     # There are many locations for the __init__.pyc file so attempt to find
     #   any of them
