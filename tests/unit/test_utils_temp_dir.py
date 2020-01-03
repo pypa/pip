@@ -1,8 +1,10 @@
+import errno
 import itertools
 import os
 import stat
 import tempfile
 
+import mock
 import pytest
 
 from pip._internal.utils import temp_dir
@@ -298,3 +300,28 @@ def test_winapi_move_file_ex():
             universal_newlines=True
         )
         assert filename in res
+
+
+@pytest.mark.skipif("sys.platform != 'win32'")
+def test_tempdir_trash():
+    os_unlink = os.unlink
+
+    # mock os.unlink to fail with EACCES for a specific filename to simulate
+    # how removing a loaded exe/dll behaves.
+    def unlink(name):
+        if "abc-012" in name:
+            raise OSError(errno.EACCES, name)
+        else:
+            os_unlink(name)
+
+    with mock.patch("os.unlink", unlink):
+        with TempDirectory() as tmp_dir:
+            path = tmp_dir.path
+            filename = os.path.join(tmp_dir.path, "abc-012")
+            open(filename, 'a').close()
+
+    trashdir = os.path.join(os.path.dirname(path), ".pip-trash")
+    assert os.path.isdir(trashdir)
+    names = os.listdir(trashdir)
+    assert len(names) == 1
+    assert "abc-012" in names[0]
