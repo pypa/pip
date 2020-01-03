@@ -355,7 +355,6 @@ class InstallCommand(RequirementCommand):
 
                 _, build_failures = build(
                     reqs_to_build,
-                    should_unpack=True,
                     wheel_cache=wheel_cache,
                     build_options=[],
                     global_options=[],

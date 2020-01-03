@@ -168,7 +168,6 @@ class WheelCommand(RequirementCommand):
                 # build wheels
                 build_successes, build_failures = build(
                     reqs_to_build,
-                    should_unpack=False,
                     wheel_cache=wheel_cache,
                     build_options=options.build_options or [],
                     global_options=options.global_options or [],

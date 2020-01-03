@@ -260,7 +260,6 @@ def _clean_one_legacy(req, global_options):
 
 def build(
     requirements,  # type: Iterable[InstallRequirement]
-    should_unpack,  # type: bool
     wheel_cache,  # type: WheelCache
     build_options,  # type: List[str]
     global_options,  # type: List[str]
@@ -269,9 +268,6 @@ def build(
     # type: (...) -> BuildResult
     """Build wheels.
 
-    :param should_unpack: If True, after building the wheel, unpack it
-        and replace the sdist with the unpacked version in preparation
-        for installation.
     :return: The list of InstallRequirement that succeeded to build and
         the list of InstallRequirement that failed to build.
     """
@@ -281,9 +277,6 @@ def build(
 
     if not requirements:
         return [], []
-
-    # TODO by @pradyunsg
-    # Should break up this method into 2 separate methods.
 
     # Build the wheels.
     logger.info(
