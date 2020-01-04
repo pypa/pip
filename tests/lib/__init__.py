@@ -720,7 +720,6 @@ def _git_commit(
     env_or_script,
     repo_dir,
     message=None,
-    args=None,
     allow_empty=False,
     stage_modified=False,
 ):
@@ -731,12 +730,11 @@ def _git_commit(
       env_or_script: pytest's `script` or `env` argument.
       repo_dir: a path to a Git repository.
       message: an optional commit message.
-      args: optional additional options to pass to git-commit.
     """
     if message is None:
         message = 'test commit'
-    if args is None:
-        args = []
+
+    args = []
 
     if allow_empty:
         args.append("--allow-empty")
