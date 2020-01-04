@@ -716,8 +716,7 @@ def _create_main_file(dir_path, name=None, output=None):
     dir_path.joinpath(filename).write_text(text)
 
 
-def _git_commit(env_or_script, repo_dir, message=None, args=None,
-                expect_stderr=False):
+def _git_commit(env_or_script, repo_dir, message=None, args=None):
     """
     Run git-commit.
 
@@ -737,7 +736,7 @@ def _git_commit(env_or_script, repo_dir, message=None, args=None,
     ]
     new_args.extend(args)
     new_args.extend(['-m', message])
-    env_or_script.run(*new_args, cwd=repo_dir, expect_stderr=expect_stderr)
+    env_or_script.run(*new_args, cwd=repo_dir)
 
 
 def _vcs_add(script, version_pkg_path, vcs='git'):
@@ -876,8 +875,7 @@ def _change_test_package_version(script, version_pkg_path):
     )
     # Pass -a to stage the change to the main file.
     _git_commit(
-        script, version_pkg_path, message='messed version', args=['-a'],
-        expect_stderr=True,
+        script, version_pkg_path, message='messed version', args=['-a']
     )
 
 
