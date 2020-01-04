@@ -716,8 +716,13 @@ def _create_main_file(dir_path, name=None, output=None):
     dir_path.joinpath(filename).write_text(text)
 
 
-def _git_commit(env_or_script, repo_dir, message=None, args=None,
-                expect_stderr=False):
+def _git_commit(
+    env_or_script,
+    repo_dir,
+    message=None,
+    allow_empty=False,
+    stage_modified=False,
+):
     """
     Run git-commit.
 
@@ -725,19 +730,24 @@ def _git_commit(env_or_script, repo_dir, message=None, args=None,
       env_or_script: pytest's `script` or `env` argument.
       repo_dir: a path to a Git repository.
       message: an optional commit message.
-      args: optional additional options to pass to git-commit.
     """
     if message is None:
         message = 'test commit'
-    if args is None:
-        args = []
+
+    args = []
+
+    if allow_empty:
+        args.append("--allow-empty")
+
+    if stage_modified:
+        args.append("--all")
 
     new_args = [
         'git', 'commit', '-q', '--author', 'pip <pypa-dev@googlegroups.com>',
     ]
     new_args.extend(args)
     new_args.extend(['-m', message])
-    env_or_script.run(*new_args, cwd=repo_dir, expect_stderr=expect_stderr)
+    env_or_script.run(*new_args, cwd=repo_dir)
 
 
 def _vcs_add(script, version_pkg_path, vcs='git'):
@@ -876,8 +886,7 @@ def _change_test_package_version(script, version_pkg_path):
     )
     # Pass -a to stage the change to the main file.
     _git_commit(
-        script, version_pkg_path, message='messed version', args=['-a'],
-        expect_stderr=True,
+        script, version_pkg_path, message='messed version', stage_modified=True
     )
 
 

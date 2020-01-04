@@ -34,7 +34,7 @@ def checkout_new_branch(script, repo_dir, branch):
 
 
 def do_commit(script, dest):
-    _git_commit(script, dest, message='test commit', args=['--allow-empty'])
+    _git_commit(script, dest, message='test commit', allow_empty=True)
     return get_head_sha(script, dest)
 
 
