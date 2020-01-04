@@ -647,7 +647,7 @@ class InstallRequirement(object):
                         "git+ssh://git@example.com/..., "
                         "or the insecure git+git://git@example.com/..."
                     )
-                deprecated(reason, replacement, gone_in="21.0")
+                deprecated(reason, replacement, gone_in="21.0", issue=7554)
             hidden_url = hide_url(self.link.url)
             if obtain:
                 vcs_backend.obtain(self.source_dir, url=hidden_url)
