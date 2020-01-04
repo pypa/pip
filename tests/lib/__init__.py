@@ -717,7 +717,12 @@ def _create_main_file(dir_path, name=None, output=None):
 
 
 def _git_commit(
-    env_or_script, repo_dir, message=None, args=None, allow_empty=False
+    env_or_script,
+    repo_dir,
+    message=None,
+    args=None,
+    allow_empty=False,
+    stage_modified=False,
 ):
     """
     Run git-commit.
@@ -735,6 +740,9 @@ def _git_commit(
 
     if allow_empty:
         args.append("--allow-empty")
+
+    if stage_modified:
+        args.append("--all")
 
     new_args = [
         'git', 'commit', '-q', '--author', 'pip <pypa-dev@googlegroups.com>',
@@ -880,7 +888,7 @@ def _change_test_package_version(script, version_pkg_path):
     )
     # Pass -a to stage the change to the main file.
     _git_commit(
-        script, version_pkg_path, message='messed version', args=['-a']
+        script, version_pkg_path, message='messed version', stage_modified=True
     )
 
 
