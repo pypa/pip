@@ -716,7 +716,9 @@ def _create_main_file(dir_path, name=None, output=None):
     dir_path.joinpath(filename).write_text(text)
 
 
-def _git_commit(env_or_script, repo_dir, message=None, args=None):
+def _git_commit(
+    env_or_script, repo_dir, message=None, args=None, allow_empty=False
+):
     """
     Run git-commit.
 
@@ -730,6 +732,9 @@ def _git_commit(env_or_script, repo_dir, message=None, args=None):
         message = 'test commit'
     if args is None:
         args = []
+
+    if allow_empty:
+        args.append("--allow-empty")
 
     new_args = [
         'git', 'commit', '-q', '--author', 'pip <pypa-dev@googlegroups.com>',
