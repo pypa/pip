@@ -643,7 +643,9 @@ class InstallRequirement(object):
                 replacement = None
                 if self.link.url.startswith("git+git@"):
                     replacement = (
-                        "git+https:// or git+ssh://"
+                        "git+https://git@example.com/..., "
+                        "git+ssh://git@example.com/..., "
+                        "or the insecure git+git://git@example.com/..."
                     )
                 deprecated(reason, replacement, gone_in="21.0")
             hidden_url = hide_url(self.link.url)
