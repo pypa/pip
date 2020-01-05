@@ -8,14 +8,18 @@ from email.parser import Parser
 from zipfile import ZipFile
 
 from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.pkg_resources import DistInfoDistribution
 from pip._vendor.six import PY2, ensure_str
 
 from pip._internal.exceptions import UnsupportedWheel
+from pip._internal.utils.pkg_resources import DictMetadata
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from email.message import Message
-    from typing import Tuple
+    from typing import Dict, Tuple
+
+    from pip._vendor.pkg_resources import Distribution
 
 if PY2:
     from zipfile import BadZipfile as BadZipFile
@@ -27,6 +31,65 @@ VERSION_COMPATIBLE = (1, 0)
 
 
 logger = logging.getLogger(__name__)
+
+
+class WheelMetadata(DictMetadata):
+    """Metadata provider that maps metadata decoding exceptions to our
+    internal exception type.
+    """
+    def __init__(self, metadata, wheel_name):
+        # type: (Dict[str, bytes], str) -> None
+        super(WheelMetadata, self).__init__(metadata)
+        self._wheel_name = wheel_name
+
+    def get_metadata(self, name):
+        # type: (str) -> str
+        try:
+            return super(WheelMetadata, self).get_metadata(name)
+        except UnicodeDecodeError as e:
+            # Augment the default error with the origin of the file.
+            raise UnsupportedWheel(
+                "Error decoding metadata for {}: {}".format(
+                    self._wheel_name, e
+                )
+            )
+
+
+def pkg_resources_distribution_for_wheel(wheel_zip, name, location):
+    # type: (ZipFile, str, str) -> Distribution
+    """Get a pkg_resources distribution given a wheel.
+
+    :raises UnsupportedWheel: on any errors
+    """
+    info_dir, _ = parse_wheel(wheel_zip, name)
+
+    metadata_files = [
+        p for p in wheel_zip.namelist() if p.startswith("{}/".format(info_dir))
+    ]
+
+    metadata_text = {}  # type: Dict[str, bytes]
+    for path in metadata_files:
+        # If a flag is set, namelist entries may be unicode in Python 2.
+        # We coerce them to native str type to match the types used in the rest
+        # of the code. This cannot fail because unicode can always be encoded
+        # with UTF-8.
+        full_path = ensure_str(path)
+        _, metadata_name = full_path.split("/", 1)
+
+        try:
+            metadata_text[metadata_name] = read_wheel_metadata_file(
+                wheel_zip, full_path
+            )
+        except UnsupportedWheel as e:
+            raise UnsupportedWheel(
+                "{} has an invalid wheel, {}".format(name, str(e))
+            )
+
+    metadata = WheelMetadata(metadata_text, location)
+
+    return DistInfoDistribution(
+        location=location, metadata=metadata, project_name=name
+    )
 
 
 def parse_wheel(wheel_zip, name):
@@ -88,23 +151,31 @@ def wheel_dist_info_dir(source, name):
     return ensure_str(info_dir)
 
 
+def read_wheel_metadata_file(source, path):
+    # type: (ZipFile, str) -> bytes
+    try:
+        return source.read(path)
+        # BadZipFile for general corruption, KeyError for missing entry,
+        # and RuntimeError for password-protected files
+    except (BadZipFile, KeyError, RuntimeError) as e:
+        raise UnsupportedWheel(
+            "could not read {!r} file: {!r}".format(path, e)
+        )
+
+
 def wheel_metadata(source, dist_info_dir):
     # type: (ZipFile, str) -> Message
     """Return the WHEEL metadata of an extracted wheel, if possible.
     Otherwise, raise UnsupportedWheel.
     """
-    try:
-        # Zip file path separators must be /
-        wheel_contents = source.read("{}/WHEEL".format(dist_info_dir))
-        # BadZipFile for general corruption, KeyError for missing entry,
-        # and RuntimeError for password-protected files
-    except (BadZipFile, KeyError, RuntimeError) as e:
-        raise UnsupportedWheel("could not read WHEEL file: {!r}".format(e))
+    path = "{}/WHEEL".format(dist_info_dir)
+    # Zip file path separators must be /
+    wheel_contents = read_wheel_metadata_file(source, path)
 
     try:
         wheel_text = ensure_str(wheel_contents)
     except UnicodeDecodeError as e:
-        raise UnsupportedWheel("error decoding WHEEL: {!r}".format(e))
+        raise UnsupportedWheel("error decoding {!r}: {!r}".format(path, e))
 
     # FeedParser (used by Parser) does not raise any exceptions. The returned
     # message may have .defects populated, but for backwards-compatibility we
