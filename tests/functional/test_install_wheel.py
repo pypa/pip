@@ -41,13 +41,16 @@ def test_install_from_broken_wheel(script, data):
                                 editable=False)
 
 
-def test_basic_install_from_wheel(script, data):
+def test_basic_install_from_wheel(script, shared_data, tmpdir):
     """
     Test installing from a wheel (that has a script)
     """
+    shutil.copy(
+        shared_data.packages / "has.script-1.0-py2.py3-none-any.whl", tmpdir
+    )
     result = script.pip(
         'install', 'has.script==1.0', '--no-index',
-        '--find-links=' + data.find_links,
+        '--find-links', tmpdir,
     )
     dist_info_folder = script.site_packages / 'has.script-1.0.dist-info'
     assert dist_info_folder in result.files_created, (dist_info_folder,
@@ -57,13 +60,19 @@ def test_basic_install_from_wheel(script, data):
     assert script_file in result.files_created
 
 
-def test_basic_install_from_wheel_with_extras(script, data):
+def test_basic_install_from_wheel_with_extras(script, shared_data, tmpdir):
     """
     Test installing from a wheel with extras.
     """
+    shutil.copy(
+        shared_data.packages / "complex_dist-0.1-py2.py3-none-any.whl", tmpdir
+    )
+    shutil.copy(
+        shared_data.packages / "simple.dist-0.1-py2.py3-none-any.whl", tmpdir
+    )
     result = script.pip(
         'install', 'complex-dist[simple]', '--no-index',
-        '--find-links=' + data.find_links,
+        '--find-links', tmpdir,
     )
     dist_info_folder = script.site_packages / 'complex_dist-0.1.dist-info'
     assert dist_info_folder in result.files_created, (dist_info_folder,
@@ -110,14 +119,17 @@ def test_install_from_wheel_with_headers(script, data):
                                                       result.stdout)
 
 
-def test_install_wheel_with_target(script, data, with_wheel):
+def test_install_wheel_with_target(script, shared_data, with_wheel, tmpdir):
     """
     Test installing a wheel using pip install --target
     """
+    shutil.copy(
+        shared_data.packages / "simple.dist-0.1-py2.py3-none-any.whl", tmpdir
+    )
     target_dir = script.scratch_path / 'target'
     result = script.pip(
         'install', 'simple.dist==0.1', '-t', target_dir,
-        '--no-index', '--find-links=' + data.find_links,
+        '--no-index', '--find-links', tmpdir,
     )
     assert Path('scratch') / 'target' / 'simpledist' in result.files_created, (
         str(result)
@@ -159,32 +171,38 @@ def test_install_wheel_with_target_and_data_files(script, data, with_wheel):
             not in result.files_created), str(result)
 
 
-def test_install_wheel_with_root(script, data):
+def test_install_wheel_with_root(script, shared_data, tmpdir):
     """
     Test installing a wheel using pip install --root
     """
     root_dir = script.scratch_path / 'root'
+    shutil.copy(
+        shared_data.packages / "simple.dist-0.1-py2.py3-none-any.whl", tmpdir
+    )
     result = script.pip(
         'install', 'simple.dist==0.1', '--root', root_dir,
-        '--no-index', '--find-links=' + data.find_links,
+        '--no-index', '--find-links', tmpdir,
     )
     assert Path('scratch') / 'root' in result.files_created
 
 
-def test_install_wheel_with_prefix(script, data):
+def test_install_wheel_with_prefix(script, shared_data, tmpdir):
     """
     Test installing a wheel using pip install --prefix
     """
     prefix_dir = script.scratch_path / 'prefix'
+    shutil.copy(
+        shared_data.packages / "simple.dist-0.1-py2.py3-none-any.whl", tmpdir
+    )
     result = script.pip(
         'install', 'simple.dist==0.1', '--prefix', prefix_dir,
-        '--no-index', '--find-links=' + data.find_links,
+        '--no-index', '--find-links', tmpdir,
     )
     lib = distutils.sysconfig.get_python_lib(prefix=Path('scratch') / 'prefix')
     assert lib in result.files_created, str(result)
 
 
-def test_install_from_wheel_installs_deps(script, data):
+def test_install_from_wheel_installs_deps(script, data, tmpdir):
     """
     Test can install dependencies of wheels
     """
@@ -192,13 +210,14 @@ def test_install_from_wheel_installs_deps(script, data):
     package = data.packages.joinpath(
         "requires_source-1.0-py2.py3-none-any.whl"
     )
+    shutil.copy(data.packages / "source-1.0.tar.gz", tmpdir)
     result = script.pip(
-        'install', '--no-index', '--find-links', data.find_links, package,
+        'install', '--no-index', '--find-links', tmpdir, package,
     )
     result.assert_installed('source', editable=False)
 
 
-def test_install_from_wheel_no_deps(script, data):
+def test_install_from_wheel_no_deps(script, data, tmpdir):
     """
     Test --no-deps works with wheel installs
     """
@@ -206,8 +225,9 @@ def test_install_from_wheel_no_deps(script, data):
     package = data.packages.joinpath(
         "requires_source-1.0-py2.py3-none-any.whl"
     )
+    shutil.copy(data.packages / "source-1.0.tar.gz", tmpdir)
     result = script.pip(
-        'install', '--no-index', '--find-links', data.find_links, '--no-deps',
+        'install', '--no-index', '--find-links', tmpdir, '--no-deps',
         package,
     )
     pkg_folder = script.site_packages / 'source'
@@ -232,13 +252,16 @@ def test_wheel_record_lines_in_deterministic_order(script, data):
 
 
 @pytest.mark.incompatible_with_test_venv
-def test_install_user_wheel(script, data, with_wheel):
+def test_install_user_wheel(script, shared_data, with_wheel, tmpdir):
     """
     Test user install from wheel (that has a script)
     """
+    shutil.copy(
+        shared_data.packages / "has.script-1.0-py2.py3-none-any.whl", tmpdir
+    )
     result = script.pip(
         'install', 'has.script==1.0', '--user', '--no-index',
-        '--find-links=' + data.find_links,
+        '--find-links', tmpdir,
     )
     egg_info_folder = script.user_site / 'has.script-1.0.dist-info'
     assert egg_info_folder in result.files_created, str(result)
@@ -246,13 +269,17 @@ def test_install_user_wheel(script, data, with_wheel):
     assert script_file in result.files_created, str(result)
 
 
-def test_install_from_wheel_gen_entrypoint(script, data):
+def test_install_from_wheel_gen_entrypoint(script, shared_data, tmpdir):
     """
     Test installing scripts (entry points are generated)
     """
+    shutil.copy(
+        shared_data.packages / "script.wheel1a-0.1-py2.py3-none-any.whl",
+        tmpdir,
+    )
     result = script.pip(
         'install', 'script.wheel1a==0.1', '--no-index',
-        '--find-links=' + data.find_links,
+        '--find-links', tmpdir,
     )
     if os.name == 'nt':
         wrapper_file = script.bin / 't1.exe'
@@ -264,13 +291,20 @@ def test_install_from_wheel_gen_entrypoint(script, data):
         assert bool(os.access(script.base_path / wrapper_file, os.X_OK))
 
 
-def test_install_from_wheel_gen_uppercase_entrypoint(script, data):
+def test_install_from_wheel_gen_uppercase_entrypoint(
+    script, shared_data, tmpdir
+):
     """
     Test installing scripts with uppercase letters in entry point names
     """
+    shutil.copy(
+        shared_data.packages /
+        "console_scripts_uppercase-1.0-py2.py3-none-any.whl",
+        tmpdir,
+    )
     result = script.pip(
         'install', 'console-scripts-uppercase==1.0', '--no-index',
-        '--find-links=' + data.find_links,
+        '--find-links', tmpdir,
     )
     if os.name == 'nt':
         # Case probably doesn't make any difference on NT
@@ -283,13 +317,17 @@ def test_install_from_wheel_gen_uppercase_entrypoint(script, data):
         assert bool(os.access(script.base_path / wrapper_file, os.X_OK))
 
 
-def test_install_from_wheel_with_legacy(script, data):
+def test_install_from_wheel_with_legacy(script, shared_data, tmpdir):
     """
     Test installing scripts (legacy scripts are preserved)
     """
+    shutil.copy(
+        shared_data.packages / "script.wheel2a-0.1-py2.py3-none-any.whl",
+        tmpdir,
+    )
     result = script.pip(
         'install', 'script.wheel2a==0.1', '--no-index',
-        '--find-links=' + data.find_links,
+        '--find-links', tmpdir,
     )
 
     legacy_file1 = script.bin / 'testscript1.bat'
@@ -299,14 +337,19 @@ def test_install_from_wheel_with_legacy(script, data):
     assert legacy_file2 in result.files_created
 
 
-def test_install_from_wheel_no_setuptools_entrypoint(script, data):
+def test_install_from_wheel_no_setuptools_entrypoint(
+    script, shared_data, tmpdir
+):
     """
     Test that when we generate scripts, any existing setuptools wrappers in
     the wheel are skipped.
     """
+    shutil.copy(
+        shared_data.packages / "script.wheel1-0.1-py2.py3-none-any.whl", tmpdir
+    )
     result = script.pip(
         'install', 'script.wheel1==0.1', '--no-index',
-        '--find-links=' + data.find_links,
+        '--find-links', tmpdir,
     )
     if os.name == 'nt':
         wrapper_file = script.bin / 't1.exe'
@@ -323,14 +366,17 @@ def test_install_from_wheel_no_setuptools_entrypoint(script, data):
     assert wrapper_helper not in result.files_created
 
 
-def test_skipping_setuptools_doesnt_skip_legacy(script, data):
+def test_skipping_setuptools_doesnt_skip_legacy(script, shared_data, tmpdir):
     """
     Test installing scripts (legacy scripts are preserved even when we skip
     setuptools wrappers)
     """
+    shutil.copy(
+        shared_data.packages / "script.wheel2-0.1-py2.py3-none-any.whl", tmpdir
+    )
     result = script.pip(
         'install', 'script.wheel2==0.1', '--no-index',
-        '--find-links=' + data.find_links,
+        '--find-links', tmpdir,
     )
 
     legacy_file1 = script.bin / 'testscript1.bat'
@@ -342,13 +388,16 @@ def test_skipping_setuptools_doesnt_skip_legacy(script, data):
     assert wrapper_helper not in result.files_created
 
 
-def test_install_from_wheel_gui_entrypoint(script, data):
+def test_install_from_wheel_gui_entrypoint(script, shared_data, tmpdir):
     """
     Test installing scripts (gui entry points are generated)
     """
+    shutil.copy(
+        shared_data.packages / "script.wheel3-0.1-py2.py3-none-any.whl", tmpdir
+    )
     result = script.pip(
         'install', 'script.wheel3==0.1', '--no-index',
-        '--find-links=' + data.find_links,
+        '--find-links', tmpdir,
     )
     if os.name == 'nt':
         wrapper_file = script.bin / 't1.exe'
@@ -357,13 +406,16 @@ def test_install_from_wheel_gui_entrypoint(script, data):
     assert wrapper_file in result.files_created
 
 
-def test_wheel_compiles_pyc(script, data):
+def test_wheel_compiles_pyc(script, shared_data, tmpdir):
     """
     Test installing from wheel with --compile on
     """
+    shutil.copy(
+        shared_data.packages / "simple.dist-0.1-py2.py3-none-any.whl", tmpdir
+    )
     script.pip(
         "install", "--compile", "simple.dist==0.1", "--no-index",
-        "--find-links=" + data.find_links
+        "--find-links", tmpdir,
     )
     # There are many locations for the __init__.pyc file so attempt to find
     #   any of them
@@ -378,13 +430,16 @@ def test_wheel_compiles_pyc(script, data):
     assert any(exists)
 
 
-def test_wheel_no_compiles_pyc(script, data):
+def test_wheel_no_compiles_pyc(script, shared_data, tmpdir):
     """
     Test installing from wheel with --compile on
     """
+    shutil.copy(
+        shared_data.packages / "simple.dist-0.1-py2.py3-none-any.whl", tmpdir
+    )
     script.pip(
         "install", "--no-compile", "simple.dist==0.1", "--no-index",
-        "--find-links=" + data.find_links
+        "--find-links", tmpdir,
     )
     # There are many locations for the __init__.pyc file so attempt to find
     #   any of them
