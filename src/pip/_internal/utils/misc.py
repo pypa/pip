@@ -187,7 +187,8 @@ def rmtree_errorhandler(func, path, exc_info, **kwargs):
 
     if sys.platform == "win32" and isinstance(exc_val, OSError) \
             and exc_val.errno == errno.EACCES \
-            and func == os.unlink and trashdir is not None:
+            and (func == os.unlink or func == os.remove) \
+            and trashdir is not None:
         # On win32 a loaded .exe, .dll, ... cannot be unlinked, but it can be
         # renamed and scheduled for removal at next reboot. Move and rename to
         # a unique filename in `trashdir` (must be on the same volume as
