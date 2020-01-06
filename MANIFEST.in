@@ -21,6 +21,7 @@ exclude tox.ini
 exclude noxfile.py
 
 recursive-include src/pip/_vendor *.pem
+recursive-include src/pip/_vendor py.typed
 recursive-include docs Makefile *.rst *.py *.bat
 
 exclude src/pip/_vendor/six
