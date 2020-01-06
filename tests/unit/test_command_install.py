@@ -1,79 +1,16 @@
 import errno
 
 import pytest
-from mock import Mock, patch
+from mock import patch
 from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.commands.install import (
-    build_wheels,
     create_env_error_message,
     decide_user_install,
     warn_deprecated_install_options,
 )
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.req.req_set import RequirementSet
-
-
-class TestWheelCache:
-
-    def check_build_wheels(
-        self,
-        pep517_requirements,
-        legacy_requirements,
-    ):
-        """
-        Return: (mock_calls, return_value).
-        """
-        built_reqs = []
-
-        def build(reqs, **kwargs):
-            # Fail the first requirement.
-            built_reqs.append(reqs)
-            return ([], [reqs[0]])
-
-        builder = Mock()
-        builder.build.side_effect = build
-
-        build_failures = build_wheels(
-            builder=builder,
-            pep517_requirements=pep517_requirements,
-            legacy_requirements=legacy_requirements,
-            wheel_cache=Mock(cache_dir=None),
-            build_options=[],
-            global_options=[],
-            check_binary_allowed=None,
-        )
-
-        return (built_reqs, build_failures)
-
-    @patch('pip._internal.commands.install.is_wheel_installed')
-    def test_build_wheels__wheel_installed(self, is_wheel_installed):
-        is_wheel_installed.return_value = True
-
-        built_reqs, build_failures = self.check_build_wheels(
-            pep517_requirements=['a', 'b'],
-            legacy_requirements=['c', 'd'],
-        )
-
-        # Legacy requirements were built.
-        assert built_reqs == [['a', 'b'], ['c', 'd']]
-
-        # Legacy build failures are not included in the return value.
-        assert build_failures == ['a']
-
-    @patch('pip._internal.commands.install.is_wheel_installed')
-    def test_build_wheels__wheel_not_installed(self, is_wheel_installed):
-        is_wheel_installed.return_value = False
-
-        built_reqs, build_failures = self.check_build_wheels(
-            pep517_requirements=['a', 'b'],
-            legacy_requirements=['c', 'd'],
-        )
-
-        # Legacy requirements were not built.
-        assert built_reqs == [['a', 'b']]
-
-        assert build_failures == ['a']
 
 
 class TestDecideUserInstall:
