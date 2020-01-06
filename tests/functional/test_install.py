@@ -1661,9 +1661,6 @@ def test_user_config_accepted(script):
 @pytest.mark.network
 @pytest.mark.skipif("sys.platform != 'win32'")
 @pytest.mark.parametrize('pip_name', [
-    'pip',
-    'pip{}'.format(sys.version_info[0]),
-    'pip{}.{}'.format(*sys.version_info[:2]),
     'pip.exe',
     'pip{}.exe'.format(sys.version_info[0]),
     'pip{}.{}.exe'.format(*sys.version_info[:2])
