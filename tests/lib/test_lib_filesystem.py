@@ -1,3 +1,4 @@
+import errno
 import os
 import shutil
 
@@ -57,5 +58,6 @@ def test_file_opener_produces_rmtree_error(tmpdir, process):
     path = subdir.joinpath('bar.txt')
     path.write_text('Hello')
     with FileOpener(path):
-        with pytest.raises(OSError):
+        with pytest.raises(OSError) as e:
             shutil.rmtree(subdir)
+        assert e.value.errno == errno.EACCES
