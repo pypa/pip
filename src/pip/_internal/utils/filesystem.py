@@ -18,7 +18,7 @@ from pip._internal.utils.compat import get_path_uid
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING, cast
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, BinaryIO, Iterator, List
+    from typing import Any, BinaryIO, Iterator, List, Union
 
     class NamedTemporaryFileResult(BinaryIO):
         @property
@@ -188,3 +188,51 @@ def find_files(path, pattern):
         matches = fnmatch.filter(files, pattern)
         result.extend(os.path.join(root, f) for f in matches)
     return result
+
+
+def _friendly_size(size):
+    # type: (Union[float, int]) -> str
+    suffix = 'B'
+    if size > 1000:
+        size /= 1000
+        suffix = 'KB'
+
+    if size > 1000:
+        size /= 1000
+        suffix = 'MB'
+
+    if size > 1000:
+        size /= 1000
+        suffix = 'GB'
+
+    size = round(size, 1)
+
+    return '{} {}'.format(size, suffix)
+
+
+def file_size(path):
+    # type: (str) -> Union[int, float]
+    # If it's a symlink, return 0.
+    if os.path.islink(path):
+        return 0
+    return os.path.getsize(path)
+
+
+def friendly_file_size(path):
+    # type: (str) -> str
+    return _friendly_size(file_size(path))
+
+
+def directory_size(path):
+    # type: (str) -> Union[int, float]
+    size = 0.0
+    for root, _dirs, files in os.walk(path):
+        for filename in files:
+            file_path = os.path.join(root, filename)
+            size += file_size(file_path)
+    return size
+
+
+def friendly_directory_size(path):
+    # type: (str) -> str
+    return _friendly_size(directory_size(path))

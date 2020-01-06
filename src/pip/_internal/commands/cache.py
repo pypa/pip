@@ -4,10 +4,10 @@ import logging
 import os
 import textwrap
 
+import pip._internal.utils.filesystem as filesystem
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.exceptions import CommandError, PipError
-from pip._internal.utils.filesystem import find_files
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -78,13 +78,18 @@ class CacheCommand(Command):
         # type: (Values, List[Any]) -> None
         num_packages = len(self._find_wheels(options, '*'))
 
+        cache_location = self._wheels_cache_dir(options)
+        cache_size = filesystem.friendly_directory_size(cache_location)
+
         message = textwrap.dedent("""
             Cache info:
               Location: {location}
               Packages: {package_count}
+              Size:     {size}
         """).format(
-            location=self._wheels_cache_dir(options),
+            location=cache_location,
             package_count=num_packages,
+            size=cache_size,
         ).strip()
 
         logger.info(message)
@@ -100,16 +105,18 @@ class CacheCommand(Command):
             pattern = '*'
 
         files = self._find_wheels(options, pattern)
-        wheels = sorted(set(map(lambda f: os.path.basename(f), files)))
 
-        if not wheels:
+        if not files:
             logger.info('Nothing is currently cached.')
             return
 
-        result = 'Current cache contents:\n'
-        for wheel in wheels:
-            result += ' - %s\n' % wheel
-        logger.info(result.strip())
+        results = []
+        for filename in files:
+            wheel = os.path.basename(filename)
+            size = filesystem.friendly_file_size(filename)
+            results.append(' - {} ({})'.format(wheel, size))
+        logger.info('Current cache contents:\n')
+        logger.info('\n'.join(sorted(results)))
 
     def remove_cache_items(self, options, args):
         # type: (Values, List[Any]) -> None
@@ -142,4 +149,4 @@ class CacheCommand(Command):
     def _find_wheels(self, options, pattern):
         # type: (Values, str) -> List[str]
         wheel_dir = self._wheels_cache_dir(options)
-        return find_files(wheel_dir, pattern + '*.whl')
+        return filesystem.find_files(wheel_dir, pattern + '*.whl')
