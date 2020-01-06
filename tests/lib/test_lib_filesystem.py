@@ -4,7 +4,6 @@ import shutil
 
 import psutil
 import pytest
-import six
 
 from tests.lib.filesystem import FileOpener
 
@@ -48,8 +47,9 @@ def test_file_opener_produces_unlink_error(tmpdir, process):
     path.write_text('Hello')
     with FileOpener() as opener:
         opener.send(path)
-        with pytest.raises(OSError):
+        with pytest.raises(OSError) as e:
             os.unlink(path)
+        assert e.value.errno == errno.EACCES
 
 
 @skip_unless_windows
@@ -59,7 +59,6 @@ def test_file_opener_produces_rmtree_error(tmpdir, process):
     path = subdir.joinpath('bar.txt')
     path.write_text('Hello')
     with FileOpener(path):
-        expected_error = OSError if six.PY3 else IOError
-        with pytest.raises(expected_error) as e:
+        with pytest.raises(OSError) as e:
             shutil.rmtree(subdir)
         assert e.value.errno == errno.EACCES
