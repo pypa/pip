@@ -4,7 +4,6 @@ import errno
 import itertools
 import logging
 import os.path
-import sys
 import tempfile
 from contextlib import contextmanager
 
