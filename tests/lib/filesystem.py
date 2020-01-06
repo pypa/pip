@@ -36,14 +36,6 @@ def make_unreadable_file(path):
         subprocess.check_call(args)
 
 
-if sys.platform == 'win32':
-    def lock_action(f):
-        pass
-else:
-    def lock_action(f):
-        pass
-
-
 def external_file_opener(conn):
     """
     This external process is run with multiprocessing.
@@ -61,15 +53,10 @@ def external_file_opener(conn):
             # Do nothing - we have been told to exit without a path or action
             pass
         else:
-            path, action = msg
+            path = msg
             # Open the file
             try:
                 f = open(path, 'r')
-                # NOTE: action is for future use and may be unused
-                if action == 'lock':
-                    lock_action(f)
-                elif action == 'noread':
-                    make_unreadable_file(path)
             except (OSError, IOError):
                 # IOError is OSError post PEP 3151
                 traceback.print_exc(None, sys.stderr)
@@ -98,8 +85,8 @@ class FileOpener(object):
     Opening the path and taking the action can be deferred however, so that
     the FileOpener may function as a pytest fixture if so desired.
     """
-    def __init__(self, path=None, action=None):
-        self.path = None
+    def __init__(self, path=None):
+        self._sent = False
         self.conn, child_conn = multiprocessing.Pipe()
         self.child = multiprocessing.Process(
             target=external_file_opener,
@@ -108,13 +95,12 @@ class FileOpener(object):
         self.child.daemon = True
         self.child.start()
         if path:
-            self.send(path, action)
+            self.send(path)
 
-    def send(self, path, action=None):
-        if self.path is not None:
-            raise AttributeError('path may only be set once')
-        self.path = str(path)
-        self.conn.send((str(path), action))
+    def send(self, path):
+        assert self._sent is False
+        self._sent = True
+        self.conn.send(str(path))
         return self.conn.recv()
 
     def cleanup(self):

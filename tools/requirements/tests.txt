@@ -2,7 +2,6 @@ cryptography==2.8
 freezegun
 mock
 pretend
-# Below is to count sub-processes and assure child was cleaned up properly
 psutil
 pytest==3.8.2
 pytest-cov

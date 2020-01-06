@@ -214,6 +214,7 @@ def test_tempdirectory_asserts_global_tempdir(monkeypatch):
 
 
 @pytest.mark.skipif("sys.platform != 'win32'")
+@pytest.mark.xfail()
 def test_temp_dir_warns_if_cannot_clean(caplog):
     temp_dir = TempDirectory()
     temp_dir_path = temp_dir.path
