@@ -27,7 +27,11 @@ from pip._internal.models.wheel import Wheel
 from pip._internal.pyproject import make_pyproject_path
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.filetypes import ARCHIVE_EXTENSIONS
-from pip._internal.utils.misc import is_installable_dir, splitext
+from pip._internal.utils.misc import (
+    is_installable_dir,
+    splitext,
+    looks_like_path as _looks_like_path,
+)
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import path_to_url
 from pip._internal.vcs import is_url, vcs
@@ -239,26 +243,6 @@ def install_req_from_editable(
         wheel_cache=wheel_cache,
         extras=parts.extras,
     )
-
-
-def _looks_like_path(name):
-    # type: (str) -> bool
-    """Checks whether the string "looks like" a path on the filesystem.
-
-    This does not check whether the target actually exists, only judge from the
-    appearance.
-
-    Returns true if any of the following conditions is true:
-    * a path separator is found (either os.path.sep or os.path.altsep);
-    * a dot is found (which represents the current directory).
-    """
-    if os.path.sep in name:
-        return True
-    if os.path.altsep is not None and os.path.altsep in name:
-        return True
-    if name.startswith("."):
-        return True
-    return False
 
 
 def _get_url_from_path(path, name):
