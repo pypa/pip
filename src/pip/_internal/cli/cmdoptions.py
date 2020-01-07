@@ -135,7 +135,7 @@ def _path_option_check(option, opt, value):
     return os.path.expanduser(value)
 
 
-class _PathOption(Option):
+class PipOption(Option):
     TYPES = Option.TYPES + ("path",)
     TYPE_CHECKER = Option.TYPE_CHECKER.copy()
     TYPE_CHECKER["path"] = _path_option_check
@@ -228,7 +228,7 @@ progress_bar = partial(
 )  # type: Callable[..., Option]
 
 log = partial(
-    _PathOption,
+    PipOption,
     "--log", "--log-file", "--local-log",
     dest="log",
     metavar="path",
@@ -303,7 +303,7 @@ def exists_action():
 
 
 cert = partial(
-    _PathOption,
+    PipOption,
     '--cert',
     dest='cert',
     type='path',
@@ -312,7 +312,7 @@ cert = partial(
 )  # type: Callable[..., Option]
 
 client_cert = partial(
-    _PathOption,
+    PipOption,
     '--client-cert',
     dest='client_cert',
     type='path',
@@ -432,7 +432,7 @@ def _handle_src(option, opt_str, value, parser):
 
 
 src = partial(
-    _PathOption,
+    PipOption,
     '--src', '--source', '--source-dir', '--source-directory',
     dest='src_dir',
     type='path',
@@ -638,7 +638,7 @@ def prefer_binary():
 
 
 cache_dir = partial(
-    _PathOption,
+    PipOption,
     "--cache-dir",
     dest="cache_dir",
     default=USER_CACHE_DIR,
@@ -703,7 +703,7 @@ def _handle_build_dir(option, opt, value, parser):
 
 
 build_dir = partial(
-    _PathOption,
+    PipOption,
     '-b', '--build', '--build-dir', '--build-directory',
     dest='build_dir',
     type='path',
@@ -887,7 +887,7 @@ require_hashes = partial(
 
 
 list_path = partial(
-    _PathOption,
+    PipOption,
     '--path',
     dest='path',
     type='path',
