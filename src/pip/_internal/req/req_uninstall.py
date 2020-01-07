@@ -295,7 +295,7 @@ class StashedUninstallPathSet(object):
         # type: () -> None
         """Undoes the uninstall by moving stashed files back."""
         for p in self._moves:
-            logging.info("Moving to %s\n from %s", *p)
+            logger.info("Moving to %s\n from %s", *p)
 
         for new_path, path in self._moves:
             try:
