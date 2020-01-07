@@ -1,4 +1,5 @@
 import pytest
+from pip._vendor.packaging.tags import Tag
 
 from pip._internal import pep425tags
 from pip._internal.exceptions import InvalidWheelFilename
@@ -54,21 +55,21 @@ class TestWheelFile(object):
         Test single-version wheel is known to be supported
         """
         w = Wheel('simple-0.1-py2-none-any.whl')
-        assert w.supported(tags=[('py2', 'none', 'any')])
+        assert w.supported(tags=[Tag('py2', 'none', 'any')])
 
     def test_supported_multi_version(self):
         """
         Test multi-version wheel is known to be supported
         """
         w = Wheel('simple-0.1-py2.py3-none-any.whl')
-        assert w.supported(tags=[('py3', 'none', 'any')])
+        assert w.supported(tags=[Tag('py3', 'none', 'any')])
 
     def test_not_supported_version(self):
         """
         Test unsupported wheel is known to be unsupported
         """
         w = Wheel('simple-0.1-py2-none-any.whl')
-        assert not w.supported(tags=[('py1', 'none', 'any')])
+        assert not w.supported(tags=[Tag('py1', 'none', 'any')])
 
     def test_supported_osx_version(self):
         """
@@ -153,9 +154,9 @@ class TestWheelFile(object):
         Test results from `support_index_min`
         """
         tags = [
-            ('py2', 'none', 'TEST'),
-            ('py2', 'TEST', 'any'),
-            ('py2', 'none', 'any'),
+            Tag('py2', 'none', 'TEST'),
+            Tag('py2', 'TEST', 'any'),
+            Tag('py2', 'none', 'any'),
         ]
         w = Wheel('simple-0.1-py2-none-any.whl')
         assert w.support_index_min(tags=tags) == 2

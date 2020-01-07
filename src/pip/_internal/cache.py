@@ -22,8 +22,10 @@ from pip._internal.utils.urls import path_to_url
 
 if MYPY_CHECK_RUNNING:
     from typing import Optional, Set, List, Any, Dict
+
+    from pip._vendor.packaging.tags import Tag
+
     from pip._internal.models.format_control import FormatControl
-    from pip._internal.pep425tags import Pep425Tag
 
 logger = logging.getLogger(__name__)
 
@@ -161,7 +163,7 @@ class Cache(object):
         self,
         link,            # type: Link
         package_name,    # type: Optional[str]
-        supported_tags,  # type: List[Pep425Tag]
+        supported_tags,  # type: List[Tag]
     ):
         # type: (...) -> Link
         """Returns a link to a cached item if it exists, otherwise returns the
@@ -214,7 +216,7 @@ class SimpleWheelCache(Cache):
         self,
         link,            # type: Link
         package_name,    # type: Optional[str]
-        supported_tags,  # type: List[Pep425Tag]
+        supported_tags,  # type: List[Tag]
     ):
         # type: (...) -> Link
         candidates = []
@@ -304,7 +306,7 @@ class WheelCache(Cache):
         self,
         link,            # type: Link
         package_name,    # type: Optional[str]
-        supported_tags,  # type: List[Pep425Tag]
+        supported_tags,  # type: List[Tag]
     ):
         # type: (...) -> Link
         retval = self._wheel_cache.get(

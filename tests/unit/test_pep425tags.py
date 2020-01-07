@@ -7,15 +7,6 @@ from pip._vendor.packaging.tags import interpreter_name, interpreter_version
 from pip._internal import pep425tags
 
 
-@pytest.mark.parametrize('file_tag, expected', [
-    (('py27', 'none', 'any'), 'py27-none-any'),
-    (('cp33', 'cp32dmu', 'linux_x86_64'), 'cp33-cp32dmu-linux_x86_64'),
-])
-def test_format_tag(file_tag, expected):
-    actual = pep425tags.format_tag(file_tag)
-    assert actual == expected
-
-
 @pytest.mark.parametrize('version_info, expected', [
     ((2,), '2'),
     ((2, 8), '28'),
@@ -98,10 +89,10 @@ class TestPEP425Tags(object):
                    mock_gcf):
             supported = pip._internal.pep425tags.get_supported()
 
-        for (py, abi, plat) in supported:
-            assert '-' not in py
-            assert '-' not in abi
-            assert '-' not in plat
+        for tag in supported:
+            assert '-' not in tag.interpreter
+            assert '-' not in tag.abi
+            assert '-' not in tag.platform
 
     def test_manual_abi_noflags(self):
         """
@@ -192,8 +183,10 @@ class TestManylinux1Tags(object):
         Test that the more specific tag manylinux1 comes first.
         """
         groups = {}
-        for pyimpl, abi, arch in pep425tags.get_supported():
-            groups.setdefault((pyimpl, abi), []).append(arch)
+        for tag in pep425tags.get_supported():
+            groups.setdefault(
+                (tag.interpreter, tag.abi), []
+            ).append(tag.platform)
 
         for arches in groups.values():
             if arches == ['any']:
@@ -218,8 +211,10 @@ class TestManylinux2010Tags(object):
         Test that the more specific tag manylinux2010 comes first.
         """
         groups = {}
-        for pyimpl, abi, arch in pep425tags.get_supported():
-            groups.setdefault((pyimpl, abi), []).append(arch)
+        for tag in pep425tags.get_supported():
+            groups.setdefault(
+                (tag.interpreter, tag.abi), []
+            ).append(tag.platform)
 
         for arches in groups.values():
             if arches == ['any']:
@@ -245,8 +240,10 @@ class TestManylinux2010Tags(object):
         """
         groups = {}
         supported = pep425tags.get_supported(platform=manylinux2010)
-        for pyimpl, abi, arch in supported:
-            groups.setdefault((pyimpl, abi), []).append(arch)
+        for tag in supported:
+            groups.setdefault(
+                (tag.interpreter, tag.abi), []
+            ).append(tag.platform)
 
         for arches in groups.values():
             if arches == ['any']:
@@ -265,8 +262,10 @@ class TestManylinux2014Tags(object):
         Test that the more specific tag manylinux2014 comes first.
         """
         groups = {}
-        for pyimpl, abi, arch in pep425tags.get_supported():
-            groups.setdefault((pyimpl, abi), []).append(arch)
+        for tag in pep425tags.get_supported():
+            groups.setdefault(
+                (tag.interpreter, tag.abi), []
+            ).append(tag.platform)
 
         for arches in groups.values():
             if arches == ['any']:
@@ -295,8 +294,10 @@ class TestManylinux2014Tags(object):
         """
         groups = {}
         supported = pep425tags.get_supported(platform=manylinuxA)
-        for pyimpl, abi, arch in supported:
-            groups.setdefault((pyimpl, abi), []).append(arch)
+        for tag in supported:
+            groups.setdefault(
+                (tag.interpreter, tag.abi), []
+            ).append(tag.platform)
 
         expected_arches = [manylinuxA]
         expected_arches.extend(manylinuxB)

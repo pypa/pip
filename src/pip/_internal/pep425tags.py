@@ -9,7 +9,11 @@ import sys
 import sysconfig
 from collections import OrderedDict
 
-from pip._vendor.packaging.tags import interpreter_name, interpreter_version
+from pip._vendor.packaging.tags import (
+    Tag,
+    interpreter_name,
+    interpreter_version,
+)
 from pip._vendor.six import PY2
 
 import pip._internal.utils.glibc
@@ -20,20 +24,9 @@ if MYPY_CHECK_RUNNING:
         Tuple, Callable, List, Optional, Union, Dict
     )
 
-    Pep425Tag = Tuple[str, str, str]
-
 logger = logging.getLogger(__name__)
 
 _osx_arch_pat = re.compile(r'(.+)_(\d+)_(\d+)_(.+)')
-
-
-def format_tag(file_tag):
-    # type: (Tuple[str, ...]) -> str
-    """Format three tags in the form "<python_tag>-<abi_tag>-<platform_tag>".
-
-    :param file_tag: A 3-tuple of tags (python_tag, abi_tag, platform_tag).
-    """
-    return '-'.join(file_tag)
 
 
 def get_config_var(var):
@@ -365,7 +358,7 @@ def get_supported(
     impl=None,  # type: Optional[str]
     abi=None  # type: Optional[str]
 ):
-    # type: (...) -> List[Pep425Tag]
+    # type: (...) -> List[Tag]
     """Return a list of supported tags for each version specified in
     `versions`.
 
@@ -433,4 +426,4 @@ def get_supported(
     for version in other_versions:
         supported.append(('py%s' % (version,), 'none', 'any'))
 
-    return supported
+    return [Tag(*parts) for parts in supported]
