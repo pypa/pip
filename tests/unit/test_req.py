@@ -25,7 +25,6 @@ from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import InstallRequirement, RequirementSet
 from pip._internal.req.constructors import (
     _get_url_from_path,
-    _looks_like_path,
     install_req_from_editable,
     install_req_from_line,
     install_req_from_req_string,
@@ -33,6 +32,7 @@ from pip._internal.req.constructors import (
 )
 from pip._internal.req.req_file import ParsedLine, get_line_parser, handle_line
 from pip._internal.req.req_tracker import get_requirement_tracker
+from pip._internal.utils.misc import looks_like_path
 from pip._internal.utils.urls import path_to_url
 from tests.lib import assert_raises_regexp, make_test_finder, requirements_file
 
@@ -655,8 +655,8 @@ def test_mismatched_versions(caplog):
     # Test wheel
     (('simple-0.1-py2.py3-none-any.whl'), False),
 ])
-def test_looks_like_path(args, expected):
-    assert _looks_like_path(args) == expected
+def testlooks_like_path(args, expected):
+    assert looks_like_path(args) == expected
 
 
 @pytest.mark.skipif(
@@ -670,8 +670,8 @@ def test_looks_like_path(args, expected):
     # Test absolute paths
     (('C:\\absolute\\path'), True),
 ])
-def test_looks_like_path_win(args, expected):
-    assert _looks_like_path(args) == expected
+def testlooks_like_path_win(args, expected):
+    assert looks_like_path(args) == expected
 
 
 @pytest.mark.parametrize('args, mock_returns, expected', [

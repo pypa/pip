@@ -30,7 +30,7 @@ from pip._internal.utils.filetypes import ARCHIVE_EXTENSIONS
 from pip._internal.utils.misc import (
     is_installable_dir,
     splitext,
-    looks_like_path as _looks_like_path,
+    looks_like_path,
 )
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import path_to_url
@@ -255,7 +255,7 @@ def _get_url_from_path(path, name):
     The function checks if the path is a file. If false, if the path has
     an @, it will treat it as a PEP 440 URL requirement and return the path.
     """
-    if _looks_like_path(name) and os.path.isdir(path):
+    if looks_like_path(name) and os.path.isdir(path):
         if is_installable_dir(path):
             return path_to_url(path)
         raise InstallationError(
@@ -267,7 +267,7 @@ def _get_url_from_path(path, name):
     if os.path.isfile(path):
         return path_to_url(path)
     urlreq_parts = name.split('@', 1)
-    if len(urlreq_parts) >= 2 and not _looks_like_path(urlreq_parts[0]):
+    if len(urlreq_parts) >= 2 and not looks_like_path(urlreq_parts[0]):
         # If the path contains '@' and the part before it does not look
         # like a path, try to treat it as a PEP 440 URL req instead.
         return None
