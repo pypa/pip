@@ -9,6 +9,7 @@ import sys
 import sysconfig
 from collections import OrderedDict
 
+from pip._vendor.packaging.tags import interpreter_name, interpreter_version
 from pip._vendor.six import PY2
 
 import pip._internal.utils.glibc
@@ -40,46 +41,17 @@ def get_config_var(var):
     return sysconfig.get_config_var(var)
 
 
-def get_abbr_impl():
-    # type: () -> str
-    """Return abbreviated implementation name."""
-    if hasattr(sys, 'pypy_version_info'):
-        pyimpl = 'pp'
-    elif sys.platform.startswith('java'):
-        pyimpl = 'jy'
-    elif sys.platform == 'cli':
-        pyimpl = 'ip'
-    else:
-        pyimpl = 'cp'
-    return pyimpl
-
-
-interpreter_name = get_abbr_impl
-
-
 def version_info_to_nodot(version_info):
     # type: (Tuple[int, ...]) -> str
     # Only use up to the first two numbers.
     return ''.join(map(str, version_info[:2]))
 
 
-def get_impl_ver():
-    # type: () -> str
-    """Return implementation version."""
-    impl_ver = get_config_var("py_version_nodot")
-    if not impl_ver or get_abbr_impl() == 'pp':
-        impl_ver = ''.join(map(str, get_impl_version_info()))
-    return impl_ver
-
-
-interpreter_version = get_impl_ver
-
-
 def get_impl_version_info():
     # type: () -> Tuple[int, ...]
     """Return sys.version_info-like tuple for use in decrementing the minor
     version."""
-    if get_abbr_impl() == 'pp':
+    if interpreter_name() == 'pp':
         # as per https://github.com/pypa/pip/issues/2882
         # attrs exist only on pypy
         return (sys.version_info[0],
@@ -107,7 +79,7 @@ def get_abi_tag():
     """Return the ABI tag based on SOABI (if available) or emulate SOABI
     (CPython 2, PyPy)."""
     soabi = get_config_var('SOABI')
-    impl = get_abbr_impl()
+    impl = interpreter_name()
     abi = None  # type: Optional[str]
 
     if not soabi and impl in {'cp', 'pp'} and hasattr(sys, 'maxunicode'):
@@ -126,7 +98,7 @@ def get_abi_tag():
                 'Py_UNICODE_SIZE', lambda: sys.maxunicode == 0x10ffff,
                 expected=4, warn=is_cpython):
             u = 'u'
-        abi = '%s%s%s%s%s' % (impl, get_impl_ver(), d, m, u)
+        abi = '%s%s%s%s%s' % (impl, interpreter_version(), d, m, u)
     elif soabi and soabi.startswith('cpython-'):
         abi = 'cp' + soabi.split('-')[1]
     elif soabi:
@@ -417,7 +389,7 @@ def get_supported(
     current_version = versions[0]
     other_versions = versions[1:]
 
-    impl = impl or get_abbr_impl()
+    impl = impl or interpreter_name()
 
     abis = []  # type: List[str]
 
