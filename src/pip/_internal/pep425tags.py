@@ -7,12 +7,12 @@ import platform
 import re
 import sys
 import sysconfig
-from collections import OrderedDict
 
 from pip._vendor.packaging.tags import (
     Tag,
     interpreter_name,
     interpreter_version,
+    mac_platforms,
 )
 from pip._vendor.six import PY2
 
@@ -21,7 +21,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Tuple, Callable, List, Optional, Union, Dict
+        Callable, List, Optional, Tuple, Union
     )
 
 logger = logging.getLogger(__name__)
@@ -220,69 +220,6 @@ def is_manylinux2014_compatible():
     return pip._internal.utils.glibc.have_compatible_glibc(2, 17)
 
 
-def get_darwin_arches(major, minor, machine):
-    # type: (int, int, str) -> List[str]
-    """Return a list of supported arches (including group arches) for
-    the given major, minor and machine architecture of an macOS machine.
-    """
-    arches = []
-
-    def _supports_arch(major, minor, arch):
-        # type: (int, int, str) -> bool
-        # Looking at the application support for macOS versions in the chart
-        # provided by https://en.wikipedia.org/wiki/OS_X#Versions it appears
-        # our timeline looks roughly like:
-        #
-        # 10.0 - Introduces ppc support.
-        # 10.4 - Introduces ppc64, i386, and x86_64 support, however the ppc64
-        #        and x86_64 support is CLI only, and cannot be used for GUI
-        #        applications.
-        # 10.5 - Extends ppc64 and x86_64 support to cover GUI applications.
-        # 10.6 - Drops support for ppc64
-        # 10.7 - Drops support for ppc
-        #
-        # Given that we do not know if we're installing a CLI or a GUI
-        # application, we must be conservative and assume it might be a GUI
-        # application and behave as if ppc64 and x86_64 support did not occur
-        # until 10.5.
-        #
-        # Note: The above information is taken from the "Application support"
-        #       column in the chart not the "Processor support" since I believe
-        #       that we care about what instruction sets an application can use
-        #       not which processors the OS supports.
-        if arch == 'ppc':
-            return (major, minor) <= (10, 5)
-        if arch == 'ppc64':
-            return (major, minor) == (10, 5)
-        if arch == 'i386':
-            return (major, minor) >= (10, 4)
-        if arch == 'x86_64':
-            return (major, minor) >= (10, 5)
-        if arch in groups:
-            for garch in groups[arch]:
-                if _supports_arch(major, minor, garch):
-                    return True
-        return False
-
-    groups = OrderedDict([
-        ("fat", ("i386", "ppc")),
-        ("intel", ("x86_64", "i386")),
-        ("fat64", ("x86_64", "ppc64")),
-        ("fat32", ("x86_64", "i386", "ppc")),
-    ])  # type: Dict[str, Tuple[str, ...]]
-
-    if _supports_arch(major, minor, machine):
-        arches.append(machine)
-
-    for garch in groups:
-        if machine in groups[garch] and _supports_arch(major, minor, garch):
-            arches.append(garch)
-
-    arches.append('universal')
-
-    return arches
-
-
 def get_all_minor_versions_as_strings(version_info):
     # type: (Tuple[int, ...]) -> List[str]
     versions = []
@@ -298,11 +235,16 @@ def _mac_platforms(arch):
     match = _osx_arch_pat.match(arch)
     if match:
         name, major, minor, actual_arch = match.groups()
-        tpl = '{}_{}_%i_%s'.format(name, major)
-        arches = []
-        for m in reversed(range(int(minor) + 1)):
-            for a in get_darwin_arches(int(major), m, actual_arch):
-                arches.append(tpl % (m, a))
+        mac_version = (int(major), int(minor))
+        arches = [
+            # Since we have always only checked that the platform starts
+            # with "macosx", for backwards-compatibility we extract the
+            # actual prefix provided by the user in case they provided
+            # something like "macosxcustom_". It may be good to remove
+            # this as undocumented or deprecate it in the future.
+            '{}_{}'.format(name, arch[len('macosx_'):])
+            for arch in mac_platforms(mac_version, actual_arch)
+        ]
     else:
         # arch pattern didn't match (?!)
         arches = [arch]
