@@ -59,16 +59,14 @@ interpreters.
 Services
 ========
 
-pip test suite and checks are distributed on four different platforms that
+pip test suite and checks are distributed on three different platforms that
 provides free executors for open source packages:
 
   - `Travis CI`_ (Used for Linux)
-  - `Appveyor CI`_ (Windows only)
   - `Azure DevOps CI`_ (Linux, MacOS & Windows tests)
   - `GitHub Actions`_ (Linux, MacOS & Windows tests)
 
 .. _`Travis CI`: https://travis-ci.org/
-.. _`Appveyor CI`: https://www.appveyor.com/
 .. _`Azure DevOps CI`: https://azure.microsoft.com/en-us/services/devops/
 .. _`GitHub Actions`: https://github.com/features/actions
 
@@ -107,11 +105,11 @@ Actual testing
 |           |          +-------+---------------+-----------------+
 |           |          | PyPy3 |               |                 |
 |  Windows  +----------+-------+---------------+-----------------+
-|           |          | CP2.7 |   Appveyor    |   Appveyor      |
+|           |          | CP2.7 |   Azure       |   Azure         |
 |           |          +-------+---------------+-----------------+
 |           |          | CP3.5 |   Azure       |   Azure         |
 |           |          +-------+---------------+-----------------+
-|           |          | CP3.6 |   Appveyor    |   Appveyor      |
+|           |          | CP3.6 |   Azure       |   Azure         |
 |           |          +-------+---------------+-----------------+
 |           |   x64    | CP3.7 |   Azure       |   Azure         |
 |           |          +-------+---------------+-----------------+
