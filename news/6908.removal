@@ -1,0 +1,2 @@
+Remove wheel tag calculation from pip and use ``packaging.tags``. This
+should provide more tags ordered better than in prior releases.
