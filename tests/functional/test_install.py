@@ -1741,6 +1741,9 @@ def test_install_sends_client_cert(install_args, script, cert_factory, data):
         assert environ["SSL_CLIENT_CERT"]
 
 
+@pytest.mark.xfail(
+    reason='setuptools cannot write non-ASCII names into install record'
+)
 def test_install_from_unicode_dir(script, data):
     """Test installing from a local dir containing non-ASCII file names.
     """
