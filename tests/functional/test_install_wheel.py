@@ -60,6 +60,22 @@ def test_basic_install_from_wheel(script, shared_data, tmpdir):
     assert script_file in result.files_created
 
 
+def test_basic_install_from_unicode_wheel(script, data):
+    """
+    Test installing from a wheel containing non-ASCII file names.
+    """
+    result = script.pip(
+        'install', 'test_unicode==1.0', '--no-index',
+        '--find-links=' + data.find_links,
+    )
+    dist_info_folder = script.site_packages / 'test_unicode-1.0.dist-info'
+    assert dist_info_folder in result.files_created, (
+        dist_info_folder,
+        result.files_created,
+        result.stdout,
+    )
+
+
 def test_basic_install_from_wheel_with_extras(script, shared_data, tmpdir):
     """
     Test installing from a wheel with extras.

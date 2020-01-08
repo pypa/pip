@@ -9,6 +9,7 @@ from __future__ import absolute_import
 import collections
 import compileall
 import csv
+import io
 import logging
 import os.path
 import re
@@ -22,7 +23,7 @@ from zipfile import ZipFile
 from pip._vendor import pkg_resources
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor.distlib.util import get_export_entry
-from pip._vendor.six import StringIO
+from pip._vendor.six import PY2, StringIO
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_major_minor_version
@@ -63,15 +64,11 @@ def rehash(path, blocksize=1 << 20):
     return (digest, str(length))  # type: ignore
 
 
-def open_for_csv(name, mode):
-    # type: (str, Text) -> IO[Any]
-    if sys.version_info[0] < 3:
-        nl = {}  # type: Dict[str, Any]
-        bin = 'b'
-    else:
-        nl = {'newline': ''}  # type: Dict[str, Any]
-        bin = ''
-    return open(name, mode + bin, **nl)
+def open_for_csv(name, mode, encoding='utf-8'):
+    # type: (str, Text, str) -> IO[Any]
+    if PY2:
+        return io.open(name, mode + 'b', encoding=encoding)
+    return io.open(name, mode, newline='', encoding=encoding)
 
 
 def fix_script(path):
