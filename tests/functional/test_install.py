@@ -1739,3 +1739,15 @@ def test_install_sends_client_cert(install_args, script, cert_factory, data):
         environ, _ = call_args.args
         assert "SSL_CLIENT_CERT" in environ
         assert environ["SSL_CLIENT_CERT"]
+
+
+def test_install_from_unicode_dir(script, data):
+    """Test installing from a local dir containing non-ASCII file names.
+    """
+    result = script.pip('install', data.src.joinpath('unicode_files'))
+    dist_info_folder = script.site_packages / 'test_unicode-1.0.dist-info'
+    assert dist_info_folder in result.files_created, (
+        dist_info_folder,
+        result.files_created,
+        result.stdout,
+    )
