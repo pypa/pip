@@ -103,7 +103,7 @@ def tmpdir(request, tmpdir):
     # This should prevent us from needing a multiple gigabyte temporary
     # directory while running the tests.
     if not request.config.getoption("--keep-tmpdir"):
-        tmpdir.remove(ignore_errors=True)
+        shutil.rmtree(six.text_type(tmpdir), ignore_errors=True)
 
 
 @pytest.fixture(autouse=True)
