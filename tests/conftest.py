@@ -83,7 +83,10 @@ def tmpdir_factory(request, tmpdir_factory):
     """
     yield tmpdir_factory
     if not request.config.getoption("--keep-tmpdir"):
-        tmpdir_factory.getbasetemp().remove(ignore_errors=True)
+        shutil.rmtree(
+            six.text_type(tmpdir_factory.getbasetemp()),
+            ignore_errors=True,
+        )
 
 
 @pytest.fixture
