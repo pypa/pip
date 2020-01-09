@@ -1,3 +1,3 @@
 Write ``dist-info/RECORD`` in UTF-8 instead of platform-dependent
-encoding to correclty install wheels containing files with non-ASCII
+encoding to correctly install wheels containing files with non-ASCII
 names.
