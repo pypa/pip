@@ -67,7 +67,7 @@ def rehash(path, blocksize=1 << 20):
 def open_for_csv(name, mode, encoding='utf-8'):
     # type: (str, Text, str) -> IO[Any]
     if PY2:
-        return io.open(name, mode + 'b', encoding=encoding)
+        return io.open(name, mode + 'b')
     return io.open(name, mode, newline='', encoding=encoding)
 
 

@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import distutils
 import glob
 import os
@@ -60,16 +62,25 @@ def test_basic_install_from_wheel(script, shared_data, tmpdir):
     assert script_file in result.files_created
 
 
-def test_basic_install_from_unicode_wheel(script, data):
+def test_basic_install_from_unicode_wheel(script):
     """
     Test installing from a wheel containing non-ASCII file names.
     """
-    result = script.pip(
-        'install', 'test_unicode==1.0', '--no-index',
-        '--find-links=' + data.find_links,
+    package = create_basic_wheel_for_package(
+        script, 'test_unicode', '1.0', extra_files={
+            u'வணக்கம்/__init__.py': '',
+            u'வணக்கம்/નમસ્તે.py': '',
+        },
     )
-    dist_info_folder = script.site_packages / 'test_unicode-1.0.dist-info'
-    assert dist_info_folder in result.files_created, (
+    result = script.pip('install', '--no-index', '--no-cache-dir', package)
+
+    dist_info_folder = script.site_packages / 'test_unicode-0.1.dist-info'
+    expected_files = [
+        dist_info_folder,
+        script.site_packages.joinpath(u'வணக்கம்', u'__init__.py'),
+        script.site_packages.joinpath(u'வணக்கம்', u'નમસ્તે.py'),
+    ]
+    assert all(p in result.files_created for p in expected_files), (
         dist_info_folder,
         result.files_created,
         result.stdout,
