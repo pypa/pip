@@ -74,17 +74,14 @@ def test_basic_install_from_unicode_wheel(script):
     )
     result = script.pip('install', '--no-index', '--no-cache-dir', package)
 
-    dist_info_folder = script.site_packages / 'test_unicode-0.1.dist-info'
     expected_files = [
-        dist_info_folder,
+        script.site_packages.joinpath('test_unicode-1.0.dist-info'),
         script.site_packages.joinpath(u'வணக்கம்', u'__init__.py'),
         script.site_packages.joinpath(u'வணக்கம்', u'નમસ્તે.py'),
     ]
-    assert all(p in result.files_created for p in expected_files), (
-        dist_info_folder,
-        result.files_created,
-        result.stdout,
-    )
+    print(result.files_created)
+    for f in expected_files:
+        assert f in result.files_created, (result.files_created, result.stdout)
 
 
 def test_basic_install_from_wheel_with_extras(script, shared_data, tmpdir):
