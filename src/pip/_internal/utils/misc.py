@@ -39,7 +39,6 @@ from pip._internal.utils.compat import (
     stdlib_pkgs,
     str_to_display,
 )
-from pip._internal.utils.marker_files import write_delete_marker_file
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING, cast
 from pip._internal.utils.virtualenv import (
     running_under_virtualenv,
@@ -521,11 +520,6 @@ def dist_location(dist):
 def write_output(msg, *args):
     # type: (str, str) -> None
     logger.info(msg, *args)
-
-
-def _make_build_dir(build_dir):
-    os.makedirs(build_dir)
-    write_delete_marker_file(build_dir)
 
 
 class FakeFile(object):
