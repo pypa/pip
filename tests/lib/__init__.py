@@ -1060,7 +1060,7 @@ def create_basic_wheel_for_package(
         retval,
         'zip',
         root_dir=script.temp_path,
-        base_dir=text_type(os.curdir),
+        base_dir=curdir,
     )
     shutil.move(generated, retval)
 
