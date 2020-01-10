@@ -39,7 +39,6 @@ from pip._internal.utils.compat import (
     stdlib_pkgs,
     str_to_display,
 )
-from pip._internal.utils.marker_files import write_delete_marker_file
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING, cast
 from pip._internal.utils.virtualenv import (
     running_under_virtualenv,
@@ -523,11 +522,6 @@ def write_output(msg, *args):
     logger.info(msg, *args)
 
 
-def _make_build_dir(build_dir):
-    os.makedirs(build_dir)
-    write_delete_marker_file(build_dir)
-
-
 class FakeFile(object):
     """Wrap a list of lines in an object with readline() to make
     ConfigParser happy."""
@@ -836,11 +830,11 @@ def protect_pip_from_modification_on_windows(modifying_pip):
     On Windows, any operation modifying pip should be run as:
         python -m pip ...
     """
-    pip_names = set()
-    for ext in ('', '.exe'):
-        pip_names.add('pip{ext}'.format(ext=ext))
-        pip_names.add('pip{}{ext}'.format(sys.version_info[0], ext=ext))
-        pip_names.add('pip{}.{}{ext}'.format(*sys.version_info[:2], ext=ext))
+    pip_names = [
+        "pip.exe",
+        "pip{}.exe".format(sys.version_info[0]),
+        "pip{}.{}.exe".format(*sys.version_info[:2])
+    ]
 
     # See https://github.com/pypa/pip/issues/1299 for more discussion
     should_show_use_python_msg = (
@@ -878,3 +872,15 @@ def hash_file(path, blocksize=1 << 20):
             length += len(block)
             h.update(block)
     return h, length
+
+
+def is_wheel_installed():
+    """
+    Return whether the wheel package is installed.
+    """
+    try:
+        import wheel  # noqa: F401
+    except ImportError:
+        return False
+
+    return True

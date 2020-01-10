@@ -409,7 +409,6 @@ Here are the supported forms::
     [-e] git+ssh://git.example.com/MyProject#egg=MyProject
     [-e] git+git://git.example.com/MyProject#egg=MyProject
     [-e] git+file:///home/user/projects/MyProject#egg=MyProject
-    -e git+git@git.example.com:MyProject#egg=MyProject
 
 Passing a branch name, a commit hash, a tag name or a git ref is possible like so::
 

@@ -179,9 +179,7 @@ def test_respect_order_in_requirements_file(script, data):
 def test_install_local_editable_with_extras(script, data):
     to_install = data.packages.joinpath("LocalExtras")
     res = script.pip_install_local(
-        '-e', to_install + '[bar]',
-        expect_error=False,
-        expect_stderr=True,
+        '-e', to_install + '[bar]', allow_stderr_warning=True
     )
     assert script.site_packages / 'easy-install.pth' in res.files_updated, (
         str(res)
@@ -373,17 +371,19 @@ def test_double_install_spurious_hash_mismatch(
         # Install a package (and build its wheel):
         result = script.pip_install_local(
             '--find-links', data.find_links,
-            '-r', reqs_file.resolve(), expect_error=False)
+            '-r', reqs_file.resolve(),
+        )
         assert 'Successfully installed simple-1.0' in str(result)
 
         # Uninstall it:
-        script.pip('uninstall', '-y', 'simple', expect_error=False)
+        script.pip('uninstall', '-y', 'simple')
 
         # Then install it again. We should not hit a hash mismatch, and the
         # package should install happily.
         result = script.pip_install_local(
             '--find-links', data.find_links,
-            '-r', reqs_file.resolve(), expect_error=False)
+            '-r', reqs_file.resolve(),
+        )
         assert 'Successfully installed simple-1.0' in str(result)
 
 
@@ -490,8 +490,7 @@ def test_install_unsupported_wheel_link_with_marker(script):
         )
     )
     result = script.pip(
-        'install', '-r', script.scratch_path / 'with-marker.txt',
-        expect_error=False,
+        'install', '-r', script.scratch_path / 'with-marker.txt'
     )
 
     assert ("Ignoring asdf: markers 'sys_platform == \"xyz\"' don't match "

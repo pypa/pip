@@ -420,6 +420,8 @@ class RequirementPreparer(object):
             # editable in a req, a non deterministic error
             # occurs when the script attempts to unpack the
             # build directory
+            # Since source_dir is only set for editable requirements.
+            assert req.source_dir is None
             req.ensure_has_source_dir(self.build_dir)
             # If a checkout exists, it's unwise to keep going.  version
             # inconsistencies are logged later, but do not fail the

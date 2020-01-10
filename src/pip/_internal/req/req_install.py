@@ -30,14 +30,15 @@ from pip._internal.operations.install.legacy import install as install_legacy
 from pip._internal.operations.install.wheel import install_wheel
 from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
 from pip._internal.req.req_uninstall import UninstallPathSet
+from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.marker_files import (
     PIP_DELETE_MARKER_FILENAME,
     has_delete_marker_file,
+    write_delete_marker_file,
 )
 from pip._internal.utils.misc import (
-    _make_build_dir,
     ask_path_exists,
     backup_dir,
     display_path,
@@ -369,7 +370,8 @@ class InstallRequirement(object):
         # need this)
         if not os.path.exists(build_dir):
             logger.debug('Creating directory %s', build_dir)
-            _make_build_dir(build_dir)
+            os.makedirs(build_dir)
+            write_delete_marker_file(build_dir)
         return os.path.join(build_dir, name)
 
     def _set_requirement(self):
@@ -633,6 +635,20 @@ class InstallRequirement(object):
         vc_type, url = self.link.url.split('+', 1)
         vcs_backend = vcs.get_backend(vc_type)
         if vcs_backend:
+            if not self.link.is_vcs:
+                reason = (
+                    "This form of VCS requirement is being deprecated: {}."
+                ).format(
+                    self.link.url
+                )
+                replacement = None
+                if self.link.url.startswith("git+git@"):
+                    replacement = (
+                        "git+https://git@example.com/..., "
+                        "git+ssh://git@example.com/..., "
+                        "or the insecure git+git://git@example.com/..."
+                    )
+                deprecated(reason, replacement, gone_in="21.0", issue=7554)
             hidden_url = hide_url(self.link.url)
             if obtain:
                 vcs_backend.obtain(self.source_dir, url=hidden_url)

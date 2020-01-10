@@ -4,6 +4,7 @@ import sys
 import pytest
 from mock import Mock, patch
 from pip._vendor.packaging.specifiers import SpecifierSet
+from pip._vendor.packaging.tags import Tag
 from pkg_resources import parse_version
 
 import pip._internal.pep425tags
@@ -238,9 +239,9 @@ class TestWheel:
             ),
         ]
         valid_tags = [
-            ('pyT', 'none', 'TEST'),
-            ('pyT', 'TEST', 'any'),
-            ('pyT', 'none', 'any'),
+            Tag('pyT', 'none', 'TEST'),
+            Tag('pyT', 'TEST', 'any'),
+            Tag('pyT', 'none', 'any'),
         ]
         specifier = SpecifierSet()
         evaluator = CandidateEvaluator(

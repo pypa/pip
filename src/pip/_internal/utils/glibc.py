@@ -4,9 +4,7 @@
 from __future__ import absolute_import
 
 import os
-import re
 import sys
-import warnings
 
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -67,32 +65,6 @@ def glibc_version_string_ctypes():
         version_str = version_str.decode("ascii")
 
     return version_str
-
-
-# Separated out from have_compatible_glibc for easier unit testing
-def check_glibc_version(version_str, required_major, minimum_minor):
-    # type: (str, int, int) -> bool
-    # Parse string and check against requested version.
-    #
-    # We use a regexp instead of str.split because we want to discard any
-    # random junk that might come after the minor version -- this might happen
-    # in patched/forked versions of glibc (e.g. Linaro's version of glibc
-    # uses version strings like "2.20-2014.11"). See gh-3588.
-    m = re.match(r"(?P<major>[0-9]+)\.(?P<minor>[0-9]+)", version_str)
-    if not m:
-        warnings.warn("Expected glibc version with 2 components major.minor,"
-                      " got: %s" % version_str, RuntimeWarning)
-        return False
-    return (int(m.group("major")) == required_major and
-            int(m.group("minor")) >= minimum_minor)
-
-
-def have_compatible_glibc(required_major, minimum_minor):
-    # type: (int, int) -> bool
-    version_str = glibc_version_string()
-    if version_str is None:
-        return False
-    return check_glibc_version(version_str, required_major, minimum_minor)
 
 
 # platform.libc_ver regularly returns completely nonsensical glibc

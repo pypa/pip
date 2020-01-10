@@ -130,6 +130,17 @@ def check_dist_restriction(options, check_target=False):
             )
 
 
+def _path_option_check(option, opt, value):
+    # type: (Option, str, str) -> str
+    return os.path.expanduser(value)
+
+
+class PipOption(Option):
+    TYPES = Option.TYPES + ("path",)
+    TYPE_CHECKER = Option.TYPE_CHECKER.copy()
+    TYPE_CHECKER["path"] = _path_option_check
+
+
 ###########
 # options #
 ###########
@@ -217,10 +228,11 @@ progress_bar = partial(
 )  # type: Callable[..., Option]
 
 log = partial(
-    Option,
+    PipOption,
     "--log", "--log-file", "--local-log",
     dest="log",
     metavar="path",
+    type="path",
     help="Path to a verbose appending log."
 )  # type: Callable[..., Option]
 
@@ -291,19 +303,19 @@ def exists_action():
 
 
 cert = partial(
-    Option,
+    PipOption,
     '--cert',
     dest='cert',
-    type='str',
+    type='path',
     metavar='path',
     help="Path to alternate CA bundle.",
 )  # type: Callable[..., Option]
 
 client_cert = partial(
-    Option,
+    PipOption,
     '--client-cert',
     dest='client_cert',
-    type='str',
+    type='path',
     default=None,
     metavar='path',
     help="Path to SSL client certificate, a single file containing the "
@@ -420,10 +432,10 @@ def _handle_src(option, opt_str, value, parser):
 
 
 src = partial(
-    Option,
+    PipOption,
     '--src', '--source', '--source-dir', '--source-directory',
     dest='src_dir',
-    type='str',
+    type='path',
     metavar='dir',
     default=get_src_prefix(),
     action='callback',
@@ -626,11 +638,12 @@ def prefer_binary():
 
 
 cache_dir = partial(
-    Option,
+    PipOption,
     "--cache-dir",
     dest="cache_dir",
     default=USER_CACHE_DIR,
     metavar="dir",
+    type='path',
     help="Store the cache data in <dir>."
 )  # type: Callable[..., Option]
 
@@ -690,10 +703,10 @@ def _handle_build_dir(option, opt, value, parser):
 
 
 build_dir = partial(
-    Option,
+    PipOption,
     '-b', '--build', '--build-dir', '--build-directory',
     dest='build_dir',
-    type='str',
+    type='path',
     metavar='dir',
     action='callback',
     callback=_handle_build_dir,
@@ -874,9 +887,10 @@ require_hashes = partial(
 
 
 list_path = partial(
-    Option,
+    PipOption,
     '--path',
     dest='path',
+    type='path',
     action='append',
     help='Restrict to the specified installation path for listing '
          'packages (can be used multiple times).'

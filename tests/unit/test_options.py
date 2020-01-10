@@ -421,3 +421,25 @@ class TestOptionsConfigFiles(object):
                 cmd._determine_file(options, need_value=False)
         else:
             assert expect == cmd._determine_file(options, need_value=False)
+
+
+class TestOptionsExpandUser(AddFakeCommandMixin):
+    def test_cache_dir(self):
+        options, args = main(['--cache-dir', '~/cache/dir', 'fake'])
+        assert options.cache_dir == os.path.expanduser('~/cache/dir')
+
+    def test_log(self):
+        options, args = main(['--log', '~/path', 'fake'])
+        assert options.log == os.path.expanduser('~/path')
+
+    def test_local_log(self):
+        options, args = main(['--local-log', '~/path', 'fake'])
+        assert options.log == os.path.expanduser('~/path')
+
+    def test_cert(self):
+        options, args = main(['--cert', '~/path', 'fake'])
+        assert options.cert == os.path.expanduser('~/path')
+
+    def test_client_cert(self):
+        options, args = main(['--client-cert', '~/path', 'fake'])
+        assert options.client_cert == os.path.expanduser('~/path')

@@ -7,11 +7,15 @@ import site
 import subprocess
 import sys
 import textwrap
+from base64 import urlsafe_b64encode
 from contextlib import contextmanager
+from hashlib import sha256
+from io import BytesIO
 from textwrap import dedent
+from zipfile import ZipFile
 
 import pytest
-from pip._vendor.six import PY2
+from pip._vendor.six import PY2, ensure_binary, text_type
 from scripttest import FoundDir, TestFileEnvironment
 
 from pip._internal.index.collector import LinkCollector
@@ -716,8 +720,13 @@ def _create_main_file(dir_path, name=None, output=None):
     dir_path.joinpath(filename).write_text(text)
 
 
-def _git_commit(env_or_script, repo_dir, message=None, args=None,
-                expect_stderr=False):
+def _git_commit(
+    env_or_script,
+    repo_dir,
+    message=None,
+    allow_empty=False,
+    stage_modified=False,
+):
     """
     Run git-commit.
 
@@ -725,19 +734,24 @@ def _git_commit(env_or_script, repo_dir, message=None, args=None,
       env_or_script: pytest's `script` or `env` argument.
       repo_dir: a path to a Git repository.
       message: an optional commit message.
-      args: optional additional options to pass to git-commit.
     """
     if message is None:
         message = 'test commit'
-    if args is None:
-        args = []
+
+    args = []
+
+    if allow_empty:
+        args.append("--allow-empty")
+
+    if stage_modified:
+        args.append("--all")
 
     new_args = [
         'git', 'commit', '-q', '--author', 'pip <pypa-dev@googlegroups.com>',
     ]
     new_args.extend(args)
     new_args.extend(['-m', message])
-    env_or_script.run(*new_args, cwd=repo_dir, expect_stderr=expect_stderr)
+    env_or_script.run(*new_args, cwd=repo_dir)
 
 
 def _vcs_add(script, version_pkg_path, vcs='git'):
@@ -876,8 +890,7 @@ def _change_test_package_version(script, version_pkg_path):
     )
     # Pass -a to stage the change to the main file.
     _git_commit(
-        script, version_pkg_path, message='messed version', args=['-a'],
-        expect_stderr=True,
+        script, version_pkg_path, message='messed version', stage_modified=True
     )
 
 
@@ -919,6 +932,44 @@ def create_test_package_with_setup(script, **setup_kwargs):
         setup(**kwargs)
     """) % setup_kwargs)
     return pkg_path
+
+
+def urlsafe_b64encode_nopad(data):
+    # type: (bytes) -> str
+    return urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
+
+
+def create_really_basic_wheel(name, version):
+    # type: (str, str) -> bytes
+    def digest(contents):
+        return "sha256={}".format(
+            urlsafe_b64encode_nopad(sha256(contents).digest())
+        )
+
+    def add_file(path, text):
+        contents = text.encode("utf-8")
+        z.writestr(path, contents)
+        records.append((path, digest(contents), str(len(contents))))
+
+    dist_info = "{}-{}.dist-info".format(name, version)
+    record_path = "{}/RECORD".format(dist_info)
+    records = [(record_path, "", "")]
+    buf = BytesIO()
+    with ZipFile(buf, "w") as z:
+        add_file("{}/WHEEL".format(dist_info), "Wheel-Version: 1.0")
+        add_file(
+            "{}/METADATA".format(dist_info),
+            dedent(
+                """\
+                Metadata-Version: 2.1
+                Name: {}
+                Version: {}
+                """.format(name, version)
+            ),
+        )
+        z.writestr(record_path, "\n".join(",".join(r) for r in records))
+    buf.seek(0)
+    return buf.read()
 
 
 def create_basic_wheel_for_package(
@@ -967,9 +1018,6 @@ def create_basic_wheel_for_package(
         "{dist_info}/RECORD": ""
     }
 
-    if extra_files:
-        files.update(extra_files)
-
     # Some useful shorthands
     archive_name = "{name}-{version}-py2.py3-none-any.whl".format(
         name=name, version=version
@@ -995,13 +1043,25 @@ def create_basic_wheel_for_package(
             name=name, version=version, requires_dist=requires_dist
         ).strip()
 
+    # Add new files after formatting
+    if extra_files:
+        files.update(extra_files)
+
     for fname in files:
         path = script.temp_path / fname
         path.parent.mkdir(exist_ok=True, parents=True)
-        path.write_text(files[fname])
+        path.write_bytes(ensure_binary(files[fname]))
 
+    # The base_dir cast is required to make `shutil.make_archive()` use
+    # Unicode paths on Python 2, making it able to properly archive
+    # files with non-ASCII names.
     retval = script.scratch_path / archive_name
-    generated = shutil.make_archive(retval, 'zip', script.temp_path)
+    generated = shutil.make_archive(
+        retval,
+        'zip',
+        root_dir=script.temp_path,
+        base_dir=text_type(os.curdir),
+    )
     shutil.move(generated, retval)
 
     shutil.rmtree(script.temp_path)

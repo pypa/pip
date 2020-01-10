@@ -61,7 +61,7 @@ def test_cleanup_after_install_from_local_directory(script, data):
     Test clean up after installing from a local directory.
     """
     to_install = data.packages.joinpath("FSPkg")
-    script.pip('install', to_install, expect_error=False)
+    script.pip('install', to_install)
     build = script.venv_path / 'build'
     src = script.venv_path / 'src'
     assert not exists(build), "unexpected build/ dir exists: %s" % build

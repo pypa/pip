@@ -83,7 +83,13 @@ def tmpdir_factory(request, tmpdir_factory):
     """
     yield tmpdir_factory
     if not request.config.getoption("--keep-tmpdir"):
-        tmpdir_factory.getbasetemp().remove(ignore_errors=True)
+        # py.path.remove() uses str paths on Python 2 and cannot
+        # handle non-ASCII file names. This works around the problem by
+        # passing a unicode object to rmtree().
+        shutil.rmtree(
+            six.text_type(tmpdir_factory.getbasetemp()),
+            ignore_errors=True,
+        )
 
 
 @pytest.fixture
@@ -103,7 +109,10 @@ def tmpdir(request, tmpdir):
     # This should prevent us from needing a multiple gigabyte temporary
     # directory while running the tests.
     if not request.config.getoption("--keep-tmpdir"):
-        tmpdir.remove(ignore_errors=True)
+        # py.path.remove() uses str paths on Python 2 and cannot
+        # handle non-ASCII file names. This works around the problem by
+        # passing a unicode object to rmtree().
+        shutil.rmtree(six.text_type(tmpdir), ignore_errors=True)
 
 
 @pytest.fixture(autouse=True)

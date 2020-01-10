@@ -1,5 +1,7 @@
 import os
 
+from pip._vendor.packaging.tags import Tag
+
 from pip._internal.cache import WheelCache, _hash_dict
 from pip._internal.models.format_control import FormatControl
 from pip._internal.models.link import Link
@@ -39,11 +41,11 @@ def test_wheel_name_filter(tmpdir):
     with open(os.path.join(cache_path, "package-1.0-py3-none-any.whl"), "w"):
         pass
     # package matches wheel name
-    cached_link = wc.get(link, "package", [("py3", "none", "any")])
+    cached_link = wc.get(link, "package", [Tag("py3", "none", "any")])
     assert cached_link is not link
     assert os.path.exists(cached_link.file_path)
     # package2 does not match wheel name
-    assert wc.get(link, "package2", [("py3", "none", "any")]) is link
+    assert wc.get(link, "package2", [Tag("py3", "none", "any")]) is link
 
 
 def test_cache_hash():
@@ -89,7 +91,7 @@ def test_get_with_legacy_entry_only(tmpdir):
     ensure_dir(legacy_path)
     with open(os.path.join(legacy_path, "test-1.0.0-py3-none-any.whl"), "w"):
         pass
-    cached_link = wc.get(link, "test", [("py3", "none", "any")])
+    cached_link = wc.get(link, "test", [Tag("py3", "none", "any")])
     assert (
         os.path.normcase(os.path.dirname(cached_link.file_path)) ==
         os.path.normcase(legacy_path)

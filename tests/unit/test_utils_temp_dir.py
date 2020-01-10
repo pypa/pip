@@ -14,6 +14,7 @@ from pip._internal.utils.temp_dir import (
     AdjacentTempDirectory,
     TempDirectory,
     global_tempdir_manager,
+    tempdir_registry,
 )
 from tests.lib.filesystem import FileOpener
 
@@ -242,3 +243,29 @@ def test_temp_dir_warns_if_cannot_clean(caplog):
 
     # Clean-up for failed TempDirectory cleanup
     shutil.rmtree(temp_dir_path, ignore_errors=True)
+
+
+deleted_kind = "deleted"
+not_deleted_kind = "not-deleted"
+
+
+@pytest.mark.parametrize("delete,kind,exists", [
+    (None, deleted_kind, False),
+    (True, deleted_kind, False),
+    (False, deleted_kind, True),
+    (None, not_deleted_kind, True),
+    (True, not_deleted_kind, False),
+    (False, not_deleted_kind, True),
+    (None, "unspecified", False),
+    (True, "unspecified", False),
+    (False, "unspecified", True),
+])
+def test_tempdir_registry(kind, delete, exists):
+    with tempdir_registry() as registry:
+        registry.set_delete(deleted_kind, True)
+        registry.set_delete(not_deleted_kind, False)
+
+        with TempDirectory(delete=delete, kind=kind) as d:
+            path = d.path
+            assert os.path.exists(path)
+        assert os.path.exists(path) == exists

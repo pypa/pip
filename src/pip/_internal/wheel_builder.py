@@ -13,13 +13,11 @@ from pip._internal.models.link import Link
 from pip._internal.operations.build.wheel import build_wheel_pep517
 from pip._internal.operations.build.wheel_legacy import build_wheel_legacy
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.marker_files import has_delete_marker_file
-from pip._internal.utils.misc import ensure_dir, hash_file
+from pip._internal.utils.misc import ensure_dir, hash_file, is_wheel_installed
 from pip._internal.utils.setuptools_build import make_setuptools_clean_args
 from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from pip._internal.utils.unpacking import unpack_file
 from pip._internal.utils.urls import path_to_url
 from pip._internal.vcs import vcs
 
@@ -29,9 +27,6 @@ if MYPY_CHECK_RUNNING:
     )
 
     from pip._internal.cache import WheelCache
-    from pip._internal.operations.prepare import (
-        RequirementPreparer
-    )
     from pip._internal.req.req_install import InstallRequirement
 
     BinaryAllowedPredicate = Callable[[InstallRequirement], bool]
@@ -50,12 +45,12 @@ def _contains_egg_info(
     return bool(_egg_info_re.search(s))
 
 
-def should_build(
+def _should_build(
     req,  # type: InstallRequirement
     need_wheel,  # type: bool
     check_binary_allowed,  # type: BinaryAllowedPredicate
 ):
-    # type: (...) -> Optional[bool]
+    # type: (...) -> bool
     """Return whether an InstallRequirement should be built into a wheel."""
     if req.constraint:
         # never build requirements that are merely constraints
@@ -71,6 +66,13 @@ def should_build(
         # i.e. pip wheel, not pip install
         return True
 
+    # From this point, this concerns the pip install command only
+    # (need_wheel=False).
+
+    if not req.use_pep517 and not is_wheel_installed():
+        # we don't build legacy requirements if wheel is not installed
+        return False
+
     if req.editable or not req.source_dir:
         return False
 
@@ -84,27 +86,45 @@ def should_build(
     return True
 
 
-def should_cache(
+def should_build_for_wheel_command(
+    req,  # type: InstallRequirement
+):
+    # type: (...) -> bool
+    return _should_build(
+        req, need_wheel=True, check_binary_allowed=_always_true
+    )
+
+
+def should_build_for_install_command(
+    req,  # type: InstallRequirement
+    check_binary_allowed,  # type: BinaryAllowedPredicate
+):
+    # type: (...) -> bool
+    return _should_build(
+        req, need_wheel=False, check_binary_allowed=check_binary_allowed
+    )
+
+
+def _should_cache(
     req,  # type: InstallRequirement
     check_binary_allowed,  # type: BinaryAllowedPredicate
 ):
     # type: (...) -> Optional[bool]
     """
     Return whether a built InstallRequirement can be stored in the persistent
-    wheel cache, assuming the wheel cache is available, and should_build()
+    wheel cache, assuming the wheel cache is available, and _should_build()
     has determined a wheel needs to be built.
     """
-    if not should_build(
-        req, need_wheel=False, check_binary_allowed=check_binary_allowed
+    if not should_build_for_install_command(
+        req, check_binary_allowed=check_binary_allowed
     ):
-        # never cache if pip install (need_wheel=False) would not have built
+        # never cache if pip install would not have built
         # (editable mode, etc)
         return False
 
     if req.link and req.link.is_vcs:
-        # VCS checkout. Build wheel just for this run
-        # unless it points to an immutable commit hash in which
-        # case it can be cached.
+        # VCS checkout. Do not cache
+        # unless it points to an immutable commit hash.
         assert not req.editable
         assert req.source_dir
         vcs_backend = vcs.get_backend_for_scheme(req.link.scheme)
@@ -113,46 +133,32 @@ def should_cache(
             return True
         return False
 
-    link = req.link
-    base, ext = link.splitext()
+    base, ext = req.link.splitext()
     if _contains_egg_info(base):
         return True
 
-    # Otherwise, build the wheel just for this run using the ephemeral
-    # cache since we are either in the case of e.g. a local directory, or
-    # no cache directory is available to use.
+    # Otherwise, do not cache.
     return False
 
 
-def _collect_buildset(
-    requirements,  # type: Iterable[InstallRequirement]
+def _get_cache_dir(
+    req,  # type: InstallRequirement
     wheel_cache,  # type: WheelCache
     check_binary_allowed,  # type: BinaryAllowedPredicate
-    need_wheel,  # type: bool
 ):
-    # type: (...) -> List[Tuple[InstallRequirement, str]]
-    """Return the list of InstallRequirement that need to be built,
-    with the persistent or temporary cache directory where the built
-    wheel needs to be stored.
+    # type: (...) -> str
+    """Return the persistent or temporary cache directory where the built
+    wheel need to be stored.
     """
-    buildset = []
     cache_available = bool(wheel_cache.cache_dir)
-    for req in requirements:
-        if not should_build(
-            req,
-            need_wheel=need_wheel,
-            check_binary_allowed=check_binary_allowed,
-        ):
-            continue
-        if (
-            cache_available and
-            should_cache(req, check_binary_allowed)
-        ):
-            cache_dir = wheel_cache.get_path_for_link(req.link)
-        else:
-            cache_dir = wheel_cache.get_ephem_path_for_link(req.link)
-        buildset.append((req, cache_dir))
-    return buildset
+    if (
+        cache_available and
+        _should_cache(req, check_binary_allowed)
+    ):
+        cache_dir = wheel_cache.get_path_for_link(req.link)
+    else:
+        cache_dir = wheel_cache.get_ephem_path_for_link(req.link)
+    return cache_dir
 
 
 def _always_true(_):
@@ -252,102 +258,60 @@ def _clean_one_legacy(req, global_options):
         return False
 
 
-class WheelBuilder(object):
-    """Build wheels from a RequirementSet."""
+def build(
+    requirements,  # type: Iterable[InstallRequirement]
+    wheel_cache,  # type: WheelCache
+    build_options,  # type: List[str]
+    global_options,  # type: List[str]
+    check_binary_allowed=None,  # type: Optional[BinaryAllowedPredicate]
+):
+    # type: (...) -> BuildResult
+    """Build wheels.
 
-    def __init__(
-        self,
-        preparer,  # type: RequirementPreparer
-    ):
-        # type: (...) -> None
-        self.preparer = preparer
+    :return: The list of InstallRequirement that succeeded to build and
+        the list of InstallRequirement that failed to build.
+    """
+    if check_binary_allowed is None:
+        # Binaries allowed by default.
+        check_binary_allowed = _always_true
 
-    def build(
-        self,
-        requirements,  # type: Iterable[InstallRequirement]
-        should_unpack,  # type: bool
-        wheel_cache,  # type: WheelCache
-        build_options,  # type: List[str]
-        global_options,  # type: List[str]
-        check_binary_allowed=None,  # type: Optional[BinaryAllowedPredicate]
-    ):
-        # type: (...) -> BuildResult
-        """Build wheels.
+    if not requirements:
+        return [], []
 
-        :param should_unpack: If True, after building the wheel, unpack it
-            and replace the sdist with the unpacked version in preparation
-            for installation.
-        :return: The list of InstallRequirement that succeeded to build and
-            the list of InstallRequirement that failed to build.
-        """
-        if check_binary_allowed is None:
-            # Binaries allowed by default.
-            check_binary_allowed = _always_true
+    # Build the wheels.
+    logger.info(
+        'Building wheels for collected packages: %s',
+        ', '.join(req.name for req in requirements),
+    )
 
-        buildset = _collect_buildset(
-            requirements,
-            wheel_cache=wheel_cache,
-            check_binary_allowed=check_binary_allowed,
-            need_wheel=not should_unpack,
-        )
-        if not buildset:
-            return [], []
+    with indent_log():
+        build_successes, build_failures = [], []
+        for req in requirements:
+            cache_dir = _get_cache_dir(
+                req, wheel_cache, check_binary_allowed
+            )
+            wheel_file = _build_one(
+                req, cache_dir, build_options, global_options
+            )
+            if wheel_file:
+                # Update the link for this.
+                req.link = Link(path_to_url(wheel_file))
+                req.local_file_path = req.link.file_path
+                assert req.link.is_wheel
+                build_successes.append(req)
+            else:
+                build_failures.append(req)
 
-        # TODO by @pradyunsg
-        # Should break up this method into 2 separate methods.
-
-        # Build the wheels.
+    # notify success/failure
+    if build_successes:
         logger.info(
-            'Building wheels for collected packages: %s',
-            ', '.join([req.name for (req, _) in buildset]),
+            'Successfully built %s',
+            ' '.join([req.name for req in build_successes]),
         )
-
-        with indent_log():
-            build_successes, build_failures = [], []
-            for req, cache_dir in buildset:
-                wheel_file = _build_one(
-                    req, cache_dir, build_options, global_options
-                )
-                if wheel_file:
-                    # Update the link for this.
-                    req.link = Link(path_to_url(wheel_file))
-                    req.local_file_path = req.link.file_path
-                    assert req.link.is_wheel
-                    if should_unpack:
-                        # XXX: This is mildly duplicative with prepare_files,
-                        # but not close enough to pull out to a single common
-                        # method.
-                        # The code below assumes temporary source dirs -
-                        # prevent it doing bad things.
-                        if (
-                            req.source_dir and
-                            not has_delete_marker_file(req.source_dir)
-                        ):
-                            raise AssertionError(
-                                "bad source dir - missing marker")
-                        # Delete the source we built the wheel from
-                        req.remove_temporary_source()
-                        # set the build directory again - name is known from
-                        # the work prepare_files did.
-                        req.source_dir = req.ensure_build_location(
-                            self.preparer.build_dir
-                        )
-                        # extract the wheel into the dir
-                        unpack_file(req.link.file_path, req.source_dir)
-                    build_successes.append(req)
-                else:
-                    build_failures.append(req)
-
-        # notify success/failure
-        if build_successes:
-            logger.info(
-                'Successfully built %s',
-                ' '.join([req.name for req in build_successes]),
-            )
-        if build_failures:
-            logger.info(
-                'Failed to build %s',
-                ' '.join([req.name for req in build_failures]),
-            )
-        # Return a list of requirements that failed to build
-        return build_successes, build_failures
+    if build_failures:
+        logger.info(
+            'Failed to build %s',
+            ' '.join([req.name for req in build_failures]),
+        )
+    # Return a list of requirements that failed to build
+    return build_successes, build_failures
