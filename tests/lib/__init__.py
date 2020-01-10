@@ -24,6 +24,7 @@ from pip._internal.locations import get_major_minor_version
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.network.session import PipSession
+from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from tests.lib.path import Path, curdir
@@ -1052,15 +1053,16 @@ def create_basic_wheel_for_package(
         path.parent.mkdir(exist_ok=True, parents=True)
         path.write_bytes(ensure_binary(files[fname]))
 
-    # The base_dir cast is required to make `shutil.make_archive()` use
-    # Unicode paths on Python 2, making it able to properly archive
-    # files with non-ASCII names.
+    # The conditional base_dir cast is required to make shutil.make_archive()
+    # handle Unicode paths on Python 2. The type of base_dir matches the
+    # platform's native path representation (Unicode on Windows, bytes
+    # elsewhere), so the resulting archive can contain non-ASCII names.
     retval = script.scratch_path / archive_name
     generated = shutil.make_archive(
         retval,
         'zip',
         root_dir=script.temp_path,
-        base_dir=curdir,
+        base_dir=text_type(os.curdir) if WINDOWS else os.curdir,
     )
     shutil.move(generated, retval)
 
