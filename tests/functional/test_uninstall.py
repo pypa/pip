@@ -271,6 +271,29 @@ def test_uninstall_console_scripts(script):
     assert_all_changes(result, result2, [script.venv / 'build', 'cache'])
 
 
+def test_uninstall_console_scripts_uppercase_name(script):
+    """
+    Test uninstalling console script with uppercase character.
+    """
+    pkg_path = create_test_package_with_setup(
+        script,
+        name='ep_install',
+        version='0.1',
+        entry_points={
+            "console_scripts": [
+                "Test = distutils_install",
+            ],
+        },
+    )
+    script_name = script.bin_path.joinpath('Test' + script.exe)
+
+    script.pip('install', pkg_path)
+    assert script_name.exists()
+
+    script.pip('uninstall', 'ep_install', '-y')
+    assert not script_name.exists()
+
+
 @pytest.mark.network
 def test_uninstall_easy_installed_console_scripts(script):
     """
