@@ -15,7 +15,7 @@ from textwrap import dedent
 from zipfile import ZipFile
 
 import pytest
-from pip._vendor.six import PY2, ensure_binary
+from pip._vendor.six import PY2, ensure_binary, text_type
 from scripttest import FoundDir, TestFileEnvironment
 
 from pip._internal.index.collector import LinkCollector
@@ -1052,8 +1052,16 @@ def create_basic_wheel_for_package(
         path.parent.mkdir(exist_ok=True, parents=True)
         path.write_bytes(ensure_binary(files[fname]))
 
+    # The base_dir cast is required to make `shutil.make_archive()` use
+    # Unicode paths on Python 2, making it able to properly archive
+    # files with non-ASCII names.
     retval = script.scratch_path / archive_name
-    generated = shutil.make_archive(retval, 'zip', script.temp_path)
+    generated = shutil.make_archive(
+        retval,
+        'zip',
+        root_dir=script.temp_path,
+        base_dir=text_type(os.curdir),
+    )
     shutil.move(generated, retval)
 
     shutil.rmtree(script.temp_path)
