@@ -141,6 +141,9 @@ def call_subprocess(
         extra_ok_returncodes = []
     if unset_environ is None:
         unset_environ = []
+    if "" not in unset_environ:
+        # Empty string is illegal in Windows, in Wine this may be set in the host.
+        unset_environ.append("")
     # Most places in pip use show_stdout=False. What this means is--
     #
     # - We connect the child's output (combined stderr and stdout) to a

@@ -5,6 +5,7 @@ from logging import DEBUG, ERROR, INFO, WARNING
 from textwrap import dedent
 
 import pytest
+from mock import patch
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.utils.misc import hide_value
@@ -23,7 +24,7 @@ from pip._internal.utils.ui import SpinnerInterface
      """foo 'space space' 'new\nline' 'double"quote' 'single'"'"'quote'"""),
     # Test HiddenText arguments.
     (make_command(hide_value('secret1'), 'foo', hide_value('secret2')),
-        "'****' foo '****'"),
+     "'****' foo '****'"),
 ])
 def test_format_command_args(args, expected):
     actual = format_command_args(args)
@@ -109,7 +110,7 @@ def test_make_subprocess_output_error__non_ascii_cwd_python_3(monkeypatch):
 ])
 @pytest.mark.skipif("sys.version_info >= (3,)")
 def test_make_subprocess_output_error__non_ascii_cwd_python_2(
-    monkeypatch, encoding,
+        monkeypatch, encoding,
 ):
     """
     Test a str (bytes object) cwd with a non-ascii character in Python 2.
@@ -174,8 +175,8 @@ class TestCallSubprocess(object):
     """
 
     def check_result(
-        self, capfd, caplog, log_level, spinner, result, expected,
-        expected_spinner,
+            self, capfd, caplog, log_level, spinner, result, expected,
+            expected_spinner,
     ):
         """
         Check the result of calling call_subprocess().
@@ -343,8 +344,8 @@ class TestCallSubprocess(object):
         )
 
     @pytest.mark.parametrize((
-        'exit_status', 'show_stdout', 'extra_ok_returncodes', 'log_level',
-        'expected'),
+            'exit_status', 'show_stdout', 'extra_ok_returncodes', 'log_level',
+            'expected'),
         [
             # The spinner should show here because show_stdout=False means
             # the subprocess should get logged at DEBUG level, but the passed
@@ -363,10 +364,10 @@ class TestCallSubprocess(object):
             (3, False, None, INFO, (InstallationError, 'error', 2)),
             # Test a non-zero exit status also in extra_ok_returncodes.
             (3, False, (3, ), INFO, (None, 'done', 2)),
-    ])
+        ])
     def test_spinner_finish(
-        self, exit_status, show_stdout, extra_ok_returncodes, log_level,
-        caplog, expected,
+            self, exit_status, show_stdout, extra_ok_returncodes, log_level,
+            caplog, expected,
     ):
         """
         Test that the spinner finishes correctly.
@@ -401,3 +402,27 @@ class TestCallSubprocess(object):
                 [sys.executable, '-c', 'input()'],
                 show_stdout=True,
             )
+
+    def test_does_not_pass_zero_length_name_envvar(self, capfd, caplog, monkeypatch):
+        """
+        Test that environment variables with empty string as name are not passed to POpen,
+        as may happen running in Wine.
+        """
+        extra_environ = {
+            "sentinel_value": "Hello world.",
+            "": "Illegal env var."
+        }
+
+        command = 'import os; print(os.environ.get("sentinel_value")); print("" in os.environ)'
+
+        log_level = INFO
+        args, spinner = self.prepare_call(caplog, log_level, command=command)
+        result = call_subprocess(args, extra_environ=extra_environ, spinner=spinner)
+
+        expected = (['Hello world.', 'False'], [])
+        # The spinner should spin twice in this case since the subprocess
+        # output isn't being written to the console.
+        self.check_result(
+            capfd, caplog, log_level, spinner, result, expected,
+            expected_spinner=(2, 'done'),
+        )
