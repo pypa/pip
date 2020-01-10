@@ -64,11 +64,11 @@ def rehash(path, blocksize=1 << 20):
     return (digest, str(length))  # type: ignore
 
 
-def open_for_csv(name, mode, encoding='utf-8'):
-    # type: (str, Text, str) -> IO[Any]
+def open_for_install_record(name, mode):
+    # type: (str, Text) -> IO[Any]
     if PY2:
         return io.open(name, mode + 'b')
-    return io.open(name, mode, newline='', encoding=encoding)
+    return io.open(name, mode, newline='', encoding='utf-8')
 
 
 def fix_script(path):
@@ -573,8 +573,8 @@ def install_unpacked_wheel(
     # Record details of all files installed
     record = os.path.join(dest_info_dir, 'RECORD')
     temp_record = os.path.join(dest_info_dir, 'RECORD.pip')
-    with open_for_csv(record, 'r') as record_in:
-        with open_for_csv(temp_record, 'w+') as record_out:
+    with open_for_install_record(record, 'r') as record_in:
+        with open_for_install_record(temp_record, 'w+') as record_out:
             reader = csv.reader(record_in)
             outrows = get_csv_rows_for_installed(
                 reader, installed=installed, changed=changed,

@@ -141,7 +141,7 @@ def call_get_csv_rows_for_installed(tmpdir, text):
     generated = []
     lib_dir = '/lib/dir'
 
-    with wheel.open_for_csv(path, 'r') as f:
+    with wheel.open_for_install_record(path, 'r') as f:
         reader = csv.reader(f)
         outrows = wheel.get_csv_rows_for_installed(
             reader, installed=installed, changed=changed,
