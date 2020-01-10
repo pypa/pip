@@ -1,3 +1,7 @@
 Write ``dist-info/RECORD`` in UTF-8 instead of platform-dependent
 encoding to correctly install wheels containing files with non-ASCII
-names.
+names. Note that installing from source or sdist may still fail due
+to Setuptools not being able to process those file names. See
+`pypa/setuptools#1399`_.
+
+.. _`pypa/setuptools#1399`: https://github.com/pypa/setuptools/issues/1399
