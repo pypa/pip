@@ -79,7 +79,6 @@ def test_basic_install_from_unicode_wheel(script):
         script.site_packages.joinpath(u'வணக்கம்', u'__init__.py'),
         script.site_packages.joinpath(u'வணக்கம்', u'નમસ્તે.py'),
     ]
-    print(result.files_created)
     for f in expected_files:
         assert f in result.files_created, (result.files_created, result.stdout)
 
