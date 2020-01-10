@@ -105,10 +105,12 @@ class FileOpener(object):
 
     def cleanup(self):
         # send a message to the child to exit
-        if self.child:
+        if self.child.is_alive():
             self.conn.send(True)
             self.child.join()
-        self.child = None
+            # Be sure the child is truly done
+            if self.child.is_alive():
+                self.child.terminate()
 
     def __enter__(self):
         return self
