@@ -132,7 +132,7 @@ def get_prog():
 @retry(stop_max_delay=3000, wait_fixed=500)
 def rmtree(dir, ignore_errors=False):
     # type: (str, bool) -> None
-    shutil.rmtree(dir, ignore_errors=ignore_errors,
+    shutil.rmtree(text_type(dir), ignore_errors=ignore_errors,
                   onerror=rmtree_errorhandler)
 
 
