@@ -53,6 +53,10 @@ setup(
     ],
     url='https://pip.pypa.io/',
     keywords='distutils easy_install egg setuptools wheel virtualenv',
+    project_urls={
+        "Documentation": "https://pip.pypa.io",
+        "Source": "https://github.com/pypa/pip",
+    },
 
     author='The pip developers',
     author_email='pypa-dev@groups.google.com',
