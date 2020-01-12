@@ -447,13 +447,11 @@ def test_basic_install_relative_directory(script, data, test_type, editable):
                             cwd=script.scratch_path)
         assert egg_info_file in result.files_created, str(result)
         assert package_folder in result.files_created, str(result)
-        script.pip('uninstall', '-y', 'fspkg')
     else:
         # Editable install.
         result = script.pip('install', '-e' + req_path,
                             cwd=script.scratch_path)
         assert egg_link_file in result.files_created, str(result)
-        script.pip('uninstall', '-y', 'fspkg')
 
 
 def test_install_quiet(script, data):

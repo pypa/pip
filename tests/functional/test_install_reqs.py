@@ -101,14 +101,12 @@ def test_relative_requirements_file(script, data, test_type, editable):
                                 cwd=script.scratch_path)
             assert egg_info_file in result.files_created, str(result)
             assert package_folder in result.files_created, str(result)
-            script.pip('uninstall', '-y', 'fspkg')
     else:
         with requirements_file('-e ' + req_path + '\n',
                                script.scratch_path) as reqs_file:
             result = script.pip('install', '-vvv', '-r', reqs_file.name,
                                 cwd=script.scratch_path)
             assert egg_link_file in result.files_created, str(result)
-            script.pip('uninstall', '-y', 'fspkg')
 
 
 @pytest.mark.network
