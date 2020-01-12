@@ -57,7 +57,12 @@ def test_schema_check_in_requirements_file(script):
         )
 
 
-def test_relative_requirements_file(script, data):
+@pytest.mark.parametrize("test_type", [
+    ("rel_path"),
+    ("rel_url"),
+    ("embedded_rel_path"),
+])
+def test_relative_requirements_file(script, data, test_type):
     """
     Test installing from a requirements file with a relative path. For path
     URLs, use an egg= definition.
@@ -78,9 +83,14 @@ def test_relative_requirements_file(script, data):
     full_rel_url = 'file:' + full_rel_path + '#egg=FSPkg'
     embedded_rel_path = script.scratch_path.joinpath(full_rel_path)
 
-    # For each relative path, install as either editable or not using either
-    # URLs with egg links or not.
-    for req_path in (full_rel_path, full_rel_url, embedded_rel_path):
+    req_path = {
+        "rel_path": full_rel_path,
+        "rel_url": full_rel_url,
+        "embedded_rel_path": embedded_rel_path,
+    }[test_type]
+
+    # Install as either editable or not.
+    if True:
         req_path = req_path.replace(os.path.sep, '/')
         # Regular install.
         with requirements_file(req_path + '\n',

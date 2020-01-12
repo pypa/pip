@@ -406,7 +406,12 @@ def test_basic_install_from_local_directory(script, data):
     assert egg_info_folder in result.files_created, str(result)
 
 
-def test_basic_install_relative_directory(script, data):
+@pytest.mark.parametrize("test_type", [
+    ("rel_path"),
+    ("rel_url"),
+    ("embedded_rel_path"),
+])
+def test_basic_install_relative_directory(script, data, test_type):
     """
     Test installing a requirement using a relative path.
     """
@@ -427,9 +432,14 @@ def test_basic_install_relative_directory(script, data):
     )
     embedded_rel_path = script.scratch_path.joinpath(full_rel_path)
 
-    # For each relative path, install as either editable or not using either
-    # URLs with egg links or not.
-    for req_path in (full_rel_path, full_rel_url, embedded_rel_path):
+    req_path = {
+        "rel_path": full_rel_path,
+        "rel_url": full_rel_url,
+        "embedded_rel_path": embedded_rel_path,
+    }[test_type]
+
+    # Install as either editable or not.
+    if True:
         # Regular install.
         result = script.pip('install', req_path,
                             cwd=script.scratch_path)
