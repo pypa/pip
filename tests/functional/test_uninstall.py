@@ -255,15 +255,18 @@ def test_uninstall_gui_scripts(script):
     assert not script_name.exists()
 
 
-@pytest.mark.network
 def test_uninstall_console_scripts(script):
     """
     Test uninstalling a package with more files (console_script entry points,
     extra directories).
     """
-    args = ['install']
-    args.append('discover')
-    result = script.pip(*args)
+    pkg_path = create_test_package_with_setup(
+        script,
+        name='discover',
+        version='0.1',
+        entry_points={'console_scripts': ['discover = discover:main']},
+    )
+    result = script.pip('install', pkg_path)
     assert script.bin / 'discover' + script.exe in result.files_created, (
         sorted(result.files_created.keys())
     )
