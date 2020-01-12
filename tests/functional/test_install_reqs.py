@@ -57,12 +57,15 @@ def test_schema_check_in_requirements_file(script):
         )
 
 
-@pytest.mark.parametrize("test_type", [
-    ("rel_path"),
-    ("rel_url"),
-    ("embedded_rel_path"),
+@pytest.mark.parametrize("test_type,editable", [
+    ("rel_path", False),
+    ("rel_path", True),
+    ("rel_url", False),
+    ("rel_url", True),
+    ("embedded_rel_path", False),
+    ("embedded_rel_path", True),
 ])
-def test_relative_requirements_file(script, data, test_type):
+def test_relative_requirements_file(script, data, test_type, editable):
     """
     Test installing from a requirements file with a relative path. For path
     URLs, use an egg= definition.
@@ -89,10 +92,9 @@ def test_relative_requirements_file(script, data, test_type):
         "embedded_rel_path": embedded_rel_path,
     }[test_type]
 
+    req_path = req_path.replace(os.path.sep, '/')
     # Install as either editable or not.
-    if True:
-        req_path = req_path.replace(os.path.sep, '/')
-        # Regular install.
+    if not editable:
         with requirements_file(req_path + '\n',
                                script.scratch_path) as reqs_file:
             result = script.pip('install', '-vvv', '-r', reqs_file.name,
@@ -100,8 +102,7 @@ def test_relative_requirements_file(script, data, test_type):
             assert egg_info_file in result.files_created, str(result)
             assert package_folder in result.files_created, str(result)
             script.pip('uninstall', '-y', 'fspkg')
-
-        # Editable install.
+    else:
         with requirements_file('-e ' + req_path + '\n',
                                script.scratch_path) as reqs_file:
             result = script.pip('install', '-vvv', '-r', reqs_file.name,
