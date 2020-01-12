@@ -358,7 +358,6 @@ class InstallCommand(RequirementCommand):
                     wheel_cache=wheel_cache,
                     build_options=[],
                     global_options=[],
-                    check_binary_allowed=check_binary_allowed,
                 )
 
                 # If we're using PEP 517, we cannot do a direct install

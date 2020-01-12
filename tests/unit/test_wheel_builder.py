@@ -113,35 +113,17 @@ def test_should_build_legacy_wheel_installed(is_wheel_installed):
 
 
 @pytest.mark.parametrize(
-    "req, disallow_binaries, expected",
+    "req, expected",
     [
-        (ReqMock(editable=True), False, False),
-        (ReqMock(source_dir=None), False, False),
-        (ReqMock(link=Link("git+https://g.c/org/repo")), False, False),
-        (ReqMock(link=Link("https://g.c/dist.tgz")), False, False),
-        (ReqMock(link=Link("https://g.c/dist-2.0.4.tgz")), False, True),
-        (ReqMock(editable=True), True, False),
-        (ReqMock(source_dir=None), True, False),
-        (ReqMock(link=Link("git+https://g.c/org/repo")), True, False),
-        (ReqMock(link=Link("https://g.c/dist.tgz")), True, False),
-        (ReqMock(link=Link("https://g.c/dist-2.0.4.tgz")), True, False),
+        (ReqMock(editable=True), False),
+        (ReqMock(source_dir=None), False),
+        (ReqMock(link=Link("git+https://g.c/org/repo")), False),
+        (ReqMock(link=Link("https://g.c/dist.tgz")), False),
+        (ReqMock(link=Link("https://g.c/dist-2.0.4.tgz")), True),
     ],
 )
-def test_should_cache(
-    req, disallow_binaries, expected
-):
-    def check_binary_allowed(req):
-        return not disallow_binaries
-
-    should_cache = wheel_builder._should_cache(
-        req, check_binary_allowed
-    )
-    if not wheel_builder.should_build_for_install_command(
-        req, check_binary_allowed=check_binary_allowed
-    ):
-        # never cache if pip install would not have built)
-        assert not should_cache
-    assert should_cache is expected
+def test_should_cache(req, expected):
+    assert wheel_builder._should_cache(req) is expected
 
 
 def test_should_cache_git_sha(script, tmpdir):
@@ -153,16 +135,12 @@ def test_should_cache_git_sha(script, tmpdir):
     # a link referencing a sha should be cached
     url = "git+https://g.c/o/r@" + commit + "#egg=mypkg"
     req = ReqMock(link=Link(url), source_dir=repo_path)
-    assert wheel_builder._should_cache(
-        req, check_binary_allowed=lambda r: True,
-    )
+    assert wheel_builder._should_cache(req)
 
     # a link not referencing a sha should not be cached
     url = "git+https://g.c/o/r@master#egg=mypkg"
     req = ReqMock(link=Link(url), source_dir=repo_path)
-    assert not wheel_builder._should_cache(
-        req, check_binary_allowed=lambda r: True,
-    )
+    assert not wheel_builder._should_cache(req)
 
 
 def test_format_command_result__INFO(caplog):

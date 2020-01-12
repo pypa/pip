@@ -107,7 +107,6 @@ def should_build_for_install_command(
 
 def _should_cache(
     req,  # type: InstallRequirement
-    check_binary_allowed,  # type: BinaryAllowedPredicate
 ):
     # type: (...) -> Optional[bool]
     """
@@ -116,7 +115,7 @@ def _should_cache(
     has determined a wheel needs to be built.
     """
     if not should_build_for_install_command(
-        req, check_binary_allowed=check_binary_allowed
+        req, check_binary_allowed=_always_true
     ):
         # never cache if pip install would not have built
         # (editable mode, etc)
@@ -144,17 +143,13 @@ def _should_cache(
 def _get_cache_dir(
     req,  # type: InstallRequirement
     wheel_cache,  # type: WheelCache
-    check_binary_allowed,  # type: BinaryAllowedPredicate
 ):
     # type: (...) -> str
     """Return the persistent or temporary cache directory where the built
     wheel need to be stored.
     """
     cache_available = bool(wheel_cache.cache_dir)
-    if (
-        cache_available and
-        _should_cache(req, check_binary_allowed)
-    ):
+    if cache_available and _should_cache(req):
         cache_dir = wheel_cache.get_path_for_link(req.link)
     else:
         cache_dir = wheel_cache.get_ephem_path_for_link(req.link)
@@ -263,7 +258,6 @@ def build(
     wheel_cache,  # type: WheelCache
     build_options,  # type: List[str]
     global_options,  # type: List[str]
-    check_binary_allowed=None,  # type: Optional[BinaryAllowedPredicate]
 ):
     # type: (...) -> BuildResult
     """Build wheels.
@@ -271,10 +265,6 @@ def build(
     :return: The list of InstallRequirement that succeeded to build and
         the list of InstallRequirement that failed to build.
     """
-    if check_binary_allowed is None:
-        # Binaries allowed by default.
-        check_binary_allowed = _always_true
-
     if not requirements:
         return [], []
 
@@ -287,9 +277,7 @@ def build(
     with indent_log():
         build_successes, build_failures = [], []
         for req in requirements:
-            cache_dir = _get_cache_dir(
-                req, wheel_cache, check_binary_allowed
-            )
+            cache_dir = _get_cache_dir(req, wheel_cache)
             wheel_file = _build_one(
                 req, cache_dir, build_options, global_options
             )
