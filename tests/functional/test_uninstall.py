@@ -202,7 +202,7 @@ def test_uninstall_overlapping_package(script, data):
 @pytest.mark.parametrize("console_scripts",
                          ["test_ = distutils_install",
                           "test_:test_ = distutils_install"])
-def test_uninstall_entry_point(script, console_scripts):
+def test_uninstall_entry_point_colon_in_name(script, console_scripts):
     """
     Test uninstall package with two or more entry points in the same section,
     whose name contain a colon.
