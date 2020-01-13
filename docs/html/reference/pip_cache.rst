@@ -2,7 +2,7 @@
 .. _`pip cache`:
 
 pip cache
-------------
+---------
 
 .. contents::
 

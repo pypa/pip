@@ -20,12 +20,12 @@ logger = logging.getLogger(__name__)
 
 class CacheCommand(Command):
     """
-        Inspect and manage pip's caches.
+        Inspect and manage pip's cache.
 
         Subcommands:
 
         info:
-            Show information about the caches.
+            Show information about the cache.
         list:
             List filenames of packages stored in the cache.
         remove:
@@ -107,7 +107,7 @@ class CacheCommand(Command):
         files = self._find_wheels(options, pattern)
 
         if not files:
-            logger.info('Nothing is currently cached.')
+            logger.info('Nothing cached.')
             return
 
         results = []
@@ -115,7 +115,7 @@ class CacheCommand(Command):
             wheel = os.path.basename(filename)
             size = filesystem.friendly_file_size(filename)
             results.append(' - {} ({})'.format(wheel, size))
-        logger.info('Current cache contents:\n')
+        logger.info('Cache contents:\n')
         logger.info('\n'.join(sorted(results)))
 
     def remove_cache_items(self, options, args):
@@ -133,7 +133,7 @@ class CacheCommand(Command):
         for filename in files:
             os.unlink(filename)
             logger.debug('Removed %s', filename)
-        logger.info('Removed %s files', len(files))
+        logger.info('Removed %s file(s)', len(files))
 
     def purge_cache(self, options, args):
         # type: (Values, List[Any]) -> None
