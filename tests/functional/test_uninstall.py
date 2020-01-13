@@ -202,7 +202,7 @@ def test_uninstall_overlapping_package(script, data):
 @pytest.mark.parametrize("console_scripts",
                          ["test_ = distutils_install",
                           "test_:test_ = distutils_install"])
-def test_uninstall_entry_point(script, console_scripts):
+def test_uninstall_entry_point_colon_in_name(script, console_scripts):
     """
     Test uninstall package with two or more entry points in the same section,
     whose name contain a colon.
@@ -255,15 +255,18 @@ def test_uninstall_gui_scripts(script):
     assert not script_name.exists()
 
 
-@pytest.mark.network
 def test_uninstall_console_scripts(script):
     """
     Test uninstalling a package with more files (console_script entry points,
     extra directories).
     """
-    args = ['install']
-    args.append('discover')
-    result = script.pip(*args)
+    pkg_path = create_test_package_with_setup(
+        script,
+        name='discover',
+        version='0.1',
+        entry_points={'console_scripts': ['discover = discover:main']},
+    )
+    result = script.pip('install', pkg_path)
     assert script.bin / 'discover' + script.exe in result.files_created, (
         sorted(result.files_created.keys())
     )
