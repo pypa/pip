@@ -406,7 +406,15 @@ def test_basic_install_from_local_directory(script, data):
     assert egg_info_folder in result.files_created, str(result)
 
 
-def test_basic_install_relative_directory(script, data):
+@pytest.mark.parametrize("test_type,editable", [
+    ("rel_path", False),
+    ("rel_path", True),
+    ("rel_url", False),
+    ("rel_url", True),
+    ("embedded_rel_path", False),
+    ("embedded_rel_path", True),
+])
+def test_basic_install_relative_directory(script, data, test_type, editable):
     """
     Test installing a requirement using a relative path.
     """
@@ -427,21 +435,23 @@ def test_basic_install_relative_directory(script, data):
     )
     embedded_rel_path = script.scratch_path.joinpath(full_rel_path)
 
-    # For each relative path, install as either editable or not using either
-    # URLs with egg links or not.
-    for req_path in (full_rel_path, full_rel_url, embedded_rel_path):
-        # Regular install.
+    req_path = {
+        "rel_path": full_rel_path,
+        "rel_url": full_rel_url,
+        "embedded_rel_path": embedded_rel_path,
+    }[test_type]
+
+    # Install as either editable or not.
+    if not editable:
         result = script.pip('install', req_path,
                             cwd=script.scratch_path)
         assert egg_info_file in result.files_created, str(result)
         assert package_folder in result.files_created, str(result)
-        script.pip('uninstall', '-y', 'fspkg')
-
+    else:
         # Editable install.
         result = script.pip('install', '-e' + req_path,
                             cwd=script.scratch_path)
         assert egg_link_file in result.files_created, str(result)
-        script.pip('uninstall', '-y', 'fspkg')
 
 
 def test_install_quiet(script, data):
