@@ -137,19 +137,20 @@ class Mercurial(VersionControl):
         return find_path_to_setup_from_repo_root(location, repo_root)
 
     @classmethod
-    def controls_location(cls, location):
-        if super(Mercurial, cls).controls_location(location):
-            return True
+    def get_repository_root(cls, location):
+        loc = super(Mercurial, cls).get_repository_root(location)
+        if loc:
+            return loc
         try:
-            cls.run_command(
-                ['identify'],
+            r = cls.run_command(
+                ['root'],
                 cwd=location,
                 show_stdout=False,
                 on_returncode='raise',
                 log_failed_cmd=False)
-            return True
         except (BadCommand, InstallationError):
-            return False
+            return None
+        return r
 
 
 vcs.register(Mercurial)
