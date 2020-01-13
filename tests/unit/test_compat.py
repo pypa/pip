@@ -136,4 +136,5 @@ def test_console_to_str_warning(monkeypatch):
 ])
 def test_expanduser(home, path, expanded, monkeypatch):
     monkeypatch.setenv("HOME", home)
+    monkeypatch.setenv("USERPROFILE", home)
     assert expanduser(path) == expanded
