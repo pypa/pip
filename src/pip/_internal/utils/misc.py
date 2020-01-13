@@ -18,13 +18,17 @@ import sys
 from collections import deque
 
 from pip._vendor import pkg_resources
-# NOTE: retrying is not annotated in typeshed as on 2017-07-17, which is
-#       why we ignore the type on this import.
-from pip._vendor.tenacity import retry, stop_after_delay, wait_fixed  # type: ignore
 from pip._vendor.six import PY2, text_type
 from pip._vendor.six.moves import input
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib.parse import unquote as urllib_unquote
+# NOTE: tenacity is not annotated in typeshed as on 2020-01-13, which is
+#       why we ignore the type on this import.
+from pip._vendor.tenacity import (  # type: ignore
+    retry,
+    stop_after_delay,
+    wait_fixed,
+)
 
 from pip import __version__
 from pip._internal.exceptions import CommandError

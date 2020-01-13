@@ -8,10 +8,14 @@ import sys
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
 
-# NOTE: retrying is not annotated in typeshed as on 2017-07-17, which is
-#       why we ignore the type on this import.
-from pip._vendor.tenacity import retry, stop_after_delay, wait_fixed  # type: ignore
 from pip._vendor.six import PY2
+# NOTE: tenacity is not annotated in typeshed as on 2020-01-13, which is
+#       why we ignore the type on this import.
+from pip._vendor.tenacity import (  # type: ignore
+    retry,
+    stop_after_delay,
+    wait_fixed,
+)
 
 from pip._internal.utils.compat import get_path_uid
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING, cast
