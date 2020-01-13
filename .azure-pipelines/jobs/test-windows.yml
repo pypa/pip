@@ -26,7 +26,10 @@ jobs:
       Python37-x64:
         python.version: '3.7'
         python.architecture: x64
-    maxParallel: 5
+      Python38-x64:
+        python.version: '3.8'
+        python.architecture: x64
+    maxParallel: 6
 
   steps:
   - template: ../steps/run-tests-windows.yml
@@ -54,7 +57,10 @@ jobs:
       Python37-x86:
         python.version: '3.7'
         python.architecture: x86
-    maxParallel: 5
+      Python38-x86:
+        python.version: '3.8'
+        python.architecture: x86
+    maxParallel: 6
 
   steps:
   - template: ../steps/run-tests-windows.yml
