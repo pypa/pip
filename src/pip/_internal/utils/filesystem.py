@@ -10,7 +10,7 @@ from tempfile import NamedTemporaryFile
 
 # NOTE: retrying is not annotated in typeshed as on 2017-07-17, which is
 #       why we ignore the type on this import.
-from pip._vendor.retrying import retry  # type: ignore
+from pip._vendor.tenacity import retry, stop_after_delay, wait_fixed  # type: ignore
 from pip._vendor.six import PY2
 
 from pip._internal.utils.compat import get_path_uid
@@ -101,7 +101,7 @@ def adjacent_tmp_file(path):
             os.fsync(result.file.fileno())
 
 
-_replace_retry = retry(stop_max_delay=1000, wait_fixed=250)
+_replace_retry = retry(stop=stop_after_delay(1000), wait=wait_fixed(250))
 
 if PY2:
     @_replace_retry

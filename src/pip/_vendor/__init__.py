@@ -75,7 +75,6 @@ if DEBUNDLED:
     vendored("pkg_resources")
     vendored("progress")
     vendored("pytoml")
-    vendored("retrying")
     vendored("requests")
     vendored("requests.exceptions")
     vendored("requests.packages")
@@ -106,4 +105,5 @@ if DEBUNDLED:
     vendored("requests.packages.urllib3.util.ssl_")
     vendored("requests.packages.urllib3.util.timeout")
     vendored("requests.packages.urllib3.util.url")
+    vendored("tenacity")
     vendored("urllib3")

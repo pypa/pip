@@ -20,7 +20,7 @@ from collections import deque
 from pip._vendor import pkg_resources
 # NOTE: retrying is not annotated in typeshed as on 2017-07-17, which is
 #       why we ignore the type on this import.
-from pip._vendor.retrying import retry  # type: ignore
+from pip._vendor.tenacity import retry, stop_after_delay, wait_fixed  # type: ignore
 from pip._vendor.six import PY2, text_type
 from pip._vendor.six.moves import input
 from pip._vendor.six.moves.urllib import parse as urllib_parse
@@ -129,7 +129,7 @@ def get_prog():
 
 
 # Retry every half second for up to 3 seconds
-@retry(stop_max_delay=3000, wait_fixed=500)
+@retry(stop=stop_after_delay(3000), wait=wait_fixed(500))
 def rmtree(dir, ignore_errors=False):
     # type: (str, bool) -> None
     shutil.rmtree(dir, ignore_errors=ignore_errors,
