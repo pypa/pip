@@ -1,3 +1,4 @@
+import os
 
 from tests.lib import assert_all_changes
 
@@ -22,8 +23,12 @@ def check_force_reinstall(script, specifier, expected):
     result = script.pip_install_local('simplewheel==1.0')
     check_installed_version(script, 'simplewheel', '1.0')
 
+    # Remove an installed file to test whether --force-reinstall fixes it.
+    script.site_packages_path.joinpath("simplewheel", "__init__.py").unlink()
+    to_fix = os.path.join(script.site_packages, "simplewheel", "__init__.py")
+
     result2 = script.pip_install_local('--force-reinstall', specifier)
-    assert result2.files_updated, 'force-reinstall failed'
+    assert to_fix in result2.files_created, 'force-reinstall failed'
     check_installed_version(script, 'simplewheel', expected)
 
     result3 = script.pip('uninstall', 'simplewheel', '-y')
