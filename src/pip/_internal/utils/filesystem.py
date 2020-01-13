@@ -101,7 +101,9 @@ def adjacent_tmp_file(path):
             os.fsync(result.file.fileno())
 
 
-_replace_retry = retry(stop=stop_after_delay(1000), wait=wait_fixed(250))
+# Tenacity raises RetryError by default, explictly raise the original exception
+_replace_retry = retry(
+    reraise=True, stop=stop_after_delay(1), wait=wait_fixed(0.25))
 
 if PY2:
     @_replace_retry
