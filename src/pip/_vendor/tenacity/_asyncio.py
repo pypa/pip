@@ -23,10 +23,10 @@ except ImportError:
 
 import sys
 
-from tenacity import BaseRetrying
-from tenacity import DoAttempt
-from tenacity import DoSleep
-from tenacity import RetryCallState
+from . import BaseRetrying
+from . import DoAttempt
+from . import DoSleep
+from . import RetryCallState
 
 
 if asyncio:

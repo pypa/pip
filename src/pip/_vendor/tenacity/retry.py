@@ -17,9 +17,9 @@
 import abc
 import re
 
-import six
+import pip._vendor.six as six
 
-from tenacity import compat as _compat
+from . import compat as _compat
 
 
 @six.add_metaclass(abc.ABCMeta)

@@ -4,9 +4,9 @@ import inspect
 from fractions import Fraction
 from warnings import warn
 
-import six
+import pip._vendor.six as six
 
-from tenacity import _utils
+from . import _utils
 
 
 def warn_about_non_retry_state_deprecation(cbname, func, stacklevel):
@@ -68,7 +68,7 @@ def make_retry_state(previous_attempt_number, delay_since_first_attempt,
             previous_attempt_number=previous_attempt_number,
             delay_since_first_attempt=delay_since_first_attempt)
 
-    from tenacity import RetryCallState
+    from . import RetryCallState
     retry_state = RetryCallState(None, None, (), {})
     retry_state.attempt_number = previous_attempt_number
     if last_result is not None:
@@ -102,7 +102,7 @@ def stop_dunder_call_accept_old_params(fn):
                delay_since_first_attempt=_unset,
                retry_state=None):
         if retry_state is None:
-            from tenacity import RetryCallState
+            from . import RetryCallState
             retry_state_passed_as_non_kwarg = (
                 previous_attempt_number is not _unset and
                 isinstance(previous_attempt_number, RetryCallState))
@@ -145,7 +145,7 @@ def wait_dunder_call_accept_old_params(fn):
                last_result=None,
                retry_state=None):
         if retry_state is None:
-            from tenacity import RetryCallState
+            from . import RetryCallState
             retry_state_passed_as_non_kwarg = (
                 previous_attempt_number is not _unset and
                 isinstance(previous_attempt_number, RetryCallState))
@@ -196,7 +196,7 @@ def retry_dunder_call_accept_old_params(fn):
     @_utils.wraps(fn)
     def new_fn(self, attempt=_unset, retry_state=None):
         if retry_state is None:
-            from tenacity import RetryCallState
+            from . import RetryCallState
             if attempt is _unset:
                 raise _make_unset_exception('retry', attempt=attempt)
             retry_state_passed_as_non_kwarg = (

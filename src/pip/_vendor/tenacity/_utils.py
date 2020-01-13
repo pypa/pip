@@ -19,7 +19,7 @@ import sys
 import time
 from functools import update_wrapper
 
-import six
+import pip._vendor.six as six
 
 # sys.maxint / 2, since Python 3.2 doesn't have a sys.maxint...
 try:

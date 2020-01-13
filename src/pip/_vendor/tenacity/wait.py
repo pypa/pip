@@ -17,10 +17,10 @@
 import abc
 import random
 
-import six
+import pip._vendor.six as six
 
-from tenacity import _utils
-from tenacity import compat as _compat
+from . import _utils
+from . import compat as _compat
 
 
 @six.add_metaclass(abc.ABCMeta)

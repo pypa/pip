@@ -31,10 +31,10 @@ import sys
 import threading
 from concurrent import futures
 
-import six
+import pip._vendor.six as six
 
-from tenacity import _utils
-from tenacity import compat as _compat
+from . import _utils
+from . import compat as _compat
 
 # Import all built-in retry strategies for easier usage.
 from .retry import retry_all  # noqa
@@ -480,7 +480,7 @@ class RetryCallState(object):
 
 
 if asyncio:
-    from tenacity._asyncio import AsyncRetrying
+    from ._asyncio import AsyncRetrying
 
 if tornado:
-    from tenacity.tornadoweb import TornadoRetrying
+    from .tornadoweb import TornadoRetrying
