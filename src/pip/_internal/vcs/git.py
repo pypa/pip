@@ -386,7 +386,7 @@ class Git(VersionControl):
             return None
         except InstallationError:
             return None
-        return r
+        return r.strip()
 
 
 vcs.register(Git)

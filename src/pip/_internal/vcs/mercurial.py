@@ -150,7 +150,7 @@ class Mercurial(VersionControl):
                 log_failed_cmd=False)
         except (BadCommand, InstallationError):
             return None
-        return r
+        return r.strip()
 
 
 vcs.register(Mercurial)
