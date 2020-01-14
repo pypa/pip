@@ -24,7 +24,7 @@ destination = "src/pip/_vendor/"
 requirements = "src/pip/_vendor/vendor.txt"
 namespace = "pip._vendor"
 
-protected-files = ["__init__.py", "README.rst", "vendor.txt"]
+protected-files = ["__init__.py", "README.rst", "vendor.txt", "futures"]
 patches-dir = "tools/automation/vendoring/patches"
 
 [tool.vendoring.transformations]

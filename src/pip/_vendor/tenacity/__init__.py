@@ -29,7 +29,11 @@ except ImportError:
 
 import sys
 import threading
-from concurrent import futures
+
+if sys.version_info[0] == 2:
+    from pip._vendor import futures
+else:
+    from concurrent import futures
 
 from pip._vendor import six
 

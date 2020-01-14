@@ -1,0 +1,17 @@
+diff --git a/src/pip/_vendor/tenacity/__init__.py b/src/pip/_vendor/tenacity/__init__.py
+index 410c87cd..8041cbe2 100644
+--- a/src/pip/_vendor/tenacity/__init__.py
++++ b/src/pip/_vendor/tenacity/__init__.py
+@@ -29,7 +29,11 @@ except ImportError:
+ 
+ import sys
+ import threading
+-from concurrent import futures
++
++if sys.version_info[0] == 2:
++    from pip._vendor import futures
++else:
++    from concurrent import futures
+ 
+ from pip._vendor import six
+ 

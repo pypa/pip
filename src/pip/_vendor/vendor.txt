@@ -4,7 +4,7 @@ colorama==0.4.1
 contextlib2==0.6.0
 distlib==0.2.9.post0
 distro==1.4.0
-futures==3.3.0; python_version == "2.7"
+futures==3.3.0; python_version == "2.7"  # futures cannot be installed in Python 3
 html5lib==1.0.1
 ipaddress==1.0.22  # Only needed on 2.6 and 2.7
 monotonic==1.5
