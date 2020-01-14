@@ -188,6 +188,7 @@ def _determine_base_url(document, page_url):
 
 
 def _clean_url_path_part(part):
+    # type: (str) -> str
     """
     Clean a "part" of a URL path (i.e. after splitting on "@" characters).
     """
@@ -196,6 +197,7 @@ def _clean_url_path_part(part):
 
 
 def _clean_file_url_path(part):
+    # type: (str) -> str
     """
     Clean the first part of a URL path that corresponds to a local
     filesystem path (i.e. the first part after splitting on "@" characters).
@@ -213,6 +215,7 @@ _reserved_chars_re = re.compile('(@|%2F)', re.IGNORECASE)
 
 
 def _clean_url_path(path, is_local_path):
+    # type: (str, bool) -> str
     """
     Clean the path portion of a URL.
     """
