@@ -1,7 +1,8 @@
 from pip._internal.vcs.mercurial import Mercurial
-from tests.lib import _create_test_package
+from tests.lib import _create_test_package, need_mercurial
 
 
+@need_mercurial
 def test_get_repository_root(script):
     version_pkg_path = _create_test_package(script, vcs="hg")
     tests_path = version_pkg_path.joinpath("tests")
