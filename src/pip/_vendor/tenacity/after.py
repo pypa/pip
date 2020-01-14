@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import _utils
+from pip._vendor.tenacity import _utils
 
 
 def after_nothing(retry_state):

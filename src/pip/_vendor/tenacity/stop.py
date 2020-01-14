@@ -15,9 +15,9 @@
 # limitations under the License.
 import abc
 
-import pip._vendor.six as six
+from pip._vendor import six
 
-from . import compat as _compat
+from pip._vendor.tenacity import compat as _compat
 
 
 @six.add_metaclass(abc.ABCMeta)
