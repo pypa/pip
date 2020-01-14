@@ -86,8 +86,14 @@ def generate_news(session: Session, version: str) -> None:
 
 
 def update_version_file(version: str, filepath: str) -> None:
+    with open(filepath, "r", encoding="utf-8") as f:
+        content = list(f)
     with open(filepath, "w", encoding="utf-8") as f:
-        f.write('__version__ = "{}"\n'.format(version))
+        for line in content:
+            if line.startswith("__version__ ="):
+                f.write('__version__ = "{}"\n'.format(version))
+            else:
+                f.write(line)
 
 
 def create_git_tag(session: Session, tag_name: str, *, message: str) -> None:
