@@ -12,6 +12,7 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 from pip._internal.index.collector import (
     HTMLPage,
     _clean_link,
+    _clean_url_path,
     _determine_base_url,
     _get_html_page,
     _get_html_response,
@@ -192,6 +193,69 @@ def test_determine_base_url(html, url, expected):
 
 
 @pytest.mark.parametrize(
+    ('path', 'expected'),
+    [
+        # Test a character that needs quoting.
+        ('a b', 'a%20b'),
+        # Test an unquoted "@".
+        ('a @ b', 'a%20@%20b'),
+        # Test multiple unquoted "@".
+        ('a @ @ b', 'a%20@%20@%20b'),
+        # Test a quoted "@".
+        ('a %40 b', 'a%20%40%20b'),
+        # Test a quoted "@" before an unquoted "@".
+        ('a %40b@ c', 'a%20%40b@%20c'),
+        # Test a quoted "@" after an unquoted "@".
+        ('a @b%40 c', 'a%20@b%40%20c'),
+        # Test alternating quoted and unquoted "@".
+        ('a %40@b %40@c %40', 'a%20%40@b%20%40@c%20%40'),
+        # Test an unquoted "/".
+        ('a / b', 'a%20/%20b'),
+        # Test multiple unquoted "/".
+        ('a / / b', 'a%20/%20/%20b'),
+        # Test a quoted "/".
+        ('a %2F b', 'a%20%2F%20b'),
+        # Test a quoted "/" before an unquoted "/".
+        ('a %2Fb/ c', 'a%20%2Fb/%20c'),
+        # Test a quoted "/" after an unquoted "/".
+        ('a /b%2F c', 'a%20/b%2F%20c'),
+        # Test alternating quoted and unquoted "/".
+        ('a %2F/b %2F/c %2F', 'a%20%2F/b%20%2F/c%20%2F'),
+        # Test normalizing non-reserved quoted characters "[" and "]"
+        ('a %5b %5d b', 'a%20%5B%20%5D%20b'),
+        # Test normalizing a reserved quoted "/"
+        ('a %2f b', 'a%20%2F%20b'),
+    ]
+)
+@pytest.mark.parametrize('is_local_path', [True, False])
+def test_clean_url_path(path, expected, is_local_path):
+    assert _clean_url_path(path, is_local_path=is_local_path) == expected
+
+
+@pytest.mark.parametrize(
+    ('path', 'expected'),
+    [
+        # Test a VCS path with a Windows drive letter and revision.
+        pytest.param(
+            '/T:/with space/repo.git@1.0',
+            '///T:/with%20space/repo.git@1.0',
+            marks=pytest.mark.skipif("sys.platform != 'win32'"),
+        ),
+        # Test a VCS path with a Windows drive letter and revision,
+        # running on non-windows platform.
+        pytest.param(
+            '/T:/with space/repo.git@1.0',
+            '/T%3A/with%20space/repo.git@1.0',
+            marks=pytest.mark.skipif("sys.platform == 'win32'"),
+        ),
+    ]
+)
+def test_clean_url_path_with_local_path(path, expected):
+    actual = _clean_url_path(path, is_local_path=True)
+    assert actual == expected
+
+
+@pytest.mark.parametrize(
     ("url", "clean_url"),
     [
         # URL with hostname and port. Port separator should not be quoted.
@@ -218,9 +282,18 @@ def test_determine_base_url(html, url, expected):
         # not. The `:` should be quoted.
         ("https://localhost.localdomain/T:/path/",
          "https://localhost.localdomain/T%3A/path/"),
+        # URL with a quoted "/" in the path portion.
+        ("https://example.com/access%2Ftoken/path/",
+         "https://example.com/access%2Ftoken/path/"),
         # VCS URL containing revision string.
         ("git+ssh://example.com/path to/repo.git@1.0#egg=my-package-1.0",
          "git+ssh://example.com/path%20to/repo.git@1.0#egg=my-package-1.0"),
+        # VCS URL with a quoted "#" in the revision string.
+        ("git+https://example.com/repo.git@hash%23symbol#egg=my-package-1.0",
+         "git+https://example.com/repo.git@hash%23symbol#egg=my-package-1.0"),
+        # VCS URL with a quoted "@" in the revision string.
+        ("git+https://example.com/repo.git@at%40 space#egg=my-package-1.0",
+         "git+https://example.com/repo.git@at%40%20space#egg=my-package-1.0"),
         # URL with Windows drive letter. The `:` after the drive
         # letter should not be quoted. The trailing `/` should be
         # removed.
@@ -236,10 +309,23 @@ def test_determine_base_url(html, url, expected):
             "file:///T%3A/path/with%20spaces/",
             marks=pytest.mark.skipif("sys.platform == 'win32'"),
         ),
+        # Test a VCS URL with a Windows drive letter and revision.
+        pytest.param(
+            "git+file:///T:/with space/repo.git@1.0#egg=my-package-1.0",
+            "git+file:///T:/with%20space/repo.git@1.0#egg=my-package-1.0",
+            marks=pytest.mark.skipif("sys.platform != 'win32'"),
+        ),
+        # Test a VCS URL with a Windows drive letter and revision,
+        # running on non-windows platform.
+        pytest.param(
+            "git+file:///T:/with space/repo.git@1.0#egg=my-package-1.0",
+            "git+file:/T%3A/with%20space/repo.git@1.0#egg=my-package-1.0",
+            marks=pytest.mark.skipif("sys.platform == 'win32'"),
+        ),
     ]
 )
 def test_clean_link(url, clean_url):
-    assert(_clean_link(url) == clean_url)
+    assert _clean_link(url) == clean_url
 
 
 @pytest.mark.parametrize('anchor_html, expected', [
