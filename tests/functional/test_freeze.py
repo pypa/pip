@@ -10,6 +10,7 @@ from tests.lib import (
     _create_test_package,
     _create_test_package_with_srcdir,
     _git_commit,
+    _vcs_add,
     need_bzr,
     need_mercurial,
     need_svn,
@@ -493,6 +494,39 @@ def test_freeze_bazaar_clone(script, tmpdir):
         ...-e bzr+file://...@...#egg=version_pkg
         ...""" % {'repo': checkout_path})
     _check_output(result.stdout, expected)
+
+
+@need_mercurial
+@pytest.mark.git
+@pytest.mark.parametrize(
+    "outer_vcs, inner_vcs",
+    [("hg", "git"), ("git", "hg")],
+)
+def test_freeze_nested_vcs(script, outer_vcs, inner_vcs):
+    """Test VCS can be correctly freezed when resides inside another VCS repo.
+    """
+    # Create Python package.
+    pkg_path = _create_test_package(script, vcs=inner_vcs)
+
+    # Create outer repo to clone into.
+    root_path = script.scratch_path.joinpath("test_freeze_nested_vcs")
+    root_path.mkdir()
+    root_path.joinpath(".hgignore").write_text("src")
+    root_path.joinpath(".gitignore").write_text("src")
+    _vcs_add(script, root_path, outer_vcs)
+
+    # Clone Python package into inner directory and install it.
+    src_path = root_path.joinpath("src")
+    src_path.mkdir()
+    script.run(inner_vcs, "clone", pkg_path, src_path, expect_stderr=True)
+    script.pip("install", "-e", src_path, expect_stderr=True)
+
+    # Check the freeze output recognizes the inner VCS.
+    result = script.pip("freeze", expect_stderr=True)
+    _check_output(
+        result.stdout,
+        "...-e {}+...#egg=version_pkg\n...".format(inner_vcs),
+    )
 
 
 # used by the test_freeze_with_requirement_* tests below
