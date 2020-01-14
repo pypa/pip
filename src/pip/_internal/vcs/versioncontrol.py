@@ -232,20 +232,24 @@ class VcsSupport(object):
         Return a VersionControl object if a repository of that type is found
         at the given directory.
         """
-        candidates = {}
+        vcs_backends = {}
         for vcs_backend in self._registry.values():
-            root = vcs_backend.get_repository_root(location)
-            if not root:
+            repo_path = vcs_backend.get_repository_root(location)
+            if not repo_path:
                 continue
             logger.debug('Determine that %s uses VCS: %s',
                          location, vcs_backend.name)
-            candidates[root] = vcs_backend
+            vcs_backends[repo_path] = vcs_backend
 
-        # Choose the VCS in the inner-most directory (i.e. path to root
-        # is longest).
-        if not candidates:
+        if not vcs_backends:
             return None
-        return candidates[max(candidates, key=len)]
+
+        # Choose the VCS in the inner-most directory. Since all repository
+        # roots found here would be either ``location``` or one of its
+        # parents, the longest path should have the most path components,
+        # i.e. the backend representing the inner-most repository.
+        inner_most_repo_path = max(vcs_backends, key=len)
+        return vcs_backends[inner_most_repo_path]
 
     def get_backend_for_scheme(self, scheme):
         # type: (str) -> Optional[VersionControl]
