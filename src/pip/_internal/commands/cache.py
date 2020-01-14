@@ -133,7 +133,7 @@ class CacheCommand(Command):
         for filename in files:
             os.unlink(filename)
             logger.debug('Removed %s', filename)
-        logger.info('Removed %s file(s)', len(files))
+        logger.info('Files removed: %s', len(files))
 
     def purge_cache(self, options, args):
         # type: (Values, List[Any]) -> None
