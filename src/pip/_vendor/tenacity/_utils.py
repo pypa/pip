@@ -131,7 +131,7 @@ def get_callback_name(cb):
 try:
     now = time.monotonic  # noqa
 except AttributeError:
-    from monotonic import monotonic as now  # noqa
+    from pip._vendor.monotonic import monotonic as now  # noqa
 
 
 class cached_property(object):
