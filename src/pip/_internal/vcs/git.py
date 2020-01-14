@@ -375,11 +375,13 @@ class Git(VersionControl):
         if loc:
             return loc
         try:
-            r = cls.run_command(['rev-parse', '--show-toplevel'],
-                                cwd=location,
-                                show_stdout=False,
-                                on_returncode='raise',
-                                log_failed_cmd=False)
+            r = cls.run_command(
+                ['rev-parse', '--show-toplevel'],
+                cwd=location,
+                show_stdout=False,
+                on_returncode='raise',
+                log_failed_cmd=False,
+            )
         except BadCommand:
             logger.debug("could not determine if %s is under git control "
                          "because git is not available", location)

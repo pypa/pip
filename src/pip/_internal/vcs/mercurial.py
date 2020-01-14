@@ -147,8 +147,13 @@ class Mercurial(VersionControl):
                 cwd=location,
                 show_stdout=False,
                 on_returncode='raise',
-                log_failed_cmd=False)
-        except (BadCommand, InstallationError):
+                log_failed_cmd=False,
+            )
+        except BadCommand:
+            logger.debug("could not determine if %s is under hg control "
+                         "because hg is not available", location)
+            return None
+        except InstallationError:
             return None
         return r.strip()
 
