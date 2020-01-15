@@ -388,7 +388,7 @@ class Git(VersionControl):
             return None
         except InstallationError:
             return None
-        return r.strip()
+        return os.path.normpath(r.rstrip('\r\n'))
 
 
 vcs.register(Git)
