@@ -99,7 +99,7 @@ def update_version_file(version: str, filepath: str) -> None:
                 f.write(line)
 
     assert file_modified, \
-           "Version file {} did not get modified".format(filepath)
+        "Version file {} did not get modified".format(filepath)
 
 
 def create_git_tag(session: Session, tag_name: str, *, message: str) -> None:
