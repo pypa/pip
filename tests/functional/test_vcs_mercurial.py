@@ -1,3 +1,5 @@
+import os
+
 from pip._internal.vcs.mercurial import Mercurial
 from tests.lib import _create_test_package, need_mercurial
 
@@ -9,7 +11,7 @@ def test_get_repository_root(script):
     tests_path.mkdir()
 
     root1 = Mercurial.get_repository_root(version_pkg_path)
-    assert root1 == version_pkg_path
+    assert os.path.normcase(root1) == os.path.normcase(version_pkg_path)
 
     root2 = Mercurial.get_repository_root(version_pkg_path.joinpath("tests"))
-    assert root2 == version_pkg_path
+    assert os.path.normcase(root2) == os.path.normcase(version_pkg_path)

@@ -246,7 +246,7 @@ def test_get_repository_root(script):
     tests_path.mkdir()
 
     root1 = Git.get_repository_root(version_pkg_path)
-    assert root1 == version_pkg_path
+    assert os.path.normcase(root1) == os.path.normcase(version_pkg_path)
 
     root2 = Git.get_repository_root(version_pkg_path.joinpath("tests"))
-    assert root2 == version_pkg_path
+    assert os.path.normcase(root2) == os.path.normcase(version_pkg_path)
