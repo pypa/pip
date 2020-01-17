@@ -107,13 +107,10 @@ class TempDirectory(object):
     ):
         super(TempDirectory, self).__init__()
 
-        if path is None and delete is None:
-            # If we were not given an explicit directory, and we were not given
-            # an explicit delete option, then we'll default to deleting unless
-            # the tempdir_registry says otherwise.
-            delete = True
-            if _tempdir_registry:
-                delete = _tempdir_registry.get_delete(kind)
+        # If we were given an explicit directory, resolve delete option now.
+        # Otherwise we wait until cleanup and see what tempdir_registry says.
+        if path is not None and delete is None:
+            delete = False
 
         if path is None:
             path = self._create(kind)
@@ -145,7 +142,14 @@ class TempDirectory(object):
 
     def __exit__(self, exc, value, tb):
         # type: (Any, Any, Any) -> None
-        if self.delete:
+        if self.delete is not None:
+            delete = self.delete
+        elif _tempdir_registry:
+            delete = _tempdir_registry.get_delete(self.kind)
+        else:
+            delete = True
+
+        if delete:
             self.cleanup()
 
     def _create(self, kind):
