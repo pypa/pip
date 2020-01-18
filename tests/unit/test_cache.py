@@ -5,13 +5,7 @@ from pip._vendor.packaging.tags import Tag
 from pip._internal.cache import WheelCache, _hash_dict
 from pip._internal.models.format_control import FormatControl
 from pip._internal.models.link import Link
-from pip._internal.utils.compat import expanduser
 from pip._internal.utils.misc import ensure_dir
-
-
-def test_expands_path():
-    wc = WheelCache("~/.foo/", None)
-    assert wc.cache_dir == expanduser("~/.foo/")
 
 
 def test_falsey_path_none():
@@ -23,7 +17,7 @@ def test_subdirectory_fragment():
     """
     Test the subdirectory URL fragment is part of the cache key.
     """
-    wc = WheelCache("~/.foo/", None)
+    wc = WheelCache("/tmp/.foo/", None)
     link1 = Link("git+https://g.c/o/r#subdirectory=d1")
     link2 = Link("git+https://g.c/o/r#subdirectory=d2")
     assert wc.get_path_for_link(link1) != wc.get_path_for_link(link2)

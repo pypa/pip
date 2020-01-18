@@ -33,6 +33,8 @@ def check_path_owner(path):
     if sys.platform == "win32" or not hasattr(os, "geteuid"):
         return True
 
+    assert os.path.isabs(path)
+
     previous = None
     while path != previous:
         if os.path.lexists(path):

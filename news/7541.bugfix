@@ -1,0 +1,1 @@
+Correctly handle relative cache directory provided via --cache-dir.
