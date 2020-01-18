@@ -39,6 +39,30 @@ jobs:
         - -m unit
         - -m integration -n auto --duration=5 -k "not test_install"
         - -m integration -n auto --duration=5 -k "test_install"
+        exclude:
+        - python-version: pypy3
+        - os: macOS-latest
+          python-version: pypy2
+        - os: windows-latest
+          python-version: pypy2
+        - os: windows-2016
+          python-version: pypy2
+        - os: windows-latest
+          python-version: 3.8
+        - os: windows-2016
+          python-version: 3.8
+        - os: windows-latest
+          python-version: 3.7
+        - os: windows-2016
+          python-version: 3.7
+        - os: windows-latest
+          python-version: 3.6
+        - os: windows-2016
+          python-version: 3.6
+        - os: windows-latest
+          python-version: 3.5
+        - os: windows-2016
+          python-version: 3.5
 
     env:
       TOX_PARALLEL_NO_SPINNER: 1
