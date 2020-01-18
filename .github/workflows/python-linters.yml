@@ -1,4 +1,6 @@
-name: Code quality
+name: >-
+  🤖
+  Code quality
 
 on:
   push:
@@ -10,24 +12,53 @@ on:
 
 jobs:
   linters:
-    name: 🤖
+    name: >-
+      ${{ matrix.env.TOXENV }}
+      /
+      ${{ matrix.python-version }}
+      /
+      ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       # max-parallel: 5
       matrix:
+        python-version:
+        - 3.8
         os:
-        - ubuntu-18.04
+        - ubuntu-latest
         - windows-latest
         - macos-latest
         env:
         - TOXENV: docs
         - TOXENV: lint
+        - TOXENV: vendoring
+
+    env:
+      TOX_PARALLEL_NO_SPINNER: 1
+
     steps:
     - uses: actions/checkout@master
-    - name: Set up Python ${{ matrix.env.PYTHON_VERSION || 3.8 }}
+    - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v1
       with:
-        python-version: ${{ matrix.env.PYTHON_VERSION || 3.8 }}
+        python-version: ${{ matrix.python-version }}
+    - name: Log Python version
+      run: >-
+        python --version
+    - name: Log Python location
+      run: >-
+        which python
+    - name: Log Python env
+      run: >-
+        python -m sysconfig
+    - name: Pip cache
+      uses: actions/cache@v1
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('tools/requirements/tests.txt') }}-${{ hashFiles('tools/requirements/docs.txt') }}-${{ hashFiles('tox.ini') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+          ${{ runner.os }}-
     - name: set PY
       run: echo "::set-env name=PY::$(python -VV | sha256sum | cut -d' ' -f1)"
     - uses: actions/cache@v1
@@ -38,16 +69,33 @@ jobs:
       run: |
         git config --global user.email "pypa-dev@googlegroups.com"
         git config --global user.name "pip"
-    - name: Update setuptools and tox dependencies
-      run: |
+    - name: Update setuptools
+      run: >-
         python -m pip install --upgrade setuptools
+    - name: Install tox
+      run: >-
         python -m pip install --upgrade tox tox-venv
+    - name: Log the list of packages
+      run: >-
         python -m pip freeze --all
     - name: 'Initialize tox envs: ${{ matrix.env.TOXENV }}'
       run: >-
-        python -m tox --notest --skip-missing-interpreters false
+        python -m
+        tox
+        --parallel auto
+        --notest
+        --skip-missing-interpreters false
       env: ${{ matrix.env }}
+    - name: Pre-fetch pre-commit hooks
+      # This is to separate test step from deps install
+      if: matrix.env.TOXENV == 'lint'
+      run: >-
+        .tox/lint/${{ runner.os == 'Windows' && 'Scripts' || 'bin' }}/python -m
+        pre_commit
+        install-hooks
     - name: Test with tox
       run: >-
-        python -m tox
+        python -m
+        tox
+        --parallel auto
       env: ${{ matrix.env }}
