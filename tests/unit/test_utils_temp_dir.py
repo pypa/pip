@@ -234,3 +234,17 @@ def test_tempdir_registry(kind, delete, exists):
             path = d.path
             assert os.path.exists(path)
         assert os.path.exists(path) == exists
+
+
+@pytest.mark.parametrize("should_delete", [True, False])
+def test_tempdir_registry_lazy(should_delete):
+    """
+    Test the registry entry can be updated after a temp dir is created,
+    to change whether a kind should be deleted or not.
+    """
+    with tempdir_registry() as registry:
+        with TempDirectory(delete=None, kind="test-for-lazy") as d:
+            path = d.path
+            registry.set_delete("test-for-lazy", should_delete)
+            assert os.path.exists(path)
+        assert os.path.exists(path) == (not should_delete)
