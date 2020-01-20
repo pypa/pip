@@ -15,7 +15,7 @@ def test_basic_show(script):
     lines = result.stdout.splitlines()
     assert len(lines) == 10
     assert 'Name: pip' in lines
-    assert 'Version: %s' % __version__ in lines
+    assert 'Version: {}'.format(__version__) in lines
     assert any(line.startswith('Location: ') for line in lines)
     assert 'Requires: ' in lines
 

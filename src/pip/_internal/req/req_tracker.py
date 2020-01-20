@@ -60,7 +60,7 @@ def get_requirement_tracker():
                 TempDirectory(kind='req-tracker')
             ).path
             ctx.enter_context(update_env_context_manager(PIP_REQ_TRACKER=root))
-            logger.debug("Initialized build tracking at %s", root)
+            logger.debug("Initialized build tracking at {}".format(root))
 
         with RequirementTracker(root) as tracker:
             yield tracker

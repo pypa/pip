@@ -14,12 +14,14 @@ def test_cleanup_after_install(script, data):
     Test clean up after installing a package.
     """
     script.pip(
-        'install', '--no-index', '--find-links=%s' % data.find_links, 'simple'
+        'install', '--no-index',
+        '--find-links={}'.format(data.find_links),
+        'simple'
     )
     build = script.venv_path / "build"
     src = script.venv_path / "src"
-    assert not exists(build), "build/ dir still exists: %s" % build
-    assert not exists(src), "unexpected src/ dir exists: %s" % src
+    assert not exists(build), "build/ dir still exists: {}".format(build)
+    assert not exists(src), "unexpected src/ dir exists: {}" .format(src)
     script.assert_no_temp()
 
 
@@ -31,7 +33,7 @@ def test_no_clean_option_blocks_cleaning_after_install(script, data):
     build = script.base_path / 'pip-build'
     script.pip(
         'install', '--no-clean', '--no-index', '--build', build,
-        '--find-links=%s' % data.find_links, 'simple', expect_temp=True,
+        '--find-links={}'.format(data.find_links), 'simple', expect_temp=True,
     )
     assert exists(build)
 
@@ -43,16 +45,14 @@ def test_cleanup_after_install_editable_from_hg(script, tmpdir):
     Test clean up after cloning from Mercurial.
 
     """
-    script.pip(
-        'install',
-        '-e',
-        '%s#egg=ScriptTest' %
-        local_checkout('hg+https://bitbucket.org/ianb/scripttest', tmpdir),
+    requirement = '{}#egg=ScriptTest'.format(
+        local_checkout('hg+https://bitbucket.org/ianb/scripttest', tmpdir)
     )
+    script.pip('install', '-e', requirement)
     build = script.venv_path / 'build'
     src = script.venv_path / 'src'
-    assert not exists(build), "build/ dir still exists: %s" % build
-    assert exists(src), "expected src/ dir doesn't exist: %s" % src
+    assert not exists(build), "build/ dir still exists: {}".format(build)
+    assert exists(src), "expected src/ dir doesn't exist: {}".format(src)
     script.assert_no_temp()
 
 
@@ -64,8 +64,8 @@ def test_cleanup_after_install_from_local_directory(script, data):
     script.pip('install', to_install)
     build = script.venv_path / 'build'
     src = script.venv_path / 'src'
-    assert not exists(build), "unexpected build/ dir exists: %s" % build
-    assert not exists(src), "unexpected src/ dir exist: %s" % src
+    assert not exists(build), "unexpected build/ dir exists: {}".format(build)
+    assert not exists(src), "unexpected src/ dir exist: {}".format(src)
     script.assert_no_temp()
 
 
