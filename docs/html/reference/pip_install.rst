@@ -148,19 +148,26 @@ and the newline following it is effectively ignored.
 
 Comments are stripped *before* line continuations are processed.
 
+To interpret the requirements file in UTF-8 format add a comment
+``# -*- coding: utf-8 -*-`` to the first or second line of the file.
+
 The following options are supported:
 
-  *  :ref:`-i, --index-url <--index-url>`
-  *  :ref:`--extra-index-url <--extra-index-url>`
-  *  :ref:`--no-index <--no-index>`
-  *  :ref:`-f, --find-links <--find-links>`
+  *  :ref:`-i, --index-url <install_--index-url>`
+  *  :ref:`--extra-index-url <install_--extra-index-url>`
+  *  :ref:`--no-index <install_--no-index>`
+  *  :ref:`-c, --constraint <install_--constraint>`
+  *  :ref:`-r, --requirement <install_--requirement>`
+  *  :ref:`-e, --editable <install_--editable>`
+  *  :ref:`-f, --find-links <install_--find-links>`
   *  :ref:`--no-binary <install_--no-binary>`
   *  :ref:`--only-binary <install_--only-binary>`
-  *  :ref:`--require-hashes <--require-hashes>`
+  *  :ref:`--require-hashes <install_--require-hashes>`
+  *  :ref:`--pre <install_--pre>`
   *  :ref:`--trusted-host <--trusted-host>`
 
-For example, to specify :ref:`--no-index <--no-index>` and two
-:ref:`--find-links <--find-links>` locations:
+For example, to specify :ref:`--no-index <install_--no-index>` and two
+:ref:`--find-links <install_--find-links>` locations:
 
 ::
 
@@ -244,8 +251,8 @@ pip supports installing from a package index using a :term:`requirement
 specifier <pypug:Requirement Specifier>`. Generally speaking, a requirement
 specifier is composed of a project name followed by optional :term:`version
 specifiers <pypug:Version Specifier>`.  :pep:`508` contains a full specification
-of the format of a requirement (pip does not support the ``url_req`` form
-of specifier at this time).
+of the format of a requirement. Since version 18.1 pip supports the
+``url_req``-form specification.
 
 Some examples:
 
@@ -264,6 +271,13 @@ Since version 6.0, pip also supports specifiers containing `environment markers
 
   SomeProject ==5.4 ; python_version < '2.7'
   SomeProject; sys_platform == 'win32'
+
+Since version 19.1, pip also supports `direct references
+<https://www.python.org/dev/peps/pep-0440/#direct-references>`__ like so:
+
+ ::
+
+  SomeProject @ file:///somewhere/...
 
 Environment markers are supported in the command line and in requirements files.
 
@@ -378,7 +392,7 @@ So if your repository layout is:
       - some_file
     - some_other_file
 
-You'll need to use ``pip install -e vcs+protocol://repo_url/#egg=pkg&subdirectory=pkg_dir``.
+You'll need to use ``pip install -e "vcs+protocol://repo_url/#egg=pkg&subdirectory=pkg_dir"``.
 
 
 Git
@@ -395,7 +409,6 @@ Here are the supported forms::
     [-e] git+ssh://git.example.com/MyProject#egg=MyProject
     [-e] git+git://git.example.com/MyProject#egg=MyProject
     [-e] git+file:///home/user/projects/MyProject#egg=MyProject
-    -e git+git@git.example.com:MyProject#egg=MyProject
 
 Passing a branch name, a commit hash, a tag name or a git ref is possible like so::
 
@@ -411,8 +424,8 @@ making fewer network calls).
 Mercurial
 ~~~~~~~~~
 
-The supported schemes are: ``hg+http``, ``hg+https``,
-``hg+static-http`` and ``hg+ssh``.
+The supported schemes are: ``hg+file``, ``hg+http``, ``hg+https``,
+``hg+static-http``, and ``hg+ssh``.
 
 Here are the supported forms::
 
@@ -579,9 +592,12 @@ and use any packages found there. This is disabled via the same
 of that is not part of the pip API. As of 7.0, pip makes a subdirectory for
 each sdist that wheels are built from and places the resulting wheels inside.
 
+As of version 20.0, pip also caches wheels when building from an immutable Git
+reference (i.e. a commit hash).
+
 Pip attempts to choose the best wheels from those built in preference to
 building a new wheel. Note that this means when a package has both optional
-C extensions and builds `py` tagged wheels when the C extension can't be built
+C extensions and builds ``py`` tagged wheels when the C extension can't be built
 that pip will not attempt to build a better wheel for Pythons that would have
 supported it, once any generic wheel is built. To correct this, make sure that
 the wheels are built with Python specific tags - e.g. pp on PyPy.
@@ -827,7 +843,7 @@ Options
 
 .. pip-command-options:: install
 
-.. pip-index-options::
+.. pip-index-options:: install
 
 
 .. _`pip install Examples`:
@@ -835,7 +851,7 @@ Options
 Examples
 ********
 
-#. Install `SomePackage` and its dependencies from `PyPI`_ using :ref:`Requirement Specifiers`
+#. Install ``SomePackage`` and its dependencies from `PyPI`_ using :ref:`Requirement Specifiers`
 
     ::
 
@@ -851,7 +867,7 @@ Examples
       $ pip install -r requirements.txt
 
 
-#. Upgrade an already installed `SomePackage` to the latest from PyPI.
+#. Upgrade an already installed ``SomePackage`` to the latest from PyPI.
 
     ::
 
@@ -893,6 +909,14 @@ Examples
 
       $ pip install ./downloads/SomePackage-1.0.4.tar.gz
       $ pip install http://my.package.repo/SomePackage-1.0.4.zip
+
+
+#. Install a particular source archive file following :pep:`440` direct references.
+
+    ::
+
+      $ pip install SomeProject==1.0.4@http://my.package.repo//SomeProject-1.2.3-py33-none-any.whl
+      $ pip install "SomeProject==1.0.4 @ http://my.package.repo//SomeProject-1.2.3-py33-none-any.whl"
 
 
 #. Install from alternative package repositories.

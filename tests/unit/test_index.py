@@ -1,33 +1,26 @@
 import logging
-import os.path
 
 import pytest
-from mock import Mock
-from pip._vendor import html5lib, requests
 from pip._vendor.packaging.specifiers import SpecifierSet
 
-from pip._internal.download import PipSession
-from pip._internal.index import (
+from pip._internal.index.collector import LinkCollector
+from pip._internal.index.package_finder import (
     CandidateEvaluator,
     CandidatePreferences,
     FormatControl,
-    HTMLPage,
-    Link,
     LinkEvaluator,
     PackageFinder,
     _check_link_requires_python,
-    _clean_link,
-    _determine_base_url,
     _extract_version_from_fragment,
     _find_name_version_sep,
-    _get_html_page,
     filter_unallowed_hashes,
-    group_locations,
 )
 from pip._internal.models.candidate import InstallationCandidate
+from pip._internal.models.link import Link
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
+from pip._internal.network.session import PipSession
 from pip._internal.pep425tags import get_supported
 from pip._internal.utils.hashes import Hashes
 from tests.lib import CURRENT_PY_VERSION_INFO
@@ -540,6 +533,7 @@ class TestCandidateEvaluator:
         """
         Test the best candidates being yanked, but not all.
         """
+        caplog.set_level(logging.INFO)
         candidates = [
             make_mock_candidate('4.0', yanked_reason='bad metadata #4'),
             # Put the best candidate in the middle, to test sorting.
@@ -571,29 +565,50 @@ class TestPackageFinder:
         """
         Test that the _candidate_prefs attribute is set correctly.
         """
+        link_collector = LinkCollector(
+            session=PipSession(),
+            search_scope=SearchScope([], []),
+        )
         selection_prefs = SelectionPreferences(
             allow_yanked=True,
             allow_all_prereleases=allow_all_prereleases,
             prefer_binary=prefer_binary,
         )
         finder = PackageFinder.create(
-            search_scope=SearchScope([], []),
+            link_collector=link_collector,
             selection_prefs=selection_prefs,
-            session=PipSession(),
         )
         candidate_prefs = finder._candidate_prefs
         assert candidate_prefs.allow_all_prereleases == allow_all_prereleases
         assert candidate_prefs.prefer_binary == prefer_binary
 
+    def test_create__link_collector(self):
+        """
+        Test that the _link_collector attribute is set correctly.
+        """
+        link_collector = LinkCollector(
+            session=PipSession(),
+            search_scope=SearchScope([], []),
+        )
+        finder = PackageFinder.create(
+            link_collector=link_collector,
+            selection_prefs=SelectionPreferences(allow_yanked=True),
+        )
+
+        assert finder._link_collector is link_collector
+
     def test_create__target_python(self):
         """
         Test that the _target_python attribute is set correctly.
         """
+        link_collector = LinkCollector(
+            session=PipSession(),
+            search_scope=SearchScope([], []),
+        )
         target_python = TargetPython(py_version_info=(3, 7, 3))
         finder = PackageFinder.create(
-            search_scope=SearchScope([], []),
+            link_collector=link_collector,
             selection_prefs=SelectionPreferences(allow_yanked=True),
-            session=PipSession(),
             target_python=target_python,
         )
         actual_target_python = finder._target_python
@@ -606,10 +621,13 @@ class TestPackageFinder:
         """
         Test passing target_python=None.
         """
-        finder = PackageFinder.create(
-            search_scope=SearchScope([], []),
-            selection_prefs=SelectionPreferences(allow_yanked=True),
+        link_collector = LinkCollector(
             session=PipSession(),
+            search_scope=SearchScope([], []),
+        )
+        finder = PackageFinder.create(
+            link_collector=link_collector,
+            selection_prefs=SelectionPreferences(allow_yanked=True),
             target_python=None,
         )
         # Spot-check the default TargetPython object.
@@ -622,11 +640,14 @@ class TestPackageFinder:
         """
         Test that the _allow_yanked attribute is set correctly.
         """
+        link_collector = LinkCollector(
+            session=PipSession(),
+            search_scope=SearchScope([], []),
+        )
         selection_prefs = SelectionPreferences(allow_yanked=allow_yanked)
         finder = PackageFinder.create(
-            search_scope=SearchScope([], []),
+            link_collector=link_collector,
             selection_prefs=selection_prefs,
-            session=PipSession(),
         )
         assert finder._allow_yanked == allow_yanked
 
@@ -635,14 +656,17 @@ class TestPackageFinder:
         """
         Test that the _ignore_requires_python attribute is set correctly.
         """
+        link_collector = LinkCollector(
+            session=PipSession(),
+            search_scope=SearchScope([], []),
+        )
         selection_prefs = SelectionPreferences(
             allow_yanked=True,
             ignore_requires_python=ignore_requires_python,
         )
         finder = PackageFinder.create(
-            search_scope=SearchScope([], []),
+            link_collector=link_collector,
             selection_prefs=selection_prefs,
-            session=PipSession(),
         )
         assert finder._ignore_requires_python == ignore_requires_python
 
@@ -650,15 +674,18 @@ class TestPackageFinder:
         """
         Test that the format_control attribute is set correctly.
         """
+        link_collector = LinkCollector(
+            session=PipSession(),
+            search_scope=SearchScope([], []),
+        )
         format_control = FormatControl(set(), {':all:'})
         selection_prefs = SelectionPreferences(
             allow_yanked=True,
             format_control=format_control,
         )
         finder = PackageFinder.create(
-            search_scope=SearchScope([], []),
+            link_collector=link_collector,
             selection_prefs=selection_prefs,
-            session=PipSession(),
         )
         actual_format_control = finder.format_control
         assert actual_format_control is format_control
@@ -684,9 +711,14 @@ class TestPackageFinder:
         # Create a test TargetPython that we can check for.
         target_python = TargetPython(py_version_info=(3, 7))
         format_control = FormatControl(set(), only_binary)
-        finder = PackageFinder(
-            search_scope=SearchScope([], []),
+
+        link_collector = LinkCollector(
             session=PipSession(),
+            search_scope=SearchScope([], []),
+        )
+
+        finder = PackageFinder(
+            link_collector=link_collector,
             target_python=target_python,
             allow_yanked=allow_yanked,
             format_control=format_control,
@@ -725,9 +757,12 @@ class TestPackageFinder:
             prefer_binary=prefer_binary,
             allow_all_prereleases=allow_all_prereleases,
         )
-        finder = PackageFinder(
-            search_scope=SearchScope([], []),
+        link_collector = LinkCollector(
             session=PipSession(),
+            search_scope=SearchScope([], []),
+        )
+        finder = PackageFinder(
+            link_collector=link_collector,
             target_python=target_python,
             allow_yanked=True,
             candidate_prefs=candidate_prefs,
@@ -747,62 +782,6 @@ class TestPackageFinder:
         assert evaluator._project_name == 'my-project'
         assert evaluator._specifier is specifier
         assert evaluator._supported_tags == [('py36', 'none', 'any')]
-
-
-def test_group_locations__file_expand_dir(data):
-    """
-    Test that a file:// dir gets listdir run with expand_dir
-    """
-    files, urls = group_locations([data.find_links], expand_dir=True)
-    assert files and not urls, (
-        "files and not urls should have been found at find-links url: %s" %
-        data.find_links
-    )
-
-
-def test_group_locations__file_not_find_link(data):
-    """
-    Test that a file:// url dir that's not a find-link, doesn't get a listdir
-    run
-    """
-    files, urls = group_locations([data.index_url("empty_with_pkg")])
-    assert urls and not files, "urls, but not files should have been found"
-
-
-def test_group_locations__non_existing_path():
-    """
-    Test that a non-existing path is ignored.
-    """
-    files, urls = group_locations(
-        [os.path.join('this', 'doesnt', 'exist')])
-    assert not urls and not files, "nothing should have been found"
-
-
-@pytest.mark.parametrize(
-    ("html", "url", "expected"),
-    [
-        (b"<html></html>", "https://example.com/", "https://example.com/"),
-        (
-            b"<html><head>"
-            b"<base href=\"https://foo.example.com/\">"
-            b"</head></html>",
-            "https://example.com/",
-            "https://foo.example.com/",
-        ),
-        (
-            b"<html><head>"
-            b"<base><base href=\"https://foo.example.com/\">"
-            b"</head></html>",
-            "https://example.com/",
-            "https://foo.example.com/",
-        ),
-    ],
-)
-def test_determine_base_url(html, url, expected):
-    document = html5lib.parse(
-        html, transport_encoding=None, namespaceHTMLElements=False,
-    )
-    assert _determine_base_url(document, url) == expected
 
 
 @pytest.mark.parametrize(
@@ -893,129 +872,3 @@ def test_find_name_version_sep_failure(fragment, canonical_name):
 def test_extract_version_from_fragment(fragment, canonical_name, expected):
     version = _extract_version_from_fragment(fragment, canonical_name)
     assert version == expected
-
-
-def test_request_http_error(caplog):
-    caplog.set_level(logging.DEBUG)
-    link = Link('http://localhost')
-    session = Mock(PipSession)
-    session.get.return_value = resp = Mock()
-    resp.raise_for_status.side_effect = requests.HTTPError('Http error')
-    assert _get_html_page(link, session=session) is None
-    assert (
-        'Could not fetch URL http://localhost: Http error - skipping'
-        in caplog.text
-    )
-
-
-def test_request_retries(caplog):
-    caplog.set_level(logging.DEBUG)
-    link = Link('http://localhost')
-    session = Mock(PipSession)
-    session.get.side_effect = requests.exceptions.RetryError('Retry error')
-    assert _get_html_page(link, session=session) is None
-    assert (
-        'Could not fetch URL http://localhost: Retry error - skipping'
-        in caplog.text
-    )
-
-
-@pytest.mark.parametrize(
-    ("url", "clean_url"),
-    [
-        # URL with hostname and port. Port separator should not be quoted.
-        ("https://localhost.localdomain:8181/path/with space/",
-         "https://localhost.localdomain:8181/path/with%20space/"),
-        # URL that is already properly quoted. The quoting `%`
-        # characters should not be quoted again.
-        ("https://localhost.localdomain:8181/path/with%20quoted%20space/",
-         "https://localhost.localdomain:8181/path/with%20quoted%20space/"),
-        # URL with IPv4 address and port.
-        ("https://127.0.0.1:8181/path/with space/",
-         "https://127.0.0.1:8181/path/with%20space/"),
-        # URL with IPv6 address and port. The `[]` brackets around the
-        # IPv6 address should not be quoted.
-        ("https://[fd00:0:0:236::100]:8181/path/with space/",
-         "https://[fd00:0:0:236::100]:8181/path/with%20space/"),
-        # URL with query. The leading `?` should not be quoted.
-        ("https://localhost.localdomain:8181/path/with/query?request=test",
-         "https://localhost.localdomain:8181/path/with/query?request=test"),
-        # URL with colon in the path portion.
-        ("https://localhost.localdomain:8181/path:/with:/colon",
-         "https://localhost.localdomain:8181/path%3A/with%3A/colon"),
-        # URL with something that looks like a drive letter, but is
-        # not. The `:` should be quoted.
-        ("https://localhost.localdomain/T:/path/",
-         "https://localhost.localdomain/T%3A/path/"),
-        # VCS URL containing revision string.
-        ("git+ssh://example.com/path to/repo.git@1.0#egg=my-package-1.0",
-         "git+ssh://example.com/path%20to/repo.git@1.0#egg=my-package-1.0")
-    ]
-)
-def test_clean_link(url, clean_url):
-    assert(_clean_link(url) == clean_url)
-
-
-@pytest.mark.parametrize(
-    ("url", "clean_url"),
-    [
-        # URL with Windows drive letter. The `:` after the drive
-        # letter should not be quoted. The trailing `/` should be
-        # removed.
-        ("file:///T:/path/with spaces/",
-         "file:///T:/path/with%20spaces")
-    ]
-)
-@pytest.mark.skipif("sys.platform != 'win32'")
-def test_clean_link_windows(url, clean_url):
-    assert(_clean_link(url) == clean_url)
-
-
-@pytest.mark.parametrize(
-    ("url", "clean_url"),
-    [
-        # URL with Windows drive letter, running on non-windows
-        # platform. The `:` after the drive should be quoted.
-        ("file:///T:/path/with spaces/",
-         "file:///T%3A/path/with%20spaces/")
-    ]
-)
-@pytest.mark.skipif("sys.platform == 'win32'")
-def test_clean_link_non_windows(url, clean_url):
-    assert(_clean_link(url) == clean_url)
-
-
-class TestHTMLPage:
-
-    @pytest.mark.parametrize(
-        ('anchor_html, expected'),
-        [
-            # Test not present.
-            ('<a href="/pkg1-1.0.tar.gz"></a>', None),
-            # Test present with no value.
-            ('<a href="/pkg2-1.0.tar.gz" data-yanked></a>', ''),
-            # Test the empty string.
-            ('<a href="/pkg3-1.0.tar.gz" data-yanked=""></a>', ''),
-            # Test a non-empty string.
-            ('<a href="/pkg4-1.0.tar.gz" data-yanked="error"></a>', 'error'),
-            # Test a value with an escaped character.
-            ('<a href="/pkg4-1.0.tar.gz" data-yanked="version &lt 1"></a>',
-                'version < 1'),
-            # Test a yanked reason with a non-ascii character.
-            (u'<a href="/pkg-1.0.tar.gz" data-yanked="curlyquote \u2018"></a>',
-                u'curlyquote \u2018'),
-        ]
-    )
-    def test_iter_links__yanked_reason(self, anchor_html, expected):
-        html = (
-            # Mark this as a unicode string for Python 2 since anchor_html
-            # can contain non-ascii.
-            u'<html><head><meta charset="utf-8"><head>'
-            '<body>{}</body></html>'
-        ).format(anchor_html)
-        html_bytes = html.encode('utf-8')
-        page = HTMLPage(html_bytes, url='https://example.com/simple/')
-        links = list(page.iter_links())
-        link, = links
-        actual = link.yanked_reason
-        assert actual == expected

@@ -1,4 +1,5 @@
 """Handles all VCS (version control) support"""
+
 from __future__ import absolute_import
 
 import errno
@@ -11,24 +12,27 @@ from pip._vendor import pkg_resources
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 from pip._internal.exceptions import BadCommand
+from pip._internal.utils.compat import samefile
 from pip._internal.utils.misc import (
     ask_path_exists,
     backup_dir,
-    call_subprocess,
     display_path,
     hide_url,
     hide_value,
-    make_command,
     rmtree,
 )
+from pip._internal.utils.subprocess import call_subprocess, make_command
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.urls import get_url_scheme
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Any, Dict, Iterable, List, Mapping, Optional, Text, Tuple, Type, Union
+        Any, Dict, Iterable, Iterator, List, Mapping, Optional, Text, Tuple,
+        Type, Union
     )
     from pip._internal.utils.ui import SpinnerInterface
-    from pip._internal.utils.misc import CommandArgs, HiddenText
+    from pip._internal.utils.misc import HiddenText
+    from pip._internal.utils.subprocess import CommandArgs
 
     AuthInfo = Tuple[Optional[str], Optional[str]]
 
@@ -39,7 +43,19 @@ __all__ = ['vcs']
 logger = logging.getLogger(__name__)
 
 
+def is_url(name):
+    # type: (Union[str, Text]) -> bool
+    """
+    Return true if the name looks like a URL.
+    """
+    scheme = get_url_scheme(name)
+    if scheme is None:
+        return False
+    return scheme in ['http', 'https', 'file', 'ftp'] + vcs.all_schemes
+
+
 def make_vcs_requirement_url(repo_url, rev, project_name, subdir=None):
+    # type: (str, str, str, Optional[str]) -> str
     """
     Return the URL for a VCS requirement.
 
@@ -53,6 +69,34 @@ def make_vcs_requirement_url(repo_url, rev, project_name, subdir=None):
         req += '&subdirectory={}'.format(subdir)
 
     return req
+
+
+def find_path_to_setup_from_repo_root(location, repo_root):
+    # type: (str, str) -> Optional[str]
+    """
+    Find the path to `setup.py` by searching up the filesystem from `location`.
+    Return the path to `setup.py` relative to `repo_root`.
+    Return None if `setup.py` is in `repo_root` or cannot be found.
+    """
+    # find setup.py
+    orig_location = location
+    while not os.path.exists(os.path.join(location, 'setup.py')):
+        last_location = location
+        location = os.path.dirname(location)
+        if location == last_location:
+            # We've traversed up to the root of the filesystem without
+            # finding setup.py
+            logger.warning(
+                "Could not find setup.py for directory %s (tried all "
+                "parent directories)",
+                orig_location,
+            )
+            return None
+
+    if samefile(repo_root, location):
+        return None
+
+    return os.path.relpath(location, repo_root)
 
 
 class RemoteNotFoundError(Exception):
@@ -90,6 +134,7 @@ class RevOptions(object):
         self.branch_name = None  # type: Optional[str]
 
     def __repr__(self):
+        # type: () -> str
         return '<RevOptions {}: rev={!r}>'.format(self.vc_class.name, self.rev)
 
     @property
@@ -146,6 +191,7 @@ class VcsSupport(object):
         super(VcsSupport, self).__init__()
 
     def __iter__(self):
+        # type: () -> Iterator[str]
         return self._registry.__iter__()
 
     @property
@@ -193,6 +239,16 @@ class VcsSupport(object):
                 return vcs_backend
         return None
 
+    def get_backend_for_scheme(self, scheme):
+        # type: (str) -> Optional[VersionControl]
+        """
+        Return a VersionControl object or None.
+        """
+        for vcs_backend in self._registry.values():
+            if scheme in vcs_backend.schemes:
+                return vcs_backend
+        return None
+
     def get_backend(self, name):
         # type: (str) -> Optional[VersionControl]
         """
@@ -217,6 +273,7 @@ class VersionControl(object):
 
     @classmethod
     def should_add_vcs_url_prefix(cls, remote_url):
+        # type: (str) -> bool
         """
         Return whether the vcs prefix (e.g. "git+") should be added to a
         repository's remote url when used in a requirement.
@@ -224,14 +281,17 @@ class VersionControl(object):
         return not remote_url.lower().startswith('{}:'.format(cls.name))
 
     @classmethod
-    def get_subdirectory(cls, repo_dir):
+    def get_subdirectory(cls, location):
+        # type: (str) -> Optional[str]
         """
         Return the path to setup.py, relative to the repo root.
+        Return None if setup.py is in the repo root.
         """
         return None
 
     @classmethod
     def get_requirement_revision(cls, repo_dir):
+        # type: (str) -> str
         """
         Return the revision string that should be used in a requirement.
         """
@@ -239,6 +299,7 @@ class VersionControl(object):
 
     @classmethod
     def get_src_requirement(cls, repo_dir, project_name):
+        # type: (str, str) -> Optional[str]
         """
         Return the requirement string to use to redownload the files
         currently at the given repository directory.
@@ -266,6 +327,7 @@ class VersionControl(object):
 
     @staticmethod
     def get_base_rev_args(rev):
+        # type: (str) -> List[str]
         """
         Return the base revision arguments for a vcs command.
 
@@ -273,6 +335,20 @@ class VersionControl(object):
           rev: the name of a revision to install.  Cannot be None.
         """
         raise NotImplementedError
+
+    def is_immutable_rev_checkout(self, url, dest):
+        # type: (str, str) -> bool
+        """
+        Return true if the commit hash checked out at dest matches
+        the revision in url.
+
+        Always return False, if the VCS does not support immutable commit
+        hashes.
+
+        This method does not check if there are local uncommitted changes
+        in dest after checkout, as pip currently has no use case for that.
+        """
+        return False
 
     @classmethod
     def make_rev_options(cls, rev=None, extra_args=None):
@@ -308,6 +384,7 @@ class VersionControl(object):
 
     @classmethod
     def get_netloc_and_auth(cls, netloc, scheme):
+        # type: (str, str) -> Tuple[str, Tuple[Optional[str], Optional[str]]]
         """
         Parse the repository URL's netloc, and return the new netloc to use
         along with auth information.
@@ -425,6 +502,7 @@ class VersionControl(object):
 
     @classmethod
     def is_commit_id_equal(cls, dest, name):
+        # type: (str, Optional[str]) -> bool
         """
         Return whether the id of the current commit equals the given name.
 
@@ -541,6 +619,7 @@ class VersionControl(object):
 
     @classmethod
     def get_remote_url(cls, location):
+        # type: (str) -> str
         """
         Return the url used at location
 
@@ -551,6 +630,7 @@ class VersionControl(object):
 
     @classmethod
     def get_revision(cls, location):
+        # type: (str) -> str
         """
         Return the current commit id of the files at the given location.
         """
@@ -566,7 +646,8 @@ class VersionControl(object):
         extra_ok_returncodes=None,  # type: Optional[Iterable[int]]
         command_desc=None,  # type: Optional[str]
         extra_environ=None,  # type: Optional[Mapping[str, Any]]
-        spinner=None  # type: Optional[SpinnerInterface]
+        spinner=None,  # type: Optional[SpinnerInterface]
+        log_failed_cmd=True  # type: bool
     ):
         # type: (...) -> Text
         """
@@ -582,7 +663,8 @@ class VersionControl(object):
                                    command_desc=command_desc,
                                    extra_environ=extra_environ,
                                    unset_environ=cls.unset_environ,
-                                   spinner=spinner)
+                                   spinner=spinner,
+                                   log_failed_cmd=log_failed_cmd)
         except OSError as e:
             # errno.ENOENT = no such file or directory
             # In other words, the VCS executable isn't available

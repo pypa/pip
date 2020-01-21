@@ -86,9 +86,13 @@ class PipGeneralOptions(PipOptions):
 
 
 class PipIndexOptions(PipOptions):
+    required_arguments = 1
+
     def process_options(self):
+        cmd_name = self.arguments[0]
         self._format_options(
-            [o() for o in cmdoptions.index_group['options']]
+            [o() for o in cmdoptions.index_group['options']],
+            cmd_name=cmd_name,
         )
 
 

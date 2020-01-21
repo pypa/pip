@@ -1,22 +1,20 @@
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
+# mypy: disallow-untyped-defs=False
 
 from __future__ import absolute_import
 
 import contextlib
 import errno
 import getpass
+import hashlib
 import io
 import logging
 import os
 import posixpath
-import re
 import shutil
 import stat
-import subprocess
 import sys
-import tarfile
-import zipfile
 from collections import deque
 
 from pip._vendor import pkg_resources
@@ -24,13 +22,12 @@ from pip._vendor import pkg_resources
 #       why we ignore the type on this import.
 from pip._vendor.retrying import retry  # type: ignore
 from pip._vendor.six import PY2, text_type
-from pip._vendor.six.moves import input, shlex_quote
+from pip._vendor.six.moves import input
 from pip._vendor.six.moves.urllib import parse as urllib_parse
-from pip._vendor.six.moves.urllib import request as urllib_request
 from pip._vendor.six.moves.urllib.parse import unquote as urllib_unquote
 
 from pip import __version__
-from pip._internal.exceptions import CommandError, InstallationError
+from pip._internal.exceptions import CommandError
 from pip._internal.locations import (
     get_major_minor_version,
     site_packages,
@@ -38,13 +35,11 @@ from pip._internal.locations import (
 )
 from pip._internal.utils.compat import (
     WINDOWS,
-    console_to_str,
     expanduser,
     stdlib_pkgs,
     str_to_display,
 )
-from pip._internal.utils.marker_files import write_delete_marker_file
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING, cast
 from pip._internal.utils.virtualenv import (
     running_under_virtualenv,
     virtualenv_no_global,
@@ -57,61 +52,24 @@ else:
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Any, AnyStr, Container, Iterable, List, Mapping, Match, Optional, Text,
-        Tuple, Union, cast,
+        Any, AnyStr, Container, Iterable, List, Optional, Text,
+        Tuple, Union,
     )
     from pip._vendor.pkg_resources import Distribution
-    from pip._internal.models.link import Link
-    from pip._internal.utils.ui import SpinnerInterface
 
     VersionInfo = Tuple[int, int, int]
-    CommandArgs = List[Union[str, 'HiddenText']]
-else:
-    # typing's cast() is needed at runtime, but we don't want to import typing.
-    # Thus, we use a dummy no-op version, which we tell mypy to ignore.
-    def cast(type_, value):  # type: ignore
-        return value
 
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
            'ask', 'splitext',
            'format_size', 'is_installable_dir',
-           'is_svn_page', 'file_contents',
-           'split_leading_dir', 'has_leading_dir',
            'normalize_path',
            'renames', 'get_prog',
-           'unzip_file', 'untar_file', 'unpack_file', 'call_subprocess',
            'captured_stdout', 'ensure_dir',
-           'ARCHIVE_EXTENSIONS', 'SUPPORTED_EXTENSIONS', 'WHEEL_EXTENSION',
            'get_installed_version', 'remove_auth_from_url']
 
 
 logger = logging.getLogger(__name__)
-subprocess_logger = logging.getLogger('pip.subprocessor')
-
-LOG_DIVIDER = '----------------------------------------'
-
-WHEEL_EXTENSION = '.whl'
-BZ2_EXTENSIONS = ('.tar.bz2', '.tbz')
-XZ_EXTENSIONS = ('.tar.xz', '.txz', '.tlz', '.tar.lz', '.tar.lzma')
-ZIP_EXTENSIONS = ('.zip', WHEEL_EXTENSION)
-TAR_EXTENSIONS = ('.tar.gz', '.tgz', '.tar')
-ARCHIVE_EXTENSIONS = (
-    ZIP_EXTENSIONS + BZ2_EXTENSIONS + TAR_EXTENSIONS + XZ_EXTENSIONS)
-SUPPORTED_EXTENSIONS = ZIP_EXTENSIONS + TAR_EXTENSIONS
-
-try:
-    import bz2  # noqa
-    SUPPORTED_EXTENSIONS += BZ2_EXTENSIONS
-except ImportError:
-    logger.debug('bz2 module is not available')
-
-try:
-    # Only for Python 3.3+
-    import lzma  # noqa
-    SUPPORTED_EXTENSIONS += XZ_EXTENSIONS
-except ImportError:
-    logger.debug('lzma module is not available')
 
 
 def get_pip_version():
@@ -152,7 +110,8 @@ def ensure_dir(path):
     try:
         os.makedirs(path)
     except OSError as e:
-        if e.errno != errno.EEXIST:
+        # Windows can raise spurious ENOTEMPTY errors. See #6426.
+        if e.errno != errno.EEXIST and e.errno != errno.ENOTEMPTY:
             raise
 
 
@@ -181,8 +140,13 @@ def rmtree_errorhandler(func, path, exc_info):
     """On Windows, the files in .svn are read-only, so when rmtree() tries to
     remove them, an exception is thrown.  We catch that here, remove the
     read-only attribute, and hopefully continue without problems."""
-    # if file type currently read only
-    if os.stat(path).st_mode & stat.S_IREAD:
+    try:
+        has_attr_readonly = not (os.stat(path).st_mode & stat.S_IWRITE)
+    except (IOError, OSError):
+        # it's equivalent to os.path.exists
+        return
+
+    if has_attr_readonly:
         # convert to read/write
         os.chmod(path, stat.S_IWRITE)
         # use the original function to repeat the operation
@@ -302,13 +266,13 @@ def ask_password(message):
 def format_size(bytes):
     # type: (float) -> str
     if bytes > 1000 * 1000:
-        return '%.1fMB' % (bytes / 1000.0 / 1000)
+        return '%.1f MB' % (bytes / 1000.0 / 1000)
     elif bytes > 10 * 1000:
-        return '%ikB' % (bytes / 1000)
+        return '%i kB' % (bytes / 1000)
     elif bytes > 1000:
-        return '%.1fkB' % (bytes / 1000.0)
+        return '%.1f kB' % (bytes / 1000.0)
     else:
-        return '%ibytes' % bytes
+        return '%i bytes' % bytes
 
 
 def is_installable_dir(path):
@@ -326,21 +290,6 @@ def is_installable_dir(path):
     return False
 
 
-def is_svn_page(html):
-    # type: (Union[str, Text]) -> Optional[Match[Union[str, Text]]]
-    """
-    Returns true if the page appears to be the index page of an svn repository
-    """
-    return (re.search(r'<title>[^<]*Revision \d+:', html) and
-            re.search(r'Powered by (?:<a[^>]*?>)?Subversion', html, re.I))
-
-
-def file_contents(filename):
-    # type: (str) -> Text
-    with open(filename, 'rb') as fp:
-        return fp.read().decode('utf-8')
-
-
 def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE):
     """Yield pieces of data from a file-like object until EOF."""
     while True:
@@ -348,34 +297,6 @@ def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE):
         if not chunk:
             break
         yield chunk
-
-
-def split_leading_dir(path):
-    # type: (Union[str, Text]) -> List[Union[str, Text]]
-    path = path.lstrip('/').lstrip('\\')
-    if '/' in path and (('\\' in path and path.find('/') < path.find('\\')) or
-                        '\\' not in path):
-        return path.split('/', 1)
-    elif '\\' in path:
-        return path.split('\\', 1)
-    else:
-        return [path, '']
-
-
-def has_leading_dir(paths):
-    # type: (Iterable[Union[str, Text]]) -> bool
-    """Returns true if all the paths have the same leading path name
-    (i.e., everything is in one subdirectory in an archive)"""
-    common_prefix = None
-    for path in paths:
-        prefix, rest = split_leading_dir(path)
-        if not prefix:
-            return False
-        elif common_prefix is None:
-            common_prefix = prefix
-        elif prefix != common_prefix:
-            return False
-    return True
 
 
 def normalize_path(path, resolve_symlinks=True):
@@ -427,10 +348,12 @@ def is_local(path):
 
     If we're not in a virtualenv, all paths are considered "local."
 
+    Caution: this function assumes the head of path has been normalized
+    with normalize_path.
     """
     if not running_under_virtualenv():
         return True
-    return normalize_path(path).startswith(normalize_path(sys.prefix))
+    return path.startswith(normalize_path(sys.prefix))
 
 
 def dist_is_local(dist):
@@ -450,8 +373,7 @@ def dist_in_usersite(dist):
     """
     Return True if given Distribution is installed in user site.
     """
-    norm_path = normalize_path(dist_location(dist))
-    return norm_path.startswith(normalize_path(user_site))
+    return dist_location(dist).startswith(normalize_path(user_site))
 
 
 def dist_in_site_packages(dist):
@@ -460,9 +382,7 @@ def dist_in_site_packages(dist):
     Return True if given Distribution is installed in
     sysconfig.get_python_lib().
     """
-    return normalize_path(
-        dist_location(dist)
-    ).startswith(normalize_path(site_packages))
+    return dist_location(dist).startswith(normalize_path(site_packages))
 
 
 def dist_is_editable(dist):
@@ -536,8 +456,7 @@ def get_installed_distributions(
         def user_test(d):
             return True
 
-    # because of pkg_resources vendoring, mypy cannot find stub in typeshed
-    return [d for d in working_set  # type: ignore
+    return [d for d in working_set
             if local_test(d) and
             d.key not in skip and
             editable_test(d) and
@@ -567,12 +486,9 @@ def egg_link_path(dist):
     """
     sites = []
     if running_under_virtualenv():
-        if virtualenv_no_global():
-            sites.append(site_packages)
-        else:
-            sites.append(site_packages)
-            if user_site:
-                sites.append(user_site)
+        sites.append(site_packages)
+        if not virtualenv_no_global() and user_site:
+            sites.append(user_site)
     else:
         if user_site:
             sites.append(user_site)
@@ -593,412 +509,17 @@ def dist_location(dist):
     packages, where dist.location is the source code location, and we
     want to know where the egg-link file is.
 
+    The returned location is normalized (in particular, with symlinks removed).
     """
     egg_link = egg_link_path(dist)
     if egg_link:
-        return egg_link
-    return dist.location
-
-
-def current_umask():
-    """Get the current umask which involves having to set it temporarily."""
-    mask = os.umask(0)
-    os.umask(mask)
-    return mask
-
-
-def unzip_file(filename, location, flatten=True):
-    # type: (str, str, bool) -> None
-    """
-    Unzip the file (with path `filename`) to the destination `location`.  All
-    files are written based on system defaults and umask (i.e. permissions are
-    not preserved), except that regular file members with any execute
-    permissions (user, group, or world) have "chmod +x" applied after being
-    written. Note that for windows, any execute changes using os.chmod are
-    no-ops per the python docs.
-    """
-    ensure_dir(location)
-    zipfp = open(filename, 'rb')
-    try:
-        zip = zipfile.ZipFile(zipfp, allowZip64=True)
-        leading = has_leading_dir(zip.namelist()) and flatten
-        for info in zip.infolist():
-            name = info.filename
-            fn = name
-            if leading:
-                fn = split_leading_dir(name)[1]
-            fn = os.path.join(location, fn)
-            dir = os.path.dirname(fn)
-            if fn.endswith('/') or fn.endswith('\\'):
-                # A directory
-                ensure_dir(fn)
-            else:
-                ensure_dir(dir)
-                # Don't use read() to avoid allocating an arbitrarily large
-                # chunk of memory for the file's content
-                fp = zip.open(name)
-                try:
-                    with open(fn, 'wb') as destfp:
-                        shutil.copyfileobj(fp, destfp)
-                finally:
-                    fp.close()
-                    mode = info.external_attr >> 16
-                    # if mode and regular file and any execute permissions for
-                    # user/group/world?
-                    if mode and stat.S_ISREG(mode) and mode & 0o111:
-                        # make dest file have execute for user/group/world
-                        # (chmod +x) no-op on windows per python docs
-                        os.chmod(fn, (0o777 - current_umask() | 0o111))
-    finally:
-        zipfp.close()
-
-
-def untar_file(filename, location):
-    # type: (str, str) -> None
-    """
-    Untar the file (with path `filename`) to the destination `location`.
-    All files are written based on system defaults and umask (i.e. permissions
-    are not preserved), except that regular file members with any execute
-    permissions (user, group, or world) have "chmod +x" applied after being
-    written.  Note that for windows, any execute changes using os.chmod are
-    no-ops per the python docs.
-    """
-    ensure_dir(location)
-    if filename.lower().endswith('.gz') or filename.lower().endswith('.tgz'):
-        mode = 'r:gz'
-    elif filename.lower().endswith(BZ2_EXTENSIONS):
-        mode = 'r:bz2'
-    elif filename.lower().endswith(XZ_EXTENSIONS):
-        mode = 'r:xz'
-    elif filename.lower().endswith('.tar'):
-        mode = 'r'
-    else:
-        logger.warning(
-            'Cannot determine compression type for file %s', filename,
-        )
-        mode = 'r:*'
-    tar = tarfile.open(filename, mode)
-    try:
-        leading = has_leading_dir([
-            member.name for member in tar.getmembers()
-        ])
-        for member in tar.getmembers():
-            fn = member.name
-            if leading:
-                # https://github.com/python/mypy/issues/1174
-                fn = split_leading_dir(fn)[1]  # type: ignore
-            path = os.path.join(location, fn)
-            if member.isdir():
-                ensure_dir(path)
-            elif member.issym():
-                try:
-                    # https://github.com/python/typeshed/issues/2673
-                    tar._extract_member(member, path)  # type: ignore
-                except Exception as exc:
-                    # Some corrupt tar files seem to produce this
-                    # (specifically bad symlinks)
-                    logger.warning(
-                        'In the tar file %s the member %s is invalid: %s',
-                        filename, member.name, exc,
-                    )
-                    continue
-            else:
-                try:
-                    fp = tar.extractfile(member)
-                except (KeyError, AttributeError) as exc:
-                    # Some corrupt tar files seem to produce this
-                    # (specifically bad symlinks)
-                    logger.warning(
-                        'In the tar file %s the member %s is invalid: %s',
-                        filename, member.name, exc,
-                    )
-                    continue
-                ensure_dir(os.path.dirname(path))
-                with open(path, 'wb') as destfp:
-                    shutil.copyfileobj(fp, destfp)
-                fp.close()
-                # Update the timestamp (useful for cython compiled files)
-                # https://github.com/python/typeshed/issues/2673
-                tar.utime(member, path)  # type: ignore
-                # member have any execute permissions for user/group/world?
-                if member.mode & 0o111:
-                    # make dest file have execute for user/group/world
-                    # no-op on windows per python docs
-                    os.chmod(path, (0o777 - current_umask() | 0o111))
-    finally:
-        tar.close()
-
-
-def unpack_file(
-    filename,  # type: str
-    location,  # type: str
-    content_type,  # type: Optional[str]
-    link  # type: Optional[Link]
-):
-    # type: (...) -> None
-    filename = os.path.realpath(filename)
-    if (content_type == 'application/zip' or
-            filename.lower().endswith(ZIP_EXTENSIONS) or
-            zipfile.is_zipfile(filename)):
-        unzip_file(
-            filename,
-            location,
-            flatten=not filename.endswith('.whl')
-        )
-    elif (content_type == 'application/x-gzip' or
-            tarfile.is_tarfile(filename) or
-            filename.lower().endswith(
-                TAR_EXTENSIONS + BZ2_EXTENSIONS + XZ_EXTENSIONS)):
-        untar_file(filename, location)
-    elif (content_type and content_type.startswith('text/html') and
-            is_svn_page(file_contents(filename))):
-        # We don't really care about this
-        from pip._internal.vcs.subversion import Subversion
-        hidden_url = hide_url('svn+' + link.url)
-        Subversion().unpack(location, url=hidden_url)
-    else:
-        # FIXME: handle?
-        # FIXME: magic signatures?
-        logger.critical(
-            'Cannot unpack file %s (downloaded from %s, content-type: %s); '
-            'cannot detect archive format',
-            filename, location, content_type,
-        )
-        raise InstallationError(
-            'Cannot determine archive format of %s' % location
-        )
-
-
-def make_command(*args):
-    # type: (Union[str, HiddenText, CommandArgs]) -> CommandArgs
-    """
-    Create a CommandArgs object.
-    """
-    command_args = []  # type: CommandArgs
-    for arg in args:
-        # Check for list instead of CommandArgs since CommandArgs is
-        # only known during type-checking.
-        if isinstance(arg, list):
-            command_args.extend(arg)
-        else:
-            # Otherwise, arg is str or HiddenText.
-            command_args.append(arg)
-
-    return command_args
-
-
-def format_command_args(args):
-    # type: (Union[List[str], CommandArgs]) -> str
-    """
-    Format command arguments for display.
-    """
-    # For HiddenText arguments, display the redacted form by calling str().
-    # Also, we don't apply str() to arguments that aren't HiddenText since
-    # this can trigger a UnicodeDecodeError in Python 2 if the argument
-    # has type unicode and includes a non-ascii character.  (The type
-    # checker doesn't ensure the annotations are correct in all cases.)
-    return ' '.join(
-        shlex_quote(str(arg)) if isinstance(arg, HiddenText)
-        else shlex_quote(arg) for arg in args
-    )
-
-
-def reveal_command_args(args):
-    # type: (Union[List[str], CommandArgs]) -> List[str]
-    """
-    Return the arguments in their raw, unredacted form.
-    """
-    return [
-        arg.secret if isinstance(arg, HiddenText) else arg for arg in args
-    ]
-
-
-def make_subprocess_output_error(
-    cmd_args,     # type: Union[List[str], CommandArgs]
-    cwd,          # type: Optional[str]
-    lines,        # type: List[Text]
-    exit_status,  # type: int
-):
-    # type: (...) -> Text
-    """
-    Create and return the error message to use to log a subprocess error
-    with command output.
-
-    :param lines: A list of lines, each ending with a newline.
-    """
-    command = format_command_args(cmd_args)
-    # Convert `command` and `cwd` to text (unicode in Python 2) so we can use
-    # them as arguments in the unicode format string below. This avoids
-    # "UnicodeDecodeError: 'ascii' codec can't decode byte ..." in Python 2
-    # if either contains a non-ascii character.
-    command_display = str_to_display(command, desc='command bytes')
-    cwd_display = path_to_display(cwd)
-
-    # We know the joined output value ends in a newline.
-    output = ''.join(lines)
-    msg = (
-        # Use a unicode string to avoid "UnicodeEncodeError: 'ascii'
-        # codec can't encode character ..." in Python 2 when a format
-        # argument (e.g. `output`) has a non-ascii character.
-        u'Command errored out with exit status {exit_status}:\n'
-        ' command: {command_display}\n'
-        '     cwd: {cwd_display}\n'
-        'Complete output ({line_count} lines):\n{output}{divider}'
-    ).format(
-        exit_status=exit_status,
-        command_display=command_display,
-        cwd_display=cwd_display,
-        line_count=len(lines),
-        output=output,
-        divider=LOG_DIVIDER,
-    )
-    return msg
-
-
-def call_subprocess(
-    cmd,  # type: Union[List[str], CommandArgs]
-    show_stdout=False,  # type: bool
-    cwd=None,  # type: Optional[str]
-    on_returncode='raise',  # type: str
-    extra_ok_returncodes=None,  # type: Optional[Iterable[int]]
-    command_desc=None,  # type: Optional[str]
-    extra_environ=None,  # type: Optional[Mapping[str, Any]]
-    unset_environ=None,  # type: Optional[Iterable[str]]
-    spinner=None  # type: Optional[SpinnerInterface]
-):
-    # type: (...) -> Text
-    """
-    Args:
-      show_stdout: if true, use INFO to log the subprocess's stderr and
-        stdout streams.  Otherwise, use DEBUG.  Defaults to False.
-      extra_ok_returncodes: an iterable of integer return codes that are
-        acceptable, in addition to 0. Defaults to None, which means [].
-      unset_environ: an iterable of environment variable names to unset
-        prior to calling subprocess.Popen().
-    """
-    if extra_ok_returncodes is None:
-        extra_ok_returncodes = []
-    if unset_environ is None:
-        unset_environ = []
-    # Most places in pip use show_stdout=False. What this means is--
-    #
-    # - We connect the child's output (combined stderr and stdout) to a
-    #   single pipe, which we read.
-    # - We log this output to stderr at DEBUG level as it is received.
-    # - If DEBUG logging isn't enabled (e.g. if --verbose logging wasn't
-    #   requested), then we show a spinner so the user can still see the
-    #   subprocess is in progress.
-    # - If the subprocess exits with an error, we log the output to stderr
-    #   at ERROR level if it hasn't already been displayed to the console
-    #   (e.g. if --verbose logging wasn't enabled).  This way we don't log
-    #   the output to the console twice.
-    #
-    # If show_stdout=True, then the above is still done, but with DEBUG
-    # replaced by INFO.
-    if show_stdout:
-        # Then log the subprocess output at INFO level.
-        log_subprocess = subprocess_logger.info
-        used_level = logging.INFO
-    else:
-        # Then log the subprocess output using DEBUG.  This also ensures
-        # it will be logged to the log file (aka user_log), if enabled.
-        log_subprocess = subprocess_logger.debug
-        used_level = logging.DEBUG
-
-    # Whether the subprocess will be visible in the console.
-    showing_subprocess = subprocess_logger.getEffectiveLevel() <= used_level
-
-    # Only use the spinner if we're not showing the subprocess output
-    # and we have a spinner.
-    use_spinner = not showing_subprocess and spinner is not None
-
-    if command_desc is None:
-        command_desc = format_command_args(cmd)
-
-    log_subprocess("Running command %s", command_desc)
-    env = os.environ.copy()
-    if extra_environ:
-        env.update(extra_environ)
-    for name in unset_environ:
-        env.pop(name, None)
-    try:
-        proc = subprocess.Popen(
-            # Convert HiddenText objects to the underlying str.
-            reveal_command_args(cmd),
-            stderr=subprocess.STDOUT, stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE, cwd=cwd, env=env,
-        )
-        proc.stdin.close()
-    except Exception as exc:
-        subprocess_logger.critical(
-            "Error %s while executing command %s", exc, command_desc,
-        )
-        raise
-    all_output = []
-    while True:
-        # The "line" value is a unicode string in Python 2.
-        line = console_to_str(proc.stdout.readline())
-        if not line:
-            break
-        line = line.rstrip()
-        all_output.append(line + '\n')
-
-        # Show the line immediately.
-        log_subprocess(line)
-        # Update the spinner.
-        if use_spinner:
-            spinner.spin()
-    try:
-        proc.wait()
-    finally:
-        if proc.stdout:
-            proc.stdout.close()
-    proc_had_error = (
-        proc.returncode and proc.returncode not in extra_ok_returncodes
-    )
-    if use_spinner:
-        if proc_had_error:
-            spinner.finish("error")
-        else:
-            spinner.finish("done")
-    if proc_had_error:
-        if on_returncode == 'raise':
-            if not showing_subprocess:
-                # Then the subprocess streams haven't been logged to the
-                # console yet.
-                msg = make_subprocess_output_error(
-                    cmd_args=cmd,
-                    cwd=cwd,
-                    lines=all_output,
-                    exit_status=proc.returncode,
-                )
-                subprocess_logger.error(msg)
-            exc_msg = (
-                'Command errored out with exit status {}: {} '
-                'Check the logs for full command output.'
-            ).format(proc.returncode, command_desc)
-            raise InstallationError(exc_msg)
-        elif on_returncode == 'warn':
-            subprocess_logger.warning(
-                'Command "%s" had error code %s in %s',
-                command_desc, proc.returncode, cwd,
-            )
-        elif on_returncode == 'ignore':
-            pass
-        else:
-            raise ValueError('Invalid value: on_returncode=%s' %
-                             repr(on_returncode))
-    return ''.join(all_output)
+        return normalize_path(egg_link)
+    return normalize_path(dist.location)
 
 
 def write_output(msg, *args):
     # type: (str, str) -> None
     logger.info(msg, *args)
-
-
-def _make_build_dir(build_dir):
-    os.makedirs(build_dir)
-    write_delete_marker_file(build_dir)
 
 
 class FakeFile(object):
@@ -1118,17 +639,6 @@ def enum(*sequential, **named):
     return type('Enum', (), enums)
 
 
-def path_to_url(path):
-    # type: (Union[str, Text]) -> str
-    """
-    Convert a path to a file: URL.  The path will be made absolute and have
-    quoted path parts.
-    """
-    path = os.path.normpath(os.path.abspath(path))
-    url = urllib_parse.urljoin('file:', urllib_request.pathname2url(path))
-    return url
-
-
 def build_netloc(host, port):
     # type: (str, Optional[int]) -> str
     """
@@ -1194,15 +704,22 @@ def split_auth_from_netloc(netloc):
 def redact_netloc(netloc):
     # type: (str) -> str
     """
-    Replace the password in a netloc with "****", if it exists.
+    Replace the sensitive data in a netloc with "****", if it exists.
 
-    For example, "user:pass@example.com" returns "user:****@example.com".
+    For example:
+        - "user:pass@example.com" returns "user:****@example.com"
+        - "accesstoken@example.com" returns "****@example.com"
     """
     netloc, (user, password) = split_auth_from_netloc(netloc)
     if user is None:
         return netloc
-    password = '' if password is None else ':****'
-    return '{user}{password}@{netloc}'.format(user=urllib_parse.quote(user),
+    if password is None:
+        user = '****'
+        password = ''
+    else:
+        user = urllib_parse.quote(user)
+        password = ':****'
+    return '{user}{password}@{netloc}'.format(user=user,
                                               password=password,
                                               netloc=netloc)
 
@@ -1254,7 +771,7 @@ def remove_auth_from_url(url):
     return _transform_url(url, _get_netloc)[0]
 
 
-def redact_password_from_url(url):
+def redact_auth_from_url(url):
     # type: (str) -> str
     """Replace the password in a given url with ****."""
     return _transform_url(url, _redact_netloc)[0]
@@ -1302,21 +819,22 @@ def hide_value(value):
 
 def hide_url(url):
     # type: (str) -> HiddenText
-    redacted = redact_password_from_url(url)
+    redacted = redact_auth_from_url(url)
     return HiddenText(url, redacted=redacted)
 
 
 def protect_pip_from_modification_on_windows(modifying_pip):
+    # type: (bool) -> None
     """Protection of pip.exe from modification on Windows
 
     On Windows, any operation modifying pip should be run as:
         python -m pip ...
     """
-    pip_names = set()
-    for ext in ('', '.exe'):
-        pip_names.add('pip{ext}'.format(ext=ext))
-        pip_names.add('pip{}{ext}'.format(sys.version_info[0], ext=ext))
-        pip_names.add('pip{}.{}{ext}'.format(*sys.version_info[:2], ext=ext))
+    pip_names = [
+        "pip.exe",
+        "pip{}.exe".format(sys.version_info[0]),
+        "pip{}.{}.exe".format(*sys.version_info[:2])
+    ]
 
     # See https://github.com/pypa/pip/issues/1299 for more discussion
     should_show_use_python_msg = (
@@ -1333,3 +851,36 @@ def protect_pip_from_modification_on_windows(modifying_pip):
             'To modify pip, please run the following command:\n{}'
             .format(" ".join(new_command))
         )
+
+
+def is_console_interactive():
+    # type: () -> bool
+    """Is this console interactive?
+    """
+    return sys.stdin is not None and sys.stdin.isatty()
+
+
+def hash_file(path, blocksize=1 << 20):
+    # type: (str, int) -> Tuple[Any, int]
+    """Return (hash, length) for path using hashlib.sha256()
+    """
+
+    h = hashlib.sha256()
+    length = 0
+    with open(path, 'rb') as f:
+        for block in read_chunks(f, size=blocksize):
+            length += len(block)
+            h.update(block)
+    return h, length
+
+
+def is_wheel_installed():
+    """
+    Return whether the wheel package is installed.
+    """
+    try:
+        import wheel  # noqa: F401
+    except ImportError:
+        return False
+
+    return True

@@ -3,6 +3,7 @@
 
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
+# mypy: disallow-untyped-defs=False
 
 import logging
 import os
@@ -15,14 +16,14 @@ from sysconfig import get_paths
 from pip._vendor.pkg_resources import Requirement, VersionConflict, WorkingSet
 
 from pip import __file__ as pip_location
-from pip._internal.utils.misc import call_subprocess
+from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import open_spinner
 
 if MYPY_CHECK_RUNNING:
     from typing import Tuple, Set, Iterable, Optional, List
-    from pip._internal.index import PackageFinder
+    from pip._internal.index.package_finder import PackageFinder
 
 logger = logging.getLogger(__name__)
 
@@ -54,7 +55,6 @@ class BuildEnvironment(object):
     def __init__(self):
         # type: () -> None
         self._temp_dir = TempDirectory(kind="build-env")
-        self._temp_dir.create()
 
         self._prefixes = OrderedDict((
             (name, _Prefix(os.path.join(self._temp_dir.path, name)))

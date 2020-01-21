@@ -1,23 +1,29 @@
 from __future__ import absolute_import
 
-from contextlib import contextmanager
-from textwrap import dedent
 import os
-import sys
 import re
-import textwrap
-import site
 import shutil
+import site
 import subprocess
+import sys
+import textwrap
+from base64 import urlsafe_b64encode
+from contextlib import contextmanager
+from hashlib import sha256
+from io import BytesIO
+from textwrap import dedent
+from zipfile import ZipFile
 
 import pytest
+from pip._vendor.six import PY2, ensure_binary, text_type
 from scripttest import FoundDir, TestFileEnvironment
 
-from pip._internal.download import PipSession
-from pip._internal.index import PackageFinder
+from pip._internal.index.collector import LinkCollector
+from pip._internal.index.package_finder import PackageFinder
 from pip._internal.locations import get_major_minor_version
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
+from pip._internal.network.session import PipSession
 from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from tests.lib.path import Path, curdir
@@ -27,8 +33,8 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.models.target_python import TargetPython
 
 
-DATA_DIR = Path(__file__).parent.parent.joinpath("data").abspath
-SRC_DIR = Path(__file__).abspath.parent.parent.parent
+DATA_DIR = Path(__file__).parent.parent.joinpath("data").resolve()
+SRC_DIR = Path(__file__).resolve().parent.parent.parent
 
 pyversion = get_major_minor_version()
 pyversion_tuple = sys.version_info
@@ -64,7 +70,7 @@ def _test_path_to_file_url(path):
     Args:
       path: a tests.lib.path.Path object.
     """
-    return 'file://' + path.abspath.replace('\\', '/')
+    return 'file://' + path.resolve().replace('\\', '/')
 
 
 def create_file(path, contents=None):
@@ -80,6 +86,38 @@ def create_file(path, contents=None):
             f.write("\n")
 
 
+def make_test_search_scope(
+    find_links=None,  # type: Optional[List[str]]
+    index_urls=None,  # type: Optional[List[str]]
+):
+    if find_links is None:
+        find_links = []
+    if index_urls is None:
+        index_urls = []
+
+    return SearchScope.create(find_links=find_links, index_urls=index_urls)
+
+
+def make_test_link_collector(
+    find_links=None,  # type: Optional[List[str]]
+    index_urls=None,  # type: Optional[List[str]]
+    session=None,     # type: Optional[PipSession]
+):
+    # type: (...) -> LinkCollector
+    """
+    Create a LinkCollector object for testing purposes.
+    """
+    if session is None:
+        session = PipSession()
+
+    search_scope = make_test_search_scope(
+        find_links=find_links,
+        index_urls=index_urls,
+    )
+
+    return LinkCollector(session=session, search_scope=search_scope)
+
+
 def make_test_finder(
     find_links=None,  # type: Optional[List[str]]
     index_urls=None,  # type: Optional[List[str]]
@@ -91,16 +129,10 @@ def make_test_finder(
     """
     Create a PackageFinder for testing purposes.
     """
-    if find_links is None:
-        find_links = []
-    if index_urls is None:
-        index_urls = []
-    if session is None:
-        session = PipSession()
-
-    search_scope = SearchScope.create(
+    link_collector = make_test_link_collector(
         find_links=find_links,
         index_urls=index_urls,
+        session=session,
     )
     selection_prefs = SelectionPreferences(
         allow_yanked=True,
@@ -108,9 +140,8 @@ def make_test_finder(
     )
 
     return PackageFinder.create(
-        search_scope=search_scope,
+        link_collector=link_collector,
         selection_prefs=selection_prefs,
-        session=session,
         target_python=target_python,
     )
 
@@ -129,7 +160,7 @@ class TestData(object):
 
     def __init__(self, root, source=None):
         self.source = source or DATA_DIR
-        self.root = Path(root).abspath
+        self.root = Path(root).resolve()
 
     @classmethod
     def copy(cls, root):
@@ -421,11 +452,12 @@ class PipTestEnvironment(TestFileEnvironment):
             self.user_bin_path = scripts_base.joinpath('Scripts')
         else:
             self.user_bin_path = self.user_base_path.joinpath(
-                self.bin_path - self.venv_path
+                os.path.relpath(self.bin_path, self.venv_path)
             )
 
         # Create a Directory to use as a scratch pad
-        self.scratch_path = base_path.joinpath("scratch").mkdir()
+        self.scratch_path = base_path.joinpath("scratch")
+        self.scratch_path.mkdir()
 
         # Set our default working directory
         kwargs.setdefault("cwd", self.scratch_path)
@@ -456,7 +488,10 @@ class PipTestEnvironment(TestFileEnvironment):
         for name in ["base", "venv", "bin", "lib", "site_packages",
                      "user_base", "user_site", "user_bin", "scratch"]:
             real_name = "%s_path" % name
-            setattr(self, name, getattr(self, real_name) - self.base_path)
+            relative_path = Path(os.path.relpath(
+                getattr(self, real_name), self.base_path
+            ))
+            setattr(self, name, relative_path)
 
         # Make sure temp_path is a Path object
         self.temp_path = Path(self.temp_path)
@@ -685,8 +720,13 @@ def _create_main_file(dir_path, name=None, output=None):
     dir_path.joinpath(filename).write_text(text)
 
 
-def _git_commit(env_or_script, repo_dir, message=None, args=None,
-                expect_stderr=False):
+def _git_commit(
+    env_or_script,
+    repo_dir,
+    message=None,
+    allow_empty=False,
+    stage_modified=False,
+):
     """
     Run git-commit.
 
@@ -694,19 +734,24 @@ def _git_commit(env_or_script, repo_dir, message=None, args=None,
       env_or_script: pytest's `script` or `env` argument.
       repo_dir: a path to a Git repository.
       message: an optional commit message.
-      args: optional additional options to pass to git-commit.
     """
     if message is None:
         message = 'test commit'
-    if args is None:
-        args = []
+
+    args = []
+
+    if allow_empty:
+        args.append("--allow-empty")
+
+    if stage_modified:
+        args.append("--all")
 
     new_args = [
         'git', 'commit', '-q', '--author', 'pip <pypa-dev@googlegroups.com>',
     ]
     new_args.extend(args)
     new_args.extend(['-m', message])
-    env_or_script.run(*new_args, cwd=repo_dir, expect_stderr=expect_stderr)
+    env_or_script.run(*new_args, cwd=repo_dir)
 
 
 def _vcs_add(script, version_pkg_path, vcs='git'):
@@ -845,8 +890,7 @@ def _change_test_package_version(script, version_pkg_path):
     )
     # Pass -a to stage the change to the main file.
     _git_commit(
-        script, version_pkg_path, message='messed version', args=['-a'],
-        expect_stderr=True,
+        script, version_pkg_path, message='messed version', stage_modified=True
     )
 
 
@@ -890,15 +934,54 @@ def create_test_package_with_setup(script, **setup_kwargs):
     return pkg_path
 
 
-def create_basic_wheel_for_package(script, name, version,
-                                   depends=None, extras=None):
+def urlsafe_b64encode_nopad(data):
+    # type: (bytes) -> str
+    return urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
+
+
+def create_really_basic_wheel(name, version):
+    # type: (str, str) -> bytes
+    def digest(contents):
+        return "sha256={}".format(
+            urlsafe_b64encode_nopad(sha256(contents).digest())
+        )
+
+    def add_file(path, text):
+        contents = text.encode("utf-8")
+        z.writestr(path, contents)
+        records.append((path, digest(contents), str(len(contents))))
+
+    dist_info = "{}-{}.dist-info".format(name, version)
+    record_path = "{}/RECORD".format(dist_info)
+    records = [(record_path, "", "")]
+    buf = BytesIO()
+    with ZipFile(buf, "w") as z:
+        add_file("{}/WHEEL".format(dist_info), "Wheel-Version: 1.0")
+        add_file(
+            "{}/METADATA".format(dist_info),
+            dedent(
+                """\
+                Metadata-Version: 2.1
+                Name: {}
+                Version: {}
+                """.format(name, version)
+            ),
+        )
+        z.writestr(record_path, "\n".join(",".join(r) for r in records))
+    buf.seek(0)
+    return buf.read()
+
+
+def create_basic_wheel_for_package(
+    script, name, version, depends=None, extras=None, extra_files=None
+):
     if depends is None:
         depends = []
     if extras is None:
         extras = {}
     files = {
         "{name}/__init__.py": """
-            __version__ = {version}
+            __version__ = {version!r}
             def hello():
                 return "Hello From {name}"
         """,
@@ -960,13 +1043,25 @@ def create_basic_wheel_for_package(script, name, version,
             name=name, version=version, requires_dist=requires_dist
         ).strip()
 
+    # Add new files after formatting
+    if extra_files:
+        files.update(extra_files)
+
     for fname in files:
         path = script.temp_path / fname
-        path.parent.mkdir()
-        path.write_text(files[fname])
+        path.parent.mkdir(exist_ok=True, parents=True)
+        path.write_bytes(ensure_binary(files[fname]))
 
+    # The base_dir cast is required to make `shutil.make_archive()` use
+    # Unicode paths on Python 2, making it able to properly archive
+    # files with non-ASCII names.
     retval = script.scratch_path / archive_name
-    generated = shutil.make_archive(retval, 'zip', script.temp_path)
+    generated = shutil.make_archive(
+        retval,
+        'zip',
+        root_dir=script.temp_path,
+        base_dir=text_type(os.curdir),
+    )
     shutil.move(generated, retval)
 
     shutil.rmtree(script.temp_path)
@@ -1007,7 +1102,17 @@ def need_bzr(fn):
     )(fn))
 
 
+def need_svn(fn):
+    return pytest.mark.svn(need_executable(
+        'Subversion', ('svn', '--version')
+    )(fn))
+
+
 def need_mercurial(fn):
     return pytest.mark.mercurial(need_executable(
         'Mercurial', ('hg', 'version')
     )(fn))
+
+
+skip_if_python2 = pytest.mark.skipif(PY2, reason="Non-Python 2 only")
+skip_if_not_python2 = pytest.mark.skipif(not PY2, reason="Python 2 only")

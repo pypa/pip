@@ -1,3 +1,6 @@
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 from __future__ import absolute_import
 
 import logging
@@ -9,13 +12,14 @@ from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip._internal.exceptions import BadCommand
-from pip._internal.utils.compat import samefile
-from pip._internal.utils.misc import display_path, make_command
+from pip._internal.utils.misc import display_path, hide_url
+from pip._internal.utils.subprocess import make_command
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs.versioncontrol import (
     RemoteNotFoundError,
     VersionControl,
+    find_path_to_setup_from_repo_root,
     vcs,
 )
 
@@ -54,6 +58,23 @@ class Git(VersionControl):
     @staticmethod
     def get_base_rev_args(rev):
         return [rev]
+
+    def is_immutable_rev_checkout(self, url, dest):
+        # type: (str, str) -> bool
+        _, rev_options = self.get_url_rev_options(hide_url(url))
+        if not rev_options.rev:
+            return False
+        if not self.is_commit_id_equal(dest, rev_options.rev):
+            # the current commit is different from rev,
+            # which means rev was something else than a commit hash
+            return False
+        # return False in the rare case rev is both a commit hash
+        # and a tag or a branch; we don't want to cache in that case
+        # because that branch/tag could point to something else in the future
+        is_tag_or_branch = bool(
+            self.get_revision_sha(dest, rev_options.rev)[0]
+        )
+        return not is_tag_or_branch
 
     def get_git_version(self):
         VERSION_PFX = 'git version '
@@ -291,30 +312,18 @@ class Git(VersionControl):
 
     @classmethod
     def get_subdirectory(cls, location):
+        """
+        Return the path to setup.py, relative to the repo root.
+        Return None if setup.py is in the repo root.
+        """
         # find the repo root
-        git_dir = cls.run_command(['rev-parse', '--git-dir'],
-                                  show_stdout=False, cwd=location).strip()
+        git_dir = cls.run_command(
+            ['rev-parse', '--git-dir'],
+            show_stdout=False, cwd=location).strip()
         if not os.path.isabs(git_dir):
             git_dir = os.path.join(location, git_dir)
-        root_dir = os.path.join(git_dir, '..')
-        # find setup.py
-        orig_location = location
-        while not os.path.exists(os.path.join(location, 'setup.py')):
-            last_location = location
-            location = os.path.dirname(location)
-            if location == last_location:
-                # We've traversed up to the root of the filesystem without
-                # finding setup.py
-                logger.warning(
-                    "Could not find setup.py for directory %s (tried all "
-                    "parent directories)",
-                    orig_location,
-                )
-                return None
-        # relative path of setup.py to repo root
-        if samefile(root_dir, location):
-            return None
-        return os.path.relpath(location, root_dir)
+        repo_root = os.path.abspath(os.path.join(git_dir, '..'))
+        return find_path_to_setup_from_repo_root(location, repo_root)
 
     @classmethod
     def get_url_rev_and_auth(cls, url):
@@ -368,7 +377,8 @@ class Git(VersionControl):
             r = cls.run_command(['rev-parse'],
                                 cwd=location,
                                 show_stdout=False,
-                                on_returncode='ignore')
+                                on_returncode='ignore',
+                                log_failed_cmd=False)
             return not r
         except BadCommand:
             logger.debug("could not determine if %s is under git control "

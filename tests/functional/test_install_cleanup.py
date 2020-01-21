@@ -47,10 +47,7 @@ def test_cleanup_after_install_editable_from_hg(script, tmpdir):
         'install',
         '-e',
         '%s#egg=ScriptTest' %
-        local_checkout(
-            'hg+https://bitbucket.org/ianb/scripttest',
-            tmpdir.joinpath("cache"),
-        ),
+        local_checkout('hg+https://bitbucket.org/ianb/scripttest', tmpdir),
     )
     build = script.venv_path / 'build'
     src = script.venv_path / 'src'
@@ -64,7 +61,7 @@ def test_cleanup_after_install_from_local_directory(script, data):
     Test clean up after installing from a local directory.
     """
     to_install = data.packages.joinpath("FSPkg")
-    script.pip('install', to_install, expect_error=False)
+    script.pip('install', to_install)
     build = script.venv_path / 'build'
     src = script.venv_path / 'src'
     assert not exists(build), "unexpected build/ dir exists: %s" % build
@@ -72,7 +69,7 @@ def test_cleanup_after_install_from_local_directory(script, data):
     script.assert_no_temp()
 
 
-def test_cleanup_req_satisifed_no_name(script, data):
+def test_cleanup_req_satisfied_no_name(script, data):
     """
     Test cleanup when req is already satisfied, and req has no 'name'
     """
@@ -139,3 +136,19 @@ def test_cleanup_prevented_upon_build_dir_exception(script, data):
     assert result.returncode == PREVIOUS_BUILD_DIR_ERROR, str(result)
     assert "pip can't proceed" in result.stderr, str(result)
     assert exists(build_simple), str(result)
+
+
+@pytest.mark.network
+def test_pep517_no_legacy_cleanup(script, data, with_wheel):
+    """Test a PEP 517 failed build does not attempt a legacy cleanup"""
+    to_install = data.packages.joinpath('pep517_wrapper_buildsys')
+    script.environ["PIP_TEST_FAIL_BUILD_WHEEL"] = "1"
+    res = script.pip(
+        'install', '-f', data.find_links, to_install,
+        expect_error=True
+    )
+    # Must not have built the package
+    expected = "Failed building wheel for pep517-wrapper-buildsys"
+    assert expected in str(res)
+    # Must not have attempted legacy cleanup
+    assert "setup.py clean" not in str(res)

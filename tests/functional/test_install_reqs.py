@@ -5,11 +5,13 @@ import pytest
 
 from tests.lib import (
     _create_test_package_with_subdirectory,
+    need_svn,
     path_to_url,
     pyversion,
     requirements_file,
 )
 from tests.lib.local_repos import local_checkout
+from tests.lib.path import Path
 
 
 @pytest.mark.network
@@ -55,7 +57,15 @@ def test_schema_check_in_requirements_file(script):
         )
 
 
-def test_relative_requirements_file(script, data):
+@pytest.mark.parametrize("test_type,editable", [
+    ("rel_path", False),
+    ("rel_path", True),
+    ("rel_url", False),
+    ("rel_url", True),
+    ("embedded_rel_path", False),
+    ("embedded_rel_path", True),
+])
+def test_relative_requirements_file(script, data, test_type, editable):
     """
     Test installing from a requirements file with a relative path. For path
     URLs, use an egg= definition.
@@ -70,34 +80,37 @@ def test_relative_requirements_file(script, data):
     package_folder = script.site_packages / 'fspkg'
 
     # Compute relative install path to FSPkg from scratch path.
-    full_rel_path = data.packages.joinpath('FSPkg') - script.scratch_path
+    full_rel_path = Path(
+        os.path.relpath(data.packages.joinpath('FSPkg'), script.scratch_path)
+    )
     full_rel_url = 'file:' + full_rel_path + '#egg=FSPkg'
     embedded_rel_path = script.scratch_path.joinpath(full_rel_path)
 
-    # For each relative path, install as either editable or not using either
-    # URLs with egg links or not.
-    for req_path in (full_rel_path, full_rel_url, embedded_rel_path):
-        req_path = req_path.replace(os.path.sep, '/')
-        # Regular install.
+    req_path = {
+        "rel_path": full_rel_path,
+        "rel_url": full_rel_url,
+        "embedded_rel_path": embedded_rel_path,
+    }[test_type]
+
+    req_path = req_path.replace(os.path.sep, '/')
+    # Install as either editable or not.
+    if not editable:
         with requirements_file(req_path + '\n',
                                script.scratch_path) as reqs_file:
             result = script.pip('install', '-vvv', '-r', reqs_file.name,
                                 cwd=script.scratch_path)
             assert egg_info_file in result.files_created, str(result)
             assert package_folder in result.files_created, str(result)
-            script.pip('uninstall', '-y', 'fspkg')
-
-        # Editable install.
+    else:
         with requirements_file('-e ' + req_path + '\n',
                                script.scratch_path) as reqs_file:
             result = script.pip('install', '-vvv', '-r', reqs_file.name,
                                 cwd=script.scratch_path)
             assert egg_link_file in result.files_created, str(result)
-            script.pip('uninstall', '-y', 'fspkg')
 
 
 @pytest.mark.network
-@pytest.mark.svn
+@need_svn
 def test_multiple_requirements_files(script, tmpdir):
     """
     Test installing from multiple nested requirements files.
@@ -110,10 +123,7 @@ def test_multiple_requirements_files(script, tmpdir):
             -r %s-req.txt
         """) %
         (
-            local_checkout(
-                'svn+http://svn.colorstudy.com/INITools/trunk',
-                tmpdir.joinpath("cache"),
-            ),
+            local_checkout('svn+http://svn.colorstudy.com/INITools', tmpdir),
             other_lib_name
         ),
     )
@@ -178,9 +188,7 @@ def test_respect_order_in_requirements_file(script, data):
 def test_install_local_editable_with_extras(script, data):
     to_install = data.packages.joinpath("LocalExtras")
     res = script.pip_install_local(
-        '-e', to_install + '[bar]',
-        expect_error=False,
-        expect_stderr=True,
+        '-e', to_install + '[bar]', allow_stderr_warning=True
     )
     assert script.site_packages / 'easy-install.pth' in res.files_updated, (
         str(res)
@@ -226,6 +234,7 @@ def test_install_local_with_subdirectory(script):
     result.assert_installed('version_subpkg.py', editable=False)
 
 
+@pytest.mark.incompatible_with_test_venv
 def test_wheel_user_with_prefix_in_pydistutils_cfg(
         script, data, with_wheel):
     if os.name == 'posix':
@@ -371,17 +380,19 @@ def test_double_install_spurious_hash_mismatch(
         # Install a package (and build its wheel):
         result = script.pip_install_local(
             '--find-links', data.find_links,
-            '-r', reqs_file.abspath, expect_error=False)
+            '-r', reqs_file.resolve(),
+        )
         assert 'Successfully installed simple-1.0' in str(result)
 
         # Uninstall it:
-        script.pip('uninstall', '-y', 'simple', expect_error=False)
+        script.pip('uninstall', '-y', 'simple')
 
         # Then install it again. We should not hit a hash mismatch, and the
         # package should install happily.
         result = script.pip_install_local(
             '--find-links', data.find_links,
-            '-r', reqs_file.abspath, expect_error=False)
+            '-r', reqs_file.resolve(),
+        )
         assert 'Successfully installed simple-1.0' in str(result)
 
 
@@ -488,8 +499,7 @@ def test_install_unsupported_wheel_link_with_marker(script):
         )
     )
     result = script.pip(
-        'install', '-r', script.scratch_path / 'with-marker.txt',
-        expect_error=False,
+        'install', '-r', script.scratch_path / 'with-marker.txt'
     )
 
     assert ("Ignoring asdf: markers 'sys_platform == \"xyz\"' don't match "
@@ -534,6 +544,7 @@ def test_install_options_local_to_package(script, data):
         'install',
         '--no-index', '-f', data.find_links,
         '-r', reqs_file,
+        expect_stderr=True,
     )
 
     simple = test_simple / 'lib' / 'python' / 'simple'

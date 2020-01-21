@@ -12,15 +12,30 @@ jobs:
       Python27-x86:
         python.version: '2.7'
         python.architecture: x86
+      Python27-x64:
+        python.version: '2.7'
+        python.architecture: x64
+        useVenv: true
+      Python35-x64:
+        python.version: '3.5'
+        python.architecture: x64
+      Python36-x64:
+        python.version: '3.6'
+        python.architecture: x64
+        useVenv: true
       Python37-x64:
         python.version: '3.7'
         python.architecture: x64
-    maxParallel: 2
+      Python38-x64:
+        python.version: '3.8'
+        python.architecture: x64
+    maxParallel: 6
 
   steps:
   - template: ../steps/run-tests-windows.yml
     parameters:
       runIntegrationTests: true
+      useVenv: '$(useVenv)'
 
 - job: Test_Secondary
   displayName: Test Secondary
@@ -42,7 +57,10 @@ jobs:
       Python37-x86:
         python.version: '3.7'
         python.architecture: x86
-    maxParallel: 5
+      Python38-x86:
+        python.version: '3.8'
+        python.architecture: x86
+    maxParallel: 6
 
   steps:
   - template: ../steps/run-tests-windows.yml

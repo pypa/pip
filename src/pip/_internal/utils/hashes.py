@@ -56,6 +56,7 @@ class Hashes(object):
         hash_name,   # type: str
         hex_digest,  # type: str
     ):
+        # type: (...) -> bool
         """Return whether the given hex digest is allowed."""
         return hex_digest in self._allowed.get(hash_name, [])
 

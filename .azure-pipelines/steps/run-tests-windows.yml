@@ -1,5 +1,6 @@
 parameters:
   runIntegrationTests:
+  useVenv: false
 
 steps:
 - task: UsePythonVersion@0
@@ -8,10 +9,28 @@ steps:
     versionSpec: '$(python.version)'
     architecture: '$(python.architecture)'
 
-- bash: pip install --upgrade setuptools tox
+- task: PowerShell@2
+  inputs:
+    filePath: .azure-pipelines/scripts/New-RAMDisk.ps1
+    arguments: "-Drive R -Size 1GB"
+  displayName: Setup RAMDisk
+
+- powershell: |
+    mkdir R:\Temp
+    $acl = Get-Acl "R:\Temp"
+    $rule = New-Object System.Security.AccessControl.FileSystemAccessRule(
+        "Everyone", "FullControl", "ContainerInherit,ObjectInherit", "None", "Allow"
+    )
+    $acl.AddAccessRule($rule)
+    Set-Acl "R:\Temp" $acl
+  displayName: Set RAMDisk Permissions
+
+- bash: pip install --upgrade setuptools tox virtualenv
   displayName: Install Tox
 
-- script: tox -e py -- -m unit -n 3 --junit-xml=junit/unit-test.xml
+- script: tox -e py -- -m unit -n auto --junit-xml=junit/unit-test.xml
+  env:
+    TEMP: "R:\\Temp"
   displayName: Tox run unit tests
 
 - ${{ if eq(parameters.runIntegrationTests, 'true') }}:
@@ -23,12 +42,13 @@ steps:
 
       # Shorten paths to get under MAX_PATH or else integration tests will fail
       # https://bugs.python.org/issue18199
-      subst T: $env:TEMP
-      $env:TEMP = "T:\"
-      $env:TMP = "T:\"
+      $env:TEMP = "R:\Temp"
 
-      tox -e py -- -m integration -n 3 --duration=5 --junit-xml=junit/integration-test.xml
+      tox -e py -- $env:USE_VENV_ARG -m integration -n auto --duration=5 --junit-xml=junit/integration-test.xml
     displayName: Tox run integration tests
+    env:
+      ${{ if eq(parameters.useVenv, 'true') }}:
+        USE_VENV_ARG: "--use-venv"
 
 - task: PublishTestResults@2
   displayName: Publish Test Results

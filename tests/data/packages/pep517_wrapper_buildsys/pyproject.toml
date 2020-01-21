@@ -1,0 +1,4 @@
+[build-system]
+requires = [ "setuptools" ]
+build-backend = "mybuildsys"  # setuptools.build_meta
+backend-path = ["."]

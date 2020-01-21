@@ -183,7 +183,7 @@ class TestUninstallPathSet(object):
 
     def test_compact_shorter_path(self, monkeypatch):
         monkeypatch.setattr(pip._internal.req.req_uninstall, 'is_local',
-                            lambda p: True)
+                            mock_is_local)
         monkeypatch.setattr('os.path.exists', lambda p: True)
         # This deals with nt/posix path differences
         short_path = os.path.normcase(os.path.abspath(
@@ -196,7 +196,7 @@ class TestUninstallPathSet(object):
     @pytest.mark.skipif("sys.platform == 'win32'")
     def test_detect_symlink_dirs(self, monkeypatch, tmpdir):
         monkeypatch.setattr(pip._internal.req.req_uninstall, 'is_local',
-                            lambda p: True)
+                            mock_is_local)
 
         # construct 2 paths:
         #  tmpdir/dir/file
@@ -306,3 +306,67 @@ class TestStashedUninstallPathSet(object):
         for old_path, new_path in stashed_paths:
             assert os.path.exists(old_path)
             assert not os.path.exists(new_path)
+
+    @pytest.mark.skipif("sys.platform == 'win32'")
+    def test_commit_symlinks(self, tmpdir):
+        adir = tmpdir / "dir"
+        adir.mkdir()
+        dirlink = tmpdir / "dirlink"
+        dirlink.symlink_to(adir)
+        afile = tmpdir / "file"
+        afile.write_text("...")
+        filelink = tmpdir / "filelink"
+        filelink.symlink_to(afile)
+
+        pathset = StashedUninstallPathSet()
+        stashed_paths = []
+        stashed_paths.append(pathset.stash(dirlink))
+        stashed_paths.append(pathset.stash(filelink))
+        for stashed_path in stashed_paths:
+            assert os.path.lexists(stashed_path)
+        assert not os.path.exists(dirlink)
+        assert not os.path.exists(filelink)
+
+        pathset.commit()
+
+        # stash removed, links removed
+        for stashed_path in stashed_paths:
+            assert not os.path.lexists(stashed_path)
+        assert not os.path.lexists(dirlink) and not os.path.isdir(dirlink)
+        assert not os.path.lexists(filelink) and not os.path.isfile(filelink)
+
+        # link targets untouched
+        assert os.path.isdir(adir)
+        assert os.path.isfile(afile)
+
+    @pytest.mark.skipif("sys.platform == 'win32'")
+    def test_rollback_symlinks(self, tmpdir):
+        adir = tmpdir / "dir"
+        adir.mkdir()
+        dirlink = tmpdir / "dirlink"
+        dirlink.symlink_to(adir)
+        afile = tmpdir / "file"
+        afile.write_text("...")
+        filelink = tmpdir / "filelink"
+        filelink.symlink_to(afile)
+
+        pathset = StashedUninstallPathSet()
+        stashed_paths = []
+        stashed_paths.append(pathset.stash(dirlink))
+        stashed_paths.append(pathset.stash(filelink))
+        for stashed_path in stashed_paths:
+            assert os.path.lexists(stashed_path)
+        assert not os.path.lexists(dirlink)
+        assert not os.path.lexists(filelink)
+
+        pathset.rollback()
+
+        # stash removed, links restored
+        for stashed_path in stashed_paths:
+            assert not os.path.lexists(stashed_path)
+        assert os.path.lexists(dirlink) and os.path.isdir(dirlink)
+        assert os.path.lexists(filelink) and os.path.isfile(filelink)
+
+        # link targets untouched
+        assert os.path.isdir(adir)
+        assert os.path.isfile(afile)

@@ -1,9 +1,8 @@
 #!/bin/bash
 set -e
 
-# Short circuit tests and linting jobs if there are no code changes involved.
-if [[ $TOXENV != docs ]] && [[ $TOXENV != lint-py2 ]] && [[ $TOXENV != lint-py3 ]]; then
-    # Keep lint-py2 & lint-py3 for docs/conf.py
+# Short circuit test runs if there are no code changes involved.
+if [[ $TOXENV != docs ]] || [[ $TOXENV != lint ]]; then
     if [[ "$TRAVIS_PULL_REQUEST" == "false" ]]
     then
         echo "This is not a PR -- will do a complete build."
@@ -18,7 +17,7 @@ if [[ $TOXENV != docs ]] && [[ $TOXENV != lint-py2 ]] && [[ $TOXENV != lint-py3 
         echo "$changes"
         if ! echo "$changes" | grep -qvE '(\.rst$)|(^docs)|(^news)|(^\.github)'
         then
-            echo "Only Documentation was updated -- skipping build."
+            echo "Code was not changed -- skipping build."
             exit
         fi
     fi
@@ -42,12 +41,12 @@ echo "TOXENV=${TOXENV}"
 set -x
 if [[ "$GROUP" == "1" ]]; then
     # Unit tests
-    tox -- --use-venv -m unit
+    tox -- --use-venv -m unit -n auto
     # Integration tests (not the ones for 'pip install')
-    tox -- --use-venv -m integration -n 4 --duration=5 -k "not test_install"
+    tox -- --use-venv -m integration -n auto --duration=5 -k "not test_install"
 elif [[ "$GROUP" == "2" ]]; then
     # Separate Job for running integration tests for 'pip install'
-    tox -- --use-venv -m integration -n 4 --duration=5 -k "test_install"
+    tox -- --use-venv -m integration -n auto --duration=5 -k "test_install"
 else
     # Non-Testing Jobs should run once
     tox

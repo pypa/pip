@@ -13,7 +13,7 @@ from pip._internal.vcs.git import Git, looks_like_hash
 from pip._internal.vcs.mercurial import Mercurial
 from pip._internal.vcs.subversion import Subversion
 from pip._internal.vcs.versioncontrol import RevOptions, VersionControl
-from tests.lib import is_svn_installed, pyversion
+from tests.lib import is_svn_installed, need_svn, pyversion
 
 if pyversion >= '3':
     VERBOSE_FALSE = False
@@ -124,15 +124,19 @@ def test_should_add_vcs_url_prefix(vcs_cls, remote_url, expected):
     assert actual == expected
 
 
-@patch('pip._internal.vcs.git.Git.get_revision')
 @patch('pip._internal.vcs.git.Git.get_remote_url')
+@patch('pip._internal.vcs.git.Git.get_revision')
+@patch('pip._internal.vcs.git.Git.get_subdirectory')
 @pytest.mark.network
-def test_git_get_src_requirements(mock_get_remote_url, mock_get_revision):
+def test_git_get_src_requirements(
+    mock_get_subdirectory, mock_get_revision, mock_get_remote_url
+):
     git_url = 'https://github.com/pypa/pip-test-package'
     sha = '5547fa909e83df8bd743d3978d6667497983a4b7'
 
     mock_get_remote_url.return_value = git_url
     mock_get_revision.return_value = sha
+    mock_get_subdirectory.return_value = None
 
     ret = Git.get_src_requirement('.', 'pip-test-package')
 
@@ -407,7 +411,7 @@ def test_subversion__init_use_interactive(
     assert svn.use_interactive == expected
 
 
-@pytest.mark.svn
+@need_svn
 def test_subversion__call_vcs_version():
     """
     Test Subversion.call_vcs_version() against local ``svn``.

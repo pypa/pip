@@ -1,9 +1,9 @@
-
 # The following comment should be removed at some point in the future.
 # It's included for now because without it InstallCommand.run() has a
 # couple errors where we have to know req.name is str rather than
 # Optional[str] for the InstallRequirement req.
 # mypy: strict-optional=False
+# mypy: disallow-untyped-defs=False
 
 from __future__ import absolute_import
 
@@ -12,9 +12,11 @@ import logging
 import operator
 import os
 import shutil
+import site
 from optparse import SUPPRESS_HELP
 
 from pip._vendor import pkg_resources
+from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
@@ -29,8 +31,10 @@ from pip._internal.exceptions import (
 from pip._internal.locations import distutils_scheme
 from pip._internal.operations.check import check_install_conflicts
 from pip._internal.req import RequirementSet, install_given_reqs
-from pip._internal.req.req_tracker import RequirementTracker
-from pip._internal.utils.filesystem import check_path_owner
+from pip._internal.req.req_tracker import get_requirement_tracker
+from pip._internal.utils.deprecation import deprecated
+from pip._internal.utils.distutils_args import parse_distutils_args
+from pip._internal.utils.filesystem import test_writable_dir
 from pip._internal.utils.misc import (
     ensure_dir,
     get_installed_version,
@@ -40,58 +44,31 @@ from pip._internal.utils.misc import (
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.virtualenv import virtualenv_no_global
-from pip._internal.wheel import WheelBuilder
+from pip._internal.wheel_builder import build, should_build_for_install_command
 
 if MYPY_CHECK_RUNNING:
     from optparse import Values
-    from typing import Any, List
+    from typing import Any, Iterable, List, Optional
 
+    from pip._internal.models.format_control import FormatControl
     from pip._internal.req.req_install import InstallRequirement
+    from pip._internal.wheel_builder import BinaryAllowedPredicate
 
 
 logger = logging.getLogger(__name__)
 
 
-def is_wheel_installed():
-    """
-    Return whether the wheel package is installed.
-    """
-    try:
-        import wheel  # noqa: F401
-    except ImportError:
-        return False
+def get_check_binary_allowed(format_control):
+    # type: (FormatControl) -> BinaryAllowedPredicate
+    def check_binary_allowed(req):
+        # type: (InstallRequirement) -> bool
+        if req.use_pep517:
+            return True
+        canonical_name = canonicalize_name(req.name)
+        allowed_formats = format_control.get_allowed_formats(canonical_name)
+        return "binary" in allowed_formats
 
-    return True
-
-
-def build_wheels(
-    builder,              # type: WheelBuilder
-    pep517_requirements,  # type: List[InstallRequirement]
-    legacy_requirements,  # type: List[InstallRequirement]
-):
-    # type: (...) -> List[InstallRequirement]
-    """
-    Build wheels for requirements, depending on whether wheel is installed.
-    """
-    # We don't build wheels for legacy requirements if wheel is not installed.
-    should_build_legacy = is_wheel_installed()
-
-    # Always build PEP 517 requirements
-    build_failures = builder.build(
-        pep517_requirements,
-        should_unpack=True,
-    )
-
-    if should_build_legacy:
-        # We don't care about failures building legacy
-        # requirements, as we'll fall through to a direct
-        # install for those.
-        builder.build(
-            legacy_requirements,
-            should_unpack=True,
-        )
-
-    return build_failures
+    return check_binary_allowed
 
 
 class InstallCommand(RequirementCommand):
@@ -103,7 +80,7 @@ class InstallCommand(RequirementCommand):
     - Local project directories.
     - Local or remote source archives.
 
-    pip also supports installing from "requirements files," which provide
+    pip also supports installing from "requirements files", which provide
     an easy way to specify a whole environment to be installed.
     """
 
@@ -269,28 +246,20 @@ class InstallCommand(RequirementCommand):
         if options.upgrade:
             upgrade_strategy = options.upgrade_strategy
 
-        if options.build_dir:
-            options.build_dir = os.path.abspath(options.build_dir)
-
         cmdoptions.check_dist_restriction(options, check_target=True)
 
-        options.src_dir = os.path.abspath(options.src_dir)
         install_options = options.install_options or []
-        if options.use_user_site:
-            if options.prefix_path:
-                raise CommandError(
-                    "Can not combine '--user' and '--prefix' as they imply "
-                    "different installation locations"
-                )
-            if virtualenv_no_global():
-                raise InstallationError(
-                    "Can not perform a '--user' install. User site-packages "
-                    "are not visible in this virtualenv."
-                )
-            install_options.append('--user')
-            install_options.append('--prefix=')
 
-        target_temp_dir = TempDirectory(kind="target")
+        options.use_user_site = decide_user_install(
+            options.use_user_site,
+            prefix_path=options.prefix_path,
+            target_dir=options.target_dir,
+            root_path=options.root_path,
+            isolated_mode=options.isolated_mode,
+        )
+
+        target_temp_dir = None  # type: Optional[TempDirectory]
+        target_temp_dir_path = None  # type: Optional[str]
         if options.target_dir:
             options.ignore_installed = True
             options.target_dir = os.path.abspath(options.target_dir)
@@ -302,172 +271,183 @@ class InstallCommand(RequirementCommand):
                 )
 
             # Create a target directory for using with the target option
-            target_temp_dir.create()
-            install_options.append('--home=' + target_temp_dir.path)
+            target_temp_dir = TempDirectory(kind="target")
+            target_temp_dir_path = target_temp_dir.path
 
         global_options = options.global_options or []
 
-        with self._build_session(options) as session:
-            target_python = make_target_python(options)
-            finder = self._build_package_finder(
-                options=options,
-                session=session,
-                target_python=target_python,
-                ignore_requires_python=options.ignore_requires_python,
+        session = self.get_default_session(options)
+
+        target_python = make_target_python(options)
+        finder = self._build_package_finder(
+            options=options,
+            session=session,
+            target_python=target_python,
+            ignore_requires_python=options.ignore_requires_python,
+        )
+        build_delete = (not (options.no_clean or options.build_dir))
+        wheel_cache = WheelCache(options.cache_dir, options.format_control)
+
+        with get_requirement_tracker() as req_tracker, TempDirectory(
+            options.build_dir, delete=build_delete, kind="install"
+        ) as directory:
+            requirement_set = RequirementSet(
+                check_supported_wheels=not options.target_dir,
             )
-            build_delete = (not (options.no_clean or options.build_dir))
-            wheel_cache = WheelCache(options.cache_dir, options.format_control)
 
-            if options.cache_dir and not check_path_owner(options.cache_dir):
-                logger.warning(
-                    "The directory '%s' or its parent directory is not owned "
-                    "by the current user and caching wheels has been "
-                    "disabled. check the permissions and owner of that "
-                    "directory. If executing pip with sudo, you may want "
-                    "sudo's -H flag.",
-                    options.cache_dir,
+            try:
+                self.populate_requirement_set(
+                    requirement_set, args, options, finder, session,
+                    wheel_cache
                 )
-                options.cache_dir = None
 
-            with RequirementTracker() as req_tracker, TempDirectory(
-                options.build_dir, delete=build_delete, kind="install"
-            ) as directory:
-                requirement_set = RequirementSet(
-                    require_hashes=options.require_hashes,
-                    check_supported_wheels=not options.target_dir,
+                warn_deprecated_install_options(
+                    requirement_set, options.install_options
                 )
+
+                preparer = self.make_requirement_preparer(
+                    temp_build_dir=directory,
+                    options=options,
+                    req_tracker=req_tracker,
+                    session=session,
+                    finder=finder,
+                    use_user_site=options.use_user_site,
+                )
+                resolver = self.make_resolver(
+                    preparer=preparer,
+                    finder=finder,
+                    options=options,
+                    wheel_cache=wheel_cache,
+                    use_user_site=options.use_user_site,
+                    ignore_installed=options.ignore_installed,
+                    ignore_requires_python=options.ignore_requires_python,
+                    force_reinstall=options.force_reinstall,
+                    upgrade_strategy=upgrade_strategy,
+                    use_pep517=options.use_pep517,
+                )
+
+                self.trace_basic_info(finder)
+
+                resolver.resolve(requirement_set)
 
                 try:
-                    self.populate_requirement_set(
-                        requirement_set, args, options, finder, session,
-                        wheel_cache
+                    pip_req = requirement_set.get_requirement("pip")
+                except KeyError:
+                    modifying_pip = None
+                else:
+                    # If we're not replacing an already installed pip,
+                    # we're not modifying it.
+                    modifying_pip = pip_req.satisfied_by is None
+                protect_pip_from_modification_on_windows(
+                    modifying_pip=modifying_pip
+                )
+
+                check_binary_allowed = get_check_binary_allowed(
+                    finder.format_control
+                )
+
+                reqs_to_build = [
+                    r for r in requirement_set.requirements.values()
+                    if should_build_for_install_command(
+                        r, check_binary_allowed
                     )
-                    preparer = self.make_requirement_preparer(
-                        temp_directory=directory,
-                        options=options,
-                        req_tracker=req_tracker,
-                    )
-                    resolver = self.make_resolver(
-                        preparer=preparer,
-                        finder=finder,
-                        session=session,
-                        options=options,
-                        wheel_cache=wheel_cache,
-                        use_user_site=options.use_user_site,
-                        ignore_installed=options.ignore_installed,
-                        ignore_requires_python=options.ignore_requires_python,
-                        force_reinstall=options.force_reinstall,
-                        upgrade_strategy=upgrade_strategy,
-                        use_pep517=options.use_pep517,
-                    )
-                    resolver.resolve(requirement_set)
+                ]
 
-                    protect_pip_from_modification_on_windows(
-                        modifying_pip=requirement_set.has_requirement("pip")
-                    )
+                _, build_failures = build(
+                    reqs_to_build,
+                    wheel_cache=wheel_cache,
+                    build_options=[],
+                    global_options=[],
+                )
 
-                    # Consider legacy and PEP517-using requirements separately
-                    legacy_requirements = []
-                    pep517_requirements = []
-                    for req in requirement_set.requirements.values():
-                        if req.use_pep517:
-                            pep517_requirements.append(req)
-                        else:
-                            legacy_requirements.append(req)
+                # If we're using PEP 517, we cannot do a direct install
+                # so we fail here.
+                # We don't care about failures building legacy
+                # requirements, as we'll fall through to a direct
+                # install for those.
+                pep517_build_failures = [
+                    r for r in build_failures if r.use_pep517
+                ]
+                if pep517_build_failures:
+                    raise InstallationError(
+                        "Could not build wheels for {} which use"
+                        " PEP 517 and cannot be installed directly".format(
+                            ", ".join(r.name for r in pep517_build_failures)))
 
-                    wheel_builder = WheelBuilder(
-                        finder, preparer, wheel_cache,
-                        build_options=[], global_options=[],
-                    )
+                to_install = resolver.get_installation_order(
+                    requirement_set
+                )
 
-                    build_failures = build_wheels(
-                        builder=wheel_builder,
-                        pep517_requirements=pep517_requirements,
-                        legacy_requirements=legacy_requirements,
-                    )
+                # Consistency Checking of the package set we're installing.
+                should_warn_about_conflicts = (
+                    not options.ignore_dependencies and
+                    options.warn_about_conflicts
+                )
+                if should_warn_about_conflicts:
+                    self._warn_about_conflicts(to_install)
 
-                    # If we're using PEP 517, we cannot do a direct install
-                    # so we fail here.
-                    if build_failures:
-                        raise InstallationError(
-                            "Could not build wheels for {} which use"
-                            " PEP 517 and cannot be installed directly".format(
-                                ", ".join(r.name for r in build_failures)))
+                # Don't warn about script install locations if
+                # --target has been specified
+                warn_script_location = options.warn_script_location
+                if options.target_dir:
+                    warn_script_location = False
 
-                    to_install = resolver.get_installation_order(
-                        requirement_set
-                    )
+                installed = install_given_reqs(
+                    to_install,
+                    install_options,
+                    global_options,
+                    root=options.root_path,
+                    home=target_temp_dir_path,
+                    prefix=options.prefix_path,
+                    pycompile=options.compile,
+                    warn_script_location=warn_script_location,
+                    use_user_site=options.use_user_site,
+                )
 
-                    # Consistency Checking of the package set we're installing.
-                    should_warn_about_conflicts = (
-                        not options.ignore_dependencies and
-                        options.warn_about_conflicts
-                    )
-                    if should_warn_about_conflicts:
-                        self._warn_about_conflicts(to_install)
+                lib_locations = get_lib_location_guesses(
+                    user=options.use_user_site,
+                    home=target_temp_dir_path,
+                    root=options.root_path,
+                    prefix=options.prefix_path,
+                    isolated=options.isolated_mode,
+                )
+                working_set = pkg_resources.WorkingSet(lib_locations)
 
-                    # Don't warn about script install locations if
-                    # --target has been specified
-                    warn_script_location = options.warn_script_location
-                    if options.target_dir:
-                        warn_script_location = False
-
-                    installed = install_given_reqs(
-                        to_install,
-                        install_options,
-                        global_options,
-                        root=options.root_path,
-                        home=target_temp_dir.path,
-                        prefix=options.prefix_path,
-                        pycompile=options.compile,
-                        warn_script_location=warn_script_location,
-                        use_user_site=options.use_user_site,
-                    )
-
-                    lib_locations = get_lib_location_guesses(
-                        user=options.use_user_site,
-                        home=target_temp_dir.path,
-                        root=options.root_path,
-                        prefix=options.prefix_path,
-                        isolated=options.isolated_mode,
-                    )
-                    working_set = pkg_resources.WorkingSet(lib_locations)
-
-                    reqs = sorted(installed, key=operator.attrgetter('name'))
-                    items = []
-                    for req in reqs:
-                        item = req.name
-                        try:
-                            installed_version = get_installed_version(
-                                req.name, working_set=working_set
-                            )
-                            if installed_version:
-                                item += '-' + installed_version
-                        except Exception:
-                            pass
-                        items.append(item)
-                    installed_desc = ' '.join(items)
-                    if installed_desc:
-                        write_output(
-                            'Successfully installed %s', installed_desc,
+                installed.sort(key=operator.attrgetter('name'))
+                items = []
+                for result in installed:
+                    item = result.name
+                    try:
+                        installed_version = get_installed_version(
+                            result.name, working_set=working_set
                         )
-                except EnvironmentError as error:
-                    show_traceback = (self.verbosity >= 1)
-
-                    message = create_env_error_message(
-                        error, show_traceback, options.use_user_site,
+                        if installed_version:
+                            item += '-' + installed_version
+                    except Exception:
+                        pass
+                    items.append(item)
+                installed_desc = ' '.join(items)
+                if installed_desc:
+                    write_output(
+                        'Successfully installed %s', installed_desc,
                     )
-                    logger.error(message, exc_info=show_traceback)
+            except EnvironmentError as error:
+                show_traceback = (self.verbosity >= 1)
 
-                    return ERROR
-                except PreviousBuildDirError:
-                    options.no_clean = True
-                    raise
-                finally:
-                    # Clean up
-                    if not options.no_clean:
-                        requirement_set.cleanup_files()
-                        wheel_cache.cleanup()
+                message = create_env_error_message(
+                    error, show_traceback, options.use_user_site,
+                )
+                logger.error(message, exc_info=show_traceback)
+
+                return ERROR
+            except PreviousBuildDirError:
+                options.no_clean = True
+                raise
+            finally:
+                # Clean up
+                if not options.no_clean:
+                    requirement_set.cleanup_files()
+                    wheel_cache.cleanup()
 
         if options.target_dir:
             self._handle_target_dir(
@@ -562,6 +542,127 @@ class InstallCommand(RequirementCommand):
 def get_lib_location_guesses(*args, **kwargs):
     scheme = distutils_scheme('', *args, **kwargs)
     return [scheme['purelib'], scheme['platlib']]
+
+
+def site_packages_writable(**kwargs):
+    return all(
+        test_writable_dir(d) for d in set(get_lib_location_guesses(**kwargs))
+    )
+
+
+def decide_user_install(
+    use_user_site,  # type: Optional[bool]
+    prefix_path=None,  # type: Optional[str]
+    target_dir=None,  # type: Optional[str]
+    root_path=None,  # type: Optional[str]
+    isolated_mode=False,  # type: bool
+):
+    # type: (...) -> bool
+    """Determine whether to do a user install based on the input options.
+
+    If use_user_site is False, no additional checks are done.
+    If use_user_site is True, it is checked for compatibility with other
+    options.
+    If use_user_site is None, the default behaviour depends on the environment,
+    which is provided by the other arguments.
+    """
+    # In some cases (config from tox), use_user_site can be set to an integer
+    # rather than a bool, which 'use_user_site is False' wouldn't catch.
+    if (use_user_site is not None) and (not use_user_site):
+        logger.debug("Non-user install by explicit request")
+        return False
+
+    if use_user_site:
+        if prefix_path:
+            raise CommandError(
+                "Can not combine '--user' and '--prefix' as they imply "
+                "different installation locations"
+            )
+        if virtualenv_no_global():
+            raise InstallationError(
+                "Can not perform a '--user' install. User site-packages "
+                "are not visible in this virtualenv."
+            )
+        logger.debug("User install by explicit request")
+        return True
+
+    # If we are here, user installs have not been explicitly requested/avoided
+    assert use_user_site is None
+
+    # user install incompatible with --prefix/--target
+    if prefix_path or target_dir:
+        logger.debug("Non-user install due to --prefix or --target option")
+        return False
+
+    # If user installs are not enabled, choose a non-user install
+    if not site.ENABLE_USER_SITE:
+        logger.debug("Non-user install because user site-packages disabled")
+        return False
+
+    # If we have permission for a non-user install, do that,
+    # otherwise do a user install.
+    if site_packages_writable(root=root_path, isolated=isolated_mode):
+        logger.debug("Non-user install because site-packages writeable")
+        return False
+
+    logger.info("Defaulting to user installation because normal site-packages "
+                "is not writeable")
+    return True
+
+
+def warn_deprecated_install_options(requirement_set, options):
+    # type: (RequirementSet, Optional[List[str]]) -> None
+    """If any location-changing --install-option arguments were passed for
+    requirements or on the command-line, then show a deprecation warning.
+    """
+    def format_options(option_names):
+        # type: (Iterable[str]) -> List[str]
+        return ["--{}".format(name.replace("_", "-")) for name in option_names]
+
+    requirements = (
+        requirement_set.unnamed_requirements +
+        list(requirement_set.requirements.values())
+    )
+
+    offenders = []
+
+    for requirement in requirements:
+        install_options = requirement.options.get("install_options", [])
+        location_options = parse_distutils_args(install_options)
+        if location_options:
+            offenders.append(
+                "{!r} from {}".format(
+                    format_options(location_options.keys()), requirement
+                )
+            )
+
+    if options:
+        location_options = parse_distutils_args(options)
+        if location_options:
+            offenders.append(
+                "{!r} from command line".format(
+                    format_options(location_options.keys())
+                )
+            )
+
+    if not offenders:
+        return
+
+    deprecated(
+        reason=(
+            "Location-changing options found in --install-option: {}. "
+            "This configuration may cause unexpected behavior and is "
+            "unsupported.".format(
+                "; ".join(offenders)
+            )
+        ),
+        replacement=(
+            "using pip-level options like --user, --prefix, --root, and "
+            "--target"
+        ),
+        gone_in="20.2",
+        issue=7309,
+    )
 
 
 def create_env_error_message(error, show_traceback, using_user_site):
