@@ -1,0 +1,1 @@
+Rename an internal module, to avoid ImportErrors due to improper uninstallation.
