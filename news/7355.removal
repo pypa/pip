@@ -1,4 +1,0 @@
-Remove interpreter-specific major version tag e.g. ``cp3-none-any``
-from consideration. This behavior was not documented strictly, and this
-tag in particular is `not useful <https://snarky.ca/the-challenges-in-designing-a-library-for-pep-425/>`_.
-Anyone with a use case can create an issue with pypa/packaging.

@@ -1,1 +1,0 @@
-Make ``ensure_dir()`` also ignore ``ENOTEMPTY`` as seen on Windows.

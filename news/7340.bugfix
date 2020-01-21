@@ -1,2 +1,0 @@
-Fix typo in warning message when any of ``--build-option``, ``--global-option``
-and ``--install-option`` is used in requirements.txt
