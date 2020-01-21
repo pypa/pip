@@ -1,2 +1,0 @@
-Do not attempt to run ``setup.py clean`` after a ``pep517`` build error,
-since a ``setup.py`` may not exist in that case.

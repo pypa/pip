@@ -1,4 +1,0 @@
-Support for the ``git+git@`` form of VCS requirement is being deprecated and
-will be removed in pip 21.0. Switch to ``git+https://`` or
-``git+ssh://``. ``git+git://`` also works but its use is discouraged as it is
-insecure.

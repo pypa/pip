@@ -1,2 +1,0 @@
-Use literal "abi3" for wheel tag on CPython 3.x, to align with PEP 384
-which only defines it for this platform.

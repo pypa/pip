@@ -1,2 +1,0 @@
-Effectively disable the wheel cache when it is not writable, as is the
-case with the http cache.

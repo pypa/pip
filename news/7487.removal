@@ -1,2 +1,0 @@
-Wheel processing no longer permits wheels containing more than one top-level
-.dist-info directory.
