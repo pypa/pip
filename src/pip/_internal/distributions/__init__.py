@@ -1,4 +1,4 @@
-from pip._internal.distributions.source import SourceDistribution
+from pip._internal.distributions.sdist import SourceDistribution
 from pip._internal.distributions.wheel import WheelDistribution
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
