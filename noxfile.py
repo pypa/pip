@@ -203,6 +203,10 @@ def build_release(session):
     session.log("# Checkout the tag")
     session.run("git", "checkout", version, external=True, silent=True)
 
+    session.log("# Cleanup build/ before building the wheel")
+    if release.have_files_in_folder("build"):
+        shutil.rmtree("build")
+
     session.log("# Build distributions")
     session.run("python", "setup.py", "sdist", "bdist_wheel", silent=True)
 
@@ -234,8 +238,8 @@ def upload_release(session):
         )
     # Sanity check: Make sure the files are correctly named.
     expected_distribution_files = [
-        f"pip-{version}-py2.py3-none-any.whl",
-        f"pip-{version}.tar.gz",
+        f"dist/pip-{version}-py2.py3-none-any.whl",
+        f"dist/pip-{version}.tar.gz",
     ]
     if sorted(distribution_files) != sorted(expected_distribution_files):
         session.error(
