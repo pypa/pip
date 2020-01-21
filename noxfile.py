@@ -206,9 +206,8 @@ def build_release(session):
     session.log("# Checkout the tag")
     session.run("git", "checkout", version, external=True, silent=True)
 
-    session.log("# Cleanup build/ before building the wheel")
-    if release.have_files_in_folder("build"):
-        shutil.rmtree("build")
+    session.log("# Wipe Git-untracked files before building the wheel")
+    session.run("git", "clean", "-fxd", external=True, silent=True)
 
     session.log("# Build distributions")
     session.run("python", "setup.py", "sdist", "bdist_wheel", silent=True)
