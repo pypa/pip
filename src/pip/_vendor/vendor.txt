@@ -1,6 +1,6 @@
 appdirs==1.4.3
 CacheControl==0.12.6
-colorama==0.4.1
+colorama==0.4.3
 contextlib2==0.6.0
 distlib==0.2.9.post0
 distro==1.4.0
