@@ -7,6 +7,15 @@
 
 .. towncrier release notes start
 
+20.0.1 (2020-01-21)
+===================
+
+Bug Fixes
+---------
+
+- Rename an internal module, to avoid ImportErrors due to improper uninstallation. (`#7621 <https://github.com/pypa/pip/issues/7621>`_)
+
+
 20.0 (2020-01-21)
 =================
 
