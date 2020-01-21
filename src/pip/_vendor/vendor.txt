@@ -10,7 +10,7 @@ msgpack==0.6.2
 packaging==20.0
 pep517==0.7.0
 progress==1.5
-pyparsing==2.4.2
+pyparsing==2.4.6
 pytoml==0.1.21
 requests==2.22.0
     certifi==2019.9.11
