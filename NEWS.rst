@@ -71,7 +71,7 @@ Features
   stale wrapper scripts. (`#7498 <https://github.com/pypa/pip/issues/7498>`_)
 - The build step of ``pip wheel`` now builds all wheels to a cache first,
   then copies them to the wheel directory all at once.
-  Before, it built them to a temporary direcory and moved
+  Before, it built them to a temporary directory and moved
   them to the wheel directory one by one. (`#7517 <https://github.com/pypa/pip/issues/7517>`_)
 - Expand ``~`` prefix to user directory in path options, configs, and
   environment variables. Values that may be either URL or path are not
@@ -506,7 +506,7 @@ Bug Fixes
 - Handle ``requests.exceptions.RetryError`` raised in ``PackageFinder`` that was causing pip to fail silently when some indexes were unreachable. (`#5270 <https://github.com/pypa/pip/issues/5270>`_, `#5483 <https://github.com/pypa/pip/issues/5483>`_)
 - Handle a broken stdout pipe more gracefully (e.g. when running ``pip list | head``). (`#4170 <https://github.com/pypa/pip/issues/4170>`_)
 - Fix crash from setting ``PIP_NO_CACHE_DIR=yes``. (`#5385 <https://github.com/pypa/pip/issues/5385>`_)
-- Fix crash from unparseable requirements when checking installed packages. (`#5839 <https://github.com/pypa/pip/issues/5839>`_)
+- Fix crash from unparsable requirements when checking installed packages. (`#5839 <https://github.com/pypa/pip/issues/5839>`_)
 - Fix content type detection if a directory named like an archive is used as a package source. (`#5838 <https://github.com/pypa/pip/issues/5838>`_)
 - Fix listing of outdated packages that are not dependencies of installed packages in ``pip list --outdated --not-required`` (`#5737 <https://github.com/pypa/pip/issues/5737>`_)
 - Fix sorting ``TypeError`` in ``move_wheel_files()`` when installing some packages. (`#5868 <https://github.com/pypa/pip/issues/5868>`_)
