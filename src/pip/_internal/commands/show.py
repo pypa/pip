@@ -142,7 +142,7 @@ def search_packages_info(query):
 
 def print_results(distributions, list_files=False, verbose=False):
     """
-    Print the informations from installed distributions found.
+    Print the information from installed distributions found.
     """
     results_printed = False
     for i, dist in enumerate(distributions):
