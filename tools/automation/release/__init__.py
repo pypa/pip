@@ -3,6 +3,7 @@
 These are written according to the order they are called in.
 """
 
+import io
 import os
 import subprocess
 from typing import List, Optional, Set
@@ -69,7 +70,7 @@ def generate_authors(filename: str) -> None:
     authors = get_author_list()
 
     # Write our authors to the AUTHORS file
-    with open(filename, "w", encoding="utf-8", newline="\n") as fp:
+    with io.open(filename, "w", encoding="utf-8") as fp:
         fp.write(u"\n".join(authors))
         fp.write(u"\n")
 
@@ -89,7 +90,7 @@ def update_version_file(version: str, filepath: str) -> None:
         content = list(f)
 
     file_modified = False
-    with open(filepath, "w", encoding="utf-8", newline="\n") as f:
+    with open(filepath, "w", encoding="utf-8") as f:
         for line in content:
             if line.startswith("__version__ ="):
                 f.write('__version__ = "{}"\n'.format(version))
