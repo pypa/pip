@@ -7,6 +7,20 @@
 
 .. towncrier release notes start
 
+20.0.2 (2020-01-24)
+===================
+
+Bug Fixes
+---------
+
+- Fix a regression in generation of compatibility tags. (`#7626 <https://github.com/pypa/pip/issues/7626>`_)
+
+Vendored Libraries
+------------------
+
+- Upgrade packaging to 20.1
+
+
 20.0.1 (2020-01-21)
 ===================
 
