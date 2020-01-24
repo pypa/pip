@@ -315,7 +315,7 @@ def _py_interpreter_range(py_version):
 def compatible_tags(
     python_version=None,  # type: Optional[PythonVersion]
     interpreter=None,  # type: Optional[str]
-    platforms=None,  # type: Optional[Iterator[str]]
+    platforms=None,  # type: Optional[Iterable[str]]
 ):
     # type: (...) -> Iterator[Tag]
     """
@@ -328,8 +328,7 @@ def compatible_tags(
     """
     if not python_version:
         python_version = sys.version_info[:2]
-    if not platforms:
-        platforms = _platform_tags()
+    platforms = list(platforms or _platform_tags())
     for version in _py_interpreter_range(python_version):
         for platform_ in platforms:
             yield Tag(version, "none", platform_)
