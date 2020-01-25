@@ -8,7 +8,7 @@ import os
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.cmdoptions import make_target_python
-from pip._internal.cli.req_command import RequirementCommand
+from pip._internal.cli.req_command import RequirementCommand, with_cleanup
 from pip._internal.req import RequirementSet
 from pip._internal.req.req_tracker import get_requirement_tracker
 from pip._internal.utils.misc import ensure_dir, normalize_path, write_output
@@ -76,6 +76,7 @@ class DownloadCommand(RequirementCommand):
         self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, cmd_opts)
 
+    @with_cleanup
     def run(self, options, args):
         options.ignore_installed = True
         # editable doesn't really make sense for `pip download`, but the bowels

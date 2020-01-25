@@ -11,7 +11,7 @@ import shutil
 
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
-from pip._internal.cli.req_command import RequirementCommand
+from pip._internal.cli.req_command import RequirementCommand, with_cleanup
 from pip._internal.exceptions import CommandError, PreviousBuildDirError
 from pip._internal.req import RequirementSet
 from pip._internal.req.req_tracker import get_requirement_tracker
@@ -111,6 +111,7 @@ class WheelCommand(RequirementCommand):
         self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, cmd_opts)
 
+    @with_cleanup
     def run(self, options, args):
         # type: (Values, List[Any]) -> None
         cmdoptions.check_install_build_global(options)

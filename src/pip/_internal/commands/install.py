@@ -21,7 +21,7 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.cmdoptions import make_target_python
-from pip._internal.cli.req_command import RequirementCommand
+from pip._internal.cli.req_command import RequirementCommand, with_cleanup
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.exceptions import (
     CommandError,
@@ -238,6 +238,7 @@ class InstallCommand(RequirementCommand):
         self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, cmd_opts)
 
+    @with_cleanup
     def run(self, options, args):
         # type: (Values, List[Any]) -> int
         cmdoptions.check_install_build_global(options)
