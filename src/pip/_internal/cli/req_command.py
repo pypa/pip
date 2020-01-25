@@ -29,6 +29,7 @@ from pip._internal.self_outdated_check import (
     make_link_collector,
     pip_self_version_check,
 )
+from pip._internal.utils.temp_dir import tempdir_kinds
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -155,7 +156,7 @@ class IndexGroupCommand(Command, SessionCommandMixin):
             pip_self_version_check(session, options)
 
 
-KEEPABLE_TEMPDIR_TYPES = []  # type: List[str]
+KEEPABLE_TEMPDIR_TYPES = [tempdir_kinds.REQ_BUILD]
 
 
 def with_cleanup(func):
