@@ -1,8 +1,8 @@
 jobs:
 - template: jobs/test.yml
   parameters:
-    vmImage: xcode9-macos10.13
+    vmImage: macos-10.14
 
 - template: jobs/package.yml
   parameters:
-    vmImage: xcode9-macos10.13
+    vmImage: macos-10.14
