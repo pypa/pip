@@ -7,21 +7,37 @@ import pytest
 
 from tests.lib import create_basic_wheel_for_package, skip_if_python2
 from tests.lib.path import Path
+from tests.lib.wheel import make_wheel
 
 
-def test_install_from_future_wheel_version(script, data):
+# assert_installed expects a package subdirectory, so give it to them
+def make_wheel_with_file(name, version, **kwargs):
+    extra_files = kwargs.setdefault("extra_files", {})
+    extra_files["{}/__init__.py".format(name)] = "# example"
+    return make_wheel(name=name, version=version, **kwargs)
+
+
+def test_install_from_future_wheel_version(script, tmpdir):
     """
     Test installing a future wheel
     """
     from tests.lib import TestFailure
+    package = make_wheel_with_file(
+        name="futurewheel",
+        version="3.0",
+        wheel_metadata_updates={"Wheel-Version": "3.0"},
+    ).save_to_dir(tmpdir)
 
-    package = data.packages.joinpath("futurewheel-3.0-py2.py3-none-any.whl")
     result = script.pip('install', package, '--no-index', expect_error=True)
     with pytest.raises(TestFailure):
         result.assert_installed('futurewheel', without_egg_link=True,
                                 editable=False)
 
-    package = data.packages.joinpath("futurewheel-1.9-py2.py3-none-any.whl")
+    package = make_wheel_with_file(
+        name="futurewheel",
+        version="1.9",
+        wheel_metadata_updates={"Wheel-Version": "1.9"},
+    ).save_to_dir(tmpdir)
     result = script.pip(
         'install', package, '--no-index', expect_stderr=True
     )
