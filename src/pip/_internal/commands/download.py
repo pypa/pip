@@ -52,7 +52,6 @@ class DownloadCommand(RequirementCommand):
         cmd_opts.add_option(cmdoptions.prefer_binary())
         cmd_opts.add_option(cmdoptions.src())
         cmd_opts.add_option(cmdoptions.pre())
-        cmd_opts.add_option(cmdoptions.no_clean())
         cmd_opts.add_option(cmdoptions.require_hashes())
         cmd_opts.add_option(cmdoptions.progress_bar())
         cmd_opts.add_option(cmdoptions.no_build_isolation())

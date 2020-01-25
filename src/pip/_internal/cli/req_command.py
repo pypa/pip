@@ -9,6 +9,7 @@ import logging
 import os
 from functools import partial
 
+from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.command_context import CommandContextMixIn
 from pip._internal.exceptions import CommandError
@@ -32,7 +33,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from optparse import Values
-    from typing import List, Optional, Tuple
+    from typing import Any, List, Optional, Tuple
     from pip._internal.cache import WheelCache
     from pip._internal.models.target_python import TargetPython
     from pip._internal.req.req_set import RequirementSet
@@ -150,6 +151,12 @@ class IndexGroupCommand(Command, SessionCommandMixin):
 
 
 class RequirementCommand(IndexGroupCommand):
+
+    def __init__(self, *args, **kw):
+        # type: (Any, Any) -> None
+        super(RequirementCommand, self).__init__(*args, **kw)
+
+        self.cmd_opts.add_option(cmdoptions.no_clean())
 
     @staticmethod
     def make_requirement_preparer(
