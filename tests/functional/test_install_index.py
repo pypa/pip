@@ -17,7 +17,7 @@ def test_find_links_relative_path(script, data):
         cwd=data.root,
     )
     egg_info_folder = (
-        script.site_packages / 'parent-0.1-py%s.egg-info' % pyversion
+        script.site_packages / 'parent-0.1-py{}.egg-info'.format(pyversion)
     )
     initools_folder = script.site_packages / 'parent'
     assert egg_info_folder in result.files_created, str(result)
@@ -28,9 +28,9 @@ def test_find_links_requirements_file_relative_path(script, data):
     """Test find-links as a relative path to a reqs file."""
     script.scratch_path.joinpath("test-req.txt").write_text(textwrap.dedent("""
         --no-index
-        --find-links=%s
+        --find-links={}
         parent==0.1
-        """ % data.packages.replace(os.path.sep, '/')))
+        """ .format(data.packages.replace(os.path.sep, '/'))))
     result = script.pip(
         'install',
         '-r',
@@ -38,7 +38,7 @@ def test_find_links_requirements_file_relative_path(script, data):
         cwd=data.root,
     )
     egg_info_folder = (
-        script.site_packages / 'parent-0.1-py%s.egg-info' % pyversion
+        script.site_packages / 'parent-0.1-py{}.egg-info'.format(pyversion)
     )
     initools_folder = script.site_packages / 'parent'
     assert egg_info_folder in result.files_created, str(result)
@@ -52,7 +52,7 @@ def test_install_from_file_index_hash_link(script, data):
     """
     result = script.pip('install', '-i', data.index_url(), 'simple==1.0')
     egg_info_folder = (
-        script.site_packages / 'simple-1.0-py%s.egg-info' % pyversion
+        script.site_packages / 'simple-1.0-py{}.egg-info'.format(pyversion)
     )
     assert egg_info_folder in result.files_created, str(result)
 
@@ -69,5 +69,5 @@ def test_file_index_url_quoting(script, data):
         str(result.stdout)
     )
     assert (
-        script.site_packages / 'simple-1.0-py%s.egg-info' % pyversion
+        script.site_packages / 'simple-1.0-py{}.egg-info'.format(pyversion)
     ) in result.files_created, str(result)
