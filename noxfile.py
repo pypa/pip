@@ -7,6 +7,7 @@
 import glob
 import os
 import shutil
+import subprocess
 import sys
 
 import nox
@@ -206,6 +207,27 @@ def build_release(session):
     session.log("# Cleanup build/ before building the wheel")
     if release.have_files_in_folder("build"):
         shutil.rmtree("build")
+
+    session.log(
+        "# Check if there's any Git-untracked files before building the wheel",
+    )
+    has_git_untracked_files = any(
+        bool(l) for l in
+        # session.run doesn't seem to return any output
+        subprocess.check_output(
+            (
+                "git", "ls-files", "--ignored", "--exclude-standard",
+                "--others", "--", ".",
+            ),
+            text=True,
+        ).split('\n')
+        if not l.startswith('.nox/build-release/')  # exclude nox env file
+    )
+    if has_git_untracked_files:
+        session.error(
+            "There are untracked files in the Git repo workdir. "
+            "Remove them and try again",
+        )
 
     session.log("# Build distributions")
     session.run("python", "setup.py", "sdist", "bdist_wheel", silent=True)
