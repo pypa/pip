@@ -1,4 +1,6 @@
 cryptography==2.8
+csv23
+enum34; python_version < '3.4'
 freezegun
 mock
 pretend
