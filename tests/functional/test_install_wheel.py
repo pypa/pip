@@ -19,7 +19,9 @@ def make_wheel_with_file(name, version, **kwargs):
 
 def test_install_from_future_wheel_version(script, tmpdir):
     """
-    Test installing a future wheel
+    Test installing a wheel with a WHEEL metadata version that is:
+    - a major version ahead of what we expect (not ok), and
+    - a minor version ahead of what we expect (ok)
     """
     from tests.lib import TestFailure
     package = make_wheel_with_file(
