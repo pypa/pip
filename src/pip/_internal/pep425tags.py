@@ -103,17 +103,18 @@ def _get_custom_interpreter(implementation=None, version=None):
         version = interpreter_version()
     return "{}{}".format(implementation, version)
 
-def _with_legacy_tags(standard_tags, interpreter, impl):
-    # type: (List[Tag], str, str) -> List[Tag]
-    """For backwards compatibilty, add legacy tags that pip used to accept"""
-    all_supported_tags = standard_tags # Default to not making any changes
 
-    # pip used to calculate the implementation tags for alternate implementations
-    # like PyPy incorrectly, appending part of the implementation version,
+def _with_legacy_tags(standard_tags, interpreter, impl):
+    # type: (List[Tag], str, Optional[str]) -> List[Tag]
+    """For backwards compatibilty, add legacy tags that pip used to accept"""
+    all_supported_tags = standard_tags  # Default to not making any changes
+
+    # pip used to calculate incorrect implementation tags for alternate
+    # implementations like PyPy, appending part of the implementation version,
     # rather than using the nominal Python language version
     legacy_interpreter = _get_custom_interpreter(impl)
     if interpreter != legacy_interpreter:
-        all_supported_tags = [] # Build new list with extra tags inserted
+        all_supported_tags = []  # Build new list with extra tags inserted
         for tag in standard_tags:
             all_supported_tags.append(tag)
             if tag.interpreter == interpreter:
@@ -121,6 +122,7 @@ def _with_legacy_tags(standard_tags, interpreter, impl):
                 all_supported_tags.append(legacy_tag)
 
     return all_supported_tags
+
 
 def get_supported(
     version=None,  # type: Optional[str]

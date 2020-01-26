@@ -2,9 +2,9 @@ import sysconfig
 
 import pytest
 from mock import patch
+from pip._vendor.packaging.tags import Tag
 
 from pip._internal import pep425tags
-from pip._vendor.packaging.tags import Tag
 
 
 @pytest.mark.parametrize('version_info, expected', [
@@ -111,9 +111,9 @@ class TestLegacyTags(object):
         # where "ABC" is taken from the interpreter implementation version
         # This is done in a generic way, as it potentially affects all
         # non-CPython implementations
-        impl = "ex" # Example implementation for test purposes
+        impl = "ex"  # Example implementation for test purposes
         legacy_interpreter = pep425tags._get_custom_interpreter(impl)
-        version = legacy_interpreter[2:] + "0" # Force version mismatch
+        version = legacy_interpreter[2:] + "0"  # Force version mismatch
         interpreter = impl + version
         platform = "example_platform"
         abi = "example_abi"
@@ -142,9 +142,9 @@ class TestLegacyTags(object):
     def test_no_extra_tags_when_interpreter_version_matches(self):
         # When the language version and the interpreter version are the same,
         # duplicate tags should not be generated
-        impl = "ex" # Example implementation for test purposes
+        impl = "ex"  # Example implementation for test purposes
         interpreter = pep425tags._get_custom_interpreter(impl)
-        version = interpreter[2:] # Ensure passed in version matches default tag
+        version = interpreter[2:]  # Ensure version arg matches default tag
         platform = "example_platform"
         abi = "example_abi"
         supported = pep425tags.get_supported(version, platform, impl, abi)
