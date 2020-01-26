@@ -5,6 +5,8 @@ from hashlib import sha256
 
 import pytest
 
+from pip._vendor.packaging.tags import interpreter_name
+
 from pip._internal.cli.status_codes import ERROR
 from pip._internal.utils.urls import path_to_url
 from tests.lib import create_really_basic_wheel
@@ -59,6 +61,23 @@ def test_download_wheel(script, data):
         in result.files_created
     )
     assert script.site_packages / 'piptestpackage' not in result.files_created
+
+
+def test_download_platform_specific_wheel(script, data):
+    """
+    Test using "pip download" to download a platform specific *.whl archive
+    """
+    assert False, "Test TBD"
+
+
+@pytest.mark.skipif(
+    interpreter_name() == 'pp',
+    reason="Only test PyPy custom wheel logic on PyPy")
+def test_download_pypy_version_specific_wheel(script, data):
+    """
+    Test using "pip download" to download a PyPy version specific *.whl archive
+    """
+    assert False, "Test TBD"
 
 
 @pytest.mark.network
