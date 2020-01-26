@@ -113,11 +113,13 @@ class TestLegacyTags(object):
         # non-CPython implementations
         impl = "ex"  # Example implementation for test purposes
         legacy_interpreter = pep425tags._get_custom_interpreter(impl)
+
         version = legacy_interpreter[2:] + "0"  # Force version mismatch
         interpreter = impl + version
         platform = "example_platform"
         abi = "example_abi"
         supported = pep425tags.get_supported(version, platform, impl, abi)
+
         unique_tags = set(supported)
         assert len(unique_tags) == len(supported)
 
@@ -144,9 +146,11 @@ class TestLegacyTags(object):
         # duplicate tags should not be generated
         impl = "ex"  # Example implementation for test purposes
         interpreter = pep425tags._get_custom_interpreter(impl)
+
         version = interpreter[2:]  # Ensure version arg matches default tag
         platform = "example_platform"
         abi = "example_abi"
         supported = pep425tags.get_supported(version, platform, impl, abi)
+
         unique_tags = set(supported)
         assert len(unique_tags) == len(supported)
