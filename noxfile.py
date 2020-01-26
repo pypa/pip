@@ -196,7 +196,10 @@ def build_release(session):
 
     session.log("# Ensure no files in dist/")
     if release.have_files_in_folder("dist"):
-        session.error("There are files in dist/. Remove them and try again")
+        session.error(
+            "There are files in dist/. Remove them and try again. "
+            "You can use `git clean -fxdi -- dist` command to do this"
+        )
 
     session.log("# Install dependencies")
     session.install("setuptools", "wheel", "twine")
