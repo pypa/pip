@@ -3,10 +3,10 @@ blank_issues_enabled: true  # default
 contact_links:
 - name: '💬 IRC: #pypa @ Freenode'
   url: https://webchat.freenode.net/#pypa
-  about: Chat with devs.
+  about: Chat with devs
 - name: 🤷💻🤦 Discourse
   url: https://discuss.python.org/c/packaging
-  about: Please ask typical Q&A here.
+  about: Please ask typical Q&A here
 - name: 📝 PyPA Code of Conduct
   url: https://www.pypa.io/en/latest/code-of-conduct/
   about: ❤ Be nice to other members of the community. ☮ Behave.
