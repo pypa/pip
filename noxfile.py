@@ -4,11 +4,14 @@
 # The following comment should be removed at some point in the future.
 # mypy: disallow-untyped-defs=False
 
+import contextlib
 import glob
 import os
+import pathlib
 import shutil
 import subprocess
 import sys
+import tempfile
 
 import nox
 
@@ -188,6 +191,48 @@ def prepare_release(session):
     release.commit_file(session, VERSION_FILE, message="Bump for development")
 
 
+@contextlib.contextmanager
+def workdir(nox_session, dir_path: pathlib.Path):
+    """Temporarily chdir when entering CM and chdir back on exit."""
+    orig_dir = pathlib.Path.cwd()
+
+    nox_session.log(f"# Changing dir to {dir_path}")
+    os.chdir(dir_path)
+    try:
+        yield dir_path
+    finally:
+        nox_session.log(f"# Changing dir back to {orig_dir}")
+        os.chdir(orig_dir)
+
+
+@contextlib.contextmanager
+def mk_tmp_git_checkout(nox_session, target_commitish: str):
+    """Make a clean checkout of a given version in tmp dir.
+
+    This is a context manager that cleans up after itself.
+    """
+    with tempfile.TemporaryDirectory() as tmp_dir_path:
+        tmp_dir = pathlib.Path(tmp_dir_path)
+        git_checkout_dir = tmp_dir / f'pip-build-{target_commitish}'
+        nox_session.log(
+            f"# Creating a temporary Git checkout at {git_checkout_dir!s}",
+        )
+        nox_session.run(
+            'git', 'worktree', 'add', '--force', '--checkout',
+            str(git_checkout_dir), str(target_commitish),
+            external=True, silent=True,
+        )
+
+        try:
+            yield git_checkout_dir
+        finally:
+            nox_session.run(
+                'git', 'worktree', 'remove', '--force',
+                str(git_checkout_dir),
+                external=True, silent=True,
+            )
+
+
 @nox.session(name="build-release")
 def build_release(session):
     version = release.get_version_from_arguments(session.posargs)
@@ -204,9 +249,16 @@ def build_release(session):
     session.log("# Install dependencies")
     session.install("setuptools", "wheel", "twine")
 
-    session.log("# Checkout the tag")
-    session.run("git", "checkout", version, external=True, silent=True)
+    with mk_tmp_git_checkout(session, version) as build_dir_path:
+        with workdir(session, build_dir_path):
+            build_dists(session)
 
+        tmp_dist_dir = build_dir_path / 'dist'
+        session.log(f"# Copying dists from {tmp_dist_dir}")
+        shutil.copytree(tmp_dist_dir, 'dist')
+
+
+def build_dists(session):
     session.log("# Cleanup build/ before building the wheel")
     if release.have_files_in_folder("build"):
         shutil.rmtree("build")
@@ -237,9 +289,6 @@ def build_release(session):
 
     session.log("# Verify distributions")
     session.run("twine", "check", *glob.glob("dist/*"), silent=True)
-
-    session.log("# Checkout the master branch")
-    session.run("git", "checkout", "master", external=True, silent=True)
 
 
 @nox.session(name="upload-release")
