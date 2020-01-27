@@ -2,7 +2,6 @@ import sysconfig
 
 import pytest
 from mock import patch
-from pip._vendor.packaging.tags import Tag
 
 from pip._internal import pep425tags
 
@@ -100,57 +99,3 @@ class TestManylinux2014Tags(object):
             if arches == ['any']:
                 continue
             assert arches[:3] == expected_arches
-
-
-class TestLegacyTags(object):
-
-    def test_extra_tags_for_interpreter_version_mismatch(self):
-        # For backwards compatibility with legacy PyPy wheel tags, each
-        # occurrence of "ppXY" (where "XY" is taken from the language version)
-        # as an interpreter tag gets supplemented with another tag, "ppABC",
-        # where "ABC" is taken from the interpreter implementation version
-        # This is done in a generic way, as it potentially affects all
-        # non-CPython implementations
-        impl = "ex"  # Example implementation for test purposes
-        legacy_interpreter = pep425tags._get_custom_interpreter(impl)
-
-        version = legacy_interpreter[2:] + "0"  # Force version mismatch
-        interpreter = impl + version
-        platform = "example_platform"
-        abi = "example_abi"
-        supported = pep425tags.get_supported(version, platform, impl, abi)
-
-        unique_tags = set(supported)
-        assert len(unique_tags) == len(supported)
-
-        # Check every standard interpreter tag is followed by a legacy one
-        interpreter_tags = 0
-        legacy_interpreter_tags = 0
-        expected_tag = None
-        for tag in supported:
-            if expected_tag is not None:
-                assert tag == expected_tag
-            expected_tag = None
-            if tag.interpreter == interpreter:
-                interpreter_tags += 1
-                expected_tag = Tag(legacy_interpreter, tag.abi, tag.platform)
-            elif tag.interpreter == legacy_interpreter:
-                legacy_interpreter_tags += 1
-
-        # Check the total numbers of interpreter tags match as expected
-        assert interpreter_tags
-        assert interpreter_tags == legacy_interpreter_tags
-
-    def test_no_extra_tags_when_interpreter_version_matches(self):
-        # When the language version and the interpreter version are the same,
-        # duplicate tags should not be generated
-        impl = "ex"  # Example implementation for test purposes
-        interpreter = pep425tags._get_custom_interpreter(impl)
-
-        version = interpreter[2:]  # Ensure version arg matches default tag
-        platform = "example_platform"
-        abi = "example_abi"
-        supported = pep425tags.get_supported(version, platform, impl, abi)
-
-        unique_tags = set(supported)
-        assert len(unique_tags) == len(supported)
