@@ -42,6 +42,9 @@ class Wheel(object):
         self.abis = wheel_info.group('abi').split('.')
         self.plats = wheel_info.group('plat').split('.')
 
+        # Adjust for any legacy custom PyPy tags found in pyversions
+        _add_standard_pypy_version_tags(self.pyversions)
+
         # All the tag combinations from this file
         self.file_tags = {
             Tag(x, y, z) for x in self.pyversions
@@ -76,3 +79,65 @@ class Wheel(object):
         :param tags: the PEP 425 tags to check the wheel against.
         """
         return not self.file_tags.isdisjoint(tags)
+
+
+def _is_legacy_pypy_tag(pyversion_tag):
+    # type: (str) -> bool
+    """Returns True if the given tag looks like a legacy custom PyPy tag
+
+    :param pyversion_tag: pyversion tags to be checked
+    """
+    return (
+        len(pyversion_tag) == 5 and
+        pyversion_tag.startswith('pp') and
+        pyversion_tag[2:].isdecimal()
+    )
+
+_PYPY3_COMPATIBILITY_TAG_THRESHOLDS = {
+    'pp32': (5, 2),
+    'pp33': (5, 7),
+    'pp35': (7, 2),
+    'pp36': (8, 0)
+    # The legacy custom PyPy wheel tags are not supported on PyPy 8.0.0+
+}
+
+def _add_standard_pypy_version_tags(pyversions):
+    # type: (List[str]) -> bool
+    """Add standard PyPy tags for any legacy PyPy tags, avoiding duplicates
+
+    Returns True if adjustments were made, False otherwise
+
+    :param pyversions: the list of pyversion tags to be adjusted
+    """
+    # Several wheel versions prior to 0.34.0 produced non-standard tags
+    # for PyPy wheel archives. For backwards compatibility, we translate
+    # those legacy custom tags to standard tags for PyPy versions prior to
+    # PyPy 8.0.0.
+    legacy_pypy_tags = [tag for tag in pyversions if _is_legacy_pypy_tag(tag)]
+    if not legacy_pypy_tags:
+        return False  # Nothing to do
+    standard_tags = set()
+    py3_tag_thresholds = _PYPY3_COMPATIBILITY_TAG_THRESHOLDS.items()
+    for tag in legacy_pypy_tags:
+        py_major, pypy_major, pypy_minor = map(int, tag[2:])
+        if py_major == 2:
+            standard_tags.add('pp27')
+            continue
+        if py_major > 3:
+            continue
+        pypy_version = (pypy_major, pypy_minor)
+        for standard_tag, version_limit in py3_tag_thresholds:
+            if pypy_version < version_limit:
+                standard_tags.add(standard_tag)
+                break
+
+    if not standard_tags:
+        return False  # Nothing to do
+
+    existing_tags = set(pyversions)
+    modified = False
+    for tag in standard_tags:
+        if tag not in existing_tags:
+            pyversions.append(tag)
+            modified = True
+    return modified

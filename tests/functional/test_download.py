@@ -1,11 +1,20 @@
 import os.path
 import shutil
+import sys
 import textwrap
 from hashlib import sha256
 
 import pytest
-
-from pip._vendor.packaging.tags import interpreter_name
+from pip._vendor.packaging.tags import \
+    _cpython_abis  # For platform specific download testing
+from pip._vendor.packaging.tags import \
+    _generic_abi  # For platform specific download testing
+from pip._vendor.packaging.tags import \
+    _generic_platforms  # For platform specific download testing
+from pip._vendor.packaging.tags import \
+    interpreter_name  # For platform specific download testing
+from pip._vendor.packaging.tags import \
+    interpreter_version  # For platform specific download testing
 
 from pip._internal.cli.status_codes import ERROR
 from pip._internal.utils.urls import path_to_url
@@ -63,21 +72,78 @@ def test_download_wheel(script, data):
     assert script.site_packages / 'piptestpackage' not in result.files_created
 
 
+def _get_abi_tag():
+    # If we're on CPython, use CPython-specific ABI tag (as 'SOABI' contains
+    # platform information that isn't included in the wheel ABI tag)
+    if interpreter_name() == 'cp':
+        # Unlike the generic ABI tags, CPython ABI tags are always defined
+        return _cpython_abis(sys.version_info)[0]
+    # Otherwise use the first generic wheel ABI tag
+    try:
+        return next(_generic_abi())
+    except StopIteration:
+        raise RuntimeError("Failed to determine an ABI tag for this platform")
+
+
 def test_download_platform_specific_wheel(script, data):
     """
     Test using "pip download" to download a platform specific *.whl archive
     """
-    assert False, "Test TBD"
+    interp = interpreter_name() + interpreter_version()
+    abi = _get_abi_tag()
+    platform_ = next(_generic_platforms())
+    platform_wheel = 'fake-1.0-{}-{}-{}.whl'.format(interp, abi, platform_)
+    fake_wheel(data, platform_wheel)
+
+    result = script.pip(
+        'download', '--no-index', '--find-links', data.find_links,
+        '--only-binary=:all:',
+        '--dest', '.',
+        'fake',
+    )
+    assert Path('scratch') / platform_wheel in result.files_created
 
 
-@pytest.mark.skipif(
-    interpreter_name() == 'pp',
-    reason="Only test PyPy custom wheel logic on PyPy")
-def test_download_pypy_version_specific_wheel(script, data):
+@pytest.mark.parametrize("legacy_pypy_tag,standard_pypy_tag", [
+    ("pp224", "pp27"),
+    ("pp273", "pp27"),
+    ("pp324", "pp32"),
+    ("pp352", "pp33"),
+    ("pp355", "pp33"),
+    ("pp357", "pp35"),
+    ("pp358", "pp35"),
+    ("pp359", "pp35"),
+    ("pp360", "pp35"),
+    ("pp370", "pp35"),
+    ("pp371", "pp35"),
+    ("pp372", "pp36"),
+    ("pp373", "pp36"),
+])
+def test_download_pypy_version_specific_wheel(
+        legacy_pypy_tag, standard_pypy_tag, script, data):
     """
     Test using "pip download" to download a PyPy version specific *.whl archive
     """
-    assert False, "Test TBD"
+    # This can run on any platform, as the custom logic runs when the
+    # the PyPy specific wheel filename is processed, and doesn't depend on
+    # any details of the running interpreter.
+    interp = legacy_pypy_tag
+    abi = 'fake_abi'
+    platform_ = 'fake_platform'
+    pypy_wheel = 'fake-1.0-{}-{}-{}.whl'.format(interp, abi, platform_)
+    fake_wheel(data, pypy_wheel)
+
+    result = script.pip(
+        'download', '--no-index', '--find-links', data.find_links,
+        '--only-binary=:all:',
+        '--dest', '.',
+        '--implementation', standard_pypy_tag[:2],
+        '--python-version', standard_pypy_tag[2:],
+        '--abi', abi,
+        '--platform', platform_,
+        'fake',
+    )
+    assert Path('scratch') / pypy_wheel in result.files_created
 
 
 @pytest.mark.network
@@ -627,8 +693,8 @@ def test_download_specify_abi(script, data):
 
 def test_download_specify_implementation(script, data):
     """
-    Test using "pip download --abi" to download a .whl archive
-    supported for a specific abi
+    Test using "pip download --implementation" to download a .whl archive
+    supported for a specific implementation
     """
     fake_wheel(data, 'fake-1.0-py2.py3-none-any.whl')
     result = script.pip(
