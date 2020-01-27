@@ -15,7 +15,6 @@ from io import BytesIO
 import pytest
 from mock import Mock, patch
 
-from pip._internal.cli.spinners import SpinnerInterface
 from pip._internal.exceptions import (
     HashMismatch,
     HashMissing,
