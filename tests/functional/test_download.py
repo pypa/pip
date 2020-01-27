@@ -115,7 +115,7 @@ def test_download_platform_specific_wheel(script, data):
     ("pp359", "pp35"),
     ("pp360", "pp35"),
     ("pp370", "pp35"),
-    ("pp371", "pp35"),
+    ("pp371", "pp36"),
     ("pp372", "pp36"),
     ("pp373", "pp36"),
 ])

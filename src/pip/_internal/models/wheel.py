@@ -93,11 +93,13 @@ def _is_legacy_pypy_tag(pyversion_tag):
         pyversion_tag[2:].isdigit()
     )
 
-
+# Note: the listed thresholds are the first non-alpha PyPy version to report
+#       the given Python version in sys.version_info. This means that
+#       PyPy 7.0.0 is handled a Python 3.5 compatible release.
 _PYPY3_COMPATIBILITY_TAG_THRESHOLDS = {
     'pp32': (5, 2),
     'pp33': (5, 7),
-    'pp35': (7, 2),
+    'pp35': (7, 1),
     'pp36': (8, 0)
     # The legacy custom PyPy wheel tags are not supported on PyPy 8.0.0+
 }
