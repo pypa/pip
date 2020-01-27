@@ -90,8 +90,9 @@ def _is_legacy_pypy_tag(pyversion_tag):
     return (
         len(pyversion_tag) == 5 and
         pyversion_tag.startswith('pp') and
-        pyversion_tag[2:].isdecimal()
+        pyversion_tag[2:].isdigit()
     )
+
 
 _PYPY3_COMPATIBILITY_TAG_THRESHOLDS = {
     'pp32': (5, 2),
@@ -100,6 +101,7 @@ _PYPY3_COMPATIBILITY_TAG_THRESHOLDS = {
     'pp36': (8, 0)
     # The legacy custom PyPy wheel tags are not supported on PyPy 8.0.0+
 }
+
 
 def _add_standard_pypy_version_tags(pyversions):
     # type: (List[str]) -> bool
