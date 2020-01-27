@@ -94,9 +94,9 @@ def _is_legacy_pypy_tag(pyversion_tag):
     )
 
 
-# Note: the listed thresholds are the first non-alpha PyPy version to report
-#       the given Python version in sys.version_info. This means that
-#       PyPy 7.0.0 is handled a Python 3.5 compatible release.
+# Note: the listed thresholds are the first non-alpha PyPy version that
+#       *doesn't* report the given Python version in sys.version_info. This
+#       means that PyPy 7.0.0 is handled as a Python 3.5 compatible release.
 _PYPY3_COMPATIBILITY_TAG_THRESHOLDS = {
     'pp32': (5, 2),
     'pp33': (5, 7),
