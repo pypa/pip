@@ -1,6 +1,6 @@
-Restore compatibility with legacy non-CPython interpreter wheel tags that use
+Restore compatibility with legacy PyPy-specific interpreter wheel tags that use
 the interpreter implementation version in the filename instead of the nominal
-Python language version (for example, the expected PyPy-specific interpreter tag
-is ``pp36`` for versions of PyPy that target Python 3.6 compatibility, but older
-versions of pip instead looked for tags like ``pp372``, incorporating the
+Python language version (for example, the expected PyPy-specific interpreter
+tag is ``pp36`` for versions of PyPy that target Python 3.6 compatibility, but
+older versions of pip instead looked for tags like ``pp372``, incorporating the
 first two digits of the implementation version).
