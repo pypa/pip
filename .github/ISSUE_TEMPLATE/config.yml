@@ -1,0 +1,14 @@
+# Ref: https://help.github.com/en/github/building-a-strong-community/configuring-issue-templates-for-your-repository#configuring-the-template-chooser
+blank_issues_enabled: true  # default
+contact_links:
+- name: 🤷💻🤦 Discourse
+  url: https://discuss.python.org/c/packaging
+  about: |
+    Please ask typical Q&A here: general ideas for Python packaging,
+    questions about structuring projects and so on
+- name: '💬 IRC: #pypa @ Freenode'
+  url: https://webchat.freenode.net/#pypa
+  about: Chat with devs
+- name: 📝 PyPA Code of Conduct
+  url: https://www.pypa.io/en/latest/code-of-conduct/
+  about: ❤ Be nice to other members of the community. ☮ Behave.
