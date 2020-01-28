@@ -2,7 +2,6 @@
 name that have meaning.
 """
 import re
-
 from collections import OrderedDict
 
 from pip._vendor.packaging.tags import Tag
