@@ -5,22 +5,20 @@ import textwrap
 from hashlib import sha256
 
 import pytest
-from pip._vendor.packaging.tags import \
-    _cpython_abis  # For platform specific download testing
-from pip._vendor.packaging.tags import \
-    _generic_abi  # For platform specific download testing
-from pip._vendor.packaging.tags import \
-    _generic_platforms  # For platform specific download testing
-from pip._vendor.packaging.tags import \
-    interpreter_name  # For platform specific download testing
-from pip._vendor.packaging.tags import \
-    interpreter_version  # For platform specific download testing
 
 from pip._internal.cli.status_codes import ERROR
 from pip._internal.utils.urls import path_to_url
 from tests.lib import create_really_basic_wheel
 from tests.lib.path import Path
 from tests.lib.server import file_response
+
+from pip._vendor.packaging.tags import (  # isort:skip
+    _cpython_abis,       # For platform specific download testing
+    _generic_abi,        # For platform specific download testing
+    _generic_platforms,  # For platform specific download testing
+    interpreter_name,    # For platform specific download testing
+    interpreter_version  # For platform specific download testing
+)
 
 
 def fake_wheel(data, wheel_path):
