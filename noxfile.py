@@ -276,7 +276,7 @@ def build_dists(session):
     )
     if has_git_untracked_files:
         session.error(
-            "There are untracked files in the Git repo workdir. "
+            "There are untracked files in the working directory. "
             "Remove them and try again",
         )
 
