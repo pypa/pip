@@ -253,6 +253,7 @@ def build_release(session):
 
         tmp_dist_dir = build_dir_path / 'dist'
         session.log(f"# Copying dists from {tmp_dist_dir}")
+        shutil.rmtree('dist', ignore_errors=True)  # remove empty `dist/`
         shutil.copytree(tmp_dist_dir, 'dist')
 
 
