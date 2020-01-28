@@ -204,14 +204,17 @@ def workdir(nox_session, dir_path: pathlib.Path):
 
 
 @contextlib.contextmanager
-def mk_tmp_git_checkout(nox_session, target_commitish: str):
+def isolated_temporary_checkout(
+        nox_session: nox.sessions.Session,
+        target_ref: str,
+) -> pathlib.Path:
     """Make a clean checkout of a given version in tmp dir."""
     with tempfile.TemporaryDirectory() as tmp_dir_path:
         tmp_dir = pathlib.Path(tmp_dir_path)
-        git_checkout_dir = tmp_dir / f'pip-build-{target_commitish}'
+        git_checkout_dir = tmp_dir / f'pip-build-{target_ref}'
         nox_session.run(
             'git', 'worktree', 'add', '--force', '--checkout',
-            str(git_checkout_dir), str(target_commitish),
+            str(git_checkout_dir), str(target_ref),
             external=True, silent=True,
         )
 
@@ -241,7 +244,7 @@ def build_release(session):
     session.log("# Install dependencies")
     session.install("setuptools", "wheel", "twine")
 
-    with mk_tmp_git_checkout(session, version) as build_dir_path:
+    with isolated_temporary_checkout(session, version) as build_dir_path:
         session.log(
             "# Start the build in an isolated, "
             f"temporary Git checkout at {build_dir_path!s}",
