@@ -3,6 +3,8 @@ name that have meaning.
 """
 import re
 
+from collections import OrderedDict
+
 from pip._vendor.packaging.tags import Tag
 
 from pip._internal.exceptions import InvalidWheelFilename
@@ -97,13 +99,13 @@ def _is_legacy_pypy_tag(pyversion_tag):
 # Note: the listed thresholds are the first non-alpha PyPy version that
 #       *doesn't* report the given Python version in sys.version_info. This
 #       means that PyPy 7.0.0 is handled as a Python 3.5 compatible release.
-_PYPY3_COMPATIBILITY_TAG_THRESHOLDS = {
-    'pp32': (5, 2),
-    'pp33': (5, 7),
-    'pp35': (7, 1),
-    'pp36': (8, 0)
+_PYPY3_COMPATIBILITY_TAG_THRESHOLDS = OrderedDict((
+    ('pp32', (5, 2)),
+    ('pp33', (5, 7)),
+    ('pp35', (7, 1)),
+    ('pp36', (8, 0))
     # The legacy custom PyPy wheel tags are not supported on PyPy 8.0.0+
-}
+))
 
 
 def _add_standard_pypy_version_tags(pyversions):
@@ -121,6 +123,7 @@ def _add_standard_pypy_version_tags(pyversions):
     legacy_pypy_tags = [tag for tag in pyversions if _is_legacy_pypy_tag(tag)]
     if not legacy_pypy_tags:
         return False  # Nothing to do
+    print(legacy_pypy_tags)
     standard_tags = set()
     py3_tag_thresholds = _PYPY3_COMPATIBILITY_TAG_THRESHOLDS.items()
     for tag in legacy_pypy_tags:
