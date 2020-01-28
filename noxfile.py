@@ -259,10 +259,6 @@ def build_release(session):
 
 
 def build_dists(session):
-    session.log("# Cleanup build/ before building the wheel")
-    if release.have_files_in_folder("build"):
-        shutil.rmtree("build")
-
     session.log(
         "# Check if there's any Git-untracked files before building the wheel",
     )
