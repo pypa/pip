@@ -205,10 +205,7 @@ def workdir(nox_session, dir_path: pathlib.Path):
 
 @contextlib.contextmanager
 def mk_tmp_git_checkout(nox_session, target_commitish: str):
-    """Make a clean checkout of a given version in tmp dir.
-
-    This is a context manager that cleans up after itself.
-    """
+    """Make a clean checkout of a given version in tmp dir."""
     with tempfile.TemporaryDirectory() as tmp_dir_path:
         tmp_dir = pathlib.Path(tmp_dir_path)
         git_checkout_dir = tmp_dir / f'pip-build-{target_commitish}'
