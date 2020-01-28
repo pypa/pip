@@ -4,14 +4,11 @@
 # The following comment should be removed at some point in the future.
 # mypy: disallow-untyped-defs=False
 
-import contextlib
 import glob
 import os
-import pathlib
 import shutil
 import subprocess
 import sys
-import tempfile
 
 import nox
 
@@ -191,43 +188,6 @@ def prepare_release(session):
     release.commit_file(session, VERSION_FILE, message="Bump for development")
 
 
-@contextlib.contextmanager
-def workdir(nox_session, dir_path: pathlib.Path):
-    """Temporarily chdir when entering CM and chdir back on exit."""
-    orig_dir = pathlib.Path.cwd()
-
-    nox_session.chdir(dir_path)
-    try:
-        yield dir_path
-    finally:
-        nox_session.chdir(orig_dir)
-
-
-@contextlib.contextmanager
-def isolated_temporary_checkout(
-        nox_session: nox.sessions.Session,
-        target_ref: str,
-) -> pathlib.Path:
-    """Make a clean checkout of a given version in tmp dir."""
-    with tempfile.TemporaryDirectory() as tmp_dir_path:
-        tmp_dir = pathlib.Path(tmp_dir_path)
-        git_checkout_dir = tmp_dir / f'pip-build-{target_ref}'
-        nox_session.run(
-            'git', 'worktree', 'add', '--force', '--checkout',
-            str(git_checkout_dir), str(target_ref),
-            external=True, silent=True,
-        )
-
-        try:
-            yield git_checkout_dir
-        finally:
-            nox_session.run(
-                'git', 'worktree', 'remove', '--force',
-                str(git_checkout_dir),
-                external=True, silent=True,
-            )
-
-
 @nox.session(name="build-release")
 def build_release(session):
     version = release.get_version_from_arguments(session.posargs)
@@ -244,15 +204,15 @@ def build_release(session):
     session.log("# Install dependencies")
     session.install("setuptools", "wheel", "twine")
 
-    with isolated_temporary_checkout(session, version) as build_dir_path:
+    with release.isolated_temporary_checkout(session, version) as build_dir:
         session.log(
             "# Start the build in an isolated, "
-            f"temporary Git checkout at {build_dir_path!s}",
+            f"temporary Git checkout at {build_dir!s}",
         )
-        with workdir(session, build_dir_path):
+        with release.workdir(session, build_dir):
             build_dists(session)
 
-        tmp_dist_dir = build_dir_path / 'dist'
+        tmp_dist_dir = build_dir / 'dist'
         session.log(f"# Copying dists from {tmp_dist_dir}")
         shutil.rmtree('dist', ignore_errors=True)  # remove empty `dist/`
         shutil.copytree(tmp_dist_dir, 'dist')
