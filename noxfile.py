@@ -196,13 +196,11 @@ def workdir(nox_session, dir_path: pathlib.Path):
     """Temporarily chdir when entering CM and chdir back on exit."""
     orig_dir = pathlib.Path.cwd()
 
-    nox_session.log(f"# Changing dir to {dir_path}")
-    os.chdir(dir_path)
+    nox_session.chdir(dir_path)
     try:
         yield dir_path
     finally:
-        nox_session.log(f"# Changing dir back to {orig_dir}")
-        os.chdir(orig_dir)
+        nox_session.chdir(orig_dir)
 
 
 @contextlib.contextmanager
