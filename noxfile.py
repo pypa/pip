@@ -209,9 +209,6 @@ def mk_tmp_git_checkout(nox_session, target_commitish: str):
     with tempfile.TemporaryDirectory() as tmp_dir_path:
         tmp_dir = pathlib.Path(tmp_dir_path)
         git_checkout_dir = tmp_dir / f'pip-build-{target_commitish}'
-        nox_session.log(
-            f"# Creating a temporary Git checkout at {git_checkout_dir!s}",
-        )
         nox_session.run(
             'git', 'worktree', 'add', '--force', '--checkout',
             str(git_checkout_dir), str(target_commitish),
@@ -245,6 +242,10 @@ def build_release(session):
     session.install("setuptools", "wheel", "twine")
 
     with mk_tmp_git_checkout(session, version) as build_dir_path:
+        session.log(
+            "# Start the build in an isolated, "
+            f"temporary Git checkout at {build_dir_path!s}",
+        )
         with workdir(session, build_dir_path):
             build_dists(session)
 
