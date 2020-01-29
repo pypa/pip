@@ -89,7 +89,7 @@ def build_wheel_legacy(
         destination_dir=tempd,
     )
 
-    spin_message = 'Building wheel for %s (setup.py)' % (name,)
+    spin_message = 'Building wheel for {} (setup.py)'.format(name)
     with open_spinner(spin_message) as spinner:
         logger.debug('Destination directory: %s', tempd)
 

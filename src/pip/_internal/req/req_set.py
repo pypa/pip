@@ -108,8 +108,8 @@ class RequirementSet(object):
             tags = pep425tags.get_supported()
             if (self.check_supported_wheels and not wheel.supported(tags)):
                 raise InstallationError(
-                    "%s is not a supported wheel on this platform." %
-                    wheel.filename
+                    "{} is not a supported wheel on this platform.".format(
+                        wheel.filename)
                 )
 
         # This next bit is really a sanity check.
@@ -138,8 +138,8 @@ class RequirementSet(object):
         )
         if has_conflicting_requirement:
             raise InstallationError(
-                "Double requirement given: %s (already in %s, name=%r)"
-                % (install_req, existing_req, install_req.name)
+                "Double requirement given: {} (already in {}, name={!r})"
+                .format(install_req, existing_req, install_req.name)
             )
 
         # When no existing requirement exists, add the requirement as a
@@ -164,9 +164,9 @@ class RequirementSet(object):
         if does_not_satisfy_constraint:
             self.reqs_to_cleanup.append(install_req)
             raise InstallationError(
-                "Could not satisfy constraints for '%s': "
+                "Could not satisfy constraints for '{}': "
                 "installation from path or url cannot be "
-                "constrained to a version" % install_req.name,
+                "constrained to a version".format(install_req.name)
             )
         # If we're now installing a constraint, mark the existing
         # object for real installation.

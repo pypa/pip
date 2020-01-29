@@ -56,7 +56,7 @@ class Command(CommandContextMixIn):
         super(Command, self).__init__()
         parser_kw = {
             'usage': self.usage,
-            'prog': '%s %s' % (get_prog(), name),
+            'prog': '{} {}'.format(get_prog(), name),
             'formatter': UpdatingDefaultsHelpFormatter(),
             'add_help_option': False,
             'name': name,
@@ -69,7 +69,7 @@ class Command(CommandContextMixIn):
         self.parser = ConfigOptionParser(**parser_kw)
 
         # Commands should add options to this option group
-        optgroup_name = '%s Options' % self.name.capitalize()
+        optgroup_name = '{} Options'.format(self.name.capitalize())
         self.cmd_opts = optparse.OptionGroup(self.parser, optgroup_name)
 
         # Add the general options

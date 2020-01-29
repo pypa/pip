@@ -215,8 +215,8 @@ def check_compatibility(version, name):
     """
     if version[0] > VERSION_COMPATIBLE[0]:
         raise UnsupportedWheel(
-            "%s's Wheel-Version (%s) is not compatible with this version "
-            "of pip" % (name, '.'.join(map(str, version)))
+            "{}'s Wheel-Version ({}) is not compatible with this version "
+            "of pip".format(name, '.'.join(map(str, version)))
         )
     elif version > VERSION_COMPATIBLE:
         logger.warning(

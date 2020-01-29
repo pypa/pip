@@ -66,12 +66,12 @@ class Link(KeyBasedCompareMixin):
     def __str__(self):
         # type: () -> str
         if self.requires_python:
-            rp = ' (requires-python:%s)' % self.requires_python
+            rp = ' (requires-python:{})'.format(self.requires_python)
         else:
             rp = ''
         if self.comes_from:
-            return '%s (from %s)%s' % (redact_auth_from_url(self._url),
-                                       self.comes_from, rp)
+            return '{} (from {}){}'.format(
+                redact_auth_from_url(self._url), self.comes_from, rp)
         else:
             return redact_auth_from_url(str(self._url))
 

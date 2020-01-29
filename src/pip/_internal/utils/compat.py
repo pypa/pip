@@ -184,7 +184,8 @@ def get_path_uid(path):
         else:
             # raise OSError for parity with os.O_NOFOLLOW above
             raise OSError(
-                "%s is a symlink; Will not return uid for symlinks" % path
+                "{} is a symlink; Will not return uid for symlinks".format(
+                    path)
             )
     return file_uid
 
