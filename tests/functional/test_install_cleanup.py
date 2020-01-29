@@ -5,7 +5,7 @@ import pytest
 
 from pip._internal.cli.status_codes import PREVIOUS_BUILD_DIR_ERROR
 from pip._internal.utils.marker_files import write_delete_marker_file
-from tests.lib import need_mercurial
+from tests.lib import need_mercurial, windows_workaround_7667
 from tests.lib.local_repos import local_checkout
 
 
@@ -40,6 +40,7 @@ def test_no_clean_option_blocks_cleaning_after_install(script, data):
 
 @pytest.mark.network
 @need_mercurial
+@windows_workaround_7667
 def test_cleanup_after_install_editable_from_hg(script, tmpdir):
     """
     Test clean up after cloning from Mercurial.

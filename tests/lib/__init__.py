@@ -1116,3 +1116,10 @@ def need_mercurial(fn):
 
 skip_if_python2 = pytest.mark.skipif(PY2, reason="Non-Python 2 only")
 skip_if_not_python2 = pytest.mark.skipif(not PY2, reason="Python 2 only")
+
+
+# Workaround for test failures after new wheel release.
+windows_workaround_7667 = pytest.mark.skipif(
+    "sys.platform == 'win32' and sys.version_info < (3,)",
+    reason="Workaround for #7667",
+)
