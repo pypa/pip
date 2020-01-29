@@ -27,6 +27,7 @@ from tests.lib import (
     requirements_file,
     skip_if_not_python2,
     skip_if_python2,
+    windows_workaround_7667,
 )
 from tests.lib.filesystem import make_socket_file
 from tests.lib.local_repos import local_checkout
@@ -726,6 +727,7 @@ def test_install_using_install_option_and_editable(script, tmpdir):
 
 @pytest.mark.network
 @need_mercurial
+@windows_workaround_7667
 def test_install_global_option_using_editable(script, tmpdir):
     """
     Test using global distutils options, but in an editable installation
@@ -1333,6 +1335,7 @@ def test_install_no_binary_disables_building_wheels(script, data, with_wheel):
 
 
 @pytest.mark.network
+@windows_workaround_7667
 def test_install_no_binary_builds_pep_517_wheel(script, data, with_wheel):
     to_install = data.packages.joinpath('pep517_setup_and_pyproject')
     res = script.pip(
@@ -1347,6 +1350,7 @@ def test_install_no_binary_builds_pep_517_wheel(script, data, with_wheel):
 
 
 @pytest.mark.network
+@windows_workaround_7667
 def test_install_no_binary_uses_local_backend(
         script, data, with_wheel, tmpdir):
     to_install = data.packages.joinpath('pep517_wrapper_buildsys')
