@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import os
 import shutil
 import stat
@@ -8,6 +9,7 @@ import time
 import zipfile
 
 import pytest
+from pip._vendor.six import ensure_str, ensure_text
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.utils.unpacking import (
@@ -170,6 +172,25 @@ class TestUnpackArchives(object):
         ]
         test_tar = self.make_tar_file('test_tar.tar', files)
         untar_file(test_tar, self.tempdir)
+
+
+def test_unpack_tar_unicode(tmpdir):
+    test_tar = tmpdir / "test.tar"
+    # tarfile tries to decode incoming
+    with tarfile.open(
+        test_tar, "w", format=tarfile.PAX_FORMAT, encoding="utf-8"
+    ) as f:
+        metadata = tarfile.TarInfo(ensure_str(u"dir/åäö_日本語.py"))
+        f.addfile(metadata, "hello world")
+
+    output_dir = tmpdir / "output"
+    output_dir.mkdir()
+
+    untar_file(test_tar, str(output_dir))
+
+    output_dir_name = ensure_text(str(output_dir))
+    contents = os.listdir(output_dir_name)
+    assert u"åäö_日本語.py" in contents
 
 
 @pytest.mark.parametrize('args, expected', [

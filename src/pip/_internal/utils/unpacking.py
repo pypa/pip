@@ -14,6 +14,8 @@ import stat
 import tarfile
 import zipfile
 
+from pip._vendor.six import ensure_text
+
 from pip._internal.exceptions import InstallationError
 from pip._internal.utils.filetypes import (
     BZ2_EXTENSIONS,
@@ -174,7 +176,7 @@ def untar_file(filename, location):
             'Cannot determine compression type for file %s', filename,
         )
         mode = 'r:*'
-    tar = tarfile.open(filename, mode)
+    tar = tarfile.open(filename, mode, encoding="utf-8")
     try:
         leading = has_leading_dir([
             member.name for member in tar.getmembers()
@@ -184,7 +186,17 @@ def untar_file(filename, location):
             if leading:
                 # https://github.com/python/mypy/issues/1174
                 fn = split_leading_dir(fn)[1]  # type: ignore
+
             path = os.path.join(location, fn)
+            try:
+                # Convert path to text so all APIs below work with unicode
+                # files.
+                path = ensure_text(path)  # type: ignore
+            except UnicodeDecodeError:
+                # Silently continue, for backwards compatibility on non-PAX
+                # archives.
+                pass
+
             if not is_within_directory(location, path):
                 message = (
                     'The tar file ({}) has a file ({}) trying to install '
