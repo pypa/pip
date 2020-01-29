@@ -309,8 +309,9 @@ def format_for_json(packages, options):
             'name': dist.project_name,
             'version': str(dist.version),
         }
-        if options.verbose >= 1:
+        if options.verbose >= 1 or dist_is_editable(dist):
             info['location'] = dist.location
+        if options.verbose >= 1:
             info['installer'] = get_installer(dist)
         if options.outdated:
             info['latest_version'] = str(dist.latest_version)
