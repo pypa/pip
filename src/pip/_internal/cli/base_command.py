@@ -34,13 +34,20 @@ from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.logging import BrokenStdoutLoggingError, setup_logging
 from pip._internal.utils.misc import get_prog, normalize_path
-from pip._internal.utils.temp_dir import global_tempdir_manager
+from pip._internal.utils.temp_dir import (
+    global_tempdir_manager,
+    tempdir_registry,
+)
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
 if MYPY_CHECK_RUNNING:
-    from typing import List, Tuple, Any
+    from typing import List, Optional, Tuple, Any
     from optparse import Values
+
+    from pip._internal.utils.temp_dir import (
+        TempDirectoryTypeRegistry as TempDirRegistry
+    )
 
 __all__ = ['Command']
 
@@ -67,6 +74,8 @@ class Command(CommandContextMixIn):
         self.name = name
         self.summary = summary
         self.parser = ConfigOptionParser(**parser_kw)
+
+        self.tempdir_registry = None  # type: Optional[TempDirRegistry]
 
         # Commands should add options to this option group
         optgroup_name = '%s Options' % self.name.capitalize()
@@ -108,6 +117,10 @@ class Command(CommandContextMixIn):
 
     def _main(self, args):
         # type: (List[str]) -> int
+        # We must initialize this before the tempdir manager, otherwise the
+        # configuration would not be accessible by the time we clean up the
+        # tempdir manager.
+        self.tempdir_registry = self.enter_context(tempdir_registry())
         # Intentionally set as early as possible so globally-managed temporary
         # directories are available to the rest of the code.
         self.enter_context(global_tempdir_manager())
