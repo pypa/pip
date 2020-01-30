@@ -137,10 +137,10 @@ def parse_editable(editable_req):
     vc_type = url.split('+', 1)[0].lower()
 
     if not vcs.get_backend(vc_type):
-        error_message = 'For --editable={} only '.format(
-            editable_req + ', '.join(
-                [backend.name + '+URL' for backend in vcs.backends]) +
-            ' is currently supported')
+        backends = ", ".join([bends.name + '+URL' for bends in vcs.backends])
+        error_message = "For --editable={}, " \
+                        "only {} are currently supported".format(
+                            editable_req, backends)
         raise InstallationError(error_message)
 
     package_name = Link(url).egg_fragment
