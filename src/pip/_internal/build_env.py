@@ -135,10 +135,6 @@ class BuildEnvironment(object):
             else:
                 os.environ[varname] = old_value
 
-    def cleanup(self):
-        # type: () -> None
-        self._temp_dir.cleanup()
-
     def check_requirements(self, reqs):
         # type: (Iterable[str]) -> Tuple[Set[Tuple[str, str]], Set[str]]
         """Return 2 sets:
