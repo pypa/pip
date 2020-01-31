@@ -10,7 +10,7 @@ from contextlib import contextmanager
 
 import pytest
 import six
-from pip._vendor.contextlib2 import ExitStack
+from pip._vendor.contextlib2 import ExitStack, nullcontext
 from setuptools.wheel import Wheel
 
 from pip._internal.cli.main import main as pip_entry_point
@@ -188,13 +188,18 @@ def isolate(tmpdir):
 
 
 @pytest.fixture(autouse=True)
-def scoped_global_tempdir_manager():
+def scoped_global_tempdir_manager(request):
     """Make unit tests with globally-managed tempdirs easier
 
     Each test function gets its own individual scope for globally-managed
     temporary directories in the application.
     """
-    with global_tempdir_manager():
+    if "no_auto_tempdir_manager" in request.keywords:
+        ctx = nullcontext
+    else:
+        ctx = global_tempdir_manager
+
+    with ctx():
         yield
 
 

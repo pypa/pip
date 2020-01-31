@@ -52,7 +52,7 @@ For more information and examples, see the :ref:`pip install` reference.
 Basic Authentication Credentials
 ********************************
 
-pip supports basic authentication credentials. Basically, in the url there is
+pip supports basic authentication credentials. Basically, in the URL there is
 a username and password separated by ``:``.
 
 ``https://[username[:password]@]pypi.company.com/simple``

@@ -36,7 +36,6 @@ from pip._internal.utils.logging import indent_log
 from pip._internal.utils.marker_files import (
     PIP_DELETE_MARKER_FILENAME,
     has_delete_marker_file,
-    write_delete_marker_file,
 )
 from pip._internal.utils.misc import (
     ask_path_exists,
@@ -371,7 +370,6 @@ class InstallRequirement(object):
         if not os.path.exists(build_dir):
             logger.debug('Creating directory %s', build_dir)
             os.makedirs(build_dir)
-            write_delete_marker_file(build_dir)
         return os.path.join(build_dir, name)
 
     def _set_requirement(self):

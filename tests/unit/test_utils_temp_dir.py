@@ -10,6 +10,7 @@ from pip._internal.utils.misc import ensure_dir
 from pip._internal.utils.temp_dir import (
     AdjacentTempDirectory,
     TempDirectory,
+    _default,
     global_tempdir_manager,
     tempdir_registry,
 )
@@ -216,12 +217,15 @@ not_deleted_kind = "not-deleted"
 
 @pytest.mark.parametrize("delete,kind,exists", [
     (None, deleted_kind, False),
+    (_default, deleted_kind, False),
     (True, deleted_kind, False),
     (False, deleted_kind, True),
     (None, not_deleted_kind, True),
+    (_default, not_deleted_kind, True),
     (True, not_deleted_kind, False),
     (False, not_deleted_kind, True),
     (None, "unspecified", False),
+    (_default, "unspecified", False),
     (True, "unspecified", False),
     (False, "unspecified", True),
 ])
@@ -232,6 +236,24 @@ def test_tempdir_registry(kind, delete, exists):
 
         with TempDirectory(delete=delete, kind=kind) as d:
             path = d.path
+            assert os.path.exists(path)
+        assert os.path.exists(path) == exists
+
+
+@pytest.mark.parametrize("delete,exists", [
+    (_default, True), (None, False)
+])
+def test_temp_dir_does_not_delete_explicit_paths_by_default(
+    tmpdir, delete, exists
+):
+    path = tmpdir / "example"
+    path.mkdir()
+
+    with tempdir_registry() as registry:
+        registry.set_delete(deleted_kind, True)
+
+        with TempDirectory(path=path, delete=delete, kind=deleted_kind) as d:
+            assert str(d.path) == path
             assert os.path.exists(path)
         assert os.path.exists(path) == exists
 

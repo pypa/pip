@@ -3,7 +3,7 @@ from pip._vendor import pytoml
 
 from pip._internal.build_env import BuildEnvironment
 from pip._internal.req import InstallRequirement
-from tests.lib import make_test_finder, path_to_url
+from tests.lib import make_test_finder, path_to_url, windows_workaround_7667
 
 
 def make_project(tmpdir, requires=[], backend=None, backend_path=None):
@@ -249,6 +249,7 @@ def test_explicit_setuptools_backend(script, tmpdir, data, common_wheels):
 
 
 @pytest.mark.network
+@windows_workaround_7667
 def test_pep517_and_build_options(script, tmpdir, data, common_wheels):
     """Backend generated requirements are installed in the build env"""
     project_dir, name = make_pyproject_with_setup(tmpdir)
