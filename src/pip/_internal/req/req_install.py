@@ -358,7 +358,9 @@ class InstallRequirement(object):
             # Some systems have /tmp as a symlink which confuses custom
             # builds (such as numpy). Thus, we ensure that the real path
             # is returned.
-            self._temp_build_dir = TempDirectory(kind=tempdir_kinds.REQ_BUILD)
+            self._temp_build_dir = TempDirectory(
+                kind=tempdir_kinds.REQ_BUILD, globally_managed=True
+            )
 
             return self._temp_build_dir.path
         if self.editable:
@@ -418,9 +420,7 @@ class InstallRequirement(object):
             logger.debug('Removing source in %s', self.source_dir)
             rmtree(self.source_dir)
         self.source_dir = None
-        if self._temp_build_dir:
-            self._temp_build_dir.cleanup()
-            self._temp_build_dir = None
+        self._temp_build_dir = None
         self.build_env.cleanup()
 
     def check_if_exists(self, use_user_site):
