@@ -17,7 +17,7 @@ from pip._vendor.pkg_resources import Requirement, VersionConflict, WorkingSet
 
 from pip import __file__ as pip_location
 from pip._internal.utils.subprocess import call_subprocess
-from pip._internal.utils.temp_dir import TempDirectory
+from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import open_spinner
 
@@ -54,7 +54,7 @@ class BuildEnvironment(object):
 
     def __init__(self):
         # type: () -> None
-        self._temp_dir = TempDirectory(kind="build-env")
+        self._temp_dir = TempDirectory(kind=tempdir_kinds.BUILD_ENV)
 
         self._prefixes = OrderedDict((
             (name, _Prefix(os.path.join(self._temp_dir.path, name)))

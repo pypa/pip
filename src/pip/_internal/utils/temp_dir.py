@@ -24,7 +24,8 @@ logger = logging.getLogger(__name__)
 # Kinds of temporary directories. Only needed for ones that are
 # globally-managed.
 tempdir_kinds = enum(
-    REQ_BUILD="req-build"
+    BUILD_ENV="build-env",
+    REQ_BUILD="req-build",
 )
 
 

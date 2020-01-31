@@ -156,7 +156,7 @@ class IndexGroupCommand(Command, SessionCommandMixin):
             pip_self_version_check(session, options)
 
 
-KEEPABLE_TEMPDIR_TYPES = [tempdir_kinds.REQ_BUILD]
+KEEPABLE_TEMPDIR_TYPES = [tempdir_kinds.BUILD_ENV, tempdir_kinds.REQ_BUILD]
 
 
 def with_cleanup(func):
