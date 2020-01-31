@@ -421,7 +421,6 @@ class InstallRequirement(object):
             rmtree(self.source_dir)
         self.source_dir = None
         self._temp_build_dir = None
-        self.build_env.cleanup()
 
     def check_if_exists(self, use_user_site):
         # type: (bool) -> None
