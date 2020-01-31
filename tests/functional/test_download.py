@@ -140,6 +140,7 @@ def test_download_pypy_version_specific_wheel(
         '--abi', abi,
         '--platform', platform_,
         'fake',
+        allow_stderr_warning=True
     )
     assert Path('scratch') / pypy_wheel in result.files_created
 

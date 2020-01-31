@@ -7,6 +7,7 @@ from collections import OrderedDict
 from pip._vendor.packaging.tags import Tag
 
 from pip._internal.exceptions import InvalidWheelFilename
+from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -44,7 +45,26 @@ class Wheel(object):
         self.plats = wheel_info.group('plat').split('.')
 
         # Adjust for any legacy custom PyPy tags found in pyversions
-        _add_standard_pypy_version_tags(self.pyversions)
+        missing_tags = _infer_missing_pypy_version_tags(self.pyversions)
+        if missing_tags:
+            self.pyversions.extend(missing_tags)
+
+            deprecated(
+                reason=(
+                    "{} includes legacy PyPy version tags without the "
+                    "corresponding standard tags ({})."
+                ).format(self.filename, missing_tags),
+                replacement=(
+                    "for maintainers: use v0.34.0 or later of the wheel "
+                    "project to create a correctly tagged {0} PyPy wheel. "
+                    "For users: contact the maintainers of {0} to let "
+                    "them know to regenerate their PyPy wheel(s)".format(
+                        self.name
+                    )
+                ),
+                gone_in="21.0",
+                issue=7629,
+            )
 
         # All the tag combinations from this file
         self.file_tags = {
@@ -107,13 +127,13 @@ _PYPY3_COMPATIBILITY_TAG_THRESHOLDS = OrderedDict((
 ))
 
 
-def _add_standard_pypy_version_tags(pyversions):
-    # type: (List[str]) -> bool
-    """Add standard PyPy tags for any legacy PyPy tags, avoiding duplicates
+def _infer_missing_pypy_version_tags(pyversions):
+    # type: (List[str]) -> List[str]
+    """Infer standard PyPy tags for any legacy PyPy tags, avoiding duplicates
 
-    Returns True if adjustments were made, False otherwise
+    Returns an ordered list of the missing tags (which may be empty)
 
-    :param pyversions: the list of pyversion tags to be adjusted
+    :param pyversions: the list of pyversion tags to be checked
     """
     # Several wheel versions prior to 0.34.0 produced non-standard tags
     # for PyPy wheel archives. For backwards compatibility, we translate
@@ -121,8 +141,8 @@ def _add_standard_pypy_version_tags(pyversions):
     # PyPy 8.0.0.
     legacy_pypy_tags = [tag for tag in pyversions if _is_legacy_pypy_tag(tag)]
     if not legacy_pypy_tags:
-        return False  # Nothing to do
-    print(legacy_pypy_tags)
+        return []  # Nothing to do
+
     standard_tags = set()
     py3_tag_thresholds = _PYPY3_COMPATIBILITY_TAG_THRESHOLDS.items()
     for tag in legacy_pypy_tags:
@@ -139,12 +159,12 @@ def _add_standard_pypy_version_tags(pyversions):
                 break
 
     if not standard_tags:
-        return False  # Nothing to do
+        return []  # Nothing to do
 
     existing_tags = set(pyversions)
-    modified = False
-    for tag in standard_tags:
-        if tag not in existing_tags:
-            pyversions.append(tag)
-            modified = True
-    return modified
+    missing_tags = standard_tags - existing_tags
+    if not missing_tags:
+        return []  # Nothing to do
+
+    # Order the tags to get consistent warning output
+    return sorted(missing_tags)
