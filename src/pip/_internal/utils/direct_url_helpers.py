@@ -1,14 +1,30 @@
+import logging
+
 from pip._internal.models.direct_url import (
+    DIRECT_URL_METADATA_NAME,
     ArchiveInfo,
     DirectUrl,
+    DirectUrlValidationError,
     DirInfo,
     VcsInfo,
 )
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs import vcs
 
+try:
+    from json import JSONDecodeError
+except ImportError:
+    # PY2
+    JSONDecodeError = ValueError  # type: ignore
+
 if MYPY_CHECK_RUNNING:
+    from typing import Optional
+
     from pip._internal.models.link import Link
+
+    from pip._vendor.pkg_resources import Distribution
+
+logger = logging.getLogger(__name__)
 
 
 def direct_url_as_pep440_direct_reference(direct_url, name):
@@ -87,3 +103,28 @@ def direct_url_from_link(link, source_dir=None, link_is_in_wheel_cache=False):
             info=ArchiveInfo(hash=hash),
             subdirectory=link.subdirectory_fragment,
         )
+
+
+def dist_get_direct_url(dist):
+    # type: (Distribution) -> Optional[DirectUrl]
+    """Obtain a DirectUrl from a pkg_resource.Distribution.
+
+    Returns None if the distribution has no `direct_url.json` metadata,
+    or if `direct_url.json` is invalid.
+    """
+    if not dist.has_metadata(DIRECT_URL_METADATA_NAME):
+        return None
+    try:
+        return DirectUrl.from_json(dist.get_metadata(DIRECT_URL_METADATA_NAME))
+    except (
+        DirectUrlValidationError,
+        JSONDecodeError,
+        UnicodeDecodeError
+    ) as e:
+        logger.warning(
+            "Error parsing %s for %s: %s",
+            DIRECT_URL_METADATA_NAME,
+            dist.project_name,
+            e,
+        )
+        return None
