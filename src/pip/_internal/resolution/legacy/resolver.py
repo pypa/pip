@@ -280,14 +280,16 @@ class Resolver(BaseResolver):
 
         if self.wheel_cache is None or self.preparer.require_hashes:
             return
-        cached_link = self.wheel_cache.get(
+        cache_entry = self.wheel_cache.get_cache_entry(
             link=req.link,
             package_name=req.name,
             supported_tags=get_supported(),
         )
-        if req.link != cached_link:
-            logger.debug('Using cached wheel link: %s', cached_link)
-            req.link = cached_link
+        if cache_entry is not None:
+            logger.debug('Using cached wheel link: %s', cache_entry.link)
+            if req.link is req.original_link and cache_entry.persistent:
+                req.original_link_is_in_wheel_cache = True
+            req.link = cache_entry.link
 
     def _get_abstract_dist_for(self, req):
         # type: (InstallRequirement) -> AbstractDistribution
