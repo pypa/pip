@@ -816,3 +816,11 @@ def test_freeze_path_multiple(tmpdir, script, data):
         simple2==3.0
         <BLANKLINE>""")
     _check_output(result.stdout, expected)
+
+
+def test_freeze_direct_url_archive(script, shared_data, with_wheel):
+    req = "simple @ " + path_to_url(shared_data.packages / "simple-2.0.tar.gz")
+    assert req.startswith("simple @ file://")
+    script.pip("install", req)
+    result = script.pip("freeze")
+    assert req in result.stdout
