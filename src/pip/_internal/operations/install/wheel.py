@@ -27,6 +27,7 @@ from pip._vendor.six import StringIO
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_major_minor_version
+from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
 from pip._internal.utils.filesystem import adjacent_tmp_file, replace
 from pip._internal.utils.misc import captured_stdout, ensure_dir, hash_file
 from pip._internal.utils.temp_dir import TempDirectory
@@ -289,7 +290,8 @@ def install_unpacked_wheel(
     scheme,  # type: Scheme
     req_description,  # type: str
     pycompile=True,  # type: bool
-    warn_script_location=True  # type: bool
+    warn_script_location=True,  # type: bool
+    direct_url=None,  # type: Optional[DirectUrl]
 ):
     # type: (...) -> None
     """Install a wheel.
@@ -570,6 +572,14 @@ def install_unpacked_wheel(
     replace(installer_file.name, installer_path)
     generated.append(installer_path)
 
+    # Record the PEP 610 direct URL reference
+    if direct_url is not None:
+        direct_url_path = os.path.join(dest_info_dir, DIRECT_URL_METADATA_NAME)
+        with adjacent_tmp_file(direct_url_path) as direct_url_file:
+            direct_url_file.write(direct_url.to_json().encode("utf-8"))
+        replace(direct_url_file.name, direct_url_path)
+        generated.append(direct_url_path)
+
     # Record details of all files installed
     record_path = os.path.join(dest_info_dir, 'RECORD')
     with open(record_path, **csv_io_kwargs('r')) as record_file:
@@ -593,6 +603,7 @@ def install_wheel(
     pycompile=True,  # type: bool
     warn_script_location=True,  # type: bool
     _temp_dir_for_testing=None,  # type: Optional[str]
+    direct_url=None,  # type: Optional[DirectUrl]
 ):
     # type: (...) -> None
     with TempDirectory(
@@ -607,4 +618,5 @@ def install_wheel(
             req_description=req_description,
             pycompile=pycompile,
             warn_script_location=warn_script_location,
+            direct_url=direct_url,
         )
