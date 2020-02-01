@@ -30,7 +30,7 @@ class Wheel(object):
         wheel_info = self.wheel_file_re.match(filename)
         if not wheel_info:
             raise InvalidWheelFilename(
-                "%s is not a valid wheel filename." % filename
+                "{} is not a valid wheel filename.".format(filename)
             )
         self.filename = filename
         self.name = wheel_info.group('name').replace('_', '-')

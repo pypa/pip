@@ -255,8 +255,8 @@ class HashMismatch(HashError):
         self.gots = gots
 
     def body(self):
-        return '    %s:\n%s' % (self._requirement_name(),
-                                self._hash_comparison())
+        return '    {}:\n{}'.format(self._requirement_name(),
+                                    self._hash_comparison())
 
     def _hash_comparison(self):
         """
@@ -277,10 +277,10 @@ class HashMismatch(HashError):
         lines = []
         for hash_name, expecteds in iteritems(self.allowed):
             prefix = hash_then_or(hash_name)
-            lines.extend(('        Expected %s %s' % (next(prefix), e))
+            lines.extend(('        Expected {} {}'.format(next(prefix), e))
                          for e in expecteds)
-            lines.append('             Got        %s\n' %
-                         self.gots[hash_name].hexdigest())
+            lines.append('             Got        {}\n'.format(
+                         self.gots[hash_name].hexdigest()))
         return '\n'.join(lines)
 
 

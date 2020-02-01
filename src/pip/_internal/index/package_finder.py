@@ -177,9 +177,10 @@ class LinkEvaluator(object):
             if not ext:
                 return (False, 'not a file')
             if ext not in SUPPORTED_EXTENSIONS:
-                return (False, 'unsupported archive format: %s' % ext)
+                return (False, 'unsupported archive format: {}'.format(ext))
             if "binary" not in self._formats and ext == WHEEL_EXTENSION:
-                reason = 'No binaries permitted for %s' % self.project_name
+                reason = 'No binaries permitted for {}'.format(
+                    self.project_name)
                 return (False, reason)
             if "macosx10" in link.path and ext == '.zip':
                 return (False, 'macosx10 one')
@@ -189,7 +190,8 @@ class LinkEvaluator(object):
                 except InvalidWheelFilename:
                     return (False, 'invalid wheel filename')
                 if canonicalize_name(wheel.name) != self._canonical_name:
-                    reason = 'wrong project name (not %s)' % self.project_name
+                    reason = 'wrong project name (not {})'.format(
+                        self.project_name)
                     return (False, reason)
 
                 supported_tags = self._target_python.get_tags()
@@ -208,16 +210,16 @@ class LinkEvaluator(object):
 
         # This should be up by the self.ok_binary check, but see issue 2700.
         if "source" not in self._formats and ext != WHEEL_EXTENSION:
-            return (False, 'No sources permitted for %s' % self.project_name)
+            reason = 'No sources permitted for {}'.format(self.project_name)
+            return (False, reason)
 
         if not version:
             version = _extract_version_from_fragment(
                 egg_info, self._canonical_name,
             )
         if not version:
-            return (
-                False, 'Missing project version for %s' % self.project_name,
-            )
+            reason = 'Missing project version for {}'.format(self.project_name)
+            return (False, reason)
 
         match = self._py_version_re.search(version)
         if match:
@@ -524,8 +526,8 @@ class CandidateEvaluator(object):
             wheel = Wheel(link.filename)
             if not wheel.supported(valid_tags):
                 raise UnsupportedWheel(
-                    "%s is not a supported wheel for this platform. It "
-                    "can't be sorted." % wheel.filename
+                    "{} is not a supported wheel for this platform. It "
+                    "can't be sorted.".format(wheel.filename)
                 )
             if self._prefer_binary:
                 binary_preference = 1
@@ -924,7 +926,8 @@ class PackageFinder(object):
             )
 
             raise DistributionNotFound(
-                'No matching distribution found for %s' % req
+                'No matching distribution found for {}'.format(
+                    req)
             )
 
         best_installed = False

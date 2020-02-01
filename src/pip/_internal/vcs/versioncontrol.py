@@ -574,7 +574,8 @@ class VersionControl(object):
             self.name,
             url,
         )
-        response = ask_path_exists('What to do?  %s' % prompt[0], prompt[1])
+        response = ask_path_exists('What to do?  {}'.format(
+            prompt[0]), prompt[1])
 
         if response == 'a':
             sys.exit(-1)

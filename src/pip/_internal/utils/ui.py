@@ -153,7 +153,7 @@ class DownloadProgressMixin(object):
     @property
     def pretty_eta(self):
         if self.eta:
-            return "eta %s" % self.eta_td
+            return "eta {}".format(self.eta_td)
         return ""
 
     def iter(self, it):
@@ -399,7 +399,7 @@ class NonInteractiveSpinner(SpinnerInterface):
         # type: (str) -> None
         if self._finished:
             return
-        self._update("finished with status '%s'" % (final_status,))
+        self._update("finished with status '{}'".format(final_status))
         self._finished = True
 
 

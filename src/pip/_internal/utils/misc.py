@@ -120,7 +120,7 @@ def get_prog():
     try:
         prog = os.path.basename(sys.argv[0])
         if prog in ('__main__.py', '-c'):
-            return "%s -m pip" % sys.executable
+            return "{} -m pip".format(sys.executable)
         else:
             return prog
     except (AttributeError, TypeError, IndexError):
@@ -228,8 +228,8 @@ def _check_no_input(message):
     """Raise an error if no input is allowed."""
     if os.environ.get('PIP_NO_INPUT'):
         raise Exception(
-            'No input was expected ($PIP_NO_INPUT set); question: %s' %
-            message
+            'No input was expected ($PIP_NO_INPUT set); question: {}'.format(
+                message)
         )
 
 
@@ -242,8 +242,8 @@ def ask(message, options):
         response = response.strip().lower()
         if response not in options:
             print(
-                'Your response (%r) was not one of the expected responses: '
-                '%s' % (response, ', '.join(options))
+                'Your response ({!r}) was not one of the expected responses: '
+                '{}'.format(response, ', '.join(options))
             )
         else:
             return response

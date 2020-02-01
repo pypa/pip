@@ -60,7 +60,7 @@ def get_requirement_tracker():
                 TempDirectory(kind='req-tracker')
             ).path
             ctx.enter_context(update_env_context_manager(PIP_REQ_TRACKER=root))
-            logger.debug("Initialized build tracking at {}".format(root))
+            logger.debug("Initialized build tracking at %s", root)
 
         with RequirementTracker(root) as tracker:
             yield tracker
@@ -111,7 +111,8 @@ class RequirementTracker(object):
             if e.errno != errno.ENOENT:
                 raise
         else:
-            message = '%s is already being built: %s' % (req.link, contents)
+            message = '{} is already being built: {}'.format(
+                req.link, contents)
             raise LookupError(message)
 
         # If we're here, req should really not be building already.

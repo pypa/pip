@@ -242,14 +242,14 @@ def call_subprocess(
             raise InstallationError(exc_msg)
         elif on_returncode == 'warn':
             subprocess_logger.warning(
-                'Command "%s" had error code %s in %s',
-                command_desc, proc.returncode, cwd,
+                'Command "{}" had error code {} in {}'.format(
+                    command_desc, proc.returncode, cwd)
             )
         elif on_returncode == 'ignore':
             pass
         else:
-            raise ValueError('Invalid value: on_returncode=%s' %
-                             repr(on_returncode))
+            raise ValueError('Invalid value: on_returncode={!r}'.format(
+                             on_returncode))
     return ''.join(all_output)
 
 

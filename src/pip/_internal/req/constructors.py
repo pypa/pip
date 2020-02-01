@@ -137,16 +137,17 @@ def parse_editable(editable_req):
     vc_type = url.split('+', 1)[0].lower()
 
     if not vcs.get_backend(vc_type):
-        error_message = 'For --editable=%s only ' % editable_req + \
-            ', '.join([backend.name + '+URL' for backend in vcs.backends]) + \
-            ' is currently supported'
+        backends = ", ".join([bends.name + '+URL' for bends in vcs.backends])
+        error_message = "For --editable={}, " \
+                        "only {} are currently supported".format(
+                            editable_req, backends)
         raise InstallationError(error_message)
 
     package_name = Link(url).egg_fragment
     if not package_name:
         raise InstallationError(
-            "Could not detect requirement name for '%s', please specify one "
-            "with #egg=your_package_name" % editable_req
+            "Could not detect requirement name for '{}', please specify one "
+            "with #egg=your_package_name".format(editable_req)
         )
     return package_name, url, None
 
@@ -166,16 +167,18 @@ def deduce_helpful_msg(req):
             with open(req, 'r') as fp:
                 # parse first line only
                 next(parse_requirements(fp.read()))
-                msg += " The argument you provided " + \
-                    "(%s) appears to be a" % (req) + \
-                    " requirements file. If that is the" + \
-                    " case, use the '-r' flag to install" + \
+                msg += (
+                    "The argument you provided "
+                    "({}) appears to be a"
+                    " requirements file. If that is the"
+                    " case, use the '-r' flag to install"
                     " the packages specified within it."
+                ).format(req)
         except RequirementParseError:
             logger.debug("Cannot parse '%s' as requirements \
             file" % (req), exc_info=True)
     else:
-        msg += " File '%s' does not exist." % (req)
+        msg += " File '{}' does not exist.".format(req)
     return msg
 
 
@@ -201,7 +204,7 @@ def parse_req_from_editable(editable_req):
         try:
             req = Requirement(name)
         except InvalidRequirement:
-            raise InstallationError("Invalid requirement: '%s'" % name)
+            raise InstallationError("Invalid requirement: '{}'".format(name))
     else:
         req = None
 
@@ -415,7 +418,7 @@ def install_req_from_req_string(
     try:
         req = Requirement(req_string)
     except InvalidRequirement:
-        raise InstallationError("Invalid requirement: '%s'" % req_string)
+        raise InstallationError("Invalid requirement: '{}'".format(req_string))
 
     domains_not_allowed = [
         PyPI.file_storage_domain,
@@ -427,7 +430,7 @@ def install_req_from_req_string(
         raise InstallationError(
             "Packages installed from PyPI cannot depend on packages "
             "which are not also hosted on PyPI.\n"
-            "%s depends on %s " % (comes_from.name, req)
+            "{} depends on {} ".format(comes_from.name, req)
         )
 
     return InstallRequirement(
