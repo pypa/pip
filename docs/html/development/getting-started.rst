@@ -6,7 +6,7 @@ We’re pleased that you are interested in working on pip.
 
 This document is meant to get you setup to work on pip and to act as a guide and
 reference to the development setup. If you face any issues during this
-process, please `open an issue`_ about it on the issue tracker.
+process, please `open an issue`_ about it on the `issue tracker`_.
 
 Get the source code
 -------------------
@@ -129,4 +129,4 @@ The built documentation can be found in the ``docs/build`` folder.
 .. _`pretend`: https://pypi.org/project/pretend/
 .. _`version control`: https://www.atlassian.com/git/tutorials/what-is-version-control
 .. _`Sphinx`: https://www.sphinx-doc.org/en/master/usage/quickstart.html
-
+.. _`issue tracker`: https://github.blog/2009-04-15-github-issue-tracker/
