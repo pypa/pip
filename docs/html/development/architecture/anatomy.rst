@@ -50,7 +50,6 @@ The ``README``, license, ``pyproject.toml``, ``setup.py``, and so on are in the 
   * ``data/`` *[test data for running tests -- pesudo package index in it!  Lots of small packages that are invalid or are valid. Test fixtures.  Used by functional tests]*
   * ``functional/`` *[functional tests of pip’s CLI -- end-to-end, invoke pip in subprocess & check results of execution against desired result. This also is what makes test suite slow]*
   * ``lib/`` *[helpers for tests]*
-  * ``scripts/`` *[will probably die in future in a refactor -- scripts for running all of the tests, but we use pytest now. Someone could make a PR to remove this! Good first issue!]*
   * ``unit/`` *[unit tests -- fast and small and nice!]*
   * ``yaml/`` *[resolver tests! They’re written in YAML. This folder just contains .yaml files -- actual code for reading/running them is in lib/yaml.py . This is fine!]*
 
