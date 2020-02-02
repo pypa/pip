@@ -123,10 +123,10 @@ The built documentation can be found in the ``docs/build`` folder.
 .. _`PEP 484 type-comments`: https://www.python.org/dev/peps/pep-0484/#suggested-syntax-for-python-2-7-and-straddling-code
 .. _`rich CLI`: https://docs.pytest.org/en/latest/usage.html#specifying-tests-selecting-tests
 .. _`GitHub`: https://github.com/pypa/pip
-.. _`tox` : https://tox.readthedocs.io/en/latest/example/basic.html
-.. _`pytest` : https://docs.pytest.org/en/latest/getting-started.html
-.. _`mock` : https://realpython.com/python-mock-library/
-.. _`pretend` : https://pypi.org/project/pretend/
-.. _`version control` : https://www.atlassian.com/git/tutorials/what-is-version-control
-.. _`Sphinx` : https://www.sphinx-doc.org/en/master/usage/quickstart.html
+.. _`tox`: https://tox.readthedocs.io/en/latest/example/basic.html
+.. _`pytest`: https://docs.pytest.org/en/latest/getting-started.html
+.. _`mock`: https://realpython.com/python-mock-library/
+.. _`pretend`: https://pypi.org/project/pretend/
+.. _`version control`: https://www.atlassian.com/git/tutorials/what-is-version-control
+.. _`Sphinx`: https://www.sphinx-doc.org/en/master/usage/quickstart.html
 
