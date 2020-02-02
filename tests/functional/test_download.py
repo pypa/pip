@@ -70,27 +70,28 @@ def test_download_wheel(script, data):
     assert script.site_packages / 'piptestpackage' not in result.files_created
 
 
-def _get_abi_tag():
-    # If we're on CPython, use CPython-specific ABI tag (as 'SOABI' contains
-    # platform information that isn't included in the wheel ABI tag)
-    if interpreter_name() == 'cp':
-        # Unlike the generic ABI tags, CPython ABI tags are always defined
-        return _cpython_abis(sys.version_info)[0]
-    # Otherwise use the first generic wheel ABI tag
-    try:
-        return next(_generic_abi())
-    except StopIteration:
-        raise RuntimeError("Failed to determine an ABI tag for this platform")
-
-
 def test_download_platform_specific_wheel(script, data):
     """
     Test using "pip download" to download a platform specific *.whl archive
     """
+
+    def _get_abi_tag():
+        # If we're on CPython, use CPython-specific ABI tag (as 'SOABI'
+        # contains platform information that isn't part of the wheel ABI tag)
+        if interpreter_name() == 'cp':
+            # Unlike the generic ABI tags, CPython ABI tags are always defined
+            return _cpython_abis(sys.version_info)[0]
+        # Otherwise use the first generic wheel ABI tag
+        try:
+            return next(_generic_abi())
+        except StopIteration:
+            pass
+        raise RuntimeError("Failed to determine an ABI tag for this platform")
+
     interp = interpreter_name() + interpreter_version()
     abi = _get_abi_tag()
-    platform_ = next(_generic_platforms())
-    platform_wheel = 'fake-1.0-{}-{}-{}.whl'.format(interp, abi, platform_)
+    platform = next(_generic_platforms())
+    platform_wheel = 'fake-1.0-{}-{}-{}.whl'.format(interp, abi, platform)
     fake_wheel(data, platform_wheel)
 
     result = script.pip(
