@@ -26,7 +26,7 @@ Development Environment
 pip is a command line application written in Python. For developing pip,
 you should `install Python`_ on your computer.
 
-For developing pip, you need to install :pypi:`tox`. Often, you can run
+For developing pip, you need to install :pypi: `tox`_ . Often, you can run
 ``python -m pip install tox`` to install and use it.
 
 Running pip From Source Tree
@@ -42,8 +42,8 @@ from the ``src`` directory:
 Running Tests
 -------------
 
-pip's tests are written using the :pypi:`pytest` test framework, :pypi:`mock`
-and :pypi:`pretend`. :pypi:`tox` is used to automate the setup and execution of
+pip's tests are written using the :pypi: `pytest`_ test framework, :pypi: `mock`_
+and :pypi: `pretend`_. :pypi: `tox`_ is used to automate the setup and execution of
 pip's tests.
 
 To run tests locally, run:
@@ -75,7 +75,7 @@ can select tests using the various ways that pytest provides:
     $ # Using keywords
     $ tox -e py36 -- -k "install and not wheel"
 
-Running pip's test suite requires supported `version control` tools (subversion,
+Running pip's test suite requires supported `version control`_ tools (subversion,
 bazaar, git, and mercurial) to be installed. If you are missing one of the VCS
 tools, you can tell pip to skip those tests:
 
@@ -107,7 +107,7 @@ To use linters locally, run:
 Building Documentation
 ----------------------
 
-pip's documentation is built using :pypi:`Sphinx`. The documentation is written
+pip's documentation is built using :pypi: `Sphinx`_. The documentation is written
 in reStructuredText.
 
 To build it locally, run:
