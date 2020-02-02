@@ -75,7 +75,7 @@ can select tests using the various ways that pytest provides:
     $ # Using keywords
     $ tox -e py36 -- -k "install and not wheel"
 
-Running pip's test suite requires supported version control tools (subversion,
+Running pip's test suite requires supported `version control` tools (subversion,
 bazaar, git, and mercurial) to be installed. If you are missing one of the VCS
 tools, you can tell pip to skip those tests:
 
@@ -118,8 +118,27 @@ To build it locally, run:
 
 The built documentation can be found in the ``docs/build`` folder.
 
+
+REFERENCES(Helping Guide)
+-------------------------
+
+
+
 .. _`open an issue`: https://github.com/pypa/pip/issues/new?title=Trouble+with+pip+development+environment
+
+
 .. _`install Python`: https://realpython.com/installing-python/
 .. _`PEP 484 type-comments`: https://www.python.org/dev/peps/pep-0484/#suggested-syntax-for-python-2-7-and-straddling-code
 .. _`rich CLI`: https://docs.pytest.org/en/latest/usage.html#specifying-tests-selecting-tests
 .. _`GitHub`: https://github.com/pypa/pip
+.. _ `Tox` : https://tox.readthedocs.io/en/latest/example/basic.html
+.. _  `Pytest` : https://docs.pytest.org/en/latest/getting-started.html
+.. _ ` Mock` : https://realpython.com/python-mock-library/
+.. _ `pretend` : https://pypi.org/project/pretend/
+.. _ `version control` : https://www.atlassian.com/git/tutorials/what-is-version-control
+.. _ `Sphinx` : https://www.sphinx-doc.org/en/master/usage/quickstart.html
+
+
+
+
+
