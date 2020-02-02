@@ -389,7 +389,7 @@ global timeout is specified in both the site-wide file and the per-user file
 then the latter value will be used.
 
 The names of the settings are derived from the long command line option, e.g.
-if you want to use a different package index (``--index-url``) and set the
+if you want to use a different package index (``--index-URL``) and set the
 HTTP timeout (``--default-timeout``) to 60 seconds your config file would
 look like this:
 
@@ -397,7 +397,7 @@ look like this:
 
     [global]
     timeout = 60
-    index-url = https://download.zope.org/ppix
+    index-URL = https://download.zope.org/ppix
 
 Each subcommand can be configured optionally in its own section so that every
 global setting with the same name will be overridden; e.g. decreasing the
