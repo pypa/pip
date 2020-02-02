@@ -117,6 +117,7 @@ def test_download_platform_specific_wheel(script, data):
     ("pp371", "pp36"),
     ("pp372", "pp36"),
     ("pp373", "pp36"),
+    ("pp379", "pp36"),
 ])
 def test_download_pypy_version_specific_wheel(
         legacy_pypy_tag, standard_pypy_tag, script, data):
