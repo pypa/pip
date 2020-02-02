@@ -50,14 +50,14 @@ To run tests locally, run:
 
 .. code-block:: console
 
-    $ tox -e py36
+    $ tox -e py36 -- -n auto
 
-Generally, it can take a long time to run pip's test suite. To run tests in parallel,
-which is faster, run:
+The version of tox given below also works in a similar way, although a bit slower than the version above
 
 .. code-block:: console
 
-    $ tox -e py36 -- -n auto
+    $ tox -e py36
+
 
 The example above runs tests against Python 3.6. You can also use other
 versions like ``py27`` and ``pypy3``.
