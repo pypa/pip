@@ -13,11 +13,7 @@ on:
 jobs:
   linters:
     name: >-
-      ${{ matrix.env.TOXENV }}
-      /
-      ${{ matrix.python-version }}
-      /
-      ${{ matrix.os }}
+      ${{ matrix.env.TOXENV }}/${{ matrix.python-version }}@${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
       # max-parallel: 5
