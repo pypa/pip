@@ -52,7 +52,7 @@ To run tests locally, run:
 
     $ tox -e py36 -- -n auto
 
-The version of tox given below also works in a similar way, although a bit slower than the version above
+The version of tox given below also works in a similar way, although a lot slower than the version above
 
 .. code-block:: console
 
