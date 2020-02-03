@@ -210,15 +210,18 @@ def build_release(session):
             f"temporary Git checkout at {build_dir!s}",
         )
         with release.workdir(session, build_dir):
-            build_dists(session)
+            tmp_dists = build_dists(session)
 
-        tmp_dist_dir = build_dir / 'dist'
-        session.log(f"# Copying dists from {tmp_dist_dir}")
+        tmp_dist_paths = (build_dir / p for p in tmp_dists)
+        session.log(f"# Copying dists from {build_dir}")
         shutil.rmtree('dist', ignore_errors=True)  # remove empty `dist/`
-        shutil.copytree(tmp_dist_dir, 'dist')
+        for dist in tmp_dist_paths:
+            session.log(f"# Copying {dist}")
+            shutil.copy(dist, 'dist')
 
 
 def build_dists(session):
+    """Return dists with valid metadata."""
     session.log(
         "# Check if there's any Git-untracked files before building the wheel",
     )
@@ -251,9 +254,12 @@ def build_dists(session):
 
     session.log("# Build distributions")
     session.run("python", "setup.py", "sdist", "bdist_wheel", silent=True)
+    produced_dists = glob.glob("dist/*")
 
-    session.log("# Verify distributions")
-    session.run("twine", "check", *glob.glob("dist/*"), silent=True)
+    session.log(f"# Verify distributions: {', '.join(produced_dists)}")
+    session.run("twine", "check", *produced_dists, silent=True)
+
+    return produced_dists
 
 
 @nox.session(name="upload-release")
