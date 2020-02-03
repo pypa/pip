@@ -169,3 +169,19 @@ def isolated_temporary_checkout(
                 str(git_checkout_dir),
                 external=True, silent=True,
             )
+
+
+def get_git_untracked_files() -> Iterator[str]:
+    """List all local file paths that aren't tracked by Git."""
+    git_ls_files_cmd = (
+        "git", "ls-files",
+        "--ignored", "--exclude-standard",
+        "--others", "--", ".",
+    )
+    # session.run doesn't seem to return any output:
+    ls_files_out = subprocess.check_output(git_ls_files_cmd, text=True)
+    for file_name in ls_files_out.splitlines():
+        if file_name.strip():  # it's useless if empty
+            continue
+
+        yield file_name

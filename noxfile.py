@@ -7,7 +7,6 @@
 import glob
 import os
 import shutil
-import subprocess
 import sys
 
 import nox
@@ -226,25 +225,10 @@ def build_dists(session):
         "# Check if there's any Git-untracked files before building the wheel",
     )
 
-    def get_git_untracked_files():
-        """List all local file paths that aren't tracked by Git."""
-        git_ls_files_cmd = (
-            "git", "ls-files", "--ignored", "--exclude-standard",
-            "--others", "--", ".",
-        )
-        # session.run doesn't seem to return any output:
-        ls_files_out = subprocess.check_output(git_ls_files_cmd, text=True)
-        ls_files_out_lines = ls_files_out.splitlines()
-        for file_name in ls_files_out_lines:
-            if file_name.strip():  # it's useless if empty
-                continue
-
-            yield file_name
-
     has_forbidden_git_untracked_files = any(
         # Don't report the environment this session is running in
         not untracked_file.startswith('.nox/build-release/')
-        for untracked_file in get_git_untracked_files()
+        for untracked_file in release.get_git_untracked_files()
     )
     if has_forbidden_git_untracked_files:
         session.error(
