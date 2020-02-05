@@ -166,9 +166,7 @@ def unpack_http_url(
             link, downloader, temp_dir.path, hashes
         )
 
-    file = File(from_path, content_type)
-
-    return file
+    return File(from_path, content_type)
 
 
 def _copy2_ignoring_special_files(src, dest):
@@ -243,9 +241,7 @@ def unpack_file_url(
 
     content_type = mimetypes.guess_type(from_path)[0]
 
-    file = File(from_path, content_type)
-
-    return file
+    return File(from_path, content_type)
 
 
 def unpack_url(
