@@ -15,7 +15,7 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._internal.exceptions import InvalidWheelFilename
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
-from pip._internal.utils.temp_dir import TempDirectory
+from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import path_to_url
 
@@ -171,10 +171,6 @@ class Cache(object):
         """
         raise NotImplementedError()
 
-    def cleanup(self):
-        # type: () -> None
-        pass
-
 
 class SimpleWheelCache(Cache):
     """A cache of wheels for future installs.
@@ -264,15 +260,14 @@ class EphemWheelCache(SimpleWheelCache):
 
     def __init__(self, format_control):
         # type: (FormatControl) -> None
-        self._temp_dir = TempDirectory(kind="ephem-wheel-cache")
+        self._temp_dir = TempDirectory(
+            kind=tempdir_kinds.EPHEM_WHEEL_CACHE,
+            globally_managed=True,
+        )
 
         super(EphemWheelCache, self).__init__(
             self._temp_dir.path, format_control
         )
-
-    def cleanup(self):
-        # type: () -> None
-        self._temp_dir.cleanup()
 
 
 class WheelCache(Cache):
@@ -322,8 +317,3 @@ class WheelCache(Cache):
             package_name=package_name,
             supported_tags=supported_tags,
         )
-
-    def cleanup(self):
-        # type: () -> None
-        self._wheel_cache.cleanup()
-        self._ephem_cache.cleanup()

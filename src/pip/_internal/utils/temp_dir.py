@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 # globally-managed.
 tempdir_kinds = enum(
     BUILD_ENV="build-env",
+    EPHEM_WHEEL_CACHE="ephem-wheel-cache",
     REQ_BUILD="req-build",
 )
 
