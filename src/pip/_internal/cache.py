@@ -273,10 +273,6 @@ class EphemWheelCache(SimpleWheelCache):
             self._temp_dir.path, format_control
         )
 
-    def cleanup(self):
-        # type: () -> None
-        pass
-
 
 class WheelCache(Cache):
     """Wraps EphemWheelCache and SimpleWheelCache into a single Cache
@@ -325,8 +321,3 @@ class WheelCache(Cache):
             package_name=package_name,
             supported_tags=supported_tags,
         )
-
-    def cleanup(self):
-        # type: () -> None
-        self._wheel_cache.cleanup()
-        self._ephem_cache.cleanup()
