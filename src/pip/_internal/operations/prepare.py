@@ -28,7 +28,6 @@ from pip._internal.exceptions import (
 from pip._internal.utils.filesystem import copy2_fixed
 from pip._internal.utils.hashes import MissingHashes
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.marker_files import write_delete_marker_file
 from pip._internal.utils.misc import (
     ask_path_exists,
     backup_dir,
@@ -442,7 +441,7 @@ class RequirementPreparer(object):
             # build directory
             # Since source_dir is only set for editable requirements.
             assert req.source_dir is None
-            req.ensure_has_source_dir(self.build_dir)
+            req.ensure_has_source_dir(self.build_dir, autodelete_unpacked)
             # If a checkout exists, it's unwise to keep going.  version
             # inconsistencies are logged later, but do not fail the
             # installation.
@@ -510,9 +509,6 @@ class RequirementPreparer(object):
             # requirement.
             if local_file:
                 req.local_file_path = local_file.path
-
-            if autodelete_unpacked:
-                write_delete_marker_file(req.source_dir)
 
             abstract_dist = _get_prepared_distribution(
                 req, self.req_tracker, self.finder, self.build_isolation,
