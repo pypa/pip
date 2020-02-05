@@ -265,7 +265,8 @@ class EphemWheelCache(SimpleWheelCache):
     def __init__(self, format_control):
         # type: (FormatControl) -> None
         self._temp_dir = TempDirectory(
-            kind=tempdir_kinds.EPHEM_WHEEL_CACHE
+            kind=tempdir_kinds.EPHEM_WHEEL_CACHE,
+            globally_managed=True,
         )
 
         super(EphemWheelCache, self).__init__(
@@ -274,7 +275,7 @@ class EphemWheelCache(SimpleWheelCache):
 
     def cleanup(self):
         # type: () -> None
-        self._temp_dir.cleanup()
+        pass
 
 
 class WheelCache(Cache):
