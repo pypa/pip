@@ -171,10 +171,6 @@ class Cache(object):
         """
         raise NotImplementedError()
 
-    def cleanup(self):
-        # type: () -> None
-        pass
-
 
 class SimpleWheelCache(Cache):
     """A cache of wheels for future installs.
