@@ -168,10 +168,6 @@ def unpack_http_url(
 
     file = File(from_path, content_type)
 
-    # unpack the archive to the build dir location. even when only
-    # downloading archives, they have to be unpacked to parse dependencies
-    unpack_file(file.path, location, file.content_type)
-
     return file
 
 
@@ -249,10 +245,6 @@ def unpack_file_url(
 
     file = File(from_path, content_type)
 
-    # unpack the archive to the build dir location. even when only downloading
-    # archives, they have to be unpacked to parse dependencies
-    unpack_file(file.path, location, file.content_type)
-
     return file
 
 
@@ -296,6 +288,10 @@ def unpack_url(
             download_dir,
             hashes=hashes,
         )
+
+    # unpack the archive to the build dir location. even when only downloading
+    # archives, they have to be unpacked to parse dependencies
+    unpack_file(file.path, location, file.content_type)
 
     return file
 
