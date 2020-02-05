@@ -213,16 +213,9 @@ def unpack_file_url(
     download_dir=None,  # type: Optional[str]
     hashes=None  # type: Optional[Hashes]
 ):
-    # type: (...) -> Optional[str]
+    # type: (...) -> str
     """Unpack link into location.
     """
-    # If it's a url to a local directory
-    if link.is_existing_dir():
-        if os.path.isdir(location):
-            rmtree(location)
-        _copy_source_tree(link.file_path, location)
-        return None
-
     # If a download dir is specified, is the file already there and valid?
     already_downloaded_path = None
     if download_dir:
@@ -270,6 +263,13 @@ def unpack_url(
     # non-editable vcs urls
     if link.is_vcs:
         unpack_vcs_link(link, location)
+        return None
+
+    # If it's a url to a local directory
+    if link.is_existing_dir():
+        if os.path.isdir(location):
+            rmtree(location)
+        _copy_source_tree(link.file_path, location)
         return None
 
     # file urls
