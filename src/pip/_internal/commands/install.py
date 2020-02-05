@@ -447,7 +447,6 @@ class InstallCommand(RequirementCommand):
                 # Clean up
                 if not options.no_clean:
                     requirement_set.cleanup_files()
-                    wheel_cache.cleanup()
 
         if options.target_dir:
             self._handle_target_dir(
