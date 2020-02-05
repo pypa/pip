@@ -73,7 +73,16 @@ def install(
             )
 
         if not os.path.exists(record_filename):
-            logger.debug('Record file %s not found', record_filename)
+            logger.warning('Record file %s not found', record_filename)
+            deprecated(
+                reason=(
+                    "Package did not generate an install-record.txt, which "
+                    "would render it not-uninstallable."
+                ),
+                gone_in="20.3",
+                replacement=None,
+                issue=7450,
+            )
             return
         install_req.install_succeeded = True
 
