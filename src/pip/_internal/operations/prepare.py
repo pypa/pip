@@ -141,7 +141,7 @@ class File(object):
         self.content_type = content_type
 
 
-def unpack_http_url(
+def get_http_url(
     link,  # type: Link
     location,  # type: str
     downloader,  # type: Downloader
@@ -210,14 +210,14 @@ def _copy_source_tree(source, target):
     shutil.copytree(source, target, **kwargs)
 
 
-def unpack_file_url(
+def get_file_url(
     link,  # type: Link
     location,  # type: str
     download_dir=None,  # type: Optional[str]
     hashes=None  # type: Optional[Hashes]
 ):
     # type: (...) -> File
-    """Unpack link into location.
+    """Get file and optionally check its hash.
     """
     # If a download dir is specified, is the file already there and valid?
     already_downloaded_path = None
@@ -273,11 +273,11 @@ def unpack_url(
 
     # file urls
     if link.is_file:
-        file = unpack_file_url(link, location, download_dir, hashes=hashes)
+        file = get_file_url(link, location, download_dir, hashes=hashes)
 
     # http urls
     else:
-        file = unpack_http_url(
+        file = get_http_url(
             link,
             location,
             downloader,
