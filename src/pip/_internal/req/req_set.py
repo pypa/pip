@@ -198,7 +198,3 @@ class RequirementSet(object):
             return self.requirements[project_name]
 
         raise KeyError("No project with the name %r" % name)
-
-    def cleanup_files(self):
-        # type: () -> None
-        pass
