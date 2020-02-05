@@ -6,7 +6,6 @@ from os.path import exists
 import pytest
 
 from pip._internal.cli.status_codes import ERROR, PREVIOUS_BUILD_DIR_ERROR
-from pip._internal.utils.marker_files import write_delete_marker_file
 from tests.lib import pyversion
 
 
@@ -225,7 +224,6 @@ def test_pip_wheel_fail_cause_of_previous_build_dir(script, data):
     # Given that I have a previous build dir of the `simple` package
     build = script.venv_path / 'build' / 'simple'
     os.makedirs(build)
-    write_delete_marker_file(script.venv_path / 'build' / 'simple')
     build.joinpath('setup.py').write_text('#')
 
     # When I call pip trying to install things again

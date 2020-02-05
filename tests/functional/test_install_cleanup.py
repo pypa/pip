@@ -4,7 +4,6 @@ from os.path import exists
 import pytest
 
 from pip._internal.cli.status_codes import PREVIOUS_BUILD_DIR_ERROR
-from pip._internal.utils.marker_files import write_delete_marker_file
 from tests.lib import need_mercurial, windows_workaround_7667
 from tests.lib.local_repos import local_checkout
 
@@ -126,7 +125,6 @@ def test_cleanup_prevented_upon_build_dir_exception(script, data):
     build = script.venv_path / 'build'
     build_simple = build / 'simple'
     os.makedirs(build_simple)
-    write_delete_marker_file(build_simple)
     build_simple.joinpath("setup.py").write_text("#")
     result = script.pip(
         'install', '-f', data.find_links, '--no-index', 'simple',
