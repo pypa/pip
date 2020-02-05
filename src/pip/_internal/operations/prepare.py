@@ -285,17 +285,19 @@ def unpack_url(
 
     # file urls
     if link.is_file:
-        return unpack_file_url(link, location, download_dir, hashes=hashes)
+        file = unpack_file_url(link, location, download_dir, hashes=hashes)
 
     # http urls
     else:
-        return unpack_http_url(
+        file = unpack_http_url(
             link,
             location,
             downloader,
             download_dir,
             hashes=hashes,
         )
+
+    return file
 
 
 def _download_http_url(
