@@ -134,14 +134,20 @@ def _copy_file(filename, location, link):
         logger.info('Saved %s', display_path(download_location))
 
 
-def unpack_http_url(
+class File(object):
+    def __init__(self, path, content_type):
+        # type: (str, str) -> None
+        self.path = path
+        self.content_type = content_type
+
+
+def get_http_url(
     link,  # type: Link
-    location,  # type: str
     downloader,  # type: Downloader
     download_dir=None,  # type: Optional[str]
     hashes=None,  # type: Optional[Hashes]
 ):
-    # type: (...) -> str
+    # type: (...) -> File
     temp_dir = TempDirectory(kind="unpack", globally_managed=True)
     # If a download dir is specified, is the file already downloaded there?
     already_downloaded_path = None
@@ -159,11 +165,7 @@ def unpack_http_url(
             link, downloader, temp_dir.path, hashes
         )
 
-    # unpack the archive to the build dir location. even when only
-    # downloading archives, they have to be unpacked to parse dependencies
-    unpack_file(from_path, location, content_type)
-
-    return from_path
+    return File(from_path, content_type)
 
 
 def _copy2_ignoring_special_files(src, dest):
@@ -207,23 +209,14 @@ def _copy_source_tree(source, target):
     shutil.copytree(source, target, **kwargs)
 
 
-def unpack_file_url(
+def get_file_url(
     link,  # type: Link
-    location,  # type: str
     download_dir=None,  # type: Optional[str]
     hashes=None  # type: Optional[Hashes]
 ):
-    # type: (...) -> Optional[str]
-    """Unpack link into location.
+    # type: (...) -> File
+    """Get file and optionally check its hash.
     """
-    link_path = link.file_path
-    # If it's a url to a local directory
-    if link.is_existing_dir():
-        if os.path.isdir(location):
-            rmtree(location)
-        _copy_source_tree(link_path, location)
-        return None
-
     # If a download dir is specified, is the file already there and valid?
     already_downloaded_path = None
     if download_dir:
@@ -234,7 +227,7 @@ def unpack_file_url(
     if already_downloaded_path:
         from_path = already_downloaded_path
     else:
-        from_path = link_path
+        from_path = link.file_path
 
     # If --require-hashes is off, `hashes` is either empty, the
     # link's embedded hash, or MissingHashes; it is required to
@@ -246,11 +239,7 @@ def unpack_file_url(
 
     content_type = mimetypes.guess_type(from_path)[0]
 
-    # unpack the archive to the build dir location. even when only downloading
-    # archives, they have to be unpacked to parse dependencies
-    unpack_file(from_path, location, content_type)
-
-    return from_path
+    return File(from_path, content_type)
 
 
 def unpack_url(
@@ -260,7 +249,7 @@ def unpack_url(
     download_dir=None,  # type: Optional[str]
     hashes=None,  # type: Optional[Hashes]
 ):
-    # type: (...) -> Optional[str]
+    # type: (...) -> Optional[File]
     """Unpack link into location, downloading if required.
 
     :param hashes: A Hashes object, one of whose embedded hashes must match,
@@ -273,19 +262,31 @@ def unpack_url(
         unpack_vcs_link(link, location)
         return None
 
+    # If it's a url to a local directory
+    if link.is_existing_dir():
+        if os.path.isdir(location):
+            rmtree(location)
+        _copy_source_tree(link.file_path, location)
+        return None
+
     # file urls
-    elif link.is_file:
-        return unpack_file_url(link, location, download_dir, hashes=hashes)
+    if link.is_file:
+        file = get_file_url(link, download_dir, hashes=hashes)
 
     # http urls
     else:
-        return unpack_http_url(
+        file = get_http_url(
             link,
-            location,
             downloader,
             download_dir,
             hashes=hashes,
         )
+
+    # unpack the archive to the build dir location. even when only downloading
+    # archives, they have to be unpacked to parse dependencies
+    unpack_file(file.path, location, file.content_type)
+
+    return file
 
 
 def _download_http_url(
@@ -477,7 +478,7 @@ class RequirementPreparer(object):
                 download_dir = self.wheel_download_dir
 
             try:
-                local_path = unpack_url(
+                local_file = unpack_url(
                     link, req.source_dir, self.downloader, download_dir,
                     hashes=hashes,
                 )
@@ -494,8 +495,8 @@ class RequirementPreparer(object):
 
             # For use in later processing, preserve the file path on the
             # requirement.
-            if local_path:
-                req.local_file_path = local_path
+            if local_file:
+                req.local_file_path = local_file.path
 
             if link.is_wheel:
                 if download_dir:
@@ -519,10 +520,10 @@ class RequirementPreparer(object):
             if download_dir:
                 if link.is_existing_dir():
                     logger.info('Link is a directory, ignoring download_dir')
-                elif local_path and not os.path.exists(
+                elif local_file and not os.path.exists(
                     os.path.join(download_dir, link.filename)
                 ):
-                    _copy_file(local_path, download_dir, link)
+                    _copy_file(local_file.path, download_dir, link)
 
             if self._download_should_save:
                 # Make a .zip of the source_dir we already created.
