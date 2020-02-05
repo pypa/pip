@@ -372,7 +372,13 @@ class InstallRequirement(object):
         if not os.path.exists(build_dir):
             logger.debug('Creating directory %s', build_dir)
             os.makedirs(build_dir)
-        return os.path.join(build_dir, name)
+        actual_build_dir = os.path.join(build_dir, name)
+        return TempDirectory(
+            path=actual_build_dir,
+            delete=False,
+            kind=tempdir_kinds.REQ_BUILD,
+            globally_managed=True,
+        ).path
 
     def _set_requirement(self):
         # type: () -> None
