@@ -143,7 +143,6 @@ class File(object):
 
 def get_http_url(
     link,  # type: Link
-    location,  # type: str
     downloader,  # type: Downloader
     download_dir=None,  # type: Optional[str]
     hashes=None,  # type: Optional[Hashes]
@@ -212,7 +211,6 @@ def _copy_source_tree(source, target):
 
 def get_file_url(
     link,  # type: Link
-    location,  # type: str
     download_dir=None,  # type: Optional[str]
     hashes=None  # type: Optional[Hashes]
 ):
@@ -273,13 +271,12 @@ def unpack_url(
 
     # file urls
     if link.is_file:
-        file = get_file_url(link, location, download_dir, hashes=hashes)
+        file = get_file_url(link, download_dir, hashes=hashes)
 
     # http urls
     else:
         file = get_http_url(
             link,
-            location,
             downloader,
             download_dir,
             hashes=hashes,
