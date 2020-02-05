@@ -17,7 +17,7 @@ from pip._vendor.pkg_resources import Requirement, VersionConflict, WorkingSet
 
 from pip import __file__ as pip_location
 from pip._internal.utils.subprocess import call_subprocess
-from pip._internal.utils.temp_dir import TempDirectory
+from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.ui import open_spinner
 
@@ -54,10 +54,12 @@ class BuildEnvironment(object):
 
     def __init__(self):
         # type: () -> None
-        self._temp_dir = TempDirectory(kind="build-env")
+        temp_dir = TempDirectory(
+            kind=tempdir_kinds.BUILD_ENV, globally_managed=True
+        )
 
         self._prefixes = OrderedDict((
-            (name, _Prefix(os.path.join(self._temp_dir.path, name)))
+            (name, _Prefix(os.path.join(temp_dir.path, name)))
             for name in ('normal', 'overlay')
         ))
 
@@ -76,7 +78,7 @@ class BuildEnvironment(object):
                 get_python_lib(plat_specific=True),
             )
         }
-        self._site_dir = os.path.join(self._temp_dir.path, 'site')
+        self._site_dir = os.path.join(temp_dir.path, 'site')
         if not os.path.exists(self._site_dir):
             os.mkdir(self._site_dir)
         with open(os.path.join(self._site_dir, 'sitecustomize.py'), 'w') as fp:
@@ -132,10 +134,6 @@ class BuildEnvironment(object):
                 os.environ.pop(varname, None)
             else:
                 os.environ[varname] = old_value
-
-    def cleanup(self):
-        # type: () -> None
-        self._temp_dir.cleanup()
 
     def check_requirements(self, reqs):
         # type: (Iterable[str]) -> Tuple[Set[Tuple[str, str]], Set[str]]

@@ -49,7 +49,7 @@ from pip._internal.utils.misc import (
     rmtree,
 )
 from pip._internal.utils.packaging import get_metadata
-from pip._internal.utils.temp_dir import TempDirectory
+from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.virtualenv import running_under_virtualenv
 from pip._internal.vcs import vcs
@@ -358,7 +358,9 @@ class InstallRequirement(object):
             # Some systems have /tmp as a symlink which confuses custom
             # builds (such as numpy). Thus, we ensure that the real path
             # is returned.
-            self._temp_build_dir = TempDirectory(kind="req-build")
+            self._temp_build_dir = TempDirectory(
+                kind=tempdir_kinds.REQ_BUILD, globally_managed=True
+            )
 
             return self._temp_build_dir.path
         if self.editable:
@@ -418,10 +420,7 @@ class InstallRequirement(object):
             logger.debug('Removing source in %s', self.source_dir)
             rmtree(self.source_dir)
         self.source_dir = None
-        if self._temp_build_dir:
-            self._temp_build_dir.cleanup()
-            self._temp_build_dir = None
-        self.build_env.cleanup()
+        self._temp_build_dir = None
 
     def check_if_exists(self, use_user_site):
         # type: (bool) -> None

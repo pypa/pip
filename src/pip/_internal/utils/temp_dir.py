@@ -9,7 +9,7 @@ from contextlib import contextmanager
 
 from pip._vendor.contextlib2 import ExitStack
 
-from pip._internal.utils.misc import rmtree
+from pip._internal.utils.misc import enum, rmtree
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -19,6 +19,14 @@ if MYPY_CHECK_RUNNING:
 
 
 logger = logging.getLogger(__name__)
+
+
+# Kinds of temporary directories. Only needed for ones that are
+# globally-managed.
+tempdir_kinds = enum(
+    BUILD_ENV="build-env",
+    REQ_BUILD="req-build",
+)
 
 
 _tempdir_manager = None  # type: Optional[ExitStack]

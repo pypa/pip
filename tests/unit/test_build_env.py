@@ -29,6 +29,7 @@ def run_with_build_env(script, setup_script_contents,
                 SelectionPreferences
             )
             from pip._internal.network.session import PipSession
+            from pip._internal.utils.temp_dir import global_tempdir_manager
 
             link_collector = LinkCollector(
                 session=PipSession(),
@@ -41,19 +42,21 @@ def run_with_build_env(script, setup_script_contents,
                 link_collector=link_collector,
                 selection_prefs=selection_prefs,
             )
-            build_env = BuildEnvironment()
 
-            try:
+            with global_tempdir_manager():
+                build_env = BuildEnvironment()
             ''' % str(script.scratch_path)) +
         indent(dedent(setup_script_contents), '    ') +
-        dedent(
-            '''
+        indent(
+            dedent(
+                '''
                 if len(sys.argv) > 1:
                     with build_env:
                         subprocess.check_call((sys.executable, sys.argv[1]))
-            finally:
-                build_env.cleanup()
-            ''')
+                '''
+            ),
+            '    '
+        )
     )
     args = ['python', build_env_script]
     if test_script_contents is not None:

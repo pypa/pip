@@ -9,9 +9,10 @@ import logging
 import os
 from functools import partial
 
+from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.command_context import CommandContextMixIn
-from pip._internal.exceptions import CommandError
+from pip._internal.exceptions import CommandError, PreviousBuildDirError
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.legacy_resolve import Resolver
 from pip._internal.models.selection_prefs import SelectionPreferences
@@ -28,16 +29,22 @@ from pip._internal.self_outdated_check import (
     make_link_collector,
     pip_self_version_check,
 )
+from pip._internal.utils.temp_dir import tempdir_kinds
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from optparse import Values
-    from typing import List, Optional, Tuple
+    from typing import Any, List, Optional, Tuple
+
     from pip._internal.cache import WheelCache
     from pip._internal.models.target_python import TargetPython
     from pip._internal.req.req_set import RequirementSet
     from pip._internal.req.req_tracker import RequirementTracker
-    from pip._internal.utils.temp_dir import TempDirectory
+    from pip._internal.utils.temp_dir import (
+        TempDirectory,
+        TempDirectoryTypeRegistry,
+    )
+
 
 logger = logging.getLogger(__name__)
 
@@ -149,7 +156,44 @@ class IndexGroupCommand(Command, SessionCommandMixin):
             pip_self_version_check(session, options)
 
 
+KEEPABLE_TEMPDIR_TYPES = [tempdir_kinds.BUILD_ENV, tempdir_kinds.REQ_BUILD]
+
+
+def with_cleanup(func):
+    # type: (Any) -> Any
+    """Decorator for common logic related to managing temporary
+    directories.
+    """
+    def configure_tempdir_registry(registry):
+        # type: (TempDirectoryTypeRegistry) -> None
+        for t in KEEPABLE_TEMPDIR_TYPES:
+            registry.set_delete(t, False)
+
+    def wrapper(self, options, args):
+        # type: (RequirementCommand, Values, List[Any]) -> Optional[int]
+        assert self.tempdir_registry is not None
+        if options.no_clean:
+            configure_tempdir_registry(self.tempdir_registry)
+
+        try:
+            return func(self, options, args)
+        except PreviousBuildDirError:
+            # This kind of conflict can occur when the user passes an explicit
+            # build directory with a pre-existing folder. In that case we do
+            # not want to accidentally remove it.
+            configure_tempdir_registry(self.tempdir_registry)
+            raise
+
+    return wrapper
+
+
 class RequirementCommand(IndexGroupCommand):
+
+    def __init__(self, *args, **kw):
+        # type: (Any, Any) -> None
+        super(RequirementCommand, self).__init__(*args, **kw)
+
+        self.cmd_opts.add_option(cmdoptions.no_clean())
 
     @staticmethod
     def make_requirement_preparer(
