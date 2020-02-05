@@ -274,7 +274,7 @@ def unpack_url(
         return None
 
     # file urls
-    elif link.is_file:
+    if link.is_file:
         return unpack_file_url(link, location, download_dir, hashes=hashes)
 
     # http urls
