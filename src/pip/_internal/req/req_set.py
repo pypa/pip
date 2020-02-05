@@ -33,7 +33,6 @@ class RequirementSet(object):
 
         self.unnamed_requirements = []  # type: List[InstallRequirement]
         self.successfully_downloaded = []  # type: List[InstallRequirement]
-        self.reqs_to_cleanup = []  # type: List[InstallRequirement]
 
     def __str__(self):
         # type: () -> str
@@ -161,7 +160,6 @@ class RequirementSet(object):
             )
         )
         if does_not_satisfy_constraint:
-            self.reqs_to_cleanup.append(install_req)
             raise InstallationError(
                 "Could not satisfy constraints for '{}': "
                 "installation from path or url cannot be "
