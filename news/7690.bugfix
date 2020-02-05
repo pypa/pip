@@ -1,1 +1,0 @@
-Fix an 'appdirs' related import error in case pip is installed debundled i.e., without vendored dependencies.
