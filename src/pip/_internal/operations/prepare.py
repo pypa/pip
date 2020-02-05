@@ -216,12 +216,11 @@ def unpack_file_url(
     # type: (...) -> Optional[str]
     """Unpack link into location.
     """
-    link_path = link.file_path
     # If it's a url to a local directory
     if link.is_existing_dir():
         if os.path.isdir(location):
             rmtree(location)
-        _copy_source_tree(link_path, location)
+        _copy_source_tree(link.file_path, location)
         return None
 
     # If a download dir is specified, is the file already there and valid?
@@ -234,7 +233,7 @@ def unpack_file_url(
     if already_downloaded_path:
         from_path = already_downloaded_path
     else:
-        from_path = link_path
+        from_path = link.file_path
 
     # If --require-hashes is off, `hashes` is either empty, the
     # link's embedded hash, or MissingHashes; it is required to
