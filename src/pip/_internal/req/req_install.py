@@ -33,7 +33,6 @@ from pip._internal.req.req_uninstall import UninstallPathSet
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.marker_files import PIP_DELETE_MARKER_FILENAME
 from pip._internal.utils.misc import (
     ask_path_exists,
     backup_dir,
@@ -757,8 +756,6 @@ class InstallRequirement(object):
                     zipdir.external_attr = 0x1ED << 16  # 0o755
                     zip_output.writestr(zipdir, '')
                 for filename in filenames:
-                    if filename == PIP_DELETE_MARKER_FILENAME:
-                        continue
                     file_arcname = self._get_archive_name(
                         filename, parentdir=dirpath, rootdir=dir,
                     )
