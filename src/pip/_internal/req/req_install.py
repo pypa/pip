@@ -416,11 +416,6 @@ class InstallRequirement(object):
         )
         self.req = Requirement(metadata_name)
 
-    def remove_temporary_source(self):
-        # type: () -> None
-        self.source_dir = None
-        self._temp_build_dir = None
-
     def check_if_exists(self, use_user_site):
         # type: (bool) -> None
         """Find an installed distribution that satisfies or conflicts

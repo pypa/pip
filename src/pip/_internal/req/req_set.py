@@ -11,7 +11,6 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._internal import pep425tags
 from pip._internal.exceptions import InstallationError
 from pip._internal.models.wheel import Wheel
-from pip._internal.utils.logging import indent_log
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -202,8 +201,4 @@ class RequirementSet(object):
 
     def cleanup_files(self):
         # type: () -> None
-        """Clean up files, remove builds."""
-        logger.debug('Cleaning up...')
-        with indent_log():
-            for req in self.reqs_to_cleanup:
-                req.remove_temporary_source()
+        pass
