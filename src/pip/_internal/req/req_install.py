@@ -33,10 +33,7 @@ from pip._internal.req.req_uninstall import UninstallPathSet
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.marker_files import (
-    PIP_DELETE_MARKER_FILENAME,
-    has_delete_marker_file,
-)
+from pip._internal.utils.marker_files import PIP_DELETE_MARKER_FILENAME
 from pip._internal.utils.misc import (
     ask_path_exists,
     backup_dir,
@@ -46,7 +43,6 @@ from pip._internal.utils.misc import (
     get_installed_version,
     hide_url,
     redact_auth_from_url,
-    rmtree,
 )
 from pip._internal.utils.packaging import get_metadata
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
@@ -423,11 +419,6 @@ class InstallRequirement(object):
 
     def remove_temporary_source(self):
         # type: () -> None
-        """Remove the source files from this requirement, if they are marked
-        for deletion"""
-        if self.source_dir and has_delete_marker_file(self.source_dir):
-            logger.debug('Removing source in %s', self.source_dir)
-            rmtree(self.source_dir)
         self.source_dir = None
         self._temp_build_dir = None
 
