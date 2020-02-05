@@ -7,6 +7,69 @@
 
 .. towncrier release notes start
 
+20.1.dev0 (2020-02-05)
+======================
+
+
+
+20.1.dev0 (2020-02-05)
+======================
+
+
+
+20.1.dev0 (2020-02-05)
+======================
+
+
+
+20.1.dev0 (2020-02-05)
+======================
+
+No significant changes.
+
+
+20.1.dev0 (2020-02-05)
+======================
+
+Deprecations and Removals
+-------------------------
+
+- Remove unused ``tests/scripts/test_all_pip.py`` test script and the ``tests/scripts`` folder. (`#7680 <https://github.com/pypa/pip/issues/7680>`_)
+
+Vendored Libraries
+------------------
+
+- Update semi-supported debundling script to reflect that appdirs is vendored.
+
+
+20.1.dev0 (2020-02-05)
+======================
+
+Deprecations and Removals
+-------------------------
+
+- Remove unused ``tests/scripts/test_all_pip.py`` test script and the ``tests/scripts`` folder. (`#7680 <https://github.com/pypa/pip/issues/7680>`_)
+
+Vendored Libraries
+------------------
+
+- Update semi-supported debundling script to reflect that appdirs is vendored.
+
+
+20.1.dev0 (2020-02-05)
+======================
+
+Deprecations and Removals
+-------------------------
+
+- Remove unused ``tests/scripts/test_all_pip.py`` test script and the ``tests/scripts`` folder. (`#7680 <https://github.com/pypa/pip/issues/7680>`_)
+
+Vendored Libraries
+------------------
+
+- Update semi-supported debundling script to reflect that appdirs is vendored.
+
+
 20.0.2 (2020-01-24)
 ===================
 

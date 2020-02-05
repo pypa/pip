@@ -26,6 +26,7 @@ from pip._vendor.six import StringIO
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_major_minor_version
+from pip._internal.utils.filesystem import adjacent_tmp_file, replace
 from pip._internal.utils.misc import captured_stdout, ensure_dir, hash_file
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -575,9 +576,8 @@ def install_unpacked_wheel(
 
     # Record details of all files installed
     record = os.path.join(dest_info_dir, 'RECORD')
-    temp_record = os.path.join(dest_info_dir, 'RECORD.pip')
     with open_for_csv(record, 'r') as record_in:
-        with open_for_csv(temp_record, 'w+') as record_out:
+        with adjacent_tmp_file(record, mode='w') as record_out:
             reader = csv.reader(record_in)
             outrows = get_csv_rows_for_installed(
                 reader, installed=installed, changed=changed,
@@ -587,7 +587,7 @@ def install_unpacked_wheel(
             # Sort to simplify testing.
             for row in sorted_outrows(outrows):
                 writer.writerow(row)
-    shutil.move(temp_record, record)
+    replace(record_out.name, record)
 
 
 def install_wheel(
