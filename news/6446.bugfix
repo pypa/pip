@@ -1,1 +1,2 @@
-Fix ``_clean_link()`` unquotes quoted ``/`` character.
+Correctly handle ``%2F`` in URL parameters to avoid accidently unescape them
+into ``/``.
