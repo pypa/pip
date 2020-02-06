@@ -1,22 +1,11 @@
-from __future__ import absolute_import
-
-import logging
-from email.parser import FeedParser
-
-from pip._vendor import pkg_resources
 from pip._vendor.packaging import specifiers, version
 
-from pip._internal.exceptions import NoneMetadataError
-from pip._internal.utils.misc import display_path
+from pip._internal.metadata import get_file_lines, get_metadata
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import Optional, Tuple
-    from email.message import Message
-    from pip._vendor.pkg_resources import Distribution
-
-
-logger = logging.getLogger(__name__)
+    from pip._internal.metadata import Distribution
 
 
 def check_requires_python(requires_python, version_info):
@@ -41,35 +30,8 @@ def check_requires_python(requires_python, version_info):
     return python_version in requires_python_specifier
 
 
-def get_metadata(dist):
-    # type: (Distribution) -> Message
-    """
-    :raises NoneMetadataError: if the distribution reports `has_metadata()`
-        True but `get_metadata()` returns None.
-    """
-    metadata_name = 'METADATA'
-    if (isinstance(dist, pkg_resources.DistInfoDistribution) and
-            dist.has_metadata(metadata_name)):
-        metadata = dist.get_metadata(metadata_name)
-    elif dist.has_metadata('PKG-INFO'):
-        metadata_name = 'PKG-INFO'
-        metadata = dist.get_metadata(metadata_name)
-    else:
-        logger.warning("No metadata found in %s", display_path(dist.location))
-        metadata = ''
-
-    if metadata is None:
-        raise NoneMetadataError(dist, metadata_name)
-
-    feed_parser = FeedParser()
-    # The following line errors out if with a "NoneType" TypeError if
-    # passed metadata=None.
-    feed_parser.feed(metadata)
-    return feed_parser.close()
-
-
 def get_requires_python(dist):
-    # type: (pkg_resources.Distribution) -> Optional[str]
+    # type: (Distribution) -> Optional[str]
     """
     Return the "Requires-Python" metadata for a distribution, or None
     if not present.
@@ -87,8 +49,10 @@ def get_requires_python(dist):
 
 def get_installer(dist):
     # type: (Distribution) -> str
-    if dist.has_metadata('INSTALLER'):
-        for line in dist.get_metadata_lines('INSTALLER'):
-            if line.strip():
-                return line.strip()
+    lines = get_file_lines(dist, 'INSTALLER')
+    if lines is None:
+        return ''
+    for line in lines:
+        if line.strip():
+            return line.strip()
     return ''
