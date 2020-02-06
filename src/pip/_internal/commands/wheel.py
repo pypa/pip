@@ -133,7 +133,7 @@ class WheelCommand(RequirementCommand):
 
             try:
                 reqs = self.populate_requirement_set(
-                    requirement_set, args, options, finder, session,
+                    args, options, finder, session,
                     wheel_cache
                 )
 

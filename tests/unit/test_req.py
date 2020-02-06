@@ -164,14 +164,13 @@ class TestRequirementSet(object):
         """--require-hashes in a requirements file should make its way to the
         RequirementSet.
         """
-        req_set = RequirementSet()
         finder = make_test_finder(find_links=[data.find_links])
         session = finder._link_collector.session
         command = create_command('install')
         with requirements_file('--require-hashes', tmpdir) as reqs_file:
             options, args = command.parse_args(['-r', reqs_file])
             command.populate_requirement_set(
-                req_set, args, options, finder, session, wheel_cache=None,
+                args, options, finder, session, wheel_cache=None,
             )
         assert options.require_hashes
 

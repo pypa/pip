@@ -297,7 +297,7 @@ class InstallCommand(RequirementCommand):
 
             try:
                 reqs = self.populate_requirement_set(
-                    requirement_set, args, options, finder, session,
+                    args, options, finder, session,
                     wheel_cache, check_supported_wheels=not options.target_dir,
                 )
 

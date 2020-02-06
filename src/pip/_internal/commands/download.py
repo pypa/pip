@@ -105,7 +105,6 @@ class DownloadCommand(RequirementCommand):
 
             requirement_set = RequirementSet()
             reqs = self.populate_requirement_set(
-                requirement_set,
                 args,
                 options,
                 finder,

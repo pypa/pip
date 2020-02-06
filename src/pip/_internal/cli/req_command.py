@@ -272,7 +272,6 @@ class RequirementCommand(IndexGroupCommand):
 
     def populate_requirement_set(
         self,
-        requirement_set,  # type: RequirementSet
         args,             # type: List[str]
         options,          # type: Values
         finder,           # type: PackageFinder
