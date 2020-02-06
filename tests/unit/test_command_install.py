@@ -59,15 +59,16 @@ def test_deprecation_notice_for_requirement_options(recwarn):
     install_options = []
     req_set = RequirementSet()
 
-    bad_named_req_options = {"install_options": ["--home=/wow"]}
+    bad_named_req_options = ["--home=/wow"]
     bad_named_req = InstallRequirement(
-        Requirement("hello"), "requirements.txt", options=bad_named_req_options
+        Requirement("hello"), "requirements.txt",
+        install_options=bad_named_req_options
     )
     req_set.add_named_requirement(bad_named_req)
 
-    bad_unnamed_req_options = {"install_options": ["--install-lib=/lib"]}
+    bad_unnamed_req_options = ["--install-lib=/lib"]
     bad_unnamed_req = InstallRequirement(
-        None, "requirements2.txt", options=bad_unnamed_req_options
+        None, "requirements2.txt", install_options=bad_unnamed_req_options
     )
     req_set.add_unnamed_requirement(bad_unnamed_req)
 

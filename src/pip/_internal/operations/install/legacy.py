@@ -40,10 +40,8 @@ def install(
     # Options specified in requirements file override those
     # specified on the command line, since the last option given
     # to setup.py is the one that is used.
-    global_options = list(global_options) + \
-        install_req.options.get('global_options', [])
-    install_options = list(install_options) + \
-        install_req.options.get('install_options', [])
+    global_options = list(global_options) + install_req.global_options
+    install_options = list(install_options) + install_req.install_options
 
     header_dir = scheme.headers
 

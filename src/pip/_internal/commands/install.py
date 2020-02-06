@@ -622,7 +622,7 @@ def warn_deprecated_install_options(requirement_set, options):
     offenders = []
 
     for requirement in requirements:
-        install_options = requirement.options.get("install_options", [])
+        install_options = requirement.install_options
         location_options = parse_distutils_args(install_options)
         if location_options:
             offenders.append(
