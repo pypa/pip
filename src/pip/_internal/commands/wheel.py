@@ -159,7 +159,8 @@ class WheelCommand(RequirementCommand):
                 self.trace_basic_info(finder)
 
                 requirement_set = resolver.resolve(
-                    requirement_set, requirement_set.check_supported_wheels
+                    requirement_set.all_requirements,
+                    requirement_set.check_supported_wheels,
                 )
 
                 reqs_to_build = [

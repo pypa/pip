@@ -147,8 +147,8 @@ class Resolver(object):
         self._discovered_dependencies = \
             defaultdict(list)  # type: DiscoveredDependencies
 
-    def resolve(self, requirement_set, check_supported_wheels):
-        # type: (RequirementSet, bool) -> RequirementSet
+    def resolve(self, root_reqs, check_supported_wheels):
+        # type: (List[InstallRequirement], bool) -> RequirementSet
         """Resolve what operations need to be done
 
         As a side-effect of this method, the packages (and their dependencies)
@@ -159,7 +159,6 @@ class Resolver(object):
         possible to move the preparation to become a step separated from
         dependency resolution.
         """
-        root_reqs = requirement_set.all_requirements
         requirement_set = RequirementSet(
             check_supported_wheels=check_supported_wheels
         )

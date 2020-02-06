@@ -112,7 +112,7 @@ class TestRequirementSet(object):
                 r"pip can't proceed with [\s\S]*%s[\s\S]*%s" %
                 (req, build_dir.replace('\\', '\\\\')),
                 resolver.resolve,
-                reqset,
+                reqset.all_requirements,
                 True,
             )
 
@@ -130,7 +130,7 @@ class TestRequirementSet(object):
         reqset.add_requirement(req)
         finder = make_test_finder(find_links=[data.find_links])
         with self._basic_resolver(finder) as resolver:
-            reqset = resolver.resolve(reqset, True)
+            reqset = resolver.resolve(reqset.all_requirements, True)
         # This is hacky but does test both case in py2 and py3
         if sys.version_info[:2] == (2, 7):
             assert reqset.has_requirement('simple')
@@ -156,7 +156,7 @@ class TestRequirementSet(object):
                 r'    simple==1.0 --hash=sha256:393043e672415891885c9a2a0929b1'
                 r'af95fb866d6ca016b42d2e6ce53619b653$',
                 resolver.resolve,
-                reqset,
+                reqset.all_requirements,
                 True,
             )
 
@@ -211,7 +211,7 @@ class TestRequirementSet(object):
                 r"    file://.*{sep}data{sep}packages{sep}FSPkg "
                 r"\(from -r file \(line 2\)\)".format(sep=sep),
                 resolver.resolve,
-                reqset,
+                reqset.all_requirements,
                 True,
             )
 
@@ -240,7 +240,7 @@ class TestRequirementSet(object):
                 r'    simple .* \(from -r file \(line 1\)\)\n'
                 r'    simple2>1.0 .* \(from -r file \(line 2\)\)',
                 resolver.resolve,
-                reqset,
+                reqset.all_requirements,
                 True,
             )
 
@@ -262,7 +262,7 @@ class TestRequirementSet(object):
                 r'             Got        393043e672415891885c9a2a0929b1af95fb'
                 r'866d6ca016b42d2e6ce53619b653$',
                 resolver.resolve,
-                reqset,
+                reqset.all_requirements,
                 True,
             )
 
@@ -285,7 +285,7 @@ class TestRequirementSet(object):
                 r'versions pinned.*\n'
                 r'    TopoRequires from .*$',
                 resolver.resolve,
-                reqset,
+                reqset.all_requirements,
                 True,
             )
 
