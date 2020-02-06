@@ -25,6 +25,7 @@ from pip._internal.req.constructors import (
     install_req_from_req_string,
 )
 from pip._internal.req.req_file import parse_requirements
+from pip._internal.req.req_set import RequirementSet
 from pip._internal.self_outdated_check import (
     make_link_collector,
     pip_self_version_check,
@@ -39,7 +40,6 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.cache import WheelCache
     from pip._internal.models.target_python import TargetPython
     from pip._internal.req.req_install import InstallRequirement
-    from pip._internal.req.req_set import RequirementSet
     from pip._internal.req.req_tracker import RequirementTracker
     from pip._internal.utils.temp_dir import (
         TempDirectory,
@@ -278,11 +278,15 @@ class RequirementCommand(IndexGroupCommand):
         finder,           # type: PackageFinder
         session,          # type: PipSession
         wheel_cache,      # type: Optional[WheelCache]
+        check_supported_wheels=True,  # type: bool
     ):
         # type: (...) -> List[InstallRequirement]
         """
         Marshal cmd line args into a requirement set.
         """
+        requirement_set = RequirementSet(
+            check_supported_wheels=check_supported_wheels
+        )
         for filename in options.constraints:
             for req_to_add in parse_requirements(
                     filename,
