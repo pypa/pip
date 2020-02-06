@@ -159,8 +159,6 @@ class Resolver(object):
         possible to move the preparation to become a step separated from
         dependency resolution.
         """
-        # If any top-level requirement has a hash specified, enter
-        # hash-checking mode, which requires hashes from all.
         root_reqs = (
             requirement_set.unnamed_requirements +
             list(requirement_set.requirements.values())
