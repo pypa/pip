@@ -120,6 +120,8 @@ class RequirementSet(object):
 
         # Unnamed requirements are scanned again and the requirement won't be
         # added as a dependency until after scanning.
+        # TODO: Check if [install_req] is needed, change to [] to check
+        #       Means -> can we depend on unnamed requirements?
         if not install_req.name:
             self.add_unnamed_requirement(install_req)
             return [install_req], None
@@ -148,11 +150,6 @@ class RequirementSet(object):
             self.add_named_requirement(install_req)
             # We'd want to rescan this requirement later
             return [install_req], install_req
-
-        # Assume there's no need to scan, and that we've already
-        # encountered this for scanning.
-        if install_req.constraint or not existing_req.constraint:
-            return [], existing_req
 
         does_not_satisfy_constraint = (
             install_req.link and
