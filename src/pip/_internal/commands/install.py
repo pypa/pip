@@ -30,7 +30,7 @@ from pip._internal.exceptions import (
 )
 from pip._internal.locations import distutils_scheme
 from pip._internal.operations.check import check_install_conflicts
-from pip._internal.req import RequirementSet, install_given_reqs
+from pip._internal.req import install_given_reqs
 from pip._internal.req.req_tracker import get_requirement_tracker
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.distutils_args import parse_distutils_args
@@ -291,10 +291,6 @@ class InstallCommand(RequirementCommand):
         with get_requirement_tracker() as req_tracker, TempDirectory(
             options.build_dir, delete=build_delete, kind="install"
         ) as directory:
-            requirement_set = RequirementSet(
-                check_supported_wheels=not options.target_dir,
-            )
-
             try:
                 reqs = self.populate_requirement_set(
                     args, options, finder, session,

@@ -9,7 +9,6 @@ import os
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.cli.req_command import RequirementCommand, with_cleanup
-from pip._internal.req import RequirementSet
 from pip._internal.req.req_tracker import get_requirement_tracker
 from pip._internal.utils.misc import ensure_dir, normalize_path, write_output
 from pip._internal.utils.temp_dir import TempDirectory
@@ -102,8 +101,6 @@ class DownloadCommand(RequirementCommand):
         with get_requirement_tracker() as req_tracker, TempDirectory(
             options.build_dir, delete=build_delete, kind="download"
         ) as directory:
-
-            requirement_set = RequirementSet()
             reqs = self.populate_requirement_set(
                 args,
                 options,

@@ -13,7 +13,6 @@ from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.req_command import RequirementCommand, with_cleanup
 from pip._internal.exceptions import CommandError, PreviousBuildDirError
-from pip._internal.req import RequirementSet
 from pip._internal.req.req_tracker import get_requirement_tracker
 from pip._internal.utils.misc import ensure_dir, normalize_path
 from pip._internal.utils.temp_dir import TempDirectory
@@ -128,9 +127,6 @@ class WheelCommand(RequirementCommand):
         with get_requirement_tracker() as req_tracker, TempDirectory(
             options.build_dir, delete=build_delete, kind="wheel"
         ) as directory:
-
-            requirement_set = RequirementSet()
-
             try:
                 reqs = self.populate_requirement_set(
                     args, options, finder, session,
