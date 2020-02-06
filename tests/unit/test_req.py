@@ -129,7 +129,7 @@ class TestRequirementSet(object):
         reqset.add_requirement(req)
         finder = make_test_finder(find_links=[data.find_links])
         with self._basic_resolver(finder) as resolver:
-            resolver.resolve(reqset)
+            reqset = resolver.resolve(reqset)
         # This is hacky but does test both case in py2 and py3
         if sys.version_info[:2] == (2, 7):
             assert reqset.has_requirement('simple')

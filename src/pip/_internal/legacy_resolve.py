@@ -28,6 +28,7 @@ from pip._internal.exceptions import (
     HashErrors,
     UnsupportedPythonVersion,
 )
+from pip._internal.req.req_set import RequirementSet
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import dist_in_usersite, normalize_version_info
 from pip._internal.utils.packaging import (
@@ -44,7 +45,6 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.operations.prepare import RequirementPreparer
     from pip._internal.req.req_install import InstallRequirement
-    from pip._internal.req.req_set import RequirementSet
 
     InstallRequirementProvider = Callable[
         [str, InstallRequirement], InstallRequirement
@@ -148,7 +148,7 @@ class Resolver(object):
             defaultdict(list)  # type: DiscoveredDependencies
 
     def resolve(self, requirement_set):
-        # type: (RequirementSet) -> None
+        # type: (RequirementSet) -> RequirementSet
         """Resolve what operations need to be done
 
         As a side-effect of this method, the packages (and their dependencies)
@@ -163,6 +163,12 @@ class Resolver(object):
             requirement_set.unnamed_requirements +
             list(requirement_set.requirements.values())
         )
+        check_supported_wheels = requirement_set.check_supported_wheels
+        requirement_set = RequirementSet(
+            check_supported_wheels=check_supported_wheels
+        )
+        for req in root_reqs:
+            requirement_set.add_requirement(req)
 
         # Actually prepare the files, and collect any exceptions. Most hash
         # exceptions cannot be checked ahead of time, because
@@ -179,6 +185,8 @@ class Resolver(object):
 
         if hash_errors:
             raise hash_errors
+
+        return requirement_set
 
     def _is_upgrade_allowed(self, req):
         # type: (InstallRequirement) -> bool
