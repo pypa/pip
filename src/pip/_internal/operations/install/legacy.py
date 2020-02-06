@@ -23,6 +23,10 @@ if MYPY_CHECK_RUNNING:
 logger = logging.getLogger(__name__)
 
 
+class LegacyInstallFailure(Exception):
+    pass
+
+
 def install(
     install_options,  # type: List[str]
     global_options,  # type: Sequence[str]
@@ -39,38 +43,46 @@ def install(
     unpacked_source_directory,  # type: str
     req_description,  # type: str
 ):
-    # type: (...) -> bool
+    # type: (...) -> None
 
     header_dir = scheme.headers
 
     with TempDirectory(kind="record") as temp_dir:
-        record_filename = os.path.join(temp_dir.path, 'install-record.txt')
-        install_args = make_setuptools_install_args(
-            setup_py_path,
-            global_options=global_options,
-            install_options=install_options,
-            record_filename=record_filename,
-            root=root,
-            prefix=prefix,
-            header_dir=header_dir,
-            home=home,
-            use_user_site=use_user_site,
-            no_user_config=isolated,
-            pycompile=pycompile,
-        )
-
-        runner = runner_with_spinner_message(
-            "Running setup.py install for {}".format(req_name)
-        )
-        with indent_log(), build_env:
-            runner(
-                cmd=install_args,
-                cwd=unpacked_source_directory,
+        try:
+            record_filename = os.path.join(temp_dir.path, 'install-record.txt')
+            install_args = make_setuptools_install_args(
+                setup_py_path,
+                global_options=global_options,
+                install_options=install_options,
+                record_filename=record_filename,
+                root=root,
+                prefix=prefix,
+                header_dir=header_dir,
+                home=home,
+                use_user_site=use_user_site,
+                no_user_config=isolated,
+                pycompile=pycompile,
             )
 
-        if not os.path.exists(record_filename):
-            logger.debug('Record file %s not found', record_filename)
-            return False
+            runner = runner_with_spinner_message(
+                "Running setup.py install for {}".format(req_name)
+            )
+            with indent_log(), build_env:
+                runner(
+                    cmd=install_args,
+                    cwd=unpacked_source_directory,
+                )
+
+            if not os.path.exists(record_filename):
+                logger.debug('Record file %s not found', record_filename)
+                # Signal to the caller that we didn't install the new package
+                raise LegacyInstallFailure
+
+        except Exception:
+            # Signal to the caller that we didn't install the new package
+            raise LegacyInstallFailure
+
+        # At this point, we have successfully installed the requirement.
 
         # We intentionally do not use any encoding to read the file because
         # setuptools writes the file using distutils.file_util.write_file,
@@ -108,7 +120,8 @@ def install(
             issue=6998,
         )
         # FIXME: put the record somewhere
-        return True
+        return
+
     new_lines = []
     for line in record_lines:
         filename = line.strip()
@@ -122,5 +135,3 @@ def install(
     inst_files_path = os.path.join(egg_info_dir, 'installed-files.txt')
     with open(inst_files_path, 'w') as f:
         f.write('\n'.join(new_lines) + '\n')
-
-    return True
