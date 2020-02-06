@@ -320,10 +320,7 @@ class RequirementCommand(IndexGroupCommand):
                 requirement_set.add_requirement(req_to_add)
 
         # If any requirement has hash options, enable hash checking.
-        requirements = (
-            requirement_set.unnamed_requirements +
-            list(requirement_set.requirements.values())
-        )
+        requirements = requirement_set.all_requirements
         if any(req.has_hash_options for req in requirements):
             options.require_hashes = True
 

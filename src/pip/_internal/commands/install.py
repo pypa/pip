@@ -616,10 +616,7 @@ def warn_deprecated_install_options(requirement_set, options):
         # type: (Iterable[str]) -> List[str]
         return ["--{}".format(name.replace("_", "-")) for name in option_names]
 
-    requirements = (
-        requirement_set.unnamed_requirements +
-        list(requirement_set.requirements.values())
-    )
+    requirements = requirement_set.all_requirements
 
     offenders = []
 

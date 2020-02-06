@@ -159,10 +159,7 @@ class Resolver(object):
         possible to move the preparation to become a step separated from
         dependency resolution.
         """
-        root_reqs = (
-            requirement_set.unnamed_requirements +
-            list(requirement_set.requirements.values())
-        )
+        root_reqs = requirement_set.all_requirements
         requirement_set = RequirementSet(
             check_supported_wheels=check_supported_wheels
         )
