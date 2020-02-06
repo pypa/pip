@@ -1,0 +1,20 @@
+diff --git a/src/pip/_vendor/importlib_metadata/__init__.py b/src/pip/_vendor/importlib_metadata/__init__.py
+index 089fca97..50fcea99 100644
+--- a/src/pip/_vendor/importlib_metadata/__init__.py
++++ b/src/pip/_vendor/importlib_metadata/__init__.py
+@@ -6,7 +6,7 @@ import re
+ import abc
+ import csv
+ import sys
+-import zipp
++from pip._vendor import zipp
+ import operator
+ import functools
+ import itertools
+@@ -586,6 +586,3 @@ def requires(distribution_name):
+     packaging.requirement.Requirement.
+     """
+     return distribution(distribution_name).requires
+-
+-
+-__version__ = version(__name__)

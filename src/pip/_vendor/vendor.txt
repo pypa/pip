@@ -5,6 +5,9 @@ contextlib2==0.6.0
 distlib==0.3.0
 distro==1.4.0
 html5lib==1.0.1
+importlib-metadata==1.5.0
+    zipp==2.1.0
+    # Don't include Python 2 dependencies; we use pkg_resources there.
 ipaddress==1.0.23  # Only needed on 2.6 and 2.7
 msgpack==0.6.2
 packaging==20.1

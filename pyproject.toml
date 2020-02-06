@@ -38,6 +38,9 @@ drop = [
   "bin/",
   # interpreter and OS specific msgpack libs
   "msgpack/*.so",
+  # importlib-metadata carries a bunch of test data we don't need
+  "importlib_metadata/docs/",
+  "importlib_metadata/tests/",
   # unneeded parts of setuptools
   "easy_install.py",
   "setuptools",
