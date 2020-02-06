@@ -328,7 +328,9 @@ class InstallCommand(RequirementCommand):
 
                 self.trace_basic_info(finder)
 
-                requirement_set = resolver.resolve(requirement_set)
+                requirement_set = resolver.resolve(
+                    requirement_set, requirement_set.check_supported_wheels
+                )
 
                 try:
                     pip_req = requirement_set.get_requirement("pip")

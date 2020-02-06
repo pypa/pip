@@ -113,6 +113,7 @@ class TestRequirementSet(object):
                 (req, build_dir.replace('\\', '\\\\')),
                 resolver.resolve,
                 reqset,
+                True,
             )
 
     # TODO: Update test when Python 2.7 is dropped.
@@ -129,7 +130,7 @@ class TestRequirementSet(object):
         reqset.add_requirement(req)
         finder = make_test_finder(find_links=[data.find_links])
         with self._basic_resolver(finder) as resolver:
-            reqset = resolver.resolve(reqset)
+            reqset = resolver.resolve(reqset, True)
         # This is hacky but does test both case in py2 and py3
         if sys.version_info[:2] == (2, 7):
             assert reqset.has_requirement('simple')
@@ -155,7 +156,8 @@ class TestRequirementSet(object):
                 r'    simple==1.0 --hash=sha256:393043e672415891885c9a2a0929b1'
                 r'af95fb866d6ca016b42d2e6ce53619b653$',
                 resolver.resolve,
-                reqset
+                reqset,
+                True,
             )
 
     def test_missing_hash_with_require_hashes_in_reqs_file(self, data, tmpdir):
@@ -210,6 +212,7 @@ class TestRequirementSet(object):
                 r"\(from -r file \(line 2\)\)".format(sep=sep),
                 resolver.resolve,
                 reqset,
+                True,
             )
 
     def test_unpinned_hash_checking(self, data):
@@ -238,6 +241,7 @@ class TestRequirementSet(object):
                 r'    simple2>1.0 .* \(from -r file \(line 2\)\)',
                 resolver.resolve,
                 reqset,
+                True,
             )
 
     def test_hash_mismatch(self, data):
@@ -259,6 +263,7 @@ class TestRequirementSet(object):
                 r'866d6ca016b42d2e6ce53619b653$',
                 resolver.resolve,
                 reqset,
+                True,
             )
 
     def test_unhashed_deps_on_require_hashes(self, data):
@@ -281,6 +286,7 @@ class TestRequirementSet(object):
                 r'    TopoRequires from .*$',
                 resolver.resolve,
                 reqset,
+                True,
             )
 
     def test_hashed_deps_on_require_hashes(self):

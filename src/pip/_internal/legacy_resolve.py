@@ -147,8 +147,8 @@ class Resolver(object):
         self._discovered_dependencies = \
             defaultdict(list)  # type: DiscoveredDependencies
 
-    def resolve(self, requirement_set):
-        # type: (RequirementSet) -> RequirementSet
+    def resolve(self, requirement_set, check_supported_wheels):
+        # type: (RequirementSet, bool) -> RequirementSet
         """Resolve what operations need to be done
 
         As a side-effect of this method, the packages (and their dependencies)
@@ -163,7 +163,6 @@ class Resolver(object):
             requirement_set.unnamed_requirements +
             list(requirement_set.requirements.values())
         )
-        check_supported_wheels = requirement_set.check_supported_wheels
         requirement_set = RequirementSet(
             check_supported_wheels=check_supported_wheels
         )
