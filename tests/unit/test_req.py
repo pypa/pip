@@ -169,7 +169,7 @@ class TestRequirementSet(object):
         command = create_command('install')
         with requirements_file('--require-hashes', tmpdir) as reqs_file:
             options, args = command.parse_args(['-r', reqs_file])
-            command.populate_requirement_set(
+            command.get_requirements(
                 args, options, finder, session, wheel_cache=None,
             )
         assert options.require_hashes

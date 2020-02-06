@@ -101,7 +101,7 @@ class DownloadCommand(RequirementCommand):
         with get_requirement_tracker() as req_tracker, TempDirectory(
             options.build_dir, delete=build_delete, kind="download"
         ) as directory:
-            reqs = self.populate_requirement_set(
+            reqs = self.get_requirements(
                 args,
                 options,
                 finder,

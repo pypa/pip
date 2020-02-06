@@ -270,7 +270,7 @@ class RequirementCommand(IndexGroupCommand):
             py_version_info=py_version_info,
         )
 
-    def populate_requirement_set(
+    def get_requirements(
         self,
         args,             # type: List[str]
         options,          # type: Values
@@ -281,7 +281,7 @@ class RequirementCommand(IndexGroupCommand):
     ):
         # type: (...) -> List[InstallRequirement]
         """
-        Marshal cmd line args into a requirement set.
+        Parse command-line arguments into the corresponding requirements.
         """
         requirement_set = RequirementSet(
             check_supported_wheels=check_supported_wheels

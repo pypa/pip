@@ -128,7 +128,7 @@ class WheelCommand(RequirementCommand):
             options.build_dir, delete=build_delete, kind="wheel"
         ) as directory:
             try:
-                reqs = self.populate_requirement_set(
+                reqs = self.get_requirements(
                     args, options, finder, session,
                     wheel_cache
                 )

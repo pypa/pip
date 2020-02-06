@@ -292,7 +292,7 @@ class InstallCommand(RequirementCommand):
             options.build_dir, delete=build_delete, kind="install"
         ) as directory:
             try:
-                reqs = self.populate_requirement_set(
+                reqs = self.get_requirements(
                     args, options, finder, session,
                     wheel_cache, check_supported_wheels=not options.target_dir,
                 )
