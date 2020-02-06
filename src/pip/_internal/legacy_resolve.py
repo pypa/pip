@@ -327,9 +327,6 @@ class Resolver(object):
 
         req_to_install.prepared = True
 
-        # register tmp src for cleanup in case something goes wrong
-        requirement_set.reqs_to_cleanup.append(req_to_install)
-
         abstract_dist = self._get_abstract_dist_for(req_to_install)
 
         # Parse and return dependencies

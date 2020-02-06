@@ -28,7 +28,6 @@ from pip._internal.exceptions import (
 from pip._internal.utils.filesystem import copy2_fixed
 from pip._internal.utils.hashes import MissingHashes
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.marker_files import write_delete_marker_file
 from pip._internal.utils.misc import (
     ask_path_exists,
     backup_dir,
@@ -416,6 +415,25 @@ class RequirementPreparer(object):
         else:
             logger.info('Collecting %s', req.req or req)
 
+        download_dir = self.download_dir
+        if link.is_wheel and self.wheel_download_dir:
+            # when doing 'pip wheel` we download wheels to a
+            # dedicated dir.
+            download_dir = self.wheel_download_dir
+
+        if link.is_wheel:
+            if download_dir:
+                # When downloading, we only unpack wheels to get
+                # metadata.
+                autodelete_unpacked = True
+            else:
+                # When installing a wheel, we use the unpacked
+                # wheel.
+                autodelete_unpacked = False
+        else:
+            # We always delete unpacked sdists after pip runs.
+            autodelete_unpacked = True
+
         with indent_log():
             # @@ if filesystem packages are not marked
             # editable in a req, a non deterministic error
@@ -423,7 +441,7 @@ class RequirementPreparer(object):
             # build directory
             # Since source_dir is only set for editable requirements.
             assert req.source_dir is None
-            req.ensure_has_source_dir(self.build_dir)
+            req.ensure_has_source_dir(self.build_dir, autodelete_unpacked)
             # If a checkout exists, it's unwise to keep going.  version
             # inconsistencies are logged later, but do not fail the
             # installation.
@@ -471,12 +489,6 @@ class RequirementPreparer(object):
                 # showing the user what the hash should be.
                 hashes = MissingHashes()
 
-            download_dir = self.download_dir
-            if link.is_wheel and self.wheel_download_dir:
-                # when doing 'pip wheel` we download wheels to a
-                # dedicated dir.
-                download_dir = self.wheel_download_dir
-
             try:
                 local_file = unpack_url(
                     link, req.source_dir, self.downloader, download_dir,
@@ -497,21 +509,6 @@ class RequirementPreparer(object):
             # requirement.
             if local_file:
                 req.local_file_path = local_file.path
-
-            if link.is_wheel:
-                if download_dir:
-                    # When downloading, we only unpack wheels to get
-                    # metadata.
-                    autodelete_unpacked = True
-                else:
-                    # When installing a wheel, we use the unpacked
-                    # wheel.
-                    autodelete_unpacked = False
-            else:
-                # We always delete unpacked sdists after pip runs.
-                autodelete_unpacked = True
-            if autodelete_unpacked:
-                write_delete_marker_file(req.source_dir)
 
             abstract_dist = _get_prepared_distribution(
                 req, self.req_tracker, self.finder, self.build_isolation,

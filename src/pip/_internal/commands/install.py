@@ -443,10 +443,6 @@ class InstallCommand(RequirementCommand):
             except PreviousBuildDirError:
                 options.no_clean = True
                 raise
-            finally:
-                # Clean up
-                if not options.no_clean:
-                    requirement_set.cleanup_files()
 
         if options.target_dir:
             self._handle_target_dir(

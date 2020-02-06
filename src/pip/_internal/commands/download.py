@@ -140,8 +140,4 @@ class DownloadCommand(RequirementCommand):
             if downloaded:
                 write_output('Successfully downloaded %s', downloaded)
 
-            # Clean up
-            if not options.no_clean:
-                requirement_set.cleanup_files()
-
         return requirement_set
