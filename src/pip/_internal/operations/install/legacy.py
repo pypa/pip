@@ -3,6 +3,7 @@
 
 import logging
 import os
+import sys
 from distutils.util import change_root
 
 from pip._internal.utils.deprecation import deprecated
@@ -24,7 +25,9 @@ logger = logging.getLogger(__name__)
 
 
 class LegacyInstallFailure(Exception):
-    pass
+    def __init__(self):
+        # type: () -> None
+        self.parent = sys.exc_info()
 
 
 def install(
@@ -43,7 +46,7 @@ def install(
     unpacked_source_directory,  # type: str
     req_description,  # type: str
 ):
-    # type: (...) -> None
+    # type: (...) -> bool
 
     header_dir = scheme.headers
 
@@ -76,7 +79,7 @@ def install(
             if not os.path.exists(record_filename):
                 logger.debug('Record file %s not found', record_filename)
                 # Signal to the caller that we didn't install the new package
-                raise LegacyInstallFailure
+                return False
 
         except Exception:
             # Signal to the caller that we didn't install the new package
@@ -120,7 +123,7 @@ def install(
             issue=6998,
         )
         # FIXME: put the record somewhere
-        return
+        return True
 
     new_lines = []
     for line in record_lines:
@@ -135,3 +138,5 @@ def install(
     inst_files_path = os.path.join(egg_info_dir, 'installed-files.txt')
     with open(inst_files_path, 'w') as f:
         f.write('\n'.join(new_lines) + '\n')
+
+    return True

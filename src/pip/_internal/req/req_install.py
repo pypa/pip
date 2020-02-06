@@ -830,7 +830,7 @@ class InstallRequirement(object):
             self.options.get('install_options', [])
 
         try:
-            install_legacy(
+            success = install_legacy(
                 install_options=install_options,
                 global_options=global_options,
                 root=root,
@@ -847,6 +847,11 @@ class InstallRequirement(object):
                 req_description=str(self.req),
             )
         except Exception as exc:
-            self.install_succeeded = not isinstance(exc, LegacyInstallFailure)
-            raise
-        self.install_succeeded = True
+            if isinstance(exc, LegacyInstallFailure):
+                self.install_succeeded = False
+                six.reraise(*exc.parent)
+            else:
+                self.install_succeeded = True
+                raise
+
+        self.install_succeeded = success
