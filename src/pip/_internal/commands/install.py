@@ -296,7 +296,7 @@ class InstallCommand(RequirementCommand):
             )
 
             try:
-                self.populate_requirement_set(
+                reqs = self.populate_requirement_set(
                     requirement_set, args, options, finder, session,
                     wheel_cache
                 )
@@ -329,8 +329,7 @@ class InstallCommand(RequirementCommand):
                 self.trace_basic_info(finder)
 
                 requirement_set = resolver.resolve(
-                    requirement_set.all_requirements,
-                    requirement_set.check_supported_wheels,
+                    reqs, requirement_set.check_supported_wheels
                 )
 
                 try:

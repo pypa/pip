@@ -104,7 +104,7 @@ class DownloadCommand(RequirementCommand):
         ) as directory:
 
             requirement_set = RequirementSet()
-            self.populate_requirement_set(
+            reqs = self.populate_requirement_set(
                 requirement_set,
                 args,
                 options,
@@ -133,8 +133,7 @@ class DownloadCommand(RequirementCommand):
             self.trace_basic_info(finder)
 
             requirement_set = resolver.resolve(
-                requirement_set.all_requirements,
-                requirement_set.check_supported_wheels,
+                reqs, requirement_set.check_supported_wheels
             )
 
             downloaded = ' '.join([

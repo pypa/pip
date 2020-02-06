@@ -38,6 +38,7 @@ if MYPY_CHECK_RUNNING:
 
     from pip._internal.cache import WheelCache
     from pip._internal.models.target_python import TargetPython
+    from pip._internal.req.req_install import InstallRequirement
     from pip._internal.req.req_set import RequirementSet
     from pip._internal.req.req_tracker import RequirementTracker
     from pip._internal.utils.temp_dir import (
@@ -278,7 +279,7 @@ class RequirementCommand(IndexGroupCommand):
         session,          # type: PipSession
         wheel_cache,      # type: Optional[WheelCache]
     ):
-        # type: (...) -> None
+        # type: (...) -> List[InstallRequirement]
         """
         Marshal cmd line args into a requirement set.
         """
@@ -335,6 +336,8 @@ class RequirementCommand(IndexGroupCommand):
                 raise CommandError(
                     'You must give at least one requirement to %(name)s '
                     '(see "pip help %(name)s")' % opts)
+
+        return requirements
 
     @staticmethod
     def trace_basic_info(finder):
