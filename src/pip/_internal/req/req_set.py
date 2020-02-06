@@ -196,3 +196,8 @@ class RequirementSet(object):
             return self.requirements[project_name]
 
         raise KeyError("No project with the name %r" % name)
+
+    @property
+    def all_requirements(self):
+        # type: () -> List[InstallRequirement]
+        return self.unnamed_requirements + list(self.requirements.values())

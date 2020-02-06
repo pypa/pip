@@ -25,6 +25,7 @@ from pip._internal.req.constructors import (
     install_req_from_req_string,
 )
 from pip._internal.req.req_file import parse_requirements
+from pip._internal.req.req_set import RequirementSet
 from pip._internal.self_outdated_check import (
     make_link_collector,
     pip_self_version_check,
@@ -38,7 +39,7 @@ if MYPY_CHECK_RUNNING:
 
     from pip._internal.cache import WheelCache
     from pip._internal.models.target_python import TargetPython
-    from pip._internal.req.req_set import RequirementSet
+    from pip._internal.req.req_install import InstallRequirement
     from pip._internal.req.req_tracker import RequirementTracker
     from pip._internal.utils.temp_dir import (
         TempDirectory,
@@ -269,19 +270,22 @@ class RequirementCommand(IndexGroupCommand):
             py_version_info=py_version_info,
         )
 
-    def populate_requirement_set(
+    def get_requirements(
         self,
-        requirement_set,  # type: RequirementSet
         args,             # type: List[str]
         options,          # type: Values
         finder,           # type: PackageFinder
         session,          # type: PipSession
         wheel_cache,      # type: Optional[WheelCache]
+        check_supported_wheels=True,  # type: bool
     ):
-        # type: (...) -> None
+        # type: (...) -> List[InstallRequirement]
         """
-        Marshal cmd line args into a requirement set.
+        Parse command-line arguments into the corresponding requirements.
         """
+        requirement_set = RequirementSet(
+            check_supported_wheels=check_supported_wheels
+        )
         for filename in options.constraints:
             for req_to_add in parse_requirements(
                     filename,
@@ -320,10 +324,7 @@ class RequirementCommand(IndexGroupCommand):
                 requirement_set.add_requirement(req_to_add)
 
         # If any requirement has hash options, enable hash checking.
-        requirements = (
-            requirement_set.unnamed_requirements +
-            list(requirement_set.requirements.values())
-        )
+        requirements = requirement_set.all_requirements
         if any(req.has_hash_options for req in requirements):
             options.require_hashes = True
 
@@ -338,6 +339,8 @@ class RequirementCommand(IndexGroupCommand):
                 raise CommandError(
                     'You must give at least one requirement to %(name)s '
                     '(see "pip help %(name)s")' % opts)
+
+        return requirements
 
     @staticmethod
     def trace_basic_info(finder):
