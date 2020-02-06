@@ -435,10 +435,6 @@ class RequirementPreparer(object):
             autodelete_unpacked = True
 
         with indent_log():
-            # @@ if filesystem packages are not marked
-            # editable in a req, a non deterministic error
-            # occurs when the script attempts to unpack the
-            # build directory
             # Since source_dir is only set for editable requirements.
             assert req.source_dir is None
             req.ensure_has_source_dir(self.build_dir, autodelete_unpacked)
