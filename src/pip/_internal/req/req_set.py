@@ -11,7 +11,6 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._internal import pep425tags
 from pip._internal.exceptions import InstallationError
 from pip._internal.models.wheel import Wheel
-from pip._internal.utils.logging import indent_log
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -34,7 +33,6 @@ class RequirementSet(object):
 
         self.unnamed_requirements = []  # type: List[InstallRequirement]
         self.successfully_downloaded = []  # type: List[InstallRequirement]
-        self.reqs_to_cleanup = []  # type: List[InstallRequirement]
 
     def __str__(self):
         # type: () -> str
@@ -162,7 +160,6 @@ class RequirementSet(object):
             )
         )
         if does_not_satisfy_constraint:
-            self.reqs_to_cleanup.append(install_req)
             raise InstallationError(
                 "Could not satisfy constraints for '{}': "
                 "installation from path or url cannot be "
@@ -200,10 +197,7 @@ class RequirementSet(object):
 
         raise KeyError("No project with the name %r" % name)
 
-    def cleanup_files(self):
-        # type: () -> None
-        """Clean up files, remove builds."""
-        logger.debug('Cleaning up...')
-        with indent_log():
-            for req in self.reqs_to_cleanup:
-                req.remove_temporary_source()
+    @property
+    def all_requirements(self):
+        # type: () -> List[InstallRequirement]
+        return self.unnamed_requirements + list(self.requirements.values())

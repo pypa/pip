@@ -238,7 +238,9 @@ def install_req_from_editable(
         constraint=constraint,
         use_pep517=use_pep517,
         isolated=isolated,
-        options=options if options else {},
+        install_options=options.get("install_options", []) if options else [],
+        global_options=options.get("global_options", []) if options else [],
+        hash_options=options.get("hashes", {}) if options else {},
         wheel_cache=wheel_cache,
         extras=parts.extras,
     )
@@ -400,7 +402,9 @@ def install_req_from_line(
     return InstallRequirement(
         parts.requirement, comes_from, link=parts.link, markers=parts.markers,
         use_pep517=use_pep517, isolated=isolated,
-        options=options if options else {},
+        install_options=options.get("install_options", []) if options else [],
+        global_options=options.get("global_options", []) if options else [],
+        hash_options=options.get("hashes", {}) if options else {},
         wheel_cache=wheel_cache,
         constraint=constraint,
         extras=parts.extras,

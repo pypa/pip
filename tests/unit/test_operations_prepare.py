@@ -13,8 +13,7 @@ from pip._internal.network.session import PipSession
 from pip._internal.operations.prepare import (
     _copy_source_tree,
     _download_http_url,
-    unpack_file_url,
-    unpack_http_url,
+    unpack_url,
 )
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.urls import path_to_url
@@ -27,7 +26,7 @@ from tests.lib.path import Path
 from tests.lib.requests_mocks import MockResponse
 
 
-def test_unpack_http_url_with_urllib_response_without_content_type(data):
+def test_unpack_url_with_urllib_response_without_content_type(data):
     """
     It should download and unpack files even if no Content-Type header exists
     """
@@ -46,7 +45,7 @@ def test_unpack_http_url_with_urllib_response_without_content_type(data):
     link = Link(uri)
     temp_dir = mkdtemp()
     try:
-        unpack_http_url(
+        unpack_url(
             link,
             temp_dir,
             downloader=downloader,
@@ -172,7 +171,7 @@ def test_copy_source_tree_with_unreadable_dir_fails(clean_project, tmpdir):
     assert expected_files == copied_files
 
 
-class Test_unpack_file_url(object):
+class Test_unpack_url(object):
 
     def prep(self, tmpdir, data):
         self.build_dir = tmpdir.joinpath('build')
@@ -185,16 +184,17 @@ class Test_unpack_file_url(object):
         self.dist_path2 = data.packages.joinpath(self.dist_file2)
         self.dist_url = Link(path_to_url(self.dist_path))
         self.dist_url2 = Link(path_to_url(self.dist_path2))
+        self.no_downloader = Mock(side_effect=AssertionError)
 
-    def test_unpack_file_url_no_download(self, tmpdir, data):
+    def test_unpack_url_no_download(self, tmpdir, data):
         self.prep(tmpdir, data)
-        unpack_file_url(self.dist_url, self.build_dir)
+        unpack_url(self.dist_url, self.build_dir, self.no_downloader)
         assert os.path.isdir(os.path.join(self.build_dir, 'simple'))
         assert not os.path.isfile(
             os.path.join(self.download_dir, self.dist_file))
 
-    def test_unpack_file_url_bad_hash(self, tmpdir, data,
-                                      monkeypatch):
+    def test_unpack_url_bad_hash(self, tmpdir, data,
+                                 monkeypatch):
         """
         Test when the file url hash fragment is wrong
         """
@@ -202,16 +202,18 @@ class Test_unpack_file_url(object):
         url = '{}#md5=bogus'.format(self.dist_url.url)
         dist_url = Link(url)
         with pytest.raises(HashMismatch):
-            unpack_file_url(dist_url,
-                            self.build_dir,
-                            hashes=Hashes({'md5': ['bogus']}))
+            unpack_url(dist_url,
+                       self.build_dir,
+                       downloader=self.no_downloader,
+                       hashes=Hashes({'md5': ['bogus']}))
 
-    def test_unpack_file_url_thats_a_dir(self, tmpdir, data):
+    def test_unpack_url_thats_a_dir(self, tmpdir, data):
         self.prep(tmpdir, data)
         dist_path = data.packages.joinpath("FSPkg")
         dist_url = Link(path_to_url(dist_path))
-        unpack_file_url(dist_url, self.build_dir,
-                        download_dir=self.download_dir)
+        unpack_url(dist_url, self.build_dir,
+                   downloader=self.no_downloader,
+                   download_dir=self.download_dir)
         assert os.path.isdir(os.path.join(self.build_dir, 'fspkg'))
 
 
@@ -219,7 +221,7 @@ class Test_unpack_file_url(object):
     '.nox',
     '.tox'
 ])
-def test_unpack_file_url_excludes_expected_dirs(tmpdir, exclude_dir):
+def test_unpack_url_excludes_expected_dirs(tmpdir, exclude_dir):
     src_dir = tmpdir / 'src'
     dst_dir = tmpdir / 'dst'
     src_included_file = src_dir.joinpath('file.txt')
@@ -239,9 +241,10 @@ def test_unpack_file_url_excludes_expected_dirs(tmpdir, exclude_dir):
     dst_included_dir = dst_dir.joinpath('subdir', exclude_dir)
 
     src_link = Link(path_to_url(src_dir))
-    unpack_file_url(
+    unpack_url(
         src_link,
         dst_dir,
+        Mock(side_effect=AssertionError),
         download_dir=None
     )
     assert not os.path.isdir(dst_excluded_dir)

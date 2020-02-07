@@ -10,7 +10,6 @@ from pip._internal.commands.install import (
     warn_deprecated_install_options,
 )
 from pip._internal.req.req_install import InstallRequirement
-from pip._internal.req.req_set import RequirementSet
 
 
 class TestDecideUserInstall:
@@ -47,8 +46,7 @@ class TestDecideUserInstall:
 
 def test_deprecation_notice_for_pip_install_options(recwarn):
     install_options = ["--prefix=/hello"]
-    req_set = RequirementSet()
-    warn_deprecated_install_options(req_set, install_options)
+    warn_deprecated_install_options([], install_options)
 
     assert len(recwarn) == 1
     message = recwarn[0].message.args[0]
@@ -57,21 +55,21 @@ def test_deprecation_notice_for_pip_install_options(recwarn):
 
 def test_deprecation_notice_for_requirement_options(recwarn):
     install_options = []
-    req_set = RequirementSet()
 
-    bad_named_req_options = {"install_options": ["--home=/wow"]}
+    bad_named_req_options = ["--home=/wow"]
     bad_named_req = InstallRequirement(
-        Requirement("hello"), "requirements.txt", options=bad_named_req_options
+        Requirement("hello"), "requirements.txt",
+        install_options=bad_named_req_options
     )
-    req_set.add_named_requirement(bad_named_req)
 
-    bad_unnamed_req_options = {"install_options": ["--install-lib=/lib"]}
+    bad_unnamed_req_options = ["--install-lib=/lib"]
     bad_unnamed_req = InstallRequirement(
-        None, "requirements2.txt", options=bad_unnamed_req_options
+        None, "requirements2.txt", install_options=bad_unnamed_req_options
     )
-    req_set.add_unnamed_requirement(bad_unnamed_req)
 
-    warn_deprecated_install_options(req_set, install_options)
+    warn_deprecated_install_options(
+        [bad_named_req, bad_unnamed_req], install_options
+    )
 
     assert len(recwarn) == 1
     message = recwarn[0].message.args[0]

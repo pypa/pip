@@ -30,7 +30,7 @@ from pip._internal.exceptions import (
 )
 from pip._internal.locations import distutils_scheme
 from pip._internal.operations.check import check_install_conflicts
-from pip._internal.req import RequirementSet, install_given_reqs
+from pip._internal.req import install_given_reqs
 from pip._internal.req.req_tracker import get_requirement_tracker
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.distutils_args import parse_distutils_args
@@ -291,18 +291,14 @@ class InstallCommand(RequirementCommand):
         with get_requirement_tracker() as req_tracker, TempDirectory(
             options.build_dir, delete=build_delete, kind="install"
         ) as directory:
-            requirement_set = RequirementSet(
-                check_supported_wheels=not options.target_dir,
-            )
-
             try:
-                self.populate_requirement_set(
-                    requirement_set, args, options, finder, session,
-                    wheel_cache
+                reqs = self.get_requirements(
+                    args, options, finder, session,
+                    wheel_cache, check_supported_wheels=not options.target_dir,
                 )
 
                 warn_deprecated_install_options(
-                    requirement_set, options.install_options
+                    reqs, options.install_options
                 )
 
                 preparer = self.make_requirement_preparer(
@@ -328,7 +324,9 @@ class InstallCommand(RequirementCommand):
 
                 self.trace_basic_info(finder)
 
-                resolver.resolve(requirement_set)
+                requirement_set = resolver.resolve(
+                    reqs, check_supported_wheels=not options.target_dir
+                )
 
                 try:
                     pip_req = requirement_set.get_requirement("pip")
@@ -443,11 +441,6 @@ class InstallCommand(RequirementCommand):
             except PreviousBuildDirError:
                 options.no_clean = True
                 raise
-            finally:
-                # Clean up
-                if not options.no_clean:
-                    requirement_set.cleanup_files()
-                    wheel_cache.cleanup()
 
         if options.target_dir:
             self._handle_target_dir(
@@ -610,8 +603,8 @@ def decide_user_install(
     return True
 
 
-def warn_deprecated_install_options(requirement_set, options):
-    # type: (RequirementSet, Optional[List[str]]) -> None
+def warn_deprecated_install_options(requirements, options):
+    # type: (List[InstallRequirement], Optional[List[str]]) -> None
     """If any location-changing --install-option arguments were passed for
     requirements or on the command-line, then show a deprecation warning.
     """
@@ -619,15 +612,10 @@ def warn_deprecated_install_options(requirement_set, options):
         # type: (Iterable[str]) -> List[str]
         return ["--{}".format(name.replace("_", "-")) for name in option_names]
 
-    requirements = (
-        requirement_set.unnamed_requirements +
-        list(requirement_set.requirements.values())
-    )
-
     offenders = []
 
     for requirement in requirements:
-        install_options = requirement.options.get("install_options", [])
+        install_options = requirement.install_options
         location_options = parse_distutils_args(install_options)
         if location_options:
             offenders.append(

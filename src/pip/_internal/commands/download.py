@@ -9,7 +9,6 @@ import os
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.cli.req_command import RequirementCommand, with_cleanup
-from pip._internal.req import RequirementSet
 from pip._internal.req.req_tracker import get_requirement_tracker
 from pip._internal.utils.misc import ensure_dir, normalize_path, write_output
 from pip._internal.utils.temp_dir import TempDirectory
@@ -102,10 +101,7 @@ class DownloadCommand(RequirementCommand):
         with get_requirement_tracker() as req_tracker, TempDirectory(
             options.build_dir, delete=build_delete, kind="download"
         ) as directory:
-
-            requirement_set = RequirementSet()
-            self.populate_requirement_set(
-                requirement_set,
+            reqs = self.get_requirements(
                 args,
                 options,
                 finder,
@@ -132,16 +128,14 @@ class DownloadCommand(RequirementCommand):
 
             self.trace_basic_info(finder)
 
-            resolver.resolve(requirement_set)
+            requirement_set = resolver.resolve(
+                reqs, check_supported_wheels=True
+            )
 
             downloaded = ' '.join([
                 req.name for req in requirement_set.successfully_downloaded
             ])
             if downloaded:
                 write_output('Successfully downloaded %s', downloaded)
-
-            # Clean up
-            if not options.no_clean:
-                requirement_set.cleanup_files()
 
         return requirement_set

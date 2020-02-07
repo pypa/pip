@@ -34,10 +34,6 @@ from pip._internal.req.req_uninstall import UninstallPathSet
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.marker_files import (
-    PIP_DELETE_MARKER_FILENAME,
-    has_delete_marker_file,
-)
 from pip._internal.utils.misc import (
     ask_path_exists,
     backup_dir,
@@ -47,7 +43,6 @@ from pip._internal.utils.misc import (
     get_installed_version,
     hide_url,
     redact_auth_from_url,
-    rmtree,
 )
 from pip._internal.utils.packaging import get_metadata
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
@@ -113,7 +108,9 @@ class InstallRequirement(object):
         markers=None,  # type: Optional[Marker]
         use_pep517=None,  # type: Optional[bool]
         isolated=False,  # type: bool
-        options=None,  # type: Optional[Dict[str, Any]]
+        install_options=None,  # type: Optional[List[str]]
+        global_options=None,  # type: Optional[List[str]]
+        hash_options=None,  # type: Optional[Dict[str, List[str]]]
         wheel_cache=None,  # type: Optional[WheelCache]
         constraint=False,  # type: bool
         extras=()  # type: Iterable[str]
@@ -161,7 +158,10 @@ class InstallRequirement(object):
         self._temp_build_dir = None  # type: Optional[TempDirectory]
         # Set to True after successful installation
         self.install_succeeded = None  # type: Optional[bool]
-        self.options = options if options else {}
+        # Supplied options
+        self.install_options = install_options if install_options else []
+        self.global_options = global_options if global_options else []
+        self.hash_options = hash_options if hash_options else {}
         # Set to True after successful preparation of this requirement
         self.prepared = False
         self.is_direct = False
@@ -309,7 +309,7 @@ class InstallRequirement(object):
         URL do not.
 
         """
-        return bool(self.options.get('hashes', {}))
+        return bool(self.hash_options)
 
     def hashes(self, trust_internet=True):
         # type: (bool) -> Hashes
@@ -327,7 +327,7 @@ class InstallRequirement(object):
             downloaded from the internet, as by populate_link()
 
         """
-        good_hashes = self.options.get('hashes', {}).copy()
+        good_hashes = self.hash_options.copy()
         link = self.link if trust_internet else self.original_link
         if link and link.hash:
             good_hashes.setdefault(link.hash_name, []).append(link.hash)
@@ -349,8 +349,8 @@ class InstallRequirement(object):
                 s += '->' + comes_from
         return s
 
-    def ensure_build_location(self, build_dir):
-        # type: (str) -> str
+    def ensure_build_location(self, build_dir, autodelete):
+        # type: (str, bool) -> str
         assert build_dir is not None
         if self._temp_build_dir is not None:
             assert self._temp_build_dir.path
@@ -373,7 +373,16 @@ class InstallRequirement(object):
         if not os.path.exists(build_dir):
             logger.debug('Creating directory %s', build_dir)
             os.makedirs(build_dir)
-        return os.path.join(build_dir, name)
+        actual_build_dir = os.path.join(build_dir, name)
+        # `None` indicates that we respect the globally-configured deletion
+        # settings, which is what we actually want when auto-deleting.
+        delete_arg = None if autodelete else False
+        return TempDirectory(
+            path=actual_build_dir,
+            delete=delete_arg,
+            kind=tempdir_kinds.REQ_BUILD,
+            globally_managed=True,
+        ).path
 
     def _set_requirement(self):
         # type: () -> None
@@ -412,16 +421,6 @@ class InstallRequirement(object):
             self.name, metadata_name, self.name
         )
         self.req = Requirement(metadata_name)
-
-    def remove_temporary_source(self):
-        # type: () -> None
-        """Remove the source files from this requirement, if they are marked
-        for deletion"""
-        if self.source_dir and has_delete_marker_file(self.source_dir):
-            logger.debug('Removing source in %s', self.source_dir)
-            rmtree(self.source_dir)
-        self.source_dir = None
-        self._temp_build_dir = None
 
     def check_if_exists(self, use_user_site):
         # type: (bool) -> None
@@ -600,8 +599,8 @@ class InstallRequirement(object):
             )
 
     # For both source distributions and editables
-    def ensure_has_source_dir(self, parent_dir):
-        # type: (str) -> None
+    def ensure_has_source_dir(self, parent_dir, autodelete=False):
+        # type: (str, bool) -> None
         """Ensure that a source_dir is set.
 
         This will create a temporary build dir if the name of the requirement
@@ -612,7 +611,9 @@ class InstallRequirement(object):
         :return: self.source_dir
         """
         if self.source_dir is None:
-            self.source_dir = self.ensure_build_location(parent_dir)
+            self.source_dir = self.ensure_build_location(
+                parent_dir, autodelete
+            )
 
     # For editable installations
     def update_editable(self, obtain=True):
@@ -756,8 +757,6 @@ class InstallRequirement(object):
                     zipdir.external_attr = 0x1ED << 16  # 0o755
                     zip_output.writestr(zipdir, '')
                 for filename in filenames:
-                    if filename == PIP_DELETE_MARKER_FILENAME:
-                        continue
                     file_arcname = self._get_archive_name(
                         filename, parentdir=dirpath, rootdir=dir,
                     )
@@ -824,10 +823,8 @@ class InstallRequirement(object):
         # Options specified in requirements file override those
         # specified on the command line, since the last option given
         # to setup.py is the one that is used.
-        global_options = list(global_options) + \
-            self.options.get('global_options', [])
-        install_options = list(install_options) + \
-            self.options.get('install_options', [])
+        global_options = list(global_options) + self.global_options
+        install_options = list(install_options) + self.install_options
 
         try:
             success = install_legacy(

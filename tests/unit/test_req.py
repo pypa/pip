@@ -112,7 +112,8 @@ class TestRequirementSet(object):
                 r"pip can't proceed with [\s\S]*%s[\s\S]*%s" %
                 (req, build_dir.replace('\\', '\\\\')),
                 resolver.resolve,
-                reqset,
+                reqset.all_requirements,
+                True,
             )
 
     # TODO: Update test when Python 2.7 is dropped.
@@ -129,7 +130,7 @@ class TestRequirementSet(object):
         reqset.add_requirement(req)
         finder = make_test_finder(find_links=[data.find_links])
         with self._basic_resolver(finder) as resolver:
-            resolver.resolve(reqset)
+            reqset = resolver.resolve(reqset.all_requirements, True)
         # This is hacky but does test both case in py2 and py3
         if sys.version_info[:2] == (2, 7):
             assert reqset.has_requirement('simple')
@@ -155,21 +156,21 @@ class TestRequirementSet(object):
                 r'    simple==1.0 --hash=sha256:393043e672415891885c9a2a0929b1'
                 r'af95fb866d6ca016b42d2e6ce53619b653$',
                 resolver.resolve,
-                reqset
+                reqset.all_requirements,
+                True,
             )
 
     def test_missing_hash_with_require_hashes_in_reqs_file(self, data, tmpdir):
         """--require-hashes in a requirements file should make its way to the
         RequirementSet.
         """
-        req_set = RequirementSet()
         finder = make_test_finder(find_links=[data.find_links])
         session = finder._link_collector.session
         command = create_command('install')
         with requirements_file('--require-hashes', tmpdir) as reqs_file:
             options, args = command.parse_args(['-r', reqs_file])
-            command.populate_requirement_set(
-                req_set, args, options, finder, session, wheel_cache=None,
+            command.get_requirements(
+                args, options, finder, session, wheel_cache=None,
             )
         assert options.require_hashes
 
@@ -209,7 +210,8 @@ class TestRequirementSet(object):
                 r"    file://.*{sep}data{sep}packages{sep}FSPkg "
                 r"\(from -r file \(line 2\)\)".format(sep=sep),
                 resolver.resolve,
-                reqset,
+                reqset.all_requirements,
+                True,
             )
 
     def test_unpinned_hash_checking(self, data):
@@ -237,7 +239,8 @@ class TestRequirementSet(object):
                 r'    simple .* \(from -r file \(line 1\)\)\n'
                 r'    simple2>1.0 .* \(from -r file \(line 2\)\)',
                 resolver.resolve,
-                reqset,
+                reqset.all_requirements,
+                True,
             )
 
     def test_hash_mismatch(self, data):
@@ -258,7 +261,8 @@ class TestRequirementSet(object):
                 r'             Got        393043e672415891885c9a2a0929b1af95fb'
                 r'866d6ca016b42d2e6ce53619b653$',
                 resolver.resolve,
-                reqset,
+                reqset.all_requirements,
+                True,
             )
 
     def test_unhashed_deps_on_require_hashes(self, data):
@@ -280,7 +284,8 @@ class TestRequirementSet(object):
                 r'versions pinned.*\n'
                 r'    TopoRequires from .*$',
                 resolver.resolve,
-                reqset,
+                reqset.all_requirements,
+                True,
             )
 
     def test_hashed_deps_on_require_hashes(self):
