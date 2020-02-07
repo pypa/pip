@@ -320,9 +320,8 @@ class TestProcessLine(object):
                '--global-option="yo3" --global-option "yo4"'
         filename = 'filename'
         req = line_processor(line, filename, 1)[0]
-        assert req.options == {
-            'global_options': ['yo3', 'yo4'],
-            'install_options': ['yo1', 'yo2']}
+        assert req.global_options == ['yo3', 'yo4']
+        assert req.install_options == ['yo1', 'yo2']
 
     def test_hash_options(self, line_processor):
         """Test the --hash option: mostly its value storage.
@@ -338,13 +337,13 @@ class TestProcessLine(object):
                 'e5a6c65260e9cb8a7')
         filename = 'filename'
         req = line_processor(line, filename, 1)[0]
-        assert req.options == {'hashes': {
+        assert req.hash_options == {
             'sha256': ['2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e730433'
                        '62938b9824',
                        '486ea46224d1bb4fb680f34f7c9ad96a8f24ec88be73ea8e5a6c65'
                        '260e9cb8a7'],
             'sha384': ['59e1748777448c69de6b800d7a33bbfb9ff1b463e44354c3553bcd'
-                       'b9c666fa90125a3c79f90397bdf5f6a13de828684f']}}
+                       'b9c666fa90125a3c79f90397bdf5f6a13de828684f']}
 
     def test_set_isolated(self, line_processor, options):
         line = 'SomeProject'

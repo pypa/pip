@@ -56,14 +56,15 @@ def test_deprecation_notice_for_pip_install_options(recwarn):
 def test_deprecation_notice_for_requirement_options(recwarn):
     install_options = []
 
-    bad_named_req_options = {"install_options": ["--home=/wow"]}
+    bad_named_req_options = ["--home=/wow"]
     bad_named_req = InstallRequirement(
-        Requirement("hello"), "requirements.txt", options=bad_named_req_options
+        Requirement("hello"), "requirements.txt",
+        install_options=bad_named_req_options
     )
 
-    bad_unnamed_req_options = {"install_options": ["--install-lib=/lib"]}
+    bad_unnamed_req_options = ["--install-lib=/lib"]
     bad_unnamed_req = InstallRequirement(
-        None, "requirements2.txt", options=bad_unnamed_req_options
+        None, "requirements2.txt", install_options=bad_unnamed_req_options
     )
 
     warn_deprecated_install_options(

@@ -107,7 +107,9 @@ class InstallRequirement(object):
         markers=None,  # type: Optional[Marker]
         use_pep517=None,  # type: Optional[bool]
         isolated=False,  # type: bool
-        options=None,  # type: Optional[Dict[str, Any]]
+        install_options=None,  # type: Optional[List[str]]
+        global_options=None,  # type: Optional[List[str]]
+        hash_options=None,  # type: Optional[Dict[str, List[str]]]
         wheel_cache=None,  # type: Optional[WheelCache]
         constraint=False,  # type: bool
         extras=()  # type: Iterable[str]
@@ -155,7 +157,10 @@ class InstallRequirement(object):
         self._temp_build_dir = None  # type: Optional[TempDirectory]
         # Set to True after successful installation
         self.install_succeeded = None  # type: Optional[bool]
-        self.options = options if options else {}
+        # Supplied options
+        self.install_options = install_options if install_options else []
+        self.global_options = global_options if global_options else []
+        self.hash_options = hash_options if hash_options else {}
         # Set to True after successful preparation of this requirement
         self.prepared = False
         self.is_direct = False
@@ -303,7 +308,7 @@ class InstallRequirement(object):
         URL do not.
 
         """
-        return bool(self.options.get('hashes', {}))
+        return bool(self.hash_options)
 
     def hashes(self, trust_internet=True):
         # type: (bool) -> Hashes
@@ -321,7 +326,7 @@ class InstallRequirement(object):
             downloaded from the internet, as by populate_link()
 
         """
-        good_hashes = self.options.get('hashes', {}).copy()
+        good_hashes = self.hash_options.copy()
         link = self.link if trust_internet else self.original_link
         if link and link.hash:
             good_hashes.setdefault(link.hash_name, []).append(link.hash)
