@@ -245,7 +245,7 @@ class VcsSupport(object):
             return None
 
         # Choose the VCS in the inner-most directory. Since all repository
-        # roots found here would be either ``location``` or one of its
+        # roots found here would be either `location` or one of its
         # parents, the longest path should have the most path components,
         # i.e. the backend representing the inner-most repository.
         inner_most_repo_path = max(vcs_backends, key=len)
@@ -703,7 +703,7 @@ class VersionControl(object):
         # type: (str) -> Optional[str]
         """
         Return the "root" (top-level) directory controlled by the vcs,
-        or ``None`` if the directory is not in any.
+        or `None` if the directory is not in any.
 
         It is meant to be overridden to implement smarter detection
         mechanisms for specific vcs.
