@@ -395,7 +395,7 @@ class Resolver(object):
                 # XXX: --no-install leads this to report 'Successfully
                 # downloaded' for only non-editable reqs, even though we took
                 # action on them.
-                requirement_set.successfully_downloaded.append(req_to_install)
+                req_to_install.successfully_downloaded = True
 
         return more_reqs
 

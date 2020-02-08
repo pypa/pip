@@ -133,7 +133,8 @@ class DownloadCommand(RequirementCommand):
             )
 
             downloaded = ' '.join([
-                req.name for req in requirement_set.successfully_downloaded
+                req.name for req in requirement_set.requirements.values()
+                if req.successfully_downloaded
             ])
             if downloaded:
                 write_output('Successfully downloaded %s', downloaded)
