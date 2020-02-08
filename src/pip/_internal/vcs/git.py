@@ -11,7 +11,7 @@ from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 
-from pip._internal.exceptions import BadCommand
+from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.utils.misc import display_path, hide_url
 from pip._internal.utils.subprocess import make_command
 from pip._internal.utils.temp_dir import TempDirectory
@@ -370,20 +370,25 @@ class Git(VersionControl):
         )
 
     @classmethod
-    def controls_location(cls, location):
-        if super(Git, cls).controls_location(location):
-            return True
+    def get_repository_root(cls, location):
+        loc = super(Git, cls).get_repository_root(location)
+        if loc:
+            return loc
         try:
-            r = cls.run_command(['rev-parse'],
-                                cwd=location,
-                                show_stdout=False,
-                                on_returncode='ignore',
-                                log_failed_cmd=False)
-            return not r
+            r = cls.run_command(
+                ['rev-parse', '--show-toplevel'],
+                cwd=location,
+                show_stdout=False,
+                on_returncode='raise',
+                log_failed_cmd=False,
+            )
         except BadCommand:
             logger.debug("could not determine if %s is under git control "
                          "because git is not available", location)
-            return False
+            return None
+        except InstallationError:
+            return None
+        return os.path.normpath(r.rstrip('\r\n'))
 
 
 vcs.register(Git)
