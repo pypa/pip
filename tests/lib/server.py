@@ -210,3 +210,16 @@ def file_response(path):
             return [f.read()]
 
     return responder
+
+
+def authorization_response():
+    # type: (None) -> Responder
+    def responder(environ, start_response):
+        #type: (Environ, StartResponse) -> Body
+        start_response(
+            "401 Unauthorized", [
+                ("WWW-Authenticate", "Basic"),
+            ],
+        )
+
+    return responder
