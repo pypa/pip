@@ -81,6 +81,7 @@ def _mock_wsgi_adapter(mock):
     """Uses a mock to record function arguments and provide
     the actual function that should respond.
     """
+
     def adapter(environ, start_response):
         # type: (Environ, StartResponse) -> Body
         responder = mock(environ, start_response)
@@ -213,9 +214,7 @@ def file_response(path):
 
 
 def authorization_response():
-    # type: (None) -> Responder
     def responder(environ, start_response):
-        #type: (Environ, StartResponse) -> Body
         start_response(
             "401 Unauthorized", [
                 ("WWW-Authenticate", "Basic"),
