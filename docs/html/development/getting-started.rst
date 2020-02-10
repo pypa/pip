@@ -108,7 +108,7 @@ Building Documentation
 ----------------------
 
 pip's documentation is built using :pypi:`Sphinx`. The documentation is written
-in reStructuredText.
+in `reStructuredText`_.
 
 To build it locally, run:
 
@@ -126,3 +126,4 @@ The built documentation can be found in the ``docs/build`` folder.
 .. _`version control`: https://www.atlassian.com/git/tutorials/what-is-version-control
 .. _`issue tracker`: https://github.blog/2009-04-15-github-issue-tracker/
 .. _`linter`: https://en.wikipedia.org/wiki/Lint_(software)
+.. _`reStructuredText`: https://en.wikipedia.org/wiki/ReStructuredText
