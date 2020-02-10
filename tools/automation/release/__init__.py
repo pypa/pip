@@ -3,10 +3,13 @@
 These are written according to the order they are called in.
 """
 
+import contextlib
 import io
 import os
+import pathlib
 import subprocess
-from typing import List, Optional, Set
+import tempfile
+from typing import Iterator, List, Optional, Set
 
 from nox.sessions import Session
 
@@ -126,3 +129,59 @@ def have_files_in_folder(folder_name: str) -> bool:
     if not os.path.exists(folder_name):
         return False
     return bool(os.listdir(folder_name))
+
+
+@contextlib.contextmanager
+def workdir(
+        nox_session: Session,
+        dir_path: pathlib.Path,
+) -> Iterator[pathlib.Path]:
+    """Temporarily chdir when entering CM and chdir back on exit."""
+    orig_dir = pathlib.Path.cwd()
+
+    nox_session.chdir(dir_path)
+    try:
+        yield dir_path
+    finally:
+        nox_session.chdir(orig_dir)
+
+
+@contextlib.contextmanager
+def isolated_temporary_checkout(
+        nox_session: Session,
+        target_ref: str,
+) -> Iterator[pathlib.Path]:
+    """Make a clean checkout of a given version in tmp dir."""
+    with tempfile.TemporaryDirectory() as tmp_dir_path:
+        tmp_dir = pathlib.Path(tmp_dir_path)
+        git_checkout_dir = tmp_dir / f'pip-build-{target_ref}'
+        nox_session.run(
+            'git', 'worktree', 'add', '--force', '--checkout',
+            str(git_checkout_dir), str(target_ref),
+            external=True, silent=True,
+        )
+
+        try:
+            yield git_checkout_dir
+        finally:
+            nox_session.run(
+                'git', 'worktree', 'remove', '--force',
+                str(git_checkout_dir),
+                external=True, silent=True,
+            )
+
+
+def get_git_untracked_files() -> Iterator[str]:
+    """List all local file paths that aren't tracked by Git."""
+    git_ls_files_cmd = (
+        "git", "ls-files",
+        "--ignored", "--exclude-standard",
+        "--others", "--", ".",
+    )
+    # session.run doesn't seem to return any output:
+    ls_files_out = subprocess.check_output(git_ls_files_cmd, text=True)
+    for file_name in ls_files_out.splitlines():
+        if file_name.strip():  # it's useless if empty
+            continue
+
+        yield file_name
