@@ -843,12 +843,11 @@ class InstallRequirement(object):
                 unpacked_source_directory=self.unpacked_source_directory,
                 req_description=str(self.req),
             )
-        except Exception as exc:
-            if isinstance(exc, LegacyInstallFailure):
-                self.install_succeeded = False
-                six.reraise(*exc.parent)
-            else:
-                self.install_succeeded = True
-                raise
+        except LegacyInstallFailure as exc:
+            self.install_succeeded = False
+            six.reraise(*exc.parent)
+        except Exception:
+            self.install_succeeded = True
+            raise
 
         self.install_succeeded = success
