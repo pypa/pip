@@ -6,7 +6,7 @@ We’re pleased that you are interested in working on pip.
 
 This document is meant to get you setup to work on pip and to act as a guide and
 reference to the development setup. If you face any issues during this
-process, please `open an issue`_ about it on the issue tracker.
+process, please `open an issue`_ about it on the `issue tracker`_.
 
 Get the source code
 -------------------
@@ -75,7 +75,7 @@ can select tests using the various ways that pytest provides:
     $ # Using keywords
     $ tox -e py36 -- -k "install and not wheel"
 
-Running pip's test suite requires supported version control tools (subversion,
+Running pip's test suite requires supported `version control`_ tools (subversion,
 bazaar, git, and mercurial) to be installed. If you are missing one of the VCS
 tools, you can tell pip to skip those tests:
 
@@ -99,7 +99,7 @@ To use linters locally, run:
 
 .. note::
 
-    Avoid using ``# noqa`` comments to suppress linter warnings - wherever
+    Avoid using ``# noqa`` comments to suppress `linter`_ warnings - wherever
     possible, warnings should be fixed instead. ``# noqa`` comments are
     reserved for rare cases where the recommended style causes severe
     readability problems.
@@ -123,3 +123,6 @@ The built documentation can be found in the ``docs/build`` folder.
 .. _`PEP 484 type-comments`: https://www.python.org/dev/peps/pep-0484/#suggested-syntax-for-python-2-7-and-straddling-code
 .. _`rich CLI`: https://docs.pytest.org/en/latest/usage.html#specifying-tests-selecting-tests
 .. _`GitHub`: https://github.com/pypa/pip
+.. _`version control`: https://www.atlassian.com/git/tutorials/what-is-version-control
+.. _`issue tracker`: https://github.blog/2009-04-15-github-issue-tracker/
+.. _`linter`: https://en.wikipedia.org/wiki/Lint_(software)
