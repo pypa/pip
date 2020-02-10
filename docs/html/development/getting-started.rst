@@ -117,7 +117,6 @@ To build it locally, run:
     $ tox -e docs
 
 The built documentation can be found in the ``docs/build`` folder.
-
 .. _`open an issue`: https://github.com/pypa/pip/issues/new?title=Trouble+with+pip+development+environment
 .. _`install Python`: https://realpython.com/installing-python/
 .. _`PEP 484 type-comments`: https://www.python.org/dev/peps/pep-0484/#suggested-syntax-for-python-2-7-and-straddling-code
