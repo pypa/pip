@@ -1,8 +1,9 @@
 
 .. _`pip config`:
 
+==========
 pip config
-------------
+==========
 
 .. contents::
 

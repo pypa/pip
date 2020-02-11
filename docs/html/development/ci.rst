@@ -5,9 +5,9 @@
 
 .. _`tracking issue`: https://github.com/pypa/pip/issues/7279
 
-**********************
+======================
 Continuous Integration
-**********************
+======================
 
 Supported interpreters
 ======================

@@ -1,8 +1,9 @@
 
 .. _`pip freeze`:
 
+==========
 pip freeze
------------
+==========
 
 .. contents::
 

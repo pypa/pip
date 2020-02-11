@@ -1,7 +1,8 @@
 .. _`pip search`:
 
+==========
 pip search
-----------
+==========
 
 .. contents::
 

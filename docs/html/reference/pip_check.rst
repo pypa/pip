@@ -1,7 +1,8 @@
 .. _`pip check`:
 
+=========
 pip check
----------
+=========
 
 .. contents::
 

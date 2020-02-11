@@ -1,7 +1,8 @@
 .. _`pip uninstall`:
 
+=============
 pip uninstall
--------------
+=============
 
 .. contents::
 

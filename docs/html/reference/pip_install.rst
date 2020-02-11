@@ -1,7 +1,8 @@
 .. _`pip install`:
 
+===========
 pip install
------------
+===========
 
 .. contents::
 

@@ -1,8 +1,9 @@
 
 .. _`pip download`:
 
+============
 pip download
-------------
+============
 
 .. contents::
 

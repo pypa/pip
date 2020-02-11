@@ -1,7 +1,8 @@
 .. _`pip show`:
 
+========
 pip show
---------
+========
 
 .. contents::
 

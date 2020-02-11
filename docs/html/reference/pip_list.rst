@@ -1,7 +1,8 @@
 .. _`pip list`:
 
+========
 pip list
----------
+========
 
 .. contents::
 

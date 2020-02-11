@@ -1,7 +1,8 @@
 .. _`pip debug`:
 
+=========
 pip debug
------------
+=========
 
 .. contents::
 

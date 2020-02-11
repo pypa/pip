@@ -1,5 +1,6 @@
 .. _`Installation`:
 
+============
 Installation
 ============
 
