@@ -13,7 +13,7 @@ how to help triage reported issues.
 
 
 Issue Tracker
-*************
+=============
 
 The `pip issue tracker <https://github.com/pypa/pip/issues>`__ is hosted on
 GitHub alongside the project.
@@ -101,7 +101,7 @@ links on the closed issue.
 
 
 Triage Issues
-*************
+=============
 
 Users can make issues for a number of reasons:
 
@@ -297,7 +297,7 @@ An issue may be considered resolved and closed when:
 
 
 Common issues
-*************
+=============
 
 #. network-related issues - any issue involving retries, address lookup, or
    anything like that are typically network issues.

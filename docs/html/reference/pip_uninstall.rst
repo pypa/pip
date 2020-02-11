@@ -7,23 +7,23 @@ pip uninstall
 .. contents::
 
 Usage
-*****
+=====
 
 .. pip-command-usage:: uninstall
 
 Description
-***********
+===========
 
 .. pip-command-description:: uninstall
 
 Options
-*******
+=======
 
 .. pip-command-options:: uninstall
 
 
 Examples
-********
+========
 
 #. Uninstall a package.
 

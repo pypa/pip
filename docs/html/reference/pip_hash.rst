@@ -7,19 +7,20 @@ pip hash
 .. contents::
 
 Usage
-*****
+=====
 
 .. pip-command-usage:: hash
 
 
 Description
-***********
+===========
 
 .. pip-command-description:: hash
 
 
 Overview
-++++++++
+--------
+
 ``pip hash`` is a convenient way to get a hash digest for use with
 :ref:`hash-checking mode`, especially for packages with multiple archives. The
 error message from ``pip install --require-hashes ...`` will give you one
@@ -30,13 +31,13 @@ different set of options, like :ref:`--no-binary <install_--no-binary>`.
 
 
 Options
-*******
+=======
 
 .. pip-command-options:: hash
 
 
 Example
-********
+=======
 
 Compute the hash of a downloaded archive::
 

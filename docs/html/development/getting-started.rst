@@ -9,7 +9,7 @@ reference to the development setup. If you face any issues during this
 process, please `open an issue`_ about it on the issue tracker.
 
 Get the source code
--------------------
+===================
 
 To work on pip, you first need to get the source code of pip. The source code is
 available on `GitHub`_.
@@ -21,7 +21,7 @@ available on `GitHub`_.
 
 
 Development Environment
------------------------
+=======================
 
 pip is a command line application written in Python. For developing pip,
 you should `install Python`_ on your computer.
@@ -30,7 +30,7 @@ For developing pip, you need to install :pypi:`tox`. Often, you can run
 ``python -m pip install tox`` to install and use it.
 
 Running pip From Source Tree
-----------------------------
+============================
 
 To run the pip executable from your source tree during development, run pip
 from the ``src`` directory:
@@ -40,7 +40,7 @@ from the ``src`` directory:
     $ python src/pip --version
 
 Running Tests
--------------
+=============
 
 pip's tests are written using the :pypi:`pytest` test framework, :pypi:`mock`
 and :pypi:`pretend`. :pypi:`tox` is used to automate the setup and execution of
@@ -85,7 +85,7 @@ tools, you can tell pip to skip those tests:
     $ tox -e py36 -- -k "not (svn or git)"
 
 Running Linters
----------------
+===============
 
 pip uses :pypi:`pre-commit` for managing linting of the codebase.
 ``pre-commit`` performs various checks on all files in pip and uses tools that
@@ -105,7 +105,7 @@ To use linters locally, run:
     readability problems.
 
 Building Documentation
-----------------------
+======================
 
 pip's documentation is built using :pypi:`Sphinx`. The documentation is written
 in reStructuredText.

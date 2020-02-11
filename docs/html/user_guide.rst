@@ -5,7 +5,7 @@ User Guide
 .. contents::
 
 Running pip
-***********
+===========
 
 pip is a command line program. When you install pip, a ``pip`` command is added
 to your system, which can be run from the command prompt as follows::
@@ -28,7 +28,7 @@ more details, see :ref:`Using pip from your program`.
 
 
 Installing Packages
-*******************
+===================
 
 pip supports installing from `PyPI`_, version control, local projects, and
 directly from distribution files.
@@ -50,7 +50,7 @@ For more information and examples, see the :ref:`pip install` reference.
 
 
 Basic Authentication Credentials
-********************************
+================================
 
 pip supports basic authentication credentials. Basically, in the URL there is
 a username and password separated by ``:``.
@@ -79,7 +79,7 @@ as the "username" and do not provide a password, for example -
 
 
 Using a Proxy Server
-********************
+====================
 
 When installing packages from `PyPI`_, pip requires internet access, which
 in many corporate environments requires an outbound HTTP proxy server.
@@ -98,7 +98,7 @@ pip can be configured to connect through a proxy server in various ways:
 .. _`Requirements Files`:
 
 Requirements Files
-******************
+==================
 
 "Requirements files" are files containing a list of items to be
 installed using :ref:`pip install` like so:
@@ -180,7 +180,7 @@ See also:
 .. _`Constraints Files`:
 
 Constraints Files
-*****************
+=================
 
 Constraints files are requirements files that only control which version of a
 requirement is installed, not whether it is installed or not. Their syntax and
@@ -214,7 +214,7 @@ Constraints file support was added in pip 7.1.
 .. _`Installing from Wheels`:
 
 Installing from Wheels
-**********************
+======================
 
 "Wheel" is a built, archive format that can greatly speed installation compared
 to building and installing from source archives. For more information, see the
@@ -258,7 +258,7 @@ wheels (and not from PyPI):
 
 
 Uninstalling Packages
-*********************
+=====================
 
 pip is able to uninstall most packages like so:
 
@@ -273,7 +273,7 @@ For more information and examples, see the :ref:`pip uninstall` reference.
 
 
 Listing Packages
-****************
+================
 
 To list installed packages:
 
@@ -311,7 +311,7 @@ reference pages.
 
 
 Searching for Packages
-**********************
+======================
 
 pip can search `PyPI`_ for packages using the ``pip search``
 command::
@@ -326,12 +326,12 @@ For more information and examples, see the :ref:`pip search` reference.
 .. _`Configuration`:
 
 Configuration
-*************
+=============
 
 .. _config-file:
 
 Config file
-------------
+-----------
 
 pip allows you to set all command line option defaults in a standard ini
 style config file.
@@ -497,7 +497,7 @@ Examples:
 
 
 Command Completion
-******************
+==================
 
 pip comes with support for command line completion in bash, zsh and fish.
 
@@ -524,7 +524,7 @@ startup file::
 .. _`Installing from local packages`:
 
 Installing from local packages
-******************************
+==============================
 
 In some cases, you may want to install from local packages only, with no traffic
 to PyPI.
@@ -550,7 +550,7 @@ $ pip install --no-index --find-links=DIR -r requirements.txt
 
 
 "Only if needed" Recursive Upgrade
-**********************************
+==================================
 
 ``pip install --upgrade`` now has a ``--upgrade-strategy`` option which
 controls how pip handles upgrading of dependencies. There are 2 upgrade
@@ -575,7 +575,7 @@ alternative to the behaviour of eager upgrading.
 
 
 User Installs
-*************
+=============
 
 With Python 2.6 came the `"user scheme" for installation
 <https://docs.python.org/3/install/index.html#alternate-installation-the-user-scheme>`_,
@@ -670,7 +670,7 @@ is the latest version::
 .. _`Repeatability`:
 
 Ensuring Repeatability
-**********************
+======================
 
 pip can achieve various levels of repeatability:
 
@@ -755,7 +755,7 @@ archives are built with identical packages.
 .. _`Using pip from your program`:
 
 Using pip from your program
-***************************
+===========================
 
 As noted previously, pip is a command line program. While it is implemented in
 Python, and so is available from your Python code via ``import pip``, you must

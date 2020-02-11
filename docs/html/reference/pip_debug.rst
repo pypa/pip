@@ -7,7 +7,7 @@ pip debug
 .. contents::
 
 Usage
-*****
+=====
 
 .. pip-command-usage:: debug
 
@@ -18,12 +18,12 @@ Usage
 
 
 Description
-***********
+===========
 
 .. pip-command-description:: debug
 
 
 Options
-*******
+=======
 
 .. pip-command-options:: debug

@@ -25,7 +25,7 @@ Vendoring Policy
   ``pip/_vendor/__init__.py``.
 
 Rationale
----------
+=========
 
 Historically pip has not had any dependencies except for ``setuptools`` itself,
 choosing instead to implement any functionality it needed to prevent needing
@@ -95,7 +95,7 @@ such as OS packages.
 
 
 Modifications
--------------
+=============
 
 * ``setuptools`` is completely stripped to only keep ``pkg_resources``
 * ``pkg_resources`` has been modified to import its dependencies from ``pip._vendor``
@@ -108,7 +108,7 @@ Modifications
 
 
 Automatic Vendoring
--------------------
+===================
 
 Vendoring is automated via the ``vendoring`` tool from the content of
 ``pip/_vendor/vendor.txt`` and the different patches in
@@ -117,7 +117,7 @@ Launch it via ``vendoring sync . -v`` (requires ``vendoring>=0.2.2``).
 
 
 Debundling
-----------
+==========
 
 As mentioned in the rationale, we, the pip team, would prefer it if pip was not
 debundled (other than optionally ``pip/_vendor/requests/cacert.pem``) and that

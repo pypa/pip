@@ -8,25 +8,25 @@ pip show
 
 
 Usage
-*****
+=====
 
 .. pip-command-usage:: show
 
 
 Description
-***********
+===========
 
 .. pip-command-description:: show
 
 
 Options
-*******
+=======
 
 .. pip-command-options:: show
 
 
 Examples
-********
+========
 
 #. Show information about a package:
 

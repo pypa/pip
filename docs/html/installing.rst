@@ -5,7 +5,7 @@ Installation
 ============
 
 Do I need to install pip?
--------------------------
+=========================
 
 pip is already installed if you are using Python 2 >=2.7.9 or Python 3 >=3.4
 downloaded from `python.org <https://www.python.org>`_ or if you are working
@@ -17,7 +17,7 @@ Just make sure to :ref:`upgrade pip <Upgrading pip>`.
 .. _`get-pip`:
 
 Installing with get-pip.py
---------------------------
+==========================
 
 To install pip, securely [1]_ download ``get-pip.py`` by following
 this link: `get-pip.py
@@ -52,7 +52,7 @@ speed), although neither are required to install pre-built :term:`wheels
 
 
 get-pip.py options
-~~~~~~~~~~~~~~~~~~~
+------------------
 
 .. option:: --no-setuptools
 
@@ -86,7 +86,7 @@ Install behind a proxy::
 
 
 Using Linux Package Managers
-----------------------------
+============================
 
 See :ref:`pypug:Installing pip/setuptools/wheel with Linux Package Managers` in
 the `Python Packaging User Guide
@@ -95,7 +95,7 @@ the `Python Packaging User Guide
 .. _`Upgrading pip`:
 
 Upgrading pip
--------------
+=============
 
 On Linux or macOS::
 
@@ -110,7 +110,7 @@ On Windows [4]_::
 .. _compatibility-requirements:
 
 Python and OS Compatibility
----------------------------
+===========================
 
 pip works with CPython versions 2.7, 3.5, 3.6, 3.7, 3.8 and also PyPy.
 

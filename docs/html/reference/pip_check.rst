@@ -7,19 +7,19 @@ pip check
 .. contents::
 
 Usage
-*****
+=====
 
 .. pip-command-usage:: check
 
 
 Description
-***********
+===========
 
 .. pip-command-description:: check
 
 
 Examples
-********
+========
 
 #. If all dependencies are compatible:
 
