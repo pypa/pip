@@ -74,35 +74,33 @@ class VirtualEnvironment(object):
             self.user_site_packages = self._user_site_packages
 
     def _customize_site(self):
-        contents = ''
-        if self._venv_type == 'venv':
-            # Enable user site (before system).
-            contents += textwrap.dedent(
-                '''
-                import os, site, sys
+        # Enable user site (before system).
+        contents = textwrap.dedent(
+            '''
+            import os, site, sys
 
-                if not os.environ.get('PYTHONNOUSERSITE', False):
+            if not os.environ.get('PYTHONNOUSERSITE', False):
 
-                    site.ENABLE_USER_SITE = True
+                site.ENABLE_USER_SITE = True
 
-                    # First, drop system-sites related paths.
-                    original_sys_path = sys.path[:]
-                    known_paths = set()
-                    for path in site.getsitepackages():
-                        site.addsitedir(path, known_paths=known_paths)
-                    system_paths = sys.path[len(original_sys_path):]
-                    for path in system_paths:
-                        if path in original_sys_path:
-                            original_sys_path.remove(path)
-                    sys.path = original_sys_path
+                # First, drop system-sites related paths.
+                original_sys_path = sys.path[:]
+                known_paths = set()
+                for path in site.getsitepackages():
+                    site.addsitedir(path, known_paths=known_paths)
+                system_paths = sys.path[len(original_sys_path):]
+                for path in system_paths:
+                    if path in original_sys_path:
+                        original_sys_path.remove(path)
+                sys.path = original_sys_path
 
-                    # Second, add user-site.
-                    site.addsitedir(site.getusersitepackages())
+                # Second, add user-site.
+                site.addsitedir(site.getusersitepackages())
 
-                    # Third, add back system-sites related paths.
-                    for path in site.getsitepackages():
-                        site.addsitedir(path)
-                ''').strip()
+                # Third, add back system-sites related paths.
+                for path in site.getsitepackages():
+                    site.addsitedir(path)
+            ''').strip()
         if self._sitecustomize is not None:
             contents += '\n' + self._sitecustomize
         sitecustomize = self.site / "sitecustomize.py"
@@ -134,11 +132,4 @@ class VirtualEnvironment(object):
     @user_site_packages.setter
     def user_site_packages(self, value):
         self._user_site_packages = value
-        if self._venv_type == 'virtualenv':
-            marker = self.lib / "no-global-site-packages.txt"
-            if self._user_site_packages:
-                marker.unlink()
-            else:
-                marker.touch()
-        elif self._venv_type == 'venv':
-            self._customize_site()
+        self._customize_site()
