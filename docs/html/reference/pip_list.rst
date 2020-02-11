@@ -6,15 +6,18 @@ pip list
 
 .. contents::
 
+
 Usage
 =====
 
 .. pip-command-usage:: list
 
+
 Description
 ===========
 
 .. pip-command-description:: list
+
 
 Options
 =======

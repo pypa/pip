@@ -6,10 +6,12 @@ pip install
 
 .. contents::
 
+
 Usage
 =====
 
 .. pip-command-usage:: install
+
 
 Description
 ===========

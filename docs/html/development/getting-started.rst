@@ -8,6 +8,7 @@ This document is meant to get you setup to work on pip and to act as a guide and
 reference to the development setup. If you face any issues during this
 process, please `open an issue`_ about it on the issue tracker.
 
+
 Get the source code
 ===================
 
@@ -29,6 +30,7 @@ you should `install Python`_ on your computer.
 For developing pip, you need to install :pypi:`tox`. Often, you can run
 ``python -m pip install tox`` to install and use it.
 
+
 Running pip From Source Tree
 ============================
 
@@ -38,6 +40,7 @@ from the ``src`` directory:
 .. code-block:: console
 
     $ python src/pip --version
+
 
 Running Tests
 =============
@@ -84,6 +87,7 @@ tools, you can tell pip to skip those tests:
     $ tox -e py36 -- -k "not svn"
     $ tox -e py36 -- -k "not (svn or git)"
 
+
 Running Linters
 ===============
 
@@ -103,6 +107,7 @@ To use linters locally, run:
     possible, warnings should be fixed instead. ``# noqa`` comments are
     reserved for rare cases where the recommended style causes severe
     readability problems.
+
 
 Building Documentation
 ======================

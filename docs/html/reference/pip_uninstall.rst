@@ -6,15 +6,18 @@ pip uninstall
 
 .. contents::
 
+
 Usage
 =====
 
 .. pip-command-usage:: uninstall
 
+
 Description
 ===========
 
 .. pip-command-description:: uninstall
+
 
 Options
 =======

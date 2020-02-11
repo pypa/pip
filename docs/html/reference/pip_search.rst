@@ -6,6 +6,7 @@ pip search
 
 .. contents::
 
+
 Usage
 =====
 
@@ -16,6 +17,7 @@ Description
 ===========
 
 .. pip-command-description:: search
+
 
 Options
 =======

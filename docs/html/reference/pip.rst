@@ -18,6 +18,7 @@ Description
 
 .. _`Logging`:
 
+
 Logging
 =======
 
@@ -68,6 +69,7 @@ when decision is needed.
     Abort pip and return non-zero exit status.
 
 .. _`build-interface`:
+
 
 Build System Interface
 ======================
