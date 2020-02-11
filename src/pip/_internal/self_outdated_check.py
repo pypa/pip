@@ -57,6 +57,10 @@ def make_link_collector(
         when constructing the SearchScope object.
     """
     index_urls = [options.index_url] + options.extra_index_urls
+    try:
+        [index_urls.remove(x) for x in options.block_index_urls]
+    except ValueError:
+        pass
     if options.no_index and not suppress_no_index:
         logger.debug(
             'Ignoring indexes: %s',

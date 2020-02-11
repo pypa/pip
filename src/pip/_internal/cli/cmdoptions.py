@@ -359,6 +359,19 @@ no_index = partial(
 )  # type: Callable[..., Option]
 
 
+def block_index_url():
+    # type: () -> Option
+    return Option(
+        '--block-index-url',
+        dest='block_index_urls',
+        metavar='URL',
+        action='append',
+        default=[],
+        help="Block URLs of package indexes Should follow the "
+             "same rules as --index-url.",
+    )
+
+
 def find_links():
     # type: () -> Option
     return Option(
@@ -952,6 +965,7 @@ index_group = {
         index_url,
         extra_index_url,
         no_index,
+        block_index_url,
         find_links,
     ]
 }  # type: Dict[str, Any]

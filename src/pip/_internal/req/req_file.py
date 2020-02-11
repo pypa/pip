@@ -60,6 +60,7 @@ ENV_VAR_RE = re.compile(r'(?P<var>\$\{(?P<name>[A-Z0-9_]+)\})')
 SUPPORTED_OPTIONS = [
     cmdoptions.index_url,
     cmdoptions.extra_index_url,
+    cmdoptions.block_index_url,
     cmdoptions.no_index,
     cmdoptions.constraints,
     cmdoptions.requirements,
@@ -233,6 +234,8 @@ def handle_line(
             index_urls = []
         if line.opts.extra_index_urls:
             index_urls.extend(line.opts.extra_index_urls)
+        if line.opts.block_index_urls in index_urls:
+            index_urls.remove(line.opts.block_index_urls)
         if line.opts.find_links:
             # FIXME: it would be nice to keep track of the source
             # of the find_links: support a find-links local path

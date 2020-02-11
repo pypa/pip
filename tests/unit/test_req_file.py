@@ -368,6 +368,10 @@ class TestProcessLine(object):
         line_processor("--extra-index-url=url", "file", 1, finder=finder)
         assert finder.index_urls == ['url']
 
+    def test_set_finder_block_index_urls(self, line_processor, finder):
+        line_processor("--block-index-url=url", "file", 1, finder=finder)
+        assert finder.index_urls == ['url']
+
     def test_set_finder_trusted_host(
         self, line_processor, caplog, session, finder
     ):
