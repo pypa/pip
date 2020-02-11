@@ -19,7 +19,6 @@ Description
 
 .. pip-command-description:: download
 
-
 Overview
 --------
 

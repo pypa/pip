@@ -18,7 +18,6 @@ Description
 
 .. pip-command-description:: install
 
-
 Overview
 --------
 
@@ -826,6 +825,7 @@ Installing a package from a wheel does not invoke the build system at all.
 
 .. _`pip install Options`:
 
+
 Options
 =======
 
@@ -835,6 +835,7 @@ Options
 
 
 .. _`pip install Examples`:
+
 
 Examples
 ========

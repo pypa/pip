@@ -24,7 +24,6 @@ user support.
 In the pip issue tracker, we make use of labels and milestones to organize and
 track work.
 
-
 Labels
 ------
 
@@ -77,7 +76,6 @@ In addition, there are several standalone labels:
 **needs rebase or merge**
   this is a special label used by BrownTruck to mark PRs that have merge
   conflicts
-
 
 Automation
 ----------

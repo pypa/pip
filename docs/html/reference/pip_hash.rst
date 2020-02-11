@@ -18,7 +18,6 @@ Description
 
 .. pip-command-description:: hash
 
-
 Overview
 --------
 
