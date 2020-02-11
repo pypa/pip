@@ -224,7 +224,7 @@ Installing from Wheels
 to building and installing from source archives. For more information, see the
 `Wheel docs <https://wheel.readthedocs.io>`_ , :pep:`427`, and :pep:`425`.
 
-Pip prefers Wheels where they are available. To disable this, use the
+pip prefers Wheels where they are available. To disable this, use the
 :ref:`--no-binary <install_--no-binary>` flag for :ref:`pip install`.
 
 If no satisfactory wheels are found, pip will default to finding source

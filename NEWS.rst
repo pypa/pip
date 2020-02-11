@@ -1538,7 +1538,7 @@ Improved Documentation
   convince some servers who double compress the downloaded file to stop doing
   so. (#1688)
 - Stop breaking when given pip commands in uppercase (#1559, #1725)
-- Pip no longer adds duplicate logging consumers, so it won't create duplicate
+- pip no longer adds duplicate logging consumers, so it won't create duplicate
   output when being called multiple times. (#1618, #1723)
 - `pip wheel` now returns an error code if any wheels fail to build. (#1769)
 - `pip wheel` wasn't building wheels for dependencies of editable requirements.
@@ -1661,7 +1661,7 @@ Improved Documentation
 - pip will now install Mac OSX platform wheels from PyPI. (:pull:`1278`)
 - pip now generates the appropriate platform-specific console scripts when
   installing wheels. (#1251)
-- Pip now confirms a wheel is supported when installing directly from a path or
+- pip now confirms a wheel is supported when installing directly from a path or
   url. (#1315)
 - ``--ignore-installed`` now behaves again as designed, after it was
   unintentionally broke in v0.8.3 when fixing #14. (#1097, #1352)
@@ -1870,7 +1870,7 @@ Improved Documentation
   Dan Callahan for report and patch. (#182)
 - Understand version tags without minor version ("py3") in sdist filenames.
   Thanks Stuart Andrews for report and Olivier Girardot for patch. (#310)
-- Pip now supports optionally installing setuptools "extras" dependencies; e.g.
+- pip now supports optionally installing setuptools "extras" dependencies; e.g.
   "pip install Paste[openid]". Thanks Matt Maker and Olivier Girardot. (#7)
 - freeze no longer borks on requirements files with --index-url or --find-links.
   Thanks Herbert Pfennig. (#391)
@@ -1995,7 +1995,7 @@ Improved Documentation
 
 - Track which ``build/`` directories pip creates, never remove directories
   it doesn't create.  From Hugo Lopes Tavares.
-- Pip now accepts file:// index URLs. Thanks Dave Abrahams.
+- pip now accepts file:// index URLs. Thanks Dave Abrahams.
 - Various cleanup to make test-running more consistent and less fragile.
   Thanks Dave Abrahams.
 - Real Windows support (with passing tests). Thanks Dave Abrahams.

@@ -77,7 +77,7 @@ Within ``src/``:
   * ``__init__.py``
   * ``__main__.py``
   * ``__pycache__/`` *[not discussing contents right now]*
-  * ``_internal/`` *[where all the pip code lives that’s written by pip maintainers -- underscore means private. Pip is not a library -- it’s a command line tool! A very important distinction! People who want to install stuff with pip should not use the internals -- they should use the CLI. There’s a note on this in the docs.]*
+  * ``_internal/`` *[where all the pip code lives that’s written by pip maintainers -- underscore means private. pip is not a library -- it’s a command line tool! A very important distinction! People who want to install stuff with pip should not use the internals -- they should use the CLI. There’s a note on this in the docs.]*
 
     * ``__init__.py``
     * ``build_env.py`` [not discussing now]

@@ -10,7 +10,7 @@
 Broad functionality overview
 ****************************
 
-Pip is a package installer.
+pip is a package installer.
 
 pip does a lot more than installation; it also has a cache, and it has
 configuration, and it has a CLI, which has its own quirks. But mainly:
@@ -53,7 +53,7 @@ In sequence, what does pip do?:
 
 4. Install the actual items to be installed.
 
-Why? Pip installs from places other than PyPI! But also, we’ve never had
+Why? pip installs from places other than PyPI! But also, we’ve never had
 guarantees of PyPI’s JSON API before now, so no one has been getting
 metadata from PyPI separate from downloading the package itself.
 
@@ -118,7 +118,7 @@ When pip looks at the package index, the place where it looks has
 basically a link. The link’s text is the name of the file
 
 This is the `PyPI Simple API`_ (PyPI has several APIs, some are being
-deprecated). Pip looks at Simple API, documented initially at :pep:`503` --
+deprecated). pip looks at Simple API, documented initially at :pep:`503` --
 packaging.python.org has PyPA specifications with more details for
 Simple Repository API
 

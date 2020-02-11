@@ -21,7 +21,7 @@ Description
 Overview
 --------
 
-Pip install has several stages:
+pip install has several stages:
 
 1. Identify the base requirements. The user supplied arguments are processed
    here.
@@ -574,7 +574,7 @@ Windows
 Wheel Cache
 ^^^^^^^^^^^
 
-Pip will read from the subdirectory ``wheels`` within the pip cache directory
+pip will read from the subdirectory ``wheels`` within the pip cache directory
 and use any packages found there. This is disabled via the same
 ``--no-cache-dir`` option that disables the HTTP cache. The internal structure
 of that is not part of the pip API. As of 7.0, pip makes a subdirectory for
@@ -583,7 +583,7 @@ each sdist that wheels are built from and places the resulting wheels inside.
 As of version 20.0, pip also caches wheels when building from an immutable Git
 reference (i.e. a commit hash).
 
-Pip attempts to choose the best wheels from those built in preference to
+pip attempts to choose the best wheels from those built in preference to
 building a new wheel. Note that this means when a package has both optional
 C extensions and builds ``py`` tagged wheels when the C extension can't be built
 that pip will not attempt to build a better wheel for Pythons that would have
