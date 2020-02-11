@@ -14,6 +14,6 @@ pytest-xdist<1.28.0
 pyyaml
 setuptools>=39.2.0  # Needed for `setuptools.wheel.Wheel` support.
 scripttest
-https://github.com/pypa/virtualenv/archive/master.zip#egg=virtualenv
+https://github.com/pypa/virtualenv/archive/legacy.zip#egg=virtualenv
 werkzeug==0.16.0
 wheel

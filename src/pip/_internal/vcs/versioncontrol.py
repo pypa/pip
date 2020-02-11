@@ -232,12 +232,24 @@ class VcsSupport(object):
         Return a VersionControl object if a repository of that type is found
         at the given directory.
         """
+        vcs_backends = {}
         for vcs_backend in self._registry.values():
-            if vcs_backend.controls_location(location):
-                logger.debug('Determine that %s uses VCS: %s',
-                             location, vcs_backend.name)
-                return vcs_backend
-        return None
+            repo_path = vcs_backend.get_repository_root(location)
+            if not repo_path:
+                continue
+            logger.debug('Determine that %s uses VCS: %s',
+                         location, vcs_backend.name)
+            vcs_backends[repo_path] = vcs_backend
+
+        if not vcs_backends:
+            return None
+
+        # Choose the VCS in the inner-most directory. Since all repository
+        # roots found here would be either `location` or one of its
+        # parents, the longest path should have the most path components,
+        # i.e. the backend representing the inner-most repository.
+        inner_most_repo_path = max(vcs_backends, key=len)
+        return vcs_backends[inner_most_repo_path]
 
     def get_backend_for_scheme(self, scheme):
         # type: (str) -> Optional[VersionControl]
@@ -688,14 +700,18 @@ class VersionControl(object):
         return os.path.exists(os.path.join(path, cls.dirname))
 
     @classmethod
-    def controls_location(cls, location):
-        # type: (str) -> bool
+    def get_repository_root(cls, location):
+        # type: (str) -> Optional[str]
         """
-        Check if a location is controlled by the vcs.
+        Return the "root" (top-level) directory controlled by the vcs,
+        or `None` if the directory is not in any.
+
         It is meant to be overridden to implement smarter detection
         mechanisms for specific vcs.
 
-        This can do more than is_repository_directory() alone.  For example,
-        the Git override checks that Git is actually available.
+        This can do more than is_repository_directory() alone. For
+        example, the Git override checks that Git is actually available.
         """
-        return cls.is_repository_directory(location)
+        if cls.is_repository_directory(location):
+            return location
+        return None

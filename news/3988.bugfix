@@ -1,0 +1,1 @@
+Correctly freeze a VCS editable package when it is nested inside another VCS repository.

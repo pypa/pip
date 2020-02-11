@@ -32,7 +32,6 @@ class RequirementSet(object):
         self.check_supported_wheels = check_supported_wheels
 
         self.unnamed_requirements = []  # type: List[InstallRequirement]
-        self.successfully_downloaded = []  # type: List[InstallRequirement]
 
     def __str__(self):
         # type: () -> str

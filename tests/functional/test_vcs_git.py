@@ -238,3 +238,15 @@ def test_is_immutable_rev_checkout(script):
     assert not Git().is_immutable_rev_checkout(
         "git+https://g.c/o/r@master", version_pkg_path
     )
+
+
+def test_get_repository_root(script):
+    version_pkg_path = _create_test_package(script)
+    tests_path = version_pkg_path.joinpath("tests")
+    tests_path.mkdir()
+
+    root1 = Git.get_repository_root(version_pkg_path)
+    assert os.path.normcase(root1) == os.path.normcase(version_pkg_path)
+
+    root2 = Git.get_repository_root(version_pkg_path.joinpath("tests"))
+    assert os.path.normcase(root2) == os.path.normcase(version_pkg_path)
