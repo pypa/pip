@@ -2,11 +2,11 @@ from __future__ import absolute_import
 
 import compileall
 import shutil
-import sys
+import sysconfig
 import textwrap
 
 import six
-import virtualenv as _virtualenv
+import virtualenv.run as _virtualenv_run
 
 from .path import Path
 
@@ -32,16 +32,13 @@ class VirtualEnvironment(object):
         self._create()
 
     def _update_paths(self):
-        home, lib, inc, bin = _virtualenv.path_locations(self.location)
-        self.bin = Path(bin)
-        self.site = Path(lib) / 'site-packages'
-        # Workaround for https://github.com/pypa/virtualenv/issues/306
-        if hasattr(sys, "pypy_version_info"):
-            version_fmt = '{0}' if six.PY3 else '{0}.{1}'
-            version_dir = version_fmt.format(*sys.version_info)
-            self.lib = Path(home, 'lib-python', version_dir)
-        else:
-            self.lib = Path(lib)
+        paths = sysconfig.get_paths(vars={
+            "base": self.location,
+            "platbase": self.location,
+        })
+        self.bin = Path(paths["scripts"])
+        self.site = Path(paths["purelib"])
+        self.lib = Path(paths["stdlib"])
 
     def __repr__(self):
         return "<VirtualEnvironment {}>".format(self.location)
@@ -50,10 +47,6 @@ class VirtualEnvironment(object):
         if clear:
             shutil.rmtree(self.location)
         if self._template:
-            # On Windows, calling `_virtualenv.path_locations(target)`
-            # will have created the `target` directory...
-            if sys.platform == 'win32' and self.location.exists():
-                self.location.rmdir()
             # Clone virtual environment from template.
             shutil.copytree(
                 self._template.location, self.location, symlinks=True
@@ -63,12 +56,12 @@ class VirtualEnvironment(object):
         else:
             # Create a new virtual environment.
             if self._venv_type == 'virtualenv':
-                _virtualenv.create_environment(
+                _virtualenv_run.run_via_cli([
                     self.location,
-                    no_pip=True,
-                    no_wheel=True,
-                    no_setuptools=True,
-                )
+                    "--no-pip",
+                    "--no-wheel",
+                    "--no-setuptools",
+                ])
                 self._fix_virtualenv_site_module()
             elif self._venv_type == 'venv':
                 builder = _venv.EnvBuilder()
@@ -76,6 +69,8 @@ class VirtualEnvironment(object):
                 builder.create_configuration(context)
                 builder.setup_python(context)
                 self.site.mkdir(parents=True, exist_ok=True)
+            else:
+                raise ValueError("venv type must be 'virtualenv' or 'venv'")
             self.sitecustomize = self._sitecustomize
             self.user_site_packages = self._user_site_packages
 
