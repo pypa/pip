@@ -26,6 +26,7 @@ from pip._internal.operations.build.metadata_legacy import \
     generate_metadata as generate_metadata_legacy
 from pip._internal.operations.install.editable_legacy import \
     install_editable as install_editable_legacy
+from pip._internal.operations.install.legacy import LegacyInstallFailure
 from pip._internal.operations.install.legacy import install as install_legacy
 from pip._internal.operations.install.wheel import install_wheel
 from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
@@ -824,14 +825,38 @@ class InstallRequirement(object):
             self.install_succeeded = True
             return
 
-        install_legacy(
-            self,
-            install_options=install_options,
-            global_options=global_options,
-            root=root,
-            home=home,
-            prefix=prefix,
-            use_user_site=use_user_site,
-            pycompile=pycompile,
-            scheme=scheme,
-        )
+        # TODO: Why don't we do this for editable installs?
+
+        # Extend the list of global and install options passed on to
+        # the setup.py call with the ones from the requirements file.
+        # Options specified in requirements file override those
+        # specified on the command line, since the last option given
+        # to setup.py is the one that is used.
+        global_options = list(global_options) + self.global_options
+        install_options = list(install_options) + self.install_options
+
+        try:
+            success = install_legacy(
+                install_options=install_options,
+                global_options=global_options,
+                root=root,
+                home=home,
+                prefix=prefix,
+                use_user_site=use_user_site,
+                pycompile=pycompile,
+                scheme=scheme,
+                setup_py_path=self.setup_py_path,
+                isolated=self.isolated,
+                req_name=self.name,
+                build_env=self.build_env,
+                unpacked_source_directory=self.unpacked_source_directory,
+                req_description=str(self.req),
+            )
+        except LegacyInstallFailure as exc:
+            self.install_succeeded = False
+            six.reraise(*exc.parent)
+        except Exception:
+            self.install_succeeded = True
+            raise
+
+        self.install_succeeded = success
