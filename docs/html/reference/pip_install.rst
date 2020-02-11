@@ -74,6 +74,7 @@ Installation Order
 ------------------
 
 .. note::
+
    This section is only about installation order of runtime dependencies, and
    does not apply to build dependencies (those are specified using PEP 518).
 
@@ -676,6 +677,7 @@ Hash-checking mode also works with :ref:`pip download` and :ref:`pip wheel`. A
 <Repeatability>` is available in the User Guide.
 
 .. warning::
+
     Beware of the ``setup_requires`` keyword arg in :file:`setup.py`. The
     (rare) packages that use it will cause those dependencies to be downloaded
     by setuptools directly, skipping pip's hash-checking. If you need to use
@@ -683,6 +685,7 @@ Hash-checking mode also works with :ref:`pip download` and :ref:`pip wheel`. A
     setup_requires<controlling-setup-requires>`.
 
 .. warning::
+
     Be careful not to nullify all your security work when you install your
     actual project by using setuptools directly: for example, by calling
     ``python setup.py install``, ``python setup.py develop``, or
