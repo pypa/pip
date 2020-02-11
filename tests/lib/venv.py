@@ -62,7 +62,6 @@ class VirtualEnvironment(object):
                     "--no-wheel",
                     "--no-setuptools",
                 ])
-                self._fix_virtualenv_site_module()
             elif self._venv_type == 'venv':
                 builder = _venv.EnvBuilder()
                 context = builder.ensure_directories(self.location)
@@ -73,42 +72,6 @@ class VirtualEnvironment(object):
                 raise ValueError("venv type must be 'virtualenv' or 'venv'")
             self.sitecustomize = self._sitecustomize
             self.user_site_packages = self._user_site_packages
-
-    def _fix_virtualenv_site_module(self):
-        # Patch `site.py` so user site work as expected.
-        site_py = self.lib / 'site.py'
-        with open(site_py) as fp:
-            site_contents = fp.read()
-        for pattern, replace in (
-            (
-                # Ensure enabling user site does not result in adding
-                # the real site-packages' directory to `sys.path`.
-                (
-                    '\ndef virtual_addsitepackages(known_paths):\n'
-                ),
-                (
-                    '\ndef virtual_addsitepackages(known_paths):\n'
-                    '    return known_paths\n'
-                ),
-            ),
-            (
-                # Fix sites ordering: user site must be added before system.
-                (
-                    '\n    paths_in_sys = addsitepackages(paths_in_sys)'
-                    '\n    paths_in_sys = addusersitepackages(paths_in_sys)\n'
-                ),
-                (
-                    '\n    paths_in_sys = addusersitepackages(paths_in_sys)'
-                    '\n    paths_in_sys = addsitepackages(paths_in_sys)\n'
-                ),
-            ),
-        ):
-            assert pattern in site_contents
-            site_contents = site_contents.replace(pattern, replace)
-        with open(site_py, 'w') as fp:
-            fp.write(site_contents)
-        # Make sure bytecode is up-to-date too.
-        assert compileall.compile_file(str(site_py), quiet=1, force=True)
 
     def _customize_site(self):
         contents = ''
