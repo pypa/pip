@@ -94,6 +94,8 @@ pip can be configured to connect through a proxy server in various ways:
 * using the environment variable ``PIP_USER_AGENT_USER_DATA`` to include
   a JSON-encoded string in the user-agent variable used in pip's requests.
 
+User and password fields should not contain the following characters `[`, `]`,
+`#`, `?` as they are given special meaning by the underlying urllib.
 
 .. _`Requirements Files`:
 
