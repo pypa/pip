@@ -17,7 +17,7 @@ from pip._vendor.pkg_resources import Requirement, VersionConflict, WorkingSet
 
 from pip import __file__ as pip_location
 from pip._internal.cli.spinners import open_spinner
-from pip._internal.utils.misc import call_subprocess
+from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
