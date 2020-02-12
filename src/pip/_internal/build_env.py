@@ -169,7 +169,7 @@ class BuildEnvironment(object):
             return
         args = [
             sys.executable, os.path.dirname(pip_location), 'install',
-            '--ignore-installed', '--no-user', '--prefix', prefix.path,
+            '--no-user', '--prefix', prefix.path,
             '--no-warn-script-location',
         ]  # type: List[str]
         if logger.getEffectiveLevel() <= logging.DEBUG:
