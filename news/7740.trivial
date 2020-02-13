@@ -1,0 +1,1 @@
+Use PEP 517 layout by specifying ``build-backend``, so that ``pip`` can be built with tools (such as ``pep517``) that don't support the legacy layout.
