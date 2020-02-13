@@ -9,6 +9,7 @@ import shutil
 import sys
 import textwrap
 from typing import TYPE_CHECKING
+from warnings import warn
 
 from pip._vendor.contextlib2 import suppress
 
@@ -154,6 +155,9 @@ class CustomOptionParser(optparse.OptionParser):
         return res
 
 
+whitelisted_options_preserving_old_behavior = {"no-compile", "no-warn-script-location", "no-cache-dir"}
+
+
 class ConfigOptionParser(CustomOptionParser):
     """Custom option parser which updates its defaults by checking the
     configuration files and environmental variables"""
@@ -211,6 +215,9 @@ class ConfigOptionParser(CustomOptionParser):
         # Accumulate complex default state.
         self.values = optparse.Values(self.defaults)
         late_eval = set()
+
+        options_to_inverse = []
+
         # Then set the options with those values
         for key, val in self._get_ordered_configuration_items():
             # '--' because configuration supports only long names
@@ -225,6 +232,11 @@ class ConfigOptionParser(CustomOptionParser):
             if option.action in ('store_true', 'store_false'):
                 try:
                     val = strtobool(val)
+                    if option.action == "store_false":
+                        if key not in whitelisted_options_preserving_old_behavior:
+                            options_to_inverse.append(option.dest)
+                        else:
+                            warn("Option `" + key + "` in some config file currently sticks to documented, but semantically incorrect behavior. Other such options are " + repr(whitelisted_options_preserving_old_behavior) + ". It may be changed in future. See https://github.com/pypa/pip/issues/7736 for more info.")
                 except ValueError:
                     self.error(
                         '{} is not a valid value for {} option, '  # noqa
@@ -258,6 +270,13 @@ class ConfigOptionParser(CustomOptionParser):
                 val = self.check_default(option, key, val)
 
             defaults[option.dest] = val
+
+        noib = defaults.get("new_options_inversion_behavior", False)
+        for key in options_to_inverse:
+            if noib or key not in whitelisted_options_preserving_old_behavior:
+                defaults[key] = not defaults[key]
+            else:
+                warn("Option `" + key + "` in some config file currently sticks to documented, but semantically incorrect behavior. Other such options are " + repr(whitelisted_options_preserving_old_behavior) + ". It may be changed in future. Set new-options-inversion-behavior to True to enable new behavior. See https://github.com/pypa/pip/issues/7736 for more info.")
 
         for key in late_eval:
             defaults[key] = getattr(self.values, key)

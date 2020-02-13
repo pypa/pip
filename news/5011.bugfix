@@ -1,0 +1,1 @@
+Fixed incorrect treatment of options with ``action="store_false"`` when set in ``pip.conf``.

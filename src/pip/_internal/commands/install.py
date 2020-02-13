@@ -220,6 +220,14 @@ class InstallCommand(RequirementCommand):
         self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, self.cmd_opts)
 
+        cmd_opts.add_option(
+            "--new-options-inversion-behavior",
+            action="store_true",
+            dest="new_options_inversion_behavior",
+            help="Process correctly no-compile, no-warn-script-location and no-cache-dir in config files, inverting them. See https://github.com/pypa/pip/issues/7736 for more info.",
+        )
+
+
     @with_cleanup
     def run(self, options, args):
         # type: (Values, List[str]) -> int

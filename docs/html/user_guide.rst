@@ -599,6 +599,9 @@ and ``--no-cache-dir``, falsy values have to be used:
     no-compile = no
     no-warn-script-location = false
 
+The rest of options beginning with ``--no-`` should work as intended: positive in CLI corresponds to positive in cofigs.
+`Legacy behavior of the mentioned documented options can be changed in future.<https://github.com/pypa/pip/issues/7736>`_
+
 For options which can be repeated like ``--verbose`` and ``--quiet``,
 a non-negative integer can be used to represent the level to be specified:
 
