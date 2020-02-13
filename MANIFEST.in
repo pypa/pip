@@ -3,6 +3,7 @@ include LICENSE.txt
 include NEWS.rst
 include README.rst
 include pyproject.toml
+include .editorconfig
 
 include src/pip/_vendor/README.rst
 include src/pip/_vendor/vendor.txt
