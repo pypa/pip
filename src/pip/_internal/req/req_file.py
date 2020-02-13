@@ -33,7 +33,7 @@ from pip._internal.utils.urls import get_url_scheme
 if MYPY_CHECK_RUNNING:
     from optparse import Values
     from typing import (
-        Any, Callable, Iterator, List, NoReturn, Optional, Text, Tuple,
+        Any, Callable, Iterator, List, NoReturn, Optional, Text, Tuple, Dict,
     )
 
     from pip._internal.req import InstallRequirement
@@ -82,6 +82,58 @@ SUPPORTED_OPTIONS_REQ = [
 
 # the 'dest' string values
 SUPPORTED_OPTIONS_REQ_DEST = [str(o().dest) for o in SUPPORTED_OPTIONS_REQ]
+
+
+class ParsedRequirement(object):
+    def __init__(
+        self,
+        is_editable,  # type: bool
+        comes_from,  # type: str
+        use_pep517,  # type: Optional[bool]
+        isolated,  # type: bool
+        wheel_cache,  # type: Optional[WheelCache]
+        constraint,  # type: bool
+        args=None,  # type: Optional[str]
+        editables=None,  # type: Optional[str]
+        options=None,  # type: Optional[Dict[str, Any]]
+        line_source=None,  # type: Optional[str]
+    ):
+        # type: (...) -> None
+        self.args = args
+        self.editables = editables
+        self.is_editable = is_editable
+        self.comes_from = comes_from
+        self.use_pep517 = use_pep517
+        self.isolated = isolated
+        self.options = options
+        self.wheel_cache = wheel_cache
+        self.constraint = constraint
+        self.line_source = line_source
+
+    def make_requirement(self):
+        # type: (...) -> InstallRequirement
+        if self.is_editable:
+            req = install_req_from_editable(
+                self.editables,
+                comes_from=self.comes_from,
+                use_pep517=self.use_pep517,
+                constraint=self.constraint,
+                isolated=self.isolated,
+                wheel_cache=self.wheel_cache
+            )
+
+        else:
+            req = install_req_from_line(
+                self.args,
+                comes_from=self.comes_from,
+                use_pep517=self.use_pep517,
+                isolated=self.isolated,
+                options=self.options,
+                wheel_cache=self.wheel_cache,
+                constraint=self.constraint,
+                line_source=self.line_source,
+            )
+        return req
 
 
 class ParsedLine(object):
@@ -135,11 +187,11 @@ def parse_requirements(
     )
 
     for parsed_line in parser.parse(filename, constraint):
-        req = handle_line(
+        parsed_req = handle_line(
             parsed_line, finder, options, session, wheel_cache, use_pep517
         )
-        if req is not None:
-            yield req
+        if parsed_req is not None:
+            yield parsed_req.make_requirement()
 
 
 def preprocess(content, skip_requirements_regex):
@@ -166,7 +218,7 @@ def handle_line(
     wheel_cache=None,  # type: Optional[WheelCache]
     use_pep517=None,  # type: Optional[bool]
 ):
-    # type: (...) -> Optional[InstallRequirement]
+    # type: (...) -> Optional[ParsedRequirement]
     """Handle a single parsed requirements line; This can result in
     creating/yielding requirements, or updating the finder.
 
@@ -198,8 +250,9 @@ def handle_line(
             if dest in line.opts.__dict__ and line.opts.__dict__[dest]:
                 req_options[dest] = line.opts.__dict__[dest]
         line_source = 'line {} of {}'.format(line.lineno, line.filename)
-        return install_req_from_line(
-            line.args,
+        return ParsedRequirement(
+            args=line.args,
+            is_editable=False,
             comes_from=line_comes_from,
             use_pep517=use_pep517,
             isolated=isolated,
@@ -212,10 +265,13 @@ def handle_line(
     # return an editable requirement
     elif line.opts.editables:
         isolated = options.isolated_mode if options else False
-        return install_req_from_editable(
-            line.opts.editables[0], comes_from=line_comes_from,
+        return ParsedRequirement(
+            editables=line.opts.editables[0],
+            is_editable=True,
+            comes_from=line_comes_from,
             use_pep517=use_pep517,
-            constraint=line.constraint, isolated=isolated,
+            constraint=line.constraint,
+            isolated=isolated,
             wheel_cache=wheel_cache
         )
 

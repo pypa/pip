@@ -48,8 +48,9 @@ def get_processed_req_from_line(line, fname='file', lineno=1):
         opts,
         False,
     )
-    req = handle_line(parsed_line)
-    assert req is not None
+    parsed_req = handle_line(parsed_line)
+    assert parsed_req is not None
+    req = parsed_req.make_requirement()
     req.is_direct = True
     return req
 
