@@ -9,7 +9,10 @@ from pip._internal.cli.base_command import Command
 from pip._internal.cli.req_command import SessionCommandMixin
 from pip._internal.exceptions import InstallationError
 from pip._internal.req import parse_requirements
-from pip._internal.req.constructors import install_req_from_line
+from pip._internal.req.constructors import (
+    install_req_from_line,
+    install_req_from_parsed_requirement,
+)
 from pip._internal.utils.misc import protect_pip_from_modification_on_windows
 
 
@@ -62,7 +65,8 @@ class UninstallCommand(Command, SessionCommandMixin):
                     filename,
                     options=options,
                     session=session):
-                req = parsed_req.make_requirement(
+                req = install_req_from_parsed_requirement(
+                    parsed_req,
                     isolated=options.isolated_mode
                 )
                 if req.name:

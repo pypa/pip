@@ -22,10 +22,6 @@ from pip._internal.exceptions import (
     RequirementsFileParseError,
 )
 from pip._internal.models.search_scope import SearchScope
-from pip._internal.req.constructors import (
-    install_req_from_editable,
-    install_req_from_line,
-)
 from pip._internal.utils.encoding import auto_decode
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import get_url_scheme
@@ -36,8 +32,6 @@ if MYPY_CHECK_RUNNING:
         Any, Callable, Iterator, List, NoReturn, Optional, Text, Tuple, Dict,
     )
 
-    from pip._internal.req import InstallRequirement
-    from pip._internal.cache import WheelCache
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.network.session import PipSession
 
@@ -101,36 +95,6 @@ class ParsedRequirement(object):
         self.options = options
         self.constraint = constraint
         self.line_source = line_source
-
-    def make_requirement(
-        self,
-        isolated=False,  # type: bool
-        wheel_cache=None,  # type: Optional[WheelCache]
-        use_pep517=None  # type: Optional[bool]
-    ):
-        # type: (...) -> InstallRequirement
-        if self.is_editable:
-            req = install_req_from_editable(
-                self.requirement,
-                comes_from=self.comes_from,
-                use_pep517=use_pep517,
-                constraint=self.constraint,
-                isolated=isolated,
-                wheel_cache=wheel_cache
-            )
-
-        else:
-            req = install_req_from_line(
-                self.requirement,
-                comes_from=self.comes_from,
-                use_pep517=use_pep517,
-                isolated=isolated,
-                options=self.options,
-                wheel_cache=wheel_cache,
-                constraint=self.constraint,
-                line_source=self.line_source,
-            )
-        return req
 
 
 class ParsedLine(object):

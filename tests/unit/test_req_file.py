@@ -18,6 +18,7 @@ from pip._internal.network.session import PipSession
 from pip._internal.req.constructors import (
     install_req_from_editable,
     install_req_from_line,
+    install_req_from_parsed_requirement,
 )
 from pip._internal.req.req_file import (
     break_args_options,
@@ -56,14 +57,16 @@ def parse_reqfile(
     constraint=False,
     isolated=False,
 ):
-    # Wrap parse_requirements/make_requirement to
-    # avoid having to write the same chunk of code in
-    # lots of tests.
+    # Wrap parse_requirements/install_req_from_parsed_requirement to
+    # avoid having to write the same chunk of code in lots of tests.
     for parsed_req in parse_requirements(
         filename, session, finder=finder,
         options=options, constraint=constraint,
     ):
-        yield parsed_req.make_requirement(isolated=isolated)
+        yield install_req_from_parsed_requirement(
+            parsed_req,
+            isolated=isolated
+        )
 
 
 class TestPreprocess(object):

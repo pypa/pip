@@ -28,6 +28,7 @@ from pip._internal.req.constructors import (
     _looks_like_path,
     install_req_from_editable,
     install_req_from_line,
+    install_req_from_parsed_requirement,
     install_req_from_req_string,
     parse_editable,
 )
@@ -54,7 +55,7 @@ def get_processed_req_from_line(line, fname='file', lineno=1):
     )
     parsed_req = handle_requirement_line(parsed_line)
     assert parsed_req is not None
-    req = parsed_req.make_requirement()
+    req = install_req_from_parsed_requirement(parsed_req)
     req.is_direct = True
     return req
 

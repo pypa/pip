@@ -22,6 +22,7 @@ from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req.constructors import (
     install_req_from_editable,
     install_req_from_line,
+    install_req_from_parsed_requirement,
     install_req_from_req_string,
 )
 from pip._internal.req.req_file import parse_requirements
@@ -291,7 +292,8 @@ class RequirementCommand(IndexGroupCommand):
                     filename,
                     constraint=True, finder=finder, options=options,
                     session=session):
-                req_to_add = parsed_req.make_requirement(
+                req_to_add = install_req_from_parsed_requirement(
+                    parsed_req,
                     isolated=options.isolated_mode,
                     wheel_cache=wheel_cache,
                 )
@@ -322,7 +324,8 @@ class RequirementCommand(IndexGroupCommand):
             for parsed_req in parse_requirements(
                     filename,
                     finder=finder, options=options, session=session):
-                req_to_add = parsed_req.make_requirement(
+                req_to_add = install_req_from_parsed_requirement(
+                    parsed_req,
                     isolated=options.isolated_mode,
                     wheel_cache=wheel_cache,
                     use_pep517=options.use_pep517
