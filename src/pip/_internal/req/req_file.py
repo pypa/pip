@@ -170,10 +170,8 @@ def parse_requirements(
     comes_from=None,  # type: Optional[str]
     options=None,  # type: Optional[optparse.Values]
     constraint=False,  # type: bool
-    wheel_cache=None,  # type: Optional[WheelCache]
-    use_pep517=None  # type: Optional[bool]
 ):
-    # type: (...) -> Iterator[InstallRequirement]
+    # type: (...) -> Iterator[ParsedRequirement]
     """Parse a requirements file and yield InstallRequirement instances.
 
     :param filename:    Path or url of requirements file.
@@ -183,8 +181,6 @@ def parse_requirements(
     :param options:     cli options.
     :param constraint:  If true, parsing a constraint file rather than
         requirements file.
-    :param wheel_cache: Instance of pip.wheel.WheelCache
-    :param use_pep517:  Value of the --use-pep517 option.
     """
     skip_requirements_regex = (
         options.skip_requirements_regex if options else None
@@ -202,12 +198,7 @@ def parse_requirements(
             session=session
         )
         if parsed_req is not None:
-            isolated = options.isolated_mode if options else False
-            yield parsed_req.make_requirement(
-                isolated,
-                wheel_cache,
-                use_pep517
-            )
+            yield parsed_req
 
 
 def preprocess(content, skip_requirements_regex):
@@ -350,14 +341,14 @@ def handle_line(
     affect the finder.
     """
 
-    if parsed_line.is_requirement:
-        parsed_req = handle_requirement_line(parsed_line, options)
+    if line.is_requirement:
+        parsed_req = handle_requirement_line(line, options)
         return parsed_req
     else:
         handle_option_line(
-            parsed_line.opts,
-            parsed_line.filename,
-            parsed_line.lineno,
+            line.opts,
+            line.filename,
+            line.lineno,
             finder,
             options,
             session,

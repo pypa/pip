@@ -287,10 +287,14 @@ class RequirementCommand(IndexGroupCommand):
             check_supported_wheels=check_supported_wheels
         )
         for filename in options.constraints:
-            for req_to_add in parse_requirements(
+            for parsed_req in parse_requirements(
                     filename,
                     constraint=True, finder=finder, options=options,
-                    session=session, wheel_cache=wheel_cache):
+                    session=session):
+                req_to_add = parsed_req.make_requirement(
+                    isolated=options.isolated_mode,
+                    wheel_cache=wheel_cache,
+                )
                 req_to_add.is_direct = True
                 requirement_set.add_requirement(req_to_add)
 
@@ -315,11 +319,14 @@ class RequirementCommand(IndexGroupCommand):
 
         # NOTE: options.require_hashes may be set if --require-hashes is True
         for filename in options.requirements:
-            for req_to_add in parse_requirements(
+            for parsed_req in parse_requirements(
                     filename,
-                    finder=finder, options=options, session=session,
+                    finder=finder, options=options, session=session):
+                req_to_add = parsed_req.make_requirement(
+                    isolated=options.isolated_mode,
                     wheel_cache=wheel_cache,
-                    use_pep517=options.use_pep517):
+                    use_pep517=options.use_pep517
+                )
                 req_to_add.is_direct = True
                 requirement_set.add_requirement(req_to_add)
 

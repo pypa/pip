@@ -48,6 +48,24 @@ def options(session):
         format_control=FormatControl(set(), set()))
 
 
+def parse_reqfile(
+    filename,
+    session,
+    finder=None,
+    options=None,
+    constraint=False,
+    isolated=False,
+):
+    # Wrap parse_requirements/make_requirement to
+    # avoid having to write the same chunk of code in
+    # lots of tests.
+    for parsed_req in parse_requirements(
+        filename, session, finder=finder,
+        options=options, constraint=constraint,
+    ):
+        yield parsed_req.make_requirement(isolated=isolated)
+
+
 class TestPreprocess(object):
     """tests for `preprocess`"""
 
@@ -191,12 +209,13 @@ def line_processor(
         path.parent.mkdir(exist_ok=True)
         path.write_text(prefix + line)
         monkeypatch.chdir(str(tmpdir))
-        return list(parse_requirements(
+        return list(parse_reqfile(
             filename,
             finder=finder,
             options=options,
             session=session,
             constraint=constraint,
+            isolated=options.isolated_mode if options else False
         ))
 
     return process_line
@@ -309,7 +328,7 @@ class TestProcessLine(object):
         monkeypatch.chdir(str(tmpdir))
 
         reqs = list(
-            parse_requirements('./parent/req_file.txt', session=session)
+            parse_reqfile('./parent/req_file.txt', session=session)
         )
         assert len(reqs) == 1
         assert reqs[0].name == req_name
@@ -447,7 +466,7 @@ class TestProcessLine(object):
             pip._internal.req.req_file, 'get_file_content', get_file_content
         )
 
-        result = list(parse_requirements(req_file, session=session))
+        result = list(parse_reqfile(req_file, session=session))
         assert len(result) == 1
         assert result[0].name == req_name
         assert not result[0].constraint
@@ -467,7 +486,7 @@ class TestProcessLine(object):
         monkeypatch.chdir(str(tmpdir))
 
         reqs = list(
-            parse_requirements('./parent/req_file.txt', session=session)
+            parse_reqfile('./parent/req_file.txt', session=session)
         )
         assert len(reqs) == 1
         assert reqs[0].name == req_name
@@ -490,7 +509,7 @@ class TestProcessLine(object):
         req_file.write_text('-r {}'.format(other_req_file_str))
         other_req_file.write_text(req_name)
 
-        reqs = list(parse_requirements(str(req_file), session=session))
+        reqs = list(parse_reqfile(str(req_file), session=session))
         assert len(reqs) == 1
         assert reqs[0].name == req_name
         assert not reqs[0].constraint
@@ -516,7 +535,7 @@ class TestProcessLine(object):
             pip._internal.req.req_file, 'get_file_content', get_file_content
         )
 
-        result = list(parse_requirements(req_file, session=session))
+        result = list(parse_reqfile(req_file, session=session))
         assert len(result) == 1
         assert result[0].name == req_name
         assert not result[0].constraint
@@ -565,7 +584,7 @@ class TestOptionVariants(object):
 
 
 class TestParseRequirements(object):
-    """tests for `parse_requirements`"""
+    """tests for `parse_reqfile`"""
 
     @pytest.mark.network
     def test_remote_reqs_parse(self):
@@ -574,7 +593,7 @@ class TestParseRequirements(object):
         """
         # this requirements file just contains a comment previously this has
         # failed in py3: https://github.com/pypa/pip/issues/760
-        for req in parse_requirements(
+        for req in parse_reqfile(
                 'https://raw.githubusercontent.com/pypa/'
                 'pip-test-package/master/'
                 'tests/req_just_comment.txt', session=PipSession()):
@@ -585,8 +604,8 @@ class TestParseRequirements(object):
             fp.write("--extra-index-url url1 \n")
             fp.write("--extra-index-url url2 ")
 
-        list(parse_requirements(tmpdir.joinpath("req1.txt"), finder=finder,
-                                session=PipSession(), options=options))
+        list(parse_reqfile(tmpdir.joinpath("req1.txt"), finder=finder,
+                           session=PipSession(), options=options))
 
         assert finder.index_urls == ['url1', 'url2']
 
@@ -596,8 +615,8 @@ class TestParseRequirements(object):
             fp.write("--extra-index-url Bad \n")
             fp.write("--extra-index-url Good ")
 
-        list(parse_requirements(tmpdir.joinpath("req1.txt"), finder=finder,
-                                options=options, session=PipSession()))
+        list(parse_reqfile(tmpdir.joinpath("req1.txt"), finder=finder,
+                           options=options, session=PipSession()))
 
         assert finder.index_urls == ['Good']
 
@@ -617,7 +636,7 @@ class TestParseRequirements(object):
         with patch('pip._internal.req.req_file.os.getenv') as getenv:
             getenv.side_effect = lambda n: dict(env_vars)[n]
 
-            reqs = list(parse_requirements(
+            reqs = list(parse_reqfile(
                 tmpdir.joinpath('req1.txt'),
                 finder=finder,
                 session=PipSession()
@@ -642,7 +661,7 @@ class TestParseRequirements(object):
         with patch('pip._internal.req.req_file.os.getenv') as getenv:
             getenv.return_value = ''
 
-            reqs = list(parse_requirements(
+            reqs = list(parse_reqfile(
                 tmpdir.joinpath('req1.txt'),
                 finder=finder,
                 session=PipSession()
@@ -657,13 +676,13 @@ class TestParseRequirements(object):
         with open(tmpdir.joinpath("req1.txt"), "w") as fp:
             fp.write("--extra-index-url url1 \\\n--extra-index-url url2")
 
-        list(parse_requirements(tmpdir.joinpath("req1.txt"), finder=finder,
-                                session=PipSession()))
+        list(parse_reqfile(tmpdir.joinpath("req1.txt"), finder=finder,
+                           session=PipSession()))
 
         assert finder.index_urls == ['url1', 'url2']
 
     def test_req_file_parse_no_only_binary(self, data, finder):
-        list(parse_requirements(
+        list(parse_reqfile(
             data.reqfiles.joinpath("supported_options2.txt"),
             finder=finder,
             session=PipSession()))
@@ -677,7 +696,7 @@ class TestParseRequirements(object):
         with open(tmpdir.joinpath("req1.txt"), "w") as fp:
             fp.write("# Comment ")
 
-        reqs = list(parse_requirements(tmpdir.joinpath("req1.txt"),
+        reqs = list(parse_reqfile(tmpdir.joinpath("req1.txt"),
                     finder=finder,
                     session=PipSession()))
 
@@ -690,7 +709,7 @@ class TestParseRequirements(object):
         with open(tmpdir.joinpath("req1.txt"), "w") as fp:
             fp.write("https://example.com/foo.tar.gz # Comment ")
 
-        reqs = list(parse_requirements(tmpdir.joinpath("req1.txt"),
+        reqs = list(parse_reqfile(tmpdir.joinpath("req1.txt"),
                     finder=finder,
                     session=PipSession()))
 
@@ -704,7 +723,7 @@ class TestParseRequirements(object):
         with open(tmpdir.joinpath("req1.txt"), "w") as fp:
             fp.write("https://example.com/foo.tar.gz#egg=wat")
 
-        reqs = list(parse_requirements(tmpdir.joinpath("req1.txt"),
+        reqs = list(parse_reqfile(tmpdir.joinpath("req1.txt"),
                     finder=finder,
                     session=PipSession()))
 
@@ -724,7 +743,7 @@ class TestParseRequirements(object):
     --no-index
             """)
 
-        parse_requirements(tmpdir.joinpath("req.txt"), session=PipSession())
+        parse_reqfile(tmpdir.joinpath("req.txt"), session=PipSession())
 
     def test_install_requirements_with_options(self, tmpdir, finder, session,
                                                options):
@@ -738,10 +757,10 @@ class TestParseRequirements(object):
         '''.format(global_option=global_option, install_option=install_option)
 
         with requirements_file(content, tmpdir) as reqs_file:
-            req = next(parse_requirements(reqs_file.resolve(),
-                                          finder=finder,
-                                          options=options,
-                                          session=session))
+            req = next(parse_reqfile(reqs_file.resolve(),
+                                     finder=finder,
+                                     options=options,
+                                     session=session))
 
         req.source_dir = os.curdir
         with patch.object(subprocess, 'Popen') as popen:

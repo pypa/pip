@@ -58,10 +58,13 @@ class UninstallCommand(Command, SessionCommandMixin):
             if req.name:
                 reqs_to_uninstall[canonicalize_name(req.name)] = req
         for filename in options.requirements:
-            for req in parse_requirements(
+            for parsed_req in parse_requirements(
                     filename,
                     options=options,
                     session=session):
+                req = parsed_req.make_requirement(
+                    isolated=options.isolated_mode
+                )
                 if req.name:
                     reqs_to_uninstall[canonicalize_name(req.name)] = req
         if not reqs_to_uninstall:
