@@ -7,6 +7,7 @@ import itertools
 import logging
 import mimetypes
 import os
+import re
 from collections import OrderedDict
 
 from pip._vendor import html5lib, requests
@@ -17,7 +18,7 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip._internal.models.link import Link
 from pip._internal.utils.filetypes import ARCHIVE_EXTENSIONS
-from pip._internal.utils.misc import redact_auth_from_url
+from pip._internal.utils.misc import pairwise, redact_auth_from_url
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import path_to_url, url_to_path
 from pip._internal.vcs import is_url, vcs
@@ -186,29 +187,69 @@ def _determine_base_url(document, page_url):
     return page_url
 
 
+def _clean_url_path_part(part):
+    # type: (str) -> str
+    """
+    Clean a "part" of a URL path (i.e. after splitting on "@" characters).
+    """
+    # We unquote prior to quoting to make sure nothing is double quoted.
+    return urllib_parse.quote(urllib_parse.unquote(part))
+
+
+def _clean_file_url_path(part):
+    # type: (str) -> str
+    """
+    Clean the first part of a URL path that corresponds to a local
+    filesystem path (i.e. the first part after splitting on "@" characters).
+    """
+    # We unquote prior to quoting to make sure nothing is double quoted.
+    # Also, on Windows the path part might contain a drive letter which
+    # should not be quoted. On Linux where drive letters do not
+    # exist, the colon should be quoted. We rely on urllib.request
+    # to do the right thing here.
+    return urllib_request.pathname2url(urllib_request.url2pathname(part))
+
+
+# percent-encoded:                   /
+_reserved_chars_re = re.compile('(@|%2F)', re.IGNORECASE)
+
+
+def _clean_url_path(path, is_local_path):
+    # type: (str, bool) -> str
+    """
+    Clean the path portion of a URL.
+    """
+    if is_local_path:
+        clean_func = _clean_file_url_path
+    else:
+        clean_func = _clean_url_path_part
+
+    # Split on the reserved characters prior to cleaning so that
+    # revision strings in VCS URLs are properly preserved.
+    parts = _reserved_chars_re.split(path)
+
+    cleaned_parts = []
+    for to_clean, reserved in pairwise(itertools.chain(parts, [''])):
+        cleaned_parts.append(clean_func(to_clean))
+        # Normalize %xx escapes (e.g. %2f -> %2F)
+        cleaned_parts.append(reserved.upper())
+
+    return ''.join(cleaned_parts)
+
+
 def _clean_link(url):
     # type: (str) -> str
-    """Makes sure a link is fully encoded.  That is, if a ' ' shows up in
-    the link, it will be rewritten to %20 (while not over-quoting
-    % or other characters)."""
+    """
+    Make sure a link is fully quoted.
+    For example, if ' ' occurs in the URL, it will be replaced with "%20",
+    and without double-quoting other characters.
+    """
     # Split the URL into parts according to the general structure
-    # `scheme://netloc/path;parameters?query#fragment`. Note that the
-    # `netloc` can be empty and the URI will then refer to a local
-    # filesystem path.
+    # `scheme://netloc/path;parameters?query#fragment`.
     result = urllib_parse.urlparse(url)
-    # In both cases below we unquote prior to quoting to make sure
-    # nothing is double quoted.
-    if result.netloc == "":
-        # On Windows the path part might contain a drive letter which
-        # should not be quoted. On Linux where drive letters do not
-        # exist, the colon should be quoted. We rely on urllib.request
-        # to do the right thing here.
-        path = urllib_request.pathname2url(
-            urllib_request.url2pathname(result.path))
-    else:
-        # In addition to the `/` character we protect `@` so that
-        # revision strings in VCS URLs are properly parsed.
-        path = urllib_parse.quote(urllib_parse.unquote(result.path), safe="/@")
+    # If the netloc is empty, then the URL refers to a local filesystem path.
+    is_local_path = not result.netloc
+    path = _clean_url_path(result.path, is_local_path=is_local_path)
     return urllib_parse.urlunparse(result._replace(path=path))
 
 
