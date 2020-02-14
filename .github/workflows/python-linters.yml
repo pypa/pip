@@ -33,7 +33,7 @@ jobs:
     - uses: actions/cache@v1
       with:
         path: ~/.cache/pre-commit
-        key: pre-commit|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
+        key: pre-commit|2020-02-14|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
     - name: Pre-configure global Git settings
       run: |
         git config --global user.email "pypa-dev@googlegroups.com"
