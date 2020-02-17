@@ -19,6 +19,7 @@ Architecture of pip's internals
     overview
     anatomy
     package-finding
+    upgrade-options
 
 
 .. _`tracking issue`: https://github.com/pypa/pip/issues/6831
