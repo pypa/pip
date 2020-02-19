@@ -1,25 +1,26 @@
 
 .. _`pip download`:
 
+============
 pip download
-------------
+============
 
 .. contents::
 
+
 Usage
-*****
+=====
 
 .. pip-command-usage:: download
 
 
 Description
-***********
+===========
 
 .. pip-command-description:: download
 
-
 Overview
-++++++++
+--------
 
 ``pip download`` does the same resolution and downloading as ``pip install``,
 but instead of installing the dependencies, it collects the downloaded
@@ -43,7 +44,7 @@ constrained download requirement.
 
 
 Options
-*******
+=======
 
 .. pip-command-options:: download
 
@@ -51,7 +52,7 @@ Options
 
 
 Examples
-********
+========
 
 #. Download a package and all of its dependencies
 

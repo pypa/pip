@@ -1,12 +1,14 @@
+=============================================
 Options that control the installation process
----------------------------------------------
+=============================================
 
 When installing packages, pip chooses a distribution file, and installs it in
 the user's environment. There are many choices involved in deciding which file
 to install, and these are controlled by a variety of options.
 
+
 Controlling what gets installed
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+===============================
 
 These options directly affect how the resolver uses the list of available
 distribution files to decide which one to install. So these modify the
@@ -51,8 +53,9 @@ current version in place. This occurs even if ``--upgrade`` is not set.
 Act as if the currently installed version isn't there - so don't care about
 ``--upgrade``, and don't uninstall before (re-)installing.
 
+
 Controlling what gets considered
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+================================
 
 These options affect the list of distribution files that the resolver will
 consider as candidates for installation. As such, they affect the data that
@@ -89,8 +92,9 @@ Index options
 
 ``--find-links``
 
+
 Controlling dependency data
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+===========================
 
 These options control what dependency data the resolver sees for any given
 package (or, in the case of ``--python-version``, the environment information
@@ -102,8 +106,9 @@ the resolver uses to *check* the dependency).
 
 ``--ignore-requires-python``
 
+
 Special cases
-~~~~~~~~~~~~~
+=============
 
 These need further investigation. They affect the install process, but not
 necessarily resolution or what gets installed.

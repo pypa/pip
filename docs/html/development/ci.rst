@@ -1,13 +1,14 @@
 .. note::
+
     This section of the documentation is currently being written. pip
     developers welcome your help to complete this documentation. If you're
     interested in helping out, please let us know in the `tracking issue`_.
 
 .. _`tracking issue`: https://github.com/pypa/pip/issues/7279
 
-**********************
+======================
 Continuous Integration
-**********************
+======================
 
 Supported interpreters
 ======================
@@ -55,6 +56,7 @@ specified it's ok to require the latest CPython interpreter.
 
 So only unit tests and integration tests would need to be run with the different
 interpreters.
+
 
 Services
 ========

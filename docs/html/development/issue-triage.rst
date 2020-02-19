@@ -1,4 +1,5 @@
 .. note::
+
     This section of the documentation is currently being written. pip
     developers welcome your help to complete this documentation. If you're
     interested in helping out, please let us know in the
@@ -13,7 +14,7 @@ how to help triage reported issues.
 
 
 Issue Tracker
-*************
+=============
 
 The `pip issue tracker <https://github.com/pypa/pip/issues>`__ is hosted on
 GitHub alongside the project.
@@ -23,7 +24,6 @@ user support.
 
 In the pip issue tracker, we make use of labels and milestones to organize and
 track work.
-
 
 Labels
 ------
@@ -78,7 +78,6 @@ In addition, there are several standalone labels:
   this is a special label used by BrownTruck to mark PRs that have merge
   conflicts
 
-
 Automation
 ----------
 
@@ -101,7 +100,7 @@ links on the closed issue.
 
 
 Triage Issues
-*************
+=============
 
 Users can make issues for a number of reasons:
 
@@ -297,7 +296,7 @@ An issue may be considered resolved and closed when:
 
 
 Common issues
-*************
+=============
 
 #. network-related issues - any issue involving retries, address lookup, or
    anything like that are typically network issues.

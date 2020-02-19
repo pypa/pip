@@ -489,7 +489,7 @@ class InstallCommand(RequirementCommand):
                         if os.path.islink(target_item_dir):
                             logger.warning(
                                 'Target directory %s already exists and is '
-                                'a link. Pip will not automatically replace '
+                                'a link. pip will not automatically replace '
                                 'links, please remove if replacement is '
                                 'desired.',
                                 target_item_dir
