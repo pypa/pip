@@ -79,13 +79,13 @@ Current run tests
 Developer tasks
 ---------------
 
-======== =============== ================ =========== ============
-   OS          docs            lint        vendoring    packages
-======== =============== ================ =========== ============
-Linux     Travis, Github  Travis, Github    Travis      Azure
-Windows                                                 Azure
-MacOS                                                   Azure
-======== =============== ================ =========== ============
+======== =============== ================ ================== ============
+   OS          docs            lint           vendoring        packages
+======== =============== ================ ================== ============
+Linux     Travis, Github  Travis, Github    Travis, Github      Azure
+Windows                                                         Azure
+MacOS                                                           Azure
+======== =============== ================ ================== ============
 
 Actual testing
 --------------
