@@ -13,7 +13,7 @@ from pip._internal.utils.logging import get_indentation
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Iterator, IO
+    from typing import Iterator, IO, Any
 
 logger = logging.getLogger(__name__)
 
@@ -32,6 +32,7 @@ class InteractiveSpinner(SpinnerInterface):
     def __init__(self, message, file=None, spin_chars="-\\|/",
                  # Empirically, 8 updates/second looks nice
                  min_update_interval_seconds=0.125):
+        # type: (str, IO[str], str, float) -> None
         self._message = message
         if file is None:
             file = sys.stdout
@@ -45,6 +46,7 @@ class InteractiveSpinner(SpinnerInterface):
         self._width = 0
 
     def _write(self, status):
+        # type: (str) -> None
         assert not self._finished
         # Erase what we wrote before by backspacing to the beginning, writing
         # spaces to overwrite the old text, and then backspacing again
@@ -87,6 +89,7 @@ class NonInteractiveSpinner(SpinnerInterface):
         self._update("started")
 
     def _update(self, status):
+        # type: (str) -> None
         assert not self._finished
         self._rate_limiter.reset()
         logger.info("%s: %s", self._message, status)
@@ -151,7 +154,7 @@ def open_spinner(message):
 
 @contextlib.contextmanager
 def hidden_cursor(file):
-    # type: (IO) -> Iterator[None]
+    # type: (IO[str]) -> Iterator[None]
     # The Windows terminal does not support the hide/show cursor ANSI codes,
     # even via colorama. So don't even try.
     if WINDOWS:
