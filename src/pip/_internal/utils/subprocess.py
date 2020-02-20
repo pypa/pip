@@ -9,7 +9,7 @@ import subprocess
 
 from pip._vendor.six.moves import shlex_quote
 
-from pip._internal.cli.spinners import open_spinner, SpinnerInterface
+from pip._internal.cli.spinners import SpinnerInterface, open_spinner
 from pip._internal.exceptions import InstallationError
 from pip._internal.utils.compat import console_to_str, str_to_display
 from pip._internal.utils.logging import subprocess_logger

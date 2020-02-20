@@ -2,7 +2,7 @@ from __future__ import division
 
 import itertools
 import sys
-from signal import SIGINT, default_int_handler, signal, Signals
+from signal import SIGINT, default_int_handler, signal
 
 from pip._vendor import six
 from pip._vendor.progress.bar import Bar, FillingCirclesBar, IncrementalBar
@@ -14,8 +14,7 @@ from pip._internal.utils.misc import format_size
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Dict, List, Iterator
-    from types import FrameType
+    from typing import Any, Dict, List
 
 try:
     from pip._vendor import colorama
@@ -79,7 +78,10 @@ class InterruptibleMixin(object):
         """
         Save the original SIGINT handler for later.
         """
-        super(InterruptibleMixin, self).__init__(*args, **kwargs) # type: ignore
+        super(InterruptibleMixin, self).__init__(  # type: ignore
+            *args,
+            **kwargs
+        )
 
         self.original_handler = signal(SIGINT, self.handle_sigint)
 
@@ -99,11 +101,10 @@ class InterruptibleMixin(object):
         This should happen regardless of whether the progress display finishes
         normally, or gets interrupted.
         """
-        super(InterruptibleMixin, self).finish() # type: ignore
+        super(InterruptibleMixin, self).finish()  # type: ignore
         signal(SIGINT, self.original_handler)
 
-    def handle_sigint(self, signum, frame):
-        # type: (Signals, FrameType) -> None
+    def handle_sigint(self, signum, frame):  # type: ignore
         """
         Call self.finish() before delegating to the original SIGINT handler.
 
@@ -111,7 +112,7 @@ class InterruptibleMixin(object):
         active.
         """
         self.finish()
-        self.original_handler(signum, frame) # type: ignore
+        self.original_handler(signum, frame)
 
 
 class SilentBar(Bar):
@@ -133,30 +134,35 @@ class DownloadProgressMixin(object):
 
     def __init__(self, *args, **kwargs):
         # type: (List[Any], Dict[Any, Any]) -> None
-        super(DownloadProgressMixin, self).__init__(*args, **kwargs) # type: ignore
-        self.message = (" " * (get_indentation() + 2)) + self.message # type: str
+        super(DownloadProgressMixin, self).__init__(  # type: ignore
+            *args,
+            **kwargs
+        )
+        self.message = (" " * (
+            get_indentation() + 2
+        )) + self.message  # type: str
 
     @property
     def downloaded(self):
         # type: () -> str
-        return format_size(self.index) # type: ignore
+        return format_size(self.index)  # type: ignore
 
     @property
     def download_speed(self):
         # type: () -> str
         # Avoid zero division errors...
-        if self.avg == 0.0: # type: ignore
+        if self.avg == 0.0:  # type: ignore
             return "..."
-        return format_size(1 / self.avg) + "/s" # type: ignore
+        return format_size(1 / self.avg) + "/s"  # type: ignore
 
     @property
     def pretty_eta(self):
         # type: () -> str
-        if self.eta: # type: ignore
-            return "eta {}".format(self.eta_td) # type: ignore
+        if self.eta:  # type: ignore
+            return "eta {}".format(self.eta_td)  # type: ignore
         return ""
 
-    def iter(self, it): # type: ignore
+    def iter(self, it):  # type: ignore
         for x in it:
             yield x
             self.next(len(x))
@@ -174,15 +180,15 @@ class WindowsMixin(object):
         # is set in time. The base progress bar class writes the "hide cursor"
         # code to the terminal in its init, so if we don't set this soon
         # enough, we get a "hide" with no corresponding "show"...
-        if WINDOWS and self.hide_cursor: # type: ignore
+        if WINDOWS and self.hide_cursor:  # type: ignore
             self.hide_cursor = False
 
-        super(WindowsMixin, self).__init__(*args, **kwargs) # type: ignore
+        super(WindowsMixin, self).__init__(*args, **kwargs)  # type: ignore
 
         # Check if we are running on Windows and we have the colorama module,
         # if we do then wrap our file with it.
         if WINDOWS and colorama:
-            self.file = colorama.AnsiToWin32(self.file) # type: ignore
+            self.file = colorama.AnsiToWin32(self.file)  # type: ignore
             # The progress code expects to be able to call self.file.isatty()
             # but the colorama.AnsiToWin32() object doesn't have that, so we'll
             # add it.
@@ -234,7 +240,7 @@ class DownloadProgressSpinner(WindowsMixin, InterruptibleMixin,
     file = sys.stdout
     suffix = "%(downloaded)s %(download_speed)s"
 
-    def next_phase(self): # type: ignore
+    def next_phase(self):  # type: ignore
         if not hasattr(self, "_phaser"):
             self._phaser = itertools.cycle(self.phases)
         return next(self._phaser)
@@ -264,7 +270,7 @@ BAR_TYPES = {
 }
 
 
-def DownloadProgressProvider(progress_bar, max=None): # type: ignore
+def DownloadProgressProvider(progress_bar, max=None):  # type: ignore
     if max is None or max == 0:
         return BAR_TYPES[progress_bar][1]().iter
     else:
