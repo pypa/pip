@@ -9,9 +9,6 @@ jobs:
     vmImage: ${{ parameters.vmImage }}
   strategy:
     matrix:
-      Python27-x86:
-        python.version: '2.7'
-        python.architecture: x86
       Python27-x64:
         python.version: '2.7'
         python.architecture: x64
@@ -56,6 +53,9 @@ jobs:
   strategy:
     matrix:
       # This is for Windows, so test x86 builds
+      Python27-x86:
+        python.version: '2.7'
+        python.architecture: x86
       Python35-x86:
         python.version: '3.5'
         python.architecture: x86
