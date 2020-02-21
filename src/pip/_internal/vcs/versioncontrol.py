@@ -30,7 +30,7 @@ if MYPY_CHECK_RUNNING:
         Any, Dict, Iterable, Iterator, List, Mapping, Optional, Text, Tuple,
         Type, Union
     )
-    from pip._internal.utils.ui import SpinnerInterface
+    from pip._internal.cli.spinners import SpinnerInterface
     from pip._internal.utils.misc import HiddenText
     from pip._internal.utils.subprocess import CommandArgs
 
