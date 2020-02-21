@@ -67,7 +67,7 @@ pip test suite and checks are distributed on three different platforms that
 provides free executors for open source packages:
 
   - `Travis CI`_ (Used for Linux)
-  - `Azure DevOps CI`_ (Linux, MacOS & Windows tests)
+  - `Azure DevOps CI`_ (Used for Windows)
   - `GitHub Actions`_ (Linux, MacOS & Windows tests)
 
 .. _`Travis CI`: https://travis-ci.org/
@@ -91,9 +91,9 @@ Developer tasks
 ======== =============== ================ ================== ============
    OS          docs            lint           vendoring        packages
 ======== =============== ================ ================== ============
-Linux     Travis, Github  Travis, Github    Travis, Github      Azure
+Linux     Travis, Github  Travis, Github    Travis, Github
 Windows   Azure           Azure             Azure               Azure
-MacOS                                                           Azure
+MacOS
 ======== =============== ================ ================== ============
 
 Actual testing
@@ -144,13 +144,13 @@ Actual testing
 |           |          +-------+---------------+-----------------+
 |           |          | PyPy3 |               |                 |
 |   Linux   +----------+-------+---------------+-----------------+
-|           |          | CP2.7 | Travis,Azure  |  Travis,Azure   |
+|           |          | CP2.7 |   Travis      |   Travis        |
 |           |          +-------+---------------+-----------------+
-|           |          | CP3.5 | Travis,Azure  |  Travis,Azure   |
+|           |          | CP3.5 |   Travis      |   Travis        |
 |           |          +-------+---------------+-----------------+
-|           |          | CP3.6 | Travis,Azure  |  Travis,Azure   |
+|           |          | CP3.6 |   Travis      |   Travis        |
 |           |          +-------+---------------+-----------------+
-|           |   x64    | CP3.7 | Travis,Azure  |  Travis,Azure   |
+|           |   x64    | CP3.7 |   Travis      |   Travis        |
 |           |          +-------+---------------+-----------------+
 |           |          | CP3.8 |   Travis      |   Travis        |
 |           |          +-------+---------------+-----------------+
@@ -172,13 +172,13 @@ Actual testing
 |           |          +-------+---------------+-----------------+
 |           |          | PyPy3 |               |                 |
 |   MacOS   +----------+-------+---------------+-----------------+
-|           |          | CP2.7 |   Azure       |   Azure         |
+|           |          | CP2.7 |               |                 |
 |           |          +-------+---------------+-----------------+
-|           |          | CP3.5 |   Azure       |   Azure         |
+|           |          | CP3.5 |               |                 |
 |           |          +-------+---------------+-----------------+
-|           |          | CP3.6 |   Azure       |   Azure         |
+|           |          | CP3.6 |               |                 |
 |           |          +-------+---------------+-----------------+
-|           |   x64    | CP3.7 |   Azure       |   Azure         |
+|           |   x64    | CP3.7 |               |                 |
 |           |          +-------+---------------+-----------------+
 |           |          | CP3.8 |               |                 |
 |           |          +-------+---------------+-----------------+
