@@ -66,11 +66,11 @@ class Tests_EgglinkPath:
         self.user_site = 'USER_SITE'
         self.user_site_egglink = os.path.join(
             self.user_site,
-            '%s.egg-link' % project
+            '{}.egg-link'.format(project)
         )
         self.site_packages_egglink = os.path.join(
             self.site_packages,
-            '%s.egg-link' % project,
+            '{}.egg-link'.format(project),
         )
 
         # patches

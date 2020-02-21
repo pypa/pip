@@ -55,7 +55,7 @@ class PipOptions(rst.Directive):
             line += option._long_opts[0]
         if option.takes_value():
             metavar = option.metavar or option.dest.lower()
-            line += " <%s>" % metavar.lower()
+            line += " <{}>".format(metavar.lower())
         # fix defaults
         opt_help = option.help.replace('%default', str(option.default))
         # fix paths with sys.prefix

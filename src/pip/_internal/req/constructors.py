@@ -123,8 +123,8 @@ def parse_editable(editable_req):
             return package_name, url_no_extras, None
 
     for version_control in vcs:
-        if url.lower().startswith('%s:' % version_control):
-            url = '%s+%s' % (version_control, url)
+        if url.lower().startswith('{}:'.format(version_control)):
+            url = '{}+{}'.format(version_control, url)
             break
 
     if '+' not in url:
@@ -175,8 +175,8 @@ def deduce_helpful_msg(req):
                     " the packages specified within it."
                 ).format(req)
         except RequirementParseError:
-            logger.debug("Cannot parse '%s' as requirements \
-            file" % (req), exc_info=True)
+            logger.debug("Cannot parse '{}' as requirements \
+            file".format(req), exc_info=True)
     else:
         msg += " File '{}' does not exist.".format(req)
     return msg
