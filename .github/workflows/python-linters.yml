@@ -14,10 +14,7 @@ jobs:
       ${{ matrix.env.TOXENV }}/${{ matrix.python-version }}@${{ matrix.os }}
     runs-on: ${{ matrix.os }}
     strategy:
-      # max-parallel: 5
       matrix:
-        python-version:
-        - 3.8
         os:
         - ubuntu-latest
         - windows-latest
