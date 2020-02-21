@@ -68,9 +68,7 @@ jobs:
     - name: Log the list of packages
       run: python -m pip freeze --all
 
-    - name: Test with tox
-      run: >-
-        python -m
-        tox
-        --parallel auto
+    # Run checks with tox
+    - name: Run tox
+      run: python -m tox --parallel auto
       env: ${{ matrix.env }}
