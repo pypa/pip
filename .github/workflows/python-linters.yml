@@ -28,6 +28,8 @@ jobs:
       TOX_PARALLEL_NO_SPINNER: 1
 
     steps:
+
+    # Setup Python and git.
     - uses: actions/checkout@master
 
     - name: Set up Python 3.8
@@ -43,6 +45,10 @@ jobs:
     - name: Log Python env
       run: >-
         python -m sysconfig
+    - name: Pre-configure global Git settings
+      run: |
+        git config --global user.email "pypa-dev@googlegroups.com"
+        git config --global user.name "pip"
     - name: Pip cache
       uses: actions/cache@v1
       with:
@@ -57,10 +63,6 @@ jobs:
       with:
         path: ~/.cache/pre-commit
         key: pre-commit|2020-02-14|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
-    - name: Pre-configure global Git settings
-      run: |
-        git config --global user.email "pypa-dev@googlegroups.com"
-        git config --global user.name "pip"
     - name: Update setuptools
       run: >-
         python -m pip install --upgrade setuptools
