@@ -34,28 +34,30 @@ and on different architectures:
   - x64
   - x86
 
-so 42 hypothetical interpreters.
+so 42 hypothetical combinations.
 
 
 Checks
 ======
 
-``pip`` CI runs different kind of tests:
+``pip`` CI runs various "checks":
 
-- lint (defined in ``.pre-commit-config.yaml``)
-- docs
-- vendoring (is the ``src/_internal/_vendor`` directory cleanly vendored)
-- unit tests (present in ``tests/unit``)
-- "integration" tests (mostly present in ``tests/functional``)
-- package (test the packaging steps)
+- Development tooling
+  - docs (does the documentation build correctly?)
+  - lint (automated code quality checks, run with ``pre-commit``)
+  - vendoring (is ``src/pip/_vendor`` correctly constructed?)
+- Tests
+  - unit tests (present in ``tests/unit``)
+  - "integration" tests (mostly present in ``tests/functional``)
+- Packaging (test the packaging steps)
 
-Since lint, docs, vendoring and package tests only need to run on a pip
-developer/contributor machine, they only need to be tested on the x64 variant
-of the 3 different operating systems, and when an interpreter needs to be
-specified it's ok to require the latest CPython interpreter.
+We run development tooling checks on the latest CPython (x64), on every
+OS. This helps ensure they'll also run on a pip developer/contributor's
+machine regardless of the OS they use.
 
-So only unit tests and integration tests would need to be run with the different
-interpreters.
+We try to run the tests on as many interpreter-OS-architecture
+combinations as we can, without having a significant slowdown on our
+productivity due to CI wait times.
 
 
 Services
@@ -91,7 +93,7 @@ Actual testing
 --------------
 
 +------------------------------+---------------+-----------------+
-|       **interpreter**        |   **unit**    | **integration** |
+|       **combination**        |   **unit**    | **integration** |
 +-----------+----------+-------+---------------+-----------------+
 |           |          | CP2.7 |   Azure       |   Azure         |
 |           |          +-------+---------------+-----------------+
