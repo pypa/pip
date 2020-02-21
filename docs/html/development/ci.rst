@@ -68,7 +68,7 @@ provides free executors for open source packages:
 
   - `Travis CI`_ (Used for Linux)
   - `Azure DevOps CI`_ (Used for Windows)
-  - `GitHub Actions`_ (Linux, MacOS & Windows tests)
+  - `GitHub Actions`_ (Used for MacOS)
 
 .. _`Travis CI`: https://travis-ci.org/
 .. _`Azure DevOps CI`: https://azure.microsoft.com/en-us/services/devops/
@@ -91,9 +91,9 @@ Developer tasks
 ======== =============== ================ ================== ============
    OS          docs            lint           vendoring        packages
 ======== =============== ================ ================== ============
-Linux     Travis, Github  Travis, Github    Travis, Github
+Linux     Travis          Travis            Travis
 Windows   Azure           Azure             Azure               Azure
-MacOS
+MacOS     GitHub          GitHub            GitHub
 ======== =============== ================ ================== ============
 
 Actual testing
