@@ -1,4 +1,4 @@
-name: 🤖
+name: MacOS
 
 on:
   push:
@@ -9,23 +9,13 @@ on:
   - cron: 2 18 * * 5
 
 jobs:
-  linters:
-    name: @${{ matrix.os }} ${{ matrix.env.TOXENV }}
-    runs-on: ${{ matrix.os }}-latest
-
-    strategy:
-      matrix:
-        os:
-        - ubuntu
-        - windows
-        - macos
-        env:
-        - TOXENV: docs
-        - TOXENV: lint
-        - TOXENV: vendoring
+  dev-tools:
+    name: Developer Tooling
+    runs-on: macos-latest
 
     env:
       TOX_PARALLEL_NO_SPINNER: 1
+      TOXENV: lint,docs,vendoring
 
     steps:
 
