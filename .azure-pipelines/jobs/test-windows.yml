@@ -29,6 +29,14 @@ jobs:
       Python38-x64:
         python.version: '3.8'
         python.architecture: x64
+      PyPy2:
+        python.version: '2.7'
+        python.architecture: x64
+        python.flavor: pypy
+      PyPy3:
+        python.version: '3.5'
+        python.architecture: x64
+        python.flavor: pypy
     maxParallel: 6
 
   steps:
