@@ -289,7 +289,7 @@ def test_pep517_wheels_are_not_confused_with_other_files(script, tmpdir, data):
     result = script.pip('wheel', pkg_to_wheel, '-w', script.scratch_path)
     assert "Installing build dependencies" in result.stdout, result.stdout
 
-    wheel_file_name = 'withpyproject-0.0.1-py%s-none-any.whl' % pyversion[0]
+    wheel_file_name = 'withpyproject-0.0.1-py{}-none-any.whl'.format(pyversion[0])
     wheel_file_path = script.scratch / wheel_file_name
     assert wheel_file_path in result.files_created, result.stdout
 
@@ -303,6 +303,6 @@ def test_legacy_wheels_are_not_confused_with_other_files(script, tmpdir, data):
     result = script.pip('wheel', pkg_to_wheel, '-w', script.scratch_path)
     assert "Installing build dependencies" not in result.stdout, result.stdout
 
-    wheel_file_name = 'simplewheel-1.0-py%s-none-any.whl' % pyversion[0]
+    wheel_file_name = 'simplewheel-1.0-py{}-none-any.whl'.format(pyversion[0])
     wheel_file_path = script.scratch / wheel_file_name
     assert wheel_file_path in result.files_created, result.stdout

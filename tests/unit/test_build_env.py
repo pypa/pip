@@ -79,13 +79,13 @@ def test_build_env_allow_only_one_install(script):
     build_env = BuildEnvironment()
     for prefix in ('normal', 'overlay'):
         build_env.install_requirements(finder, ['foo'], prefix,
-                                       'installing foo in %s' % prefix)
+                                       'installing foo in {}'.format(prefix))
         with pytest.raises(AssertionError):
             build_env.install_requirements(finder, ['bar'], prefix,
-                                           'installing bar in %s' % prefix)
+                                           'installing bar in {}'.format(prefix))
         with pytest.raises(AssertionError):
             build_env.install_requirements(finder, [], prefix,
-                                           'installing in %s' % prefix)
+                                           'installing in {}'.format(prefix))
 
 
 def test_build_env_requirements_check(script):

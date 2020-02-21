@@ -900,7 +900,7 @@ def assert_raises_regexp(exception, reg, run, *args, **kwargs):
 
     try:
         run(*args, **kwargs)
-        assert False, "%s should have been thrown" % exception
+        assert False, "{} should have been thrown".format(exception)
     except exception:
         e = sys.exc_info()[1]
         p = re.compile(reg)
@@ -1075,7 +1075,7 @@ def need_executable(name, check_cmd):
         try:
             subprocess.check_output(check_cmd)
         except OSError:
-            return pytest.mark.skip(reason='%s is not available' % name)(fn)
+            return pytest.mark.skip(reason='{} is not available'.format(name))(fn)
         return fn
     return wrapper
 

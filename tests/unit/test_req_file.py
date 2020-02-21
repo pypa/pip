@@ -282,7 +282,7 @@ class TestProcessLine(object):
 
     def test_yield_editable_requirement(self, line_processor):
         url = 'git+https://url#egg=SomeProject'
-        line = '-e %s' % url
+        line = '-e {}'.format(url)
         filename = 'filename'
         comes_from = '-r {} (line {})'.format(filename, 1)
         req = install_req_from_editable(url, comes_from=comes_from)
