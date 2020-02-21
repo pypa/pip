@@ -14,7 +14,6 @@ jobs:
     runs-on: macos-latest
 
     env:
-      TOX_PARALLEL_NO_SPINNER: 1
       TOXENV: lint,docs,vendoring
 
     steps:
@@ -60,4 +59,4 @@ jobs:
 
     # Run checks with tox
     - name: Run tox
-      run: python -m tox --parallel auto
+      run: python -m tox
