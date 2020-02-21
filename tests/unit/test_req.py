@@ -189,7 +189,7 @@ class TestRequirementSet(object):
         ))
         dir_path = data.packages.joinpath('FSPkg')
         reqset.add_requirement(get_processed_req_from_line(
-            'file://%s' % (dir_path,),
+            'file://{}'.format(dir_path),
             lineno=2,
         ))
         finder = make_test_finder(find_links=[data.find_links])
@@ -249,7 +249,7 @@ class TestRequirementSet(object):
             (data.packages / 'simple-1.0.tar.gz').resolve())
         reqset = RequirementSet()
         reqset.add_requirement(get_processed_req_from_line(
-            '%s --hash=sha256:badbad' % file_url, lineno=1,
+            '{} --hash=sha256:badbad'.format(file_url), lineno=1,
         ))
         finder = make_test_finder(find_links=[data.find_links])
         with self._basic_resolver(finder, require_hashes=True) as resolver:
