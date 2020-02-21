@@ -535,11 +535,11 @@ def install_unpacked_wheel(
 
     # Generate the console and GUI entry points specified in the wheel
     scripts_to_generate.extend(
-        '{} = {}'.format(kv) for kv in console.items()
+        '%s = %s' % kv for kv in console.items()
     )
 
     gui_scripts_to_generate = [
-        '{} = {}'.format(kv) for kv in gui.items()
+        '%s = %s' % kv for kv in gui.items()
     ]
 
     generated_console_scripts = []  # type: List[str]
