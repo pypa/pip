@@ -36,15 +36,6 @@ jobs:
       uses: actions/setup-python@v1
       with:
         python-version: 3.8
-    - name: Log Python version
-      run: >-
-        python --version
-    - name: Log Python location
-      run: >-
-        which python
-    - name: Log Python env
-      run: >-
-        python -m sysconfig
     - name: Pre-configure global Git settings
       run: |
         git config --global user.email "pypa-dev@googlegroups.com"
