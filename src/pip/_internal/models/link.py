@@ -77,7 +77,7 @@ class Link(KeyBasedCompareMixin):
 
     def __repr__(self):
         # type: () -> str
-        return '<Link %s>' % self
+        return '<Link {}>'.format(self)
 
     @property
     def url(self):

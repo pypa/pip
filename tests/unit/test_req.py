@@ -449,14 +449,14 @@ class TestInstallRequirement(object):
     def test_markers_url(self):
         # test "URL; markers" syntax
         url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
-        line = '%s; python_version >= "3"' % url
+        line = '; python_version >= "3"'.format(url)
         req = install_req_from_line(line)
         assert req.link.url == url, req.url
         assert str(req.markers) == 'python_version >= "3"'
 
         # without space, markers are part of the URL
         url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
-        line = '%s;python_version >= "3"' % url
+        line = ';python_version >= "3"'.format(url)
         req = install_req_from_line(line)
         assert req.link.url == line, req.url
         assert req.markers is None
@@ -506,7 +506,7 @@ class TestInstallRequirement(object):
     def test_extras_for_line_path_requirement(self):
         line = 'SomeProject[ex1,ex2]'
         filename = 'filename'
-        comes_from = '-r %s (line %s)' % (filename, 1)
+        comes_from = '-r {} (line {})'.format(filename, 1)
         req = install_req_from_line(line, comes_from=comes_from)
         assert len(req.extras) == 2
         assert req.extras == {'ex1', 'ex2'}
@@ -514,7 +514,7 @@ class TestInstallRequirement(object):
     def test_extras_for_line_url_requirement(self):
         line = 'git+https://url#egg=SomeProject[ex1,ex2]'
         filename = 'filename'
-        comes_from = '-r %s (line %s)' % (filename, 1)
+        comes_from = '-r {} (line {})'.format(filename, 1)
         req = install_req_from_line(line, comes_from=comes_from)
         assert len(req.extras) == 2
         assert req.extras == {'ex1', 'ex2'}
@@ -522,7 +522,7 @@ class TestInstallRequirement(object):
     def test_extras_for_editable_path_requirement(self):
         url = '.[ex1,ex2]'
         filename = 'filename'
-        comes_from = '-r %s (line %s)' % (filename, 1)
+        comes_from = '-r {} (line {})'.format(filename, 1)
         req = install_req_from_editable(url, comes_from=comes_from)
         assert len(req.extras) == 2
         assert req.extras == {'ex1', 'ex2'}
@@ -530,7 +530,7 @@ class TestInstallRequirement(object):
     def test_extras_for_editable_url_requirement(self):
         url = 'git+https://url#egg=SomeProject[ex1,ex2]'
         filename = 'filename'
-        comes_from = '-r %s (line %s)' % (filename, 1)
+        comes_from = '-r {} (line {})'.format(filename, 1)
         req = install_req_from_editable(url, comes_from=comes_from)
         assert len(req.extras) == 2
         assert req.extras == {'ex1', 'ex2'}
