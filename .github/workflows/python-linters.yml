@@ -1,6 +1,4 @@
-name: >-
-  🤖
-  Code quality
+name: 🤖
 
 on:
   push:
