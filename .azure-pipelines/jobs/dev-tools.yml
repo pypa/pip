@@ -2,7 +2,7 @@ parameters:
   vmImage:
 
 jobs:
-- job: Developer Tooling
+- job: Developer_Tooling
   steps:
   - task: UsePythonVersion@0
     displayName: Use Python 3 latest

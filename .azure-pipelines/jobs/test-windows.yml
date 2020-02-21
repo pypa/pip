@@ -3,6 +3,7 @@ parameters:
 
 jobs:
 - job: Test_Primary
+  dependsOn: Developer_Tooling
   displayName: Test Primary
 
   pool:
