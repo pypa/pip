@@ -68,21 +68,6 @@ jobs:
     - name: Log the list of packages
       run: python -m pip freeze --all
 
-    - name: 'Initialize tox envs: ${{ matrix.env.TOXENV }}'
-      run: >-
-        python -m
-        tox
-        --parallel auto
-        --notest
-        --skip-missing-interpreters false
-      env: ${{ matrix.env }}
-    - name: Pre-fetch pre-commit hooks
-      # This is to separate test step from deps install
-      if: matrix.env.TOXENV == 'lint'
-      run: >-
-        .tox/lint/${{ runner.os == 'Windows' && 'Scripts' || 'bin' }}/python -m
-        pre_commit
-        install-hooks
     - name: Test with tox
       run: >-
         python -m
