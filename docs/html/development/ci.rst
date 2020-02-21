@@ -92,7 +92,7 @@ Developer tasks
    OS          docs            lint           vendoring        packages
 ======== =============== ================ ================== ============
 Linux     Travis, Github  Travis, Github    Travis, Github      Azure
-Windows                                                         Azure
+Windows   Azure           Azure             Azure               Azure
 MacOS                                                           Azure
 ======== =============== ================ ================== ============
 

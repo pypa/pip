@@ -1,4 +1,9 @@
 jobs:
+
+- template: jobs/dev-tools.yml
+  parameters:
+    vmImage: vs2017-win2016
+
 - template: jobs/test-windows.yml
   parameters:
     vmImage: vs2017-win2016

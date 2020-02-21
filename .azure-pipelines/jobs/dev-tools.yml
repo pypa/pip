@@ -1,0 +1,16 @@
+parameters:
+  vmImage:
+
+jobs:
+- job: Developer Tooling
+  steps:
+  - task: UsePythonVersion@0
+    displayName: Use Python 3 latest
+    inputs:
+      versionSpec: '3'
+
+  - bash: pip install tox
+    displayName: Install dependencies
+
+  - bash: tox -e lint,docs,vendoring
+    displayName: Run the development tools
