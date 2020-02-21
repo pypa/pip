@@ -61,4 +61,3 @@ jobs:
     # Run checks with tox
     - name: Run tox
       run: python -m tox --parallel auto
-      env: ${{ matrix.env }}
