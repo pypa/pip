@@ -40,7 +40,12 @@ jobs:
       run: |
         git config --global user.email "pypa-dev@googlegroups.com"
         git config --global user.name "pip"
-    - name: Pip cache
+
+    # Set up caching
+    - name: set PY
+      run: echo "::set-env name=PY::$(python -VV | sha256sum | cut -d' ' -f1)"
+
+    - name: Storing pip's cache
       uses: actions/cache@v1
       with:
         path: ~/.cache/pip
@@ -48,12 +53,13 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-pip-
           ${{ runner.os }}-
-    - name: set PY
-      run: echo "::set-env name=PY::$(python -VV | sha256sum | cut -d' ' -f1)"
-    - uses: actions/cache@v1
+
+    - name: Storing pre-commit's cache
+      uses: actions/cache@v1
       with:
         path: ~/.cache/pre-commit
         key: pre-commit|2020-02-14|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
+
     - name: Update setuptools
       run: >-
         python -m pip install --upgrade setuptools
