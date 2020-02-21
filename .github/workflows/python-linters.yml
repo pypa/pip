@@ -60,15 +60,14 @@ jobs:
         path: ~/.cache/pre-commit
         key: pre-commit|2020-02-14|${{ env.PY }}|${{ hashFiles('.pre-commit-config.yaml') }}
 
+    # Update tooling
     - name: Update setuptools
-      run: >-
-        python -m pip install --upgrade setuptools
+      run: python -m pip install --upgrade setuptools
     - name: Install tox
-      run: >-
-        python -m pip install --upgrade tox tox-venv
+      run: python -m pip install --upgrade tox
     - name: Log the list of packages
-      run: >-
-        python -m pip freeze --all
+      run: python -m pip freeze --all
+
     - name: 'Initialize tox envs: ${{ matrix.env.TOXENV }}'
       run: >-
         python -m
