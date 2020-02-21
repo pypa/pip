@@ -449,14 +449,14 @@ class TestInstallRequirement(object):
     def test_markers_url(self):
         # test "URL; markers" syntax
         url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
-        line = '; python_version >= "3"'.format(url)
+        line = '{}; python_version >= "3"'.format(url)
         req = install_req_from_line(line)
         assert req.link.url == url, req.url
         assert str(req.markers) == 'python_version >= "3"'
 
         # without space, markers are part of the URL
         url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
-        line = ';python_version >= "3"'.format(url)
+        line = '{};python_version >= "3"'.format(url)
         req = install_req_from_line(line)
         assert req.link.url == line, req.url
         assert req.markers is None
