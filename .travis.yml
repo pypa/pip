@@ -13,11 +13,9 @@ stages:
 
 jobs:
   include:
-    # Basic Checks
+    # Developer Tooling
     - stage: primary
-      env: TOXENV=docs
-    - env: TOXENV=lint
-    - env: TOXENV=vendoring
+      env: TOXENV=lint,docs,vendoring
     # Latest CPython
     - env: GROUP=1
       python: 2.7
