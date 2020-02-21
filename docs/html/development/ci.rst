@@ -74,6 +74,13 @@ provides free executors for open source packages:
 .. _`Azure DevOps CI`: https://azure.microsoft.com/en-us/services/devops/
 .. _`GitHub Actions`: https://github.com/features/actions
 
+TODO
+
+- how many workers we get per-CI-service.
+- add links to "most relevant resources" for each CI-service.
+- describe how our runs are set up for short-circuiting on failures in
+  linting / documentation / vendoring / unit tests / integration tests.
+
 
 Current run tests
 =================
