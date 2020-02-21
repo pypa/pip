@@ -10,15 +10,15 @@ on:
 
 jobs:
   linters:
-    name: >-
-      ${{ matrix.env.TOXENV }}/${{ matrix.python-version }}@${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
+    name: @${{ matrix.os }} ${{ matrix.env.TOXENV }}
+    runs-on: ${{ matrix.os }}-latest
+
     strategy:
       matrix:
         os:
-        - ubuntu-latest
-        - windows-latest
-        - macos-latest
+        - ubuntu
+        - windows
+        - macos
         env:
         - TOXENV: docs
         - TOXENV: lint
