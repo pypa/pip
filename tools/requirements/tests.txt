@@ -1,6 +1,7 @@
 cryptography==2.8
 csv23
-enum34; python_version < '3.4'
+# Avoid issue with 1.1.8: https://bitbucket.org/stoneleaf/enum34/issues/27/enum34-118-broken
+enum34==1.1.6; python_version < '3.4'
 freezegun
 mock
 pretend
