@@ -107,43 +107,42 @@ class DownloadCommand(RequirementCommand):
             globally_managed=True,
         )
 
-        if True:  # Temporary, to keep commit clean
-            reqs = self.get_requirements(
-                args,
-                options,
-                finder,
-                session,
-                None
-            )
+        reqs = self.get_requirements(
+            args,
+            options,
+            finder,
+            session,
+            None
+        )
 
-            preparer = self.make_requirement_preparer(
-                temp_build_dir=directory,
-                options=options,
-                req_tracker=req_tracker,
-                session=session,
-                finder=finder,
-                download_dir=options.download_dir,
-                use_user_site=False,
-            )
+        preparer = self.make_requirement_preparer(
+            temp_build_dir=directory,
+            options=options,
+            req_tracker=req_tracker,
+            session=session,
+            finder=finder,
+            download_dir=options.download_dir,
+            use_user_site=False,
+        )
 
-            resolver = self.make_resolver(
-                preparer=preparer,
-                finder=finder,
-                options=options,
-                py_version_info=options.python_version,
-            )
+        resolver = self.make_resolver(
+            preparer=preparer,
+            finder=finder,
+            options=options,
+            py_version_info=options.python_version,
+        )
 
-            self.trace_basic_info(finder)
+        self.trace_basic_info(finder)
 
-            requirement_set = resolver.resolve(
-                reqs, check_supported_wheels=True
-            )
+        requirement_set = resolver.resolve(
+            reqs, check_supported_wheels=True
+        )
 
-            downloaded = ' '.join([
-                req.name for req in requirement_set.requirements.values()
-                if req.successfully_downloaded
-            ])
-            if downloaded:
-                write_output('Successfully downloaded %s', downloaded)
+        downloaded = ' '.join([
+            req.name for req in requirement_set.requirements.values()
+            if req.successfully_downloaded
+        ])
+        if downloaded:
+            write_output('Successfully downloaded %s', downloaded)
 
         return requirement_set
