@@ -18,7 +18,6 @@ from pip._internal.exceptions import (
     InvalidWheelFilename,
     PreviousBuildDirError,
 )
-from pip._internal.legacy_resolve import Resolver
 from pip._internal.network.download import Downloader
 from pip._internal.network.session import PipSession
 from pip._internal.operations.prepare import RequirementPreparer
@@ -38,6 +37,7 @@ from pip._internal.req.req_file import (
     handle_requirement_line,
 )
 from pip._internal.req.req_tracker import get_requirement_tracker
+from pip._internal.resolution.legacy.resolver import Resolver
 from pip._internal.utils.urls import path_to_url
 from tests.lib import assert_raises_regexp, make_test_finder, requirements_file
 

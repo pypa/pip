@@ -14,7 +14,6 @@ from pip._internal.cli.base_command import Command
 from pip._internal.cli.command_context import CommandContextMixIn
 from pip._internal.exceptions import CommandError, PreviousBuildDirError
 from pip._internal.index.package_finder import PackageFinder
-from pip._internal.legacy_resolve import Resolver
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.network.download import Downloader
 from pip._internal.network.session import PipSession
@@ -27,6 +26,7 @@ from pip._internal.req.constructors import (
 )
 from pip._internal.req.req_file import parse_requirements
 from pip._internal.req.req_set import RequirementSet
+from pip._internal.resolution.legacy.resolver import Resolver
 from pip._internal.self_outdated_check import (
     make_link_collector,
     pip_self_version_check,
