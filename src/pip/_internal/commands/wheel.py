@@ -12,7 +12,7 @@ import shutil
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.req_command import RequirementCommand, with_cleanup
-from pip._internal.exceptions import CommandError, PreviousBuildDirError
+from pip._internal.exceptions import CommandError
 from pip._internal.req.req_tracker import get_requirement_tracker
 from pip._internal.utils.misc import ensure_dir, normalize_path
 from pip._internal.utils.temp_dir import TempDirectory
@@ -127,7 +127,7 @@ class WheelCommand(RequirementCommand):
         with get_requirement_tracker() as req_tracker, TempDirectory(
             options.build_dir, delete=build_delete, kind="wheel"
         ) as directory:
-            try:
+            if True:  # Keep block indented temporarily, for a cleaner commit
                 reqs = self.get_requirements(
                     args, options, finder, session,
                     wheel_cache
@@ -186,6 +186,3 @@ class WheelCommand(RequirementCommand):
                     raise CommandError(
                         "Failed to build one or more wheels"
                     )
-            except PreviousBuildDirError:
-                options.no_clean = True
-                raise
