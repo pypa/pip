@@ -1,1 +1,1 @@
-Add logger alert for when 'wheel' is not installed.
+Add logger alert for when ``wheel`` is not installed.
