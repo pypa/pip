@@ -288,7 +288,9 @@ class InstallCommand(RequirementCommand):
         build_delete = (not (options.no_clean or options.build_dir))
         wheel_cache = WheelCache(options.cache_dir, options.format_control)
 
-        with get_requirement_tracker() as req_tracker, TempDirectory(
+        req_tracker = self.enter_context(get_requirement_tracker())
+
+        with TempDirectory(
             options.build_dir, delete=build_delete, kind="install"
         ) as directory:
             try:
