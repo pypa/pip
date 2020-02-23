@@ -1,1 +1,1 @@
-Add logger alert for when ``wheel`` is not installed.
+Indicate when wheel building is skipped, due to lack of the ``wheel`` package.
