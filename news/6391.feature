@@ -1,1 +1,1 @@
-Add ``pip cache`` command for inspecting/managing pip's cache.
+Add ``pip cache`` command for inspecting/managing pip's wheel cache.
