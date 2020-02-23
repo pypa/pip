@@ -28,10 +28,15 @@ from pip._internal.req.constructors import (
     _looks_like_path,
     install_req_from_editable,
     install_req_from_line,
+    install_req_from_parsed_requirement,
     install_req_from_req_string,
     parse_editable,
 )
-from pip._internal.req.req_file import ParsedLine, get_line_parser, handle_line
+from pip._internal.req.req_file import (
+    ParsedLine,
+    get_line_parser,
+    handle_requirement_line,
+)
 from pip._internal.req.req_tracker import get_requirement_tracker
 from pip._internal.utils.urls import path_to_url
 from tests.lib import assert_raises_regexp, make_test_finder, requirements_file
@@ -48,8 +53,9 @@ def get_processed_req_from_line(line, fname='file', lineno=1):
         opts,
         False,
     )
-    req = handle_line(parsed_line)
-    assert req is not None
+    parsed_req = handle_requirement_line(parsed_line)
+    assert parsed_req is not None
+    req = install_req_from_parsed_requirement(parsed_req)
     req.is_direct = True
     return req
 

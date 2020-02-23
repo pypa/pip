@@ -37,6 +37,7 @@ if MYPY_CHECK_RUNNING:
         Any, Dict, Optional, Set, Tuple, Union,
     )
     from pip._internal.cache import WheelCache
+    from pip._internal.req.req_file import ParsedRequirement
 
 
 __all__ = [
@@ -441,3 +442,34 @@ def install_req_from_req_string(
         req, comes_from, isolated=isolated, wheel_cache=wheel_cache,
         use_pep517=use_pep517
     )
+
+
+def install_req_from_parsed_requirement(
+    parsed_req,  # type: ParsedRequirement
+    isolated=False,  # type: bool
+    wheel_cache=None,  # type: Optional[WheelCache]
+    use_pep517=None  # type: Optional[bool]
+):
+    # type: (...) -> InstallRequirement
+    if parsed_req.is_editable:
+        req = install_req_from_editable(
+            parsed_req.requirement,
+            comes_from=parsed_req.comes_from,
+            use_pep517=use_pep517,
+            constraint=parsed_req.constraint,
+            isolated=isolated,
+            wheel_cache=wheel_cache
+        )
+
+    else:
+        req = install_req_from_line(
+            parsed_req.requirement,
+            comes_from=parsed_req.comes_from,
+            use_pep517=use_pep517,
+            isolated=isolated,
+            options=parsed_req.options,
+            wheel_cache=wheel_cache,
+            constraint=parsed_req.constraint,
+            line_source=parsed_req.line_source,
+        )
+    return req
