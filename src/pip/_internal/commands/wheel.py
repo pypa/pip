@@ -124,7 +124,9 @@ class WheelCommand(RequirementCommand):
         options.wheel_dir = normalize_path(options.wheel_dir)
         ensure_dir(options.wheel_dir)
 
-        with get_requirement_tracker() as req_tracker, TempDirectory(
+        req_tracker = self.enter_context(get_requirement_tracker())
+
+        with TempDirectory(
             options.build_dir, delete=build_delete, kind="wheel"
         ) as directory:
             reqs = self.get_requirements(

@@ -98,7 +98,9 @@ class DownloadCommand(RequirementCommand):
         )
         build_delete = (not (options.no_clean or options.build_dir))
 
-        with get_requirement_tracker() as req_tracker, TempDirectory(
+        req_tracker = self.enter_context(get_requirement_tracker())
+
+        with TempDirectory(
             options.build_dir, delete=build_delete, kind="download"
         ) as directory:
             reqs = self.get_requirements(
