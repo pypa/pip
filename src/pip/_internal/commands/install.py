@@ -23,11 +23,7 @@ from pip._internal.cli import cmdoptions
 from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.cli.req_command import RequirementCommand, with_cleanup
 from pip._internal.cli.status_codes import ERROR, SUCCESS
-from pip._internal.exceptions import (
-    CommandError,
-    InstallationError,
-    PreviousBuildDirError,
-)
+from pip._internal.exceptions import CommandError, InstallationError
 from pip._internal.locations import distutils_scheme
 from pip._internal.operations.check import check_install_conflicts
 from pip._internal.req import install_given_reqs
@@ -438,9 +434,6 @@ class InstallCommand(RequirementCommand):
                 logger.error(message, exc_info=show_traceback)
 
                 return ERROR
-            except PreviousBuildDirError:
-                options.no_clean = True
-                raise
 
         if options.target_dir:
             self._handle_target_dir(
