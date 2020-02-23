@@ -29,7 +29,7 @@ from pip._internal.utils.urls import get_url_scheme
 if MYPY_CHECK_RUNNING:
     from optparse import Values
     from typing import (
-        Any, Callable, Iterator, List, NoReturn, Optional, Text, Tuple, Dict,
+        Any, Callable, Dict, Iterator, List, NoReturn, Optional, Text, Tuple,
     )
 
     from pip._internal.index.package_finder import PackageFinder
