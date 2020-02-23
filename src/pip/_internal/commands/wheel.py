@@ -126,9 +126,14 @@ class WheelCommand(RequirementCommand):
 
         req_tracker = self.enter_context(get_requirement_tracker())
 
-        with TempDirectory(
-            options.build_dir, delete=build_delete, kind="wheel"
-        ) as directory:
+        directory = TempDirectory(
+            options.build_dir,
+            delete=build_delete,
+            kind="wheel",
+            globally_managed=True,
+        )
+
+        if True:  # Temporary, to keep commit clean
             reqs = self.get_requirements(
                 args, options, finder, session,
                 wheel_cache

@@ -100,9 +100,14 @@ class DownloadCommand(RequirementCommand):
 
         req_tracker = self.enter_context(get_requirement_tracker())
 
-        with TempDirectory(
-            options.build_dir, delete=build_delete, kind="download"
-        ) as directory:
+        directory = TempDirectory(
+            options.build_dir,
+            delete=build_delete,
+            kind="download",
+            globally_managed=True,
+        )
+
+        if True:  # Temporary, to keep commit clean
             reqs = self.get_requirements(
                 args,
                 options,

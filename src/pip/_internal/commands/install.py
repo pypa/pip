@@ -286,9 +286,14 @@ class InstallCommand(RequirementCommand):
 
         req_tracker = self.enter_context(get_requirement_tracker())
 
-        with TempDirectory(
-            options.build_dir, delete=build_delete, kind="install"
-        ) as directory:
+        directory = TempDirectory(
+            options.build_dir,
+            delete=build_delete,
+            kind="install",
+            globally_managed=True,
+        )
+
+        if True:  # Temporary, to keep commit clean
             try:
                 reqs = self.get_requirements(
                     args, options, finder, session,
