@@ -15,7 +15,7 @@ def test_cache_info(script, monkeypatch):
     result = script.pip('cache', 'info')
     cache_dir = _cache_dir(script)
 
-    assert 'Location: {}'.format(cache_dir) in result.stdout
+    assert 'Location: {}'.format(os.path.normcase(cache_dir)) in result.stdout
     # TODO(@duckinator): This should probably test that the number of
     #   packages is actually correct, but I'm not sure how to do that
     #   without pretty much re-implementing the entire cache info command.
