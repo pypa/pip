@@ -83,6 +83,17 @@ def parse_command(args):
     # the subcommand name
     cmd_name = args_else[0]
 
+    validate_command_args(cmd_name, args_else)
+
+    # all the args without the subcommand
+    cmd_args = args[:]
+    cmd_args.remove(cmd_name)
+
+    return cmd_name, cmd_args
+
+
+def validate_command_args(cmd_name, args_else):
+    # type: (str, List[str]) -> None
     if cmd_name not in commands_dict:
         guess = get_similar_commands(cmd_name)
 
@@ -92,8 +103,6 @@ def parse_command(args):
 
         raise CommandError(' - '.join(msg))
 
-    # all the args without the subcommand
-    cmd_args = args[:]
-    cmd_args.remove(cmd_name)
-
-    return cmd_name, cmd_args
+    if set(['--user', '--target']).issubset(set(args_else)):
+        error_msg = '--user and --target cant not be used together.'
+        raise CommandError(error_msg)
