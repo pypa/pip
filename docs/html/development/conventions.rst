@@ -29,7 +29,7 @@ separating words) and have the extension ``.rst``.
 Encoding
 --------
 
-All files in our documentation must be UTF-8 encoding.
+All files in our documentation must use UTF-8 encoding.
 
 
 File Layout
