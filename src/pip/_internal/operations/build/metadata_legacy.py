@@ -7,7 +7,7 @@ import os
 from pip._internal.exceptions import InstallationError
 from pip._internal.utils.misc import ensure_dir
 from pip._internal.utils.setuptools_build import make_setuptools_egg_info_args
-from pip._internal.utils.subprocess import call_subprocess
+from pip._internal.utils.subprocess import call_subprocess_for_install
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs import vcs
 
@@ -112,7 +112,7 @@ def generate_metadata(
     )
 
     with build_env:
-        call_subprocess(
+        call_subprocess_for_install(
             args,
             cwd=source_dir,
             command_desc='python setup.py egg_info',

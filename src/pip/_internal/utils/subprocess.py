@@ -27,6 +27,18 @@ if MYPY_CHECK_RUNNING:
 LOG_DIVIDER = '----------------------------------------'
 
 
+class SubProcessResult(object):
+    def __init__(self, cmd, returncode, had_error, output):
+        # type: (Union[List[str], CommandArgs], int, bool, List[Text]) -> None
+        """
+        Initialize a SubProcessResult
+        """
+        self.cmd = cmd
+        self.returncode = returncode
+        self.had_error = had_error
+        self.output = output if output else []
+
+
 def make_command(*args):
     # type: (Union[str, HiddenText, CommandArgs]) -> CommandArgs
     """
@@ -113,17 +125,17 @@ def make_subprocess_output_error(
     return msg
 
 
-def call_subprocess(
-    cmd,  # type: Union[List[str], CommandArgs]
-    show_stdout=False,  # type: bool
-    cwd=None,  # type: Optional[str]
-    on_returncode='raise',  # type: str
+def call_subprocess_for_install(
+    cmd,                        # type: Union[List[str], CommandArgs]
+    show_stdout=False,          # type: bool
+    cwd=None,                   # type: Optional[str]
+    on_returncode='raise',      # type: str
     extra_ok_returncodes=None,  # type: Optional[Iterable[int]]
-    command_desc=None,  # type: Optional[str]
-    extra_environ=None,  # type: Optional[Mapping[str, Any]]
-    unset_environ=None,  # type: Optional[Iterable[str]]
-    spinner=None,  # type: Optional[SpinnerInterface]
-    log_failed_cmd=True  # type: Optional[bool]
+    command_desc=None,          # type: Optional[str]
+    extra_environ=None,         # type: Optional[Mapping[str, Any]]
+    unset_environ=None,         # type: Optional[Iterable[str]]
+    spinner=None,               # type: Optional[SpinnerInterface]
+    log_failed_cmd=True         # type: Optional[bool]
 ):
     # type: (...) -> Text
     """
@@ -136,10 +148,6 @@ def call_subprocess(
         prior to calling subprocess.Popen().
       log_failed_cmd: if false, failed commands are not logged, only raised.
     """
-    if extra_ok_returncodes is None:
-        extra_ok_returncodes = []
-    if unset_environ is None:
-        unset_environ = []
     # Most places in pip use show_stdout=False. What this means is--
     #
     # - We connect the child's output (combined stderr and stdout) to a
@@ -155,35 +163,84 @@ def call_subprocess(
     #
     # If show_stdout=True, then the above is still done, but with DEBUG
     # replaced by INFO.
-    if show_stdout:
-        # Then log the subprocess output at INFO level.
-        log_subprocess = subprocess_logger.info
-        used_level = logging.INFO
-    else:
-        # Then log the subprocess output using DEBUG.  This also ensures
-        # it will be logged to the log file (aka user_log), if enabled.
-        log_subprocess = subprocess_logger.debug
-        used_level = logging.DEBUG
-
+    used_level = logging.INFO if show_stdout else logging.DEBUG
     # Whether the subprocess will be visible in the console.
     showing_subprocess = subprocess_logger.getEffectiveLevel() <= used_level
-
-    # Only use the spinner if we're not showing the subprocess output
-    # and we have a spinner.
-    use_spinner = not showing_subprocess and spinner is not None
-
     if command_desc is None:
         command_desc = format_command_args(cmd)
+    proc = _call_subprocess(
+        cmd=cmd, cwd=cwd, spinner=spinner, command_desc=command_desc,
+        extra_environ=extra_environ, unset_environ=unset_environ,
+        log_failed_cmd=log_failed_cmd, log_level=used_level,
+        extra_ok_returncodes=extra_ok_returncodes)
+    if proc.had_error:
+        if on_returncode == "raise":
+            if not showing_subprocess and log_failed_cmd:
+                # Then the subprocess streams haven't been logged to the
+                # console yet.
+                msg = make_subprocess_output_error(
+                    cmd_args=cmd,
+                    cwd=cwd,
+                    lines=proc.output,
+                    exit_status=proc.returncode,
+                )
+                subprocess_logger.error(msg)
+            exc_msg = (
+                "Command errored out with exit status {}: {} "
+                "Check the logs for full command output."
+            ).format(proc.returncode, command_desc)
+            raise InstallationError(exc_msg)
+        elif on_returncode == "warn":
+            subprocess_logger.warning(
+                "Command '{}' had error code {} in {}".format(
+                    command_desc, proc.returncode, cwd))
+        elif on_returncode == "ignore":
+            pass
+        else:
+            raise ValueError(
+                "Invalid value: on_returncode={!r}".format(on_returncode))
+    return "".join(proc.output)
 
-    log_subprocess("Running command %s", command_desc)
+
+def _call_subprocess(
+    cmd,                        # type: Union[List[str], CommandArgs]
+    spinner=None,               # type: Optional[SpinnerInterface]
+    cwd=None,                   # type: Optional[str]
+    log_level=logging.DEBUG,    # type: int
+    command_desc=None,          # type: Optional[str]
+    extra_environ=None,         # type: Optional[Mapping[str, Any]]
+    unset_environ=None,         # type: Optional[Iterable[str]]
+    extra_ok_returncodes=None,  # type: Optional[Iterable[int]]
+    log_failed_cmd=True         # type: Optional[bool]
+):
+    # type: (...) -> SubProcessResult
+    """
+    This function calls the subprocess and returns a SubProcessResult
+    object representing the stdout lines, returncode, and command that
+    was executed. If subprocess logging is enabled, then display it
+    on stdout with the INFO logging level
+    """
+    if unset_environ is None:
+        unset_environ = []
+    if extra_ok_returncodes is None:
+        extra_ok_returncodes = []
+    if log_level == logging.INFO:
+        log_subprocess = subprocess_logger.info
+    else:
+        log_subprocess = subprocess_logger.debug
+    showing_subprocess = subprocess_logger.getEffectiveLevel() <= log_level
+    use_spinner = not showing_subprocess and spinner is not None
+    log_subprocess("Running command {}".format(command_desc))
     env = os.environ.copy()
     if extra_environ:
         env.update(extra_environ)
     for name in unset_environ:
         env.pop(name, None)
+
+    all_output = []
     try:
+        # Convert HiddenText objects to the underlying str.
         proc = subprocess.Popen(
-            # Convert HiddenText objects to the underlying str.
             reveal_command_args(cmd),
             stderr=subprocess.STDOUT, stdin=subprocess.PIPE,
             stdout=subprocess.PIPE, cwd=cwd, env=env,
@@ -192,18 +249,16 @@ def call_subprocess(
     except Exception as exc:
         if log_failed_cmd:
             subprocess_logger.critical(
-                "Error %s while executing command %s", exc, command_desc,
+                "Error %s while executing command %s", exc, command_desc
             )
         raise
-    all_output = []
     while True:
         # The "line" value is a unicode string in Python 2.
         line = console_to_str(proc.stdout.readline())
         if not line:
             break
         line = line.rstrip()
-        all_output.append(line + '\n')
-
+        all_output.append(line + "\n")
         # Show the line immediately.
         log_subprocess(line)
         # Update the spinner.
@@ -215,41 +270,17 @@ def call_subprocess(
         if proc.stdout:
             proc.stdout.close()
     proc_had_error = (
-        proc.returncode and proc.returncode not in extra_ok_returncodes
+        proc.returncode != 0 and proc.returncode not in extra_ok_returncodes
     )
     if use_spinner:
         if proc_had_error:
             spinner.finish("error")
         else:
             spinner.finish("done")
-    if proc_had_error:
-        if on_returncode == 'raise':
-            if not showing_subprocess and log_failed_cmd:
-                # Then the subprocess streams haven't been logged to the
-                # console yet.
-                msg = make_subprocess_output_error(
-                    cmd_args=cmd,
-                    cwd=cwd,
-                    lines=all_output,
-                    exit_status=proc.returncode,
-                )
-                subprocess_logger.error(msg)
-            exc_msg = (
-                'Command errored out with exit status {}: {} '
-                'Check the logs for full command output.'
-            ).format(proc.returncode, command_desc)
-            raise InstallationError(exc_msg)
-        elif on_returncode == 'warn':
-            subprocess_logger.warning(
-                'Command "{}" had error code {} in {}'.format(
-                    command_desc, proc.returncode, cwd)
-            )
-        elif on_returncode == 'ignore':
-            pass
-        else:
-            raise ValueError('Invalid value: on_returncode={!r}'.format(
-                             on_returncode))
-    return ''.join(all_output)
+    return SubProcessResult(
+        cmd=cmd, returncode=proc.returncode,
+        had_error=proc_had_error, output=all_output
+    )
 
 
 def runner_with_spinner_message(message):
@@ -267,7 +298,7 @@ def runner_with_spinner_message(message):
     ):
         # type: (...) -> None
         with open_spinner(message) as spinner:
-            call_subprocess(
+            call_subprocess_for_install(
                 cmd,
                 cwd=cwd,
                 extra_environ=extra_environ,

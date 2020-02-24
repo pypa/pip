@@ -270,8 +270,8 @@ class Subversion(VersionControl):
         svn_version = self.get_vcs_version()
         # By default, Subversion >= 1.8 runs in non-interactive mode if
         # stdin is not a TTY. Since that is how pip invokes SVN, in
-        # call_subprocess(), pip must pass --force-interactive to ensure
-        # the user can be prompted for a password, if required.
+        # call_subprocess_for_install(), pip must pass --force-interactive
+        # to ensure the user can be prompted for a password, if required.
         #   SVN added the --force-interactive option in SVN 1.8. Since
         # e.g. RHEL/CentOS 7, which is supported until 2024, ships with
         # SVN 1.7, pip should continue to support SVN 1.7. Therefore, pip

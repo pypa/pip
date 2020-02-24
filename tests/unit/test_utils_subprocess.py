@@ -10,7 +10,7 @@ from pip._internal.cli.spinners import SpinnerInterface
 from pip._internal.exceptions import InstallationError
 from pip._internal.utils.misc import hide_value
 from pip._internal.utils.subprocess import (
-    call_subprocess,
+    call_subprocess_for_install,
     format_command_args,
     make_command,
     make_subprocess_output_error,
@@ -170,7 +170,7 @@ class FakeSpinner(SpinnerInterface):
 class TestCallSubprocess(object):
 
     """
-    Test call_subprocess().
+    Test call_subprocess_for_install().
     """
 
     def check_result(
@@ -178,18 +178,19 @@ class TestCallSubprocess(object):
         expected_spinner,
     ):
         """
-        Check the result of calling call_subprocess().
+        Check the result of calling call_subprocess_for_install().
 
         :param log_level: the logging level that caplog was set to.
-        :param spinner: the FakeSpinner object passed to call_subprocess()
-            to be checked.
-        :param result: the call_subprocess() return value to be checked.
+        :param spinner: the FakeSpinner object passed to
+        call_subprocess_for_install() to be checked.
+        :param result: the call_subprocess_for_install()
+        return value to be checked.
         :param expected: a pair (expected_proc, expected_records), where
             1) `expected_proc` is the expected return value of
-              call_subprocess() as a list of lines, or None if the return
-              value is expected to be None;
+            call_subprocess_for_install() as a list of lines, or None
+            if the return value is expected to be None;
             2) `expected_records` is the expected value of
-              caplog.record_tuples.
+            caplog.record_tuples.
         :param expected_spinner: a 2-tuple of the spinner's expected
             (spin_count, final_status).
         """
@@ -237,7 +238,7 @@ class TestCallSubprocess(object):
         """
         log_level = DEBUG
         args, spinner = self.prepare_call(caplog, log_level)
-        result = call_subprocess(args, spinner=spinner)
+        result = call_subprocess_for_install(args, spinner=spinner)
 
         expected = (['Hello', 'world'], [
             ('pip.subprocessor', DEBUG, 'Running command '),
@@ -257,7 +258,7 @@ class TestCallSubprocess(object):
         """
         log_level = INFO
         args, spinner = self.prepare_call(caplog, log_level)
-        result = call_subprocess(args, spinner=spinner)
+        result = call_subprocess_for_install(args, spinner=spinner)
 
         expected = (['Hello', 'world'], [])
         # The spinner should spin twice in this case since the subprocess
@@ -277,7 +278,7 @@ class TestCallSubprocess(object):
         args, spinner = self.prepare_call(caplog, log_level, command=command)
 
         with pytest.raises(InstallationError) as exc:
-            call_subprocess(args, spinner=spinner)
+            call_subprocess_for_install(args, spinner=spinner)
         result = None
         exc_message = str(exc.value)
         assert exc_message.startswith(
@@ -328,7 +329,9 @@ class TestCallSubprocess(object):
         """
         log_level = INFO
         args, spinner = self.prepare_call(caplog, log_level)
-        result = call_subprocess(args, spinner=spinner, show_stdout=True)
+        result = call_subprocess_for_install(
+            args, spinner=spinner, show_stdout=True
+        )
 
         expected = (['Hello', 'world'], [
             ('pip.subprocessor', INFO, 'Running command '),
@@ -380,7 +383,7 @@ class TestCallSubprocess(object):
         )
         args, spinner = self.prepare_call(caplog, log_level, command=command)
         try:
-            call_subprocess(
+            call_subprocess_for_install(
                 args,
                 show_stdout=show_stdout,
                 extra_ok_returncodes=extra_ok_returncodes,
@@ -397,7 +400,7 @@ class TestCallSubprocess(object):
 
     def test_closes_stdin(self):
         with pytest.raises(InstallationError):
-            call_subprocess(
+            call_subprocess_for_install(
                 [sys.executable, '-c', 'input()'],
                 show_stdout=True,
             )

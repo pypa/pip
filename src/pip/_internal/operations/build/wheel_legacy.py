@@ -7,7 +7,7 @@ from pip._internal.utils.setuptools_build import (
 )
 from pip._internal.utils.subprocess import (
     LOG_DIVIDER,
-    call_subprocess,
+    call_subprocess_for_install,
     format_command_args,
 )
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -94,7 +94,7 @@ def build_wheel_legacy(
         logger.debug('Destination directory: %s', tempd)
 
         try:
-            output = call_subprocess(
+            output = call_subprocess_for_install(
                 wheel_args,
                 cwd=source_dir,
                 spinner=spinner,

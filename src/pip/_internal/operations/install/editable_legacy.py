@@ -4,7 +4,7 @@ import logging
 
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.setuptools_build import make_setuptools_develop_args
-from pip._internal.utils.subprocess import call_subprocess
+from pip._internal.utils.subprocess import call_subprocess_for_install
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -46,7 +46,7 @@ def install_editable(
 
     with indent_log():
         with build_env:
-            call_subprocess(
+            call_subprocess_for_install(
                 args,
                 cwd=unpacked_source_directory,
             )

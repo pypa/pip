@@ -15,7 +15,7 @@ from pip._internal.operations.build.wheel_legacy import build_wheel_legacy
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import ensure_dir, hash_file, is_wheel_installed
 from pip._internal.utils.setuptools_build import make_setuptools_clean_args
-from pip._internal.utils.subprocess import call_subprocess
+from pip._internal.utils.subprocess import call_subprocess_for_install
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import path_to_url
@@ -246,7 +246,7 @@ def _clean_one_legacy(req, global_options):
 
     logger.info('Running setup.py clean for %s', req.name)
     try:
-        call_subprocess(clean_args, cwd=req.source_dir)
+        call_subprocess_for_install(clean_args, cwd=req.source_dir)
         return True
     except Exception:
         logger.error('Failed cleaning build dir for %s', req.name)

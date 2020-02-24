@@ -21,7 +21,10 @@ from pip._internal.utils.misc import (
     hide_value,
     rmtree,
 )
-from pip._internal.utils.subprocess import call_subprocess, make_command
+from pip._internal.utils.subprocess import (
+    call_subprocess_for_install,
+    make_command,
+)
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import get_url_scheme
 
@@ -279,7 +282,8 @@ class VersionControl(object):
     repo_name = ''
     # List of supported schemes for this Version Control
     schemes = ()  # type: Tuple[str, ...]
-    # Iterable of environment variable names to pass to call_subprocess().
+    # Iterable of environment variable names to pass to
+    # call_subprocess_for_install().
     unset_environ = ()  # type: Tuple[str, ...]
     default_arg_rev = None  # type: Optional[str]
 
@@ -665,19 +669,22 @@ class VersionControl(object):
         # type: (...) -> Text
         """
         Run a VCS subcommand
-        This is simply a wrapper around call_subprocess that adds the VCS
-        command name, and checks that the VCS is available
+        This is simply a wrapper around call_subprocess_for_install
+        that adds the VCS command name, and checks that the VCS
+         is available
         """
         cmd = make_command(cls.name, *cmd)
         try:
-            return call_subprocess(cmd, show_stdout, cwd,
-                                   on_returncode=on_returncode,
-                                   extra_ok_returncodes=extra_ok_returncodes,
-                                   command_desc=command_desc,
-                                   extra_environ=extra_environ,
-                                   unset_environ=cls.unset_environ,
-                                   spinner=spinner,
-                                   log_failed_cmd=log_failed_cmd)
+            return call_subprocess_for_install(
+                cmd, show_stdout, cwd,
+                on_returncode=on_returncode,
+                extra_ok_returncodes=extra_ok_returncodes,
+                command_desc=command_desc,
+                extra_environ=extra_environ,
+                unset_environ=cls.unset_environ,
+                spinner=spinner,
+                log_failed_cmd=log_failed_cmd
+            )
         except OSError as e:
             # errno.ENOENT = no such file or directory
             # In other words, the VCS executable isn't available

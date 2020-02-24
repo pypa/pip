@@ -512,9 +512,11 @@ def test_subversion__get_remote_call_options(
 
 class TestSubversionArgs(TestCase):
     def setUp(self):
-        patcher = patch('pip._internal.vcs.versioncontrol.call_subprocess')
+        patcher = patch(
+            'pip._internal.vcs.versioncontrol.call_subprocess_for_install'
+        )
         self.addCleanup(patcher.stop)
-        self.call_subprocess_mock = patcher.start()
+        self.call_subprocess_for_install_mock = patcher.start()
 
         # Test Data.
         self.url = 'svn+http://username:password@svn.example.com/'
@@ -525,7 +527,7 @@ class TestSubversionArgs(TestCase):
         self.dest = '/tmp/test'
 
     def assert_call_args(self, args):
-        assert self.call_subprocess_mock.call_args[0][0] == args
+        assert self.call_subprocess_for_install_mock.call_args[0][0] == args
 
     def test_obtain(self):
         self.svn.obtain(self.dest, hide_url(self.url))
