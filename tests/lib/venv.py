@@ -6,7 +6,7 @@ import sysconfig
 import textwrap
 
 import six
-import virtualenv.run as _virtualenv_run
+import virtualenv as _virtualenv
 
 from .path import Path
 
@@ -56,7 +56,7 @@ class VirtualEnvironment(object):
         else:
             # Create a new virtual environment.
             if self._venv_type == 'virtualenv':
-                _virtualenv_run.run_via_cli([
+                _virtualenv.cli_run([
                     self.location,
                     "--no-pip",
                     "--no-wheel",
