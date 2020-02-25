@@ -33,6 +33,8 @@ class VirtualEnvironment(object):
 
     def _update_paths(self):
         paths = sysconfig.get_paths(vars={
+            "installed_base": self.location,
+            "installed_platbase": self.location,
             "base": self.location,
             "platbase": self.location,
         })
