@@ -126,64 +126,68 @@ class WheelCommand(RequirementCommand):
 
         req_tracker = self.enter_context(get_requirement_tracker())
 
-        with TempDirectory(
-            options.build_dir, delete=build_delete, kind="wheel"
-        ) as directory:
-            reqs = self.get_requirements(
-                args, options, finder, session,
-                wheel_cache
-            )
+        directory = TempDirectory(
+            options.build_dir,
+            delete=build_delete,
+            kind="wheel",
+            globally_managed=True,
+        )
 
-            preparer = self.make_requirement_preparer(
-                temp_build_dir=directory,
-                options=options,
-                req_tracker=req_tracker,
-                session=session,
-                finder=finder,
-                wheel_download_dir=options.wheel_dir,
-                use_user_site=False,
-            )
+        reqs = self.get_requirements(
+            args, options, finder, session,
+            wheel_cache
+        )
 
-            resolver = self.make_resolver(
-                preparer=preparer,
-                finder=finder,
-                options=options,
-                wheel_cache=wheel_cache,
-                ignore_requires_python=options.ignore_requires_python,
-                use_pep517=options.use_pep517,
-            )
+        preparer = self.make_requirement_preparer(
+            temp_build_dir=directory,
+            options=options,
+            req_tracker=req_tracker,
+            session=session,
+            finder=finder,
+            wheel_download_dir=options.wheel_dir,
+            use_user_site=False,
+        )
 
-            self.trace_basic_info(finder)
+        resolver = self.make_resolver(
+            preparer=preparer,
+            finder=finder,
+            options=options,
+            wheel_cache=wheel_cache,
+            ignore_requires_python=options.ignore_requires_python,
+            use_pep517=options.use_pep517,
+        )
 
-            requirement_set = resolver.resolve(
-                reqs, check_supported_wheels=True
-            )
+        self.trace_basic_info(finder)
 
-            reqs_to_build = [
-                r for r in requirement_set.requirements.values()
-                if should_build_for_wheel_command(r)
-            ]
+        requirement_set = resolver.resolve(
+            reqs, check_supported_wheels=True
+        )
 
-            # build wheels
-            build_successes, build_failures = build(
-                reqs_to_build,
-                wheel_cache=wheel_cache,
-                build_options=options.build_options or [],
-                global_options=options.global_options or [],
-            )
-            for req in build_successes:
-                assert req.link and req.link.is_wheel
-                assert req.local_file_path
-                # copy from cache to target directory
-                try:
-                    shutil.copy(req.local_file_path, options.wheel_dir)
-                except OSError as e:
-                    logger.warning(
-                        "Building wheel for %s failed: %s",
-                        req.name, e,
-                    )
-                    build_failures.append(req)
-            if len(build_failures) != 0:
-                raise CommandError(
-                    "Failed to build one or more wheels"
+        reqs_to_build = [
+            r for r in requirement_set.requirements.values()
+            if should_build_for_wheel_command(r)
+        ]
+
+        # build wheels
+        build_successes, build_failures = build(
+            reqs_to_build,
+            wheel_cache=wheel_cache,
+            build_options=options.build_options or [],
+            global_options=options.global_options or [],
+        )
+        for req in build_successes:
+            assert req.link and req.link.is_wheel
+            assert req.local_file_path
+            # copy from cache to target directory
+            try:
+                shutil.copy(req.local_file_path, options.wheel_dir)
+            except OSError as e:
+                logger.warning(
+                    "Building wheel for %s failed: %s",
+                    req.name, e,
                 )
+                build_failures.append(req)
+        if len(build_failures) != 0:
+            raise CommandError(
+                "Failed to build one or more wheels"
+            )
