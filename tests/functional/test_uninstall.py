@@ -506,12 +506,12 @@ def test_uninstall_setuptools_develop_install(script, data):
     script.run('python', 'setup.py', 'install',
                expect_stderr=True, cwd=pkg_path)
     list_result = script.pip('list', '--format=json')
+    egg_name = "FSPkg-0.1.dev0-py{0}.{1}.egg".format(*sys.version_info)
     assert {
         "name": os.path.normcase("FSPkg"),
         "version": "0.1.dev0",
-        "location": str(
-            script.site_packages_path /
-            "FSPkg-0.1.dev0-py{0}.{1}.egg".format(*sys.version_info)
+        "location": os.path.normcase(
+            str(script.site_packages_path / egg_name)
         ),
     } in json.loads(list_result.stdout), str(list_result)
     # Uninstall both develop and install
@@ -543,7 +543,7 @@ def test_uninstall_editable_and_pip_install(script, data):
     assert {
         "name": "FSPkg",
         "version": "0.1.dev0",
-        "location": str(script.site_packages_path),
+        "location": os.path.normcase(str(script.site_packages_path)),
     } in json.loads(list_result.stdout)
     # Uninstall both develop and install
     uninstall = script.pip('uninstall', 'FSPkg', '-y')

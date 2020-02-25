@@ -168,7 +168,9 @@ def test_uptodate_flag(script, data):
     assert {
         "name": "pip-test-package",
         "version": "0.1.1",
-        "location": str(script.venv_path / "src" / "pip-test-package"),
+        "location": os.path.normcase(
+            str(script.venv_path / "src" / "pip-test-package")
+        ),
     } in json_result
     assert {"name": "simple2", "version": "3.0"} in json_result
 
@@ -233,7 +235,9 @@ def test_outdated_flag(script, data):
     assert {
         "name": "pip-test-package",
         "version": "0.1",
-        "location": str(script.venv_path / "src" / "pip-test-package"),
+        "location": os.path.normcase(
+            str(script.venv_path / "src" / "pip-test-package")
+        ),
         "latest_version": "0.1.1",
         "latest_filetype": "sdist",
     } in json.loads(result.stdout)
