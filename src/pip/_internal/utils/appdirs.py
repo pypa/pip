@@ -33,9 +33,12 @@ def user_data_dir(appname, roaming=False):
     return _appdirs.user_data_dir(appname, appauthor=False, roaming=roaming)
 
 
+# for the discussion regarding site_config_dir locations
+# see <https://github.com/pypa/pip/issues/1733>
 def site_config_dirs(appname):
     # type: (str) -> List[str]
     dirval = _appdirs.site_config_dir(appname, appauthor=False, multipath=True)
     if _appdirs.system not in ["win32", "darwin"]:
-        return dirval.split(os.pathsep)
+        # always look in /etc directly as well
+        return dirval.split(os.pathsep) + ['/etc']
     return [dirval]

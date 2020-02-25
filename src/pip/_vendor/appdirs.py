@@ -257,8 +257,6 @@ def site_config_dir(appname=None, appauthor=None, version=None, multipath=False)
             if version:
                 appname = os.path.join(appname, version)
             pathlist = [os.path.join(x, appname) for x in pathlist]
-        # always look in /etc directly as well
-        pathlist.append('/etc')
 
         if multipath:
             path = os.pathsep.join(pathlist)
