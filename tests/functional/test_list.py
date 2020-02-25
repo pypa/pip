@@ -160,11 +160,17 @@ def test_uptodate_flag(script, data):
         'list', '-f', data.find_links, '--no-index', '--uptodate',
         '--format=json',
     )
-    assert {"name": "simple", "version": "1.0"} \
-        not in json.loads(result.stdout)  # 3.0 is latest
-    assert {"name": "pip-test-package", "version": "0.1.1"} \
-        in json.loads(result.stdout)  # editables included
-    assert {"name": "simple2", "version": "3.0"} in json.loads(result.stdout)
+    json_result = json.loads(result.stdout)
+
+    # 3.0 is latest
+    assert "simple" not in {d["name"] for d in json_result}
+    # editables included
+    assert {
+        "name": "pip-test-package",
+        "version": "0.1.1",
+        "location": str(script.venv_path / "src" / "pip-test-package"),
+    } in json_result
+    assert {"name": "simple2", "version": "3.0"} in json_result
 
 
 @pytest.mark.network
@@ -212,15 +218,25 @@ def test_outdated_flag(script, data):
         'list', '-f', data.find_links, '--no-index', '--outdated',
         '--format=json',
     )
-    assert {"name": "simple", "version": "1.0",
-            "latest_version": "3.0", "latest_filetype": "sdist"} \
-        in json.loads(result.stdout)
-    assert dict(name="simplewheel", version="1.0",
-                latest_version="2.0", latest_filetype="wheel") \
-        in json.loads(result.stdout)
-    assert dict(name="pip-test-package", version="0.1",
-                latest_version="0.1.1", latest_filetype="sdist") \
-        in json.loads(result.stdout)
+    assert {
+        "name": "simple",
+        "version": "1.0",
+        "latest_version": "3.0",
+        "latest_filetype": "sdist",
+    } in json.loads(result.stdout)
+    assert {
+        "name": "simplewheel",
+        "version": "1.0",
+        "latest_version": "2.0",
+        "latest_filetype": "wheel",
+    } in json.loads(result.stdout)
+    assert {
+        "name": "pip-test-package",
+        "version": "0.1",
+        "location": str(script.venv_path / "src" / "pip-test-package"),
+        "latest_version": "0.1.1",
+        "latest_filetype": "sdist",
+    } in json.loads(result.stdout)
     assert "simple2" not in {p["name"] for p in json.loads(result.stdout)}
 
 

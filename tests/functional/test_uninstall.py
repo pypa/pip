@@ -506,8 +506,14 @@ def test_uninstall_setuptools_develop_install(script, data):
     script.run('python', 'setup.py', 'install',
                expect_stderr=True, cwd=pkg_path)
     list_result = script.pip('list', '--format=json')
-    assert {"name": os.path.normcase("FSPkg"), "version": "0.1.dev0"} \
-        in json.loads(list_result.stdout), str(list_result)
+    assert {
+        "name": os.path.normcase("FSPkg"),
+        "version": "0.1.dev0",
+        "location": str(
+            script.site_packages_path /
+            "FSPkg-0.1.dev0-py{0}.{1}.egg".format(*sys.version_info)
+        ),
+    } in json.loads(list_result.stdout), str(list_result)
     # Uninstall both develop and install
     uninstall = script.pip('uninstall', 'FSPkg', '-y')
     assert any(filename.endswith('.egg')
@@ -534,8 +540,11 @@ def test_uninstall_editable_and_pip_install(script, data):
     script.pip('install', '--ignore-installed', '.',
                expect_stderr=True, cwd=pkg_path)
     list_result = script.pip('list', '--format=json')
-    assert {"name": "FSPkg", "version": "0.1.dev0"} \
-        in json.loads(list_result.stdout)
+    assert {
+        "name": "FSPkg",
+        "version": "0.1.dev0",
+        "location": str(script.site_packages_path),
+    } in json.loads(list_result.stdout)
     # Uninstall both develop and install
     uninstall = script.pip('uninstall', 'FSPkg', '-y')
     assert not any(filename.endswith('.egg-link')
