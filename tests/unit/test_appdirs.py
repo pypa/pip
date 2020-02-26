@@ -194,10 +194,10 @@ class TestUserConfigDir:
         monkeypatch.setattr(sys, "platform", "darwin")
 
         if os.path.isdir('/home/test/Library/Application Support/'):
-            assert (appdirs.user_data_dir("pip") ==
+            assert (appdirs.user_config_dir("pip") ==
                     "/home/test/Library/Application Support/pip")
         else:
-            assert (appdirs.user_data_dir("pip") ==
+            assert (appdirs.user_config_dir("pip") ==
                     "/home/test/.config/pip")
 
     def test_user_config_dir_linux(self, monkeypatch):
