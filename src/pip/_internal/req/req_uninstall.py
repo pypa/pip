@@ -72,8 +72,8 @@ def _unique(fn):
 
 
 @_unique
-def uninstallation_paths(dist):
-    # type: (Distribution) -> Iterator[str]
+def uninstallation_paths(dist, location=None):
+    # type: (Distribution, Optional[str]) -> Iterator[str]
     """
     Yield all the uninstallation paths for dist based on RECORD-without-.py[co]
 
@@ -82,9 +82,11 @@ def uninstallation_paths(dist):
 
     UninstallPathSet.add() takes care of the __pycache__ .py[co].
     """
+    if location is None:
+        location = dist.location
     r = csv.reader(FakeFile(dist.get_metadata_lines('RECORD')))
     for row in r:
-        path = os.path.join(dist.location, row[0])
+        path = os.path.join(location, row[0])
         yield path
         if path.endswith('.py'):
             dn, fn = os.path.split(path)
@@ -548,6 +550,11 @@ class UninstallPathSet(object):
             easy_install_pth = os.path.join(os.path.dirname(develop_egg_link),
                                             'easy-install.pth')
             paths_to_remove.add_pth(easy_install_pth, dist.location)
+
+            if dist.has_metadata("RECORD"):
+                location = os.path.dirname(develop_egg_link)
+                for path in uninstallation_paths(dist, location):
+                    paths_to_remove.add(path)
 
         else:
             logger.debug(
