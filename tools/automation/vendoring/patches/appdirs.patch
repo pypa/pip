@@ -51,7 +51,7 @@ index ae67001a..3a52b758 100644
  def site_config_dir(appname=None, appauthor=None, version=None, multipath=False):
      r"""Return full path to the user-shared data dir for this application.
  
-@@ -238,14 +248,17 @@ def site_config_dir(appname=None, appauthor=None, version=None, multipath=False)
+@@ -238,14 +248,15 @@ def site_config_dir(appname=None, appauthor=None, version=None, multipath=False)
          if appname and version:
              path = os.path.join(path, version)
      else:
@@ -68,8 +68,6 @@ index ae67001a..3a52b758 100644
                  appname = os.path.join(appname, version)
 -            pathlist = [os.sep.join([x, appname]) for x in pathlist]
 +            pathlist = [os.path.join(x, appname) for x in pathlist]
-+        # always look in /etc directly as well
-+        pathlist.append('/etc')
  
          if multipath:
              path = os.pathsep.join(pathlist)
