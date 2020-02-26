@@ -7,7 +7,9 @@ from pip._internal.exceptions import (
     NoneMetadataError,
     UnsupportedPythonVersion,
 )
-from pip._internal.legacy_resolve import _check_dist_requires_python
+from pip._internal.resolution.legacy.resolver import (
+    _check_dist_requires_python,
+)
 from pip._internal.utils.packaging import get_requires_python
 
 
