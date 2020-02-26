@@ -7,7 +7,7 @@ from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.tags import Tag
 from pkg_resources import parse_version
 
-import pip._internal.pep425tags
+import pip._internal.utils.compatibility_tags
 from pip._internal.exceptions import (
     BestVersionAlreadyInstalled,
     DistributionNotFound,
@@ -171,7 +171,7 @@ class TestWheel:
         Test finding supported wheel.
         """
         monkeypatch.setattr(
-            pip._internal.pep425tags,
+            pip._internal.utils.compatibility_tags,
             "get_supported",
             lambda **kw: [('py2', 'none', 'any')],
         )

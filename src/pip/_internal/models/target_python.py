@@ -1,6 +1,9 @@
 import sys
 
-from pip._internal.pep425tags import get_supported, version_info_to_nodot
+from pip._internal.utils.compatibility_tags import (
+    get_supported,
+    version_info_to_nodot,
+)
 from pip._internal.utils.misc import normalize_version_info
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -34,10 +37,10 @@ class TargetPython(object):
         :param py_version_info: An optional tuple of ints representing the
             Python version information to use (e.g. `sys.version_info[:3]`).
             This can have length 1, 2, or 3 when provided.
-        :param abi: A string or None. This is passed to pep425tags.py's
+        :param abi: A string or None. This is passed to compatibility_tags.py's
             get_supported() function as is.
         :param implementation: A string or None. This is passed to
-            pep425tags.py's get_supported() function as is.
+            compatibility_tags.py's get_supported() function as is.
         """
         # Store the given py_version_info for when we call get_supported().
         self._given_py_version_info = py_version_info
