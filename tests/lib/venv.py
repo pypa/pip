@@ -135,3 +135,12 @@ class VirtualEnvironment(object):
     def user_site_packages(self, value):
         self._user_site_packages = value
         self._customize_site()
+
+        pyvenv_cfg = self.location.joinpath("pyvenv.cfg")
+        modified_lines = []
+        for line in pyvenv_cfg.read_text().splitlines():
+            k, v = line.split("=", 1)
+            if k.strip() == "include-system-site-packages":
+                line = "{}= {}".format(k, "true" if value else "false")
+            modified_lines.append(line)
+        pyvenv_cfg.write_text("\n".join(modified_lines))
