@@ -30,6 +30,14 @@ class DirectCandidate(object):
         raise NotImplementedError()
 
 
+class EditableCandidate(object):
+    def __init__(self, name, link, version):
+        # type: (str, Link, _BaseVersion) -> None
+        self.name = name
+        self.link = link
+        self.version = version
+
+
 class ExtrasCandidate(object):
     """Wrap a candidate with extras information.
 
@@ -76,3 +84,10 @@ class SingleCandidateRequirement(object):
     def specifier(self):
         # type: () -> SpecifierSet
         return SpecifierSet("=={}".format(self.candidate.version))
+
+
+class EditableRequirement(object):
+    def __init__(self, name, link):
+        # type: (str, Link) -> None
+        self.name = name
+        self.link = link
