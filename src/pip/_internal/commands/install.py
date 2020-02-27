@@ -237,6 +237,9 @@ class InstallCommand(RequirementCommand):
     @with_cleanup
     def run(self, options, args):
         # type: (Values, List[Any]) -> int
+        if options.use_user_site and options.target_dir is not None:
+            raise CommandError("Can not combine '--user' and '--target'")
+
         cmdoptions.check_install_build_global(options)
         upgrade_strategy = "to-satisfy-only"
         if options.upgrade:
