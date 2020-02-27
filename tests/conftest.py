@@ -19,6 +19,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from tests.lib import DATA_DIR, SRC_DIR, TestData
 from tests.lib.certs import make_tls_cert, serialize_cert, serialize_key
 from tests.lib.path import Path
+from tests.lib.pip_api_helpers import finder, preparer
 from tests.lib.scripttest import PipTestEnvironment
 from tests.lib.server import make_mock_server, server_running
 from tests.lib.venv import VirtualEnvironment
