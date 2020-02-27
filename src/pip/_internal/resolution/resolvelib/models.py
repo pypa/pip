@@ -49,7 +49,7 @@ class ExtrasCandidate(object):
     def name(self):
         # type: () -> str
         extras = sorted(self.extras)
-        return "{}[{}]".join(self.candidate.name, ",".join(extras))
+        return "{}[{}]".format(self.candidate.name, ",".join(extras))
 
     @property
     def version(self):
