@@ -4,7 +4,7 @@ steps:
   inputs:
     versionSpec: '$(python.version)'
 
-- bash: pip install --upgrade setuptools tox
+- bash: pip install --upgrade 'virtualenv<20' setuptools tox
   displayName: Install Tox
 
 - script: tox -e py -- -m unit -n auto --junit-xml=junit/unit-test.xml
