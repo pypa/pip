@@ -48,7 +48,7 @@ def test_no_mpkg(data):
     req = install_req_from_line("pkgwithmpkg")
     found = finder.find_requirement(req, False)
 
-    assert found.url.endswith("pkgwithmpkg-1.0.tar.gz"), found
+    assert found.link.url.endswith("pkgwithmpkg-1.0.tar.gz"), found
 
 
 def test_no_partial_name_match(data):
@@ -57,7 +57,7 @@ def test_no_partial_name_match(data):
     req = install_req_from_line("gmpy")
     found = finder.find_requirement(req, False)
 
-    assert found.url.endswith("gmpy-1.15.tar.gz"), found
+    assert found.link.url.endswith("gmpy-1.15.tar.gz"), found
 
 
 def test_tilde():
@@ -79,23 +79,23 @@ def test_duplicates_sort_ok(data):
     req = install_req_from_line("duplicate")
     found = finder.find_requirement(req, False)
 
-    assert found.url.endswith("duplicate-1.0.tar.gz"), found
+    assert found.link.url.endswith("duplicate-1.0.tar.gz"), found
 
 
 def test_finder_detects_latest_find_links(data):
     """Test PackageFinder detects latest using find-links"""
     req = install_req_from_line('simple', None)
     finder = make_test_finder(find_links=[data.find_links])
-    link = finder.find_requirement(req, False)
-    assert link.url.endswith("simple-3.0.tar.gz")
+    candidate = finder.find_requirement(req, False)
+    assert candidate.link.url.endswith("simple-3.0.tar.gz")
 
 
 def test_incorrect_case_file_index(data):
     """Test PackageFinder detects latest using wrong case"""
     req = install_req_from_line('dinner', None)
     finder = make_test_finder(index_urls=[data.find_links3])
-    link = finder.find_requirement(req, False)
-    assert link.url.endswith("Dinner-2.0.tar.gz")
+    candidate = finder.find_requirement(req, False)
+    assert candidate.link.url.endswith("Dinner-2.0.tar.gz")
 
 
 @pytest.mark.network
@@ -180,7 +180,7 @@ class TestWheel:
         finder = make_test_finder(find_links=[data.find_links])
         found = finder.find_requirement(req, True)
         assert (
-            found.url.endswith("simple.dist-0.1-py2.py3-none-any.whl")
+            found.link.url.endswith("simple.dist-0.1-py2.py3-none-any.whl")
         ), found
 
     def test_wheel_over_sdist_priority(self, data):
@@ -191,7 +191,9 @@ class TestWheel:
         req = install_req_from_line("priority")
         finder = make_test_finder(find_links=[data.find_links])
         found = finder.find_requirement(req, True)
-        assert found.url.endswith("priority-1.0-py2.py3-none-any.whl"), found
+        assert (
+            found.link.url.endswith("priority-1.0-py2.py3-none-any.whl")
+        ), found
 
     def test_existing_over_wheel_priority(self, data):
         """
@@ -292,8 +294,8 @@ def test_finder_priority_file_over_page(data):
     assert all(version.link.scheme == 'https'
                for version in all_versions[1:]), all_versions
 
-    link = finder.find_requirement(req, False)
-    assert link.url.startswith("file://")
+    candidate = finder.find_requirement(req, False)
+    assert candidate.link.url.startswith("file://")
 
 
 def test_finder_priority_nonegg_over_eggfragments():
@@ -306,9 +308,9 @@ def test_finder_priority_nonegg_over_eggfragments():
     assert all_versions[0].link.url.endswith('tar.gz')
     assert all_versions[1].link.url.endswith('#egg=bar-1.0')
 
-    link = finder.find_requirement(req, False)
+    candidate = finder.find_requirement(req, False)
 
-    assert link.url.endswith('tar.gz')
+    assert candidate.link.url.endswith('tar.gz')
 
     links.reverse()
 
@@ -316,9 +318,9 @@ def test_finder_priority_nonegg_over_eggfragments():
     all_versions = finder.find_all_candidates(req.name)
     assert all_versions[0].link.url.endswith('tar.gz')
     assert all_versions[1].link.url.endswith('#egg=bar-1.0')
-    link = finder.find_requirement(req, False)
+    candidate = finder.find_requirement(req, False)
 
-    assert link.url.endswith('tar.gz')
+    assert candidate.link.url.endswith('tar.gz')
 
 
 def test_finder_only_installs_stable_releases(data):
@@ -330,21 +332,21 @@ def test_finder_only_installs_stable_releases(data):
 
     # using a local index (that has pre & dev releases)
     finder = make_test_finder(index_urls=[data.index_url("pre")])
-    link = finder.find_requirement(req, False)
-    assert link.url.endswith("bar-1.0.tar.gz"), link.url
+    candidate = finder.find_requirement(req, False)
+    assert candidate.link.url.endswith("bar-1.0.tar.gz"), candidate.link.url
 
     # using find-links
     links = ["https://foo/bar-1.0.tar.gz", "https://foo/bar-2.0b1.tar.gz"]
 
     finder = make_no_network_finder(links)
-    link = finder.find_requirement(req, False)
-    assert link.url == "https://foo/bar-1.0.tar.gz"
+    candidate = finder.find_requirement(req, False)
+    assert candidate.link.url == "https://foo/bar-1.0.tar.gz"
 
     links.reverse()
 
     finder = make_no_network_finder(links)
-    link = finder.find_requirement(req, False)
-    assert link.url == "https://foo/bar-1.0.tar.gz"
+    candidate = finder.find_requirement(req, False)
+    assert candidate.link.url == "https://foo/bar-1.0.tar.gz"
 
 
 def test_finder_only_installs_data_require(data):
@@ -383,21 +385,21 @@ def test_finder_installs_pre_releases(data):
         index_urls=[data.index_url("pre")],
         allow_all_prereleases=True,
     )
-    link = finder.find_requirement(req, False)
-    assert link.url.endswith("bar-2.0b1.tar.gz"), link.url
+    candidate = finder.find_requirement(req, False)
+    assert candidate.link.url.endswith("bar-2.0b1.tar.gz"), candidate.link.url
 
     # using find-links
     links = ["https://foo/bar-1.0.tar.gz", "https://foo/bar-2.0b1.tar.gz"]
 
     finder = make_no_network_finder(links, allow_all_prereleases=True)
-    link = finder.find_requirement(req, False)
-    assert link.url == "https://foo/bar-2.0b1.tar.gz"
+    candidate = finder.find_requirement(req, False)
+    assert candidate.link.url == "https://foo/bar-2.0b1.tar.gz"
 
     links.reverse()
 
     finder = make_no_network_finder(links, allow_all_prereleases=True)
-    link = finder.find_requirement(req, False)
-    assert link.url == "https://foo/bar-2.0b1.tar.gz"
+    candidate = finder.find_requirement(req, False)
+    assert candidate.link.url == "https://foo/bar-2.0b1.tar.gz"
 
 
 def test_finder_installs_dev_releases(data):
@@ -412,8 +414,8 @@ def test_finder_installs_dev_releases(data):
         index_urls=[data.index_url("dev")],
         allow_all_prereleases=True,
     )
-    link = finder.find_requirement(req, False)
-    assert link.url.endswith("bar-2.0.dev1.tar.gz"), link.url
+    found = finder.find_requirement(req, False)
+    assert found.link.url.endswith("bar-2.0.dev1.tar.gz"), found.link.url
 
 
 def test_finder_installs_pre_releases_with_version_spec():
@@ -424,14 +426,14 @@ def test_finder_installs_pre_releases_with_version_spec():
     links = ["https://foo/bar-1.0.tar.gz", "https://foo/bar-2.0b1.tar.gz"]
 
     finder = make_no_network_finder(links)
-    link = finder.find_requirement(req, False)
-    assert link.url == "https://foo/bar-2.0b1.tar.gz"
+    candidate = finder.find_requirement(req, False)
+    assert candidate.link.url == "https://foo/bar-2.0b1.tar.gz"
 
     links.reverse()
 
     finder = make_no_network_finder(links)
-    link = finder.find_requirement(req, False)
-    assert link.url == "https://foo/bar-2.0b1.tar.gz"
+    candidate = finder.find_requirement(req, False)
+    assert candidate.link.url == "https://foo/bar-2.0b1.tar.gz"
 
 
 class TestLinkEvaluator(object):

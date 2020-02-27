@@ -241,6 +241,28 @@ class InstallRequirement(object):
             state=", ".join(state),
         )
 
+    def _find_link(self, finder, upgrade):
+        # type: (PackageFinder, bool) -> Optional[Link]
+        best_candidate = finder.find_requirement(self, upgrade)
+        if not best_candidate:
+            return None
+        link = best_candidate.link
+
+        # Log a warning per PEP 592 if necessary.
+        if link.is_yanked:
+            reason = link.yanked_reason or '<none given>'
+            # Mark this as a unicode string to prevent
+            # "UnicodeEncodeError: 'ascii' codec can't encode character"
+            # in Python 2 when the reason contains non-ascii characters.
+            msg = (
+                u'The candidate selected for download or install is a '
+                'yanked version: {candidate}\n'
+                'Reason for being yanked: {reason}'
+            ).format(candidate=best_candidate, reason=reason)
+            logger.warning(msg)
+
+        return link
+
     def populate_link(self, finder, upgrade, require_hashes):
         # type: (PackageFinder, bool, bool) -> None
         """Ensure that if a link can be found for this, that it is found.
@@ -255,7 +277,8 @@ class InstallRequirement(object):
         to file modification times.
         """
         if self.link is None:
-            self.link = finder.find_requirement(self, upgrade)
+            self.link = self._find_link(finder, upgrade)
+
         if self._wheel_cache is not None and not require_hashes:
             old_link = self.link
             supported_tags = pep425tags.get_supported()
