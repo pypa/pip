@@ -1,1 +1,1 @@
-Raise error if --user and --target are used together in command
+Raise error if --user and --target are used together in pip install
