@@ -545,6 +545,15 @@ class CandidateEvaluator(object):
             build_tag, pri,
         )
 
+    def sort_applicable_candidates(self, candidates):
+        # type: (List[InstallationCandidate]) -> List[InstallationCandidate]
+        """Return applicable candidates sorted per the instance's sort order.
+
+        This puts the best candidate at the end of the list.
+        """
+        candidates = self.get_applicable_candidates(candidates)
+        return sorted(candidates, key=self._sort_key)
+
     def sort_best_candidate(
         self,
         candidates,    # type: List[InstallationCandidate]

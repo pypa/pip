@@ -1,5 +1,3 @@
-import operator
-
 from pip._vendor.packaging.requirements import (
     Requirement as PEP440Requirement,
 )
@@ -38,6 +36,16 @@ class Provider(object):
         # type: (Any, Sized[Candidate], Any) -> int
         return len(candidates)
 
+    def _find_candidates(self, req):
+        # type: (Requirement) -> List[Candidate]
+        candidates = self.finder.find_all_candidates(req.name)
+        evaluator = self.finder.make_candidate_evaluator(
+            project_name=req.name,
+            speficier=req.specifier,
+            hashes=None,  # TODO: Implement hash mode.
+        )
+        return evaluator.sort_applicable_candidates(candidates)
+
     def find_matches(self, req):
         # type: (Requirement) -> List[Candidate]
         if isinstance(req, SingleCandidateRequirement):
@@ -46,8 +54,7 @@ class Provider(object):
         if req.url:
             candidates = [DirectCandidate(req.name, req.url)]
         else:
-            candidates = self.finder.find_all_candidates(req.name)
-            candidates = sorted(candidates, key=operator.attrgetter("version"))
+            candidates = self._find_candidates(req)
 
         if req.extras:
             candidates = [ExtrasCandidate(c, req.extras) for c in candidates]
