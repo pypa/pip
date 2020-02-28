@@ -86,9 +86,9 @@ def _check_link_requires_python(
         if not is_compatible:
             version = '.'.join(map(str, version_info))
             if not ignore_requires_python:
-                logger.debug(
-                    'Link requires a different Python (%s not in: %r): %s',
-                    version, link.requires_python, link,
+                logger.info(
+                    'Python version mismatch. Required %r, Current %s %s',
+                    link.requires_python, version, link,
                 )
                 return False
 

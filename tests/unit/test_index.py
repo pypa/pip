@@ -60,8 +60,8 @@ def check_caplog(caplog, expected_level, expected_message):
 
 @pytest.mark.parametrize('ignore_requires_python, expected', [
     (None, (
-        False, 'DEBUG',
-        "Link requires a different Python (3.6.5 not in: '== 3.6.4'): "
+        False, 'INFO',
+        "Python version mismatch. Required '== 3.6.4', Current 3.6.5 "
         "https://example.com"
     )),
     (True, (
