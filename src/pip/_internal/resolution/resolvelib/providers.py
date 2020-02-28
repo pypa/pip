@@ -82,13 +82,11 @@ class Provider(object):
 
     def _find_candidates(self, req):
         # type: (Requirement) -> List[Candidate]
-        candidates = self.finder.find_all_candidates(req.name)
-        evaluator = self.finder.make_candidate_evaluator(
-            project_name=req.name,
-            speficier=req.specifier,
-            hashes=None,  # TODO: Implement hash mode.
+        found = self.finder.find_best_candidate(
+            # TODO: Implement hash mode.
+            req.name, req.specifier, hashes=None,
         )
-        return evaluator.sort_applicable_candidates(candidates)
+        return found.applicable_candidates
 
     def _find_editable_candidate(self, req):
         # type: (EditableRequirement) -> EditableCandidate
