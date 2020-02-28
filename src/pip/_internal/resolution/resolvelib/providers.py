@@ -110,6 +110,7 @@ class Provider(object):
     def is_satisfied_by(self, requirement, candidate):
         # type: (Requirement, Candidate) -> bool
         if requirement.url:
+            # TODO: Handle candidates without link (not attribute or is None).
             return candidate.link.url == requirement.url
         return candidate.version in requirement.specifier
 
