@@ -107,13 +107,7 @@ class DownloadCommand(RequirementCommand):
             globally_managed=True,
         )
 
-        reqs = self.get_requirements(
-            args,
-            options,
-            finder,
-            session,
-            None
-        )
+        reqs = self.get_requirements(args, options, finder, session)
 
         preparer = self.make_requirement_preparer(
             temp_build_dir=directory,

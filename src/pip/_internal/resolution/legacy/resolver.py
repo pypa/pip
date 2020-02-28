@@ -30,6 +30,7 @@ from pip._internal.exceptions import (
 )
 from pip._internal.req.req_set import RequirementSet
 from pip._internal.resolution.base import BaseResolver
+from pip._internal.utils.compatibility_tags import get_supported
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import dist_in_usersite, normalize_version_info
 from pip._internal.utils.packaging import (
@@ -42,6 +43,7 @@ if MYPY_CHECK_RUNNING:
     from typing import DefaultDict, List, Optional, Set, Tuple
     from pip._vendor import pkg_resources
 
+    from pip._internal.cache import WheelCache
     from pip._internal.distributions import AbstractDistribution
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.operations.prepare import RequirementPreparer
@@ -112,6 +114,7 @@ class Resolver(BaseResolver):
         self,
         preparer,  # type: RequirementPreparer
         finder,  # type: PackageFinder
+        wheel_cache,  # type: Optional[WheelCache]
         make_install_req,  # type: InstallRequirementProvider
         use_user_site,  # type: bool
         ignore_dependencies,  # type: bool
@@ -134,6 +137,7 @@ class Resolver(BaseResolver):
 
         self.preparer = preparer
         self.finder = finder
+        self.wheel_cache = wheel_cache
 
         self.upgrade_strategy = upgrade_strategy
         self.force_reinstall = force_reinstall
@@ -166,7 +170,7 @@ class Resolver(BaseResolver):
 
         # Actually prepare the files, and collect any exceptions. Most hash
         # exceptions cannot be checked ahead of time, because
-        # req.populate_link() needs to be called before we can make decisions
+        # _populate_link() needs to be called before we can make decisions
         # based on link type.
         discovered_reqs = []  # type: List[InstallRequirement]
         hash_errors = HashErrors()
@@ -256,6 +260,34 @@ class Resolver(BaseResolver):
         self._set_req_to_reinstall(req_to_install)
         return None
 
+    def _populate_link(self, req):
+        # type: (InstallRequirement) -> None
+        """Ensure that if a link can be found for this, that it is found.
+
+        Note that req.link may still be None - if Upgrade is False and the
+        requirement is already installed.
+
+        If preparer.require_hashes is True, don't use the wheel cache, because
+        cached wheels, always built locally, have different hashes than the
+        files downloaded from the index server and thus throw false hash
+        mismatches. Furthermore, cached wheels at present have undeterministic
+        contents due to file modification times.
+        """
+        upgrade = self._is_upgrade_allowed(req)
+        if req.link is None:
+            req.link = self.finder.find_requirement(req, upgrade)
+
+        if self.wheel_cache is None or self.preparer.require_hashes:
+            return
+        cached_link = self.wheel_cache.get(
+            link=req.link,
+            package_name=req.name,
+            supported_tags=get_supported(),
+        )
+        if req.link != cached_link:
+            logger.debug('Using cached wheel link: %s', cached_link)
+            req.link = cached_link
+
     def _get_abstract_dist_for(self, req):
         # type: (InstallRequirement) -> AbstractDistribution
         """Takes a InstallRequirement and returns a single AbstractDist \
@@ -274,11 +306,8 @@ class Resolver(BaseResolver):
                 req, skip_reason
             )
 
-        upgrade_allowed = self._is_upgrade_allowed(req)
-
         # We eagerly populate the link, since that's our "legacy" behavior.
-        require_hashes = self.preparer.require_hashes
-        req.populate_link(self.finder, upgrade_allowed, require_hashes)
+        self._populate_link(req)
         abstract_dist = self.preparer.prepare_linked_requirement(req)
 
         # NOTE

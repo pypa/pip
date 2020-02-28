@@ -118,15 +118,12 @@ def freeze(
                         else:
                             line = line[len('--editable'):].strip().lstrip('=')
                         line_req = install_req_from_editable(
-                            line,
-                            isolated=isolated,
-                            wheel_cache=wheel_cache,
+                            line, isolated=isolated,
                         )
                     else:
                         line_req = install_req_from_line(
                             COMMENT_RE.sub('', line).strip(),
                             isolated=isolated,
-                            wheel_cache=wheel_cache,
                         )
 
                     if not line_req.name:
