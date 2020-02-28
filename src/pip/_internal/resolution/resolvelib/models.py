@@ -38,18 +38,20 @@ class EditableCandidate(object):
         self.version = version
 
 
+if MYPY_CHECK_RUNNING:
+    BareCandidate = Union[
+        DirectCandidate, EditableCandidate, InstallationCandidate,
+    ]
+
+
 class ExtrasCandidate(object):
     """Wrap a candidate with extras information.
 
     This class is used fpr a requirement's candidates when it requests extras,
     so we can later find extra dependencies with this information.
     """
-    def __init__(
-        self,
-        candidate,  # type: Union[DirectCandidate, InstallationCandidate]
-        extras,     # type: Set[str]
-    ):
-        # type: (...) -> None
+    def __init__(self, candidate, extras):
+        # type: (BareCandidate, Set[str]) -> None
         self.candidate = candidate
         self.extras = extras
 
@@ -64,6 +66,11 @@ class ExtrasCandidate(object):
         # type: () -> _BaseVersion
         return self.candidate.version
 
+    @property
+    def link(self):
+        # type: () -> Link
+        return self.candidate.link
+
 
 class SingleCandidateRequirement(object):
     """A "simulated" requirement that holds only one candidate.
@@ -74,6 +81,7 @@ class SingleCandidateRequirement(object):
     def __init__(self, candidate):
         # type: (ExtrasCandidate) -> None
         self.candidate = candidate.candidate
+        self.extras = candidate.extras
 
     @property
     def name(self):
@@ -85,9 +93,16 @@ class SingleCandidateRequirement(object):
         # type: () -> SpecifierSet
         return SpecifierSet("=={}".format(self.candidate.version))
 
+    @property
+    def url(self):
+        # type: () -> Optional[str]
+        return self.candidate.link.url
+
 
 class EditableRequirement(object):
-    def __init__(self, name, link):
-        # type: (str, Link) -> None
+    def __init__(self, name, url, extras):
+        # type: (str, str, Set[str]) -> None
         self.name = name
-        self.link = link
+        self.specifier = SpecifierSet()
+        self.url = url
+        self.extras = extras

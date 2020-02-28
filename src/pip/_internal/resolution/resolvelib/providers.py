@@ -1,6 +1,4 @@
-from pip._vendor.packaging.requirements import (
-    Requirement as PEP440Requirement,
-)
+from pip._vendor.packaging.requirements import Requirement as PEP440Requirement
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.req.req_install import InstallRequirement
@@ -14,24 +12,19 @@ from pip._internal.resolution.resolvelib.models import (
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, List, Mapping, Optional, Union, Sized
+    from typing import Any, List, Mapping, Optional, Sequence, Union
     from pip._internal.cache import WheelCache
     from pip._internal.distributions import AbstractDistribution
     from pip._internal.index.package_finder import PackageFinder
-    from pip._internal.models.candidate import InstallationCandidate
     from pip._internal.operations.prepare import RequirementPreparer
+    from pip._internal.resolution.resolvelib.models import BareCandidate
 
     Requirement = Union[
         EditableRequirement,
         PEP440Requirement,
         SingleCandidateRequirement,
     ]
-    Candidate = Union[
-        EditableCandidate,
-        ExtrasCandidate,
-        DirectCandidate,
-        InstallationCandidate,
-    ]
+    Candidate = Union[BareCandidate, ExtrasCandidate]
     Dependency = Union[Requirement, Candidate]
 
 
@@ -63,6 +56,7 @@ class _DistributionBuilder(object):
             wheel_cache=self.wheel_cache,
         )
         ireq  # TODO: Make this linked and call prepare...
+        raise NotImplementedError()
 
 
 class Provider(object):
@@ -77,23 +71,24 @@ class Provider(object):
         return canonicalize_name(dependency.name)
 
     def get_preference(self, resolution, candidates, information):
-        # type: (Any, Sized[Candidate], Any) -> int
+        # type: (Any, List[Candidate], Any) -> int
         return len(candidates)
 
     def _find_candidates(self, req):
-        # type: (Requirement) -> List[Candidate]
+        # type: (PEP440Requirement) -> List[BareCandidate]
         found = self.finder.find_best_candidate(
             # TODO: Implement hash mode.
             req.name, req.specifier, hashes=None,
         )
-        return found.applicable_candidates
+        return list(found.iter_applicable())
 
     def _find_editable_candidate(self, req):
         # type: (EditableRequirement) -> EditableCandidate
         raise NotImplementedError()
 
     def find_matches(self, req):
-        # type: (Requirement) -> List[Candidate]
+        # type: (Requirement) -> Sequence[Candidate]
+        candidates = []  # type: List[BareCandidate]
         if isinstance(req, SingleCandidateRequirement):
             candidates = [req.candidate]
         elif isinstance(req, EditableRequirement):
@@ -102,9 +97,8 @@ class Provider(object):
             candidates = [DirectCandidate(req.name, req.url)]
         else:
             candidates = self._find_candidates(req)
-
         if req.extras:
-            candidates = [ExtrasCandidate(c, req.extras) for c in candidates]
+            return [ExtrasCandidate(c, req.extras) for c in candidates]
         return candidates
 
     def is_satisfied_by(self, requirement, candidate):
