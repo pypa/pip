@@ -61,8 +61,8 @@ def check_caplog(caplog, expected_level, expected_message):
 @pytest.mark.parametrize('ignore_requires_python, expected', [
     (None, (
         False, 'INFO',
-        "Package does not meet the Python version requirement. \
-        Required version '== 3.6.4', Current version 3.6.5 "
+        "Package does not meet the Python version requirement. "
+        "Required version '== 3.6.4', Current version 3.6.5 "
         "https://example.com"
     )),
     (True, (
