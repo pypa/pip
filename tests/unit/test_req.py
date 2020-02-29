@@ -115,8 +115,9 @@ class TestRequirementSet(object):
         with self._basic_resolver(finder) as resolver:
             assert_raises_regexp(
                 PreviousBuildDirError,
-                r"pip can't proceed with [\s\S]*%s[\s\S]*%s" %
-                (req, build_dir.replace('\\', '\\\\')),
+                r"pip can't proceed with [\s\S]*{req}[\s\S]*{build_dir_esc}"
+                .format(
+                    build_dir_esc=build_dir.replace('\\', '\\\\'), req=req),
                 resolver.resolve,
                 reqset.all_requirements,
                 True,
@@ -195,7 +196,7 @@ class TestRequirementSet(object):
         ))
         dir_path = data.packages.joinpath('FSPkg')
         reqset.add_requirement(get_processed_req_from_line(
-            'file://%s' % (dir_path,),
+            'file://{dir_path}'.format(**locals()),
             lineno=2,
         ))
         finder = make_test_finder(find_links=[data.find_links])
@@ -255,7 +256,7 @@ class TestRequirementSet(object):
             (data.packages / 'simple-1.0.tar.gz').resolve())
         reqset = RequirementSet()
         reqset.add_requirement(get_processed_req_from_line(
-            '%s --hash=sha256:badbad' % file_url, lineno=1,
+            '{file_url} --hash=sha256:badbad'.format(**locals()), lineno=1,
         ))
         finder = make_test_finder(find_links=[data.find_links])
         with self._basic_resolver(finder, require_hashes=True) as resolver:
@@ -471,7 +472,7 @@ class TestInstallRequirement(object):
         # match
         for markers in (
             'python_version >= "1.0"',
-            'sys_platform == %r' % sys.platform,
+            'sys_platform == {sys.platform!r}'.format(**globals()),
         ):
             line = 'name; ' + markers
             req = install_req_from_line(line)
@@ -481,7 +482,7 @@ class TestInstallRequirement(object):
         # don't match
         for markers in (
             'python_version >= "5.0"',
-            'sys_platform != %r' % sys.platform,
+            'sys_platform != {sys.platform!r}'.format(**globals()),
         ):
             line = 'name; ' + markers
             req = install_req_from_line(line)
@@ -492,7 +493,7 @@ class TestInstallRequirement(object):
         # match
         for markers in (
             'python_version >= "1.0"',
-            'sys_platform == %r' % sys.platform,
+            'sys_platform == {sys.platform!r}'.format(**globals()),
         ):
             line = 'name; ' + markers
             req = install_req_from_line(line, comes_from='')
@@ -502,7 +503,7 @@ class TestInstallRequirement(object):
         # don't match
         for markers in (
             'python_version >= "5.0"',
-            'sys_platform != %r' % sys.platform,
+            'sys_platform != {sys.platform!r}'.format(**globals()),
         ):
             line = 'name; ' + markers
             req = install_req_from_line(line, comes_from='')

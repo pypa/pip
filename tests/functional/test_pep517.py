@@ -134,11 +134,13 @@ def test_conflicting_pep517_backend_requirements(script, tmpdir, data):
         project_dir,
         expect_error=True
     )
+    msg = (
+        'Some build dependencies for {url} conflict with the backend '
+        'dependencies: simplewheel==1.0 is incompatible with '
+        'simplewheel==2.0.'.format(url=path_to_url(project_dir)))
     assert (
         result.returncode != 0 and
-        ('Some build dependencies for %s conflict with the backend '
-         'dependencies: simplewheel==1.0 is incompatible with '
-         'simplewheel==2.0.' % path_to_url(project_dir)) in result.stderr
+        msg in result.stderr
     ), str(result)
 
 

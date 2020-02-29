@@ -124,7 +124,7 @@ class SilentBar(Bar):
 
 class BlueEmojiBar(IncrementalBar):
 
-    suffix = "%(percent)d%%"
+    suffix = "{percent}%"
     bar_prefix = " "
     bar_suffix = " "
     phases = (u"\U0001F539", u"\U0001F537", u"\U0001F535")  # type: Any
@@ -203,8 +203,8 @@ class BaseDownloadProgressBar(WindowsMixin, InterruptibleMixin,
                               DownloadProgressMixin):
 
     file = sys.stdout
-    message = "%(percent)d%%"
-    suffix = "%(downloaded)s %(download_speed)s %(pretty_eta)s"
+    message = "{percent}%"
+    suffix = "{downloaded} {download_speed} {pretty_eta}"
 
 # NOTE: The "type: ignore" comments on the following classes are there to
 #       work around https://github.com/python/typing/issues/241
@@ -234,11 +234,21 @@ class DownloadBlueEmojiProgressBar(BaseDownloadProgressBar,  # type: ignore
     pass
 
 
+class ObjectMapAdapter:
+    """Translate getitem to getattr."""
+
+    def __init__(self, obj):
+        self.obj = obj
+
+    def __getitem__(self, key):
+        return getattr(self.obj, key)
+
+
 class DownloadProgressSpinner(WindowsMixin, InterruptibleMixin,
                               DownloadProgressMixin, Spinner):
 
     file = sys.stdout
-    suffix = "%(downloaded)s %(download_speed)s"
+    suffix = "{downloaded} {download_speed}"
 
     def next_phase(self):  # type: ignore
         if not hasattr(self, "_phaser"):
@@ -247,17 +257,10 @@ class DownloadProgressSpinner(WindowsMixin, InterruptibleMixin,
 
     def update(self):
         # type: () -> None
-        message = self.message % self
+        message = self.message.format_map(ObjectMapAdapter(self))
         phase = self.next_phase()
-        suffix = self.suffix % self
-        line = ''.join([
-            message,
-            " " if message else "",
-            phase,
-            " " if suffix else "",
-            suffix,
-        ])
-
+        suffix = self.suffix.format_map(ObjectMapAdapter(self))
+        line = " ".join(filter(None, (message, phase, suffix)))
         self.writeln(line)
 
 

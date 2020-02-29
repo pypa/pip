@@ -171,7 +171,7 @@ def test_install_noneditable_git(script, tmpdir):
     )
     egg_info_folder = (
         script.site_packages /
-        'pip_test_package-0.1.1-py%s.egg-info' % pyversion
+        'pip_test_package-0.1.1-py{pyversion}.egg-info'.format(**globals())
     )
     result.assert_installed('piptestpackage',
                             without_egg_link=True,

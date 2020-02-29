@@ -639,7 +639,7 @@ class InstallRequirement(object):
         if self.link.scheme == 'file':
             # Static paths don't get updated
             return
-        assert '+' in self.link.url, "bad url: %r" % self.link.url
+        assert '+' in self.link.url, "bad url: {self.link.url!r}".format(**locals())
         vc_type, url = self.link.url.split('+', 1)
         vcs_backend = vcs.get_backend(vc_type)
         if vcs_backend:
@@ -701,7 +701,8 @@ class InstallRequirement(object):
         def _clean_zip_name(name, prefix):
             # type: (str, str) -> str
             assert name.startswith(prefix + os.path.sep), (
-                "name %r doesn't start with prefix %r" % (name, prefix)
+                "name {name!r} doesn't start with prefix {prefix!r}"
+                .format(**locals())
             )
             name = name[len(prefix) + 1:]
             name = name.replace(os.path.sep, '/')

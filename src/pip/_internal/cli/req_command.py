@@ -342,13 +342,13 @@ class RequirementCommand(IndexGroupCommand):
             opts = {'name': self.name}
             if options.find_links:
                 raise CommandError(
-                    'You must give at least one requirement to %(name)s '
-                    '(maybe you meant "pip %(name)s %(links)s"?)' %
-                    dict(opts, links=' '.join(options.find_links)))
+                    'You must give at least one requirement to {name} '
+                    '(maybe you meant "pip {name} {links}"?)'.format(
+                    **dict(opts, links=' '.join(options.find_links))))
             else:
                 raise CommandError(
-                    'You must give at least one requirement to %(name)s '
-                    '(see "pip help %(name)s")' % opts)
+                    'You must give at least one requirement to {name} '
+                    '(see "pip help {name}")'.format(**opts))
 
         return requirements
 

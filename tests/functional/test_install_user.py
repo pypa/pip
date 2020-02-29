@@ -52,8 +52,10 @@ class Tests_UserSite:
         """
         result = script.pip(
             'install', '--user', '-e',
-            '%s#egg=initools' %
-            local_checkout('svn+http://svn.colorstudy.com/INITools', tmpdir)
+            '{checkout}#egg=initools'.format(
+                checkout=local_checkout(
+                    'svn+http://svn.colorstudy.com/INITools', tmpdir)
+            )
         )
         result.assert_installed('INITools', use_user_site=True)
 
@@ -110,7 +112,7 @@ class Tests_UserSite:
 
         # usersite has 0.1
         egg_info_folder = (
-            script.user_site / 'INITools-0.1-py%s.egg-info' % pyversion
+            script.user_site / 'INITools-0.1-py{pyversion}.egg-info'.format(**globals())
         )
         initools_v3_file = (
             # file only in 0.3
@@ -136,7 +138,7 @@ class Tests_UserSite:
 
         # usersite has 0.1
         egg_info_folder = (
-            script.user_site / 'INITools-0.1-py%s.egg-info' % pyversion
+            script.user_site / 'INITools-0.1-py{pyversion}.egg-info'.format(**globals())
         )
         initools_folder = script.user_site / 'initools'
         assert egg_info_folder in result2.files_created, str(result2)
@@ -145,7 +147,7 @@ class Tests_UserSite:
         # site still has 0.2 (can't look in result1; have to check)
         egg_info_folder = (
             script.base_path / script.site_packages /
-            'INITools-0.2-py%s.egg-info' % pyversion
+            'INITools-0.2-py{pyversion}.egg-info'.format(**globals())
         )
         initools_folder = script.base_path / script.site_packages / 'initools'
         assert isdir(egg_info_folder)
@@ -166,7 +168,7 @@ class Tests_UserSite:
 
         # usersite has 0.3.1
         egg_info_folder = (
-            script.user_site / 'INITools-0.3.1-py%s.egg-info' % pyversion
+            script.user_site / 'INITools-0.3.1-py{pyversion}.egg-info'.format(**globals())
         )
         initools_folder = script.user_site / 'initools'
         assert egg_info_folder in result2.files_created, str(result2)
@@ -175,7 +177,7 @@ class Tests_UserSite:
         # site still has 0.2 (can't look in result1; have to check)
         egg_info_folder = (
             script.base_path / script.site_packages /
-            'INITools-0.2-py%s.egg-info' % pyversion
+            'INITools-0.2-py{pyversion}.egg-info'.format(**globals())
         )
         initools_folder = script.base_path / script.site_packages / 'initools'
         assert isdir(egg_info_folder), result2.stdout
@@ -199,7 +201,7 @@ class Tests_UserSite:
 
         # usersite has 0.1
         egg_info_folder = (
-            script.user_site / 'INITools-0.1-py%s.egg-info' % pyversion
+            script.user_site / 'INITools-0.1-py{pyversion}.egg-info'.format(**globals())
         )
         initools_v3_file = (
             # file only in 0.3
@@ -212,7 +214,7 @@ class Tests_UserSite:
         # site still has 0.2 (can't just look in result1; have to check)
         egg_info_folder = (
             script.base_path / script.site_packages /
-            'INITools-0.2-py%s.egg-info' % pyversion
+            'INITools-0.2-py{pyversion}.egg-info'.format(**globals())
         )
         initools_folder = script.base_path / script.site_packages / 'initools'
         assert isdir(egg_info_folder)
@@ -241,6 +243,9 @@ class Tests_UserSite:
         dist_location = resultp.stdout.strip()
         assert (
             "Will not install to the user site because it will lack sys.path "
-            "precedence to %s in %s" %
-            ('INITools', dist_location) in result2.stderr
+            "precedence to {name} in {location}".format(
+                name='INITools',
+                location=dist_location,
+            )
+            in result2.stderr
         )

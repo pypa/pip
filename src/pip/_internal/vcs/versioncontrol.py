@@ -683,9 +683,9 @@ class VersionControl(object):
             # In other words, the VCS executable isn't available
             if e.errno == errno.ENOENT:
                 raise BadCommand(
-                    'Cannot find command %r - do you have '
-                    '%r installed and in your '
-                    'PATH?' % (cls.name, cls.name))
+                    'Cannot find command {cls.name!r} - do you have '
+                    '{cls.name!r} installed and in your '
+                    'PATH?'.format(**locals()))
             else:
                 raise  # re-raise exception if a different error occurred
 

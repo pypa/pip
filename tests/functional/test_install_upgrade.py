@@ -46,11 +46,13 @@ def test_only_if_needed_does_not_upgrade_deps_when_satisfied(script):
     )
 
     assert (
-        (script.site_packages / 'require_simple-1.0-py%s.egg-info' % pyversion)
+        (script.site_packages / 'require_simple-1.0-py{pyversion}.egg-info'
+            .format(**globals()))
         not in result.files_deleted
     ), "should have installed require_simple==1.0"
     assert (
-        (script.site_packages / 'simple-2.0-py%s.egg-info' % pyversion)
+        (script.site_packages / 'simple-2.0-py{pyversion}.egg-info'
+            .format(**globals()))
         not in result.files_deleted
     ), "should not have uninstalled simple==2.0"
     assert (
@@ -70,16 +72,23 @@ def test_only_if_needed_does_upgrade_deps_when_no_longer_satisfied(script):
     )
 
     assert (
-        (script.site_packages / 'require_simple-1.0-py%s.egg-info' % pyversion)
+        (script.site_packages / 'require_simple-1.0-py{pyversion}.egg-info'
+            .format(**globals()))
         not in result.files_deleted
     ), "should have installed require_simple==1.0"
+    expected = (
+        script.site_packages /
+        'simple-3.0-py{pyversion}.egg-info'.format(**globals())
+    )
     assert (
-        script.site_packages / 'simple-3.0-py%s.egg-info' %
-        pyversion in result.files_created
+        expected in result.files_created
     ), "should have installed simple==3.0"
+    expected = (
+        script.site_packages /
+        'simple-1.0-py{pyversion}.egg-info'.format(**globals())
+    )
     assert (
-        script.site_packages / 'simple-1.0-py%s.egg-info' %
-        pyversion in result.files_deleted
+        expected in result.files_deleted
     ), "should have uninstalled simple==1.0"
 
 
@@ -94,11 +103,13 @@ def test_eager_does_upgrade_dependecies_when_currently_satisfied(script):
     )
 
     assert (
-        (script.site_packages / 'require_simple-1.0-py%s.egg-info' % pyversion)
+        (script.site_packages /
+            'require_simple-1.0-py{pyversion}.egg-info'.format(**globals()))
         not in result.files_deleted
     ), "should have installed require_simple==1.0"
     assert (
-        (script.site_packages / 'simple-2.0-py%s.egg-info' % pyversion)
+        (script.site_packages /
+            'simple-2.0-py{pyversion}.egg-info'.format(**globals()))
         in result.files_deleted
     ), "should have uninstalled simple==2.0"
 
@@ -114,16 +125,19 @@ def test_eager_does_upgrade_dependecies_when_no_longer_satisfied(script):
     )
 
     assert (
-        (script.site_packages / 'require_simple-1.0-py%s.egg-info' % pyversion)
+        (script.site_packages /
+            'require_simple-1.0-py{pyversion}.egg-info'.format(**globals()))
         not in result.files_deleted
     ), "should have installed require_simple==1.0"
     assert (
-        script.site_packages / 'simple-3.0-py%s.egg-info' %
-        pyversion in result.files_created
+        script.site_packages /
+        'simple-3.0-py{pyversion}.egg-info'.format(**globals())
+        in result.files_created
     ), "should have installed simple==3.0"
     assert (
-        script.site_packages / 'simple-1.0-py%s.egg-info' %
-        pyversion in result.files_deleted
+        script.site_packages /
+        'simple-1.0-py{pyversion}.egg-info'.format(**globals())
+        in result.files_deleted
     ), "should have uninstalled simple==1.0"
 
 
@@ -139,12 +153,14 @@ def test_upgrade_to_specific_version(script):
         'pip install with specific version did not upgrade'
     )
     assert (
-        script.site_packages / 'INITools-0.1-py%s.egg-info' %
-        pyversion in result.files_deleted
+        script.site_packages / 'INITools-0.1-py{pyversion}.egg-info'
+        .format(**globals())
+        in result.files_deleted
     )
     assert (
-        script.site_packages / 'INITools-0.2-py%s.egg-info' %
-        pyversion in result.files_created
+        script.site_packages / 'INITools-0.2-py{pyversion}.egg-info'
+        .format(**globals())
+        in result.files_created
     )
 
 
@@ -158,8 +174,9 @@ def test_upgrade_if_requested(script):
     result = script.pip('install', '--upgrade', 'INITools')
     assert result.files_created, 'pip install --upgrade did not upgrade'
     assert (
-        script.site_packages / 'INITools-0.1-py%s.egg-info' %
-        pyversion not in result.files_created
+        script.site_packages /
+        'INITools-0.1-py{pyversion}.egg-info'.format(**globals())
+        not in result.files_created
     )
 
 
@@ -322,12 +339,14 @@ def test_should_not_install_always_from_cache(script):
     script.pip('uninstall', '-y', 'INITools')
     result = script.pip('install', 'INITools==0.1')
     assert (
-        script.site_packages / 'INITools-0.2-py%s.egg-info' %
-        pyversion not in result.files_created
+        script.site_packages /
+        'INITools-0.2-py{pyversion}.egg-info'.format(**globals())
+        not in result.files_created
     )
     assert (
-        script.site_packages / 'INITools-0.1-py%s.egg-info' %
-        pyversion in result.files_created
+        script.site_packages /
+        'INITools-0.1-py{pyversion}.egg-info'.format(**globals())
+        in result.files_created
     )
 
 
@@ -341,18 +360,22 @@ def test_install_with_ignoreinstalled_requested(script):
     assert result.files_created, 'pip install -I did not install'
     # both the old and new metadata should be present.
     assert os.path.exists(
-        script.site_packages_path / 'INITools-0.1-py%s.egg-info' % pyversion
+        script.site_packages_path /
+        'INITools-0.1-py{pyversion}.egg-info'.format(**globals())
     )
     assert os.path.exists(
-        script.site_packages_path / 'INITools-0.3-py%s.egg-info' % pyversion
+        script.site_packages_path /
+        'INITools-0.3-py{pyversion}.egg-info'.format(**globals())
     )
 
 
 @pytest.mark.network
 def test_upgrade_vcs_req_with_no_dists_found(script, tmpdir):
     """It can upgrade a VCS requirement that has no distributions otherwise."""
-    req = "%s#egg=pip-test-package" % local_checkout(
-        "git+https://github.com/pypa/pip-test-package.git", tmpdir,
+    req = "{checkout}#egg=pip-test-package".format(
+        checkout=local_checkout(
+            "git+https://github.com/pypa/pip-test-package.git", tmpdir,
+        )
     )
     script.pip("install", req)
     result = script.pip("install", "-U", req)
@@ -365,10 +388,11 @@ def test_upgrade_vcs_req_with_dist_found(script):
     # TODO(pnasrat) Using local_checkout fails on windows - oddness with the
     # test path urls/git.
     req = (
-        "%s#egg=pretend" %
-        (
-            "git+git://github.com/alex/pretend@e7f26ad7dbcb4a02a4995aade4"
-            "743aad47656b27"
+        "{url}#egg=pretend".format(
+            url=(
+                "git+git://github.com/alex/pretend@e7f26ad7dbcb4a02a4995aade4"
+                "743aad47656b27"
+            ),
         )
     )
     script.pip("install", req, expect_stderr=True)
@@ -401,7 +425,8 @@ class TestUpgradeDistributeToSetuptools(object):
 
     def prep_ve(self, script, version, pip_src, distribute=False):
         self.script = script
-        self.script.pip_install_local('virtualenv==%s' % version)
+        self.script.pip_install_local(
+            'virtualenv=={version}'.format(**locals()))
         args = ['virtualenv', self.script.scratch_path / 'VE']
         if distribute:
             args.insert(1, '--distribute')

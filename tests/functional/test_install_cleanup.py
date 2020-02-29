@@ -85,7 +85,7 @@ def test_cleanup_req_satisfied_no_name(script, data):
     script.pip('install', dist)
 
     build = script.venv_path / 'build'
-    assert not exists(build), "unexpected build/ dir exists: %s" % build
+    assert not exists(build), "unexpected build/ dir exists: {build}".format(**locals())
     script.assert_no_temp()
 
 
@@ -99,7 +99,7 @@ def test_cleanup_after_install_exception(script, data):
         expect_error=True,
     )
     build = script.venv_path / 'build'
-    assert not exists(build), "build/ dir still exists: %s" % result.stdout
+    assert not exists(build), "build/ dir still exists: {result.stdout}".format(**locals())
     script.assert_no_temp()
 
 
@@ -113,7 +113,7 @@ def test_cleanup_after_egg_info_exception(script, data):
         expect_error=True,
     )
     build = script.venv_path / 'build'
-    assert not exists(build), "build/ dir still exists: %s" % result.stdout
+    assert not exists(build), "build/ dir still exists: {result.stdout}".format(**locals())
     script.assert_no_temp()
 
 

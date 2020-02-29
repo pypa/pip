@@ -121,8 +121,9 @@ def print_results(hits, name_column_width=None, terminal_width=None):
                 summary = textwrap.wrap(summary, target_width)
                 summary = ('\n' + ' ' * (name_column_width + 3)).join(summary)
 
-        line = '%-*s - %s' % (name_column_width,
-                              '%s (%s)' % (name, latest), summary)
+        line = '{name_latest:{name_column_width}} - {summary}'.format(
+            name_latest='{name} ({latest})'.format(**locals()),
+            **locals())
         try:
             write_output(line)
             if name in installed_packages:

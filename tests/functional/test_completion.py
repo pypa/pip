@@ -230,7 +230,7 @@ def test_completion_not_files_after_nonexpecting_option(
     (e.g. ``pip install``)
     """
     res, env = autocomplete(
-        words=('pip install %s r' % cl_opts),
+        words=('pip install {cl_opts} r'.format(**locals())),
         cword='2',
         cwd=data.completion_paths,
     )

@@ -31,14 +31,14 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
         optparse.IndentedHelpFormatter.__init__(self, *args, **kwargs)
 
     def format_option_strings(self, option):
-        return self._format_option_strings(option, ' <%s>', ', ')
+        return self._format_option_strings(option)
 
     def _format_option_strings(self, option, mvarfmt=' <{}>', optsep=', '):
         """
         Return a comma-separated list of option strings and metavars.
 
         :param option:  tuple of (short opt, long opt), e.g: ('-f', '--format')
-        :param mvarfmt: metavar format string - evaluated as mvarfmt % metavar
+        :param mvarfmt: metavar format string
         :param optsep:  separator
         """
         opts = []

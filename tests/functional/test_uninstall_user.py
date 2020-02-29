@@ -44,7 +44,7 @@ class Tests_UninstallUserSite:
         # site still has 0.2 (can't look in result1; have to check)
         egg_info_folder = (
             script.base_path / script.site_packages /
-            'pip_test_package-0.1-py%s.egg-info' % pyversion
+            'pip_test_package-0.1-py{pyversion}.egg-info'.format(**globals())
         )
         assert isdir(egg_info_folder)
 

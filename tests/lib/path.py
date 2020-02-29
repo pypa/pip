@@ -81,7 +81,7 @@ class Path(_base):
         return Path(path + _base(self))
 
     def __repr__(self):
-        return u"Path(%s)" % _base.__repr__(self)
+        return u"Path({inner})".format(inner=_base.__repr__(self))
 
     def __hash__(self):
         return _base.__hash__(self)
