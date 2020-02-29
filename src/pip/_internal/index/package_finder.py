@@ -87,7 +87,8 @@ def _check_link_requires_python(
             version = '.'.join(map(str, version_info))
             if not ignore_requires_python:
                 logger.info(
-                    'Python version mismatch. Required %r, Current %s %s',
+                    'Package does not meet the Python version requirement. \
+                    Required version %r, Current version %s %s',
                     link.requires_python, version, link,
                 )
                 return False
