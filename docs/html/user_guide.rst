@@ -695,8 +695,8 @@ protects you from bugs or incompatibilities in newly released versions:
 
     DependencyOfSomePackage == 4.5.6
 
-Perform the installation using both :ref:`-r requirements.txt <install_-r>`
-and :ref:`-c constraints.txt <install_-c>` to ensure that both top-level and
+Perform the installation using both :ref:`-r requirements.txt <install_--requirement>`
+and :ref:`-c constraints.txt <install_--constraint>` to ensure that both top-level and
 all sub-dependecies will be installed in their pinned versions. You can use
 :ref:`pip show` as a help in creating requirements and constraints files –
 ``Requires`` section shows list of dependencies of package and ``Version``
