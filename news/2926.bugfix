@@ -1,0 +1,1 @@
+Skip local directory by default for 'pip freeze' or when invoked as 'python -m pip freeze'
