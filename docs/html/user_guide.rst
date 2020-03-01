@@ -685,18 +685,24 @@ Pinned Version Numbers
 ----------------------
 
 Pinning the versions of your dependencies in the requirements file
-protects you from bugs or incompatibilities in newly released versions::
+protects you from bugs or incompatibilities in newly released versions:
+
+``requirements.txt``::
 
     SomePackage == 1.2.3
+
+``constraints.txt``::
+
     DependencyOfSomePackage == 4.5.6
 
-Using :ref:`pip freeze` to generate the requirements file will ensure that not
-only the top-level dependencies are included but their sub-dependencies as
-well, and so on. Perform the installation using :ref:`--no-deps
-<install_--no-deps>` for an extra dose of insurance against installing
-anything not explicitly listed.
+Perform the installation using both :ref:`-r requirements.txt <install_-r>`
+and :ref:`-c constraints.txt <install_-c>` to ensure that both top-level and
+all sub-dependecies will be installed in their pinned versions. You can use
+:ref:`pip show` as a help in creating requirements and constraints files –
+``Requires`` section shows list of dependencies of package and ``Version``
+section shows a version that has been resolved for it.
 
-This strategy is easy to implement and works across OSes and architectures.
+This strategy works across OSes and architectures.
 However, it trusts PyPI and the certificate authority chain. It
 also relies on indices and find-links locations not allowing
 packages to change without a version increase. (PyPI does protect
