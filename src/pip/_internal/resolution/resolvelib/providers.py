@@ -28,7 +28,7 @@ class Provider(object):
 
     def find_matches(self, req):
         # type: (Requirement) -> Sequence[Candidate]
-        return req.find_matches()
+        return req.find_matches(self.finder)
 
     def is_satisfied_by(self, requirement, candidate):
         # type: (Requirement, Candidate) -> bool

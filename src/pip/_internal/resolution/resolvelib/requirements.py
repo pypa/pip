@@ -2,14 +2,13 @@ from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-from .candidates import ConcreteCandidate, ExtrasCandidate, format_name
+from .candidates import ExtrasCandidate, NamedCandidate, format_name
 
 if MYPY_CHECK_RUNNING:
     from typing import Sequence
-    from pip._vendor.packaging.requirements import (
-        Requirement as PEP440Requirement,
-    )
-    from .candidates import Candidate
+    from pip._internal.index.package_finder import PackageFinder
+    from pip._internal.req.req_install import InstallRequirement
+    from .candidates import Candidate, ConcreteCandidate
 
 
 class Requirement(object):
@@ -18,8 +17,8 @@ class Requirement(object):
         # type: () -> str
         raise NotImplementedError("Subclass should override")
 
-    def find_matches(self):
-        # type: () -> Sequence[Candidate]
+    def find_matches(self, finder):
+        # type: (PackageFinder) -> Sequence[Candidate]
         raise NotImplementedError("Subclass should override")
 
     def is_satisfied_by(self, candidate):
@@ -37,8 +36,8 @@ class DirectRequirement(Requirement):
         # type: () -> str
         return self._candidate.name
 
-    def find_matches(self):
-        # type: () -> Sequence[Candidate]
+    def find_matches(self, finder):
+        # type: (PackageFinder) -> Sequence[Candidate]
         return [self._candidate]
 
     def is_satisfied_by(self, candidate):
@@ -47,27 +46,39 @@ class DirectRequirement(Requirement):
 
 
 class VersionedRequirement(Requirement):
-    def __init__(self, requirement):
-        # type: (PEP440Requirement) -> None
-        assert requirement.url is None, "direct reference not allowed"
-        self._req = requirement
+    def __init__(self, ireq):
+        # type: (InstallRequirement) -> None
+        assert ireq.req.url is None, "direct reference not allowed"
+        self._ireq = ireq
 
     @property
     def name(self):
         # type: () -> str
-        return format_name(canonicalize_name(self._req.name), self._req.extras)
+        canonical_name = canonicalize_name(self._ireq.req.name)
+        return format_name(canonical_name, self._ireq.req.extras)
 
-    def find_matches(self):
-        # type: () -> Sequence[Candidate]
-        # TODO: Implement finding candidates from index etc.
-        candidates = []  # type: Sequence[ConcreteCandidate]
-        if not self._req.extras:
+    def find_matches(self, finder):
+        # type: (PackageFinder) -> Sequence[Candidate]
+        found = finder.find_best_candidate(
+            project_name=self._ireq.req.name,
+            specifier=self._ireq.req.specifier,
+            hashes=None,  # TODO: Filter by hashes.
+        )
+        candidates = [
+            NamedCandidate(
+                name=ican.name,
+                version=ican.version,
+                link=ican.link,
+            )
+            for ican in found.iter_applicable()
+        ]  # type: Sequence[ConcreteCandidate]
+        if not self._ireq.req.extras:
             return candidates
-        return [ExtrasCandidate(c, self._req.extras) for c in candidates]
+        return [ExtrasCandidate(c, self._ireq.req.extras) for c in candidates]
 
     def is_satisfied_by(self, candidate):
         # type: (Candidate) -> bool
         return (
             candidate.name == self.name and
-            candidate.version in self._req.specifier
+            candidate.version in self._ireq.req.specifier
         )
