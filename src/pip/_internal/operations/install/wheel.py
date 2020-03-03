@@ -398,9 +398,12 @@ def install_unpacked_wheel(
                     os.utime(destfile, (st.st_atime, st.st_mtime))
 
                 # If our file is executable, then make our destination file
-                # executable.
-                if os.access(srcfile, os.X_OK):
-                    st = os.stat(srcfile)
+                # executable.  Issue #6364: we make the destination executable
+                # if any -x flags are set on srcfile rather than using
+                # os.access(), which will always return False if srcfile
+                # is in a directory mounted 'noexec.'
+                st = os.stat(srcfile)
+                if st.st_mode & (stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH):
                     permissions = (
                         st.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
                     )
