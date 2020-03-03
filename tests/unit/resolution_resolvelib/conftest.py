@@ -25,7 +25,7 @@ def finder(data):
 @pytest.fixture
 def preparer(finder):
     session = PipSession()
-    rc = InstallCommand("x", "y")
+    rc = InstallCommand()
     o = rc.parse_args([])
 
     with global_tempdir_manager():
