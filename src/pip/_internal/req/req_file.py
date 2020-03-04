@@ -170,7 +170,7 @@ def preprocess(content, skip_requirements_regex):
     """Split, filter, and join lines, and return a line iterator
 
     :param content: the content of the requirements file
-    :param options: cli options
+    :param skip_requirements_regex: the pattern to skip lines
     """
     lines_enum = enumerate(content.splitlines(), start=1)  # type: ReqFileLines
     lines_enum = join_lines(lines_enum)
