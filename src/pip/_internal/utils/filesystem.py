@@ -192,7 +192,11 @@ def find_files(path, pattern):
 
 def _friendly_size(size):
     # type: (Union[float, int]) -> str
-    size = float(size)  # for consistent behavior between Python 2 and Python 3.
+
+    # Explicitly convert `size` to a float, for consistent behavior
+    # between Python 2 and Python 3.
+    size = float(size)
+
     suffix = 'B'
     if size > 1000:
         size /= 1000
