@@ -688,15 +688,25 @@ Pinning the versions of your dependencies in the requirements file
 protects you from bugs or incompatibilities in newly released versions::
 
     SomePackage == 1.2.3
-    DependencyOfSomePackage == 4.5.6
+    DependencyOfSomePackage == 4.5.6  # via SomePackage
 
-Using :ref:`pip freeze` to generate the requirements file will ensure that not
-only the top-level dependencies are included but their sub-dependencies as
-well, and so on. Perform the installation using :ref:`--no-deps
+You can do it by hand by putting in requirements file pinned versions of
+packages and *their* requirements. Use the help of :ref:`pip show` to get to
+know ``Version`` that has been resolved and packages that your package
+``Requires``.
+
+You can pin your sub-dependencies in
+:ref:`constraints file <Constraints Files>` to avoid installing not needed
+packages in case of e.g. missing drop of requirement in upgraded package.
+
+You can also use :ref:`pip freeze` to generate the requirements file, but note
+that this way you are losing information what is you top-level- or
+sub-dependency and that you may include package from your environment that your
+application doesn't really need. Perform the installation using :ref:`--no-deps
 <install_--no-deps>` for an extra dose of insurance against installing
 anything not explicitly listed.
 
-This strategy is easy to implement and works across OSes and architectures.
+This strategy works across OSes and architectures.
 However, it trusts PyPI and the certificate authority chain. It
 also relies on indices and find-links locations not allowing
 packages to change without a version increase. (PyPI does protect
