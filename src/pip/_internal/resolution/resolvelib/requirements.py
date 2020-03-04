@@ -48,6 +48,7 @@ class DirectRequirement(Requirement):
 class VersionedRequirement(Requirement):
     def __init__(self, ireq):
         # type: (InstallRequirement) -> None
+        assert ireq.req is not None, "Un-prepared requirement not allowed"
         assert ireq.req.url is None, "direct reference not allowed"
         self._ireq = ireq
 
