@@ -38,7 +38,7 @@ class CacheCommand(Command):
 
     usage = """
         %prog info
-        %prog list [name]
+        %prog list [<pattern>]
         %prog remove <pattern>
         %prog purge
     """
