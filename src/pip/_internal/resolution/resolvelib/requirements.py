@@ -63,7 +63,7 @@ class VersionedRequirement(Requirement):
         found = finder.find_best_candidate(
             project_name=self._ireq.req.name,
             specifier=self._ireq.req.specifier,
-            hashes=None,  # TODO: Filter by hashes.
+            hashes=self._ireq.hashes,
         )
         candidates = [
             NamedCandidate(
