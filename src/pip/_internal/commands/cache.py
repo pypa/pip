@@ -78,10 +78,9 @@ class CacheCommand(Command):
         cache_size = filesystem.format_directory_size(cache_location)
 
         message = textwrap.dedent("""
-            Cache info:
-              Location: {location}
-              Packages: {package_count}
-              Size:     {size}
+            Location: {location}
+            Size: {size}
+            Number of wheels: {package_count}
         """).format(
             location=cache_location,
             package_count=num_packages,
