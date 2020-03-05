@@ -68,6 +68,9 @@ class CacheCommand(Command):
 
     def get_cache_info(self, options, args):
         # type: (Values, List[Any]) -> None
+        if args:
+            raise CommandError('Too many arguments')
+
         num_packages = len(self._find_wheels(options, '*'))
 
         cache_location = self._wheels_cache_dir(options)
