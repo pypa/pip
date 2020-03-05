@@ -2,6 +2,7 @@ import collections
 
 from pip._vendor.packaging.utils import canonicalize_name
 
+from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 from .candidates import (
@@ -19,7 +20,6 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.models.candidate import InstallationCandidate
     from pip._internal.models.link import Link
     from pip._internal.operations.prepare import RequirementPreparer
-    from pip._internal.req.req_install import InstallRequirement
 
     from .candidates import Candidate, ConcreteCandidate
 
