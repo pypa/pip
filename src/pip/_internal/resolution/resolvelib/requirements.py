@@ -45,7 +45,10 @@ def _clone_install_requirement(ireq, link):
         install_options=ireq.install_options,
         global_options=ireq.global_options,
         hash_options=ireq.hash_options,
-        wheel_cache=None,  # We deal with wheel caching in the resolver.
+        # Do not perform cache lookup. `is_satisfied_by` may need the remote
+        # link to check whether another requirement matches.
+        # TODO: Do wheel cache lookup **after resolution**.
+        wheel_cache=None,
         constraint=ireq.constraint,
         extras=ireq.extras,
     )
