@@ -1,5 +1,3 @@
-# TODO: Re-implement me.
-from pip._internal.resolution.legacy.resolver import InstallRequirementProvider
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 from .candidates import RemoteCandidate
@@ -11,6 +9,10 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.operations.prepare import RequirementPreparer
     from pip._internal.req.req_install import InstallRequirement
+    # TODO: Re-implement me.
+    from pip._internal.resolution.legacy.resolver import (
+        InstallRequirementProvider,
+    )
 
     from .candidates import Candidate
     from .requirements import Requirement, ResolveOptions
