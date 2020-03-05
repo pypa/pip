@@ -19,7 +19,7 @@ def test_cache_info(script, monkeypatch):
     # TODO(@duckinator): This should probably test that the number of
     #   packages is actually correct, but I'm not sure how to do that
     #   without pretty much re-implementing the entire cache info command.
-    assert 'Packages: ' in result.stdout
+    assert 'Number of wheels: ' in result.stdout
 
 
 def test_cache_list(script, monkeypatch):
