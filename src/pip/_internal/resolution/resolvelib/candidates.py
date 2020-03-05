@@ -84,7 +84,6 @@ class ConcreteCandidate(Candidate):
         # type: (InstallRequirement, Distribution) -> None
         assert ireq.link is not None, "Candidate should be pinned"
         assert ireq.req is not None, "Un-specified requirement not allowed"
-        assert ireq.req.url is not None, "Candidate should be pinned"
         self._ireq = ireq
         self._dist = dist
 
