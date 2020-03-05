@@ -23,6 +23,7 @@ LOCATIONS = {
     "protected-pip": "tools/tox_pip.py",
 }
 REQUIREMENTS = {
+    "docs": "tools/requirements/docs.txt",
     "tests": "tools/requirements/tests.txt",
     "common-wheels": "tools/requirements/tests-common_wheels.txt",
 }
