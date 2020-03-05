@@ -27,9 +27,9 @@ def test_cache_list(script, monkeypatch):
     wheel_cache_dir = os.path.join(cache_dir, 'wheels')
     destination = os.path.join(wheel_cache_dir, 'arbitrary', 'pathname')
     os.makedirs(destination)
-    with open(os.path.join(destination, 'yyy-1.2.3.whl'), 'w'):
+    with open(os.path.join(destination, 'yyy-1.2.3-py3-none-any.whl'), 'w'):
         pass
-    with open(os.path.join(destination, 'zzz-4.5.6.whl'), 'w'):
+    with open(os.path.join(destination, 'zzz-4.5.6-py27-none-any.whl'), 'w'):
         pass
     result = script.pip('cache', 'list')
     assert 'yyy-1.2.3' in result.stdout
@@ -47,9 +47,9 @@ def test_cache_list_with_pattern(script, monkeypatch):
     wheel_cache_dir = os.path.join(cache_dir, 'wheels')
     destination = os.path.join(wheel_cache_dir, 'arbitrary', 'pathname')
     os.makedirs(destination)
-    with open(os.path.join(destination, 'yyy-1.2.3.whl'), 'w'):
+    with open(os.path.join(destination, 'yyy-1.2.3-py3-none-any.whl'), 'w'):
         pass
-    with open(os.path.join(destination, 'zzz-4.5.6.whl'), 'w'):
+    with open(os.path.join(destination, 'zzz-4.5.6-py27-none-any.whl'), 'w'):
         pass
     result = script.pip('cache', 'list', 'zzz')
     assert 'yyy-1.2.3' not in result.stdout
@@ -62,9 +62,9 @@ def test_cache_remove(script, monkeypatch):
     wheel_cache_dir = os.path.join(cache_dir, 'wheels')
     destination = os.path.join(wheel_cache_dir, 'arbitrary', 'pathname')
     os.makedirs(destination)
-    with open(os.path.join(wheel_cache_dir, 'yyy-1.2.3.whl'), 'w'):
+    with open(os.path.join(wheel_cache_dir, 'yyy-1.2.3-py3-none-any.whl'), 'w'):
         pass
-    with open(os.path.join(wheel_cache_dir, 'zzz-4.5.6.whl'), 'w'):
+    with open(os.path.join(wheel_cache_dir, 'zzz-4.5.6-py27-none-any.whl'), 'w'):
         pass
 
     script.pip('cache', 'remove', expect_error=True)
@@ -84,9 +84,9 @@ def test_cache_purge(script, monkeypatch):
     wheel_cache_dir = os.path.join(cache_dir, 'wheels')
     destination = os.path.join(wheel_cache_dir, 'arbitrary', 'pathname')
     os.makedirs(destination)
-    with open(os.path.join(wheel_cache_dir, 'yyy-1.2.3.whl'), 'w'):
+    with open(os.path.join(wheel_cache_dir, 'yyy-1.2.3-py3-none-any.whl'), 'w'):
         pass
-    with open(os.path.join(wheel_cache_dir, 'zzz-4.5.6.whl'), 'w'):
+    with open(os.path.join(wheel_cache_dir, 'zzz-4.5.6-py27-none-any.whl'), 'w'):
         pass
 
     result = script.pip('cache', 'purge', 'aaa', '--verbose',
