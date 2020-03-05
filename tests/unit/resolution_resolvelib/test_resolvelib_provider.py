@@ -1,12 +1,10 @@
 from functools import partial
 
-from pip._vendor.packaging.requirements import Requirement
 from pip._internal.req.constructors import install_req_from_req_string
-
 from pip._internal.resolution.resolvelib.providers import Provider
 from pip._internal.resolution.resolvelib.requirements import (
     ResolveOptions,
-    VersionedRequirement
+    VersionedRequirement,
 )
 
 
