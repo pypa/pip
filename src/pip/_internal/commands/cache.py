@@ -75,7 +75,7 @@ class CacheCommand(Command):
         num_packages = len(self._find_wheels(options, '*'))
 
         cache_location = self._wheels_cache_dir(options)
-        cache_size = filesystem.friendly_directory_size(cache_location)
+        cache_size = filesystem.format_directory_size(cache_location)
 
         message = textwrap.dedent("""
             Cache info:
@@ -109,7 +109,7 @@ class CacheCommand(Command):
         results = []
         for filename in files:
             wheel = os.path.basename(filename)
-            size = filesystem.friendly_file_size(filename)
+            size = filesystem.format_file_size(filename)
             results.append(' - {} ({})'.format(wheel, size))
         logger.info('Cache contents:\n')
         logger.info('\n'.join(sorted(results)))

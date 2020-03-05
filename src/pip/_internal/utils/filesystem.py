@@ -15,6 +15,7 @@ from pip._vendor.retrying import retry  # type: ignore
 from pip._vendor.six import PY2
 
 from pip._internal.utils.compat import get_path_uid
+from pip._internal.utils.misc import format_size
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING, cast
 
 if MYPY_CHECK_RUNNING:
@@ -190,31 +191,6 @@ def find_files(path, pattern):
     return result
 
 
-def _friendly_size(size):
-    # type: (Union[float, int]) -> str
-
-    # Explicitly convert `size` to a float, for consistent behavior
-    # between Python 2 and Python 3.
-    size = float(size)
-
-    suffix = 'B'
-    if size > 1000:
-        size /= 1000
-        suffix = 'KB'
-
-    if size > 1000:
-        size /= 1000
-        suffix = 'MB'
-
-    if size > 1000:
-        size /= 1000
-        suffix = 'GB'
-
-    size = round(size, 1)
-
-    return '{} {}'.format(size, suffix)
-
-
 def file_size(path):
     # type: (str) -> Union[int, float]
     # If it's a symlink, return 0.
@@ -223,9 +199,9 @@ def file_size(path):
     return os.path.getsize(path)
 
 
-def friendly_file_size(path):
+def format_file_size(path):
     # type: (str) -> str
-    return _friendly_size(file_size(path))
+    return format_size(file_size(path))
 
 
 def directory_size(path):
@@ -238,6 +214,6 @@ def directory_size(path):
     return size
 
 
-def friendly_directory_size(path):
+def format_directory_size(path):
     # type: (str) -> str
-    return _friendly_size(directory_size(path))
+    return format_size(directory_size(path))
