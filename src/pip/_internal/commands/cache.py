@@ -20,9 +20,9 @@ logger = logging.getLogger(__name__)
 
 class CacheCommand(Command):
     """
-        Inspect and manage pip's wheel cache.
+    Inspect and manage pip's wheel cache.
 
-        Subcommands:
+    Subcommands:
 
         info: Show information about the cache.
         list: List filenames of packages stored in the cache.
