@@ -1,7 +1,7 @@
 from pip._vendor.packaging.utils import canonicalize_name
 
+# TODO: Re-implement me.
 from pip._internal.resolution.legacy.resolver import (
-    # TODO: Re-implement me.
     UnsupportedPythonVersion,
     _check_dist_requires_python,
 )

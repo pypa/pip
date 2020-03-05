@@ -1,12 +1,9 @@
-from pip._internal.resolution.legacy.resolver import (
-    # TODO: Re-implement me.
-    InstallRequirementProvider,
-)
+# TODO: Re-implement me.
+from pip._internal.resolution.legacy.resolver import InstallRequirementProvider
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 from .candidates import RemoteCandidate
 from .requirements import DirectRequirement, VersionedRequirement
-
 
 if MYPY_CHECK_RUNNING:
     from typing import Any, List, Sequence, Union
