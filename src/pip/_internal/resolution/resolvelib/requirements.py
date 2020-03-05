@@ -13,20 +13,26 @@ from .candidates import (
 )
 
 if MYPY_CHECK_RUNNING:
-    from typing import Sequence
-    from pip._vendor.packaging.version import _BaseVersion
+    from typing import Optional, Sequence
+
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.models.candidate import InstallationCandidate
     from pip._internal.models.link import Link
     from pip._internal.operations.prepare import RequirementPreparer
     from pip._internal.req.req_install import InstallRequirement
+
     from .candidates import Candidate, ConcreteCandidate
 
 
 ResolveOptions = collections.namedtuple(
     "ResolveOptions",
     [
+        # For checking whether a package is installed.
         "use_user_site",
+
+        # For checking whether a dist is compatible.
+        "python_version_info",
+        "ignore_requires_python",
     ],
 )
 
@@ -56,14 +62,14 @@ def _clone_install_requirement(ireq, link):
 
 def _prepare_as_candidate(
     ireq,       # type: InstallRequirement
-    version,    # type: _BaseVersion
+    ican,       # type: InstallationCandidate
     preparer,   # type: RequirementPreparer
     options,    # type: ResolveOptions
 ):
-    # type: (...) -> ConcreteCandidate
+    # type: (...) -> Optional[ConcreteCandidate]
     if ireq.editable:
-        preparer.prepare_editable_requirement(ireq)
-        return EditableCandidate(ireq, version)
+        dist = preparer.prepare_editable_requirement(ireq)
+        return EditableCandidate.from_abstract_dist(dist, ireq, options)
 
     ireq.satisfied_by is None
     ireq.check_if_exists(use_user_site=options.use_user_site)
@@ -71,16 +77,16 @@ def _prepare_as_candidate(
     # TODO: Do not use installed requirement under certain cercumstances.
     use_installed = (
         ireq.satisfied_by and
-        ireq.satisfied_by.parsed_version == version
+        ireq.satisfied_by.parsed_version == ican.version
     )
 
     if not use_installed:
-        preparer.prepare_linked_requirement(ireq)
-        return RemoteCandidate(ireq, version)
+        dist = preparer.prepare_linked_requirement(ireq)
+        return RemoteCandidate.from_abstract_dist(dist, ireq, options)
 
     skip_reason = "installed"
-    preparer.prepare_installed_requirement(ireq, skip_reason)
-    return InstalledCandidate(ireq, version)
+    dist = preparer.prepare_installed_requirement(ireq, skip_reason)
+    return InstalledCandidate.from_abstract_dist(dist, ireq, options)
 
 
 def _pin_as_candidate(
@@ -89,9 +95,11 @@ def _pin_as_candidate(
     preparer,   # type: RequirementPreparer
     options,    # type: ResolveOptions
 ):
-    # type: (...) -> Candidate
+    # type: (...) -> Optional[Candidate]
     ireq = _clone_install_requirement(ireq, ican.link)
-    candidate = _prepare_as_candidate(ireq, ican.version, preparer, options)
+    candidate = _prepare_as_candidate(ireq, ican, preparer, options)
+    if not candidate:
+        return None
     if not ireq.req.extras:
         return candidate
     return ExtrasCandidate(candidate, ireq.req.extras)
@@ -144,8 +152,8 @@ class DirectRequirement(Requirement):
 class VersionedRequirement(Requirement):
     def __init__(self, ireq):
         # type: (InstallRequirement) -> None
-        assert ireq.req is not None, "Un-prepared requirement not allowed"
-        assert ireq.req.url is None, "direct reference not allowed"
+        assert ireq.req is not None, "Un-specified requirement not allowed"
+        assert ireq.req.url is None, "Direct reference not allowed"
         self._ireq = ireq
 
     @property
@@ -166,10 +174,11 @@ class VersionedRequirement(Requirement):
             specifier=self._ireq.req.specifier,
             hashes=self._ireq.hashes(trust_internet=False),
         )
-        return [
+        candidates = (
             _pin_as_candidate(self._ireq, ican, preparer, options)
             for ican in found.iter_applicable()
-        ]
+        )
+        return [c for c in candidates if c]
 
     def is_satisfied_by(self, candidate):
         # type: (Candidate) -> bool

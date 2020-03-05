@@ -1,13 +1,24 @@
 from pip._vendor.packaging.utils import canonicalize_name
 
+from pip._internal.resolution.legacy.resolver import (
+    # TODO: Re-implement me.
+    UnsupportedPythonVersion,
+    _check_dist_requires_python,
+)
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Sequence, Set
+    from typing import Callable, Optional, Sequence, Set
+
     from pip._vendor.packaging.version import _BaseVersion
+    from pip._vendor.pkg_resources import Distribution
+    from pip._internal.distributions import AbstractDistribution
     from pip._internal.models.link import Link
     from pip._internal.req.req_install import InstallRequirement
-    from .requirements import Requirement
+
+    from .requirements import Requirement, ResolveOptions
+
+    RequirementProvider = Callable[[str, InstallRequirement], Requirement]
 
 
 def format_name(project, extras):
@@ -34,12 +45,8 @@ class Candidate(object):
         # type: () -> Link
         raise NotImplementedError("Override in subclass")
 
-    def same_as(self, other):
-        # type: (Candidate) -> bool
-        return False
-
-    def get_dependencies(self):
-        # type: () -> Sequence[Requirement]
+    def get_dependencies(self, make_req):
+        # type: (RequirementProvider) -> Sequence[Requirement]
         raise NotImplementedError("Override in subclass")
 
 
@@ -64,15 +71,41 @@ class ExtrasCandidate(Candidate):
         # type: () -> Link
         return self._candidate.link
 
+    def get_dependencies(self, make_req):
+        # type: (RequirementProvider) -> Sequence[Requirement]
+        return [
+            make_req(str(r), self._candidate._ireq)
+            for r in self._candidate._dist.requires(self._extras)
+        ]
+
 
 class ConcreteCandidate(Candidate):
-    def __init__(self, ireq, version):
-        # type: (InstallRequirement, _BaseVersion) -> None
+    def __init__(self, ireq, dist):
+        # type: (InstallRequirement, Distribution) -> None
         assert ireq.link is not None, "Candidate should be pinned"
-        assert ireq.req is not None, "Un-prepared requirement not allowed"
+        assert ireq.req is not None, "Un-specified requirement not allowed"
         assert ireq.req.url is not None, "Candidate should be pinned"
         self._ireq = ireq
-        self._version = version
+        self._dist = dist
+
+    @classmethod
+    def from_abstract_dist(
+        cls,
+        adist,      # type: AbstractDistribution
+        ireq,       # type: InstallRequirement
+        options,    # type: ResolveOptions
+    ):
+        # type: (...) -> Optional[ConcreteCandidate]
+        dist = adist.get_pkg_resources_distribution()
+        try:
+            _check_dist_requires_python(
+                dist,
+                options.python_version_info,
+                options.ignore_requires_python,
+            )
+        except UnsupportedPythonVersion:
+            return None
+        return cls(ireq, dist)
 
     @property
     def name(self):
@@ -82,7 +115,7 @@ class ConcreteCandidate(Candidate):
     @property
     def version(self):
         # type: () -> _BaseVersion
-        return self._version
+        return self._dist.parsed_version
 
     @property
     def link(self):
@@ -90,9 +123,18 @@ class ConcreteCandidate(Candidate):
         assert self._ireq.link is not None, "Candidate should be pinned"
         return self._ireq.link
 
+    def get_dependencies(self, make_req):
+        # type: (RequirementProvider) -> Sequence[Requirement]
+        return [
+            make_req(str(r), self._ireq)
+            for r in self._dist.requires()
+        ]
+
 
 class RemoteCandidate(ConcreteCandidate):
     """Candidate pointing to a remote location.
+
+    A remote location can be on-disk, but not installed into the environment.
     """
 
 
