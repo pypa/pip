@@ -144,4 +144,23 @@ class CacheCommand(Command):
     def _find_wheels(self, options, pattern):
         # type: (Values, str) -> List[str]
         wheel_dir = self._wheels_cache_dir(options)
-        return filesystem.find_files(wheel_dir, pattern + '*.whl')
+
+        # The wheel filename format, as specified in PEP 427, is:
+        #     {distribution}-{version}(-{build})?-{python}-{abi}-{platform}.whl
+        #
+        # Additionally, non-alphanumeric values in the distribution are
+        # normalized to underscores (_), meaning hyphens can never occur
+        # before `-{version}`.
+        #
+        # Given that information:
+        # - If the pattern we're given contains a hyphen (-), the user is
+        #   providing at least the version. Thus, we can just append `*.whl`
+        #   to match the rest of it.
+        # - If the pattern we're given doesn't contain a hyphen (-), the
+        #   user is only providing the name. Thus, we append `-*.whl` to
+        #   match the hyphen before the version, followed by anything else.
+        #
+        # PEP 427: https://www.python.org/dev/peps/pep-0427/
+        pattern = pattern + ("*.whl" if "-" in pattern else "-*.whl")
+
+        return filesystem.find_files(wheel_dir, pattern)
