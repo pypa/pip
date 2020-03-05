@@ -39,10 +39,6 @@ class CacheCommand(Command):
         %prog purge
     """
 
-    def __init__(self, *args, **kw):
-        # type: (*Any, **Any) -> None
-        super(CacheCommand, self).__init__(*args, **kw)
-
     def run(self, options, args):
         # type: (Values, List[Any]) -> int
         handlers = {
