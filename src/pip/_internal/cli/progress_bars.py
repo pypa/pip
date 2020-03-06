@@ -14,7 +14,7 @@ from pip._internal.utils.misc import format_size
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Dict, List
+    from typing import Any, Dict, Iterator, List, Tuple
 
 try:
     from pip._vendor import colorama
@@ -247,17 +247,21 @@ class DownloadProgressSpinner(WindowsMixin, InterruptibleMixin,
 
     def update(self):
         # type: () -> None
-        vals = dict(
-            downloaded=self.downloaded,
-            download_speed=self.download_speed,
-            pretty_eta=self.pretty_eta,
-            percent=self.percent,
-        )
+        vals = dict(self._load_vals(
+            'downloaded', 'download_speed', 'pretty_eta', 'percent'))
         message = self.message.format(**vals)
         phase = self.next_phase()
         suffix = self.suffix.format(**vals)
         line = " ".join(filter(None, (message, phase, suffix)))
         self.writeln(line)
+
+    def _load_vals(self, *names):
+        # type: (*str) -> Iterator[Tuple[str, Any]]
+        for name in names:
+            try:
+                yield name, getattr(self, name)
+            except Exception:
+                pass
 
 
 BAR_TYPES = {
