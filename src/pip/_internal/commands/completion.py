@@ -85,7 +85,8 @@ class CompletionCommand(Command):
         shell_options = ['--' + shell for shell in sorted(shells)]
         if options.shell in shells:
             script = textwrap.dedent(
-                COMPLETION_SCRIPTS.get(options.shell, '').format(prog=get_prog())
+                COMPLETION_SCRIPTS.get(options.shell, '').format(
+                    prog=get_prog())
             )
             print(BASE_COMPLETION.format(script=script, shell=options.shell))
         else:

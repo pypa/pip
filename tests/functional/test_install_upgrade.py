@@ -4,7 +4,8 @@ import textwrap
 
 import pytest
 
-from tests.lib import assert_all_changes, pyversion
+from tests.lib import pyversion  # noqa: F401
+from tests.lib import assert_all_changes
 from tests.lib.local_repos import local_checkout
 
 

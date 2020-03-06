@@ -106,7 +106,8 @@ class NonInteractiveSpinner(SpinnerInterface):
         # type: (str) -> None
         if self._finished:
             return
-        self._update("finished with status '{final_status}'".format(**locals()))
+        self._update(
+            "finished with status '{final_status}'".format(**locals()))
         self._finished = True
 
 

@@ -6,7 +6,8 @@ import os
 
 import pytest
 
-from tests.lib import assert_all_changes, pyversion
+from tests.lib import pyversion  # noqa: F401
+from tests.lib import assert_all_changes
 
 
 @pytest.mark.network
@@ -31,11 +32,13 @@ def test_debian_egg_name_workaround(script):
     # so even if this test runs on a Debian/Ubuntu system with broken
     # setuptools, since our test runs inside a venv we'll still have the normal
     # .egg-info
-    assert egg_info in result.files_created, "Couldn't find {egg_info}".format(**locals())
+    assert egg_info in result.files_created, \
+        "Couldn't find {egg_info}".format(**locals())
 
     # The Debian no-pyversion version of the .egg-info
     mangled = os.path.join(script.site_packages, "INITools-0.2.egg-info")
-    assert mangled not in result.files_created, "Found unexpected {mangled}".format(**locals())
+    assert mangled not in result.files_created, \
+        "Found unexpected {mangled}".format(**locals())
 
     # Simulate a Debian install by copying the .egg-info to their name for it
     full_egg_info = os.path.join(script.base_path, egg_info)

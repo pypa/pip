@@ -1,8 +1,8 @@
+import collections
 import logging
 import os
 import subprocess
 import textwrap
-import collections
 
 import pytest
 from mock import patch

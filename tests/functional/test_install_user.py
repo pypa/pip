@@ -6,7 +6,8 @@ from os.path import curdir, isdir, isfile
 
 import pytest
 
-from tests.lib import need_svn, pyversion
+from tests.lib import pyversion  # noqa: F401
+from tests.lib import need_svn
 from tests.lib.local_repos import local_checkout
 
 
@@ -112,7 +113,8 @@ class Tests_UserSite:
 
         # usersite has 0.1
         egg_info_folder = (
-            script.user_site / 'INITools-0.1-py{pyversion}.egg-info'.format(**globals())
+            script.user_site /
+            'INITools-0.1-py{pyversion}.egg-info'.format(**globals())
         )
         initools_v3_file = (
             # file only in 0.3
@@ -138,7 +140,8 @@ class Tests_UserSite:
 
         # usersite has 0.1
         egg_info_folder = (
-            script.user_site / 'INITools-0.1-py{pyversion}.egg-info'.format(**globals())
+            script.user_site /
+            'INITools-0.1-py{pyversion}.egg-info'.format(**globals())
         )
         initools_folder = script.user_site / 'initools'
         assert egg_info_folder in result2.files_created, str(result2)
@@ -168,7 +171,8 @@ class Tests_UserSite:
 
         # usersite has 0.3.1
         egg_info_folder = (
-            script.user_site / 'INITools-0.3.1-py{pyversion}.egg-info'.format(**globals())
+            script.user_site /
+            'INITools-0.3.1-py{pyversion}.egg-info'.format(**globals())
         )
         initools_folder = script.user_site / 'initools'
         assert egg_info_folder in result2.files_created, str(result2)
@@ -201,7 +205,8 @@ class Tests_UserSite:
 
         # usersite has 0.1
         egg_info_folder = (
-            script.user_site / 'INITools-0.1-py{pyversion}.egg-info'.format(**globals())
+            script.user_site /
+            'INITools-0.1-py{pyversion}.egg-info'.format(**globals())
         )
         initools_v3_file = (
             # file only in 0.3

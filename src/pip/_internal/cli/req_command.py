@@ -344,7 +344,7 @@ class RequirementCommand(IndexGroupCommand):
                 raise CommandError(
                     'You must give at least one requirement to {name} '
                     '(maybe you meant "pip {name} {links}"?)'.format(
-                    **dict(opts, links=' '.join(options.find_links))))
+                        **dict(opts, links=' '.join(options.find_links))))
             else:
                 raise CommandError(
                     'You must give at least one requirement to {name} '

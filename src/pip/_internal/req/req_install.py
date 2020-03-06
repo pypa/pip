@@ -639,7 +639,8 @@ class InstallRequirement(object):
         if self.link.scheme == 'file':
             # Static paths don't get updated
             return
-        assert '+' in self.link.url, "bad url: {self.link.url!r}".format(**locals())
+        assert '+' in self.link.url, \
+            "bad url: {self.link.url!r}".format(**locals())
         vc_type, url = self.link.url.split('+', 1)
         vcs_backend = vcs.get_backend(vc_type)
         if vcs_backend:

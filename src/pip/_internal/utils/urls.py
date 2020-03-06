@@ -34,7 +34,8 @@ def url_to_path(url):
     Convert a file: URL to a path.
     """
     assert url.startswith('file:'), (
-        "You can only turn file: urls into filenames (not {url!r})".format(**locals()))
+        "You can only turn file: urls into filenames (not {url!r})"
+        .format(**locals()))
 
     _, netloc, path, _, _ = urllib_parse.urlsplit(url)
 

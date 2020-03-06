@@ -79,10 +79,12 @@ def test_pep518_refuses_conflicting_requires(script, data):
     result = script.pip_install_local('-f', script.scratch_path,
                                       project_dir, expect_error=True)
     assert (
-        result.returncode != 0 and
-        ('Some build dependencies for {url} conflict with PEP 517/518 supported '
-         'requirements: setuptools==1.0 is incompatible with '
-         'setuptools>=40.8.0.'.format(url=path_to_url(project_dir))) in result.stderr
+        result.returncode != 0 and (
+            'Some build dependencies for {url} conflict '
+            'with PEP 517/518 supported '
+            'requirements: setuptools==1.0 is incompatible with '
+            'setuptools>=40.8.0.'
+            .format(url=path_to_url(project_dir))) in result.stderr
     ), str(result)
 
 
@@ -283,7 +285,10 @@ def test_basic_install_editable_from_svn(script):
 def _test_install_editable_from_git(script, tmpdir):
     """Test cloning from Git."""
     pkg_path = _create_test_package(script, name='testpackage', vcs='git')
-    args = ['install', '-e', 'git+{url}#egg=testpackage'.format(url=path_to_url(pkg_path))]
+    args = [
+        'install', '-e',
+        'git+{url}#egg=testpackage'.format(url=path_to_url(pkg_path)),
+    ]
     result = script.pip(*args)
     result.assert_installed('testpackage', with_files=['.git'])
 
@@ -314,8 +319,8 @@ def test_install_editable_uninstalls_existing(data, script, tmpdir):
         'install', '-e',
         '{dir}#egg=pip-test-package'.format(
             dir=local_checkout(
-            'git+https://github.com/pypa/pip-test-package.git', tmpdir,
-        )),
+                'git+https://github.com/pypa/pip-test-package.git', tmpdir,
+            )),
     )
     result.assert_installed('pip-test-package', with_files=['.git'])
     assert 'Found existing installation: pip-test-package 0.1' in result.stdout
@@ -364,7 +369,9 @@ def test_vcs_url_final_slash_normalization(script, tmpdir):
     Test that presence or absence of final slash in VCS URL is normalized.
     """
     pkg_path = _create_test_package(script, name='testpackage', vcs='hg')
-    args = ['install', '-e', 'hg+{url}/#egg=testpackage'.format(url=path_to_url(pkg_path))]
+    args = [
+        'install',
+        '-e', 'hg+{url}/#egg=testpackage'.format(url=path_to_url(pkg_path))]
     result = script.pip(*args)
     result.assert_installed('testpackage', with_files=['.hg'])
 
@@ -373,7 +380,9 @@ def test_vcs_url_final_slash_normalization(script, tmpdir):
 def test_install_editable_from_bazaar(script, tmpdir):
     """Test checking out from Bazaar."""
     pkg_path = _create_test_package(script, name='testpackage', vcs='bazaar')
-    args = ['install', '-e', 'bzr+{url}/#egg=testpackage'.format(url=path_to_url(pkg_path))]
+    args = [
+        'install',
+        '-e', 'bzr+{url}/#egg=testpackage'.format(url=path_to_url(pkg_path))]
     result = script.pip(*args)
     result.assert_installed('testpackage', with_files=['.bzr'])
 
@@ -388,7 +397,8 @@ def test_vcs_url_urlquote_normalization(script, tmpdir):
         'install', '-e',
         '{url}/#egg=django-wikiapp'.format(
             url=local_checkout(
-                'bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp'
+                'bzr+http://bazaar.launchpad.net/'
+                '%7Edjango-wikiapp/django-wikiapp'
                 '/release-0.1',
                 tmpdir,
             )),
@@ -1440,7 +1450,8 @@ def test_install_editable_with_wrong_egg_name(script):
               version='0.1')
     """))
     result = script.pip(
-        'install', '--editable', 'file://{pkga_path}#egg=pkgb'.format(**locals())
+        'install', '--editable',
+        'file://{pkga_path}#egg=pkgb'.format(**locals()),
     )
     assert ("Generating metadata for package pkgb produced metadata "
             "for project name pkga. Fix your #egg=pkgb "
@@ -1514,7 +1525,9 @@ def test_install_incompatible_python_requires_editable(script):
               version='0.1')
     """))
     result = script.pip(
-        'install', '--editable={pkga_path}'.format(**locals()), expect_error=True)
+        'install',
+        '--editable={pkga_path}'.format(**locals()),
+        expect_error=True)
     assert _get_expected_error_text() in result.stderr, str(result)
 
 

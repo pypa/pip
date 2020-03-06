@@ -234,16 +234,6 @@ class DownloadBlueEmojiProgressBar(BaseDownloadProgressBar,  # type: ignore
     pass
 
 
-class ObjectMapAdapter:
-    """Translate getitem to getattr."""
-
-    def __init__(self, obj):
-        self.obj = obj
-
-    def __getitem__(self, key):
-        return getattr(self.obj, key)
-
-
 class DownloadProgressSpinner(WindowsMixin, InterruptibleMixin,
                               DownloadProgressMixin, Spinner):
 
@@ -257,9 +247,15 @@ class DownloadProgressSpinner(WindowsMixin, InterruptibleMixin,
 
     def update(self):
         # type: () -> None
-        message = self.message.format_map(ObjectMapAdapter(self))
+        vals = dict(
+            downloaded=self.downloaded,
+            download_speed=self.download_speed,
+            pretty_eta=self.pretty_eta,
+            percent=self.percent,
+        )
+        message = self.message.format(**vals)
         phase = self.next_phase()
-        suffix = self.suffix.format_map(ObjectMapAdapter(self))
+        suffix = self.suffix.format(**vals)
         line = " ".join(filter(None, (message, phase, suffix)))
         self.writeln(line)
 

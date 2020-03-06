@@ -96,7 +96,8 @@ class Link(KeyBasedCompareMixin):
             return netloc
 
         name = urllib_parse.unquote(name)
-        assert name, ('URL {self._url!r} produced no filename'.format(**locals()))
+        assert name, (
+            'URL {self._url!r} produced no filename'.format(**locals()))
         return name
 
     @property

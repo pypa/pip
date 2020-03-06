@@ -6,7 +6,8 @@ from os.path import isdir, isfile, normcase
 import pytest
 
 from tests.functional.test_install_user import _patch_dist_in_site_packages
-from tests.lib import assert_all_changes, pyversion
+from tests.lib import pyversion  # noqa: F401
+from tests.lib import assert_all_changes
 
 
 @pytest.mark.incompatible_with_test_venv

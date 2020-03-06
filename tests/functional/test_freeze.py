@@ -468,7 +468,7 @@ def test_freeze_bazaar_clone(script, tmpdir):
     try:
         checkout_path = _create_test_package(script, vcs='bazaar')
     except OSError as e:
-        pytest.fail('Invoking `bzr` failed: {e}'.format(**locals()))
+        pytest.fail('Invoking `bzr` failed: {e}'.format(e=e))
 
     result = script.run(
         'bzr', 'checkout', checkout_path, 'bzr-package'
