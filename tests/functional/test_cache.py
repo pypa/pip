@@ -11,83 +11,73 @@ def _cache_dir(script):
     return result.stdout.strip()
 
 
-def test_cache_info(script, monkeypatch):
-    result = script.pip('cache', 'info')
-    cache_dir = _cache_dir(script)
-
-    assert 'Location: {}'.format(os.path.normcase(cache_dir)) in result.stdout
-    # TODO(@duckinator): This should probably test that the number of
-    #   packages is actually correct, but I'm not sure how to do that
-    #   without pretty much re-implementing the entire cache info command.
-    assert 'Number of wheels: ' in result.stdout
-
-
-def test_cache_list(script, monkeypatch):
+def _wheel_cache_contents(script):
     cache_dir = _cache_dir(script)
     wheel_cache_dir = os.path.join(cache_dir, 'wheels')
     destination = os.path.join(wheel_cache_dir, 'arbitrary', 'pathname')
     os.makedirs(destination)
-    with open(os.path.join(destination, 'yyy-1.2.3-py3-none-any.whl'), 'w'):
-        pass
-    with open(os.path.join(destination, 'zzz-4.5.6-py27-none-any.whl'), 'w'):
-        pass
+
+    files = [
+        ('yyy-1.2.3', os.path.join(destination, 'yyy-1.2.3-py3-none-any.whl')),
+        ('zzz-4.5.6', os.path.join(destination, 'zzz-4.5.6-py27-none-any.whl')),
+    ]
+
+    for _name, filename in files:
+        with open(filename, 'w'):
+            pass
+
+    return files
+
+
+def test_cache_info(script):
+    cache_dir = _cache_dir(script)
+    cache_files = _wheel_cache_contents(script)
+
+    result = script.pip('cache', 'info')
+
+    assert 'Location: {}'.format(os.path.normcase(cache_dir)) in result.stdout
+    assert 'Number of wheels: {}'.format(len(cache_files)) in result.stdout
+
+
+def test_cache_list(script):
+    cache_files = _wheel_cache_contents(script)
+    packages = [name for (name, _path) in cache_files]
     result = script.pip('cache', 'list')
-    assert 'yyy-1.2.3' in result.stdout
-    assert 'zzz-4.5.6' in result.stdout
-    shutil.rmtree(os.path.join(wheel_cache_dir, 'arbitrary'))
+    for package in packages:
+        assert package in result.stdout
+    # assert 'yyy-1.2.3' in result.stdout
+    # assert 'zzz-4.5.6' in result.stdout
 
 
-def test_cache_list_too_many_args(script, monkeypatch):
+def test_cache_list_too_many_args(script):
     script.pip('cache', 'list', 'aaa', 'bbb',
                expect_error=True)
 
 
-def test_cache_list_with_pattern(script, monkeypatch):
-    cache_dir = _cache_dir(script)
-    wheel_cache_dir = os.path.join(cache_dir, 'wheels')
-    destination = os.path.join(wheel_cache_dir, 'arbitrary', 'pathname')
-    os.makedirs(destination)
-    with open(os.path.join(destination, 'yyy-1.2.3-py3-none-any.whl'), 'w'):
-        pass
-    with open(os.path.join(destination, 'zzz-4.5.6-py27-none-any.whl'), 'w'):
-        pass
+def test_cache_list_with_pattern(script):
+    cache_files = _wheel_cache_contents(script)
+
     result = script.pip('cache', 'list', 'zzz')
     assert 'yyy-1.2.3' not in result.stdout
     assert 'zzz-4.5.6' in result.stdout
-    shutil.rmtree(os.path.join(wheel_cache_dir, 'arbitrary'))
 
 
 def test_cache_remove(script, monkeypatch):
-    cache_dir = _cache_dir(script)
-    wheel_cache_dir = os.path.join(cache_dir, 'wheels')
-    destination = os.path.join(wheel_cache_dir, 'arbitrary', 'pathname')
-    os.makedirs(destination)
-    with open(os.path.join(wheel_cache_dir, 'yyy-1.2.3-py3-none-any.whl'), 'w'):
-        pass
-    with open(os.path.join(wheel_cache_dir, 'zzz-4.5.6-py27-none-any.whl'), 'w'):
-        pass
+    cache_files = _wheel_cache_contents(script)
 
     script.pip('cache', 'remove', expect_error=True)
     result = script.pip('cache', 'remove', 'zzz', '--verbose')
     assert 'yyy-1.2.3' not in result.stdout
     assert 'zzz-4.5.6' in result.stdout
-    shutil.rmtree(os.path.join(wheel_cache_dir, 'arbitrary'))
 
 
-def test_cache_remove_too_many_args(script, monkeypatch):
+def test_cache_remove_too_many_args(script):
     script.pip('cache', 'remove', 'aaa', 'bbb',
                expect_error=True)
 
 
-def test_cache_purge(script, monkeypatch):
-    cache_dir = _cache_dir(script)
-    wheel_cache_dir = os.path.join(cache_dir, 'wheels')
-    destination = os.path.join(wheel_cache_dir, 'arbitrary', 'pathname')
-    os.makedirs(destination)
-    with open(os.path.join(wheel_cache_dir, 'yyy-1.2.3-py3-none-any.whl'), 'w'):
-        pass
-    with open(os.path.join(wheel_cache_dir, 'zzz-4.5.6-py27-none-any.whl'), 'w'):
-        pass
+def test_cache_purge(script):
+    cache_files = _wheel_cache_contents(script)
 
     result = script.pip('cache', 'purge', 'aaa', '--verbose',
                         expect_error=True)
@@ -97,5 +87,3 @@ def test_cache_purge(script, monkeypatch):
     result = script.pip('cache', 'purge', '--verbose')
     assert 'yyy-1.2.3' in result.stdout
     assert 'zzz-4.5.6' in result.stdout
-
-    shutil.rmtree(os.path.join(wheel_cache_dir, 'arbitrary'))
