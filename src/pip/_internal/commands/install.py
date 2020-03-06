@@ -230,9 +230,6 @@ class InstallCommand(RequirementCommand):
     @with_cleanup
     def run(self, options, args):
         # type: (Values, List[str]) -> int
-        if options.use_user_site and options.target_dir is not None:
-            raise CommandError("Can not combine '--user' and '--target'")
-
         cmdoptions.check_install_build_global(options)
         upgrade_strategy = "to-satisfy-only"
         if options.upgrade:
@@ -256,13 +253,6 @@ class InstallCommand(RequirementCommand):
         if options.target_dir:
             options.ignore_installed = True
             options.target_dir = os.path.abspath(options.target_dir)
-            if (os.path.exists(options.target_dir) and not
-                    os.path.isdir(options.target_dir)):
-                raise CommandError(
-                    "Target path exists but is not a directory, will not "
-                    "continue."
-                )
-
             # Create a target directory for using with the target option
             target_temp_dir = TempDirectory(kind="target")
             target_temp_dir_path = target_temp_dir.path
@@ -633,56 +623,70 @@ def decide_user_install(
     isolated_mode=False,  # type: bool
 ):
     # type: (...) -> bool
-    """Determine whether to do a user install based on the input options.
+    """Determine whether to do a user install.
 
-    If use_user_site is False, no additional checks are done.
-    If use_user_site is True, it is checked for compatibility with other
-    options.
-    If use_user_site is None, the default behaviour depends on the environment,
-    which is provided by the other arguments.
+    If use_user_site is None, the behavior is decided upon other
+    arguments and the environment.
+
+    Compatibility of installation location options and the environment
+    is also asserted in this function.
     """
-    # In some cases (config from tox), use_user_site can be set to an integer
-    # rather than a bool, which 'use_user_site is False' wouldn't catch.
-    if (use_user_site is not None) and (not use_user_site):
-        logger.debug("Non-user install by explicit request")
-        return False
+    # Check for incompatible options
+    locations = {"--target": target_dir, "--user": use_user_site,
+                 "--root": root_path, "--prefix": prefix_path}
+    destinations = [k for k, v in locations.items() if v]
+    if len(destinations) > 1:
+        last, rest = destinations[-1], ", ".join(destinations[:-1])
+        raise CommandError("Different installation locations are implied by "
+                           "{} and {}.".format(rest, last))
 
-    if use_user_site:
-        if prefix_path:
-            raise CommandError(
-                "Can not combine '--user' and '--prefix' as they imply "
-                "different installation locations"
-            )
-        if virtualenv_no_global():
+    if target_dir:
+        if os.path.exists(target_dir) and not os.path.isdir(target_dir):
+            raise InstallationError("Target path exists but is not "
+                                    "a directory: {}".format(target_dir))
+        if not test_writable_dir(target_dir):
             raise InstallationError(
-                "Can not perform a '--user' install. User site-packages "
-                "are not visible in this virtualenv."
-            )
-        logger.debug("User install by explicit request")
-        return True
-
-    # If we are here, user installs have not been explicitly requested/avoided
-    assert use_user_site is None
-
-    # user install incompatible with --prefix/--target
-    if prefix_path or target_dir:
-        logger.debug("Non-user install due to --prefix or --target option")
+                "Cannot write to target directory: {}".format(target_dir))
+        logger.debug("Non-user install due to specified target directory")
+        return False
+    if prefix_path:
+        if not test_writable_dir(prefix_path):
+            raise InstallationError(
+                "Cannot write to prefix path: {}".format(prefix_path))
+        logger.debug("Non-user install due to specified prefix path")
         return False
 
-    # If user installs are not enabled, choose a non-user install
-    if not site.ENABLE_USER_SITE:
-        logger.debug("Non-user install because user site-packages disabled")
-        return False
-
-    # If we have permission for a non-user install, do that,
-    # otherwise do a user install.
-    if site_packages_writable(root=root_path, isolated=isolated_mode):
+    if use_user_site is not None:
+        logger.debug("{} install by explicit request".format(
+            "User" if use_user_site else "Non-user"))
+        use_user_site = bool(use_user_site)
+    elif site.ENABLE_USER_SITE is False:  # This never seems to be reached.
+        logger.debug("Non-user install due to disabled user site-packages by "
+                     "user request (with 'python -s' or PYTHONNOUSERSITE)")
+        use_user_site = False
+    elif root_path:
+        logger.debug(
+            "Non-user install since alternate root directory is specified")
+        use_user_site = False
+    elif site_packages_writable(root=root_path, isolated=isolated_mode):
         logger.debug("Non-user install because site-packages writeable")
         return False
+    else:
+        logger.info("Defaulting to user installation because "
+                    "normal site-packages is not writeable")
+        use_user_site = True
 
-    logger.info("Defaulting to user installation because normal site-packages "
-                "is not writeable")
-    return True
+    if use_user_site:
+        if site.ENABLE_USER_SITE is None:
+            raise InstallationError("User site-packages are disabled for "
+                                    "security reasons or by an administrator.")
+        if virtualenv_no_global():
+            raise InstallationError("User site-packages are not visible "
+                                    "in this virtualenv.")
+    else:
+        if not site_packages_writable(root=root_path, isolated=isolated_mode):
+            raise InstallationError("Cannot write to global site-packages.")
+    return use_user_site
 
 
 def reject_location_related_install_options(requirements, options):
