@@ -1111,7 +1111,9 @@ def need_bzr(fn):
 def need_svn(fn):
     return pytest.mark.svn(need_executable(
         'Subversion', ('svn', '--version')
-    )(fn))
+    )(need_executable(
+        'Subversion Admin', ('svnadmin', '--version')
+    )(fn)))
 
 
 def need_mercurial(fn):
