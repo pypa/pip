@@ -1,8 +1,11 @@
 import os
-import shutil
+from glob import glob
+
+import pytest
 
 
-def _cache_dir(script):
+@pytest.fixture
+def cache_dir(script):
     result = script.run(
         'python', '-c',
         'from pip._internal.locations import USER_CACHE_DIR;'
@@ -11,9 +14,23 @@ def _cache_dir(script):
     return result.stdout.strip()
 
 
-def _wheel_cache_contents(script):
-    cache_dir = _cache_dir(script)
-    wheel_cache_dir = os.path.join(cache_dir, 'wheels')
+@pytest.fixture
+def wheel_cache_dir(cache_dir):
+    return os.path.join(cache_dir, 'wheels')
+
+
+@pytest.fixture
+def wheel_cache_files(wheel_cache_dir):
+    destination = os.path.join(wheel_cache_dir, 'arbitrary', 'pathname')
+    filenames = glob(os.path.join(destination, '*.whl'))
+    files = []
+    for filename in filenames:
+        files.append(os.path.join(destination, filename))
+    return files
+
+
+@pytest.fixture
+def populate_wheel_cache(wheel_cache_dir):
     destination = os.path.join(wheel_cache_dir, 'arbitrary', 'pathname')
     os.makedirs(destination)
 
@@ -29,24 +46,20 @@ def _wheel_cache_contents(script):
     return files
 
 
-def test_cache_info(script):
-    cache_dir = _cache_dir(script)
-    cache_files = _wheel_cache_contents(script)
-
+@pytest.mark.usefixtures("populate_wheel_cache")
+def test_cache_info(script, wheel_cache_dir, wheel_cache_files):
     result = script.pip('cache', 'info')
 
-    assert 'Location: {}'.format(os.path.normcase(cache_dir)) in result.stdout
-    assert 'Number of wheels: {}'.format(len(cache_files)) in result.stdout
+    assert 'Location: {}'.format(os.path.normcase(wheel_cache_dir)) in result.stdout
+    assert 'Number of wheels: {}'.format(len(wheel_cache_files)) in result.stdout
 
 
+@pytest.mark.usefixtures("populate_wheel_cache")
 def test_cache_list(script):
-    cache_files = _wheel_cache_contents(script)
-    packages = [name for (name, _path) in cache_files]
     result = script.pip('cache', 'list')
-    for package in packages:
-        assert package in result.stdout
-    # assert 'yyy-1.2.3' in result.stdout
-    # assert 'zzz-4.5.6' in result.stdout
+
+    assert 'yyy-1.2.3' in result.stdout
+    assert 'zzz-4.5.6' in result.stdout
 
 
 def test_cache_list_too_many_args(script):
@@ -54,17 +67,15 @@ def test_cache_list_too_many_args(script):
                expect_error=True)
 
 
+@pytest.mark.usefixtures("populate_wheel_cache")
 def test_cache_list_with_pattern(script):
-    cache_files = _wheel_cache_contents(script)
-
     result = script.pip('cache', 'list', 'zzz')
     assert 'yyy-1.2.3' not in result.stdout
     assert 'zzz-4.5.6' in result.stdout
 
 
-def test_cache_remove(script, monkeypatch):
-    cache_files = _wheel_cache_contents(script)
-
+@pytest.mark.usefixtures("populate_wheel_cache")
+def test_cache_remove(script):
     script.pip('cache', 'remove', expect_error=True)
     result = script.pip('cache', 'remove', 'zzz', '--verbose')
     assert 'yyy-1.2.3' not in result.stdout
@@ -76,9 +87,8 @@ def test_cache_remove_too_many_args(script):
                expect_error=True)
 
 
+@pytest.mark.usefixtures("populate_wheel_cache")
 def test_cache_purge(script):
-    cache_files = _wheel_cache_contents(script)
-
     result = script.pip('cache', 'purge', 'aaa', '--verbose',
                         expect_error=True)
     assert 'yyy-1.2.3' not in result.stdout
