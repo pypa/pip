@@ -887,22 +887,6 @@ def test_install_package_with_target(script, with_wheel):
     result.did_update(singlemodule_py)
 
 
-@pytest.mark.parametrize("target_option", ['--target', '-t'])
-def test_install_package_to_usersite_with_target_must_fail(script,
-                                                           target_option):
-    """
-    Test that installing package to usersite with target
-    must raise error
-    """
-    target_dir = script.scratch_path / 'target'
-    result = script.pip_install_local(
-        '--user', target_option, target_dir, "simple==1.0", expect_error=True
-    )
-    assert "Can not combine '--user' and '--target'" in result.stderr, (
-        str(result)
-    )
-
-
 def test_install_nonlocal_compatible_wheel(script, data):
     target_dir = script.scratch_path / 'target'
 
@@ -1073,21 +1057,6 @@ def test_install_editable_with_prefix(script):
     # assert pkga is installed at correct location
     install_path = script.scratch / site_packages / 'pkga.egg-link'
     result.did_create(install_path)
-
-
-def test_install_package_conflict_prefix_and_user(script, data):
-    """
-    Test installing a package using pip install --prefix --user errors out
-    """
-    prefix_path = script.scratch_path / 'prefix'
-    result = script.pip(
-        'install', '-f', data.find_links, '--no-index', '--user',
-        '--prefix', prefix_path, 'simple==1.0',
-        expect_error=True, quiet=True,
-    )
-    assert (
-        "Can not combine '--user' and '--prefix'" in result.stderr
-    )
 
 
 def test_install_package_that_emits_unicode(script, data):
