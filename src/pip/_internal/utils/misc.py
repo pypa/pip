@@ -397,14 +397,6 @@ def dist_is_editable(dist):
     return False
 
 
-def dist_in_curr_dir(dist):
-    '''
-    Return True if given Distribution is installed in the current directory.
-    '''
-    norm_path = normalize_path(dist_location(dist))
-    return norm_path.startswith(normalize_path(os.getcwd()))
-
-
 def get_installed_distributions(
         local_only=True,  # type: bool
         skip=stdlib_pkgs,  # type: Container[str]
@@ -464,15 +456,12 @@ def get_installed_distributions(
         def user_test(d):
             return True
 
-    curr_dir_test = dist_in_curr_dir
-
     return [d for d in working_set
             if local_test(d) and
             d.key not in skip and
             editable_test(d) and
             editables_only_test(d) and
-            user_test(d) and
-            not curr_dir_test(d)
+            user_test(d)
             ]
 
 
