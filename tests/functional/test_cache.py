@@ -16,7 +16,7 @@ def cache_dir(script):
 
 @pytest.fixture
 def wheel_cache_dir(cache_dir):
-    return os.path.join(cache_dir, 'wheels')
+    return os.path.normcase(os.path.join(cache_dir, 'wheels'))
 
 
 @pytest.fixture
@@ -36,7 +36,7 @@ def populate_wheel_cache(wheel_cache_dir):
 
     files = [
         ('yyy-1.2.3', os.path.join(destination, 'yyy-1.2.3-py3-none-any.whl')),
-        ('zzz-4.5.6', os.path.join(destination, 'zzz-4.5.6-py27-none-any.whl')),
+        ('zzz-4.5.6', os.path.join(destination, 'zzz-4.5.6-py3-none-any.whl')),
     ]
 
     for _name, filename in files:
@@ -50,8 +50,9 @@ def populate_wheel_cache(wheel_cache_dir):
 def test_cache_info(script, wheel_cache_dir, wheel_cache_files):
     result = script.pip('cache', 'info')
 
-    assert 'Location: {}'.format(os.path.normcase(wheel_cache_dir)) in result.stdout
-    assert 'Number of wheels: {}'.format(len(wheel_cache_files)) in result.stdout
+    assert 'Location: {}'.format(wheel_cache_dir) in result.stdout
+    num_wheels = len(wheel_cache_files)
+    assert 'Number of wheels: {}'.format(num_wheels) in result.stdout
 
 
 @pytest.mark.usefixtures("populate_wheel_cache")
