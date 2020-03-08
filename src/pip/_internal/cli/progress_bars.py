@@ -124,7 +124,7 @@ class SilentBar(Bar):
 
 class BlueEmojiBar(IncrementalBar):
 
-    suffix = "{percent}%"
+    suffix = "{percent:.0f}%"
     bar_prefix = " "
     bar_suffix = " "
     phases = (u"\U0001F539", u"\U0001F537", u"\U0001F535")  # type: Any
