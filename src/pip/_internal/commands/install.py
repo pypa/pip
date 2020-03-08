@@ -5,8 +5,8 @@ import logging
 import operator
 import os
 import shutil
-import site
 from optparse import SUPPRESS_HELP
+from site import ENABLE_USER_SITE
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.utils import canonicalize_name
@@ -656,18 +656,27 @@ def decide_user_install(
         logger.debug("Non-user install due to specified prefix path")
         return False
 
+    # ENABLE_USER_SITE shows user site-packages directory status:
+    # * True means that it is enabled and was added to sys.path.
+    # * False means that it was disabled by user request
+    #   (with -s or PYTHONNOUSERSITE).
+    # * None means it was disabled for security reasons
+    #   (mismatch between user or group id and effective id)
+    #   or by an administrator.
     if use_user_site is not None:
         use_user_site = bool(use_user_site)
-        logger.debug("{} install by explicit request".format(
-            "User" if use_user_site else "Non-user"))
-        if use_user_site is True and site.ENABLE_USER_SITE is None:
+        if use_user_site:
+            logger.debug("User install by explicit request")
+        else:
+            logger.debug("Non-user install by explicit request")
+        if use_user_site and ENABLE_USER_SITE is None:
             raise InstallationError("User site-packages are disabled for "
                                     "security reasons or by an administrator.")
-    elif site.ENABLE_USER_SITE is None:
+    elif ENABLE_USER_SITE is None:
         logger.debug("Non-user install since user site-packages are disabled "
                      "for security reasons or by an administrator.")
         use_user_site = False
-    elif site.ENABLE_USER_SITE is False:
+    elif ENABLE_USER_SITE is False:
         logger.debug("Non-user install since user site-packages are disabled "
                      "by user request (with 'python -s' or PYTHONNOUSERSITE)")
         use_user_site = False
@@ -683,13 +692,13 @@ def decide_user_install(
                     "normal site-packages is not writeable")
         use_user_site = True
 
-    if use_user_site is True:
+    assert isinstance(use_user_site, bool)
+    if use_user_site:
         if virtualenv_no_global():
             raise InstallationError(
                 "Can not perform a '--user' install. "
                 "User site-packages are not visible in this virtualenv.")
     else:
-        assert use_user_site is False
         if not site_packages_writable(root=root_path, isolated=isolated_mode):
             raise InstallationError("Cannot write to global site-packages.")
     return use_user_site
