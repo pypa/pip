@@ -102,10 +102,9 @@ def unpack_vcs_link(link, location):
     vcs_backend.unpack(location, url=hide_url(link.url))
 
 
-def _copy_file(filename, location, link):
-    # type: (str, str, Link) -> None
+def _copy_file(filename, download_location):
+    # type: (str, str) -> None
     copy = True
-    download_location = os.path.join(location, link.filename)
     if os.path.exists(download_location):
         response = ask_path_exists(
             'The file {} exists. (i)gnore, (w)ipe, (b)ackup, (a)abort'.format(
@@ -516,7 +515,10 @@ class RequirementPreparer(object):
                 elif local_file and not os.path.exists(
                     os.path.join(download_dir, link.filename)
                 ):
-                    _copy_file(local_file.path, download_dir, link)
+                    download_location = os.path.join(
+                        download_dir, link.filename
+                    )
+                    _copy_file(local_file.path, download_location)
 
             if self._download_should_save:
                 # Make a .zip of the source_dir we already created.
