@@ -203,7 +203,7 @@ class BaseDownloadProgressBar(WindowsMixin, InterruptibleMixin,
                               DownloadProgressMixin):
 
     file = sys.stdout
-    message = "{percent}%"
+    message = "{percent:.0f}%"
     suffix = "{downloaded} {download_speed} {pretty_eta}"
 
 # NOTE: The "type: ignore" comments on the following classes are there to
