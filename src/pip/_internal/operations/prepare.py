@@ -8,7 +8,6 @@ import logging
 import mimetypes
 import os
 import shutil
-import sys
 
 from pip._vendor import requests
 from pip._vendor.six import PY2
@@ -29,8 +28,6 @@ from pip._internal.utils.filesystem import copy2_fixed
 from pip._internal.utils.hashes import MissingHashes
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
-    ask_path_exists,
-    backup_dir,
     display_path,
     hide_url,
     path_to_display,
@@ -105,29 +102,6 @@ def unpack_vcs_link(link, location):
 def _copy_file(filename, download_location):
     # type: (str, str) -> None
     copy = True
-    assert not os.path.exists(download_location)
-    if os.path.exists(download_location):
-        response = ask_path_exists(
-            'The file {} exists. (i)gnore, (w)ipe, (b)ackup, (a)abort'.format(
-                display_path(download_location)
-            ),
-            ('i', 'w', 'b', 'a'),
-        )
-        if response == 'i':
-            copy = False
-        elif response == 'w':
-            logger.warning('Deleting %s', display_path(download_location))
-            os.remove(download_location)
-        elif response == 'b':
-            dest_file = backup_dir(download_location)
-            logger.warning(
-                'Backing up %s to %s',
-                display_path(download_location),
-                display_path(dest_file),
-            )
-            shutil.move(download_location, dest_file)
-        elif response == 'a':
-            sys.exit(-1)
     if copy:
         shutil.copy(filename, download_location)
         logger.info('Saved %s', display_path(download_location))
