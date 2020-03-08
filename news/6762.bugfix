@@ -1,2 +1,0 @@
-Fail early when install path is not writable.  At the same time,
-install location compatibility is checked.

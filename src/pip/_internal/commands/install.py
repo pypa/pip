@@ -240,8 +240,13 @@ class InstallCommand(RequirementCommand):
         install_options = options.install_options or []
 
         logger.debug("Using %s", get_pip_version())
+
+        # decide_user_install not only return the whether to use user
+        # site-packages, but also validate compatibility of the input
+        # options with each other and with the environment. Therefore
+        # the following statement should not be moved downward.
         options.use_user_site = decide_user_install(
-            options.use_user_site,
+            use_user_site=options.use_user_site,
             prefix_path=options.prefix_path,
             target_dir=options.target_dir,
             root_path=options.root_path,
