@@ -101,8 +101,7 @@ def unpack_vcs_link(link, location):
 
 def _copy_file(filename, download_location):
     # type: (str, str) -> None
-    copy = True
-    if copy:
+    if True:
         shutil.copy(filename, download_location)
         logger.info('Saved %s', display_path(download_location))
 
