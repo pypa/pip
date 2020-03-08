@@ -56,7 +56,7 @@ jobs:
           ${{ runner.os }}-pip-
           ${{ runner.os }}-
     - name: set PY
-      run: echo "::set-env name=PY::$(python -c 'import hashlib, sys;print(hashlib.sha256(sys.version.encode(\'utf8\')+sys.executable.encode(\'utf8\')).hexdigest())')"
+      run: echo "::set-env name=PY::$(python -c 'import hashlib, sys;print(hashlib.sha256(sys.version.encode()+sys.executable.encode()).hexdigest())')"
     - uses: actions/cache@v1
       with:
         path: ~/.cache/pre-commit
