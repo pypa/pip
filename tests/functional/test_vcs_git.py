@@ -6,8 +6,13 @@ import os
 
 import pytest
 
+from pip._internal.vcs import vcs
 from pip._internal.vcs.git import Git, RemoteNotFoundError
 from tests.lib import _create_test_package, _git_commit, _test_path_to_file_url
+
+
+def test_get_backend_for_scheme():
+    assert vcs.get_backend_for_scheme("git+https") is vcs.get_backend("Git")
 
 
 def get_head_sha(script, dest):
@@ -29,7 +34,7 @@ def checkout_new_branch(script, repo_dir, branch):
 
 
 def do_commit(script, dest):
-    _git_commit(script, dest, message='test commit', args=['--allow-empty'])
+    _git_commit(script, dest, message='test commit', allow_empty=True)
     return get_head_sha(script, dest)
 
 
@@ -216,3 +221,32 @@ def test_is_commit_id_equal(script):
     assert not Git.is_commit_id_equal(version_pkg_path, 'abc123')
     # Also check passing a None value.
     assert not Git.is_commit_id_equal(version_pkg_path, None)
+
+
+def test_is_immutable_rev_checkout(script):
+    version_pkg_path = _create_test_package(script)
+    commit = script.run(
+        'git', 'rev-parse', 'HEAD',
+        cwd=version_pkg_path
+    ).stdout.strip()
+    assert Git().is_immutable_rev_checkout(
+        "git+https://g.c/o/r@" + commit, version_pkg_path
+    )
+    assert not Git().is_immutable_rev_checkout(
+        "git+https://g.c/o/r", version_pkg_path
+    )
+    assert not Git().is_immutable_rev_checkout(
+        "git+https://g.c/o/r@master", version_pkg_path
+    )
+
+
+def test_get_repository_root(script):
+    version_pkg_path = _create_test_package(script)
+    tests_path = version_pkg_path.joinpath("tests")
+    tests_path.mkdir()
+
+    root1 = Git.get_repository_root(version_pkg_path)
+    assert os.path.normcase(root1) == os.path.normcase(version_pkg_path)
+
+    root2 = Git.get_repository_root(version_pkg_path.joinpath("tests"))
+    assert os.path.normcase(root2) == os.path.normcase(version_pkg_path)

@@ -1,10 +1,11 @@
 .. _`Installation`:
 
+============
 Installation
 ============
 
 Do I need to install pip?
--------------------------
+=========================
 
 pip is already installed if you are using Python 2 >=2.7.9 or Python 3 >=3.4
 downloaded from `python.org <https://www.python.org>`_ or if you are working
@@ -16,14 +17,16 @@ Just make sure to :ref:`upgrade pip <Upgrading pip>`.
 .. _`get-pip`:
 
 Installing with get-pip.py
---------------------------
+==========================
 
-To install pip, securely download `get-pip.py
-<https://bootstrap.pypa.io/get-pip.py>`_. [1]_::
+To install pip, securely [1]_ download ``get-pip.py`` by following
+this link: `get-pip.py
+<https://bootstrap.pypa.io/get-pip.py>`_. Alternatively, use ``curl``::
 
  curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
 
-Then run the following::
+Then run the following command in the folder where you
+have downloaded ``get-pip.py``::
 
  python get-pip.py
 
@@ -49,7 +52,7 @@ speed), although neither are required to install pre-built :term:`wheels
 
 
 get-pip.py options
-~~~~~~~~~~~~~~~~~~~
+------------------
 
 .. option:: --no-setuptools
 
@@ -83,16 +86,16 @@ Install behind a proxy::
 
 
 Using Linux Package Managers
-----------------------------
+============================
 
 See :ref:`pypug:Installing pip/setuptools/wheel with Linux Package Managers` in
 the `Python Packaging User Guide
-<https://packaging.python.org/en/latest/current/>`_.
+<https://packaging.python.org/guides/tool-recommendations/>`_.
 
 .. _`Upgrading pip`:
 
 Upgrading pip
--------------
+=============
 
 On Linux or macOS::
 
@@ -107,9 +110,9 @@ On Windows [4]_::
 .. _compatibility-requirements:
 
 Python and OS Compatibility
----------------------------
+===========================
 
-pip works with CPython versions 2.7, 3.5, 3.6, 3.7 and also PyPy.
+pip works with CPython versions 2.7, 3.5, 3.6, 3.7, 3.8 and also PyPy.
 
 This means pip works on the latest patch version of each of these minor
 versions. Previous patch versions are supported on a best effort approach.
@@ -120,7 +123,7 @@ pip works on Unix/Linux, macOS, and Windows.
 ----
 
 .. [1] "Secure" in this context means using a modern browser or a
-       tool like `curl` that verifies SSL certificates when downloading from
+       tool like ``curl`` that verifies SSL certificates when downloading from
        https URLs.
 
 .. [2] Beginning with pip v1.5.1, ``get-pip.py`` stopped requiring setuptools to

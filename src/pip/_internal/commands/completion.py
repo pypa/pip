@@ -1,3 +1,6 @@
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 from __future__ import absolute_import
 
 import sys
@@ -89,5 +92,5 @@ class CompletionCommand(Command):
             print(BASE_COMPLETION % {'script': script, 'shell': options.shell})
         else:
             sys.stderr.write(
-                'ERROR: You must pass %s\n' % ' or '.join(shell_options)
+                'ERROR: You must pass {}\n' .format(' or '.join(shell_options))
             )

@@ -11,6 +11,7 @@ import sys
 import traceback
 
 from pip._internal.cli import cmdoptions
+from pip._internal.cli.command_context import CommandContextMixIn
 from pip._internal.cli.parser import (
     ConfigOptionParser,
     UpdatingDefaultsHelpFormatter,
@@ -30,29 +31,39 @@ from pip._internal.exceptions import (
     UninstallationError,
 )
 from pip._internal.utils.deprecation import deprecated
+from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.logging import BrokenStdoutLoggingError, setup_logging
-from pip._internal.utils.misc import get_prog
+from pip._internal.utils.misc import get_prog, normalize_path
+from pip._internal.utils.temp_dir import (
+    global_tempdir_manager,
+    tempdir_registry,
+)
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
 if MYPY_CHECK_RUNNING:
-    from typing import List, Tuple, Any
+    from typing import List, Optional, Tuple, Any
     from optparse import Values
+
+    from pip._internal.utils.temp_dir import (
+        TempDirectoryTypeRegistry as TempDirRegistry
+    )
 
 __all__ = ['Command']
 
 logger = logging.getLogger(__name__)
 
 
-class Command(object):
+class Command(CommandContextMixIn):
     usage = None  # type: str
     ignore_require_venv = False  # type: bool
 
     def __init__(self, name, summary, isolated=False):
         # type: (str, str, bool) -> None
+        super(Command, self).__init__()
         parser_kw = {
             'usage': self.usage,
-            'prog': '%s %s' % (get_prog(), name),
+            'prog': '{} {}'.format(get_prog(), name),
             'formatter': UpdatingDefaultsHelpFormatter(),
             'add_help_option': False,
             'name': name,
@@ -64,8 +75,10 @@ class Command(object):
         self.summary = summary
         self.parser = ConfigOptionParser(**parser_kw)
 
+        self.tempdir_registry = None  # type: Optional[TempDirRegistry]
+
         # Commands should add options to this option group
-        optgroup_name = '%s Options' % self.name.capitalize()
+        optgroup_name = '{} Options'.format(self.name.capitalize())
         self.cmd_opts = optparse.OptionGroup(self.parser, optgroup_name)
 
         # Add the general options
@@ -90,12 +103,28 @@ class Command(object):
         raise NotImplementedError
 
     def parse_args(self, args):
-        # type: (List[str]) -> Tuple
+        # type: (List[str]) -> Tuple[Any, Any]
         # factored out for testability
         return self.parser.parse_args(args)
 
     def main(self, args):
         # type: (List[str]) -> int
+        try:
+            with self.main_context():
+                return self._main(args)
+        finally:
+            logging.shutdown()
+
+    def _main(self, args):
+        # type: (List[str]) -> int
+        # We must initialize this before the tempdir manager, otherwise the
+        # configuration would not be accessible by the time we clean up the
+        # tempdir manager.
+        self.tempdir_registry = self.enter_context(tempdir_registry())
+        # Intentionally set as early as possible so globally-managed temporary
+        # directories are available to the rest of the code.
+        self.enter_context(global_tempdir_manager())
+
         options, args = self.parse_args(args)
 
         # Set verbosity so that it can be used elsewhere.
@@ -107,7 +136,10 @@ class Command(object):
             user_log_file=options.log,
         )
 
-        if sys.version_info[:2] == (2, 7):
+        if (
+            sys.version_info[:2] == (2, 7) and
+            not options.no_python_version_warning
+        ):
             message = (
                 "A future version of pip will drop support for Python 2.7. "
                 "More details about Python 2 support in pip, can be found at "
@@ -115,11 +147,22 @@ class Command(object):
             )
             if platform.python_implementation() == "CPython":
                 message = (
-                    "Python 2.7 will reach the end of its life on January "
+                    "Python 2.7 reached the end of its life on January "
                     "1st, 2020. Please upgrade your Python as Python 2.7 "
-                    "won't be maintained after that date. "
+                    "is no longer maintained. "
                 ) + message
             deprecated(message, replacement=None, gone_in=None)
+
+        if options.skip_requirements_regex:
+            deprecated(
+                "--skip-requirements-regex is unsupported and will be removed",
+                replacement=(
+                    "manage requirements/constraints files explicitly, "
+                    "possibly generating them from metadata"
+                ),
+                gone_in="20.1",
+                issue=7297,
+            )
 
         # TODO: Try to get these passing down from the command?
         #       without resorting to os.environ to hold these.
@@ -138,6 +181,19 @@ class Command(object):
                     'Could not find an activated virtualenv (required).'
                 )
                 sys.exit(VIRTUALENV_NOT_FOUND)
+
+        if options.cache_dir:
+            options.cache_dir = normalize_path(options.cache_dir)
+            if not check_path_owner(options.cache_dir):
+                logger.warning(
+                    "The directory '%s' or its parent directory is not owned "
+                    "or is not writable by the current user. The cache "
+                    "has been disabled. Check the permissions and owner of "
+                    "that directory. If executing pip with sudo, you may want "
+                    "sudo's -H flag.",
+                    options.cache_dir,
+                )
+                options.cache_dir = None
 
         try:
             status = self.run(options, args)
@@ -179,8 +235,5 @@ class Command(object):
             return UNKNOWN_ERROR
         finally:
             self.handle_pip_version_check(options)
-
-            # Shutdown the logging module
-            logging.shutdown()
 
         return SUCCESS

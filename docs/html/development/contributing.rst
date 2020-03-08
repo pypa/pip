@@ -34,6 +34,7 @@ Examples include re-flowing text in comments or documentation, or addition or
 removal of blank lines or whitespace within lines. Such changes can be made
 separately, as a "formatting cleanup" PR, if needed.
 
+
 Automated Testing
 =================
 
@@ -88,6 +89,8 @@ summary line in an imperative tone followed by a blank line separating it
 from a description of the feature/change in one or more paragraphs, each wrapped
 at 80 characters. Remember that a news entry is meant for end users and should
 only contain details relevant to an end user.
+
+.. _`choosing-news-entry-type`:
 
 Choosing the type of NEWS entry
 -------------------------------
@@ -245,8 +248,8 @@ and they will initiate a vote among the existing maintainers.
     - CI Administration capabilities
     - ReadTheDocs Administration capabilities
 
-.. _`Studies have shown`: https://smartbear.com/smartbear/media/pdfs/wp-cc-11-best-practices-of-peer-code-review.pdf
-.. _`resolve merge conflicts`: https://help.github.com/articles/resolving-a-merge-conflict-using-the-command-line/
+.. _`Studies have shown`: https://www.kessler.de/prd/smartbear/BestPracticesForPeerCodeReview.pdf
+.. _`resolve merge conflicts`: https://help.github.com/articles/resolving-a-merge-conflict-using-the-command-line
 .. _`Travis CI`: https://travis-ci.org/
 .. _`Appveyor CI`: https://www.appveyor.com/
 .. _`.travis.yml`: https://github.com/pypa/pip/blob/master/.travis.yml

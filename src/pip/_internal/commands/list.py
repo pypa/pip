@@ -1,3 +1,6 @@
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 from __future__ import absolute_import
 
 import json
@@ -7,14 +10,15 @@ from pip._vendor import six
 from pip._vendor.six.moves import zip_longest
 
 from pip._internal.cli import cmdoptions
-from pip._internal.cli.cmdoptions import make_search_scope
 from pip._internal.cli.req_command import IndexGroupCommand
 from pip._internal.exceptions import CommandError
-from pip._internal.index import PackageFinder
+from pip._internal.index.package_finder import PackageFinder
 from pip._internal.models.selection_prefs import SelectionPreferences
+from pip._internal.self_outdated_check import make_link_collector
 from pip._internal.utils.misc import (
     dist_is_editable,
     get_installed_distributions,
+    write_output,
 )
 from pip._internal.utils.packaging import get_installer
 
@@ -115,7 +119,7 @@ class ListCommand(IndexGroupCommand):
         """
         Create a package finder appropriate to this list command.
         """
-        search_scope = make_search_scope(options)
+        link_collector = make_link_collector(session, options=options)
 
         # Pass allow_yanked=False to ignore yanked versions.
         selection_prefs = SelectionPreferences(
@@ -124,10 +128,8 @@ class ListCommand(IndexGroupCommand):
         )
 
         return PackageFinder.create(
-            search_scope=search_scope,
+            link_collector=link_collector,
             selection_prefs=selection_prefs,
-            trusted_hosts=options.trusted_hosts,
-            session=session,
         )
 
     def run(self, options, args):
@@ -192,7 +194,7 @@ class ListCommand(IndexGroupCommand):
                 evaluator = finder.make_candidate_evaluator(
                     project_name=dist.project_name,
                 )
-                best_candidate = evaluator.get_best_candidate(all_candidates)
+                best_candidate = evaluator.sort_best_candidate(all_candidates)
                 if best_candidate is None:
                     continue
 
@@ -217,12 +219,12 @@ class ListCommand(IndexGroupCommand):
         elif options.list_format == 'freeze':
             for dist in packages:
                 if options.verbose >= 1:
-                    logger.info("%s==%s (%s)", dist.project_name,
-                                dist.version, dist.location)
+                    write_output("%s==%s (%s)", dist.project_name,
+                                 dist.version, dist.location)
                 else:
-                    logger.info("%s==%s", dist.project_name, dist.version)
+                    write_output("%s==%s", dist.project_name, dist.version)
         elif options.list_format == 'json':
-            logger.info(format_for_json(packages, options))
+            write_output(format_for_json(packages, options))
 
     def output_package_listing_columns(self, data, header):
         # insert the header first: we need to know the size of column names
@@ -236,7 +238,7 @@ class ListCommand(IndexGroupCommand):
             pkg_strings.insert(1, " ".join(map(lambda x: '-' * x, sizes)))
 
         for val in pkg_strings:
-            logger.info(val)
+            write_output(val)
 
 
 def tabulate(vals):

@@ -4,15 +4,15 @@ import sys
 import pytest
 from mock import Mock, patch
 from pip._vendor.packaging.specifiers import SpecifierSet
+from pip._vendor.packaging.tags import Tag
 from pkg_resources import parse_version
 
 import pip._internal.pep425tags
-import pip._internal.wheel
 from pip._internal.exceptions import (
     BestVersionAlreadyInstalled,
     DistributionNotFound,
 )
-from pip._internal.index import (
+from pip._internal.index.package_finder import (
     CandidateEvaluator,
     InstallationCandidate,
     Link,
@@ -21,6 +21,25 @@ from pip._internal.index import (
 from pip._internal.models.target_python import TargetPython
 from pip._internal.req.constructors import install_req_from_line
 from tests.lib import make_test_finder
+
+
+def make_no_network_finder(
+    find_links,
+    allow_all_prereleases=False,  # type: bool
+):
+    """
+    Create and return a PackageFinder instance for test purposes that
+    doesn't make any network requests when _get_pages() is called.
+    """
+    finder = make_test_finder(
+        find_links=find_links,
+        allow_all_prereleases=allow_all_prereleases,
+    )
+    # Replace the PackageFinder._link_collector's _get_pages() with a no-op.
+    link_collector = finder._link_collector
+    link_collector._get_pages = lambda locations: []
+
+    return finder
 
 
 def test_no_mpkg(data):
@@ -43,7 +62,10 @@ def test_no_partial_name_match(data):
 
 def test_tilde():
     """Finder can accept a path with ~ in it and will normalize it."""
-    with patch('pip._internal.index.os.path.exists', return_value=True):
+    patched_exists = patch(
+        'pip._internal.index.collector.os.path.exists', return_value=True
+    )
+    with patched_exists:
         finder = make_test_finder(find_links=['~/python-pkgs'])
     req = install_req_from_line("gmpy")
     with pytest.raises(DistributionNotFound):
@@ -217,9 +239,9 @@ class TestWheel:
             ),
         ]
         valid_tags = [
-            ('pyT', 'none', 'TEST'),
-            ('pyT', 'TEST', 'any'),
-            ('pyT', 'none', 'any'),
+            Tag('pyT', 'none', 'TEST'),
+            Tag('pyT', 'TEST', 'any'),
+            Tag('pyT', 'none', 'any'),
         ]
         specifier = SpecifierSet()
         evaluator = CandidateEvaluator(
@@ -279,25 +301,22 @@ def test_finder_priority_nonegg_over_eggfragments():
     req = install_req_from_line('bar==1.0', None)
     links = ['http://foo/bar.py#egg=bar-1.0', 'http://foo/bar-1.0.tar.gz']
 
-    finder = make_test_finder(find_links=links)
+    finder = make_no_network_finder(links)
+    all_versions = finder.find_all_candidates(req.name)
+    assert all_versions[0].link.url.endswith('tar.gz')
+    assert all_versions[1].link.url.endswith('#egg=bar-1.0')
 
-    with patch.object(finder, "_get_pages", lambda x, y: []):
-        all_versions = finder.find_all_candidates(req.name)
-        assert all_versions[0].link.url.endswith('tar.gz')
-        assert all_versions[1].link.url.endswith('#egg=bar-1.0')
-
-        link = finder.find_requirement(req, False)
+    link = finder.find_requirement(req, False)
 
     assert link.url.endswith('tar.gz')
 
     links.reverse()
-    finder = make_test_finder(find_links=links)
 
-    with patch.object(finder, "_get_pages", lambda x, y: []):
-        all_versions = finder.find_all_candidates(req.name)
-        assert all_versions[0].link.url.endswith('tar.gz')
-        assert all_versions[1].link.url.endswith('#egg=bar-1.0')
-        link = finder.find_requirement(req, False)
+    finder = make_no_network_finder(links)
+    all_versions = finder.find_all_candidates(req.name)
+    assert all_versions[0].link.url.endswith('tar.gz')
+    assert all_versions[1].link.url.endswith('#egg=bar-1.0')
+    link = finder.find_requirement(req, False)
 
     assert link.url.endswith('tar.gz')
 
@@ -316,18 +335,16 @@ def test_finder_only_installs_stable_releases(data):
 
     # using find-links
     links = ["https://foo/bar-1.0.tar.gz", "https://foo/bar-2.0b1.tar.gz"]
-    finder = make_test_finder(find_links=links)
 
-    with patch.object(finder, "_get_pages", lambda x, y: []):
-        link = finder.find_requirement(req, False)
-        assert link.url == "https://foo/bar-1.0.tar.gz"
+    finder = make_no_network_finder(links)
+    link = finder.find_requirement(req, False)
+    assert link.url == "https://foo/bar-1.0.tar.gz"
 
     links.reverse()
-    finder = make_test_finder(find_links=links)
 
-    with patch.object(finder, "_get_pages", lambda x, y: []):
-        link = finder.find_requirement(req, False)
-        assert link.url == "https://foo/bar-1.0.tar.gz"
+    finder = make_no_network_finder(links)
+    link = finder.find_requirement(req, False)
+    assert link.url == "https://foo/bar-1.0.tar.gz"
 
 
 def test_finder_only_installs_data_require(data):
@@ -371,18 +388,16 @@ def test_finder_installs_pre_releases(data):
 
     # using find-links
     links = ["https://foo/bar-1.0.tar.gz", "https://foo/bar-2.0b1.tar.gz"]
-    finder = make_test_finder(find_links=links, allow_all_prereleases=True)
 
-    with patch.object(finder, "_get_pages", lambda x, y: []):
-        link = finder.find_requirement(req, False)
-        assert link.url == "https://foo/bar-2.0b1.tar.gz"
+    finder = make_no_network_finder(links, allow_all_prereleases=True)
+    link = finder.find_requirement(req, False)
+    assert link.url == "https://foo/bar-2.0b1.tar.gz"
 
     links.reverse()
-    finder = make_test_finder(find_links=links, allow_all_prereleases=True)
 
-    with patch.object(finder, "_get_pages", lambda x, y: []):
-        link = finder.find_requirement(req, False)
-        assert link.url == "https://foo/bar-2.0b1.tar.gz"
+    finder = make_no_network_finder(links, allow_all_prereleases=True)
+    link = finder.find_requirement(req, False)
+    assert link.url == "https://foo/bar-2.0b1.tar.gz"
 
 
 def test_finder_installs_dev_releases(data):
@@ -408,18 +423,15 @@ def test_finder_installs_pre_releases_with_version_spec():
     req = install_req_from_line("bar>=0.0.dev0", None)
     links = ["https://foo/bar-1.0.tar.gz", "https://foo/bar-2.0b1.tar.gz"]
 
-    finder = make_test_finder(find_links=links)
-
-    with patch.object(finder, "_get_pages", lambda x, y: []):
-        link = finder.find_requirement(req, False)
-        assert link.url == "https://foo/bar-2.0b1.tar.gz"
+    finder = make_no_network_finder(links)
+    link = finder.find_requirement(req, False)
+    assert link.url == "https://foo/bar-2.0b1.tar.gz"
 
     links.reverse()
-    finder = make_test_finder(find_links=links)
 
-    with patch.object(finder, "_get_pages", lambda x, y: []):
-        link = finder.find_requirement(req, False)
-        assert link.url == "https://foo/bar-2.0b1.tar.gz"
+    finder = make_no_network_finder(links)
+    link = finder.find_requirement(req, False)
+    assert link.url == "https://foo/bar-2.0b1.tar.gz"
 
 
 class TestLinkEvaluator(object):
@@ -459,6 +471,22 @@ class TestLinkEvaluator(object):
         evaluator = self.make_test_link_evaluator(formats=['source', 'binary'])
         actual = evaluator.evaluate_link(link)
         assert actual == (False, expected_msg)
+
+
+def test_process_project_url(data):
+    project_name = 'simple'
+    index_url = data.index_url('simple')
+    project_url = Link('{}/{}'.format(index_url, project_name))
+    finder = make_test_finder(index_urls=[index_url])
+    link_evaluator = finder.make_link_evaluator(project_name)
+    actual = finder.process_project_url(
+        project_url, link_evaluator=link_evaluator,
+    )
+
+    assert len(actual) == 1
+    package_link = actual[0]
+    assert package_link.name == 'simple'
+    assert str(package_link.version) == '1.0'
 
 
 def test_find_all_candidates_nothing():

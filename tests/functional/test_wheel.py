@@ -6,7 +6,6 @@ from os.path import exists
 import pytest
 
 from pip._internal.cli.status_codes import ERROR, PREVIOUS_BUILD_DIR_ERROR
-from pip._internal.utils.marker_files import write_delete_marker_file
 from tests.lib import pyversion
 
 
@@ -61,6 +60,30 @@ def test_pip_wheel_success(script, data):
     assert "Successfully built simple" in result.stdout, result.stdout
 
 
+def test_pip_wheel_build_cache(script, data):
+    """
+    Test 'pip wheel' builds and caches.
+    """
+    result = script.pip(
+        'wheel', '--no-index', '-f', data.find_links,
+        'simple==3.0',
+    )
+    wheel_file_name = 'simple-3.0-py%s-none-any.whl' % pyversion[0]
+    wheel_file_path = script.scratch / wheel_file_name
+    assert wheel_file_path in result.files_created, result.stdout
+    assert "Successfully built simple" in result.stdout, result.stdout
+    # remove target file
+    (script.scratch_path / wheel_file_name).unlink()
+    # pip wheel again and test that no build occurs since
+    # we get the wheel from cache
+    result = script.pip(
+        'wheel', '--no-index', '-f', data.find_links,
+        'simple==3.0',
+    )
+    assert wheel_file_path in result.files_created, result.stdout
+    assert "Successfully built simple" not in result.stdout, result.stdout
+
+
 def test_basic_pip_wheel_downloads_wheels(script, data):
     """
     Test 'pip wheel' downloads wheels
@@ -74,6 +97,18 @@ def test_basic_pip_wheel_downloads_wheels(script, data):
     assert "Saved" in result.stdout, result.stdout
 
 
+def test_pip_wheel_build_relative_cachedir(script, data):
+    """
+    Test 'pip wheel' builds and caches with a non-absolute cache directory.
+    """
+    result = script.pip(
+        'wheel', '--no-index', '-f', data.find_links,
+        '--cache-dir', './cache',
+        'simple==3.0',
+    )
+    assert result.returncode == 0
+
+
 def test_pip_wheel_builds_when_no_binary_set(script, data):
     data.packages.joinpath('simple-3.0-py2.py3-none-any.whl').touch()
     # Check that the wheel package is ignored
@@ -82,6 +117,23 @@ def test_pip_wheel_builds_when_no_binary_set(script, data):
         '-f', data.find_links,
         'simple==3.0')
     assert "Building wheel for simple" in str(res), str(res)
+
+
+@pytest.mark.skipif("sys.platform == 'win32'")
+def test_pip_wheel_readonly_cache(script, data, tmpdir):
+    cache_dir = tmpdir / "cache"
+    cache_dir.mkdir()
+    os.chmod(cache_dir, 0o400)  # read-only cache
+    # Check that the wheel package is ignored
+    res = script.pip(
+        'wheel', '--no-index',
+        '-f', data.find_links,
+        '--cache-dir', cache_dir,
+        'simple==3.0',
+        allow_stderr_warning=True,
+    )
+    assert res.returncode == 0
+    assert "The cache has been disabled." in str(res), str(res)
 
 
 def test_pip_wheel_builds_editable_deps(script, data):
@@ -172,7 +224,6 @@ def test_pip_wheel_fail_cause_of_previous_build_dir(script, data):
     # Given that I have a previous build dir of the `simple` package
     build = script.venv_path / 'build' / 'simple'
     os.makedirs(build)
-    write_delete_marker_file(script.venv_path / 'build' / 'simple')
     build.joinpath('setup.py').write_text('#')
 
     # When I call pip trying to install things again

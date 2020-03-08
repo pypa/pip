@@ -1,25 +1,27 @@
 
 .. _`pip wheel`:
 
+=========
 pip wheel
----------
+=========
 
 .. contents::
 
+
 Usage
-*****
+=====
 
 .. pip-command-usage:: wheel
 
 
 Description
-***********
+===========
 
 .. pip-command-description:: wheel
 
 
 Build System Interface
-++++++++++++++++++++++
+----------------------
 
 In order for pip to build a wheel, ``setup.py`` must implement the
 ``bdist_wheel`` command with the following syntax::
@@ -32,7 +34,7 @@ interpreter, and save that wheel in the directory TARGET.
 No other build system commands are invoked by the ``pip wheel`` command.
 
 Customising the build
-~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^
 
 It is possible using ``--global-option`` to include additional build commands
 with their arguments in the ``setup.py`` command. This is currently the only
@@ -55,15 +57,15 @@ the current implementation than a supported interface.
 
 
 Options
-*******
+=======
 
 .. pip-command-options:: wheel
 
-.. pip-index-options::
+.. pip-index-options:: wheel
 
 
 Examples
-********
+========
 
 #. Build wheels for a requirement (and all its dependencies), and then install
 
@@ -71,3 +73,9 @@ Examples
 
       $ pip wheel --wheel-dir=/tmp/wheelhouse SomePackage
       $ pip install --no-index --find-links=/tmp/wheelhouse SomePackage
+
+#. Build a wheel for a package from source
+
+    ::
+
+      $ pip wheel --no-binary SomePackage SomePackage

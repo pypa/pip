@@ -1,16 +1,20 @@
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 from __future__ import absolute_import
 
 import logging
 import os
 import re
-import sys
 
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     display_path,
+    is_console_interactive,
     rmtree,
     split_auth_from_netloc,
 )
+from pip._internal.utils.subprocess import make_command
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs.versioncontrol import VersionControl, vcs
 
@@ -21,7 +25,9 @@ _svn_info_xml_url_re = re.compile(r'<url>(.*)</url>')
 
 
 if MYPY_CHECK_RUNNING:
-    from typing import List, Optional, Tuple
+    from typing import Optional, Tuple
+    from pip._internal.utils.subprocess import CommandArgs
+    from pip._internal.utils.misc import HiddenText
     from pip._internal.vcs.versioncontrol import AuthInfo, RevOptions
 
 
@@ -94,8 +100,8 @@ class Subversion(VersionControl):
 
     @staticmethod
     def make_rev_args(username, password):
-        # type: (Optional[str], Optional[str]) -> List[str]
-        extra_args = []  # type: List[str]
+        # type: (Optional[str], Optional[HiddenText]) -> CommandArgs
+        extra_args = []  # type: CommandArgs
         if username:
             extra_args += ['--username', username]
         if password:
@@ -182,7 +188,7 @@ class Subversion(VersionControl):
     def __init__(self, use_interactive=None):
         # type: (bool) -> None
         if use_interactive is None:
-            use_interactive = sys.stdin.isatty()
+            use_interactive = is_console_interactive()
         self.use_interactive = use_interactive
 
         # This member is used to cache the fetched version of the current
@@ -243,7 +249,7 @@ class Subversion(VersionControl):
         return vcs_version
 
     def get_remote_call_options(self):
-        # type: () -> List[str]
+        # type: () -> CommandArgs
         """Return options to be used on calls to Subversion that contact the server.
 
         These options are applicable for the following ``svn`` subcommands used
@@ -276,7 +282,7 @@ class Subversion(VersionControl):
         return []
 
     def export(self, location, url):
-        # type: (str, str) -> None
+        # type: (str, HiddenText) -> None
         """Export the svn repository at the url to the destination location"""
         url, rev_options = self.get_url_rev_options(url)
 
@@ -286,12 +292,14 @@ class Subversion(VersionControl):
                 # Subversion doesn't like to check out over an existing
                 # directory --force fixes this, but was only added in svn 1.5
                 rmtree(location)
-            cmd_args = (['export'] + self.get_remote_call_options() +
-                        rev_options.to_args() + [url, location])
+            cmd_args = make_command(
+                'export', self.get_remote_call_options(),
+                rev_options.to_args(), url, location,
+            )
             self.run_command(cmd_args, show_stdout=False)
 
     def fetch_new(self, dest, url, rev_options):
-        # type: (str, str, RevOptions) -> None
+        # type: (str, HiddenText, RevOptions) -> None
         rev_display = rev_options.to_display()
         logger.info(
             'Checking out %s%s to %s',
@@ -299,21 +307,26 @@ class Subversion(VersionControl):
             rev_display,
             display_path(dest),
         )
-        cmd_args = (['checkout', '-q'] +
-                    self.get_remote_call_options() +
-                    rev_options.to_args() + [url, dest])
+        cmd_args = make_command(
+            'checkout', '-q', self.get_remote_call_options(),
+            rev_options.to_args(), url, dest,
+        )
         self.run_command(cmd_args)
 
     def switch(self, dest, url, rev_options):
-        # type: (str, str, RevOptions) -> None
-        cmd_args = (['switch'] + self.get_remote_call_options() +
-                    rev_options.to_args() + [url, dest])
+        # type: (str, HiddenText, RevOptions) -> None
+        cmd_args = make_command(
+            'switch', self.get_remote_call_options(), rev_options.to_args(),
+            url, dest,
+        )
         self.run_command(cmd_args)
 
     def update(self, dest, url, rev_options):
-        # type: (str, str, RevOptions) -> None
-        cmd_args = (['update'] + self.get_remote_call_options() +
-                    rev_options.to_args() + [dest])
+        # type: (str, HiddenText, RevOptions) -> None
+        cmd_args = make_command(
+            'update', self.get_remote_call_options(), rev_options.to_args(),
+            dest,
+        )
         self.run_command(cmd_args)
 
 

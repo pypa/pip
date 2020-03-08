@@ -1,21 +1,22 @@
+import os
 import posixpath
 import re
 
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
+from pip._internal.utils.filetypes import WHEEL_EXTENSION
 from pip._internal.utils.misc import (
-    WHEEL_EXTENSION,
-    path_to_url,
-    redact_password_from_url,
+    redact_auth_from_url,
     split_auth_from_netloc,
     splitext,
 )
 from pip._internal.utils.models import KeyBasedCompareMixin
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.urls import path_to_url, url_to_path
 
 if MYPY_CHECK_RUNNING:
     from typing import Optional, Text, Tuple, Union
-    from pip._internal.index import HTMLPage
+    from pip._internal.index.collector import HTMLPage
     from pip._internal.utils.hashes import Hashes
 
 
@@ -63,18 +64,20 @@ class Link(KeyBasedCompareMixin):
         super(Link, self).__init__(key=url, defining_class=Link)
 
     def __str__(self):
+        # type: () -> str
         if self.requires_python:
-            rp = ' (requires-python:%s)' % self.requires_python
+            rp = ' (requires-python:{})'.format(self.requires_python)
         else:
             rp = ''
         if self.comes_from:
-            return '%s (from %s)%s' % (redact_password_from_url(self._url),
-                                       self.comes_from, rp)
+            return '{} (from {}){}'.format(
+                redact_auth_from_url(self._url), self.comes_from, rp)
         else:
-            return redact_password_from_url(str(self._url))
+            return redact_auth_from_url(str(self._url))
 
     def __repr__(self):
-        return '<Link %s>' % self
+        # type: () -> str
+        return '<Link {}>'.format(self)
 
     @property
     def url(self):
@@ -95,6 +98,11 @@ class Link(KeyBasedCompareMixin):
         name = urllib_parse.unquote(name)
         assert name, ('URL %r produced no filename' % self._url)
         return name
+
+    @property
+    def file_path(self):
+        # type: () -> str
+        return url_to_path(self.url)
 
     @property
     def scheme(self):
@@ -171,8 +179,17 @@ class Link(KeyBasedCompareMixin):
 
     @property
     def show_url(self):
-        # type: () -> Optional[str]
+        # type: () -> str
         return posixpath.basename(self._url.split('#', 1)[0].split('?', 1)[0])
+
+    @property
+    def is_file(self):
+        # type: () -> bool
+        return self.scheme == 'file'
+
+    def is_existing_dir(self):
+        # type: () -> bool
+        return self.is_file and os.path.isdir(self.file_path)
 
     @property
     def is_wheel(self):
@@ -187,21 +204,13 @@ class Link(KeyBasedCompareMixin):
         return self.scheme in vcs.all_schemes
 
     @property
-    def is_artifact(self):
-        # type: () -> bool
-        """
-        Determines if this points to an actual artifact (e.g. a tarball) or if
-        it points to an "abstract" thing like a path or a VCS location.
-        """
-        return not self.is_vcs
-
-    @property
     def is_yanked(self):
         # type: () -> bool
         return self.yanked_reason is not None
 
     @property
     def has_hash(self):
+        # type: () -> bool
         return self.hash_name is not None
 
     def is_hash_allowed(self, hashes):

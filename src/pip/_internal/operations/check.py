@@ -3,6 +3,7 @@
 
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
+# mypy: disallow-untyped-defs=False
 
 import logging
 from collections import namedtuple
@@ -52,7 +53,7 @@ def create_package_set_from_installed(**kwargs):
             package_set[name] = PackageDetails(dist.version, dist.requires())
         except RequirementParseError as e:
             # Don't crash on broken metadata
-            logging.warning("Error parsing requirements for %s: %s", name, e)
+            logger.warning("Error parsing requirements for %s: %s", name, e)
             problems = True
     return package_set, problems
 
@@ -68,8 +69,8 @@ def check_package_set(package_set, should_ignore=None):
         def should_ignore(name):
             return False
 
-    missing = dict()
-    conflicting = dict()
+    missing = {}
+    conflicting = {}
 
     for package_name in package_set:
         # Info about dependencies of package_name

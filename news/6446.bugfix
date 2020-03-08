@@ -1,0 +1,2 @@
+Correctly handle ``%2F`` in URL parameters to avoid accidentally unescape them
+into ``/``.

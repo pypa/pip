@@ -1,3 +1,4 @@
+==================================
 pip - The Python Package Installer
 ==================================
 
@@ -27,13 +28,14 @@ If you want to get involved head over to GitHub to get the source code and feel 
 * `Dev mailing list`_
 * `Dev IRC`_
 
+
 Code of Conduct
----------------
+===============
 
 Everyone interacting in the pip project's codebases, issue trackers, chat
 rooms, and mailing lists is expected to follow the `PyPA Code of Conduct`_.
 
-.. _package installer: https://packaging.python.org/en/latest/current/
+.. _package installer: https://packaging.python.org/guides/tool-recommendations/
 .. _Python Package Index: https://pypi.org
 .. _Installation: https://pip.pypa.io/en/stable/installing.html
 .. _Documentation: https://pip.pypa.io/en/stable/

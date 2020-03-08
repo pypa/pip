@@ -1,3 +1,6 @@
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 from __future__ import absolute_import
 
 from pip._internal.cli.base_command import Command
@@ -26,9 +29,9 @@ class HelpCommand(Command):
         if cmd_name not in commands_dict:
             guess = get_similar_commands(cmd_name)
 
-            msg = ['unknown command "%s"' % cmd_name]
+            msg = ['unknown command "{}"'.format(cmd_name)]
             if guess:
-                msg.append('maybe you meant "%s"' % guess)
+                msg.append('maybe you meant "{}"'.format(guess))
 
             raise CommandError(' - '.join(msg))
 

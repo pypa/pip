@@ -73,7 +73,7 @@ def test_index_group_commands():
 @pytest.mark.parametrize(
     'disable_pip_version_check, no_index, expected_called',
     [
-        # pip_version_check() is only called when both
+        # pip_self_version_check() is only called when both
         # disable_pip_version_check and no_index are False.
         (False, False, True),
         (False, True, False),
@@ -81,14 +81,15 @@ def test_index_group_commands():
         (True, True, False),
     ],
 )
-@patch('pip._internal.cli.req_command.pip_version_check')
+@patch('pip._internal.cli.req_command.pip_self_version_check')
 def test_index_group_handle_pip_version_check(
     mock_version_check, command_name, disable_pip_version_check, no_index,
     expected_called,
 ):
     """
-    Test whether pip_version_check() is called when handle_pip_version_check()
-    is called, for each of the IndexGroupCommand classes.
+    Test whether pip_self_version_check() is called when
+    handle_pip_version_check() is called, for each of the
+    IndexGroupCommand classes.
     """
     command = create_command(command_name)
     options = command.parser.get_default_values()

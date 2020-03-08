@@ -1,7 +1,7 @@
 language: python
 cache: pip
 dist: xenial
-python: 3.7
+python: 3.8
 addons:
   apt:
     packages:
@@ -16,11 +16,8 @@ jobs:
     # Basic Checks
     - stage: primary
       env: TOXENV=docs
-    - env: TOXENV=lint-py2
-      python: 2.7
-    - env: TOXENV=lint-py3
-    - env: TOXENV=mypy
-    - env: TOXENV=packaging
+    - env: TOXENV=lint
+    - env: TOXENV=vendoring
     # Latest CPython
     - env: GROUP=1
       python: 2.7
@@ -33,15 +30,19 @@ jobs:
     # PyPy
     - stage: secondary
       env: GROUP=1
-      python: pypy3.5-6.0
+      python: pypy3.5-7.0.0
     - env: GROUP=2
-      python: pypy3.5-6.0
+      python: pypy3.5-7.0.0
     - env: GROUP=1
-      python: pypy2.7-6.0
+      python: pypy2.7-7.1.1
     - env: GROUP=2
-      python: pypy2.7-6.0
+      python: pypy2.7-7.1.1
     # Other Supported CPython
     - env: GROUP=1
+      python: 3.7
+    - env: GROUP=2
+      python: 3.7
+    - env: GROUP=1
       python: 3.6
     - env: GROUP=2
       python: 3.6
@@ -49,16 +50,8 @@ jobs:
       python: 3.5
     - env: GROUP=2
       python: 3.5
-
-    - env: GROUP=1
-      python: 3.8-dev
-    - env: GROUP=2
-      python: 3.8-dev
 
   fast_finish: true
-  # It's okay to fail on the in-development CPython version.
-  allow_failures:
-    - python: 3.8-dev
 
 before_install: tools/travis/setup.sh
 install: travis_retry tools/travis/install.sh

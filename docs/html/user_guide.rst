@@ -4,8 +4,9 @@ User Guide
 
 .. contents::
 
+
 Running pip
-***********
+===========
 
 pip is a command line program. When you install pip, a ``pip`` command is added
 to your system, which can be run from the command prompt as follows::
@@ -28,7 +29,7 @@ more details, see :ref:`Using pip from your program`.
 
 
 Installing Packages
-*******************
+===================
 
 pip supports installing from `PyPI`_, version control, local projects, and
 directly from distribution files.
@@ -49,8 +50,37 @@ For more information and examples, see the :ref:`pip install` reference.
 .. _PyPI: https://pypi.org/
 
 
+Basic Authentication Credentials
+================================
+
+pip supports basic authentication credentials. Basically, in the URL there is
+a username and password separated by ``:``.
+
+``https://[username[:password]@]pypi.company.com/simple``
+
+Certain special characters are not valid in the authentication part of URLs.
+If the user or password part of your login credentials contain any of the
+special characters
+`here <https://en.wikipedia.org/wiki/Percent-encoding#Percent-encoding_reserved_characters>`_
+then they must be percent-encoded. For example, for a
+user with username "user" and password "he//o" accessing a repository at
+pypi.company.com, the index URL with credentials would look like:
+
+``https://user:he%2F%2Fo@pypi.company.com``
+
+Support for percent-encoded authentication in index URLs was added in pip 10.0.0
+(in `#3236 <https://github.com/pypa/pip/issues/3236>`_). Users that must use authentication
+for their Python repository on systems with older pip versions should make the latest
+get-pip.py available in their environment to bootstrap pip to a recent-enough version.
+
+For indexes that only require single-part authentication tokens, provide the token
+as the "username" and do not provide a password, for example -
+
+``https://0123456789abcdef@pypi.company.com``
+
+
 Using a Proxy Server
-********************
+====================
 
 When installing packages from `PyPI`_, pip requires internet access, which
 in many corporate environments requires an outbound HTTP proxy server.
@@ -68,8 +98,9 @@ pip can be configured to connect through a proxy server in various ways:
 
 .. _`Requirements Files`:
 
+
 Requirements Files
-******************
+==================
 
 "Requirements files" are files containing a list of items to be
 installed using :ref:`pip install` like so:
@@ -90,7 +121,7 @@ In practice, there are 4 common uses of Requirements files:
 1. Requirements files are used to hold the result from :ref:`pip freeze` for the
    purpose of achieving :ref:`repeatable installations <Repeatability>`.  In
    this case, your requirement file contains a pinned version of everything that
-   was installed when `pip freeze` was run.
+   was installed when ``pip freeze`` was run.
 
    ::
 
@@ -100,49 +131,45 @@ In practice, there are 4 common uses of Requirements files:
 2. Requirements files are used to force pip to properly resolve dependencies.
    As it is now, pip `doesn't have true dependency resolution
    <https://github.com/pypa/pip/issues/988>`_, but instead simply uses the first
-   specification it finds for a project. E.g. if `pkg1` requires `pkg3>=1.0` and
-   `pkg2` requires `pkg3>=1.0,<=2.0`, and if `pkg1` is resolved first, pip will
-   only use `pkg3>=1.0`, and could easily end up installing a version of `pkg3`
-   that conflicts with the needs of `pkg2`.  To solve this problem, you can
-   place `pkg3>=1.0,<=2.0` (i.e. the correct specification) into your
-   requirements file directly along with the other top level requirements. Like
-   so:
-
-   ::
+   specification it finds for a project. E.g. if ``pkg1`` requires
+   ``pkg3>=1.0`` and ``pkg2`` requires ``pkg3>=1.0,<=2.0``, and if ``pkg1`` is
+   resolved first, pip will only use ``pkg3>=1.0``, and could easily end up
+   installing a version of ``pkg3`` that conflicts with the needs of ``pkg2``.
+   To solve this problem, you can place ``pkg3>=1.0,<=2.0`` (i.e. the correct
+   specification) into your requirements file directly along with the other top
+   level requirements. Like so::
 
      pkg1
      pkg2
      pkg3>=1.0,<=2.0
 
 3. Requirements files are used to force pip to install an alternate version of a
-   sub-dependency.  For example, suppose `ProjectA` in your requirements file
-   requires `ProjectB`, but the latest version (v1.3) has a bug, you can force
-   pip to accept earlier versions like so:
-
-   ::
+   sub-dependency.  For example, suppose ``ProjectA`` in your requirements file
+   requires ``ProjectB``, but the latest version (v1.3) has a bug, you can force
+   pip to accept earlier versions like so::
 
      ProjectA
      ProjectB<1.3
 
 4. Requirements files are used to override a dependency with a local patch that
-   lives in version control.  For example, suppose a dependency,
-   `SomeDependency` from PyPI has a bug, and you can't wait for an upstream fix.
+   lives in version control.  For example, suppose a dependency
+   ``SomeDependency`` from PyPI has a bug, and you can't wait for an upstream
+   fix.
    You could clone/copy the src, make the fix, and place it in VCS with the tag
-   `sometag`.  You'd reference it in your requirements file with a line like so:
-
-   ::
+   ``sometag``.  You'd reference it in your requirements file with a line like
+   so::
 
      git+https://myvcs.com/some_dependency@sometag#egg=SomeDependency
 
-   If `SomeDependency` was previously a top-level requirement in your
+   If ``SomeDependency`` was previously a top-level requirement in your
    requirements file, then **replace** that line with the new line. If
-   `SomeDependency` is a sub-dependency, then **add** the new line.
+   ``SomeDependency`` is a sub-dependency, then **add** the new line.
 
 
 It's important to be clear that pip determines package dependencies using
 `install_requires metadata
 <https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-dependencies>`_,
-not by discovering `requirements.txt` files embedded in projects.
+not by discovering ``requirements.txt`` files embedded in projects.
 
 See also:
 
@@ -154,8 +181,9 @@ See also:
 
 .. _`Constraints Files`:
 
+
 Constraints Files
-*****************
+=================
 
 Constraints files are requirements files that only control which version of a
 requirement is installed, not whether it is installed or not. Their syntax and
@@ -188,17 +216,19 @@ Constraints file support was added in pip 7.1.
 
 .. _`Installing from Wheels`:
 
+
 Installing from Wheels
-**********************
+======================
 
 "Wheel" is a built, archive format that can greatly speed installation compared
 to building and installing from source archives. For more information, see the
 `Wheel docs <https://wheel.readthedocs.io>`_ , :pep:`427`, and :pep:`425`.
 
-Pip prefers Wheels where they are available. To disable this, use the
+pip prefers Wheels where they are available. To disable this, use the
 :ref:`--no-binary <install_--no-binary>` flag for :ref:`pip install`.
 
-If no satisfactory wheels are found, pip will default to finding source archives.
+If no satisfactory wheels are found, pip will default to finding source
+archives.
 
 
 To install directly from a wheel archive:
@@ -215,15 +245,16 @@ convenience, to build wheels for all your requirements and dependencies.
 <https://pypi.org/project/wheel/>`_ to be installed, which provides the
 "bdist_wheel" setuptools extension that it uses.
 
-To build wheels for your requirements and all their dependencies to a local directory:
+To build wheels for your requirements and all their dependencies to a local
+directory:
 
 ::
 
  pip install wheel
  pip wheel --wheel-dir=/local/wheels -r requirements.txt
 
-
-And *then* to install those requirements just using your local directory of wheels (and not from PyPI):
+And *then* to install those requirements just using your local directory of
+wheels (and not from PyPI):
 
 ::
 
@@ -231,7 +262,7 @@ And *then* to install those requirements just using your local directory of whee
 
 
 Uninstalling Packages
-*********************
+=====================
 
 pip is able to uninstall most packages like so:
 
@@ -246,7 +277,7 @@ For more information and examples, see the :ref:`pip uninstall` reference.
 
 
 Listing Packages
-****************
+================
 
 To list installed packages:
 
@@ -284,7 +315,7 @@ reference pages.
 
 
 Searching for Packages
-**********************
+======================
 
 pip can search `PyPI`_ for packages using the ``pip search``
 command::
@@ -298,13 +329,14 @@ For more information and examples, see the :ref:`pip search` reference.
 
 .. _`Configuration`:
 
+
 Configuration
-*************
+=============
 
 .. _config-file:
 
 Config file
-------------
+-----------
 
 pip allows you to set all command line option defaults in a standard ini
 style config file.
@@ -374,8 +406,8 @@ look like this:
 
 Each subcommand can be configured optionally in its own section so that every
 global setting with the same name will be overridden; e.g. decreasing the
-``timeout`` to ``10`` seconds when running the `freeze`
-(`Freezing Requirements <./#freezing-requirements>`_) command and using
+``timeout`` to ``10`` seconds when running the ``freeze``
+(:ref:`pip freeze`) command and using
 ``60`` seconds for all other commands is possible with:
 
 .. code-block:: ini
@@ -396,8 +428,8 @@ set like this:
     ignore-installed = true
     no-dependencies = yes
 
-To enable the boolean options ``--no-compile`` and ``--no-cache-dir``, falsy
-values have to be used:
+To enable the boolean options ``--no-compile``, ``--no-warn-script-location``
+and ``--no-cache-dir``, falsy values have to be used:
 
 .. code-block:: ini
 
@@ -406,6 +438,7 @@ values have to be used:
 
     [install]
     no-compile = no
+    no-warn-script-location = false
 
 Appending options like ``--find-links`` can be written on multiple lines:
 
@@ -447,16 +480,18 @@ is the same as calling::
 
 .. note::
 
-   Environment variables set to be empty string will not be treated as false. Please use ``no``,
-   ``false`` or ``0`` instead.
+   Environment variables set to be empty string will not be treated as false.
+   Please use ``no``, ``false`` or ``0`` instead.
 
 
 Config Precedence
 -----------------
 
-Command line options have precedence over environment variables, which have precedence over the config file.
+Command line options have precedence over environment variables, which have
+precedence over the config file.
 
-Within the config file, command specific sections have precedence over the global section.
+Within the config file, command specific sections have precedence over the
+global section.
 
 Examples:
 
@@ -467,7 +502,7 @@ Examples:
 
 
 Command Completion
-******************
+==================
 
 pip comes with support for command line completion in bash, zsh and fish.
 
@@ -483,8 +518,9 @@ To setup for fish::
 
 $ pip completion --fish > ~/.config/fish/completions/pip.fish
 
-Alternatively, you can use the result of the ``completion`` command
-directly with the eval function of your shell, e.g. by adding the following to your startup file::
+Alternatively, you can use the result of the ``completion`` command directly
+with the eval function of your shell, e.g. by adding the following to your
+startup file::
 
     eval "`pip completion --bash`"
 
@@ -492,8 +528,9 @@ directly with the eval function of your shell, e.g. by adding the following to y
 
 .. _`Installing from local packages`:
 
+
 Installing from local packages
-******************************
+==============================
 
 In some cases, you may want to install from local packages only, with no traffic
 to PyPI.
@@ -513,13 +550,13 @@ $ pip wheel --wheel-dir DIR -r requirements.txt
 
 
 Then, to install from local only, you'll be using :ref:`--find-links
-<--find-links>` and :ref:`--no-index <--no-index>` like so::
+<install_--find-links>` and :ref:`--no-index <install_--no-index>` like so::
 
 $ pip install --no-index --find-links=DIR -r requirements.txt
 
 
 "Only if needed" Recursive Upgrade
-**********************************
+==================================
 
 ``pip install --upgrade`` now has a ``--upgrade-strategy`` option which
 controls how pip handles upgrading of dependencies. There are 2 upgrade
@@ -544,21 +581,23 @@ alternative to the behaviour of eager upgrading.
 
 
 User Installs
-*************
+=============
 
 With Python 2.6 came the `"user scheme" for installation
 <https://docs.python.org/3/install/index.html#alternate-installation-the-user-scheme>`_,
 which means that all Python distributions support an alternative install
 location that is specific to a user.  The default location for each OS is
 explained in the python documentation for the `site.USER_BASE
-<https://docs.python.org/3/library/site.html#site.USER_BASE>`_ variable.  This mode
-of installation can be turned on by specifying the :ref:`--user
+<https://docs.python.org/3/library/site.html#site.USER_BASE>`_ variable.
+This mode of installation can be turned on by specifying the :ref:`--user
 <install_--user>` option to ``pip install``.
 
 Moreover, the "user scheme" can be customized by setting the
-``PYTHONUSERBASE`` environment variable, which updates the value of ``site.USER_BASE``.
+``PYTHONUSERBASE`` environment variable, which updates the value of
+``site.USER_BASE``.
 
-To install "SomePackage" into an environment with site.USER_BASE customized to '/myappenv', do the following::
+To install "SomePackage" into an environment with site.USER_BASE customized to
+'/myappenv', do the following::
 
     export PYTHONUSERBASE=/myappenv
     pip install --user SomePackage
@@ -591,7 +630,8 @@ From within a ``--no-site-packages`` virtualenv (i.e. the default kind)::
   Can not perform a '--user' install. User site-packages are not visible in this virtualenv.
 
 
-From within a ``--system-site-packages`` virtualenv where ``SomePackage==0.3`` is already installed in the virtualenv::
+From within a ``--system-site-packages`` virtualenv where ``SomePackage==0.3``
+is already installed in the virtualenv::
 
   $ pip install --user SomePackage==0.4
   Will not install to the user site because it will lack sys.path precedence
@@ -604,7 +644,8 @@ From within a real python, where ``SomePackage`` is *not* installed globally::
   Successfully installed SomePackage
 
 
-From within a real python, where ``SomePackage`` *is* installed globally, but is *not* the latest version::
+From within a real python, where ``SomePackage`` *is* installed globally, but
+is *not* the latest version::
 
   $ pip install --user SomePackage
   [...]
@@ -615,7 +656,8 @@ From within a real python, where ``SomePackage`` *is* installed globally, but is
   Successfully installed SomePackage
 
 
-From within a real python, where ``SomePackage`` *is* installed globally, and is the latest version::
+From within a real python, where ``SomePackage`` *is* installed globally, and
+is the latest version::
 
   $ pip install --user SomePackage
   [...]
@@ -633,8 +675,9 @@ From within a real python, where ``SomePackage`` *is* installed globally, and is
 
 .. _`Repeatability`:
 
+
 Ensuring Repeatability
-**********************
+======================
 
 pip can achieve various levels of repeatability:
 
@@ -679,7 +722,8 @@ requirements file for free). It can also substitute for a vendor library,
 providing easier upgrades and less VCS noise. It does not, of course,
 provide the availability benefits of a private index or a vendor library.
 
-For more, see :ref:`pip install\'s discussion of hash-checking mode <hash-checking mode>`.
+For more, see
+:ref:`pip install\'s discussion of hash-checking mode <hash-checking mode>`.
 
 .. _`Installation Bundle`:
 
@@ -709,6 +753,7 @@ Hash-checking mode can be used along with this method to ensure that future
 archives are built with identical packages.
 
 .. warning::
+
     Finally, beware of the ``setup_requires`` keyword arg in :file:`setup.py`.
     The (rare) packages that use it will cause those dependencies to be
     downloaded by setuptools directly, skipping pip's protections. If you need
@@ -717,53 +762,58 @@ archives are built with identical packages.
 
 .. _`Using pip from your program`:
 
+
 Using pip from your program
-***************************
+===========================
 
-As noted previously, pip is a command line program. While it is implemented in Python,
-and so is available from your Python code via ``import pip``, you must not use pip's
-internal APIs in this way. There are a number of reasons for this:
+As noted previously, pip is a command line program. While it is implemented in
+Python, and so is available from your Python code via ``import pip``, you must
+not use pip's internal APIs in this way. There are a number of reasons for this:
 
-#. The pip code assumes that is in sole control of the global state of the program.
-   Pip manages things like the logging system configuration, or the values of the
-   standard IO streams, without considering the possibility that user code might be
-   affected.
+#. The pip code assumes that is in sole control of the global state of the
+   program.
+   pip manages things like the logging system configuration, or the values of
+   the standard IO streams, without considering the possibility that user code
+   might be affected.
 
-#. Pip's code is *not* thread safe. If you were to run pip in a thread, there is no
-   guarantee that either your code or pip's would work as you expect.
+#. pip's code is *not* thread safe. If you were to run pip in a thread, there
+   is no guarantee that either your code or pip's would work as you expect.
 
-#. Pip assumes that once it has finished its work, the process will terminate. It
-   doesn't need to handle the possibility that other code will continue to run
-   after that point, so (for example) calling pip twice in the same process is
-   likely to have issues.
+#. pip assumes that once it has finished its work, the process will terminate.
+   It doesn't need to handle the possibility that other code will continue to
+   run after that point, so (for example) calling pip twice in the same process
+   is likely to have issues.
 
-This does not mean that the pip developers are opposed in principle to the idea that
-pip could be used as a library - it's just that this isn't how it was written, and it
-would be a lot of work to redesign the internals for use as a library, handling all
-of the above issues, and designing a usable, robust and stable API that we could
-guarantee would remain available across multiple releases of pip. And we simply don't
-currently have the resources to even consider such a task.
+This does not mean that the pip developers are opposed in principle to the idea
+that pip could be used as a library - it's just that this isn't how it was
+written, and it would be a lot of work to redesign the internals for use as a
+library, handling all of the above issues, and designing a usable, robust and
+stable API that we could guarantee would remain available across multiple
+releases of pip. And we simply don't currently have the resources to even
+consider such a task.
 
 What this means in practice is that everything inside of pip is considered an
-implementation detail. Even the fact that the import name is ``pip`` is subject to
-change without notice. While we do try not to break things as much as possible, all
-the internal APIs can change at any time, for any reason. It also means that we
-generally *won't* fix issues that are a result of using pip in an unsupported way.
+implementation detail. Even the fact that the import name is ``pip`` is subject
+to change without notice. While we do try not to break things as much as
+possible, all the internal APIs can change at any time, for any reason. It also
+means that we generally *won't* fix issues that are a result of using pip in an
+unsupported way.
 
-It should also be noted that installing packages into ``sys.path`` in a running Python
-process is something that should only be done with care. The import system caches
-certain data, and installing new packages while a program is running may not always
-behave as expected. In practice, there is rarely an issue, but it is something to be
-aware of.
+It should also be noted that installing packages into ``sys.path`` in a running
+Python process is something that should only be done with care. The import
+system caches certain data, and installing new packages while a program is
+running may not always behave as expected. In practice, there is rarely an
+issue, but it is something to be aware of.
 
 Having said all of the above, it is worth covering the options available if you
 decide that you do want to run pip from within your program. The most reliable
-approach, and the one that is fully supported, is to run pip in a subprocess. This
-is easily done using the standard ``subprocess`` module::
+approach, and the one that is fully supported, is to run pip in a subprocess.
+This is easily done using the standard ``subprocess`` module::
 
   subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'my_package'])
 
-If you want to process the output further, use one of the other APIs in the module::
+If you want to process the output further, use one of the other APIs in the
+module::
 
   reqs = subprocess.check_output([sys.executable, '-m', 'pip', 'freeze'])
 

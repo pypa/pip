@@ -1,3 +1,6 @@
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 from __future__ import absolute_import
 
 import logging
@@ -5,11 +8,9 @@ import os
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.cmdoptions import make_target_python
-from pip._internal.cli.req_command import RequirementCommand
-from pip._internal.req import RequirementSet
-from pip._internal.req.req_tracker import RequirementTracker
-from pip._internal.utils.filesystem import check_path_owner
-from pip._internal.utils.misc import ensure_dir, normalize_path
+from pip._internal.cli.req_command import RequirementCommand, with_cleanup
+from pip._internal.req.req_tracker import get_requirement_tracker
+from pip._internal.utils.misc import ensure_dir, normalize_path, write_output
 from pip._internal.utils.temp_dir import TempDirectory
 
 logger = logging.getLogger(__name__)
@@ -50,7 +51,6 @@ class DownloadCommand(RequirementCommand):
         cmd_opts.add_option(cmdoptions.prefer_binary())
         cmd_opts.add_option(cmdoptions.src())
         cmd_opts.add_option(cmdoptions.pre())
-        cmd_opts.add_option(cmdoptions.no_clean())
         cmd_opts.add_option(cmdoptions.require_hashes())
         cmd_opts.add_option(cmdoptions.progress_bar())
         cmd_opts.add_option(cmdoptions.no_build_isolation())
@@ -75,6 +75,7 @@ class DownloadCommand(RequirementCommand):
         self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, cmd_opts)
 
+    @with_cleanup
     def run(self, options, args):
         options.ignore_installed = True
         # editable doesn't really make sense for `pip download`, but the bowels
@@ -83,70 +84,65 @@ class DownloadCommand(RequirementCommand):
 
         cmdoptions.check_dist_restriction(options)
 
-        options.src_dir = os.path.abspath(options.src_dir)
         options.download_dir = normalize_path(options.download_dir)
 
         ensure_dir(options.download_dir)
 
-        with self._build_session(options) as session:
-            target_python = make_target_python(options)
-            finder = self._build_package_finder(
-                options=options,
-                session=session,
-                target_python=target_python,
-            )
-            build_delete = (not (options.no_clean or options.build_dir))
-            if options.cache_dir and not check_path_owner(options.cache_dir):
-                logger.warning(
-                    "The directory '%s' or its parent directory is not owned "
-                    "by the current user and caching wheels has been "
-                    "disabled. check the permissions and owner of that "
-                    "directory. If executing pip with sudo, you may want "
-                    "sudo's -H flag.",
-                    options.cache_dir,
-                )
-                options.cache_dir = None
+        session = self.get_default_session(options)
 
-            with RequirementTracker() as req_tracker, TempDirectory(
-                options.build_dir, delete=build_delete, kind="download"
-            ) as directory:
+        target_python = make_target_python(options)
+        finder = self._build_package_finder(
+            options=options,
+            session=session,
+            target_python=target_python,
+        )
+        build_delete = (not (options.no_clean or options.build_dir))
 
-                requirement_set = RequirementSet(
-                    require_hashes=options.require_hashes,
-                )
-                self.populate_requirement_set(
-                    requirement_set,
-                    args,
-                    options,
-                    finder,
-                    session,
-                    None
-                )
+        req_tracker = self.enter_context(get_requirement_tracker())
 
-                preparer = self.make_requirement_preparer(
-                    temp_directory=directory,
-                    options=options,
-                    req_tracker=req_tracker,
-                    download_dir=options.download_dir,
-                )
+        directory = TempDirectory(
+            options.build_dir,
+            delete=build_delete,
+            kind="download",
+            globally_managed=True,
+        )
 
-                resolver = self.make_resolver(
-                    preparer=preparer,
-                    finder=finder,
-                    session=session,
-                    options=options,
-                    py_version_info=options.python_version,
-                )
-                resolver.resolve(requirement_set)
+        reqs = self.get_requirements(
+            args,
+            options,
+            finder,
+            session,
+            None
+        )
 
-                downloaded = ' '.join([
-                    req.name for req in requirement_set.successfully_downloaded
-                ])
-                if downloaded:
-                    logger.info('Successfully downloaded %s', downloaded)
+        preparer = self.make_requirement_preparer(
+            temp_build_dir=directory,
+            options=options,
+            req_tracker=req_tracker,
+            session=session,
+            finder=finder,
+            download_dir=options.download_dir,
+            use_user_site=False,
+        )
 
-                # Clean up
-                if not options.no_clean:
-                    requirement_set.cleanup_files()
+        resolver = self.make_resolver(
+            preparer=preparer,
+            finder=finder,
+            options=options,
+            py_version_info=options.python_version,
+        )
+
+        self.trace_basic_info(finder)
+
+        requirement_set = resolver.resolve(
+            reqs, check_supported_wheels=True
+        )
+
+        downloaded = ' '.join([
+            req.name for req in requirement_set.requirements.values()
+            if req.successfully_downloaded
+        ])
+        if downloaded:
+            write_output('Successfully downloaded %s', downloaded)
 
         return requirement_set

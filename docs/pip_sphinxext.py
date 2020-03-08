@@ -55,7 +55,7 @@ class PipOptions(rst.Directive):
             line += option._long_opts[0]
         if option.takes_value():
             metavar = option.metavar or option.dest.lower()
-            line += " <%s>" % metavar.lower()
+            line += " <{}>".format(metavar.lower())
         # fix defaults
         opt_help = option.help.replace('%default', str(option.default))
         # fix paths with sys.prefix
@@ -86,9 +86,13 @@ class PipGeneralOptions(PipOptions):
 
 
 class PipIndexOptions(PipOptions):
+    required_arguments = 1
+
     def process_options(self):
+        cmd_name = self.arguments[0]
         self._format_options(
-            [o() for o in cmdoptions.index_group['options']]
+            [o() for o in cmdoptions.index_group['options']],
+            cmd_name=cmd_name,
         )
 
 

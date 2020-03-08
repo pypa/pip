@@ -58,12 +58,13 @@ if DEBUNDLED:
     sys.path[:] = glob.glob(os.path.join(WHEEL_DIR, "*.whl")) + sys.path
 
     # Actually alias all of our vendored dependencies.
+    vendored("appdirs")
     vendored("cachecontrol")
     vendored("colorama")
+    vendored("contextlib2")
     vendored("distlib")
     vendored("distro")
     vendored("html5lib")
-    vendored("lockfile")
     vendored("six")
     vendored("six.moves")
     vendored("six.moves.urllib")

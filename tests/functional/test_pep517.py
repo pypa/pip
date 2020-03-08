@@ -3,14 +3,17 @@ from pip._vendor import pytoml
 
 from pip._internal.build_env import BuildEnvironment
 from pip._internal.req import InstallRequirement
-from tests.lib import make_test_finder, path_to_url
+from tests.lib import make_test_finder, path_to_url, windows_workaround_7667
 
 
-def make_project(tmpdir, requires=[], backend=None):
-    project_dir = (tmpdir / 'project').mkdir()
+def make_project(tmpdir, requires=[], backend=None, backend_path=None):
+    project_dir = tmpdir / 'project'
+    project_dir.mkdir()
     buildsys = {'requires': requires}
     if backend:
         buildsys['build-backend'] = backend
+    if backend_path:
+        buildsys['backend-path'] = backend_path
     data = pytoml.dumps({'build-system': buildsys})
     project_dir.joinpath('pyproject.toml').write_text(data)
     return project_dir
@@ -26,6 +29,50 @@ def test_backend(tmpdir, data):
     env.install_requirements(finder, ["dummy_backend"], 'normal', "Installing")
     conflicting, missing = env.check_requirements(["dummy_backend"])
     assert not conflicting and not missing
+    assert hasattr(req.pep517_backend, 'build_wheel')
+    with env:
+        assert req.pep517_backend.build_wheel("dir") == "Backend called"
+
+
+dummy_backend_code = """\
+def build_wheel(
+    wheel_directory,
+    config_settings=None,
+    metadata_directory=None
+):
+    return "Backend called"
+"""
+
+
+def test_backend_path(tmpdir, data):
+    """Check we can call a backend inside the project"""
+    project_dir = make_project(
+        tmpdir, backend="dummy_backend", backend_path=['.']
+    )
+    (project_dir / 'dummy_backend.py').write_text(dummy_backend_code)
+    req = InstallRequirement(None, None, source_dir=project_dir)
+    req.load_pyproject_toml()
+
+    env = BuildEnvironment()
+    assert hasattr(req.pep517_backend, 'build_wheel')
+    with env:
+        assert req.pep517_backend.build_wheel("dir") == "Backend called"
+
+
+def test_backend_path_and_dep(tmpdir, data):
+    """Check we can call a requirement's backend successfully"""
+    project_dir = make_project(
+        tmpdir, backend="dummy_internal_backend", backend_path=['.']
+    )
+    (project_dir / 'dummy_internal_backend.py').write_text(
+        "from dummy_backend import build_wheel"
+    )
+    req = InstallRequirement(None, None, source_dir=project_dir)
+    req.load_pyproject_toml()
+    env = BuildEnvironment()
+    finder = make_test_finder(find_links=[data.backends])
+    env.install_requirements(finder, ["dummy_backend"], 'normal', "Installing")
+
     assert hasattr(req.pep517_backend, 'build_wheel')
     with env:
         assert req.pep517_backend.build_wheel("dir") == "Backend called"
@@ -125,7 +172,8 @@ def test_pep517_install_with_no_cache_dir(script, tmpdir, data):
 
 
 def make_pyproject_with_setup(tmpdir, build_system=True, set_backend=True):
-    project_dir = (tmpdir / 'project').mkdir()
+    project_dir = tmpdir / 'project'
+    project_dir.mkdir()
     setup_script = (
         'from setuptools import setup\n'
     )
@@ -161,7 +209,8 @@ def make_pyproject_with_setup(tmpdir, build_system=True, set_backend=True):
 
     project_dir.joinpath('pyproject.toml').write_text(project_data)
     project_dir.joinpath('setup.py').write_text(setup_script)
-    package_dir = (project_dir / "pep517_test").mkdir()
+    package_dir = project_dir / "pep517_test"
+    package_dir.mkdir()
     package_dir.joinpath('__init__.py').write_text('__version__ = "0.1"')
     return project_dir, "pep517_test"
 
@@ -200,6 +249,7 @@ def test_explicit_setuptools_backend(script, tmpdir, data, common_wheels):
 
 
 @pytest.mark.network
+@windows_workaround_7667
 def test_pep517_and_build_options(script, tmpdir, data, common_wheels):
     """Backend generated requirements are installed in the build env"""
     project_dir, name = make_pyproject_with_setup(tmpdir)
@@ -211,4 +261,4 @@ def test_pep517_and_build_options(script, tmpdir, data, common_wheels):
         expect_error=True
     )
     assert 'Cannot build wheel' in result.stderr
-    assert 'when --build-options is present' in result.stderr
+    assert 'when --build-option is present' in result.stderr

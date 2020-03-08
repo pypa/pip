@@ -1,29 +1,32 @@
 .. _`pip search`:
 
+==========
 pip search
-----------
+==========
 
 .. contents::
 
+
 Usage
-*****
+=====
 
 .. pip-command-usage:: search
 
 
 Description
-***********
+===========
 
 .. pip-command-description:: search
 
+
 Options
-*******
+=======
 
 .. pip-command-options:: search
 
 
 Examples
-********
+========
 
 #. Search for "peppercorn"
 

@@ -1,3 +1,6 @@
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 from __future__ import absolute_import
 
 import sys
@@ -62,7 +65,7 @@ class FreezeCommand(Command):
             dest='freeze_all',
             action='store_true',
             help='Do not skip these packages in the output:'
-                 ' %s' % ', '.join(DEV_PKGS))
+                 ' {}'.format(', '.join(DEV_PKGS)))
         self.cmd_opts.add_option(
             '--exclude-editable',
             dest='exclude_editable',
@@ -93,8 +96,5 @@ class FreezeCommand(Command):
             exclude_editable=options.exclude_editable,
         )
 
-        try:
-            for line in freeze(**freeze_kwargs):
-                sys.stdout.write(line + '\n')
-        finally:
-            wheel_cache.cleanup()
+        for line in freeze(**freeze_kwargs):
+            sys.stdout.write(line + '\n')

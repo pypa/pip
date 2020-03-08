@@ -1,3 +1,6 @@
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 import logging
 import os
 import subprocess
@@ -10,9 +13,7 @@ from pip._internal.configuration import (
     kinds,
 )
 from pip._internal.exceptions import PipError
-from pip._internal.utils.deprecation import deprecated
-from pip._internal.utils.misc import get_prog
-from pip._internal.utils.virtualenv import running_under_virtualenv
+from pip._internal.utils.misc import get_prog, write_output
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +35,7 @@ class ConfigurationCommand(Command):
         default.
     """
 
+    ignore_require_venv = True
     usage = """
         %prog [<file-option>] list
         %prog [<file-option>] [--editor <editor-path>] edit
@@ -83,17 +85,6 @@ class ConfigurationCommand(Command):
             help='Use the current environment configuration file only'
         )
 
-        self.cmd_opts.add_option(
-            '--venv',
-            dest='venv_file',
-            action='store_true',
-            default=False,
-            help=(
-                '[Deprecated] Use the current environment configuration '
-                'file in a virtual environment only'
-            )
-        )
-
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
@@ -140,21 +131,6 @@ class ConfigurationCommand(Command):
         return SUCCESS
 
     def _determine_file(self, options, need_value):
-        # Convert legacy venv_file option to site_file or error
-        if options.venv_file and not options.site_file:
-            if running_under_virtualenv():
-                options.site_file = True
-                deprecated(
-                    "The --venv option has been deprecated.",
-                    replacement="--site",
-                    gone_in="19.3",
-                )
-            else:
-                raise PipError(
-                    "Legacy --venv option requires a virtual environment. "
-                    "Use --site instead."
-                )
-
         file_options = [key for key, value in (
             (kinds.USER, options.user_file),
             (kinds.GLOBAL, options.global_file),
@@ -184,13 +160,13 @@ class ConfigurationCommand(Command):
         self._get_n_args(args, "list", n=0)
 
         for key, value in sorted(self.configuration.items()):
-            logger.info("%s=%r", key, value)
+            write_output("%s=%r", key, value)
 
     def get_name(self, options, args):
         key = self._get_n_args(args, "get [name]", n=1)
         value = self.configuration.get_value(key)
 
-        logger.info("%s", value)
+        write_output("%s", value)
 
     def set_name_value(self, options, args):
         key, value = self._get_n_args(args, "set [name] [value]", n=2)

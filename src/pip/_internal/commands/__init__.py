@@ -1,10 +1,14 @@
 """
 Package containing all pip commands
 """
+
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 from __future__ import absolute_import
 
 import importlib
-from collections import namedtuple, OrderedDict
+from collections import OrderedDict, namedtuple
 
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 

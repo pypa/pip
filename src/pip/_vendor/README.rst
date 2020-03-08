@@ -1,3 +1,4 @@
+================
 Vendoring Policy
 ================
 
@@ -18,13 +19,13 @@ Vendoring Policy
 
 * Any modifications made to libraries **MUST** be noted in
   ``pip/_vendor/README.rst`` and their corresponding patches **MUST** be
-  included ``tasks/vendoring/patches``.
+  included ``tools/automation/vendoring/patches``.
 
 * Vendored libraries should have corresponding ``vendored()`` entries in
   ``pip/_vendor/__init__.py``.
 
 Rationale
----------
+=========
 
 Historically pip has not had any dependencies except for ``setuptools`` itself,
 choosing instead to implement any functionality it needed to prevent needing
@@ -34,7 +35,7 @@ typical benefits of reusing libraries instead of reinventing the wheel like
 higher quality and more battle tested code, centralization of bug fixes
 (particularly security sensitive ones), and better/more features for less work.
 
-However, there is several issues with having dependencies in the traditional
+However, there are several issues with having dependencies in the traditional
 way (via ``install_requires``) for pip. These issues are:
 
 * **Fragility.** When pip depends on another library to function then if for
@@ -94,7 +95,7 @@ such as OS packages.
 
 
 Modifications
--------------
+=============
 
 * ``setuptools`` is completely stripped to only keep ``pkg_resources``
 * ``pkg_resources`` has been modified to import its dependencies from ``pip._vendor``
@@ -107,17 +108,16 @@ Modifications
 
 
 Automatic Vendoring
--------------------
+===================
 
-Vendoring is automated via the ``vendoring.update`` task (defined in
-``tasks/vendoring/__init__.py``) from the content of
+Vendoring is automated via the ``vendoring`` tool from the content of
 ``pip/_vendor/vendor.txt`` and the different patches in
-``tasks/vendoring/patches/``.
-Launch it via ``invoke vendoring.update`` (requires ``invoke>=0.13.0``).
+``tools/automation/vendoring/patches``.
+Launch it via ``vendoring sync . -v`` (requires ``vendoring>=0.2.2``).
 
 
 Debundling
-----------
+==========
 
 As mentioned in the rationale, we, the pip team, would prefer it if pip was not
 debundled (other than optionally ``pip/_vendor/requests/cacert.pem``) and that
@@ -144,7 +144,7 @@ extra work on your end in order to solve the problems described above.
    ``pip/_vendor/``, then modify ``pip/_vendor/__init__.py`` so that the
    ``WHEEL_DIR`` variable points to the location you've placed them.
 
-6. *(optional)* Update the ``pip_version_check`` logic to use the
+6. *(optional)* Update the ``pip_self_version_check`` logic to use the
    appropriate logic for determining the latest available version of pip and
    prompt the user with the correct upgrade message.
 
