@@ -56,7 +56,7 @@ jobs:
           ${{ runner.os }}-pip-
           ${{ runner.os }}-
     - name: set PY
-      run: echo "::set-env name=PY::$((python --version --version ; which python) | sha256sum | cut -d' ' -f1)"
+      run: echo "::set-env name=PY::$(,@(python --version --version ; which python) | sha256sum | cut -d' ' -f1)"
     - uses: actions/cache@v1
       with:
         path: ~/.cache/pre-commit
