@@ -99,12 +99,6 @@ def unpack_vcs_link(link, location):
     vcs_backend.unpack(location, url=hide_url(link.url))
 
 
-def _copy_file(filename, download_location):
-    # type: (str, str) -> None
-    shutil.copy(filename, download_location)
-    logger.info('Saved %s', display_path(download_location))
-
-
 class File(object):
     def __init__(self, path, content_type):
         # type: (str, str) -> None
@@ -490,7 +484,10 @@ class RequirementPreparer(object):
                         download_dir, link.filename
                     )
                     if not os.path.exists(download_location):
-                        _copy_file(local_file.path, download_location)
+                        shutil.copy(local_file.path, download_location)
+                        logger.info(
+                            'Saved %s', display_path(download_location)
+                        )
 
             if self._download_should_save:
                 # Make a .zip of the source_dir we already created.
