@@ -109,12 +109,6 @@ class Path(_base):
 
     def resolve(self):
         """
-        './a/bc.d' -> '/home/a/bc.d'
-        """
-        return Path(os.path.abspath(self))
-
-    def resolve(self):
-        """
         Resolves symbolic links.
         """
         return Path(os.path.realpath(self))
