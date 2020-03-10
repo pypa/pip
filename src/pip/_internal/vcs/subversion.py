@@ -151,7 +151,8 @@ class Subversion(VersionControl):
         elif data.startswith('<?xml'):
             match = _svn_xml_url_re.search(data)
             if not match:
-                raise ValueError('Badly formatted data: %r' % data)
+                raise ValueError(
+                    'Badly formatted data: {data!r}'.format(**locals()))
             url = match.group(1)    # get repository URL
             revs = [int(m.group(1)) for m in _svn_rev_re.finditer(data)] + [0]
         else:

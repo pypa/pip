@@ -17,6 +17,7 @@ import stat
 import sys
 import warnings
 from base64 import urlsafe_b64encode
+from itertools import starmap
 from zipfile import ZipFile
 
 from pip._vendor import pkg_resources
@@ -534,13 +535,9 @@ def install_unpacked_wheel(
             del console[k]
 
     # Generate the console and GUI entry points specified in the wheel
-    scripts_to_generate.extend(
-        '%s = %s' % kv for kv in console.items()
-    )
+    scripts_to_generate.extend(starmap('{} = {}'.format, console.items()))
 
-    gui_scripts_to_generate = [
-        '%s = %s' % kv for kv in gui.items()
-    ]
+    gui_scripts_to_generate = list(starmap('{} = {}'.format, gui.items()))
 
     generated_console_scripts = []  # type: List[str]
 

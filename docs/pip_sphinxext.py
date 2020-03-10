@@ -42,15 +42,16 @@ class PipCommandDescription(rst.Directive):
 class PipOptions(rst.Directive):
 
     def _format_option(self, option, cmd_name=None):
-        if cmd_name:
-            bookmark_line = ".. _`%s_%s`:" % (cmd_name, option._long_opts[0])
-        else:
-            bookmark_line = ".. _`%s`:" % option._long_opts[0]
+        bookmark_line = (
+            ".. _`{cmd_name}_{option._long_opts[0]}`:"
+            if cmd_name else
+            ".. _`{option._long_opts[0]}`:"
+        ).format(**locals())
         line = ".. option:: "
         if option._short_opts:
             line += option._short_opts[0]
         if option._short_opts and option._long_opts:
-            line += ", %s" % option._long_opts[0]
+            line += ", " + option._long_opts[0]
         elif option._long_opts:
             line += option._long_opts[0]
         if option.takes_value():
@@ -60,7 +61,7 @@ class PipOptions(rst.Directive):
         opt_help = option.help.replace('%default', str(option.default))
         # fix paths with sys.prefix
         opt_help = opt_help.replace(sys.prefix, "<sys.prefix>")
-        return [bookmark_line, "", line, "", "    %s" % opt_help, ""]
+        return [bookmark_line, "", line, "", "    " + opt_help, ""]
 
     def _format_options(self, options, cmd_name=None):
         for option in options:

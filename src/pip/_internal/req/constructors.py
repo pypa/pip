@@ -281,8 +281,8 @@ def _get_url_from_path(path, name):
         if is_installable_dir(path):
             return path_to_url(path)
         raise InstallationError(
-            "Directory %r is not installable. Neither 'setup.py' "
-            "nor 'pyproject.toml' found." % name
+            "Directory {name!r} is not installable. Neither 'setup.py' "
+            "nor 'pyproject.toml' found.".format(**locals())
         )
     if not is_archive_file(path):
         return None
@@ -339,7 +339,7 @@ def parse_req_from_line(name, line_source):
         # wheel file
         if link.is_wheel:
             wheel = Wheel(link.filename)  # can raise InvalidWheelFilename
-            req_as_string = "%s==%s" % (wheel.name, wheel.version)
+            req_as_string = "{wheel.name}=={wheel.version}".format(**locals())
         else:
             # set the req to the egg fragment.  when it's not there, this
             # will become an 'unnamed' requirement

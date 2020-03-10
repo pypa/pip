@@ -486,8 +486,8 @@ def test_group_locations__file_expand_dir(data):
     """
     files, urls = group_locations([data.find_links], expand_dir=True)
     assert files and not urls, (
-        "files and not urls should have been found at find-links url: %s" %
-        data.find_links
+        "files and not urls should have been found "
+        "at find-links url: {data.find_links}".format(**locals())
     )
 
 

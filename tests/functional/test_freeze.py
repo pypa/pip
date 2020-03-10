@@ -40,7 +40,7 @@ def _check_output(result, expected):
     actual = distribute_re.sub('', actual)
 
     def banner(msg):
-        return '\n========== %s ==========\n' % msg
+        return '\n========== {msg} ==========\n'.format(**locals())
 
     assert checker.check_output(expected, actual, ELLIPSIS), (
         banner('EXPECTED') + expected + banner('ACTUAL') + actual +
@@ -246,15 +246,15 @@ def test_freeze_git_clone(script, tmpdir):
     _check_output(result.stdout, expected)
 
     result = script.pip(
-        'freeze', '-f', '%s#egg=pip_test_package' % repo_dir,
+        'freeze', '-f', '{repo_dir}#egg=pip_test_package'.format(**locals()),
         expect_stderr=True,
     )
     expected = textwrap.dedent(
         """
-            -f %(repo)s#egg=pip_test_package...
+            -f {repo}#egg=pip_test_package...
             -e git+...#egg=version_pkg
             ...
-        """ % {'repo': repo_dir},
+        """.format(repo=repo_dir),
     ).strip()
     _check_output(result.stdout, expected)
 
@@ -311,15 +311,15 @@ def test_freeze_git_clone_srcdir(script, tmpdir):
     _check_output(result.stdout, expected)
 
     result = script.pip(
-        'freeze', '-f', '%s#egg=pip_test_package' % repo_dir,
+        'freeze', '-f', '{repo_dir}#egg=pip_test_package'.format(**locals()),
         expect_stderr=True,
     )
     expected = textwrap.dedent(
         """
-            -f %(repo)s#egg=pip_test_package...
+            -f {repo}#egg=pip_test_package...
             -e git+...#egg=version_pkg&subdirectory=subdir
             ...
-        """ % {'repo': repo_dir},
+        """.format(repo=repo_dir),
     ).strip()
     _check_output(result.stdout, expected)
 
@@ -352,14 +352,14 @@ def test_freeze_mercurial_clone_srcdir(script, tmpdir):
     _check_output(result.stdout, expected)
 
     result = script.pip(
-        'freeze', '-f', '%s#egg=pip_test_package' % repo_dir
+        'freeze', '-f', '{repo_dir}#egg=pip_test_package'.format(**locals())
     )
     expected = textwrap.dedent(
         """
-            -f %(repo)s#egg=pip_test_package...
+            -f {repo}#egg=pip_test_package...
             -e hg+...#egg=version_pkg&subdirectory=subdir
             ...
-        """ % {'repo': repo_dir},
+        """.format(repo=repo_dir),
     ).strip()
     _check_output(result.stdout, expected)
 
@@ -446,15 +446,15 @@ def test_freeze_mercurial_clone(script, tmpdir):
     _check_output(result.stdout, expected)
 
     result = script.pip(
-        'freeze', '-f', '%s#egg=pip_test_package' % repo_dir,
+        'freeze', '-f', '{repo_dir}#egg=pip_test_package'.format(**locals()),
         expect_stderr=True,
     )
     expected = textwrap.dedent(
         """
-            -f %(repo)s#egg=pip_test_package...
+            -f {repo}#egg=pip_test_package...
             ...-e hg+...#egg=version_pkg
             ...
-        """ % {'repo': repo_dir},
+        """.format(repo=repo_dir),
     ).strip()
     _check_output(result.stdout, expected)
 
@@ -468,7 +468,7 @@ def test_freeze_bazaar_clone(script, tmpdir):
     try:
         checkout_path = _create_test_package(script, vcs='bazaar')
     except OSError as e:
-        pytest.fail('Invoking `bzr` failed: %s' % e)
+        pytest.fail('Invoking `bzr` failed: {e}'.format(e=e))
 
     result = script.run(
         'bzr', 'checkout', checkout_path, 'bzr-package'
@@ -486,13 +486,13 @@ def test_freeze_bazaar_clone(script, tmpdir):
 
     result = script.pip(
         'freeze', '-f',
-        '%s/#egg=django-wikiapp' % checkout_path,
+        '{checkout_path}/#egg=django-wikiapp'.format(**locals()),
         expect_stderr=True,
     )
     expected = textwrap.dedent("""\
-        -f %(repo)s/#egg=django-wikiapp
+        -f {repo}/#egg=django-wikiapp
         ...-e bzr+file://...@...#egg=version_pkg
-        ...""" % {'repo': checkout_path})
+        ...""".format(repo=checkout_path))
     _check_output(result.stdout, expected)
 
 
