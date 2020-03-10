@@ -192,12 +192,23 @@ def test_cache_remove_name_and_version_match(script, remove_matches_wheel):
 
 
 @pytest.mark.usefixtures("populate_wheel_cache")
-def test_cache_purge(script):
+def test_cache_purge(script, remove_matches_wheel):
+    result = script.pip('cache', 'purge', '--verbose')
+    lines = result.stdout.splitlines()
+
+    assert remove_matches_wheel('yyy-1.2.3', lines)
+    assert remove_matches_wheel('zzz-4.5.6', lines)
+    assert remove_matches_wheel('zzz-4.5.7', lines)
+    assert remove_matches_wheel('zzz-7.8.9', lines)
+
+
+@pytest.mark.usefixtures("populate_wheel_cache")
+def test_cache_purge_too_many_args(script, wheel_cache_files):
     result = script.pip('cache', 'purge', 'aaa', '--verbose',
                         expect_error=True)
-    assert 'yyy-1.2.3' not in result.stdout
-    assert 'zzz-4.5.6' not in result.stdout
+    assert result.stdout == ''
+    assert result.stderr == 'ERROR: Too many arguments\n'
 
-    result = script.pip('cache', 'purge', '--verbose')
-    assert 'yyy-1.2.3' in result.stdout
-    assert 'zzz-4.5.6' in result.stdout
+    # Make sure nothing was deleted.
+    for filename in wheel_cache_files:
+        assert os.path.exists(filename)
