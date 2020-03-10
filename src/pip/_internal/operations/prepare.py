@@ -8,7 +8,6 @@ import logging
 import mimetypes
 import os
 import shutil
-import sys
 
 from pip._vendor import requests
 from pip._vendor.six import PY2
@@ -29,8 +28,6 @@ from pip._internal.utils.filesystem import copy2_fixed
 from pip._internal.utils.hashes import MissingHashes
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
-    ask_path_exists,
-    backup_dir,
     display_path,
     hide_url,
     path_to_display,
@@ -100,37 +97,6 @@ def unpack_vcs_link(link, location):
     vcs_backend = vcs.get_backend_for_scheme(link.scheme)
     assert vcs_backend is not None
     vcs_backend.unpack(location, url=hide_url(link.url))
-
-
-def _copy_file(filename, location, link):
-    # type: (str, str, Link) -> None
-    copy = True
-    download_location = os.path.join(location, link.filename)
-    if os.path.exists(download_location):
-        response = ask_path_exists(
-            'The file {} exists. (i)gnore, (w)ipe, (b)ackup, (a)abort'.format(
-                display_path(download_location)
-            ),
-            ('i', 'w', 'b', 'a'),
-        )
-        if response == 'i':
-            copy = False
-        elif response == 'w':
-            logger.warning('Deleting %s', display_path(download_location))
-            os.remove(download_location)
-        elif response == 'b':
-            dest_file = backup_dir(download_location)
-            logger.warning(
-                'Backing up %s to %s',
-                display_path(download_location),
-                display_path(dest_file),
-            )
-            shutil.move(download_location, dest_file)
-        elif response == 'a':
-            sys.exit(-1)
-    if copy:
-        shutil.copy(filename, download_location)
-        logger.info('Saved %s', display_path(download_location))
 
 
 class File(object):
@@ -513,10 +479,15 @@ class RequirementPreparer(object):
             if download_dir:
                 if link.is_existing_dir():
                     logger.info('Link is a directory, ignoring download_dir')
-                elif local_file and not os.path.exists(
-                    os.path.join(download_dir, link.filename)
-                ):
-                    _copy_file(local_file.path, download_dir, link)
+                elif local_file:
+                    download_location = os.path.join(
+                        download_dir, link.filename
+                    )
+                    if not os.path.exists(download_location):
+                        shutil.copy(local_file.path, download_location)
+                        logger.info(
+                            'Saved %s', display_path(download_location)
+                        )
 
             if self._download_should_save:
                 # Make a .zip of the source_dir we already created.
