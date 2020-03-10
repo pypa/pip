@@ -207,7 +207,10 @@ def test_cache_purge_too_many_args(script, wheel_cache_files):
     result = script.pip('cache', 'purge', 'aaa', '--verbose',
                         expect_error=True)
     assert result.stdout == ''
-    assert result.stderr == 'ERROR: Too many arguments\n'
+
+    # This would be `result.stderr == ...`, but Pip prints deprecation
+    # warnings on Python 2.7, so we check if the _line_ is in stderr.
+    assert 'ERROR: Too many arguments' in result.stderr.splitlines()
 
     # Make sure nothing was deleted.
     for filename in wheel_cache_files:
