@@ -14,7 +14,7 @@ from pip._internal.utils.misc import format_size
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Dict, List
+    from typing import Any, Dict, Iterator, List, Tuple
 
 try:
     from pip._vendor import colorama
@@ -124,7 +124,7 @@ class SilentBar(Bar):
 
 class BlueEmojiBar(IncrementalBar):
 
-    suffix = "%(percent)d%%"
+    suffix = "{percent:.0f}%"
     bar_prefix = " "
     bar_suffix = " "
     phases = (u"\U0001F539", u"\U0001F537", u"\U0001F535")  # type: Any
@@ -203,8 +203,8 @@ class BaseDownloadProgressBar(WindowsMixin, InterruptibleMixin,
                               DownloadProgressMixin):
 
     file = sys.stdout
-    message = "%(percent)d%%"
-    suffix = "%(downloaded)s %(download_speed)s %(pretty_eta)s"
+    message = "{percent:.0f}%"
+    suffix = "{downloaded} {download_speed} {pretty_eta}"
 
 # NOTE: The "type: ignore" comments on the following classes are there to
 #       work around https://github.com/python/typing/issues/241
@@ -238,7 +238,7 @@ class DownloadProgressSpinner(WindowsMixin, InterruptibleMixin,
                               DownloadProgressMixin, Spinner):
 
     file = sys.stdout
-    suffix = "%(downloaded)s %(download_speed)s"
+    suffix = "{downloaded} {download_speed}"
 
     def next_phase(self):  # type: ignore
         if not hasattr(self, "_phaser"):
@@ -247,18 +247,21 @@ class DownloadProgressSpinner(WindowsMixin, InterruptibleMixin,
 
     def update(self):
         # type: () -> None
-        message = self.message % self
+        vals = dict(self._load_vals(
+            'downloaded', 'download_speed', 'pretty_eta', 'percent'))
+        message = self.message.format(**vals)
         phase = self.next_phase()
-        suffix = self.suffix % self
-        line = ''.join([
-            message,
-            " " if message else "",
-            phase,
-            " " if suffix else "",
-            suffix,
-        ])
-
+        suffix = self.suffix.format(**vals)
+        line = " ".join(filter(None, (message, phase, suffix)))
         self.writeln(line)
+
+    def _load_vals(self, *names):
+        # type: (*str) -> Iterator[Tuple[str, Any]]
+        for name in names:
+            try:
+                yield name, getattr(self, name)
+            except Exception:
+                pass
 
 
 BAR_TYPES = {

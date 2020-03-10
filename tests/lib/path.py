@@ -81,7 +81,7 @@ class Path(_base):
         return Path(path + _base(self))
 
     def __repr__(self):
-        return u"Path(%s)" % _base.__repr__(self)
+        return u"Path({inner})".format(inner=_base.__repr__(self))
 
     def __hash__(self):
         return _base.__hash__(self)
@@ -106,12 +106,6 @@ class Path(_base):
         '/home/a/bc.d' -> '.d'
         """
         return Path(os.path.splitext(self)[1])
-
-    def resolve(self):
-        """
-        './a/bc.d' -> '/home/a/bc.d'
-        """
-        return Path(os.path.abspath(self))
 
     def resolve(self):
         """

@@ -1,3 +1,4 @@
+import collections
 import logging
 import os
 import subprocess
@@ -304,7 +305,7 @@ class TestProcessLine(object):
 
     def test_yield_editable_requirement(self, line_processor):
         url = 'git+https://url#egg=SomeProject'
-        line = '-e %s' % url
+        line = '-e {url}'.format(**locals())
         filename = 'filename'
         comes_from = '-r {} (line {})'.format(filename, 1)
         req = install_req_from_editable(url, comes_from=comes_from)
@@ -625,19 +626,23 @@ class TestParseRequirements(object):
 
     def test_expand_existing_env_variables(self, tmpdir, finder):
         template = (
-            'https://%s:x-oauth-basic@github.com/user/%s/archive/master.zip'
+            'https://{}:x-oauth-basic@github.com/'
+            'user/{}/archive/master.zip'
         )
 
-        env_vars = (
+        def make_var(name):
+            return '${{{name}}}'.format(**locals())
+
+        env_vars = collections.OrderedDict([
             ('GITHUB_TOKEN', 'notarealtoken'),
             ('DO_12_FACTOR', 'awwyeah'),
-        )
+        ])
 
         with open(tmpdir.joinpath('req1.txt'), 'w') as fp:
-            fp.write(template % tuple(['${%s}' % k for k, _ in env_vars]))
+            fp.write(template.format(*map(make_var, env_vars)))
 
         with patch('pip._internal.req.req_file.os.getenv') as getenv:
-            getenv.side_effect = lambda n: dict(env_vars)[n]
+            getenv.side_effect = lambda n: env_vars[n]
 
             reqs = list(parse_reqfile(
                 tmpdir.joinpath('req1.txt'),
@@ -645,12 +650,12 @@ class TestParseRequirements(object):
                 session=PipSession()
             ))
 
-            assert len(reqs) == 1, \
-                'parsing requirement file with env variable failed'
+        assert len(reqs) == 1, \
+            'parsing requirement file with env variable failed'
 
-            expected_url = template % tuple([v for _, v in env_vars])
-            assert reqs[0].link.url == expected_url, \
-                'variable expansion in req file failed'
+        expected_url = template.format(*env_vars.values())
+        assert reqs[0].link.url == expected_url, \
+            'variable expansion in req file failed'
 
     def test_expand_missing_env_variables(self, tmpdir, finder):
         req_url = (

@@ -285,14 +285,16 @@ class TestPipResult(object):
         if without_egg_link:
             if egg_link_path in self.files_created:
                 raise TestFailure(
-                    'unexpected egg link file created: %r\n%s' %
-                    (egg_link_path, self)
+                    'unexpected egg link file created: '
+                    '{egg_link_path!r}\n{self}'
+                    .format(**locals())
                 )
         else:
             if egg_link_path not in self.files_created:
                 raise TestFailure(
-                    'expected egg link file missing: %r\n%s' %
-                    (egg_link_path, self)
+                    'expected egg link file missing: '
+                    '{egg_link_path!r}\n{self}'
+                    .format(**locals())
                 )
 
             egg_link_file = self.files_created[egg_link_path]
@@ -301,15 +303,15 @@ class TestPipResult(object):
             # FIXME: I don't understand why there's a trailing . here
             if not (egg_link_contents.endswith('\n.') and
                     egg_link_contents[:-2].endswith(pkg_dir)):
-                raise TestFailure(textwrap.dedent(u'''\
-                    Incorrect egg_link file %r
-                    Expected ending: %r
+                raise TestFailure(textwrap.dedent(
+                    u'''\
+                    Incorrect egg_link file {egg_link_file!r}
+                    Expected ending: {expected_ending!r}
                     ------- Actual contents -------
-                    %s
-                    -------------------------------''' % (
-                    egg_link_file,
-                    pkg_dir + '\n.',
-                    repr(egg_link_contents))
+                    {egg_link_contents!r}
+                    -------------------------------'''.format(
+                        expected_ending=pkg_dir + '\n.',
+                        **locals())
                 ))
 
         if use_user_site:
@@ -318,33 +320,36 @@ class TestPipResult(object):
             pth_file = e.site_packages / 'easy-install.pth'
 
         if (pth_file in self.files_updated) == without_egg_link:
-            raise TestFailure('%r unexpectedly %supdated by install' % (
-                pth_file, (not without_egg_link and 'not ' or '')))
+            raise TestFailure(
+                '{pth_file} unexpectedly {maybe}updated by install'.format(
+                    maybe=not without_egg_link and 'not ' or '',
+                    **locals()))
 
         if (pkg_dir in self.files_created) == (curdir in without_files):
             raise TestFailure(textwrap.dedent('''\
-            expected package directory %r %sto be created
+            expected package directory {pkg_dir!r} {maybe}to be created
             actually created:
-            %s
-            ''') % (
-                pkg_dir,
-                (curdir in without_files and 'not ' or ''),
-                sorted(self.files_created.keys())))
+            {files}
+            ''').format(
+                pkg_dir=pkg_dir,
+                maybe=curdir in without_files and 'not ' or '',
+                files=sorted(self.files_created.keys()),
+            ))
 
         for f in with_files:
             normalized_path = os.path.normpath(pkg_dir / f)
             if normalized_path not in self.files_created:
                 raise TestFailure(
-                    'Package directory %r missing expected content %r' %
-                    (pkg_dir, f)
+                    'Package directory {pkg_dir!r} missing '
+                    'expected content {f!r}'.format(**locals())
                 )
 
         for f in without_files:
             normalized_path = os.path.normpath(pkg_dir / f)
             if normalized_path in self.files_created:
                 raise TestFailure(
-                    'Package directory %r has unexpected content %f' %
-                    (pkg_dir, f)
+                    'Package directory {pkg_dir!r} has unexpected content {f}'
+                    .format(**locals())
                 )
 
 
@@ -487,7 +492,7 @@ class PipTestEnvironment(TestFileEnvironment):
         # Expand our absolute path directories into relative
         for name in ["base", "venv", "bin", "lib", "site_packages",
                      "user_base", "user_site", "user_bin", "scratch"]:
-            real_name = "%s_path" % name
+            real_name = "{name}_path".format(**locals())
             relative_path = Path(os.path.relpath(
                 getattr(self, real_name), self.base_path
             ))
@@ -537,7 +542,7 @@ class PipTestEnvironment(TestFileEnvironment):
             compatibility.
         """
         if self.verbose:
-            print('>> running %s %s' % (args, kw))
+            print('>> running {args} {kw}'.format(**locals()))
 
         cwd = kw.pop('cwd', None)
         run_from = kw.pop('run_from', None)
@@ -791,7 +796,7 @@ def _vcs_add(script, version_pkg_path, vcs='git'):
             '-m', 'initial version', cwd=version_pkg_path,
         )
     else:
-        raise ValueError('Unknown vcs: %r' % vcs)
+        raise ValueError('Unknown vcs: {vcs}'.format(**locals()))
     return version_pkg_path
 
 
@@ -900,7 +905,7 @@ def assert_raises_regexp(exception, reg, run, *args, **kwargs):
 
     try:
         run(*args, **kwargs)
-        assert False, "%s should have been thrown" % exception
+        assert False, "{exception} should have been thrown".format(**locals())
     except exception:
         e = sys.exc_info()[1]
         p = re.compile(reg)
@@ -928,9 +933,9 @@ def create_test_package_with_setup(script, **setup_kwargs):
     pkg_path.mkdir()
     pkg_path.joinpath("setup.py").write_text(textwrap.dedent("""
         from setuptools import setup
-        kwargs = %r
+        kwargs = {setup_kwargs!r}
         setup(**kwargs)
-    """) % setup_kwargs)
+    """).format(**locals()))
     return pkg_path
 
 
@@ -1075,7 +1080,8 @@ def need_executable(name, check_cmd):
         try:
             subprocess.check_output(check_cmd)
         except OSError:
-            return pytest.mark.skip(reason='%s is not available' % name)(fn)
+            return pytest.mark.skip(
+                reason='{name} is not available'.format(name=name))(fn)
         return fn
     return wrapper
 

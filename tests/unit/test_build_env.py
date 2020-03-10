@@ -33,7 +33,7 @@ def run_with_build_env(script, setup_script_contents,
 
             link_collector = LinkCollector(
                 session=PipSession(),
-                search_scope=SearchScope.create([%r], []),
+                search_scope=SearchScope.create([{scratch!r}], []),
             )
             selection_prefs = SelectionPreferences(
                 allow_yanked=True,
@@ -45,7 +45,7 @@ def run_with_build_env(script, setup_script_contents,
 
             with global_tempdir_manager():
                 build_env = BuildEnvironment()
-            ''' % str(script.scratch_path)) +
+            '''.format(scratch=str(script.scratch_path))) +
         indent(dedent(setup_script_contents), '    ') +
         indent(
             dedent(
@@ -78,14 +78,17 @@ def test_build_env_allow_only_one_install(script):
     finder = make_test_finder(find_links=[script.scratch_path])
     build_env = BuildEnvironment()
     for prefix in ('normal', 'overlay'):
-        build_env.install_requirements(finder, ['foo'], prefix,
-                                       'installing foo in %s' % prefix)
+        build_env.install_requirements(
+            finder, ['foo'], prefix,
+            'installing foo in {prefix}'.format(**locals()))
         with pytest.raises(AssertionError):
-            build_env.install_requirements(finder, ['bar'], prefix,
-                                           'installing bar in %s' % prefix)
+            build_env.install_requirements(
+                finder, ['bar'], prefix,
+                'installing bar in {prefix}'.format(**locals()))
         with pytest.raises(AssertionError):
-            build_env.install_requirements(finder, [], prefix,
-                                           'installing in %s' % prefix)
+            build_env.install_requirements(
+                finder, [], prefix,
+                'installing in {prefix}'.format(**locals()))
 
 
 def test_build_env_requirements_check(script):
@@ -201,7 +204,9 @@ def test_build_env_isolation(script):
         except ImportError:
             pass
         else:
-            print('imported `pkg` from `%s`' % pkg.__file__, file=sys.stderr)
+            print(
+                'imported `pkg` from `{pkg.__file__}`'.format(**locals()),
+                file=sys.stderr)
             print('system sites:\n  ' + '\n  '.join(sorted({
                           get_python_lib(plat_specific=0),
                           get_python_lib(plat_specific=1),

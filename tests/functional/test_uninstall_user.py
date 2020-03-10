@@ -6,7 +6,8 @@ from os.path import isdir, isfile, normcase
 import pytest
 
 from tests.functional.test_install_user import _patch_dist_in_site_packages
-from tests.lib import assert_all_changes, pyversion
+from tests.lib import pyversion  # noqa: F401
+from tests.lib import assert_all_changes
 
 
 @pytest.mark.incompatible_with_test_venv
@@ -44,7 +45,7 @@ class Tests_UninstallUserSite:
         # site still has 0.2 (can't look in result1; have to check)
         egg_info_folder = (
             script.base_path / script.site_packages /
-            'pip_test_package-0.1-py%s.egg-info' % pyversion
+            'pip_test_package-0.1-py{pyversion}.egg-info'.format(**globals())
         )
         assert isdir(egg_info_folder)
 
