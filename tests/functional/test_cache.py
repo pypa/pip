@@ -1,5 +1,6 @@
 import os
 import re
+import shutil
 from glob import glob
 
 import pytest
@@ -23,6 +24,10 @@ def wheel_cache_dir(cache_dir):
 @pytest.fixture
 def wheel_cache_files(wheel_cache_dir):
     destination = os.path.join(wheel_cache_dir, 'arbitrary', 'pathname')
+
+    if not os.path.exists(destination):
+        return []
+
     filenames = glob(os.path.join(destination, '*.whl'))
     files = []
     for filename in filenames:
@@ -47,6 +52,12 @@ def populate_wheel_cache(wheel_cache_dir):
             pass
 
     return files
+
+
+@pytest.fixture
+def empty_wheel_cache(wheel_cache_dir):
+    if os.path.exists(wheel_cache_dir):
+        shutil.rmtree(wheel_cache_dir)
 
 
 def list_matches_wheel(wheel_name, lines):
@@ -100,6 +111,14 @@ def test_cache_list(script):
     assert list_matches_wheel('zzz-4.5.6', lines)
     assert list_matches_wheel('zzz-4.5.7', lines)
     assert list_matches_wheel('zzz-7.8.9', lines)
+
+
+@pytest.mark.usefixtures("empty_wheel_cache")
+def test_cache_list_with_empty_cache(script):
+    """Running `pip cache list` with an empty cache should print
+    "Nothing cached." and exit."""
+    result = script.pip('cache', 'list')
+    assert result.stdout == "Nothing cached.\n"
 
 
 def test_cache_list_too_many_args(script):
