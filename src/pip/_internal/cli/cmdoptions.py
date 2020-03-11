@@ -915,6 +915,19 @@ no_python_version_warning = partial(
 )  # type: Callable[..., Option]
 
 
+unstable_feature = partial(
+    Option,
+    '--unstable-feature',
+    dest='unstable_features',
+    metavar='feature',
+    action='append',
+    default=[],
+    choices=['resolver'],
+    help=SUPPRESS_HELP,  # TODO: Enable this when the resolver actually works.
+    # help='Enable unstable feature(s) that may be backward incompatible.',
+)  # type: Callable[..., Option]
+
+
 ##########
 # groups #
 ##########
@@ -943,6 +956,7 @@ general_group = {
         disable_pip_version_check,
         no_color,
         no_python_version_warning,
+        unstable_feature,
     ]
 }  # type: Dict[str, Any]
 

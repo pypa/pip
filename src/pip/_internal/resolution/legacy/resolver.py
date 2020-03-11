@@ -29,6 +29,7 @@ from pip._internal.exceptions import (
     UnsupportedPythonVersion,
 )
 from pip._internal.req.req_set import RequirementSet
+from pip._internal.resolution.base import BaseResolver
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import dist_in_usersite, normalize_version_info
 from pip._internal.utils.packaging import (
@@ -38,17 +39,15 @@ from pip._internal.utils.packaging import (
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Callable, DefaultDict, List, Optional, Set, Tuple
+    from typing import DefaultDict, List, Optional, Set, Tuple
     from pip._vendor import pkg_resources
 
     from pip._internal.distributions import AbstractDistribution
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.operations.prepare import RequirementPreparer
     from pip._internal.req.req_install import InstallRequirement
+    from pip._internal.resolution.base import InstallRequirementProvider
 
-    InstallRequirementProvider = Callable[
-        [str, InstallRequirement], InstallRequirement
-    ]
     DiscoveredDependencies = DefaultDict[str, List[InstallRequirement]]
 
 logger = logging.getLogger(__name__)
@@ -102,7 +101,7 @@ def _check_dist_requires_python(
         ))
 
 
-class Resolver(object):
+class Resolver(BaseResolver):
     """Resolves which packages need to be installed/uninstalled to perform \
     the requested operation without breaking the requirements of any package.
     """
