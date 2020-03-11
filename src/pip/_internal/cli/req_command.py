@@ -26,7 +26,6 @@ from pip._internal.req.constructors import (
 )
 from pip._internal.req.req_file import parse_requirements
 from pip._internal.req.req_set import RequirementSet
-from pip._internal.resolution.legacy.resolver import Resolver
 from pip._internal.self_outdated_check import (
     make_link_collector,
     pip_self_version_check,
@@ -42,6 +41,7 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.models.target_python import TargetPython
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.req.req_tracker import RequirementTracker
+    from pip._internal.resolution.base import BaseResolver
     from pip._internal.utils.temp_dir import (
         TempDirectory,
         TempDirectoryTypeRegistry,
@@ -248,7 +248,7 @@ class RequirementCommand(IndexGroupCommand):
         use_pep517=None,                     # type: Optional[bool]
         py_version_info=None            # type: Optional[Tuple[int, ...]]
     ):
-        # type: (...) -> Resolver
+        # type: (...) -> BaseResolver
         """
         Create a Resolver instance for the given parameters.
         """
@@ -258,7 +258,25 @@ class RequirementCommand(IndexGroupCommand):
             wheel_cache=wheel_cache,
             use_pep517=use_pep517,
         )
-        return Resolver(
+        # The long import name and duplicated invocation is needed to convince
+        # Mypy into correctly typechecking. Otherwise it would complain the
+        # "Resolver" class being redefined.
+        if 'resolver' in options.unstable_features:
+            import pip._internal.resolution.resolvelib.resolver
+            return pip._internal.resolution.resolvelib.resolver.Resolver(
+                preparer=preparer,
+                finder=finder,
+                make_install_req=make_install_req,
+                use_user_site=use_user_site,
+                ignore_dependencies=options.ignore_dependencies,
+                ignore_installed=ignore_installed,
+                ignore_requires_python=ignore_requires_python,
+                force_reinstall=force_reinstall,
+                upgrade_strategy=upgrade_strategy,
+                py_version_info=py_version_info,
+            )
+        import pip._internal.resolution.legacy.resolver
+        return pip._internal.resolution.legacy.resolver.Resolver(
             preparer=preparer,
             finder=finder,
             make_install_req=make_install_req,
