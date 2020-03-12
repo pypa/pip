@@ -12,7 +12,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from tests.lib import skip_if_python2
 
 if MYPY_CHECK_RUNNING:
-    from tests.lib.path import Path
+    from pathlib import Path
 
 
 @pytest.fixture

@@ -5,7 +5,7 @@ import pytest
 
 from pip._internal.utils.filesystem import copy2_fixed, is_socket
 from tests.lib.filesystem import make_socket_file, make_unreadable_file
-from tests.lib.path import Path
+from pathlib import Path
 
 
 def make_file(path):

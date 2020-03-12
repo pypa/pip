@@ -18,7 +18,7 @@ from pip._internal.self_outdated_check import (
     make_link_collector,
     pip_self_version_check,
 )
-from tests.lib.path import Path
+from pathlib import Path
 
 
 @pytest.mark.parametrize(

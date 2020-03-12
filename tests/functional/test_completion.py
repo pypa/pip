@@ -3,7 +3,7 @@ import sys
 
 import pytest
 
-from tests.lib.path import Path
+from pathlib import Path
 
 COMPLETION_FOR_SUPPORTED_SHELLS_TESTS = (
     ('bash', """\

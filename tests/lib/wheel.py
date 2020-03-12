@@ -16,7 +16,7 @@ from pip._vendor.requests.structures import CaseInsensitiveDict
 from pip._vendor.six import ensure_binary, ensure_text, iteritems
 
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from tests.lib.path import Path
+from pathlib import Path
 
 if MYPY_CHECK_RUNNING:
     from typing import (

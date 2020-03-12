@@ -22,7 +22,7 @@ from tests.lib.filesystem import (
     make_socket_file,
     make_unreadable_file,
 )
-from tests.lib.path import Path
+from pathlib import Path
 from tests.lib.requests_mocks import MockResponse
 
 
@@ -144,7 +144,7 @@ def test_copy_source_tree_with_socket_fails_with_no_socket_error(
     with pytest.raises(shutil.Error) as e:
         _copy_source_tree(clean_project, target)
 
-    errored_files = [err[0] for err in e.value.args[0]]
+    errored_files = [Path(err[0]) for err in e.value.args[0]]
     assert len(errored_files) == 1
     assert unreadable_file in errored_files
 
@@ -162,7 +162,7 @@ def test_copy_source_tree_with_unreadable_dir_fails(clean_project, tmpdir):
     with pytest.raises(shutil.Error) as e:
         _copy_source_tree(clean_project, target)
 
-    errored_files = [err[0] for err in e.value.args[0]]
+    errored_files = [Path(err[0]) for err in e.value.args[0]]
     assert len(errored_files) == 1
     assert unreadable_file in errored_files
 
