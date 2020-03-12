@@ -21,7 +21,7 @@ from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.network.session import PipSession
-from pip._internal.pep425tags import get_supported
+from pip._internal.utils.compatibility_tags import get_supported
 from pip._internal.utils.hashes import Hashes
 from tests.lib import CURRENT_PY_VERSION_INFO
 

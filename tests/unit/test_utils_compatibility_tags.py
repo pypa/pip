@@ -3,7 +3,7 @@ import sysconfig
 import pytest
 from mock import patch
 
-from pip._internal import pep425tags
+from pip._internal.utils import compatibility_tags
 
 
 @pytest.mark.parametrize('version_info, expected', [
@@ -17,11 +17,11 @@ from pip._internal import pep425tags
     ((3, 10), '310'),
 ])
 def test_version_info_to_nodot(version_info, expected):
-    actual = pep425tags.version_info_to_nodot(version_info)
+    actual = compatibility_tags.version_info_to_nodot(version_info)
     assert actual == expected
 
 
-class TestPEP425Tags(object):
+class Testcompatibility_tags(object):
 
     def mock_get_config_var(self, **kwd):
         """
@@ -39,12 +39,12 @@ class TestPEP425Tags(object):
         """
         Test that no tag contains a hyphen.
         """
-        import pip._internal.pep425tags
+        import pip._internal.utils.compatibility_tags
 
         mock_gcf = self.mock_get_config_var(SOABI='cpython-35m-darwin')
 
         with patch('sysconfig.get_config_var', mock_gcf):
-            supported = pip._internal.pep425tags.get_supported()
+            supported = pip._internal.utils.compatibility_tags.get_supported()
 
         for tag in supported:
             assert '-' not in tag.interpreter
@@ -63,7 +63,7 @@ class TestManylinux2010Tags(object):
         Specifying manylinux2010 implies manylinux1.
         """
         groups = {}
-        supported = pep425tags.get_supported(platform=manylinux2010)
+        supported = compatibility_tags.get_supported(platform=manylinux2010)
         for tag in supported:
             groups.setdefault(
                 (tag.interpreter, tag.abi), []
@@ -87,7 +87,7 @@ class TestManylinux2014Tags(object):
         Specifying manylinux2014 implies manylinux2010/manylinux1.
         """
         groups = {}
-        supported = pep425tags.get_supported(platform=manylinuxA)
+        supported = compatibility_tags.get_supported(platform=manylinuxA)
         for tag in supported:
             groups.setdefault(
                 (tag.interpreter, tag.abi), []

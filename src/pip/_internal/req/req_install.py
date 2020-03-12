@@ -16,7 +16,6 @@ from pip._vendor.packaging.version import Version
 from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.pep517.wrappers import Pep517HookCaller
 
-from pip._internal import pep425tags
 from pip._internal.build_env import NoOpBuildEnvironment
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_scheme
@@ -31,6 +30,7 @@ from pip._internal.operations.install.legacy import install as install_legacy
 from pip._internal.operations.install.wheel import install_wheel
 from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
 from pip._internal.req.req_uninstall import UninstallPathSet
+from pip._internal.utils import compatibility_tags
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.logging import indent_log
@@ -258,7 +258,7 @@ class InstallRequirement(object):
             self.link = finder.find_requirement(self, upgrade)
         if self._wheel_cache is not None and not require_hashes:
             old_link = self.link
-            supported_tags = pep425tags.get_supported()
+            supported_tags = compatibility_tags.get_supported()
             self.link = self._wheel_cache.get(
                 link=self.link,
                 package_name=self.name,

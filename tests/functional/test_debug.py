@@ -1,6 +1,6 @@
 import pytest
 
-from pip._internal import pep425tags
+from pip._internal.utils import compatibility_tags
 
 
 @pytest.mark.parametrize('expected_text', [
@@ -42,7 +42,7 @@ def test_debug__tags(script, args):
     result = script.pip(*args, allow_stderr_warning=True)
     stdout = result.stdout
 
-    tags = pep425tags.get_supported()
+    tags = compatibility_tags.get_supported()
     expected_tag_header = 'Compatible tags: {}'.format(len(tags))
     assert expected_tag_header in stdout
 

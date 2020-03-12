@@ -8,9 +8,9 @@ from collections import OrderedDict
 
 from pip._vendor.packaging.utils import canonicalize_name
 
-from pip._internal import pep425tags
 from pip._internal.exceptions import InstallationError
 from pip._internal.models.wheel import Wheel
+from pip._internal.utils import compatibility_tags
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -102,7 +102,7 @@ class RequirementSet(object):
         # single requirements file.
         if install_req.link and install_req.link.is_wheel:
             wheel = Wheel(install_req.link.filename)
-            tags = pep425tags.get_supported()
+            tags = compatibility_tags.get_supported()
             if (self.check_supported_wheels and not wheel.supported(tags)):
                 raise InstallationError(
                     "{} is not a supported wheel on this platform.".format(
