@@ -116,7 +116,7 @@ def test(session):
 
 @nox.session
 def docs(session):
-    session.install(".")
+    session.install("-e", ".")
     session.install("-r", REQUIREMENTS["docs"])
 
     def get_sphinx_build_command(kind):
