@@ -1,4 +1,5 @@
 import pytest
+from pip._vendor.resolvelib import BaseReporter, Resolver
 
 from pip._internal.req.constructors import install_req_from_line
 from pip._internal.resolution.resolvelib.base import Candidate
@@ -76,3 +77,12 @@ def test_rlr_candidates_match_requirement(test_cases, provider):
         for c in req.find_matches():
             assert isinstance(c, Candidate)
             assert req.is_satisfied_by(c)
+
+
+def test_rlr_full_resolve(provider):
+    """A very basic full resolve"""
+    ireq = install_req_from_line("simplewheel")
+    req = provider.make_requirement(ireq)
+    r = Resolver(provider, BaseReporter())
+    result = r.resolve([req])
+    assert set(result.mapping.keys()) == {'simplewheel'}
