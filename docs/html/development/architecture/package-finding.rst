@@ -74,7 +74,7 @@ instantiate ``PackageFinder`` only once for the whole pip invocation. In
 fact, pip creates this ``PackageFinder`` instance when command options
 are first parsed.
 
-With the excepton of :ref:`pip list`, each of the above commands is
+With the exception of :ref:`pip list`, each of the above commands is
 implemented as a ``Command`` class inheriting from ``RequirementCommand``
 (for example :ref:`pip download` is implemented by ``DownloadCommand``), and
 the ``PackageFinder`` instance is created by calling the
