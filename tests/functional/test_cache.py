@@ -86,9 +86,10 @@ def remove_matches_wheel(wheel_cache_dir):
 
         # The "/arbitrary/pathname/" bit is an implementation detail of how
         # the `populate_wheel_cache` fixture is implemented.
-        expected = 'Removed {}/arbitrary/pathname/{}'.format(
-            wheel_cache_dir, wheel_filename,
+        path = os.path.join(
+            wheel_cache_dir, 'arbitrary', 'pathname', wheel_filename,
         )
+        expected = 'Removed {}'.format(path)
         return expected in lines
 
     return _remove_matches_wheel
