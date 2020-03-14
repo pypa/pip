@@ -2,13 +2,13 @@ import os.path
 import shutil
 import textwrap
 from hashlib import sha256
+from pathlib import Path
 
 import pytest
 
 from pip._internal.cli.status_codes import ERROR
 from pip._internal.utils.urls import path_to_url
 from tests.lib import create_really_basic_wheel
-from pathlib import Path
 from tests.lib.server import file_response
 
 
@@ -27,8 +27,10 @@ def test_download_if_requested(script):
     result = script.pip(
         'download', '-d', 'pip_downloads', 'INITools==0.1'
     )
-    result.did_create(Path('scratch') / 'pip_downloads' / 'INITools-0.1.tar.gz')
-    result.did_not_create(script.site_packages / 'initools') 
+    result.did_create(
+        Path('scratch') / 'pip_downloads' / 'INITools-0.1.tar.gz'
+    )
+    result.did_not_create(script.site_packages / 'initools')
 
 
 @pytest.mark.network
@@ -54,7 +56,7 @@ def test_download_wheel(script, data):
         '-d', '.', 'meta'
     )
     result.did_create(Path('scratch') / 'meta-1.0-py2.py3-none-any.whl')
-    result.did_not_create(script.site_packages / 'piptestpackage') 
+    result.did_not_create(script.site_packages / 'piptestpackage')
 
 
 @pytest.mark.network
@@ -70,7 +72,7 @@ def test_single_download_from_requirements_file(script):
         'download', '-r', script.scratch_path / 'test-req.txt', '-d', '.',
     )
     result.did_create(Path('scratch') / 'INITools-0.1.tar.gz')
-    result.did_not_create(script.site_packages / 'initools') 
+    result.did_not_create(script.site_packages / 'initools')
 
 
 @pytest.mark.network
@@ -113,7 +115,7 @@ def test_download_should_download_wheel_deps(script, data):
         'download', wheel_path,
         '-d', '.', '--find-links', data.find_links, '--no-index'
     )
-    result.did_create(Path('scratch') / wheel_filename) 
+    result.did_create(Path('scratch') / wheel_filename)
     result.did_create(Path('scratch') / dep_filename)
 
 
@@ -147,8 +149,8 @@ def test_download_should_skip_existing_files(script):
         path.startswith(openid_tarball_prefix) for path in result.files_created
     )
     result.did_not_create(Path('scratch') / 'INITools-0.1.tar.gz')
-    result.did_not_create(script.site_packages / 'initools') 
-    result.did_not_create(script.site_packages / 'openid') 
+    result.did_not_create(script.site_packages / 'initools')
+    result.did_not_create(script.site_packages / 'openid')
 
 
 @pytest.mark.network
@@ -270,7 +272,9 @@ def test_download_specify_platform(script, data):
         '--platform', 'macosx_10_10_x86_64',
         'fake'
     )
-    result.did_create(Path('scratch') / 'fake-1.0-py2.py3-none-macosx_10_9_x86_64.whl')
+    result.did_create(
+        Path('scratch') / 'fake-1.0-py2.py3-none-macosx_10_9_x86_64.whl'
+    )
 
     # OSX platform wheels are not backward-compatible.
     result = script.pip(
@@ -299,7 +303,9 @@ def test_download_specify_platform(script, data):
         '--platform', 'linux_x86_64',
         'fake==2'
     )
-    result.did_create(Path('scratch') / 'fake-2.0-py2.py3-none-linux_x86_64.whl')
+    result.did_create(
+        Path('scratch') / 'fake-2.0-py2.py3-none-linux_x86_64.whl'
+    )
 
 
 class TestDownloadPlatformManylinuxes(object):
@@ -551,7 +557,9 @@ def test_download_specify_abi(script, data):
         '--abi', 'fakeabi',
         'fake'
     )
-    result.did_create(Path('scratch') / 'fake-1.0-fk2-fakeabi-fake_platform.whl')
+    result.did_create(
+        Path('scratch') / 'fake-1.0-fk2-fakeabi-fake_platform.whl'
+    )
 
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,

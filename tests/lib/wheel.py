@@ -9,6 +9,7 @@ from enum import Enum
 from functools import partial
 from hashlib import sha256
 from io import BytesIO, StringIO
+from pathlib import Path
 from zipfile import ZipFile
 
 import csv23
@@ -16,7 +17,6 @@ from pip._vendor.requests.structures import CaseInsensitiveDict
 from pip._vendor.six import ensure_binary, ensure_text, iteritems
 
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from pathlib import Path
 
 if MYPY_CHECK_RUNNING:
     from typing import (

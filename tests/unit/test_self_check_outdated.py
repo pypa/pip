@@ -2,6 +2,7 @@ import datetime
 import json
 import os
 import sys
+from pathlib import Path
 
 import freezegun
 import pretend
@@ -18,7 +19,6 @@ from pip._internal.self_outdated_check import (
     make_link_collector,
     pip_self_version_check,
 )
-from pathlib import Path
 
 
 @pytest.mark.parametrize(

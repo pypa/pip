@@ -1,9 +1,8 @@
 import json
 import os
+from pathlib import Path
 
 import pytest
-
-from pathlib import Path
 
 
 @pytest.fixture(scope="session")

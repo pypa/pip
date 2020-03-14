@@ -1,5 +1,6 @@
 import os
 import shutil
+from pathlib import Path
 from shutil import rmtree
 from tempfile import mkdtemp
 
@@ -22,7 +23,6 @@ from tests.lib.filesystem import (
     make_socket_file,
     make_unreadable_file,
 )
-from pathlib import Path
 from tests.lib.requests_mocks import MockResponse
 
 

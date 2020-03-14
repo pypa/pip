@@ -1,9 +1,8 @@
 import os
 import sys
+from pathlib import Path
 
 import pytest
-
-from pathlib import Path
 
 COMPLETION_FOR_SUPPORTED_SHELLS_TESTS = (
     ('bash', """\

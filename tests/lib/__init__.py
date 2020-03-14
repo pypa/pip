@@ -11,6 +11,7 @@ from base64 import urlsafe_b64encode
 from contextlib import contextmanager
 from hashlib import sha256
 from io import BytesIO
+from pathlib import Path
 from textwrap import dedent
 from zipfile import ZipFile
 
@@ -26,7 +27,6 @@ from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.network.session import PipSession
 from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from pathlib import Path
 
 if MYPY_CHECK_RUNNING:
     from typing import List, Optional
@@ -42,6 +42,7 @@ pyversion_tuple = sys.version_info
 CURRENT_PY_VERSION_INFO = sys.version_info[:3]
 
 curdir = Path(os.path.curdir)
+
 
 def assert_paths_equal(actual, expected):
     assert os.path.normpath(actual) == os.path.normpath(expected)
@@ -353,22 +354,19 @@ class TestPipResult(object):
                     .format(**locals())
                 )
 
-
-            
     def did_create(self, path):
         assert str(path) in self.files_created, str(self)
-            
+
     def did_not_create(self, path):
         assert str(path) not in self.files_created, str(self)
 
     def did_update(self, path):
         assert str(path) in self.files_updated, str(self)
-    
+
     def did_not_update(self, path):
         assert str(path) not in self.files_updated, str(self)
 
 
-            
 def make_check_stderr_message(stderr, line, reason):
     """
     Create an exception message to use inside check_stderr().
@@ -490,7 +488,7 @@ class PipTestEnvironment(TestFileEnvironment):
 
         environ["PATH"] = str(Path(self.bin_path) / environ.get("PATH", ""))
         environ["PYTHONUSERBASE"] = self.user_base_path
-        
+
         # Writing bytecode can mess up updated file detection
         environ["PYTHONDONTWRITEBYTECODE"] = "1"
         # Make sure we get UTF-8 on output, even on Windows...

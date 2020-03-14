@@ -29,7 +29,9 @@ def test_requirements_file(script):
     result = script.pip(
         'install', '-r', script.scratch_path / 'initools-req.txt'
     )
-    result.did_create(script.site_packages / 'INITools-0.2-py{}.egg-info'.format(pyversion))
+    result.did_create(
+        script.site_packages / 'INITools-0.2-py{}.egg-info'.format(pyversion)
+    )
     result.did_create(script.site_packages / 'initools')
     assert result.files_created[script.site_packages / other_lib_name].dir
     fn = '{}-{}-py{}.egg-info'.format(
@@ -549,7 +551,7 @@ def test_install_options_local_to_package(script, data):
     simple = test_simple / 'lib' / 'python' / 'simple'
     bad = test_simple / 'lib' / 'python' / 'initools'
     good = script.site_packages / 'initools'
-    result.did_create(simple) 
+    result.did_create(simple)
     assert result.files_created[simple].dir
     result.did_not_create(bad)
     result.did_create(good)

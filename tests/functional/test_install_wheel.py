@@ -2,11 +2,11 @@ import distutils
 import glob
 import os
 import shutil
+from pathlib import Path
 
 import pytest
 
 from tests.lib import create_basic_wheel_for_package, skip_if_python2
-from pathlib import Path
 from tests.lib.wheel import make_wheel
 
 
@@ -181,9 +181,18 @@ def test_install_wheel_with_target_and_data_files(script, data, with_wheel):
                         '-t', target_dir,
                         '--no-index')
 
-    result.did_create(Path('scratch') / 'prjwithdatafile' / 'packages1' / 'README.txt'), str(result)
-    result.did_create(Path('scratch') / 'prjwithdatafile' / 'packages2' / 'README.txt'), str(result)
-    result.did_not_create(Path('scratch') / 'prjwithdatafile' / 'lib' / 'python'), str(result)
+    result.did_create(
+        Path('scratch') / 'prjwithdatafile' / 'packages1' / 'README.txt'), (
+        str(result)
+    )
+    result.did_create(
+        Path('scratch') / 'prjwithdatafile' / 'packages2' / 'README.txt'), (
+        str(result)
+    )
+    result.did_not_create(
+        Path('scratch') / 'prjwithdatafile' / 'lib' / 'python'), (
+        str(result)
+    )
 
 
 def test_install_wheel_with_root(script, shared_data, tmpdir):
@@ -398,9 +407,9 @@ def test_skipping_setuptools_doesnt_skip_legacy(script, shared_data, tmpdir):
     legacy_file2 = script.bin / 'testscript2'
     wrapper_helper = script.bin / 't1-script.py'
 
-    result.did_create(legacy_file1) 
+    result.did_create(legacy_file1)
     result.did_create(legacy_file2)
-    result.did(wrapper_helper) 
+    result.did(wrapper_helper)
 
 
 def test_install_from_wheel_gui_entrypoint(script, shared_data, tmpdir):
