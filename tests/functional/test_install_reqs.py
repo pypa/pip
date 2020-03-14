@@ -1,5 +1,6 @@
 import os
 import textwrap
+from pathlib import Path
 
 import pytest
 
@@ -11,7 +12,6 @@ from tests.lib import (
     requirements_file,
 )
 from tests.lib.local_repos import local_checkout
-from tests.lib.path import Path
 
 
 @pytest.mark.network
@@ -24,16 +24,13 @@ def test_requirements_file(script):
     script.scratch_path.joinpath("initools-req.txt").write_text(textwrap.dedent("""\
         INITools==0.2
         # and something else to test out:
-        {other_lib_name}<={other_lib_version}
-        """.format(**locals())))
+        %s<=%s
+        """ % (other_lib_name, other_lib_version)))
     result = script.pip(
         'install', '-r', script.scratch_path / 'initools-req.txt'
     )
-    assert (
-        script.site_packages / 'INITools-0.2-py{}.egg-info'.format(
-            pyversion) in result.files_created
-    )
-    assert script.site_packages / 'initools' in result.files_created
+    result.did_create(script.site_packages / 'INITools-0.2-py{}.egg-info'.format(pyversion))
+    result.did_create(script.site_packages / 'initools')
     assert result.files_created[script.site_packages / other_lib_name].dir
     fn = '{}-{}-py{}.egg-info'.format(
         other_lib_name, other_lib_version, pyversion)
@@ -46,7 +43,7 @@ def test_schema_check_in_requirements_file(script):
 
     """
     script.scratch_path.joinpath("file-egg-req.txt").write_text(
-        "\n{}\n".format(
+        "\n%s\n" % (
             "git://github.com/alex/django-fixture-generator.git"
             "#egg=fixture_generator"
         )
@@ -73,8 +70,7 @@ def test_relative_requirements_file(script, data, test_type, editable):
 
     """
     egg_info_file = (
-        script.site_packages /
-        'FSPkg-0.1.dev0-py{pyversion}.egg-info'.format(**globals())
+        script.site_packages / 'FSPkg-0.1.dev0-py%s.egg-info' % pyversion
     )
     egg_link_file = (
         script.site_packages / 'FSPkg.egg-link'
@@ -85,30 +81,30 @@ def test_relative_requirements_file(script, data, test_type, editable):
     full_rel_path = Path(
         os.path.relpath(data.packages.joinpath('FSPkg'), script.scratch_path)
     )
-    full_rel_url = 'file:' + full_rel_path + '#egg=FSPkg'
+    full_rel_url = 'file:' + str(full_rel_path) + '#egg=FSPkg'
     embedded_rel_path = script.scratch_path.joinpath(full_rel_path)
 
     req_path = {
-        "rel_path": full_rel_path,
-        "rel_url": full_rel_url,
-        "embedded_rel_path": embedded_rel_path,
+        "rel_path": str(full_rel_path),
+        "rel_url": str(full_rel_url),
+        "embedded_rel_path": str(embedded_rel_path),
     }[test_type]
 
-    req_path = req_path.replace(os.path.sep, '/')
+    req_path = str(req_path).replace(os.path.sep, '/')
     # Install as either editable or not.
     if not editable:
         with requirements_file(req_path + '\n',
                                script.scratch_path) as reqs_file:
             result = script.pip('install', '-vvv', '-r', reqs_file.name,
                                 cwd=script.scratch_path)
-            assert egg_info_file in result.files_created, str(result)
-            assert package_folder in result.files_created, str(result)
+            result.did_create(egg_info_file), str(result)
+            result.did_create(package_folder), str(result)
     else:
         with requirements_file('-e ' + req_path + '\n',
                                script.scratch_path) as reqs_file:
             result = script.pip('install', '-vvv', '-r', reqs_file.name,
                                 cwd=script.scratch_path)
-            assert egg_link_file in result.files_created, str(result)
+            result.did_create(egg_link_file), str(result)
 
 
 @pytest.mark.network
@@ -121,17 +117,16 @@ def test_multiple_requirements_files(script, tmpdir):
     other_lib_name, other_lib_version = 'anyjson', '0.3'
     script.scratch_path.joinpath("initools-req.txt").write_text(
         textwrap.dedent("""
-            -e {}@10#egg=INITools
-            -r {}-req.txt
-        """).format
+            -e %s@10#egg=INITools
+            -r %s-req.txt
+        """) %
         (
             local_checkout('svn+http://svn.colorstudy.com/INITools', tmpdir),
             other_lib_name
         ),
     )
-    script.scratch_path.joinpath(
-        "{other_lib_name}-req.txt".format(**locals())).write_text(
-            "{other_lib_name}<={other_lib_version}".format(**locals())
+    script.scratch_path.joinpath("%s-req.txt" % other_lib_name).write_text(
+        "%s<=%s" % (other_lib_name, other_lib_version)
     )
     result = script.pip(
         'install', '-r', script.scratch_path / 'initools-req.txt'
@@ -140,7 +135,7 @@ def test_multiple_requirements_files(script, tmpdir):
     fn = '{other_lib_name}-{other_lib_version}-py{pyversion}.egg-info'.format(
         pyversion=pyversion, **locals())
     assert result.files_created[script.site_packages / fn].dir
-    assert script.venv / 'src' / 'initools' in result.files_created
+    result.did_create(script.venv / 'src' / 'initools')
 
 
 def test_package_in_constraints_and_dependencies(script, data):
@@ -179,13 +174,13 @@ def test_respect_order_in_requirements_file(script, data):
                   if 'Processing' in line]
 
     assert 'parent' in downloaded[0], (
-        'First download should be "parent" but was "{}"'.format(downloaded[0])
+        'First download should be "parent" but was "%s"' % downloaded[0]
     )
     assert 'child' in downloaded[1], (
-        'Second download should be "child" but was "{}"'.format(downloaded[1])
+        'Second download should be "child" but was "%s"' % downloaded[1]
     )
     assert 'simple' in downloaded[2], (
-        'Third download should be "simple" but was "{}"'.format(downloaded[2])
+        'Third download should be "simple" but was "%s"' % downloaded[2]
     )
 
 
@@ -218,9 +213,8 @@ def test_install_local_editable_with_subdirectory(script):
                                                               'version_subdir')
     result = script.pip(
         'install', '-e',
-        '{uri}#egg=version_subpkg&subdirectory=version_subdir'.format(
-            uri='git+' + path_to_url(version_pkg_path),
-        ),
+        '%s#egg=version_subpkg&subdirectory=version_subdir' %
+        ('git+%s' % path_to_url(version_pkg_path),)
     )
 
     result.assert_installed('version-subpkg', sub_dir='version_subdir')
@@ -232,9 +226,8 @@ def test_install_local_with_subdirectory(script):
                                                               'version_subdir')
     result = script.pip(
         'install',
-        '{uri}#egg=version_subpkg&subdirectory=version_subdir'.format(
-            uri='git+' + path_to_url(version_pkg_path),
-        ),
+        '%s#egg=version_subpkg&subdirectory=version_subdir' %
+        ('git+' + path_to_url(version_pkg_path),)
     )
 
     result.assert_installed('version_subpkg.py', editable=False)
@@ -252,7 +245,7 @@ def test_wheel_user_with_prefix_in_pydistutils_cfg(
     with open(user_cfg, "w") as cfg:
         cfg.write(textwrap.dedent("""
             [install]
-            prefix={script.scratch_path}""".format(**locals())))
+            prefix=%s""" % script.scratch_path))
 
     result = script.pip(
         'install', '--user', '--no-index',
@@ -273,18 +266,17 @@ def test_install_option_in_requirements_file(script, data, virtualenv):
 
     script.scratch_path.joinpath("reqs.txt").write_text(
         textwrap.dedent(
-            """simple --install-option='--home={home}'""".format(
-                home=script.scratch_path.joinpath("home1"))))
+            """simple --install-option='--home=%s'"""
+            % script.scratch_path.joinpath("home1")))
 
     result = script.pip(
         'install', '--no-index', '-f', data.find_links, '-r',
         script.scratch_path / 'reqs.txt',
-        '--install-option=--home={home}'.format(
-            home=script.scratch_path.joinpath("home2")),
+        '--install-option=--home=%s' % script.scratch_path.joinpath("home2"),
         expect_stderr=True)
 
     package_dir = script.scratch / 'home1' / 'lib' / 'python' / 'simple'
-    assert package_dir in result.files_created
+    result.did_create(package_dir)
 
 
 def test_constraints_not_installed_by_default(script, data):
@@ -339,7 +331,7 @@ def test_constraints_local_install_causes_error(script, data):
 def test_constraints_constrain_to_local_editable(script, data):
     to_install = data.src.joinpath("singlemodule")
     script.scratch_path.joinpath("constraints.txt").write_text(
-        "-e {url}#egg=singlemodule".format(url=path_to_url(to_install))
+        "-e %s#egg=singlemodule" % path_to_url(to_install)
     )
     result = script.pip(
         'install', '--no-index', '-f', data.find_links, '-c',
@@ -350,7 +342,7 @@ def test_constraints_constrain_to_local_editable(script, data):
 def test_constraints_constrain_to_local(script, data):
     to_install = data.src.joinpath("singlemodule")
     script.scratch_path.joinpath("constraints.txt").write_text(
-        "{url}#egg=singlemodule".format(url=path_to_url(to_install))
+        "%s#egg=singlemodule" % path_to_url(to_install)
     )
     result = script.pip(
         'install', '--no-index', '-f', data.find_links, '-c',
@@ -406,44 +398,44 @@ def test_double_install_spurious_hash_mismatch(
 def test_install_with_extras_from_constraints(script, data):
     to_install = data.packages.joinpath("LocalExtras")
     script.scratch_path.joinpath("constraints.txt").write_text(
-        "{url}#egg=LocalExtras[bar]".format(url=path_to_url(to_install))
+        "%s#egg=LocalExtras[bar]" % path_to_url(to_install)
     )
     result = script.pip_install_local(
         '-c', script.scratch_path / 'constraints.txt', 'LocalExtras')
-    assert script.site_packages / 'simple' in result.files_created
+    result.did_create(script.site_packages / 'simple')
 
 
 def test_install_with_extras_from_install(script, data):
     to_install = data.packages.joinpath("LocalExtras")
     script.scratch_path.joinpath("constraints.txt").write_text(
-        "{url}#egg=LocalExtras".format(url=path_to_url(to_install))
+        "%s#egg=LocalExtras" % path_to_url(to_install)
     )
     result = script.pip_install_local(
         '-c', script.scratch_path / 'constraints.txt', 'LocalExtras[baz]')
-    assert script.site_packages / 'singlemodule.py'in result.files_created
+    result.did_create(script.site_packages / 'singlemodule.py')
 
 
 def test_install_with_extras_joined(script, data):
     to_install = data.packages.joinpath("LocalExtras")
     script.scratch_path.joinpath("constraints.txt").write_text(
-        "{url}#egg=LocalExtras[bar]".format(url=path_to_url(to_install))
+        "%s#egg=LocalExtras[bar]" % path_to_url(to_install)
     )
     result = script.pip_install_local(
         '-c', script.scratch_path / 'constraints.txt', 'LocalExtras[baz]'
     )
-    assert script.site_packages / 'simple' in result.files_created
-    assert script.site_packages / 'singlemodule.py'in result.files_created
+    result.did_create(script.site_packages / 'simple')
+    result.did_create(script.site_packages / 'singlemodule.py')
 
 
 def test_install_with_extras_editable_joined(script, data):
     to_install = data.packages.joinpath("LocalExtras")
     script.scratch_path.joinpath("constraints.txt").write_text(
-        "-e {url}#egg=LocalExtras[bar]".format(url=path_to_url(to_install))
+        "-e %s#egg=LocalExtras[bar]" % path_to_url(to_install)
     )
     result = script.pip_install_local(
         '-c', script.scratch_path / 'constraints.txt', 'LocalExtras[baz]')
-    assert script.site_packages / 'simple' in result.files_created
-    assert script.site_packages / 'singlemodule.py'in result.files_created
+    result.did_create(script.site_packages / 'simple')
+    result.did_create(script.site_packages / 'singlemodule.py')
 
 
 def test_install_distribution_full_union(script, data):
@@ -451,8 +443,8 @@ def test_install_distribution_full_union(script, data):
     result = script.pip_install_local(
         to_install, to_install + "[bar]", to_install + "[baz]")
     assert 'Running setup.py install for LocalExtras' in result.stdout
-    assert script.site_packages / 'simple' in result.files_created
-    assert script.site_packages / 'singlemodule.py' in result.files_created
+    result.did_create(script.site_packages / 'simple')
+    result.did_create(script.site_packages / 'singlemodule.py')
 
 
 def test_install_distribution_duplicate_extras(script, data):
@@ -460,19 +452,17 @@ def test_install_distribution_duplicate_extras(script, data):
     package_name = to_install + "[bar]"
     with pytest.raises(AssertionError):
         result = script.pip_install_local(package_name, package_name)
-        expected = (
-            'Double requirement given: {package_name}'.format(**locals()))
-        assert expected in result.stderr
+        assert 'Double requirement given: %s' % package_name in result.stderr
 
 
 def test_install_distribution_union_with_constraints(script, data):
     to_install = data.packages.joinpath("LocalExtras")
     script.scratch_path.joinpath("constraints.txt").write_text(
-        "{to_install}[bar]".format(**locals()))
+        "%s[bar]" % to_install)
     result = script.pip_install_local(
         '-c', script.scratch_path / 'constraints.txt', to_install + '[baz]')
     assert 'Running setup.py install for LocalExtras' in result.stdout
-    assert script.site_packages / 'singlemodule.py' in result.files_created
+    result.did_create(script.site_packages / 'singlemodule.py')
 
 
 def test_install_distribution_union_with_versions(script, data):
@@ -500,10 +490,11 @@ def test_install_distribution_union_conflicting_extras(script, data):
 def test_install_unsupported_wheel_link_with_marker(script):
     script.scratch_path.joinpath("with-marker.txt").write_text(
         textwrap.dedent("""\
-            {url}; {req}
-        """).format(
-            url='https://github.com/a/b/c/asdf-1.5.2-cp27-none-xyz.whl',
-            req='sys_platform == "xyz"',
+            %s; %s
+        """) %
+        (
+            'https://github.com/a/b/c/asdf-1.5.2-cp27-none-xyz.whl',
+            'sys_platform == "xyz"'
         )
     )
     result = script.pip(
@@ -518,10 +509,9 @@ def test_install_unsupported_wheel_link_with_marker(script):
 def test_install_unsupported_wheel_file(script, data):
     # Trying to install a local wheel with an incompatible version/type
     # should fail.
-    path = data.packages.joinpath("simple.dist-0.1-py1-none-invalid.whl")
     script.scratch_path.joinpath("wheel-file.txt").write_text(textwrap.dedent("""\
-        {path}
-        """.format(**locals())))
+        %s
+        """ % data.packages.joinpath("simple.dist-0.1-py1-none-invalid.whl")))
     result = script.pip(
         'install', '-r', script.scratch_path / 'wheel-file.txt',
         expect_error=True,
@@ -546,9 +536,9 @@ def test_install_options_local_to_package(script, data):
     reqs_file = script.scratch_path.joinpath("reqs.txt")
     reqs_file.write_text(
         textwrap.dedent("""
-            simple --install-option='--home={home_simple}'
+            simple --install-option='--home=%s'
             INITools
-            """.format(**locals())))
+            """ % home_simple))
     result = script.pip(
         'install',
         '--no-index', '-f', data.find_links,
@@ -559,8 +549,8 @@ def test_install_options_local_to_package(script, data):
     simple = test_simple / 'lib' / 'python' / 'simple'
     bad = test_simple / 'lib' / 'python' / 'initools'
     good = script.site_packages / 'initools'
-    assert simple in result.files_created
+    result.did_create(simple) 
     assert result.files_created[simple].dir
-    assert bad not in result.files_created
-    assert good in result.files_created
+    result.did_not_create(bad)
+    result.did_create(good)
     assert result.files_created[good].dir

@@ -3,7 +3,7 @@ import os
 
 import pytest
 
-from tests.lib.path import Path
+from pathlib import Path
 
 
 @pytest.fixture(scope="session")
