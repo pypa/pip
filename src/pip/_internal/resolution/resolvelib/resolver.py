@@ -94,7 +94,8 @@ class Resolver(BaseResolver):
         weights = {None: 0}  # type: Dict[Optional[str], int]
 
         graph = self._result.graph
-        while len(weights) < len(self._result.mapping):
+        key_count = len(self._result.mapping) + 1  # Packages plus sentinal.
+        while len(weights) < key_count:
             progressed = False
             for key in graph:
                 if key in weights:
