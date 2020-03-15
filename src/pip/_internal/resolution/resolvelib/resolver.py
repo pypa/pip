@@ -1,3 +1,6 @@
+import functools
+
+from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.resolvelib import BaseReporter
 from pip._vendor.resolvelib import Resolver as RLResolver
 
@@ -90,7 +93,7 @@ class Resolver(BaseResolver):
         The current implementation walks the resolved dependency graph, and
         make sure every node has a greater "weight" than all its parents.
         """
-        assert self._result is not None
+        assert self._result is not None, "must call resolve() first"
         weights = {None: 0}  # type: Dict[Optional[str], int]
 
         graph = self._result.graph
@@ -112,7 +115,22 @@ class Resolver(BaseResolver):
 
         sorted_items = sorted(
             req_set.requirements.items(),
-            key=lambda item: weights[item[0]],
+            key=functools.partial(_req_set_item_sorter, weights=weights),
             reverse=True,
         )
         return [ireq for _, ireq in sorted_items]
+
+
+def _req_set_item_sorter(
+    item,     # type: Tuple[str, InstallRequirement]
+    weights,  # type: Dict[Optional[str], int]
+):
+    # type: (...) -> Tuple[int, str]
+    """Key function used to sort install requirements for installation.
+
+    Based on the "weight" mapping calculated in ``get_installation_order()``.
+    The canonical package name is returned as the second member as a tie-
+    breaker to ensure the result is predictable, which is useful in tests.
+    """
+    name = canonicalize_name(item[0])
+    return weights[name], name
