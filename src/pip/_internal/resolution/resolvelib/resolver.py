@@ -94,7 +94,7 @@ class Resolver(BaseResolver):
         make sure every node has a greater "weight" than all its parents.
         """
         assert self._result is not None, "must call resolve() first"
-        weights = {None: 0}  # type: Dict[Optional[str], int]
+        weights = {}  # type: Dict[Optional[str], int]
 
         graph = self._result.graph
         key_count = len(self._result.mapping) + 1  # Packages plus sentinal.
@@ -103,9 +103,13 @@ class Resolver(BaseResolver):
             for key in graph:
                 if key in weights:
                     continue
-                if not all(p in weights for p in graph.iter_parents(key)):
+                parents = list(graph.iter_parents(key))
+                if not all(p in weights for p in parents):
                     continue
-                weight = max(weights[p] for p in graph.iter_parents(key)) + 1
+                if parents:
+                    weight = max(weights[p] for p in parents) + 1
+                else:
+                    weight = 0
                 weights[key] = weight
                 progressed = True
 
