@@ -859,7 +859,7 @@ def test_install_package_with_target(script):
     result = script.pip_install_local(
         '-t', target_dir, "simple==1.0", expect_stderr=True,
     )
-    assert not Path('scratch') / 'target' / 'simple' in result.files_updated
+    result.did_not_update(Path('scratch') / 'target' / 'simple')
 
     # Test upgrade call, check that new version is installed
     result = script.pip_install_local('--upgrade', '-t',
