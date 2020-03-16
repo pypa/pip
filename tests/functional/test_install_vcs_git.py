@@ -176,7 +176,7 @@ def test_install_noneditable_git(script, tmpdir):
     result.assert_installed('piptestpackage',
                             without_egg_link=True,
                             editable=False)
-    assert egg_info_folder in result.files_created, str(result)
+    result.did_create(egg_info_folder), str(result)
 
 
 def test_git_with_sha1_revisions(script):
@@ -341,7 +341,7 @@ def test_git_with_non_editable_where_egg_contains_dev_string(script, tmpdir):
     )
     result = script.pip('install', local_url)
     devserver_folder = script.site_packages / 'devserver'
-    assert devserver_folder in result.files_created, str(result)
+    result.did_create(devserver_folder), str(result)
 
 
 def test_git_with_ambiguous_revs(script):

@@ -28,7 +28,7 @@ def test_basic_uninstall(script):
 
     """
     result = script.pip('install', 'INITools==0.2')
-    assert join(script.site_packages, 'initools') in result.files_created, (
+    result.did_create(join(script.site_packages, 'initools')), (
         sorted(result.files_created.keys())
     )
     # the import forces the generation of __pycache__ if the version of python
@@ -147,7 +147,7 @@ def test_basic_uninstall_namespace_package(script):
 
     """
     result = script.pip('install', 'pd.requires==0.0.3')
-    assert join(script.site_packages, 'pd') in result.files_created, (
+    result.did_create(join(script.site_packages, 'pd')), (
         sorted(result.files_created.keys())
     )
     result2 = script.pip('uninstall', 'pd.find', '-y')
@@ -267,7 +267,7 @@ def test_uninstall_console_scripts(script):
         entry_points={'console_scripts': ['discover = discover:main']},
     )
     result = script.pip('install', pkg_path)
-    assert script.bin / 'discover' + script.exe in result.files_created, (
+    result.did_create(script.bin / 'discover' + script.exe), (
         sorted(result.files_created.keys())
     )
     result2 = script.pip('uninstall', 'discover', '-y')
@@ -305,7 +305,7 @@ def test_uninstall_easy_installed_console_scripts(script):
     # setuptools >= 42.0.0 deprecates easy_install and prints a warning when
     # used
     result = script.easy_install('discover', allow_stderr_warning=True)
-    assert script.bin / 'discover' + script.exe in result.files_created, (
+    result.did_create(script.bin / 'discover' + script.exe), (
         sorted(result.files_created.keys())
     )
     result2 = script.pip('uninstall', 'discover', '-y')
@@ -476,7 +476,7 @@ def test_uninstall_wheel(script, data):
     package = data.packages.joinpath("simple.dist-0.1-py2.py3-none-any.whl")
     result = script.pip('install', package, '--no-index')
     dist_info_folder = script.site_packages / 'simple.dist-0.1.dist-info'
-    assert dist_info_folder in result.files_created
+    result.did_create(dist_info_folder)
     result2 = script.pip('uninstall', 'simple.dist', '-y')
     assert_all_changes(result, result2, [])
 

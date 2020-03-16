@@ -29,11 +29,11 @@ def test_requirements_file(script):
     result = script.pip(
         'install', '-r', script.scratch_path / 'initools-req.txt'
     )
-    assert (
+    result.did_create(
         script.site_packages / 'INITools-0.2-py{}.egg-info'.format(
-            pyversion) in result.files_created
+            pyversion)
     )
-    assert script.site_packages / 'initools' in result.files_created
+    result.did_create(script.site_packages / 'initools')
     assert result.files_created[script.site_packages / other_lib_name].dir
     fn = '{}-{}-py{}.egg-info'.format(
         other_lib_name, other_lib_version, pyversion)
@@ -101,14 +101,14 @@ def test_relative_requirements_file(script, data, test_type, editable):
                                script.scratch_path) as reqs_file:
             result = script.pip('install', '-vvv', '-r', reqs_file.name,
                                 cwd=script.scratch_path)
-            assert egg_info_file in result.files_created, str(result)
-            assert package_folder in result.files_created, str(result)
+            result.did_create(egg_info_file), str(result)
+            result.did_create(package_folder), str(result)
     else:
         with requirements_file('-e ' + req_path + '\n',
                                script.scratch_path) as reqs_file:
             result = script.pip('install', '-vvv', '-r', reqs_file.name,
                                 cwd=script.scratch_path)
-            assert egg_link_file in result.files_created, str(result)
+            result.did_create(egg_link_file), str(result)
 
 
 @pytest.mark.network
@@ -140,7 +140,7 @@ def test_multiple_requirements_files(script, tmpdir):
     fn = '{other_lib_name}-{other_lib_version}-py{pyversion}.egg-info'.format(
         pyversion=pyversion, **locals())
     assert result.files_created[script.site_packages / fn].dir
-    assert script.venv / 'src' / 'initools' in result.files_created
+    result.did_create(script.venv / 'src' / 'initools')
 
 
 def test_package_in_constraints_and_dependencies(script, data):
@@ -284,7 +284,7 @@ def test_install_option_in_requirements_file(script, data, virtualenv):
         expect_stderr=True)
 
     package_dir = script.scratch / 'home1' / 'lib' / 'python' / 'simple'
-    assert package_dir in result.files_created
+    result.did_create(package_dir)
 
 
 def test_constraints_not_installed_by_default(script, data):
@@ -410,7 +410,7 @@ def test_install_with_extras_from_constraints(script, data):
     )
     result = script.pip_install_local(
         '-c', script.scratch_path / 'constraints.txt', 'LocalExtras')
-    assert script.site_packages / 'simple' in result.files_created
+    result.did_create(script.site_packages / 'simple')
 
 
 def test_install_with_extras_from_install(script, data):
@@ -451,8 +451,8 @@ def test_install_distribution_full_union(script, data):
     result = script.pip_install_local(
         to_install, to_install + "[bar]", to_install + "[baz]")
     assert 'Running setup.py install for LocalExtras' in result.stdout
-    assert script.site_packages / 'simple' in result.files_created
-    assert script.site_packages / 'singlemodule.py' in result.files_created
+    result.did_create(script.site_packages / 'simple')
+    result.did_create(script.site_packages / 'singlemodule.py')
 
 
 def test_install_distribution_duplicate_extras(script, data):
@@ -472,7 +472,7 @@ def test_install_distribution_union_with_constraints(script, data):
     result = script.pip_install_local(
         '-c', script.scratch_path / 'constraints.txt', to_install + '[baz]')
     assert 'Running setup.py install for LocalExtras' in result.stdout
-    assert script.site_packages / 'singlemodule.py' in result.files_created
+    result.did_create(script.site_packages / 'singlemodule.py')
 
 
 def test_install_distribution_union_with_versions(script, data):
@@ -559,8 +559,8 @@ def test_install_options_local_to_package(script, data):
     simple = test_simple / 'lib' / 'python' / 'simple'
     bad = test_simple / 'lib' / 'python' / 'initools'
     good = script.site_packages / 'initools'
-    assert simple in result.files_created
+    result.did_create(simple)
     assert result.files_created[simple].dir
     assert bad not in result.files_created
-    assert good in result.files_created
+    result.did_create(good)
     assert result.files_created[good].dir

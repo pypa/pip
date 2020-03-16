@@ -14,7 +14,7 @@ def test_simple_extras_install_from_pypi(script):
         'install', 'Paste[openid]==1.7.5.1', expect_stderr=True,
     )
     initools_folder = script.site_packages / 'openid'
-    assert initools_folder in result.files_created, result.files_created
+    result.did_create(initools_folder), result.files_created
 
 
 def test_extras_after_wheel(script, data):
@@ -44,10 +44,10 @@ def test_no_extras_uninstall(script):
     result = script.pip(
         'install', 'Paste[openid]==1.7.5.1', expect_stderr=True,
     )
-    assert join(script.site_packages, 'paste') in result.files_created, (
+    result.did_create(join(script.site_packages, 'paste')), (
         sorted(result.files_created.keys())
     )
-    assert join(script.site_packages, 'openid') in result.files_created, (
+    result.did_create(join(script.site_packages, 'openid')), (
         sorted(result.files_created.keys())
     )
     result2 = script.pip('uninstall', 'Paste', '-y')

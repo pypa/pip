@@ -32,7 +32,7 @@ def test_debian_egg_name_workaround(script):
     # so even if this test runs on a Debian/Ubuntu system with broken
     # setuptools, since our test runs inside a venv we'll still have the normal
     # .egg-info
-    assert egg_info in result.files_created, \
+    result.did_create(egg_info), \
         "Couldn't find {egg_info}".format(**locals())
 
     # The Debian no-pyversion version of the .egg-info
