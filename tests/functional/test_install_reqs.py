@@ -561,6 +561,6 @@ def test_install_options_local_to_package(script, data):
     good = script.site_packages / 'initools'
     result.did_create(simple)
     assert result.files_created[simple].dir
-    assert bad not in result.files_created
+    result.did_not_create(bad)
     result.did_create(good)
     assert result.files_created[good].dir

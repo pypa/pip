@@ -170,10 +170,9 @@ def test_upgrade_if_requested(script):
     script.pip('install', 'INITools==0.1')
     result = script.pip('install', '--upgrade', 'INITools')
     assert result.files_created, 'pip install --upgrade did not upgrade'
-    assert (
+    result.did_not_create(
         script.site_packages /
         'INITools-0.1-py{pyversion}.egg-info'.format(**globals())
-        not in result.files_created
     )
 
 
@@ -335,10 +334,9 @@ def test_should_not_install_always_from_cache(script):
     script.pip('install', 'INITools==0.2')
     script.pip('uninstall', '-y', 'INITools')
     result = script.pip('install', 'INITools==0.1')
-    assert (
+    result.did_not_create(
         script.site_packages /
         'INITools-0.2-py{pyversion}.egg-info'.format(**globals())
-        not in result.files_created
     )
     result.did_create(
         script.site_packages /

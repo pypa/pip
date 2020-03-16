@@ -181,7 +181,7 @@ def test_pip_wheel_fail(script, data):
     wheel_file_name = 'wheelbroken-0.1-py{pyversion[0]}-none-any.whl' \
         .format(**globals())
     wheel_file_path = script.scratch / wheel_file_name
-    assert wheel_file_path not in result.files_created, (
+    result.did_not_create(wheel_file_path), (
         wheel_file_path,
         result.files_created,
     )

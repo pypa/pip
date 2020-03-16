@@ -122,9 +122,9 @@ def test_basic_install_from_wheel_file(script, data):
         installer_details = installer_file.read()
         assert installer_details == b'pip\n'
     installer_temp = dist_info_folder / 'INSTALLER.pip'
-    assert installer_temp not in result.files_created, (dist_info_folder,
-                                                        result.files_created,
-                                                        result.stdout)
+    result.did_not_create(installer_temp), (dist_info_folder,
+                                            result.files_created,
+                                            result.stdout)
 
 
 # Installation seems to work, but scripttest fails to check.
@@ -219,8 +219,9 @@ def test_install_wheel_with_target_and_data_files(script, data, with_wheel):
     result.did_create(
         Path('scratch') / 'prjwithdatafile' / 'packages2' / 'README.txt'
     ), str(result)
-    assert (Path('scratch') / 'prjwithdatafile' / 'lib' / 'python'
-            not in result.files_created), str(result)
+    result.did_not_create(
+        Path('scratch') / 'prjwithdatafile' / 'lib' / 'python'
+    ), str(result)
 
 
 def test_install_wheel_with_root(script, shared_data, tmpdir):
@@ -283,7 +284,7 @@ def test_install_from_wheel_no_deps(script, data, tmpdir):
         package,
     )
     pkg_folder = script.site_packages / 'source'
-    assert pkg_folder not in result.files_created
+    result.did_not_create(pkg_folder)
 
 
 def test_wheel_record_lines_in_deterministic_order(script, data):
@@ -415,7 +416,7 @@ def test_install_from_wheel_no_setuptools_entrypoint(
     # easily test that the wrapper from the wheel has been skipped /
     # overwritten without getting very platform-dependent, so omit that.
     result.did_create(wrapper_file)
-    assert wrapper_helper not in result.files_created
+    result.did_not_create(wrapper_helper)
 
 
 def test_skipping_setuptools_doesnt_skip_legacy(script, shared_data, tmpdir):
@@ -437,7 +438,7 @@ def test_skipping_setuptools_doesnt_skip_legacy(script, shared_data, tmpdir):
 
     result.did_create(legacy_file1)
     result.did_create(legacy_file2)
-    assert wrapper_helper not in result.files_created
+    result.did_not_create(wrapper_helper)
 
 
 def test_install_from_wheel_gui_entrypoint(script, shared_data, tmpdir):
@@ -515,7 +516,7 @@ def test_install_from_wheel_uninstalls_old_version(script, data):
     dist_info_folder = script.site_packages / 'simplewheel-2.0.dist-info'
     result.did_create(dist_info_folder)
     dist_info_folder = script.site_packages / 'simplewheel-1.0.dist-info'
-    assert dist_info_folder not in result.files_created
+    result.did_not_create(dist_info_folder)
 
 
 def test_wheel_compile_syntax_error(script, data):

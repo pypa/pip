@@ -1132,7 +1132,7 @@ def test_url_req_case_mismatch_no_index(script, data):
     result.did_create(egg_folder), str(result)
     egg_folder = script.site_packages / \
         'Upper-2.0-py{pyversion}.egg-info'.format(**globals())
-    assert egg_folder not in result.files_created, str(result)
+    result.did_not_create(egg_folder), str(result)
 
 
 def test_url_req_case_mismatch_file_index(script, data):
@@ -1161,7 +1161,7 @@ def test_url_req_case_mismatch_file_index(script, data):
     result.did_create(egg_folder), str(result)
     egg_folder = script.site_packages / \
         'Dinner-2.0-py{pyversion}.egg-info'.format(**globals())
-    assert egg_folder not in result.files_created, str(result)
+    result.did_not_create(egg_folder), str(result)
 
 
 def test_url_incorrect_case_no_index(script, data):
@@ -1177,7 +1177,7 @@ def test_url_incorrect_case_no_index(script, data):
     # only Upper-2.0.tar.gz should get installed.
     egg_folder = script.site_packages / \
         'Upper-1.0-py{pyversion}.egg-info'.format(**globals())
-    assert egg_folder not in result.files_created, str(result)
+    result.did_not_create(egg_folder), str(result)
     egg_folder = script.site_packages / \
         'Upper-2.0-py{pyversion}.egg-info'.format(**globals())
     result.did_create(egg_folder), str(result)
@@ -1197,7 +1197,7 @@ def test_url_incorrect_case_file_index(script, data):
     # only Upper-2.0.tar.gz should get installed.
     egg_folder = script.site_packages / \
         'Dinner-1.0-py{pyversion}.egg-info'.format(**globals())
-    assert egg_folder not in result.files_created, str(result)
+    result.did_not_create(egg_folder), str(result)
     egg_folder = script.site_packages / \
         'Dinner-2.0-py{pyversion}.egg-info'.format(**globals())
     result.did_create(egg_folder), str(result)
@@ -1722,7 +1722,7 @@ def test_target_install_ignores_distutils_config_install_prefix(script):
     relative_target = os.path.relpath(target, script.base_path)
     relative_script_base = os.path.relpath(prefix, script.base_path)
     result.did_create(relative_target)
-    assert relative_script_base not in result.files_created
+    result.did_not_create(relative_script_base)
 
 
 @pytest.mark.incompatible_with_test_venv
