@@ -864,7 +864,7 @@ def test_install_package_with_target(script):
     # Test upgrade call, check that new version is installed
     result = script.pip_install_local('--upgrade', '-t',
                                       target_dir, "simple==2.0")
-    assert Path('scratch') / 'target' / 'simple' in result.files_updated, (
+    result.did_update(Path('scratch') / 'target' / 'simple'), (
         str(result)
     )
     egg_folder = (
@@ -881,7 +881,7 @@ def test_install_package_with_target(script):
 
     result = script.pip_install_local('-t', target_dir, 'singlemodule==0.0.1',
                                       '--upgrade')
-    assert singlemodule_py in result.files_updated, str(result)
+    result.did_update(singlemodule_py), str(result)
 
 
 def test_install_package_to_usersite_with_target_must_fail(script):

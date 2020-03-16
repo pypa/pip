@@ -194,7 +194,7 @@ def test_install_local_editable_with_extras(script, data):
     res = script.pip_install_local(
         '-e', to_install + '[bar]', allow_stderr_warning=True
     )
-    assert script.site_packages / 'easy-install.pth' in res.files_updated, (
+    res.did_update(script.site_packages / 'easy-install.pth'), (
         str(res)
     )
     assert (
