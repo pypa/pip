@@ -405,12 +405,17 @@ def test_vcs_url_urlquote_normalization(script, tmpdir):
     )
 
 
-def test_basic_install_from_local_directory(script, data):
+@pytest.mark.parametrize("resolver", ["", "--unstable-feature=resolver"])
+def test_basic_install_from_local_directory(script, data, resolver):
     """
     Test installing from a local directory.
     """
+    args = ["install"]
+    if resolver:
+        args.append(resolver)
     to_install = data.packages.joinpath("FSPkg")
-    result = script.pip('install', to_install)
+    args.append(to_install)
+    result = script.pip(*args)
     fspkg_folder = script.site_packages / 'fspkg'
     egg_info_folder = (
         script.site_packages /
