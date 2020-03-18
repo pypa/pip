@@ -36,6 +36,10 @@ class PipProvider(AbstractProvider):
             self._make_install_req
         )
 
+    def get_install_requirement(self, c):
+        # type: (Candidate) -> InstallRequirement
+        return getattr(c, "_ireq", None)
+
     def identify(self, dependency):
         # type: (Union[Requirement, Candidate]) -> str
         return dependency.name

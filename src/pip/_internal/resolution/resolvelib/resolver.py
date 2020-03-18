@@ -4,7 +4,9 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.resolvelib import BaseReporter
 from pip._vendor.resolvelib import Resolver as RLResolver
 
+from pip._internal.req.req_set import RequirementSet
 from pip._internal.resolution.base import BaseResolver
+from pip._internal.resolution.resolvelib.provider import PipProvider
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -15,31 +17,7 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.operations.prepare import RequirementPreparer
     from pip._internal.req.req_install import InstallRequirement
-    from pip._internal.req.req_set import RequirementSet
     from pip._internal.resolution.base import InstallRequirementProvider
-
-    from .base import Candidate, Requirement
-
-
-# FIXME: Import the actual implementation.
-# This is a stub to pass typing checks.
-class PipProvider(object):
-    def __init__(
-        self,
-        finder,  # type: PackageFinder
-        preparer,  # type: RequirementPreparer
-        make_install_req,  # type: InstallRequirementProvider
-    ):
-        # type: (...) -> None
-        super(PipProvider, self).__init__()
-
-    def make_requirement(self, r):
-        # type: (InstallRequirement) -> Requirement
-        raise NotImplementedError()
-
-    def get_install_requirement(self, c):
-        # type: (Candidate) -> InstallRequirement
-        raise NotImplementedError()
 
 
 class Resolver(BaseResolver):
