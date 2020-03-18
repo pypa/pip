@@ -107,6 +107,6 @@ class LinkCandidate(Candidate):
     def get_dependencies(self):
         # type: () -> Sequence[InstallRequirement]
         return [
-            self._make_install_req(r, self._ireq)
+            self._make_install_req(str(r), self._ireq)
             for r in self.dist.requires()
         ]
