@@ -1,3 +1,5 @@
+from pip._vendor.packaging.utils import canonicalize_name
+
 from pip._internal.req.constructors import install_req_from_line
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -76,7 +78,7 @@ class LinkCandidate(Candidate):
     def name(self):
         # type: () -> str
         if self._name is None:
-            self._name = self.dist.project_name
+            self._name = canonicalize_name(self.dist.project_name)
         return self._name
 
     @property

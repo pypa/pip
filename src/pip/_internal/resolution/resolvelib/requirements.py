@@ -103,6 +103,8 @@ class SpecifierRequirement(Requirement):
 
     def is_satisfied_by(self, candidate):
         # type: (Candidate) -> bool
+
         assert candidate.name == self.name, \
-            "Internal issue: Candidate is not for this requirement"
+            "Internal issue: Candidate is not for this requirement " \
+            " {} vs {}".format(candidate.name, self.name)
         return candidate.version in self._ireq.req.specifier
