@@ -3,10 +3,10 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import (Sequence, Set)
+    from typing import Sequence, Set
 
+    from pip._internal.req.req_install import InstallRequirement
     from pip._vendor.packaging.version import _BaseVersion
-    from pip._internal.index.package_finder import PackageFinder
 
 
 def format_name(project, extras):
@@ -23,11 +23,8 @@ class Requirement(object):
         # type: () -> str
         raise NotImplementedError("Subclass should override")
 
-    def find_matches(
-        self,
-        finder,     # type: PackageFinder
-    ):
-        # type: (...) -> Sequence[Candidate]
+    def find_matches(self):
+        # type: () -> Sequence[Candidate]
         raise NotImplementedError("Subclass should override")
 
     def is_satisfied_by(self, candidate):
@@ -47,5 +44,5 @@ class Candidate(object):
         raise NotImplementedError("Override in subclass")
 
     def get_dependencies(self):
-        # type: () -> Sequence[Requirement]
+        # type: () -> Sequence[InstallRequirement]
         raise NotImplementedError("Override in subclass")

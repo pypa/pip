@@ -1,3 +1,5 @@
+from functools import partial
+
 import pytest
 
 from pip._internal.cli.req_command import RequirementCommand
@@ -8,7 +10,9 @@ from pip._internal.index.package_finder import PackageFinder
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.network.session import PipSession
+from pip._internal.req.constructors import install_req_from_req_string
 from pip._internal.req.req_tracker import get_requirement_tracker
+from pip._internal.resolution.resolvelib.provider import PipProvider
 from pip._internal.utils.temp_dir import TempDirectory, global_tempdir_manager
 
 
@@ -41,3 +45,14 @@ def preparer(finder):
                 )
 
                 yield preparer
+
+
+@pytest.fixture
+def provider(finder, preparer):
+    make_install_req = partial(
+        install_req_from_req_string,
+        isolated=False,
+        wheel_cache=None,
+        use_pep517=None,
+    )
+    yield PipProvider(finder, preparer, make_install_req)
