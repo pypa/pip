@@ -7,7 +7,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from .base import Candidate
 
 if MYPY_CHECK_RUNNING:
-    from typing import Dict, Optional, Sequence
+    from typing import Any, Dict, Optional, Sequence
 
     from pip._internal.models.link import Link
     from pip._internal.operations.prepare import RequirementPreparer
@@ -17,7 +17,6 @@ if MYPY_CHECK_RUNNING:
     from pip._vendor.pkg_resources import Distribution
 
 
-# Dummy to make lint pass
 _CANDIDATE_CACHE = {}  # type: Dict[Link, Candidate]
 
 
@@ -74,9 +73,21 @@ class LinkCandidate(Candidate):
         self._version = None  # type: Optional[_BaseVersion]
         self._dist = None  # type: Optional[Distribution]
 
+    def __eq__(self, other):
+        # type: (Any) -> bool
+        if isinstance(other, self.__class__):
+            return self.link == other.link
+        return False
+
+    # Needed for Python 2, which does not implement this by default
+    def __ne__(self, other):
+        # type: (Any) -> bool
+        return not self.__eq__(other)
+
     @property
     def name(self):
         # type: () -> str
+        """The normalised name of the project the candidate refers to"""
         if self._name is None:
             self._name = canonicalize_name(self.dist.project_name)
         return self._name
@@ -101,7 +112,8 @@ class LinkCandidate(Candidate):
             # These should be "proper" errors, not just asserts, as they
             # can result from user errors like a requirement "foo @ URL"
             # when the project at URL has a name of "bar" in its metadata.
-            assert self._name is None or self._name == self._dist.project_name
+            assert (self._name is None or
+                    self._name == canonicalize_name(self._dist.project_name))
             assert (self._version is None or
                     self._version == self.dist.parsed_version)
         return self._dist

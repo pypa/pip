@@ -48,6 +48,7 @@ class ExplicitRequirement(Requirement):
     @property
     def name(self):
         # type: () -> str
+        # No need to canonicalise - the candidate did this
         return self.candidate.name
 
     def find_matches(self):
