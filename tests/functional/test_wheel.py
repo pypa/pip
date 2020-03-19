@@ -289,6 +289,17 @@ def test_pip_wheel_with_user_set_in_config(script, data, common_wheels):
     assert "Successfully built withpyproject" in result.stdout, result.stdout
 
 
+def test_pip_wheel_ext_module_with_tmpdir_inside(script, data, common_wheels):
+    tmpdir = data.src / 'extension/tmp'
+    tmpdir.mkdir()
+    script.environ['TMPDIR'] = str(tmpdir)
+    result = script.pip(
+        'wheel', data.src / 'extension',
+        '--no-index', '-f', common_wheels
+    )
+    assert "Successfully built extension" in result.stdout, result.stdout
+
+
 @pytest.mark.network
 def test_pep517_wheels_are_not_confused_with_other_files(script, tmpdir, data):
     """Check correct wheels are copied. (#6196)
