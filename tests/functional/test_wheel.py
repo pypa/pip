@@ -1,6 +1,7 @@
 """'pip wheel' tests"""
 import os
 import re
+import sys
 from os.path import exists
 
 import pytest
@@ -289,10 +290,17 @@ def test_pip_wheel_with_user_set_in_config(script, data, common_wheels):
     assert "Successfully built withpyproject" in result.stdout, result.stdout
 
 
+@pytest.mark.skipif(sys.platform.startswith('win'),
+                    reason='The empty extension module does not work on Win')
 def test_pip_wheel_ext_module_with_tmpdir_inside(script, data, common_wheels):
     tmpdir = data.src / 'extension/tmp'
     tmpdir.mkdir()
     script.environ['TMPDIR'] = str(tmpdir)
+
+    # To avoid a test dependency on a C compiler, we set the env vars to "noop"
+    # The .c source is empty anyway
+    script.environ['CC'] = script.environ['LDSHARED'] = str('true')
+
     result = script.pip(
         'wheel', data.src / 'extension',
         '--no-index', '-f', common_wheels
