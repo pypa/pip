@@ -81,3 +81,24 @@ def test_new_resolver_installs_dependencies(script):
         "base"
     )
     assert_installed(script, base="0.1.0", dep="0.1.0")
+
+
+def test_new_resolver_installs_extras(script):
+    create_basic_wheel_for_package(
+        script,
+        "base",
+        "0.1.0",
+        extras={"add": ["dep"]},
+    )
+    create_basic_wheel_for_package(
+        script,
+        "dep",
+        "0.1.0",
+    )
+    script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "base[add]"
+    )
+    assert_installed(script, base="0.1.0", dep="0.1.0")
