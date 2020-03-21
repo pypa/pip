@@ -562,8 +562,6 @@ class WorkingSet:
 
         if entries is None:
             entries = sys.path
-            if '' in entries:
-                entries.remove('')
 
         for entry in entries:
             self.add_entry(entry)

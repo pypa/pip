@@ -3,6 +3,7 @@
 
 from __future__ import absolute_import
 
+import os
 import sys
 
 from pip._internal.cache import WheelCache
@@ -83,12 +84,18 @@ class FreezeCommand(Command):
 
         cmdoptions.check_list_path_option(options)
 
+        paths = options.path
+        # Filter sys.path, to avoid listing distributions from
+        # current directory
+        if paths is None:
+            paths = [item for item in sys.path if item and item != os.getcwd()]
+
         freeze_kwargs = dict(
             requirement=options.requirements,
             find_links=options.find_links,
             local_only=options.local,
             user_only=options.user,
-            paths=options.path,
+            paths=paths,
             skip_regex=options.skip_requirements_regex,
             isolated=options.isolated_mode,
             wheel_cache=wheel_cache,
