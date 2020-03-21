@@ -50,7 +50,7 @@ and :pypi:`pretend`. :pypi:`tox` is used to automate the setup and execution of
 pip's tests.
 
 It is preferable to run the tests in **parallel** for better user experience during development,
-as the test suite is very extensive. WIthout the `-n auto` your tests would be running sequentially,
+as the test suite is very extensive. Without the `-n auto` your tests would be running sequentially,
 causing more time to finish.
 To run tests locally, run:
 .. code-block:: console
