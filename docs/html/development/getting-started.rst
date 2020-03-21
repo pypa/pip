@@ -49,9 +49,8 @@ pip's tests are written using the :pypi:`pytest` test framework, :pypi:`mock`
 and :pypi:`pretend`. :pypi:`tox` is used to automate the setup and execution of
 pip's tests.
 
-It is preferable to run the tests in **parallel** for better user experience during development,
-as the test suite is very extensive. Without the ``-n auto`` your tests would be running sequentially,
-causing more time to finish.
+It is preferable to run the tests in parallel for better experience during development,
+since the tests can take a long time to finish when run sequentially.
 To run tests locally, run:
 .. code-block:: console
 
