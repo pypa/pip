@@ -20,36 +20,24 @@ the module's ``Configuration`` class.
 Overview
 ========
 
-TODO: Figure out how to structure the initial part of this document.
+pip stores configuration files in standard OS-appropriate locations, which are
+determined by ``appdirs``. These files are in the INI format and are processed
+with ``RawConfigParser``.
 
-Loading
--------
+pip uses configuration files in two operations:
 
-#. Determine configuration files to be used (built on top of :pypi:`appdirs`).
-#. Load from all the configuration files.
-    #. For each file, construct a ``RawConfigParser`` instance and read the
-       file with it. Store the filename and parser for accessing / manipulating
-       the file's contents later.
-#. Load values stored in ``PIP_*`` environment variables.
+- During processing of command line options.
+  - Reading from *all* configuration sources
+- As part of ``pip config`` command.
+  - Reading from *all* configuration sources
+  - Manipulating a single configuration file
 
-The precedence of the various "configuration sources" is determined by
-``Configuration._override_order``, and the precedence-respecting values are
-lazily computed when values are accessed by a callee.
+Both of these operations utilize functionality provided the ``Configuration``
+object, which encapsulates all the logic for handling configuration files and
+provides APIs for the same.
 
-Saving
-------
-
-Once the configuration is loaded, it is saved by iterating through all the
-"modified parser" pairs (filename and associated parser, that were modified
-in-memory after the initial load), and writing the state of the parser to file.
-
------
-
-The remainder of this section is organized by documenting some of the
-implementation details of the ``configuration`` module, in the following order:
-
-* the :ref:`kinds <config-kinds>` enum,
-* the :ref:`Configuration <configuration-class>` class,
+The remainder of this section documents the ``Configuration`` class and
+other implementation details of the ``configuration`` module.
 
 
 .. _config-kinds:
