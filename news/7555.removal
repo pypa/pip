@@ -1,0 +1,9 @@
+Building of local directories is now done in place. Previously pip did copy the
+local directory tree to a temporary location before building. That approach had
+a number of drawbacks, among which performance issues, as well as various
+issues arising when the python project directory depends on its parent
+directory (such as the presence of a VCS directory). The user visible effect of
+this change is that secondary build artifacts, if any, may therefore be created
+in the local directory, whereas before they were created in a temporary copy of
+the directory and then deleted. This notably includes the ``build`` and
+``.egg-info`` directories in the case of the setuptools build backend.

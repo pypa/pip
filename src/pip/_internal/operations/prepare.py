@@ -27,12 +27,7 @@ from pip._internal.exceptions import (
 from pip._internal.utils.filesystem import copy2_fixed
 from pip._internal.utils.hashes import MissingHashes
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.misc import (
-    display_path,
-    hide_url,
-    path_to_display,
-    rmtree,
-)
+from pip._internal.utils.misc import display_path, hide_url, path_to_display
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.unpacking import unpack_file
@@ -239,11 +234,9 @@ def unpack_url(
         unpack_vcs_link(link, location)
         return None
 
-    # If it's a url to a local directory
+    # If it's a url to a local directory, we build in-place.
+    # There is nothing to be done here.
     if link.is_existing_dir():
-        if os.path.isdir(location):
-            rmtree(location)
-        _copy_source_tree(link.file_path, location)
         return None
 
     # file urls
@@ -415,21 +408,25 @@ class RequirementPreparer(object):
         with indent_log():
             # Since source_dir is only set for editable requirements.
             assert req.source_dir is None
-            req.ensure_has_source_dir(self.build_dir, autodelete_unpacked)
-            # If a checkout exists, it's unwise to keep going.  version
-            # inconsistencies are logged later, but do not fail the
-            # installation.
-            # FIXME: this won't upgrade when there's an existing
-            # package unpacked in `req.source_dir`
-            if os.path.exists(os.path.join(req.source_dir, 'setup.py')):
-                raise PreviousBuildDirError(
-                    "pip can't proceed with requirements '{}' due to a"
-                    " pre-existing build directory ({}). This is "
-                    "likely due to a previous installation that failed"
-                    ". pip is being responsible and not assuming it "
-                    "can delete this. Please delete it and try again."
-                    .format(req, req.source_dir)
-                )
+            if link.is_existing_dir():
+                # Build local directories in place.
+                req.source_dir = link.file_path
+            else:
+                req.ensure_has_source_dir(self.build_dir, autodelete_unpacked)
+                # If a checkout exists, it's unwise to keep going.  version
+                # inconsistencies are logged later, but do not fail the
+                # installation.
+                # FIXME: this won't upgrade when there's an existing
+                # package unpacked in `req.source_dir`
+                if os.path.exists(os.path.join(req.source_dir, 'setup.py')):
+                    raise PreviousBuildDirError(
+                        "pip can't proceed with requirements '{}' due to a"
+                        " pre-existing build directory ({}). This is "
+                        "likely due to a previous installation that failed"
+                        ". pip is being responsible and not assuming it "
+                        "can delete this. Please delete it and try again."
+                        .format(req, req.source_dir)
+                    )
 
             # Now that we have the real link, we can tell what kind of
             # requirements we have and raise some more informative errors
