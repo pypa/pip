@@ -2,7 +2,6 @@ import distutils
 import glob
 import os
 import re
-import shutil
 import ssl
 import sys
 import textwrap
@@ -29,7 +28,6 @@ from tests.lib import (
     skip_if_python2,
     windows_workaround_7667,
 )
-from tests.lib.filesystem import make_socket_file
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
 from tests.lib.server import (
@@ -574,30 +572,6 @@ def test_install_from_local_directory_with_symlinks_to_directories(
     )
     assert pkg_folder in result.files_created, str(result.stdout)
     assert egg_info_folder in result.files_created, str(result)
-
-
-@pytest.mark.skipif("sys.platform == 'win32' or sys.version_info < (3,)")
-def test_install_from_local_directory_with_socket_file(script, data, tmpdir):
-    """
-    Test installing from a local directory containing a socket file.
-    """
-    egg_info_file = (
-        script.site_packages /
-        "FSPkg-0.1.dev0-py{pyversion}.egg-info".format(**globals())
-    )
-    package_folder = script.site_packages / "fspkg"
-    to_copy = data.packages.joinpath("FSPkg")
-    to_install = tmpdir.joinpath("src")
-
-    shutil.copytree(to_copy, to_install)
-    # Socket file, should be ignored.
-    socket_file_path = os.path.join(to_install, "example")
-    make_socket_file(socket_file_path)
-
-    result = script.pip("install", "--verbose", to_install)
-    assert package_folder in result.files_created, str(result.stdout)
-    assert egg_info_file in result.files_created, str(result)
-    assert str(socket_file_path) in result.stderr
 
 
 def test_install_from_local_directory_with_no_setup_py(script, data):

@@ -10,18 +10,9 @@ from pip._internal.exceptions import HashMismatch
 from pip._internal.models.link import Link
 from pip._internal.network.download import Downloader
 from pip._internal.network.session import PipSession
-from pip._internal.operations.prepare import (
-    _copy_source_tree,
-    _download_http_url,
-    unpack_url,
-)
+from pip._internal.operations.prepare import _download_http_url, unpack_url
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.urls import path_to_url
-from tests.lib.filesystem import (
-    get_filelist,
-    make_socket_file,
-    make_unreadable_file,
-)
 from tests.lib.path import Path
 from tests.lib.requests_mocks import MockResponse
 
@@ -99,76 +90,6 @@ def clean_project(tmpdir_factory, data):
     path = data.packages.joinpath("FSPkg")
     shutil.copytree(path, new_project_dir)
     return new_project_dir
-
-
-def test_copy_source_tree(clean_project, tmpdir):
-    target = tmpdir.joinpath("target")
-    expected_files = get_filelist(clean_project)
-    assert len(expected_files) == 3
-
-    _copy_source_tree(clean_project, target)
-
-    copied_files = get_filelist(target)
-    assert expected_files == copied_files
-
-
-@pytest.mark.skipif("sys.platform == 'win32' or sys.version_info < (3,)")
-def test_copy_source_tree_with_socket(clean_project, tmpdir, caplog):
-    target = tmpdir.joinpath("target")
-    expected_files = get_filelist(clean_project)
-    socket_path = str(clean_project.joinpath("aaa"))
-    make_socket_file(socket_path)
-
-    _copy_source_tree(clean_project, target)
-
-    copied_files = get_filelist(target)
-    assert expected_files == copied_files
-
-    # Warning should have been logged.
-    assert len(caplog.records) == 1
-    record = caplog.records[0]
-    assert record.levelname == 'WARNING'
-    assert socket_path in record.message
-
-
-@pytest.mark.skipif("sys.platform == 'win32' or sys.version_info < (3,)")
-def test_copy_source_tree_with_socket_fails_with_no_socket_error(
-    clean_project, tmpdir
-):
-    target = tmpdir.joinpath("target")
-    expected_files = get_filelist(clean_project)
-    make_socket_file(clean_project.joinpath("aaa"))
-    unreadable_file = clean_project.joinpath("bbb")
-    make_unreadable_file(unreadable_file)
-
-    with pytest.raises(shutil.Error) as e:
-        _copy_source_tree(clean_project, target)
-
-    errored_files = [err[0] for err in e.value.args[0]]
-    assert len(errored_files) == 1
-    assert unreadable_file in errored_files
-
-    copied_files = get_filelist(target)
-    # All files without errors should have been copied.
-    assert expected_files == copied_files
-
-
-def test_copy_source_tree_with_unreadable_dir_fails(clean_project, tmpdir):
-    target = tmpdir.joinpath("target")
-    expected_files = get_filelist(clean_project)
-    unreadable_file = clean_project.joinpath("bbb")
-    make_unreadable_file(unreadable_file)
-
-    with pytest.raises(shutil.Error) as e:
-        _copy_source_tree(clean_project, target)
-
-    errored_files = [err[0] for err in e.value.args[0]]
-    assert len(errored_files) == 1
-    assert unreadable_file in errored_files
-
-    copied_files = get_filelist(target)
-    # All files without errors should have been copied.
-    assert expected_files == copied_files
 
 
 class Test_unpack_url(object):
