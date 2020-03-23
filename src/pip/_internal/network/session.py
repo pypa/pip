@@ -281,7 +281,7 @@ class PipSession(requests.Session):
         # for.
         insecure_adapter = InsecureHTTPAdapter(max_retries=retries)
         # Save this for later use in add_trusted_host().
-        self._insecure_adapter = insecure_adapter
+        self._trusted_host_adapter = insecure_adapter
 
         self.mount("https://", secure_adapter)
         self.mount("http://", insecure_adapter)
@@ -310,12 +310,15 @@ class PipSession(requests.Session):
         if host_port not in self.pip_trusted_origins:
             self.pip_trusted_origins.append(host_port)
 
-        self.mount(build_url_from_netloc(host) + '/', self._insecure_adapter)
+        self.mount(
+            build_url_from_netloc(host) + '/',
+            self._trusted_host_adapter
+        )
         if not host_port[1]:
             # Mount wildcard ports for the same host.
             self.mount(
                 build_url_from_netloc(host) + ':',
-                self._insecure_adapter
+                self._trusted_host_adapter
             )
 
     def iter_secure_origins(self):
