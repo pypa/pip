@@ -10,6 +10,7 @@ addons:
 stages:
 - primary
 - secondary
+- experimental
 
 jobs:
   include:
