@@ -217,6 +217,14 @@ class InsecureHTTPAdapter(HTTPAdapter):
         )
 
 
+class InsecureCacheControlAdapter(CacheControlAdapter):
+
+    def cert_verify(self, conn, url, verify, cert):
+        super(InsecureCacheControlAdapter, self).cert_verify(
+            conn=conn, url=url, verify=False, cert=cert
+        )
+
+
 class PipSession(requests.Session):
 
     timeout = None  # type: Optional[int]
