@@ -7,10 +7,6 @@ addons:
     packages:
     - bzr
 
-env:
-  global:
-    - PIP_UNSTABLE_FEATURE=
-
 stages:
 - primary
 - secondary
@@ -68,7 +64,7 @@ jobs:
 
   fast_finish: true
   allow_failures:
-    - env: PIP_UNSTABLE_FEATURE=resolver
+    - stage: experimental
 
 before_install: tools/travis/setup.sh
 install: travis_retry tools/travis/install.sh
