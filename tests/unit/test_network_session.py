@@ -72,7 +72,7 @@ class TestPipSession:
 
         assert not hasattr(session.adapters["http://"], "cache")
 
-    def test_insecure_host_adapter(self, tmpdir):
+    def test_trusted_hosts_adapter(self, tmpdir):
         session = PipSession(
             cache=tmpdir.joinpath("test-cache"),
             trusted_hosts=["example.com"],
@@ -81,8 +81,8 @@ class TestPipSession:
         assert "https://example.com/" in session.adapters
         # Check that the "port wildcard" is present.
         assert "https://example.com:" in session.adapters
-        # Check that the cache isn't enabled.
-        assert not hasattr(session.adapters["https://example.com/"], "cache")
+        # Check that the cache is enabled.
+        assert hasattr(session.adapters["https://example.com/"], "cache")
 
     def test_add_trusted_host(self):
         # Leave a gap to test how the ordering is affected.
