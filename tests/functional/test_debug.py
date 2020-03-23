@@ -14,6 +14,8 @@ from pip._internal.utils import compatibility_tags
     'REQUESTS_CA_BUNDLE: ',
     'CURL_CA_BUNDLE: ',
     'pip._vendor.certifi.where(): ',
+    'pip._vendor.DEBUNDLED: ',
+    'vendored library versions:',
 
 ])
 def test_debug(script, expected_text):
