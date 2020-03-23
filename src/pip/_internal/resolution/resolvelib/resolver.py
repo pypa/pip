@@ -43,9 +43,9 @@ class Resolver(BaseResolver):
     def resolve(self, root_reqs, check_supported_wheels):
         # type: (List[InstallRequirement], bool) -> RequirementSet
         provider = PipProvider(
-            self.finder,
-            self.preparer,
-            self.make_install_req,
+            finder=self.finder,
+            preparer=self.preparer,
+            make_install_req=self.make_install_req,
         )
         reporter = BaseReporter()
         resolver = RLResolver(provider, reporter)
