@@ -36,37 +36,72 @@ Both of these operations utilize functionality provided the ``Configuration``
 object, which encapsulates all the logic for handling configuration files and
 provides APIs for the same.
 
-The remainder of this section documents the ``Configuration`` class and
-other implementation details of the ``configuration`` module.
+The remainder of this section documents the ``Configuration`` class, and
+discusses potential future refactoring ideas.
 
+
+.. _configuration-class:
+
+``Configuration`` class
+=======================
+
+``Configuration`` loads configuration values from sources in the local
+environment: a combination of config files and environment variables.
+
+It can be used in two "modes", for reading all the values from the local
+environment and for manipulating a single config file. It differentiates
+between these two modes using the ``load_only`` attribute.
+
+The ``isolated`` attribute manipulates which sources are used when loading the
+configuration. If ``isolated`` is ``True``, user-specific config files and
+environment variables are not used.
+
+Reading from local environment
+------------------------------
+
+When using a ``Configuration`` object to read from all sources in the local
+environment, the ``load_only`` attribute is ``None``. The API provided for this
+use case is ``Configuration.load`` and ``Configuration.items``.
+
+``Configuration.load`` does all the interactions with the environment to load
+all the configuration into objects in memory. ``Configuration.items``
+provides key-value pairs (like ``dict.items``) from the loaded-in-memory
+information, handling all of the override ordering logic.
+
+At the time of writing, the only part of the codebase that uses
+``Configuration`` like this is the ``ConfigOptionParser`` in the command line parsing
+logic.
+
+Manipulating a single config file
+---------------------------------
+
+When using a ``Configuration`` object to read from a single config file, the
+``load_only`` attribute would be non-None, and would represent the
+:ref:`kind <config-kinds>` of the config file.
+
+This use case uses the methods discussed in the previous section
+(``Configuration.load`` and ``Configuration.items``) and a few more that
+are more specific to this use case.
+
+``Configuration.get_file_to_edit`` provides the "highest priority" file, for
+the :ref:`kind <config-kinds>` of config file specified by ``load_only``.
+The rest of this document will refer to this file as the "``load_only`` file".
+
+``Configuration.set_value`` provides a way to add/change a single key-value pair
+in the ``load_only`` file. ``Configuration.unset_value`` removes a single
+key-value pair in the ``load_only`` file. ``Configuration.get_value`` gets the
+value of the given key from the loaded configuration. ``Configuration.save`` is
+used save the state ``load_only`` file, back into the local environment.
 
 .. _config-kinds:
 
 kinds
 =====
 
-- used to represent "where" a configuration value comes from
-  (eg. environment variables, site-specific configuration file,
-  global configuration file)
-
-.. _configuration-class:
-
-Configuration
-============
-
-- TODO: API & usage - ``Command``, when processing CLI options.
-    - __init__()
-    - load()
-    - items()
-- TODO: API & usage - ``pip config``, when loading / manipulating config files.
-    - __init__()
-    - get_file_to_edit()
-    - get_value()
-    - set_value()
-    - unset_value()
-    - save()
-- TODO: nuances of ``load_only`` and ``get_file_to_edit``
-- TODO: nuances of ``isolated``
+This is an enumeration that provides values to represent a "source" for
+configuration. This includes environment variables and various types of
+configuration files (global, site-specific, user_specific, specified via
+``PIP_CONFIG_FILE``).
 
 Future Refactoring Ideas
 ========================
