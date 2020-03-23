@@ -280,7 +280,7 @@ class PipSession(requests.Session):
         # well as any https:// host that we've marked as ignoring TLS errors
         # for.
         insecure_adapter = InsecureHTTPAdapter(max_retries=retries)
-        # Save this for later use in add_insecure_host().
+        # Save this for later use in add_trusted_host().
         self._insecure_adapter = insecure_adapter
 
         self.mount("https://", secure_adapter)
