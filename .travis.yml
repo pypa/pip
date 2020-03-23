@@ -7,6 +7,10 @@ addons:
     packages:
     - bzr
 
+env:
+  global:
+    - PIP_UNSTABLE_FEATURE=
+
 stages:
 - primary
 - secondary
