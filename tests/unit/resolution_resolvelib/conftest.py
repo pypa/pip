@@ -58,5 +58,6 @@ def provider(finder, preparer):
     yield PipProvider(
         finder=finder,
         preparer=preparer,
+        ignore_dependencies=False,
         make_install_req=make_install_req,
     )

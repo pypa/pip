@@ -20,11 +20,13 @@ class PipProvider(AbstractProvider):
         self,
         finder,    # type: PackageFinder
         preparer,  # type: RequirementPreparer
+        ignore_dependencies,  # type: bool
         make_install_req  # type: InstallRequirementProvider
     ):
         # type: (...) -> None
         self._finder = finder
         self._preparer = preparer
+        self._ignore_dependencies = ignore_dependencies
         self._make_install_req = make_install_req
 
     def make_requirement(self, ireq):
@@ -72,6 +74,8 @@ class PipProvider(AbstractProvider):
 
     def get_dependencies(self, candidate):
         # type: (Candidate) -> Sequence[Requirement]
+        if self._ignore_dependencies:
+            return []
         return [
             make_requirement(
                 r,

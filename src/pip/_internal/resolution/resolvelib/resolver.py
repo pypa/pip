@@ -37,6 +37,7 @@ class Resolver(BaseResolver):
         super(Resolver, self).__init__()
         self.finder = finder
         self.preparer = preparer
+        self.ignore_dependencies = ignore_dependencies
         self.make_install_req = make_install_req
         self._result = None  # type: Optional[Result]
 
@@ -45,6 +46,7 @@ class Resolver(BaseResolver):
         provider = PipProvider(
             finder=self.finder,
             preparer=self.preparer,
+            ignore_dependencies=self.ignore_dependencies,
             make_install_req=self.make_install_req,
         )
         reporter = BaseReporter()
