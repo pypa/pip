@@ -11,9 +11,6 @@ stages:
 - primary
 - secondary
 
-env:
-  - PIP_UNSTABLE_FEATURE=
-
 jobs:
   include:
     # Basic Checks
@@ -58,8 +55,8 @@ jobs:
     # Helpful for developers working on them to see how they're doing.
     - stage: experimental
       env:
-        - GROUP=1
-        - PIP_UNSTABLE_FEATURE=resolver
+      - GROUP=1
+      - PIP_UNSTABLE_FEATURE=resolver
     - env:
       - GROUP=2
       - PIP_UNSTABLE_FEATURE=resolver
