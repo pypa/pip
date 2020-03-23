@@ -57,9 +57,6 @@ class ExplicitRequirement(Requirement):
 
     def is_satisfied_by(self, candidate):
         # type: (Candidate) -> bool
-        # TODO: Typing - Candidate doesn't have a link attribute
-        #       But I think the following would be better...
-        # return candidate.link == self.candidate.link
         return candidate == self.candidate
 
 
@@ -104,7 +101,6 @@ class SpecifierRequirement(Requirement):
 
     def is_satisfied_by(self, candidate):
         # type: (Candidate) -> bool
-
         assert candidate.name == self.name, \
             "Internal issue: Candidate is not for this requirement " \
             " {} vs {}".format(candidate.name, self.name)
