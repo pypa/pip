@@ -484,6 +484,8 @@ is the same as calling::
    Please use ``no``, ``false`` or ``0`` instead.
 
 
+.. _config-precedence:
+
 Config Precedence
 -----------------
 

@@ -46,52 +46,85 @@ discusses potential future refactoring ideas.
 =======================
 
 ``Configuration`` loads configuration values from sources in the local
-environment: a combination of config files and environment variables.
+environment: a combination of configuration files and environment variables.
 
 It can be used in two "modes", for reading all the values from the local
-environment and for manipulating a single config file. It differentiates
+environment and for manipulating a single configuration file. It differentiates
 between these two modes using the ``load_only`` attribute.
 
 The ``isolated`` attribute manipulates which sources are used when loading the
-configuration. If ``isolated`` is ``True``, user-specific config files and
-environment variables are not used.
+configuration. If ``isolated`` is ``True``, user-specific configuration files
+and environment variables are not used.
 
 Reading from local environment
 ------------------------------
 
-When using a ``Configuration`` object to read from all sources in the local
-environment, the ``load_only`` attribute is ``None``. The API provided for this
-use case is ``Configuration.load`` and ``Configuration.items``.
+``Configuration`` can be used to read from all configuration sources in the
+local environment and access the values, as per the precedence logic described
+in the :ref:`Config Precedence <config-precedence>` section.
 
-``Configuration.load`` does all the interactions with the environment to load
-all the configuration into objects in memory. ``Configuration.items``
-provides key-value pairs (like ``dict.items``) from the loaded-in-memory
-information, handling all of the override ordering logic.
+For this use case, the ``Configuration.load_only`` attribute would be ``None``,
+and the methods used would be:
 
-At the time of writing, the only part of the codebase that uses
-``Configuration`` like this is the ``ConfigOptionParser`` in the command line parsing
-logic.
+.. py:class:: Configuration
 
-Manipulating a single config file
----------------------------------
+  .. py:method:: load()
 
-When using a ``Configuration`` object to read from a single config file, the
-``load_only`` attribute would be non-None, and would represent the
-:ref:`kind <config-kinds>` of the config file.
+    Handles all the interactions with the environment, to load all the
+    configuration data into objects in memory.
 
-This use case uses the methods discussed in the previous section
-(``Configuration.load`` and ``Configuration.items``) and a few more that
-are more specific to this use case.
+  .. py:method:: items()
 
-``Configuration.get_file_to_edit`` provides the "highest priority" file, for
-the :ref:`kind <config-kinds>` of config file specified by ``load_only``.
-The rest of this document will refer to this file as the "``load_only`` file".
+    Provides key-value pairs (like ``dict.items()``) from the loaded-in-memory
+    information, handling all of the override ordering logic.
 
-``Configuration.set_value`` provides a way to add/change a single key-value pair
-in the ``load_only`` file. ``Configuration.unset_value`` removes a single
-key-value pair in the ``load_only`` file. ``Configuration.get_value`` gets the
-value of the given key from the loaded configuration. ``Configuration.save`` is
-used save the state ``load_only`` file, back into the local environment.
+At the time of writing, the parts of the codebase that use ``Configuration``
+in this manner are: ``ConfigOptionParser``, to transparently include
+configuration handling as part of the command line processing logic,
+and ``pip config get``, for printing the entire configuration when no
+:ref:`kind <config-kinds>` is specified via the CLI.
+
+Manipulating a single configuration file
+----------------------------------------
+
+``Configuration`` can be used to manipulate a single configuration file,
+such as to add, change or remove certain key-value pairs.
+
+For this use case, the ``load_only`` attribute would be non-None, and would
+represent the :ref:`kind <config-kinds>` of the configuration file to be
+manipulated. In addition to the methods discussed in the previous section,
+the methods used would be:
+
+.. py:class:: Configuration
+
+  .. py:method:: get_value(key)
+
+    Provides the value of the given key from the loaded configuration.
+    The loaded configuration may have ``load_only`` be None or non-None.
+    This uses the same underlying mechanism as ``Configuration.items()`` and
+    does follow the precedence logic described in :ref:`Config Precedence
+    <config-precedence>`.
+
+  .. py:method:: get_file_to_edit()
+
+    Provides the "highest priority" file, for the :ref:`kind <config-kinds>` of
+    configuration file specified by ``load_only``. This requires ``load_only``
+    to be non-None.
+
+  .. py:method:: set_value(key, value)
+
+    Provides a way to add/change a single key-value pair, in the file specified
+    by ``Configuration.get_file_to_edit()``.
+
+  .. py:method:: unset_value(key)
+
+    Provides a way to remove a single key-value pair, in the file specified
+    by ``Configuration.get_file_to_edit()``.
+
+  .. py:method:: save()
+
+    Saves the in-memory state of to the original files, saving any modifications
+    made to the ``Configuration`` object back into the local environment.
 
 .. _config-kinds:
 
