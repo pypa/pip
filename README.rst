@@ -14,12 +14,14 @@ Please take a look at our documentation for how to install and use pip:
 * `Installation`_
 * `Usage`_
 
-Updates are released regularly, with a new version every 3 months. More details can be found in our documentation:
+We release updates regularly, with a new version every 3 months. Find more details in our documentation:
 
 * `Release notes`_
 * `Release process`_
 
-If you find bugs, need help, or want to talk to the developers please use our mailing lists or chat rooms:
+In 2020, we're working on improvements to the heart of pip. Please `learn more and take our survey`_ to help us do it right.
+
+If you find bugs, need help, or want to talk to the developers, please use our mailing lists or chat rooms:
 
 * `Issue tracking`_
 * `Discourse channel`_
@@ -28,9 +30,9 @@ If you find bugs, need help, or want to talk to the developers please use our ma
 If you want to get involved head over to GitHub to get the source code, look at our development documentation and feel free to jump on the developer mailing lists and chat rooms:
 
 * `GitHub page`_
-* `Dev documentation`_
-* `Dev mailing list`_
-* `Dev IRC`_
+* `Development documentation`_
+* `Development mailing list`_
+* `Development IRC`_
 
 Code of Conduct
 ---------------
@@ -45,10 +47,11 @@ rooms, and mailing lists is expected to follow the `PyPA Code of Conduct`_.
 .. _Release notes: https://pip.pypa.io/en/stable/news.html
 .. _Release process: https://pip.pypa.io/en/latest/development/release-process/
 .. _GitHub page: https://github.com/pypa/pip
-.. _Dev documentation: https://pip.pypa.io/en/latest/development
+.. _Development documentation: https://pip.pypa.io/en/latest/development
+.. _learn more and take our survey: https://pyfound.blogspot.com/2020/03/new-pip-resolver-to-roll-out-this-year.html
 .. _Issue tracking: https://github.com/pypa/pip/issues
 .. _Discourse channel: https://discuss.python.org/c/packaging
-.. _Dev mailing list: https://groups.google.com/forum/#!forum/pypa-dev
+.. _Development mailing list: https://groups.google.com/forum/#!forum/pypa-dev
 .. _User IRC: https://webchat.freenode.net/?channels=%23pypa
-.. _Dev IRC: https://webchat.freenode.net/?channels=%23pypa-dev
+.. _Development IRC: https://webchat.freenode.net/?channels=%23pypa-dev
 .. _PyPA Code of Conduct: https://www.pypa.io/en/latest/code-of-conduct/
