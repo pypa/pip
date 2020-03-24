@@ -1,8 +1,13 @@
+import functools
+import sys
+
+from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.resolvelib.providers import AbstractProvider
 
+from pip._internal.utils.misc import normalize_version_info
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-from .requirements import make_requirement
+from .requirements import RequiredPythonRequirement, make_requirement
 
 if MYPY_CHECK_RUNNING:
     from typing import Any, Optional, Sequence, Tuple, Union
@@ -21,6 +26,8 @@ class PipProvider(AbstractProvider):
         finder,    # type: PackageFinder
         preparer,  # type: RequirementPreparer
         ignore_dependencies,  # type: bool
+        ignore_requires_python,  # type: bool
+        py_version_info,  # type: Optional[Tuple[int, ...]]
         make_install_req  # type: InstallRequirementProvider
     ):
         # type: (...) -> None
@@ -29,13 +36,23 @@ class PipProvider(AbstractProvider):
         self._ignore_dependencies = ignore_dependencies
         self._make_install_req = make_install_req
 
+        if py_version_info is None:
+            py_version_info = sys.version_info[:3]
+        else:
+            py_version_info = normalize_version_info(py_version_info)
+        self._make_python_req = functools.partial(
+            RequiredPythonRequirement,
+            parse_version(".".join(str(c) for c in py_version_info)),
+        )
+
     def make_requirement(self, ireq):
         # type: (InstallRequirement) -> Requirement
         return make_requirement(
             ireq,
             self._finder,
             self._preparer,
-            self._make_install_req
+            self._make_install_req,
+            self._make_python_req,
         )
 
     def get_install_requirement(self, c):
@@ -81,7 +98,8 @@ class PipProvider(AbstractProvider):
                 r,
                 self._finder,
                 self._preparer,
-                self._make_install_req
+                self._make_install_req,
+                self._make_python_req,
             )
             for r in candidate.get_dependencies()
         ]

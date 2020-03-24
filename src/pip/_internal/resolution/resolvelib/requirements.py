@@ -3,10 +3,13 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 from .base import Requirement
-from .candidates import make_candidate
+from .candidates import RequiredPythonCandidate, make_candidate
 
 if MYPY_CHECK_RUNNING:
     from typing import Sequence
+
+    from pip._vendor.packaging.specifiers import SpecifierSet
+    from pip._vendor.packaging.version import _BaseVersion
 
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.operations.prepare import RequirementPreparer
@@ -14,13 +17,15 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.resolution.base import InstallRequirementProvider
 
     from .base import Candidate
+    from .candidates import RequiredPythonRequirementProvider
 
 
 def make_requirement(
     ireq,      # type: InstallRequirement
     finder,    # type: PackageFinder
     preparer,  # type: RequirementPreparer
-    make_install_req  # type: InstallRequirementProvider
+    make_install_req,  # type: InstallRequirementProvider
+    make_python_req,   # type: RequiredPythonRequirementProvider
 ):
     # type: (...) -> Requirement
     if ireq.link:
@@ -28,7 +33,8 @@ def make_requirement(
             ireq.link,
             preparer,
             ireq,
-            make_install_req
+            make_install_req,
+            make_python_req,
         )
         return ExplicitRequirement(candidate)
     else:
@@ -36,7 +42,8 @@ def make_requirement(
             ireq,
             finder,
             preparer,
-            make_install_req
+            make_install_req,
+            make_python_req,
         )
 
 
@@ -66,7 +73,8 @@ class SpecifierRequirement(Requirement):
         ireq,      # type: InstallRequirement
         finder,    # type: PackageFinder
         preparer,  # type:RequirementPreparer
-        make_install_req  # type: InstallRequirementProvider
+        make_install_req,  # type: InstallRequirementProvider
+        make_python_req,   # type: RequiredPythonRequirementProvider
     ):
         # type: (...) -> None
         assert ireq.link is None, "This is a link, not a specifier"
@@ -75,6 +83,7 @@ class SpecifierRequirement(Requirement):
         self._finder = finder
         self._preparer = preparer
         self._make_install_req = make_install_req
+        self._make_python_req = make_python_req
 
     @property
     def name(self):
@@ -94,7 +103,8 @@ class SpecifierRequirement(Requirement):
                 ican.link,
                 self._preparer,
                 self._ireq,
-                self._make_install_req
+                self._make_install_req,
+                self._make_python_req,
             )
             for ican in found.iter_applicable()
         ]
@@ -105,3 +115,28 @@ class SpecifierRequirement(Requirement):
             "Internal issue: Candidate is not for this requirement " \
             " {} vs {}".format(candidate.name, self.name)
         return candidate.version in self._ireq.req.specifier
+
+
+class RequiredPythonRequirement(Requirement):
+    def __init__(self, py_version, specifier):
+        # type: (_BaseVersion, SpecifierSet) -> None
+        self.specifier = specifier
+        self.py_version = py_version
+
+    @property
+    def name(self):
+        # type: () -> str
+        return "<Python>"  # To avoid conflicting with the real PyPI package.
+
+    def find_matches(self):
+        # type: () -> Sequence[Candidate]
+        candidate = RequiredPythonCandidate(self.py_version)
+        if self.is_satisfied_by(candidate):
+            return [candidate]
+        return []
+
+    def is_satisfied_by(self, candidate):
+        # type: (Candidate) -> bool
+        assert isinstance(candidate, self.__class__), \
+            "Internal issue: not a RequiredPythonCandidate"
+        return candidate.version in self.specifier

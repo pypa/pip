@@ -38,6 +38,8 @@ class Resolver(BaseResolver):
         self.finder = finder
         self.preparer = preparer
         self.ignore_dependencies = ignore_dependencies
+        self.ignore_requires_python = ignore_requires_python
+        self.py_version_info = py_version_info
         self.make_install_req = make_install_req
         self._result = None  # type: Optional[Result]
 
@@ -47,6 +49,8 @@ class Resolver(BaseResolver):
             finder=self.finder,
             preparer=self.preparer,
             ignore_dependencies=self.ignore_dependencies,
+            ignore_requires_python=self.ignore_requires_python,
+            py_version_info=self.py_version_info,
             make_install_req=self.make_install_req,
         )
         reporter = BaseReporter()

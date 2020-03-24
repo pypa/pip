@@ -2,29 +2,38 @@ from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.req.constructors import install_req_from_line
 from pip._internal.req.req_install import InstallRequirement
+from pip._internal.utils.packaging import get_requires_python
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 from .base import Candidate
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Dict, Optional, Sequence
+    from typing import Any, Callable, Dict, Optional, Sequence
 
     from pip._internal.models.link import Link
     from pip._internal.operations.prepare import RequirementPreparer
     from pip._internal.resolution.base import InstallRequirementProvider
 
+    from pip._vendor.packaging.specifiers import SpecifierSet
     from pip._vendor.packaging.version import _BaseVersion
     from pip._vendor.pkg_resources import Distribution
+
+    from .requirements import RequiredPythonRequirement
+
+    RequiredPythonRequirementProvider = Callable[
+        [SpecifierSet], RequiredPythonRequirement,
+    ]
 
 
 _CANDIDATE_CACHE = {}  # type: Dict[Link, Candidate]
 
 
 def make_candidate(
-    link,             # type: Link
-    preparer,         # type: RequirementPreparer
-    parent,           # type: InstallRequirement
-    make_install_req  # type: InstallRequirementProvider
+    link,              # type: Link
+    preparer,          # type: RequirementPreparer
+    parent,            # type: InstallRequirement
+    make_install_req,  # type: InstallRequirementProvider
+    make_python_req,   # type: RequiredPythonRequirementProvider
 ):
     # type: (...) -> Candidate
     if link not in _CANDIDATE_CACHE:
@@ -32,7 +41,8 @@ def make_candidate(
             link,
             preparer,
             parent=parent,
-            make_install_req=make_install_req
+            make_install_req=make_install_req,
+            make_python_req=make_python_req,
         )
     return _CANDIDATE_CACHE[link]
 
@@ -62,12 +72,14 @@ class LinkCandidate(Candidate):
         preparer,  # type: RequirementPreparer
         parent,    # type: InstallRequirement
         make_install_req,  # type: InstallRequirementProvider
+        make_python_req,   # type: RequiredPythonRequirementProvider
     ):
         # type: (...) -> None
         self.link = link
         self._preparer = preparer
         self._ireq = make_install_req_from_link(link, parent)
         self._make_install_req = make_install_req
+        self._make_python_req = make_python_req
 
         self._name = None  # type: Optional[str]
         self._version = None  # type: Optional[_BaseVersion]
@@ -120,7 +132,34 @@ class LinkCandidate(Candidate):
 
     def get_dependencies(self):
         # type: () -> Sequence[InstallRequirement]
-        return [
+        dependencies = [
             self._make_install_req(str(r), self._ireq)
             for r in self.dist.requires()
         ]
+        requires_python = get_requires_python(self.dist)
+        if requires_python is not None:
+            python_req = self._make_python_req(requires_python)
+            raise NotImplementedError(
+                "TODO: How do we insert this req?", python_req,
+            )
+        return dependencies
+
+
+class RequiredPythonCandidate(Candidate):
+    def __init__(self, version):
+        # type: (_BaseVersion) -> None
+        self._version = version
+
+    @property
+    def name(self):
+        # type: () -> str
+        return "<Python>"  # To avoid conflicting with the real PyPI package.
+
+    @property
+    def version(self):
+        # type: () -> _BaseVersion
+        return self._version
+
+    def get_dependencies(self):
+        # type: () -> Sequence[InstallRequirement]
+        return []

@@ -59,5 +59,7 @@ def provider(finder, preparer):
         finder=finder,
         preparer=preparer,
         ignore_dependencies=False,
+        ignore_requires_python=False,
+        py_version_info=None,
         make_install_req=make_install_req,
     )
