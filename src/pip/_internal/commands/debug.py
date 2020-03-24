@@ -8,6 +8,7 @@ import logging
 import os
 import sys
 
+import pip._vendor
 from pip._vendor.certifi import where
 
 from pip._internal.cli import cmdoptions
@@ -136,6 +137,7 @@ class DebugCommand(Command):
         show_value("REQUESTS_CA_BUNDLE", os.environ.get('REQUESTS_CA_BUNDLE'))
         show_value("CURL_CA_BUNDLE", os.environ.get('CURL_CA_BUNDLE'))
         show_value("pip._vendor.certifi.where()", where())
+        show_value("pip._vendor.DEBUNDLED", pip._vendor.DEBUNDLED)
 
         show_tags(options)
 
