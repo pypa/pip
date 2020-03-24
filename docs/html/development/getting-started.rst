@@ -51,12 +51,13 @@ pip's tests.
 
 It is preferable to run the tests in parallel for better experience during development,
 since the tests can take a long time to finish when run sequentially.
-To run tests locally, run:
+
+To run tests:
 .. code-block:: console
 
     $ tox -e py36 -- -n auto
 
-For running tests sequentially remove the ``-n`` flag.
+To run tests without parallelization, run:
 .. code-block:: console
 
     $ tox -e py36
