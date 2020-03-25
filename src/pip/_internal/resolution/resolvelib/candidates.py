@@ -71,7 +71,10 @@ class LinkCandidate(Candidate):
         self.link = link
         self._preparer = preparer
         self._ireq = make_install_req_from_link(link, parent)
-        self._make_install_req = lambda spec: make_install_req(spec, self._ireq)
+        self._make_install_req = lambda spec: make_install_req(
+            spec,
+            self._ireq
+        )
 
         self._name = None  # type: Optional[str]
         self._version = None  # type: Optional[_BaseVersion]
