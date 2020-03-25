@@ -4,10 +4,10 @@ from pip._internal.req.constructors import install_req_from_line
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-from .base import Candidate
+from .base import Candidate, format_name
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Dict, Optional, Sequence
+    from typing import Any, Dict, Optional, Sequence, Set
 
     from pip._internal.models.link import Link
     from pip._internal.operations.prepare import RequirementPreparer
@@ -17,14 +17,15 @@ if MYPY_CHECK_RUNNING:
     from pip._vendor.pkg_resources import Distribution
 
 
-_CANDIDATE_CACHE = {}  # type: Dict[Link, Candidate]
+_CANDIDATE_CACHE = {}  # type: Dict[Link, LinkCandidate]
 
 
 def make_candidate(
-    link,             # type: Link
-    preparer,         # type: RequirementPreparer
-    parent,           # type: InstallRequirement
-    make_install_req  # type: InstallRequirementProvider
+    link,              # type: Link
+    preparer,          # type: RequirementPreparer
+    parent,            # type: InstallRequirement
+    make_install_req,  # type: InstallRequirementProvider
+    extras             # type: Set[str]
 ):
     # type: (...) -> Candidate
     if link not in _CANDIDATE_CACHE:
@@ -34,7 +35,10 @@ def make_candidate(
             parent=parent,
             make_install_req=make_install_req
         )
-    return _CANDIDATE_CACHE[link]
+    base = _CANDIDATE_CACHE[link]
+    if extras:
+        return ExtrasCandidate(base, extras)
+    return base
 
 
 def make_install_req_from_link(link, parent):
@@ -67,7 +71,7 @@ class LinkCandidate(Candidate):
         self.link = link
         self._preparer = preparer
         self._ireq = make_install_req_from_link(link, parent)
-        self._make_install_req = make_install_req
+        self._make_install_req = lambda spec: make_install_req(spec, self._ireq)
 
         self._name = None  # type: Optional[str]
         self._version = None  # type: Optional[_BaseVersion]
@@ -120,11 +124,46 @@ class LinkCandidate(Candidate):
 
     def get_dependencies(self):
         # type: () -> Sequence[InstallRequirement]
-        return [
-            self._make_install_req(str(r), self._ireq)
-            for r in self.dist.requires()
-        ]
+        return [self._make_install_req(str(r)) for r in self.dist.requires()]
 
     def get_install_requirement(self):
         # type: () -> InstallRequirement
         return self._ireq
+
+
+class ExtrasCandidate(LinkCandidate):
+    def __init__(
+        self,
+        base,      # type: LinkCandidate
+        extras,    # type: Set[str]
+    ):
+        # type: (...) -> None
+        self.base = base
+        self.extras = extras
+        self.link = base.link
+
+    @property
+    def name(self):
+        # type: () -> str
+        """The normalised name of the project the candidate refers to"""
+        return format_name(self.base.name, self.extras)
+
+    @property
+    def version(self):
+        # type: () -> _BaseVersion
+        return self.base.version
+
+    def get_dependencies(self):
+        # type: () -> Sequence[InstallRequirement]
+        deps = [
+            self.base._make_install_req(str(r))
+            for r in self.base.dist.requires(self.extras)
+        ]
+        # Add a dependency on the exact base
+        spec = "{}=={}".format(self.base.name, self.base.version)
+        deps.append(self.base._make_install_req(spec))
+        return deps
+
+    def get_install_requirement(self):
+        # type: () -> InstallRequirement
+        return self.base.get_install_requirement()
