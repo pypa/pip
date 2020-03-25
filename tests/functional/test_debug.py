@@ -1,5 +1,6 @@
 import pytest
 
+from pip._internal.commands.debug import create_vendor_txt_map
 from pip._internal.utils import compatibility_tags
 
 
@@ -27,6 +28,18 @@ def test_debug(script, expected_text):
     stdout = result.stdout
 
     assert expected_text in stdout
+
+
+def test_debug__library_versions(script):
+    """
+    Check the library versions normal output.
+    """
+    args = ['debug']
+    result = script.pip(*args, allow_stderr_warning=True)
+    stdout = result.stdout
+    vendored_versions = create_vendor_txt_map()
+    for name, value in vendored_versions.items():
+        assert '{}=={}'.format(name, value) in stdout
 
 
 @pytest.mark.parametrize(
