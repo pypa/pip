@@ -124,3 +124,7 @@ class LinkCandidate(Candidate):
             self._make_install_req(str(r), self._ireq)
             for r in self.dist.requires()
         ]
+
+    def get_install_requirement(self):
+        # type: () -> InstallRequirement
+        return self._ireq
