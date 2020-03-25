@@ -376,8 +376,7 @@ class RequirementPreparer(object):
 
         # TODO: Breakup into smaller functions
         if link.scheme == 'file':
-            path = link.file_path
-            logger.info('Processing %s', display_path(path))
+            logger.info('Processing %s (cached)', req.name)
         else:
             logger.info('Collecting %s', req.req or req)
 
