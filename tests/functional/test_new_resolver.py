@@ -9,7 +9,15 @@ def assert_installed(script, **kwargs):
         (val['name'], val['version'])
         for val in json.loads(ret.stdout)
     )
-    assert set(kwargs.items()) <= installed
+    assert all(item in installed for item in kwargs.items()), \
+        "{!r} not all in {!r}".format(kwargs, installed)
+
+
+def assert_not_installed(script, *args):
+    ret = script.pip("list", "--format=json")
+    installed = set(val["name"] for val in json.loads(ret.stdout))
+    assert all(a not in installed for a in args), \
+        "{!r} contained in {!r}".format(args, installed)
 
 
 def test_new_resolver_can_install(script):
