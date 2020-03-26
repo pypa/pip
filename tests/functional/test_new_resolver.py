@@ -99,6 +99,6 @@ def test_new_resolver_installs_extras(script):
         "install", "--unstable-feature=resolver",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
-        "base[add]"
+        "base[add,missing]"
     )
     assert_installed(script, base="0.1.0", dep="0.1.0")

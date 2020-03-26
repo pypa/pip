@@ -181,9 +181,23 @@ class ExtrasCandidate(LinkCandidate):
 
     def get_dependencies(self):
         # type: () -> Sequence[InstallRequirement]
+        # TODO: We should probably warn if the user specifies an unsupported
+        # extra. We can't do this in the constructor, as we don't know what
+        # extras are valid until we prepare the candidate. Probably the best
+        # approach would be to override the base class ``dist`` property, to
+        # do an additional check of the extras, and if any are invalid, warn
+        # and remove them from extras. This will be tricky to get right,
+        # though, as modifying the extras changes the candidate's name and
+        # hence identity, which isn't acceptable. So for now, we just ignore
+        # unsupported extras here.
+
+        # The user may have specified extras that the candidate doesn't
+        # support. We ignore any unsupported extras here.
+        valid_extras = self.extras.intersection(self.base.dist.extras)
+
         deps = [
             self.base._make_install_req(str(r))
-            for r in self.base.dist.requires(self.extras)
+            for r in self.base.dist.requires(valid_extras)
         ]
         # Add a dependency on the exact base.
         # (See note 2b in the class docstring)
