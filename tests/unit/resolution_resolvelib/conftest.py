@@ -12,6 +12,7 @@ from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.network.session import PipSession
 from pip._internal.req.constructors import install_req_from_req_string
 from pip._internal.req.req_tracker import get_requirement_tracker
+from pip._internal.resolution.resolvelib.factory import Factory
 from pip._internal.resolution.resolvelib.provider import PipProvider
 from pip._internal.utils.temp_dir import TempDirectory, global_tempdir_manager
 
@@ -55,9 +56,12 @@ def provider(finder, preparer):
         wheel_cache=None,
         use_pep517=None,
     )
-    yield PipProvider(
+    factory = Factory(
         finder=finder,
         preparer=preparer,
-        ignore_dependencies=False,
         make_install_req=make_install_req,
+    )
+    yield PipProvider(
+        factory=factory,
+        ignore_dependencies=False,
     )
