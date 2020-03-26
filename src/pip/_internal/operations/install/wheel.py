@@ -19,6 +19,7 @@ import warnings
 from base64 import urlsafe_b64encode
 from itertools import starmap
 from zipfile import ZipFile
+from io import TextIOWrapper
 
 from pip._vendor import pkg_resources
 from pip._vendor.distlib.scripts import ScriptMaker
@@ -32,6 +33,7 @@ from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.unpacking import unpack_file
 from pip._internal.utils.wheel import parse_wheel
+from pip._internal.utils.filesystem import adjacent_tmp_file
 
 if MYPY_CHECK_RUNNING:
     from email.message import Message
@@ -574,13 +576,13 @@ def install_unpacked_wheel(
     record = os.path.join(dest_info_dir, 'RECORD')
     temp_record = os.path.join(dest_info_dir, 'RECORD.pip')
     with open_for_csv(record, 'r') as record_in:
-        with open_for_csv(temp_record, 'w+') as record_out:
+        with adjacent_tmp_file(temp_record, mode='w+') as record_out:
             reader = csv.reader(record_in)
             outrows = get_csv_rows_for_installed(
                 reader, installed=installed, changed=changed,
                 generated=generated, lib_dir=lib_dir,
             )
-            writer = csv.writer(record_out)
+            writer = csv.writer(TextIOWrapper(record_out))
             # Sort to simplify testing.
             for row in sorted_outrows(outrows):
                 writer.writerow(row)
