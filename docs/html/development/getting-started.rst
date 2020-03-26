@@ -49,18 +49,18 @@ pip's tests are written using the :pypi:`pytest` test framework, :pypi:`mock`
 and :pypi:`pretend`. :pypi:`tox` is used to automate the setup and execution of
 pip's tests.
 
-To run tests locally, run:
+It is preferable to run the tests in parallel for better experience during development,
+since the tests can take a long time to finish when run sequentially.
 
-.. code-block:: console
-
-    $ tox -e py36
-
-Generally, it can take a long time to run pip's test suite. To run tests in parallel,
-which is faster, run:
-
+To run tests:
 .. code-block:: console
 
     $ tox -e py36 -- -n auto
+
+To run tests without parallelization, run:
+.. code-block:: console
+
+    $ tox -e py36
 
 The example above runs tests against Python 3.6. You can also use other
 versions like ``py27`` and ``pypy3``.
@@ -123,8 +123,22 @@ To build it locally, run:
 
 The built documentation can be found in the ``docs/build`` folder.
 
+What Next?
+==========
+
+The following pages may be helpful for new contributors on where to look next
+in order to start contributing.
+
+* Some `good first issues`_ on GitHub for new contributors
+* A deep dive into `pip's architecture`_
+* A guide on `triaging issues`_ for issue tracker
+
+
 .. _`open an issue`: https://github.com/pypa/pip/issues/new?title=Trouble+with+pip+development+environment
 .. _`install Python`: https://realpython.com/installing-python/
 .. _`PEP 484 type-comments`: https://www.python.org/dev/peps/pep-0484/#suggested-syntax-for-python-2-7-and-straddling-code
 .. _`rich CLI`: https://docs.pytest.org/en/latest/usage.html#specifying-tests-selecting-tests
 .. _`GitHub`: https://github.com/pypa/pip
+.. _`good first issues`: https://github.com/pypa/pip/labels/good%20first%20issue
+.. _`pip's architecture`: https://pip.pypa.io/en/latest/development/architecture/
+.. _`triaging issues`: https://pip.pypa.io/en/latest/development/issue-triage/
