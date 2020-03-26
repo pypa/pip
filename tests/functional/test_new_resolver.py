@@ -9,14 +9,16 @@ def assert_installed(script, **kwargs):
         (val['name'], val['version'])
         for val in json.loads(ret.stdout)
     )
-    assert all(item in installed for item in kwargs.items()), \
+    assert set(kwargs.items()) <= installed, \
         "{!r} not all in {!r}".format(kwargs, installed)
 
 
 def assert_not_installed(script, *args):
     ret = script.pip("list", "--format=json")
     installed = set(val["name"] for val in json.loads(ret.stdout))
-    assert all(a not in installed for a in args), \
+    # None of the given names should be listed as installed, i.e. their
+    # intersection should be empty.
+    assert not (set(args) & installed), \
         "{!r} contained in {!r}".format(args, installed)
 
 
