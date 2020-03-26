@@ -130,7 +130,7 @@ class LinkCandidate(Candidate):
         return [self._make_install_req(str(r)) for r in self.dist.requires()]
 
     def get_install_requirement(self):
-        # type: () -> InstallRequirement
+        # type: () -> Optional[InstallRequirement]
         return self._ireq
 
 
@@ -168,5 +168,8 @@ class ExtrasCandidate(LinkCandidate):
         return deps
 
     def get_install_requirement(self):
-        # type: () -> InstallRequirement
-        return self.base.get_install_requirement()
+        # type: () -> Optional[InstallRequirement]
+        # We don't return anything here, because we always
+        # depend on the base candidate, and we'll get the
+        # install requirement from that.
+        return None

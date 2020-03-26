@@ -56,7 +56,8 @@ class Resolver(BaseResolver):
         req_set = RequirementSet(check_supported_wheels=check_supported_wheels)
         for candidate in self._result.mapping.values():
             ireq = provider.get_install_requirement(candidate)
-            req_set.add_named_requirement(ireq)
+            if ireq is not None:
+                req_set.add_named_requirement(ireq)
 
         return req_set
 

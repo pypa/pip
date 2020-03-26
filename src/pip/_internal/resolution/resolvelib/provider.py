@@ -37,7 +37,7 @@ class PipProvider(AbstractProvider):
         )
 
     def get_install_requirement(self, c):
-        # type: (Candidate) -> InstallRequirement
+        # type: (Candidate) -> Optional[InstallRequirement]
         return c.get_install_requirement()
 
     def identify(self, dependency):

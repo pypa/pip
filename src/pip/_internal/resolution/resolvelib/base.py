@@ -3,7 +3,7 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Sequence, Set
+    from typing import Optional, Sequence, Set
 
     from pip._internal.req.req_install import InstallRequirement
     from pip._vendor.packaging.version import _BaseVersion
@@ -48,5 +48,5 @@ class Candidate(object):
         raise NotImplementedError("Override in subclass")
 
     def get_install_requirement(self):
-        # type: () -> InstallRequirement
+        # type: () -> Optional[InstallRequirement]
         raise NotImplementedError("Override in subclass")
