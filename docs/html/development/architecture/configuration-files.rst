@@ -3,7 +3,7 @@ Configuration File Handling
 ===========================
 
 The ``pip._internal.configuration`` module is responsible for handling
-configuration files (eg. loading from and saving values to) that are used by
+(eg. loading from and saving values to) configuration files that are used by
 pip. The module's functionality is largely exposed through and coordinated by
 the module's ``Configuration`` class.
 
