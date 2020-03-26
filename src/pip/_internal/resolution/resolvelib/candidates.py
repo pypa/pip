@@ -135,6 +135,29 @@ class LinkCandidate(Candidate):
 
 
 class ExtrasCandidate(LinkCandidate):
+    """A candidate that has 'extras', indicating additional dependencies.
+
+    Requirements can be for a project with dependencies, something like
+    foo[extra].  The extras don't affect the project/version being installed
+    directly, but indicate that we need additional dependencies. We model that
+    by having an artificial ExtrasCandidate that wraps the "base" candidate.
+
+    The ExtrasCandidate differs from the base in the following ways:
+
+    1. It has a unique name, of the form foo[extra]. This causes the resolver
+       to treat it as a separate node in the dependency graph.
+    2. When we're getting the candidate's dependencies,
+       a) We specify that we want the extra dependencies as well.
+       b) We add a dependency on the base candidate (matching the name and
+          version).  See below for why this is needed.
+    3. We return None for the underlying InstallRequirement, as the base
+       candidate will provide it, and we don't want to end up with duplicates.
+
+    The dependency on the base candidate is needed so that the resolver can't
+    decide that it should recommend foo[extra1] version 1.0 and foo[extra2]
+    version 2.0. Having those candidates depend on foo=1.0 and foo=2.0
+    respectively forces the resolver to recognise that this is a conflict.
+    """
     def __init__(
         self,
         base,      # type: LinkCandidate
@@ -162,7 +185,8 @@ class ExtrasCandidate(LinkCandidate):
             self.base._make_install_req(str(r))
             for r in self.base.dist.requires(self.extras)
         ]
-        # Add a dependency on the exact base
+        # Add a dependency on the exact base.
+        # (See note 2b in the class docstring)
         spec = "{}=={}".format(self.base.name, self.base.version)
         deps.append(self.base._make_install_req(spec))
         return deps
