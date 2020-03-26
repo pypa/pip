@@ -3,7 +3,6 @@ from pip._vendor.resolvelib import BaseReporter, Resolver
 
 from pip._internal.req.constructors import install_req_from_line
 from pip._internal.resolution.resolvelib.base import Candidate
-from pip._internal.resolution.resolvelib.requirements import make_requirement
 from pip._internal.utils.urls import path_to_url
 
 # NOTE: All tests are prefixed `test_rlr` (for "test resolvelib resolver").
@@ -47,10 +46,6 @@ def test_cases(data):
     ]
 
     yield test_cases
-
-
-def req_from_line(line):
-    return make_requirement(install_req_from_line(line))
 
 
 def test_rlr_requirement_has_name(test_cases, provider):
