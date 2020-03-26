@@ -49,18 +49,22 @@ def preparer(finder):
 
 
 @pytest.fixture
-def provider(finder, preparer):
+def factory(finder, preparer):
     make_install_req = partial(
         install_req_from_req_string,
         isolated=False,
         wheel_cache=None,
         use_pep517=None,
     )
-    factory = Factory(
+    yield Factory(
         finder=finder,
         preparer=preparer,
         make_install_req=make_install_req,
     )
+
+
+@pytest.fixture
+def provider(factory):
     yield PipProvider(
         factory=factory,
         ignore_dependencies=False,
