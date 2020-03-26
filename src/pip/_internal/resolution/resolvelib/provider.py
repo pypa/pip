@@ -2,41 +2,24 @@ from pip._vendor.resolvelib.providers import AbstractProvider
 
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-from .requirements import make_requirement
-
 if MYPY_CHECK_RUNNING:
     from typing import Any, Optional, Sequence, Tuple, Union
 
-    from pip._internal.index.package_finder import PackageFinder
-    from pip._internal.operations.prepare import RequirementPreparer
     from pip._internal.req.req_install import InstallRequirement
-    from pip._internal.resolution.base import InstallRequirementProvider
 
     from .base import Requirement, Candidate
+    from .factory import Factory
 
 
 class PipProvider(AbstractProvider):
     def __init__(
         self,
-        finder,    # type: PackageFinder
-        preparer,  # type: RequirementPreparer
+        factory,  # type: Factory
         ignore_dependencies,  # type: bool
-        make_install_req  # type: InstallRequirementProvider
     ):
         # type: (...) -> None
-        self._finder = finder
-        self._preparer = preparer
+        self._factory = factory
         self._ignore_dependencies = ignore_dependencies
-        self._make_install_req = make_install_req
-
-    def make_requirement(self, ireq):
-        # type: (InstallRequirement) -> Requirement
-        return make_requirement(
-            ireq,
-            self._finder,
-            self._preparer,
-            self._make_install_req
-        )
 
     def get_install_requirement(self, c):
         # type: (Candidate) -> Optional[InstallRequirement]
@@ -69,11 +52,6 @@ class PipProvider(AbstractProvider):
         if self._ignore_dependencies:
             return []
         return [
-            make_requirement(
-                r,
-                self._finder,
-                self._preparer,
-                self._make_install_req
-            )
+            self._factory.make_requirement(r)
             for r in candidate.get_dependencies()
         ]

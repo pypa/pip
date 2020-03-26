@@ -9,7 +9,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from .base import Candidate, format_name
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Dict, Optional, Sequence, Set
+    from typing import Any, Optional, Sequence, Set
 
     from pip._internal.models.link import Link
     from pip._internal.operations.prepare import RequirementPreparer
@@ -18,31 +18,8 @@ if MYPY_CHECK_RUNNING:
     from pip._vendor.packaging.version import _BaseVersion
     from pip._vendor.pkg_resources import Distribution
 
+
 logger = logging.getLogger(__name__)
-
-
-_CANDIDATE_CACHE = {}  # type: Dict[Link, LinkCandidate]
-
-
-def make_candidate(
-    link,              # type: Link
-    preparer,          # type: RequirementPreparer
-    parent,            # type: InstallRequirement
-    make_install_req,  # type: InstallRequirementProvider
-    extras             # type: Set[str]
-):
-    # type: (...) -> Candidate
-    if link not in _CANDIDATE_CACHE:
-        _CANDIDATE_CACHE[link] = LinkCandidate(
-            link,
-            preparer,
-            parent=parent,
-            make_install_req=make_install_req
-        )
-    base = _CANDIDATE_CACHE[link]
-    if extras:
-        return ExtrasCandidate(base, extras)
-    return base
 
 
 def make_install_req_from_link(link, parent):
