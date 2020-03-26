@@ -39,16 +39,8 @@ class PipProvider(AbstractProvider):
         )
 
     def get_install_requirement(self, c):
-        # type: (Candidate) -> InstallRequirement
-
-        # The base Candidate class does not have an _ireq attribute, so we
-        # fetch it dynamically here, to satisfy mypy. In practice, though, we
-        # only ever deal with LinkedCandidate objects at the moment, which do
-        # have an _ireq attribute.  When we have a candidate type for installed
-        # requirements we should probably review this.
-        #
-        # TODO: Longer term, make a proper interface for this on the candidate.
-        return getattr(c, "_ireq", None)
+        # type: (Candidate) -> Optional[InstallRequirement]
+        return c.get_install_requirement()
 
     def identify(self, dependency):
         # type: (Union[Requirement, Candidate]) -> str

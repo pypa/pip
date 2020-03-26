@@ -111,3 +111,27 @@ def test_new_resolver_ignore_dependencies(script):
     )
     assert_installed(script, base="0.1.0")
     assert_not_installed(script, "dep")
+
+
+def test_new_resolver_installs_extras(script):
+    create_basic_wheel_for_package(
+        script,
+        "base",
+        "0.1.0",
+        extras={"add": ["dep"]},
+    )
+    create_basic_wheel_for_package(
+        script,
+        "dep",
+        "0.1.0",
+    )
+    result = script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "base[add,missing]",
+        expect_stderr=True,
+    )
+    assert "WARNING: Invalid extras specified" in result.stderr, str(result)
+    assert ": missing" in result.stderr, str(result)
+    assert_installed(script, base="0.1.0", dep="0.1.0")
