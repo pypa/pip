@@ -81,6 +81,14 @@ and the methods used would be:
     Provides key-value pairs (like ``dict.items()``) from the loaded-in-memory
     information, handling all of the override ordering logic.
 
+  .. py:method:: get_value(key)
+
+    Provides the value of the given key from the loaded configuration.
+    The loaded configuration may have ``load_only`` be None or non-None.
+    This uses the same underlying mechanism as ``Configuration.items()`` and
+    does follow the precedence logic described in :ref:`Config Precedence
+    <config-precedence>`.
+
 At the time of writing, the parts of the codebase that use ``Configuration``
 in this manner are: ``ConfigOptionParser``, to transparently include
 configuration handling as part of the command line processing logic,
@@ -99,14 +107,6 @@ manipulated. In addition to the methods discussed in the previous section,
 the methods used would be:
 
 .. py:class:: Configuration
-
-  .. py:method:: get_value(key)
-
-    Provides the value of the given key from the loaded configuration.
-    The loaded configuration may have ``load_only`` be None or non-None.
-    This uses the same underlying mechanism as ``Configuration.items()`` and
-    does follow the precedence logic described in :ref:`Config Precedence
-    <config-precedence>`.
 
   .. py:method:: get_file_to_edit()
 
