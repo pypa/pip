@@ -95,10 +95,13 @@ def test_new_resolver_installs_extras(script):
         "dep",
         "0.1.0",
     )
-    script.pip(
+    result = script.pip(
         "install", "--unstable-feature=resolver",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
-        "base[add,missing]"
+        "base[add,missing]",
+        expect_stderr=True,
     )
+    assert "WARNING: Invalid extras specified" in result.stderr, str(result)
+    assert ": missing" in result.stderr, str(result)
     assert_installed(script, base="0.1.0", dep="0.1.0")
