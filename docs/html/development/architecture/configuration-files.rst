@@ -53,9 +53,11 @@ environment: a combination of configuration files and environment variables.
 
 It can be used in two "modes", for reading all the values from the local
 environment and for manipulating a single configuration file. It differentiates
-between these two modes using the ``load_only`` attribute.
+between these two modes using the ``load_only`` attribute, which can be None or
+represent the :ref:`kind <config-kinds>` of the configuration file to be
+manipulated.
 
-The ``isolated`` attribute manipulates which sources are used when loading the
+The ``isolated`` attribute determines which sources are used when loading the
 configuration. If ``isolated`` is ``True``, user-specific configuration files
 and environment variables are not used.
 
