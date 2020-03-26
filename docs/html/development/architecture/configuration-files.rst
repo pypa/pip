@@ -26,11 +26,14 @@ with ``RawConfigParser``.
 
 pip uses configuration files in two operations:
 
-- During processing of command line options.
-  - Reading from *all* configuration sources
-- As part of ``pip config`` command.
-  - Reading from *all* configuration sources
-  - Manipulating a single configuration file
+* During processing of command line options.
+
+  * Reading from *all* configuration sources
+
+* As part of ``pip config`` command.
+
+  * Reading from *all* configuration sources
+  * Manipulating a single configuration file
 
 Both of these operations utilize functionality provided the ``Configuration``
 object, which encapsulates all the logic for handling configuration files and
