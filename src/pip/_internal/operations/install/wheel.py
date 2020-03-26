@@ -398,7 +398,8 @@ def install_unpacked_wheel(
                     os.utime(destfile, (st.st_atime, st.st_mtime))
 
                 # If our file is executable, then make our destination file
-                # executable.  Issue #6364: we make the destination executable
+                # executable.  Account for cases where the tmpdir
+                # is mounted 'noexec'; we make the destination executable
                 # if any -x flags are set on srcfile rather than using
                 # os.access(), which will always return False if srcfile
                 # is in a directory mounted 'noexec.'
