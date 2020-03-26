@@ -10,6 +10,7 @@ from docutils.statemachine import ViewList
 
 from pip._internal.cli import cmdoptions
 from pip._internal.commands import create_command
+from pip._internal.req.req_file import SUPPORTED_OPTIONS
 
 
 class PipCommandUsage(rst.Directive):
@@ -108,9 +109,42 @@ class PipCommandOptions(PipOptions):
         )
 
 
+class PipReqFileOptionsReference(PipOptions):
+
+    def process_options(self):
+        for option in SUPPORTED_OPTIONS:
+            if getattr(option, 'deprecated', False):
+                continue
+
+            opt = option()
+            opt_name = opt._long_opts[0]
+            if opt._short_opts:
+                short_opt_name = '{}, '.format(opt._short_opts[0])
+            else:
+                short_opt_name = ''
+
+            from_install = (
+                'install_'
+                if option not in cmdoptions.general_group['options'] else
+                ''
+            )
+            self.view_list.append(
+                '  *  :ref:`{short}{long}<{prefix}{opt_name}>`'.format(
+                    short=short_opt_name,
+                    long=opt_name,
+                    prefix=from_install,
+                    opt_name=opt_name
+                ),
+                "\n"
+            )
+
+
 def setup(app):
     app.add_directive('pip-command-usage', PipCommandUsage)
     app.add_directive('pip-command-description', PipCommandDescription)
     app.add_directive('pip-command-options', PipCommandOptions)
     app.add_directive('pip-general-options', PipGeneralOptions)
     app.add_directive('pip-index-options', PipIndexOptions)
+    app.add_directive(
+        'pip-requirements-file-options-ref-list', PipReqFileOptionsReference
+    )
