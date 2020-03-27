@@ -376,7 +376,11 @@ class RequirementPreparer(object):
 
         # TODO: Breakup into smaller functions
         if link.scheme == 'file':
-            logger.info('Processing %s (cached)', req.name)
+            if req.from_wheel_cache:
+                logger.info('Processing %s (cached)', req.link.filename)
+            else:
+                logger.info('Processing %s', req.link.filename)
+
         else:
             logger.info('Collecting %s', req.req or req)
 
