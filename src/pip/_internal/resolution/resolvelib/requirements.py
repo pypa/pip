@@ -2,7 +2,7 @@ from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-from .base import Requirement
+from .base import Requirement, format_name
 from .candidates import make_candidate
 
 if MYPY_CHECK_RUNNING:
@@ -28,7 +28,8 @@ def make_requirement(
             ireq.link,
             preparer,
             ireq,
-            make_install_req
+            make_install_req,
+            set()
         )
         return ExplicitRequirement(candidate)
     else:
@@ -57,9 +58,6 @@ class ExplicitRequirement(Requirement):
 
     def is_satisfied_by(self, candidate):
         # type: (Candidate) -> bool
-        # TODO: Typing - Candidate doesn't have a link attribute
-        #       But I think the following would be better...
-        # return candidate.link == self.candidate.link
         return candidate == self.candidate
 
 
@@ -73,17 +71,17 @@ class SpecifierRequirement(Requirement):
     ):
         # type: (...) -> None
         assert ireq.link is None, "This is a link, not a specifier"
-        assert not ireq.req.extras, "Extras not yet supported"
         self._ireq = ireq
         self._finder = finder
         self._preparer = preparer
         self._make_install_req = make_install_req
+        self.extras = ireq.req.extras
 
     @property
     def name(self):
         # type: () -> str
         canonical_name = canonicalize_name(self._ireq.req.name)
-        return canonical_name
+        return format_name(canonical_name, self.extras)
 
     def find_matches(self):
         # type: () -> Sequence[Candidate]
@@ -97,14 +95,14 @@ class SpecifierRequirement(Requirement):
                 ican.link,
                 self._preparer,
                 self._ireq,
-                self._make_install_req
+                self._make_install_req,
+                self.extras
             )
             for ican in found.iter_applicable()
         ]
 
     def is_satisfied_by(self, candidate):
         # type: (Candidate) -> bool
-
         assert candidate.name == self.name, \
             "Internal issue: Candidate is not for this requirement " \
             " {} vs {}".format(candidate.name, self.name)

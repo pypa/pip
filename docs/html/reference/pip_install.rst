@@ -506,7 +506,7 @@ Finding Packages
 pip searches for packages on `PyPI`_ using the
 `HTTP simple interface <https://pypi.org/simple/>`_,
 which is documented `here <https://setuptools.readthedocs.io/en/latest/easy_install.html#package-index-api>`_
-and `there <https://www.python.org/dev/peps/pep-0301/>`_.
+and `there <https://www.python.org/dev/peps/pep-0503/>`_.
 
 pip offers a number of package index options for modifying how packages are
 found.

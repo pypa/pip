@@ -55,4 +55,9 @@ def provider(finder, preparer):
         wheel_cache=None,
         use_pep517=None,
     )
-    yield PipProvider(finder, preparer, make_install_req)
+    yield PipProvider(
+        finder=finder,
+        preparer=preparer,
+        ignore_dependencies=False,
+        make_install_req=make_install_req,
+    )

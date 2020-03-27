@@ -37,15 +37,17 @@ class Resolver(BaseResolver):
         super(Resolver, self).__init__()
         self.finder = finder
         self.preparer = preparer
+        self.ignore_dependencies = ignore_dependencies
         self.make_install_req = make_install_req
         self._result = None  # type: Optional[Result]
 
     def resolve(self, root_reqs, check_supported_wheels):
         # type: (List[InstallRequirement], bool) -> RequirementSet
         provider = PipProvider(
-            self.finder,
-            self.preparer,
-            self.make_install_req,
+            finder=self.finder,
+            preparer=self.preparer,
+            ignore_dependencies=self.ignore_dependencies,
+            make_install_req=self.make_install_req,
         )
         reporter = BaseReporter()
         resolver = RLResolver(provider, reporter)
@@ -56,7 +58,8 @@ class Resolver(BaseResolver):
         req_set = RequirementSet(check_supported_wheels=check_supported_wheels)
         for candidate in self._result.mapping.values():
             ireq = provider.get_install_requirement(candidate)
-            req_set.add_named_requirement(ireq)
+            if ireq is not None:
+                req_set.add_named_requirement(ireq)
 
         return req_set
 

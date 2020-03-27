@@ -20,11 +20,13 @@ class PipProvider(AbstractProvider):
         self,
         finder,    # type: PackageFinder
         preparer,  # type: RequirementPreparer
+        ignore_dependencies,  # type: bool
         make_install_req  # type: InstallRequirementProvider
     ):
         # type: (...) -> None
         self._finder = finder
         self._preparer = preparer
+        self._ignore_dependencies = ignore_dependencies
         self._make_install_req = make_install_req
 
     def make_requirement(self, ireq):
@@ -37,16 +39,8 @@ class PipProvider(AbstractProvider):
         )
 
     def get_install_requirement(self, c):
-        # type: (Candidate) -> InstallRequirement
-
-        # The base Candidate class does not have an _ireq attribute, so we
-        # fetch it dynamically here, to satisfy mypy. In practice, though, we
-        # only ever deal with LinkedCandidate objects at the moment, which do
-        # have an _ireq attribute.  When we have a candidate type for installed
-        # requirements we should probably review this.
-        #
-        # TODO: Longer term, make a proper interface for this on the candidate.
-        return getattr(c, "_ireq", None)
+        # type: (Candidate) -> Optional[InstallRequirement]
+        return c.get_install_requirement()
 
     def identify(self, dependency):
         # type: (Union[Requirement, Candidate]) -> str
@@ -72,6 +66,8 @@ class PipProvider(AbstractProvider):
 
     def get_dependencies(self, candidate):
         # type: (Candidate) -> Sequence[Requirement]
+        if self._ignore_dependencies:
+            return []
         return [
             make_requirement(
                 r,
