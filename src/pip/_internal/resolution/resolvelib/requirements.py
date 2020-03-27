@@ -7,9 +7,7 @@ from .base import Requirement, format_name
 if MYPY_CHECK_RUNNING:
     from typing import Sequence
 
-    from pip._internal.index.package_finder import PackageFinder
     from pip._internal.req.req_install import InstallRequirement
-    from pip._internal.resolution.base import InstallRequirementProvider
 
     from .base import Candidate
     from .factory import Factory
@@ -36,19 +34,11 @@ class ExplicitRequirement(Requirement):
 
 
 class SpecifierRequirement(Requirement):
-    def __init__(
-        self,
-        ireq,      # type: InstallRequirement
-        finder,    # type: PackageFinder
-        factory,   # type: Factory
-        make_install_req  # type: InstallRequirementProvider
-    ):
-        # type: (...) -> None
+    def __init__(self, ireq, factory):
+        # type: (InstallRequirement, Factory) -> None
         assert ireq.link is None, "This is a link, not a specifier"
         self._ireq = ireq
         self._factory = factory
-        self._finder = finder
-        self._make_install_req = make_install_req
         self.extras = ireq.req.extras
 
     @property
@@ -59,7 +49,7 @@ class SpecifierRequirement(Requirement):
 
     def find_matches(self):
         # type: () -> Sequence[Candidate]
-        found = self._finder.find_best_candidate(
+        found = self._factory.finder.find_best_candidate(
             project_name=self._ireq.req.name,
             specifier=self._ireq.req.specifier,
             hashes=self._ireq.hashes(trust_internet=False),

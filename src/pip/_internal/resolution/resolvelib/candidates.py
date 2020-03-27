@@ -12,11 +12,11 @@ if MYPY_CHECK_RUNNING:
     from typing import Any, Optional, Sequence, Set
 
     from pip._internal.models.link import Link
-    from pip._internal.operations.prepare import RequirementPreparer
-    from pip._internal.resolution.base import InstallRequirementProvider
 
     from pip._vendor.packaging.version import _BaseVersion
     from pip._vendor.pkg_resources import Distribution
+
+    from .factory import Factory
 
 
 logger = logging.getLogger(__name__)
@@ -40,22 +40,11 @@ def make_install_req_from_link(link, parent):
 
 
 class LinkCandidate(Candidate):
-    def __init__(
-        self,
-        link,      # type: Link
-        preparer,  # type: RequirementPreparer
-        parent,    # type: InstallRequirement
-        make_install_req,  # type: InstallRequirementProvider
-    ):
-        # type: (...) -> None
+    def __init__(self, link, parent, factory):
+        # type: (Link, InstallRequirement, Factory) -> None
         self.link = link
-        self._preparer = preparer
+        self._factory = factory
         self._ireq = make_install_req_from_link(link, parent)
-        self._make_install_req = lambda spec: make_install_req(
-            spec,
-            self._ireq
-        )
-
         self._name = None  # type: Optional[str]
         self._version = None  # type: Optional[_BaseVersion]
         self._dist = None  # type: Optional[Distribution]
@@ -90,7 +79,7 @@ class LinkCandidate(Candidate):
     def dist(self):
         # type: () -> Distribution
         if self._dist is None:
-            abstract_dist = self._preparer.prepare_linked_requirement(
+            abstract_dist = self._factory.preparer.prepare_linked_requirement(
                 self._ireq
             )
             self._dist = abstract_dist.get_pkg_resources_distribution()
@@ -107,7 +96,10 @@ class LinkCandidate(Candidate):
 
     def get_dependencies(self):
         # type: () -> Sequence[InstallRequirement]
-        return [self._make_install_req(str(r)) for r in self.dist.requires()]
+        return [
+            self._factory.make_install_req(str(r), self._ireq)
+            for r in self.dist.requires()
+        ]
 
     def get_install_requirement(self):
         # type: () -> Optional[InstallRequirement]
@@ -138,12 +130,8 @@ class ExtrasCandidate(LinkCandidate):
     version 2.0. Having those candidates depend on foo=1.0 and foo=2.0
     respectively forces the resolver to recognise that this is a conflict.
     """
-    def __init__(
-        self,
-        base,      # type: LinkCandidate
-        extras,    # type: Set[str]
-    ):
-        # type: (...) -> None
+    def __init__(self, base, extras):
+        # type: (LinkCandidate, Set[str]) -> None
         self.base = base
         self.extras = extras
         self.link = base.link
@@ -161,6 +149,7 @@ class ExtrasCandidate(LinkCandidate):
 
     def get_dependencies(self):
         # type: () -> Sequence[InstallRequirement]
+        factory = self.base._factory
 
         # The user may have specified extras that the candidate doesn't
         # support. We ignore any unsupported extras here.
@@ -174,13 +163,13 @@ class ExtrasCandidate(LinkCandidate):
             )
 
         deps = [
-            self.base._make_install_req(str(r))
+            factory.make_install_req(str(r), self.base._ireq)
             for r in self.base.dist.requires(valid_extras)
         ]
         # Add a dependency on the exact base.
         # (See note 2b in the class docstring)
         spec = "{}=={}".format(self.base.name, self.base.version)
-        deps.append(self.base._make_install_req(spec))
+        deps.append(factory.make_install_req(spec, self.base._ireq))
         return deps
 
     def get_install_requirement(self):
