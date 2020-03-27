@@ -16,6 +16,7 @@ if MYPY_CHECK_RUNNING:
     from pip._vendor.packaging.version import _BaseVersion
     from pip._vendor.pkg_resources import Distribution
 
+    from .base import Requirement
     from .factory import Factory
 
 
@@ -95,9 +96,11 @@ class LinkCandidate(Candidate):
         return self._dist
 
     def get_dependencies(self):
-        # type: () -> Sequence[InstallRequirement]
+        # type: () -> Sequence[Requirement]
         return [
-            self._factory.make_install_req(str(r), self._ireq)
+            self._factory.make_requirement(
+                self._factory.make_install_req(str(r), self._ireq),
+            )
             for r in self.dist.requires()
         ]
 
@@ -148,7 +151,7 @@ class ExtrasCandidate(LinkCandidate):
         return self.base.version
 
     def get_dependencies(self):
-        # type: () -> Sequence[InstallRequirement]
+        # type: () -> Sequence[Requirement]
         factory = self.base._factory
 
         # The user may have specified extras that the candidate doesn't
@@ -170,7 +173,7 @@ class ExtrasCandidate(LinkCandidate):
         # (See note 2b in the class docstring)
         spec = "{}=={}".format(self.base.name, self.base.version)
         deps.append(factory.make_install_req(spec, self.base._ireq))
-        return deps
+        return [factory.make_requirement(r) for r in deps]
 
     def get_install_requirement(self):
         # type: () -> Optional[InstallRequirement]
