@@ -56,7 +56,6 @@ class Factory(object):
             return SpecifierRequirement(
                 ireq,
                 finder=self._finder,
-                preparer=self._preparer,
                 factory=self,
                 make_install_req=self._make_install_req,
             )

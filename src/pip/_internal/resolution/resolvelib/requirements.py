@@ -8,7 +8,6 @@ if MYPY_CHECK_RUNNING:
     from typing import Sequence
 
     from pip._internal.index.package_finder import PackageFinder
-    from pip._internal.operations.prepare import RequirementPreparer
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.resolution.base import InstallRequirementProvider
 
@@ -41,7 +40,6 @@ class SpecifierRequirement(Requirement):
         self,
         ireq,      # type: InstallRequirement
         finder,    # type: PackageFinder
-        preparer,  # type: RequirementPreparer
         factory,   # type: Factory
         make_install_req  # type: InstallRequirementProvider
     ):
@@ -50,7 +48,6 @@ class SpecifierRequirement(Requirement):
         self._ireq = ireq
         self._factory = factory
         self._finder = finder
-        self._preparer = preparer
         self._make_install_req = make_install_req
         self.extras = ireq.req.extras
 
