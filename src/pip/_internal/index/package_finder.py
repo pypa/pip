@@ -701,6 +701,11 @@ class PackageFinder(object):
             yield build_netloc(*host_port)
 
     @property
+    def cert(self):
+        # type: () -> str or None
+        return getattr(self._link_collector.session, "verify", None)
+
+    @property
     def allow_all_prereleases(self):
         # type: () -> bool
         return self._candidate_prefs.allow_all_prereleases

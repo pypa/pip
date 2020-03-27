@@ -193,6 +193,8 @@ class BuildEnvironment(object):
             args.extend(['--trusted-host', host])
         if finder.allow_all_prereleases:
             args.append('--pre')
+        if finder.cert:
+            args.extend(['--cert', finder.cert])
         args.append('--')
         args.extend(requirements)
         with open_spinner(message) as spinner:
