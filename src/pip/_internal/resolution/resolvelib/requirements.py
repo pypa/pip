@@ -3,42 +3,16 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 from .base import Requirement, format_name
-from .candidates import make_candidate
 
 if MYPY_CHECK_RUNNING:
     from typing import Sequence
 
     from pip._internal.index.package_finder import PackageFinder
-    from pip._internal.operations.prepare import RequirementPreparer
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.resolution.base import InstallRequirementProvider
 
     from .base import Candidate
-
-
-def make_requirement(
-    ireq,      # type: InstallRequirement
-    finder,    # type: PackageFinder
-    preparer,  # type: RequirementPreparer
-    make_install_req  # type: InstallRequirementProvider
-):
-    # type: (...) -> Requirement
-    if ireq.link:
-        candidate = make_candidate(
-            ireq.link,
-            preparer,
-            ireq,
-            make_install_req,
-            set()
-        )
-        return ExplicitRequirement(candidate)
-    else:
-        return SpecifierRequirement(
-            ireq,
-            finder,
-            preparer,
-            make_install_req
-        )
+    from .factory import Factory
 
 
 class ExplicitRequirement(Requirement):
@@ -66,14 +40,14 @@ class SpecifierRequirement(Requirement):
         self,
         ireq,      # type: InstallRequirement
         finder,    # type: PackageFinder
-        preparer,  # type:RequirementPreparer
+        factory,   # type: Factory
         make_install_req  # type: InstallRequirementProvider
     ):
         # type: (...) -> None
         assert ireq.link is None, "This is a link, not a specifier"
         self._ireq = ireq
+        self._factory = factory
         self._finder = finder
-        self._preparer = preparer
         self._make_install_req = make_install_req
         self.extras = ireq.req.extras
 
@@ -91,12 +65,10 @@ class SpecifierRequirement(Requirement):
             hashes=self._ireq.hashes(trust_internet=False),
         )
         return [
-            make_candidate(
-                ican.link,
-                self._preparer,
-                self._ireq,
-                self._make_install_req,
-                self.extras
+            self._factory.make_candidate(
+                link=ican.link,
+                extras=self.extras,
+                parent=self._ireq,
             )
             for ican in found.iter_applicable()
         ]

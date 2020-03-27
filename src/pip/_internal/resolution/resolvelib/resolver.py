@@ -9,6 +9,8 @@ from pip._internal.resolution.base import BaseResolver
 from pip._internal.resolution.resolvelib.provider import PipProvider
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
+from .factory import Factory
+
 if MYPY_CHECK_RUNNING:
     from typing import Dict, List, Optional, Tuple
 
@@ -35,24 +37,24 @@ class Resolver(BaseResolver):
         py_version_info=None,  # type: Optional[Tuple[int, ...]]
     ):
         super(Resolver, self).__init__()
-        self.finder = finder
-        self.preparer = preparer
+        self.factory = Factory(
+            finder=finder,
+            preparer=preparer,
+            make_install_req=make_install_req,
+        )
         self.ignore_dependencies = ignore_dependencies
-        self.make_install_req = make_install_req
         self._result = None  # type: Optional[Result]
 
     def resolve(self, root_reqs, check_supported_wheels):
         # type: (List[InstallRequirement], bool) -> RequirementSet
         provider = PipProvider(
-            finder=self.finder,
-            preparer=self.preparer,
+            factory=self.factory,
             ignore_dependencies=self.ignore_dependencies,
-            make_install_req=self.make_install_req,
         )
         reporter = BaseReporter()
         resolver = RLResolver(provider, reporter)
 
-        requirements = [provider.make_requirement(r) for r in root_reqs]
+        requirements = [self.factory.make_requirement(r) for r in root_reqs]
         self._result = resolver.resolve(requirements)
 
         req_set = RequirementSet(check_supported_wheels=check_supported_wheels)
