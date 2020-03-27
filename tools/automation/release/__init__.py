@@ -49,8 +49,9 @@ def get_author_list() -> List[str]:
     """Get the list of authors from Git commits.
     """
     # subprocess because session.run doesn't give us stdout
+    # only use names in list of Authors
     result = subprocess.run(
-        ["git", "log", "--use-mailmap", "--format=%aN <%aE>"],
+        ["git", "log", "--use-mailmap", "--format=%aN"],
         capture_output=True,
         encoding="utf-8",
     )
