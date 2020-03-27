@@ -20,6 +20,7 @@ Architecture of pip's internals
 
     overview
     anatomy
+    configuration-files
     package-finding
     upgrade-options
 
