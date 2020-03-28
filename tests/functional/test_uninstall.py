@@ -580,12 +580,19 @@ def test_uninstall_editable_and_pip_install_easy_install_remove(script, data):
     assert {"name": "FSPkg", "version": "0.1.dev0"} \
         in json.loads(list_result.stdout)
 
+    # Remove pip-test-fspkg.pth
+    os.remove(pip_test_fspkg_pth)
+
     # Uninstall will fail with given warning
     uninstall = script.pip('uninstall', 'FSPkg', '-y')
     assert "Cannot remove entries from nonexistent file" in uninstall.stderr
 
-    # Cleanup pth files
-    os.remove(pip_test_fspkg_pth)
+    # Confirm that FSPkg is uninstalled
+    list_result = script.pip('list', '--format=json')
+    assert {"name": "FSPkg", "version": "0.1.dev0"} \
+        not in json.loads(list_result.stdout)
+
+    # Rename pip-test.pth back to easy-install.pth
     os.rename(pip_test_pth, easy_install_pth)
 
 
