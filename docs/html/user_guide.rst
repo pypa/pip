@@ -814,8 +814,8 @@ This is easily done using the standard ``subprocess`` module::
 
   subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'my_package'])
 
-If you want to process the output further, use one of the other APIs in the
-module::
+If you want to process the output further, use one of the other APIs in the module.
+We are using `freeze`_ here which outputs installed packages in requirements format.::
 
   reqs = subprocess.check_output([sys.executable, '-m', 'pip', 'freeze'])
 
@@ -832,3 +832,5 @@ of ability. Some examples that you could consider include:
 
 * ``distlib`` - Packaging and distribution utilities (including functions for
   interacting with PyPI).
+
+.. _freeze: https://pip.pypa.io/en/latest/reference/pip_freeze/
