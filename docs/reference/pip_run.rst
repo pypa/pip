@@ -20,7 +20,7 @@ Overview
 Pip run in a specialized invocation of pip install that makes
 packages available only for the duration of a single Python invocation
 for one-off needs. The command is based on the
-`rwt project <https://pypi.org/project/rwt>`_.
+`pip-run project <https://pypi.org/project/pip-run>`_.
 
 Argument Handling
 +++++++++++++++++
@@ -33,4 +33,5 @@ requirements, requirments files, and index directives.
 The arguments after the ``--`` are passed to a new Python interpreter in the
 context of the installed dependencies.
 
-For more details and examples, see the `rwt project <https://pypi.org/project/rwt>`_.
+For more details and examples, see the
+`pip-run project <https://pypi.org/project/pip-run>`_.

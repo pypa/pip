@@ -9,7 +9,7 @@ vendor:
 	pip install -t . -r vendor.txt
 
 	# remove the tests
-	rm -rf rwt/tests
+	rm -rf pip_run/tests
 
 	@# Cleanup .egg-info directories
 	rm -rf *.egg-info
