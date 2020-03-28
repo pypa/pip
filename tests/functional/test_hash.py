@@ -1,7 +1,7 @@
 """Tests for the ``pip hash`` command"""
 
 
-def test_basic(script, tmpdir):
+def test_basic_hash(script, tmpdir):
     """Run 'pip hash' through its default behavior."""
     expected = ('--hash=sha256:2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425'
                 'e73043362938b9824')
@@ -20,13 +20,13 @@ def test_good_algo_option(script, tmpdir):
 
 def test_bad_algo_option(script, tmpdir):
     """Make sure the -a option raises an error when given a bad operand."""
-    result = script.pip('hash', '-a', 'poppycock', _hello_file(tmpdir),
+    result = script.pip('hash', '-a', 'invalidname', _hello_file(tmpdir),
                         expect_error=True)
-    assert "invalid choice: 'poppycock'" in str(result)
+    assert "invalid choice: 'invalidname'" in str(result)
 
 
 def _hello_file(tmpdir):
     """Return a temp file to hash containing "hello"."""
     file = tmpdir / 'hashable'
-    file.write('hello')
+    file.write_text('hello')
     return file

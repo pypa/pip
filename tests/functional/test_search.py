@@ -1,10 +1,16 @@
-import pytest
-from pip.commands.search import (highest_version,
-                                 transform_hits,
-                                 SearchCommand)
-from pip.status_codes import NO_MATCHES_FOUND, SUCCESS
-from tests.lib import pyversion
+import logging
 
+import pretend
+import pytest
+
+from pip._internal.cli.status_codes import NO_MATCHES_FOUND, SUCCESS
+from pip._internal.commands import create_command
+from pip._internal.commands.search import (
+    highest_version,
+    print_results,
+    transform_hits,
+)
+from tests.lib import pyversion
 
 if pyversion >= '3':
     VERBOSE_FALSE = False
@@ -23,18 +29,16 @@ def test_version_compare():
 
 def test_pypi_xml_transformation():
     """
-    Test transformation of data structures (pypi xmlrpc to custom list).
+    Test transformation of data structures (PyPI xmlrpc to custom list).
 
     """
     pypi_hits = [
         {
-            '_pypi_ordering': 100,
             'name': 'foo',
             'summary': 'foo summary',
             'version': '1.0',
         },
         {
-            '_pypi_ordering': 200,
             'name': 'foo',
             'summary': 'foo summary v2',
             'version': '2.0',
@@ -48,49 +52,11 @@ def test_pypi_xml_transformation():
     ]
     expected = [
         {
-            'score': 200,
             'versions': ['1.0', '2.0'],
             'name': 'foo',
             'summary': 'foo summary v2',
         },
         {
-            'score': 50,
-            'versions': ['1.0'],
-            'name': 'bar',
-            'summary': 'bar summary',
-        },
-    ]
-    assert transform_hits(pypi_hits) == expected
-
-
-def test_invalid_pypi_transformation():
-    """
-    Test transformation of pypi when ordering None
-    """
-    pypi_hits = [
-        {
-            '_pypi_ordering': None,
-            'name': 'bar',
-            'summary': 'bar summary',
-            'version': '1.0',
-        },
-        {
-            '_pypi_ordering': 100,
-            'name': 'foo',
-            'summary': 'foo summary',
-            'version': '1.0',
-        },
-    ]
-
-    expected = [
-        {
-            'score': 100,
-            'versions': ['1.0'],
-            'name': 'foo',
-            'summary': 'foo summary',
-        },
-        {
-            'score': 0,
             'versions': ['1.0'],
             'name': 'bar',
             'summary': 'bar summary',
@@ -100,7 +66,7 @@ def test_invalid_pypi_transformation():
 
 
 @pytest.mark.network
-def test_search(script):
+def test_basic_search(script):
     """
     End to end test of search command.
 
@@ -113,6 +79,12 @@ def test_search(script):
 
 
 @pytest.mark.network
+@pytest.mark.skip(
+    reason=("Warehouse search behavior is different and no longer returns "
+            "multiple results. See "
+            "https://github.com/pypa/warehouse/issues/3717 for more "
+            "information."),
+)
 def test_multiple_search(script):
     """
     Test searching for multiple packages at once.
@@ -139,10 +111,11 @@ def test_run_method_should_return_success_when_find_packages():
     """
     Test SearchCommand.run for found package
     """
-    command = SearchCommand()
-    cmdline = "--index=https://pypi.python.org/pypi pip"
-    options, args = command.parse_args(cmdline.split())
-    status = command.run(options, args)
+    command = create_command('search')
+    cmdline = "--index=https://pypi.org/pypi pip"
+    with command.main_context():
+        options, args = command.parse_args(cmdline.split())
+        status = command.run(options, args)
     assert status == SUCCESS
 
 
@@ -151,10 +124,11 @@ def test_run_method_should_return_no_matches_found_when_does_not_find_pkgs():
     """
     Test SearchCommand.run for no matches
     """
-    command = SearchCommand()
-    cmdline = "--index=https://pypi.python.org/pypi nonexistentpackage"
-    options, args = command.parse_args(cmdline.split())
-    status = command.run(options, args)
+    command = create_command('search')
+    cmdline = "--index=https://pypi.org/pypi nonexistentpackage"
+    with command.main_context():
+        options, args = command.parse_args(cmdline.split())
+        status = command.run(options, args)
     assert status == NO_MATCHES_FOUND
 
 
@@ -174,3 +148,55 @@ def test_search_exit_status_code_when_finds_no_package(script):
     """
     result = script.pip('search', 'nonexistentpackage', expect_error=True)
     assert result.returncode == NO_MATCHES_FOUND, result.returncode
+
+
+def test_latest_prerelease_install_message(caplog, monkeypatch):
+    """
+    Test documentation for installing pre-release packages is displayed
+    """
+    hits = [
+        {
+            'name': 'ni',
+            'summary': 'For knights who say Ni!',
+            'versions': ['1.0.0', '1.0.1a']
+        }
+    ]
+
+    installed_package = pretend.stub(project_name="ni")
+    monkeypatch.setattr("pip._vendor.pkg_resources.working_set",
+                        [installed_package])
+
+    dist = pretend.stub(version="1.0.0")
+    get_dist = pretend.call_recorder(lambda x: dist)
+    monkeypatch.setattr("pip._vendor.pkg_resources.get_distribution", get_dist)
+    with caplog.at_level(logging.INFO):
+        print_results(hits)
+
+    message = caplog.records[-1].getMessage()
+    assert 'pre-release; install with "pip install --pre"' in message
+    assert get_dist.calls == [pretend.call('ni')]
+
+
+def test_search_print_results_should_contain_latest_versions(caplog):
+    """
+    Test that printed search results contain the latest package versions
+    """
+    hits = [
+        {
+            'name': 'testlib1',
+            'summary': 'Test library 1.',
+            'versions': ['1.0.5', '1.0.3']
+        },
+        {
+            'name': 'testlib2',
+            'summary': 'Test library 1.',
+            'versions': ['2.0.1', '2.0.3']
+        }
+    ]
+
+    with caplog.at_level(logging.INFO):
+        print_results(hits)
+
+    log_messages = sorted([r.getMessage() for r in caplog.records])
+    assert log_messages[0].startswith('testlib1 (1.0.5)')
+    assert log_messages[1].startswith('testlib2 (2.0.3)')

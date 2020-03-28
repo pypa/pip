@@ -1,0 +1,42 @@
+base:
+  available:
+    - A 1.0.0; depends B == 1.0.0, C == 1.0.0, D == 1.0.0
+    - B 1.0.0; depends D[extra_1] == 1.0.0
+    - C 1.0.0; depends D[extra_2] == 1.0.0
+    - name: D
+      version: 1.0.0
+      depends: []
+      extras:
+        extra_1: [E == 1.0.0]
+        extra_2: [F == 1.0.0]
+    - E 1.0.0
+    - F 1.0.0
+cases:
+-
+  request:
+    - install: B
+  transaction:
+    - install:
+      - B 1.0.0
+      - D 1.0.0
+      - E 1.0.0
+-
+  request:
+    - install: C
+  transaction:
+    - install:
+      - C 1.0.0
+      - D 1.0.0
+      - F 1.0.0
+-
+  request:
+    - install: A
+  transaction:
+    - install:
+      - A 1.0.0
+      - B 1.0.0
+      - C 1.0.0
+      - D 1.0.0
+      - E 1.0.0
+      - F 1.0.0
+  skip: true

@@ -1,0 +1,21 @@
+base:
+  available:
+    - simple 0.1.0
+    - simple 0.2.0
+    - base 0.1.0; depends dep
+    - dep 0.1.0
+
+cases:
+-
+  request:
+    - install: simple
+  transaction:
+    - install:
+      - simple 0.2.0
+-
+  request:
+    - install: base
+  transaction:
+    - install:
+      - base 0.1.0
+      - dep 0.1.0

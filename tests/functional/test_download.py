@@ -1,14 +1,22 @@
-import os
+import os.path
+import shutil
 import textwrap
+from hashlib import sha256
+
 import pytest
 
+from pip._internal.cli.status_codes import ERROR
+from pip._internal.utils.urls import path_to_url
+from tests.lib import create_really_basic_wheel
 from tests.lib.path import Path
+from tests.lib.server import file_response
 
 
 def fake_wheel(data, wheel_path):
-    data.packages.join(
-        'simple.dist-0.1-py2.py3-none-any.whl'
-    ).copy(data.packages.join(wheel_path))
+    wheel_name = os.path.basename(wheel_path)
+    name, version, rest = wheel_name.split("-", 2)
+    wheel_data = create_really_basic_wheel(name, version)
+    data.packages.joinpath(wheel_path).write_bytes(wheel_data)
 
 
 @pytest.mark.network
@@ -17,7 +25,7 @@ def test_download_if_requested(script):
     It should download (in the scratch path) and not install if requested.
     """
     result = script.pip(
-        'download', '-d', 'pip_downloads', 'INITools==0.1', expect_error=True
+        'download', '-d', 'pip_downloads', 'INITools==0.1'
     )
     assert Path('scratch') / 'pip_downloads' / 'INITools-0.1.tar.gz' \
         in result.files_created
@@ -25,7 +33,7 @@ def test_download_if_requested(script):
 
 
 @pytest.mark.network
-def test_download_setuptools(script):
+def test_basic_download_setuptools(script):
     """
     It should download (in the scratch path) and not install if requested.
     """
@@ -56,27 +64,26 @@ def test_download_wheel(script, data):
 @pytest.mark.network
 def test_single_download_from_requirements_file(script):
     """
-    It should support download (in the scratch path) from PyPi from a
+    It should support download (in the scratch path) from PyPI from a
     requirements file
     """
-    script.scratch_path.join("test-req.txt").write(textwrap.dedent("""
+    script.scratch_path.joinpath("test-req.txt").write_text(textwrap.dedent("""
         INITools==0.1
         """))
     result = script.pip(
         'download', '-r', script.scratch_path / 'test-req.txt', '-d', '.',
-        expect_error=True,
     )
     assert Path('scratch') / 'INITools-0.1.tar.gz' in result.files_created
     assert script.site_packages / 'initools' not in result.files_created
 
 
 @pytest.mark.network
-def test_download_should_download_dependencies(script):
+def test_basic_download_should_download_dependencies(script):
     """
     It should download dependencies (in the scratch path)
     """
     result = script.pip(
-        'download', 'Paste[openid]==1.7.5.1', '-d', '.', expect_error=True,
+        'download', 'Paste[openid]==1.7.5.1', '-d', '.'
     )
     assert Path('scratch') / 'Paste-1.7.5.1.tar.gz' in result.files_created
     openid_tarball_prefix = str(Path('scratch') / 'python-openid-')
@@ -91,7 +98,7 @@ def test_download_wheel_archive(script, data):
     It should download a wheel archive path
     """
     wheel_filename = 'colander-0.9.9-py2.py3-none-any.whl'
-    wheel_path = os.path.join(data.find_links, wheel_filename)
+    wheel_path = '/'.join((data.find_links, wheel_filename))
     result = script.pip(
         'download', wheel_path,
         '-d', '.', '--no-deps'
@@ -105,7 +112,7 @@ def test_download_should_download_wheel_deps(script, data):
     """
     wheel_filename = 'colander-0.9.9-py2.py3-none-any.whl'
     dep_filename = 'translationstring-1.1.tar.gz'
-    wheel_path = os.path.join(data.find_links, wheel_filename)
+    wheel_path = '/'.join((data.find_links, wheel_filename))
     result = script.pip(
         'download', wheel_path,
         '-d', '.', '--find-links', data.find_links, '--no-index'
@@ -119,19 +126,18 @@ def test_download_should_skip_existing_files(script):
     """
     It should not download files already existing in the scratch dir
     """
-    script.scratch_path.join("test-req.txt").write(textwrap.dedent("""
+    script.scratch_path.joinpath("test-req.txt").write_text(textwrap.dedent("""
         INITools==0.1
         """))
 
     result = script.pip(
         'download', '-r', script.scratch_path / 'test-req.txt', '-d', '.',
-        expect_error=True,
     )
     assert Path('scratch') / 'INITools-0.1.tar.gz' in result.files_created
     assert script.site_packages / 'initools' not in result.files_created
 
     # adding second package to test-req.txt
-    script.scratch_path.join("test-req.txt").write(textwrap.dedent("""
+    script.scratch_path.joinpath("test-req.txt").write_text(textwrap.dedent("""
         INITools==0.1
         python-openid==2.2.5
         """))
@@ -139,7 +145,6 @@ def test_download_should_skip_existing_files(script):
     # only the second package should be downloaded
     result = script.pip(
         'download', '-r', script.scratch_path / 'test-req.txt', '-d', '.',
-        expect_error=True,
     )
     openid_tarball_prefix = str(Path('scratch') / 'python-openid-')
     assert any(
@@ -165,10 +170,10 @@ def test_download_vcs_link(script):
     assert script.site_packages / 'piptestpackage' not in result.files_created
 
 
-def test_download_specify_platform_only_binary(script, data):
+def test_only_binary_set_then_download_specific_platform(script, data):
     """
     Confirm that specifying an interpreter/platform constraint
-    enforces that ``--only-binary=:all:`` is set.
+    is allowed when ``--only-binary=:all:`` is set.
     """
     fake_wheel(data, 'fake-1.0-py2.py3-none-any.whl')
 
@@ -184,14 +189,33 @@ def test_download_specify_platform_only_binary(script, data):
         in result.files_created
     )
 
+
+def test_no_deps_set_then_download_specific_platform(script, data):
+    """
+    Confirm that specifying an interpreter/platform constraint
+    is allowed when ``--no-deps`` is set.
+    """
+    fake_wheel(data, 'fake-1.0-py2.py3-none-any.whl')
+
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
+        '--no-deps',
         '--dest', '.',
         '--platform', 'linux_x86_64',
-        'fake',
-        expect_error=True,
+        'fake'
     )
-    assert '--only-binary=:all:' in result.stderr
+    assert (
+        Path('scratch') / 'fake-1.0-py2.py3-none-any.whl'
+        in result.files_created
+    )
+
+
+def test_download_specific_platform_fails(script, data):
+    """
+    Confirm that specifying an interpreter/platform constraint
+    enforces that ``--no-deps`` or ``--only-binary=:all:`` is set.
+    """
+    fake_wheel(data, 'fake-1.0-py2.py3-none-any.whl')
 
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
@@ -201,6 +225,14 @@ def test_download_specify_platform_only_binary(script, data):
         expect_error=True,
     )
     assert '--only-binary=:all:' in result.stderr
+
+
+def test_no_binary_set_then_download_specific_platform_fails(script, data):
+    """
+    Confirm that specifying an interpreter/platform constraint
+    enforces that ``--only-binary=:all:`` is set without ``--no-binary``.
+    """
+    fake_wheel(data, 'fake-1.0-py2.py3-none-any.whl')
 
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
@@ -293,57 +325,77 @@ def test_download_specify_platform(script, data):
     )
 
 
-def test_download_platform_manylinux(script, data):
+class TestDownloadPlatformManylinuxes(object):
     """
-    Test using "pip download --platform" to download a .whl archive
-    supported for a specific platform.
+    "pip download --platform" downloads a .whl archive supported for
+    manylinux platforms.
     """
-    fake_wheel(data, 'fake-1.0-py2.py3-none-any.whl')
-    # Confirm that universal wheels are returned even for specific
-    # platforms.
-    result = script.pip(
-        'download', '--no-index', '--find-links', data.find_links,
-        '--only-binary=:all:',
-        '--dest', '.',
-        '--platform', 'linux_x86_64',
-        'fake',
-    )
-    assert (
-        Path('scratch') / 'fake-1.0-py2.py3-none-any.whl'
-        in result.files_created
-    )
 
-    data.reset()
-    fake_wheel(data, 'fake-1.0-py2.py3-none-manylinux1_x86_64.whl')
-    result = script.pip(
-        'download', '--no-index', '--find-links', data.find_links,
-        '--only-binary=:all:',
-        '--dest', '.',
-        '--platform', 'manylinux1_x86_64',
-        'fake',
-    )
-    assert (
-        Path('scratch') /
-        'fake-1.0-py2.py3-none-manylinux1_x86_64.whl'
-        in result.files_created
-    )
+    @pytest.mark.parametrize("platform", [
+        "linux_x86_64",
+        "manylinux1_x86_64",
+        "manylinux2010_x86_64",
+        "manylinux2014_x86_64",
+    ])
+    def test_download_universal(self, platform, script, data):
+        """
+        Universal wheels are returned even for specific platforms.
+        """
+        fake_wheel(data, 'fake-1.0-py2.py3-none-any.whl')
+        result = script.pip(
+            'download', '--no-index', '--find-links', data.find_links,
+            '--only-binary=:all:',
+            '--dest', '.',
+            '--platform', platform,
+            'fake',
+        )
+        assert (
+            Path('scratch') / 'fake-1.0-py2.py3-none-any.whl'
+            in result.files_created
+        )
 
-    # When specifying the platform, manylinux1 needs to be the
-    # explicit platform--it won't ever be added to the compatible
-    # tags.
-    data.reset()
-    fake_wheel(data, 'fake-1.0-py2.py3-none-linux_x86_64.whl')
-    result = script.pip(
-        'download', '--no-index', '--find-links', data.find_links,
-        '--only-binary=:all:',
-        '--dest', '.',
-        '--platform', 'linux_x86_64',
-        'fake',
-        expect_error=True,
-    )
+    @pytest.mark.parametrize("wheel_abi,platform", [
+        ("manylinux1_x86_64", "manylinux1_x86_64"),
+        ("manylinux1_x86_64", "manylinux2010_x86_64"),
+        ("manylinux2010_x86_64", "manylinux2010_x86_64"),
+        ("manylinux1_x86_64", "manylinux2014_x86_64"),
+        ("manylinux2010_x86_64", "manylinux2014_x86_64"),
+        ("manylinux2014_x86_64", "manylinux2014_x86_64"),
+    ])
+    def test_download_compatible_manylinuxes(
+            self, wheel_abi, platform, script, data,
+    ):
+        """
+        Earlier manylinuxes are compatible with later manylinuxes.
+        """
+        wheel = 'fake-1.0-py2.py3-none-{}.whl'.format(wheel_abi)
+        fake_wheel(data, wheel)
+        result = script.pip(
+            'download', '--no-index', '--find-links', data.find_links,
+            '--only-binary=:all:',
+            '--dest', '.',
+            '--platform', platform,
+            'fake',
+        )
+        assert Path('scratch') / wheel in result.files_created
+
+    def test_explicit_platform_only(self, data, script):
+        """
+        When specifying the platform, manylinux1 needs to be the
+        explicit platform--it won't ever be added to the compatible
+        tags.
+        """
+        fake_wheel(data, 'fake-1.0-py2.py3-none-linux_x86_64.whl')
+        script.pip(
+            'download', '--no-index', '--find-links', data.find_links,
+            '--only-binary=:all:',
+            '--dest', '.',
+            '--platform', 'linux_x86_64',
+            'fake',
+        )
 
 
-def test_download_specify_python_version(script, data):
+def test_download__python_version(script, data):
     """
     Test using "pip download --python-version" to download a .whl archive
     supported for a specific interpreter
@@ -432,6 +484,63 @@ def test_download_specify_python_version(script, data):
     )
 
 
+def make_wheel_with_python_requires(script, package_name, python_requires):
+    """
+    Create a wheel using the given python_requires.
+
+    :return: the path to the wheel file.
+    """
+    package_dir = script.scratch_path / package_name
+    package_dir.mkdir()
+
+    text = textwrap.dedent("""\
+    from setuptools import setup
+    setup(name='{}',
+          python_requires='{}',
+          version='1.0')
+    """).format(package_name, python_requires)
+    package_dir.joinpath('setup.py').write_text(text)
+    script.run(
+        'python', 'setup.py', 'bdist_wheel', '--universal', cwd=package_dir,
+    )
+
+    file_name = '{}-1.0-py2.py3-none-any.whl'.format(package_name)
+    return package_dir / 'dist' / file_name
+
+
+def test_download__python_version_used_for_python_requires(
+    script, data, with_wheel,
+):
+    """
+    Test that --python-version is used for the Requires-Python check.
+    """
+    wheel_path = make_wheel_with_python_requires(
+        script, 'mypackage', python_requires='==3.2',
+    )
+    wheel_dir = os.path.dirname(wheel_path)
+
+    def make_args(python_version):
+        return [
+            'download', '--no-index', '--find-links', wheel_dir,
+            '--only-binary=:all:',
+            '--dest', '.',
+            '--python-version', python_version,
+            'mypackage==1.0',
+        ]
+
+    args = make_args('33')
+    result = script.pip(*args, expect_error=True)
+    expected_err = (
+        "ERROR: Package 'mypackage' requires a different Python: "
+        "3.3.0 not in '==3.2'"
+    )
+    assert expected_err in result.stderr, 'stderr: {}'.format(result.stderr)
+
+    # Now try with a --python-version that satisfies the Requires-Python.
+    args = make_args('32')
+    script.pip(*args)  # no exception
+
+
 def test_download_specify_abi(script, data):
     """
     Test using "pip download --abi" to download a .whl archive
@@ -466,7 +575,6 @@ def test_download_specify_abi(script, data):
         '--dest', '.',
         '--abi', 'cp27m',
         'fake',
-        expect_error=True,
     )
 
     data.reset()
@@ -517,20 +625,6 @@ def test_download_specify_implementation(script, data):
     )
 
     data.reset()
-    fake_wheel(data, 'fake-1.0-fk2.fk3-none-any.whl')
-    result = script.pip(
-        'download', '--no-index', '--find-links', data.find_links,
-        '--only-binary=:all:',
-        '--dest', '.',
-        '--implementation', 'fk',
-        'fake'
-    )
-    assert (
-        Path('scratch') / 'fake-1.0-fk2.fk3-none-any.whl'
-        in result.files_created
-    )
-
-    data.reset()
     fake_wheel(data, 'fake-1.0-fk3-none-any.whl')
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
@@ -554,3 +648,173 @@ def test_download_specify_implementation(script, data):
         'fake',
         expect_error=True,
     )
+
+
+def test_download_exit_status_code_when_no_requirements(script):
+    """
+    Test download exit status code when no requirements specified
+    """
+    result = script.pip('download', expect_error=True)
+    assert (
+        "You must give at least one requirement to download" in result.stderr
+    )
+    assert result.returncode == ERROR
+
+
+def test_download_exit_status_code_when_blank_requirements_file(script):
+    """
+    Test download exit status code when blank requirements file specified
+    """
+    script.scratch_path.joinpath("blank.txt").write_text("\n")
+    script.pip('download', '-r', 'blank.txt')
+
+
+def test_download_prefer_binary_when_tarball_higher_than_wheel(script, data):
+    fake_wheel(data, 'source-0.8-py2.py3-none-any.whl')
+    result = script.pip(
+        'download',
+        '--prefer-binary',
+        '--no-index',
+        '-f', data.packages,
+        '-d', '.', 'source'
+    )
+    assert (
+        Path('scratch') / 'source-0.8-py2.py3-none-any.whl'
+        in result.files_created
+    )
+    assert (
+        Path('scratch') / 'source-1.0.tar.gz'
+        not in result.files_created
+    )
+
+
+def test_download_prefer_binary_when_wheel_doesnt_satisfy_req(script, data):
+    fake_wheel(data, 'source-0.8-py2.py3-none-any.whl')
+    script.scratch_path.joinpath("test-req.txt").write_text(textwrap.dedent("""
+        source>0.9
+        """))
+
+    result = script.pip(
+        'download',
+        '--prefer-binary',
+        '--no-index',
+        '-f', data.packages,
+        '-d', '.',
+        '-r', script.scratch_path / 'test-req.txt'
+    )
+    assert (
+        Path('scratch') / 'source-1.0.tar.gz'
+        in result.files_created
+    )
+    assert (
+        Path('scratch') / 'source-0.8-py2.py3-none-any.whl'
+        not in result.files_created
+    )
+
+
+def test_download_prefer_binary_when_only_tarball_exists(script, data):
+    result = script.pip(
+        'download',
+        '--prefer-binary',
+        '--no-index',
+        '-f', data.packages,
+        '-d', '.', 'source'
+    )
+    assert (
+        Path('scratch') / 'source-1.0.tar.gz'
+        in result.files_created
+    )
+
+
+@pytest.fixture(scope="session")
+def shared_script(tmpdir_factory, script_factory):
+    tmpdir = Path(str(tmpdir_factory.mktemp("download_shared_script")))
+    script = script_factory(tmpdir.joinpath("workspace"))
+    return script
+
+
+def test_download_file_url(shared_script, shared_data, tmpdir):
+    download_dir = tmpdir / 'download'
+    download_dir.mkdir()
+    downloaded_path = download_dir / 'simple-1.0.tar.gz'
+
+    simple_pkg = shared_data.packages / 'simple-1.0.tar.gz'
+
+    shared_script.pip(
+        'download',
+        '-d',
+        str(download_dir),
+        '--no-index',
+        path_to_url(str(simple_pkg)),
+    )
+
+    assert downloaded_path.exists()
+    assert simple_pkg.read_bytes() == downloaded_path.read_bytes()
+
+
+def test_download_file_url_existing_ok_download(
+    shared_script, shared_data, tmpdir
+):
+    download_dir = tmpdir / 'download'
+    download_dir.mkdir()
+    downloaded_path = download_dir / 'simple-1.0.tar.gz'
+    fake_existing_package = shared_data.packages / 'simple-2.0.tar.gz'
+    shutil.copy(str(fake_existing_package), str(downloaded_path))
+    downloaded_path_bytes = downloaded_path.read_bytes()
+    digest = sha256(downloaded_path_bytes).hexdigest()
+
+    simple_pkg = shared_data.packages / 'simple-1.0.tar.gz'
+    url = "{}#sha256={}".format(path_to_url(simple_pkg), digest)
+
+    shared_script.pip('download', '-d', str(download_dir), url)
+
+    assert downloaded_path_bytes == downloaded_path.read_bytes()
+
+
+def test_download_file_url_existing_bad_download(
+    shared_script, shared_data, tmpdir
+):
+    download_dir = tmpdir / 'download'
+    download_dir.mkdir()
+    downloaded_path = download_dir / 'simple-1.0.tar.gz'
+    fake_existing_package = shared_data.packages / 'simple-2.0.tar.gz'
+    shutil.copy(str(fake_existing_package), str(downloaded_path))
+
+    simple_pkg = shared_data.packages / 'simple-1.0.tar.gz'
+    simple_pkg_bytes = simple_pkg.read_bytes()
+    digest = sha256(simple_pkg_bytes).hexdigest()
+    url = "{}#sha256={}".format(path_to_url(simple_pkg), digest)
+
+    shared_script.pip('download', '-d', str(download_dir), url)
+
+    assert simple_pkg_bytes == downloaded_path.read_bytes()
+
+
+def test_download_http_url_bad_hash(
+    shared_script, shared_data, tmpdir, mock_server
+):
+    download_dir = tmpdir / 'download'
+    download_dir.mkdir()
+    downloaded_path = download_dir / 'simple-1.0.tar.gz'
+    fake_existing_package = shared_data.packages / 'simple-2.0.tar.gz'
+    shutil.copy(str(fake_existing_package), str(downloaded_path))
+
+    simple_pkg = shared_data.packages / 'simple-1.0.tar.gz'
+    simple_pkg_bytes = simple_pkg.read_bytes()
+    digest = sha256(simple_pkg_bytes).hexdigest()
+    mock_server.set_responses([
+        file_response(simple_pkg)
+    ])
+    mock_server.start()
+    base_address = 'http://{}:{}'.format(mock_server.host, mock_server.port)
+    url = "{}/simple-1.0.tar.gz#sha256={}".format(base_address, digest)
+
+    shared_script.pip('download', '-d', str(download_dir), url)
+
+    assert simple_pkg_bytes == downloaded_path.read_bytes()
+
+    mock_server.stop()
+    requests = mock_server.get_requests()
+    assert len(requests) == 1
+    assert requests[0]['PATH_INFO'] == '/simple-1.0.tar.gz'
+    assert requests[0]['HTTP_ACCEPT_ENCODING'] == 'identity'

@@ -1,44 +1,61 @@
 language: python
+cache: pip
+dist: xenial
+python: 3.8
+addons:
+  apt:
+    packages:
+    - bzr
 
+stages:
+- primary
+- secondary
 
-matrix:
+jobs:
   include:
-    - env: TOXENV=docs
-    - env: TOXENV=pep8
-    - env: TOXENV=py3pep8
-    - env: TOXENV=packaging
-    - python: 2.6 # these are just to make travis's UI a bit prettier
-      env: TOXENV=py26
-    - python: 2.7
-      env: TOXENV=py27
-    - python: 3.3
-      env: TOXENV=py33
-    - python: 3.4
-      env: TOXENV=py34
-    - python: 3.5
-      env: TOXENV=py35
-    - python: nightly
-      env: TOXENV=py36
-    - python: pypy
-      env: TOXENV=pypy
-    - python: 2.7
-      env: TOXENV=py27 VENDOR=no
-    - python: 3.5
-      env: TOXENV=py35 VENDOR=no
-    - python: 2.7
-      env: TOXENV=py27 VENDOR=no WHEELS=yes
-    - python: 3.5
-      env: TOXENV=py35 VENDOR=no WHEELS=yes
+    # Basic Checks
+    - stage: primary
+      env: TOXENV=docs
+    - env: TOXENV=lint
+    - env: TOXENV=vendoring
+    # Latest CPython
+    - env: GROUP=1
+      python: 2.7
+    - env: GROUP=2
+      python: 2.7
+    - env: GROUP=1
+    - env: GROUP=2
 
-  allow_failures:
-    - python: nightly
+    # Complete checking for ensuring compatibility
+    # PyPy
+    - stage: secondary
+      env: GROUP=1
+      python: pypy3.5-7.0.0
+    - env: GROUP=2
+      python: pypy3.5-7.0.0
+    - env: GROUP=1
+      python: pypy2.7-7.1.1
+    - env: GROUP=2
+      python: pypy2.7-7.1.1
+    # Other Supported CPython
+    - env: GROUP=1
+      python: 3.7
+    - env: GROUP=2
+      python: 3.7
+    - env: GROUP=1
+      python: 3.6
+    - env: GROUP=2
+      python: 3.6
+    - env: GROUP=1
+      python: 3.5
+    - env: GROUP=2
+      python: 3.5
 
+  fast_finish: true
 
-install: .travis/install.sh
-
-
-script: .travis/run.sh
-
+before_install: tools/travis/setup.sh
+install: travis_retry tools/travis/install.sh
+script: tools/travis/run.sh
 
 notifications:
   irc:
@@ -47,6 +64,6 @@ notifications:
       # IRC channel whenever they fail a build. This can be removed when travis
       # implements https://github.com/travis-ci/travis-ci/issues/1094.
       # The actual value here is: irc.freenode.org#pypa-dev
-      - secure: "zAlwcmrDThlRsZz7CPDGpj4ABTzf7bc/zQXYtvIuqmSj0yJMAwsO5Vx/+qdTGYBvmW/oHw2s/uUgtkZzntSQiVQToKMag2fs0d3wV5bLJQUE2Si2jnH2JOQo3JZWSo9HOqL6WYmlKGI8lH9FVTdVLgpeJmIpLy1bN4zx4/TiJjc="
-    use_notice: true
+      - secure: zAlwcmrDThlRsZz7CPDGpj4ABTzf7bc/zQXYtvIuqmSj0yJMAwsO5Vx/+qdTGYBvmW/oHw2s/uUgtkZzntSQiVQToKMag2fs0d3wV5bLJQUE2Si2jnH2JOQo3JZWSo9HOqL6WYmlKGI8lH9FVTdVLgpeJmIpLy1bN4zx4/TiJjc=
     skip_join: true
+    use_notice: true

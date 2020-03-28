@@ -1,10 +1,9 @@
 import pytest
-
-from pip.exceptions import CommandError
-from pip.basecommand import ERROR, SUCCESS
-from pip.commands.help import HelpCommand
-from pip.commands import commands_dict as commands
 from mock import Mock
+
+from pip._internal.cli.base_command import ERROR, SUCCESS
+from pip._internal.commands import commands_dict, create_command
+from pip._internal.exceptions import CommandError
 
 
 def test_run_method_should_return_success_when_finds_command_name():
@@ -13,7 +12,7 @@ def test_run_method_should_return_success_when_finds_command_name():
     """
     options_mock = Mock()
     args = ('freeze',)
-    help_cmd = HelpCommand()
+    help_cmd = create_command('help')
     status = help_cmd.run(options_mock, args)
     assert status == SUCCESS
 
@@ -24,7 +23,7 @@ def test_run_method_should_return_success_when_command_name_not_specified():
     """
     options_mock = Mock()
     args = ()
-    help_cmd = HelpCommand()
+    help_cmd = create_command('help')
     status = help_cmd.run(options_mock, args)
     assert status == SUCCESS
 
@@ -35,7 +34,7 @@ def test_run_method_should_raise_command_error_when_command_does_not_exist():
     """
     options_mock = Mock()
     args = ('mycommand',)
-    help_cmd = HelpCommand()
+    help_cmd = create_command('help')
 
     with pytest.raises(CommandError):
         help_cmd.run(options_mock, args)
@@ -65,12 +64,12 @@ def test_help_command_should_exit_status_error_when_cmd_does_not_exist(script):
     assert result.returncode == ERROR
 
 
-def test_help_commands_equally_functional(script):
+def test_help_commands_equally_functional(in_memory_pip):
     """
     Test if `pip help` and 'pip --help' behave the same way.
     """
-    results = list(map(script.pip, ('help', '--help')))
-    results.append(script.pip())
+    results = list(map(in_memory_pip.pip, ('help', '--help')))
+    results.append(in_memory_pip.pip())
 
     out = map(lambda x: x.stdout, results)
     ret = map(lambda x: x.returncode, results)
@@ -78,12 +77,10 @@ def test_help_commands_equally_functional(script):
     msg = '"pip --help" != "pip help" != "pip"'
     assert len(set(out)) == 1, 'output of: ' + msg
     assert sum(ret) == 0, 'exit codes of: ' + msg
+    assert all(len(o) > 0 for o in out)
 
-    for name, cls in commands.items():
-        if cls.hidden:
-            continue
-
+    for name in commands_dict:
         assert (
-            script.pip('help', name).stdout ==
-            script.pip(name, '--help').stdout
+            in_memory_pip.pip('help', name).stdout ==
+            in_memory_pip.pip(name, '--help').stdout != ""
         )

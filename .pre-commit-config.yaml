@@ -1,0 +1,53 @@
+exclude: 'src/pip/_vendor/'
+
+repos:
+- repo: https://github.com/pre-commit/pre-commit-hooks
+  rev: v2.3.0
+  hooks:
+  - id: check-builtin-literals
+  - id: check-added-large-files
+  - id: check-case-conflict
+  - id: check-toml
+  - id: check-yaml
+  - id: debug-statements
+  - id: end-of-file-fixer
+    exclude: WHEEL
+  - id: flake8
+    exclude: tests/data
+  - id: forbid-new-submodules
+  - id: trailing-whitespace
+    exclude: .patch
+
+- repo: https://github.com/timothycrosley/isort
+  rev: 4.3.21
+  hooks:
+  - id: isort
+    files: \.py$
+
+- repo: https://github.com/pre-commit/mirrors-mypy
+  rev: v0.750
+  hooks:
+  - id: mypy
+    exclude: docs|tests
+    args: []
+  - id: mypy
+    name: mypy, for Py2
+    exclude: noxfile.py|tools/automation/release|docs|tests
+    args: ["-2"]
+
+- repo: https://github.com/pre-commit/pygrep-hooks
+  rev: v1.4.1
+  hooks:
+  - id: python-no-log-warn
+  - id: python-no-eval
+  - id: rst-backticks
+    # Validate existing ReST files and NEWS fragments.
+    files: .*\.rst$|^news/.*
+    types: [file]
+    # The errors flagged in NEWS.rst are old.
+    exclude: NEWS.rst
+
+- repo: https://github.com/mgedmin/check-manifest
+  rev: '0.39'
+  hooks:
+  - id: check-manifest

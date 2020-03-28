@@ -1,0 +1,1 @@
+Remove unused ``tests/scripts/test_all_pip.py`` test script and the ``tests/scripts`` folder.

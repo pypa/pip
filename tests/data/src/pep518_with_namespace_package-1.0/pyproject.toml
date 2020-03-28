@@ -1,0 +1,6 @@
+[build-system]
+requires = [
+    "setuptools",
+    "wheel",
+    "simple_namespace",
+]

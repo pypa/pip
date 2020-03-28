@@ -1,20 +1,35 @@
+import collections
+import logging
 import os
 import subprocess
 import textwrap
 
-from mock import patch, Mock
 import pytest
+from mock import patch
+from pip._vendor.six import PY2
 from pretend import stub
 
-import pip
-from pip.exceptions import (InstallationError, RequirementsFileParseError)
-from pip.download import PipSession
-from pip.index import PackageFinder
-from pip.req.req_install import InstallRequirement
-from pip.req.req_file import (parse_requirements, process_line, join_lines,
-                              ignore_comments, break_args_options, skip_regex,
-                              preprocess)
-from tests.lib import requirements_file
+import pip._internal.req.req_file  # this will be monkeypatched
+from pip._internal.exceptions import (
+    InstallationError,
+    RequirementsFileParseError,
+)
+from pip._internal.models.format_control import FormatControl
+from pip._internal.network.session import PipSession
+from pip._internal.req.constructors import (
+    install_req_from_editable,
+    install_req_from_line,
+    install_req_from_parsed_requirement,
+)
+from pip._internal.req.req_file import (
+    break_args_options,
+    ignore_comments,
+    join_lines,
+    parse_requirements,
+    preprocess,
+    skip_regex,
+)
+from tests.lib import make_test_finder, requirements_file
 
 
 @pytest.fixture
@@ -24,15 +39,35 @@ def session():
 
 @pytest.fixture
 def finder(session):
-    return PackageFinder([], [], session=session)
+    return make_test_finder(session=session)
 
 
 @pytest.fixture
 def options(session):
     return stub(
-        isolated_mode=False, default_vcs=None, index_url='default_url',
+        isolated_mode=False, index_url='default_url',
         skip_requirements_regex=False,
-        format_control=pip.index.FormatControl(set(), set()))
+        format_control=FormatControl(set(), set()))
+
+
+def parse_reqfile(
+    filename,
+    session,
+    finder=None,
+    options=None,
+    constraint=False,
+    isolated=False,
+):
+    # Wrap parse_requirements/install_req_from_parsed_requirement to
+    # avoid having to write the same chunk of code in lots of tests.
+    for parsed_req in parse_requirements(
+        filename, session, finder=finder,
+        options=options, constraint=constraint,
+    ):
+        yield install_req_from_parsed_requirement(
+            parsed_req,
+            isolated=isolated
+        )
 
 
 class TestPreprocess(object):
@@ -70,8 +105,8 @@ class TestPreprocess(object):
           ern
           line2
         """)
-        options.skip_requirements_regex = 'pattern'
-        result = preprocess(content, options)
+        skip_requirements_regex = 'pattern'
+        result = preprocess(content, skip_requirements_regex)
         assert list(result) == [(3, 'line2')]
 
     def test_skip_regex_after_joining_case2(self, options):
@@ -80,8 +115,8 @@ class TestPreprocess(object):
           line2
           line3
         """)
-        options.skip_requirements_regex = 'pattern'
-        result = preprocess(content, options)
+        skip_requirements_regex = 'pattern'
+        result = preprocess(content, skip_requirements_regex)
         assert list(result) == [(3, 'line3')]
 
 
@@ -141,118 +176,177 @@ class TestSkipRegex(object):
     """tests for `skip_reqex``"""
 
     def test_skip_regex_pattern_match(self):
-        options = stub(skip_requirements_regex='.*Bad.*')
+        pattern = '.*Bad.*'
         line = '--extra-index-url Bad'
-        assert [] == list(skip_regex(enumerate([line]), options))
+        assert [] == list(skip_regex(enumerate([line]), pattern))
 
     def test_skip_regex_pattern_not_match(self):
-        options = stub(skip_requirements_regex='.*Bad.*')
+        pattern = '.*Bad.*'
         line = '--extra-index-url Good'
-        assert [(0, line)] == list(skip_regex(enumerate([line]), options))
+        assert [(0, line)] == list(skip_regex(enumerate([line]), pattern))
 
     def test_skip_regex_no_options(self):
-        options = None
+        pattern = None
         line = '--extra-index-url Good'
-        assert [(0, line)] == list(skip_regex(enumerate([line]), options))
+        assert [(1, line)] == list(preprocess(line, pattern))
 
-    def test_skip_regex_no_skip_option(self):
-        options = stub(skip_requirements_regex=None)
-        line = '--extra-index-url Good'
-        assert [(0, line)] == list(skip_regex(enumerate([line]), options))
+
+@pytest.fixture
+def line_processor(
+    monkeypatch,
+    tmpdir,
+):
+    def process_line(
+        line,
+        filename,
+        line_number,
+        finder=None,
+        options=None,
+        session=None,
+        constraint=False,
+    ):
+        if session is None:
+            session = PipSession()
+
+        prefix = '\n' * (line_number - 1)
+        path = tmpdir.joinpath(filename)
+        path.parent.mkdir(exist_ok=True)
+        path.write_text(prefix + line)
+        monkeypatch.chdir(str(tmpdir))
+        return list(parse_reqfile(
+            filename,
+            finder=finder,
+            options=options,
+            session=session,
+            constraint=constraint,
+            isolated=options.isolated_mode if options else False
+        ))
+
+    return process_line
 
 
 class TestProcessLine(object):
     """tests for `process_line`"""
 
-    def test_parser_error(self):
+    def test_parser_error(self, line_processor):
         with pytest.raises(RequirementsFileParseError):
-            list(process_line("--bogus", "file", 1))
+            line_processor("--bogus", "file", 1)
 
-    def test_only_one_req_per_line(self):
+    def test_parser_offending_line(self, line_processor):
+        line = 'pkg==1.0.0 --hash=somehash'
+        with pytest.raises(RequirementsFileParseError) as err:
+            line_processor(line, 'file', 1)
+        assert line in str(err.value)
+
+    def test_parser_non_offending_line(self, line_processor):
+        try:
+            line_processor('pkg==1.0.0 --hash=sha256:somehash', 'file', 1)
+        except RequirementsFileParseError:
+            pytest.fail('Reported offending line where it should not.')
+
+    def test_only_one_req_per_line(self, line_processor):
         # pkg_resources raises the ValueError
         with pytest.raises(InstallationError):
-            list(process_line("req1 req2", "file", 1))
+            line_processor("req1 req2", "file", 1)
 
-    def test_yield_line_requirement(self):
+    def test_error_message(self, line_processor):
+        """
+        Test the error message if a parsing error occurs (all of path,
+        line number, and hint).
+        """
+        with pytest.raises(InstallationError) as exc:
+            line_processor(
+                'my-package=1.0',
+                filename='path/requirements.txt',
+                line_number=3
+            )
+
+        package_name = "u'my-package=1.0'" if PY2 else "'my-package=1.0'"
+        expected = (
+            "Invalid requirement: {} "
+            '(from line 3 of path/requirements.txt)\n'
+            'Hint: = is not a valid operator. Did you mean == ?'
+        ).format(package_name)
+        assert str(exc.value) == expected
+
+    def test_yield_line_requirement(self, line_processor):
         line = 'SomeProject'
         filename = 'filename'
-        comes_from = '-r %s (line %s)' % (filename, 1)
-        req = InstallRequirement.from_line(line, comes_from=comes_from)
-        assert repr(list(process_line(line, filename, 1))[0]) == repr(req)
+        comes_from = '-r {} (line {})'.format(filename, 1)
+        req = install_req_from_line(line, comes_from=comes_from)
+        assert repr(line_processor(line, filename, 1)[0]) == repr(req)
 
-    def test_yield_line_constraint(self):
+    def test_yield_pep440_line_requirement(self, line_processor):
+        line = 'SomeProject @ https://url/SomeProject-py2-py3-none-any.whl'
+        filename = 'filename'
+        comes_from = '-r {} (line {})'.format(filename, 1)
+        req = install_req_from_line(line, comes_from=comes_from)
+        assert repr(line_processor(line, filename, 1)[0]) == repr(req)
+
+    def test_yield_line_constraint(self, line_processor):
         line = 'SomeProject'
         filename = 'filename'
-        comes_from = '-c %s (line %s)' % (filename, 1)
-        req = InstallRequirement.from_line(
+        comes_from = '-c {} (line {})'.format(filename, 1)
+        req = install_req_from_line(
             line, comes_from=comes_from, constraint=True)
-        found_req = list(process_line(line, filename, 1, constraint=True))[0]
+        found_req = line_processor(line, filename, 1, constraint=True)[0]
         assert repr(found_req) == repr(req)
         assert found_req.constraint is True
 
-    def test_yield_line_requirement_with_spaces_in_specifier(self):
+    def test_yield_line_requirement_with_spaces_in_specifier(
+        self, line_processor
+    ):
         line = 'SomeProject >= 2'
         filename = 'filename'
-        comes_from = '-r %s (line %s)' % (filename, 1)
-        req = InstallRequirement.from_line(line, comes_from=comes_from)
-        assert repr(list(process_line(line, filename, 1))[0]) == repr(req)
+        comes_from = '-r {} (line {})'.format(filename, 1)
+        req = install_req_from_line(line, comes_from=comes_from)
+        assert repr(line_processor(line, filename, 1)[0]) == repr(req)
         assert str(req.req.specifier) == '>=2'
 
-    def test_yield_editable_requirement(self):
+    def test_yield_editable_requirement(self, line_processor):
         url = 'git+https://url#egg=SomeProject'
-        line = '-e %s' % url
+        line = '-e {url}'.format(**locals())
         filename = 'filename'
-        comes_from = '-r %s (line %s)' % (filename, 1)
-        req = InstallRequirement.from_editable(url, comes_from=comes_from)
-        assert repr(list(process_line(line, filename, 1))[0]) == repr(req)
+        comes_from = '-r {} (line {})'.format(filename, 1)
+        req = install_req_from_editable(url, comes_from=comes_from)
+        assert repr(line_processor(line, filename, 1)[0]) == repr(req)
 
-    def test_yield_editable_constraint(self):
+    def test_yield_editable_constraint(self, line_processor):
         url = 'git+https://url#egg=SomeProject'
-        line = '-e %s' % url
+        line = '-e {}'.format(url)
         filename = 'filename'
-        comes_from = '-c %s (line %s)' % (filename, 1)
-        req = InstallRequirement.from_editable(
+        comes_from = '-c {} (line {})'.format(filename, 1)
+        req = install_req_from_editable(
             url, comes_from=comes_from, constraint=True)
-        found_req = list(process_line(line, filename, 1, constraint=True))[0]
+        found_req = line_processor(line, filename, 1, constraint=True)[0]
         assert repr(found_req) == repr(req)
         assert found_req.constraint is True
 
-    def test_nested_requirements_file(self, monkeypatch):
-        line = '-r another_file'
-        req = InstallRequirement.from_line('SomeProject')
-        import pip.req.req_file
+    def test_nested_constraints_file(self, monkeypatch, tmpdir):
+        req_name = 'hello'
+        req_file = tmpdir / 'parent' / 'req_file.txt'
+        req_file.parent.mkdir()
+        req_file.write_text('-c reqs.txt')
+        req_file.parent.joinpath('reqs.txt').write_text(req_name)
 
-        def stub_parse_requirements(req_url, finder, comes_from, options,
-                                    session, wheel_cache, constraint):
-            return [(req, constraint)]
-        parse_requirements_stub = stub(call=stub_parse_requirements)
-        monkeypatch.setattr(pip.req.req_file, 'parse_requirements',
-                            parse_requirements_stub.call)
-        assert list(process_line(line, 'filename', 1)) == [(req, False)]
+        monkeypatch.chdir(str(tmpdir))
 
-    def test_nested_constraints_file(self, monkeypatch):
-        line = '-c another_file'
-        req = InstallRequirement.from_line('SomeProject')
-        import pip.req.req_file
+        reqs = list(
+            parse_reqfile('./parent/req_file.txt', session=session)
+        )
+        assert len(reqs) == 1
+        assert reqs[0].name == req_name
+        assert reqs[0].constraint
 
-        def stub_parse_requirements(req_url, finder, comes_from, options,
-                                    session, wheel_cache, constraint):
-            return [(req, constraint)]
-        parse_requirements_stub = stub(call=stub_parse_requirements)
-        monkeypatch.setattr(pip.req.req_file, 'parse_requirements',
-                            parse_requirements_stub.call)
-        assert list(process_line(line, 'filename', 1)) == [(req, True)]
-
-    def test_options_on_a_requirement_line(self):
+    def test_options_on_a_requirement_line(self, line_processor):
         line = 'SomeProject --install-option=yo1 --install-option yo2 '\
                '--global-option="yo3" --global-option "yo4"'
         filename = 'filename'
-        req = list(process_line(line, filename, 1))[0]
-        assert req.options == {
-            'global_options': ['yo3', 'yo4'],
-            'install_options': ['yo1', 'yo2']}
+        req = line_processor(line, filename, 1)[0]
+        assert req.global_options == ['yo3', 'yo4']
+        assert req.install_options == ['yo1', 'yo2']
 
-    def test_hash_options(self):
+    def test_hash_options(self, line_processor):
         """Test the --hash option: mostly its value storage.
 
         Make sure it reads and preserve multiple hashes.
@@ -265,81 +359,85 @@ class TestProcessLine(object):
                 '--hash=sha256:486ea46224d1bb4fb680f34f7c9ad96a8f24ec88be73ea8'
                 'e5a6c65260e9cb8a7')
         filename = 'filename'
-        req = list(process_line(line, filename, 1))[0]
-        assert req.options == {'hashes': {
+        req = line_processor(line, filename, 1)[0]
+        assert req.hash_options == {
             'sha256': ['2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e730433'
                        '62938b9824',
                        '486ea46224d1bb4fb680f34f7c9ad96a8f24ec88be73ea8e5a6c65'
                        '260e9cb8a7'],
             'sha384': ['59e1748777448c69de6b800d7a33bbfb9ff1b463e44354c3553bcd'
-                       'b9c666fa90125a3c79f90397bdf5f6a13de828684f']}}
+                       'b9c666fa90125a3c79f90397bdf5f6a13de828684f']}
 
-    def test_set_isolated(self, options):
+    def test_set_isolated(self, line_processor, options):
         line = 'SomeProject'
         filename = 'filename'
         options.isolated_mode = True
-        result = process_line(line, filename, 1, options=options)
-        assert list(result)[0].isolated
+        result = line_processor(line, filename, 1, options=options)
+        assert result[0].isolated
 
-    def test_set_default_vcs(self, options):
-        url = 'https://url#egg=SomeProject'
-        line = '-e %s' % url
-        filename = 'filename'
-        options.default_vcs = 'git'
-        result = process_line(line, filename, 1, options=options)
-        assert list(result)[0].link.url == 'git+' + url
-
-    def test_set_finder_no_index(self, finder):
-        list(process_line("--no-index", "file", 1, finder=finder))
+    def test_set_finder_no_index(self, line_processor, finder):
+        line_processor("--no-index", "file", 1, finder=finder)
         assert finder.index_urls == []
 
-    def test_set_finder_index_url(self, finder):
-        list(process_line("--index-url=url", "file", 1, finder=finder))
+    def test_set_finder_index_url(self, line_processor, finder):
+        line_processor("--index-url=url", "file", 1, finder=finder)
         assert finder.index_urls == ['url']
 
-    def test_set_finder_find_links(self, finder):
-        list(process_line("--find-links=url", "file", 1, finder=finder))
+    def test_set_finder_find_links(self, line_processor, finder):
+        line_processor("--find-links=url", "file", 1, finder=finder)
         assert finder.find_links == ['url']
 
-    def test_set_finder_extra_index_urls(self, finder):
-        list(process_line("--extra-index-url=url", "file", 1, finder=finder))
+    def test_set_finder_extra_index_urls(self, line_processor, finder):
+        line_processor("--extra-index-url=url", "file", 1, finder=finder)
         assert finder.index_urls == ['url']
 
-    def test_set_finder_use_wheel(self, finder):
-        list(process_line("--use-wheel", "file", 1, finder=finder))
-        no_use_wheel_fmt = pip.index.FormatControl(set(), set())
-        assert finder.format_control == no_use_wheel_fmt
+    def test_set_finder_trusted_host(
+        self, line_processor, caplog, session, finder
+    ):
+        with caplog.at_level(logging.INFO):
+            line_processor(
+                "--trusted-host=host1 --trusted-host=host2:8080",
+                "file.txt", 1, finder=finder, session=session,
+            )
+        assert list(finder.trusted_hosts) == ['host1', 'host2:8080']
+        session = finder._link_collector.session
+        assert session.adapters['https://host1/'] is session._insecure_adapter
+        assert (
+            session.adapters['https://host2:8080/']
+            is session._insecure_adapter
+        )
 
-    def test_set_finder_no_use_wheel(self, finder):
-        list(process_line("--no-use-wheel", "file", 1, finder=finder))
-        no_use_wheel_fmt = pip.index.FormatControl(set([':all:']), set())
-        assert finder.format_control == no_use_wheel_fmt
+        # Test the log message.
+        actual = [(r.levelname, r.message) for r in caplog.records]
+        expected = (
+            'INFO', "adding trusted host: 'host1' (from line 1 of file.txt)"
+        )
+        assert expected in actual
 
-    def test_set_finder_trusted_host(self, finder):
-        list(process_line("--trusted-host=url", "file", 1, finder=finder))
-        assert finder.secure_origins == [('*', 'url', '*')]
-
-    def test_noop_always_unzip(self, finder):
+    def test_noop_always_unzip(self, line_processor, finder):
         # noop, but confirm it can be set
-        list(process_line("--always-unzip", "file", 1, finder=finder))
+        line_processor("--always-unzip", "file", 1, finder=finder)
 
-    def test_noop_finder_no_allow_unsafe(self, finder):
-        # noop, but confirm it can be set
-        list(process_line("--no-allow-insecure", "file", 1, finder=finder))
-
-    def test_set_finder_allow_all_prereleases(self, finder):
-        list(process_line("--pre", "file", 1, finder=finder))
+    def test_set_finder_allow_all_prereleases(self, line_processor, finder):
+        line_processor("--pre", "file", 1, finder=finder)
         assert finder.allow_all_prereleases
 
-    def test_relative_local_find_links(self, finder, monkeypatch):
+    def test_relative_local_find_links(
+        self, line_processor, finder, monkeypatch, tmpdir
+    ):
         """
         Test a relative find_links path is joined with the req file directory
         """
+        base_path = tmpdir / 'path'
+
+        def normalize(path):
+            return os.path.normcase(
+                os.path.abspath(os.path.normpath(str(path)))
+            )
+
         # Make sure the test also passes on windows
-        req_file = os.path.normcase(os.path.abspath(
-            os.path.normpath('/path/req_file.txt')))
-        nested_link = os.path.normcase(os.path.abspath(
-            os.path.normpath('/path/rel_path')))
+        req_file = normalize(base_path / 'req_file.txt')
+        nested_link = normalize(base_path / 'rel_path')
         exists_ = os.path.exists
 
         def exists(path):
@@ -347,76 +445,104 @@ class TestProcessLine(object):
                 return True
             else:
                 exists_(path)
+
         monkeypatch.setattr(os.path, 'exists', exists)
-        list(process_line("--find-links=rel_path", req_file, 1,
-                          finder=finder))
+        line_processor("--find-links=rel_path", req_file, 1, finder=finder)
         assert finder.find_links == [nested_link]
 
-    def test_relative_http_nested_req_files(self, finder, monkeypatch):
+    def test_relative_http_nested_req_files(
+        self, finder, session, monkeypatch
+    ):
         """
         Test a relative nested req file path is joined with the req file url
         """
+        req_name = 'hello'
         req_file = 'http://me.com/me/req_file.txt'
 
-        def parse(*args, **kwargs):
-            return iter([])
-        mock_parse = Mock()
-        mock_parse.side_effect = parse
-        monkeypatch.setattr(pip.req.req_file, 'parse_requirements', mock_parse)
-        list(process_line("-r reqs.txt", req_file, 1, finder=finder))
-        call = mock_parse.mock_calls[0]
-        assert call[1][0] == 'http://me.com/me/reqs.txt'
+        def get_file_content(filename, *args, **kwargs):
+            if filename == req_file:
+                return None, '-r reqs.txt'
+            elif filename == 'http://me.com/me/reqs.txt':
+                return None, req_name
+            assert False, 'Unexpected file requested {}'.format(filename)
 
-    def test_relative_local_nested_req_files(self, finder, monkeypatch):
+        monkeypatch.setattr(
+            pip._internal.req.req_file, 'get_file_content', get_file_content
+        )
+
+        result = list(parse_reqfile(req_file, session=session))
+        assert len(result) == 1
+        assert result[0].name == req_name
+        assert not result[0].constraint
+
+    def test_relative_local_nested_req_files(
+        self, session, monkeypatch, tmpdir
+    ):
         """
         Test a relative nested req file path is joined with the req file dir
         """
-        req_file = os.path.normpath('/path/req_file.txt')
+        req_name = 'hello'
+        req_file = tmpdir / 'parent' / 'req_file.txt'
+        req_file.parent.mkdir()
+        req_file.write_text('-r reqs.txt')
+        req_file.parent.joinpath('reqs.txt').write_text(req_name)
 
-        def parse(*args, **kwargs):
-            return iter([])
-        mock_parse = Mock()
-        mock_parse.side_effect = parse
-        monkeypatch.setattr(pip.req.req_file, 'parse_requirements', mock_parse)
-        list(process_line("-r reqs.txt", req_file, 1, finder=finder))
-        call = mock_parse.mock_calls[0]
-        assert call[1][0] == os.path.normpath('/path/reqs.txt')
+        monkeypatch.chdir(str(tmpdir))
 
-    def test_absolute_local_nested_req_files(self, finder, monkeypatch):
+        reqs = list(
+            parse_reqfile('./parent/req_file.txt', session=session)
+        )
+        assert len(reqs) == 1
+        assert reqs[0].name == req_name
+        assert not reqs[0].constraint
+
+    def test_absolute_local_nested_req_files(
+        self, session, monkeypatch, tmpdir
+    ):
         """
         Test an absolute nested req file path
         """
-        req_file = '/path/req_file.txt'
+        req_name = 'hello'
+        req_file = tmpdir / 'parent' / 'req_file.txt'
+        req_file.parent.mkdir()
+        other_req_file = tmpdir / 'other' / 'reqs.txt'
+        other_req_file.parent.mkdir()
+        # POSIX-ify the path, since Windows backslashes aren't supported.
+        other_req_file_str = str(other_req_file).replace('\\', '/')
 
-        def parse(*args, **kwargs):
-            return iter([])
-        mock_parse = Mock()
-        mock_parse.side_effect = parse
-        monkeypatch.setattr(pip.req.req_file, 'parse_requirements', mock_parse)
-        list(process_line("-r /other/reqs.txt", req_file, 1, finder=finder))
-        call = mock_parse.mock_calls[0]
-        assert call[1][0] == '/other/reqs.txt'
+        req_file.write_text('-r {}'.format(other_req_file_str))
+        other_req_file.write_text(req_name)
 
-    def test_absolute_http_nested_req_file_in_local(self, finder, monkeypatch):
+        reqs = list(parse_reqfile(str(req_file), session=session))
+        assert len(reqs) == 1
+        assert reqs[0].name == req_name
+        assert not reqs[0].constraint
+
+    def test_absolute_http_nested_req_file_in_local(
+        self, session, monkeypatch, tmpdir
+    ):
         """
         Test a nested req file url in a local req file
         """
-        req_file = '/path/req_file.txt'
+        req_name = 'hello'
+        req_file = tmpdir / 'req_file.txt'
+        nested_req_file = 'http://me.com/me/req_file.txt'
 
-        def parse(*args, **kwargs):
-            return iter([])
-        mock_parse = Mock()
-        mock_parse.side_effect = parse
-        monkeypatch.setattr(pip.req.req_file, 'parse_requirements', mock_parse)
-        list(process_line("-r http://me.com/me/reqs.txt", req_file, 1,
-                          finder=finder))
-        call = mock_parse.mock_calls[0]
-        assert call[1][0] == 'http://me.com/me/reqs.txt'
+        def get_file_content(filename, *args, **kwargs):
+            if filename == str(req_file):
+                return None, '-r {}'.format(nested_req_file)
+            elif filename == nested_req_file:
+                return None, req_name
+            assert False, 'Unexpected file requested {}'.format(filename)
 
-    def test_set_finder_process_dependency_links(self, finder):
-        list(process_line(
-            "--process-dependency-links", "file", 1, finder=finder))
-        assert finder.process_dependency_links
+        monkeypatch.setattr(
+            pip._internal.req.req_file, 'get_file_content', get_file_content
+        )
+
+        result = list(parse_reqfile(req_file, session=session))
+        assert len(result) == 1
+        assert result[0].name == req_name
+        assert not result[0].constraint
 
 
 class TestBreakOptionsArgs(object):
@@ -440,29 +566,29 @@ class TestOptionVariants(object):
 
     # this suite is really just testing optparse, but added it anyway
 
-    def test_variant1(self, finder):
-        list(process_line("-i url", "file", 1, finder=finder))
+    def test_variant1(self, line_processor, finder):
+        line_processor("-i url", "file", 1, finder=finder)
         assert finder.index_urls == ['url']
 
-    def test_variant2(self, finder):
-        list(process_line("-i 'url'", "file", 1, finder=finder))
+    def test_variant2(self, line_processor, finder):
+        line_processor("-i 'url'", "file", 1, finder=finder)
         assert finder.index_urls == ['url']
 
-    def test_variant3(self, finder):
-        list(process_line("--index-url=url", "file", 1, finder=finder))
+    def test_variant3(self, line_processor, finder):
+        line_processor("--index-url=url", "file", 1, finder=finder)
         assert finder.index_urls == ['url']
 
-    def test_variant4(self, finder):
-        list(process_line("--index-url url", "file", 1, finder=finder))
+    def test_variant4(self, line_processor, finder):
+        line_processor("--index-url url", "file", 1, finder=finder)
         assert finder.index_urls == ['url']
 
-    def test_variant5(self, finder):
-        list(process_line("--index-url='url'", "file", 1, finder=finder))
+    def test_variant5(self, line_processor, finder):
+        line_processor("--index-url='url'", "file", 1, finder=finder)
         assert finder.index_urls == ['url']
 
 
 class TestParseRequirements(object):
-    """tests for `parse_requirements`"""
+    """tests for `parse_reqfile`"""
 
     @pytest.mark.network
     def test_remote_reqs_parse(self):
@@ -471,57 +597,115 @@ class TestParseRequirements(object):
         """
         # this requirements file just contains a comment previously this has
         # failed in py3: https://github.com/pypa/pip/issues/760
-        for req in parse_requirements(
+        for req in parse_reqfile(
                 'https://raw.githubusercontent.com/pypa/'
                 'pip-test-package/master/'
                 'tests/req_just_comment.txt', session=PipSession()):
             pass
 
     def test_multiple_appending_options(self, tmpdir, finder, options):
-        with open(tmpdir.join("req1.txt"), "w") as fp:
+        with open(tmpdir.joinpath("req1.txt"), "w") as fp:
             fp.write("--extra-index-url url1 \n")
             fp.write("--extra-index-url url2 ")
 
-        list(parse_requirements(tmpdir.join("req1.txt"), finder=finder,
-                                session=PipSession(), options=options))
+        list(parse_reqfile(tmpdir.joinpath("req1.txt"), finder=finder,
+                           session=PipSession(), options=options))
 
         assert finder.index_urls == ['url1', 'url2']
 
     def test_skip_regex(self, tmpdir, finder, options):
         options.skip_requirements_regex = '.*Bad.*'
-        with open(tmpdir.join("req1.txt"), "w") as fp:
+        with open(tmpdir.joinpath("req1.txt"), "w") as fp:
             fp.write("--extra-index-url Bad \n")
             fp.write("--extra-index-url Good ")
 
-        list(parse_requirements(tmpdir.join("req1.txt"), finder=finder,
-                                options=options, session=PipSession()))
+        list(parse_reqfile(tmpdir.joinpath("req1.txt"), finder=finder,
+                           options=options, session=PipSession()))
 
         assert finder.index_urls == ['Good']
 
+    def test_expand_existing_env_variables(self, tmpdir, finder):
+        template = (
+            'https://{}:x-oauth-basic@github.com/'
+            'user/{}/archive/master.zip'
+        )
+
+        def make_var(name):
+            return '${{{name}}}'.format(**locals())
+
+        env_vars = collections.OrderedDict([
+            ('GITHUB_TOKEN', 'notarealtoken'),
+            ('DO_12_FACTOR', 'awwyeah'),
+        ])
+
+        with open(tmpdir.joinpath('req1.txt'), 'w') as fp:
+            fp.write(template.format(*map(make_var, env_vars)))
+
+        with patch('pip._internal.req.req_file.os.getenv') as getenv:
+            getenv.side_effect = lambda n: env_vars[n]
+
+            reqs = list(parse_reqfile(
+                tmpdir.joinpath('req1.txt'),
+                finder=finder,
+                session=PipSession()
+            ))
+
+        assert len(reqs) == 1, \
+            'parsing requirement file with env variable failed'
+
+        expected_url = template.format(*env_vars.values())
+        assert reqs[0].link.url == expected_url, \
+            'variable expansion in req file failed'
+
+    def test_expand_missing_env_variables(self, tmpdir, finder):
+        req_url = (
+            'https://${NON_EXISTENT_VARIABLE}:$WRONG_FORMAT@'
+            '%WINDOWS_FORMAT%github.com/user/repo/archive/master.zip'
+        )
+
+        with open(tmpdir.joinpath('req1.txt'), 'w') as fp:
+            fp.write(req_url)
+
+        with patch('pip._internal.req.req_file.os.getenv') as getenv:
+            getenv.return_value = ''
+
+            reqs = list(parse_reqfile(
+                tmpdir.joinpath('req1.txt'),
+                finder=finder,
+                session=PipSession()
+            ))
+
+            assert len(reqs) == 1, \
+                'parsing requirement file with env variable failed'
+            assert reqs[0].link.url == req_url, \
+                'ignoring invalid env variable in req file failed'
+
     def test_join_lines(self, tmpdir, finder):
-        with open(tmpdir.join("req1.txt"), "w") as fp:
+        with open(tmpdir.joinpath("req1.txt"), "w") as fp:
             fp.write("--extra-index-url url1 \\\n--extra-index-url url2")
 
-        list(parse_requirements(tmpdir.join("req1.txt"), finder=finder,
-                                session=PipSession()))
+        list(parse_reqfile(tmpdir.joinpath("req1.txt"), finder=finder,
+                           session=PipSession()))
 
         assert finder.index_urls == ['url1', 'url2']
 
     def test_req_file_parse_no_only_binary(self, data, finder):
-        list(parse_requirements(
-            data.reqfiles.join("supported_options2.txt"), finder,
+        list(parse_reqfile(
+            data.reqfiles.joinpath("supported_options2.txt"),
+            finder=finder,
             session=PipSession()))
-        expected = pip.index.FormatControl(set(['fred']), set(['wilma']))
+        expected = FormatControl({'fred'}, {'wilma'})
         assert finder.format_control == expected
 
     def test_req_file_parse_comment_start_of_line(self, tmpdir, finder):
         """
         Test parsing comments in a requirements file
         """
-        with open(tmpdir.join("req1.txt"), "w") as fp:
+        with open(tmpdir.joinpath("req1.txt"), "w") as fp:
             fp.write("# Comment ")
 
-        reqs = list(parse_requirements(tmpdir.join("req1.txt"), finder,
+        reqs = list(parse_reqfile(tmpdir.joinpath("req1.txt"),
+                    finder=finder,
                     session=PipSession()))
 
         assert not reqs
@@ -530,10 +714,11 @@ class TestParseRequirements(object):
         """
         Test parsing comments in a requirements file
         """
-        with open(tmpdir.join("req1.txt"), "w") as fp:
+        with open(tmpdir.joinpath("req1.txt"), "w") as fp:
             fp.write("https://example.com/foo.tar.gz # Comment ")
 
-        reqs = list(parse_requirements(tmpdir.join("req1.txt"), finder,
+        reqs = list(parse_reqfile(tmpdir.joinpath("req1.txt"),
+                    finder=finder,
                     session=PipSession()))
 
         assert len(reqs) == 1
@@ -543,10 +728,11 @@ class TestParseRequirements(object):
         """
         Test parsing comments in a requirements file
         """
-        with open(tmpdir.join("req1.txt"), "w") as fp:
+        with open(tmpdir.joinpath("req1.txt"), "w") as fp:
             fp.write("https://example.com/foo.tar.gz#egg=wat")
 
-        reqs = list(parse_requirements(tmpdir.join("req1.txt"), finder,
+        reqs = list(parse_reqfile(tmpdir.joinpath("req1.txt"),
+                    finder=finder,
                     session=PipSession()))
 
         assert len(reqs) == 1
@@ -556,7 +742,7 @@ class TestParseRequirements(object):
         """
         Test parsing a requirements file without a finder
         """
-        with open(tmpdir.join("req.txt"), "w") as fp:
+        with open(tmpdir.joinpath("req.txt"), "w") as fp:
             fp.write("""
     --find-links https://example.com/
     --index-url https://example.com/
@@ -565,7 +751,7 @@ class TestParseRequirements(object):
     --no-index
             """)
 
-        parse_requirements(tmpdir.join("req.txt"), session=PipSession())
+        parse_reqfile(tmpdir.joinpath("req.txt"), session=PipSession())
 
     def test_install_requirements_with_options(self, tmpdir, finder, session,
                                                options):
@@ -579,22 +765,24 @@ class TestParseRequirements(object):
         '''.format(global_option=global_option, install_option=install_option)
 
         with requirements_file(content, tmpdir) as reqs_file:
-            req = next(parse_requirements(reqs_file.abspath,
-                                          finder=finder,
-                                          options=options,
-                                          session=session))
+            req = next(parse_reqfile(reqs_file.resolve(),
+                                     finder=finder,
+                                     options=options,
+                                     session=session))
 
         req.source_dir = os.curdir
         with patch.object(subprocess, 'Popen') as popen:
-            popen.return_value.stdout.readline.return_value = ""
+            popen.return_value.stdout.readline.return_value = b""
             try:
                 req.install([])
-            except:
+            except Exception:
                 pass
 
-            call = popen.call_args_list[0][0][0]
-            assert call.index(install_option) > \
-                call.index('install') > \
-                call.index(global_option) > 0
-        assert options.format_control.no_binary == set([':all:'])
-        assert options.format_control.only_binary == set([])
+            last_call = popen.call_args_list[-1]
+            args = last_call[0][0]
+            assert (
+                0 < args.index(global_option) < args.index('install') <
+                args.index(install_option)
+            )
+        assert options.format_control.no_binary == {':all:'}
+        assert options.format_control.only_binary == set()

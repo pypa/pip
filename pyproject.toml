@@ -1,0 +1,60 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+
+[tool.towncrier]
+package = "pip"
+package_dir = "src"
+filename = "NEWS.rst"
+directory = "news/"
+title_format = "{version} ({project_date})"
+issue_format = "`#{issue} <https://github.com/pypa/pip/issues/{issue}>`_"
+template = "tools/automation/news/template.rst"
+type = [
+  { name = "Process",                   directory = "process", showcontent = true },
+  { name = "Deprecations and Removals", directory = "removal", showcontent = true },
+  { name = "Features",                  directory = "feature", showcontent = true },
+  { name = "Bug Fixes",                 directory = "bugfix",  showcontent = true },
+  { name = "Vendored Libraries",        directory = "vendor",  showcontent = true },
+  { name = "Improved Documentation",    directory = "doc",     showcontent = true },
+  { name = "Trivial Changes",           directory = "trivial", showcontent = false },
+]
+
+[tool.vendoring]
+destination = "src/pip/_vendor/"
+requirements = "src/pip/_vendor/vendor.txt"
+namespace = "pip._vendor"
+
+protected-files = ["__init__.py", "README.rst", "vendor.txt"]
+patches-dir = "tools/automation/vendoring/patches"
+
+[tool.vendoring.transformations]
+substitute = [
+  # pkg_resource's vendored packages are directly vendored in pip.
+  { match='pkg_resources\.extern', replace="pip._vendor" },
+  { match='from \.extern', replace="from pip._vendor" },
+]
+drop = [
+  # contains unnecessary scripts
+  "bin/",
+  # interpreter and OS specific msgpack libs
+  "msgpack/*.so",
+  # unneeded parts of setuptools
+  "easy_install.py",
+  "setuptools",
+  "pkg_resources/_vendor/",
+  "pkg_resources/extern/",
+]
+
+[tool.vendoring.typing-stubs]
+six = ["six.__init__", "six.moves.__init__", "six.moves.configparser"]
+appdirs = []
+contextlib2 = []
+
+[tool.vendoring.license.directories]
+setuptools = "pkg_resources"
+msgpack-python = "msgpack"
+
+[tool.vendoring.license.fallback-urls]
+pytoml = "https://github.com/avakar/pytoml/raw/master/LICENSE"
+resolvelib = "https://github.com/sarugaku/resolvelib/raw/master/LICENSE"
+webencodings = "https://github.com/SimonSapin/python-webencodings/raw/master/LICENSE"

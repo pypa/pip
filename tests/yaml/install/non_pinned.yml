@@ -1,0 +1,24 @@
+base:
+  available:
+    - A 1.0.0; depends B < 2.0.0
+    - A 2.0.0; depends B < 3.0.0
+    - B 1.0.0
+    - B 2.0.0
+    - B 2.1.0
+    - B 3.0.0
+
+cases:
+-
+  request:
+    - install: A >= 2.0.0
+  transaction:
+    - install:
+      - A 2.0.0
+      - B 2.1.0
+-
+  request:
+    - install: A < 2.0.0
+  transaction:
+    - install:
+      - A 1.0.0
+      - B 1.0.0

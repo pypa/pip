@@ -1,5 +1,6 @@
 import os
-from setuptools import setup, find_packages
+
+from setuptools import find_packages, setup
 
 
 def path_to_url(path):
@@ -13,17 +14,14 @@ def path_to_url(path):
     url = '/'.join(filepath)
     if drive:
         return 'file:///' + drive + url
-    return 'file://' +url
+    return 'file://' + url
 
-
-HERE = os.path.dirname(__file__)
-DEP_PATH = os.path.join(HERE, '..', '..', 'indexes', 'simple', 'simple')
-DEP_URL = path_to_url(DEP_PATH)
 
 setup(
     name='LocalEnvironMarker',
     version='0.0.1',
     packages=find_packages(),
-    extras_require={":python_version == '2.7' or python_version == '3.4'": ['simple'] },
-    dependency_links=[DEP_URL]
+    extras_require={
+        ":python_version == '2.7'": ['simple'],
+    }
 )

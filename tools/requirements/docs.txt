@@ -1,0 +1,7 @@
+sphinx == 2.4.3
+git+https://github.com/python/python-docs-theme.git#egg=python-docs-theme
+git+https://github.com/pypa/pypa-docs-theme.git#egg=pypa-docs-theme
+
+# `docs.pipext` uses pip's internals to generate documentation. So, we install
+# the current directory to make it work.
+.

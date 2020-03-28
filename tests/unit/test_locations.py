@@ -2,15 +2,16 @@
 locations.py tests
 
 """
-import os
-import sys
-import shutil
-import tempfile
 import getpass
+import os
+import shutil
+import sys
+import tempfile
 
+import pytest
 from mock import Mock
 
-from pip.locations import distutils_scheme
+from pip._internal.locations import distutils_scheme
 
 if sys.platform == 'win32':
     pwd = Mock()
@@ -75,7 +76,7 @@ class TestLocations:
         return result
 
 
-class TestDisutilsScheme:
+class TestDistutilsScheme:
 
     def test_root_modifies_appropriately(self, monkeypatch):
         # This deals with nt/posix path differences
@@ -90,12 +91,14 @@ class TestDisutilsScheme:
             expected = os.path.join(root, path[1:])
             assert os.path.abspath(root_scheme[key]) == expected
 
+    @pytest.mark.incompatible_with_venv
     def test_distutils_config_file_read(self, tmpdir, monkeypatch):
         # This deals with nt/posix path differences
         install_scripts = os.path.normcase(os.path.abspath(
             os.path.join(os.path.sep, 'somewhere', 'else')))
-        f = tmpdir.mkdir("config").join("setup.cfg")
-        f.write("[install]\ninstall-scripts=" + install_scripts)
+        f = tmpdir / "config" / "setup.cfg"
+        f.parent.mkdir()
+        f.write_text("[install]\ninstall-scripts=" + install_scripts)
         from distutils.dist import Distribution
         # patch the function that returns what config files are present
         monkeypatch.setattr(
@@ -106,6 +109,7 @@ class TestDisutilsScheme:
         scheme = distutils_scheme('example')
         assert scheme['scripts'] == install_scripts
 
+    @pytest.mark.incompatible_with_venv
     # when we request install-lib, we should install everything (.py &
     # .so) into that path; i.e. ensure platlib & purelib are set to
     # this path
@@ -113,8 +117,9 @@ class TestDisutilsScheme:
         # This deals with nt/posix path differences
         install_lib = os.path.normcase(os.path.abspath(
             os.path.join(os.path.sep, 'somewhere', 'else')))
-        f = tmpdir.mkdir("config").join("setup.cfg")
-        f.write("[install]\ninstall-lib=" + install_lib)
+        f = tmpdir / "config" / "setup.cfg"
+        f.parent.mkdir()
+        f.write_text("[install]\ninstall-lib=" + install_lib)
         from distutils.dist import Distribution
         # patch the function that returns what config files are present
         monkeypatch.setattr(

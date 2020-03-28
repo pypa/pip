@@ -1,7 +1,10 @@
 import os
 import tempfile
 import textwrap
+
 import pytest
+
+from tests.lib.server import file_response, package_page
 
 
 def test_options_from_env_vars(script):
@@ -23,10 +26,10 @@ def test_command_line_options_override_env_vars(script, virtualenv):
     Test that command line options override environmental variables.
 
     """
-    script.environ['PIP_INDEX_URL'] = 'https://b.pypi.python.org/simple/'
+    script.environ['PIP_INDEX_URL'] = 'https://example.com/simple/'
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
     assert (
-        "Getting page https://b.pypi.python.org/simple/initools"
+        "Getting page https://example.com/simple/initools"
         in result.stdout
     )
     virtualenv.clear()
@@ -35,7 +38,7 @@ def test_command_line_options_override_env_vars(script, virtualenv):
         'INITools',
         expect_error=True,
     )
-    assert "b.pypi.python.org" not in result.stdout
+    assert "example.com" not in result.stdout
     assert "Getting page https://download.zope.org/ppix" in result.stdout
 
 
@@ -43,26 +46,15 @@ def test_command_line_options_override_env_vars(script, virtualenv):
 def test_env_vars_override_config_file(script, virtualenv):
     """
     Test that environmental variables override settings in config files.
-
     """
-    fd, config_file = tempfile.mkstemp('-pip.cfg', 'test-')
-    try:
-        _test_env_vars_override_config_file(script, virtualenv, config_file)
-    finally:
-        # `os.close` is a workaround for a bug in subprocess
-        # http://bugs.python.org/issue3210
-        os.close(fd)
-        os.remove(config_file)
-
-
-def _test_env_vars_override_config_file(script, virtualenv, config_file):
+    config_file = script.scratch_path / "test-pip.cfg"
     # set this to make pip load it
-    script.environ['PIP_CONFIG_FILE'] = config_file
+    script.environ['PIP_CONFIG_FILE'] = str(config_file)
     # It's important that we test this particular config value ('no-index')
     # because there is/was a bug which only shows up in cases in which
     # 'config-item' and 'config_item' hash to the same value modulo the size
     # of the config dictionary.
-    (script.scratch_path / config_file).write(textwrap.dedent("""\
+    config_file.write_text(textwrap.dedent("""\
         [global]
         no-index = 1
         """))
@@ -73,7 +65,7 @@ def _test_env_vars_override_config_file(script, virtualenv, config_file):
     )
     script.environ['PIP_NO_INDEX'] = '0'
     virtualenv.clear()
-    result = script.pip('install', '-vvv', 'INITools', expect_error=True)
+    result = script.pip('install', '-vvv', 'INITools')
     assert "Successfully installed INITools" in result.stdout
 
 
@@ -84,27 +76,28 @@ def test_command_line_append_flags(script, virtualenv, data):
     variables.
 
     """
-    script.environ['PIP_FIND_LINKS'] = 'http://pypi.pinaxproject.com'
+    script.environ['PIP_FIND_LINKS'] = 'https://test.pypi.org'
     result = script.pip(
         'install', '-vvv', 'INITools', '--trusted-host',
-        'pypi.pinaxproject.com',
-        expect_error=True,
+        'test.pypi.org',
     )
     assert (
-        "Analyzing links from page http://pypi.pinaxproject.com"
+        "Fetching project page and analyzing links: https://test.pypi.org"
         in result.stdout
-    )
+    ), str(result)
     virtualenv.clear()
     result = script.pip(
         'install', '-vvv', '--find-links', data.find_links, 'INITools',
-        '--trusted-host', 'pypi.pinaxproject.com',
-        expect_error=True,
+        '--trusted-host', 'test.pypi.org',
     )
     assert (
-        "Analyzing links from page http://pypi.pinaxproject.com"
+        "Fetching project page and analyzing links: https://test.pypi.org"
         in result.stdout
     )
-    assert "Skipping link %s" % data.find_links in result.stdout
+    assert (
+        'Skipping link: not a file: {}'.format(data.find_links) in
+        result.stdout
+    ), 'stdout: {}'.format(result.stdout)
 
 
 @pytest.mark.network
@@ -114,70 +107,71 @@ def test_command_line_appends_correctly(script, data):
 
     """
     script.environ['PIP_FIND_LINKS'] = (
-        'http://pypi.pinaxproject.com %s' % data.find_links
+        'https://test.pypi.org {data.find_links}'.format(**locals())
     )
     result = script.pip(
         'install', '-vvv', 'INITools', '--trusted-host',
-        'pypi.pinaxproject.com',
-        expect_error=True,
+        'test.pypi.org',
     )
 
     assert (
-        "Analyzing links from page http://pypi.pinaxproject.com"
+        "Fetching project page and analyzing links: https://test.pypi.org"
         in result.stdout
     ), result.stdout
-    assert "Skipping link %s" % data.find_links in result.stdout
+    assert (
+        'Skipping link: not a file: {}'.format(data.find_links) in
+        result.stdout
+    ), 'stdout: {}'.format(result.stdout)
 
 
-def test_config_file_override_stack(script, virtualenv):
+def test_config_file_override_stack(
+    script, virtualenv, mock_server, shared_data
+):
     """
     Test config files (global, overriding a global config with a
     local, overriding all with a command line flag).
-
     """
-    fd, config_file = tempfile.mkstemp('-pip.cfg', 'test-')
-    try:
-        _test_config_file_override_stack(script, virtualenv, config_file)
-    finally:
-        # `os.close` is a workaround for a bug in subprocess
-        # http://bugs.python.org/issue3210
-        os.close(fd)
-        os.remove(config_file)
+    mock_server.set_responses([
+        package_page({}),
+        package_page({}),
+        package_page({"INITools-0.2.tar.gz": "/files/INITools-0.2.tar.gz"}),
+        file_response(shared_data.packages.joinpath("INITools-0.2.tar.gz")),
+    ])
+    mock_server.start()
+    base_address = "http://{}:{}".format(mock_server.host, mock_server.port)
 
+    config_file = script.scratch_path / "test-pip.cfg"
 
-def _test_config_file_override_stack(script, virtualenv, config_file):
     # set this to make pip load it
-    script.environ['PIP_CONFIG_FILE'] = config_file
-    (script.scratch_path / config_file).write(textwrap.dedent("""\
+    script.environ['PIP_CONFIG_FILE'] = str(config_file)
+
+    config_file.write_text(textwrap.dedent("""\
         [global]
-        index-url = https://download.zope.org/ppix
-        """))
-    result = script.pip('install', '-vvv', 'INITools', expect_error=True)
-    assert (
-        "Getting page https://download.zope.org/ppix/initools" in result.stdout
-    )
+        index-url = {}/simple1
+        """.format(base_address)))
+    script.pip('install', '-vvv', 'INITools', expect_error=True)
     virtualenv.clear()
-    (script.scratch_path / config_file).write(textwrap.dedent("""\
+
+    config_file.write_text(textwrap.dedent("""\
         [global]
-        index-url = https://download.zope.org/ppix
+        index-url = {address}/simple1
         [install]
-        index-url = https://pypi.gocept.com/
-        """))
-    result = script.pip('install', '-vvv', 'INITools', expect_error=True)
-    assert "Getting page https://pypi.gocept.com/initools" in result.stdout
-    result = script.pip(
-        'install', '-vvv', '--index-url', 'https://pypi.python.org/simple',
+        index-url = {address}/simple2
+        """.format(address=base_address))
+    )
+    script.pip('install', '-vvv', 'INITools', expect_error=True)
+    script.pip(
+        'install', '-vvv', '--index-url', "{}/simple3".format(base_address),
         'INITools',
-        expect_error=True,
     )
-    assert (
-        "Getting page http://download.zope.org/ppix/INITools"
-        not in result.stdout
-    )
-    assert "Getting page https://pypi.gocept.com/INITools" not in result.stdout
-    assert (
-        "Getting page https://pypi.python.org/simple/initools" in result.stdout
-    )
+
+    mock_server.stop()
+    requests = mock_server.get_requests()
+    assert len(requests) == 4
+    assert requests[0]["PATH_INFO"] == "/simple1/initools/"
+    assert requests[1]["PATH_INFO"] == "/simple2/initools/"
+    assert requests[2]["PATH_INFO"] == "/simple3/initools/"
+    assert requests[3]["PATH_INFO"] == "/files/INITools-0.2.tar.gz"
 
 
 def test_options_from_venv_config(script, virtualenv):
@@ -185,9 +179,9 @@ def test_options_from_venv_config(script, virtualenv):
     Test if ConfigOptionParser reads a virtualenv-local config file
 
     """
-    from pip.locations import config_basename
+    from pip._internal.configuration import CONFIG_BASENAME
     conf = "[global]\nno-index = true"
-    ini = virtualenv.location / config_basename
+    ini = virtualenv.location / CONFIG_BASENAME
     with open(ini, 'w') as f:
         f.write(conf)
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
@@ -198,20 +192,23 @@ def test_options_from_venv_config(script, virtualenv):
     )
 
 
-def test_install_no_binary_via_config_disables_cached_wheels(script, data):
-    script.pip('install', 'wheel')
-    config_file = tempfile.NamedTemporaryFile(mode='wt')
-    script.environ['PIP_CONFIG_FILE'] = config_file.name
-    config_file.write(textwrap.dedent("""\
-        [global]
-        no-binary = :all:
-        """))
-    config_file.flush()
-    res = script.pip(
-        'install', '--no-index', '-f', data.find_links,
-        'upper', expect_stderr=True)
+def test_install_no_binary_via_config_disables_cached_wheels(
+        script, data, with_wheel):
+    config_file = tempfile.NamedTemporaryFile(mode='wt', delete=False)
+    try:
+        script.environ['PIP_CONFIG_FILE'] = config_file.name
+        config_file.write(textwrap.dedent("""\
+            [global]
+            no-binary = :all:
+            """))
+        config_file.close()
+        res = script.pip(
+            'install', '--no-index', '-f', data.find_links,
+            'upper', expect_stderr=True)
+    finally:
+        os.unlink(config_file.name)
     assert "Successfully installed upper-2.0" in str(res), str(res)
     # No wheel building for upper, which was blacklisted
-    assert "Running setup.py bdist_wheel for upper" not in str(res), str(res)
+    assert "Building wheel for upper" not in str(res), str(res)
     # Must have used source, not a cached wheel to install upper.
     assert "Running setup.py install for upper" in str(res), str(res)
