@@ -440,7 +440,9 @@ and ``--no-cache-dir``, falsy values have to be used:
     no-compile = no
     no-warn-script-location = false
 
-Appending options like ``--find-links`` can be written on multiple lines:
+It is possible to append values to a section within a configuration file such as the pip.ini file.
+This is applicable to appending options like ``--find-links`` or ``--trusted-host``,
+which can be written on multiple lines:
 
 .. code-block:: ini
 
@@ -452,6 +454,13 @@ Appending options like ``--find-links`` can be written on multiple lines:
     find-links =
         http://mirror1.example.com
         http://mirror2.example.com
+
+    [install]
+    trusted-host =
+        http://mirror1.example.com
+        http://mirror2.example.com
+
+This enables users to add additional values in the order of entry for such command line arguments.
 
 
 Environment Variables
