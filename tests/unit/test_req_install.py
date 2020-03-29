@@ -1,7 +1,7 @@
 import os
 import tempfile
-import pytest
 
+import pytest
 from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.cache import WheelCache
