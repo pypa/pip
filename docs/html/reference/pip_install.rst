@@ -934,6 +934,17 @@ Examples
 
       $ pip install --pre SomePackage
 
+
+#. Install packages from source.
+
+   Do not use any binary packages::
+
+     $ pip install SomePackage1 SomePackage2 --no-binary :all:
+
+   Specify ``SomePackage1`` to be installed from source::
+
+     $ pip install SomePackage1 SomePackage2 --no-binary SomePackage1
+
 ----
 
 .. [1] This is true with the exception that pip v7.0 and v7.0.1 required quotes

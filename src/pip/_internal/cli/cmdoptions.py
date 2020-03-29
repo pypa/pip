@@ -475,12 +475,12 @@ def no_binary():
         "--no-binary", dest="format_control", action="callback",
         callback=_handle_no_binary, type="str",
         default=format_control,
-        help="Do not use binary packages. Can be supplied multiple times, and "
-             "each time adds to the existing value. Accepts either :all: to "
-             "disable all binary packages, :none: to empty the set, or one or "
-             "more package names with commas between them (no colons). Note "
-             "that some packages are tricky to compile and may fail to "
-             "install when this option is used on them.",
+        help='Do not use binary packages. Can be supplied multiple times, and '
+             'each time adds to the existing value. Accepts either ":all:" to '
+             'disable all binary packages, ":none:" to empty the set (notice '
+             'the colons), or one or more package names with commas between '
+             'them (no colons). Note that some packages are tricky to compile '
+             'and may fail to install when this option is used on them.',
     )
 
 
@@ -491,12 +491,12 @@ def only_binary():
         "--only-binary", dest="format_control", action="callback",
         callback=_handle_only_binary, type="str",
         default=format_control,
-        help="Do not use source packages. Can be supplied multiple times, and "
-             "each time adds to the existing value. Accepts either :all: to "
-             "disable all source packages, :none: to empty the set, or one or "
-             "more package names with commas between them. Packages without "
-             "binary distributions will fail to install when this option is "
-             "used on them.",
+        help='Do not use source packages. Can be supplied multiple times, and '
+             'each time adds to the existing value. Accepts either ":all:" to '
+             'disable all source packages, ":none:" to empty the set, or one '
+             'or more package names with commas between them. Packages '
+             'without binary distributions will fail to install when this '
+             'option is used on them.',
     )
 
 
