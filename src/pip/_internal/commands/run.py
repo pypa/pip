@@ -13,9 +13,9 @@ class RunCommand(Command):
     usage = pip_run.commands.help_doc
     ignore_require_venv = True
 
-    def run(self, options, args):
+    def _main(self, args):
         if ['--help'] == args:
-            return super(RunCommand, self).main(args)
+            return super(RunCommand, self)._main(args)
 
         pip_run.run(args)
 
