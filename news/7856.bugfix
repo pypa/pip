@@ -1,1 +1,1 @@
-Uninstall should complete successfully, removing the .egg-link, even if the easy-install.pth file is not found.
+Uninstallation no longer fails on trying to remove non-existent files.
