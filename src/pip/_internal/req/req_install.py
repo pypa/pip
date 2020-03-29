@@ -178,9 +178,6 @@ class InstallRequirement(object):
         self.isolated = isolated
         self.build_env = NoOpBuildEnvironment()  # type: BuildEnvironment
 
-        # This defines whether the requirement came from a local wheel cache.
-        self.from_wheel_cache = False
-
         # For PEP 517, the directory where we request the project metadata
         # gets stored. We need this to pass to build_wheel, so the backend
         # can ensure that the wheel matches the metadata (see the PEP for
@@ -267,9 +264,20 @@ class InstallRequirement(object):
                 package_name=self.name,
                 supported_tags=supported_tags,
             )
+
             if old_link != self.link:
-                self.from_wheel_cache = True
                 logger.debug('Using cached wheel link: %s', self.link)
+
+    @property
+    def from_wheel_cache(self):
+        #type: () -> bool
+        """
+        This function returns whether the file path is in the wheel cache.
+        """
+        if self._wheel_cache is not None and self.link is not None:
+            return bool(self._wheel_cache.cache_dir in self.link.file_path)
+        else:
+            return False
 
     # Things that are valid for all kinds of requirements?
     @property

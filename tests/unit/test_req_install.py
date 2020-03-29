@@ -4,12 +4,18 @@ import tempfile
 import pytest
 from pip._vendor.packaging.requirements import Requirement
 
+from pip._internal.cache import WheelCache
 from pip._internal.exceptions import InstallationError
+from pip._internal.models.format_control import FormatControl
 from pip._internal.req.constructors import (
     install_req_from_line,
     install_req_from_req_string,
 )
 from pip._internal.req.req_install import InstallRequirement
+from pip._internal.models.link import Link
+
+from tests.lib import make_test_link_collector, make_test_finder, path_to_url
+from tests.lib.wheel import make_wheel
 
 
 class TestInstallRequirementBuildDirectory(object):
@@ -108,3 +114,50 @@ class TestInstallRequirementFrom(object):
         assert install_req.link.url == wheel_url
         assert install_req.req.url == wheel_url
         assert install_req.is_wheel
+
+
+class TestInstallRequirementWheelCache(object):
+
+    def test_able_to_register_when_get_from_wheel_cache(self, tmpdir, data):
+        """
+        This test to make sure that file is able to tell when a link is from the wheel cache
+        """
+
+        format_control = FormatControl()
+        wheel_path = path_to_url(make_wheel(
+            name='pip',
+            version='6.9.0'
+        ).save_to_dir(tmpdir))
+
+        wheel_cache = WheelCache(tmpdir, format_control)
+
+        install_req = install_req_from_req_string(
+            req_string='pip',
+            wheel_cache=wheel_cache
+        )
+        install_req.link = Link(wheel_path)
+
+        assert install_req.from_wheel_cache
+
+    def test_able_to_register_when_not_get_from_wheel_cache(self, tmpdir, data):
+        """
+            This test to make sure that file is able to tell when a link is not from the wheel cache
+        """
+
+        wheel_path = path_to_url(make_wheel(
+            name='pip',
+            version='6.9.0'
+        ).save_to_dir(tmpdir))
+
+        format_control = FormatControl()
+
+        wheel_cache = WheelCache(tmpdir + '/wheel_cache', format_control)
+
+        install_req = install_req_from_req_string(
+                req_string='pip',
+                wheel_cache=wheel_cache
+        )
+
+        install_req.link = Link(wheel_path)
+
+        assert not install_req.from_wheel_cache

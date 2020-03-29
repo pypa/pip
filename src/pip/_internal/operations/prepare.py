@@ -379,7 +379,7 @@ class RequirementPreparer(object):
             if req.from_wheel_cache:
                 logger.info('Processing %s (cached)', req.link.filename)
             else:
-                logger.info('Processing %s', req.link.filename)
+                logger.info('Processing %s', req.link.file_path)
 
         else:
             logger.info('Collecting %s', req.req or req)

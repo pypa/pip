@@ -543,6 +543,7 @@ class LinkCollector(object):
 
         :return: All the Link objects (unfiltered), as a CollectedLinks object.
         """
+
         search_scope = self.search_scope
         index_locations = search_scope.get_index_urls_locations(project_name)
         index_file_loc, index_url_loc = group_locations(index_locations)
