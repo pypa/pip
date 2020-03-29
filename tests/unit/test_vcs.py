@@ -292,6 +292,21 @@ def test_version_control__get_url_rev_and_auth__missing_plus(url):
     assert 'malformed VCS url' in str(excinfo.value)
 
 
+@pytest.mark.parametrize('url', [
+    # Test a URL with revision part as empty.
+    'git+https://github.com/MyUser/myProject.git@#egg=py_pkg',
+])
+def test_version_control__get_url_rev_and_auth__no_revision(url):
+    """
+    Test passing a URL to VersionControl.get_url_rev_and_auth() with
+    empty revision
+    """
+    with pytest.raises(ValueError) as excinfo:
+        VersionControl.get_url_rev_and_auth(url)
+
+    assert 'an empty revision (after @)' in str(excinfo.value)
+
+
 @pytest.mark.parametrize('url, expected', [
     # Test http.
     ('bzr+http://bzr.myproject.org/MyProject/trunk/#egg=MyProject',
