@@ -703,7 +703,8 @@ class PackageFinder(object):
     @property
     def cert(self):
         # type: () -> Optional[str]
-        return getattr(self._link_collector.session, "verify", None)
+        verify = self._link_collector.session.verify
+        return verify if type(verify) is str else None
 
     @property
     def allow_all_prereleases(self):
