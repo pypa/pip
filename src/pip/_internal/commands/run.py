@@ -1,8 +1,11 @@
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 from __future__ import absolute_import
 
-from pip._internal.cli.base_command import Command, SUCCESS
-
 from pip._vendor import pip_run
+
+from pip._internal.cli.base_command import SUCCESS, Command
 
 
 class RunCommand(Command):
