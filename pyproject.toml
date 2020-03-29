@@ -43,6 +43,8 @@ drop = [
   "setuptools",
   "pkg_resources/_vendor/",
   "pkg_resources/extern/",
+  # remove tests from pip-run
+  "pip_run/tests",
 ]
 
 [tool.vendoring.typing-stubs]
