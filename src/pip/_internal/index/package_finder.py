@@ -702,7 +702,7 @@ class PackageFinder(object):
 
     @property
     def cert(self):
-        # type: () -> str or None
+        # type: () -> Optional[str]
         return getattr(self._link_collector.session, "verify", None)
 
     @property
