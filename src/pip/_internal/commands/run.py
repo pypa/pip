@@ -1,6 +1,6 @@
 from __future__ import absolute_import
 
-from pip.basecommand import Command, SUCCESS
+from pip._internal.cli.base_command import Command, SUCCESS
 
 from pip._vendor import pip_run
 
