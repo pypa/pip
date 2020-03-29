@@ -1079,7 +1079,7 @@ def need_executable(name, check_cmd):
     def wrapper(fn):
         try:
             subprocess.check_output(check_cmd)
-        except OSError:
+        except (OSError, subprocess.CalledProcessError):
             return pytest.mark.skip(
                 reason='{name} is not available'.format(name=name))(fn)
         return fn
