@@ -7,12 +7,12 @@ from pip._vendor.packaging.requirements import Requirement
 from pip._internal.cache import WheelCache
 from pip._internal.exceptions import InstallationError
 from pip._internal.models.format_control import FormatControl
+from pip._internal.models.link import Link
 from pip._internal.req.constructors import (
     install_req_from_line,
     install_req_from_req_string,
 )
 from pip._internal.req.req_install import InstallRequirement
-from pip._internal.models.link import Link
 from tests.lib import path_to_url
 from tests.lib.wheel import make_wheel
 
