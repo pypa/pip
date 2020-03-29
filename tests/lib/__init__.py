@@ -15,7 +15,7 @@ from textwrap import dedent
 from zipfile import ZipFile
 
 import pytest
-from pip._vendor.six import PY2, ensure_binary, text_type
+from pip._vendor.six import PY2
 from scripttest import FoundDir, TestFileEnvironment
 
 from pip._internal.index.collector import LinkCollector
@@ -27,6 +27,7 @@ from pip._internal.network.session import PipSession
 from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from tests.lib.path import Path, curdir
+from tests.lib.wheel import make_wheel
 
 if MYPY_CHECK_RUNNING:
     from typing import List, Optional
@@ -984,95 +985,48 @@ def create_basic_wheel_for_package(
         depends = []
     if extras is None:
         extras = {}
-    files = {
-        "{name}/__init__.py": """
-            __version__ = {version!r}
-            def hello():
-                return "Hello From {name}"
-        """,
-        "{dist_info}/DESCRIPTION": """
-            UNKNOWN
-        """,
-        "{dist_info}/WHEEL": """
-            Wheel-Version: 1.0
-            Generator: pip-test-suite
-            Root-Is-Purelib: true
-            Tag: py2-none-any
-            Tag: py3-none-any
+    if extra_files is None:
+        extra_files = {}
 
+    archive_name = "{}-{}-py2.py3-none-any.whl".format(name, version)
+    archive_path = script.scratch_path / archive_name
 
-        """,
-        "{dist_info}/METADATA": """
-            Metadata-Version: 2.0
-            Name: {name}
-            Version: {version}
-            Summary: UNKNOWN
-            Home-page: UNKNOWN
-            Author: UNKNOWN
-            Author-email: UNKNOWN
-            License: UNKNOWN
-            Platform: UNKNOWN
-            {requires_dist}
+    requires_dist = depends + [
+        '{package}; extra == "{extra}"'.format(package=package, extra=extra)
+        for extra, packages in extras.items()
+        for package in packages
+    ]
 
-            UNKNOWN
-        """,
-        "{dist_info}/top_level.txt": """
-            {name}
-        """,
+    wheel_builder = make_wheel(
+        name=name,
+        version=version,
+        wheel_metadata_updates={"Tag": ["py2-none-any", "py3-none-any"]},
+        metadata_updates={
+            "Provides-Extra": list(extras),
+            "Requires-Dist": requires_dist,
+        },
+        extra_metadata_files={"top_level.txt": name},
+
         # Have an empty RECORD because we don't want to be checking hashes.
-        "{dist_info}/RECORD": ""
-    }
-
-    # Some useful shorthands
-    archive_name = "{name}-{version}-py2.py3-none-any.whl".format(
-        name=name, version=version
-    )
-    dist_info = "{name}-{version}.dist-info".format(
-        name=name, version=version
+        record="",
     )
 
-    requires_dist = "\n".join([
-        "Requires-Dist: {}".format(pkg) for pkg in depends
-    ] + [
-        "Provides-Extra: {}".format(pkg) for pkg in extras.keys()
-    ] + [
-        "Requires-Dist: {}; extra == \"{}\"".format(pkg, extra)
-        for extra in extras for pkg in extras[extra]
-    ])
+    # Create the wheel in-memory to add more files.
+    wheel_io = BytesIO(wheel_builder.as_bytes())
+    with ZipFile(wheel_io, "a") as zf:
+        zf.writestr(
+            "{name}/__init__.py".format(name=name),
+            textwrap.dedent("""
+                __version__ = {version!r}
+                def hello():
+                    return "Hello From {name}"
+            """).format(version=version, name=name),
+        )
+        for fn, content in extra_files.items():
+            zf.writestr(fn, content)
 
-    # Replace key-values with formatted values
-    for key, value in list(files.items()):
-        del files[key]
-        key = key.format(name=name, dist_info=dist_info)
-        files[key] = textwrap.dedent(value).format(
-            name=name, version=version, requires_dist=requires_dist
-        ).strip()
-
-    # Add new files after formatting
-    if extra_files:
-        files.update(extra_files)
-
-    for fname in files:
-        path = script.temp_path / fname
-        path.parent.mkdir(exist_ok=True, parents=True)
-        path.write_bytes(ensure_binary(files[fname]))
-
-    # The base_dir cast is required to make `shutil.make_archive()` use
-    # Unicode paths on Python 2, making it able to properly archive
-    # files with non-ASCII names.
-    retval = script.scratch_path / archive_name
-    generated = shutil.make_archive(
-        retval,
-        'zip',
-        root_dir=script.temp_path,
-        base_dir=text_type(os.curdir),
-    )
-    shutil.move(generated, retval)
-
-    shutil.rmtree(script.temp_path)
-    script.temp_path.mkdir()
-
-    return retval
+    archive_path.write_bytes(wheel_io.getvalue())
+    return archive_path
 
 
 def need_executable(name, check_cmd):
