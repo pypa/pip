@@ -1,0 +1,1 @@
+Catch ``subprocess.CalledProcessError`` when checking for the presence of executable within ``need_executable`` using pytest.
