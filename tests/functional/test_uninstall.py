@@ -587,6 +587,10 @@ def test_uninstall_editable_and_pip_install_easy_install_remove(script, data):
     uninstall = script.pip('uninstall', 'FSPkg', '-y')
     assert "Cannot remove entries from nonexistent file" in uninstall.stderr
 
+    assert join(
+        script.site_packages, 'FSPkg.egg-link'
+    ) in uninstall.files_deleted, list(uninstall.files_deleted.keys())
+
     # Confirm that FSPkg is uninstalled
     list_result = script.pip('list', '--format=json')
     assert {"name": "FSPkg", "version": "0.1.dev0"} \
