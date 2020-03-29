@@ -14,7 +14,7 @@ from pip._internal.req.constructors import (
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.models.link import Link
 
-from tests.lib import make_test_link_collector, make_test_finder, path_to_url
+from tests.lib import path_to_url
 from tests.lib.wheel import make_wheel
 
 
@@ -118,9 +118,10 @@ class TestInstallRequirementFrom(object):
 
 class TestInstallRequirementWheelCache(object):
 
-    def test_able_to_register_when_get_from_wheel_cache(self, tmpdir, data):
+    def test_able_to_register_when_get_from_wheel_cache(self, tmpdir):
         """
-        This test to make sure that file is able to tell when a link is from the wheel cache
+        This test to make sure that file is able to tell when a link is
+        from the wheel cache.
         """
 
         format_control = FormatControl()
@@ -139,9 +140,10 @@ class TestInstallRequirementWheelCache(object):
 
         assert install_req.from_wheel_cache
 
-    def test_able_to_register_when_not_get_from_wheel_cache(self, tmpdir, data):
+    def test_able_to_register_when_not_get_from_wheel_cache(self, tmpdir):
         """
-            This test to make sure that file is able to tell when a link is not from the wheel cache
+        This test to make sure that file is able to tell when a link is not
+        from the wheel cache.
         """
 
         wheel_path = path_to_url(make_wheel(
@@ -154,8 +156,8 @@ class TestInstallRequirementWheelCache(object):
         wheel_cache = WheelCache(tmpdir + '/wheel_cache', format_control)
 
         install_req = install_req_from_req_string(
-                req_string='pip',
-                wheel_cache=wheel_cache
+            req_string='pip',
+            wheel_cache=wheel_cache
         )
 
         install_req.link = Link(wheel_path)

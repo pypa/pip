@@ -270,7 +270,7 @@ class InstallRequirement(object):
 
     @property
     def from_wheel_cache(self):
-        #type: () -> bool
+        # type: () -> bool
         """
         This function returns whether the file path is in the wheel cache.
         """
