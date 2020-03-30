@@ -14,6 +14,7 @@ def resolver(preparer, finder):
     resolver = Resolver(
         preparer=preparer,
         finder=finder,
+        wheel_cache=None,
         make_install_req=mock.Mock(),
         use_user_site="not-used",
         ignore_dependencies="not-used",
