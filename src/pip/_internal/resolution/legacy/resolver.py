@@ -264,8 +264,9 @@ class Resolver(BaseResolver):
         # type: (InstallRequirement) -> None
         """Ensure that if a link can be found for this, that it is found.
 
-        Note that req.link may still be None - if Upgrade is False and the
-        requirement is already installed.
+        Note that req.link may still be None - if the requirement is already
+        installed and not needed to be upgraded based on the return value of
+        _is_upgrade_allowed().
 
         If preparer.require_hashes is True, don't use the wheel cache, because
         cached wheels, always built locally, have different hashes than the
