@@ -118,7 +118,8 @@ def freeze(
                         else:
                             line = line[len('--editable'):].strip().lstrip('=')
                         line_req = install_req_from_editable(
-                            line, isolated=isolated,
+                            line,
+                            isolated=isolated,
                         )
                     else:
                         line_req = install_req_from_line(
