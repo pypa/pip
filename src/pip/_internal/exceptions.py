@@ -147,7 +147,7 @@ class HashError(InstallationError):
         triggering requirement.
 
         :param req: The InstallRequirement that provoked this error, with
-            populate_link() having already been called
+            its link already populated by the resolver's _populate_link().
 
         """
         return '    {}'.format(self._requirement_name())

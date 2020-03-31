@@ -133,10 +133,7 @@ class WheelCommand(RequirementCommand):
             globally_managed=True,
         )
 
-        reqs = self.get_requirements(
-            args, options, finder, session,
-            wheel_cache
-        )
+        reqs = self.get_requirements(args, options, finder, session)
 
         preparer = self.make_requirement_preparer(
             temp_build_dir=directory,

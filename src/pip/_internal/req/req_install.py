@@ -30,7 +30,6 @@ from pip._internal.operations.install.legacy import install as install_legacy
 from pip._internal.operations.install.wheel import install_wheel
 from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
 from pip._internal.req.req_uninstall import UninstallPathSet
-from pip._internal.utils import compatibility_tags
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.logging import indent_log
@@ -55,8 +54,6 @@ if MYPY_CHECK_RUNNING:
         Any, Dict, Iterable, List, Optional, Sequence, Union,
     )
     from pip._internal.build_env import BuildEnvironment
-    from pip._internal.cache import WheelCache
-    from pip._internal.index.package_finder import PackageFinder
     from pip._vendor.pkg_resources import Distribution
     from pip._vendor.packaging.specifiers import SpecifierSet
     from pip._vendor.packaging.markers import Marker
@@ -111,7 +108,6 @@ class InstallRequirement(object):
         install_options=None,  # type: Optional[List[str]]
         global_options=None,  # type: Optional[List[str]]
         hash_options=None,  # type: Optional[Dict[str, List[str]]]
-        wheel_cache=None,  # type: Optional[WheelCache]
         constraint=False,  # type: bool
         extras=()  # type: Iterable[str]
     ):
@@ -126,7 +122,6 @@ class InstallRequirement(object):
             self.source_dir = os.path.normpath(os.path.abspath(source_dir))
         self.editable = editable
 
-        self._wheel_cache = wheel_cache
         if link is None and req and req.url:
             # PEP 508 URL requirement
             link = Link(req.url)
@@ -240,32 +235,6 @@ class InstallRequirement(object):
             name=self.__class__.__name__,
             state=", ".join(state),
         )
-
-    def populate_link(self, finder, upgrade, require_hashes):
-        # type: (PackageFinder, bool, bool) -> None
-        """Ensure that if a link can be found for this, that it is found.
-
-        Note that self.link may still be None - if Upgrade is False and the
-        requirement is already installed.
-
-        If require_hashes is True, don't use the wheel cache, because cached
-        wheels, always built locally, have different hashes than the files
-        downloaded from the index server and thus throw false hash mismatches.
-        Furthermore, cached wheels at present have undeterministic contents due
-        to file modification times.
-        """
-        if self.link is None:
-            self.link = finder.find_requirement(self, upgrade)
-        if self._wheel_cache is not None and not require_hashes:
-            old_link = self.link
-            supported_tags = compatibility_tags.get_supported()
-            self.link = self._wheel_cache.get(
-                link=self.link,
-                package_name=self.name,
-                supported_tags=supported_tags,
-            )
-            if old_link != self.link:
-                logger.debug('Using cached wheel link: %s', self.link)
 
     # Things that are valid for all kinds of requirements?
     @property

@@ -255,7 +255,6 @@ class RequirementCommand(IndexGroupCommand):
         make_install_req = partial(
             install_req_from_req_string,
             isolated=options.isolated_mode,
-            wheel_cache=wheel_cache,
             use_pep517=use_pep517,
         )
         # The long import name and duplicated invocation is needed to convince
@@ -266,6 +265,7 @@ class RequirementCommand(IndexGroupCommand):
             return pip._internal.resolution.resolvelib.resolver.Resolver(
                 preparer=preparer,
                 finder=finder,
+                wheel_cache=wheel_cache,
                 make_install_req=make_install_req,
                 use_user_site=use_user_site,
                 ignore_dependencies=options.ignore_dependencies,
@@ -279,6 +279,7 @@ class RequirementCommand(IndexGroupCommand):
         return pip._internal.resolution.legacy.resolver.Resolver(
             preparer=preparer,
             finder=finder,
+            wheel_cache=wheel_cache,
             make_install_req=make_install_req,
             use_user_site=use_user_site,
             ignore_dependencies=options.ignore_dependencies,
@@ -295,7 +296,6 @@ class RequirementCommand(IndexGroupCommand):
         options,          # type: Values
         finder,           # type: PackageFinder
         session,          # type: PipSession
-        wheel_cache,      # type: Optional[WheelCache]
         check_supported_wheels=True,  # type: bool
     ):
         # type: (...) -> List[InstallRequirement]
@@ -313,7 +313,6 @@ class RequirementCommand(IndexGroupCommand):
                 req_to_add = install_req_from_parsed_requirement(
                     parsed_req,
                     isolated=options.isolated_mode,
-                    wheel_cache=wheel_cache,
                 )
                 req_to_add.is_direct = True
                 requirement_set.add_requirement(req_to_add)
@@ -322,7 +321,6 @@ class RequirementCommand(IndexGroupCommand):
             req_to_add = install_req_from_line(
                 req, None, isolated=options.isolated_mode,
                 use_pep517=options.use_pep517,
-                wheel_cache=wheel_cache
             )
             req_to_add.is_direct = True
             requirement_set.add_requirement(req_to_add)
@@ -332,7 +330,6 @@ class RequirementCommand(IndexGroupCommand):
                 req,
                 isolated=options.isolated_mode,
                 use_pep517=options.use_pep517,
-                wheel_cache=wheel_cache
             )
             req_to_add.is_direct = True
             requirement_set.add_requirement(req_to_add)
@@ -345,7 +342,6 @@ class RequirementCommand(IndexGroupCommand):
                 req_to_add = install_req_from_parsed_requirement(
                     parsed_req,
                     isolated=options.isolated_mode,
-                    wheel_cache=wheel_cache,
                     use_pep517=options.use_pep517
                 )
                 req_to_add.is_direct = True
