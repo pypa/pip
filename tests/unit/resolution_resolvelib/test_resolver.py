@@ -58,7 +58,7 @@ def resolver(preparer, finder):
         ),
     ],
 )
-def test_rlr_resolver_get_installation_order(resolver, edges, ordered_reqs):
+def test_new_resolver_get_installation_order(resolver, edges, ordered_reqs):
     # Build graph from edge declarations.
     graph = DirectedGraph()
     for parent, child in edges:
