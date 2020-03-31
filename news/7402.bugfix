@@ -1,1 +1,1 @@
-Raise an exception if revision part of URL is empty for URL used in VCS support
+Reject VCS URLs with an empty revision.
