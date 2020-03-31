@@ -11,7 +11,7 @@ import yaml
 from tests.lib import DATA_DIR, create_basic_wheel_for_package, path_to_url
 
 
-conflict_finder_re = re.compile(
+_conflict_finder_pat = re.compile(
     # Conflicting Requirements: \
     # A 1.0.0 requires B == 2.0.0, C 1.0.0 requires B == 1.0.0.
     r"""
@@ -133,7 +133,7 @@ def handle_install_request(script, requirement):
         message = result.stderr.rsplit("\n", 1)[-1]
 
         # XXX: There might be a better way than parsing the message
-        for match in re.finditer(message, conflict_finder_re):
+        for match in re.finditer(message, _conflict_finder_pat):
             di = match.groupdict()
             retval["conflicting"].append(
                 {
