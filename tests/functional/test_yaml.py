@@ -1,15 +1,17 @@
-"""Tests for the resolver
+"""
+Tests for the resolver
 """
 
 import os
 import re
 
 import pytest
+import yaml
 
 from tests.lib import DATA_DIR, create_basic_wheel_for_package, path_to_url
-from tests.lib.yaml_helpers import generate_yaml_tests, id_func
 
-_conflict_finder_re = re.compile(
+
+conflict_finder_re = re.compile(
     # Conflicting Requirements: \
     # A 1.0.0 requires B == 2.0.0, C 1.0.0 requires B == 1.0.0.
     r"""
@@ -24,7 +26,49 @@ _conflict_finder_re = re.compile(
 )
 
 
-def _convert_to_dict(string):
+def generate_yaml_tests(directory):
+    """
+    Generate yaml test cases from the yaml files in the given directory
+    """
+    for yml_file in directory.glob("*/*.yml"):
+        data = yaml.safe_load(yml_file.read_text())
+        assert "cases" in data, "A fixture needs cases to be used in testing"
+
+        # Strip the parts of the directory to only get a name without
+        # extension and resolver directory
+        base_name = str(yml_file)[len(str(directory)) + 1:-4]
+
+        base = data.get("base", {})
+        cases = data["cases"]
+
+        for i, case_template in enumerate(cases):
+            case = base.copy()
+            case.update(case_template)
+
+            case[":name:"] = base_name
+            if len(cases) > 1:
+                case[":name:"] += "-" + str(i)
+
+            if case.pop("skip", False):
+                case = pytest.param(case, marks=pytest.mark.xfail)
+
+            yield case
+
+
+def id_func(param):
+    """
+    Give a nice parameter name to the generated function parameters
+    """
+    if isinstance(param, dict) and ":name:" in param:
+        return param[":name:"]
+
+    retval = str(param)
+    if len(retval) > 25:
+        retval = retval[:20] + "..." + retval[-2:]
+    return retval
+
+
+def convert_to_dict(string):
 
     def stripping_split(my_str, splitwith, count=None):
         if count is None:
@@ -89,7 +133,7 @@ def handle_install_request(script, requirement):
         message = result.stderr.rsplit("\n", 1)[-1]
 
         # XXX: There might be a better way than parsing the message
-        for match in re.finditer(message, _conflict_finder_re):
+        for match in re.finditer(message, conflict_finder_re):
             di = match.groupdict()
             retval["conflicting"].append(
                 {
@@ -119,7 +163,7 @@ def test_yaml_based(script, case):
     # XXX: This doesn't work because this isn't making an index of files.
     for package in available:
         if isinstance(package, str):
-            package = _convert_to_dict(package)
+            package = convert_to_dict(package)
 
         assert isinstance(package, dict), "Needs to be a dictionary"
 
