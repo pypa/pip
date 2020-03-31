@@ -10,7 +10,6 @@ import yaml
 
 from tests.lib import DATA_DIR, create_basic_wheel_for_package, path_to_url
 
-
 _conflict_finder_pat = re.compile(
     # Conflicting Requirements: \
     # A 1.0.0 requires B == 2.0.0, C 1.0.0 requires B == 1.0.0.
