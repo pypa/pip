@@ -402,9 +402,13 @@ Git
 ^^^
 
 pip currently supports cloning over ``git``, ``git+http``, ``git+https``,
-``git+ssh``, ``git+git`` and ``git+file``,  but note that the ``git``, ``git+git``,
-and ``git+http`` are not recommended due to their lack of security.
-(The former two uses `the Git Protocol.`_)
+``git+ssh``, ``git+git`` and ``git+file``.
+
+.. warning::
+
+    Note that the ``git``, ``git+git``,and ``git+http`` are not recommended.
+    (The former two use `the Git Protocol`_, which lacks authentication, and HTTP is
+    insecure due to lack of TLS based encryption)
 
 Here are the supported forms::
 
@@ -424,7 +428,7 @@ When passing a commit hash, specifying a full hash is preferable to a partial
 hash because a full hash allows pip to operate more efficiently (e.g. by
 making fewer network calls).
 
-.. _`the Git Protocol.`: https://git-scm.com/book/en/v2/Git-on-the-Server-The-Protocols
+.. _`the Git Protocol`: https://git-scm.com/book/en/v2/Git-on-the-Server-The-Protocols
 
 Mercurial
 ^^^^^^^^^

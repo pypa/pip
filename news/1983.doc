@@ -1,1 +1,2 @@
-Remove VCS URLs pertaining to the Git protocol from docs
+Emphasize that VCS URLs using git, git+git and git+http are insecure due to
+lack of authentication and encryption
