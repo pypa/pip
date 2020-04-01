@@ -17,7 +17,7 @@ from pip._internal.utils.compat import get_path_uid
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING, cast
 
 if MYPY_CHECK_RUNNING:
-    from typing import BinaryIO, Iterator
+    from typing import Any, BinaryIO, Iterator
 
     class NamedTemporaryFileResult(BinaryIO):
         @property
@@ -85,16 +85,22 @@ def is_socket(path):
 
 
 @contextmanager
-def adjacent_tmp_file(path):
-    # type: (str) -> Iterator[NamedTemporaryFileResult]
-    """Given a path to a file, open a temp file next to it securely and ensure
-    it is written to disk after the context reaches its end.
+def adjacent_tmp_file(path, **kwargs):
+    # type: (str, **Any) -> Iterator[NamedTemporaryFileResult]
+    """Return a file-like object pointing to a tmp file next to path.
+
+    The file is created securely and is ensured to be written to disk
+    after the context reaches its end.
+
+    kwargs will be passed to tempfile.NamedTemporaryFile to control
+    the way the temporary file will be opened.
     """
     with NamedTemporaryFile(
         delete=False,
         dir=os.path.dirname(path),
         prefix=os.path.basename(path),
         suffix='.tmp',
+        **kwargs
     ) as f:
         result = cast('NamedTemporaryFileResult', f)
         try:
