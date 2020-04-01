@@ -406,9 +406,9 @@ pip currently supports cloning over ``git``, ``git+http``, ``git+https``,
 
 .. warning::
 
-    Note that the ``git``, ``git+git``,and ``git+http`` are not recommended.
-    (The former two use `the Git Protocol`_, which lacks authentication, and HTTP is
-    insecure due to lack of TLS based encryption)
+    Note that the use of ``git``, ``git+git``, and ``git+http`` is discouraged.
+    The former two use `the Git Protocol`_, which lacks authentication, and HTTP is
+    insecure due to lack of TLS based encryption.
 
 Here are the supported forms::
 
