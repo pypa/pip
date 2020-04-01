@@ -1,10 +1,16 @@
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-from .candidates import ExtrasCandidate, LinkCandidate
-from .requirements import ExplicitRequirement, SpecifierRequirement
+from .candidates import ExtrasCandidate, LinkCandidate, RequiresPythonCandidate
+from .requirements import (
+    ExplicitRequirement,
+    NoMatchRequirement,
+    SpecifierRequirement,
+)
 
 if MYPY_CHECK_RUNNING:
-    from typing import Dict, Set
+    from typing import Dict, Optional, Set, Tuple
+
+    from pip._vendor.packaging.specifiers import SpecifierSet
 
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.models.link import Link
@@ -21,10 +27,14 @@ class Factory(object):
         finder,  # type: PackageFinder
         preparer,  # type: RequirementPreparer
         make_install_req,  # type: InstallRequirementProvider
+        ignore_requires_python,  # type: bool
+        py_version_info=None,  # type: Optional[Tuple[int, ...]]
     ):
         # type: (...) -> None
         self.finder = finder
         self.preparer = preparer
+        self._python_candidate = RequiresPythonCandidate(py_version_info)
+        self._ignore_requires_python = ignore_requires_python
         self._make_install_req_from_spec = make_install_req
         self._candidate_cache = {}  # type: Dict[Link, LinkCandidate]
 
@@ -56,3 +66,11 @@ class Factory(object):
         # type: (str, InstallRequirement) -> Requirement
         ireq = self._make_install_req_from_spec(specifier, comes_from)
         return self.make_requirement_from_install_req(ireq)
+
+    def make_requires_python_requirement(self, specifier):
+        # type: (Optional[SpecifierSet]) -> Optional[Requirement]
+        if self._ignore_requires_python or specifier is None:
+            return None
+        if self._python_candidate.version in specifier:
+            return ExplicitRequirement(self._python_candidate)
+        return NoMatchRequirement(self._python_candidate.name)

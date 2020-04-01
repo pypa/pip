@@ -1,20 +1,25 @@
 import logging
+import sys
 
+from pip._vendor.packaging.specifiers import InvalidSpecifier, SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.packaging.version import Version
 
 from pip._internal.req.constructors import install_req_from_line
 from pip._internal.req.req_install import InstallRequirement
+from pip._internal.utils.misc import normalize_version_info
+from pip._internal.utils.packaging import get_requires_python
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 from .base import Candidate, format_name
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Optional, Sequence, Set
-
-    from pip._internal.models.link import Link
+    from typing import Any, Optional, Sequence, Set, Tuple
 
     from pip._vendor.packaging.version import _BaseVersion
     from pip._vendor.pkg_resources import Distribution
+
+    from pip._internal.models.link import Link
 
     from .base import Requirement
     from .factory import Factory
@@ -95,12 +100,32 @@ class LinkCandidate(Candidate):
                     self._version == self.dist.parsed_version)
         return self._dist
 
+    def _get_requires_python_specifier(self):
+        # type: () -> Optional[SpecifierSet]
+        requires_python = get_requires_python(self.dist)
+        if requires_python is None:
+            return None
+        try:
+            spec = SpecifierSet(requires_python)
+        except InvalidSpecifier as e:
+            logger.warning(
+                "Package %r has an invalid Requires-Python: %s", self.name, e,
+            )
+            return None
+        return spec
+
     def get_dependencies(self):
         # type: () -> Sequence[Requirement]
-        return [
+        deps = [
             self._factory.make_requirement_from_spec(str(r), self._ireq)
             for r in self.dist.requires()
         ]
+        python_dep = self._factory.make_requires_python_requirement(
+            self._get_requires_python_specifier(),
+        )
+        if python_dep:
+            deps.append(python_dep)
+        return deps
 
     def get_install_requirement(self):
         # type: () -> Optional[InstallRequirement]
@@ -178,4 +203,32 @@ class ExtrasCandidate(LinkCandidate):
         # We don't return anything here, because we always
         # depend on the base candidate, and we'll get the
         # install requirement from that.
+        return None
+
+
+class RequiresPythonCandidate(Candidate):
+    def __init__(self, py_version_info):
+        # type: (Optional[Tuple[int, ...]]) -> None
+        if py_version_info is not None:
+            version_info = normalize_version_info(py_version_info)
+        else:
+            version_info = sys.version_info[:3]
+        self._version = Version(".".join(str(c) for c in version_info))
+
+    @property
+    def name(self):
+        # type: () -> str
+        return "<Python>"  # Avoid conflicting with the PyPI package "Python".
+
+    @property
+    def version(self):
+        # type: () -> _BaseVersion
+        return self._version
+
+    def get_dependencies(self):
+        # type: () -> Sequence[Requirement]
+        return []
+
+    def get_install_requirement(self):
+        # type: () -> Optional[InstallRequirement]
         return None

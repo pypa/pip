@@ -33,6 +33,27 @@ class ExplicitRequirement(Requirement):
         return candidate == self.candidate
 
 
+class NoMatchRequirement(Requirement):
+    """A requirement that never matches anything.
+    """
+    def __init__(self, name):
+        # type: (str) -> None
+        self._name = canonicalize_name(name)
+
+    @property
+    def name(self):
+        # type: () -> str
+        return self._name
+
+    def find_matches(self):
+        # type: () -> Sequence[Candidate]
+        return []
+
+    def is_satisfied_by(self, candidate):
+        # type: (Candidate) -> bool
+        return False
+
+
 class SpecifierRequirement(Requirement):
     def __init__(self, ireq, factory):
         # type: (InstallRequirement, Factory) -> None
