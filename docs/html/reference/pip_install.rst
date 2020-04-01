@@ -402,27 +402,33 @@ Git
 ^^^
 
 pip currently supports cloning over ``git``, ``git+http``, ``git+https``,
-``git+ssh``, ``git+git`` and ``git+file``:
+``git+ssh``, ``git+git`` and ``git+file``.
+
+.. warning::
+
+    Note that the use of ``git``, ``git+git``, and ``git+http`` is discouraged.
+    The former two use `the Git Protocol`_, which lacks authentication, and HTTP is
+    insecure due to lack of TLS based encryption.
 
 Here are the supported forms::
 
-    [-e] git://git.example.com/MyProject#egg=MyProject
     [-e] git+http://git.example.com/MyProject#egg=MyProject
     [-e] git+https://git.example.com/MyProject#egg=MyProject
     [-e] git+ssh://git.example.com/MyProject#egg=MyProject
-    [-e] git+git://git.example.com/MyProject#egg=MyProject
     [-e] git+file:///home/user/projects/MyProject#egg=MyProject
 
 Passing a branch name, a commit hash, a tag name or a git ref is possible like so::
 
-    [-e] git://git.example.com/MyProject.git@master#egg=MyProject
-    [-e] git://git.example.com/MyProject.git@v1.0#egg=MyProject
-    [-e] git://git.example.com/MyProject.git@da39a3ee5e6b4b0d3255bfef95601890afd80709#egg=MyProject
-    [-e] git://git.example.com/MyProject.git@refs/pull/123/head#egg=MyProject
+    [-e] git+https://git.example.com/MyProject.git@master#egg=MyProject
+    [-e] git+https://git.example.com/MyProject.git@v1.0#egg=MyProject
+    [-e] git+https://git.example.com/MyProject.git@da39a3ee5e6b4b0d3255bfef95601890afd80709#egg=MyProject
+    [-e] git+https://git.example.com/MyProject.git@refs/pull/123/head#egg=MyProject
 
 When passing a commit hash, specifying a full hash is preferable to a partial
 hash because a full hash allows pip to operate more efficiently (e.g. by
 making fewer network calls).
+
+.. _`the Git Protocol`: https://git-scm.com/book/en/v2/Git-on-the-Server-The-Protocols
 
 Mercurial
 ^^^^^^^^^
