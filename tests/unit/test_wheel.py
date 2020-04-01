@@ -10,6 +10,11 @@ from mock import patch
 from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.locations import get_scheme
+from pip._internal.models.direct_url import (
+    DIRECT_URL_METADATA_NAME,
+    ArchiveInfo,
+    DirectUrl,
+)
 from pip._internal.models.scheme import Scheme
 from pip._internal.operations.build.wheel_legacy import (
     get_legacy_build_wheel_path,
@@ -258,6 +263,37 @@ class TestInstallUnpackedWheel(object):
             req_description=str(self.req),
         )
         self.assert_installed()
+
+    def test_std_install_with_direct_url(self, data, tmpdir):
+        """Test that install_wheel creates direct_url.json metadata when
+        provided with a direct_url argument. Also test that the RECORDS
+        file contains an entry for direct_url.json in that case.
+        Note direct_url.url is intentionally different from wheelpath,
+        because wheelpath is typically the result of a local build.
+        """
+        self.prep(data, tmpdir)
+        direct_url = DirectUrl(
+            url="file:///home/user/archive.tgz",
+            info=ArchiveInfo(),
+        )
+        wheel.install_wheel(
+            self.name,
+            self.wheelpath,
+            scheme=self.scheme,
+            req_description=str(self.req),
+            direct_url=direct_url,
+        )
+        direct_url_path = os.path.join(
+            self.dest_dist_info, DIRECT_URL_METADATA_NAME
+        )
+        assert os.path.isfile(direct_url_path)
+        with open(direct_url_path, 'rb') as f:
+            expected_direct_url_json = direct_url.to_json()
+            direct_url_json = f.read().decode("utf-8")
+            assert direct_url_json == expected_direct_url_json
+        # check that the direc_url file is part of RECORDS
+        with open(os.path.join(self.dest_dist_info, "RECORD")) as f:
+            assert DIRECT_URL_METADATA_NAME in f.read()
 
     def test_install_prefix(self, data, tmpdir):
         prefix = os.path.join(os.path.sep, 'some', 'path')
