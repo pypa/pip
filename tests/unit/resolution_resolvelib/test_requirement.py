@@ -1,7 +1,6 @@
 import pytest
 from pip._vendor.resolvelib import BaseReporter, Resolver
 
-from pip._internal.req.constructors import install_req_from_line
 from pip._internal.resolution.resolvelib.base import Candidate
 from pip._internal.utils.urls import path_to_url
 
@@ -50,25 +49,22 @@ def test_cases(data):
 
 def test_new_resolver_requirement_has_name(test_cases, factory):
     """All requirements should have a name"""
-    for requirement, name, matches in test_cases:
-        ireq = install_req_from_line(requirement)
-        req = factory.make_requirement(ireq)
+    for spec, name, matches in test_cases:
+        req = factory.make_requirement_from_spec(spec, comes_from=None)
         assert req.name == name
 
 
 def test_new_resolver_correct_number_of_matches(test_cases, factory):
     """Requirements should return the correct number of candidates"""
-    for requirement, name, matches in test_cases:
-        ireq = install_req_from_line(requirement)
-        req = factory.make_requirement(ireq)
+    for spec, name, matches in test_cases:
+        req = factory.make_requirement_from_spec(spec, comes_from=None)
         assert len(req.find_matches()) == matches
 
 
 def test_new_resolver_candidates_match_requirement(test_cases, factory):
     """Candidates returned from find_matches should satisfy the requirement"""
-    for requirement, name, matches in test_cases:
-        ireq = install_req_from_line(requirement)
-        req = factory.make_requirement(ireq)
+    for spec, name, matches in test_cases:
+        req = factory.make_requirement_from_spec(spec, comes_from=None)
         for c in req.find_matches():
             assert isinstance(c, Candidate)
             assert req.is_satisfied_by(c)
@@ -76,8 +72,7 @@ def test_new_resolver_candidates_match_requirement(test_cases, factory):
 
 def test_new_resolver_full_resolve(factory, provider):
     """A very basic full resolve"""
-    ireq = install_req_from_line("simplewheel")
-    req = factory.make_requirement(ireq)
+    req = factory.make_requirement_from_spec("simplewheel", comes_from=None)
     r = Resolver(provider, BaseReporter())
     result = r.resolve([req])
     assert set(result.mapping.keys()) == {'simplewheel'}

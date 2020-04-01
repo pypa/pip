@@ -25,7 +25,7 @@ class Factory(object):
         # type: (...) -> None
         self.finder = finder
         self.preparer = preparer
-        self.make_install_req = make_install_req
+        self._make_install_req_from_spec = make_install_req
         self._candidate_cache = {}  # type: Dict[Link, LinkCandidate]
 
     def make_candidate(
@@ -44,10 +44,15 @@ class Factory(object):
             return ExtrasCandidate(base, extras)
         return base
 
-    def make_requirement(self, ireq):
+    def make_requirement_from_install_req(self, ireq):
         # type: (InstallRequirement) -> Requirement
         if ireq.link:
             cand = self.make_candidate(ireq.link, extras=set(), parent=ireq)
             return ExplicitRequirement(cand)
         else:
             return SpecifierRequirement(ireq, factory=self)
+
+    def make_requirement_from_spec(self, specifier, comes_from):
+        # type: (str, InstallRequirement) -> Requirement
+        ireq = self._make_install_req_from_spec(specifier, comes_from)
+        return self.make_requirement_from_install_req(ireq)

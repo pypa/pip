@@ -1,5 +1,3 @@
-from functools import partial
-
 import pytest
 
 from pip._internal.cli.req_command import RequirementCommand
@@ -10,7 +8,7 @@ from pip._internal.index.package_finder import PackageFinder
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.network.session import PipSession
-from pip._internal.req.constructors import install_req_from_req_string
+from pip._internal.req.constructors import install_req_from_line
 from pip._internal.req.req_tracker import get_requirement_tracker
 from pip._internal.resolution.resolvelib.factory import Factory
 from pip._internal.resolution.resolvelib.provider import PipProvider
@@ -50,15 +48,10 @@ def preparer(finder):
 
 @pytest.fixture
 def factory(finder, preparer):
-    make_install_req = partial(
-        install_req_from_req_string,
-        isolated=False,
-        use_pep517=None,
-    )
     yield Factory(
         finder=finder,
         preparer=preparer,
-        make_install_req=make_install_req,
+        make_install_req=install_req_from_line,
     )
 
 

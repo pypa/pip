@@ -98,9 +98,7 @@ class LinkCandidate(Candidate):
     def get_dependencies(self):
         # type: () -> Sequence[Requirement]
         return [
-            self._factory.make_requirement(
-                self._factory.make_install_req(str(r), self._ireq),
-            )
+            self._factory.make_requirement_from_spec(str(r), self._ireq)
             for r in self.dist.requires()
         ]
 
@@ -166,14 +164,14 @@ class ExtrasCandidate(LinkCandidate):
             )
 
         deps = [
-            factory.make_install_req(str(r), self.base._ireq)
+            factory.make_requirement_from_spec(str(r), self.base._ireq)
             for r in self.base.dist.requires(valid_extras)
         ]
         # Add a dependency on the exact base.
         # (See note 2b in the class docstring)
         spec = "{}=={}".format(self.base.name, self.base.version)
-        deps.append(factory.make_install_req(spec, self.base._ireq))
-        return [factory.make_requirement(r) for r in deps]
+        deps.append(factory.make_requirement_from_spec(spec, self.base._ireq))
+        return deps
 
     def get_install_requirement(self):
         # type: () -> Optional[InstallRequirement]
