@@ -53,7 +53,6 @@ def factory(finder, preparer):
     make_install_req = partial(
         install_req_from_req_string,
         isolated=False,
-        wheel_cache=None,
         use_pep517=None,
     )
     yield Factory(
