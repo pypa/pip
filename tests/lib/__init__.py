@@ -991,6 +991,16 @@ def create_basic_wheel_for_package(
     archive_name = "{}-{}-py2.py3-none-any.whl".format(name, version)
     archive_path = script.scratch_path / archive_name
 
+    package_init_py = "{name}/__init__.py".format(name=name)
+    assert package_init_py not in extra_files
+    extra_files[package_init_py] = textwrap.dedent(
+        """
+        __version__ = {version!r}
+        def hello():
+            return "Hello From {name}"
+        """,
+    ).format(version=version, name=name)
+
     requires_dist = depends + [
         '{package}; extra == "{extra}"'.format(package=package, extra=extra)
         for extra, packages in extras.items()
@@ -1006,26 +1016,13 @@ def create_basic_wheel_for_package(
             "Requires-Dist": requires_dist,
         },
         extra_metadata_files={"top_level.txt": name},
+        extra_files=extra_files,
 
         # Have an empty RECORD because we don't want to be checking hashes.
         record="",
     )
+    wheel_builder.save_to(archive_path)
 
-    # Create the wheel in-memory to add more files.
-    wheel_io = BytesIO(wheel_builder.as_bytes())
-    with ZipFile(wheel_io, "a") as zf:
-        zf.writestr(
-            "{name}/__init__.py".format(name=name),
-            textwrap.dedent("""
-                __version__ = {version!r}
-                def hello():
-                    return "Hello From {name}"
-            """).format(version=version, name=name),
-        )
-        for fn, content in extra_files.items():
-            zf.writestr(fn, content)
-
-    archive_path.write_bytes(wheel_io.getvalue())
     return archive_path
 
 
