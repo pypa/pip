@@ -14,6 +14,7 @@ def resolver(preparer, finder):
     resolver = Resolver(
         preparer=preparer,
         finder=finder,
+        wheel_cache=None,
         make_install_req=mock.Mock(),
         use_user_site="not-used",
         ignore_dependencies="not-used",
@@ -57,7 +58,7 @@ def resolver(preparer, finder):
         ),
     ],
 )
-def test_rlr_resolver_get_installation_order(resolver, edges, ordered_reqs):
+def test_new_resolver_get_installation_order(resolver, edges, ordered_reqs):
     # Build graph from edge declarations.
     graph = DirectedGraph()
     for parent, child in edges:

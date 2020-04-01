@@ -16,6 +16,7 @@ if MYPY_CHECK_RUNNING:
 
     from pip._vendor.resolvelib.resolvers import Result
 
+    from pip._internal.cache import WheelCache
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.operations.prepare import RequirementPreparer
     from pip._internal.req.req_install import InstallRequirement
@@ -27,6 +28,7 @@ class Resolver(BaseResolver):
         self,
         preparer,  # type: RequirementPreparer
         finder,  # type: PackageFinder
+        wheel_cache,  # type: Optional[WheelCache]
         make_install_req,  # type: InstallRequirementProvider
         use_user_site,  # type: bool
         ignore_dependencies,  # type: bool

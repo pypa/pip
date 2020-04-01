@@ -553,6 +553,53 @@ def test_uninstall_editable_and_pip_install(script, data):
     assert "FSPkg" not in {p["name"] for p in json.loads(list_result2.stdout)}
 
 
+def test_uninstall_editable_and_pip_install_easy_install_remove(script, data):
+    """Try uninstall after pip install -e after pip install
+    and removing easy-install.pth"""
+    # SETUPTOOLS_SYS_PATH_TECHNIQUE=raw removes the assumption that `-e`
+    # installs are always higher priority than regular installs.
+    # This becomes the default behavior in setuptools 25.
+    script.environ['SETUPTOOLS_SYS_PATH_TECHNIQUE'] = 'raw'
+
+    # Rename easy-install.pth to pip-test.pth
+    easy_install_pth = join(script.site_packages_path, 'easy-install.pth')
+    pip_test_pth = join(script.site_packages_path, 'pip-test.pth')
+    os.rename(easy_install_pth, pip_test_pth)
+
+    # Install FSPkg
+    pkg_path = data.packages.joinpath("FSPkg")
+    script.pip('install', '-e', '.',
+               expect_stderr=True, cwd=pkg_path)
+
+    # Rename easy-install.pth to pip-test-fspkg.pth
+    pip_test_fspkg_pth = join(script.site_packages_path, 'pip-test-fspkg.pth')
+    os.rename(easy_install_pth, pip_test_fspkg_pth)
+
+    # Confirm that FSPkg is installed
+    list_result = script.pip('list', '--format=json')
+    assert {"name": "FSPkg", "version": "0.1.dev0"} \
+        in json.loads(list_result.stdout)
+
+    # Remove pip-test-fspkg.pth
+    os.remove(pip_test_fspkg_pth)
+
+    # Uninstall will fail with given warning
+    uninstall = script.pip('uninstall', 'FSPkg', '-y')
+    assert "Cannot remove entries from nonexistent file" in uninstall.stderr
+
+    assert join(
+        script.site_packages, 'FSPkg.egg-link'
+    ) in uninstall.files_deleted, list(uninstall.files_deleted.keys())
+
+    # Confirm that FSPkg is uninstalled
+    list_result = script.pip('list', '--format=json')
+    assert {"name": "FSPkg", "version": "0.1.dev0"} \
+        not in json.loads(list_result.stdout)
+
+    # Rename pip-test.pth back to easy-install.pth
+    os.rename(pip_test_pth, easy_install_pth)
+
+
 def test_uninstall_ignores_missing_packages(script, data):
     """Uninstall of a non existent package prints a warning and exits cleanly
     """

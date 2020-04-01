@@ -30,7 +30,6 @@ def make_install_req_from_link(link, parent):
         comes_from=parent.comes_from,
         use_pep517=parent.use_pep517,
         isolated=parent.isolated,
-        wheel_cache=parent._wheel_cache,
         constraint=parent.constraint,
         options=dict(
             install_options=parent.install_options,

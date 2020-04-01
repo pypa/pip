@@ -48,7 +48,7 @@ def test_cases(data):
     yield test_cases
 
 
-def test_rlr_requirement_has_name(test_cases, factory):
+def test_new_resolver_requirement_has_name(test_cases, factory):
     """All requirements should have a name"""
     for requirement, name, matches in test_cases:
         ireq = install_req_from_line(requirement)
@@ -56,7 +56,7 @@ def test_rlr_requirement_has_name(test_cases, factory):
         assert req.name == name
 
 
-def test_rlr_correct_number_of_matches(test_cases, factory):
+def test_new_resolver_correct_number_of_matches(test_cases, factory):
     """Requirements should return the correct number of candidates"""
     for requirement, name, matches in test_cases:
         ireq = install_req_from_line(requirement)
@@ -64,7 +64,7 @@ def test_rlr_correct_number_of_matches(test_cases, factory):
         assert len(req.find_matches()) == matches
 
 
-def test_rlr_candidates_match_requirement(test_cases, factory):
+def test_new_resolver_candidates_match_requirement(test_cases, factory):
     """Candidates returned from find_matches should satisfy the requirement"""
     for requirement, name, matches in test_cases:
         ireq = install_req_from_line(requirement)
@@ -74,7 +74,7 @@ def test_rlr_candidates_match_requirement(test_cases, factory):
             assert req.is_satisfied_by(c)
 
 
-def test_rlr_full_resolve(factory, provider):
+def test_new_resolver_full_resolve(factory, provider):
     """A very basic full resolve"""
     ireq = install_req_from_line("simplewheel")
     req = factory.make_requirement(ireq)
