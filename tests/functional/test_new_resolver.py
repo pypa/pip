@@ -1,5 +1,7 @@
 import json
 
+import pytest
+
 from tests.lib import create_basic_wheel_for_package
 
 
@@ -137,3 +139,55 @@ def test_new_resolver_installs_extras(script):
     assert "WARNING: Invalid extras specified" in result.stderr, str(result)
     assert ": missing" in result.stderr, str(result)
     assert_installed(script, base="0.1.0", dep="0.1.0")
+
+
+@pytest.mark.parametrize(
+    "requires_python, ignore_requires_python, dep_version",
+    [
+        # Something impossible to satisfy.
+        ("<2", False, "0.1.0"),
+        ("<2", True, "0.2.0"),
+
+        # Something guaranteed to satisfy.
+        (">=2", False, "0.2.0"),
+        (">=2", True, "0.2.0"),
+    ],
+)
+def test_new_resolver_requires_python(
+    script,
+    requires_python,
+    ignore_requires_python,
+    dep_version,
+):
+    create_basic_wheel_for_package(
+        script,
+        "base",
+        "0.1.0",
+        depends=["dep"],
+    )
+    create_basic_wheel_for_package(
+        script,
+        "dep",
+        "0.1.0",
+    )
+    create_basic_wheel_for_package(
+        script,
+        "dep",
+        "0.2.0",
+        requires_python=requires_python,
+    )
+
+    args = [
+        "install",
+        "--unstable-feature=resolver",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links", script.scratch_path,
+    ]
+    if ignore_requires_python:
+        args.append("--ignore-requires-python")
+    args.append("base")
+
+    script.pip(*args)
+
+    assert_installed(script, base="0.1.0", dep=dep_version)
