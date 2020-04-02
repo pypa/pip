@@ -210,6 +210,10 @@ class ListCommand(IndexGroupCommand):
                 dist.latest_filetype = typ
                 return dist
 
+            # This is done to multithread requests to pypi.org and eventually
+            # get performance boost so that "real time" of this function is
+            # almost equal to "user time". Also this gives performance
+            # boost up to 2x
             pool = ThreadPool(DEFAULT_POOLSIZE)
 
             for dist in pool.imap_unordered(latest_info, packages):
