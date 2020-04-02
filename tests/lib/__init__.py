@@ -979,7 +979,13 @@ def create_really_basic_wheel(name, version):
 
 
 def create_basic_wheel_for_package(
-    script, name, version, depends=None, extras=None, extra_files=None
+    script,
+    name,
+    version,
+    depends=None,
+    extras=None,
+    requires_python=None,
+    extra_files=None,
 ):
     if depends is None:
         depends = []
@@ -1007,14 +1013,18 @@ def create_basic_wheel_for_package(
         for package in packages
     ]
 
+    metadata_updates = {
+        "Provides-Extra": list(extras),
+        "Requires-Dist": requires_dist,
+    }
+    if requires_python is not None:
+        metadata_updates["Requires-Python"] = requires_python
+
     wheel_builder = make_wheel(
         name=name,
         version=version,
         wheel_metadata_updates={"Tag": ["py2-none-any", "py3-none-any"]},
-        metadata_updates={
-            "Provides-Extra": list(extras),
-            "Requires-Dist": requires_dist,
-        },
+        metadata_updates=metadata_updates,
         extra_metadata_files={"top_level.txt": name},
         extra_files=extra_files,
 
