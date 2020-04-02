@@ -35,10 +35,13 @@ class ExplicitRequirement(Requirement):
 
 class NoMatchRequirement(Requirement):
     """A requirement that never matches anything.
+
+    Note: Similar to ExplicitRequirement, the caller should handle name
+    canonicalisation; this class does not perform it.
     """
     def __init__(self, name):
         # type: (str) -> None
-        self._name = canonicalize_name(name)
+        self._name = name
 
     @property
     def name(self):

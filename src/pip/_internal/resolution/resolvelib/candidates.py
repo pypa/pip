@@ -218,7 +218,8 @@ class RequiresPythonCandidate(Candidate):
     @property
     def name(self):
         # type: () -> str
-        return "<Python>"  # Avoid conflicting with the PyPI package "Python".
+        # Avoid conflicting with the PyPI package "Python".
+        return "<Python fom Requires-Python>"
 
     @property
     def version(self):
