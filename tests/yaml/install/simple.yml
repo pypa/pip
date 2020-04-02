@@ -19,3 +19,10 @@ cases:
     - install:
       - base 0.1.0
       - dep 0.1.0
+-
+  request:
+    - install: base
+      options: --no-deps
+  transaction:
+    - install:
+      - base 0.1.0

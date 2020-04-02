@@ -92,14 +92,17 @@ def convert_to_dict(string):
     return retval
 
 
-def handle_install_request(script, requirement):
+def handle_install_request(script, requirement, options):
     assert isinstance(requirement, str), (
         "Need install requirement to be a string only"
     )
-    result = script.pip(
-        "install",
-        "--no-index", "--find-links", path_to_url(script.scratch_path),
-        requirement, "--verbose",
+    args = ["install", "--no-index", "--find-links",
+            path_to_url(script.scratch_path)]
+    args.append(requirement)
+    args.extend(options)
+    args.append("--verbose")
+
+    result = script.pip(*args,
         allow_stderr_error=True,
         allow_stderr_warning=True,
     )
@@ -168,24 +171,17 @@ def test_yaml_based(script, case):
 
         create_basic_wheel_for_package(script, **package)
 
-    available_actions = {
-        "install": handle_install_request
-    }
-
     # use scratch path for index
     for request, expected in zip(requests, transaction):
-        # The name of the key is what action has to be taken
-        assert len(request.keys()) == 1, "Expected only one action"
-
-        # Get the only key
-        action = list(request.keys())[0]
-
-        assert action in available_actions.keys(), (
-            "Unsupported action {!r}".format(action)
-        )
 
         # Perform the requested action
-        effect = available_actions[action](script, request[action])
+        if 'install' in request:
+            effect = handle_install_request(
+                script,
+                request['install'],
+                request.get('options', '').split())
+        else:
+            assert False, "Unsupported request {!r}".format(request)
 
         result = effect["_result_object"]
         del effect["_result_object"]
