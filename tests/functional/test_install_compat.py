@@ -38,8 +38,9 @@ def test_debian_egg_name_workaround(script):
 
     # The Debian no-pyversion version of the .egg-info
     mangled = os.path.join(script.site_packages, "INITools-0.2.egg-info")
-    result.did_not_create(mangled), \
-        "Found unexpected {mangled}".format(**locals())
+    result.did_not_create(
+        mangled, message="Found unexpected {mangled}".format(**locals())
+    )
 
     # Simulate a Debian install by copying the .egg-info to their name for it
     full_egg_info = os.path.join(script.base_path, egg_info)
