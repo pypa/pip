@@ -185,17 +185,9 @@ class ListCommand(IndexGroupCommand):
         with self._build_session(options) as session:
             finder = self._build_package_finder(options, session)
 
-            # Doing multithreading in Python 2 compatible way
-            executor = ThreadPool(DEFAULT_POOLSIZE)
-            all_candidates_list = executor.map(
-                finder.find_all_candidates,
-                [dist.key for dist in packages]
-            )
-            executor.close()
-            executor.join()
-
-            for dist, all_candidates in zip(packages, all_candidates_list):
+            def latest_infos(dist):
                 typ = 'unknown'
+                all_candidates = finder.find_all_candidates(dist.key)
                 if not options.pre:
                     # Remove prereleases
                     all_candidates = [candidate for candidate in all_candidates
@@ -206,7 +198,7 @@ class ListCommand(IndexGroupCommand):
                 )
                 best_candidate = evaluator.sort_best_candidate(all_candidates)
                 if best_candidate is None:
-                    continue
+                    return None
 
                 remote_version = best_candidate.version
                 if best_candidate.link.is_wheel:
@@ -216,7 +208,16 @@ class ListCommand(IndexGroupCommand):
                 # This is dirty but makes the rest of the code much cleaner
                 dist.latest_version = remote_version
                 dist.latest_filetype = typ
-                yield dist
+                return dist
+
+            pool = ThreadPool(DEFAULT_POOLSIZE)
+
+            for dist in pool.imap_unordered(latest_infos, packages):
+                if dist is not None:
+                    yield dist
+
+            pool.close()
+            pool.join()
 
     def output_package_listing(self, packages, options):
         packages = sorted(
