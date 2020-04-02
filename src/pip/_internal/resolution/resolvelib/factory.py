@@ -71,6 +71,11 @@ class Factory(object):
         # type: (Optional[SpecifierSet]) -> Optional[Requirement]
         if self._ignore_requires_python or specifier is None:
             return None
+        # The logic here is different from SpecifierRequirement, for which we
+        # "find" candidates matching the specifier. But for Requires-Python,
+        # there is always exactly one candidate (the one specified with
+        # py_version_info). Here we decide whether to return that based on
+        # whether Requires-Python matches that one candidate or not.
         if self._python_candidate.version in specifier:
             return ExplicitRequirement(self._python_candidate)
         return NoMatchRequirement(self._python_candidate.name)
