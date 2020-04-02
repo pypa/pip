@@ -28,7 +28,8 @@ def test_download_if_requested(script):
         'download', '-d', 'pip_downloads', 'INITools==0.1'
     )
     result.did_create(
-        Path('scratch') / 'pip_downloads' / 'INITools-0.1.tar.gz')
+        Path('scratch') / 'pip_downloads' / 'INITools-0.1.tar.gz'
+    )
     result.did_not_create(script.site_packages / 'initools')
 
 
@@ -55,7 +56,8 @@ def test_download_wheel(script, data):
         '-d', '.', 'meta'
     )
     result.did_create(
-        Path('scratch') / 'meta-1.0-py2.py3-none-any.whl')
+        Path('scratch') / 'meta-1.0-py2.py3-none-any.whl'
+    )
     result.did_not_create(script.site_packages / 'piptestpackage')
 
 
@@ -71,7 +73,9 @@ def test_single_download_from_requirements_file(script):
     result = script.pip(
         'download', '-r', script.scratch_path / 'test-req.txt', '-d', '.',
     )
-    result.did_create(Path('scratch') / 'INITools-0.1.tar.gz')
+    result.did_create(
+        Path('scratch') / 'INITools-0.1.tar.gz'
+    )
     result.did_not_create(script.site_packages / 'initools')
 
 
@@ -83,7 +87,9 @@ def test_basic_download_should_download_dependencies(script):
     result = script.pip(
         'download', 'Paste[openid]==1.7.5.1', '-d', '.'
     )
-    result.did_create(Path('scratch') / 'Paste-1.7.5.1.tar.gz')
+    result.did_create(
+        Path('scratch') / 'Paste-1.7.5.1.tar.gz'
+    )
     openid_tarball_prefix = str(Path('scratch') / 'python-openid-')
     assert any(
         path.startswith(openid_tarball_prefix) for path in result.files_created
@@ -131,7 +137,9 @@ def test_download_should_skip_existing_files(script):
     result = script.pip(
         'download', '-r', script.scratch_path / 'test-req.txt', '-d', '.',
     )
-    result.did_create(Path('scratch') / 'INITools-0.1.tar.gz')
+    result.did_create(
+        Path('scratch') / 'INITools-0.1.tar.gz'
+    )
     result.did_not_create(script.site_packages / 'initools')
 
     # adding second package to test-req.txt
@@ -161,7 +169,9 @@ def test_download_vcs_link(script):
     result = script.pip(
         'download', '-d', '.', 'git+git://github.com/pypa/pip-test-package.git'
     )
-    result.did_create(Path('scratch') / 'pip-test-package-0.1.1.zip')
+    result.did_create(
+        Path('scratch') / 'pip-test-package-0.1.1.zip'
+    )
     result.did_not_create(script.site_packages / 'piptestpackage')
 
 
@@ -179,7 +189,9 @@ def test_only_binary_set_then_download_specific_platform(script, data):
         '--platform', 'linux_x86_64',
         'fake'
     )
-    result.did_create(Path('scratch') / 'fake-1.0-py2.py3-none-any.whl')
+    result.did_create(
+        Path('scratch') / 'fake-1.0-py2.py3-none-any.whl'
+    )
 
 
 def test_no_deps_set_then_download_specific_platform(script, data):
@@ -197,7 +209,8 @@ def test_no_deps_set_then_download_specific_platform(script, data):
         'fake'
     )
     result.did_create(
-        Path('scratch') / 'fake-1.0-py2.py3-none-any.whl')
+        Path('scratch') / 'fake-1.0-py2.py3-none-any.whl'
+    )
 
 
 def test_download_specific_platform_fails(script, data):

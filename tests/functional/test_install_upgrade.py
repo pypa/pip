@@ -81,7 +81,7 @@ def test_only_if_needed_does_upgrade_deps_when_no_longer_satisfied(script):
         script.site_packages /
         'simple-3.0-py{pyversion}.egg-info'.format(**globals())
     )
-    result.did_create(expected), "should have installed simple==3.0"
+    result.did_create(expected, message="should have installed simple==3.0")
     expected = (
         script.site_packages /
         'simple-1.0-py{pyversion}.egg-info'.format(**globals())
@@ -130,8 +130,9 @@ def test_eager_does_upgrade_dependecies_when_no_longer_satisfied(script):
     ), "should have installed require_simple==1.0"
     result.did_create(
         script.site_packages /
-        'simple-3.0-py{pyversion}.egg-info'.format(**globals())
-    ), "should have installed simple==3.0"
+        'simple-3.0-py{pyversion}.egg-info'.format(**globals()),
+        message="should have installed simple==3.0"
+    )
     assert (
         script.site_packages /
         'simple-1.0-py{pyversion}.egg-info'.format(**globals())

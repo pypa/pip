@@ -353,8 +353,10 @@ class TestPipResult(object):
                     .format(**locals())
                 )
 
-    def did_create(self, path):
-        assert str(path) in self.files_created, str(self)
+    def did_create(self, path, message=None):
+        if message is None:
+            message = ''
+        assert str(path) in self.files_created, "\n".join(message, str(self))
 
     def did_not_create(self, path):
         assert str(path) not in self.files_created, str(self)

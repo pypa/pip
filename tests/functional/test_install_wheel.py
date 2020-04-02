@@ -181,9 +181,9 @@ def test_install_wheel_with_target(script, shared_data, with_wheel, tmpdir):
         'install', 'simple.dist==0.1', '-t', target_dir,
         '--no-index', '--find-links', tmpdir,
     )
-    result.did_create(Path('scratch') / 'target' / 'simpledist'), (
-        str(result)
-    )
+    result.did_create(
+        Path('scratch') / 'target' / 'simpledist'
+    ), (str(result))
 
 
 def test_install_wheel_with_target_and_data_files(script, data, with_wheel):
@@ -236,7 +236,9 @@ def test_install_wheel_with_root(script, shared_data, tmpdir):
         'install', 'simple.dist==0.1', '--root', root_dir,
         '--no-index', '--find-links', tmpdir,
     )
-    result.did_create(Path('scratch') / 'root')
+    result.did_create(
+        Path('scratch') / 'root'
+    )
 
 
 def test_install_wheel_with_prefix(script, shared_data, tmpdir):
