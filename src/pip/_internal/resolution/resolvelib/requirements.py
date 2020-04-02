@@ -79,8 +79,8 @@ class SpecifierRequirement(Requirement):
             hashes=self._ireq.hashes(trust_internet=False),
         )
         return [
-            self._factory.make_candidate(
-                link=ican.link,
+            self._factory.make_candidate_from_ican(
+                ican=ican,
                 extras=self.extras,
                 parent=self._ireq,
             )

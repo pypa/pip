@@ -1,6 +1,17 @@
+from pip._vendor.pkg_resources import (
+    DistributionNotFound,
+    VersionConflict,
+    get_distribution,
+)
+
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-from .candidates import ExtrasCandidate, LinkCandidate, RequiresPythonCandidate
+from .candidates import (
+    AlreadyInstalledCandidate,
+    ExtrasCandidate,
+    LinkCandidate,
+    RequiresPythonCandidate,
+)
 from .requirements import (
     ExplicitRequirement,
     NoMatchRequirement,
@@ -11,8 +22,10 @@ if MYPY_CHECK_RUNNING:
     from typing import Dict, Optional, Set, Tuple
 
     from pip._vendor.packaging.specifiers import SpecifierSet
+    from pip._vendor.pkg_resources import Distribution
 
     from pip._internal.index.package_finder import PackageFinder
+    from pip._internal.models.candidate import InstallationCandidate
     from pip._internal.models.link import Link
     from pip._internal.operations.prepare import RequirementPreparer
     from pip._internal.req.req_install import InstallRequirement
@@ -27,6 +40,7 @@ class Factory(object):
         finder,  # type: PackageFinder
         preparer,  # type: RequirementPreparer
         make_install_req,  # type: InstallRequirementProvider
+        ignore_installed,  # type: bool
         ignore_requires_python,  # type: bool
         py_version_info=None,  # type: Optional[Tuple[int, ...]]
     ):
@@ -34,33 +48,78 @@ class Factory(object):
         self.finder = finder
         self.preparer = preparer
         self._python_candidate = RequiresPythonCandidate(py_version_info)
-        self._ignore_requires_python = ignore_requires_python
         self._make_install_req_from_spec = make_install_req
-        self._candidate_cache = {}  # type: Dict[Link, LinkCandidate]
+        self._ignore_installed = ignore_installed
+        self._ignore_requires_python = ignore_requires_python
+        self._link_candidate_cache = {}  # type: Dict[Link, LinkCandidate]
 
-    def make_candidate(
+    def _make_candidate_from_dist(
+        self,
+        dist,  # type: Distribution
+        extras,  # type: Set[str]
+        parent,  # type: InstallRequirement
+    ):
+        # type: (...) -> Candidate
+        base = AlreadyInstalledCandidate(dist, parent, factory=self)
+        if extras:
+            return ExtrasCandidate(base, extras)
+        return base
+
+    def _make_candidate_from_link(
         self,
         link,    # type: Link
         extras,  # type: Set[str]
         parent,  # type: InstallRequirement
     ):
         # type: (...) -> Candidate
-        if link not in self._candidate_cache:
-            self._candidate_cache[link] = LinkCandidate(
+        if link not in self._link_candidate_cache:
+            self._link_candidate_cache[link] = LinkCandidate(
                 link, parent, factory=self,
             )
-        base = self._candidate_cache[link]
+        base = self._link_candidate_cache[link]
         if extras:
             return ExtrasCandidate(base, extras)
         return base
 
+    def _get_installed_distribution(self, name, version):
+        # type: (str, str) -> Optional[Distribution]
+        if self._ignore_installed:
+            return None
+        specifier = "{}=={}".format(name, version)
+        try:
+            dist = get_distribution(specifier)
+        except (DistributionNotFound, VersionConflict):
+            return None
+        return dist
+
+    def make_candidate_from_ican(
+        self,
+        ican,  # type: InstallationCandidate
+        extras,  # type: Set[str]
+        parent,  # type: InstallRequirement
+    ):
+        # type: (...) -> Candidate
+        dist = self._get_installed_distribution(ican.name, ican.version)
+        if dist is None:
+            return self._make_candidate_from_link(
+                link=ican.link,
+                extras=extras,
+                parent=parent,
+            )
+        return self._make_candidate_from_dist(
+            dist=dist,
+            extras=extras,
+            parent=parent,
+        )
+
     def make_requirement_from_install_req(self, ireq):
         # type: (InstallRequirement) -> Requirement
         if ireq.link:
-            cand = self.make_candidate(ireq.link, extras=set(), parent=ireq)
+            cand = self._make_candidate_from_link(
+                ireq.link, extras=set(), parent=ireq,
+            )
             return ExplicitRequirement(cand)
-        else:
-            return SpecifierRequirement(ireq, factory=self)
+        return SpecifierRequirement(ireq, factory=self)
 
     def make_requirement_from_spec(self, specifier, comes_from):
         # type: (str, InstallRequirement) -> Requirement
