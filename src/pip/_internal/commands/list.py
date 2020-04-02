@@ -5,7 +5,7 @@ from __future__ import absolute_import
 
 import json
 import logging
-from multiprocessing.dummy import Pool
+from multiprocessing.pool import ThreadPool
 
 from pip._vendor import six
 from pip._vendor.requests.adapters import DEFAULT_POOLSIZE
@@ -186,12 +186,13 @@ class ListCommand(IndexGroupCommand):
             finder = self._build_package_finder(options, session)
 
             # Doing multithreading in Python 2 compatible way
-            executor = Pool(DEFAULT_POOLSIZE)
+            executor = ThreadPool(DEFAULT_POOLSIZE)
             all_candidates_list = executor.map(
                 finder.find_all_candidates,
                 [dist.key for dist in packages]
             )
-            executor.terminate()
+            executor.close()
+            executor.join()
 
             for dist, all_candidates in zip(packages, all_candidates_list):
                 typ = 'unknown'
