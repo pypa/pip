@@ -5,9 +5,11 @@ from __future__ import absolute_import
 
 import json
 import logging
+import concurrent.futures
 
 from pip._vendor import six
 from pip._vendor.six.moves import zip_longest
+from pip._vendor.requests.adapters import DEFAULT_POOLSIZE
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.req_command import IndexGroupCommand
@@ -182,10 +184,10 @@ class ListCommand(IndexGroupCommand):
     def iter_packages_latest_infos(self, packages, options):
         with self._build_session(options) as session:
             finder = self._build_package_finder(options, session)
-
-            for dist in packages:
+            with concurrent.futures.ThreadPoolExecutor(max_workers=DEFAULT_POOLSIZE) as executor:
+                all_candidates_list = executor.map(finder.find_all_candidates, [dist.key for dist in packages])
+            for dist, all_candidates in zip(packages, all_candidates_list):
                 typ = 'unknown'
-                all_candidates = finder.find_all_candidates(dist.key)
                 if not options.pre:
                     # Remove prereleases
                     all_candidates = [candidate for candidate in all_candidates
