@@ -103,9 +103,8 @@ def handle_install_request(script, requirement, options):
     args.append("--verbose")
 
     result = script.pip(*args,
-        allow_stderr_error=True,
-        allow_stderr_warning=True,
-    )
+                        allow_stderr_error=True,
+                        allow_stderr_warning=True)
 
     retval = {
         "_result_object": result,
