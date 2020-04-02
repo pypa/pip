@@ -7,8 +7,8 @@ from pip._vendor.pkg_resources import (
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 from .candidates import (
+    AlreadyInstalledCandidate,
     ExtrasCandidate,
-    InstalledCandidate,
     LinkCandidate,
     RequiresPythonCandidate,
 )
@@ -60,7 +60,7 @@ class Factory(object):
         parent,  # type: InstallRequirement
     ):
         # type: (...) -> Candidate
-        base = InstalledCandidate(dist, parent, factory=self)
+        base = AlreadyInstalledCandidate(dist, parent, factory=self)
         if extras:
             return ExtrasCandidate(base, extras)
         return base

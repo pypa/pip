@@ -154,7 +154,7 @@ class LinkCandidate(Candidate):
         return self._ireq
 
 
-class InstalledCandidate(Candidate):
+class AlreadyInstalledCandidate(Candidate):
     def __init__(
         self,
         dist,  # type: Distribution
@@ -219,8 +219,12 @@ class ExtrasCandidate(Candidate):
     version 2.0. Having those candidates depend on foo=1.0 and foo=2.0
     respectively forces the resolver to recognise that this is a conflict.
     """
-    def __init__(self, base, extras):
-        # type: (Union[InstalledCandidate, LinkCandidate], Set[str]) -> None
+    def __init__(
+        self,
+        base,  # type: Union[AlreadyInstalledCandidate, LinkCandidate]
+        extras,  # type: Set[str]
+    ):
+        # type: (...) -> None
         self.base = base
         self.extras = extras
 
