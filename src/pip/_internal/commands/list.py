@@ -5,11 +5,11 @@ from __future__ import absolute_import
 
 import json
 import logging
-import concurrent.futures
+from multiprocessing.dummy import Pool
 
 from pip._vendor import six
-from pip._vendor.six.moves import zip_longest
 from pip._vendor.requests.adapters import DEFAULT_POOLSIZE
+from pip._vendor.six.moves import zip_longest
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.req_command import IndexGroupCommand
@@ -184,8 +184,15 @@ class ListCommand(IndexGroupCommand):
     def iter_packages_latest_infos(self, packages, options):
         with self._build_session(options) as session:
             finder = self._build_package_finder(options, session)
-            with concurrent.futures.ThreadPoolExecutor(max_workers=DEFAULT_POOLSIZE) as executor:
-                all_candidates_list = executor.map(finder.find_all_candidates, [dist.key for dist in packages])
+
+            # Doing multithreading in Python 2 compatible way
+            executor = Pool(DEFAULT_POOLSIZE)
+            all_candidates_list = executor.map(
+                finder.find_all_candidates,
+                [dist.key for dist in packages]
+            )
+            executor.terminate()
+
             for dist, all_candidates in zip(packages, all_candidates_list):
                 typ = 'unknown'
                 if not options.pre:
