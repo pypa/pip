@@ -148,7 +148,7 @@ def test_new_resolver_installs_extras(script):
         ("<2", False, "0.1.0"),
         ("<2", True, "0.2.0"),
 
-        # Something guarentees to satisfy.
+        # Something guaranteed to satisfy.
         (">=2", False, "0.2.0"),
         (">=2", True, "0.2.0"),
     ],
