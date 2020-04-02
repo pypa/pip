@@ -14,7 +14,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from .base import Candidate, format_name
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Optional, Sequence, Set, Tuple
+    from typing import Any, Optional, Sequence, Set, Tuple, Union
 
     from pip._vendor.packaging.version import _BaseVersion
     from pip._vendor.pkg_resources import Distribution
@@ -43,6 +43,28 @@ def make_install_req_from_link(link, parent):
             hashes=parent.hash_options
         ),
     )
+
+
+def make_install_req_from_dist(dist, parent):
+    # type: (Distribution, InstallRequirement) -> InstallRequirement
+    # TODO: Do we need to support editables?
+    ireq = install_req_from_line(
+        "{}=={}".format(
+            canonicalize_name(dist.project_name),
+            dist.parsed_version,
+        ),
+        comes_from=parent.comes_from,
+        use_pep517=parent.use_pep517,
+        isolated=parent.isolated,
+        constraint=parent.constraint,
+        options=dict(
+            install_options=parent.install_options,
+            global_options=parent.global_options,
+            hashes=parent.hash_options
+        ),
+    )
+    ireq.satisfied_by = dist
+    return ireq
 
 
 class LinkCandidate(Candidate):
@@ -132,7 +154,48 @@ class LinkCandidate(Candidate):
         return self._ireq
 
 
-class ExtrasCandidate(LinkCandidate):
+class InstalledCandidate(Candidate):
+    def __init__(
+        self,
+        dist,  # type: Distribution
+        parent,  # type: InstallRequirement
+        factory,  # type: Factory
+    ):
+        # type: (...) -> None
+        self.dist = dist
+        self._ireq = make_install_req_from_dist(dist, parent)
+        self._factory = factory
+
+        # This is just logging some messages, so we can do it eagerly.
+        # The returned dist would be exactly the same as self.dist because we
+        # set satisfied_by in make_install_req_from_dist.
+        # TODO: Supply reason based on force_reinstall and upgrade_strategy.
+        skip_reason = "already satisfied"
+        factory.preparer.prepare_installed_requirement(self._ireq, skip_reason)
+
+    @property
+    def name(self):
+        # type: () -> str
+        return canonicalize_name(self.dist.project_name)
+
+    @property
+    def version(self):
+        # type: () -> _BaseVersion
+        return self.dist.parsed_version
+
+    def get_dependencies(self):
+        # type: () -> Sequence[Requirement]
+        return [
+            self._factory.make_requirement_from_spec(str(r), self._ireq)
+            for r in self.dist.requires()
+        ]
+
+    def get_install_requirement(self):
+        # type: () -> Optional[InstallRequirement]
+        return None
+
+
+class ExtrasCandidate(Candidate):
     """A candidate that has 'extras', indicating additional dependencies.
 
     Requirements can be for a project with dependencies, something like
@@ -157,10 +220,9 @@ class ExtrasCandidate(LinkCandidate):
     respectively forces the resolver to recognise that this is a conflict.
     """
     def __init__(self, base, extras):
-        # type: (LinkCandidate, Set[str]) -> None
+        # type: (Union[InstalledCandidate, LinkCandidate], Set[str]) -> None
         self.base = base
         self.extras = extras
-        self.link = base.link
 
     @property
     def name(self):

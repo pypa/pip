@@ -191,3 +191,65 @@ def test_new_resolver_requires_python(
     script.pip(*args)
 
     assert_installed(script, base="0.1.0", dep=dep_version)
+
+
+def test_new_resolver_installed(script):
+    create_basic_wheel_for_package(
+        script,
+        "base",
+        "0.1.0",
+        depends=["dep"],
+    )
+    create_basic_wheel_for_package(
+        script,
+        "dep",
+        "0.1.0",
+    )
+    satisfied_output = "Requirement already satisfied: base==0.1.0 in"
+
+    result = script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "base",
+    )
+    assert satisfied_output not in result.stdout, str(result)
+
+    result = script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "base",
+    )
+    assert satisfied_output in result.stdout, str(result)
+    assert script.site_packages / "base" not in result.files_updated, (
+        "base 0.1.0 reinstalled"
+    )
+
+
+def test_new_resolver_ignore_installed(script):
+    create_basic_wheel_for_package(
+        script,
+        "base",
+        "0.1.0",
+    )
+    satisfied_output = "Requirement already satisfied: base==0.1.0 in"
+
+    result = script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "base",
+    )
+    assert satisfied_output not in result.stdout, str(result)
+
+    result = script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index", "--ignore-installed",
+        "--find-links", script.scratch_path,
+        "base",
+    )
+    assert satisfied_output not in result.stdout, str(result)
+    assert script.site_packages / "base" in result.files_updated, (
+        "base 0.1.0 not reinstalled"
+    )
