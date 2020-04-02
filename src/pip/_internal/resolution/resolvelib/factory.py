@@ -23,9 +23,9 @@ class Factory(object):
         make_install_req,  # type: InstallRequirementProvider
     ):
         # type: (...) -> None
-        self._finder = finder
-        self._preparer = preparer
-        self._make_install_req = make_install_req
+        self.finder = finder
+        self.preparer = preparer
+        self._make_install_req_from_spec = make_install_req
         self._candidate_cache = {}  # type: Dict[Link, LinkCandidate]
 
     def make_candidate(
@@ -37,25 +37,22 @@ class Factory(object):
         # type: (...) -> Candidate
         if link not in self._candidate_cache:
             self._candidate_cache[link] = LinkCandidate(
-                link,
-                self._preparer,
-                parent=parent,
-                make_install_req=self._make_install_req
+                link, parent, factory=self,
             )
         base = self._candidate_cache[link]
         if extras:
             return ExtrasCandidate(base, extras)
         return base
 
-    def make_requirement(self, ireq):
+    def make_requirement_from_install_req(self, ireq):
         # type: (InstallRequirement) -> Requirement
         if ireq.link:
             cand = self.make_candidate(ireq.link, extras=set(), parent=ireq)
             return ExplicitRequirement(cand)
         else:
-            return SpecifierRequirement(
-                ireq,
-                finder=self._finder,
-                factory=self,
-                make_install_req=self._make_install_req,
-            )
+            return SpecifierRequirement(ireq, factory=self)
+
+    def make_requirement_from_spec(self, specifier, comes_from):
+        # type: (str, InstallRequirement) -> Requirement
+        ireq = self._make_install_req_from_spec(specifier, comes_from)
+        return self.make_requirement_from_install_req(ireq)

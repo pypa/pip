@@ -56,7 +56,10 @@ class Resolver(BaseResolver):
         reporter = BaseReporter()
         resolver = RLResolver(provider, reporter)
 
-        requirements = [self.factory.make_requirement(r) for r in root_reqs]
+        requirements = [
+            self.factory.make_requirement_from_install_req(r)
+            for r in root_reqs
+        ]
         self._result = resolver.resolve(requirements)
 
         req_set = RequirementSet(check_supported_wheels=check_supported_wheels)
