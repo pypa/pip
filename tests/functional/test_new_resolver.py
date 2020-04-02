@@ -3,7 +3,6 @@ import json
 import pytest
 
 from tests.lib import create_basic_wheel_for_package
-from tests.lib.wheel import make_wheel
 
 
 def assert_installed(script, **kwargs):
@@ -166,17 +165,17 @@ def test_new_resolver_requires_python(
         "0.1.0",
         depends=["dep"],
     )
-
-    # TODO: Use create_basic_wheel_for_package when it handles Requires-Python.
-    make_wheel(
+    create_basic_wheel_for_package(
+        script,
         "dep",
         "0.1.0",
-    ).save_to_dir(script.scratch_path)
-    make_wheel(
+    )
+    create_basic_wheel_for_package(
+        script,
         "dep",
         "0.2.0",
-        metadata_updates={"Requires-Python": requires_python},
-    ).save_to_dir(script.scratch_path)
+        requires_python=requires_python,
+    )
 
     args = [
         "install",
