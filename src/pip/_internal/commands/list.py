@@ -185,7 +185,7 @@ class ListCommand(IndexGroupCommand):
         with self._build_session(options) as session:
             finder = self._build_package_finder(options, session)
 
-            def latest_infos(dist):
+            def latest_info(dist):
                 typ = 'unknown'
                 all_candidates = finder.find_all_candidates(dist.key)
                 if not options.pre:
@@ -212,7 +212,7 @@ class ListCommand(IndexGroupCommand):
 
             pool = ThreadPool(DEFAULT_POOLSIZE)
 
-            for dist in pool.imap_unordered(latest_infos, packages):
+            for dist in pool.imap_unordered(latest_info, packages):
                 if dist is not None:
                     yield dist
 
