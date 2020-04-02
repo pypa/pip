@@ -104,6 +104,8 @@ def indent_log(num=2):
     A context manager which will cause the log output to be indented for any
     log messages emitted inside it.
     """
+    # For thread-safety
+    _log_state.indentation = get_indentation()
     _log_state.indentation += num
     try:
         yield
