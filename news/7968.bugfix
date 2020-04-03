@@ -1,0 +1,1 @@
+Look for version string in the entire output of svn --version, not just the first line

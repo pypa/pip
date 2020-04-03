@@ -443,6 +443,18 @@ def test_subversion__call_vcs_version():
     ('svn, version 1.10.3 (r1842928)\n'
      '   compiled Feb 25 2019, 14:20:39 on x86_64-apple-darwin17.0.0',
      (1, 10, 3)),
+    ('Warning: Failed to set locale category LC_NUMERIC to en_IN.\n'
+     'Warning: Failed to set locale category LC_TIME to en_IN.\n'
+     'svn, version 1.10.3 (r1842928)\n'
+     '   compiled Feb 25 2019, 14:20:39 on x86_64-apple-darwin17.0.0',
+     (1, 10, 3)),
+    ('Warning: Failed to set locale category LC_NUMERIC to en_IN.\n'
+     'Warning: Failed to set locale category LC_TIME to en_IN.\n'
+     'svn, version 1.10.3 (r1842928)\n'
+     '   compiled Feb 25 2019, 14:20:39 on x86_64-apple-darwin17.0.0'
+     'svn, version 1.11.3 (r1842928)\n'
+     '   compiled Feb 25 2019, 14:20:39 on x86_64-apple-darwin17.0.0',
+     (1, 10, 3)),
     ('svn, version 1.9.7 (r1800392)', (1, 9, 7)),
     ('svn, version 1.9.7a1 (r1800392)', ()),
     ('svn, version 1.9 (r1800392)', (1, 9)),
