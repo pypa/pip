@@ -22,6 +22,7 @@ if MYPY_CHECK_RUNNING:
     from typing import Dict, Optional, Set, Tuple
 
     from pip._vendor.packaging.specifiers import SpecifierSet
+    from pip._vendor.packaging.version import _BaseVersion
     from pip._vendor.pkg_resources import Distribution
 
     from pip._internal.index.package_finder import PackageFinder
@@ -67,14 +68,16 @@ class Factory(object):
 
     def _make_candidate_from_link(
         self,
-        link,    # type: Link
-        extras,  # type: Set[str]
-        parent,  # type: InstallRequirement
+        link,          # type: Link
+        extras,        # type: Set[str]
+        parent,        # type: InstallRequirement
+        name=None,     # type: Optional[str]
+        version=None,  # type: Optional[_BaseVersion]
     ):
         # type: (...) -> Candidate
         if link not in self._link_candidate_cache:
             self._link_candidate_cache[link] = LinkCandidate(
-                link, parent, factory=self,
+                link, parent, factory=self, name=name, version=version,
             )
         base = self._link_candidate_cache[link]
         if extras:
@@ -105,6 +108,8 @@ class Factory(object):
                 link=ican.link,
                 extras=extras,
                 parent=parent,
+                name=ican.name,
+                version=ican.version,
             )
         return self._make_candidate_from_dist(
             dist=dist,
@@ -115,6 +120,9 @@ class Factory(object):
     def make_requirement_from_install_req(self, ireq):
         # type: (InstallRequirement) -> Requirement
         if ireq.link:
+            # TODO: Get name and version from ireq, if possible?
+            #       Specifically, this might be needed in "name @ URL"
+            #       syntax - need to check where that syntax is handled.
             cand = self._make_candidate_from_link(
                 ireq.link, extras=set(), parent=ireq,
             )

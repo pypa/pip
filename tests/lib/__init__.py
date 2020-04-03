@@ -15,7 +15,7 @@ from textwrap import dedent
 from zipfile import ZipFile
 
 import pytest
-from pip._vendor.six import PY2
+from pip._vendor.six import PY2, ensure_binary, text_type
 from scripttest import FoundDir, TestFileEnvironment
 
 from pip._internal.index.collector import LinkCollector
@@ -1034,6 +1034,56 @@ def create_basic_wheel_for_package(
     wheel_builder.save_to(archive_path)
 
     return archive_path
+
+
+def create_basic_sdist_for_package(
+    script, name, version, extra_files=None
+):
+    files = {
+        "setup.py": """
+            from setuptools import find_packages, setup
+            setup(name={name!r}, version={version!r})
+        """,
+    }
+
+    # Some useful shorthands
+    archive_name = "{name}-{version}.tar.gz".format(
+        name=name, version=version
+    )
+
+    # Replace key-values with formatted values
+    for key, value in list(files.items()):
+        del files[key]
+        key = key.format(name=name)
+        files[key] = textwrap.dedent(value).format(
+            name=name, version=version
+        ).strip()
+
+    # Add new files after formatting
+    if extra_files:
+        files.update(extra_files)
+
+    for fname in files:
+        path = script.temp_path / fname
+        path.parent.mkdir(exist_ok=True, parents=True)
+        path.write_bytes(ensure_binary(files[fname]))
+
+    # The base_dir cast is required to make `shutil.make_archive()` use
+    # Unicode paths on Python 2, making it able to properly archive
+    # files with non-ASCII names.
+    retval = script.scratch_path / archive_name
+    generated = shutil.make_archive(
+        retval,
+        'gztar',
+        root_dir=script.temp_path,
+        base_dir=text_type(os.curdir),
+    )
+    shutil.move(generated, retval)
+
+    shutil.rmtree(script.temp_path)
+    script.temp_path.mkdir()
+
+    return retval
 
 
 def need_executable(name, check_cmd):

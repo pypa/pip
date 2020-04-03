@@ -2,7 +2,10 @@ import json
 
 import pytest
 
-from tests.lib import create_basic_wheel_for_package
+from tests.lib import (
+    create_basic_sdist_for_package,
+    create_basic_wheel_for_package,
+)
 
 
 def assert_installed(script, **kwargs):
@@ -253,3 +256,41 @@ def test_new_resolver_ignore_installed(script):
     assert script.site_packages / "base" in result.files_updated, (
         "base 0.1.0 not reinstalled"
     )
+
+
+def test_new_resolver_only_builds_sdists_when_needed(script):
+    create_basic_wheel_for_package(
+        script,
+        "base",
+        "0.1.0",
+        depends=["dep"],
+    )
+    create_basic_sdist_for_package(
+        script,
+        "dep",
+        "0.1.0",
+        # Replace setup.py with something that fails
+        extra_files={"setup.py": "assert False"},
+    )
+    create_basic_sdist_for_package(
+        script,
+        "dep",
+        "0.2.0",
+    )
+    # We only ever need to check dep 0.2.0 as it's the latest version
+    script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "base"
+    )
+    assert_installed(script, base="0.1.0", dep="0.2.0")
+
+    # We merge criteria here, as we have two "dep" requirements
+    script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "base", "dep"
+    )
+    assert_installed(script, base="0.1.0", dep="0.2.0")

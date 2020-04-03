@@ -68,13 +68,20 @@ def make_install_req_from_dist(dist, parent):
 
 
 class LinkCandidate(Candidate):
-    def __init__(self, link, parent, factory):
-        # type: (Link, InstallRequirement, Factory) -> None
+    def __init__(
+        self,
+        link,          # type: Link
+        parent,        # type: InstallRequirement
+        factory,       # type: Factory
+        name=None,     # type: Optional[str]
+        version=None,  # type: Optional[_BaseVersion]
+    ):
+        # type: (...) -> None
         self.link = link
         self._factory = factory
         self._ireq = make_install_req_from_link(link, parent)
-        self._name = None  # type: Optional[str]
-        self._version = None  # type: Optional[_BaseVersion]
+        self._name = name
+        self._version = version
         self._dist = None  # type: Optional[Distribution]
 
     def __eq__(self, other):
@@ -113,6 +120,11 @@ class LinkCandidate(Candidate):
             self._dist = abstract_dist.get_pkg_resources_distribution()
             # TODO: Only InstalledDistribution can return None here :-(
             assert self._dist is not None
+            # TODO: Abort cleanly here, as the resolution has been
+            #       based on the wrong name/version until now, and
+            #       so is wrong.
+            # TODO: (Longer term) Rather than abort, reject this candidate
+            #       and backtrack. This would need resolvelib support.
             # These should be "proper" errors, not just asserts, as they
             # can result from user errors like a requirement "foo @ URL"
             # when the project at URL has a name of "bar" in its metadata.
