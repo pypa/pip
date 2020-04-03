@@ -19,6 +19,7 @@ if MYPY_CHECK_RUNNING:
     from pip._vendor.packaging.version import _BaseVersion
     from pip._vendor.pkg_resources import Distribution
 
+    from pip._internal.distributions import AbstractDistribution
     from pip._internal.models.link import Link
 
     from .base import Requirement
@@ -67,11 +68,11 @@ def make_install_req_from_dist(dist, parent):
     return ireq
 
 
-class LinkCandidate(Candidate):
+class _InstallRequirementBackedCandidate(Candidate):
     def __init__(
         self,
         link,          # type: Link
-        parent,        # type: InstallRequirement
+        ireq,          # type: InstallRequirement
         factory,       # type: Factory
         name=None,     # type: Optional[str]
         version=None,  # type: Optional[_BaseVersion]
@@ -79,7 +80,7 @@ class LinkCandidate(Candidate):
         # type: (...) -> None
         self.link = link
         self._factory = factory
-        self._ireq = make_install_req_from_link(link, parent)
+        self._ireq = ireq
         self._name = name
         self._version = version
         self._dist = None  # type: Optional[Distribution]
@@ -110,13 +111,15 @@ class LinkCandidate(Candidate):
             self._version = self.dist.parsed_version
         return self._version
 
+    def _get_abstract_distribution(self):
+        # type: () -> AbstractDistribution
+        raise NotImplementedError("Override in subclass")
+
     @property
     def dist(self):
         # type: () -> Distribution
         if self._dist is None:
-            abstract_dist = self._factory.preparer.prepare_linked_requirement(
-                self._ireq
-            )
+            abstract_dist = self._get_abstract_distribution()
             self._dist = abstract_dist.get_pkg_resources_distribution()
             # TODO: Only InstalledDistribution can return None here :-(
             assert self._dist is not None
@@ -164,6 +167,29 @@ class LinkCandidate(Candidate):
     def get_install_requirement(self):
         # type: () -> Optional[InstallRequirement]
         return self._ireq
+
+
+class LinkCandidate(_InstallRequirementBackedCandidate):
+    def __init__(
+        self,
+        link,          # type: Link
+        parent,        # type: InstallRequirement
+        factory,       # type: Factory
+        name=None,     # type: Optional[str]
+        version=None,  # type: Optional[_BaseVersion]
+    ):
+        # type: (...) -> None
+        super(LinkCandidate, self).__init__(
+            link=link,
+            ireq=make_install_req_from_link(link, parent),
+            factory=factory,
+            name=name,
+            version=version,
+        )
+
+    def _get_abstract_distribution(self):
+        # type: () -> AbstractDistribution
+        return self._factory.preparer.prepare_linked_requirement(self._ireq)
 
 
 class AlreadyInstalledCandidate(Candidate):

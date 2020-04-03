@@ -19,7 +19,7 @@ from .requirements import (
 )
 
 if MYPY_CHECK_RUNNING:
-    from typing import Dict, Optional, Set, Tuple
+    from typing import Dict, Optional, Set, Tuple, TypeVar
 
     from pip._vendor.packaging.specifiers import SpecifierSet
     from pip._vendor.packaging.version import _BaseVersion
@@ -33,6 +33,9 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.resolution.base import InstallRequirementProvider
 
     from .base import Candidate, Requirement
+
+    C = TypeVar("C")
+    Cache = Dict[Link, C]
 
 
 class Factory(object):
@@ -52,7 +55,7 @@ class Factory(object):
         self._make_install_req_from_spec = make_install_req
         self._ignore_installed = ignore_installed
         self._ignore_requires_python = ignore_requires_python
-        self._link_candidate_cache = {}  # type: Dict[Link, LinkCandidate]
+        self._link_candidate_cache = {}  # type: Cache[LinkCandidate]
 
     def _make_candidate_from_dist(
         self,
