@@ -675,7 +675,9 @@ def test_download_prefer_binary_when_tarball_higher_than_wheel(script, data):
     result.did_create(
         Path('scratch') / 'source-0.8-py2.py3-none-any.whl'
     )
-    result.did_not_create(Path('scratch') / 'source-1.0.tar.gz')
+    result.did_not_create(
+        Path('scratch') / 'source-1.0.tar.gz'
+    )
 
 
 def test_download_prefer_binary_when_wheel_doesnt_satisfy_req(script, data):

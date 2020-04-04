@@ -112,9 +112,7 @@ def test_basic_install_from_wheel_file(script, data):
         installer_details = installer_file.read()
         assert installer_details == b'pip\n'
     installer_temp = dist_info_folder / 'INSTALLER.pip'
-    result.did_not_create(installer_temp), (dist_info_folder,
-                                            result.files_created,
-                                            result.stdout)
+    result.did_not_create(installer_temp)
 
 
 # Installation seems to work, but scripttest fails to check.
@@ -209,7 +207,7 @@ def test_install_wheel_with_target_and_data_files(script, data, with_wheel):
     )
     result.did_not_create(
         Path('scratch') / 'prjwithdatafile' / 'lib' / 'python'
-    ), str(result)
+    )
 
 
 def test_install_wheel_with_root(script, shared_data, tmpdir):

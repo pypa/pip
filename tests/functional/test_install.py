@@ -1131,7 +1131,7 @@ def test_url_req_case_mismatch_no_index(script, data):
     result.did_create(egg_folder)
     egg_folder = script.site_packages / \
         'Upper-2.0-py{pyversion}.egg-info'.format(**globals())
-    result.did_not_create(egg_folder), str(result)
+    result.did_not_create(egg_folder)
 
 
 def test_url_req_case_mismatch_file_index(script, data):
@@ -1157,10 +1157,10 @@ def test_url_req_case_mismatch_file_index(script, data):
     # only Upper-1.0.tar.gz should get installed.
     egg_folder = script.site_packages / \
         'Dinner-1.0-py{pyversion}.egg-info'.format(**globals())
-    result.did_create(egg_folder), str(result)
+    result.did_create(egg_folder)
     egg_folder = script.site_packages / \
         'Dinner-2.0-py{pyversion}.egg-info'.format(**globals())
-    result.did_not_create(egg_folder), str(result)
+    result.did_not_create(egg_folder)
 
 
 def test_url_incorrect_case_no_index(script, data):
@@ -1176,7 +1176,7 @@ def test_url_incorrect_case_no_index(script, data):
     # only Upper-2.0.tar.gz should get installed.
     egg_folder = script.site_packages / \
         'Upper-1.0-py{pyversion}.egg-info'.format(**globals())
-    result.did_not_create(egg_folder), str(result)
+    result.did_not_create(egg_folder)
     egg_folder = script.site_packages / \
         'Upper-2.0-py{pyversion}.egg-info'.format(**globals())
     result.did_create(egg_folder)
@@ -1196,10 +1196,10 @@ def test_url_incorrect_case_file_index(script, data):
     # only Upper-2.0.tar.gz should get installed.
     egg_folder = script.site_packages / \
         'Dinner-1.0-py{pyversion}.egg-info'.format(**globals())
-    result.did_not_create(egg_folder), str(result)
+    result.did_not_create(egg_folder)
     egg_folder = script.site_packages / \
         'Dinner-2.0-py{pyversion}.egg-info'.format(**globals())
-    result.did_create(egg_folder), str(result)
+    result.did_create(egg_folder)
 
     # Should show index-url location in output
     assert "Looking in indexes: " in result.stdout
