@@ -729,8 +729,6 @@ class InstallRequirement(object):
                 os.path.abspath(self.unpacked_source_directory)
             )
             for dirpath, dirnames, filenames in os.walk(dir):
-                if 'pip-egg-info' in dirnames:
-                    dirnames.remove('pip-egg-info')
                 for dirname in dirnames:
                     dir_arcname = self._get_archive_name(
                         dirname, parentdir=dirpath, rootdir=dir,

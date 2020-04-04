@@ -5,9 +5,9 @@ import logging
 import os
 
 from pip._internal.exceptions import InstallationError
-from pip._internal.utils.misc import ensure_dir
 from pip._internal.utils.setuptools_build import make_setuptools_egg_info_args
 from pip._internal.utils.subprocess import call_subprocess
+from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs import vcs
 
@@ -19,9 +19,9 @@ if MYPY_CHECK_RUNNING:
 logger = logging.getLogger(__name__)
 
 
-def _find_egg_info(source_directory, is_editable):
-    # type: (str, bool) -> str
-    """Find an .egg-info in `source_directory`, based on `is_editable`.
+def _find_egg_info(source_directory):
+    # type: (str) -> str
+    """Find an .egg-info in `source_directory`.
     """
 
     def looks_like_virtual_env(path):
@@ -31,7 +31,7 @@ def _find_egg_info(source_directory, is_editable):
             os.path.exists(os.path.join(path, 'Scripts', 'Python.exe'))
         )
 
-    def locate_editable_egg_info(base):
+    def locate_egg_info(base):
         # type: (str) -> List[str]
         candidates = []  # type: List[str]
         for root, dirs, files in os.walk(base):
@@ -58,11 +58,7 @@ def _find_egg_info(source_directory, is_editable):
         )
 
     base = source_directory
-    if is_editable:
-        filenames = locate_editable_egg_info(base)
-    else:
-        base = os.path.join(base, 'pip-egg-info')
-        filenames = os.listdir(base)
+    filenames = locate_egg_info(base)
 
     if not filenames:
         raise InstallationError(
@@ -101,9 +97,9 @@ def generate_metadata(
     # to avoid confusion due to the source code being considered an installed
     # egg.
     if not editable:
-        egg_info_dir = os.path.join(source_dir, 'pip-egg-info')
-        # setuptools complains if the target directory does not exist.
-        ensure_dir(egg_info_dir)
+        egg_info_dir = TempDirectory(
+            kind="pip-egg-info", globally_managed=True
+        ).path
 
     args = make_setuptools_egg_info_args(
         setup_py_path,
@@ -119,4 +115,7 @@ def generate_metadata(
         )
 
     # Return the .egg-info directory.
-    return _find_egg_info(source_dir, editable)
+    if not editable:
+        assert egg_info_dir
+        return _find_egg_info(egg_info_dir)
+    return _find_egg_info(source_dir)
