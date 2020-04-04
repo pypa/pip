@@ -101,14 +101,14 @@ def test_relative_requirements_file(script, data, test_type, editable):
                                script.scratch_path) as reqs_file:
             result = script.pip('install', '-vvv', '-r', reqs_file.name,
                                 cwd=script.scratch_path)
-            result.did_create(egg_info_file), str(result)
-            result.did_create(package_folder), str(result)
+            result.did_create(egg_info_file)
+            result.did_create(package_folder)
     else:
         with requirements_file('-e ' + req_path + '\n',
                                script.scratch_path) as reqs_file:
             result = script.pip('install', '-vvv', '-r', reqs_file.name,
                                 cwd=script.scratch_path)
-            result.did_create(egg_link_file), str(result)
+            result.did_create(egg_link_file)
 
 
 @pytest.mark.network
@@ -199,10 +199,8 @@ def test_install_local_editable_with_extras(script, data):
     res.did_update(script.site_packages / 'easy-install.pth'), (
         str(res)
     )
-    assert (
-        script.site_packages / 'LocalExtras.egg-link' in res.files_created
-    ), str(res)
-    assert script.site_packages / 'simple' in res.files_created, str(res)
+    res.did_create(script.site_packages / 'LocalExtras.egg-link')
+    res.did_create(script.site_packages / 'simple')
 
 
 def test_install_collected_dependencies_first(script):
@@ -412,9 +410,7 @@ def test_install_with_extras_from_constraints(script, data):
     )
     result = script.pip_install_local(
         '-c', script.scratch_path / 'constraints.txt', 'LocalExtras')
-    result.did_create(
-        script.site_packages / 'simple'
-    )
+    result.did_create(script.site_packages / 'simple')
 
 
 def test_install_with_extras_from_install(script, data):
@@ -446,12 +442,8 @@ def test_install_distribution_full_union(script, data):
     result = script.pip_install_local(
         to_install, to_install + "[bar]", to_install + "[baz]")
     assert 'Running setup.py install for LocalExtras' in result.stdout
-    result.did_create(
-        script.site_packages / 'simple'
-    )
-    result.did_create(
-        script.site_packages / 'singlemodule.py'
-    )
+    result.did_create(script.site_packages / 'simple')
+    result.did_create(script.site_packages / 'singlemodule.py')
 
 
 def test_install_distribution_duplicate_extras(script, data):
@@ -471,9 +463,7 @@ def test_install_distribution_union_with_constraints(script, data):
     result = script.pip_install_local(
         '-c', script.scratch_path / 'constraints.txt', to_install + '[baz]')
     assert 'Running setup.py install for LocalExtras' in result.stdout
-    result.did_create(
-        script.site_packages / 'singlemodule.py'
-    )
+    result.did_create(script.site_packages / 'singlemodule.py')
 
 
 def test_install_distribution_union_with_versions(script, data):

@@ -73,9 +73,7 @@ def test_basic_install_from_wheel(script, shared_data, tmpdir):
         '--find-links', tmpdir,
     )
     dist_info_folder = script.site_packages / 'has.script-1.0.dist-info'
-    result.did_create(dist_info_folder), (dist_info_folder,
-                                          result.files_created,
-                                          result.stdout)
+    result.did_create(dist_info_folder)
     script_file = script.bin / 'script.py'
     result.did_create(script_file)
 
@@ -95,13 +93,9 @@ def test_basic_install_from_wheel_with_extras(script, shared_data, tmpdir):
         '--find-links', tmpdir,
     )
     dist_info_folder = script.site_packages / 'complex_dist-0.1.dist-info'
-    result.did_create(dist_info_folder), (dist_info_folder,
-                                          result.files_created,
-                                          result.stdout)
+    result.did_create(dist_info_folder),
     dist_info_folder = script.site_packages / 'simple.dist-0.1.dist-info'
-    result.did_create(dist_info_folder), (dist_info_folder,
-                                          result.files_created,
-                                          result.stdout)
+    result.did_create(dist_info_folder)
 
 
 def test_basic_install_from_wheel_file(script, data):
@@ -111,13 +105,9 @@ def test_basic_install_from_wheel_file(script, data):
     package = data.packages.joinpath("simple.dist-0.1-py2.py3-none-any.whl")
     result = script.pip('install', package, '--no-index')
     dist_info_folder = script.site_packages / 'simple.dist-0.1.dist-info'
-    result.did_create(dist_info_folder), (dist_info_folder,
-                                          result.files_created,
-                                          result.stdout)
+    result.did_create(dist_info_folder)
     installer = dist_info_folder / 'INSTALLER'
-    result.did_create(installer), (dist_info_folder,
-                                   result.files_created,
-                                   result.stdout)
+    result.did_create(installer)
     with open(script.base_path / installer, 'rb') as installer_file:
         installer_details = installer_file.read()
         assert installer_details == b'pip\n'
@@ -164,9 +154,7 @@ def test_install_from_wheel_with_headers(script, data):
     package = data.packages.joinpath("headers.dist-0.1-py2.py3-none-any.whl")
     result = script.pip('install', package, '--no-index')
     dist_info_folder = script.site_packages / 'headers.dist-0.1.dist-info'
-    result.did_create(dist_info_folder), (dist_info_folder,
-                                          result.files_created,
-                                          result.stdout)
+    result.did_create(dist_info_folder)
 
 
 def test_install_wheel_with_target(script, shared_data, with_wheel, tmpdir):
@@ -183,7 +171,7 @@ def test_install_wheel_with_target(script, shared_data, with_wheel, tmpdir):
     )
     result.did_create(
         Path('scratch') / 'target' / 'simpledist'
-    ), (str(result))
+    )
 
 
 def test_install_wheel_with_target_and_data_files(script, data, with_wheel):
@@ -215,10 +203,10 @@ def test_install_wheel_with_target_and_data_files(script, data, with_wheel):
 
     result.did_create(
         Path('scratch') / 'prjwithdatafile' / 'packages1' / 'README.txt'
-    ), str(result)
+    )
     result.did_create(
         Path('scratch') / 'prjwithdatafile' / 'packages2' / 'README.txt'
-    ), str(result)
+    )
     result.did_not_create(
         Path('scratch') / 'prjwithdatafile' / 'lib' / 'python'
     ), str(result)
@@ -254,7 +242,7 @@ def test_install_wheel_with_prefix(script, shared_data, tmpdir):
         '--no-index', '--find-links', tmpdir,
     )
     lib = distutils.sysconfig.get_python_lib(prefix=Path('scratch') / 'prefix')
-    result.did_create(lib), str(result)
+    result.did_create(lib)
 
 
 def test_install_from_wheel_installs_deps(script, data, tmpdir):
@@ -296,8 +284,8 @@ def test_wheel_record_lines_in_deterministic_order(script, data):
     dist_info_folder = script.site_packages / 'simplewheel-1.0.dist-info'
     record_path = dist_info_folder / 'RECORD'
 
-    result.did_create(dist_info_folder), str(result)
-    result.did_create(record_path), str(result)
+    result.did_create(dist_info_folder)
+    result.did_create(record_path)
 
     record_path = result.files_created[record_path].full
     record_lines = [
@@ -319,9 +307,9 @@ def test_install_user_wheel(script, shared_data, with_wheel, tmpdir):
         '--find-links', tmpdir,
     )
     egg_info_folder = script.user_site / 'has.script-1.0.dist-info'
-    result.did_create(egg_info_folder), str(result)
+    result.did_create(egg_info_folder)
     script_file = script.user_bin / 'script.py'
-    result.did_create(script_file), str(result)
+    result.did_create(script_file)
 
 
 def test_install_from_wheel_gen_entrypoint(script, shared_data, tmpdir):

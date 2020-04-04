@@ -28,9 +28,8 @@ def test_basic_uninstall(script):
 
     """
     result = script.pip('install', 'INITools==0.2')
-    result.did_create(join(script.site_packages, 'initools')), (
-        sorted(result.files_created.keys())
-    )
+    result.did_create(join(script.site_packages, 'initools'))
+
     # the import forces the generation of __pycache__ if the version of python
     # supports it
     script.run('python', '-c', "import initools")
@@ -147,9 +146,7 @@ def test_basic_uninstall_namespace_package(script):
 
     """
     result = script.pip('install', 'pd.requires==0.0.3')
-    result.did_create(join(script.site_packages, 'pd')), (
-        sorted(result.files_created.keys())
-    )
+    result.did_create(join(script.site_packages, 'pd'))
     result2 = script.pip('uninstall', 'pd.find', '-y')
     assert join(script.site_packages, 'pd') not in result2.files_deleted, (
         sorted(result2.files_deleted.keys())
@@ -267,9 +264,7 @@ def test_uninstall_console_scripts(script):
         entry_points={'console_scripts': ['discover = discover:main']},
     )
     result = script.pip('install', pkg_path)
-    result.did_create(script.bin / 'discover' + script.exe), (
-        sorted(result.files_created.keys())
-    )
+    result.did_create(script.bin / 'discover' + script.exe)
     result2 = script.pip('uninstall', 'discover', '-y')
     assert_all_changes(result, result2, [script.venv / 'build', 'cache'])
 
@@ -305,9 +300,7 @@ def test_uninstall_easy_installed_console_scripts(script):
     # setuptools >= 42.0.0 deprecates easy_install and prints a warning when
     # used
     result = script.easy_install('discover', allow_stderr_warning=True)
-    result.did_create(script.bin / 'discover' + script.exe), (
-        sorted(result.files_created.keys())
-    )
+    result.did_create(script.bin / 'discover' + script.exe)
     result2 = script.pip('uninstall', 'discover', '-y')
     assert_all_changes(
         result,

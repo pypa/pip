@@ -81,7 +81,7 @@ def test_only_if_needed_does_upgrade_deps_when_no_longer_satisfied(script):
         script.site_packages /
         'simple-3.0-py{pyversion}.egg-info'.format(**globals())
     )
-    result.did_create(expected, message="should have installed simple==3.0")
+    result.did_create(expected)
     expected = (
         script.site_packages /
         'simple-1.0-py{pyversion}.egg-info'.format(**globals())
@@ -131,7 +131,6 @@ def test_eager_does_upgrade_dependecies_when_no_longer_satisfied(script):
     result.did_create(
         script.site_packages /
         'simple-3.0-py{pyversion}.egg-info'.format(**globals()),
-        message="should have installed simple==3.0"
     )
     assert (
         script.site_packages /
@@ -197,9 +196,8 @@ def test_upgrade_force_reinstall_newest(script):
     version if --force-reinstall is supplied.
     """
     result = script.pip('install', 'INITools')
-    result.did_create(script.site_packages / 'initools'), (
-        sorted(result.files_created.keys())
-    )
+    result.did_create(script.site_packages / 'initools')
+
     result2 = script.pip(
         'install', '--upgrade', '--force-reinstall', 'INITools'
     )
@@ -215,9 +213,8 @@ def test_uninstall_before_upgrade(script):
 
     """
     result = script.pip('install', 'INITools==0.2')
-    result.did_create(script.site_packages / 'initools'), (
-        sorted(result.files_created.keys())
-    )
+    result.did_create(script.site_packages / 'initools')
+
     result2 = script.pip('install', 'INITools==0.3')
     assert result2.files_created, 'upgrade to INITools 0.3 failed'
     result3 = script.pip('uninstall', 'initools', '-y')
@@ -231,9 +228,7 @@ def test_uninstall_before_upgrade_from_url(script):
 
     """
     result = script.pip('install', 'INITools==0.2')
-    result.did_create(script.site_packages / 'initools'), (
-        sorted(result.files_created.keys())
-    )
+    result.did_create(script.site_packages / 'initools')
     result2 = script.pip(
         'install',
         'https://files.pythonhosted.org/packages/source/I/INITools/INITools-'
@@ -252,9 +247,7 @@ def test_upgrade_to_same_version_from_url(script):
 
     """
     result = script.pip('install', 'INITools==0.3')
-    result.did_create(script.site_packages / 'initools'), (
-        sorted(result.files_created.keys())
-    )
+    result.did_create(script.site_packages / 'initools')
     result2 = script.pip(
         'install',
         'https://files.pythonhosted.org/packages/source/I/INITools/INITools-'
@@ -308,9 +301,7 @@ def test_uninstall_rollback(script, data):
     result = script.pip(
         'install', '-f', data.find_links, '--no-index', 'broken==0.1'
     )
-    result.did_create(script.site_packages / 'broken.py'), list(
-        result.files_created.keys()
-    )
+    result.did_create(script.site_packages / 'broken.py')
     result2 = script.pip(
         'install', '-f', data.find_links, '--no-index', 'broken===0.2broken',
         expect_error=True,

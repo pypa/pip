@@ -58,7 +58,7 @@ def test_pip_wheel_success(script, data):
         .format(filename=re.escape(wheel_file_name)), result.stdout)
     assert re.search(
         r"^\s+Stored in directory: ", result.stdout, re.M)
-    result.did_create(wheel_file_path), result.stdout
+    result.did_create(wheel_file_path)
     assert "Successfully built simple" in result.stdout, result.stdout
 
 
@@ -73,7 +73,7 @@ def test_pip_wheel_build_cache(script, data):
     wheel_file_name = 'simple-3.0-py{pyversion[0]}-none-any.whl' \
         .format(**globals())
     wheel_file_path = script.scratch / wheel_file_name
-    result.did_create(wheel_file_path), result.stdout
+    result.did_create(wheel_file_path)
     assert "Successfully built simple" in result.stdout, result.stdout
     # remove target file
     (script.scratch_path / wheel_file_name).unlink()
@@ -83,7 +83,7 @@ def test_pip_wheel_build_cache(script, data):
         'wheel', '--no-index', '-f', data.find_links,
         'simple==3.0',
     )
-    result.did_create(wheel_file_path), result.stdout
+    result.did_create(wheel_file_path)
     assert "Successfully built simple" not in result.stdout, result.stdout
 
 
@@ -96,7 +96,7 @@ def test_basic_pip_wheel_downloads_wheels(script, data):
     )
     wheel_file_name = 'simple.dist-0.1-py2.py3-none-any.whl'
     wheel_file_path = script.scratch / wheel_file_name
-    result.did_create(wheel_file_path), result.stdout
+    result.did_create(wheel_file_path)
     assert "Saved" in result.stdout, result.stdout
 
 
@@ -151,7 +151,7 @@ def test_pip_wheel_builds_editable_deps(script, data):
     wheel_file_name = 'simple-1.0-py{pyversion[0]}-none-any.whl' \
         .format(**globals())
     wheel_file_path = script.scratch / wheel_file_name
-    result.did_create(wheel_file_path), result.stdout
+    result.did_create(wheel_file_path)
 
 
 def test_pip_wheel_builds_editable(script, data):
@@ -166,7 +166,7 @@ def test_pip_wheel_builds_editable(script, data):
     wheel_file_name = 'simplewheel-1.0-py{pyversion[0]}-none-any.whl' \
         .format(**globals())
     wheel_file_path = script.scratch / wheel_file_name
-    result.did_create(wheel_file_path), result.stdout
+    result.did_create(wheel_file_path)
 
 
 def test_pip_wheel_fail(script, data):
@@ -219,7 +219,7 @@ def test_pip_wheel_source_deps(script, data):
     wheel_file_name = 'source-1.0-py{pyversion[0]}-none-any.whl' \
         .format(**globals())
     wheel_file_path = script.scratch / wheel_file_name
-    result.did_create(wheel_file_path), result.stdout
+    result.did_create(wheel_file_path)
     assert "Successfully built source" in result.stdout, result.stdout
 
 
@@ -260,7 +260,7 @@ def test_pip_wheel_with_pep518_build_reqs(script, data, common_wheels):
     wheel_file_name = 'pep518-3.0-py{pyversion[0]}-none-any.whl' \
         .format(**globals())
     wheel_file_path = script.scratch / wheel_file_name
-    result.did_create(wheel_file_path), result.stdout
+    result.did_create(wheel_file_path)
     assert "Successfully built pep518" in result.stdout, result.stdout
     assert "Installing build dependencies" in result.stdout, result.stdout
 
@@ -274,7 +274,7 @@ def test_pip_wheel_with_pep518_build_reqs_no_isolation(script, data):
     wheel_file_name = 'pep518-3.0-py{pyversion[0]}-none-any.whl' \
         .format(**globals())
     wheel_file_path = script.scratch / wheel_file_name
-    result.did_create(wheel_file_path), result.stdout
+    result.did_create(wheel_file_path)
     assert "Successfully built pep518" in result.stdout, result.stdout
     assert "Installing build dependencies" not in result.stdout, result.stdout
 
@@ -321,7 +321,7 @@ def test_pep517_wheels_are_not_confused_with_other_files(script, tmpdir, data):
     wheel_file_name = 'withpyproject-0.0.1-py{pyversion[0]}-none-any.whl' \
         .format(**globals())
     wheel_file_path = script.scratch / wheel_file_name
-    result.did_create(wheel_file_path), result.stdout
+    result.did_create(wheel_file_path)
 
 
 def test_legacy_wheels_are_not_confused_with_other_files(script, tmpdir, data):
@@ -336,4 +336,4 @@ def test_legacy_wheels_are_not_confused_with_other_files(script, tmpdir, data):
     wheel_file_name = 'simplewheel-1.0-py{pyversion[0]}-none-any.whl' \
         .format(**globals())
     wheel_file_path = script.scratch / wheel_file_name
-    result.did_create(wheel_file_path), result.stdout
+    result.did_create(wheel_file_path)

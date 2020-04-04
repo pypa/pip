@@ -355,8 +355,11 @@ class TestPipResult(object):
 
     def did_create(self, path, message=None):
         if message is None:
-            message = ''
-        assert str(path) in self.files_created, "\n".join(message, str(self))
+            message = str(self)
+        else:
+            message = "\n".join((message, str(self)))
+
+        assert str(path) in self.files_created, message
 
     def did_not_create(self, path, message=None):
         if message is None:

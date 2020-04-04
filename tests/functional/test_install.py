@@ -209,8 +209,8 @@ def test_pip_second_command_line_interface_works(
         'INITools-0.2-py{pyversion}.egg-info'.format(**globals())
     )
     initools_folder = script.site_packages / 'initools'
-    result.did_create(egg_info_folder), str(result)
-    result.did_create(initools_folder), str(result)
+    result.did_create(egg_info_folder)
+    result.did_create(initools_folder)
 
 
 def test_install_exit_status_code_when_no_requirements(script):
@@ -241,8 +241,8 @@ def test_basic_install_from_pypi(script):
         'INITools-0.2-py{pyversion}.egg-info'.format(**globals())
     )
     initools_folder = script.site_packages / 'initools'
-    result.did_create(egg_info_folder), str(result)
-    result.did_create(initools_folder), str(result)
+    result.did_create(egg_info_folder)
+    result.did_create(initools_folder)
 
     # Should not display where it's looking for files
     assert "Looking in indexes: " not in result.stdout
@@ -338,14 +338,14 @@ def test_install_editable_uninstalls_existing_from_path(script, data):
     assert 'Successfully installed simplewheel' in result.stdout
     simple_folder = script.site_packages / 'simplewheel'
     result.assert_installed('simplewheel', editable=False)
-    result.did_create(simple_folder), str(result.stdout)
+    result.did_create(simple_folder)
 
     result = script.pip(
         'install', '-e',
         to_install,
     )
     install_path = script.site_packages / 'simplewheel.egg-link'
-    result.did_create(install_path), str(result)
+    result.did_create(install_path)
     assert 'Found existing installation: simplewheel 1.0' in result.stdout
     assert 'Uninstalling simplewheel-' in result.stdout
     assert 'Successfully uninstalled simplewheel' in result.stdout
@@ -421,8 +421,8 @@ def test_basic_install_from_local_directory(script, data, resolver):
         script.site_packages /
         'FSPkg-0.1.dev0-py{pyversion}.egg-info'.format(**globals())
     )
-    result.did_create(fspkg_folder), str(result.stdout)
-    result.did_create(egg_info_folder), str(result)
+    result.did_create(fspkg_folder)
+    result.did_create(egg_info_folder)
 
 
 @pytest.mark.parametrize("test_type,editable", [
@@ -465,13 +465,13 @@ def test_basic_install_relative_directory(script, data, test_type, editable):
     if not editable:
         result = script.pip('install', req_path,
                             cwd=script.scratch_path)
-        result.did_create(egg_info_file), str(result)
-        result.did_create(package_folder), str(result)
+        result.did_create(egg_info_file)
+        result.did_create(package_folder)
     else:
         # Editable install.
         result = script.pip('install', '-e' + req_path,
                             cwd=script.scratch_path)
-        result.did_create(egg_link_file), str(result)
+        result.did_create(egg_link_file)
 
 
 def test_install_quiet(script, data):
@@ -572,8 +572,8 @@ def test_install_from_local_directory_with_symlinks_to_directories(
         script.site_packages /
         'symlinks-0.1.dev0-py{pyversion}.egg-info'.format(**globals())
     )
-    result.did_create(pkg_folder), str(result.stdout)
-    result.did_create(egg_info_folder), str(result)
+    result.did_create(pkg_folder)
+    result.did_create(egg_info_folder)
 
 
 @pytest.mark.skipif("sys.platform == 'win32' or sys.version_info < (3,)")
@@ -687,8 +687,8 @@ def test_install_curdir(script, data):
         script.site_packages /
         'FSPkg-0.1.dev0-py{pyversion}.egg-info'.format(**globals())
     )
-    result.did_create(fspkg_folder), str(result.stdout)
-    result.did_create(egg_info_folder), str(result)
+    result.did_create(fspkg_folder)
+    result.did_create(egg_info_folder)
 
 
 def test_install_pardir(script, data):
@@ -702,8 +702,8 @@ def test_install_pardir(script, data):
         script.site_packages /
         'FSPkg-0.1.dev0-py{pyversion}.egg-info'.format(**globals())
     )
-    result.did_create(fspkg_folder), str(result.stdout)
-    result.did_create(egg_info_folder), str(result)
+    result.did_create(fspkg_folder)
+    result.did_create(egg_info_folder)
 
 
 @pytest.mark.network
@@ -774,7 +774,7 @@ def test_install_package_with_same_name_in_curdir(script):
         script.site_packages /
         'mock-0.6.0-py{pyversion}.egg-info'.format(**globals())
     )
-    result.did_create(egg_folder), str(result)
+    result.did_create(egg_folder)
 
 
 mock100_setup_py = textwrap.dedent('''\
@@ -795,7 +795,7 @@ def test_install_folder_using_dot_slash(script):
         script.site_packages /
         'mock-100.1-py{pyversion}.egg-info'.format(**globals())
     )
-    result.did_create(egg_folder), str(result)
+    result.did_create(egg_folder)
 
 
 def test_install_folder_using_slash_in_the_end(script):
@@ -810,7 +810,7 @@ def test_install_folder_using_slash_in_the_end(script):
         script.site_packages /
         'mock-100.1-py{pyversion}.egg-info'.format(**globals())
     )
-    result.did_create(egg_folder), str(result)
+    result.did_create(egg_folder)
 
 
 def test_install_folder_using_relative_path(script):
@@ -826,7 +826,7 @@ def test_install_folder_using_relative_path(script):
         script.site_packages /
         'mock-100.1-py{pyversion}.egg-info'.format(**globals())
     )
-    result.did_create(egg_folder), str(result)
+    result.did_create(egg_folder)
 
 
 @pytest.mark.network
@@ -840,8 +840,8 @@ def test_install_package_which_contains_dev_in_name(script):
         script.site_packages /
         'django_devserver-0.0.4-py{pyversion}.egg-info'.format(**globals())
     )
-    result.did_create(devserver_folder), str(result.stdout)
-    result.did_create(egg_info_folder), str(result)
+    result.did_create(devserver_folder)
+    result.did_create(egg_info_folder)
 
 
 def test_install_package_with_target(script):
@@ -852,7 +852,7 @@ def test_install_package_with_target(script):
     result = script.pip_install_local('-t', target_dir, "simple==1.0")
     result.did_create(
         Path('scratch') / 'target' / 'simple'
-    ), (str(result))
+    )
 
     # Test repeated call without --upgrade, no files should have changed
     result = script.pip_install_local(
@@ -871,14 +871,12 @@ def test_install_package_with_target(script):
     egg_folder = (
         Path('scratch') / 'target' /
         'simple-2.0-py{pyversion}.egg-info'.format(**globals()))
-    result.did_create(egg_folder), (
-        str(result)
-    )
+    result.did_create(egg_folder)
 
     # Test install and upgrade of single-module package
     result = script.pip_install_local('-t', target_dir, 'singlemodule==0.0.0')
     singlemodule_py = Path('scratch') / 'target' / 'singlemodule.py'
-    result.did_create(singlemodule_py), str(result)
+    result.did_create(singlemodule_py)
 
     result = script.pip_install_local('-t', target_dir, 'singlemodule==0.0.1',
                                       '--upgrade')
@@ -1013,7 +1011,7 @@ def test_install_package_with_root(script, data):
         os.path.join(script.scratch, 'root'),
         normal_install_path
     )
-    result.did_create(root_path), str(result)
+    result.did_create(root_path)
 
     # Should show find-links location in output
     assert "Looking in indexes: " not in result.stdout
@@ -1035,7 +1033,7 @@ def test_install_package_with_prefix(script, data):
         distutils.sysconfig.get_python_lib(prefix=rel_prefix_path) /
         'simple-1.0-py{}.egg-info'.format(pyversion)
     )
-    result.did_create(install_path), str(result)
+    result.did_create(install_path)
 
 
 def test_install_editable_with_prefix(script):
@@ -1066,7 +1064,7 @@ def test_install_editable_with_prefix(script):
 
     # assert pkga is installed at correct location
     install_path = script.scratch / site_packages / 'pkga.egg-link'
-    result.did_create(install_path), str(result)
+    result.did_create(install_path)
 
 
 def test_install_package_conflict_prefix_and_user(script, data):
@@ -1130,7 +1128,7 @@ def test_url_req_case_mismatch_no_index(script, data):
     # only Upper-1.0.tar.gz should get installed.
     egg_folder = script.site_packages / \
         'Upper-1.0-py{pyversion}.egg-info'.format(**globals())
-    result.did_create(egg_folder), str(result)
+    result.did_create(egg_folder)
     egg_folder = script.site_packages / \
         'Upper-2.0-py{pyversion}.egg-info'.format(**globals())
     result.did_not_create(egg_folder), str(result)
@@ -1181,7 +1179,7 @@ def test_url_incorrect_case_no_index(script, data):
     result.did_not_create(egg_folder), str(result)
     egg_folder = script.site_packages / \
         'Upper-2.0-py{pyversion}.egg-info'.format(**globals())
-    result.did_create(egg_folder), str(result)
+    result.did_create(egg_folder)
 
 
 def test_url_incorrect_case_file_index(script, data):
@@ -1652,8 +1650,8 @@ def test_installed_files_recorded_in_deterministic_order(script, data):
     installed_files_path = (
         script.site_packages / egg_info / 'installed-files.txt'
     )
-    result.did_create(fspkg_folder), str(result.stdout)
-    result.did_create(installed_files_path), str(result)
+    result.did_create(fspkg_folder)
+    result.did_create(installed_files_path)
 
     installed_files_path = result.files_created[installed_files_path].full
     installed_files_lines = [
