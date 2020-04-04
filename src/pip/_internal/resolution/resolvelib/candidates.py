@@ -5,7 +5,10 @@ from pip._vendor.packaging.specifiers import InvalidSpecifier, SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
 
-from pip._internal.req.constructors import install_req_from_line
+from pip._internal.req.constructors import (
+    install_req_from_editable,
+    install_req_from_line,
+)
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.misc import normalize_version_info
 from pip._internal.utils.packaging import get_requires_python
@@ -25,13 +28,19 @@ if MYPY_CHECK_RUNNING:
     from .base import Requirement
     from .factory import Factory
 
+    BaseCandidate = Union[
+        "AlreadyInstalledCandidate",
+        "EditableCandidate",
+        "LinkCandidate",
+    ]
+
 
 logger = logging.getLogger(__name__)
 
 
 def make_install_req_from_link(link, parent):
     # type: (Link, InstallRequirement) -> InstallRequirement
-    # TODO: Do we need to support editables?
+    assert not parent.editable, "parent is editable"
     return install_req_from_line(
         link.url,
         comes_from=parent.comes_from,
@@ -46,9 +55,28 @@ def make_install_req_from_link(link, parent):
     )
 
 
+def make_install_req_from_editable(link, parent):
+    # type: (Link, InstallRequirement) -> InstallRequirement
+    assert parent.editable, "parent not editable"
+    return install_req_from_editable(
+        link.url,
+        # HACK: install_req_from_editable accepts Optional[str] here, but
+        # parent.comes_from is Union[str, InstallRequirement, None]. How do
+        # we fix the type hint conflicts?
+        comes_from=parent.comes_from,  # type: ignore
+        use_pep517=parent.use_pep517,
+        isolated=parent.isolated,
+        constraint=parent.constraint,
+        options=dict(
+            install_options=parent.install_options,
+            global_options=parent.global_options,
+            hashes=parent.hash_options
+        ),
+    )
+
+
 def make_install_req_from_dist(dist, parent):
     # type: (Distribution, InstallRequirement) -> InstallRequirement
-    # TODO: Do we need to support editables?
     ireq = install_req_from_line(
         "{}=={}".format(
             canonicalize_name(dist.project_name),
@@ -192,6 +220,29 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
         return self._factory.preparer.prepare_linked_requirement(self._ireq)
 
 
+class EditableCandidate(_InstallRequirementBackedCandidate):
+    def __init__(
+        self,
+        link,          # type: Link
+        parent,        # type: InstallRequirement
+        factory,       # type: Factory
+        name=None,     # type: Optional[str]
+        version=None,  # type: Optional[_BaseVersion]
+    ):
+        # type: (...) -> None
+        super(EditableCandidate, self).__init__(
+            link=link,
+            ireq=make_install_req_from_editable(link, parent),
+            factory=factory,
+            name=name,
+            version=version,
+        )
+
+    def _get_abstract_distribution(self):
+        # type: () -> AbstractDistribution
+        return self._factory.preparer.prepare_editable_requirement(self._ireq)
+
+
 class AlreadyInstalledCandidate(Candidate):
     def __init__(
         self,
@@ -259,7 +310,7 @@ class ExtrasCandidate(Candidate):
     """
     def __init__(
         self,
-        base,  # type: Union[AlreadyInstalledCandidate, LinkCandidate]
+        base,  # type: BaseCandidate
         extras,  # type: Set[str]
     ):
         # type: (...) -> None

@@ -8,6 +8,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 from .candidates import (
     AlreadyInstalledCandidate,
+    EditableCandidate,
     ExtrasCandidate,
     LinkCandidate,
     RequiresPythonCandidate,
@@ -33,6 +34,7 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.resolution.base import InstallRequirementProvider
 
     from .base import Candidate, Requirement
+    from .candidates import BaseCandidate
 
     C = TypeVar("C")
     Cache = Dict[Link, C]
@@ -56,6 +58,7 @@ class Factory(object):
         self._ignore_installed = ignore_installed
         self._ignore_requires_python = ignore_requires_python
         self._link_candidate_cache = {}  # type: Cache[LinkCandidate]
+        self._editable_candidate_cache = {}  # type: Cache[EditableCandidate]
 
     def _make_candidate_from_dist(
         self,
@@ -78,11 +81,18 @@ class Factory(object):
         version=None,  # type: Optional[_BaseVersion]
     ):
         # type: (...) -> Candidate
-        if link not in self._link_candidate_cache:
-            self._link_candidate_cache[link] = LinkCandidate(
-                link, parent, factory=self, name=name, version=version,
-            )
-        base = self._link_candidate_cache[link]
+        if parent.editable:
+            if link not in self._editable_candidate_cache:
+                self._editable_candidate_cache[link] = EditableCandidate(
+                    link, parent, factory=self, name=name, version=version,
+                )
+            base = self._editable_candidate_cache[link]  # type: BaseCandidate
+        else:
+            if link not in self._link_candidate_cache:
+                self._link_candidate_cache[link] = LinkCandidate(
+                    link, parent, factory=self, name=name, version=version,
+                )
+            base = self._link_candidate_cache[link]
         if extras:
             return ExtrasCandidate(base, extras)
         return base
