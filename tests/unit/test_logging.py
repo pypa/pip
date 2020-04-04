@@ -12,7 +12,7 @@ from pip._internal.utils.logging import (
     BrokenStdoutLoggingError,
     ColorizedStreamHandler,
     IndentingFormatter,
-    indent_log
+    indent_log,
 )
 from pip._internal.utils.misc import captured_stderr, captured_stdout
 
