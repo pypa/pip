@@ -77,7 +77,6 @@ def make_install_req_from_editable(link, parent):
 
 def make_install_req_from_dist(dist, parent):
     # type: (Distribution, InstallRequirement) -> InstallRequirement
-    # TODO: Do we need to support editables?
     ireq = install_req_from_line(
         "{}=={}".format(
             canonicalize_name(dist.project_name),
