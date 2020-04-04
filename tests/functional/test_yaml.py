@@ -113,7 +113,7 @@ def handle_install_request(script, requirement, options):
         # Check which packages got installed
         retval["install"] = []
 
-        for path in result.files_created:
+        for path in os.listdir(script.site_packages_path):
             if path.endswith(".dist-info"):
                 name, version = (
                     os.path.basename(path)[:-len(".dist-info")]

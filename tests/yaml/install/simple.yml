@@ -9,8 +9,12 @@ cases:
 -
   request:
     - install: simple
+    - install: dep
   response:
     - state:
+      - simple 0.2.0
+    - state:
+      - dep 0.1.0
       - simple 0.2.0
 -
   request:
