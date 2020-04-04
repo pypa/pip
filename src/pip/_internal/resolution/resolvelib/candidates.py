@@ -282,6 +282,17 @@ class AlreadyInstalledCandidate(Candidate):
             distribution=self.dist,
         )
 
+    def __eq__(self, other):
+        # type: (Any) -> bool
+        if isinstance(other, self.__class__):
+            return self.name == other.name and self.version == other.version
+        return False
+
+    # Needed for Python 2, which does not implement this by default
+    def __ne__(self, other):
+        # type: (Any) -> bool
+        return not self.__eq__(other)
+
     @property
     def name(self):
         # type: () -> str
@@ -344,6 +355,17 @@ class ExtrasCandidate(Candidate):
             base=self.base,
             extras=self.extras,
         )
+
+    def __eq__(self, other):
+        # type: (Any) -> bool
+        if isinstance(other, self.__class__):
+            return self.base == other.base and self.extras == other.extras
+        return False
+
+    # Needed for Python 2, which does not implement this by default
+    def __ne__(self, other):
+        # type: (Any) -> bool
+        return not self.__eq__(other)
 
     @property
     def name(self):
