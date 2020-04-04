@@ -153,10 +153,10 @@ def handle_install_request(script, requirement, options):
 def test_yaml_based(script, case):
     available = case.get("available", [])
     requests = case.get("request", [])
-    transaction = case.get("transaction", [])
+    responses = case.get("response", [])
 
-    assert len(requests) == len(transaction), (
-        "Expected requests and transaction counts to be same"
+    assert len(requests) == len(responses), (
+        "Expected requests and responses counts to be same"
     )
 
     # Create a custom index of all the packages that are supposed to be
@@ -171,7 +171,7 @@ def test_yaml_based(script, case):
         create_basic_wheel_for_package(script, **package)
 
     # use scratch path for index
-    for request, expected in zip(requests, transaction):
+    for request, response in zip(requests, responses):
 
         # Perform the requested action
         if 'install' in request:
@@ -183,6 +183,5 @@ def test_yaml_based(script, case):
             assert False, "Unsupported request {!r}".format(request)
 
         result = effect["_result_object"]
-        del effect["_result_object"]
 
-        assert effect == expected, str(result)
+        assert effect['install'] == response['state'], str(result)
