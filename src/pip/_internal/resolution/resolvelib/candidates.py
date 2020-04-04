@@ -420,6 +420,10 @@ class RequiresPythonCandidate(Candidate):
             version_info = sys.version_info[:3]
         self._version = Version(".".join(str(c) for c in version_info))
 
+    # We don't need to implement __eq__() and __ne__() since there is always
+    # only one RequiresPythonCandidate in a resolution, i.e. the host Python.
+    # The built-in object.__eq__() and object.__ne__() do exactly what we want.
+
     @property
     def name(self):
         # type: () -> str
