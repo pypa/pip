@@ -379,10 +379,11 @@ class TestPipResult(object):
 
     def did_not_update(self, path, message=None):
         if message is None:
-            message = ''
-        assert str(path) not in self.files_updated, "\n".join(
-            message, str(self)
-        )
+            message = str(self)
+        else:
+            message = "\n".join((message, str(self)))
+
+        assert str(path) not in self.files_updated, message
 
 
 def make_check_stderr_message(stderr, line, reason):
