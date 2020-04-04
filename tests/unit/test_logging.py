@@ -111,45 +111,37 @@ class TestIndentingFormatter(object):
         assert f.format(record) == expected
 
     def test_thread_safety_base(self):
-        actual = "Initial content"
-
         record = self.make_record(
             'DEPRECATION: hello\nworld', level_name='WARNING',
         )
         f = IndentingFormatter(fmt="%(message)s")
+        results = []
 
         def thread_function():
-            nonlocal actual, f
-            actual = f.format(record)
+            results.append(f.format(record))
 
         thread_function()
-        expected = actual
-        actual = "Another initial content"
         thread = Thread(target=thread_function)
         thread.start()
         thread.join()
-        assert actual == expected
+        assert results[0] == results[1]
 
     def test_thread_safety_indent_log(self):
-        actual = "Initial content"
-
         record = self.make_record(
             'DEPRECATION: hello\nworld', level_name='WARNING',
         )
         f = IndentingFormatter(fmt="%(message)s")
+        results = []
 
         def thread_function():
-            nonlocal actual, f
             with indent_log():
-                actual = f.format(record)
+                results.append(f.format(record))
 
         thread_function()
-        expected = actual
-        actual = "Another initial content"
         thread = Thread(target=thread_function)
         thread.start()
         thread.join()
-        assert actual == expected
+        assert results[0] == results[1]
 
 
 class TestColorizedStreamHandler(object):
