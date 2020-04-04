@@ -34,6 +34,7 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.resolution.base import InstallRequirementProvider
 
     from .base import Candidate, Requirement
+    from .candidates import BaseCandidate
 
     C = TypeVar("C")
     Cache = Dict[Link, C]
@@ -85,7 +86,7 @@ class Factory(object):
                 self._editable_candidate_cache[link] = EditableCandidate(
                     link, parent, factory=self, name=name, version=version,
                 )
-            base = self._editable_candidate_cache[link]
+            base = self._editable_candidate_cache[link]  # type: BaseCandidate
         else:
             if link not in self._link_candidate_cache:
                 self._link_candidate_cache[link] = LinkCandidate(
