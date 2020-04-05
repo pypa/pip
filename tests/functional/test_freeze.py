@@ -832,8 +832,8 @@ def test_freeze_skip_work_dir_pkg(script):
                expect_stderr=True, cwd=pkg_path)
 
     # Freeze should not include package simple when run from package directory
-    result = script.pip('freeze', 'simple', cwd=pkg_path)
-    _check_output(result.stdout, '')
+    result = script.pip('freeze', cwd=pkg_path)
+    assert 'simple==1.0' not in result.stdout
 
 
 def test_freeze_include_work_dir_pkg(script):
@@ -852,8 +852,5 @@ def test_freeze_include_work_dir_pkg(script):
     script.environ.update({'PYTHONPATH': pkg_path})
 
     # Freeze should include package simple when run from package directory
-    result = script.pip('freeze', 'simple', cwd=pkg_path)
-    expected = textwrap.dedent("""\
-            simple==1.0
-            <BLANKLINE>""")
-    _check_output(result.stdout, expected)
+    result = script.pip('freeze', cwd=pkg_path)
+    assert 'simple==1.0' in result.stdout
