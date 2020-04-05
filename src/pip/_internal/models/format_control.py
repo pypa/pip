@@ -1,13 +1,15 @@
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
 
-from pip._vendor.packaging.utils import canonicalize_name
-
 from pip._internal.exceptions import CommandError
+from pip._internal.utils.packaging import canonicalize_name
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional, Set, FrozenSet
+    from typing import FrozenSet, Literal, Optional, Set, Union
+    from pip._internal.utils.packaging import CanonicalName
+
+    Value = Union[CanonicalName, Literal[":all:"]]
 
 
 class FormatControl(object):
@@ -15,7 +17,7 @@ class FormatControl(object):
     """
 
     def __init__(self, no_binary=None, only_binary=None):
-        # type: (Optional[Set[str]], Optional[Set[str]]) -> None
+        # type: (Optional[Set[Value]], Optional[Set[Value]]) -> None
         if no_binary is None:
             no_binary = set()
         if only_binary is None:
@@ -42,7 +44,7 @@ class FormatControl(object):
 
     @staticmethod
     def handle_mutual_excludes(value, target, other):
-        # type: (str, Optional[Set[str]], Optional[Set[str]]) -> None
+        # type: (str, Optional[Set[Value]], Optional[Set[Value]]) -> None
         if value.startswith('-'):
             raise CommandError(
                 "--no-binary / --only-binary option requires 1 argument."
@@ -65,7 +67,7 @@ class FormatControl(object):
             target.add(name)
 
     def get_allowed_formats(self, canonical_name):
-        # type: (str) -> FrozenSet[str]
+        # type: (CanonicalName) -> FrozenSet[str]
         result = {"binary", "source"}
         if canonical_name in self.only_binary:
             result.discard('source')

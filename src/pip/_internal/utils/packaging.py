@@ -4,16 +4,18 @@ import logging
 from email.parser import FeedParser
 
 from pip._vendor import pkg_resources
-from pip._vendor.packaging import specifiers, version
+from pip._vendor.packaging import specifiers, utils, version
 
 from pip._internal.exceptions import NoneMetadataError
 from pip._internal.utils.misc import display_path
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional, Tuple
+    from typing import NewType, Optional, Tuple
     from email.message import Message
     from pip._vendor.pkg_resources import Distribution
+
+    CanonicalName = NewType("CanonicalName", str)
 
 
 logger = logging.getLogger(__name__)
@@ -92,3 +94,11 @@ def get_installer(dist):
             if line.strip():
                 return line.strip()
     return ''
+
+
+if MYPY_CHECK_RUNNING:
+    def canonicalize_name(s):
+        # type: (str) -> CanonicalName
+        return CanonicalName(utils.canonicalize_name(s))
+else:
+    canonicalize_name = utils.canonicalize_name

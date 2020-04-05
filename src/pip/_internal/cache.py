@@ -25,6 +25,7 @@ if MYPY_CHECK_RUNNING:
     from pip._vendor.packaging.tags import Tag
 
     from pip._internal.models.format_control import FormatControl
+    from pip._internal.utils.packaging import CanonicalName
 
 logger = logging.getLogger(__name__)
 
@@ -122,7 +123,7 @@ class Cache(object):
         return parts
 
     def _get_candidates(self, link, canonical_package_name):
-        # type: (Link, Optional[str]) -> List[Any]
+        # type: (Link, Optional[CanonicalName]) -> List[Any]
         can_not_cache = (
             not self.cache_dir or
             not canonical_package_name or
