@@ -328,3 +328,57 @@ def test_new_resolver_only_builds_sdists_when_needed(script):
         "base", "dep"
     )
     assert_installed(script, base="0.1.0", dep="0.2.0")
+
+
+@pytest.mark.xfail(reason="upgrade install not implemented")
+def test_new_resolver_install_different_version(script):
+    create_basic_wheel_for_package(script, "base", "0.1.0")
+    create_basic_wheel_for_package(script, "base", "0.2.0")
+
+    script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "base==0.1.0",
+    )
+
+    # This should trigger an uninstallation of base.
+    result = script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "base==0.2.0",
+    )
+
+    assert "Uninstalling base-0.1.0" in result.stdout, str(result)
+    assert "Successfully uninstalled base-0.1.0" in result.stdout, str(result)
+    assert script.site_packages / "base" in result.files_updated, (
+        "base not upgraded"
+    )
+    assert_installed(script, base="0.2.0")
+
+
+@pytest.mark.xfail(reason="force reinstall not implemented")
+def test_new_resolver_force_reinstall(script):
+    create_basic_wheel_for_package(script, "base", "0.1.0")
+
+    script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "base",
+    )
+
+    result = script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "--force-reinstall",
+        "base",
+    )
+
+    assert "Uninstalling base-0.1.0" not in result.stdout, str(result)
+    assert script.site_packages / "base" in result.files_updated, (
+        "base not upgraded"
+    )
+    assert_installed(script, base="0.2.0")
