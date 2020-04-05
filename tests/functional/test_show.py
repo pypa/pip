@@ -275,7 +275,7 @@ def test_show_skip_work_dir_pkg(script):
                expect_stderr=True, cwd=pkg_path)
 
     # Show should not include package simple when run from package directory
-    result = script.pip('show', 'simple', cwd=pkg_path)
+    result = script.pip('show', 'simple', expect_error=True, cwd=pkg_path)
     assert 'WARNING: Package(s) not found: simple' in result.stderr
 
 
