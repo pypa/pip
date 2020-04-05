@@ -239,3 +239,56 @@ def test_basic_check_broken_metadata(script):
 
     assert 'Error parsing requirements' in result.stderr
     assert result.returncode == 1
+
+
+def test_check_skip_work_dir_pkg(script):
+    """
+    Test that check should not include package
+    present in working directory
+    """
+
+    # Create a test package with dependency missing
+    # and create .egg-info dir
+    pkg_path = create_test_package_with_setup(
+        script, name='simple', version='1.0',
+        install_requires=['missing==0.1'])
+
+    script.run('python', 'setup.py', 'egg_info',
+               expect_stderr=True, cwd=pkg_path)
+
+    # Check should not complain about broken requirements
+    # when run from package directory
+    result = script.pip('check')
+    expected_lines = (
+        "No broken requirements found.",
+    )
+    assert matches_expected_lines(result.stdout, expected_lines)
+    assert result.returncode == 0
+
+
+def test_check_include_work_dir_pkg(script):
+    """
+    Test that check should include package in working directory
+    if working directory is added in PYTHONPATH
+    """
+
+    # Create a test package with dependency missing
+    # and create .egg-info dir
+    pkg_path = create_test_package_with_setup(
+        script, name='simple', version='1.0',
+        install_requires=['missing==0.1'])
+
+    script.run('python', 'setup.py', 'egg_info',
+               expect_stderr=True, cwd=pkg_path)
+
+    # Add PYTHONPATH env variable
+    script.environ.update({'PYTHONPATH': pkg_path})
+
+    # Check should mention about missing requirement simple
+    # when run from package directory
+    result = script.pip('check', expect_error=True)
+    expected_lines = (
+        "simple 1.0 requires missing, which is not installed.",
+    )
+    assert matches_expected_lines(result.stdout, expected_lines)
+    assert result.returncode == 1

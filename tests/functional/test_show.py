@@ -5,6 +5,7 @@ import pytest
 
 from pip import __version__
 from pip._internal.commands.show import search_packages_info
+from tests.lib import create_test_package_with_setup
 
 
 def test_basic_show(script):
@@ -259,3 +260,41 @@ def test_show_required_by_packages_requiring_capitalized(script, data):
 
     assert 'Name: Requires-Capitalized' in lines
     assert 'Required-by: requires-requires-capitalized' in lines
+
+
+def test_show_skip_work_dir_pkg(script):
+    """
+    Test that show should not include package
+    present in working directory
+    """
+
+    # Create a test package and create .egg-info dir
+    pkg_path = create_test_package_with_setup(
+        script, name='simple', version='1.0')
+    script.run('python', 'setup.py', 'egg_info',
+               expect_stderr=True, cwd=pkg_path)
+
+    # Show should not include package simple when run from package directory
+    result = script.pip('show', 'simple', cwd=pkg_path)
+    assert 'WARNING: Package(s) not found: simple' in result.stderr
+
+
+def test_show_include_work_dir_pkg(script):
+    """
+    Test that show should include package in working directory
+    if working directory is added in PYTHONPATH
+    """
+
+    # Create a test package and create .egg-info dir
+    pkg_path = create_test_package_with_setup(
+        script, name='simple', version='1.0')
+    script.run('python', 'setup.py', 'egg_info',
+               expect_stderr=True, cwd=pkg_path)
+
+    # Add PYTHONPATH env variable
+    script.environ.update({'PYTHONPATH': pkg_path})
+
+    # Show should include package simple when run from package directory
+    result = script.pip('show', 'simple', cwd=pkg_path)
+    lines = result.stdout.splitlines()
+    assert 'Name: simple' in lines
