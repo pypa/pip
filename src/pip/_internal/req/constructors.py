@@ -218,7 +218,7 @@ def parse_req_from_editable(editable_req):
 
 def install_req_from_editable(
     editable_req,  # type: str
-    comes_from=None,  # type: Optional[str]
+    comes_from=None,  # type: Optional[Union[InstallRequirement, str]]
     use_pep517=None,  # type: Optional[bool]
     isolated=False,  # type: bool
     options=None,  # type: Optional[Dict[str, Any]]
@@ -231,7 +231,9 @@ def install_req_from_editable(
     source_dir = parts.link.file_path if parts.link.scheme == 'file' else None
 
     return InstallRequirement(
-        parts.requirement, comes_from, source_dir=source_dir,
+        parts.requirement,
+        comes_from=comes_from,
+        source_dir=source_dir,
         editable=True,
         link=parts.link,
         constraint=constraint,

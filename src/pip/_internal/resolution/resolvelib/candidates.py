@@ -60,10 +60,7 @@ def make_install_req_from_editable(link, parent):
     assert parent.editable, "parent not editable"
     return install_req_from_editable(
         link.url,
-        # HACK: install_req_from_editable accepts Optional[str] here, but
-        # parent.comes_from is Union[str, InstallRequirement, None]. How do
-        # we fix the type hint conflicts?
-        comes_from=parent.comes_from,  # type: ignore
+        comes_from=parent.comes_from,
         use_pep517=parent.use_pep517,
         isolated=parent.isolated,
         constraint=parent.constraint,
