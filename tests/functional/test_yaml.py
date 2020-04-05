@@ -92,12 +92,17 @@ def convert_to_dict(string):
     return retval
 
 
-def handle_install_request(script, requirement, options):
+def handle_request(script, action, requirement, options):
     assert isinstance(requirement, str), (
         "Need install requirement to be a string only"
     )
-    args = ["install", "--no-index", "--find-links",
-            path_to_url(script.scratch_path)]
+    if action == 'install':
+        args = ['install', "--no-index", "--find-links",
+                path_to_url(script.scratch_path)]
+    elif action == 'uninstall':
+        args = ['uninstall', '--yes']
+    else:
+        raise "Did not excpet action: {!r}".format(action)
     args.append(requirement)
     args.extend(options)
     args.append("--verbose")
@@ -111,7 +116,7 @@ def handle_install_request(script, requirement, options):
     }
     if result.returncode == 0:
         # Check which packages got installed
-        retval["install"] = []
+        retval["state"] = []
 
         for path in os.listdir(script.site_packages_path):
             if path.endswith(".dist-info"):
@@ -121,12 +126,9 @@ def handle_install_request(script, requirement, options):
 
                 # TODO: information about extras.
 
-                retval["install"].append(" ".join((name, version)))
+                retval["state"].append(" ".join((name, version)))
 
-        retval["install"].sort()
-
-        # TODO: Support checking uninstallations
-        # retval["uninstall"] = []
+        retval["state"].sort()
 
     elif "conflicting" in result.stderr.lower():
         retval["conflicting"] = []
@@ -173,15 +175,16 @@ def test_yaml_based(script, case):
     # use scratch path for index
     for request, response in zip(requests, responses):
 
-        # Perform the requested action
-        if 'install' in request:
-            effect = handle_install_request(
-                script,
-                request['install'],
-                request.get('options', '').split())
+        for action in 'install', 'uninstall':
+            if action in request:
+                break
         else:
-            assert False, "Unsupported request {!r}".format(request)
+            raise "Unsupported request {!r}".format(request)
 
-        result = effect["_result_object"]
+        # Perform the requested action
+        effect = handle_request(script, action,
+                                request[action],
+                                request.get('options', '').split())
 
-        assert effect['install'] == response['state'], str(result)
+        assert effect['state'] == (response['state'] or []), \
+            str(effect["_result_object"])

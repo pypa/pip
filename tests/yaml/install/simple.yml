@@ -9,6 +9,14 @@ cases:
 -
   request:
     - install: simple
+    - uninstall: simple
+  response:
+    - state:
+      - simple 0.2.0
+    - state: null
+-
+  request:
+    - install: simple
     - install: dep
   response:
     - state:
