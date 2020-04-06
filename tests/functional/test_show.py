@@ -1,3 +1,4 @@
+import json
 import os
 import re
 
@@ -21,6 +22,19 @@ def test_basic_show(script):
     assert 'Requires: ' in lines
 
 
+def test_basic_show_json(script):
+    """
+    Test end to end test for show command.
+    """
+    result = script.pip('show', 'pip', '--format=json')
+    data = json.loads(result.stdout)[0]
+    assert len(data) == 10
+    assert data['Name'] == 'pip'
+    assert data['Version'] == '{}'.format(__version__)
+    assert 'Location' in data
+    assert 'Requires' in data
+
+
 def test_show_with_files_not_found(script, data):
     """
     Test for show command with installed files listing enabled and
@@ -39,6 +53,23 @@ def test_show_with_files_not_found(script, data):
     assert 'Cannot locate installed-files.txt' in lines
 
 
+def test_show_with_files_not_found_json(script, data):
+    """
+    Test for show command with installed files listing enabled and
+    installed-files.txt not found.
+    """
+    editable = data.packages.joinpath('SetupPyUTF8')
+    script.pip('install', '-e', editable)
+    result = script.pip('show', '-f', 'SetupPyUTF8', '--format=json')
+    data = json.loads(result.stdout)[0]
+    assert data['Name'] == 'SetupPyUTF8'
+    assert data['Version'] == '0.0.0'
+    assert 'Location' in data
+    assert 'Requires' in data
+    assert 'Files' in data
+    assert data['Files'] == "Cannot locate installed-files.txt"
+
+
 def test_show_with_files_from_wheel(script, data):
     """
     Test that a wheel's files can be listed
@@ -52,6 +83,18 @@ def test_show_with_files_from_wheel(script, data):
     assert re.search(r"Files:\n(  .+\n)+", result.stdout)
 
 
+def test_show_with_files_from_wheel_json(script, data):
+    """
+    Test that a wheel's files can be listed
+    """
+    wheel_file = data.packages.joinpath('simple.dist-0.1-py2.py3-none-any.whl')
+    script.pip('install', '--no-index', wheel_file)
+    result = script.pip('show', '-f', 'simple.dist', '--format=json')
+    data = json.loads(result.stdout)[0]
+    assert data['Name'] == 'simple.dist'
+    assert data['Files']
+
+
 @pytest.mark.network
 def test_show_with_all_files(script):
     """
@@ -62,6 +105,17 @@ def test_show_with_all_files(script):
     lines = result.stdout.splitlines()
     assert 'Cannot locate installed-files.txt' not in lines[6], lines[6]
     assert re.search(r"Files:\n(  .+\n)+", result.stdout)
+
+
+@pytest.mark.network
+def test_show_with_all_files_json(script):
+    """
+    Test listing all files in the show command.
+    """
+    script.pip('install', 'initools==0.2')
+    result = script.pip('show', '--files', 'initools', '--format=json')
+    data = json.loads(result.stdout)[0]
+    assert data['Files']
 
 
 def test_missing_argument(script):
@@ -108,6 +162,21 @@ def test_report_mixed_not_found(script):
     assert 'Name: pip' in lines
 
 
+def test_report_mixed_not_found_json(script):
+    """
+    Test passing a mixture of found and not-found names.
+    """
+    # We test passing non-canonicalized names.
+    result = script.pip(
+        'show', 'Abcd3', 'A-B-C', 'pip', '--format=json',
+        allow_stderr_warning=True
+    )
+    assert 'WARNING: Package(s) not found: A-B-C, Abcd3' in result.stderr
+    print(result.stdout)
+    data = json.loads(result.stdout)[0]
+    assert data['Name'] == 'pip'
+
+
 def test_search_any_case():
     """
     Search for a package in any case.
@@ -138,6 +207,17 @@ def test_show_verbose_with_classifiers(script):
     assert "Intended Audience :: Developers" in result.stdout
 
 
+def test_show_verbose_with_classifiers_json(script):
+    """
+    Test that classifiers can be listed
+    """
+    result = script.pip('show', 'pip', '--verbose', '--format=json')
+    data = json.loads(result.stdout)[0]
+    assert data['Name'] == 'pip'
+    assert data['Classifiers']
+    assert "Intended Audience :: Developers" in data["Classifiers"]
+
+
 def test_show_verbose_installer(script, data):
     """
     Test that the installer is shown (this currently needs a wheel install)
@@ -150,6 +230,18 @@ def test_show_verbose_installer(script, data):
     assert 'Installer: pip' in lines
 
 
+def test_show_verbose_installer_json(script, data):
+    """
+    Test that the installer is shown (this currently needs a wheel install)
+    """
+    wheel_file = data.packages.joinpath('simple.dist-0.1-py2.py3-none-any.whl')
+    script.pip('install', '--no-index', wheel_file)
+    result = script.pip('show', '--verbose', 'simple.dist', '--format=json')
+    data = json.loads(result.stdout)[0]
+    assert data['Name'] == 'simple.dist'
+    assert data['Installer'] == 'pip'
+
+
 def test_show_verbose(script):
     """
     Test end to end test for verbose show command.
@@ -160,6 +252,17 @@ def test_show_verbose(script):
     assert any(line.startswith('Installer: ') for line in lines)
     assert 'Entry-points:' in lines
     assert 'Classifiers:' in lines
+
+
+def test_show_verbose_json(script):
+    """
+    Test end to end test for verbose show command.
+    """
+    result = script.pip('show', '--verbose', 'pip', '--format=json')
+    data = json.loads(result.stdout)[0]
+
+    assert {'Metadata-Version', 'Installer',
+            'Entry-points', 'Classifiers'} <= set(data)
 
 
 def test_all_fields(script):
@@ -175,6 +278,18 @@ def test_all_fields(script):
     assert actual == expected
 
 
+def test_all_fields_json(script):
+    """
+    Test that all the fields are present
+    """
+    result = script.pip('show', 'pip', '--format=json')
+    data = json.loads(result.stdout)[0]
+    expected = {'Name', 'Version', 'Summary', 'Home-page', 'Author',
+                'Author-email', 'License', 'Location', 'Requires',
+                'Required-by'}
+    assert set(data) == expected
+
+
 def test_pip_show_is_short(script):
     """
     Test that pip show stays short
@@ -182,6 +297,15 @@ def test_pip_show_is_short(script):
     result = script.pip('show', 'pip')
     lines = result.stdout.splitlines()
     assert len(lines) <= 10
+
+
+def test_pip_show_is_short_json(script):
+    """
+    Test that pip show stays short
+    """
+    result = script.pip('show', 'pip', '--format=json')
+    data = json.loads(result.stdout)[0]
+    assert len(data) <= 10
 
 
 def test_pip_show_divider(script, data):
@@ -222,6 +346,22 @@ def test_show_required_by_packages_basic(script, data):
     assert 'Required-by: requires-simple' in lines
 
 
+def test_show_required_by_packages_basic_json(script, data):
+    """
+    Test that installed packages that depend on this package are shown
+    """
+    editable_path = os.path.join(data.src, 'requires_simple')
+    script.pip(
+        'install', '--no-index', '-f', data.find_links, editable_path
+    )
+
+    result = script.pip('show', 'simple', '--format=json')
+    data = json.loads(result.stdout)[0]
+
+    assert data['Name'] == 'simple'
+    assert data['Required-by'] == ['requires-simple']
+
+
 def test_show_required_by_packages_capitalized(script, data):
     """
     Test that the installed packages which depend on a package are shown
@@ -237,6 +377,23 @@ def test_show_required_by_packages_capitalized(script, data):
 
     assert 'Name: simple' in lines
     assert 'Required-by: Requires-Capitalized' in lines
+
+
+def test_show_required_by_packages_capitalized_json(script, data):
+    """
+    Test that the installed packages which depend on a package are shown
+    where the package has a capital letter
+    """
+    editable_path = os.path.join(data.src, 'requires_capitalized')
+    script.pip(
+        'install', '--no-index', '-f', data.find_links, editable_path
+    )
+
+    result = script.pip('show', 'simple', '--format=json')
+    data = json.loads(result.stdout)[0]
+
+    assert data['Name'] == 'simple'
+    assert data['Required-by'] == ['Requires-Capitalized']
 
 
 def test_show_required_by_packages_requiring_capitalized(script, data):
@@ -256,7 +413,6 @@ def test_show_required_by_packages_requiring_capitalized(script, data):
 
     result = script.pip('show', 'Requires_Capitalized')
     lines = result.stdout.splitlines()
-    print(lines)
 
     assert 'Name: Requires-Capitalized' in lines
     assert 'Required-by: requires-requires-capitalized' in lines

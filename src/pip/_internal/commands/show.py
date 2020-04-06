@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import json
 import logging
 import os
 from email.parser import FeedParser
@@ -38,7 +39,14 @@ class ShowCommand(Command):
             action='store_true',
             default=False,
             help='Show the full list of installed files for each package.')
-
+        self.cmd_opts.add_option(
+            '--format',
+            action='store',
+            dest='list_format',
+            default="header",
+            choices=('header', 'json'),
+            help="Select the output format among: header (default) or json",
+        )
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
@@ -46,13 +54,24 @@ class ShowCommand(Command):
         if not args:
             logger.warning('ERROR: Please provide a package name or names.')
             return ERROR
+
         query = args
 
         # Get list of package infos and print them
         results = search_packages_info(query)
-        return_status = print_results_default(results,
-                                              list_files=options.files,
-                                              verbose=options.verbose)
+        return_status = False
+
+        if options.list_format == 'header':
+
+            return_status = print_results_default(results,
+                                                  list_files=options.files,
+                                                  verbose=options.verbose)
+
+        elif options.list_format == 'json':
+
+            return_status = print_results_json(results,
+                                               list_files=options.files,
+                                               verbose=options.verbose)
 
         return SUCCESS if return_status else ERROR
 
@@ -184,4 +203,53 @@ def print_results_default(distributions, list_files=False, verbose=False):
                 write_output("  %s", line.strip())
             if "files" not in dist:
                 write_output("Cannot locate installed-files.txt")
+    return results_printed
+
+
+def print_results_json(distributions, list_files=False, verbose=False):
+    """
+    Build a dictionary with  information from installed distributions found.
+    """
+
+    results_printed = False
+    pkg_infos_list = []
+
+    for i, dist in enumerate(distributions):
+        results_printed = True
+        pkg_info = {}
+
+        pkg_info["Name"] = dist.get('name', '')
+        pkg_info["Version"] = dist.get('version', '')
+        pkg_info["Summary"] = dist.get('summary', '')
+        pkg_info["Home-page"] = dist.get('home-page', '')
+        pkg_info["Author"] = dist.get('author', '')
+        pkg_info["Author-email"] = dist.get('author-email', '')
+        pkg_info["License"] = dist.get('license', '')
+        pkg_info["Location"] = dist.get('location', '')
+        pkg_info["Requires"] = dist.get('requires', [])
+        pkg_info["Required-by"] = dist.get('required_by', [])
+
+        if verbose:
+            pkg_info["Metadata-Version"] = dist.get('metadata-version', '')
+            pkg_info["Installer"] = dist.get('installer', '')
+
+            pkg_info["Classifiers"] = []
+            for classifier in dist.get('classifiers', []):
+                pkg_info["Classifiers"].append(classifier)
+
+            pkg_info["Entry-points"] = []
+            for entry in dist.get('entry_points', []):
+                pkg_info["Entry-points"].append(entry.strip())
+
+        if list_files:
+            if "files" not in dist:
+                pkg_info["Files"] = 'Cannot locate installed-files.txt'
+            else:
+                pkg_info["Files"] = []
+                for line in dist.get('files', []):
+                    pkg_info["Files"].append(line.strip())
+
+        pkg_infos_list.append(pkg_info)
+
+    write_output(json.dumps(pkg_infos_list, ensure_ascii=False))
     return results_printed
