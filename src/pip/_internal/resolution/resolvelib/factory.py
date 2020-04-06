@@ -43,6 +43,7 @@ class Factory(object):
         finder,  # type: PackageFinder
         preparer,  # type: RequirementPreparer
         make_install_req,  # type: InstallRequirementProvider
+        force_reinstall,  # type: bool
         ignore_installed,  # type: bool
         ignore_requires_python,  # type: bool
         py_version_info=None,  # type: Optional[Tuple[int, ...]]
@@ -52,6 +53,7 @@ class Factory(object):
         self.preparer = preparer
         self._python_candidate = RequiresPythonCandidate(py_version_info)
         self._make_install_req_from_spec = make_install_req
+        self._force_reinstall = force_reinstall
         self._ignore_requires_python = ignore_requires_python
 
         self._link_candidate_cache = {}  # type: Cache[LinkCandidate]
@@ -110,7 +112,12 @@ class Factory(object):
     ):
         # type: (...) -> Candidate
         dist = self._installed_dists.get(ican.name)
-        if dist is None or dist.parsed_version != ican.version:
+        should_use_installed_dist = (
+            not self._force_reinstall and
+            dist is not None and
+            dist.parsed_version == ican.version
+        )
+        if not should_use_installed_dist:
             return self._make_candidate_from_link(
                 link=ican.link,
                 extras=extras,
@@ -153,3 +160,8 @@ class Factory(object):
         if self._python_candidate.version in specifier:
             return ExplicitRequirement(self._python_candidate)
         return NoMatchRequirement(self._python_candidate.name)
+
+    def should_reinstall(self, candidate):
+        # type: (Candidate) -> bool
+        # TODO: Are there more cases this needs to return True? Editable?
+        return candidate.name in self._installed_dists

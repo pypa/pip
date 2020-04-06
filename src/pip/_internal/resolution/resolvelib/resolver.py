@@ -43,6 +43,7 @@ class Resolver(BaseResolver):
             finder=finder,
             preparer=preparer,
             make_install_req=make_install_req,
+            force_reinstall=force_reinstall,
             ignore_installed=ignore_installed,
             ignore_requires_python=ignore_requires_python,
             py_version_info=py_version_info,
@@ -68,8 +69,10 @@ class Resolver(BaseResolver):
         req_set = RequirementSet(check_supported_wheels=check_supported_wheels)
         for candidate in self._result.mapping.values():
             ireq = provider.get_install_requirement(candidate)
-            if ireq is not None:
-                req_set.add_named_requirement(ireq)
+            if ireq is None:
+                continue
+            ireq.should_reinstall = self.factory.should_reinstall(candidate)
+            req_set.add_named_requirement(ireq)
 
         return req_set
 
