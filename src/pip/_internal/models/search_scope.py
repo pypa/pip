@@ -86,14 +86,15 @@ class SearchScope(object):
                 # Parse the URL
                 purl = urllib_parse.urlsplit(redacted_index_url)
 
-                # URL is generally invalid if scheme and netlock is missing
+                # URL is generally invalid if scheme and netloc is missing
                 # there are issues with Python and URL parsing, so this test
                 # is a bit crude. See bpo-20271, bpo-23505. Python doesn't
                 # always parse invalid URLs correctly - it should raise
                 # exceptions for malformed URLs
                 if not purl.scheme and not purl.netloc:
-                    logger.warning('index-url {} is invalid.'.format(
-                        redacted_index_url))
+                    logger.warning(
+                        'The index url "{}" seems invalid, '
+                        'please provide a scheme.'.format(redacted_index_url))
 
                 redacted_index_urls.append(redacted_index_url)
 
