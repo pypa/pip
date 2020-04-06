@@ -49,20 +49,12 @@ class ShowCommand(Command):
         query = args
 
         results = search_packages_info(query)
+
+        # Get list of package infos and print them
         pkg_infos_list = get_package_info(results, list_files=options.files,
                                           verbose=options.verbose)
 
-        # TODO Add option in command line
-        option = 'default'
-        return_status = False
-
-        # Print the information from installed distributions found for a
-        # given option
-        if option == 'default':
-            return_status = print_results_default(pkg_infos_list)
-
-        elif option == 'json':
-            return_status = print_results_json(pkg_infos_list)
+        return_status = print_results_default(pkg_infos_list)
 
         return SUCCESS if return_status else ERROR
 
