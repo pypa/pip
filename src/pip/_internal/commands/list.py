@@ -7,7 +7,7 @@ import json
 import logging
 
 from pip._vendor import six
-from pip._vendor.six.moves import zip_longest
+from pip._vendor.six.moves import map, zip_longest
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.req_command import IndexGroupCommand
@@ -21,6 +21,10 @@ from pip._internal.utils.misc import (
     write_output,
 )
 from pip._internal.utils.packaging import get_installer
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from typing import Any, Iterable, List, Tuple
 
 logger = logging.getLogger(__name__)
 
@@ -241,22 +245,19 @@ class ListCommand(IndexGroupCommand):
             write_output(val)
 
 
-def tabulate(vals):
-    # From pfmoore on GitHub:
-    # https://github.com/pypa/pip/issues/3651#issuecomment-216932564
-    assert len(vals) > 0
+def tabulate(rows):
+    # type: (Iterable[Iterable[Any]]) -> Tuple[List[str], List[int]]
+    """Return a list of formatted rows and a list of column sizes.
 
-    sizes = [0] * max(len(x) for x in vals)
-    for row in vals:
-        sizes = [max(s, len(str(c))) for s, c in zip_longest(sizes, row)]
+    For example::
 
-    result = []
-    for row in vals:
-        display = " ".join([str(c).ljust(s) if c is not None else ''
-                            for s, c in zip_longest(sizes, row)])
-        result.append(display)
-
-    return result, sizes
+    >>> tabulate([['foobar', 2000], [0xdeadbeef]])
+    (['foobar     2000', '3735928559'], [10, 4])
+    """
+    rows = [tuple(map(str, row)) for row in rows]
+    sizes = [max(map(len, col)) for col in zip_longest(*rows, fillvalue='')]
+    table = [" ".join(map(str.ljust, row, sizes)) for row in rows]
+    return table, sizes
 
 
 def format_for_columns(pkgs, options):
