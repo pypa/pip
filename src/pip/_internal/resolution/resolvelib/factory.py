@@ -1,10 +1,6 @@
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.pkg_resources import (
-    DistributionNotFound,
-    VersionConflict,
-    get_distribution,
-)
 
+from pip._internal.utils.misc import get_installed_distributions
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 from .candidates import (
@@ -56,10 +52,18 @@ class Factory(object):
         self.preparer = preparer
         self._python_candidate = RequiresPythonCandidate(py_version_info)
         self._make_install_req_from_spec = make_install_req
-        self._ignore_installed = ignore_installed
         self._ignore_requires_python = ignore_requires_python
+
         self._link_candidate_cache = {}  # type: Cache[LinkCandidate]
         self._editable_candidate_cache = {}  # type: Cache[EditableCandidate]
+
+        if not ignore_installed:
+            self._installed_dists = {
+                dist.project_name: dist
+                for dist in get_installed_distributions()
+            }
+        else:
+            self._installed_dists = {}
 
     def _make_candidate_from_dist(
         self,
@@ -98,17 +102,6 @@ class Factory(object):
             return ExtrasCandidate(base, extras)
         return base
 
-    def _get_installed_distribution(self, name, version):
-        # type: (str, str) -> Optional[Distribution]
-        if self._ignore_installed:
-            return None
-        specifier = "{}=={}".format(name, version)
-        try:
-            dist = get_distribution(specifier)
-        except (DistributionNotFound, VersionConflict):
-            return None
-        return dist
-
     def make_candidate_from_ican(
         self,
         ican,  # type: InstallationCandidate
@@ -116,8 +109,8 @@ class Factory(object):
         parent,  # type: InstallRequirement
     ):
         # type: (...) -> Candidate
-        dist = self._get_installed_distribution(ican.name, ican.version)
-        if dist is None:
+        dist = self._installed_dists.get(ican.name)
+        if dist is None or dist.parsed_version != ican.version:
             return self._make_candidate_from_link(
                 link=ican.link,
                 extras=extras,
