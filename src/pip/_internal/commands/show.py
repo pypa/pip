@@ -48,13 +48,11 @@ class ShowCommand(Command):
             return ERROR
         query = args
 
-        results = search_packages_info(query)
-
         # Get list of package infos and print them
-        pkg_infos_list = get_package_info(results, list_files=options.files,
-                                          verbose=options.verbose)
-
-        return_status = print_results_default(pkg_infos_list)
+        results = search_packages_info(query)
+        return_status = print_results_default(results,
+                                              list_files=options.files,
+                                              verbose=options.verbose)
 
         return SUCCESS if return_status else ERROR
 
@@ -149,10 +147,9 @@ def search_packages_info(query):
         yield package
 
 
-def print_results(distributions, list_files=False, verbose=False):
-    # type: (Iterator[Dict[str, str]], bool, bool) -> bool
+def print_results_default(distributions, list_files=False, verbose=False):
     """
-    Print the information from installed distributions found.
+    Print the information from installed distributions found in default format.
     """
     results_printed = False
     for i, dist in enumerate(distributions):
