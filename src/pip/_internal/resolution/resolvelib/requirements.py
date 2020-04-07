@@ -18,6 +18,13 @@ class ExplicitRequirement(Requirement):
         # type: (Candidate) -> None
         self.candidate = candidate
 
+    def __repr__(self):
+        # type: () -> str
+        return "{class_name}({candidate!r})".format(
+            class_name=self.__class__.__name__,
+            candidate=self.candidate,
+        )
+
     @property
     def name(self):
         # type: () -> str
@@ -43,6 +50,13 @@ class NoMatchRequirement(Requirement):
         # type: (str) -> None
         self._name = name
 
+    def __repr__(self):
+        # type: () -> str
+        return "{class_name}(name={name!r})".format(
+            class_name=self.__class__.__name__,
+            name=self._name,
+        )
+
     @property
     def name(self):
         # type: () -> str
@@ -64,6 +78,13 @@ class SpecifierRequirement(Requirement):
         self._ireq = ireq
         self._factory = factory
         self.extras = ireq.req.extras
+
+    def __repr__(self):
+        # type: () -> str
+        return "{class_name}({requirement!r})".format(
+            class_name=self.__class__.__name__,
+            requirement=str(self._ireq.req),
+        )
 
     @property
     def name(self):
