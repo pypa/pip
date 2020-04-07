@@ -258,7 +258,7 @@ def test_check_skip_work_dir_pkg(script):
 
     # Check should not complain about broken requirements
     # when run from package directory
-    result = script.pip('check')
+    result = script.pip('check', cwd=pkg_path)
     expected_lines = (
         "No broken requirements found.",
     )
@@ -286,7 +286,7 @@ def test_check_include_work_dir_pkg(script):
 
     # Check should mention about missing requirement simple
     # when run from package directory
-    result = script.pip('check', expect_error=True)
+    result = script.pip('check', expect_error=True, cwd=pkg_path)
     expected_lines = (
         "simple 1.0 requires missing, which is not installed.",
     )
