@@ -110,6 +110,13 @@ class _InstallRequirementBackedCandidate(Candidate):
         self._version = version
         self._dist = None  # type: Optional[Distribution]
 
+    def __repr__(self):
+        # type: () -> str
+        return "{class_name}({link!r})".format(
+            class_name=self.__class__.__name__,
+            link=str(self.link),
+        )
+
     def __eq__(self, other):
         # type: (Any) -> bool
         if isinstance(other, self.__class__):
@@ -259,6 +266,13 @@ class AlreadyInstalledCandidate(Candidate):
         skip_reason = "already satisfied"
         factory.preparer.prepare_installed_requirement(self._ireq, skip_reason)
 
+    def __repr__(self):
+        # type: () -> str
+        return "{class_name}({distribution!r})".format(
+            class_name=self.__class__.__name__,
+            distribution=self.dist,
+        )
+
     @property
     def name(self):
         # type: () -> str
@@ -313,6 +327,14 @@ class ExtrasCandidate(Candidate):
         # type: (...) -> None
         self.base = base
         self.extras = extras
+
+    def __repr__(self):
+        # type: () -> str
+        return "{class_name}(base={base!r}, extras={extras!r})".format(
+            class_name=self.__class__.__name__,
+            base=self.base,
+            extras=self.extras,
+        )
 
     @property
     def name(self):
