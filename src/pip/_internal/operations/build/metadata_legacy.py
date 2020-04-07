@@ -43,7 +43,6 @@ def generate_metadata(
     build_env,  # type: BuildEnvironment
     setup_py_path,  # type: str
     source_dir,  # type: str
-    editable,  # type: bool
     isolated,  # type: bool
     details,  # type: str
 ):

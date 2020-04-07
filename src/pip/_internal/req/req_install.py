@@ -516,7 +516,6 @@ class InstallRequirement(object):
                 build_env=self.build_env,
                 setup_py_path=self.setup_py_path,
                 source_dir=self.unpacked_source_directory,
-                editable=self.editable,
                 isolated=self.isolated,
                 details=self.name or "from {}".format(self.link)
             )
