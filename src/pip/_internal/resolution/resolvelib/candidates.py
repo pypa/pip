@@ -156,10 +156,19 @@ class _InstallRequirementBackedCandidate(Candidate):
             # These should be "proper" errors, not just asserts, as they
             # can result from user errors like a requirement "foo @ URL"
             # when the project at URL has a name of "bar" in its metadata.
-            assert (self._name is None or
-                    self._name == canonicalize_name(self._dist.project_name))
-            assert (self._version is None or
-                    self._version == self.dist.parsed_version)
+            assert (
+                self._name is None or
+                self._name == canonicalize_name(self._dist.project_name)
+            ), "Name mismatch: {!r} vs {!r}".format(
+                self._name, canonicalize_name(self._dist.project_name),
+            )
+            assert (
+                self._version is None or
+                self._version == self._dist.parsed_version
+            ), "Version mismatch: {!r} vs {!r}".format(
+                self._version, self._dist.parsed_version,
+            )
+
         return self._dist
 
     def _get_requires_python_specifier(self):
