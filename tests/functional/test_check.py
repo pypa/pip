@@ -281,11 +281,11 @@ def test_check_include_work_dir_pkg(script):
     script.run('python', 'setup.py', 'egg_info',
                expect_stderr=True, cwd=pkg_path)
 
-    # Add PYTHONPATH env variable
     script.environ.update({'PYTHONPATH': pkg_path})
 
     # Check should mention about missing requirement simple
-    # when run from package directory
+    # when run from package directory, when package directory
+    # is in PYTHONPATH
     result = script.pip('check', expect_error=True, cwd=pkg_path)
     expected_lines = (
         "simple 1.0 requires missing, which is not installed.",

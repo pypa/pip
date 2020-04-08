@@ -819,6 +819,14 @@ def test_freeze_path_multiple(tmpdir, script, data):
     _check_output(result.stdout, expected)
 
 
+def test_freeze_direct_url_archive(script, shared_data, with_wheel):
+    req = "simple @ " + path_to_url(shared_data.packages / "simple-2.0.tar.gz")
+    assert req.startswith("simple @ file://")
+    script.pip("install", req)
+    result = script.pip("freeze")
+    assert req in result.stdout
+
+
 def test_freeze_skip_work_dir_pkg(script):
     """
     Test that freeze should not include package
@@ -833,7 +841,7 @@ def test_freeze_skip_work_dir_pkg(script):
 
     # Freeze should not include package simple when run from package directory
     result = script.pip('freeze', cwd=pkg_path)
-    assert 'simple==1.0' not in result.stdout
+    assert 'simple' not in result.stdout
 
 
 def test_freeze_include_work_dir_pkg(script):
@@ -848,9 +856,9 @@ def test_freeze_include_work_dir_pkg(script):
     script.run('python', 'setup.py', 'egg_info',
                expect_stderr=True, cwd=pkg_path)
 
-    # Add PYTHONPATH env variable
     script.environ.update({'PYTHONPATH': pkg_path})
 
-    # Freeze should include package simple when run from package directory
+    # Freeze should include package simple when run from package directory,
+    # when package directory is in PYTHONPATH
     result = script.pip('freeze', cwd=pkg_path)
     assert 'simple==1.0' in result.stdout

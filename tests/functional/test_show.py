@@ -291,10 +291,10 @@ def test_show_include_work_dir_pkg(script):
     script.run('python', 'setup.py', 'egg_info',
                expect_stderr=True, cwd=pkg_path)
 
-    # Add PYTHONPATH env variable
     script.environ.update({'PYTHONPATH': pkg_path})
 
-    # Show should include package simple when run from package directory
+    # Show should include package simple when run from package directory,
+    # when package directory is in PYTHONPATH
     result = script.pip('show', 'simple', cwd=pkg_path)
     lines = result.stdout.splitlines()
     assert 'Name: simple' in lines

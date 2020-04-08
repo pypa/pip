@@ -1842,6 +1842,8 @@ def test_install_skip_work_dir_pkg(script, data):
     result = script.pip('install', '--find-links',
                         data.find_links, 'simple',
                         expect_stderr=True, cwd=pkg_path)
+
+    assert 'Requirement already satisfied: simple' not in result.stdout
     assert 'Successfully installed simple' in result.stdout
 
 
@@ -1861,10 +1863,10 @@ def test_install_include_work_dir_pkg(script, data):
     # Uninstall will fail with given warning
     script.pip('uninstall', 'simple', '-y')
 
-    # Add PYTHONPATH env variable
     script.environ.update({'PYTHONPATH': pkg_path})
 
-    # Uninstalling the package and installing it again will fail
+    # Uninstalling the package and installing it again will fail,
+    # when package directory is in PYTHONPATH
     result = script.pip('install', '--find-links',
                         data.find_links, 'simple',
                         expect_stderr=True, cwd=pkg_path)
