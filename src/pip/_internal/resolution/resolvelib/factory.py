@@ -1,3 +1,4 @@
+from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.pkg_resources import (
     DistributionNotFound,
     VersionConflict,
@@ -121,7 +122,7 @@ class Factory(object):
                 link=ican.link,
                 extras=extras,
                 parent=parent,
-                name=ican.name,
+                name=canonicalize_name(ican.name),
                 version=ican.version,
             )
         return self._make_candidate_from_dist(
