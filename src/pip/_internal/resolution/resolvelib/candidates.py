@@ -207,6 +207,7 @@ class _InstallRequirementBackedCandidate(Candidate):
 
     def get_install_requirement(self):
         # type: () -> Optional[InstallRequirement]
+        self.dist  # HACK? Ensure the candidate is correctly prepared.
         return self._ireq
 
 
