@@ -143,39 +143,44 @@ class _InstallRequirementBackedCandidate(Candidate):
             self._version = self.dist.parsed_version
         return self._version
 
-    def _get_abstract_distribution(self):
+    def _prepare_abstract_distribution(self):
         # type: () -> AbstractDistribution
         raise NotImplementedError("Override in subclass")
+
+    def _prepare(self):
+        # type: () -> None
+        if self._dist is not None:
+            return
+
+        abstract_dist = self._prepare_abstract_distribution()
+        self._dist = abstract_dist.get_pkg_resources_distribution()
+        assert self._dist is not None, "Distribution already installed"
+
+        # TODO: Abort cleanly here, as the resolution has been
+        #       based on the wrong name/version until now, and
+        #       so is wrong.
+        # TODO: (Longer term) Rather than abort, reject this candidate
+        #       and backtrack. This would need resolvelib support.
+        # These should be "proper" errors, not just asserts, as they
+        # can result from user errors like a requirement "foo @ URL"
+        # when the project at URL has a name of "bar" in its metadata.
+        assert (
+            self._name is None or
+            self._name == canonicalize_name(self._dist.project_name)
+        ), "Name mismatch: {!r} vs {!r}".format(
+            self._name, canonicalize_name(self._dist.project_name),
+        )
+        assert (
+            self._version is None or
+            self._version == self._dist.parsed_version
+        ), "Version mismatch: {!r} vs {!r}".format(
+            self._version, self._dist.parsed_version,
+        )
 
     @property
     def dist(self):
         # type: () -> Distribution
-        if self._dist is None:
-            abstract_dist = self._get_abstract_distribution()
-            self._dist = abstract_dist.get_pkg_resources_distribution()
-            # TODO: Only InstalledDistribution can return None here :-(
-            assert self._dist is not None
-            # TODO: Abort cleanly here, as the resolution has been
-            #       based on the wrong name/version until now, and
-            #       so is wrong.
-            # TODO: (Longer term) Rather than abort, reject this candidate
-            #       and backtrack. This would need resolvelib support.
-            # These should be "proper" errors, not just asserts, as they
-            # can result from user errors like a requirement "foo @ URL"
-            # when the project at URL has a name of "bar" in its metadata.
-            assert (
-                self._name is None or
-                self._name == canonicalize_name(self._dist.project_name)
-            ), "Name mismatch: {!r} vs {!r}".format(
-                self._name, canonicalize_name(self._dist.project_name),
-            )
-            assert (
-                self._version is None or
-                self._version == self._dist.parsed_version
-            ), "Version mismatch: {!r} vs {!r}".format(
-                self._version, self._dist.parsed_version,
-            )
-
+        self._prepare()
         return self._dist
 
     def _get_requires_python_specifier(self):
@@ -207,7 +212,7 @@ class _InstallRequirementBackedCandidate(Candidate):
 
     def get_install_requirement(self):
         # type: () -> Optional[InstallRequirement]
-        self.dist  # HACK? Ensure the candidate is correctly prepared.
+        self._prepare()
         return self._ireq
 
 
@@ -229,7 +234,7 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
             version=version,
         )
 
-    def _get_abstract_distribution(self):
+    def _prepare_abstract_distribution(self):
         # type: () -> AbstractDistribution
         return self._factory.preparer.prepare_linked_requirement(self._ireq)
 
@@ -252,7 +257,7 @@ class EditableCandidate(_InstallRequirementBackedCandidate):
             version=version,
         )
 
-    def _get_abstract_distribution(self):
+    def _prepare_abstract_distribution(self):
         # type: () -> AbstractDistribution
         return self._factory.preparer.prepare_editable_requirement(self._ireq)
 
