@@ -24,8 +24,8 @@ if [[ $TOXENV != docs ]] || [[ $TOXENV != lint ]]; then
 fi
 
 # Export the correct TOXENV when not provided.
-echo "Determining correct TOXENV..."
 if [[ -z "$TOXENV" ]]; then
+    echo "Determining correct TOXENV..."
     if [[ ${TRAVIS_PYTHON_VERSION} == pypy* ]]; then
         export TOXENV=pypy
     else
@@ -34,19 +34,19 @@ if [[ -z "$TOXENV" ]]; then
         _minor=${TRAVIS_PYTHON_VERSION:2:1}
         export TOXENV="py${_major}${_minor}"
     fi
+    echo "TOXENV=${TOXENV}"
 fi
-echo "TOXENV=${TOXENV}"
 
 # Print the commands run for this test.
 set -x
 if [[ "$GROUP" == "1" ]]; then
     # Unit tests
-    tox -- --use-venv -m unit -n auto
+    tox -- -m unit -n auto
     # Integration tests (not the ones for 'pip install')
-    tox -- --use-venv -m integration -n auto --duration=5 -k "not test_install"
+    tox -- -m integration -n auto --duration=5 -k "not test_install"
 elif [[ "$GROUP" == "2" ]]; then
     # Separate Job for running integration tests for 'pip install'
-    tox -- --use-venv -m integration -n auto --duration=5 -k "test_install"
+    tox -- -m integration -n auto --duration=5 -k "test_install"
 else
     # Non-Testing Jobs should run once
     tox
