@@ -1602,7 +1602,7 @@ def test_install_pep508_with_url_in_install_requires_url_change_wheel(script):
 
     pkga_path = create_basic_wheel_for_package(
         script, name='pkga', version='1.0',
-        depends=['dep @ ' + path_to_url(dep_v1_path)],
+        depends=['dep@' + path_to_url(dep_v1_path)],
     )
     res = script.pip('install', pkga_path)
     assert "Successfully installed dep-1.0" in str(res), str(res)
@@ -1612,7 +1612,7 @@ def test_install_pep508_with_url_in_install_requires_url_change_wheel(script):
     # Updating the URL to the dependency installs the updated dependency
     pkga_path = create_basic_wheel_for_package(
         script, name='pkga', version='2.0',
-        depends=['dep @ ' + path_to_url(dep_v2_path)],
+        depends=['dep@' + path_to_url(dep_v2_path)],
     )
     res = script.pip('install', pkga_path)
     assert "Successfully installed dep-2.0" in str(res), str(res)
@@ -1640,7 +1640,7 @@ def test_install_pep508_with_url_in_install_requires_url_change_directory(
 
     pkga_path = create_basic_wheel_for_package(
         script, name='pkga', version='1.0',
-        depends=['dep @ ' + path_to_url(dep_v1_path)],
+        depends=['dep@' + path_to_url(dep_v1_path)],
     )
     res = script.pip('install', pkga_path)
     assert "Successfully installed dep-1.0" in str(res), str(res)
@@ -1650,7 +1650,7 @@ def test_install_pep508_with_url_in_install_requires_url_change_directory(
     # Updating the URL to the dependency installs the updated dependency
     pkga_path = create_basic_wheel_for_package(
         script, name='pkga', version='2.0',
-        depends=['dep @ ' + path_to_url(dep_v2_path)],
+        depends=['dep@' + path_to_url(dep_v2_path)],
     )
     res = script.pip('install', pkga_path)
     assert "Successfully installed dep-2.0" in str(res), str(res)
