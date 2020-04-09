@@ -439,7 +439,6 @@ def install_req_from_req_string(
         # as 'pip install req.url'
         parts = parse_req_from_line(req.url, None)
         constraint = False
-        options = None
 
         return InstallRequirement(
             parts.requirement,
@@ -448,8 +447,6 @@ def install_req_from_req_string(
             markers=parts.markers,
             use_pep517=use_pep517,
             isolated=isolated,
-            options=options if options else {},
-            wheel_cache=wheel_cache,
             constraint=constraint,
             extras=req.extras,
         )
