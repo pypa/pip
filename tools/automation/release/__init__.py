@@ -30,8 +30,14 @@ def get_version_from_arguments(arguments: List[str]) -> Optional[str]:
         # Not of the form: YY.N or YY.N.P
         return None
 
+    if len(parts) == 3:
+        # Micro part can also be a pre-release version specifier
+        micro_part = parts.pop()
+        if not micro_part.isalnum():
+            return None
+
     if not all(part.isdigit() for part in parts):
-        # Not all segments are integers.
+        # Major or minor are not integers.
         return None
 
     # All is good.
@@ -113,7 +119,7 @@ def create_git_tag(session: Session, tag_name: str, *, message: str) -> None:
 
 
 def get_next_development_version(version: str) -> str:
-    major, minor, *_ = map(int, version.split("."))
+    major, minor = map(int, version.split(".")[:2])
 
     # We have at most 4 releases, starting with 0. Once we reach 3, we'd want
     # to roll-over to the next year's release numbers.
