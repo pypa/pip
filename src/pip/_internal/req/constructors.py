@@ -437,7 +437,7 @@ def install_req_from_req_string(
     if req.url:
         # Create an InstallRequirement for a wheel-like PEP 508 URL with the
         # same behavior as 'pip install req.url'
-        parts = parse_req_from_line(req.url, comes_from)
+        parts = parse_req_from_line(req.url, None)
         link = Link(req.url)
         if link.is_wheel:
             return InstallRequirement(
