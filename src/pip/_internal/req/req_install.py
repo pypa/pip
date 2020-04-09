@@ -70,17 +70,18 @@ def _get_dist(metadata_directory):
     """
     dist_dir = metadata_directory.rstrip(os.sep)
 
+    # Build a PathMetadata object, from path to metadata. :wink:
+    base_dir, dist_dir_name = os.path.split(dist_dir)
+    metadata = pkg_resources.PathMetadata(base_dir, dist_dir)
+
     # Determine the correct Distribution object type.
     if dist_dir.endswith(".egg-info"):
         dist_cls = pkg_resources.Distribution
+        dist_name = os.path.splitext(dist_dir_name)[0]
     else:
         assert dist_dir.endswith(".dist-info")
         dist_cls = pkg_resources.DistInfoDistribution
-
-    # Build a PathMetadata object, from path to metadata. :wink:
-    base_dir, dist_dir_name = os.path.split(dist_dir)
-    dist_name = os.path.splitext(dist_dir_name)[0]
-    metadata = pkg_resources.PathMetadata(base_dir, dist_dir)
+        dist_name = os.path.splitext(dist_dir_name)[0].split("-")[0]
 
     return dist_cls(
         base_dir,
