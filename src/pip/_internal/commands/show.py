@@ -208,48 +208,47 @@ def print_results_default(distributions, list_files=False, verbose=False):
 
 def print_results_json(distributions, list_files=False, verbose=False):
     """
-    Build a dictionary with  information from installed distributions found.
+    Build a dictionary with information from installed distributions
+        found in JSON format.
     """
 
     results_printed = False
     pkg_infos_list = []
 
-    for i, dist in enumerate(distributions):
+    for dist in distributions:
         results_printed = True
         pkg_info = {}
 
-        pkg_info["Name"] = dist.get('name', '')
-        pkg_info["Version"] = dist.get('version', '')
-        pkg_info["Summary"] = dist.get('summary', '')
-        pkg_info["Home-page"] = dist.get('home-page', '')
-        pkg_info["Author"] = dist.get('author', '')
-        pkg_info["Author-email"] = dist.get('author-email', '')
-        pkg_info["License"] = dist.get('license', '')
-        pkg_info["Location"] = dist.get('location', '')
-        pkg_info["Requires"] = dist.get('requires', [])
-        pkg_info["Required-by"] = dist.get('required_by', [])
+        pkg_info["name"] = dist.get('name', '')
+        pkg_info["version"] = dist.get('version', '')
+
+        pkg_info["summary"] = dist.get('summary', '')
+        pkg_info["home-page"] = dist.get('home-page', '')
+        pkg_info["author"] = dist.get('author', '')
+        pkg_info["author-email"] = dist.get('author-email', '')
+        pkg_info["license"] = dist.get('license', '')
+        pkg_info["location"] = dist.get('location', '')
+        pkg_info["requires"] = dist.get('requires', [])
+        pkg_info["required-by"] = dist.get('required_by', [])
 
         if verbose:
-            pkg_info["Metadata-Version"] = dist.get('metadata-version', '')
-            pkg_info["Installer"] = dist.get('installer', '')
 
-            pkg_info["Classifiers"] = []
-            for classifier in dist.get('classifiers', []):
-                pkg_info["Classifiers"].append(classifier)
-
-            pkg_info["Entry-points"] = []
-            for entry in dist.get('entry_points', []):
-                pkg_info["Entry-points"].append(entry.strip())
+            pkg_info["metadata-version"] = dist.get('metadata-version', '')
+            pkg_info["installer"] = dist.get('installer', '')
+            pkg_info["classifiers"] = dist.get('classifiers', [])
+            pkg_info["entry-points"] = \
+                [entry.strip() for entry in dist.get('entry_points')]\
+                if 'entry_points' in dist else []
 
         if list_files:
             if "files" not in dist:
-                pkg_info["Files"] = 'Cannot locate installed-files.txt'
+                pkg_info["files"] = None
             else:
-                pkg_info["Files"] = []
-                for line in dist.get('files', []):
-                    pkg_info["Files"].append(line.strip())
+                pkg_info['files'] = [line.strip()
+                                     for line in dist.get('files')]
 
         pkg_infos_list.append(pkg_info)
 
     write_output(json.dumps(pkg_infos_list, ensure_ascii=False))
+
     return results_printed

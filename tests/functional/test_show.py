@@ -29,10 +29,9 @@ def test_basic_show_json(script):
     result = script.pip('show', 'pip', '--format=json')
     data = json.loads(result.stdout)[0]
     assert len(data) == 10
-    assert data['Name'] == 'pip'
-    assert data['Version'] == '{}'.format(__version__)
-    assert 'Location' in data
-    assert 'Requires' in data
+    assert data['name'] == 'pip'
+    assert data['version'] == '{}'.format(__version__)
+    assert {'location', 'requires'} <= set(data)
 
 
 def test_show_with_files_not_found(script, data):
@@ -62,12 +61,10 @@ def test_show_with_files_not_found_json(script, data):
     script.pip('install', '-e', editable)
     result = script.pip('show', '-f', 'SetupPyUTF8', '--format=json')
     data = json.loads(result.stdout)[0]
-    assert data['Name'] == 'SetupPyUTF8'
-    assert data['Version'] == '0.0.0'
-    assert 'Location' in data
-    assert 'Requires' in data
-    assert 'Files' in data
-    assert data['Files'] == "Cannot locate installed-files.txt"
+    assert data['name'] == 'SetupPyUTF8'
+    assert data['version'] == '0.0.0'
+    assert {'location', 'requires'} <= set(data)
+    assert not data['files']
 
 
 def test_show_with_files_from_wheel(script, data):
@@ -91,8 +88,8 @@ def test_show_with_files_from_wheel_json(script, data):
     script.pip('install', '--no-index', wheel_file)
     result = script.pip('show', '-f', 'simple.dist', '--format=json')
     data = json.loads(result.stdout)[0]
-    assert data['Name'] == 'simple.dist'
-    assert data['Files']
+    assert data['name'] == 'simple.dist'
+    assert data['files']
 
 
 @pytest.mark.network
@@ -115,7 +112,7 @@ def test_show_with_all_files_json(script):
     script.pip('install', 'initools==0.2')
     result = script.pip('show', '--files', 'initools', '--format=json')
     data = json.loads(result.stdout)[0]
-    assert data['Files']
+    assert data['files']
 
 
 def test_missing_argument(script):
@@ -174,7 +171,7 @@ def test_report_mixed_not_found_json(script):
     assert 'WARNING: Package(s) not found: A-B-C, Abcd3' in result.stderr
     print(result.stdout)
     data = json.loads(result.stdout)[0]
-    assert data['Name'] == 'pip'
+    assert data['name'] == 'pip'
 
 
 def test_search_any_case():
@@ -213,9 +210,9 @@ def test_show_verbose_with_classifiers_json(script):
     """
     result = script.pip('show', 'pip', '--verbose', '--format=json')
     data = json.loads(result.stdout)[0]
-    assert data['Name'] == 'pip'
-    assert data['Classifiers']
-    assert "Intended Audience :: Developers" in data["Classifiers"]
+    assert data['name'] == 'pip'
+    assert data['classifiers']
+    assert "Intended Audience :: Developers" in data["classifiers"]
 
 
 def test_show_verbose_installer(script, data):
@@ -238,8 +235,8 @@ def test_show_verbose_installer_json(script, data):
     script.pip('install', '--no-index', wheel_file)
     result = script.pip('show', '--verbose', 'simple.dist', '--format=json')
     data = json.loads(result.stdout)[0]
-    assert data['Name'] == 'simple.dist'
-    assert data['Installer'] == 'pip'
+    assert data['name'] == 'simple.dist'
+    assert data['installer'] == 'pip'
 
 
 def test_show_verbose(script):
@@ -261,8 +258,8 @@ def test_show_verbose_json(script):
     result = script.pip('show', '--verbose', 'pip', '--format=json')
     data = json.loads(result.stdout)[0]
 
-    assert {'Metadata-Version', 'Installer',
-            'Entry-points', 'Classifiers'} <= set(data)
+    assert {'metadata-version', 'installer',
+            'entry-points', 'classifiers'} <= set(data)
 
 
 def test_all_fields(script):
@@ -284,9 +281,9 @@ def test_all_fields_json(script):
     """
     result = script.pip('show', 'pip', '--format=json')
     data = json.loads(result.stdout)[0]
-    expected = {'Name', 'Version', 'Summary', 'Home-page', 'Author',
-                'Author-email', 'License', 'Location', 'Requires',
-                'Required-by'}
+    expected = {'name', 'version', 'summary', 'home-page', 'author',
+                'author-email', 'license', 'location', 'requires',
+                'required-by'}
     assert set(data) == expected
 
 
@@ -358,8 +355,8 @@ def test_show_required_by_packages_basic_json(script, data):
     result = script.pip('show', 'simple', '--format=json')
     data = json.loads(result.stdout)[0]
 
-    assert data['Name'] == 'simple'
-    assert data['Required-by'] == ['requires-simple']
+    assert data['name'] == 'simple'
+    assert data['required-by'] == ['requires-simple']
 
 
 def test_show_required_by_packages_capitalized(script, data):
@@ -392,8 +389,8 @@ def test_show_required_by_packages_capitalized_json(script, data):
     result = script.pip('show', 'simple', '--format=json')
     data = json.loads(result.stdout)[0]
 
-    assert data['Name'] == 'simple'
-    assert data['Required-by'] == ['Requires-Capitalized']
+    assert data['name'] == 'simple'
+    assert data['required-by'] == ['Requires-Capitalized']
 
 
 def test_show_required_by_packages_requiring_capitalized(script, data):
@@ -448,9 +445,9 @@ def test_show_include_work_dir_pkg(script):
                expect_stderr=True, cwd=pkg_path)
 
     script.environ.update({'PYTHONPATH': pkg_path})
-
     # Show should include package simple when run from package directory,
     # when package directory is in PYTHONPATH
     result = script.pip('show', 'simple', cwd=pkg_path)
     lines = result.stdout.splitlines()
     assert 'Name: simple' in lines
+
