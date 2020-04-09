@@ -1,0 +1,17 @@
+Removes shebang from nonexecutable script.
+
+When packaging pip in Fedora, we have realised
+that there is a nonexecutable file with a shebang line.
+
+It seems that the primary purpose of this file is to be imported from Python
+code and hence the shebang appears to be unnecessary.
+
+Shebangs are hard to handle when doing downstream packaging because it makes
+sense for upstream to use ``#!/usr/bin/env python`` while in the RPM package, we
+need to avoid that and use a more specific interpreter. Since the shebang was
+unused, I propose to remove it to avoid the problems.
+
+We have found more shebangs but in vendored packages. I have also opened PRs there:
+https://github.com/ActiveState/appdirs/pull/144
+https://github.com/psf/requests/pull/5410
+https://github.com/chardet/chardet/pull/192
