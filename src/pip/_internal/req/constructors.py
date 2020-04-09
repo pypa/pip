@@ -435,21 +435,20 @@ def install_req_from_req_string(
         )
 
     if req.url:
-        # Create an InstallRequirement for a PEP 508 URL with the same behavior
-        # as 'pip install req.url'
-        parts = parse_req_from_line(req.url, None)
-        constraint = False
-
-        return InstallRequirement(
-            parts.requirement,
-            comes_from,
-            link=parts.link,
-            markers=parts.markers,
-            use_pep517=use_pep517,
-            isolated=isolated,
-            constraint=constraint,
-            extras=req.extras,
-        )
+        # Create an InstallRequirement for a wheel-like PEP 508 URL with the
+        # same behavior as 'pip install req.url'
+        parts = parse_req_from_line(req.url, comes_from)
+        link = Link(req.url)
+        if link.is_wheel:
+            return InstallRequirement(
+                parts.requirement,
+                comes_from=comes_from,
+                link=parts.link,
+                markers=parts.markers,
+                use_pep517=use_pep517,
+                isolated=isolated,
+                extras=req.extras,
+            )
     return InstallRequirement(
         req, comes_from, isolated=isolated, use_pep517=use_pep517
     )

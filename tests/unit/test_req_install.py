@@ -8,7 +8,6 @@ from pip._internal.exceptions import InstallationError
 from pip._internal.req.constructors import (
     install_req_from_line,
     install_req_from_req_string,
-    path_to_url,
 )
 from pip._internal.req.req_install import InstallRequirement
 
@@ -151,22 +150,3 @@ class TestInstallRequirementFrom(object):
         assert install_req.is_wheel
         assert install_req.use_pep517 == use_pep517
         assert install_req.extras == {"security"}
-
-    @pytest.mark.parametrize("use_pep517", [None, True, False])
-    def test_install_req_from_string_pep508_url_not_a_wheel(
-            self, use_pep517, tmpdir):
-        """
-        install_req_from_string returns an InstallRequirement() with
-        ``.req = None`` so that the package is always reinstalled.
-        """
-        file_url = path_to_url(tmpdir / "fake_torch_package")
-        install_str = "torch@ " + file_url
-        install_req = install_req_from_req_string(
-            install_str, use_pep517=use_pep517
-        )
-
-        assert isinstance(install_req, InstallRequirement)
-        assert install_req.req is None
-        assert install_req.link.url == file_url
-        assert not install_req.is_wheel
-        assert install_req.use_pep517 == use_pep517

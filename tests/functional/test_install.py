@@ -1623,44 +1623,6 @@ def test_install_pep508_with_url_in_install_requires_url_change_wheel(script):
     assert "Requirement already satisfied: dep==2.0" in str(res), str(res)
 
 
-def test_install_pep508_with_url_in_install_requires_url_change_directory(
-        script):
-    dep_v1_path = create_test_package_with_setup(
-        script, name='dep', version='1.0',
-    )
-
-    # Rename the package directory so it doesn't get overwritten when
-    # creating the package for dep_v2
-    dep_v1_path.rename(dep_v1_path.parent / 'dep_v1')
-    dep_v1_path = dep_v1_path.parent / 'dep_v1'
-
-    dep_v2_path = create_test_package_with_setup(
-        script, name='dep', version='2.0',
-    )
-
-    pkga_path = create_basic_wheel_for_package(
-        script, name='pkga', version='1.0',
-        depends=['dep@' + path_to_url(dep_v1_path)],
-    )
-    res = script.pip('install', pkga_path)
-    assert "Successfully installed dep-1.0" in str(res), str(res)
-
-    pkga_path.unlink()
-
-    # Updating the URL to the dependency installs the updated dependency
-    pkga_path = create_basic_wheel_for_package(
-        script, name='pkga', version='2.0',
-        depends=['dep@' + path_to_url(dep_v2_path)],
-    )
-    res = script.pip('install', pkga_path)
-    assert "Successfully installed dep-2.0" in str(res), str(res)
-
-    res = script.pip('install', pkga_path)
-    # pip can't determine versions from a directory name, so it will always
-    # reinstall the dependency
-    assert "Successfully installed dep-2.0" in str(res), str(res)
-
-
 @pytest.mark.network
 @pytest.mark.parametrize('index', (PyPI.simple_url, TestPyPI.simple_url))
 def test_install_from_test_pypi_with_ext_url_dep_is_blocked(script, index):
