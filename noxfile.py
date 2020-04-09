@@ -155,9 +155,9 @@ def lint(session):
 # -----------------------------------------------------------------------------
 @nox.session(name="prepare-release")
 def prepare_release(session):
-    version = release.get_version_from_arguments(session.posargs)
+    version = release.get_version_from_arguments(session)
     if not version:
-        session.error("Usage: nox -s prepare-release -- YY.N[.P]")
+        session.error("Usage: nox -s prepare-release -- <version>")
 
     session.log("# Ensure nothing is staged")
     if release.modified_files_in_git("--staged"):
@@ -190,7 +190,7 @@ def prepare_release(session):
 
 @nox.session(name="build-release")
 def build_release(session):
-    version = release.get_version_from_arguments(session.posargs)
+    version = release.get_version_from_arguments(session)
     if not version:
         session.error("Usage: nox -s build-release -- YY.N[.P]")
 
@@ -249,7 +249,7 @@ def build_dists(session):
 
 @nox.session(name="upload-release")
 def upload_release(session):
-    version = release.get_version_from_arguments(session.posargs)
+    version = release.get_version_from_arguments(session)
     if not version:
         session.error("Usage: nox -s upload-release -- YY.N[.P]")
 
