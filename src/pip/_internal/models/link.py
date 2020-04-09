@@ -30,6 +30,7 @@ class Link(KeyBasedCompareMixin):
         comes_from=None,       # type: Optional[Union[str, HTMLPage]]
         requires_python=None,  # type: Optional[str]
         yanked_reason=None,    # type: Optional[Text]
+        cache_link_parsing=True,  # type: bool
     ):
         # type: (...) -> None
         """
@@ -46,6 +47,11 @@ class Link(KeyBasedCompareMixin):
             a simple repository HTML link. If the file has been yanked but
             no reason was provided, this should be the empty string. See
             PEP 592 for more information and the specification.
+        :param cache_link_parsing: A flag that is used elsewhere to determine
+                                   whether resources retrieved from this link
+                                   should be cached. PyPI index urls should
+                                   generally have this set to False, for
+                                   example.
         """
 
         # url can be a UNC windows share
@@ -62,6 +68,8 @@ class Link(KeyBasedCompareMixin):
         self.yanked_reason = yanked_reason
 
         super(Link, self).__init__(key=url, defining_class=Link)
+
+        self.cache_link_parsing = cache_link_parsing
 
     def __str__(self):
         # type: () -> str

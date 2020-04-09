@@ -18,6 +18,13 @@ class ExplicitRequirement(Requirement):
         # type: (Candidate) -> None
         self.candidate = candidate
 
+    def __repr__(self):
+        # type: () -> str
+        return "{class_name}({candidate!r})".format(
+            class_name=self.__class__.__name__,
+            candidate=self.candidate,
+        )
+
     @property
     def name(self):
         # type: () -> str
@@ -33,6 +40,37 @@ class ExplicitRequirement(Requirement):
         return candidate == self.candidate
 
 
+class NoMatchRequirement(Requirement):
+    """A requirement that never matches anything.
+
+    Note: Similar to ExplicitRequirement, the caller should handle name
+    canonicalisation; this class does not perform it.
+    """
+    def __init__(self, name):
+        # type: (str) -> None
+        self._name = name
+
+    def __repr__(self):
+        # type: () -> str
+        return "{class_name}(name={name!r})".format(
+            class_name=self.__class__.__name__,
+            name=self._name,
+        )
+
+    @property
+    def name(self):
+        # type: () -> str
+        return self._name
+
+    def find_matches(self):
+        # type: () -> Sequence[Candidate]
+        return []
+
+    def is_satisfied_by(self, candidate):
+        # type: (Candidate) -> bool
+        return False
+
+
 class SpecifierRequirement(Requirement):
     def __init__(self, ireq, factory):
         # type: (InstallRequirement, Factory) -> None
@@ -40,6 +78,13 @@ class SpecifierRequirement(Requirement):
         self._ireq = ireq
         self._factory = factory
         self.extras = ireq.req.extras
+
+    def __repr__(self):
+        # type: () -> str
+        return "{class_name}({requirement!r})".format(
+            class_name=self.__class__.__name__,
+            requirement=str(self._ireq.req),
+        )
 
     @property
     def name(self):
@@ -55,8 +100,8 @@ class SpecifierRequirement(Requirement):
             hashes=self._ireq.hashes(trust_internet=False),
         )
         return [
-            self._factory.make_candidate(
-                link=ican.link,
+            self._factory.make_candidate_from_ican(
+                ican=ican,
                 extras=self.extras,
                 parent=self._ireq,
             )

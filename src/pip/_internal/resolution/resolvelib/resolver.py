@@ -43,6 +43,9 @@ class Resolver(BaseResolver):
             finder=finder,
             preparer=preparer,
             make_install_req=make_install_req,
+            ignore_installed=ignore_installed,
+            ignore_requires_python=ignore_requires_python,
+            py_version_info=py_version_info,
         )
         self.ignore_dependencies = ignore_dependencies
         self._result = None  # type: Optional[Result]

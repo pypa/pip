@@ -52,6 +52,9 @@ def factory(finder, preparer):
         finder=finder,
         preparer=preparer,
         make_install_req=install_req_from_line,
+        ignore_installed=False,
+        ignore_requires_python=False,
+        py_version_info=None,
     )
 
 

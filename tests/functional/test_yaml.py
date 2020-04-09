@@ -92,26 +92,33 @@ def convert_to_dict(string):
     return retval
 
 
-def handle_install_request(script, requirement):
+def handle_request(script, action, requirement, options):
     assert isinstance(requirement, str), (
         "Need install requirement to be a string only"
     )
-    result = script.pip(
-        "install",
-        "--no-index", "--find-links", path_to_url(script.scratch_path),
-        requirement, "--verbose",
-        allow_stderr_error=True,
-        allow_stderr_warning=True,
-    )
+    if action == 'install':
+        args = ['install', "--no-index", "--find-links",
+                path_to_url(script.scratch_path)]
+    elif action == 'uninstall':
+        args = ['uninstall', '--yes']
+    else:
+        raise "Did not excpet action: {!r}".format(action)
+    args.append(requirement)
+    args.extend(options)
+    args.append("--verbose")
+
+    result = script.pip(*args,
+                        allow_stderr_error=True,
+                        allow_stderr_warning=True)
 
     retval = {
         "_result_object": result,
     }
     if result.returncode == 0:
         # Check which packages got installed
-        retval["install"] = []
+        retval["state"] = []
 
-        for path in result.files_created:
+        for path in os.listdir(script.site_packages_path):
             if path.endswith(".dist-info"):
                 name, version = (
                     os.path.basename(path)[:-len(".dist-info")]
@@ -119,12 +126,9 @@ def handle_install_request(script, requirement):
 
                 # TODO: information about extras.
 
-                retval["install"].append(" ".join((name, version)))
+                retval["state"].append(" ".join((name, version)))
 
-        retval["install"].sort()
-
-        # TODO: Support checking uninstallations
-        # retval["uninstall"] = []
+        retval["state"].sort()
 
     elif "conflicting" in result.stderr.lower():
         retval["conflicting"] = []
@@ -151,10 +155,10 @@ def handle_install_request(script, requirement):
 def test_yaml_based(script, case):
     available = case.get("available", [])
     requests = case.get("request", [])
-    transaction = case.get("transaction", [])
+    responses = case.get("response", [])
 
-    assert len(requests) == len(transaction), (
-        "Expected requests and transaction counts to be same"
+    assert len(requests) == len(responses), (
+        "Expected requests and responses counts to be same"
     )
 
     # Create a custom index of all the packages that are supposed to be
@@ -168,26 +172,19 @@ def test_yaml_based(script, case):
 
         create_basic_wheel_for_package(script, **package)
 
-    available_actions = {
-        "install": handle_install_request
-    }
-
     # use scratch path for index
-    for request, expected in zip(requests, transaction):
-        # The name of the key is what action has to be taken
-        assert len(request.keys()) == 1, "Expected only one action"
+    for request, response in zip(requests, responses):
 
-        # Get the only key
-        action = list(request.keys())[0]
-
-        assert action in available_actions.keys(), (
-            "Unsupported action {!r}".format(action)
-        )
+        for action in 'install', 'uninstall':
+            if action in request:
+                break
+        else:
+            raise "Unsupported request {!r}".format(request)
 
         # Perform the requested action
-        effect = available_actions[action](script, request[action])
+        effect = handle_request(script, action,
+                                request[action],
+                                request.get('options', '').split())
 
-        result = effect["_result_object"]
-        del effect["_result_object"]
-
-        assert effect == expected, str(result)
+        assert effect['state'] == (response['state'] or []), \
+            str(effect["_result_object"])
