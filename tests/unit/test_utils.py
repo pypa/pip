@@ -50,6 +50,7 @@ from pip._internal.utils.misc import (
     rmtree_errorhandler,
     split_auth_from_netloc,
     split_auth_netloc_from_url,
+    tabulate,
 )
 from pip._internal.utils.setuptools_build import make_setuptools_shim_args
 
@@ -970,3 +971,20 @@ def test_is_console_interactive(monkeypatch, isatty, no_stdin, expected):
 ])
 def test_format_size(size, expected):
     assert format_size(size) == expected
+
+
+@pytest.mark.parametrize(
+    ('rows', 'table', 'sizes'),
+    [([], [], []),
+     ([('I?', 'version', 'sdist', 'wheel'),
+       ('', '1.18.2', 'zip', 'cp38-cp38m-win_amd64'),
+       ('v', 1.18, 'zip')],
+      ['I? version sdist wheel',
+       '   1.18.2  zip   cp38-cp38m-win_amd64',
+       'v  1.18    zip'],
+      [2, 7, 5, 20]),
+     ([('I?', 'version', 'sdist', 'wheel'), (), ('v', '1.18.1', 'zip')],
+      ['I? version sdist wheel', '', 'v  1.18.1  zip'],
+      [2, 7, 5, 5])])
+def test_tabulate(rows, table, sizes):
+    assert tabulate(rows) == (table, sizes)
