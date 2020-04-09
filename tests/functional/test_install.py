@@ -1769,6 +1769,31 @@ def test_ignore_yanked_file(script, data):
     assert 'Successfully installed simple-2.0\n' in result.stdout, str(result)
 
 
+def test_invalid_index_url_argument(script, shared_data):
+    """
+    Test the behaviour of an invalid --index-url argument
+    """
+
+    result = script.pip('install', '--index-url', '--user',
+                        shared_data.find_links3, "Dinner",
+                        expect_error=True)
+
+    assert 'WARNING: The index url "--user" seems invalid, ' \
+           'please provide a scheme.' in result.stderr, str(result)
+
+
+def test_valid_index_url_argument(script, shared_data):
+    """
+    Test the behaviour of an valid --index-url argument
+    """
+
+    result = script.pip('install', '--index-url',
+                        shared_data.find_links3,
+                        "Dinner")
+
+    assert 'Successfully installed Dinner' in result.stdout, str(result)
+
+
 def test_install_yanked_file_and_print_warning(script, data):
     """
     Test install a "yanked" file and print a warning.
