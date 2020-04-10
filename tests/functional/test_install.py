@@ -1855,15 +1855,16 @@ def test_install_skip_work_dir_pkg(script, data):
     and an uninstall
     """
 
-    # Create a test package and install it
+    # Create a test package, install it and then uninstall it
     pkg_path = create_test_package_with_setup(
         script, name='simple', version='1.0')
     script.pip('install', '-e', '.',
                expect_stderr=True, cwd=pkg_path)
 
-    # Uninstalling the package and installing it again will succeed
     script.pip('uninstall', 'simple', '-y')
 
+    # Running the install command again from the working directory
+    # will install the package as it was uninstalled earlier
     result = script.pip('install', '--find-links',
                         data.find_links, 'simple',
                         expect_stderr=True, cwd=pkg_path)
@@ -1879,19 +1880,18 @@ def test_install_include_work_dir_pkg(script, data):
     if working directory is added in PYTHONPATH
     """
 
-    # Create a test package and install it
+    # Create a test package, install it and then uninstall it
     pkg_path = create_test_package_with_setup(
         script, name='simple', version='1.0')
     script.pip('install', '-e', '.',
                expect_stderr=True, cwd=pkg_path)
-
-    # Uninstall will fail with given warning
     script.pip('uninstall', 'simple', '-y')
 
     script.environ.update({'PYTHONPATH': pkg_path})
 
-    # Uninstalling the package and installing it again will fail,
-    # when package directory is in PYTHONPATH
+    # Running the install command again from the working directory
+    # will be a no-op, as the package is found to be installed,
+    # when the package directory is in PYTHONPATH
     result = script.pip('install', '--find-links',
                         data.find_links, 'simple',
                         expect_stderr=True, cwd=pkg_path)
