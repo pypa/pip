@@ -22,4 +22,4 @@ setuptools==44.0.0
 six==1.14.0
 webencodings==0.5.1
 
-git+https://github.com/sarugaku/resolvelib.git@fbc8bb28d6cff98b2#egg=resolvelib
+git+https://github.com/sarugaku/resolvelib.git@726834de469bfcb8b#egg=resolvelib
