@@ -1,5 +1,6 @@
+===
 pip
----
+===
 
 .. contents::
 
@@ -16,6 +17,7 @@ Description
 
 
 .. _`Logging`:
+
 
 Logging
 =======
@@ -68,10 +70,11 @@ when decision is needed.
 
 .. _`build-interface`:
 
+
 Build System Interface
 ======================
 
-Pip builds packages by invoking the build system. By default, builds will use
+pip builds packages by invoking the build system. By default, builds will use
 ``setuptools``, but if a project specifies a different build system using a
 ``pyproject.toml`` file, as per :pep:`517`, pip will use that instead.  As well
 as package building, the build system is also invoked to install packages
@@ -110,7 +113,7 @@ ASCII, pip assumes UTF-8 (to account for the behaviour of some Unix systems).
 Build systems should ensure that any tools they invoke (compilers, etc) produce
 output in the correct encoding. In practice - and in particular on Windows,
 where tools are inconsistent in their use of the "OEM" and "ANSI" codepages -
-this may not always be possible. Pip will therefore attempt to recover cleanly
+this may not always be possible. pip will therefore attempt to recover cleanly
 if presented with incorrectly encoded build tool output, by translating
 unexpected byte sequences to Python-style hexadecimal escape sequences
 (``"\x80\xff"``, etc). However, it is still possible for output to be displayed

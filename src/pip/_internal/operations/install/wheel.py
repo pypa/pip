@@ -17,6 +17,7 @@ import stat
 import sys
 import warnings
 from base64 import urlsafe_b64encode
+from itertools import starmap
 from zipfile import ZipFile
 
 from pip._vendor import pkg_resources
@@ -26,6 +27,8 @@ from pip._vendor.six import StringIO
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_major_minor_version
+from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
+from pip._internal.utils.filesystem import adjacent_tmp_file, replace
 from pip._internal.utils.misc import captured_stdout, ensure_dir, hash_file
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -35,7 +38,7 @@ from pip._internal.utils.wheel import parse_wheel
 if MYPY_CHECK_RUNNING:
     from email.message import Message
     from typing import (
-        Dict, List, Optional, Sequence, Tuple, IO, Text, Any,
+        Dict, List, Optional, Sequence, Tuple, Any,
         Iterable, Callable, Set,
     )
 
@@ -63,15 +66,15 @@ def rehash(path, blocksize=1 << 20):
     return (digest, str(length))  # type: ignore
 
 
-def open_for_csv(name, mode):
-    # type: (str, Text) -> IO[Any]
-    if sys.version_info[0] < 3:
-        nl = {}  # type: Dict[str, Any]
-        bin = 'b'
+def csv_io_kwargs(mode):
+    # type: (str) -> Dict[str, Any]
+    """Return keyword arguments to properly open a CSV file
+    in the given mode.
+    """
+    if sys.version_info.major < 3:
+        return {'mode': '{}b'.format(mode)}
     else:
-        nl = {'newline': ''}  # type: Dict[str, Any]
-        bin = ''
-    return open(name, mode + bin, **nl)
+        return {'mode': mode, 'newline': ''}
 
 
 def fix_script(path):
@@ -287,7 +290,8 @@ def install_unpacked_wheel(
     scheme,  # type: Scheme
     req_description,  # type: str
     pycompile=True,  # type: bool
-    warn_script_location=True  # type: bool
+    warn_script_location=True,  # type: bool
+    direct_url=None,  # type: Optional[DirectUrl]
 ):
     # type: (...) -> None
     """Install a wheel.
@@ -534,13 +538,9 @@ def install_unpacked_wheel(
             del console[k]
 
     # Generate the console and GUI entry points specified in the wheel
-    scripts_to_generate.extend(
-        '%s = %s' % kv for kv in console.items()
-    )
+    scripts_to_generate.extend(starmap('{} = {}'.format, console.items()))
 
-    gui_scripts_to_generate = [
-        '%s = %s' % kv for kv in gui.items()
-    ]
+    gui_scripts_to_generate = list(starmap('{} = {}'.format, gui.items()))
 
     generated_console_scripts = []  # type: List[str]
 
@@ -566,28 +566,33 @@ def install_unpacked_wheel(
             logger.warning(msg)
 
     # Record pip as the installer
-    installer = os.path.join(dest_info_dir, 'INSTALLER')
-    temp_installer = os.path.join(dest_info_dir, 'INSTALLER.pip')
-    with open(temp_installer, 'wb') as installer_file:
+    installer_path = os.path.join(dest_info_dir, 'INSTALLER')
+    with adjacent_tmp_file(installer_path) as installer_file:
         installer_file.write(b'pip\n')
-    shutil.move(temp_installer, installer)
-    generated.append(installer)
+    replace(installer_file.name, installer_path)
+    generated.append(installer_path)
+
+    # Record the PEP 610 direct URL reference
+    if direct_url is not None:
+        direct_url_path = os.path.join(dest_info_dir, DIRECT_URL_METADATA_NAME)
+        with adjacent_tmp_file(direct_url_path) as direct_url_file:
+            direct_url_file.write(direct_url.to_json().encode("utf-8"))
+        replace(direct_url_file.name, direct_url_path)
+        generated.append(direct_url_path)
 
     # Record details of all files installed
-    record = os.path.join(dest_info_dir, 'RECORD')
-    temp_record = os.path.join(dest_info_dir, 'RECORD.pip')
-    with open_for_csv(record, 'r') as record_in:
-        with open_for_csv(temp_record, 'w+') as record_out:
-            reader = csv.reader(record_in)
-            outrows = get_csv_rows_for_installed(
-                reader, installed=installed, changed=changed,
-                generated=generated, lib_dir=lib_dir,
-            )
-            writer = csv.writer(record_out)
-            # Sort to simplify testing.
-            for row in sorted_outrows(outrows):
-                writer.writerow(row)
-    shutil.move(temp_record, record)
+    record_path = os.path.join(dest_info_dir, 'RECORD')
+    with open(record_path, **csv_io_kwargs('r')) as record_file:
+        rows = get_csv_rows_for_installed(
+            csv.reader(record_file),
+            installed=installed,
+            changed=changed,
+            generated=generated,
+            lib_dir=lib_dir)
+    with adjacent_tmp_file(record_path, **csv_io_kwargs('w')) as record_file:
+        writer = csv.writer(record_file)
+        writer.writerows(sorted_outrows(rows))  # sort to simplify testing
+    replace(record_file.name, record_path)
 
 
 def install_wheel(
@@ -598,6 +603,7 @@ def install_wheel(
     pycompile=True,  # type: bool
     warn_script_location=True,  # type: bool
     _temp_dir_for_testing=None,  # type: Optional[str]
+    direct_url=None,  # type: Optional[DirectUrl]
 ):
     # type: (...) -> None
     with TempDirectory(
@@ -612,4 +618,5 @@ def install_wheel(
             req_description=req_description,
             pycompile=pycompile,
             warn_script_location=warn_script_location,
+            direct_url=direct_url,
         )

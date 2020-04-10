@@ -1,0 +1,1 @@
+Avoid using the current directory for check, freeze, install, list and show commands, when invoked as 'python -m pip <command>'

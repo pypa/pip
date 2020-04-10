@@ -14,7 +14,6 @@ from pip._internal.cli.base_command import Command
 from pip._internal.cli.command_context import CommandContextMixIn
 from pip._internal.exceptions import CommandError, PreviousBuildDirError
 from pip._internal.index.package_finder import PackageFinder
-from pip._internal.legacy_resolve import Resolver
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.network.download import Downloader
 from pip._internal.network.session import PipSession
@@ -22,6 +21,7 @@ from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req.constructors import (
     install_req_from_editable,
     install_req_from_line,
+    install_req_from_parsed_requirement,
     install_req_from_req_string,
 )
 from pip._internal.req.req_file import parse_requirements
@@ -41,6 +41,7 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.models.target_python import TargetPython
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.req.req_tracker import RequirementTracker
+    from pip._internal.resolution.base import BaseResolver
     from pip._internal.utils.temp_dir import (
         TempDirectory,
         TempDirectoryTypeRegistry,
@@ -247,19 +248,38 @@ class RequirementCommand(IndexGroupCommand):
         use_pep517=None,                     # type: Optional[bool]
         py_version_info=None            # type: Optional[Tuple[int, ...]]
     ):
-        # type: (...) -> Resolver
+        # type: (...) -> BaseResolver
         """
         Create a Resolver instance for the given parameters.
         """
         make_install_req = partial(
             install_req_from_req_string,
             isolated=options.isolated_mode,
-            wheel_cache=wheel_cache,
             use_pep517=use_pep517,
         )
-        return Resolver(
+        # The long import name and duplicated invocation is needed to convince
+        # Mypy into correctly typechecking. Otherwise it would complain the
+        # "Resolver" class being redefined.
+        if 'resolver' in options.unstable_features:
+            import pip._internal.resolution.resolvelib.resolver
+            return pip._internal.resolution.resolvelib.resolver.Resolver(
+                preparer=preparer,
+                finder=finder,
+                wheel_cache=wheel_cache,
+                make_install_req=make_install_req,
+                use_user_site=use_user_site,
+                ignore_dependencies=options.ignore_dependencies,
+                ignore_installed=ignore_installed,
+                ignore_requires_python=ignore_requires_python,
+                force_reinstall=force_reinstall,
+                upgrade_strategy=upgrade_strategy,
+                py_version_info=py_version_info,
+            )
+        import pip._internal.resolution.legacy.resolver
+        return pip._internal.resolution.legacy.resolver.Resolver(
             preparer=preparer,
             finder=finder,
+            wheel_cache=wheel_cache,
             make_install_req=make_install_req,
             use_user_site=use_user_site,
             ignore_dependencies=options.ignore_dependencies,
@@ -276,7 +296,6 @@ class RequirementCommand(IndexGroupCommand):
         options,          # type: Values
         finder,           # type: PackageFinder
         session,          # type: PipSession
-        wheel_cache,      # type: Optional[WheelCache]
         check_supported_wheels=True,  # type: bool
     ):
         # type: (...) -> List[InstallRequirement]
@@ -287,10 +306,14 @@ class RequirementCommand(IndexGroupCommand):
             check_supported_wheels=check_supported_wheels
         )
         for filename in options.constraints:
-            for req_to_add in parse_requirements(
+            for parsed_req in parse_requirements(
                     filename,
                     constraint=True, finder=finder, options=options,
-                    session=session, wheel_cache=wheel_cache):
+                    session=session):
+                req_to_add = install_req_from_parsed_requirement(
+                    parsed_req,
+                    isolated=options.isolated_mode,
+                )
                 req_to_add.is_direct = True
                 requirement_set.add_requirement(req_to_add)
 
@@ -298,7 +321,6 @@ class RequirementCommand(IndexGroupCommand):
             req_to_add = install_req_from_line(
                 req, None, isolated=options.isolated_mode,
                 use_pep517=options.use_pep517,
-                wheel_cache=wheel_cache
             )
             req_to_add.is_direct = True
             requirement_set.add_requirement(req_to_add)
@@ -308,18 +330,20 @@ class RequirementCommand(IndexGroupCommand):
                 req,
                 isolated=options.isolated_mode,
                 use_pep517=options.use_pep517,
-                wheel_cache=wheel_cache
             )
             req_to_add.is_direct = True
             requirement_set.add_requirement(req_to_add)
 
         # NOTE: options.require_hashes may be set if --require-hashes is True
         for filename in options.requirements:
-            for req_to_add in parse_requirements(
+            for parsed_req in parse_requirements(
                     filename,
-                    finder=finder, options=options, session=session,
-                    wheel_cache=wheel_cache,
-                    use_pep517=options.use_pep517):
+                    finder=finder, options=options, session=session):
+                req_to_add = install_req_from_parsed_requirement(
+                    parsed_req,
+                    isolated=options.isolated_mode,
+                    use_pep517=options.use_pep517
+                )
                 req_to_add.is_direct = True
                 requirement_set.add_requirement(req_to_add)
 
@@ -332,13 +356,13 @@ class RequirementCommand(IndexGroupCommand):
             opts = {'name': self.name}
             if options.find_links:
                 raise CommandError(
-                    'You must give at least one requirement to %(name)s '
-                    '(maybe you meant "pip %(name)s %(links)s"?)' %
-                    dict(opts, links=' '.join(options.find_links)))
+                    'You must give at least one requirement to {name} '
+                    '(maybe you meant "pip {name} {links}"?)'.format(
+                        **dict(opts, links=' '.join(options.find_links))))
             else:
                 raise CommandError(
-                    'You must give at least one requirement to %(name)s '
-                    '(see "pip help %(name)s")' % opts)
+                    'You must give at least one requirement to {name} '
+                    '(see "pip help {name}")'.format(**opts))
 
         return requirements
 

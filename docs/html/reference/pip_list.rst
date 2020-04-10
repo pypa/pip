@@ -1,22 +1,26 @@
 .. _`pip list`:
 
+========
 pip list
----------
+========
 
 .. contents::
 
+
 Usage
-*****
+=====
 
 .. pip-command-usage:: list
 
+
 Description
-***********
+===========
 
 .. pip-command-description:: list
 
+
 Options
-*******
+=======
 
 .. pip-command-options:: list
 
@@ -24,7 +28,7 @@ Options
 
 
 Examples
-********
+========
 
 #. List installed packages.
 

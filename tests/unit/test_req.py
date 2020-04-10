@@ -18,7 +18,6 @@ from pip._internal.exceptions import (
     InvalidWheelFilename,
     PreviousBuildDirError,
 )
-from pip._internal.legacy_resolve import Resolver
 from pip._internal.network.download import Downloader
 from pip._internal.network.session import PipSession
 from pip._internal.operations.prepare import RequirementPreparer
@@ -28,11 +27,17 @@ from pip._internal.req.constructors import (
     _looks_like_path,
     install_req_from_editable,
     install_req_from_line,
+    install_req_from_parsed_requirement,
     install_req_from_req_string,
     parse_editable,
 )
-from pip._internal.req.req_file import ParsedLine, get_line_parser, handle_line
+from pip._internal.req.req_file import (
+    ParsedLine,
+    get_line_parser,
+    handle_requirement_line,
+)
 from pip._internal.req.req_tracker import get_requirement_tracker
+from pip._internal.resolution.legacy.resolver import Resolver
 from pip._internal.utils.urls import path_to_url
 from tests.lib import assert_raises_regexp, make_test_finder, requirements_file
 
@@ -48,8 +53,9 @@ def get_processed_req_from_line(line, fname='file', lineno=1):
         opts,
         False,
     )
-    req = handle_line(parsed_line)
-    assert req is not None
+    parsed_req = handle_requirement_line(parsed_line)
+    assert parsed_req is not None
+    req = install_req_from_parsed_requirement(parsed_req)
     req.is_direct = True
     return req
 
@@ -68,7 +74,6 @@ class TestRequirementSet(object):
         make_install_req = partial(
             install_req_from_req_string,
             isolated=False,
-            wheel_cache=None,
             use_pep517=None,
         )
 
@@ -89,6 +94,7 @@ class TestRequirementSet(object):
                 preparer=preparer,
                 make_install_req=make_install_req,
                 finder=finder,
+                wheel_cache=None,
                 use_user_site=False, upgrade_strategy="to-satisfy-only",
                 ignore_dependencies=False, ignore_installed=False,
                 ignore_requires_python=False, force_reinstall=False,
@@ -109,8 +115,9 @@ class TestRequirementSet(object):
         with self._basic_resolver(finder) as resolver:
             assert_raises_regexp(
                 PreviousBuildDirError,
-                r"pip can't proceed with [\s\S]*%s[\s\S]*%s" %
-                (req, build_dir.replace('\\', '\\\\')),
+                r"pip can't proceed with [\s\S]*{req}[\s\S]*{build_dir_esc}"
+                .format(
+                    build_dir_esc=build_dir.replace('\\', '\\\\'), req=req),
                 resolver.resolve,
                 reqset.all_requirements,
                 True,
@@ -169,9 +176,7 @@ class TestRequirementSet(object):
         command = create_command('install')
         with requirements_file('--require-hashes', tmpdir) as reqs_file:
             options, args = command.parse_args(['-r', reqs_file])
-            command.get_requirements(
-                args, options, finder, session, wheel_cache=None,
-            )
+            command.get_requirements(args, options, finder, session)
         assert options.require_hashes
 
     def test_unsupported_hashes(self, data):
@@ -189,7 +194,7 @@ class TestRequirementSet(object):
         ))
         dir_path = data.packages.joinpath('FSPkg')
         reqset.add_requirement(get_processed_req_from_line(
-            'file://%s' % (dir_path,),
+            'file://{dir_path}'.format(**locals()),
             lineno=2,
         ))
         finder = make_test_finder(find_links=[data.find_links])
@@ -249,7 +254,7 @@ class TestRequirementSet(object):
             (data.packages / 'simple-1.0.tar.gz').resolve())
         reqset = RequirementSet()
         reqset.add_requirement(get_processed_req_from_line(
-            '%s --hash=sha256:badbad' % file_url, lineno=1,
+            '{file_url} --hash=sha256:badbad'.format(**locals()), lineno=1,
         ))
         finder = make_test_finder(find_links=[data.find_links])
         with self._basic_resolver(finder, require_hashes=True) as resolver:
@@ -449,14 +454,14 @@ class TestInstallRequirement(object):
     def test_markers_url(self):
         # test "URL; markers" syntax
         url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
-        line = '%s; python_version >= "3"' % url
+        line = '{}; python_version >= "3"'.format(url)
         req = install_req_from_line(line)
         assert req.link.url == url, req.url
         assert str(req.markers) == 'python_version >= "3"'
 
         # without space, markers are part of the URL
         url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
-        line = '%s;python_version >= "3"' % url
+        line = '{};python_version >= "3"'.format(url)
         req = install_req_from_line(line)
         assert req.link.url == line, req.url
         assert req.markers is None
@@ -465,7 +470,7 @@ class TestInstallRequirement(object):
         # match
         for markers in (
             'python_version >= "1.0"',
-            'sys_platform == %r' % sys.platform,
+            'sys_platform == {sys.platform!r}'.format(**globals()),
         ):
             line = 'name; ' + markers
             req = install_req_from_line(line)
@@ -475,7 +480,7 @@ class TestInstallRequirement(object):
         # don't match
         for markers in (
             'python_version >= "5.0"',
-            'sys_platform != %r' % sys.platform,
+            'sys_platform != {sys.platform!r}'.format(**globals()),
         ):
             line = 'name; ' + markers
             req = install_req_from_line(line)
@@ -486,7 +491,7 @@ class TestInstallRequirement(object):
         # match
         for markers in (
             'python_version >= "1.0"',
-            'sys_platform == %r' % sys.platform,
+            'sys_platform == {sys.platform!r}'.format(**globals()),
         ):
             line = 'name; ' + markers
             req = install_req_from_line(line, comes_from='')
@@ -496,7 +501,7 @@ class TestInstallRequirement(object):
         # don't match
         for markers in (
             'python_version >= "5.0"',
-            'sys_platform != %r' % sys.platform,
+            'sys_platform != {sys.platform!r}'.format(**globals()),
         ):
             line = 'name; ' + markers
             req = install_req_from_line(line, comes_from='')
@@ -506,7 +511,7 @@ class TestInstallRequirement(object):
     def test_extras_for_line_path_requirement(self):
         line = 'SomeProject[ex1,ex2]'
         filename = 'filename'
-        comes_from = '-r %s (line %s)' % (filename, 1)
+        comes_from = '-r {} (line {})'.format(filename, 1)
         req = install_req_from_line(line, comes_from=comes_from)
         assert len(req.extras) == 2
         assert req.extras == {'ex1', 'ex2'}
@@ -514,7 +519,7 @@ class TestInstallRequirement(object):
     def test_extras_for_line_url_requirement(self):
         line = 'git+https://url#egg=SomeProject[ex1,ex2]'
         filename = 'filename'
-        comes_from = '-r %s (line %s)' % (filename, 1)
+        comes_from = '-r {} (line {})'.format(filename, 1)
         req = install_req_from_line(line, comes_from=comes_from)
         assert len(req.extras) == 2
         assert req.extras == {'ex1', 'ex2'}
@@ -522,7 +527,7 @@ class TestInstallRequirement(object):
     def test_extras_for_editable_path_requirement(self):
         url = '.[ex1,ex2]'
         filename = 'filename'
-        comes_from = '-r %s (line %s)' % (filename, 1)
+        comes_from = '-r {} (line {})'.format(filename, 1)
         req = install_req_from_editable(url, comes_from=comes_from)
         assert len(req.extras) == 2
         assert req.extras == {'ex1', 'ex2'}
@@ -530,7 +535,7 @@ class TestInstallRequirement(object):
     def test_extras_for_editable_url_requirement(self):
         url = 'git+https://url#egg=SomeProject[ex1,ex2]'
         filename = 'filename'
-        comes_from = '-r %s (line %s)' % (filename, 1)
+        comes_from = '-r {} (line {})'.format(filename, 1)
         req = install_req_from_editable(url, comes_from=comes_from)
         assert len(req.extras) == 2
         assert req.extras == {'ex1', 'ex2'}

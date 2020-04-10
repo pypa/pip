@@ -36,7 +36,7 @@ if MYPY_CHECK_RUNNING:
     from typing import (
         Any, Dict, Optional, Set, Tuple, Union,
     )
-    from pip._internal.cache import WheelCache
+    from pip._internal.req.req_file import ParsedRequirement
 
 
 __all__ = [
@@ -123,8 +123,8 @@ def parse_editable(editable_req):
             return package_name, url_no_extras, None
 
     for version_control in vcs:
-        if url.lower().startswith('%s:' % version_control):
-            url = '%s+%s' % (version_control, url)
+        if url.lower().startswith('{}:'.format(version_control)):
+            url = '{}+{}'.format(version_control, url)
             break
 
     if '+' not in url:
@@ -175,8 +175,8 @@ def deduce_helpful_msg(req):
                     " the packages specified within it."
                 ).format(req)
         except RequirementParseError:
-            logger.debug("Cannot parse '%s' as requirements \
-            file" % (req), exc_info=True)
+            logger.debug("Cannot parse '{}' as requirements \
+            file".format(req), exc_info=True)
     else:
         msg += " File '{}' does not exist.".format(req)
     return msg
@@ -218,11 +218,10 @@ def parse_req_from_editable(editable_req):
 
 def install_req_from_editable(
     editable_req,  # type: str
-    comes_from=None,  # type: Optional[str]
+    comes_from=None,  # type: Optional[Union[InstallRequirement, str]]
     use_pep517=None,  # type: Optional[bool]
     isolated=False,  # type: bool
     options=None,  # type: Optional[Dict[str, Any]]
-    wheel_cache=None,  # type: Optional[WheelCache]
     constraint=False  # type: bool
 ):
     # type: (...) -> InstallRequirement
@@ -232,7 +231,9 @@ def install_req_from_editable(
     source_dir = parts.link.file_path if parts.link.scheme == 'file' else None
 
     return InstallRequirement(
-        parts.requirement, comes_from, source_dir=source_dir,
+        parts.requirement,
+        comes_from=comes_from,
+        source_dir=source_dir,
         editable=True,
         link=parts.link,
         constraint=constraint,
@@ -241,7 +242,6 @@ def install_req_from_editable(
         install_options=options.get("install_options", []) if options else [],
         global_options=options.get("global_options", []) if options else [],
         hash_options=options.get("hashes", {}) if options else {},
-        wheel_cache=wheel_cache,
         extras=parts.extras,
     )
 
@@ -280,8 +280,8 @@ def _get_url_from_path(path, name):
         if is_installable_dir(path):
             return path_to_url(path)
         raise InstallationError(
-            "Directory %r is not installable. Neither 'setup.py' "
-            "nor 'pyproject.toml' found." % name
+            "Directory {name!r} is not installable. Neither 'setup.py' "
+            "nor 'pyproject.toml' found.".format(**locals())
         )
     if not is_archive_file(path):
         return None
@@ -338,7 +338,7 @@ def parse_req_from_line(name, line_source):
         # wheel file
         if link.is_wheel:
             wheel = Wheel(link.filename)  # can raise InvalidWheelFilename
-            req_as_string = "%s==%s" % (wheel.name, wheel.version)
+            req_as_string = "{wheel.name}=={wheel.version}".format(**locals())
         else:
             # set the req to the egg fragment.  when it's not there, this
             # will become an 'unnamed' requirement
@@ -386,7 +386,6 @@ def install_req_from_line(
     use_pep517=None,  # type: Optional[bool]
     isolated=False,  # type: bool
     options=None,  # type: Optional[Dict[str, Any]]
-    wheel_cache=None,  # type: Optional[WheelCache]
     constraint=False,  # type: bool
     line_source=None,  # type: Optional[str]
 ):
@@ -405,7 +404,6 @@ def install_req_from_line(
         install_options=options.get("install_options", []) if options else [],
         global_options=options.get("global_options", []) if options else [],
         hash_options=options.get("hashes", {}) if options else {},
-        wheel_cache=wheel_cache,
         constraint=constraint,
         extras=parts.extras,
     )
@@ -415,7 +413,6 @@ def install_req_from_req_string(
     req_string,  # type: str
     comes_from=None,  # type: Optional[InstallRequirement]
     isolated=False,  # type: bool
-    wheel_cache=None,  # type: Optional[WheelCache]
     use_pep517=None  # type: Optional[bool]
 ):
     # type: (...) -> InstallRequirement
@@ -438,6 +435,33 @@ def install_req_from_req_string(
         )
 
     return InstallRequirement(
-        req, comes_from, isolated=isolated, wheel_cache=wheel_cache,
-        use_pep517=use_pep517
+        req, comes_from, isolated=isolated, use_pep517=use_pep517
     )
+
+
+def install_req_from_parsed_requirement(
+    parsed_req,  # type: ParsedRequirement
+    isolated=False,  # type: bool
+    use_pep517=None  # type: Optional[bool]
+):
+    # type: (...) -> InstallRequirement
+    if parsed_req.is_editable:
+        req = install_req_from_editable(
+            parsed_req.requirement,
+            comes_from=parsed_req.comes_from,
+            use_pep517=use_pep517,
+            constraint=parsed_req.constraint,
+            isolated=isolated,
+        )
+
+    else:
+        req = install_req_from_line(
+            parsed_req.requirement,
+            comes_from=parsed_req.comes_from,
+            use_pep517=use_pep517,
+            isolated=isolated,
+            options=parsed_req.options,
+            constraint=parsed_req.constraint,
+            line_source=parsed_req.line_source,
+        )
+    return req

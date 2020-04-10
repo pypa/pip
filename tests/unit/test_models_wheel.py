@@ -1,9 +1,9 @@
 import pytest
 from pip._vendor.packaging.tags import Tag
 
-from pip._internal import pep425tags
 from pip._internal.exceptions import InvalidWheelFilename
 from pip._internal.models.wheel import Wheel
+from pip._internal.utils import compatibility_tags
 
 
 class TestWheelFile(object):
@@ -75,7 +75,7 @@ class TestWheelFile(object):
         """
         Wheels built for macOS 10.6 are supported on 10.9
         """
-        tags = pep425tags.get_supported(
+        tags = compatibility_tags.get_supported(
             '27', platform='macosx_10_9_intel', impl='cp'
         )
         w = Wheel('simple-0.1-cp27-none-macosx_10_6_intel.whl')
@@ -87,7 +87,7 @@ class TestWheelFile(object):
         """
         Wheels built for macOS 10.9 are not supported on 10.6
         """
-        tags = pep425tags.get_supported(
+        tags = compatibility_tags.get_supported(
             '27', platform='macosx_10_6_intel', impl='cp'
         )
         w = Wheel('simple-0.1-cp27-none-macosx_10_9_intel.whl')
@@ -97,22 +97,22 @@ class TestWheelFile(object):
         """
         Multi-arch wheels (intel) are supported on components (i386, x86_64)
         """
-        universal = pep425tags.get_supported(
+        universal = compatibility_tags.get_supported(
             '27', platform='macosx_10_5_universal', impl='cp'
         )
-        intel = pep425tags.get_supported(
+        intel = compatibility_tags.get_supported(
             '27', platform='macosx_10_5_intel', impl='cp'
         )
-        x64 = pep425tags.get_supported(
+        x64 = compatibility_tags.get_supported(
             '27', platform='macosx_10_5_x86_64', impl='cp'
         )
-        i386 = pep425tags.get_supported(
+        i386 = compatibility_tags.get_supported(
             '27', platform='macosx_10_5_i386', impl='cp'
         )
-        ppc = pep425tags.get_supported(
+        ppc = compatibility_tags.get_supported(
             '27', platform='macosx_10_5_ppc', impl='cp'
         )
-        ppc64 = pep425tags.get_supported(
+        ppc64 = compatibility_tags.get_supported(
             '27', platform='macosx_10_5_ppc64', impl='cp'
         )
 
@@ -135,10 +135,10 @@ class TestWheelFile(object):
         """
         Single-arch wheels (x86_64) are not supported on multi-arch (intel)
         """
-        universal = pep425tags.get_supported(
+        universal = compatibility_tags.get_supported(
             '27', platform='macosx_10_5_universal', impl='cp'
         )
-        intel = pep425tags.get_supported(
+        intel = compatibility_tags.get_supported(
             '27', platform='macosx_10_5_intel', impl='cp'
         )
 

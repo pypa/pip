@@ -9,7 +9,10 @@ from pip._internal.cli.base_command import Command
 from pip._internal.cli.req_command import SessionCommandMixin
 from pip._internal.exceptions import InstallationError
 from pip._internal.req import parse_requirements
-from pip._internal.req.constructors import install_req_from_line
+from pip._internal.req.constructors import (
+    install_req_from_line,
+    install_req_from_parsed_requirement,
+)
 from pip._internal.utils.misc import protect_pip_from_modification_on_windows
 
 
@@ -58,16 +61,20 @@ class UninstallCommand(Command, SessionCommandMixin):
             if req.name:
                 reqs_to_uninstall[canonicalize_name(req.name)] = req
         for filename in options.requirements:
-            for req in parse_requirements(
+            for parsed_req in parse_requirements(
                     filename,
                     options=options,
                     session=session):
+                req = install_req_from_parsed_requirement(
+                    parsed_req,
+                    isolated=options.isolated_mode
+                )
                 if req.name:
                     reqs_to_uninstall[canonicalize_name(req.name)] = req
         if not reqs_to_uninstall:
             raise InstallationError(
-                'You must give at least one requirement to %(name)s (see '
-                '"pip help %(name)s")' % dict(name=self.name)
+                'You must give at least one requirement to {self.name} (see '
+                '"pip help {self.name}")'.format(**locals())
             )
 
         protect_pip_from_modification_on_windows(

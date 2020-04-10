@@ -122,7 +122,7 @@ def test_more_than_one_package():
     Search for more than one package.
 
     """
-    result = list(search_packages_info(['Pip', 'pytest', 'Virtualenv']))
+    result = list(search_packages_info(['pIp', 'pytest', 'Virtualenv']))
     assert len(result) == 3
 
 

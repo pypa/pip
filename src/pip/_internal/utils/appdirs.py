@@ -25,17 +25,20 @@ def user_cache_dir(appname):
 
 def user_config_dir(appname, roaming=True):
     # type: (str, bool) -> str
-    return _appdirs.user_config_dir(appname, appauthor=False, roaming=roaming)
+    path = _appdirs.user_config_dir(appname, appauthor=False, roaming=roaming)
+    if _appdirs.system == "darwin" and not os.path.isdir(path):
+        path = os.path.expanduser('~/.config/')
+        if appname:
+            path = os.path.join(path, appname)
+    return path
 
 
-def user_data_dir(appname, roaming=False):
-    # type: (str, bool) -> str
-    return _appdirs.user_data_dir(appname, appauthor=False, roaming=roaming)
-
-
+# for the discussion regarding site_config_dir locations
+# see <https://github.com/pypa/pip/issues/1733>
 def site_config_dirs(appname):
     # type: (str) -> List[str]
     dirval = _appdirs.site_config_dir(appname, appauthor=False, multipath=True)
     if _appdirs.system not in ["win32", "darwin"]:
-        return dirval.split(os.pathsep)
+        # always look in /etc directly as well
+        return dirval.split(os.pathsep) + ['/etc']
     return [dirval]

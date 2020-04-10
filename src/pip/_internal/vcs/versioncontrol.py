@@ -11,7 +11,7 @@ import sys
 from pip._vendor import pkg_resources
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
-from pip._internal.exceptions import BadCommand
+from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.utils.compat import samefile
 from pip._internal.utils.misc import (
     ask_path_exists,
@@ -30,7 +30,7 @@ if MYPY_CHECK_RUNNING:
         Any, Dict, Iterable, Iterator, List, Mapping, Optional, Text, Tuple,
         Type, Union
     )
-    from pip._internal.utils.ui import SpinnerInterface
+    from pip._internal.cli.spinners import SpinnerInterface
     from pip._internal.utils.misc import HiddenText
     from pip._internal.utils.subprocess import CommandArgs
 
@@ -436,6 +436,12 @@ class VersionControl(object):
         rev = None
         if '@' in path:
             path, rev = path.rsplit('@', 1)
+            if not rev:
+                raise InstallationError(
+                    "The URL {!r} has an empty revision (after @) "
+                    "which is not supported. Include a revision after @ "
+                    "or remove @ from the URL.".format(url)
+                )
         url = urllib_parse.urlunsplit((scheme, netloc, path, query, ''))
         return url, rev, user_pass
 
@@ -683,9 +689,9 @@ class VersionControl(object):
             # In other words, the VCS executable isn't available
             if e.errno == errno.ENOENT:
                 raise BadCommand(
-                    'Cannot find command %r - do you have '
-                    '%r installed and in your '
-                    'PATH?' % (cls.name, cls.name))
+                    'Cannot find command {cls.name!r} - do you have '
+                    '{cls.name!r} installed and in your '
+                    'PATH?'.format(**locals()))
             else:
                 raise  # re-raise exception if a different error occurred
 

@@ -1,5 +1,7 @@
 import logging
 import os.path
+import re
+import uuid
 from textwrap import dedent
 
 import mock
@@ -12,6 +14,7 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 from pip._internal.index.collector import (
     HTMLPage,
     _clean_link,
+    _clean_url_path,
     _determine_base_url,
     _get_html_page,
     _get_html_response,
@@ -25,7 +28,7 @@ from pip._internal.index.collector import (
 from pip._internal.models.index import PyPI
 from pip._internal.models.link import Link
 from pip._internal.network.session import PipSession
-from tests.lib import make_test_link_collector
+from tests.lib import make_test_link_collector, skip_if_python2
 
 
 @pytest.mark.parametrize(
@@ -192,6 +195,69 @@ def test_determine_base_url(html, url, expected):
 
 
 @pytest.mark.parametrize(
+    ('path', 'expected'),
+    [
+        # Test a character that needs quoting.
+        ('a b', 'a%20b'),
+        # Test an unquoted "@".
+        ('a @ b', 'a%20@%20b'),
+        # Test multiple unquoted "@".
+        ('a @ @ b', 'a%20@%20@%20b'),
+        # Test a quoted "@".
+        ('a %40 b', 'a%20%40%20b'),
+        # Test a quoted "@" before an unquoted "@".
+        ('a %40b@ c', 'a%20%40b@%20c'),
+        # Test a quoted "@" after an unquoted "@".
+        ('a @b%40 c', 'a%20@b%40%20c'),
+        # Test alternating quoted and unquoted "@".
+        ('a %40@b %40@c %40', 'a%20%40@b%20%40@c%20%40'),
+        # Test an unquoted "/".
+        ('a / b', 'a%20/%20b'),
+        # Test multiple unquoted "/".
+        ('a / / b', 'a%20/%20/%20b'),
+        # Test a quoted "/".
+        ('a %2F b', 'a%20%2F%20b'),
+        # Test a quoted "/" before an unquoted "/".
+        ('a %2Fb/ c', 'a%20%2Fb/%20c'),
+        # Test a quoted "/" after an unquoted "/".
+        ('a /b%2F c', 'a%20/b%2F%20c'),
+        # Test alternating quoted and unquoted "/".
+        ('a %2F/b %2F/c %2F', 'a%20%2F/b%20%2F/c%20%2F'),
+        # Test normalizing non-reserved quoted characters "[" and "]"
+        ('a %5b %5d b', 'a%20%5B%20%5D%20b'),
+        # Test normalizing a reserved quoted "/"
+        ('a %2f b', 'a%20%2F%20b'),
+    ]
+)
+@pytest.mark.parametrize('is_local_path', [True, False])
+def test_clean_url_path(path, expected, is_local_path):
+    assert _clean_url_path(path, is_local_path=is_local_path) == expected
+
+
+@pytest.mark.parametrize(
+    ('path', 'expected'),
+    [
+        # Test a VCS path with a Windows drive letter and revision.
+        pytest.param(
+            '/T:/with space/repo.git@1.0',
+            '///T:/with%20space/repo.git@1.0',
+            marks=pytest.mark.skipif("sys.platform != 'win32'"),
+        ),
+        # Test a VCS path with a Windows drive letter and revision,
+        # running on non-windows platform.
+        pytest.param(
+            '/T:/with space/repo.git@1.0',
+            '/T%3A/with%20space/repo.git@1.0',
+            marks=pytest.mark.skipif("sys.platform == 'win32'"),
+        ),
+    ]
+)
+def test_clean_url_path_with_local_path(path, expected):
+    actual = _clean_url_path(path, is_local_path=True)
+    assert actual == expected
+
+
+@pytest.mark.parametrize(
     ("url", "clean_url"),
     [
         # URL with hostname and port. Port separator should not be quoted.
@@ -218,9 +284,18 @@ def test_determine_base_url(html, url, expected):
         # not. The `:` should be quoted.
         ("https://localhost.localdomain/T:/path/",
          "https://localhost.localdomain/T%3A/path/"),
+        # URL with a quoted "/" in the path portion.
+        ("https://example.com/access%2Ftoken/path/",
+         "https://example.com/access%2Ftoken/path/"),
         # VCS URL containing revision string.
         ("git+ssh://example.com/path to/repo.git@1.0#egg=my-package-1.0",
          "git+ssh://example.com/path%20to/repo.git@1.0#egg=my-package-1.0"),
+        # VCS URL with a quoted "#" in the revision string.
+        ("git+https://example.com/repo.git@hash%23symbol#egg=my-package-1.0",
+         "git+https://example.com/repo.git@hash%23symbol#egg=my-package-1.0"),
+        # VCS URL with a quoted "@" in the revision string.
+        ("git+https://example.com/repo.git@at%40 space#egg=my-package-1.0",
+         "git+https://example.com/repo.git@at%40%20space#egg=my-package-1.0"),
         # URL with Windows drive letter. The `:` after the drive
         # letter should not be quoted. The trailing `/` should be
         # removed.
@@ -236,10 +311,23 @@ def test_determine_base_url(html, url, expected):
             "file:///T%3A/path/with%20spaces/",
             marks=pytest.mark.skipif("sys.platform == 'win32'"),
         ),
+        # Test a VCS URL with a Windows drive letter and revision.
+        pytest.param(
+            "git+file:///T:/with space/repo.git@1.0#egg=my-package-1.0",
+            "git+file:///T:/with%20space/repo.git@1.0#egg=my-package-1.0",
+            marks=pytest.mark.skipif("sys.platform != 'win32'"),
+        ),
+        # Test a VCS URL with a Windows drive letter and revision,
+        # running on non-windows platform.
+        pytest.param(
+            "git+file:///T:/with space/repo.git@1.0#egg=my-package-1.0",
+            "git+file:/T%3A/with%20space/repo.git@1.0#egg=my-package-1.0",
+            marks=pytest.mark.skipif("sys.platform == 'win32'"),
+        ),
     ]
 )
 def test_clean_link(url, clean_url):
-    assert(_clean_link(url) == clean_url)
+    assert _clean_link(url) == clean_url
 
 
 @pytest.mark.parametrize('anchor_html, expected', [
@@ -269,12 +357,59 @@ def test_parse_links__yanked_reason(anchor_html, expected):
     page = HTMLPage(
         html_bytes,
         encoding=None,
-        url='https://example.com/simple/',
+        # parse_links() is cached by url, so we inject a random uuid to ensure
+        # the page content isn't cached.
+        url='https://example.com/simple-{}/'.format(uuid.uuid4()),
     )
     links = list(parse_links(page))
     link, = links
     actual = link.yanked_reason
     assert actual == expected
+
+
+@skip_if_python2
+def test_parse_links_caches_same_page_by_url():
+    html = (
+        '<html><head><meta charset="utf-8"><head>'
+        '<body><a href="/pkg1-1.0.tar.gz"></a></body></html>'
+    )
+    html_bytes = html.encode('utf-8')
+
+    url = 'https://example.com/simple/'
+
+    page_1 = HTMLPage(
+        html_bytes,
+        encoding=None,
+        url=url,
+    )
+    # Make a second page with zero content, to ensure that it's not accessed,
+    # because the page was cached by url.
+    page_2 = HTMLPage(
+        b'',
+        encoding=None,
+        url=url,
+    )
+    # Make a third page which represents an index url, which should not be
+    # cached, even for the same url. We modify the page content slightly to
+    # verify that the result is not cached.
+    page_3 = HTMLPage(
+        re.sub(b'pkg1', b'pkg2', html_bytes),
+        encoding=None,
+        url=url,
+        cache_link_parsing=False,
+    )
+
+    parsed_links_1 = list(parse_links(page_1))
+    assert len(parsed_links_1) == 1
+    assert 'pkg1' in parsed_links_1[0].url
+
+    parsed_links_2 = list(parse_links(page_2))
+    assert parsed_links_2 == parsed_links_1
+
+    parsed_links_3 = list(parse_links(page_3))
+    assert len(parsed_links_3) == 1
+    assert parsed_links_3 != parsed_links_1
+    assert 'pkg2' in parsed_links_3[0].url
 
 
 def test_request_http_error(caplog):
@@ -400,8 +535,8 @@ def test_group_locations__file_expand_dir(data):
     """
     files, urls = group_locations([data.find_links], expand_dir=True)
     assert files and not urls, (
-        "files and not urls should have been found at find-links url: %s" %
-        data.find_links
+        "files and not urls should have been found "
+        "at find-links url: {data.find_links}".format(**locals())
     )
 
 
@@ -442,13 +577,14 @@ class TestLinkCollector(object):
         fake_response = make_fake_html_response(url)
         mock_get_html_response.return_value = fake_response
 
-        location = Link(url)
+        location = Link(url, cache_link_parsing=False)
         link_collector = make_test_link_collector()
         actual = link_collector.fetch_page(location)
 
         assert actual.content == fake_response.content
         assert actual.encoding is None
         assert actual.url == url
+        assert actual.cache_link_parsing == location.cache_link_parsing
 
         # Also check that the right session object was passed to
         # _get_html_response().
@@ -473,8 +609,12 @@ class TestLinkCollector(object):
 
         assert len(actual.find_links) == 1
         check_links_include(actual.find_links, names=['packages'])
+        # Check that find-links URLs are marked as cacheable.
+        assert actual.find_links[0].cache_link_parsing
 
         assert actual.project_urls == [Link('https://pypi.org/simple/twine/')]
+        # Check that index URLs are marked as *un*cacheable.
+        assert not actual.project_urls[0].cache_link_parsing
 
         expected_message = dedent("""\
         1 location(s) to search for versions of twine:

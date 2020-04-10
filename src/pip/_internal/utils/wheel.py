@@ -204,7 +204,7 @@ def check_compatibility(version, name):
     # type: (Tuple[int, ...], str) -> None
     """Raises errors or warns if called with an incompatible Wheel-Version.
 
-    Pip should refuse to install a Wheel-Version that's a major series
+    pip should refuse to install a Wheel-Version that's a major series
     ahead of what it's compatible with (e.g 2.0 > 1.1); and warn when
     installing a version only minor version ahead (e.g 1.2 > 1.1).
 

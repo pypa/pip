@@ -3,6 +3,7 @@ import os
 
 import pytest
 
+from tests.lib import create_test_package_with_setup
 from tests.lib.path import Path
 
 
@@ -543,3 +544,44 @@ def test_list_path_multiple(tmpdir, script, data):
     json_result = json.loads(result.stdout)
     assert {'name': 'simple', 'version': '2.0'} in json_result
     assert {'name': 'simple2', 'version': '3.0'} in json_result
+
+
+def test_list_skip_work_dir_pkg(script):
+    """
+    Test that list should not include package in working directory
+    """
+
+    # Create a test package and create .egg-info dir
+    pkg_path = create_test_package_with_setup(script,
+                                              name='simple',
+                                              version='1.0')
+    script.run('python', 'setup.py', 'egg_info',
+               expect_stderr=True, cwd=pkg_path)
+
+    # List should not include package simple when run from package directory
+    result = script.pip('list', '--format=json', cwd=pkg_path)
+    json_result = json.loads(result.stdout)
+    assert {'name': 'simple', 'version': '1.0'} not in json_result
+
+
+def test_list_include_work_dir_pkg(script):
+    """
+    Test that list should include package in working directory
+    if working directory is added in sys.path
+    """
+
+    # Create a test package and create .egg-info dir
+    pkg_path = create_test_package_with_setup(script,
+                                              name='simple',
+                                              version='1.0')
+
+    script.run('python', 'setup.py', 'egg_info',
+               expect_stderr=True, cwd=pkg_path)
+
+    # Add PYTHONPATH env variable
+    script.environ.update({'PYTHONPATH': pkg_path})
+
+    # List should include package simple when run from package directory
+    result = script.pip('list', '--format=json', cwd=pkg_path)
+    json_result = json.loads(result.stdout)
+    assert {'name': 'simple', 'version': '1.0'} in json_result

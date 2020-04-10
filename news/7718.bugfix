@@ -1,0 +1,2 @@
+Correctly detect global site-packages availability of virtual environments
+created by PyPA’s virtualenv>=20.0.

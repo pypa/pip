@@ -92,10 +92,6 @@ def user_data_dir(appname=None, appauthor=None, version=None, roaming=False):
         path = os.path.expanduser('~/Library/Application Support/')
         if appname:
             path = os.path.join(path, appname)
-        if not os.path.isdir(path):
-            path = os.path.expanduser('~/.config/')
-            if appname:
-                path = os.path.join(path, appname)
     else:
         path = os.getenv('XDG_DATA_HOME', os.path.expanduser("~/.local/share"))
         if appname:
@@ -257,8 +253,6 @@ def site_config_dir(appname=None, appauthor=None, version=None, multipath=False)
             if version:
                 appname = os.path.join(appname, version)
             pathlist = [os.path.join(x, appname) for x in pathlist]
-        # always look in /etc directly as well
-        pathlist.append('/etc')
 
         if multipath:
             path = os.pathsep.join(pathlist)

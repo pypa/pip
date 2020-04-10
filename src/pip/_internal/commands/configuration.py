@@ -21,7 +21,7 @@ logger = logging.getLogger(__name__)
 class ConfigurationCommand(Command):
     """Manage local and global configuration.
 
-        Subcommands:
+    Subcommands:
 
         list: List the active configuration (or from the file specified)
         edit: Edit the configuration file in an editor
@@ -29,10 +29,10 @@ class ConfigurationCommand(Command):
         set: Set the name=value
         unset: Unset the value associated with name
 
-        If none of --user, --global and --site are passed, a virtual
-        environment configuration file is used if one is active and the file
-        exists. Otherwise, all modifications happen on the to the user file by
-        default.
+    If none of --user, --global and --site are passed, a virtual
+    environment configuration file is used if one is active and the file
+    exists. Otherwise, all modifications happen on the to the user file by
+    default.
     """
 
     ignore_require_venv = True

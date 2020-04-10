@@ -1,0 +1,2 @@
+Emphasize that VCS URLs using git, git+git and git+http are insecure due to
+lack of authentication and encryption

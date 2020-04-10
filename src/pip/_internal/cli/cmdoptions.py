@@ -21,6 +21,7 @@ from functools import partial
 from optparse import SUPPRESS_HELP, Option, OptionGroup
 from textwrap import dedent
 
+from pip._internal.cli.progress_bars import BAR_TYPES
 from pip._internal.exceptions import CommandError
 from pip._internal.locations import USER_CACHE_DIR, get_src_prefix
 from pip._internal.models.format_control import FormatControl
@@ -28,7 +29,6 @@ from pip._internal.models.index import PyPI
 from pip._internal.models.target_python import TargetPython
 from pip._internal.utils.hashes import STRONG_HASHES
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from pip._internal.utils.ui import BAR_TYPES
 
 if MYPY_CHECK_RUNNING:
     from typing import Any, Callable, Dict, Optional, Tuple
@@ -367,9 +367,11 @@ def find_links():
         action='append',
         default=[],
         metavar='url',
-        help="If a url or path to an html file, then parse for links to "
-             "archives. If a local path or file:// url that's a directory, "
-             "then look for archives in the directory listing.",
+        help="If a URL or path to an html file, then parse for links to "
+             "archives such as sdist (.tar.gz) or wheel (.whl) files. "
+             "If a local path or file:// URL that's a directory,  "
+             "then look for archives in the directory listing. "
+             "Links to VCS project URLs are not supported.",
     )
 
 
@@ -475,12 +477,12 @@ def no_binary():
         "--no-binary", dest="format_control", action="callback",
         callback=_handle_no_binary, type="str",
         default=format_control,
-        help="Do not use binary packages. Can be supplied multiple times, and "
-             "each time adds to the existing value. Accepts either :all: to "
-             "disable all binary packages, :none: to empty the set, or one or "
-             "more package names with commas between them (no colons). Note "
-             "that some packages are tricky to compile and may fail to "
-             "install when this option is used on them.",
+        help='Do not use binary packages. Can be supplied multiple times, and '
+             'each time adds to the existing value. Accepts either ":all:" to '
+             'disable all binary packages, ":none:" to empty the set (notice '
+             'the colons), or one or more package names with commas between '
+             'them (no colons). Note that some packages are tricky to compile '
+             'and may fail to install when this option is used on them.',
     )
 
 
@@ -491,12 +493,12 @@ def only_binary():
         "--only-binary", dest="format_control", action="callback",
         callback=_handle_only_binary, type="str",
         default=format_control,
-        help="Do not use source packages. Can be supplied multiple times, and "
-             "each time adds to the existing value. Accepts either :all: to "
-             "disable all source packages, :none: to empty the set, or one or "
-             "more package names with commas between them. Packages without "
-             "binary distributions will fail to install when this option is "
-             "used on them.",
+        help='Do not use source packages. Can be supplied multiple times, and '
+             'each time adds to the existing value. Accepts either ":all:" to '
+             'disable all source packages, ":none:" to empty the set, or one '
+             'or more package names with commas between them. Packages '
+             'without binary distributions will fail to install when this '
+             'option is used on them.',
     )
 
 
@@ -915,6 +917,19 @@ no_python_version_warning = partial(
 )  # type: Callable[..., Option]
 
 
+unstable_feature = partial(
+    Option,
+    '--unstable-feature',
+    dest='unstable_features',
+    metavar='feature',
+    action='append',
+    default=[],
+    choices=['resolver'],
+    help=SUPPRESS_HELP,  # TODO: Enable this when the resolver actually works.
+    # help='Enable unstable feature(s) that may be backward incompatible.',
+)  # type: Callable[..., Option]
+
+
 ##########
 # groups #
 ##########
@@ -943,6 +958,7 @@ general_group = {
         disable_pip_version_check,
         no_color,
         no_python_version_warning,
+        unstable_feature,
     ]
 }  # type: Dict[str, Any]
 
