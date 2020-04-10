@@ -7,6 +7,8 @@ from .base import Requirement, format_name
 if MYPY_CHECK_RUNNING:
     from typing import Sequence
 
+    from pip._vendor.packaging.specifiers import SpecifierSet
+
     from pip._internal.req.req_install import InstallRequirement
 
     from .base import Candidate
@@ -38,37 +40,6 @@ class ExplicitRequirement(Requirement):
     def is_satisfied_by(self, candidate):
         # type: (Candidate) -> bool
         return candidate == self.candidate
-
-
-class NoMatchRequirement(Requirement):
-    """A requirement that never matches anything.
-
-    Note: Similar to ExplicitRequirement, the caller should handle name
-    canonicalisation; this class does not perform it.
-    """
-    def __init__(self, name):
-        # type: (str) -> None
-        self._name = name
-
-    def __repr__(self):
-        # type: () -> str
-        return "{class_name}(name={name!r})".format(
-            class_name=self.__class__.__name__,
-            name=self._name,
-        )
-
-    @property
-    def name(self):
-        # type: () -> str
-        return self._name
-
-    def find_matches(self):
-        # type: () -> Sequence[Candidate]
-        return []
-
-    def is_satisfied_by(self, candidate):
-        # type: (Candidate) -> bool
-        return False
 
 
 class SpecifierRequirement(Requirement):
@@ -114,3 +85,35 @@ class SpecifierRequirement(Requirement):
             "Internal issue: Candidate is not for this requirement " \
             " {} vs {}".format(candidate.name, self.name)
         return candidate.version in self._ireq.req.specifier
+
+
+class RequiresPythonRequirement(Requirement):
+    """A requirement representing Requires-Python metadata.
+    """
+    def __init__(self, specifier, match):
+        # type: (SpecifierSet, Candidate) -> None
+        self.specifier = specifier
+        self._candidate = match
+
+    def __repr__(self):
+        # type: () -> str
+        return "{class_name}({specifier!r})".format(
+            class_name=self.__class__.__name__,
+            specifier=str(self.specifier),
+        )
+
+    @property
+    def name(self):
+        # type: () -> str
+        return self._candidate.name
+
+    def find_matches(self):
+        # type: () -> Sequence[Candidate]
+        if self._candidate.version in self.specifier:
+            return [self._candidate]
+        return []
+
+    def is_satisfied_by(self, candidate):
+        # type: (Candidate) -> bool
+        assert candidate.name == self._candidate.name, "Not Python candidate"
+        return candidate.version in self.specifier
