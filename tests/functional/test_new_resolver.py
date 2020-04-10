@@ -88,6 +88,63 @@ def test_new_resolver_picks_latest_version(script):
     assert_installed(script, simple="0.2.0")
 
 
+def test_new_resolver_picks_installed_version(script):
+    create_basic_wheel_for_package(
+        script,
+        "simple",
+        "0.1.0",
+    )
+    create_basic_wheel_for_package(
+        script,
+        "simple",
+        "0.2.0",
+    )
+    script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "simple==0.1.0"
+    )
+    assert_installed(script, simple="0.1.0")
+
+    result = script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "simple"
+    )
+    assert "Collecting" not in result.stdout, "Should not fetch new version"
+    assert_installed(script, simple="0.1.0")
+
+
+def test_new_resolver_picks_installed_version_if_no_match_found(script):
+    create_basic_wheel_for_package(
+        script,
+        "simple",
+        "0.1.0",
+    )
+    create_basic_wheel_for_package(
+        script,
+        "simple",
+        "0.2.0",
+    )
+    script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "simple==0.1.0"
+    )
+    assert_installed(script, simple="0.1.0")
+
+    result = script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "simple"
+    )
+    assert "Collecting" not in result.stdout, "Should not fetch new version"
+    assert_installed(script, simple="0.1.0")
+
+
 def test_new_resolver_installs_dependencies(script):
     create_basic_wheel_for_package(
         script,

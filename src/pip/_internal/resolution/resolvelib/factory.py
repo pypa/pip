@@ -17,14 +17,13 @@ from .requirements import (
 )
 
 if MYPY_CHECK_RUNNING:
-    from typing import Dict, Optional, Set, Tuple, TypeVar
+    from typing import Dict, Iterator, Optional, Set, Tuple, TypeVar
 
     from pip._vendor.packaging.specifiers import SpecifierSet
     from pip._vendor.packaging.version import _BaseVersion
     from pip._vendor.pkg_resources import Distribution
 
     from pip._internal.index.package_finder import PackageFinder
-    from pip._internal.models.candidate import InstallationCandidate
     from pip._internal.models.link import Link
     from pip._internal.operations.prepare import RequirementPreparer
     from pip._internal.req.req_install import InstallRequirement
@@ -88,6 +87,8 @@ class Factory(object):
         version=None,  # type: Optional[_BaseVersion]
     ):
         # type: (...) -> Candidate
+        # TODO: Check already installed candidate, and use it if the link and
+        # editable flag match.
         if parent.editable:
             if link not in self._editable_candidate_cache:
                 self._editable_candidate_cache[link] = EditableCandidate(
@@ -104,32 +105,38 @@ class Factory(object):
             return ExtrasCandidate(base, extras)
         return base
 
-    def make_candidate_from_ican(
-        self,
-        ican,  # type: InstallationCandidate
-        extras,  # type: Set[str]
-        parent,  # type: InstallRequirement
-    ):
-        # type: (...) -> Candidate
-        dist = self._installed_dists.get(ican.name)
-        should_use_installed_dist = (
-            not self._force_reinstall and
-            dist is not None and
-            dist.parsed_version == ican.version
+    def iter_found_candidates(self, ireq, extras):
+        # type: (InstallRequirement, Set[str]) -> Iterator[Candidate]
+        name = canonicalize_name(ireq.req.name)
+        if not self._force_reinstall:
+            dist = self._installed_dists.get(name)
+        else:
+            dist = None
+
+        found = self.finder.find_best_candidate(
+            project_name=ireq.req.name,
+            specifier=ireq.req.specifier,
+            hashes=ireq.hashes(trust_internet=False),
         )
-        if not should_use_installed_dist:
-            return self._make_candidate_from_link(
+        for ican in found.iter_applicable():
+            if dist is not None and dist.parsed_version == ican.version:
+                continue
+            yield self._make_candidate_from_link(
                 link=ican.link,
                 extras=extras,
-                parent=parent,
-                name=canonicalize_name(ican.name),
+                parent=ireq,
+                name=name,
                 version=ican.version,
             )
-        return self._make_candidate_from_dist(
-            dist=dist,
-            extras=extras,
-            parent=parent,
-        )
+
+        # Return installed distribution if it matches the specifier. This is
+        # done last so the resolver will prefer it over downloading links.
+        if dist is not None and dist.parsed_version in ireq.req.specifier:
+            yield self._make_candidate_from_dist(
+                dist=dist,
+                extras=extras,
+                parent=ireq,
+            )
 
     def make_requirement_from_install_req(self, ireq):
         # type: (InstallRequirement) -> Requirement

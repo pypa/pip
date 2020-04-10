@@ -94,19 +94,8 @@ class SpecifierRequirement(Requirement):
 
     def find_matches(self):
         # type: () -> Sequence[Candidate]
-        found = self._factory.finder.find_best_candidate(
-            project_name=self._ireq.req.name,
-            specifier=self._ireq.req.specifier,
-            hashes=self._ireq.hashes(trust_internet=False),
-        )
-        return [
-            self._factory.make_candidate_from_ican(
-                ican=ican,
-                extras=self.extras,
-                parent=self._ireq,
-            )
-            for ican in found.iter_applicable()
-        ]
+        it = self._factory.iter_found_candidates(self._ireq, self.extras)
+        return list(it)
 
     def is_satisfied_by(self, candidate):
         # type: (Candidate) -> bool
