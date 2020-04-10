@@ -575,10 +575,10 @@ def test_list_include_work_dir_pkg(script):
     script.run('python', 'setup.py', 'egg_info',
                expect_stderr=True, cwd=pkg_path)
 
-    # Add PYTHONPATH env variable
     script.environ.update({'PYTHONPATH': pkg_path})
 
     # List should include package simple when run from package directory
+    # when the package directory is in PYTHONPATH
     result = script.pip('list', '--format=json', cwd=pkg_path)
     json_result = json.loads(result.stdout)
     assert {'name': 'simple', 'version': '1.0'} in json_result
