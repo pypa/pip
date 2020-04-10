@@ -847,14 +847,14 @@ of ability. Some examples that you could consider include:
 .. _`Disable Keyring`:
 
 Disable Keyring
-***************
+===============
 
-Keyring in certain cases can prevent the installing of certain packages and modules
-due to authentication errors. In such cases disabling the keyring is recommended.
-Keyring can be manually uninstalled but doing so may invalidate other packages that
-depends on Keyring.
+In certain cases, pip's keyring support can prevent the installing of certain
+packages and modules, due to authentication errors. In such cases, disabling
+the keyring is recommended. This can be done by manually uninstalling keyring,
+however doing so may invalidate other packages that depends on keyring.
 
-There are various ways to disable the keyring. They are:
+There are other ways to disable the keyring. They are:
 
 - Set the password as null to preferred keyring for the relevant URL and username.
 
