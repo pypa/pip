@@ -156,13 +156,25 @@ def _copy2_ignoring_special_files(src, dest):
 
 def _copy_source_tree(source, target):
     # type: (str, str) -> None
+    target_abspath = os.path.abspath(target)
+    target_basename = os.path.basename(target_abspath)
+    target_dirname = os.path.dirname(target_abspath)
+
     def ignore(d, names):
         # type: (str, List[str]) -> List[str]
-        # Pulling in those directories can potentially be very slow,
-        # exclude the following directories if they appear in the top
-        # level dir (and only it).
-        # See discussion at https://github.com/pypa/pip/pull/6770
-        return ['.tox', '.nox'] if d == source else []
+        skipped = []  # type: List[str]
+        if d == source:
+            # Pulling in those directories can potentially be very slow,
+            # exclude the following directories if they appear in the top
+            # level dir (and only it).
+            # See discussion at https://github.com/pypa/pip/pull/6770
+            skipped += ['.tox', '.nox']
+        if os.path.abspath(d) == target_dirname:
+            # Prevent an infinite recursion if the target is in source.
+            # This can happen when TMPDIR is set to ${PWD}/...
+            # and we copy PWD to TMPDIR.
+            skipped += [target_basename]
+        return skipped
 
     kwargs = dict(ignore=ignore, symlinks=True)  # type: CopytreeKwargs
 

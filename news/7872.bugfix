@@ -1,0 +1,1 @@
+Prevent an infinite recursion with ``pip wheel`` when ``$TMPDIR`` is within the source directory.
