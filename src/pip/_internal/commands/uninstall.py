@@ -1,12 +1,10 @@
-# The following comment should be removed at some point in the future.
-# mypy: disallow-untyped-defs=False
-
 from __future__ import absolute_import
 
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.req_command import SessionCommandMixin
+from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.exceptions import InstallationError
 from pip._internal.req import parse_requirements
 from pip._internal.req.constructors import (
@@ -14,6 +12,11 @@ from pip._internal.req.constructors import (
     install_req_from_parsed_requirement,
 )
 from pip._internal.utils.misc import protect_pip_from_modification_on_windows
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from optparse import Values
+    from typing import Any, List
 
 
 class UninstallCommand(Command, SessionCommandMixin):
@@ -32,6 +35,7 @@ class UninstallCommand(Command, SessionCommandMixin):
       %prog [options] -r <requirements file> ..."""
 
     def __init__(self, *args, **kw):
+        # type: (*Any, **Any) -> None
         super(UninstallCommand, self).__init__(*args, **kw)
         self.cmd_opts.add_option(
             '-r', '--requirement',
@@ -51,6 +55,7 @@ class UninstallCommand(Command, SessionCommandMixin):
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
+        # type: (Values, List[Any]) -> int
         session = self.get_default_session(options)
 
         reqs_to_uninstall = {}
@@ -87,3 +92,5 @@ class UninstallCommand(Command, SessionCommandMixin):
             )
             if uninstall_pathset:
                 uninstall_pathset.commit()
+
+        return SUCCESS
