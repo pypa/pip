@@ -1846,3 +1846,53 @@ def test_install_sends_client_cert(install_args, script, cert_factory, data):
         environ, _ = call_args.args
         assert "SSL_CLIENT_CERT" in environ
         assert environ["SSL_CLIENT_CERT"]
+
+
+def test_install_skip_work_dir_pkg(script, data):
+    """
+    Test that install of a package in working directory
+    should pass on the second attempt after an install
+    and an uninstall
+    """
+
+    # Create a test package and install it
+    pkg_path = create_test_package_with_setup(
+        script, name='simple', version='1.0')
+    script.pip('install', '-e', '.',
+               expect_stderr=True, cwd=pkg_path)
+
+    # Uninstalling the package and installing it again will succeed
+    script.pip('uninstall', 'simple', '-y')
+
+    result = script.pip('install', '--find-links',
+                        data.find_links, 'simple',
+                        expect_stderr=True, cwd=pkg_path)
+
+    assert 'Requirement already satisfied: simple' not in result.stdout
+    assert 'Successfully installed simple' in result.stdout
+
+
+def test_install_include_work_dir_pkg(script, data):
+    """
+    Test that install of a package in working directory
+    should fail on the second attempt after an install
+    if working directory is added in PYTHONPATH
+    """
+
+    # Create a test package and install it
+    pkg_path = create_test_package_with_setup(
+        script, name='simple', version='1.0')
+    script.pip('install', '-e', '.',
+               expect_stderr=True, cwd=pkg_path)
+
+    # Uninstall will fail with given warning
+    script.pip('uninstall', 'simple', '-y')
+
+    script.environ.update({'PYTHONPATH': pkg_path})
+
+    # Uninstalling the package and installing it again will fail,
+    # when package directory is in PYTHONPATH
+    result = script.pip('install', '--find-links',
+                        data.find_links, 'simple',
+                        expect_stderr=True, cwd=pkg_path)
+    assert 'Requirement already satisfied: simple' in result.stdout

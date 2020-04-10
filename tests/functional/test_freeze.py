@@ -11,6 +11,7 @@ from tests.lib import (
     _create_test_package_with_srcdir,
     _git_commit,
     _vcs_add,
+    create_test_package_with_setup,
     need_bzr,
     need_mercurial,
     need_svn,
@@ -824,3 +825,40 @@ def test_freeze_direct_url_archive(script, shared_data, with_wheel):
     script.pip("install", req)
     result = script.pip("freeze")
     assert req in result.stdout
+
+
+def test_freeze_skip_work_dir_pkg(script):
+    """
+    Test that freeze should not include package
+    present in working directory
+    """
+
+    # Create a test package and create .egg-info dir
+    pkg_path = create_test_package_with_setup(
+        script, name='simple', version='1.0')
+    script.run('python', 'setup.py', 'egg_info',
+               expect_stderr=True, cwd=pkg_path)
+
+    # Freeze should not include package simple when run from package directory
+    result = script.pip('freeze', cwd=pkg_path)
+    assert 'simple' not in result.stdout
+
+
+def test_freeze_include_work_dir_pkg(script):
+    """
+    Test that freeze should include package in working directory
+    if working directory is added in PYTHONPATH
+    """
+
+    # Create a test package and create .egg-info dir
+    pkg_path = create_test_package_with_setup(
+        script, name='simple', version='1.0')
+    script.run('python', 'setup.py', 'egg_info',
+               expect_stderr=True, cwd=pkg_path)
+
+    script.environ.update({'PYTHONPATH': pkg_path})
+
+    # Freeze should include package simple when run from package directory,
+    # when package directory is in PYTHONPATH
+    result = script.pip('freeze', cwd=pkg_path)
+    assert 'simple==1.0' in result.stdout
