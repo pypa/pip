@@ -8,8 +8,9 @@ This document is meant to get you setup to work on pip and to act as a guide and
 reference to the development setup. If you face any issues during this
 process, please `open an issue`_ about it on the `issue tracker`_.
 
+
 Get the source code
--------------------
+===================
 
 To work on pip, you first need to get the source code of pip. The source code is
 available on `GitHub`_.
@@ -21,7 +22,7 @@ available on `GitHub`_.
 
 
 Development Environment
------------------------
+=======================
 
 pip is a command line application written in Python. For developing pip,
 you should `install Python`_ on your computer.
@@ -29,8 +30,9 @@ you should `install Python`_ on your computer.
 For developing pip, you need to install :pypi:`tox`. Often, you can run
 ``python -m pip install tox`` to install and use it.
 
+
 Running pip From Source Tree
-----------------------------
+============================
 
 To run the pip executable from your source tree during development, run pip
 from the ``src`` directory:
@@ -39,25 +41,28 @@ from the ``src`` directory:
 
     $ python src/pip --version
 
+
 Running Tests
--------------
+=============
 
 pip's tests are written using the :pypi:`pytest` test framework, :pypi:`mock`
 and :pypi:`pretend`. :pypi:`tox` is used to automate the setup and execution of
 pip's tests.
 
-To run tests locally, run:
+It is preferable to run the tests in parallel for better experience during development,
+since the tests can take a long time to finish when run sequentially.
 
-.. code-block:: console
-
-    $ tox -e py36
-
-Generally, it can take a long time to run pip's test suite. To run tests in parallel,
-which is faster, run:
+To run tests:
 
 .. code-block:: console
 
     $ tox -e py36 -- -n auto
+
+To run tests without parallelization, run:
+
+.. code-block:: console
+
+    $ tox -e py36
 
 The example above runs tests against Python 3.6. You can also use other
 versions like ``py27`` and ``pypy3``.
@@ -84,8 +89,9 @@ tools, you can tell pip to skip those tests:
     $ tox -e py36 -- -k "not svn"
     $ tox -e py36 -- -k "not (svn or git)"
 
+
 Running Linters
----------------
+===============
 
 pip uses :pypi:`pre-commit` for managing linting of the codebase.
 ``pre-commit`` performs various checks on all files in pip and uses tools that
@@ -104,8 +110,9 @@ To use linters locally, run:
     reserved for rare cases where the recommended style causes severe
     readability problems.
 
+
 Building Documentation
-----------------------
+======================
 
 pip's documentation is built using :pypi:`Sphinx`. The documentation is written
 in `reStructuredText`_.
@@ -117,7 +124,20 @@ To build it locally, run:
     $ tox -e docs
 
 The built documentation can be found in the ``docs/build`` folder.
+=======
 
+What Next?
+==========
+
+The following pages may be helpful for new contributors on where to look next
+in order to start contributing.
+
+* Some `good first issues`_ on GitHub for new contributors
+* A deep dive into `pip's architecture`_
+* A guide on `triaging issues`_ for issue tracker
+
+
+=======
 .. _`open an issue`: https://github.com/pypa/pip/issues/new?title=Trouble+with+pip+development+environment
 .. _`install Python`: https://realpython.com/installing-python/
 .. _`PEP 484 type-comments`: https://www.python.org/dev/peps/pep-0484/#suggested-syntax-for-python-2-7-and-straddling-code
@@ -127,3 +147,8 @@ The built documentation can be found in the ``docs/build`` folder.
 .. _`issue tracker`: https://github.blog/2009-04-15-github-issue-tracker/
 .. _`linter`: https://en.wikipedia.org/wiki/Lint_(software)
 .. _`reStructuredText`: https://en.wikipedia.org/wiki/ReStructuredText
+=======
+=======
+.. _`good first issues`: https://github.com/pypa/pip/labels/good%20first%20issue
+.. _`pip's architecture`: https://pip.pypa.io/en/latest/development/architecture/
+.. _`triaging issues`: https://pip.pypa.io/en/latest/development/issue-triage/

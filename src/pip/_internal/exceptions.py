@@ -147,13 +147,13 @@ class HashError(InstallationError):
         triggering requirement.
 
         :param req: The InstallRequirement that provoked this error, with
-            populate_link() having already been called
+            its link already populated by the resolver's _populate_link().
 
         """
-        return '    %s' % self._requirement_name()
+        return '    {}'.format(self._requirement_name())
 
     def __str__(self):
-        return '%s\n%s' % (self.head, self.body())
+        return '{}\n{}'.format(self.head, self.body())
 
     def _requirement_name(self):
         """Return a description of the requirement that triggered me.
@@ -215,9 +215,9 @@ class HashMissing(HashError):
                        # In case someone feeds something downright stupid
                        # to InstallRequirement's constructor.
                        else getattr(self.req, 'req', None))
-        return '    %s --hash=%s:%s' % (package or 'unknown package',
-                                        FAVORITE_HASH,
-                                        self.gotten_hash)
+        return '    {} --hash={}:{}'.format(package or 'unknown package',
+                                            FAVORITE_HASH,
+                                            self.gotten_hash)
 
 
 class HashUnpinned(HashError):

@@ -19,6 +19,10 @@ from pip._internal.req.constructors import (
     install_req_from_line,
 )
 from pip._internal.req.req_file import COMMENT_RE
+from pip._internal.utils.direct_url_helpers import (
+    direct_url_as_pep440_direct_reference,
+    dist_get_direct_url,
+)
 from pip._internal.utils.misc import (
     dist_is_editable,
     get_installed_distributions,
@@ -120,13 +124,11 @@ def freeze(
                         line_req = install_req_from_editable(
                             line,
                             isolated=isolated,
-                            wheel_cache=wheel_cache,
                         )
                     else:
                         line_req = install_req_from_line(
                             COMMENT_RE.sub('', line).strip(),
                             isolated=isolated,
-                            wheel_cache=wheel_cache,
                         )
 
                     if not line_req.name:
@@ -252,8 +254,20 @@ class FrozenRequirement(object):
     @classmethod
     def from_dist(cls, dist):
         # type: (Distribution) -> FrozenRequirement
+        # TODO `get_requirement_info` is taking care of editable requirements.
+        # TODO This should be refactored when we will add detection of
+        #      editable that provide .dist-info metadata.
         req, editable, comments = get_requirement_info(dist)
+        if req is None and not editable:
+            # if PEP 610 metadata is present, attempt to use it
+            direct_url = dist_get_direct_url(dist)
+            if direct_url:
+                req = direct_url_as_pep440_direct_reference(
+                    direct_url, dist.project_name
+                )
+                comments = []
         if req is None:
+            # name==version requirement
             req = dist.as_requirement()
 
         return cls(dist.project_name, req, editable, comments=comments)

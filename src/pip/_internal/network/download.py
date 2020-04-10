@@ -8,6 +8,7 @@ import os
 from pip._vendor import requests
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE
 
+from pip._internal.cli.progress_bars import DownloadProgressProvider
 from pip._internal.models.index import PyPI
 from pip._internal.network.cache import is_from_cache
 from pip._internal.network.utils import response_chunks
@@ -17,7 +18,6 @@ from pip._internal.utils.misc import (
     splitext,
 )
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from pip._internal.utils.ui import DownloadProgressProvider
 
 if MYPY_CHECK_RUNNING:
     from typing import Iterable, Optional

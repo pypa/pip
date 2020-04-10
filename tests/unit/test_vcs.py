@@ -5,7 +5,7 @@ import pytest
 from mock import patch
 from pip._vendor.packaging.version import parse as parse_version
 
-from pip._internal.exceptions import BadCommand
+from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.utils.misc import hide_url, hide_value
 from pip._internal.vcs import make_vcs_requirement_url
 from pip._internal.vcs.bazaar import Bazaar
@@ -290,6 +290,21 @@ def test_version_control__get_url_rev_and_auth__missing_plus(url):
         VersionControl.get_url_rev_and_auth(url)
 
     assert 'malformed VCS url' in str(excinfo.value)
+
+
+@pytest.mark.parametrize('url', [
+    # Test a URL with revision part as empty.
+    'git+https://github.com/MyUser/myProject.git@#egg=py_pkg',
+])
+def test_version_control__get_url_rev_and_auth__no_revision(url):
+    """
+    Test passing a URL to VersionControl.get_url_rev_and_auth() with
+    empty revision
+    """
+    with pytest.raises(InstallationError) as excinfo:
+        VersionControl.get_url_rev_and_auth(url)
+
+    assert 'an empty revision (after @)' in str(excinfo.value)
 
 
 @pytest.mark.parametrize('url, expected', [

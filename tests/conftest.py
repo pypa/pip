@@ -16,10 +16,9 @@ from setuptools.wheel import Wheel
 from pip._internal.cli.main import main as pip_entry_point
 from pip._internal.utils.temp_dir import global_tempdir_manager
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from tests.lib import DATA_DIR, SRC_DIR, TestData
+from tests.lib import DATA_DIR, SRC_DIR, PipTestEnvironment, TestData
 from tests.lib.certs import make_tls_cert, serialize_cert, serialize_key
 from tests.lib.path import Path
-from tests.lib.scripttest import PipTestEnvironment
 from tests.lib.server import make_mock_server, server_running
 from tests.lib.venv import VirtualEnvironment
 
@@ -234,11 +233,13 @@ def pip_src(tmpdir_factory):
 
 
 def _common_wheel_editable_install(tmpdir_factory, common_wheels, package):
-    wheel_candidates = list(common_wheels.glob('%s-*.whl' % package))
+    wheel_candidates = list(
+        common_wheels.glob('{package}-*.whl'.format(**locals())))
     assert len(wheel_candidates) == 1, wheel_candidates
     install_dir = Path(str(tmpdir_factory.mktemp(package))) / 'install'
     Wheel(wheel_candidates[0]).install_as_egg(install_dir)
-    (install_dir / 'EGG-INFO').rename(install_dir / '%s.egg-info' % package)
+    (install_dir / 'EGG-INFO').rename(
+        install_dir / '{package}.egg-info'.format(**locals()))
     assert compileall.compile_dir(str(install_dir), quiet=1)
     return install_dir
 
@@ -368,7 +369,7 @@ def script(tmpdir, virtualenv, script_factory):
     Return a PipTestEnvironment which is unique to each test function and
     will execute all commands inside of the unique virtual environment for this
     test function. The returned object is a
-    ``tests.lib.scripttest.PipTestEnvironment``.
+    ``tests.lib.PipTestEnvironment``.
     """
     return script_factory(tmpdir.joinpath("workspace"), virtualenv)
 

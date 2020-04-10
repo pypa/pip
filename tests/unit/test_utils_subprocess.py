@@ -6,6 +6,7 @@ from textwrap import dedent
 
 import pytest
 
+from pip._internal.cli.spinners import SpinnerInterface
 from pip._internal.exceptions import InstallationError
 from pip._internal.utils.misc import hide_value
 from pip._internal.utils.subprocess import (
@@ -14,7 +15,6 @@ from pip._internal.utils.subprocess import (
     make_command,
     make_subprocess_output_error,
 )
-from pip._internal.utils.ui import SpinnerInterface
 
 
 @pytest.mark.parametrize('args, expected', [

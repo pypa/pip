@@ -71,6 +71,10 @@ def _should_build(
 
     if not req.use_pep517 and not is_wheel_installed():
         # we don't build legacy requirements if wheel is not installed
+        logger.info(
+            "Could not build wheels for %s,"
+            "since package 'wheel' is not installed.", req.name,
+        )
         return False
 
     if req.editable or not req.source_dir:

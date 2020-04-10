@@ -4,6 +4,10 @@ Package containing all pip commands
 
 # The following comment should be removed at some point in the future.
 # mypy: disallow-untyped-defs=False
+# There is currently a bug in python/typeshed mentioned at
+# https://github.com/python/typeshed/issues/3906 which causes the
+# return type of difflib.get_close_matches to be reported
+# as List[Sequence[str]] whereas it should have been List[str]
 
 from __future__ import absolute_import
 

@@ -121,7 +121,7 @@ def test_install_special_extra(script):
     """))
 
     result = script.pip(
-        'install', '--no-index', '%s[Hop_hOp-hoP]' % pkga_path,
+        'install', '--no-index', '{pkga_path}[Hop_hOp-hoP]'.format(**locals()),
         expect_error=True)
     assert (
         "Could not find a version that satisfies the requirement missing_pkg"

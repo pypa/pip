@@ -23,6 +23,7 @@ LOCATIONS = {
     "protected-pip": "tools/tox_pip.py",
 }
 REQUIREMENTS = {
+    "docs": "tools/requirements/docs.txt",
     "tests": "tools/requirements/tests.txt",
     "common-wheels": "tools/requirements/tests-common_wheels.txt",
 }
@@ -115,7 +116,7 @@ def test(session):
 
 @nox.session
 def docs(session):
-    session.install(".")
+    session.install("-e", ".")
     session.install("-r", REQUIREMENTS["docs"])
 
     def get_sphinx_build_command(kind):
@@ -203,21 +204,47 @@ def build_release(session):
     session.log("# Install dependencies")
     session.install("setuptools", "wheel", "twine")
 
-    session.log("# Checkout the tag")
-    session.run("git", "checkout", version, external=True, silent=True)
+    with release.isolated_temporary_checkout(session, version) as build_dir:
+        session.log(
+            "# Start the build in an isolated, "
+            f"temporary Git checkout at {build_dir!s}",
+        )
+        with release.workdir(session, build_dir):
+            tmp_dists = build_dists(session)
 
-    session.log("# Cleanup build/ before building the wheel")
-    if release.have_files_in_folder("build"):
-        shutil.rmtree("build")
+        tmp_dist_paths = (build_dir / p for p in tmp_dists)
+        session.log(f"# Copying dists from {build_dir}")
+        shutil.rmtree('dist', ignore_errors=True)  # remove empty `dist/`
+        for dist in tmp_dist_paths:
+            session.log(f"# Copying {dist}")
+            shutil.copy(dist, 'dist')
+
+
+def build_dists(session):
+    """Return dists with valid metadata."""
+    session.log(
+        "# Check if there's any Git-untracked files before building the wheel",
+    )
+
+    has_forbidden_git_untracked_files = any(
+        # Don't report the environment this session is running in
+        not untracked_file.startswith('.nox/build-release/')
+        for untracked_file in release.get_git_untracked_files()
+    )
+    if has_forbidden_git_untracked_files:
+        session.error(
+            "There are untracked files in the working directory. "
+            "Remove them and try again",
+        )
 
     session.log("# Build distributions")
     session.run("python", "setup.py", "sdist", "bdist_wheel", silent=True)
+    produced_dists = glob.glob("dist/*")
 
-    session.log("# Verify distributions")
-    session.run("twine", "check", *glob.glob("dist/*"), silent=True)
+    session.log(f"# Verify distributions: {', '.join(produced_dists)}")
+    session.run("twine", "check", *produced_dists, silent=True)
 
-    session.log("# Checkout the master branch")
-    session.run("git", "checkout", "master", external=True, silent=True)
+    return produced_dists
 
 
 @nox.session(name="upload-release")

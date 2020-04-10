@@ -79,10 +79,12 @@ def test_pep518_refuses_conflicting_requires(script, data):
     result = script.pip_install_local('-f', script.scratch_path,
                                       project_dir, expect_error=True)
     assert (
-        result.returncode != 0 and
-        ('Some build dependencies for %s conflict with PEP 517/518 supported '
-         'requirements: setuptools==1.0 is incompatible with '
-         'setuptools>=40.8.0.' % path_to_url(project_dir)) in result.stderr
+        result.returncode != 0 and (
+            'Some build dependencies for {url} conflict '
+            'with PEP 517/518 supported '
+            'requirements: setuptools==1.0 is incompatible with '
+            'setuptools>=40.8.0.'
+            .format(url=path_to_url(project_dir))) in result.stderr
     ), str(result)
 
 
@@ -198,12 +200,13 @@ def test_pip_second_command_line_interface_works(
     if pyversion_tuple < (2, 7, 9):
         kwargs['expect_stderr'] = True
 
-    args = ['pip%s' % pyversion]
+    args = ['pip{pyversion}'.format(**globals())]
     args.extend(['install', 'INITools==0.2'])
     args.extend(['-f', data.packages])
     result = script.run(*args, **kwargs)
     egg_info_folder = (
-        script.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion
+        script.site_packages /
+        'INITools-0.2-py{pyversion}.egg-info'.format(**globals())
     )
     initools_folder = script.site_packages / 'initools'
     assert egg_info_folder in result.files_created, str(result)
@@ -234,7 +237,8 @@ def test_basic_install_from_pypi(script):
     """
     result = script.pip('install', 'INITools==0.2')
     egg_info_folder = (
-        script.site_packages / 'INITools-0.2-py%s.egg-info' % pyversion
+        script.site_packages /
+        'INITools-0.2-py{pyversion}.egg-info'.format(**globals())
     )
     initools_folder = script.site_packages / 'initools'
     assert egg_info_folder in result.files_created, str(result)
@@ -281,7 +285,10 @@ def test_basic_install_editable_from_svn(script):
 def _test_install_editable_from_git(script, tmpdir):
     """Test cloning from Git."""
     pkg_path = _create_test_package(script, name='testpackage', vcs='git')
-    args = ['install', '-e', 'git+%s#egg=testpackage' % path_to_url(pkg_path)]
+    args = [
+        'install', '-e',
+        'git+{url}#egg=testpackage'.format(url=path_to_url(pkg_path)),
+    ]
     result = script.pip(*args)
     result.assert_installed('testpackage', with_files=['.git'])
 
@@ -310,10 +317,10 @@ def test_install_editable_uninstalls_existing(data, script, tmpdir):
 
     result = script.pip(
         'install', '-e',
-        '%s#egg=pip-test-package' %
-        local_checkout(
-            'git+https://github.com/pypa/pip-test-package.git', tmpdir,
-        ),
+        '{dir}#egg=pip-test-package'.format(
+            dir=local_checkout(
+                'git+https://github.com/pypa/pip-test-package.git', tmpdir,
+            )),
     )
     result.assert_installed('pip-test-package', with_files=['.git'])
     assert 'Found existing installation: pip-test-package 0.1' in result.stdout
@@ -362,7 +369,9 @@ def test_vcs_url_final_slash_normalization(script, tmpdir):
     Test that presence or absence of final slash in VCS URL is normalized.
     """
     pkg_path = _create_test_package(script, name='testpackage', vcs='hg')
-    args = ['install', '-e', 'hg+%s/#egg=testpackage' % path_to_url(pkg_path)]
+    args = [
+        'install',
+        '-e', 'hg+{url}/#egg=testpackage'.format(url=path_to_url(pkg_path))]
     result = script.pip(*args)
     result.assert_installed('testpackage', with_files=['.hg'])
 
@@ -371,7 +380,9 @@ def test_vcs_url_final_slash_normalization(script, tmpdir):
 def test_install_editable_from_bazaar(script, tmpdir):
     """Test checking out from Bazaar."""
     pkg_path = _create_test_package(script, name='testpackage', vcs='bazaar')
-    args = ['install', '-e', 'bzr+%s/#egg=testpackage' % path_to_url(pkg_path)]
+    args = [
+        'install',
+        '-e', 'bzr+{url}/#egg=testpackage'.format(url=path_to_url(pkg_path))]
     result = script.pip(*args)
     result.assert_installed('testpackage', with_files=['.bzr'])
 
@@ -384,24 +395,31 @@ def test_vcs_url_urlquote_normalization(script, tmpdir):
     """
     script.pip(
         'install', '-e',
-        '%s/#egg=django-wikiapp' %
-        local_checkout(
-            'bzr+http://bazaar.launchpad.net/%7Edjango-wikiapp/django-wikiapp'
-            '/release-0.1',
-            tmpdir,
-        ),
+        '{url}/#egg=django-wikiapp'.format(
+            url=local_checkout(
+                'bzr+http://bazaar.launchpad.net/'
+                '%7Edjango-wikiapp/django-wikiapp'
+                '/release-0.1',
+                tmpdir,
+            )),
     )
 
 
-def test_basic_install_from_local_directory(script, data):
+@pytest.mark.parametrize("resolver", ["", "--unstable-feature=resolver"])
+def test_basic_install_from_local_directory(script, data, resolver):
     """
     Test installing from a local directory.
     """
+    args = ["install"]
+    if resolver:
+        args.append(resolver)
     to_install = data.packages.joinpath("FSPkg")
-    result = script.pip('install', to_install)
+    args.append(to_install)
+    result = script.pip(*args)
     fspkg_folder = script.site_packages / 'fspkg'
     egg_info_folder = (
-        script.site_packages / 'FSPkg-0.1.dev0-py%s.egg-info' % pyversion
+        script.site_packages /
+        'FSPkg-0.1.dev0-py{pyversion}.egg-info'.format(**globals())
     )
     assert fspkg_folder in result.files_created, str(result.stdout)
     assert egg_info_folder in result.files_created, str(result)
@@ -420,7 +438,8 @@ def test_basic_install_relative_directory(script, data, test_type, editable):
     Test installing a requirement using a relative path.
     """
     egg_info_file = (
-        script.site_packages / 'FSPkg-0.1.dev0-py%s.egg-info' % pyversion
+        script.site_packages /
+        'FSPkg-0.1.dev0-py{pyversion}.egg-info'.format(**globals())
     )
     egg_link_file = (
         script.site_packages / 'FSPkg.egg-link'
@@ -550,7 +569,8 @@ def test_install_from_local_directory_with_symlinks_to_directories(
     result = script.pip('install', to_install)
     pkg_folder = script.site_packages / 'symlinks'
     egg_info_folder = (
-        script.site_packages / 'symlinks-0.1.dev0-py%s.egg-info' % pyversion
+        script.site_packages /
+        'symlinks-0.1.dev0-py{pyversion}.egg-info'.format(**globals())
     )
     assert pkg_folder in result.files_created, str(result.stdout)
     assert egg_info_folder in result.files_created, str(result)
@@ -562,7 +582,8 @@ def test_install_from_local_directory_with_socket_file(script, data, tmpdir):
     Test installing from a local directory containing a socket file.
     """
     egg_info_file = (
-        script.site_packages / "FSPkg-0.1.dev0-py%s.egg-info" % pyversion
+        script.site_packages /
+        "FSPkg-0.1.dev0-py{pyversion}.egg-info".format(**globals())
     )
     package_folder = script.site_packages / "fspkg"
     to_copy = data.packages.joinpath("FSPkg")
@@ -663,7 +684,8 @@ def test_install_curdir(script, data):
     result = script.pip('install', curdir, cwd=run_from)
     fspkg_folder = script.site_packages / 'fspkg'
     egg_info_folder = (
-        script.site_packages / 'FSPkg-0.1.dev0-py%s.egg-info' % pyversion
+        script.site_packages /
+        'FSPkg-0.1.dev0-py{pyversion}.egg-info'.format(**globals())
     )
     assert fspkg_folder in result.files_created, str(result.stdout)
     assert egg_info_folder in result.files_created, str(result)
@@ -677,7 +699,8 @@ def test_install_pardir(script, data):
     result = script.pip('install', pardir, cwd=run_from)
     fspkg_folder = script.site_packages / 'fspkg'
     egg_info_folder = (
-        script.site_packages / 'FSPkg-0.1.dev0-py%s.egg-info' % pyversion
+        script.site_packages /
+        'FSPkg-0.1.dev0-py{pyversion}.egg-info'.format(**globals())
     )
     assert fspkg_folder in result.files_created, str(result.stdout)
     assert egg_info_folder in result.files_created, str(result)
@@ -714,9 +737,9 @@ def test_install_using_install_option_and_editable(script, tmpdir):
     script.scratch_path.joinpath(folder).mkdir()
     url = 'git+git://github.com/pypa/pip-test-package'
     result = script.pip(
-        'install', '-e', '%s#egg=pip-test-package' %
-        local_checkout(url, tmpdir),
-        '--install-option=--script-dir=%s' % folder,
+        'install', '-e', '{url}#egg=pip-test-package'
+        .format(url=local_checkout(url, tmpdir)),
+        '--install-option=--script-dir={folder}'.format(**locals()),
         expect_stderr=True)
     script_file = (
         script.venv / 'src' / 'pip-test-package' /
@@ -735,7 +758,7 @@ def test_install_global_option_using_editable(script, tmpdir):
     url = 'hg+http://bitbucket.org/runeh/anyjson'
     result = script.pip(
         'install', '--global-option=--version', '-e',
-        '%s@0.2.5#egg=anyjson' % local_checkout(url, tmpdir),
+        '{url}@0.2.5#egg=anyjson'.format(url=local_checkout(url, tmpdir)),
         expect_stderr=True)
     assert 'Successfully installed anyjson' in result.stdout
 
@@ -747,7 +770,10 @@ def test_install_package_with_same_name_in_curdir(script):
     """
     script.scratch_path.joinpath("mock==0.6").mkdir()
     result = script.pip('install', 'mock==0.6')
-    egg_folder = script.site_packages / 'mock-0.6.0-py%s.egg-info' % pyversion
+    egg_folder = (
+        script.site_packages /
+        'mock-0.6.0-py{pyversion}.egg-info'.format(**globals())
+    )
     assert egg_folder in result.files_created, str(result)
 
 
@@ -765,7 +791,10 @@ def test_install_folder_using_dot_slash(script):
     pkg_path = script.scratch_path / 'mock'
     pkg_path.joinpath("setup.py").write_text(mock100_setup_py)
     result = script.pip('install', './mock')
-    egg_folder = script.site_packages / 'mock-100.1-py%s.egg-info' % pyversion
+    egg_folder = (
+        script.site_packages /
+        'mock-100.1-py{pyversion}.egg-info'.format(**globals())
+    )
     assert egg_folder in result.files_created, str(result)
 
 
@@ -777,7 +806,10 @@ def test_install_folder_using_slash_in_the_end(script):
     pkg_path = script.scratch_path / 'mock'
     pkg_path.joinpath("setup.py").write_text(mock100_setup_py)
     result = script.pip('install', 'mock' + os.path.sep)
-    egg_folder = script.site_packages / 'mock-100.1-py%s.egg-info' % pyversion
+    egg_folder = (
+        script.site_packages /
+        'mock-100.1-py{pyversion}.egg-info'.format(**globals())
+    )
     assert egg_folder in result.files_created, str(result)
 
 
@@ -790,7 +822,10 @@ def test_install_folder_using_relative_path(script):
     pkg_path = script.scratch_path / 'initools' / 'mock'
     pkg_path.joinpath("setup.py").write_text(mock100_setup_py)
     result = script.pip('install', Path('initools') / 'mock')
-    egg_folder = script.site_packages / 'mock-100.1-py%s.egg-info' % pyversion
+    egg_folder = (
+        script.site_packages /
+        'mock-100.1-py{pyversion}.egg-info'.format(**globals())
+    )
     assert egg_folder in result.files_created, str(result)
 
 
@@ -802,8 +837,8 @@ def test_install_package_which_contains_dev_in_name(script):
     result = script.pip('install', 'django-devserver==0.0.4')
     devserver_folder = script.site_packages / 'devserver'
     egg_info_folder = (
-        script.site_packages / 'django_devserver-0.0.4-py%s.egg-info' %
-        pyversion
+        script.site_packages /
+        'django_devserver-0.0.4-py{pyversion}.egg-info'.format(**globals())
     )
     assert devserver_folder in result.files_created, str(result.stdout)
     assert egg_info_folder in result.files_created, str(result)
@@ -832,7 +867,8 @@ def test_install_package_with_target(script):
         str(result)
     )
     egg_folder = (
-        Path('scratch') / 'target' / 'simple-2.0-py%s.egg-info' % pyversion)
+        Path('scratch') / 'target' /
+        'simple-2.0-py{pyversion}.egg-info'.format(**globals()))
     assert egg_folder in result.files_created, (
         str(result)
     )
@@ -845,6 +881,27 @@ def test_install_package_with_target(script):
     result = script.pip_install_local('-t', target_dir, 'singlemodule==0.0.1',
                                       '--upgrade')
     assert singlemodule_py in result.files_updated, str(result)
+
+
+def test_install_package_to_usersite_with_target_must_fail(script):
+    """
+    Test that installing package to usersite with target
+    must raise error
+    """
+    target_dir = script.scratch_path / 'target'
+    result = script.pip_install_local(
+        '--user', '-t', target_dir, "simple==1.0", expect_error=True
+    )
+    assert "Can not combine '--user' and '--target'" in result.stderr, (
+        str(result)
+    )
+
+    result = script.pip_install_local(
+        '--user', '--target', target_dir, "simple==1.0", expect_error=True
+    )
+    assert "Can not combine '--user' and '--target'" in result.stderr, (
+        str(result)
+    )
 
 
 def test_install_nonlocal_compatible_wheel(script, data):
@@ -945,8 +1002,8 @@ def test_install_package_with_root(script, data):
         'simple==1.0',
     )
     normal_install_path = (
-        script.base_path / script.site_packages / 'simple-1.0-py%s.egg-info' %
-        pyversion
+        script.base_path / script.site_packages /
+        'simple-1.0-py{pyversion}.egg-info'.format(**globals())
     )
     # use distutils to change the root exactly how the --root option does it
     from distutils.util import change_root
@@ -1069,9 +1126,11 @@ def test_url_req_case_mismatch_no_index(script, data):
     )
 
     # only Upper-1.0.tar.gz should get installed.
-    egg_folder = script.site_packages / 'Upper-1.0-py%s.egg-info' % pyversion
+    egg_folder = script.site_packages / \
+        'Upper-1.0-py{pyversion}.egg-info'.format(**globals())
     assert egg_folder in result.files_created, str(result)
-    egg_folder = script.site_packages / 'Upper-2.0-py%s.egg-info' % pyversion
+    egg_folder = script.site_packages / \
+        'Upper-2.0-py{pyversion}.egg-info'.format(**globals())
     assert egg_folder not in result.files_created, str(result)
 
 
@@ -1096,9 +1155,11 @@ def test_url_req_case_mismatch_file_index(script, data):
     )
 
     # only Upper-1.0.tar.gz should get installed.
-    egg_folder = script.site_packages / 'Dinner-1.0-py%s.egg-info' % pyversion
+    egg_folder = script.site_packages / \
+        'Dinner-1.0-py{pyversion}.egg-info'.format(**globals())
     assert egg_folder in result.files_created, str(result)
-    egg_folder = script.site_packages / 'Dinner-2.0-py%s.egg-info' % pyversion
+    egg_folder = script.site_packages / \
+        'Dinner-2.0-py{pyversion}.egg-info'.format(**globals())
     assert egg_folder not in result.files_created, str(result)
 
 
@@ -1113,9 +1174,11 @@ def test_url_incorrect_case_no_index(script, data):
     )
 
     # only Upper-2.0.tar.gz should get installed.
-    egg_folder = script.site_packages / 'Upper-1.0-py%s.egg-info' % pyversion
+    egg_folder = script.site_packages / \
+        'Upper-1.0-py{pyversion}.egg-info'.format(**globals())
     assert egg_folder not in result.files_created, str(result)
-    egg_folder = script.site_packages / 'Upper-2.0-py%s.egg-info' % pyversion
+    egg_folder = script.site_packages / \
+        'Upper-2.0-py{pyversion}.egg-info'.format(**globals())
     assert egg_folder in result.files_created, str(result)
 
 
@@ -1131,9 +1194,11 @@ def test_url_incorrect_case_file_index(script, data):
     )
 
     # only Upper-2.0.tar.gz should get installed.
-    egg_folder = script.site_packages / 'Dinner-1.0-py%s.egg-info' % pyversion
+    egg_folder = script.site_packages / \
+        'Dinner-1.0-py{pyversion}.egg-info'.format(**globals())
     assert egg_folder not in result.files_created, str(result)
-    egg_folder = script.site_packages / 'Dinner-2.0-py%s.egg-info' % pyversion
+    egg_folder = script.site_packages / \
+        'Dinner-2.0-py{pyversion}.egg-info'.format(**globals())
     assert egg_folder in result.files_created, str(result)
 
     # Should show index-url location in output
@@ -1237,7 +1302,7 @@ def test_install_subprocess_output_handling(script, data):
 def test_install_log(script, data, tmpdir):
     # test that verbose logs go to "--log" file
     f = tmpdir.joinpath("log.txt")
-    args = ['--log=%s' % f,
+    args = ['--log={f}'.format(**locals()),
             'install', data.src.joinpath('chattymodule')]
     result = script.pip(*args)
     assert 0 == result.stdout.count("HELLO FROM CHATTYMODULE")
@@ -1390,7 +1455,8 @@ def test_install_editable_with_wrong_egg_name(script):
               version='0.1')
     """))
     result = script.pip(
-        'install', '--editable', 'file://%s#egg=pkgb' % pkga_path
+        'install', '--editable',
+        'file://{pkga_path}#egg=pkgb'.format(**locals()),
     )
     assert ("Generating metadata for package pkgb produced metadata "
             "for project name pkga. Fix your #egg=pkgb "
@@ -1464,7 +1530,9 @@ def test_install_incompatible_python_requires_editable(script):
               version='0.1')
     """))
     result = script.pip(
-        'install', '--editable=%s' % pkga_path, expect_error=True)
+        'install',
+        '--editable={pkga_path}'.format(**locals()),
+        expect_error=True)
     assert _get_expected_error_text() in result.stderr, str(result)
 
 
@@ -1578,7 +1646,7 @@ def test_installed_files_recorded_in_deterministic_order(script, data):
     to_install = data.packages.joinpath("FSPkg")
     result = script.pip('install', to_install)
     fspkg_folder = script.site_packages / 'fspkg'
-    egg_info = 'FSPkg-0.1.dev0-py%s.egg-info' % pyversion
+    egg_info = 'FSPkg-0.1.dev0-py{pyversion}.egg-info'.format(**globals())
     installed_files_path = (
         script.site_packages / egg_info / 'installed-files.txt'
     )
@@ -1643,8 +1711,8 @@ def test_target_install_ignores_distutils_config_install_prefix(script):
     distutils_config.write_text(textwrap.dedent(
         '''
         [install]
-        prefix=%s
-        ''' % str(prefix)))
+        prefix={prefix}
+        '''.format(**locals())))
     target = script.scratch_path / 'target'
     result = script.pip_install_local('simplewheel', '-t', target)
 
@@ -1699,6 +1767,31 @@ def test_ignore_yanked_file(script, data):
     )
     # Make sure a "yanked" release is ignored
     assert 'Successfully installed simple-2.0\n' in result.stdout, str(result)
+
+
+def test_invalid_index_url_argument(script, shared_data):
+    """
+    Test the behaviour of an invalid --index-url argument
+    """
+
+    result = script.pip('install', '--index-url', '--user',
+                        shared_data.find_links3, "Dinner",
+                        expect_error=True)
+
+    assert 'WARNING: The index url "--user" seems invalid, ' \
+           'please provide a scheme.' in result.stderr, str(result)
+
+
+def test_valid_index_url_argument(script, shared_data):
+    """
+    Test the behaviour of an valid --index-url argument
+    """
+
+    result = script.pip('install', '--index-url',
+                        shared_data.find_links3,
+                        "Dinner")
+
+    assert 'Successfully installed Dinner' in result.stdout, str(result)
 
 
 def test_install_yanked_file_and_print_warning(script, data):

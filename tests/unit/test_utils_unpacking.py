@@ -77,7 +77,7 @@ class TestUnpackArchives(object):
                 continue
             mode = self.mode(path)
             assert mode == expected_mode, (
-                "mode: %s, expected mode: %s" % (mode, expected_mode)
+                "mode: {}, expected mode: {}".format(mode, expected_mode)
             )
 
     def make_zip_file(self, filename, file_list):

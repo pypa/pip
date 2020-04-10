@@ -4,8 +4,9 @@ User Guide
 
 .. contents::
 
+
 Running pip
-***********
+===========
 
 pip is a command line program. When you install pip, a ``pip`` command is added
 to your system, which can be run from the command prompt as follows::
@@ -28,7 +29,7 @@ more details, see :ref:`Using pip from your program`.
 
 
 Installing Packages
-*******************
+===================
 
 pip supports installing from `PyPI`_, version control, local projects, and
 directly from distribution files.
@@ -50,7 +51,7 @@ For more information and examples, see the :ref:`pip install` reference.
 
 
 Basic Authentication Credentials
-********************************
+================================
 
 pip supports basic authentication credentials. Basically, in the URL there is
 a username and password separated by ``:``.
@@ -79,7 +80,7 @@ as the "username" and do not provide a password, for example -
 
 
 Using a Proxy Server
-********************
+====================
 
 When installing packages from `PyPI`_, pip requires internet access, which
 in many corporate environments requires an outbound HTTP proxy server.
@@ -97,8 +98,9 @@ pip can be configured to connect through a proxy server in various ways:
 
 .. _`Requirements Files`:
 
+
 Requirements Files
-******************
+==================
 
 "Requirements files" are files containing a list of items to be
 installed using :ref:`pip install` like so:
@@ -179,8 +181,9 @@ See also:
 
 .. _`Constraints Files`:
 
+
 Constraints Files
-*****************
+=================
 
 Constraints files are requirements files that only control which version of a
 requirement is installed, not whether it is installed or not. Their syntax and
@@ -213,14 +216,15 @@ Constraints file support was added in pip 7.1.
 
 .. _`Installing from Wheels`:
 
+
 Installing from Wheels
-**********************
+======================
 
 "Wheel" is a built, archive format that can greatly speed installation compared
 to building and installing from source archives. For more information, see the
 `Wheel docs <https://wheel.readthedocs.io>`_ , :pep:`427`, and :pep:`425`.
 
-Pip prefers Wheels where they are available. To disable this, use the
+pip prefers Wheels where they are available. To disable this, use the
 :ref:`--no-binary <install_--no-binary>` flag for :ref:`pip install`.
 
 If no satisfactory wheels are found, pip will default to finding source
@@ -258,7 +262,7 @@ wheels (and not from PyPI):
 
 
 Uninstalling Packages
-*********************
+=====================
 
 pip is able to uninstall most packages like so:
 
@@ -273,7 +277,7 @@ For more information and examples, see the :ref:`pip uninstall` reference.
 
 
 Listing Packages
-****************
+================
 
 To list installed packages:
 
@@ -311,7 +315,7 @@ reference pages.
 
 
 Searching for Packages
-**********************
+======================
 
 pip can search `PyPI`_ for packages using the ``pip search``
 command::
@@ -325,13 +329,14 @@ For more information and examples, see the :ref:`pip search` reference.
 
 .. _`Configuration`:
 
+
 Configuration
-*************
+=============
 
 .. _config-file:
 
 Config file
-------------
+-----------
 
 pip allows you to set all command line option defaults in a standard ini
 style config file.
@@ -435,7 +440,9 @@ and ``--no-cache-dir``, falsy values have to be used:
     no-compile = no
     no-warn-script-location = false
 
-Appending options like ``--find-links`` can be written on multiple lines:
+It is possible to append values to a section within a configuration file such as the pip.ini file.
+This is applicable to appending options like ``--find-links`` or ``--trusted-host``,
+which can be written on multiple lines:
 
 .. code-block:: ini
 
@@ -447,6 +454,13 @@ Appending options like ``--find-links`` can be written on multiple lines:
     find-links =
         http://mirror1.example.com
         http://mirror2.example.com
+
+    [install]
+    trusted-host =
+        http://mirror1.example.com
+        http://mirror2.example.com
+
+This enables users to add additional values in the order of entry for such command line arguments.
 
 
 Environment Variables
@@ -479,6 +493,8 @@ is the same as calling::
    Please use ``no``, ``false`` or ``0`` instead.
 
 
+.. _config-precedence:
+
 Config Precedence
 -----------------
 
@@ -497,7 +513,7 @@ Examples:
 
 
 Command Completion
-******************
+==================
 
 pip comes with support for command line completion in bash, zsh and fish.
 
@@ -523,8 +539,9 @@ startup file::
 
 .. _`Installing from local packages`:
 
+
 Installing from local packages
-******************************
+==============================
 
 In some cases, you may want to install from local packages only, with no traffic
 to PyPI.
@@ -550,7 +567,7 @@ $ pip install --no-index --find-links=DIR -r requirements.txt
 
 
 "Only if needed" Recursive Upgrade
-**********************************
+==================================
 
 ``pip install --upgrade`` now has a ``--upgrade-strategy`` option which
 controls how pip handles upgrading of dependencies. There are 2 upgrade
@@ -575,7 +592,7 @@ alternative to the behaviour of eager upgrading.
 
 
 User Installs
-*************
+=============
 
 With Python 2.6 came the `"user scheme" for installation
 <https://docs.python.org/3/install/index.html#alternate-installation-the-user-scheme>`_,
@@ -669,8 +686,9 @@ is the latest version::
 
 .. _`Repeatability`:
 
+
 Ensuring Repeatability
-**********************
+======================
 
 pip can achieve various levels of repeatability:
 
@@ -746,6 +764,7 @@ Hash-checking mode can be used along with this method to ensure that future
 archives are built with identical packages.
 
 .. warning::
+
     Finally, beware of the ``setup_requires`` keyword arg in :file:`setup.py`.
     The (rare) packages that use it will cause those dependencies to be
     downloaded by setuptools directly, skipping pip's protections. If you need
@@ -754,8 +773,9 @@ archives are built with identical packages.
 
 .. _`Using pip from your program`:
 
+
 Using pip from your program
-***************************
+===========================
 
 As noted previously, pip is a command line program. While it is implemented in
 Python, and so is available from your Python code via ``import pip``, you must
@@ -803,8 +823,8 @@ This is easily done using the standard ``subprocess`` module::
 
   subprocess.check_call([sys.executable, '-m', 'pip', 'install', 'my_package'])
 
-If you want to process the output further, use one of the other APIs in the
-module::
+If you want to process the output further, use one of the other APIs in the module.
+We are using `freeze`_ here which outputs installed packages in requirements format.::
 
   reqs = subprocess.check_output([sys.executable, '-m', 'pip', 'freeze'])
 
@@ -821,3 +841,5 @@ of ability. Some examples that you could consider include:
 
 * ``distlib`` - Packaging and distribution utilities (including functions for
   interacting with PyPI).
+
+.. _freeze: https://pip.pypa.io/en/latest/reference/pip_freeze/

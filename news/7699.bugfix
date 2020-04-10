@@ -1,0 +1,2 @@
+Use better mechanism for handling temporary files, when recording metadata
+about installed files (RECORD) and the installer (INSTALLER).

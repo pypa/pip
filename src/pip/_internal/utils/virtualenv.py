@@ -105,11 +105,12 @@ def virtualenv_no_global():
     # type: () -> bool
     """Returns a boolean, whether running in venv with no system site-packages.
     """
+    # PEP 405 compliance needs to be checked first since virtualenv >=20 would
+    # return True for both checks, but is only able to use the PEP 405 config.
+    if _running_under_venv():
+        return _no_global_under_venv()
 
     if _running_under_regular_virtualenv():
         return _no_global_under_regular_virtualenv()
-
-    if _running_under_venv():
-        return _no_global_under_venv()
 
     return False
