@@ -16,7 +16,8 @@ def test_use_pep517(shared_data, source, expected):
     Test that we choose correctly between PEP 517 and legacy code paths
     """
     src = shared_data.src.joinpath(source)
-    req = InstallRequirement(None, None, source_dir=src)
+    req = InstallRequirement(None, None)
+    req.source_dir = src  # make req believe it has been unpacked
     req.load_pyproject_toml()
     assert req.use_pep517 is expected
 
@@ -30,7 +31,8 @@ def test_disabling_pep517_invalid(shared_data, source, msg):
     Test that we fail if we try to disable PEP 517 when it's not acceptable
     """
     src = shared_data.src.joinpath(source)
-    req = InstallRequirement(None, None, source_dir=src)
+    req = InstallRequirement(None, None)
+    req.source_dir = src  # make req believe it has been unpacked
 
     # Simulate --no-use-pep517
     req.use_pep517 = False
@@ -54,7 +56,8 @@ def test_pep517_parsing_checks_requirements(tmpdir, spec):
         build-backend = "foo"
         """.format(spec)
     ))
-    req = InstallRequirement(None, None, source_dir=tmpdir)
+    req = InstallRequirement(None, None)
+    req.source_dir = tmpdir  # make req believe it has been unpacked
 
     with pytest.raises(InstallationError) as e:
         req.load_pyproject_toml()
