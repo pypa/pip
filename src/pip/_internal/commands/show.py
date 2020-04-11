@@ -1,6 +1,3 @@
-# The following comment should be removed at some point in the future.
-# mypy: disallow-untyped-defs=False
-
 from __future__ import absolute_import
 
 import logging
@@ -13,6 +10,11 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.utils.misc import write_output
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from optparse import Values
+    from typing import Any, List, Dict, Iterator
 
 logger = logging.getLogger(__name__)
 
@@ -29,7 +31,9 @@ class ShowCommand(Command):
     ignore_require_venv = True
 
     def __init__(self, *args, **kw):
-        super(ShowCommand, self).__init__(*args, **kw)
+        # type: (List[Any], Dict[Any, Any]) -> None
+        # https://github.com/python/mypy/issues/4335
+        super(ShowCommand, self).__init__(*args, **kw)  # type: ignore
         self.cmd_opts.add_option(
             '-f', '--files',
             dest='files',
@@ -40,6 +44,7 @@ class ShowCommand(Command):
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
+        # type: (Values, List[Any]) -> int
         if not args:
             logger.warning('ERROR: Please provide a package name or names.')
             return ERROR
@@ -53,6 +58,7 @@ class ShowCommand(Command):
 
 
 def search_packages_info(query):
+    # type: (List[Any]) -> Iterator[Dict[str, Any]]
     """
     Gather details from installed distributions. Print distribution name,
     version, location, and installed files. Installed files requires a
@@ -71,6 +77,7 @@ def search_packages_info(query):
         logger.warning('Package(s) not found: %s', ', '.join(missing))
 
     def get_requiring_packages(package_name):
+        # type: (str) -> List[str]
         canonical_name = canonicalize_name(package_name)
         return [
             pkg.project_name for pkg in pkg_resources.working_set
@@ -88,7 +95,7 @@ def search_packages_info(query):
             'required_by': get_requiring_packages(dist.project_name)
         }
         file_list = None
-        metadata = None
+        metadata = ''
         if isinstance(dist, pkg_resources.DistInfoDistribution):
             # RECORDs should be part of .dist-info metadatas
             if dist.has_metadata('RECORD'):
@@ -141,6 +148,7 @@ def search_packages_info(query):
 
 
 def print_results(distributions, list_files=False, verbose=False):
+    # type: (Iterator[Dict[str, Any]], bool, bool) -> bool
     """
     Print the information from installed distributions found.
     """

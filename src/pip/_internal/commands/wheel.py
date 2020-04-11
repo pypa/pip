@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 
-# The following comment should be removed at some point in the future.
-# mypy: disallow-untyped-defs=False
-
 from __future__ import absolute_import
 
 import logging
@@ -12,6 +9,7 @@ import shutil
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.req_command import RequirementCommand, with_cleanup
+from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.exceptions import CommandError
 from pip._internal.req.req_tracker import get_requirement_tracker
 from pip._internal.utils.misc import ensure_dir, normalize_path
@@ -21,7 +19,7 @@ from pip._internal.wheel_builder import build, should_build_for_wheel_command
 
 if MYPY_CHECK_RUNNING:
     from optparse import Values
-    from typing import Any, List
+    from typing import Any, List, Dict
 
 
 logger = logging.getLogger(__name__)
@@ -50,7 +48,9 @@ class WheelCommand(RequirementCommand):
       %prog [options] <archive url/path> ..."""
 
     def __init__(self, *args, **kw):
-        super(WheelCommand, self).__init__(*args, **kw)
+        # type: (List[Any], Dict[Any, Any]) -> None
+        # https://github.com/python/mypy/issues/4335
+        super(WheelCommand, self).__init__(*args, **kw)  # type: ignore
 
         cmd_opts = self.cmd_opts
 
@@ -112,7 +112,7 @@ class WheelCommand(RequirementCommand):
 
     @with_cleanup
     def run(self, options, args):
-        # type: (Values, List[Any]) -> None
+        # type: (Values, List[Any]) -> int
         cmdoptions.check_install_build_global(options)
 
         session = self.get_default_session(options)
@@ -188,3 +188,5 @@ class WheelCommand(RequirementCommand):
             raise CommandError(
                 "Failed to build one or more wheels"
             )
+
+        return SUCCESS
