@@ -14,24 +14,25 @@ from typing import Iterator, List, Optional, Set
 from nox.sessions import Session
 
 
-def get_version_from_arguments(arguments: List[str]) -> Optional[str]:
+def get_version_from_arguments(session: Session) -> Optional[str]:
     """Checks the arguments passed to `nox -s release`.
 
     If there is only 1 argument that looks like a pip version, returns that.
     Otherwise, returns None.
     """
-    if len(arguments) != 1:
+    if len(session.posargs) != 1:
         return None
+    version = session.posargs[0]
 
-    version = arguments[0]
-
-    parts = version.split('.')
-    if not 2 <= len(parts) <= 3:
-        # Not of the form: YY.N or YY.N.P
-        return None
-
-    if not all(part.isdigit() for part in parts):
-        # Not all segments are integers.
+    # We delegate to a script here, so that it can depend on packaging.
+    session.install("packaging")
+    cmd = [
+        os.path.join(session.bin, "python"),
+        "tools/automation/release/check_version.py",
+        version
+    ]
+    not_ok = subprocess.run(cmd).returncode
+    if not_ok:
         return None
 
     # All is good.
