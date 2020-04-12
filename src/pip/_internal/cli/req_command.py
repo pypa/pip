@@ -12,7 +12,11 @@ from functools import partial
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.command_context import CommandContextMixIn
-from pip._internal.exceptions import CommandError, InstallationError, PreviousBuildDirError
+from pip._internal.exceptions import (
+    CommandError,
+    InstallationError,
+    PreviousBuildDirError,
+)
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.network.auth import MultiDomainNtlmAuth

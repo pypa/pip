@@ -189,7 +189,7 @@ def test_pep518_forkbombs(script, data, common_wheels, command, package):
 def test_without_ntlm(script, data):
     result = script.pip(
         'install', '--auth-ntlm',
-        '-f', data.packages, 
+        '-f', data.packages,
         'INITools==0.2',
         expect_error=True,
     )

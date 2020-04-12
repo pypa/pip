@@ -9,11 +9,6 @@ providing credentials in the context of network requests.
 
 import logging
 
-try:
-    from requests_ntlm import HttpNtlmAuth  # noqa
-except ImportError:
-    HttpNtlmAuth = None
-
 from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
 from pip._vendor.requests.utils import get_netrc_auth
 from pip._vendor.six.moves.urllib import parse as urllib_parse
@@ -27,6 +22,11 @@ from pip._internal.utils.misc import (
     split_auth_netloc_from_url,
 )
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+try:
+    from requests_ntlm import HttpNtlmAuth  # noqa
+except ImportError:
+    HttpNtlmAuth = None
 
 if MYPY_CHECK_RUNNING:
     from optparse import Values
