@@ -809,6 +809,7 @@ class InstallRequirement(object):
                 pycompile=pycompile,
                 warn_script_location=warn_script_location,
                 direct_url=direct_url,
+                requested=self.is_direct,
             )
             self.install_succeeded = True
             return

@@ -310,7 +310,7 @@ class TestInstallUnpackedWheel(object):
             req_description=str(self.req),
             requested=True,
         )
-        self.assert_installed()
+        self.assert_installed(0o644)
         requested_path = os.path.join(self.dest_dist_info, 'REQUESTED')
         assert os.path.isfile(requested_path)
 
