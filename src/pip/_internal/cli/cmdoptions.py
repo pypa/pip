@@ -335,6 +335,17 @@ index_url = partial(
 )  # type: Callable[..., Option]
 
 
+def extra_headers():
+    # type: () -> Option
+    return Option(
+        '--extra-headers',
+        dest='extra_headers',
+        metavar='JSON',
+        default=None,
+        help='Extra HTTP request headers JSON.',
+    )
+
+
 def extra_index_url():
     # type: () -> Option
     return Option(
@@ -969,5 +980,6 @@ index_group = {
         extra_index_url,
         no_index,
         find_links,
+        extra_headers,
     ]
 }  # type: Dict[str, Any]

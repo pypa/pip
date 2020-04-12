@@ -5,6 +5,7 @@ needing download / PackageFinder capability don't unnecessarily import the
 PackageFinder machinery and all its vendored dependencies, etc.
 """
 
+import json
 import logging
 import os
 from functools import partial
@@ -35,7 +36,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from optparse import Values
-    from typing import Any, List, Optional, Tuple
+    from typing import Any, Dict, List, Optional, Tuple
 
     from pip._internal.cache import WheelCache
     from pip._internal.models.target_python import TargetPython
@@ -76,6 +77,21 @@ class SessionCommandMixin(CommandContextMixIn):
         # Return None rather than an empty list
         return index_urls or None
 
+    @classmethod
+    def _get_extra_headers(cls, options):
+        # type: (Values) -> Optional[Dict[str, str]]
+        """
+        Return a dict of extra HTTP request headers from user-provided options.
+        """
+        extra_headers_text = getattr(options, 'extra_headers', None)
+        try:
+            extra_headers = json.loads(extra_headers_text)
+        except (TypeError, ValueError):
+            if extra_headers_text:
+                raise CommandError('Could not parse extra headers as JSON')
+            extra_headers = None
+        return extra_headers
+
     def get_default_session(self, options):
         # type: (Values) -> PipSession
         """Get a default-managed session."""
@@ -98,6 +114,7 @@ class SessionCommandMixin(CommandContextMixIn):
             retries=retries if retries is not None else options.retries,
             trusted_hosts=options.trusted_hosts,
             index_urls=self._get_index_urls(options),
+            extra_headers=self._get_extra_headers(options),
         )
 
         # Handle custom ca-bundles from the user
