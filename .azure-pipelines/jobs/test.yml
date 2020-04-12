@@ -3,16 +3,16 @@ parameters:
 
 jobs:
 - job: Test_Primary
-  displayName: Test Primary
+  displayName: Tests /
 
   pool:
     vmImage: ${{ parameters.vmImage }}
   strategy:
     matrix:
-      Python27:
+      "2.7":
         python.version: '2.7'
         python.architecture: x64
-      Python36:
+      "3.6":
         python.version: '3.6'
         python.architecture: x64
     maxParallel: 2
@@ -21,7 +21,7 @@ jobs:
   - template: ../steps/run-tests.yml
 
 - job: Test_Secondary
-  displayName: Test Secondary
+  displayName: Tests /
   # Run after Test_Primary so we don't devour time and jobs if tests are going to fail
   dependsOn: Test_Primary
 
@@ -29,13 +29,13 @@ jobs:
     vmImage: ${{ parameters.vmImage }}
   strategy:
     matrix:
-      Python35:
+      "3.5":
         python.version: '3.5'
         python.architecture: x64
-      Python37:
+      "3.7":
         python.version: '3.7'
         python.architecture: x64
-      Python38:
+      "3.8":
         python.version: '3.8'
         python.architecture: x64
     maxParallel: 4
