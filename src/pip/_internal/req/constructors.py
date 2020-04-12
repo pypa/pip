@@ -228,12 +228,9 @@ def install_req_from_editable(
 
     parts = parse_req_from_editable(editable_req)
 
-    source_dir = parts.link.file_path if parts.link.scheme == 'file' else None
-
     return InstallRequirement(
         parts.requirement,
         comes_from=comes_from,
-        source_dir=source_dir,
         editable=True,
         link=parts.link,
         constraint=constraint,

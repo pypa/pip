@@ -22,7 +22,8 @@ def make_project(tmpdir, requires=[], backend=None, backend_path=None):
 def test_backend(tmpdir, data):
     """Check we can call a requirement's backend successfully"""
     project_dir = make_project(tmpdir, backend="dummy_backend")
-    req = InstallRequirement(None, None, source_dir=project_dir)
+    req = InstallRequirement(None, None)
+    req.source_dir = project_dir  # make req believe it has been unpacked
     req.load_pyproject_toml()
     env = BuildEnvironment()
     finder = make_test_finder(find_links=[data.backends])
@@ -50,7 +51,8 @@ def test_backend_path(tmpdir, data):
         tmpdir, backend="dummy_backend", backend_path=['.']
     )
     (project_dir / 'dummy_backend.py').write_text(dummy_backend_code)
-    req = InstallRequirement(None, None, source_dir=project_dir)
+    req = InstallRequirement(None, None)
+    req.source_dir = project_dir  # make req believe it has been unpacked
     req.load_pyproject_toml()
 
     env = BuildEnvironment()
@@ -67,7 +69,8 @@ def test_backend_path_and_dep(tmpdir, data):
     (project_dir / 'dummy_internal_backend.py').write_text(
         "from dummy_backend import build_wheel"
     )
-    req = InstallRequirement(None, None, source_dir=project_dir)
+    req = InstallRequirement(None, None)
+    req.source_dir = project_dir  # make req believe it has been unpacked
     req.load_pyproject_toml()
     env = BuildEnvironment()
     finder = make_test_finder(find_links=[data.backends])
