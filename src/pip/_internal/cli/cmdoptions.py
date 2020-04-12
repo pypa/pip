@@ -930,6 +930,15 @@ unstable_feature = partial(
 )  # type: Callable[..., Option]
 
 
+auth_ntlm = partial(
+    Option,
+    '--auth-ntlm',
+    dest='auth_ntlm',
+    action='store_true',
+    default=False,
+    help='Authenticate on host using NTLM.')
+
+
 ##########
 # groups #
 ##########
@@ -959,6 +968,7 @@ general_group = {
         no_color,
         no_python_version_warning,
         unstable_feature,
+        auth_ntlm,
     ]
 }  # type: Dict[str, Any]
 

@@ -12,9 +12,10 @@ from functools import partial
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.command_context import CommandContextMixIn
-from pip._internal.exceptions import CommandError, PreviousBuildDirError
+from pip._internal.exceptions import CommandError, InstallationError, PreviousBuildDirError
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.models.selection_prefs import SelectionPreferences
+from pip._internal.network.auth import MultiDomainNtlmAuth
 from pip._internal.network.download import Downloader
 from pip._internal.network.session import PipSession
 from pip._internal.operations.prepare import RequirementPreparer
@@ -120,6 +121,14 @@ class SessionCommandMixin(CommandContextMixIn):
                 "http": options.proxy,
                 "https": options.proxy,
             }
+
+        if options.auth_ntlm:
+            try:
+                session.auth = MultiDomainNtlmAuth()
+            except InstallationError:
+                # Needed to allow pip to check for updates
+                options.auth_ntlm = False
+                raise
 
         # Determine if we can prompt the user for authentication or not
         session.auth.prompting = not options.no_input

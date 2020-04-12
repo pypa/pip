@@ -186,6 +186,20 @@ def test_pep518_forkbombs(script, data, common_wheels, command, package):
     ) in result.stderr, str(result)
 
 
+def test_without_ntlm(script, data):
+    result = script.pip(
+        'install', '--auth-ntlm',
+        '-f', data.packages, 
+        'INITools==0.2',
+        expect_error=True,
+    )
+    assert (
+        "Dependencies for Ntlm authentication are missing. Install "
+        "dependencies via the 'pip install pip[ntlm]' command."
+        in result.stderr
+    )
+
+
 @pytest.mark.network
 def test_pip_second_command_line_interface_works(
         script, pip_src, data, common_wheels, deprecated_python):

@@ -83,5 +83,8 @@ setup(
     },
 
     zip_safe=False,
+    extras_require={
+        'ntlm': ['requests_ntlm'],
+    },
     python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*',
 )

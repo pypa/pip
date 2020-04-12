@@ -9,10 +9,16 @@ providing credentials in the context of network requests.
 
 import logging
 
+try:
+    from requests_ntlm import HttpNtlmAuth  # noqa
+except ImportError:
+    HttpNtlmAuth = None
+
 from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
 from pip._vendor.requests.utils import get_netrc_auth
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
+from pip._internal.exceptions import InstallationError
 from pip._internal.utils.misc import (
     ask,
     ask_input,
@@ -72,7 +78,7 @@ def get_keyring_auth(url, username):
         )
 
 
-class MultiDomainBasicAuth(AuthBase):
+class MultiDomainAuth(AuthBase):
 
     def __init__(self, prompting=True, index_urls=None):
         # type: (bool, Optional[Values]) -> None
@@ -206,7 +212,7 @@ class MultiDomainBasicAuth(AuthBase):
 
         if username is not None and password is not None:
             # Send the basic auth with this request
-            req = HTTPBasicAuth(username, password)(req)
+            req = self.authlib(username, password)(req)
 
         # Attach a hook to handle 401 responses
         req.register_hook("response", self.handle_401)
@@ -260,7 +266,7 @@ class MultiDomainBasicAuth(AuthBase):
         resp.raw.release_conn()
 
         # Add our new username and password to the request
-        req = HTTPBasicAuth(username or "", password or "")(resp.request)
+        req = self.authlib(username or "", password or "")(resp.request)
         req.register_hook("response", self.warn_on_401)
 
         # On successful request, save the credentials that were used to
@@ -296,3 +302,28 @@ class MultiDomainBasicAuth(AuthBase):
                 keyring.set_password(*creds)
             except Exception:
                 logger.exception('Failed to save credentials')
+
+    @property
+    def authlib(self):
+        # Place holder for Authentication Class
+        raise NotImplementedError
+
+
+class MultiDomainBasicAuth(MultiDomainAuth):
+    @property
+    def authlib(self):
+        return HTTPBasicAuth
+
+
+class MultiDomainNtlmAuth(MultiDomainAuth):
+    def __init__(self, *args, **kwargs):
+        if HttpNtlmAuth is None:
+            raise InstallationError(
+                "Dependencies for Ntlm authentication are missing. Install "
+                "dependencies via the 'pip install pip[ntlm]' command."
+            )
+        super(MultiDomainNtlmAuth, self).__init__(*args, **kwargs)
+
+    @property
+    def authlib(self):
+        return HttpNtlmAuth
