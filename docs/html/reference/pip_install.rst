@@ -728,7 +728,7 @@ You can install local projects by specifying the project path to pip::
 
 $ pip install path/to/SomeProject
 
-Until version 20.0, pip did copy the entire project directory to a temporary
+Until version 20.0, pip copied the entire project directory to a temporary
 location and installed from there. This approach was the cause of several
 performance and correctness issues. As of version 20.1 pip installs from the
 local project directory. Depending on the build backend used by the project,
