@@ -310,7 +310,7 @@ class RequirementCommand(IndexGroupCommand):
                     parsed_req,
                     isolated=options.isolated_mode,
                 )
-                req_to_add.is_direct = True
+                req_to_add.is_direct = False
                 requirements.append(req_to_add)
 
         for req in args:

@@ -195,7 +195,7 @@ class Resolver(BaseResolver):
             return True
         else:
             assert self.upgrade_strategy == "only-if-needed"
-            return req.is_direct
+            return req.is_direct or req.constraint
 
     def _set_req_to_reinstall(self, req):
         # type: (InstallRequirement) -> None
