@@ -31,56 +31,12 @@ Encoding
 
 All files in our documentation must use UTF-8 encoding.
 
-
-File Layout
-===========
-
 Line Length
 -----------
 
 Limit all lines to a maximum of 72 characters, where possible. This may
 be exceeded when it does not make sense to abide by it (eg. long links,
 code blocks).
-
-Indentation
------------
-
-We use 3 spaces for indentation.
-
-::
-
-   .. note::
-
-      Directive blocks
-
-   ::
-
-      Code block.
-
-Bullet lists are the only exception to the 3 spaces rule, using 2 spaces
-when wrapping lines.
-
-::
-
-   - This is a bullet list.
-   - This is a lot of text in a single bullet which would require wrapping
-     across multiple lines to fit in the line length limits.
-
-Note that nested lists would use 3 spaces for indentation, and require
-blank lines on either side (that's the ReST syntax).
-
-::
-
-   - This is a bullet list.
-   - There is a nested list associated with this list item.
-
-      - This is a nested bullet list.
-      - With multiple bullets even.
-      - And some of the bullets have really long sentences that would
-        require wrapping across multiple lines.
-
-   - This is a lot of text in a single bullet which would require wrapping
-     across multiple lines to fit in the line length limits.
 
 Headings
 ========
