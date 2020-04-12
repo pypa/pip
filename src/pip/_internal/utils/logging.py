@@ -52,7 +52,6 @@ else:
 
 
 _log_state = threading.local()
-_log_state.indentation = 0
 subprocess_logger = getLogger('pip.subprocessor')
 
 
