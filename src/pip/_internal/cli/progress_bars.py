@@ -14,7 +14,8 @@ from pip._internal.utils.misc import format_size
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Dict, List
+    from typing import Any, Callable, Iterable, Iterator, Optional
+    DownloadProgress = Callable[[Iterable[bytes]], Iterator[bytes]]
 
 try:
     from pip._vendor import colorama
@@ -52,7 +53,7 @@ def _select_progress_class(preferred, fallback):
         return preferred
 
 
-_BaseBar = _select_progress_class(IncrementalBar, Bar)  # type: Any
+_BaseBar = _select_progress_class(IncrementalBar, Bar)  # type: Bar
 
 
 class InterruptibleMixin(object):
@@ -74,7 +75,7 @@ class InterruptibleMixin(object):
     """
 
     def __init__(self, *args, **kwargs):
-        # type: (List[Any], Dict[Any, Any]) -> None
+        # type: (*Any, **Any) -> None
         """
         Save the original SIGINT handler for later.
         """
@@ -133,14 +134,13 @@ class BlueEmojiBar(IncrementalBar):
 class DownloadProgressMixin(object):
 
     def __init__(self, *args, **kwargs):
-        # type: (List[Any], Dict[Any, Any]) -> None
+        # type: (*Any, **Any) -> None
         super(DownloadProgressMixin, self).__init__(  # type: ignore
             *args,
             **kwargs
         )
-        self.message = (" " * (
-            get_indentation() + 2
-        )) + self.message  # type: str
+        indent = " " * (get_indentation() + 2)  # type: str
+        self.message = indent + self.message  # type: str
 
     @property
     def downloaded(self):
@@ -162,17 +162,18 @@ class DownloadProgressMixin(object):
             return "eta {}".format(self.eta_td)  # type: ignore
         return ""
 
-    def iter(self, it):  # type: ignore
+    def iter(self, it):
+        # type: (Iterable[bytes]) -> Iterator[bytes]
         for x in it:
             yield x
-            self.next(len(x))
-        self.finish()
+            self.next(len(x))  # type: ignore
+        self.finish()  # type: ignore
 
 
 class WindowsMixin(object):
 
     def __init__(self, *args, **kwargs):
-        # type: (List[Any], Dict[Any, Any]) -> None
+        # type: (*Any, **Any) -> None
         # The Windows terminal does not support the hide/show cursor ANSI codes
         # even with colorama. So we'll ensure that hide_cursor is False on
         # Windows.
@@ -271,7 +272,9 @@ BAR_TYPES = {
 
 
 def DownloadProgressProvider(progress_bar, max=None):  # type: ignore
+    # type: (str, Optional[int]) -> DownloadProgress
     if max is None or max == 0:
-        return BAR_TYPES[progress_bar][1]().iter
+        # mypy error: "WindowsMixin" has no attribute "iter"
+        return BAR_TYPES[progress_bar][1]().iter  # type: ignore
     else:
         return BAR_TYPES[progress_bar][0](max=max).iter
