@@ -150,6 +150,16 @@ def lint(session):
     session.run("pre-commit", "run", *args)
 
 
+@nox.session
+def vendoring(session):
+    # Required, otherwise we interpret --no-binary :all: as
+    # "do not build wheels", which fails for PEP 517 requirements
+    session.install("-U", "pip>=19.3.1")
+    session.install("vendoring")
+
+    session.run("vendoring", "sync", ".", "-v")
+
+
 # -----------------------------------------------------------------------------
 # Release Commands
 # -----------------------------------------------------------------------------
