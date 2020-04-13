@@ -24,9 +24,9 @@ from pip._internal.utils.misc import (
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 try:
-    from requests_ntlm import HttpNtlmAuth  # noqa
+    from requests_negotiate_sspi import HttpNegotiateAuth  # noqa
 except ImportError:
-    HttpNtlmAuth = None
+    HttpNegotiateAuth = None
 
 if MYPY_CHECK_RUNNING:
     from optparse import Values
@@ -317,7 +317,7 @@ class MultiDomainBasicAuth(MultiDomainAuth):
 
 class MultiDomainNtlmAuth(MultiDomainAuth):
     def __init__(self, *args, **kwargs):
-        if HttpNtlmAuth is None:
+        if HttpNegotiateAuth is None:
             raise InstallationError(
                 "Dependencies for Ntlm authentication are missing. Install "
                 "dependencies via the 'pip install pip[ntlm]' command."
@@ -326,4 +326,4 @@ class MultiDomainNtlmAuth(MultiDomainAuth):
 
     @property
     def authlib(self):
-        return HttpNtlmAuth
+        return HttpNegotiateAuth
