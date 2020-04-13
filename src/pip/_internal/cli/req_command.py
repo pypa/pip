@@ -83,14 +83,13 @@ class SessionCommandMixin(CommandContextMixIn):
         """
         Return a dict of extra HTTP request headers from user-provided options.
         """
-        extra_headers_text = getattr(options, 'extra_headers', None)
+        if not options.extra_headers:
+            return None
         try:
-            extra_headers = json.loads(extra_headers_text)
+            return json.loads(options.extra_headers)
         except (TypeError, ValueError):
-            if extra_headers_text:
-                raise CommandError('Could not parse extra headers as JSON')
-            extra_headers = None
-        return extra_headers
+            logger.critical('Could not parse extra headers as JSON')
+            return None
 
     def get_default_session(self, options):
         # type: (Values) -> PipSession
