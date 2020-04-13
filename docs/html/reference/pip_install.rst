@@ -728,8 +728,13 @@ You can install local projects by specifying the project path to pip::
 
 $ pip install path/to/SomeProject
 
-During regular installation, pip will copy the entire project directory to a temporary location and install from there.
-The exception is that pip will exclude .tox and .nox directories present in the top level of the project from being copied.
+Until version 20.0, pip copied the entire project directory to a temporary
+location and installed from there. This approach was the cause of several
+performance and correctness issues. As of version 20.1 pip installs from the
+local project directory. Depending on the build backend used by the project,
+this may generate secondary build artifacts in the project directory, such as
+the ``.egg-info`` and ``build`` directories in the case of the setuptools
+backend.
 
 
 .. _`editable-installs`:
