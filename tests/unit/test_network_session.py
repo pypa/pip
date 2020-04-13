@@ -227,3 +227,11 @@ class TestPipSession:
                 'TY3ODkwIiwibmFtZSI6IlNwYW0gU3BhbSIsImlhdCI6MTUxNjIzOTAyMn0.h1'
                 '98Wld6h_ASlfRZN3ZftXLNkGHIdrdNpXwrEOdLO1U'})
         assert 'Authorization' in session.headers
+
+    def test_bogus_extra_headers(self):
+        bogus_header = \
+            'Authorization=Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdW'\
+            'IiOiIxMjM0NTY3ODkwIiwibmFtZSI6IlNwYW0gU3BhbSIsImlhdCI6MTUxNjIzOT'\
+            'AyMn0.h198Wld6h_ASlfRZN3ZftXLNkGHIdrdNpXwrEOdLO1U'
+        with pytest.raises(ValueError):
+            PipSession(extra_headers=bogus_header)
