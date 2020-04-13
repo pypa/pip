@@ -60,7 +60,7 @@ class Factory(object):
 
         if not ignore_installed:
             self._installed_dists = {
-                dist.project_name: dist
+                canonicalize_name(dist.project_name): dist
                 for dist in get_installed_distributions()
             }
         else:
