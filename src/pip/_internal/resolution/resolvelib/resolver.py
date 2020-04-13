@@ -118,7 +118,7 @@ class Resolver(BaseResolver):
                 else:
                     constraints[name] = req.specifier
             else:
-                if req.is_direct and req.name:
+                if req.user_supplied and req.name:
                     user_requested.add(canonicalize_name(req.name))
                 requirements.append(
                     self.factory.make_requirement_from_install_req(req)

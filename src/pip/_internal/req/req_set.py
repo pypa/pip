@@ -107,7 +107,7 @@ class RequirementSet(object):
                 )
 
         # This next bit is really a sanity check.
-        assert not install_req.is_direct or parent_req_name is None, (
+        assert not install_req.user_supplied or parent_req_name is None, (
             "a direct req shouldn't have a parent"
         )
 
@@ -166,8 +166,8 @@ class RequirementSet(object):
         existing_req.constraint = False
         # If we're now installing a top level requirement, mark the existing
         # object as top level.
-        if install_req.is_direct:
-            existing_req.is_direct = True
+        if install_req.user_supplied:
+            existing_req.user_supplied = True
         existing_req.extras = tuple(sorted(
             set(existing_req.extras) | set(install_req.extras)
         ))

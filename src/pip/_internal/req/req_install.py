@@ -171,7 +171,10 @@ class InstallRequirement(object):
         self.hash_options = hash_options if hash_options else {}
         # Set to True after successful preparation of this requirement
         self.prepared = False
-        self.is_direct = False
+        # User supplied requirement are explicitly requested for installation
+        # by the user via CLI arguments or requirements files, as opposed to,
+        # e.g. dependencies, extras or constraints.
+        self.user_supplied = False
 
         # Set by the legacy resolver when the requirement has been downloaded
         # TODO: This introduces a strong coupling between the resolver and the
@@ -809,7 +812,7 @@ class InstallRequirement(object):
                 pycompile=pycompile,
                 warn_script_location=warn_script_location,
                 direct_url=direct_url,
-                requested=self.is_direct,
+                requested=self.user_supplied,
             )
             self.install_succeeded = True
             return
