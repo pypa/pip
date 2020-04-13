@@ -1,9 +1,11 @@
 import functools
+import logging
 
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.resolvelib import BaseReporter
+from pip._vendor.resolvelib import BaseReporter, ResolutionImpossible
 from pip._vendor.resolvelib import Resolver as RLResolver
 
+from pip._internal.exceptions import InstallationError
 from pip._internal.req.req_set import RequirementSet
 from pip._internal.resolution.base import BaseResolver
 from pip._internal.resolution.resolvelib.provider import PipProvider
@@ -21,6 +23,9 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.operations.prepare import RequirementPreparer
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.resolution.base import InstallRequirementProvider
+
+
+logger = logging.getLogger(__name__)
 
 
 class Resolver(BaseResolver):
@@ -64,7 +69,26 @@ class Resolver(BaseResolver):
             self.factory.make_requirement_from_install_req(r)
             for r in root_reqs
         ]
-        self._result = resolver.resolve(requirements)
+
+        try:
+            self._result = resolver.resolve(requirements)
+        except ResolutionImpossible as exc:
+            # TODO: This is just an initial version. May need more work.
+            # Also could do with rewriting to fit better into 80-char
+            # lines :-(
+            for req, parent in exc.causes:
+                logger.critical(
+                    "Could not find a version that satisfies " +
+                    "the requirement " +
+                    str(req) +
+                    ("" if parent is None else " (from {})".format(
+                        parent.name
+                    ))
+                )
+            raise InstallationError(
+                "No matching distribution found for " +
+                ", ".join([r.name for r, _ in exc.causes])
+            )
 
         req_set = RequirementSet(check_supported_wheels=check_supported_wheels)
         for candidate in self._result.mapping.values():

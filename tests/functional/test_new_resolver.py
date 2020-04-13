@@ -155,6 +155,39 @@ def test_new_resolver_installs_extras(script):
     assert_installed(script, base="0.1.0", dep="0.1.0")
 
 
+def test_new_resolver_installed_message(script):
+    create_basic_wheel_for_package(script, "A", "1.0")
+    result = script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "A",
+        expect_stderr=False,
+    )
+    assert "Successfully installed A-1.0" in result.stdout, str(result)
+
+
+def test_new_resolver_no_dist_message(script):
+    create_basic_wheel_for_package(script, "A", "1.0")
+    result = script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "B",
+        expect_error=True,
+        expect_stderr=True,
+    )
+
+    # Full messages from old resolver:
+    # ERROR: Could not find a version that satisfies the
+    #        requirement xxx (from versions: none)
+    # ERROR: No matching distribution found for xxx
+
+    assert "Could not find a version that satisfies the requirement B" \
+        in result.stderr, str(result)
+    assert "No matching distribution found for B" in result.stderr, str(result)
+
+
 def test_new_resolver_installs_editable(script):
     create_basic_wheel_for_package(
         script,
