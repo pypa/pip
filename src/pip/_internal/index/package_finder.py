@@ -341,7 +341,7 @@ class EvaluatedCandidatesResult(object):
     """A collection of candidates, returned by `PackageFinder.find_best_candidate`.
 
     This class is only intended to be instantiated by CandidateEvaluator's
-    `compute_best_candidate()` method.
+    `evaluate_candidates()` method.
     """
 
     def __init__(
@@ -575,7 +575,7 @@ class CandidateEvaluator(object):
 
         return best_candidate
 
-    def compute_best_candidate(
+    def evaluate_candidates(
         self,
         candidates,      # type: List[InstallationCandidate]
     ):
@@ -886,7 +886,7 @@ class PackageFinder(object):
             specifier=specifier,
             hashes=hashes,
         )
-        return candidate_evaluator.compute_best_candidate(candidates)
+        return candidate_evaluator.evaluate_candidates(candidates)
 
     def find_requirement(self, req, upgrade):
         # type: (InstallRequirement, bool) -> Optional[Link]

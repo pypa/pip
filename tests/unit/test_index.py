@@ -381,7 +381,7 @@ class TestCandidateEvaluator:
         actual_versions = [str(c.version) for c in actual]
         assert actual_versions == expected_versions
 
-    def test_compute_best_candidate(self):
+    def test_evaluate_candidates(self):
         specifier = SpecifierSet('<= 1.11')
         versions = ['1.10', '1.11', '1.12']
         candidates = [
@@ -391,7 +391,7 @@ class TestCandidateEvaluator:
             'my-project',
             specifier=specifier,
         )
-        result = evaluator.compute_best_candidate(candidates)
+        result = evaluator.evaluate_candidates(candidates)
 
         assert result._candidates == candidates
         expected_applicable = candidates[:2]
@@ -403,7 +403,7 @@ class TestCandidateEvaluator:
 
         assert result.best_candidate is expected_applicable[1]
 
-    def test_compute_best_candidate__none_best(self):
+    def test_evaluate_candidates__none_best(self):
         """
         Test returning a None best candidate.
         """
@@ -416,7 +416,7 @@ class TestCandidateEvaluator:
             'my-project',
             specifier=specifier,
         )
-        result = evaluator.compute_best_candidate(candidates)
+        result = evaluator.evaluate_candidates(candidates)
 
         assert result._candidates == candidates
         assert result._applicable_candidates == []

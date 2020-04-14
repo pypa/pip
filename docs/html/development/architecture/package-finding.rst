@@ -108,7 +108,7 @@ One of ``PackageFinder``'s main top-level methods is
    :ref:`Overview <index-overview>` above.
 2. Constructs a ``CandidateEvaluator`` object and uses that to determine
    the best candidate. It does this by calling the ``CandidateEvaluator``
-   class's ``compute_best_candidate()`` method on the return value of
+   class's ``evaluate_candidates()`` method on the return value of
    ``find_all_candidates()``. This corresponds to steps 4-5 of the Overview.
 
 ``PackageFinder`` also has a ``process_project_url()`` method (called by
@@ -194,7 +194,7 @@ them to a list of "applicable" candidates and orders them by preference.
 The ``CandidateEvaluator`` class also has a ``sort_best_candidate()`` method
 that returns the best (i.e. most preferred) candidate.
 
-Finally, the class has a ``compute_best_candidate()`` method that calls
+Finally, the class has a ``evaluate_candidates()`` method that calls
 ``get_applicable_candidates()`` followed by ``sort_best_candidate()``, and
 then returning a :ref:`EvaluatedCandidatesResult <evaluated-candidate-result-class>`
 object encapsulating both the intermediate and final results of the decision.
@@ -232,8 +232,7 @@ business logic or state-changing methods of its own.) It stores not just the
 final result but also intermediate values used to determine the result.
 
 The class is the return type of both the ``CandidateEvaluator`` class's
-``compute_best_candidate()`` method and the ``PackageFinder`` class's
-``find_best_candidate()`` method.
+``evaluate_candidates()`` method and the ``PackageFinder`` class's
 
 
 .. _`PEP 425`: https://www.python.org/dev/peps/pep-0425/
