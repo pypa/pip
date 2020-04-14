@@ -1,13 +1,16 @@
-# The following comment should be removed at some point in the future.
-# mypy: disallow-untyped-defs=False
-
 from __future__ import absolute_import
 
 import sys
 import textwrap
 
 from pip._internal.cli.base_command import Command
+from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.utils.misc import get_prog
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from typing import Any, List
+    from optparse import Values
 
 BASE_COMPLETION = """
 # pip {shell} completion start{script}# pip {shell} completion end
@@ -54,6 +57,7 @@ class CompletionCommand(Command):
     ignore_require_venv = True
 
     def __init__(self, *args, **kw):
+        # type: (*Any, **Any) -> None
         super(CompletionCommand, self).__init__(*args, **kw)
 
         cmd_opts = self.cmd_opts
@@ -80,6 +84,7 @@ class CompletionCommand(Command):
         self.parser.insert_option_group(0, cmd_opts)
 
     def run(self, options, args):
+        #  type: (Values, List[Any]) -> int
         """Prints the completion code of the given shell"""
         shells = COMPLETION_SCRIPTS.keys()
         shell_options = ['--' + shell for shell in sorted(shells)]
@@ -89,7 +94,9 @@ class CompletionCommand(Command):
                     prog=get_prog())
             )
             print(BASE_COMPLETION.format(script=script, shell=options.shell))
+            return SUCCESS
         else:
             sys.stderr.write(
                 'ERROR: You must pass {}\n' .format(' or '.join(shell_options))
             )
+            return ERROR
