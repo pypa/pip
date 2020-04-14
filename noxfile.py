@@ -150,6 +150,13 @@ def lint(session):
     session.run("pre-commit", "run", *args)
 
 
+@nox.session
+def vendoring(session):
+    session.install("vendoring")
+
+    session.run("vendoring", "sync", ".", "-v")
+
+
 # -----------------------------------------------------------------------------
 # Release Commands
 # -----------------------------------------------------------------------------
