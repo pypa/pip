@@ -1,5 +1,5 @@
 import pytest
-from pip._vendor import pytoml
+from pip._vendor import toml
 
 from pip._internal.build_env import BuildEnvironment
 from pip._internal.req import InstallRequirement
@@ -14,7 +14,7 @@ def make_project(tmpdir, requires=[], backend=None, backend_path=None):
         buildsys['build-backend'] = backend
     if backend_path:
         buildsys['backend-path'] = backend_path
-    data = pytoml.dumps({'build-system': buildsys})
+    data = toml.dumps({'build-system': buildsys})
     project_dir.joinpath('pyproject.toml').write_text(data)
     return project_dir
 
@@ -190,7 +190,7 @@ def make_pyproject_with_setup(tmpdir, build_system=True, set_backend=True):
         if set_backend:
             buildsys['build-backend'] = 'setuptools.build_meta'
             expect_script_dir_on_path = False
-        project_data = pytoml.dumps({'build-system': buildsys})
+        project_data = toml.dumps({'build-system': buildsys})
     else:
         project_data = ''
 
