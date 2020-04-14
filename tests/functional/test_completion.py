@@ -107,9 +107,10 @@ def test_completion_alone(autocomplete_script):
     """
     Test getting completion for none shell, just pip completion
     """
-    result = autocomplete_script.pip('completion', allow_stderr_error=True)
+    result = autocomplete_script.pip('completion', expect_error=True)
     assert 'ERROR: You must pass --bash or --fish or --zsh' in result.stderr, \
            'completion alone failed -- ' + result.stderr
+    assert result.returncode == 1
 
 
 def test_completion_for_un_snippet(autocomplete):
@@ -314,3 +315,4 @@ def test_completion_uses_same_executable_name(
         executable_name, 'completion', flag, expect_stderr=deprecated_python,
     )
     assert executable_name in result.stdout
+    assert result.returncode == 0
