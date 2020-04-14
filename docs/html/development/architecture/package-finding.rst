@@ -223,7 +223,7 @@ attributes are needed only for ``CandidateEvaluator``.
 .. _evaluated-candidate-result-class:
 
 The ``EvaluatedCandidatesResult`` class
-*********************************
+***************************************
 
 The ``EvaluatedCandidatesResult`` class is a convenience "container" class that
 encapsulates the result of finding the best candidate for a requirement.
