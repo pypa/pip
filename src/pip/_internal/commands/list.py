@@ -25,7 +25,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from optparse import Values
-    from typing import Any, List, Set, Tuple
+    from typing import Any, List, Set, Tuple, Iterator
 
     from pip._internal.network.session import PipSession
     from pip._vendor.pkg_resources import Distribution
@@ -199,11 +199,12 @@ class ListCommand(IndexGroupCommand):
         return list({pkg for pkg in packages if pkg.key not in dep_keys})
 
     def iter_packages_latest_infos(self, packages, options):
-        # type: (List[Distribution], Values) -> Distribution
+        # type: (List[Distribution], Values) -> Iterator[Distribution]
         with self._build_session(options) as session:
             finder = self._build_package_finder(options, session)
 
             def latest_info(dist):
+                # type: (Distribution) -> Distribution
                 typ = 'unknown'
                 all_candidates = finder.find_all_candidates(dist.key)
                 if not options.pre:
