@@ -95,6 +95,12 @@ def remove_matches_wheel(wheel_cache_dir):
     return _remove_matches_wheel
 
 
+def test_cache_dir(script, cache_dir):
+    result = script.pip('cache', 'dir')
+
+    assert os.path.normcase(cache_dir) == result.stdout.strip()
+
+
 @pytest.mark.usefixtures("populate_wheel_cache")
 def test_cache_info(script, wheel_cache_dir, wheel_cache_files):
     result = script.pip('cache', 'info')
