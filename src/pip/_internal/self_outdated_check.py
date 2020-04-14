@@ -204,7 +204,7 @@ def pip_self_version_check(session, options):
                 link_collector=link_collector,
                 selection_prefs=selection_prefs,
             )
-            best_candidate = finder.find_best_candidate("pip").best_candidate
+            best_candidate = finder.find_evaluated_candidates("pip").best_candidate
             if best_candidate is None:
                 return
             pypi_version = str(best_candidate.version)

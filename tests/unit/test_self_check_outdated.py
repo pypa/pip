@@ -114,7 +114,7 @@ class MockPackageFinder(object):
     def create(cls, *args, **kwargs):
         return cls()
 
-    def find_all_candidates(self, project_name):
+    def find_evaluated_candidates(self, project_name):
         return MockEvaluatedCandidatesResult(self.INSTALLATION_CANDIDATES[0])
 
 

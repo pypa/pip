@@ -96,7 +96,7 @@ sorting by preference the candidates for install coming from the relevant
 links.
 
 One of ``PackageFinder``'s main top-level methods is
-``find_best_candidate()``. This method does the following two things:
+``find_evaluated_candidates()``. This method does the following two things:
 
 1. Calls its ``find_all_candidates()`` method, which gathers all
    possible package links by reading and parsing the index URL's and
@@ -112,7 +112,7 @@ One of ``PackageFinder``'s main top-level methods is
    ``find_all_candidates()``. This corresponds to steps 4-5 of the Overview.
 
 ``PackageFinder`` also has a ``process_project_url()`` method (called by
-``find_best_candidate()``) to process a `PEP 503`_ "simple repository"
+``find_evaluated_candidates()``) to process a `PEP 503`_ "simple repository"
 project page. This method fetches and parses the HTML from a PEP 503 project
 page URL, extracts the anchor elements and creates ``Link`` objects from
 them, and then evaluates those links.
@@ -233,6 +233,7 @@ final result but also intermediate values used to determine the result.
 
 The class is the return type of both the ``CandidateEvaluator`` class's
 ``evaluate_candidates()`` method and the ``PackageFinder`` class's
+``find_evaluated_candidates()`` method.
 
 
 .. _`PEP 425`: https://www.python.org/dev/peps/pep-0425/

@@ -65,7 +65,7 @@ class SpecifierRequirement(Requirement):
 
     def find_matches(self):
         # type: () -> Sequence[Candidate]
-        found = self._factory.finder.find_best_candidate(
+        found = self._factory.finder.find_evaluated_candidates(
             project_name=self._ireq.req.name,
             specifier=self._ireq.req.specifier,
             hashes=self._ireq.hashes(trust_internet=False),

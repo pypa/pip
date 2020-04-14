@@ -338,7 +338,8 @@ class CandidatePreferences(object):
 
 
 class EvaluatedCandidatesResult(object):
-    """A collection of candidates, returned by `PackageFinder.find_best_candidate`.
+    """A collection of candidates, returned by `PackageFinder`'s
+    `find_evaluated_candidates` method.
 
     This class is only intended to be instantiated by CandidateEvaluator's
     `evaluate_candidates()` method.
@@ -865,7 +866,7 @@ class PackageFinder(object):
             hashes=hashes,
         )
 
-    def find_best_candidate(
+    def find_evaluated_candidates(
         self,
         project_name,       # type: str
         specifier=None,     # type: Optional[specifiers.BaseSpecifier]
@@ -897,10 +898,10 @@ class PackageFinder(object):
         Raises DistributionNotFound or BestVersionAlreadyInstalled otherwise
         """
         hashes = req.hashes(trust_internet=False)
-        best_candidate_result = self.find_best_candidate(
+        evaluated_candidates = self.find_evaluated_candidates(
             req.name, specifier=req.specifier, hashes=hashes,
         )
-        best_candidate = best_candidate_result.best_candidate
+        best_candidate = evaluated_candidates.best_candidate
 
         installed_version = None    # type: Optional[_BaseVersion]
         if req.satisfied_by is not None:
@@ -922,7 +923,7 @@ class PackageFinder(object):
                 'Could not find a version that satisfies the requirement %s '
                 '(from versions: %s)',
                 req,
-                _format_versions(best_candidate_result.iter_all()),
+                _format_versions(evaluated_candidates.iter_all()),
             )
 
             raise DistributionNotFound(
@@ -958,14 +959,14 @@ class PackageFinder(object):
                 'Installed version (%s) is most up-to-date (past versions: '
                 '%s)',
                 installed_version,
-                _format_versions(best_candidate_result.iter_applicable()),
+                _format_versions(evaluated_candidates.iter_applicable()),
             )
             raise BestVersionAlreadyInstalled
 
         logger.debug(
             'Using version %s (newest of versions: %s)',
             best_candidate.version,
-            _format_versions(best_candidate_result.iter_applicable()),
+            _format_versions(evaluated_candidates.iter_applicable()),
         )
         return best_candidate.link
 
