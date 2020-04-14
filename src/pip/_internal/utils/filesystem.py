@@ -128,10 +128,13 @@ def _test_writable_dir_win(path):
         file = os.path.join(path, name)
         try:
             fd = os.open(file, os.O_RDWR | os.O_CREAT | os.O_EXCL)
+        # Python 2 doesn't support FileExistsError and PermissionError.
         except OSError as e:
+            # exception FileExistsError
             if e.errno == errno.EEXIST:
                 continue
-            if e.errno == errno.EPERM:
+            # exception PermissionError
+            if e.errno == errno.EPERM or e.errno == errno.EACCES:
                 # This could be because there's a directory with the same name.
                 # But it's highly unlikely there's a directory called that,
                 # so we'll assume it's because the parent dir is not writable.
