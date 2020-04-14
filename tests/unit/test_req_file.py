@@ -401,10 +401,13 @@ class TestProcessLine(object):
             )
         assert list(finder.trusted_hosts) == ['host1', 'host2:8080']
         session = finder._link_collector.session
-        assert session.adapters['https://host1/'] is session._insecure_adapter
+        assert (
+            session.adapters['https://host1/']
+            is session._trusted_host_adapter
+        )
         assert (
             session.adapters['https://host2:8080/']
-            is session._insecure_adapter
+            is session._trusted_host_adapter
         )
 
         # Test the log message.

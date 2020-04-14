@@ -22,6 +22,24 @@ class RequirementsConflicted(ResolverException):
         super(RequirementsConflicted, self).__init__(criterion)
         self.criterion = criterion
 
+    def __str__(self):
+        return "Requirements conflict: {}".format(
+            ", ".join(repr(r) for r in self.criterion.iter_requirement()),
+        )
+
+
+class InconsistentCandidate(ResolverException):
+    def __init__(self, candidate, criterion):
+        super(InconsistentCandidate, self).__init__(candidate, criterion)
+        self.candidate = candidate
+        self.criterion = criterion
+
+    def __str__(self):
+        return "Provided candidate {!r} does not satisfy {}".format(
+            self.candidate,
+            ", ".join(repr(r) for r in self.criterion.iter_requirement()),
+        )
+
 
 class Criterion(object):
     """Representation of possible resolution results of a package.
@@ -47,6 +65,13 @@ class Criterion(object):
         self.candidates = candidates
         self.information = information
         self.incompatibilities = incompatibilities
+
+    def __repr__(self):
+        requirements = ", ".join(
+            "{!r} from {!r}".format(req, parent)
+            for req, parent in self.information
+        )
+        return "<Criterion {}>".format(requirements)
 
     @classmethod
     def from_requirement(cls, provider, requirement, parent):
@@ -85,13 +110,15 @@ class Criterion(object):
 
     def excluded_of(self, candidate):
         """Build a new instance from this, but excluding specified candidate.
+
+        Returns the new instance, or None if we still have no valid candidates.
         """
         incompats = list(self.incompatibilities)
         incompats.append(candidate)
         candidates = [c for c in self.candidates if c != candidate]
-        criterion = type(self)(candidates, list(self.information), incompats)
         if not candidates:
-            raise RequirementsConflicted(criterion)
+            return None
+        criterion = type(self)(candidates, list(self.information), incompats)
         return criterion
 
 
@@ -100,9 +127,10 @@ class ResolutionError(ResolverException):
 
 
 class ResolutionImpossible(ResolutionError):
-    def __init__(self, requirements):
-        super(ResolutionImpossible, self).__init__(requirements)
-        self.requirements = requirements
+    def __init__(self, causes):
+        super(ResolutionImpossible, self).__init__(causes)
+        # causes is a list of RequirementInformation objects
+        self.causes = causes
 
 
 class ResolutionTooDeep(ResolutionError):
@@ -151,6 +179,7 @@ class Resolution(object):
         self._states.append(state)
 
     def _merge_into_criterion(self, requirement, parent):
+        self._r.adding_requirement(requirement)
         name = self._p.identify(requirement)
         try:
             crit = self.state.criteria[name]
@@ -195,11 +224,21 @@ class Resolution(object):
             except RequirementsConflicted as e:
                 causes.append(e.criterion)
                 continue
+
             # Put newly-pinned candidate at the end. This is essential because
             # backtracking looks at this mapping to get the last pin.
+            self._r.pinning(candidate)
             self.state.mapping.pop(name, None)
             self.state.mapping[name] = candidate
             self.state.criteria.update(criteria)
+
+            # Check the newly-pinned candidate actually works. This should
+            # always pass under normal circumstances, but in the case of a
+            # faulty provider, we will raise an error to notify the implementer
+            # to fix find_matches() and/or is_satisfied_by().
+            if not self._is_current_pin_satisfying(name, criterion):
+                raise InconsistentCandidate(candidate, criterion)
+
             return []
 
         # All candidates tried, nothing works. This criterion is a dead
@@ -217,12 +256,12 @@ class Resolution(object):
 
             # Retract the last candidate pin, and create a new (b).
             name, candidate = self._states.pop().mapping.popitem()
+            self._r.backtracking(candidate)
             self._push_new_state()
 
-            try:
-                # Mark the retracted candidate as incompatible.
-                criterion = self.state.criteria[name].excluded_of(candidate)
-            except RequirementsConflicted:
+            # Mark the retracted candidate as incompatible.
+            criterion = self.state.criteria[name].excluded_of(candidate)
+            if criterion is None:
                 # This state still does not work. Try the still previous state.
                 continue
             self.state.criteria[name] = criterion
@@ -240,8 +279,7 @@ class Resolution(object):
             try:
                 name, crit = self._merge_into_criterion(r, parent=None)
             except RequirementsConflicted as e:
-                # If initial requirements conflict, nothing would ever work.
-                raise ResolutionImpossible(e.requirements + [r])
+                raise ResolutionImpossible(e.criterion.information)
             self.state.criteria[name] = crit
 
         self._r.starting()
@@ -275,12 +313,10 @@ class Resolution(object):
             if failure_causes:
                 result = self._backtrack()
                 if not result:
-                    requirements = [
-                        requirement
-                        for crit in failure_causes
-                        for requirement in crit.iter_requirement()
+                    causes = [
+                        i for crit in failure_causes for i in crit.information
                     ]
-                    raise ResolutionImpossible(requirements)
+                    raise ResolutionImpossible(causes)
 
             self._r.ending_round(round_index, curr)
 
@@ -365,7 +401,9 @@ class Resolver(AbstractResolver):
         The following exceptions may be raised if a resolution cannot be found:
 
         * `ResolutionImpossible`: A resolution cannot be found for the given
-            combination of requirements.
+            combination of requirements. The `causes` attribute of the
+            exception is a list of (requirement, parent), giving the
+            requirements that could not be satisfied.
         * `ResolutionTooDeep`: The dependency tree is too deeply nested and
             the resolver gave up. This is usually caused by a circular
             dependency, but you can try to resolve this by increasing the

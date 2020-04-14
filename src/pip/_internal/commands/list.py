@@ -2,8 +2,10 @@ from __future__ import absolute_import
 
 import json
 import logging
+from multiprocessing.dummy import Pool
 
 from pip._vendor import six
+from pip._vendor.requests.adapters import DEFAULT_POOLSIZE
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.req_command import IndexGroupCommand
@@ -201,7 +203,7 @@ class ListCommand(IndexGroupCommand):
         with self._build_session(options) as session:
             finder = self._build_package_finder(options, session)
 
-            for dist in packages:
+            def latest_info(dist):
                 typ = 'unknown'
                 all_candidates = finder.find_all_candidates(dist.key)
                 if not options.pre:
@@ -214,7 +216,7 @@ class ListCommand(IndexGroupCommand):
                 )
                 best_candidate = evaluator.sort_best_candidate(all_candidates)
                 if best_candidate is None:
-                    continue
+                    return None
 
                 remote_version = best_candidate.version
                 if best_candidate.link.is_wheel:
@@ -224,7 +226,19 @@ class ListCommand(IndexGroupCommand):
                 # This is dirty but makes the rest of the code much cleaner
                 dist.latest_version = remote_version
                 dist.latest_filetype = typ
-                yield dist
+                return dist
+
+            # This is done for 2x speed up of requests to pypi.org
+            # so that "real time" of this function
+            # is almost equal to "user time"
+            pool = Pool(DEFAULT_POOLSIZE)
+
+            for dist in pool.imap_unordered(latest_info, packages):
+                if dist is not None:
+                    yield dist
+
+            pool.close()
+            pool.join()
 
     def output_package_listing(self, packages, options):
         # type: (List[Distribution], Values) -> None

@@ -1,9 +1,8 @@
 import errno
+import fnmatch
 import os
 import os.path
 import random
-import shutil
-import stat
 import sys
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
@@ -14,10 +13,11 @@ from pip._vendor.retrying import retry  # type: ignore
 from pip._vendor.six import PY2
 
 from pip._internal.utils.compat import get_path_uid
+from pip._internal.utils.misc import format_size
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING, cast
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, BinaryIO, Iterator
+    from typing import Any, BinaryIO, Iterator, List, Union
 
     class NamedTemporaryFileResult(BinaryIO):
         @property
@@ -52,36 +52,6 @@ def check_path_owner(path):
         else:
             previous, path = path, os.path.dirname(path)
     return False  # assume we don't own the path
-
-
-def copy2_fixed(src, dest):
-    # type: (str, str) -> None
-    """Wrap shutil.copy2() but map errors copying socket files to
-    SpecialFileError as expected.
-
-    See also https://bugs.python.org/issue37700.
-    """
-    try:
-        shutil.copy2(src, dest)
-    except (OSError, IOError):
-        for f in [src, dest]:
-            try:
-                is_socket_file = is_socket(f)
-            except OSError:
-                # An error has already occurred. Another error here is not
-                # a problem and we can ignore it.
-                pass
-            else:
-                if is_socket_file:
-                    raise shutil.SpecialFileError(
-                        "`{f}` is a socket".format(**locals()))
-
-        raise
-
-
-def is_socket(path):
-    # type: (str) -> bool
-    return stat.S_ISSOCK(os.lstat(path).st_mode)
 
 
 @contextmanager
@@ -176,3 +146,42 @@ def _test_writable_dir_win(path):
     raise EnvironmentError(
         'Unexpected condition testing for writable directory'
     )
+
+
+def find_files(path, pattern):
+    # type: (str, str) -> List[str]
+    """Returns a list of absolute paths of files beneath path, recursively,
+    with filenames which match the UNIX-style shell glob pattern."""
+    result = []  # type: List[str]
+    for root, dirs, files in os.walk(path):
+        matches = fnmatch.filter(files, pattern)
+        result.extend(os.path.join(root, f) for f in matches)
+    return result
+
+
+def file_size(path):
+    # type: (str) -> Union[int, float]
+    # If it's a symlink, return 0.
+    if os.path.islink(path):
+        return 0
+    return os.path.getsize(path)
+
+
+def format_file_size(path):
+    # type: (str) -> str
+    return format_size(file_size(path))
+
+
+def directory_size(path):
+    # type: (str) -> Union[int, float]
+    size = 0.0
+    for root, _dirs, files in os.walk(path):
+        for filename in files:
+            file_path = os.path.join(root, filename)
+            size += file_size(file_path)
+    return size
+
+
+def format_directory_size(path):
+    # type: (str) -> str
+    return format_size(directory_size(path))

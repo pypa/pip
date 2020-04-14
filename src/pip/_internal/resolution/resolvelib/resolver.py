@@ -1,9 +1,11 @@
 import functools
 
+from pip._vendor import six
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.resolvelib import BaseReporter
+from pip._vendor.resolvelib import BaseReporter, ResolutionImpossible
 from pip._vendor.resolvelib import Resolver as RLResolver
 
+from pip._internal.exceptions import InstallationError
 from pip._internal.req.req_set import RequirementSet
 from pip._internal.resolution.base import BaseResolver
 from pip._internal.resolution.resolvelib.provider import PipProvider
@@ -53,6 +55,11 @@ class Resolver(BaseResolver):
 
     def resolve(self, root_reqs, check_supported_wheels):
         # type: (List[InstallRequirement], bool) -> RequirementSet
+
+        # FIXME: Implement constraints.
+        if any(r.constraint for r in root_reqs):
+            raise InstallationError("Constraints are not yet supported.")
+
         provider = PipProvider(
             factory=self.factory,
             ignore_dependencies=self.ignore_dependencies,
@@ -64,7 +71,14 @@ class Resolver(BaseResolver):
             self.factory.make_requirement_from_install_req(r)
             for r in root_reqs
         ]
-        self._result = resolver.resolve(requirements)
+
+        try:
+            self._result = resolver.resolve(requirements)
+        except ResolutionImpossible as e:
+            error = self.factory.get_installation_error(e)
+            if not error:
+                raise
+            six.raise_from(error, e)
 
         req_set = RequirementSet(check_supported_wheels=check_supported_wheels)
         for candidate in self._result.mapping.values():
@@ -109,7 +123,11 @@ class Resolver(BaseResolver):
 
             # FIXME: This check will fail if there are unbreakable cycles.
             # Implement something to forcifully break them up to continue.
-            assert progressed, "Order calculation stuck in dependency loop."
+            if not progressed:
+                raise InstallationError(
+                    "Could not determine installation order due to cicular "
+                    "dependency."
+                )
 
         sorted_items = sorted(
             req_set.requirements.items(),
