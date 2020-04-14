@@ -45,7 +45,7 @@ classes inside the ``index`` package, in the following order:
 * the :ref:`LinkEvaluator <link-evaluator-class>` class,
 * the :ref:`CandidateEvaluator <candidate-evaluator-class>` class,
 * the :ref:`CandidatePreferences <candidate-preferences-class>` class, and
-* the :ref:`BestCandidateResult <best-candidate-result-class>` class.
+* the :ref:`EvaluatedCandidatesResult <evaluated-candidate-result-class>` class.
 
 
 .. _package-finder-class:
@@ -196,7 +196,7 @@ that returns the best (i.e. most preferred) candidate.
 
 Finally, the class has a ``compute_best_candidate()`` method that calls
 ``get_applicable_candidates()`` followed by ``sort_best_candidate()``, and
-then returning a :ref:`BestCandidateResult <best-candidate-result-class>`
+then returning a :ref:`EvaluatedCandidatesResult <evaluated-candidate-result-class>`
 object encapsulating both the intermediate and final results of the decision.
 
 Instances of ``CandidateEvaluator`` are created by the ``PackageFinder``
@@ -220,12 +220,12 @@ preferences specific to ``CandidateEvaluator`` helps maintainers know which
 attributes are needed only for ``CandidateEvaluator``.
 
 
-.. _best-candidate-result-class:
+.. _evaluated-candidate-result-class:
 
-The ``BestCandidateResult`` class
+The ``EvaluatedCandidatesResult`` class
 *********************************
 
-The ``BestCandidateResult`` class is a convenience "container" class that
+The ``EvaluatedCandidatesResult`` class is a convenience "container" class that
 encapsulates the result of finding the best candidate for a requirement.
 (By "container" we mean an object that simply contains data and has no
 business logic or state-changing methods of its own.) It stores not just the

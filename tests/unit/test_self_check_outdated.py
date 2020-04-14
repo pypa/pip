@@ -92,7 +92,7 @@ def test_make_link_collector__find_links_expansion(mock_expanduser, tmpdir):
     assert search_scope.index_urls == ['default_url']
 
 
-class MockBestCandidateResult(object):
+class MockEvaluatedCandidatesResult(object):
     def __init__(self, best):
         self.best_candidate = best
 
@@ -114,8 +114,8 @@ class MockPackageFinder(object):
     def create(cls, *args, **kwargs):
         return cls()
 
-    def find_best_candidate(self, project_name):
-        return MockBestCandidateResult(self.INSTALLATION_CANDIDATES[0])
+    def find_all_candidates(self, project_name):
+        return MockEvaluatedCandidatesResult(self.INSTALLATION_CANDIDATES[0])
 
 
 class MockDistribution(object):

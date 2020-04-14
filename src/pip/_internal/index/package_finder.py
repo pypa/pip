@@ -52,7 +52,7 @@ if MYPY_CHECK_RUNNING:
     )
 
 
-__all__ = ['FormatControl', 'BestCandidateResult', 'PackageFinder']
+__all__ = ['FormatControl', 'EvaluatedCandidatesResult', 'PackageFinder']
 
 
 logger = logging.getLogger(__name__)
@@ -337,7 +337,7 @@ class CandidatePreferences(object):
         self.prefer_binary = prefer_binary
 
 
-class BestCandidateResult(object):
+class EvaluatedCandidatesResult(object):
     """A collection of candidates, returned by `PackageFinder.find_best_candidate`.
 
     This class is only intended to be instantiated by CandidateEvaluator's
@@ -579,15 +579,15 @@ class CandidateEvaluator(object):
         self,
         candidates,      # type: List[InstallationCandidate]
     ):
-        # type: (...) -> BestCandidateResult
+        # type: (...) -> EvaluatedCandidatesResult
         """
-        Compute and return a `BestCandidateResult` instance.
+        Compute and return a `EvaluatedCandidatesResult` instance.
         """
         applicable_candidates = self.get_applicable_candidates(candidates)
 
         best_candidate = self.sort_best_candidate(applicable_candidates)
 
-        return BestCandidateResult(
+        return EvaluatedCandidatesResult(
             candidates,
             applicable_candidates=applicable_candidates,
             best_candidate=best_candidate,
@@ -871,14 +871,14 @@ class PackageFinder(object):
         specifier=None,     # type: Optional[specifiers.BaseSpecifier]
         hashes=None,        # type: Optional[Hashes]
     ):
-        # type: (...) -> BestCandidateResult
+        # type: (...) -> EvaluatedCandidatesResult
         """Find matches for the given project and specifier.
 
         :param specifier: An optional object implementing `filter`
             (e.g. `packaging.specifiers.SpecifierSet`) to filter applicable
             versions.
 
-        :return: A `BestCandidateResult` instance.
+        :return: A `EvaluatedCandidatesResult` instance.
         """
         candidates = self.find_all_candidates(project_name)
         candidate_evaluator = self.make_candidate_evaluator(
