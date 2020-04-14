@@ -31,9 +31,8 @@ class ShowCommand(Command):
     ignore_require_venv = True
 
     def __init__(self, *args, **kw):
-        # type: (List[Any], Dict[Any, Any]) -> None
-        # https://github.com/python/mypy/issues/4335
-        super(ShowCommand, self).__init__(*args, **kw)  # type: ignore
+        # type: (*Any, **Any) -> None
+        super(ShowCommand, self).__init__(*args, **kw)
         self.cmd_opts.add_option(
             '-f', '--files',
             dest='files',
@@ -44,7 +43,7 @@ class ShowCommand(Command):
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
-        # type: (Values, List[Any]) -> int
+        # type: (Values, List[str]) -> int
         if not args:
             logger.warning('ERROR: Please provide a package name or names.')
             return ERROR
@@ -58,7 +57,7 @@ class ShowCommand(Command):
 
 
 def search_packages_info(query):
-    # type: (List[Any]) -> Iterator[Dict[str, Any]]
+    # type: (List[str]) -> Iterator[Dict[str, str]]
     """
     Gather details from installed distributions. Print distribution name,
     version, location, and installed files. Installed files requires a
@@ -95,6 +94,10 @@ def search_packages_info(query):
             'required_by': get_requiring_packages(dist.project_name)
         }
         file_list = None
+        # Set metadata to empty string to avoid metadata being typed as
+        # Optional[Any] in function calls using metadata below
+        # and since dist.get_metadata returns us a str, the default
+        # value of empty string should be valid
         metadata = ''
         if isinstance(dist, pkg_resources.DistInfoDistribution):
             # RECORDs should be part of .dist-info metadatas
@@ -148,7 +151,7 @@ def search_packages_info(query):
 
 
 def print_results(distributions, list_files=False, verbose=False):
-    # type: (Iterator[Dict[str, Any]], bool, bool) -> bool
+    # type: (Iterator[Dict[str, str]], bool, bool) -> bool
     """
     Print the information from installed distributions found.
     """

@@ -12,7 +12,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from optparse import Values
-    from typing import Any, List, Dict
+    from typing import Any, List
 
 logger = logging.getLogger(__name__)
 
@@ -29,9 +29,8 @@ class HashCommand(Command):
     ignore_require_venv = True
 
     def __init__(self, *args, **kw):
-        # type: (List[Any], Dict[Any, Any]) -> None
-        # https://github.com/python/mypy/issues/4335
-        super(HashCommand, self).__init__(*args, **kw)  # type: ignore
+        # type: (*Any, **Any) -> None
+        super(HashCommand, self).__init__(*args, **kw)
         self.cmd_opts.add_option(
             '-a', '--algorithm',
             dest='algorithm',
@@ -43,7 +42,7 @@ class HashCommand(Command):
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
-        # type: (Values, List[Any]) -> int
+        # type: (Values, List[str]) -> int
         if not args:
             self.parser.print_usage(sys.stderr)
             return ERROR

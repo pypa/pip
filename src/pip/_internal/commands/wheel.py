@@ -19,7 +19,7 @@ from pip._internal.wheel_builder import build, should_build_for_wheel_command
 
 if MYPY_CHECK_RUNNING:
     from optparse import Values
-    from typing import Any, List, Dict
+    from typing import Any, List
 
 
 logger = logging.getLogger(__name__)
@@ -48,9 +48,8 @@ class WheelCommand(RequirementCommand):
       %prog [options] <archive url/path> ..."""
 
     def __init__(self, *args, **kw):
-        # type: (List[Any], Dict[Any, Any]) -> None
-        # https://github.com/python/mypy/issues/4335
-        super(WheelCommand, self).__init__(*args, **kw)  # type: ignore
+        # type: (*Any, **Any) -> None
+        super(WheelCommand, self).__init__(*args, **kw)
 
         cmd_opts = self.cmd_opts
 
@@ -112,7 +111,7 @@ class WheelCommand(RequirementCommand):
 
     @with_cleanup
     def run(self, options, args):
-        # type: (Values, List[Any]) -> int
+        # type: (Values, List[str]) -> int
         cmdoptions.check_install_build_global(options)
 
         session = self.get_default_session(options)
