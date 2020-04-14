@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 
 import pytest
 
@@ -261,6 +262,28 @@ def test_new_resolver_requires_python(
     script.pip(*args)
 
     assert_installed(script, base="0.1.0", dep=dep_version)
+
+
+def test_new_resolver_requires_python_error(script):
+    create_basic_wheel_for_package(
+        script,
+        "base",
+        "0.1.0",
+        requires_python="<2",
+    )
+    result = script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "base",
+        expect_error=True,
+    )
+
+    message = (
+        "Package 'base' requires a different Python: "
+        "{}.{}.{} not in '<2'".format(*sys.version_info[:3])
+    )
+    assert message in result.stderr, str(result)
 
 
 def test_new_resolver_installed(script):

@@ -1,5 +1,9 @@
 from pip._vendor.packaging.utils import canonicalize_name
 
+from pip._internal.exceptions import (
+    InstallationError,
+    UnsupportedPythonVersion,
+)
 from pip._internal.utils.misc import get_installed_distributions
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -12,7 +16,7 @@ from .candidates import (
 )
 from .requirements import (
     ExplicitRequirement,
-    NoMatchRequirement,
+    RequiresPythonRequirement,
     SpecifierRequirement,
 )
 
@@ -22,6 +26,7 @@ if MYPY_CHECK_RUNNING:
     from pip._vendor.packaging.specifiers import SpecifierSet
     from pip._vendor.packaging.version import _BaseVersion
     from pip._vendor.pkg_resources import Distribution
+    from pip._vendor.resolvelib import ResolutionImpossible
 
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.models.candidate import InstallationCandidate
@@ -152,16 +157,36 @@ class Factory(object):
         # type: (Optional[SpecifierSet]) -> Optional[Requirement]
         if self._ignore_requires_python or specifier is None:
             return None
-        # The logic here is different from SpecifierRequirement, for which we
-        # "find" candidates matching the specifier. But for Requires-Python,
-        # there is always exactly one candidate (the one specified with
-        # py_version_info). Here we decide whether to return that based on
-        # whether Requires-Python matches that one candidate or not.
-        if self._python_candidate.version in specifier:
-            return ExplicitRequirement(self._python_candidate)
-        return NoMatchRequirement(self._python_candidate.name)
+        return RequiresPythonRequirement(specifier, self._python_candidate)
 
     def should_reinstall(self, candidate):
         # type: (Candidate) -> bool
         # TODO: Are there more cases this needs to return True? Editable?
         return candidate.name in self._installed_dists
+
+    def _report_requires_python_error(
+        self,
+        requirement,  # type: RequiresPythonRequirement
+        parent,  # type: Candidate
+    ):
+        # type: (...) -> UnsupportedPythonVersion
+        template = (
+            "Package {package!r} requires a different Python: "
+            "{version} not in {specifier!r}"
+        )
+        message = template.format(
+            package=parent.name,
+            version=self._python_candidate.version,
+            specifier=str(requirement.specifier),
+        )
+        return UnsupportedPythonVersion(message)
+
+    def get_installation_error(self, e):
+        # type: (ResolutionImpossible) -> Optional[InstallationError]
+        for cause in e.causes:
+            if isinstance(cause.requirement, RequiresPythonRequirement):
+                return self._report_requires_python_error(
+                    cause.requirement,
+                    cause.parent,
+                )
+        return None
