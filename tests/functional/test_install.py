@@ -1884,7 +1884,10 @@ def test_install_skip_work_dir_pkg(script, data):
     assert 'Successfully installed simple' in result.stdout
 
 
-def test_install_verify_package_name_normalization(script):
+@pytest.mark.parametrize('package_name', ('simple-package', 'simple_package',
+                                          'simple.package'))
+def test_install_verify_package_name_normalization(script, package_name):
+
     """
     Test that install of a package again using a name which
     normalizes to the original package name, is a no-op
@@ -1896,6 +1899,6 @@ def test_install_verify_package_name_normalization(script):
                         expect_stderr=True, cwd=pkg_path)
     assert 'Successfully installed simple-package' in result.stdout
 
-    result = script.pip('install', 'simple.package')
-    assert 'Requirement already satisfied: simple.package' in result.stdout
-
+    result = script.pip('install', package_name)
+    assert 'Requirement already satisfied: {}'.format(
+        package_name) in result.stdout
