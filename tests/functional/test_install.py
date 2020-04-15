@@ -1882,3 +1882,20 @@ def test_install_skip_work_dir_pkg(script, data):
 
     assert 'Requirement already satisfied: simple' not in result.stdout
     assert 'Successfully installed simple' in result.stdout
+
+
+def test_install_verify_package_name_normalization(script):
+    """
+    Test that install of a package again using a name which
+    normalizes to the original package name, is a no-op
+    since the package is already installed
+    """
+    pkg_path = create_test_package_with_setup(
+        script, name='simple-package', version='1.0')
+    result = script.pip('install', '-e', '.',
+                        expect_stderr=True, cwd=pkg_path)
+    assert 'Successfully installed simple-package' in result.stdout
+
+    result = script.pip('install', 'simple.package')
+    assert 'Requirement already satisfied: simple.package' in result.stdout
+
