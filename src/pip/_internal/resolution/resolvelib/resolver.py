@@ -1,4 +1,5 @@
 import functools
+import logging
 
 from pip._vendor import six
 from pip._vendor.packaging.utils import canonicalize_name
@@ -23,6 +24,9 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.operations.prepare import RequirementPreparer
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.resolution.base import InstallRequirementProvider
+
+
+logger = logging.getLogger(__name__)
 
 
 class Resolver(BaseResolver):
@@ -74,9 +78,27 @@ class Resolver(BaseResolver):
 
         try:
             self._result = resolver.resolve(requirements)
+
         except ResolutionImpossible as e:
             error = self.factory.get_installation_error(e)
             if not error:
+                # TODO: This needs fixing, we need to look at the
+                # factory.get_installation_error infrastructure, as that
+                # doesn't really allow for the logger.critical calls I'm
+                # using here.
+                for req, parent in e.causes:
+                    logger.critical(
+                        "Could not find a version that satisfies " +
+                        "the requirement " +
+                        str(req) +
+                        ("" if parent is None else " (from {})".format(
+                            parent.name
+                        ))
+                    )
+                raise InstallationError(
+                    "No matching distribution found for " +
+                    ", ".join([r.name for r, _ in e.causes])
+                )
                 raise
             six.raise_from(error, e)
 

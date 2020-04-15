@@ -50,6 +50,10 @@ class SpecifierRequirement(Requirement):
         self._factory = factory
         self.extras = ireq.req.extras
 
+    def __str__(self):
+        # type: () -> str
+        return str(self._ireq.req)
+
     def __repr__(self):
         # type: () -> str
         return "{class_name}({requirement!r})".format(
