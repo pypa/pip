@@ -2,6 +2,7 @@
 
 import locale
 import os
+import sys
 
 import pytest
 
@@ -91,8 +92,13 @@ def test_str_to_display__decode_error(monkeypatch, caplog):
     # Encode with an incompatible encoding.
     data = u'ab'.encode('utf-16')
     actual = str_to_display(data)
+    # Keep the expected value endian safe
+    if sys.byteorder == "little":
+        expected = "\\xff\\xfea\x00b\x00"
+    elif sys.byteorder == "big":
+        expected = "\\xfe\\xff\x00a\x00b"
 
-    assert actual == u'\\xff\\xfea\x00b\x00', (
+    assert actual == expected, (
         # Show the encoding for easier troubleshooting.
         'encoding: {!r}'.format(locale.getpreferredencoding())
     )
