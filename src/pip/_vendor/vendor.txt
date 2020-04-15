@@ -3,7 +3,7 @@ CacheControl==0.12.6
 colorama==0.4.3
 contextlib2==0.6.0.post1
 distlib==0.3.0
-distro==1.4.0
+distro==1.5.0
 html5lib==1.0.1
 ipaddress==1.0.23  # Only needed on 2.6 and 2.7
 msgpack==0.6.2
