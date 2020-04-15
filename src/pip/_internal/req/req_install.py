@@ -428,12 +428,16 @@ class InstallRequirement(object):
         """
         if self.req is None:
             return
+
+        # Canonicalize requirement name to use normalized
+        # names while searching for already installed packages
+        no_marker = Requirement(str(self.req))
+        no_marker.marker = None
+        no_marker.name = canonicalize_name(no_marker.name)
         # get_distribution() will resolve the entire list of requirements
         # anyway, and we've already determined that we need the requirement
         # in question, so strip the marker so that we don't try to
         # evaluate it.
-        no_marker = Requirement(str(self.req))
-        no_marker.marker = None
         try:
             self.satisfied_by = pkg_resources.get_distribution(str(no_marker))
         except pkg_resources.DistributionNotFound:

@@ -1,0 +1,1 @@
+Package name should be normalized before we use it to search if it's already installed or not
