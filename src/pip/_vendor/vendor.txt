@@ -8,7 +8,7 @@ html5lib==1.0.1
 ipaddress==1.0.23  # Only needed on 2.6 and 2.7
 msgpack==1.0.0
 packaging==20.3
-pep517==0.7.0
+pep517==0.8.2
 progress==1.5
 pyparsing==2.4.6
 requests==2.22.0
