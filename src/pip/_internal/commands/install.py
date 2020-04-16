@@ -297,10 +297,7 @@ class InstallCommand(RequirementCommand):
         )
 
         try:
-            reqs = self.get_requirements(
-                args, options, finder, session,
-                check_supported_wheels=not options.target_dir,
-            )
+            reqs = self.get_requirements(args, options, finder, session)
 
             warn_deprecated_install_options(
                 reqs, options.install_options

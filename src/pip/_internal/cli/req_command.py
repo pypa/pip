@@ -25,7 +25,6 @@ from pip._internal.req.constructors import (
     install_req_from_req_string,
 )
 from pip._internal.req.req_file import parse_requirements
-from pip._internal.req.req_set import RequirementSet
 from pip._internal.self_outdated_check import (
     make_link_collector,
     pip_self_version_check,
@@ -296,15 +295,12 @@ class RequirementCommand(IndexGroupCommand):
         options,          # type: Values
         finder,           # type: PackageFinder
         session,          # type: PipSession
-        check_supported_wheels=True,  # type: bool
     ):
         # type: (...) -> List[InstallRequirement]
         """
         Parse command-line arguments into the corresponding requirements.
         """
-        requirement_set = RequirementSet(
-            check_supported_wheels=check_supported_wheels
-        )
+        requirements = []  # type: List[InstallRequirement]
         for filename in options.constraints:
             for parsed_req in parse_requirements(
                     filename,
@@ -315,7 +311,7 @@ class RequirementCommand(IndexGroupCommand):
                     isolated=options.isolated_mode,
                 )
                 req_to_add.is_direct = True
-                requirement_set.add_requirement(req_to_add)
+                requirements.append(req_to_add)
 
         for req in args:
             req_to_add = install_req_from_line(
@@ -323,7 +319,7 @@ class RequirementCommand(IndexGroupCommand):
                 use_pep517=options.use_pep517,
             )
             req_to_add.is_direct = True
-            requirement_set.add_requirement(req_to_add)
+            requirements.append(req_to_add)
 
         for req in options.editables:
             req_to_add = install_req_from_editable(
@@ -332,7 +328,7 @@ class RequirementCommand(IndexGroupCommand):
                 use_pep517=options.use_pep517,
             )
             req_to_add.is_direct = True
-            requirement_set.add_requirement(req_to_add)
+            requirements.append(req_to_add)
 
         # NOTE: options.require_hashes may be set if --require-hashes is True
         for filename in options.requirements:
@@ -345,10 +341,9 @@ class RequirementCommand(IndexGroupCommand):
                     use_pep517=options.use_pep517
                 )
                 req_to_add.is_direct = True
-                requirement_set.add_requirement(req_to_add)
+                requirements.append(req_to_add)
 
         # If any requirement has hash options, enable hash checking.
-        requirements = requirement_set.all_requirements
         if any(req.has_hash_options for req in requirements):
             options.require_hashes = True
 
