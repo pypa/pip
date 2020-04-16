@@ -109,9 +109,9 @@ class Factory(object):
         # type: (InstallRequirement, Set[str]) -> Iterator[Candidate]
         name = canonicalize_name(ireq.req.name)
         if not self._force_reinstall:
-            dist = self._installed_dists.get(name)
+            installed_dist = self._installed_dists.get(name)
         else:
-            dist = None
+            installed_dist = None
 
         found = self.finder.find_best_candidate(
             project_name=ireq.req.name,
@@ -119,7 +119,8 @@ class Factory(object):
             hashes=ireq.hashes(trust_internet=False),
         )
         for ican in found.iter_applicable():
-            if dist is not None and dist.parsed_version == ican.version:
+            if (installed_dist is not None and
+                    installed_dist.parsed_version == ican.version):
                 continue
             yield self._make_candidate_from_link(
                 link=ican.link,
@@ -131,9 +132,10 @@ class Factory(object):
 
         # Return installed distribution if it matches the specifier. This is
         # done last so the resolver will prefer it over downloading links.
-        if dist is not None and dist.parsed_version in ireq.req.specifier:
+        if (installed_dist is not None and
+                installed_dist.parsed_version in ireq.req.specifier):
             yield self._make_candidate_from_dist(
-                dist=dist,
+                dist=installed_dist,
                 extras=extras,
                 parent=ireq,
             )
