@@ -126,3 +126,32 @@ def test_install_special_extra(script):
     assert (
         "Could not find a version that satisfies the requirement missing_pkg"
     ) in result.stderr, str(result)
+
+
+@pytest.mark.parametrize(
+    "extra_to_install, simple_version", [
+        ['', '3.0'],
+        pytest.param('[extra1]', '2.0', marks=pytest.mark.xfail),
+        pytest.param('[extra2]', '1.0', marks=pytest.mark.xfail),
+        pytest.param('[extra1,extra2]', '1.0', marks=pytest.mark.xfail),
+    ])
+def test_install_extra_merging(script, data, extra_to_install, simple_version):
+    # Check that extra specifications in the extras section are honoured.
+    pkga_path = script.scratch_path / 'pkga'
+    pkga_path.mkdir()
+    pkga_path.joinpath("setup.py").write_text(textwrap.dedent("""
+        from setuptools import setup
+        setup(name='pkga',
+              version='0.1',
+              install_requires=['simple'],
+              extras_require={'extra1': ['simple<3'],
+                              'extra2': ['simple==1.*']},
+        )
+    """))
+
+    result = script.pip_install_local(
+        '{pkga_path}{extra_to_install}'.format(**locals()),
+    )
+
+    assert ('Successfully installed pkga-0.1 simple-{}'.format(simple_version)
+            ) in result.stdout
