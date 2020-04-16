@@ -994,6 +994,9 @@ def create_basic_wheel_for_package(
     if extra_files is None:
         extra_files = {}
 
+    # Fix wheel distribution name by replacing runs of non-alphanumeric
+    # characters with an underscore _ as per PEP 491
+    name = re.sub(r"[^\w\d.]+", "_", name, re.UNICODE)
     archive_name = "{}-{}-py2.py3-none-any.whl".format(name, version)
     archive_path = script.scratch_path / archive_name
 
