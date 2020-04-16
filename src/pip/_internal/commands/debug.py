@@ -183,7 +183,8 @@ def ca_bundle_info(config):
     if not global_overriding_level:
         return 'global'
 
-    levels.remove('global')
+    if 'global' in levels:
+        levels.remove('global')
     return ", ".join(levels)
 
 

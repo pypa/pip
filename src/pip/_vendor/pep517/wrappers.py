@@ -9,7 +9,16 @@ from tempfile import mkdtemp
 
 from . import compat
 
-_in_proc_script = pjoin(dirname(abspath(__file__)), '_in_process.py')
+
+try:
+    import importlib.resources as resources
+
+    def _in_proc_script_path():
+        return resources.path(__package__, '_in_process.py')
+except ImportError:
+    @contextmanager
+    def _in_proc_script_path():
+        yield pjoin(dirname(abspath(__file__)), '_in_process.py')
 
 
 @contextmanager
@@ -126,8 +135,6 @@ class Pep517HookCaller(object):
         self.backend_path = backend_path
         self._subprocess_runner = runner
 
-    # TODO: Is this over-engineered? Maybe frontends only need to
-    #       set this when creating the wrapper, not on every call.
     @contextmanager
     def subprocess_runner(self, runner):
         """A context manager for temporarily overriding the default subprocess
@@ -135,8 +142,10 @@ class Pep517HookCaller(object):
         """
         prev = self._subprocess_runner
         self._subprocess_runner = runner
-        yield
-        self._subprocess_runner = prev
+        try:
+            yield
+        finally:
+            self._subprocess_runner = prev
 
     def get_requires_for_build_wheel(self, config_settings=None):
         """Identify packages required for building a wheel
@@ -242,11 +251,12 @@ class Pep517HookCaller(object):
                               indent=2)
 
             # Run the hook in a subprocess
-            self._subprocess_runner(
-                [sys.executable, _in_proc_script, hook_name, td],
-                cwd=self.source_dir,
-                extra_environ=extra_environ
-            )
+            with _in_proc_script_path() as script:
+                self._subprocess_runner(
+                    [sys.executable, str(script), hook_name, td],
+                    cwd=self.source_dir,
+                    extra_environ=extra_environ
+                )
 
             data = compat.read_json(pjoin(td, 'output.json'))
             if data.get('unsupported'):
