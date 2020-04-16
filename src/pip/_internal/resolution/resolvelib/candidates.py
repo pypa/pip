@@ -41,7 +41,7 @@ logger = logging.getLogger(__name__)
 def make_install_req_from_link(link, parent):
     # type: (Link, InstallRequirement) -> InstallRequirement
     assert not parent.editable, "parent is editable"
-    return install_req_from_line(
+    req = install_req_from_line(
         link.url,
         comes_from=parent.comes_from,
         use_pep517=parent.use_pep517,
@@ -53,6 +53,12 @@ def make_install_req_from_link(link, parent):
             hashes=parent.hash_options
         ),
     )
+    # The req attribute needs to be set, as otherwise this looks like an
+    # "unnamed requirement" which causes req.ensure_build_location to ignore
+    # the build_dir and use a temporary directory.
+    # Hackety hack...
+    req.req = parent.req
+    return req
 
 
 def make_install_req_from_editable(link, parent):
@@ -236,7 +242,13 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
 
     def _prepare_abstract_distribution(self):
         # type: () -> AbstractDistribution
-        return self._factory.preparer.prepare_linked_requirement(self._ireq)
+        dist = self._factory.preparer.prepare_linked_requirement(self._ireq)
+        # The "prepared" and "successflly_downloaded" attributes are not
+        # set by prepare_linked_requirement, they need to be set by the
+        # caller. See the old resolver's _resolve_one method.
+        self._ireq.prepared = True
+        self._ireq.successfully_downloaded = True
+        return dist
 
 
 class EditableCandidate(_InstallRequirementBackedCandidate):
