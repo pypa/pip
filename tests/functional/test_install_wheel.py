@@ -587,3 +587,16 @@ def test_wheel_install_fails_with_badly_encoded_metadata(script):
     assert "Error decoding metadata for" in result.stderr
     assert "simple-0.1.0-py2.py3-none-any.whl" in result.stderr
     assert "METADATA" in result.stderr
+
+
+@pytest.mark.parametrize(
+    'package_name',
+    ['simple-package', 'simple_package'],
+)
+def test_correct_package_name_while_creating_wheel_bug(script, package_name):
+    """Check that the package name is correctly named while creating
+    a .whl file with a given format
+    """
+    package = create_basic_wheel_for_package(script, package_name, '1.0')
+    wheel_name = os.path.basename(package)
+    assert wheel_name == 'simple_package-1.0-py2.py3-none-any.whl'
