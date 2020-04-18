@@ -6,13 +6,19 @@ import errno
 import logging
 import os
 import shutil
+import subprocess
 import sys
 
 from pip._vendor import pkg_resources
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
-from pip._internal.exceptions import BadCommand, InstallationError
-from pip._internal.utils.compat import samefile
+from pip._internal.exceptions import (
+    BadCommand,
+    InstallationError,
+    SubProcessError,
+)
+from pip._internal.utils.compat import console_to_str, samefile
+from pip._internal.utils.logging import subprocess_logger
 from pip._internal.utils.misc import (
     ask_path_exists,
     backup_dir,
@@ -21,16 +27,20 @@ from pip._internal.utils.misc import (
     hide_value,
     rmtree,
 )
-from pip._internal.utils.subprocess import call_subprocess, make_command
+from pip._internal.utils.subprocess import (
+    format_command_args,
+    make_command,
+    make_subprocess_output_error,
+    reveal_command_args,
+)
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import get_url_scheme
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Any, Dict, Iterable, Iterator, List, Mapping, Optional, Text, Tuple,
+        Dict, Iterable, Iterator, List, Optional, Text, Tuple,
         Type, Union
     )
-    from pip._internal.cli.spinners import SpinnerInterface
     from pip._internal.utils.misc import HiddenText
     from pip._internal.utils.subprocess import CommandArgs
 
@@ -69,6 +79,123 @@ def make_vcs_requirement_url(repo_url, rev, project_name, subdir=None):
         req += '&subdirectory={}'.format(subdir)
 
     return req
+
+
+def call_subprocess(
+    cmd,  # type: Union[List[str], CommandArgs]
+    show_stdout=False,  # type: bool
+    cwd=None,  # type: Optional[str]
+    on_returncode='raise',  # type: str
+    extra_ok_returncodes=None,  # type: Optional[Iterable[int]]
+    log_failed_cmd=True  # type: Optional[bool]
+):
+    # type: (...) -> Text
+    """
+    Args:
+      show_stdout: if true, use INFO to log the subprocess's stderr and
+        stdout streams.  Otherwise, use DEBUG.  Defaults to False.
+      extra_ok_returncodes: an iterable of integer return codes that are
+        acceptable, in addition to 0. Defaults to None, which means [].
+      log_failed_cmd: if false, failed commands are not logged,
+        only raised.
+    """
+    if extra_ok_returncodes is None:
+        extra_ok_returncodes = []
+    # Most places in pip use show_stdout=False.
+    # What this means is--
+    #
+    # - We log this output of stdout and stderr at DEBUG level
+    # as it is received.
+    # - If DEBUG logging isn't enabled (e.g. if --verbose logging wasn't
+    #   requested), then we show a spinner so the user can still see the
+    #   subprocess is in progress.
+    # - If the subprocess exits with an error, we log the output to stderr
+    #   at ERROR level if it hasn't already been displayed to the console
+    #   (e.g. if --verbose logging wasn't enabled).  This way we don't log
+    #   the output to the console twice.
+    #
+    # If show_stdout=True, then the above is still done, but with DEBUG
+    # replaced by INFO.
+    if show_stdout:
+        # Then log the subprocess output at INFO level.
+        log_subprocess = subprocess_logger.info
+        used_level = logging.INFO
+    else:
+        # Then log the subprocess output using DEBUG.  This also ensures
+        # it will be logged to the log file (aka user_log), if enabled.
+        log_subprocess = subprocess_logger.debug
+        used_level = logging.DEBUG
+
+    # Whether the subprocess will be visible in the console.
+    showing_subprocess = subprocess_logger.getEffectiveLevel() <= used_level
+
+    command_desc = format_command_args(cmd)
+    try:
+        proc = subprocess.Popen(
+            # Convert HiddenText objects to the underlying str.
+            reveal_command_args(cmd),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            cwd=cwd
+        )
+        if proc.stdin:
+            proc.stdin.close()
+    except Exception as exc:
+        if log_failed_cmd:
+            subprocess_logger.critical(
+                "Error %s while executing command %s", exc, command_desc,
+            )
+        raise
+    all_output = []
+    while True:
+        # The "line" value is a unicode string in Python 2.
+        line = None
+        if proc.stdout:
+            line = console_to_str(proc.stdout.readline())
+        if not line:
+            break
+        line = line.rstrip()
+        all_output.append(line + '\n')
+
+        # Show the line immediately.
+        log_subprocess(line)
+    try:
+        proc.wait()
+    finally:
+        if proc.stdout:
+            proc.stdout.close()
+
+    proc_had_error = (
+        proc.returncode and proc.returncode not in extra_ok_returncodes
+    )
+    if proc_had_error:
+        if on_returncode == 'raise':
+            if not showing_subprocess and log_failed_cmd:
+                # Then the subprocess streams haven't been logged to the
+                # console yet.
+                msg = make_subprocess_output_error(
+                    cmd_args=cmd,
+                    cwd=cwd,
+                    lines=all_output,
+                    exit_status=proc.returncode,
+                )
+                subprocess_logger.error(msg)
+            exc_msg = (
+                'Command errored out with exit status {}: {} '
+                'Check the logs for full command output.'
+            ).format(proc.returncode, command_desc)
+            raise SubProcessError(exc_msg)
+        elif on_returncode == 'warn':
+            subprocess_logger.warning(
+                'Command "{}" had error code {} in {}'.format(
+                    command_desc, proc.returncode, cwd)
+            )
+        elif on_returncode == 'ignore':
+            pass
+        else:
+            raise ValueError('Invalid value: on_returncode={!r}'.format(
+                             on_returncode))
+    return ''.join(all_output)
 
 
 def find_path_to_setup_from_repo_root(location, repo_root):
@@ -663,9 +790,6 @@ class VersionControl(object):
         cwd=None,  # type: Optional[str]
         on_returncode='raise',  # type: str
         extra_ok_returncodes=None,  # type: Optional[Iterable[int]]
-        command_desc=None,  # type: Optional[str]
-        extra_environ=None,  # type: Optional[Mapping[str, Any]]
-        spinner=None,  # type: Optional[SpinnerInterface]
         log_failed_cmd=True  # type: bool
     ):
         # type: (...) -> Text
@@ -679,10 +803,6 @@ class VersionControl(object):
             return call_subprocess(cmd, show_stdout, cwd,
                                    on_returncode=on_returncode,
                                    extra_ok_returncodes=extra_ok_returncodes,
-                                   command_desc=command_desc,
-                                   extra_environ=extra_environ,
-                                   unset_environ=cls.unset_environ,
-                                   spinner=spinner,
                                    log_failed_cmd=log_failed_cmd)
         except OSError as e:
             # errno.ENOENT = no such file or directory

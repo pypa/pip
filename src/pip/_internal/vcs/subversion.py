@@ -25,7 +25,7 @@ _svn_info_xml_url_re = re.compile(r'<url>(.*)</url>')
 
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional, Tuple, Text
+    from typing import Optional, Tuple
     from pip._internal.utils.subprocess import CommandArgs
     from pip._internal.utils.misc import HiddenText
     from pip._internal.vcs.versioncontrol import AuthInfo, RevOptions
@@ -215,17 +215,7 @@ class Subversion(VersionControl):
         #   svn, version 1.7.14 (r1542130)
         #      compiled Mar 28 2018, 08:49:13 on x86_64-pc-linux-gnu
         version_prefix = 'svn, version '
-        cmd_output = self.run_command(['--version'], show_stdout=False)
-
-        # Split the output by newline, and find the first line where
-        # version_prefix is present
-        output_lines = cmd_output.split('\n')
-        version = ''  # type: Text
-
-        for line in output_lines:
-            if version_prefix in line:
-                version = line
-                break
+        version = self.run_command(['--version'], show_stdout=True)
 
         if not version.startswith(version_prefix):
             return ()
