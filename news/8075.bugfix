@@ -1,0 +1,1 @@
+Correctly allow prereleases when the user requires them in the new resolver.
