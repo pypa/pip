@@ -219,3 +219,9 @@ class TestPipSession:
         actual_level, actual_message = log_records[0]
         assert actual_level == 'WARNING'
         assert 'is not a trusted or secure host' in actual_message
+
+    def test_headers(self):
+        headers = {'Authorization': '~*~ SPAM ~*~'}
+        session = PipSession(headers=headers)
+        assert 'Authorization' in session.headers
+        assert session.headers['Authorization'] == '~*~ SPAM ~*~'

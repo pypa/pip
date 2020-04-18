@@ -325,6 +325,19 @@ index_url = partial(
 )  # type: Callable[..., Option]
 
 
+def headers():
+    # type: () -> Option
+    return Option(
+        '-H', '--header',
+        dest='headers',
+        action='append',
+        metavar='KEY:VAL',
+        default=[],
+        help='HTTP header to include in all requests. This option can be used '
+             'multiple times. Conflicts with --extra-index-url.',
+    )
+
+
 def extra_index_url():
     # type: () -> Option
     return Option(
@@ -943,6 +956,7 @@ general_group = {
     'options': [
         help_,
         isolated_mode,
+        headers,
         require_virtualenv,
         verbose,
         version,

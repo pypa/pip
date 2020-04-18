@@ -38,7 +38,7 @@ from pip._internal.utils.urls import url_to_path
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Iterator, List, Optional, Tuple, Union,
+        Dict, Iterator, List, Optional, Tuple, Union,
     )
 
     from pip._internal.models.link import Link
@@ -238,6 +238,7 @@ class PipSession(requests.Session):
         cache = kwargs.pop("cache", None)
         trusted_hosts = kwargs.pop("trusted_hosts", [])  # type: List[str]
         index_urls = kwargs.pop("index_urls", None)
+        headers = kwargs.pop("headers", {})  # type: Dict(str, str)
 
         super(PipSession, self).__init__(*args, **kwargs)
 
@@ -247,6 +248,10 @@ class PipSession(requests.Session):
 
         # Attach our User Agent to the request
         self.headers["User-Agent"] = user_agent()
+
+        # Attach provided HTTP headers to the request
+        if headers:
+            self.headers.update(**headers)
 
         # Attach our Authentication handler to the session
         self.auth = MultiDomainBasicAuth(index_urls=index_urls)

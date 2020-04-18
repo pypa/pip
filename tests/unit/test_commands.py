@@ -111,3 +111,41 @@ def test_requirement_commands():
         return isinstance(command, RequirementCommand)
 
     check_commands(is_requirement_command, ['download', 'install', 'wheel'])
+
+
+@pytest.mark.parametrize(
+    'headers, extra_index_urls, exp',
+    [
+        # No headers
+        (
+            [],
+            [],
+            None,
+        ),
+        # Valid headers
+        (
+            ['X-Spam: SPAM', 'X-Parrot: DEAD'],
+            [],
+            {'X-Spam': 'SPAM', 'X-Parrot': 'DEAD'},
+        ),
+        # One invalid header, one valid
+        (
+            ['X-Spam SPAM', 'X-Parrot: DEAD'],
+            [],
+            {'X-Parrot': 'DEAD'},
+        ),
+        # Valid headers, but multiple index URLs
+        (
+            ['X-Spam: SPAM', 'X-Parrot: DEAD'],
+            ['https://pypi.extra/simple/'],
+            None,
+        )
+    ],
+)
+def test_session_mixin_get_headers(headers, extra_index_urls, exp):
+    command = create_command('install')
+    options = command.parser.get_default_values()
+    options.headers = headers
+    options.extra_index_urls = extra_index_urls
+    ret = SessionCommandMixin._get_headers(options)
+    assert ret == exp
