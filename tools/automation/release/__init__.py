@@ -114,17 +114,30 @@ def create_git_tag(session: Session, tag_name: str, *, message: str) -> None:
 
 
 def get_next_development_version(version: str) -> str:
-    major, minor, *_ = map(int, version.split("."))
+    is_beta = "b" in version.lower()
 
-    # We have at most 4 releases, starting with 0. Once we reach 3, we'd want
-    # to roll-over to the next year's release numbers.
-    if minor == 3:
-        major += 1
-        minor = 0
+    parts = version.split(".")
+    s_major, s_minor, *_ = parts
+
+    # We only permit betas.
+    if is_beta:
+        s_minor, _, s_dev_number = s_minor.partition("b")
     else:
-        minor += 1
+        s_dev_number = "0"
 
-    return f"{major}.{minor}.dev0"
+    major, minor = map(int, [s_major, s_minor])
+
+    # Increase minor version number if we're not releasing a beta.
+    if not is_beta:
+        # We have at most 4 releases, starting with 0. Once we reach 3, we'd
+        # want to roll-over to the next year's release numbers.
+        if minor == 3:
+            major += 1
+            minor = 0
+        else:
+            minor += 1
+
+    return f"{major}.{minor}.dev" + s_dev_number
 
 
 def have_files_in_folder(folder_name: str) -> bool:
