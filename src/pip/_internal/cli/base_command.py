@@ -141,7 +141,7 @@ class Command(CommandContextMixIn):
             not options.no_python_version_warning
         ):
             message = (
-                "A future version of pip will drop support for Python 2.7. "
+                "pip 21.0 will drop support for Python 2.7. "
                 "More details about Python 2 support in pip, can be found at "
                 "https://pip.pypa.io/en/latest/development/release-process/#python-2-support"  # noqa
             )
