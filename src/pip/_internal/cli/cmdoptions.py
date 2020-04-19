@@ -930,6 +930,17 @@ unstable_feature = partial(
 )  # type: Callable[..., Option]
 
 
+prefer_minimum_versions = partial(
+    Option,
+    '--prefer-minimum-versions',
+    dest='prefer_minimum_versions',
+    action='store_true',
+    default=False,
+    help=SUPPRESS_HELP,  # TODO: Enable this when the resolver actually works.
+    # help='Use the lowest version that matches a requirement.',
+)  # type: Callable[..., Option]
+
+
 ##########
 # groups #
 ##########

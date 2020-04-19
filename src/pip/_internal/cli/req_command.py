@@ -200,6 +200,7 @@ class RequirementCommand(IndexGroupCommand):
         super(RequirementCommand, self).__init__(*args, **kw)
 
         self.cmd_opts.add_option(cmdoptions.no_clean())
+        self.cmd_opts.add_option(cmdoptions.prefer_minimum_versions())
 
     @staticmethod
     def make_requirement_preparer(
@@ -274,6 +275,7 @@ class RequirementCommand(IndexGroupCommand):
                 force_reinstall=force_reinstall,
                 upgrade_strategy=upgrade_strategy,
                 py_version_info=py_version_info,
+                prefer_minimum_versions=options.prefer_minimum_versions,
             )
         import pip._internal.resolution.legacy.resolver
         return pip._internal.resolution.legacy.resolver.Resolver(

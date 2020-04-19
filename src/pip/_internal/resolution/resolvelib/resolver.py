@@ -43,6 +43,7 @@ class Resolver(BaseResolver):
         force_reinstall,  # type: bool
         upgrade_strategy,  # type: str
         py_version_info=None,  # type: Optional[Tuple[int, ...]]
+        prefer_minimum_versions=False,  # type: bool
     ):
         super(Resolver, self).__init__()
         self.factory = Factory(
@@ -55,6 +56,7 @@ class Resolver(BaseResolver):
             py_version_info=py_version_info,
         )
         self.ignore_dependencies = ignore_dependencies
+        self.prefer_minimum_versions = prefer_minimum_versions
         self._result = None  # type: Optional[Result]
 
     def resolve(self, root_reqs, check_supported_wheels):
@@ -67,6 +69,7 @@ class Resolver(BaseResolver):
         provider = PipProvider(
             factory=self.factory,
             ignore_dependencies=self.ignore_dependencies,
+            prefer_minimum_versions=self.prefer_minimum_versions,
         )
         reporter = BaseReporter()
         resolver = RLResolver(provider, reporter)
@@ -77,7 +80,10 @@ class Resolver(BaseResolver):
         ]
 
         try:
-            self._result = resolver.resolve(requirements)
+            self._result = resolver.resolve(
+                requirements,
+                prefer_minimum_versions=self.prefer_minimum_versions,
+            )
 
         except ResolutionImpossible as e:
             error = self.factory.get_installation_error(e)
