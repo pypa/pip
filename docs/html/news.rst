@@ -1,5 +1,5 @@
-=============
-Release Notes
-=============
+=========
+Changelog
+=========
 
 .. include:: ../../NEWS.rst
