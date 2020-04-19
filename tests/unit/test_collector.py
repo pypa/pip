@@ -476,6 +476,36 @@ def test_get_html_page_invalid_scheme(caplog, url, vcs_scheme):
     ]
 
 
+@pytest.mark.parametrize(
+    "content_type",
+    [
+        "application/xhtml+xml",
+        "application/json",
+    ],
+)
+def test_get_html_page_invalid_content_type(caplog, content_type):
+    """`_get_html_page()` should warn if an invalid content-type is given.
+    Only text/html is allowed.
+    """
+    caplog.set_level(logging.DEBUG)
+    url = 'https://pypi.org/simple/pip'
+    link = Link(url)
+
+    session = mock.Mock(PipSession)
+    session.get.return_value = mock.Mock(**{
+        "request.method": "GET",
+        "headers": {"Content-Type": content_type},
+    })
+
+    assert _get_html_page(link, session=session) is None
+    assert ('pip._internal.index.collector',
+            logging.WARNING,
+            'Skipping page {} because the GET request got Content-Type: {}.'
+            'The supported Content-Type is text/html'.format(
+                url, content_type)) \
+        in caplog.record_tuples
+
+
 def make_fake_html_response(url):
     """
     Create a fake requests.Response object.
