@@ -202,7 +202,7 @@ class DebugCommand(Command):
         self.parser.config.load()
 
     def run(self, options, args):
-        # type: (Values, List[Any]) -> int
+        # type: (Values, List[str]) -> int
         logger.warning(
             "This command is only meant for debugging. "
             "Do not use this with automation for parsing and getting these "

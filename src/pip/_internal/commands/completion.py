@@ -84,7 +84,7 @@ class CompletionCommand(Command):
         self.parser.insert_option_group(0, cmd_opts)
 
     def run(self, options, args):
-        #  type: (Values, List[Any]) -> int
+        #  type: (Values, List[str]) -> int
         """Prints the completion code of the given shell"""
         shells = COMPLETION_SCRIPTS.keys()
         shell_options = ['--' + shell for shell in sorted(shells)]
