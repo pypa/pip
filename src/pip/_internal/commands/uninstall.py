@@ -55,7 +55,7 @@ class UninstallCommand(Command, SessionCommandMixin):
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
-        # type: (Values, List[Any]) -> int
+        # type: (Values, List[str]) -> int
         session = self.get_default_session(options)
 
         reqs_to_uninstall = {}

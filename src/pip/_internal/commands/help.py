@@ -6,7 +6,7 @@ from pip._internal.exceptions import CommandError
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import List, Any
+    from typing import List
     from optparse import Values
 
 
@@ -18,7 +18,7 @@ class HelpCommand(Command):
     ignore_require_venv = True
 
     def run(self, options, args):
-        # type: (Values, List[Any]) -> int
+        # type: (Values, List[str]) -> int
         from pip._internal.commands import (
             commands_dict, create_command, get_similar_commands,
         )

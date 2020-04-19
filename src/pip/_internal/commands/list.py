@@ -143,7 +143,7 @@ class ListCommand(IndexGroupCommand):
         )
 
     def run(self, options, args):
-        # type: (Values, List[Any]) -> int
+        # type: (Values, List[str]) -> int
         if options.outdated and options.uptodate:
             raise CommandError(
                 "Options --outdated and --uptodate cannot be combined.")
@@ -261,7 +261,7 @@ class ListCommand(IndexGroupCommand):
             write_output(format_for_json(packages, options))
 
     def output_package_listing_columns(self, data, header):
-        # type: (List[List[Any]], List[str]) -> None
+        # type: (List[List[str]], List[str]) -> None
         # insert the header first: we need to know the size of column names
         if len(data) > 0:
             data.insert(0, header)
