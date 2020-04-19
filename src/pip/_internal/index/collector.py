@@ -455,8 +455,9 @@ def _get_html_page(link, session=None):
             'be checked by HEAD.', link,
         )
     except _NotHTML as exc:
-        logger.debug(
-            'Skipping page %s because the %s request got Content-Type: %s',
+        logger.warning(
+            'Skipping page %s because the %s request got Content-Type: %s.'
+            'The supported Content-Type is text/html',
             link, exc.request_desc, exc.content_type,
         )
     except HTTPError as exc:
