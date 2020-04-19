@@ -173,8 +173,8 @@ def preprocess(content, skip_requirements_regex):
     :param skip_requirements_regex: the pattern to skip lines
     """
     lines_enum = enumerate(content.splitlines(), start=1)  # type: ReqFileLines
-    lines_enum = join_lines(lines_enum)
     lines_enum = ignore_comments(lines_enum)
+    lines_enum = join_lines(lines_enum)
     if skip_requirements_regex:
         lines_enum = skip_regex(lines_enum, skip_requirements_regex)
     lines_enum = expand_env_variables(lines_enum)
