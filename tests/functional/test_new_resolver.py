@@ -498,3 +498,34 @@ def test_new_resolver_force_reinstall(script):
         "base not reinstalled"
     )
     assert_installed(script, base="0.1.0")
+
+
+@pytest.mark.parametrize(
+    "available_versions, pip_args, expected_version",
+    [
+        # Choose the latest non-prerelease by default.
+        (["1.0", "2.0a1"], ["pkg"], "1.0"),
+        # Choose the prerelease if the specifier spells out a prerelease.
+        (["1.0", "2.0a1"], ["pkg==2.0a1"], "2.0a1"),
+        # Choose the prerelease if explicitly allowed by the user.
+        (["1.0", "2.0a1"], ["pkg", "--pre"], "2.0a1"),
+        # Choose the prerelease if no stable releases are available.
+        (["2.0a1"], ["pkg"], "2.0a1"),
+    ],
+    ids=["default", "exact-pre", "explicit-pre", "no-stable"],
+)
+def test_new_resolver_handles_prerelease(
+    script,
+    available_versions,
+    pip_args,
+    expected_version,
+):
+    for version in available_versions:
+        create_basic_wheel_for_package(script, "pkg", version)
+    script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        *pip_args
+    )
+    assert_installed(script, pkg=expected_version)

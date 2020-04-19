@@ -77,7 +77,11 @@ class SpecifierRequirement(Requirement):
         assert candidate.name == self.name, \
             "Internal issue: Candidate is not for this requirement " \
             " {} vs {}".format(candidate.name, self.name)
-        return candidate.version in self._ireq.req.specifier
+        # We can safely always allow prereleases here since PackageFinder
+        # already implements the prerelease logic, and would have filtered out
+        # prerelease candidates if the user does not expect them.
+        spec = self._ireq.req.specifier
+        return spec.contains(candidate.version, prereleases=True)
 
 
 class RequiresPythonRequirement(Requirement):
@@ -109,4 +113,7 @@ class RequiresPythonRequirement(Requirement):
     def is_satisfied_by(self, candidate):
         # type: (Candidate) -> bool
         assert candidate.name == self._candidate.name, "Not Python candidate"
-        return candidate.version in self.specifier
+        # We can safely always allow prereleases here since PackageFinder
+        # already implements the prerelease logic, and would have filtered out
+        # prerelease candidates if the user does not expect them.
+        return self.specifier.contains(candidate.version, prereleases=True)
