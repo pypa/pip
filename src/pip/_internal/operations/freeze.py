@@ -7,7 +7,6 @@ from __future__ import absolute_import
 import collections
 import logging
 import os
-import re
 
 from pip._vendor import six
 from pip._vendor.packaging.utils import canonicalize_name
