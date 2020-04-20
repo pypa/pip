@@ -1,3 +1,4 @@
+@Switch01
 A_Rog
 Aakanksha Agrawal
 Abhinav Sagar
@@ -32,6 +33,7 @@ Ami Fischman
 Ananya Maiti
 Anatoly Techtonik
 Anders Kaseorg
+Andre Aguiar
 Andreas Lutro
 Andrei Geacar
 Andrew Gaul
@@ -51,6 +53,7 @@ Antonio Alvarado Hernandez
 Antony Lee
 Antti Kaihola
 Anubhav Patel
+Anudit Nagar
 Anuj Godase
 AQNOUCH Mohammed
 AraHaan
@@ -78,6 +81,7 @@ Berker Peksag
 Bernardo B. Marques
 Bernhard M. Wiedemann
 Bertil Hatt
+Bhavam Vidyarthi
 Bogdan Opanchuk
 BorisZZZ
 Brad Erickson
@@ -109,10 +113,13 @@ Chris Hunt
 Chris Jerdonek
 Chris McDonough
 Chris Wolfe
+Christian Clauss
 Christian Heimes
 Christian Oudard
+Christoph Reiter
 Christopher Hunt
 Christopher Snyder
+cjc7373
 Clark Boylan
 Clay McClure
 Cody
@@ -140,6 +147,7 @@ Daniel Shaulov
 Daniele Esposti
 Daniele Procida
 Danny Hermes
+Danny McClanahan
 Dav Clark
 Dave Abrahams
 Dave Jones
@@ -153,8 +161,10 @@ David Pursehouse
 David Tucker
 David Wales
 Davidovich
+Deepak Sharma
 derwolfe
 Desetude
+Devesh Kumar Singh
 Diego Caraballo
 DiegoCaraballo
 Dmitry Gladkov
@@ -170,6 +180,7 @@ Eitan Adler
 ekristina
 elainechan
 Eli Schwartz
+Ellen Marie Dash
 Emil Burzo
 Emil Styrke
 Endoh Takanao
@@ -201,6 +212,7 @@ Geoffrey Lehée
 Geoffrey Sneddon
 George Song
 Georgi Valkov
+ghost
 Giftlin Rajaiah
 gizmoguy1
 gkdoc
@@ -208,6 +220,7 @@ Gopinath M
 GOTO Hayato
 gpiks
 Guilherme Espada
+gutsytechster
 Guy Rozendorn
 gzpan123
 Hanjun Kim
@@ -227,6 +240,7 @@ Ian Stapleton Cordasco
 Ian Wienand
 Igor Kuzmitshov
 Igor Sobreira
+Ilan Schnell
 Ilya Baryshev
 INADA Naoki
 Ionel Cristian Mărieș
@@ -256,6 +270,7 @@ Jiashuo Li
 Jim Garrison
 Jivan Amara
 John Paton
+John T. Wodder II
 John-Scott Atlakson
 johnthagen
 Jon Banafato
@@ -289,6 +304,7 @@ Kevin Frommelt
 Kevin R Patterson
 Kexuan Sun
 Kit Randel
+KOLANICH
 kpinc
 Krishna Oza
 Kumar McMillan
@@ -359,12 +375,15 @@ Nate Coraor
 Nathaniel J. Smith
 Nehal J Wani
 Neil Botelho
+Nguyễn Gia Phong
 Nick Coghlan
 Nick Stenning
 Nick Timkovich
 Nicolas Bock
 Nikhil Benesch
+Nikolay Korolev
 Nitesh Sharma
+Noah Gorny
 Nowell Strite
 NtaleGrey
 nvdv
@@ -377,6 +396,7 @@ Olivier Grisel
 Ollie Rutherfurd
 OMOTO Kenji
 Omry Yadan
+onlinejudge95
 Oren Held
 Oscar Benjamin
 Oz N Tiram
@@ -412,6 +432,7 @@ Prabakaran Kumaresshan
 Prabhjyotsing Surjit Singh Sodhi
 Prabhu Marappan
 Pradyun Gedam
+Prashant Sharma
 Pratik Mallya
 Preet Thakkar
 Preston Holmes
@@ -424,10 +445,12 @@ Rafael Caricio
 Ralf Schmitt
 Razzi Abuissa
 rdb
+Reece Dunham
 Remi Rampin
 Rene Dudfield
 Riccardo Magliocchetti
 Richard Jones
+Ricky Ng-Adam
 RobberPhex
 Robert Collins
 Robert McGibbon
@@ -462,6 +485,7 @@ Simeon Visser
 Simon Cross
 Simon Pichugin
 sinoroc
+sinscary
 Sorin Sbarnea
 Stavros Korokithakis
 Stefan Scherfke
@@ -497,6 +521,7 @@ tinruufu
 Tom Forbes
 Tom Freudenheim
 Tom V
+Tomas Hrnciar
 Tomas Orsava
 Tomer Chachamu
 Tony Beswick
