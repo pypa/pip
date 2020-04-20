@@ -79,7 +79,7 @@ class TestPreprocess(object):
           # comment \\
           req2
         """)
-        result = preprocess(content, None)
+        result = preprocess(content)
         assert list(result) == [(1, 'req1'), (3, 'req2')]
 
     def test_comments_and_joins_case2(self):
@@ -87,7 +87,7 @@ class TestPreprocess(object):
           req1\\
           # comment
         """)
-        result = preprocess(content, None)
+        result = preprocess(content)
         assert list(result) == [(1, 'req1')]
 
     def test_comments_and_joins_case3(self):
@@ -96,7 +96,7 @@ class TestPreprocess(object):
           # comment
           req2
         """)
-        result = preprocess(content, None)
+        result = preprocess(content)
         assert list(result) == [(1, 'req1'), (3, 'req2')]
 
 
