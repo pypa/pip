@@ -1,1 +1,0 @@
-Significantly speedup ``pip list --outdated`` by parallelizing index interaction.

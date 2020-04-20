@@ -1,2 +1,0 @@
-Building of local directories is now done in place, instead of a temporary
-location containing a copy of the directory tree.
