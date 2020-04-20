@@ -13,6 +13,7 @@ from pip._internal.configuration import (
     kinds,
 )
 from pip._internal.exceptions import PipError
+from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import get_prog, write_output
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -34,6 +35,7 @@ class ConfigurationCommand(Command):
     - get: Get the value associated with name
     - set: Set the name=value
     - unset: Unset the value associated with name
+    - list-files: List the configuration files
 
     If none of --user, --global and --site are passed, a virtual
     environment configuration file is used if one is active and the file
@@ -49,6 +51,7 @@ class ConfigurationCommand(Command):
         %prog [<file-option>] get name
         %prog [<file-option>] set name value
         %prog [<file-option>] unset name
+        %prog [<file-option>] list-files
     """
 
     def __init__(self, name, summary, isolated=False):
@@ -103,7 +106,8 @@ class ConfigurationCommand(Command):
             "edit": self.open_in_editor,
             "get": self.get_name,
             "set": self.set_name_value,
-            "unset": self.unset_name
+            "unset": self.unset_name,
+            "list-files": self.list_config_files,
         }
 
         # Determine action
@@ -189,6 +193,16 @@ class ConfigurationCommand(Command):
         self.configuration.unset_value(key)
 
         self._save_configuration()
+
+    def list_config_files(self, options, args):
+        self._get_n_args(args, "list-files", n=0)
+
+        for variant, files in sorted(self.configuration.iter_config_files()):
+            write_output("%s:", variant)
+            for fname in files:
+                with indent_log():
+                    write_output("%s, exists: %r ",
+                                 fname, os.path.exists(fname))
 
     def open_in_editor(self, options, args):
         editor = self._determine_editor(options)

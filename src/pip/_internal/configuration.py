@@ -280,7 +280,7 @@ class Configuration(object):
         # type: () -> None
         """Loads configuration from configuration files
         """
-        config_files = dict(self._iter_config_files())
+        config_files = dict(self.iter_config_files())
         if config_files[kinds.ENV][0:1] == [os.devnull]:
             logger.debug(
                 "Skipping loading configuration files due to "
@@ -370,7 +370,7 @@ class Configuration(object):
                 yield key[4:].lower(), val
 
     # XXX: This is patched in the tests.
-    def _iter_config_files(self):
+    def iter_config_files(self):
         # type: () -> Iterable[Tuple[Kind, List[str]]]
         """Yields variant and configuration files associated with it.
 
