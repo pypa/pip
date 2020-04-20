@@ -359,12 +359,6 @@ class TestGeneralOptions(AddFakeCommandMixin):
         options2, args2 = main(['fake', '--timeout', '-1'])
         assert options1.timeout == options2.timeout == -1
 
-    def test_skip_requirements_regex(self):
-        options1, args1 = main(['--skip-requirements-regex', 'path', 'fake'])
-        options2, args2 = main(['fake', '--skip-requirements-regex', 'path'])
-        assert options1.skip_requirements_regex == 'path'
-        assert options2.skip_requirements_regex == 'path'
-
     def test_exists_action(self):
         options1, args1 = main(['--exists-action', 'w', 'fake'])
         options2, args2 = main(['fake', '--exists-action', 'w'])

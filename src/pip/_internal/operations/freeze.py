@@ -50,7 +50,6 @@ def freeze(
     local_only=None,  # type: Optional[bool]
     user_only=None,  # type: Optional[bool]
     paths=None,  # type: Optional[List[str]]
-    skip_regex=None,  # type: Optional[str]
     isolated=False,  # type: bool
     wheel_cache=None,  # type: Optional[WheelCache]
     exclude_editable=False,  # type: bool
@@ -58,10 +57,6 @@ def freeze(
 ):
     # type: (...) -> Iterator[str]
     find_links = find_links or []
-    skip_match = None
-
-    if skip_regex:
-        skip_match = re.compile(skip_regex).search
 
     for link in find_links:
         yield '-f {}'.format(link)
@@ -100,7 +95,6 @@ def freeze(
                 for line in req_file:
                     if (not line.strip() or
                             line.strip().startswith('#') or
-                            (skip_match and skip_match(line)) or
                             line.startswith((
                                 '-r', '--requirement',
                                 '-Z', '--always-unzip',

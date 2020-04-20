@@ -146,13 +146,8 @@ def parse_requirements(
     :param constraint:  If true, parsing a constraint file rather than
         requirements file.
     """
-    skip_requirements_regex = (
-        options.skip_requirements_regex if options else None
-    )
     line_parser = get_line_parser(finder)
-    parser = RequirementsFileParser(
-        session, line_parser, comes_from, skip_requirements_regex
-    )
+    parser = RequirementsFileParser(session, line_parser, comes_from)
 
     for parsed_line in parser.parse(filename, constraint):
         parsed_req = handle_line(
@@ -165,18 +160,15 @@ def parse_requirements(
             yield parsed_req
 
 
-def preprocess(content, skip_requirements_regex):
-    # type: (Text, Optional[str]) -> ReqFileLines
+def preprocess(content):
+    # type: (Text) -> ReqFileLines
     """Split, filter, and join lines, and return a line iterator
 
     :param content: the content of the requirements file
-    :param skip_requirements_regex: the pattern to skip lines
     """
     lines_enum = enumerate(content.splitlines(), start=1)  # type: ReqFileLines
     lines_enum = join_lines(lines_enum)
     lines_enum = ignore_comments(lines_enum)
-    if skip_requirements_regex:
-        lines_enum = skip_regex(lines_enum, skip_requirements_regex)
     lines_enum = expand_env_variables(lines_enum)
     return lines_enum
 
@@ -326,13 +318,11 @@ class RequirementsFileParser(object):
         session,  # type: PipSession
         line_parser,  # type: LineParser
         comes_from,  # type: str
-        skip_requirements_regex,  # type: Optional[str]
     ):
         # type: (...) -> None
         self._session = session
         self._line_parser = line_parser
         self._comes_from = comes_from
-        self._skip_requirements_regex = skip_requirements_regex
 
     def parse(self, filename, constraint):
         # type: (str, bool) -> Iterator[ParsedLine]
@@ -380,7 +370,7 @@ class RequirementsFileParser(object):
             filename, self._session, comes_from=self._comes_from
         )
 
-        lines_enum = preprocess(content, self._skip_requirements_regex)
+        lines_enum = preprocess(content)
 
         for line_number, line in lines_enum:
             try:
@@ -515,18 +505,6 @@ def ignore_comments(lines_enum):
         line = line.strip()
         if line:
             yield line_number, line
-
-
-def skip_regex(lines_enum, pattern):
-    # type: (ReqFileLines, str) -> ReqFileLines
-    """
-    Skip lines that match the provided pattern
-
-    Note: the regex pattern is only built once
-    """
-    matcher = re.compile(pattern)
-    lines_enum = filterfalse(lambda e: matcher.search(e[1]), lines_enum)
-    return lines_enum
 
 
 def expand_env_variables(lines_enum):
