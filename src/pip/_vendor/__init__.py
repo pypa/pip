@@ -60,6 +60,7 @@ if DEBUNDLED:
     # Actually alias all of our vendored dependencies.
     vendored("appdirs")
     vendored("cachecontrol")
+    vendored("certifi")
     vendored("colorama")
     vendored("contextlib2")
     vendored("distlib")
