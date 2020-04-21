@@ -2,10 +2,11 @@
 Contributing
 ============
 
-.. todo
-   Create a "guide" to pip's internals and link to it from here saying
-   "you might want to take a look at the guide"
+Pip's internals
+===============
 
+We have an in-progress guide to the
+:ref:`architecture-pip-internals`. It might be helpful as you dive in.
 
 Submitting Pull Requests
 ========================
@@ -20,7 +21,7 @@ Provide tests that cover your changes and run the tests locally first. pip
 operating systems. Any pull request must consider and work on all these
 platforms.
 
-Pull Requests should be small to facilitate easier review. Keep them
+Pull requests should be small to facilitate easier review. Keep them
 self-contained, and limited in scope. `Studies have shown`_ that review quality
 falls off as patch size grows. Sometimes this will result in many small PRs to
 land a single large feature. In particular, pull requests must not be treated
@@ -30,8 +31,8 @@ can be reviewed and merged individually.
 
 Additionally, avoid including "cosmetic" changes to code that
 is unrelated to your change, as these make reviewing the PR more difficult.
-Examples include re-flowing text in comments or documentation, or addition or
-removal of blank lines or whitespace within lines. Such changes can be made
+Examples include re-flowing text in comments or documentation, or adding or
+removing blank lines or whitespace within lines. Such changes can be made
 separately, as a "formatting cleanup" PR, if needed.
 
 
@@ -41,7 +42,7 @@ Automated Testing
 All pull requests and merges to 'master' branch are tested using `Travis CI`_
 and `Appveyor CI`_ based on our `.travis.yml`_ and `.appveyor.yml`_ files.
 
-You can find the status and results to the CI runs for your PR on GitHub's Web
+You can find the status and results to the CI runs for your PR on GitHub's web
 UI for the pull request. You can also find links to the CI services' pages for
 the specific builds in the form of "Details" links, in case the CI run fails
 and you wish to view the output.
@@ -76,10 +77,11 @@ deduplicate them.
 Contents of a NEWS entry
 ------------------------
 
-The contents of this file are reStructuredText formatted text that will be used
-as the content of the news file entry. You do not need to reference the issue
-or PR numbers here as towncrier will automatically add a reference to all of
-the affected issues when rendering the news file.
+The contents of this file are reStructuredText formatted text that
+will be used as the content of the news file entry. You do not need to
+reference the issue or PR numbers in the entry, since ``towncrier``
+will automatically add a reference to all of the affected issues when
+rendering the NEWS file.
 
 In order to maintain a consistent style in the ``NEWS.rst`` file, it is
 preferred to keep the news entry to the point, in sentence case, shorter than
@@ -223,19 +225,23 @@ Try force-pushing your branch with ``push -f``.
 The ``master`` branch in the main pip repository gets updated frequently, so
 you might have to update your branch at least once while you are working on it.
 
+Thank you for your contribution!
+
 
 Becoming a maintainer
 =====================
 
 If you want to become an official maintainer, start by helping out.
 
-As a first step, we welcome you to triage issues on pip's issue tracker. pip
-maintainers provide triage abilities to contributors once they have been around
-for some time and contributed positively to the project. This is optional and highly
+As a first step, we welcome you to triage issues on pip's issue
+tracker. pip maintainers provide triage abilities to contributors once
+they have been around for some time (probably at least 2-3 months) and
+contributed positively to the project. This is optional and highly
 recommended for becoming a pip maintainer.
 
-Later, when you think you're ready, get in touch with one of the maintainers
-and they will initiate a vote among the existing maintainers.
+Later, when you think you're ready (probably at least 5 months after
+starting to triage), get in touch with one of the maintainers and they
+will initiate a vote among the existing maintainers.
 
 .. note::
 
