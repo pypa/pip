@@ -50,6 +50,9 @@ To trigger CI to run again for a pull request, you can close and open the pull
 request or submit another change to the pull request. If needed, project
 maintainers can manually trigger a restart of a job/build.
 
+To understand the broader software architecture around dependency
+resolution in pip, and how we automatically test this functionality,
+see `Testing the next-gen pip dependency resolver`_.
 
 NEWS Entries
 ============
@@ -255,3 +258,4 @@ and they will initiate a vote among the existing maintainers.
 .. _`.travis.yml`: https://github.com/pypa/pip/blob/master/.travis.yml
 .. _`.appveyor.yml`: https://github.com/pypa/pip/blob/master/.appveyor.yml
 .. _`towncrier`: https://pypi.org/project/towncrier/
+.. _`Testing the next-gen pip dependency resolver`: https://pradyunsg.me/blog/2020/03/27/pip-resolver-testing/
