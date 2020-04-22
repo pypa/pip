@@ -45,9 +45,10 @@ def generate_yaml_tests(directory):
                 case = base.copy()
                 case.update(case_template)
 
-                case[":name:"] = base_name + '-' + resolver
+                case[":name:"] = base_name
                 if len(cases) > 1:
                     case[":name:"] += "-" + str(i)
+                case[":name:"] += "*" + resolver
                 case[":resolver:"] = resolver
 
                 skip = case.pop("skip", None)
