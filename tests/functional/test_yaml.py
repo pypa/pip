@@ -51,10 +51,8 @@ def generate_yaml_tests(directory):
                 case[":name:"] += "*" + resolver
                 case[":resolver:"] = resolver
 
-                skip = case.pop("skip", None)
-                assert skip in [None, True, 'old', 'new'], (
-                    "invalid value for skip: %r" % skip
-                )
+                skip = case.pop("skip", False)
+                assert skip in [False, True, 'old', 'new']
                 if skip == True or skip == resolver:
                     case = pytest.param(case, marks=pytest.mark.xfail)
 
