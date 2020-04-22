@@ -216,13 +216,9 @@ class Resolution(object):
             criteria[name] = crit
         return criteria
 
-    def _attempt_to_pin_criterion(self, name, criterion, prefer_minimum_versions):
+    def _attempt_to_pin_criterion(self, name, criterion):
         causes = []
-        if prefer_minimum_versions:
-            candidates_in_order = criterion.candidates
-        else:
-            candidates_in_order = reversed(criterion.candidates)
-        for candidate in candidates_in_order:
+        for candidate in reversed(criterion.candidates):
             try:
                 criteria = self._get_criteria_to_update(candidate)
             except RequirementsConflicted as e:
@@ -274,7 +270,7 @@ class Resolution(object):
 
         return False
 
-    def resolve(self, requirements, max_rounds, prefer_minimum_versions):
+    def resolve(self, requirements, max_rounds):
         if self._states:
             raise RuntimeError("already resolved")
 
@@ -311,8 +307,7 @@ class Resolution(object):
                 unsatisfied_criterion_items,
                 key=self._get_criterion_item_preference,
             )
-            failure_causes = self._attempt_to_pin_criterion(
-                name, criterion, prefer_minimum_versions)
+            failure_causes = self._attempt_to_pin_criterion(name, criterion)
 
             # Backtrack if pinning fails.
             if failure_causes:
@@ -386,7 +381,7 @@ class Resolver(AbstractResolver):
 
     base_exception = ResolverException
 
-    def resolve(self, requirements, max_rounds=100, prefer_minimum_versions=False):
+    def resolve(self, requirements, max_rounds=100):
         """Take a collection of constraints, spit out the resolution result.
 
         The return value is a representation to the final resolution result. It
@@ -415,9 +410,5 @@ class Resolver(AbstractResolver):
             `max_rounds` argument.
         """
         resolution = Resolution(self.provider, self.reporter)
-        state = resolution.resolve(
-            requirements,
-            max_rounds=max_rounds,
-            prefer_minimum_versions=prefer_minimum_versions,
-        )
+        state = resolution.resolve(requirements, max_rounds=max_rounds)
         return _build_result(state)

@@ -80,10 +80,7 @@ class Resolver(BaseResolver):
         ]
 
         try:
-            self._result = resolver.resolve(
-                requirements,
-                prefer_minimum_versions=self.prefer_minimum_versions,
-            )
+            self._result = resolver.resolve(requirements)
 
         except ResolutionImpossible as e:
             error = self.factory.get_installation_error(e)

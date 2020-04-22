@@ -38,13 +38,14 @@ class PipProvider(AbstractProvider):
         information  # type: Sequence[Tuple[Requirement, Candidate]]
     ):
         # type: (...) -> Any
-        if self._prefer_minimum_versions:
-            return 0
         return len(candidates)
 
     def find_matches(self, requirement):
         # type: (Requirement) -> Sequence[Candidate]
-        return requirement.find_matches()
+        results = requirement.find_matches()
+        if self._prefer_minimum_versions:
+            results = list(reversed(results))
+        return results
 
     def is_satisfied_by(self, requirement, candidate):
         # type: (Requirement, Candidate) -> bool
