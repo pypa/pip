@@ -29,7 +29,7 @@ def generate_yaml_tests(directory):
     """
     Generate yaml test cases from the yaml files in the given directory
     """
-    for yml_file in directory.glob("*/*.yml"):
+    for yml_file in directory.glob("*.yml"):
         data = yaml.safe_load(yml_file.read_text())
         assert "cases" in data, "A fixture needs cases to be used in testing"
 
