@@ -92,13 +92,16 @@ def convert_to_dict(string):
     return retval
 
 
-def handle_request(script, action, requirement, options):
+def handle_request(script, action, requirement, options, new_resolver=False):
     assert isinstance(requirement, str), (
         "Need install requirement to be a string only"
     )
     if action == 'install':
-        args = ['install', "--no-index", "--find-links",
-                path_to_url(script.scratch_path)]
+        args = ['install']
+        if new_resolver:
+            args.append("--unstable-feature=resolver")
+        args.extend(["--no-index", "--find-links",
+                     path_to_url(script.scratch_path)])
     elif action == 'uninstall':
         args = ['uninstall', '--yes']
     else:
