@@ -8,6 +8,7 @@ testing, and documentation.
 
 You can also join ``#pypa`` (general packaging discussion and user support) and
 ``#pypa-dev`` (discussion about development of packaging tools) `on Freenode`_,
+the ``pip development`` stream on https://python.zulipchat.com,
 or the `pypa-dev mailing list`_, to ask questions or get involved.
 
 .. toctree::
