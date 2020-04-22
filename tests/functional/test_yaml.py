@@ -53,7 +53,7 @@ def generate_yaml_tests(directory):
 
                 skip = case.pop("skip", False)
                 assert skip in [False, True, 'old', 'new']
-                if skip == True or skip == resolver:
+                if skip is True or skip == resolver:
                     case = pytest.param(case, marks=pytest.mark.xfail)
 
                 yield case
