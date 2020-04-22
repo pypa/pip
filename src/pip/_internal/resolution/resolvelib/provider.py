@@ -16,7 +16,7 @@ class PipProvider(AbstractProvider):
         self,
         factory,  # type: Factory
         ignore_dependencies,  # type: bool
-        prefer_minimum_versions,  # type: bool
+        prefer_minimum_versions=False,  # type: bool
     ):
         # type: (...) -> None
         self._factory = factory
