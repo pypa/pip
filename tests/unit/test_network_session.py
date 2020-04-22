@@ -72,7 +72,7 @@ class TestPipSession:
 
         assert not hasattr(session.adapters["http://"], "cache")
 
-    def test_insecure_host_adapter(self, tmpdir):
+    def test_trusted_hosts_adapter(self, tmpdir):
         session = PipSession(
             cache=tmpdir.joinpath("test-cache"),
             trusted_hosts=["example.com"],
@@ -81,14 +81,14 @@ class TestPipSession:
         assert "https://example.com/" in session.adapters
         # Check that the "port wildcard" is present.
         assert "https://example.com:" in session.adapters
-        # Check that the cache isn't enabled.
-        assert not hasattr(session.adapters["https://example.com/"], "cache")
+        # Check that the cache is enabled.
+        assert hasattr(session.adapters["https://example.com/"], "cache")
 
     def test_add_trusted_host(self):
         # Leave a gap to test how the ordering is affected.
         trusted_hosts = ['host1', 'host3']
         session = PipSession(trusted_hosts=trusted_hosts)
-        insecure_adapter = session._insecure_adapter
+        trusted_host_adapter = session._trusted_host_adapter
         prefix2 = 'https://host2/'
         prefix3 = 'https://host3/'
         prefix3_wildcard = 'https://host3:'
@@ -97,8 +97,8 @@ class TestPipSession:
         assert session.pip_trusted_origins == [
             ('host1', None), ('host3', None)
         ]
-        assert session.adapters[prefix3] is insecure_adapter
-        assert session.adapters[prefix3_wildcard] is insecure_adapter
+        assert session.adapters[prefix3] is trusted_host_adapter
+        assert session.adapters[prefix3_wildcard] is trusted_host_adapter
 
         assert prefix2 not in session.adapters
 
@@ -108,8 +108,8 @@ class TestPipSession:
             ('host1', None), ('host3', None), ('host2', None)
         ]
         # Check that prefix3 is still present.
-        assert session.adapters[prefix3] is insecure_adapter
-        assert session.adapters[prefix2] is insecure_adapter
+        assert session.adapters[prefix3] is trusted_host_adapter
+        assert session.adapters[prefix2] is trusted_host_adapter
 
         # Test that adding the same host doesn't create a duplicate.
         session.add_trusted_host('host3')
@@ -123,7 +123,7 @@ class TestPipSession:
             ('host1', None), ('host3', None),
             ('host2', None), ('host4', 8080)
         ]
-        assert session.adapters[prefix4] is insecure_adapter
+        assert session.adapters[prefix4] is trusted_host_adapter
 
     def test_add_trusted_host__logging(self, caplog):
         """

@@ -62,9 +62,8 @@ Python 2 support
 
 pip will continue to ensure that it runs on Python 2.7 after the CPython 2.7
 EOL date. Support for Python 2.7 will be dropped, if bugs in Python 2.7 itself
-make this necessary (which is unlikely) or Python 2 usage reduces to a level
-where pip maintainers feel it is OK to drop support. The same approach is used
-to determine when to drop support for other Python versions.
+make this necessary (which is unlikely) or in pip 21.0 (Jan 2021), whichever is
+earlier.
 
 However, bugs reported with pip which only occur on Python 2.7 would likely not
 be addressed directly by pip's maintainers. Pull Requests to fix Python 2.7

@@ -10,9 +10,9 @@ and past conventions are rendered obsolete.
 
 .. note::
 
-    Currently, these conventions are not enforced automatically, and
-    need to be verified manually during code review. We are interested
-    in linters that can help us enforce these conventions automatically.
+   Currently, these conventions are not enforced automatically, and
+   need to be verified manually during code review. We are interested
+   in linters that can help us enforce these conventions automatically.
 
 
 Files
@@ -31,41 +31,12 @@ Encoding
 
 All files in our documentation must use UTF-8 encoding.
 
-
-File Layout
-===========
-
 Line Length
 -----------
 
 Limit all lines to a maximum of 72 characters, where possible. This may
 be exceeded when it does not make sense to abide by it (eg. long links,
 code blocks).
-
-Indentation
------------
-
-We use 4 spaces for indentation.
-
-::
-
-    .. note::
-
-        Directive blocks
-
-    ::
-
-        Code block.
-
-Bullet lists are the only exception to the 4 spaces rule, using 2 spaces
-when wrapping lines.
-
-::
-
-    - This is a bullet list.
-    - This is a lot of text in a single bullet which would require wrapping
-      across multiple lines to fit in the line length limits.
-
 
 Headings
 ========
@@ -86,41 +57,46 @@ it.
 
 ::
 
-    =========
-    Heading 1
-    =========
+   =========
+   Heading 1
+   =========
 
-    Lorem ipsum dolor sit amet consectetur adipisicing elit.
+   Lorem ipsum dolor sit amet consectetur adipisicing elit.
 
 
-    Heading 2
-    =========
+   Heading 2
+   =========
 
-    Lorem ipsum dolor sit amet consectetur adipisicing elit.
+   Lorem ipsum dolor sit amet consectetur adipisicing elit.
 
-    Heading 3
-    ---------
+   Heading 3
+   ---------
 
-    Lorem ipsum dolor sit amet consectetur adipisicing elit.
+   Lorem ipsum dolor sit amet consectetur adipisicing elit.
 
-    Heading 4
-    ^^^^^^^^^
+   Heading 4
+   ^^^^^^^^^
 
-    Lorem ipsum dolor sit amet consectetur adipisicing elit.
+   Lorem ipsum dolor sit amet consectetur adipisicing elit.
 
-    Heading 5
-    '''''''''
+   Heading 5
+   '''''''''
 
-    Lorem ipsum dolor sit amet consectetur adipisicing elit.
+   Lorem ipsum dolor sit amet consectetur adipisicing elit.
 
-    Heading 6
-    *********
+   Heading 6
+   *********
 
-    Lorem ipsum dolor sit amet consectetur adipisicing elit.
+   Lorem ipsum dolor sit amet consectetur adipisicing elit.
 
 
 Writing
 =======
+
+.. note::
+
+   We're still discussing *how* pip should be capitalized in prose. The
+   current statement here is tentative.
 
 pip is a proper noun, and spelt all lowercase. Do not capitalize pip as
 "Pip" at the start of a sentence.

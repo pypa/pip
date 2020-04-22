@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 import pip._internal.utils.inject_securetransport  # noqa
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 

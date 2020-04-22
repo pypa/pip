@@ -271,7 +271,15 @@ def test_uninstall_console_scripts(script):
         sorted(result.files_created.keys())
     )
     result2 = script.pip('uninstall', 'discover', '-y')
-    assert_all_changes(result, result2, [script.venv / 'build', 'cache'])
+    assert_all_changes(
+        result,
+        result2,
+        [
+            script.venv / 'build',
+            'cache',
+            script.scratch / 'discover' / 'discover.egg-info',
+        ]
+    )
 
 
 def test_uninstall_console_scripts_uppercase_name(script):

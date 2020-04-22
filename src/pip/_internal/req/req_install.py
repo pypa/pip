@@ -70,17 +70,18 @@ def _get_dist(metadata_directory):
     """
     dist_dir = metadata_directory.rstrip(os.sep)
 
+    # Build a PathMetadata object, from path to metadata. :wink:
+    base_dir, dist_dir_name = os.path.split(dist_dir)
+    metadata = pkg_resources.PathMetadata(base_dir, dist_dir)
+
     # Determine the correct Distribution object type.
     if dist_dir.endswith(".egg-info"):
         dist_cls = pkg_resources.Distribution
+        dist_name = os.path.splitext(dist_dir_name)[0]
     else:
         assert dist_dir.endswith(".dist-info")
         dist_cls = pkg_resources.DistInfoDistribution
-
-    # Build a PathMetadata object, from path to metadata. :wink:
-    base_dir, dist_dir_name = os.path.split(dist_dir)
-    dist_name = os.path.splitext(dist_dir_name)[0]
-    metadata = pkg_resources.PathMetadata(base_dir, dist_dir)
+        dist_name = os.path.splitext(dist_dir_name)[0].split("-")[0]
 
     return dist_cls(
         base_dir,
@@ -100,7 +101,6 @@ class InstallRequirement(object):
         self,
         req,  # type: Optional[Requirement]
         comes_from,  # type: Optional[Union[str, InstallRequirement]]
-        source_dir=None,  # type: Optional[str]
         editable=False,  # type: bool
         link=None,  # type: Optional[Link]
         markers=None,  # type: Optional[Marker]
@@ -117,17 +117,27 @@ class InstallRequirement(object):
         self.req = req
         self.comes_from = comes_from
         self.constraint = constraint
-        if source_dir is None:
-            self.source_dir = None  # type: Optional[str]
-        else:
-            self.source_dir = os.path.normpath(os.path.abspath(source_dir))
         self.editable = editable
+
+        # source_dir is the local directory where the linked requirement is
+        # located, or unpacked. In case unpacking is needed, creating and
+        # populating source_dir is done by the RequirementPreparer. Note this
+        # is not necessarily the directory where pyproject.toml or setup.py is
+        # located - that one is obtained via unpacked_source_directory.
+        self.source_dir = None  # type: Optional[str]
+        if self.editable:
+            assert link
+            if link.is_file:
+                self.source_dir = os.path.normpath(
+                    os.path.abspath(link.file_path)
+                )
 
         if link is None and req and req.url:
             # PEP 508 URL requirement
             link = Link(req.url)
         self.link = self.original_link = link
         self.original_link_is_in_wheel_cache = False
+
         # Path to any downloaded or already-existing package.
         self.local_file_path = None  # type: Optional[str]
         if self.link and self.link.is_file:
@@ -516,7 +526,6 @@ class InstallRequirement(object):
                 build_env=self.build_env,
                 setup_py_path=self.setup_py_path,
                 source_dir=self.unpacked_source_directory,
-                editable=self.editable,
                 isolated=self.isolated,
                 details=self.name or "from {}".format(self.link)
             )
@@ -729,8 +738,6 @@ class InstallRequirement(object):
                 os.path.abspath(self.unpacked_source_directory)
             )
             for dirpath, dirnames, filenames in os.walk(dir):
-                if 'pip-egg-info' in dirnames:
-                    dirnames.remove('pip-egg-info')
                 for dirname in dirnames:
                     dir_arcname = self._get_archive_name(
                         dirname, parentdir=dirpath, rootdir=dir,

@@ -1,5 +1,6 @@
 import json
 import os
+import sys
 
 import pytest
 
@@ -88,6 +89,63 @@ def test_new_resolver_picks_latest_version(script):
     assert_installed(script, simple="0.2.0")
 
 
+def test_new_resolver_picks_installed_version(script):
+    create_basic_wheel_for_package(
+        script,
+        "simple",
+        "0.1.0",
+    )
+    create_basic_wheel_for_package(
+        script,
+        "simple",
+        "0.2.0",
+    )
+    script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "simple==0.1.0"
+    )
+    assert_installed(script, simple="0.1.0")
+
+    result = script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "simple"
+    )
+    assert "Collecting" not in result.stdout, "Should not fetch new version"
+    assert_installed(script, simple="0.1.0")
+
+
+def test_new_resolver_picks_installed_version_if_no_match_found(script):
+    create_basic_wheel_for_package(
+        script,
+        "simple",
+        "0.1.0",
+    )
+    create_basic_wheel_for_package(
+        script,
+        "simple",
+        "0.2.0",
+    )
+    script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "simple==0.1.0"
+    )
+    assert_installed(script, simple="0.1.0")
+
+    result = script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "simple"
+    )
+    assert "Collecting" not in result.stdout, "Should not fetch new version"
+    assert_installed(script, simple="0.1.0")
+
+
 def test_new_resolver_installs_dependencies(script):
     create_basic_wheel_for_package(
         script,
@@ -153,6 +211,41 @@ def test_new_resolver_installs_extras(script):
     assert "WARNING: Invalid extras specified" in result.stderr, str(result)
     assert ": missing" in result.stderr, str(result)
     assert_installed(script, base="0.1.0", dep="0.1.0")
+
+
+def test_new_resolver_installed_message(script):
+    create_basic_wheel_for_package(script, "A", "1.0")
+    result = script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "A",
+        expect_stderr=False,
+    )
+    assert "Successfully installed A-1.0" in result.stdout, str(result)
+
+
+def test_new_resolver_no_dist_message(script):
+    create_basic_wheel_for_package(script, "A", "1.0")
+    result = script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "B",
+        expect_error=True,
+        expect_stderr=True,
+    )
+
+    # Full messages from old resolver:
+    # ERROR: Could not find a version that satisfies the
+    #        requirement xxx (from versions: none)
+    # ERROR: No matching distribution found for xxx
+
+    assert "Could not find a version that satisfies the requirement B" \
+        in result.stderr, str(result)
+    # TODO: This reports the canonical name of the project. But the current
+    #       resolver reports the originally specified name (i.e. uppercase B)
+    assert "No matching distribution found for b" in result.stderr, str(result)
 
 
 def test_new_resolver_installs_editable(script):
@@ -228,6 +321,28 @@ def test_new_resolver_requires_python(
     script.pip(*args)
 
     assert_installed(script, base="0.1.0", dep=dep_version)
+
+
+def test_new_resolver_requires_python_error(script):
+    create_basic_wheel_for_package(
+        script,
+        "base",
+        "0.1.0",
+        requires_python="<2",
+    )
+    result = script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "base",
+        expect_error=True,
+    )
+
+    message = (
+        "Package 'base' requires a different Python: "
+        "{}.{}.{} not in '<2'".format(*sys.version_info[:3])
+    )
+    assert message in result.stderr, str(result)
 
 
 def test_new_resolver_installed(script):
@@ -328,3 +443,89 @@ def test_new_resolver_only_builds_sdists_when_needed(script):
         "base", "dep"
     )
     assert_installed(script, base="0.1.0", dep="0.2.0")
+
+
+def test_new_resolver_install_different_version(script):
+    create_basic_wheel_for_package(script, "base", "0.1.0")
+    create_basic_wheel_for_package(script, "base", "0.2.0")
+
+    script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "base==0.1.0",
+    )
+
+    # This should trigger an uninstallation of base.
+    result = script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "base==0.2.0",
+    )
+
+    assert "Uninstalling base-0.1.0" in result.stdout, str(result)
+    assert "Successfully uninstalled base-0.1.0" in result.stdout, str(result)
+    assert script.site_packages / "base" in result.files_updated, (
+        "base not upgraded"
+    )
+    assert_installed(script, base="0.2.0")
+
+
+def test_new_resolver_force_reinstall(script):
+    create_basic_wheel_for_package(script, "base", "0.1.0")
+
+    script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "base==0.1.0",
+    )
+
+    # This should trigger an uninstallation of base due to --force-reinstall,
+    # even though the installed version matches.
+    result = script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "--force-reinstall",
+        "base==0.1.0",
+    )
+
+    assert "Uninstalling base-0.1.0" in result.stdout, str(result)
+    assert "Successfully uninstalled base-0.1.0" in result.stdout, str(result)
+    assert script.site_packages / "base" in result.files_updated, (
+        "base not reinstalled"
+    )
+    assert_installed(script, base="0.1.0")
+
+
+@pytest.mark.parametrize(
+    "available_versions, pip_args, expected_version",
+    [
+        # Choose the latest non-prerelease by default.
+        (["1.0", "2.0a1"], ["pkg"], "1.0"),
+        # Choose the prerelease if the specifier spells out a prerelease.
+        (["1.0", "2.0a1"], ["pkg==2.0a1"], "2.0a1"),
+        # Choose the prerelease if explicitly allowed by the user.
+        (["1.0", "2.0a1"], ["pkg", "--pre"], "2.0a1"),
+        # Choose the prerelease if no stable releases are available.
+        (["2.0a1"], ["pkg"], "2.0a1"),
+    ],
+    ids=["default", "exact-pre", "explicit-pre", "no-stable"],
+)
+def test_new_resolver_handles_prerelease(
+    script,
+    available_versions,
+    pip_args,
+    expected_version,
+):
+    for version in available_versions:
+        create_basic_wheel_for_package(script, "pkg", version)
+    script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        *pip_args
+    )
+    assert_installed(script, pkg=expected_version)

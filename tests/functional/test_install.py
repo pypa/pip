@@ -2,7 +2,6 @@ import distutils
 import glob
 import os
 import re
-import shutil
 import ssl
 import sys
 import textwrap
@@ -29,7 +28,6 @@ from tests.lib import (
     skip_if_python2,
     windows_workaround_7667,
 )
-from tests.lib.filesystem import make_socket_file
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
 from tests.lib.server import (
@@ -574,30 +572,6 @@ def test_install_from_local_directory_with_symlinks_to_directories(
     )
     assert pkg_folder in result.files_created, str(result.stdout)
     assert egg_info_folder in result.files_created, str(result)
-
-
-@pytest.mark.skipif("sys.platform == 'win32' or sys.version_info < (3,)")
-def test_install_from_local_directory_with_socket_file(script, data, tmpdir):
-    """
-    Test installing from a local directory containing a socket file.
-    """
-    egg_info_file = (
-        script.site_packages /
-        "FSPkg-0.1.dev0-py{pyversion}.egg-info".format(**globals())
-    )
-    package_folder = script.site_packages / "fspkg"
-    to_copy = data.packages.joinpath("FSPkg")
-    to_install = tmpdir.joinpath("src")
-
-    shutil.copytree(to_copy, to_install)
-    # Socket file, should be ignored.
-    socket_file_path = os.path.join(to_install, "example")
-    make_socket_file(socket_file_path)
-
-    result = script.pip("install", "--verbose", to_install)
-    assert package_folder in result.files_created, str(result.stdout)
-    assert egg_info_file in result.files_created, str(result)
-    assert str(socket_file_path) in result.stderr
 
 
 def test_install_from_local_directory_with_no_setup_py(script, data):
@@ -1769,6 +1743,31 @@ def test_ignore_yanked_file(script, data):
     assert 'Successfully installed simple-2.0\n' in result.stdout, str(result)
 
 
+def test_invalid_index_url_argument(script, shared_data):
+    """
+    Test the behaviour of an invalid --index-url argument
+    """
+
+    result = script.pip('install', '--index-url', '--user',
+                        shared_data.find_links3, "Dinner",
+                        expect_error=True)
+
+    assert 'WARNING: The index url "--user" seems invalid, ' \
+           'please provide a scheme.' in result.stderr, str(result)
+
+
+def test_valid_index_url_argument(script, shared_data):
+    """
+    Test the behaviour of an valid --index-url argument
+    """
+
+    result = script.pip('install', '--index-url',
+                        shared_data.find_links3,
+                        "Dinner")
+
+    assert 'Successfully installed Dinner' in result.stdout, str(result)
+
+
 def test_install_yanked_file_and_print_warning(script, data):
     """
     Test install a "yanked" file and print a warning.
@@ -1821,3 +1820,53 @@ def test_install_sends_client_cert(install_args, script, cert_factory, data):
         environ, _ = call_args.args
         assert "SSL_CLIENT_CERT" in environ
         assert environ["SSL_CLIENT_CERT"]
+
+
+def test_install_skip_work_dir_pkg(script, data):
+    """
+    Test that install of a package in working directory
+    should pass on the second attempt after an install
+    and an uninstall
+    """
+
+    # Create a test package, install it and then uninstall it
+    pkg_path = create_test_package_with_setup(
+        script, name='simple', version='1.0')
+    script.pip('install', '-e', '.',
+               expect_stderr=True, cwd=pkg_path)
+
+    script.pip('uninstall', 'simple', '-y')
+
+    # Running the install command again from the working directory
+    # will install the package as it was uninstalled earlier
+    result = script.pip('install', '--find-links',
+                        data.find_links, 'simple',
+                        expect_stderr=True, cwd=pkg_path)
+
+    assert 'Requirement already satisfied: simple' not in result.stdout
+    assert 'Successfully installed simple' in result.stdout
+
+
+def test_install_include_work_dir_pkg(script, data):
+    """
+    Test that install of a package in working directory
+    should fail on the second attempt after an install
+    if working directory is added in PYTHONPATH
+    """
+
+    # Create a test package, install it and then uninstall it
+    pkg_path = create_test_package_with_setup(
+        script, name='simple', version='1.0')
+    script.pip('install', '-e', '.',
+               expect_stderr=True, cwd=pkg_path)
+    script.pip('uninstall', 'simple', '-y')
+
+    script.environ.update({'PYTHONPATH': pkg_path})
+
+    # Running the install command again from the working directory
+    # will be a no-op, as the package is found to be installed,
+    # when the package directory is in PYTHONPATH
+    result = script.pip('install', '--find-links',
+                        data.find_links, 'simple',
+                        expect_stderr=True, cwd=pkg_path)
+    assert 'Requirement already satisfied: simple' in result.stdout

@@ -141,7 +141,7 @@ class Command(CommandContextMixIn):
             not options.no_python_version_warning
         ):
             message = (
-                "A future version of pip will drop support for Python 2.7. "
+                "pip 21.0 will drop support for Python 2.7 in January 2021. "
                 "More details about Python 2 support in pip, can be found at "
                 "https://pip.pypa.io/en/latest/development/release-process/#python-2-support"  # noqa
             )
@@ -152,17 +152,6 @@ class Command(CommandContextMixIn):
                     "is no longer maintained. "
                 ) + message
             deprecated(message, replacement=None, gone_in=None)
-
-        if options.skip_requirements_regex:
-            deprecated(
-                "--skip-requirements-regex is unsupported and will be removed",
-                replacement=(
-                    "manage requirements/constraints files explicitly, "
-                    "possibly generating them from metadata"
-                ),
-                gone_in="20.1",
-                issue=7297,
-            )
 
         # TODO: Try to get these passing down from the command?
         #       without resorting to os.environ to hold these.

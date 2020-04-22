@@ -1,6 +1,5 @@
 parameters:
   runIntegrationTests:
-  useVenv: false
 
 steps:
 - task: UsePythonVersion@0
@@ -44,11 +43,8 @@ steps:
       # https://bugs.python.org/issue18199
       $env:TEMP = "R:\Temp"
 
-      tox -e py -- $env:USE_VENV_ARG -m integration -n auto --duration=5 --junit-xml=junit/integration-test.xml
+      tox -e py -- -m integration -n auto --duration=5 --junit-xml=junit/integration-test.xml
     displayName: Tox run integration tests
-    env:
-      ${{ if eq(parameters.useVenv, 'true') }}:
-        USE_VENV_ARG: "--use-venv"
 
 - task: PublishTestResults@2
   displayName: Publish Test Results

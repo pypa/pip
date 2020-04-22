@@ -5,7 +5,7 @@ import os
 import sys
 from collections import namedtuple
 
-from pip._vendor import pytoml, six
+from pip._vendor import six, toml
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 
 from pip._internal.exceptions import InstallationError
@@ -72,7 +72,7 @@ def load_pyproject_toml(
 
     if has_pyproject:
         with io.open(pyproject_toml, encoding="utf-8") as f:
-            pp_toml = pytoml.load(f)
+            pp_toml = toml.load(f)
         build_system = pp_toml.get("build-system")
     else:
         build_system = None

@@ -8,8 +8,11 @@ import logging
 import os
 import sys
 
+import pip._vendor
+from pip._vendor import pkg_resources
 from pip._vendor.certifi import where
 
+from pip import __file__ as pip_location
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.cmdoptions import make_target_python
@@ -19,7 +22,8 @@ from pip._internal.utils.misc import get_pip_version
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, List, Optional
+    from types import ModuleType
+    from typing import Any, List, Optional, Dict
     from optparse import Values
 
 logger = logging.getLogger(__name__)
@@ -41,6 +45,93 @@ def show_sys_implementation():
 
     with indent_log():
         show_value('name', implementation_name)
+
+
+def create_vendor_txt_map():
+    # type: () -> Dict[str, str]
+    vendor_txt_path = os.path.join(
+        os.path.dirname(pip_location),
+        '_vendor',
+        'vendor.txt'
+    )
+
+    with open(vendor_txt_path) as f:
+        # Purge non version specifying lines.
+        # Also, remove any space prefix or suffixes (including comments).
+        lines = [line.strip().split(' ', 1)[0]
+                 for line in f.readlines() if '==' in line]
+
+    # Transform into "module" -> version dict.
+    return dict(line.split('==', 1) for line in lines)  # type: ignore
+
+
+def get_module_from_module_name(module_name):
+    # type: (str) -> ModuleType
+
+    # Module name can be uppercase in vendor.txt for some reason...
+    module_name = module_name.lower()
+    # PATCH: setuptools is actually only pkg_resources.
+    if module_name == 'setuptools':
+        module_name = 'pkg_resources'
+
+    __import__(
+        'pip._vendor.{}'.format(module_name),
+        globals(),
+        locals(),
+        level=0
+    )
+    return getattr(pip._vendor, module_name)
+
+
+def get_vendor_version_from_module(module_name):
+    # type: (str) -> str
+
+    module = get_module_from_module_name(module_name)
+    version = getattr(module, '__version__', None)
+
+    if not version:
+        # Try to find version in debundled module info
+        pkg_set = pkg_resources.WorkingSet(
+            [os.path.dirname(getattr(module, '__file__'))]
+        )
+        package = pkg_set.find(pkg_resources.Requirement.parse(module_name))
+        version = getattr(package, 'version', None)
+
+    return version
+
+
+def show_actual_vendor_versions(vendor_txt_versions):
+    # type: (Dict[str, str]) -> None
+    # Logs the actual version and print extra info
+    # if there is a conflict or if the actual version could not be imported.
+
+    for module_name, expected_version in vendor_txt_versions.items():
+        extra_message = ''
+        actual_version = get_vendor_version_from_module(module_name)
+        if not actual_version:
+            extra_message = ' (Unable to locate actual module version, using'\
+                            ' vendor.txt specified version)'
+            actual_version = expected_version
+        elif actual_version != expected_version:
+            extra_message = ' (CONFLICT: vendor.txt suggests version should'\
+                            ' be {})'.format(expected_version)
+
+        logger.info(
+            '{name}=={actual}{extra}'.format(
+                name=module_name,
+                actual=actual_version,
+                extra=extra_message
+            )
+        )
+
+
+def show_vendor_versions():
+    # type: () -> None
+    logger.info('vendored library versions:')
+
+    vendor_txt_versions = create_vendor_txt_map()
+    with indent_log():
+        show_actual_vendor_versions(vendor_txt_versions)
 
 
 def show_tags(options):
@@ -92,7 +183,8 @@ def ca_bundle_info(config):
     if not global_overriding_level:
         return 'global'
 
-    levels.remove('global')
+    if 'global' in levels:
+        levels.remove('global')
     return ", ".join(levels)
 
 
@@ -136,6 +228,9 @@ class DebugCommand(Command):
         show_value("REQUESTS_CA_BUNDLE", os.environ.get('REQUESTS_CA_BUNDLE'))
         show_value("CURL_CA_BUNDLE", os.environ.get('CURL_CA_BUNDLE'))
         show_value("pip._vendor.certifi.where()", where())
+        show_value("pip._vendor.DEBUNDLED", pip._vendor.DEBUNDLED)
+
+        show_vendor_versions()
 
         show_tags(options)
 

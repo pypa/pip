@@ -2,6 +2,7 @@ import errno
 import logging
 import os
 import time
+from threading import Thread
 
 import pytest
 from mock import patch
@@ -11,6 +12,7 @@ from pip._internal.utils.logging import (
     BrokenStdoutLoggingError,
     ColorizedStreamHandler,
     IndentingFormatter,
+    indent_log,
 )
 from pip._internal.utils.misc import captured_stderr, captured_stdout
 
@@ -107,6 +109,39 @@ class TestIndentingFormatter(object):
         )
         f = IndentingFormatter(fmt="%(message)s")
         assert f.format(record) == expected
+
+    def test_thread_safety_base(self):
+        record = self.make_record(
+            'DEPRECATION: hello\nworld', level_name='WARNING',
+        )
+        f = IndentingFormatter(fmt="%(message)s")
+        results = []
+
+        def thread_function():
+            results.append(f.format(record))
+
+        thread_function()
+        thread = Thread(target=thread_function)
+        thread.start()
+        thread.join()
+        assert results[0] == results[1]
+
+    def test_thread_safety_indent_log(self):
+        record = self.make_record(
+            'DEPRECATION: hello\nworld', level_name='WARNING',
+        )
+        f = IndentingFormatter(fmt="%(message)s")
+        results = []
+
+        def thread_function():
+            with indent_log():
+                results.append(f.format(record))
+
+        thread_function()
+        thread = Thread(target=thread_function)
+        thread.start()
+        thread.join()
+        assert results[0] == results[1]
 
 
 class TestColorizedStreamHandler(object):

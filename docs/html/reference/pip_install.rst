@@ -723,14 +723,24 @@ local hash.
 
 Local project installs
 ----------------------
+
 pip supports installing local project in both regular mode and editable mode.
 You can install local projects by specifying the project path to pip::
 
 $ pip install path/to/SomeProject
 
-During regular installation, pip will copy the entire project directory to a temporary location and install from there.
-The exception is that pip will exclude .tox and .nox directories present in the top level of the project from being copied.
+pip treats this directory like an unpacked source archive, and directly
+attempts installation.
 
+Prior to pip 20.1, pip copied the entire project directory to a temporary
+location and attempted installation from that directory. This approach was the
+cause of several performance issues, as well as various issues arising when the
+project directory depends on its parent directory (such as the presence of a
+VCS directory). The main user visible effect of this change is that secondary
+build artifacts, if any, would be created in the local directory, whereas
+earlier they were created in a temporary copy of the directory and then
+deleted. This notably includes the ``build`` and ``.egg-info`` directories in
+the case of the setuptools backend.
 
 .. _`editable-installs`:
 

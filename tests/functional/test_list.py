@@ -552,9 +552,8 @@ def test_list_skip_work_dir_pkg(script):
     """
 
     # Create a test package and create .egg-info dir
-    pkg_path = create_test_package_with_setup(script,
-                                              name='simple',
-                                              version='1.0')
+    pkg_path = create_test_package_with_setup(
+        script, name='simple', version='1.0')
     script.run('python', 'setup.py', 'egg_info',
                expect_stderr=True, cwd=pkg_path)
 
@@ -567,21 +566,19 @@ def test_list_skip_work_dir_pkg(script):
 def test_list_include_work_dir_pkg(script):
     """
     Test that list should include package in working directory
-    if working directory is added in sys.path
+    if working directory is added in PYTHONPATH
     """
 
     # Create a test package and create .egg-info dir
-    pkg_path = create_test_package_with_setup(script,
-                                              name='simple',
-                                              version='1.0')
-
+    pkg_path = create_test_package_with_setup(
+        script, name='simple', version='1.0')
     script.run('python', 'setup.py', 'egg_info',
                expect_stderr=True, cwd=pkg_path)
 
-    # Add PYTHONPATH env variable
     script.environ.update({'PYTHONPATH': pkg_path})
 
     # List should include package simple when run from package directory
+    # when the package directory is in PYTHONPATH
     result = script.pip('list', '--format=json', cwd=pkg_path)
     json_result = json.loads(result.stdout)
     assert {'name': 'simple', 'version': '1.0'} in json_result

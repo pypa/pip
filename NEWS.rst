@@ -7,6 +7,77 @@
 
 .. towncrier release notes start
 
+20.1b1 (2020-04-21)
+===================
+
+Deprecations and Removals
+-------------------------
+
+- Remove emails from AUTHORS.txt to prevent usage for spamming, and only populate names in AUTHORS.txt at time of release (`#5979 <https://github.com/pypa/pip/issues/5979>`_)
+- Remove deprecated ``--skip-requirements-regex`` option. (`#7297 <https://github.com/pypa/pip/issues/7297>`_)
+- Building of local directories is now done in place, instead of a temporary
+  location containing a copy of the directory tree. (`#7555 <https://github.com/pypa/pip/issues/7555>`_)
+- Remove unused ``tests/scripts/test_all_pip.py`` test script and the ``tests/scripts`` folder. (`#7680 <https://github.com/pypa/pip/issues/7680>`_)
+
+Features
+--------
+
+- pip now implements PEP 610, so ``pip freeze`` has better fidelity
+  in presence of distributions installed from Direct URL requirements. (`#609 <https://github.com/pypa/pip/issues/609>`_)
+- Add ``pip cache`` command for inspecting/managing pip's wheel cache. (`#6391 <https://github.com/pypa/pip/issues/6391>`_)
+- Raise error if ``--user`` and ``--target`` are used together in ``pip install`` (`#7249 <https://github.com/pypa/pip/issues/7249>`_)
+- Significantly improve performance when ``--find-links`` points to a very large HTML page. (`#7729 <https://github.com/pypa/pip/issues/7729>`_)
+- Indicate when wheel building is skipped, due to lack of the ``wheel`` package. (`#7768 <https://github.com/pypa/pip/issues/7768>`_)
+- Change default behaviour to always cache responses from trusted-host source. (`#7847 <https://github.com/pypa/pip/issues/7847>`_)
+- An alpha version of a new resolver is available via ``--unstable-feature=resolver``. (`#988 <https://github.com/pypa/pip/issues/988>`_)
+
+Bug Fixes
+---------
+
+- Correctly freeze a VCS editable package when it is nested inside another VCS repository. (`#3988 <https://github.com/pypa/pip/issues/3988>`_)
+- Correctly handle ``%2F`` in URL parameters to avoid accidentally unescape them
+  into ``/``. (`#6446 <https://github.com/pypa/pip/issues/6446>`_)
+- Reject VCS URLs with an empty revision. (`#7402 <https://github.com/pypa/pip/issues/7402>`_)
+- Warn when an invalid URL is passed with ``--index-url`` (`#7430 <https://github.com/pypa/pip/issues/7430>`_)
+- Use better mechanism for handling temporary files, when recording metadata
+  about installed files (RECORD) and the installer (INSTALLER). (`#7699 <https://github.com/pypa/pip/issues/7699>`_)
+- Correctly detect global site-packages availability of virtual environments
+  created by PyPA’s virtualenv>=20.0. (`#7718 <https://github.com/pypa/pip/issues/7718>`_)
+- Remove current directory from ``sys.path`` when invoked as ``python -m pip <command>`` (`#7731 <https://github.com/pypa/pip/issues/7731>`_)
+- Stop failing uninstallation, when trying to remove non-existent files. (`#7856 <https://github.com/pypa/pip/issues/7856>`_)
+- Prevent an infinite recursion with ``pip wheel`` when ``$TMPDIR`` is within the source directory. (`#7872 <https://github.com/pypa/pip/issues/7872>`_)
+- Significantly speedup ``pip list --outdated`` by parallelizing index interaction. (`#7962 <https://github.com/pypa/pip/issues/7962>`_)
+- Improve Windows compatibility when detecting writability in folder. (`#8013 <https://github.com/pypa/pip/issues/8013>`_)
+
+Vendored Libraries
+------------------
+
+- Update semi-supported debundling script to reflect that appdirs is vendored.
+- Add ResolveLib as a vendored dependency.
+- Upgrade certifi to 2020.04.05.1
+- Upgrade contextlib2 to 0.6.0.post1
+- Upgrade distro to 1.5.0.
+- Upgrade idna to 2.9.
+- Upgrade msgpack to 1.0.0.
+- Upgrade packaging to 20.3.
+- Upgrade pep517 to 0.8.2.
+- Upgrade pyparsing to 2.4.7.
+- Remove pytoml as a vendored dependency.
+- Upgrade requests to 2.23.0.
+- Add toml as a vendored dependency.
+- Upgrade urllib3 to 1.25.8.
+
+Improved Documentation
+----------------------
+
+- Emphasize that VCS URLs using git, git+git and git+http are insecure due to
+  lack of authentication and encryption (`#1983 <https://github.com/pypa/pip/issues/1983>`_)
+- Clarify the usage of --no-binary command. (`#3191 <https://github.com/pypa/pip/issues/3191>`_)
+- Clarify the usage of freeze command in the example of Using pip in your program (`#7008 <https://github.com/pypa/pip/issues/7008>`_)
+- Add a "Copyright" page. (`#7767 <https://github.com/pypa/pip/issues/7767>`_)
+- Added example of defining multiple values for options which support them (`#7803 <https://github.com/pypa/pip/issues/7803>`_)
+
+
 20.0.2 (2020-01-24)
 ===================
 

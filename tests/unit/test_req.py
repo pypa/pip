@@ -641,8 +641,8 @@ def test_mismatched_versions(caplog):
     req = InstallRequirement(
         req=Requirement('simplewheel==2.0'),
         comes_from=None,
-        source_dir="/tmp/somewhere",
     )
+    req.source_dir = "/tmp/somewhere"  # make req believe it has been unpacked
     # Monkeypatch!
     req._metadata = {"name": "simplewheel", "version": "1.0"}
     req.assert_source_matches_version()

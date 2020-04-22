@@ -1,9 +1,10 @@
 .. note::
 
     This section of the documentation is currently being written. pip
-    developers welcome your help to complete this documentation. If you're
-    interested in helping out, please let us know in the
-    `tracking issue <https://github.com/pypa/pip/issues/6583>`__.
+    developers welcome your help to complete this documentation. If
+    you're interested in helping out, please let us know in the
+    `tracking issue <https://github.com/pypa/pip/issues/6583>`__, or
+    just submit a pull request and mention it in that tracking issue.
 
 ============
 Issue Triage
