@@ -40,18 +40,24 @@ def generate_yaml_tests(directory):
         base = data.get("base", {})
         cases = data["cases"]
 
-        for i, case_template in enumerate(cases):
-            case = base.copy()
-            case.update(case_template)
+        for resolver in 'old', 'new':
+            for i, case_template in enumerate(cases):
+                case = base.copy()
+                case.update(case_template)
 
-            case[":name:"] = base_name
-            if len(cases) > 1:
-                case[":name:"] += "-" + str(i)
+                case[":name:"] = base_name + '-' + resolver
+                if len(cases) > 1:
+                    case[":name:"] += "-" + str(i)
+                case[":resolver:"] = resolver
 
-            if case.pop("skip", False):
-                case = pytest.param(case, marks=pytest.mark.xfail)
+                skip = case.pop("skip", None)
+                assert skip in [None, True, 'old', 'new'], (
+                    "invalid value for skip: %r" % skip
+                )
+                if skip == True or skip == resolver:
+                    case = pytest.param(case, marks=pytest.mark.xfail)
 
-            yield case
+                yield case
 
 
 def id_func(param):
@@ -187,7 +193,8 @@ def test_yaml_based(script, case):
         # Perform the requested action
         effect = handle_request(script, action,
                                 request[action],
-                                request.get('options', '').split())
+                                request.get('options', '').split(),
+                                case[':resolver:'] == 'new')
 
         assert effect['state'] == (response['state'] or []), \
             str(effect["_result_object"])
