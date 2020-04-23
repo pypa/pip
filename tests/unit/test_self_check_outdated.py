@@ -57,6 +57,14 @@ class MockDistribution:
             raise NotImplementedError('nope')
 
 
+class MockEnvironment(object):
+    def __init__(self, installer):
+        self.installer = installer
+
+    def get_distribution(self, name):
+        return MockDistribution(self.installer)
+
+
 def _options():
     ''' Some default options that we pass to
     self_outdated_check.pip_self_version_check '''
@@ -97,8 +105,8 @@ def test_pip_self_version_check(monkeypatch, stored_time, installed_ver,
                         pretend.call_recorder(lambda *a, **kw: None))
     monkeypatch.setattr(logger, 'debug',
                         pretend.call_recorder(lambda s, exc_info=None: None))
-    monkeypatch.setattr(self_outdated_check, 'get_distribution',
-                        lambda name: MockDistribution(installer))
+    monkeypatch.setattr(self_outdated_check, 'get_environment',
+                        lambda: MockEnvironment(installer))
 
     fake_state = pretend.stub(
         state={"last_check": stored_time, 'pypi_version': installed_ver},
