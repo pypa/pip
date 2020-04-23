@@ -63,7 +63,50 @@ explicitly state the project name.
 Satisfying Requirements
 -----------------------
 
-Once pip has the set of requirements to satisfy, it chooses which version of
+In order to satisfy the requirements specified on the command line, pip
+calculates a set of packages and versions that meets the given requirements. The
+details of this process are as follows:
+
+1. Pip considers all packages named in requirements specified on the command
+   line, and their dependencies, recursively.
+2. No other packages are considered when determining what to install. In
+   particular, installed packages not part of the dependency tree constructed
+   in step 1 will not be considered.
+3. When looking for solutions to the various version constraints, pip will
+   normally prioritise the installed version of a given package over any other.
+   However, note that this does not mean that pip will certainly retain that
+   version - other constraints may influence this.
+4. The ``--upgrade`` flag alters this behaviour by *not* prioritising installed
+   versions for packages named on the command line. This is the default,
+   "only-if-needed" upgrade strategy. It is also possible to specify
+   ``--upgrade-strategy=eager``, which doesn't prioritise installed versions
+   for *any* installed package - directly specified or dependency.
+5. Apart from the above exceptions around installed versions, pip will
+   prioritise later versions over earlier versions.
+
+Once pip has satisfied all constraints, it will install the selected versions,
+uninstalling existing installed versions if necessary.
+
+It should be noted that in order to satisfy the given requirements, pip will
+upgrade (or even downgrade) installed packages as needed, regardless of whether
+the ``--upgrade`` flag is present. The ``--upgrade`` flag only influences the
+*choice* of what version to install, not whether to allow upgrades.
+
+Other flags that will influence the versions installed are:
+
+* ``--ignore-installed``. This will prevent the resolver from considering
+  what is already installed as part of the calculation. (It will also mean
+  that the installation phase will not uninstall an existing version before
+  installing the selected version, so has the potential to leave the package
+  in an invalid state - use with care).
+* ``--force-reinstall``. This will not affect the calculation, but will mean
+  that if pip determines that the currently installed version is the one we
+  want, it will reinstall it.
+
+**TODO**: Clarify the distinction better here!
+**TODO**: How to discuss options that affect the *finder* like ``--pre``.
+
+.. Once pip has the set of requirements to satisfy, it chooses which version of
 each requirement to install using the simple rule that the latest version that
 satisfies the given constraints will be installed (but see :ref:`here <Pre Release Versions>`
 for an exception regarding pre-release versions). Where more than one source of
