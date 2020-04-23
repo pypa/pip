@@ -114,11 +114,11 @@ class Resolver(BaseResolver):
 
     def get_installation_order(self, req_set):
         # type: (RequirementSet) -> List[InstallRequirement]
-        """Create a list that orders given requirements for installation.
+        """Get order for installation of requirements in RequirementSet.
 
-        The returned list should contain all requirements in ``req_set``,
-        so the caller can loop through it and have a requirement installed
-        before the requiring thing.
+        The returned list contains a requirement before another that depends on
+        it. This helps ensure that the environment is kept consistent as they
+        get installed one-by-one.
 
         The current implementation walks the resolved dependency graph, and
         make sure every node has a greater "weight" than all its parents.
