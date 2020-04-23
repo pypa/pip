@@ -1,13 +1,34 @@
+from pip._internal.utils.misc import stdlib_pkgs  # TODO: Move definition here.
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import List, Optional
+    from typing import Container, Iterator, List, Optional
 
 
 class BaseDistribution:
     @property
+    def canonical_name(self):
+        # type: () -> str
+        raise NotImplementedError()
+
+    @property
     def installer(self):
         # type: () -> str
+        raise NotImplementedError()
+
+    @property
+    def editable(self):
+        # type: () -> bool
+        raise NotImplementedError()
+
+    @property
+    def local(self):
+        # type: () -> bool
+        raise NotImplementedError()
+
+    @property
+    def in_usersite(self):
+        # type: () -> bool
         raise NotImplementedError()
 
 
@@ -27,3 +48,27 @@ class BaseEnvironment:
     def get_distribution(self, name):
         # type: (str) -> Optional[BaseDistribution]
         raise NotImplementedError()
+
+    def iter_distributions(self):
+        # type: () -> Iterator[BaseDistribution]
+        raise NotImplementedError()
+
+    def iter_installed_distributions(
+        self,
+        local_only=True,  # type: bool
+        skip=stdlib_pkgs,  # type: Container[str]
+        include_editables=True,  # type: bool
+        editables_only=False,  # type: bool
+        user_only=False,  # type: bool
+    ):
+        # type: (...) -> Iterator[BaseDistribution]
+        it = self.iter_distributions()
+        if local_only:
+            it = (d for d in it if d.local)
+        if not include_editables:
+            it = (d for d in it if not d.editable)
+        if editables_only:
+            it = (d for d in it if d.editable)
+        if user_only:
+            it = (d for d in it if d.in_usersite)
+        return (d for d in it if d.canonical_name not in skip)
