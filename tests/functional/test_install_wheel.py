@@ -635,3 +635,130 @@ def test_correct_package_name_while_creating_wheel_bug(script, package_name):
     package = create_basic_wheel_for_package(script, package_name, '1.0')
     wheel_name = os.path.basename(package)
     assert wheel_name == 'simple_package-1.0-py2.py3-none-any.whl'
+
+
+def test_report_file_owner_conflicts(script, tmpdir):
+    """
+    Test installing from a wheel that wants to overwrite
+    files owned by another wheel to ensure that a warning
+    is reported and that the second wheel does overwrite
+    the first.
+    """
+    from tests.lib import TestFailure
+
+    make_wheel_with_file(
+        name="wheel1",
+        version="1.0",
+        extra_files={
+            'thetop/a.py': '# from wheel1',
+        },
+        extra_metadata_files={
+            'top_level.txt': 'thetop',
+        },
+    ).save_to_dir(tmpdir)
+
+    make_wheel_with_file(
+        name="wheel2",
+        version="2.0",
+        extra_files={
+            'thetop/a.py': '# from wheel2',
+        },
+        extra_metadata_files={
+            'top_level.txt': 'thetop',
+        },
+    ).save_to_dir(tmpdir)
+
+    result = script.pip(
+        'install', 'wheel1', 'wheel2', '--no-index',
+        '--find-links', tmpdir,
+    )
+
+    # FIXME: Both wheels should be installed, for now. In the future
+    # when the warning is changed to a hard error this part of the
+    # test needs to be updated to show that only wheel1 is installed.
+    with pytest.raises(TestFailure):
+        result.assert_installed('wheel1')
+        result.assert_installed('wheel2')
+
+    # FIXME: When the warning is changed to a hard error, wheel2 won't
+    # be installed and the file contents will be those from wheel1.
+    thetop = script.site_packages_path / 'thetop'
+    assert (thetop / 'a.py').read_text() == '# from wheel2'
+
+    full_path = thetop / 'a.py'
+    msg = 'Overwriting or removing {} for {} which is also owned by {}'.format(
+        full_path, 'wheel2', 'wheel1 1.0')
+    assert msg in result.stderr
+
+
+def test_report_file_owner_conflicts_multiple(script, tmpdir):
+    """
+    Test installing from a wheel that wants to overwrite
+    files owned by two other wheels to ensure that a warning
+    is reported and that the second wheel does overwrite
+    the first.
+    """
+    from tests.lib import TestFailure
+
+    make_wheel_with_file(
+        name="wheel1",
+        version="1.0",
+        extra_files={
+            'thetop/a.py': '# from wheel1',
+        },
+        extra_metadata_files={
+            'top_level.txt': 'thetop',
+        },
+    ).save_to_dir(tmpdir)
+
+    make_wheel_with_file(
+        name="wheel2",
+        version="2.0",
+        extra_files={
+            'thetop/a.py': '# from wheel2',
+        },
+        extra_metadata_files={
+            'top_level.txt': 'thetop',
+        },
+    ).save_to_dir(tmpdir)
+
+    make_wheel_with_file(
+        name="wheel3",
+        version="3.0",
+        extra_files={
+            'thetop/a.py': '# from wheel3',
+        },
+        extra_metadata_files={
+            'top_level.txt': 'thetop',
+        },
+    ).save_to_dir(tmpdir)
+
+    result = script.pip(
+        'install', 'wheel1', 'wheel2', 'wheel3', '--no-index',
+        '--find-links', tmpdir,
+    )
+
+    # FIXME: Both wheels should be installed, for now. In the future
+    # when the warning is changed to a hard error this part of the
+    # test needs to be updated to show that only wheel1 is installed.
+    with pytest.raises(TestFailure):
+        result.assert_installed('wheel1')
+        result.assert_installed('wheel2')
+
+    # FIXME: When the warning is changed to a hard error, wheel2 won't
+    # be installed and the file contents will be those from wheel1.
+    thetop = script.site_packages_path / 'thetop'
+    assert (thetop / 'a.py').read_text() == '# from wheel3'
+
+    full_path = thetop / 'a.py'
+    msg = 'Overwriting or removing {} for {} which is also owned by {}'.format(
+        full_path, 'wheel2', 'wheel1 1.0')
+    assert msg in result.stderr
+
+    msg = 'Overwriting or removing {} for {} which is also owned by {}'.format(
+        full_path, 'wheel3', 'wheel1 1.0')
+    assert msg in result.stderr
+
+    msg = 'Overwriting or removing {} for {} which is also owned by {}'.format(
+        full_path, 'wheel3', 'wheel2 2.0')
+    assert msg in result.stderr

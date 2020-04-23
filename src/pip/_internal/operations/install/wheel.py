@@ -22,11 +22,13 @@ from zipfile import ZipFile
 from pip._vendor import pkg_resources
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor.distlib.util import get_export_entry
+from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.six import PY2, ensure_str, ensure_text, itervalues, text_type
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_major_minor_version
 from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
+from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.filesystem import adjacent_tmp_file, replace
 from pip._internal.utils.misc import captured_stdout, ensure_dir, hash_file
 from pip._internal.utils.temp_dir import TempDirectory
@@ -324,6 +326,98 @@ class PipScriptMaker(ScriptMaker):
         return super(PipScriptMaker, self).make(specification, options)
 
 
+def _get_file_owners(lib_dir, top_level, ignore_name):
+    # type: (str, str, str) -> Dict[str, List[str]]
+    """Return dict mapping distributions to files under a top level directory
+
+    Look through lib_dir for distributions that own files under the
+    top_level directory specified. Skip distributions that match the
+    ignore_name. Return a dict mapping filenames to the distributions
+    that own them.
+
+    """
+    file_owners = {}  # type: Dict[str, List[str]]
+    existing_env = pkg_resources.Environment([lib_dir])
+    canonical_name = canonicalize_name(ignore_name)
+    for existing_dist_name in existing_env:
+        for d in existing_env[existing_dist_name]:
+            if canonicalize_name(d.project_name) == canonical_name:
+                continue
+
+            existing_info_dir = os.path.join(
+                lib_dir,
+                '{}-{}.dist-info'.format(d.project_name, d.version),
+            )
+
+            top_level_path = os.path.join(existing_info_dir, 'top_level.txt')
+            if not os.path.exists(top_level_path):
+                continue
+            with open(top_level_path, 'r') as f:
+                existing_top_level = f.read().strip()
+            if existing_top_level != top_level:
+                continue
+
+            record_path = os.path.join(existing_info_dir, 'RECORD')
+            if not os.path.exists(record_path):
+                continue
+            with open(record_path, **csv_io_kwargs('r')) as record_file:
+                for row in csv.reader(record_file):
+                    # Normalize the path before saving the owners,
+                    # since the record always contains forward
+                    # slashes, but when we look for a path later we
+                    # will be using a value with the native path
+                    # separator.
+                    o = file_owners.setdefault(os.path.normpath(row[0]), [])
+                    o.append(str(d))
+
+    return file_owners
+
+
+def _report_file_owner_conflicts(lib_dir, name, source_dir, info_dir):
+    # type: (str, str, str, str) -> None
+    """Report files owned by other distributions that are being overwritten.
+
+    Scan the lib_dir for distributions that own files under the same
+    top level directory as the wheel being installed and report any
+    files owned by those other distributions that are going to be
+    overwritten.
+
+    """
+    installing_top_level_path = os.path.join(
+        source_dir, info_dir, 'top_level.txt')
+    if not os.path.exists(installing_top_level_path):
+        # We cannot determine the top level directory, so there is no
+        # point in continuing.
+        return
+
+    with open(installing_top_level_path, 'r') as fd:
+        installing_top_level = fd.read().strip()
+    files_from_other_owners = _get_file_owners(
+        lib_dir, installing_top_level, name)
+    if not files_from_other_owners:
+        # Nothing else owns files under this top level directory, so
+        # we don't need to scan the source.
+        return
+
+    for dir, subdirs, files in os.walk(source_dir):
+        basedir = dir[len(source_dir):].lstrip(os.path.sep)
+        for f in files:
+            partial_src = os.path.join(basedir, f)
+            if partial_src not in files_from_other_owners:
+                # There are no other owners for this file.
+                continue
+            destfile = os.path.join(lib_dir, basedir, f)
+            for owner in files_from_other_owners[partial_src]:
+                deprecated(
+                    reason=('Overwriting or removing {} for {} '
+                            'which is also owned by {}'.format(
+                                destfile, name, owner)),
+                    replacement=None,
+                    gone_in="21.0",
+                    issue="4625",
+                )
+
+
 def install_unpacked_wheel(
     name,  # type: str
     wheeldir,  # type: str
@@ -457,6 +551,12 @@ def install_unpacked_wheel(
                     changed = fixer(destfile)
                 record_installed(srcfile, destfile, changed)
 
+    # Look for packages containing files that are already using the
+    # same toplevel directory as the wheel we are installing but that
+    # have a different dist name. Do this before calling clobber(), so
+    # that when the warning is eventually changed to a hard error no
+    # partial installation occurs.
+    _report_file_owner_conflicts(lib_dir, name, source, info_dir)
     clobber(
         ensure_text(source, encoding=sys.getfilesystemencoding()),
         ensure_text(lib_dir, encoding=sys.getfilesystemencoding()),
