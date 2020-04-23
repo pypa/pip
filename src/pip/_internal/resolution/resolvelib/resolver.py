@@ -151,13 +151,6 @@ class Resolver(BaseResolver):
                     "dependency."
                 )
 
-        sorted_items = sorted(
-            req_set.requirements.items(),
-            key=functools.partial(_req_set_item_sorter, weights=weights),
-            reverse=True,
-        )
-        return [ireq for _, ireq in sorted_items]
-
 
 def _req_set_item_sorter(
     item,     # type: Tuple[str, InstallRequirement]
