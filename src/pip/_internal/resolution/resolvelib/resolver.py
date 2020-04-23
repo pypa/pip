@@ -18,6 +18,7 @@ if MYPY_CHECK_RUNNING:
     from typing import Dict, List, Optional, Tuple
 
     from pip._vendor.resolvelib.resolvers import Result
+    from pip._vendor.resolvelib.structs import Graph
 
     from pip._internal.cache import WheelCache
     from pip._internal.index.package_finder import PackageFinder
@@ -124,32 +125,43 @@ class Resolver(BaseResolver):
         make sure every node has a greater "weight" than all its parents.
         """
         assert self._result is not None, "must call resolve() first"
-        weights = {}  # type: Dict[Optional[str], int]
 
         graph = self._result.graph
-        key_count = len(self._result.mapping) + 1  # Packages plus sentinal.
-        while len(weights) < key_count:
-            progressed = False
-            for key in graph:
-                if key in weights:
-                    continue
-                parents = list(graph.iter_parents(key))
-                if not all(p in weights for p in parents):
-                    continue
-                if parents:
-                    weight = max(weights[p] for p in parents) + 1
-                else:
-                    weight = 0
-                weights[key] = weight
-                progressed = True
+        weights = get_topological_weights(graph)
 
-            # FIXME: This check will fail if there are unbreakable cycles.
-            # Implement something to forcifully break them up to continue.
-            if not progressed:
-                raise InstallationError(
-                    "Could not determine installation order due to cicular "
-                    "dependency."
-                )
+
+def get_topological_weights(graph):
+    # type: (Graph) -> Dict[str, int]
+    """Assign weights to each node based on how "deep" they are.
+    """
+    visited = set()  # type: Set[str]
+    weights = {}
+
+    key_count = len(graph)
+    while len(weights) < key_count:
+        progressed = False
+        for key in graph:
+            if key in weights:
+                continue
+            parents = list(graph.iter_parents(key))
+            if not all(p in weights for p in parents):
+                continue
+            if parents:
+                weight = max(weights[p] for p in parents) + 1
+            else:
+                weight = 0
+            weights[key] = weight
+            progressed = True
+
+        # FIXME: This check will fail if there are unbreakable cycles.
+        # Implement something to forcifully break them up to continue.
+        if not progressed:
+            raise InstallationError(
+                "Could not determine installation order due to cicular "
+                "dependency."
+            )
+
+    return weights
 
 
 def _req_set_item_sorter(
