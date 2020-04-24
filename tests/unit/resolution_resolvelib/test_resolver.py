@@ -26,6 +26,21 @@ def resolver(preparer, finder):
     return resolver
 
 
+def _make_graph(edges):
+    """Build graph from edge declarations.
+    """
+
+    graph = DirectedGraph()
+    for parent, child in edges:
+        parent = canonicalize_name(parent) if parent else None
+        child = canonicalize_name(child) if child else None
+        for v in (parent, child):
+            if v not in graph:
+                graph.add(v)
+        graph.connect(parent, child)
+    return graph
+
+
 @pytest.mark.parametrize(
     "edges, ordered_reqs",
     [
@@ -59,15 +74,7 @@ def resolver(preparer, finder):
     ],
 )
 def test_new_resolver_get_installation_order(resolver, edges, ordered_reqs):
-    # Build graph from edge declarations.
-    graph = DirectedGraph()
-    for parent, child in edges:
-        parent = canonicalize_name(parent) if parent else None
-        child = canonicalize_name(child) if child else None
-        for v in (parent, child):
-            if v not in graph:
-                graph.add(v)
-        graph.connect(parent, child)
+    graph = _make_graph(edges)
 
     # Mapping values and criteria are not used in test, so we stub them out.
     mapping = {vertex: None for vertex in graph if vertex is not None}
