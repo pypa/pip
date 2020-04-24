@@ -52,8 +52,8 @@ else:
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Any, AnyStr, Container, Iterable, Iterator, List, Optional, Text,
-        Tuple, Union,
+        Any, AnyStr, Iterable, Iterator, List, Optional, Text,
+        Tuple, Union, Sized
     )
     from pip._vendor.pkg_resources import Distribution
 
