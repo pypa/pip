@@ -3,8 +3,8 @@ import os
 
 import pytest
 
-from tests.lib import requirements_file
 from tests.lib import create_test_package_with_setup
+from tests.lib import requirements_file
 from tests.lib.path import Path
 
 
