@@ -73,7 +73,7 @@ class Resolver(BaseResolver):
         resolver = RLResolver(provider, reporter)
 
         requirements = [
-            self.factory.make_requirement_from_install_req(r, root=True)
+            self.factory.make_requirement_from_install_req(r)
             for r in root_reqs
         ]
 

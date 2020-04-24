@@ -166,9 +166,9 @@ class Factory(object):
                 parent=ireq,
             )
 
-    def make_requirement_from_install_req(self, ireq, root=False):
-        # type: (InstallRequirement, bool) -> Requirement
-        if root and ireq.name:
+    def make_requirement_from_install_req(self, ireq):
+        # type: (InstallRequirement) -> Requirement
+        if ireq.is_direct and ireq.name:
             self.root_reqs.add(canonicalize_name(ireq.name))
 
         if ireq.link:
