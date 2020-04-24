@@ -48,6 +48,11 @@ class CacheCommand(Command):
             "purge": self.purge_cache,
         }
 
+        if not options.cache_dir:
+            logger.error("pip cache commands can not "
+                         "function since cache is disabled.")
+            return ERROR
+
         # Determine action
         if not args or args[0] not in handlers:
             logger.error("Need an action ({}) to perform.".format(
