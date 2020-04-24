@@ -40,9 +40,9 @@ def resolver(preparer, finder):
         (
             [
                 (None, "toporequires"),
-                (None, "toporequire2"),
-                (None, "toporequire3"),
-                (None, "toporequire4"),
+                (None, "toporequires2"),
+                (None, "toporequires3"),
+                (None, "toporequires4"),
                 ("toporequires2", "toporequires"),
                 ("toporequires3", "toporequires"),
                 ("toporequires4", "toporequires"),
