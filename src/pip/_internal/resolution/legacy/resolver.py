@@ -46,6 +46,7 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.cache import WheelCache
     from pip._internal.distributions import AbstractDistribution
     from pip._internal.index.package_finder import PackageFinder
+    from pip._internal.models.link import Link
     from pip._internal.operations.prepare import RequirementPreparer
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.resolution.base import InstallRequirementProvider
@@ -260,6 +261,14 @@ class Resolver(BaseResolver):
         self._set_req_to_reinstall(req_to_install)
         return None
 
+    def _find_requirement_link(self, req):
+        # type: (InstallRequirement) -> Optional[Link]
+        upgrade = self._is_upgrade_allowed(req)
+        best_candidate = self.finder.find_requirement(req, upgrade)
+        if not best_candidate:
+            return None
+        return best_candidate.link
+
     def _populate_link(self, req):
         # type: (InstallRequirement) -> None
         """Ensure that if a link can be found for this, that it is found.
@@ -274,9 +283,8 @@ class Resolver(BaseResolver):
         mismatches. Furthermore, cached wheels at present have undeterministic
         contents due to file modification times.
         """
-        upgrade = self._is_upgrade_allowed(req)
         if req.link is None:
-            req.link = self.finder.find_requirement(req, upgrade)
+            req.link = self._find_requirement_link(req)
 
         if self.wheel_cache is None or self.preparer.require_hashes:
             return

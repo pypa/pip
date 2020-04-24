@@ -889,11 +889,11 @@ class PackageFinder(object):
         return candidate_evaluator.compute_best_candidate(candidates)
 
     def find_requirement(self, req, upgrade):
-        # type: (InstallRequirement, bool) -> Optional[Link]
+        # type: (InstallRequirement, bool) -> Optional[InstallationCandidate]
         """Try to find a Link matching req
 
         Expects req, an InstallRequirement and upgrade, a boolean
-        Returns a Link if found,
+        Returns a InstallationCandidate if found,
         Raises DistributionNotFound or BestVersionAlreadyInstalled otherwise
         """
         hashes = req.hashes(trust_internet=False)
@@ -967,7 +967,7 @@ class PackageFinder(object):
             best_candidate.version,
             _format_versions(best_candidate_result.iter_applicable()),
         )
-        return best_candidate.link
+        return best_candidate
 
 
 def _find_name_version_sep(fragment, canonical_name):
