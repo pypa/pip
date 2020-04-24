@@ -129,6 +129,13 @@ class Resolver(BaseResolver):
         graph = self._result.graph
         weights = get_topological_weights(graph)
 
+        sorted_items = sorted(
+            req_set.requirements.items(),
+            key=functools.partial(_req_set_item_sorter, weights=weights),
+            reverse=True,
+        )
+        return [ireq for _, ireq in sorted_items]
+
 
 def get_topological_weights(graph):
     # type: (Graph) -> Dict[str, int]
