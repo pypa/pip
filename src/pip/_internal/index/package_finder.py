@@ -556,23 +556,7 @@ class CandidateEvaluator(object):
         """
         if not candidates:
             return None
-
         best_candidate = max(candidates, key=self._sort_key)
-
-        # Log a warning per PEP 592 if necessary before returning.
-        link = best_candidate.link
-        if link.is_yanked:
-            reason = link.yanked_reason or '<none given>'
-            msg = (
-                # Mark this as a unicode string to prevent
-                # "UnicodeEncodeError: 'ascii' codec can't encode character"
-                # in Python 2 when the reason contains non-ascii characters.
-                u'The candidate selected for download or install is a '
-                'yanked version: {candidate}\n'
-                'Reason for being yanked: {reason}'
-            ).format(candidate=best_candidate, reason=reason)
-            logger.warning(msg)
-
         return best_candidate
 
     def compute_best_candidate(

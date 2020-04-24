@@ -267,7 +267,22 @@ class Resolver(BaseResolver):
         best_candidate = self.finder.find_requirement(req, upgrade)
         if not best_candidate:
             return None
-        return best_candidate.link
+
+        # Log a warning per PEP 592 if necessary before returning.
+        link = best_candidate.link
+        if link.is_yanked:
+            reason = link.yanked_reason or '<none given>'
+            msg = (
+                # Mark this as a unicode string to prevent
+                # "UnicodeEncodeError: 'ascii' codec can't encode character"
+                # in Python 2 when the reason contains non-ascii characters.
+                u'The candidate selected for download or install is a '
+                'yanked version: {candidate}\n'
+                'Reason for being yanked: {reason}'
+            ).format(candidate=best_candidate, reason=reason)
+            logger.warning(msg)
+
+        return link
 
     def _populate_link(self, req):
         # type: (InstallRequirement) -> None
