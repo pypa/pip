@@ -501,7 +501,7 @@ def test_get_html_page_invalid_content_type(caplog, content_type):
     assert ('pip._internal.index.collector',
             logging.WARNING,
             'Skipping page {} because the GET request got Content-Type: {}.'
-            'The supported Content-Type is text/html'.format(
+            'The only supported Content-Type is text/html'.format(
                 url, content_type)) \
         in caplog.record_tuples
 
