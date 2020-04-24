@@ -50,6 +50,7 @@ class Factory(object):
         force_reinstall,  # type: bool
         ignore_installed,  # type: bool
         ignore_requires_python,  # type: bool
+        upgrade_strategy,  # type: str
         py_version_info=None,  # type: Optional[Tuple[int, ...]]
     ):
         # type: (...) -> None
@@ -59,6 +60,9 @@ class Factory(object):
         self._make_install_req_from_spec = make_install_req
         self._force_reinstall = force_reinstall
         self._ignore_requires_python = ignore_requires_python
+        self._upgrade_strategy = upgrade_strategy
+
+        self.root_reqs = set()  # type: Set[str]
 
         self._link_candidate_cache = {}  # type: Cache[LinkCandidate]
         self._editable_candidate_cache = {}  # type: Cache[EditableCandidate]
@@ -110,13 +114,23 @@ class Factory(object):
             return ExtrasCandidate(base, extras)
         return base
 
+    def _eligible_for_upgrade(self, dist_name):
+        # type: (str) -> bool
+        if self._upgrade_strategy == "eager":
+            return True
+        elif self._upgrade_strategy == "only-if-needed":
+            return (dist_name in self.root_reqs)
+        return False
+
     def iter_found_candidates(self, ireq, extras):
         # type: (InstallRequirement, Set[str]) -> Iterator[Candidate]
         name = canonicalize_name(ireq.req.name)
         if not self._force_reinstall:
             installed_dist = self._installed_dists.get(name)
+            can_upgrade = self._eligible_for_upgrade(name)
         else:
             installed_dist = None
+            can_upgrade = False
 
         found = self.finder.find_best_candidate(
             project_name=ireq.req.name,
@@ -126,6 +140,12 @@ class Factory(object):
         for ican in found.iter_applicable():
             if (installed_dist is not None and
                     installed_dist.parsed_version == ican.version):
+                if can_upgrade:
+                    yield self._make_candidate_from_dist(
+                        dist=installed_dist,
+                        extras=extras,
+                        parent=ireq,
+                    )
                 continue
             yield self._make_candidate_from_link(
                 link=ican.link,
@@ -138,6 +158,7 @@ class Factory(object):
         # Return installed distribution if it matches the specifier. This is
         # done last so the resolver will prefer it over downloading links.
         if (installed_dist is not None and
+                not can_upgrade and
                 installed_dist.parsed_version in ireq.req.specifier):
             yield self._make_candidate_from_dist(
                 dist=installed_dist,
@@ -145,8 +166,11 @@ class Factory(object):
                 parent=ireq,
             )
 
-    def make_requirement_from_install_req(self, ireq):
-        # type: (InstallRequirement) -> Requirement
+    def make_requirement_from_install_req(self, ireq, root=False):
+        # type: (InstallRequirement, bool) -> Requirement
+        if root and ireq.name:
+            self.root_reqs.add(ireq.name)
+
         if ireq.link:
             # TODO: Get name and version from ireq, if possible?
             #       Specifically, this might be needed in "name @ URL"

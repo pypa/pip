@@ -529,3 +529,88 @@ def test_new_resolver_handles_prerelease(
         *pip_args
     )
     assert_installed(script, pkg=expected_version)
+
+
+def test_new_resolver_upgrade_needs_option(script):
+    # Install pkg 1.0.0
+    create_basic_wheel_for_package(script, "pkg", "1.0.0")
+    script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "pkg",
+    )
+
+    # Now release a new version
+    create_basic_wheel_for_package(script, "pkg", "2.0.0")
+
+    # This should not upgrade because we don't specify --upgrade
+    result = script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "pkg",
+    )
+
+    assert "Requirement already satisfied" in result.stdout, str(result)
+    assert_installed(script, pkg="1.0.0")
+
+    # This should upgrade
+    result = script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "--upgrade",
+        "pkg",
+    )
+
+    assert "Uninstalling pkg-1.0.0" in result.stdout, str(result)
+    assert "Successfully uninstalled pkg-1.0.0" in result.stdout, str(result)
+    assert script.site_packages / "pkg" in result.files_updated, (
+        "pkg not upgraded"
+    )
+    assert_installed(script, pkg="2.0.0")
+
+
+def test_new_resolver_upgrade_strategy(script):
+    create_basic_wheel_for_package(script, "base", "1.0.0", depends=["dep"])
+    create_basic_wheel_for_package(script, "dep", "1.0.0")
+    script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "base",
+    )
+
+    assert_installed(script, base="1.0.0")
+    assert_installed(script, dep="1.0.0")
+
+    # Now release new versions
+    create_basic_wheel_for_package(script, "base", "2.0.0", depends=["dep"])
+    create_basic_wheel_for_package(script, "dep", "2.0.0")
+
+    script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "--upgrade",
+        "base",
+    )
+
+    # With upgrade strategy "only-if-needed" (the default), dep should not
+    # be upgraded.
+    assert_installed(script, base="2.0.0")
+    assert_installed(script, dep="1.0.0")
+
+    create_basic_wheel_for_package(script, "base", "3.0.0", depends=["dep"])
+    script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "--upgrade", "--upgrade-strategy=eager",
+        "base",
+    )
+
+    # With upgrade strategy "eager", dep should be upgraded.
+    assert_installed(script, base="3.0.0")
+    assert_installed(script, dep="2.0.0")

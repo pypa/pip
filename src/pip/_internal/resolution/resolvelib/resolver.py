@@ -52,6 +52,7 @@ class Resolver(BaseResolver):
             force_reinstall=force_reinstall,
             ignore_installed=ignore_installed,
             ignore_requires_python=ignore_requires_python,
+            upgrade_strategy=upgrade_strategy,
             py_version_info=py_version_info,
         )
         self.ignore_dependencies = ignore_dependencies
@@ -72,7 +73,7 @@ class Resolver(BaseResolver):
         resolver = RLResolver(provider, reporter)
 
         requirements = [
-            self.factory.make_requirement_from_install_req(r)
+            self.factory.make_requirement_from_install_req(r, root=True)
             for r in root_reqs
         ]
 
