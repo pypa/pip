@@ -216,3 +216,15 @@ def test_cache_purge_too_many_args(script, wheel_cache_files):
     # Make sure nothing was deleted.
     for filename in wheel_cache_files:
         assert os.path.exists(filename)
+
+
+@pytest.mark.parametrize("command", ["info", "list", "remove", "purge"])
+def test_cache_abort_when_no_cache_dir(script, command):
+    """Running any pip cache command when cache is disabled should
+    abort and log an informative error"""
+    result = script.pip('cache', command, '--no-cache-dir',
+                        expect_error=True)
+    assert result.stdout == ''
+
+    assert ('ERROR: pip cache commands can not function'
+            ' since cache is disabled.' in result.stderr.splitlines())
