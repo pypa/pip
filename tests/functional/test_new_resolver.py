@@ -561,7 +561,7 @@ def test_new_resolver_upgrade_needs_option(script):
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "--upgrade",
-        "pkg",
+        "PKG",  # Deliberately uppercase to check canonicalization
     )
 
     assert "Uninstalling pkg-1.0.0" in result.stdout, str(result)

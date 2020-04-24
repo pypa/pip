@@ -169,7 +169,7 @@ class Factory(object):
     def make_requirement_from_install_req(self, ireq, root=False):
         # type: (InstallRequirement, bool) -> Requirement
         if root and ireq.name:
-            self.root_reqs.add(ireq.name)
+            self.root_reqs.add(canonicalize_name(ireq.name))
 
         if ireq.link:
             # TODO: Get name and version from ireq, if possible?
