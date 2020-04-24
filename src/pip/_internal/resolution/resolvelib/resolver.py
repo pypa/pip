@@ -121,8 +121,10 @@ class Resolver(BaseResolver):
         it. This helps ensure that the environment is kept consistent as they
         get installed one-by-one.
 
-        The current implementation walks the resolved dependency graph, and
-        make sure every node has a greater "weight" than all its parents.
+        The current implementation creates a topological ordering of the
+        dependency graph, while breaking any cycles in the graph at arbitrary
+        points. We make no guarantees about where the cycle would be broken,
+        other than they would be broken.
         """
         assert self._result is not None, "must call resolve() first"
 
@@ -138,35 +140,48 @@ class Resolver(BaseResolver):
 
 
 def get_topological_weights(graph):
-    # type: (Graph) -> Dict[str, int]
+    # type: (Graph) -> Dict[Optional[str], int]
     """Assign weights to each node based on how "deep" they are.
+
+    This implementation may change at any point in the future without prior
+    notice.
+
+    We take the length for the longest path to any node from root, ignoring any
+    paths that contain a single node twice (i.e. cycles). This is done through
+    a depth-first search through the graph, while keeping track of the path to
+    the node.
+
+    Cycles in the graph result would result in node being revisited while also
+    being it's own path. In this case, take no action. This helps ensure we
+    don't get stuck in a cycle.
+
+    When assigning weight, the longer path (i.e. larger length) is preferred.
     """
-    visited = set()  # type: Set[str]
-    weights = {}
+    path = []  # type: List[Optional[str]]
+    weights = {}  # type: Dict[Optional[str], int]
 
-    key_count = len(graph)
-    while len(weights) < key_count:
-        progressed = False
-        for key in graph:
-            if key in weights:
-                continue
-            parents = list(graph.iter_parents(key))
-            if not all(p in weights for p in parents):
-                continue
-            if parents:
-                weight = max(weights[p] for p in parents) + 1
-            else:
-                weight = 0
-            weights[key] = weight
-            progressed = True
+    def visit(node):
+        # type: (Optional[str]) -> None
+        if node in path:
+            # We hit a cycle, so we'll break it here.
+            return
 
-        # FIXME: This check will fail if there are unbreakable cycles.
-        # Implement something to forcifully break them up to continue.
-        if not progressed:
-            raise InstallationError(
-                "Could not determine installation order due to cicular "
-                "dependency."
-            )
+        # Time to visit the children!
+        path.append(node)
+        for child in graph.iter_children(node):
+            visit(child)
+        popped = path.pop()
+        assert popped == node, "Sanity check failed. Please file a bug report."
+
+        last_known_parent_count = weights.get(node, 0)
+        weights[node] = max(last_known_parent_count, len(path))
+
+    # `None` is guaranteed to be the root node by resolvelib.
+    visit(None)
+
+    # Sanity checks
+    assert weights[None] == 0
+    assert len(weights) == len(graph)
 
     return weights
 
