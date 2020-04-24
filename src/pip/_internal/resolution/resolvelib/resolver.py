@@ -77,6 +77,13 @@ class Resolver(BaseResolver):
             for r in root_reqs
         ]
 
+        # The factory should not have retained state from any previous usage.
+        # In theory this could only happen if self was reused to do a second
+        # resolve, which isn't something we do at the moment. We assert here
+        # in order to catch the issue if that ever changes.
+        # The persistent state that we care about is `root_reqs`.
+        assert len(self.factory.root_reqs) == 0, "Factory is being re-used"
+
         try:
             self._result = resolver.resolve(requirements)
 
