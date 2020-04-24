@@ -1,2 +1,0 @@
-Extend to Subversion 1.8+ the behavior of calling Subversion in
-interactive mode when pip is run interactively.

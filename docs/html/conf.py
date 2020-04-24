@@ -54,7 +54,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'pip'
-copyright = '2008-2017, PyPA'
+copyright = '2008-2020, PyPA'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -127,7 +127,7 @@ pygments_style = 'sphinx'
 extlinks = {
     'issue': ('https://github.com/pypa/pip/issues/%s', '#'),
     'pull': ('https://github.com/pypa/pip/pull/%s', 'PR #'),
-    'pypi': ('https://pypi.org/project/%s', ''),
+    'pypi': ('https://pypi.org/project/%s/', ''),
 }
 
 # -- Options for HTML output --------------------------------------------------
@@ -273,11 +273,26 @@ man_pages = [
     )
 ]
 
+
+def to_document_name(path, base_dir):
+    """Convert a provided path to a Sphinx "document name".
+    """
+    relative_path = os.path.relpath(path, base_dir)
+    root, _ = os.path.splitext(relative_path)
+    return root.replace(os.sep, '/')
+
+
 # Here, we crawl the entire man/commands/ directory and list every file with
 # appropriate name and details
-for fname in glob.glob('man/commands/*.rst'):
-    fname_base = fname[4:-4]
-    outname = 'pip-' + fname_base[13:]
+man_dir = os.path.join(docs_dir, 'man')
+raw_subcommands = glob.glob(os.path.join(man_dir, 'commands/*.rst'))
+if not raw_subcommands:
+    raise FileNotFoundError(
+        'The individual subcommand manpages could not be found!'
+    )
+for fname in raw_subcommands:
+    fname_base = to_document_name(fname, man_dir)
+    outname = 'pip-' + fname_base.split('/')[1]
     description = u'description of {} command'.format(
         outname.replace('-', ' ')
     )

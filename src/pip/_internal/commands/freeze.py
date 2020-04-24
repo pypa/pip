@@ -1,10 +1,13 @@
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 from __future__ import absolute_import
 
 import sys
 
 from pip._internal.cache import WheelCache
+from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
-from pip._internal.exceptions import CommandError
 from pip._internal.models.format_control import FormatControl
 from pip._internal.operations.freeze import freeze
 from pip._internal.utils.compat import stdlib_pkgs
@@ -18,10 +21,9 @@ class FreezeCommand(Command):
 
     packages are listed in a case-insensitive sorted order.
     """
-    name = 'freeze'
+
     usage = """
       %prog [options]"""
-    summary = 'Output installed packages in requirements format.'
     log_streams = ("ext://sys.stderr", "ext://sys.stderr")
 
     def __init__(self, *args, **kw):
@@ -57,18 +59,13 @@ class FreezeCommand(Command):
             action='store_true',
             default=False,
             help='Only output packages installed in user-site.')
-        self.cmd_opts.add_option(
-            '--path',
-            dest='path',
-            action='append',
-            help='Restrict to the specified installation path for listing '
-                 'packages (can be used multiple times).')
+        self.cmd_opts.add_option(cmdoptions.list_path())
         self.cmd_opts.add_option(
             '--all',
             dest='freeze_all',
             action='store_true',
             help='Do not skip these packages in the output:'
-                 ' %s' % ', '.join(DEV_PKGS))
+                 ' {}'.format(', '.join(DEV_PKGS)))
         self.cmd_opts.add_option(
             '--exclude-editable',
             dest='exclude_editable',
@@ -84,10 +81,7 @@ class FreezeCommand(Command):
         if not options.freeze_all:
             skip.update(DEV_PKGS)
 
-        if options.path and (options.user or options.local):
-            raise CommandError(
-                "Cannot combine '--path' with '--user' or '--local'"
-            )
+        cmdoptions.check_list_path_option(options)
 
         freeze_kwargs = dict(
             requirement=options.requirements,
@@ -95,15 +89,11 @@ class FreezeCommand(Command):
             local_only=options.local,
             user_only=options.user,
             paths=options.path,
-            skip_regex=options.skip_requirements_regex,
             isolated=options.isolated_mode,
             wheel_cache=wheel_cache,
             skip=skip,
             exclude_editable=options.exclude_editable,
         )
 
-        try:
-            for line in freeze(**freeze_kwargs):
-                sys.stdout.write(line + '\n')
-        finally:
-            wheel_cache.cleanup()
+        for line in freeze(**freeze_kwargs):
+            sys.stdout.write(line + '\n')

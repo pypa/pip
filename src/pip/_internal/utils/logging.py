@@ -1,3 +1,6 @@
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 from __future__ import absolute_import
 
 import contextlib
@@ -6,13 +9,13 @@ import logging
 import logging.handlers
 import os
 import sys
-from logging import Filter
+from logging import Filter, getLogger
 
 from pip._vendor.six import PY2
 
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
-from pip._internal.utils.misc import ensure_dir, subprocess_logger
+from pip._internal.utils.misc import ensure_dir
 
 try:
     import threading
@@ -21,15 +24,35 @@ except ImportError:
 
 
 try:
-    from pip._vendor import colorama
+    # Use "import as" and set colorama in the else clause to avoid mypy
+    # errors and get the following correct revealed type for colorama:
+    # `Union[_importlib_modulespec.ModuleType, None]`
+    # Otherwise, we get an error like the following in the except block:
+    #  > Incompatible types in assignment (expression has type "None",
+    #   variable has type Module)
+    # TODO: eliminate the need to use "import as" once mypy addresses some
+    #  of its issues with conditional imports. Here is an umbrella issue:
+    #  https://github.com/python/mypy/issues/1297
+    from pip._vendor import colorama as _colorama
 # Lots of different errors can come from this, including SystemError and
 # ImportError.
 except Exception:
     colorama = None
+else:
+    # Import Fore explicitly rather than accessing below as colorama.Fore
+    # to avoid the following error running mypy:
+    # > Module has no attribute "Fore"
+    # TODO: eliminate the need to import Fore once mypy addresses some of its
+    #  issues with conditional imports. This particular case could be an
+    #  instance of the following issue (but also see the umbrella issue above):
+    #  https://github.com/python/mypy/issues/3500
+    from pip._vendor.colorama import Fore
+
+    colorama = _colorama
 
 
 _log_state = threading.local()
-_log_state.indentation = 0
+subprocess_logger = getLogger('pip.subprocessor')
 
 
 class BrokenStdoutLoggingError(Exception):
@@ -80,6 +103,8 @@ def indent_log(num=2):
     A context manager which will cause the log output to be indented for any
     log messages emitted inside it.
     """
+    # For thread-safety
+    _log_state.indentation = get_indentation()
     _log_state.indentation += num
     try:
         yield
@@ -92,6 +117,7 @@ def get_indentation():
 
 
 class IndentingFormatter(logging.Formatter):
+
     def __init__(self, *args, **kwargs):
         """
         A logging.Formatter that obeys the indent_log() context manager.
@@ -120,8 +146,8 @@ class IndentingFormatter(logging.Formatter):
 
     def format(self, record):
         """
-        Calls the standard formatter, but will indent all of the log messages
-        by our current indentation level.
+        Calls the standard formatter, but will indent all of the log message
+        lines by our current indentation level.
         """
         formatted = super(IndentingFormatter, self).format(record)
         message_start = self.get_message_start(formatted, record.levelno)
@@ -129,7 +155,9 @@ class IndentingFormatter(logging.Formatter):
 
         prefix = ''
         if self.add_timestamp:
-            prefix = self.formatTime(record, "%Y-%m-%dT%H:%M:%S ")
+            # TODO: Use Formatter.default_time_format after dropping PY2.
+            t = self.formatTime(record, "%Y-%m-%dT%H:%M:%S")
+            prefix = '{t},{record.msecs:03.0f} '.format(**locals())
         prefix += " " * get_indentation()
         formatted = "".join([
             prefix + line
@@ -150,8 +178,8 @@ class ColorizedStreamHandler(logging.StreamHandler):
     if colorama:
         COLORS = [
             # This needs to be in order from highest logging level to lowest.
-            (logging.ERROR, _color_wrap(colorama.Fore.RED)),
-            (logging.WARNING, _color_wrap(colorama.Fore.YELLOW)),
+            (logging.ERROR, _color_wrap(Fore.RED)),
+            (logging.WARNING, _color_wrap(Fore.YELLOW)),
         ]
     else:
         COLORS = []

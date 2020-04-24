@@ -1,1 +1,0 @@
-Prevent DistutilsOptionError when prefix is indicated in the global environment and `--target` is used.

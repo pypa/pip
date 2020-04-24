@@ -6,7 +6,8 @@ from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.req.constructors import (
-    install_req_from_line, install_req_from_req_string,
+    install_req_from_line,
+    install_req_from_req_string,
 )
 from pip._internal.req.req_install import InstallRequirement
 
@@ -19,7 +20,9 @@ class TestInstallRequirementBuildDirectory(object):
         # Make sure we're handling it correctly with real path.
         requirement = InstallRequirement(None, None)
         tmp_dir = tempfile.mkdtemp('-build', 'pip-')
-        tmp_build_dir = requirement.build_location(tmp_dir)
+        tmp_build_dir = requirement.ensure_build_location(
+            tmp_dir, autodelete=False
+        )
         assert (
             os.path.dirname(tmp_build_dir) ==
             os.path.realpath(os.path.dirname(tmp_dir))

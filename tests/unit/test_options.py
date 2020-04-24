@@ -4,8 +4,8 @@ from contextlib import contextmanager
 import pytest
 
 import pip._internal.configuration
-from pip._internal import main
-from pip._internal.commands import ConfigurationCommand, DownloadCommand
+from pip._internal.cli.main import main
+from pip._internal.commands import create_command
 from pip._internal.exceptions import PipError
 from tests.lib.options_helpers import AddFakeCommandMixin
 
@@ -193,7 +193,7 @@ class TestUsePEP517Options(object):
     def parse_args(self, args):
         # We use DownloadCommand since that is one of the few Command
         # classes with the use_pep517 options.
-        command = DownloadCommand()
+        command = create_command('download')
         options, args = command.parse_args(args)
 
         return options
@@ -359,12 +359,6 @@ class TestGeneralOptions(AddFakeCommandMixin):
         options2, args2 = main(['fake', '--timeout', '-1'])
         assert options1.timeout == options2.timeout == -1
 
-    def test_skip_requirements_regex(self):
-        options1, args1 = main(['--skip-requirements-regex', 'path', 'fake'])
-        options2, args2 = main(['fake', '--skip-requirements-regex', 'path'])
-        assert options1.skip_requirements_regex == 'path'
-        assert options2.skip_requirements_regex == 'path'
-
     def test_exists_action(self):
         options1, args1 = main(['--exists-action', 'w', 'fake'])
         options2, args2 = main(['fake', '--exists-action', 'w'])
@@ -384,9 +378,10 @@ class TestGeneralOptions(AddFakeCommandMixin):
 class TestOptionsConfigFiles(object):
 
     def test_venv_config_file_found(self, monkeypatch):
-        # strict limit on the global_config_files list
+        # strict limit on the global config files list
         monkeypatch.setattr(
-            pip._internal.configuration, 'global_config_files', ['/a/place']
+            pip._internal.utils.appdirs, 'site_config_dirs',
+            lambda _: ['/a/place']
         )
 
         cp = pip._internal.configuration.Configuration(isolated=False)
@@ -410,7 +405,7 @@ class TestOptionsConfigFiles(object):
         )
     )
     def test_config_file_options(self, monkeypatch, args, expect):
-        cmd = ConfigurationCommand()
+        cmd = create_command('config')
         # Replace a handler with a no-op to avoid side effects
         monkeypatch.setattr(cmd, "get_name", lambda *a: None)
 
@@ -421,25 +416,24 @@ class TestOptionsConfigFiles(object):
         else:
             assert expect == cmd._determine_file(options, need_value=False)
 
-    def test_config_file_venv_option(self, monkeypatch):
-        cmd = ConfigurationCommand()
-        # Replace a handler with a no-op to avoid side effects
-        monkeypatch.setattr(cmd, "get_name", lambda *a: None)
 
-        collected_warnings = []
+class TestOptionsExpandUser(AddFakeCommandMixin):
+    def test_cache_dir(self):
+        options, args = main(['--cache-dir', '~/cache/dir', 'fake'])
+        assert options.cache_dir == os.path.expanduser('~/cache/dir')
 
-        def _warn(message, *a, **kw):
-            collected_warnings.append(message)
-        monkeypatch.setattr("warnings.warn", _warn)
+    def test_log(self):
+        options, args = main(['--log', '~/path', 'fake'])
+        assert options.log == os.path.expanduser('~/path')
 
-        options, args = cmd.parser.parse_args(["--venv", "get", "name"])
-        assert "site" == cmd._determine_file(options, need_value=False)
-        assert collected_warnings
-        assert "--site" in collected_warnings[0]
+    def test_local_log(self):
+        options, args = main(['--local-log', '~/path', 'fake'])
+        assert options.log == os.path.expanduser('~/path')
 
-        # No warning or error if both "--venv" and "--site" are specified
-        collected_warnings[:] = []
-        options, args = cmd.parser.parse_args(["--venv", "--site", "get",
-                                               "name"])
-        assert "site" == cmd._determine_file(options, need_value=False)
-        assert not collected_warnings
+    def test_cert(self):
+        options, args = main(['--cert', '~/path', 'fake'])
+        assert options.cert == os.path.expanduser('~/path')
+
+    def test_client_cert(self):
+        options, args = main(['--client-cert', '~/path', 'fake'])
+        assert options.client_cert == os.path.expanduser('~/path')

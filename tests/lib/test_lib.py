@@ -65,8 +65,8 @@ def test_correct_pip_version(script):
         if x.endswith('.py')
     ]
     assert not mismatch_py, (
-        'mismatched source files in %r and %r: %r' %
-        (pip_folder, pip_folder_outputed, mismatch_py)
+        'mismatched source files in {pip_folder!r} '
+        'and {pip_folder_outputed!r}: {mismatch_py!r}'.format(**locals())
     )
 
 
@@ -211,3 +211,17 @@ class TestPipTestEnvironment:
         )
         with assert_error_startswith(RuntimeError, expected_start):
             script.run('python', **kwargs)
+
+    def test_run__expect_error_fails_when_zero_returncode(self, script):
+        expected_start = 'Script passed unexpectedly'
+        with assert_error_startswith(AssertionError, expected_start):
+            script.run(
+                'python', expect_error=True
+            )
+
+    def test_run__no_expect_error_fails_when_nonzero_returncode(self, script):
+        expected_start = 'Script returned code: 1'
+        with assert_error_startswith(AssertionError, expected_start):
+            script.run(
+                'python', '-c', 'import sys; sys.exit(1)'
+            )

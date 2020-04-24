@@ -9,21 +9,21 @@ cases:
 -
   request:
     - install: B
-  transaction:
-    - install:
+  response:
+    - state:
       - A 2.0.0
       - B 2.0.0
 -
   request:
     - install: B == 2.0.0
-  transaction:
-    - install:
+  response:
+    - state:
       - A 2.0.0
       - B 2.0.0
 -
   request:
     - install: B == 1.0.0
-  transaction:
-    - install:
+  response:
+    - state:
       - A 1.0.0
       - B 1.0.0

@@ -76,7 +76,7 @@ class TestLocations:
         return result
 
 
-class TestDisutilsScheme:
+class TestDistutilsScheme:
 
     def test_root_modifies_appropriately(self, monkeypatch):
         # This deals with nt/posix path differences
@@ -96,8 +96,9 @@ class TestDisutilsScheme:
         # This deals with nt/posix path differences
         install_scripts = os.path.normcase(os.path.abspath(
             os.path.join(os.path.sep, 'somewhere', 'else')))
-        f = tmpdir.mkdir("config").join("setup.cfg")
-        f.write("[install]\ninstall-scripts=" + install_scripts)
+        f = tmpdir / "config" / "setup.cfg"
+        f.parent.mkdir()
+        f.write_text("[install]\ninstall-scripts=" + install_scripts)
         from distutils.dist import Distribution
         # patch the function that returns what config files are present
         monkeypatch.setattr(
@@ -116,8 +117,9 @@ class TestDisutilsScheme:
         # This deals with nt/posix path differences
         install_lib = os.path.normcase(os.path.abspath(
             os.path.join(os.path.sep, 'somewhere', 'else')))
-        f = tmpdir.mkdir("config").join("setup.cfg")
-        f.write("[install]\ninstall-lib=" + install_lib)
+        f = tmpdir / "config" / "setup.cfg"
+        f.parent.mkdir()
+        f.write_text("[install]\ninstall-lib=" + install_lib)
         from distutils.dist import Distribution
         # patch the function that returns what config files are present
         monkeypatch.setattr(

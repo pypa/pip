@@ -1,34 +1,42 @@
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 from __future__ import absolute_import
 
 import json
 import logging
+from multiprocessing.dummy import Pool
 
 from pip._vendor import six
-from pip._vendor.six.moves import zip_longest
+from pip._vendor.requests.adapters import DEFAULT_POOLSIZE
 
 from pip._internal.cli import cmdoptions
-from pip._internal.cli.base_command import Command
+from pip._internal.cli.req_command import IndexGroupCommand
 from pip._internal.exceptions import CommandError
-from pip._internal.index import PackageFinder
 from pip._internal.req import parse_requirements
+from pip._internal.index.package_finder import PackageFinder
+from pip._internal.models.selection_prefs import SelectionPreferences
+from pip._internal.self_outdated_check import make_link_collector
 from pip._internal.utils.misc import (
-    dist_is_editable, get_installed_distributions,
+    dist_is_editable,
+    get_installed_distributions,
+    tabulate,
+    write_output,
 )
 from pip._internal.utils.packaging import get_installer
 
 logger = logging.getLogger(__name__)
 
 
-class ListCommand(Command):
+class ListCommand(IndexGroupCommand):
     """
     List installed packages, including editables.
 
     Packages are listed in a case-insensitive sorted order.
     """
-    name = 'list'
+
     usage = """
       %prog [options]"""
-    summary = 'List installed packages.'
 
     def __init__(self, *args, **kw):
         super(ListCommand, self).__init__(*args, **kw)
@@ -72,7 +80,7 @@ class ListCommand(Command):
             action='store_true',
             default=False,
             help='Only output packages installed in user-site.')
-
+        cmd_opts.add_option(cmdoptions.list_path())
         cmd_opts.add_option(
             '--pre',
             action='store_true',
@@ -119,16 +127,21 @@ class ListCommand(Command):
         self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, cmd_opts)
 
-    def _build_package_finder(self, options, index_urls, session):
+    def _build_package_finder(self, options, session):
         """
         Create a package finder appropriate to this list command.
         """
-        return PackageFinder.create(
-            find_links=options.find_links,
-            index_urls=index_urls,
+        link_collector = make_link_collector(session, options=options)
+
+        # Pass allow_yanked=False to ignore yanked versions.
+        selection_prefs = SelectionPreferences(
+            allow_yanked=False,
             allow_all_prereleases=options.pre,
-            trusted_hosts=options.trusted_hosts,
-            session=session,
+        )
+
+        return PackageFinder.create(
+            link_collector=link_collector,
+            selection_prefs=selection_prefs,
         )
 
     def run(self, options, args):
@@ -143,12 +156,15 @@ class ListCommand(Command):
                     if req.name:
                         to_keep.append(req.name)
 
+        cmdoptions.check_list_path_option(options)
+
         packages = get_installed_distributions(
             local_only=options.local,
             user_only=options.user,
             editables_only=options.editable,
             include_editables=options.include_editable,
             keep=to_keep,
+            paths=options.path,
         )
 
         # get_not_required must be called firstly in order to find and
@@ -184,15 +200,10 @@ class ListCommand(Command):
         return {pkg for pkg in packages if pkg.key not in dep_keys}
 
     def iter_packages_latest_infos(self, packages, options):
-        index_urls = [options.index_url] + options.extra_index_urls
-        if options.no_index:
-            logger.debug('Ignoring indexes: %s', ','.join(index_urls))
-            index_urls = []
-
         with self._build_session(options) as session:
-            finder = self._build_package_finder(options, index_urls, session)
+            finder = self._build_package_finder(options, session)
 
-            for dist in packages:
+            def latest_info(dist):
                 typ = 'unknown'
                 all_candidates = finder.find_all_candidates(dist.key)
                 if not options.pre:
@@ -200,20 +211,34 @@ class ListCommand(Command):
                     all_candidates = [candidate for candidate in all_candidates
                                       if not candidate.version.is_prerelease]
 
-                evaluator = finder.candidate_evaluator
-                best_candidate = evaluator.get_best_candidate(all_candidates)
+                evaluator = finder.make_candidate_evaluator(
+                    project_name=dist.project_name,
+                )
+                best_candidate = evaluator.sort_best_candidate(all_candidates)
                 if best_candidate is None:
-                    continue
+                    return None
 
                 remote_version = best_candidate.version
-                if best_candidate.location.is_wheel:
+                if best_candidate.link.is_wheel:
                     typ = 'wheel'
                 else:
                     typ = 'sdist'
                 # This is dirty but makes the rest of the code much cleaner
                 dist.latest_version = remote_version
                 dist.latest_filetype = typ
-                yield dist
+                return dist
+
+            # This is done for 2x speed up of requests to pypi.org
+            # so that "real time" of this function
+            # is almost equal to "user time"
+            pool = Pool(DEFAULT_POOLSIZE)
+
+            for dist in pool.imap_unordered(latest_info, packages):
+                if dist is not None:
+                    yield dist
+
+            pool.close()
+            pool.join()
 
     def output_package_listing(self, packages, options):
         packages = sorted(
@@ -226,12 +251,12 @@ class ListCommand(Command):
         elif options.list_format == 'freeze':
             for dist in packages:
                 if options.verbose >= 1:
-                    logger.info("%s==%s (%s)", dist.project_name,
-                                dist.version, dist.location)
+                    write_output("%s==%s (%s)", dist.project_name,
+                                 dist.version, dist.location)
                 else:
-                    logger.info("%s==%s", dist.project_name, dist.version)
+                    write_output("%s==%s", dist.project_name, dist.version)
         elif options.list_format == 'json':
-            logger.info(format_for_json(packages, options))
+            write_output(format_for_json(packages, options))
 
     def output_package_listing_columns(self, data, header):
         # insert the header first: we need to know the size of column names
@@ -245,25 +270,7 @@ class ListCommand(Command):
             pkg_strings.insert(1, " ".join(map(lambda x: '-' * x, sizes)))
 
         for val in pkg_strings:
-            logger.info(val)
-
-
-def tabulate(vals):
-    # From pfmoore on GitHub:
-    # https://github.com/pypa/pip/issues/3651#issuecomment-216932564
-    assert len(vals) > 0
-
-    sizes = [0] * max(len(x) for x in vals)
-    for row in vals:
-        sizes = [max(s, len(str(c))) for s, c in zip_longest(sizes, row)]
-
-    result = []
-    for row in vals:
-        display = " ".join([str(c).ljust(s) if c is not None else ''
-                            for s, c in zip_longest(sizes, row)])
-        result.append(display)
-
-    return result, sizes
+            write_output(val)
 
 
 def format_for_columns(pkgs, options):

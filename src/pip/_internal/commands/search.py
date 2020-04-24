@@ -1,3 +1,6 @@
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 from __future__ import absolute_import
 
 import logging
@@ -12,22 +15,23 @@ from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.six.moves import xmlrpc_client  # type: ignore
 
 from pip._internal.cli.base_command import Command
+from pip._internal.cli.req_command import SessionCommandMixin
 from pip._internal.cli.status_codes import NO_MATCHES_FOUND, SUCCESS
-from pip._internal.download import PipXmlrpcTransport
 from pip._internal.exceptions import CommandError
 from pip._internal.models.index import PyPI
+from pip._internal.network.xmlrpc import PipXmlrpcTransport
 from pip._internal.utils.compat import get_terminal_size
 from pip._internal.utils.logging import indent_log
+from pip._internal.utils.misc import write_output
 
 logger = logging.getLogger(__name__)
 
 
-class SearchCommand(Command):
+class SearchCommand(Command, SessionCommandMixin):
     """Search for PyPI packages whose name or summary contains <query>."""
-    name = 'search'
+
     usage = """
       %prog [options] <query>"""
-    summary = 'Search PyPI for packages.'
     ignore_require_venv = True
 
     def __init__(self, *args, **kw):
@@ -59,11 +63,13 @@ class SearchCommand(Command):
 
     def search(self, query, options):
         index_url = options.index
-        with self._build_session(options) as session:
-            transport = PipXmlrpcTransport(index_url, session)
-            pypi = xmlrpc_client.ServerProxy(index_url, transport)
-            hits = pypi.search({'name': query, 'summary': query}, 'or')
-            return hits
+
+        session = self.get_default_session(options)
+
+        transport = PipXmlrpcTransport(index_url, session)
+        pypi = xmlrpc_client.ServerProxy(index_url, transport)
+        hits = pypi.search({'name': query, 'summary': query}, 'or')
+        return hits
 
 
 def transform_hits(hits):
@@ -115,22 +121,23 @@ def print_results(hits, name_column_width=None, terminal_width=None):
                 summary = textwrap.wrap(summary, target_width)
                 summary = ('\n' + ' ' * (name_column_width + 3)).join(summary)
 
-        line = '%-*s - %s' % (name_column_width,
-                              '%s (%s)' % (name, latest), summary)
+        line = '{name_latest:{name_column_width}} - {summary}'.format(
+            name_latest='{name} ({latest})'.format(**locals()),
+            **locals())
         try:
-            logger.info(line)
+            write_output(line)
             if name in installed_packages:
                 dist = pkg_resources.get_distribution(name)
                 with indent_log():
                     if dist.version == latest:
-                        logger.info('INSTALLED: %s (latest)', dist.version)
+                        write_output('INSTALLED: %s (latest)', dist.version)
                     else:
-                        logger.info('INSTALLED: %s', dist.version)
+                        write_output('INSTALLED: %s', dist.version)
                         if parse_version(latest).pre:
-                            logger.info('LATEST:    %s (pre-release; install'
-                                        ' with "pip install --pre")', latest)
+                            write_output('LATEST:    %s (pre-release; install'
+                                         ' with "pip install --pre")', latest)
                         else:
-                            logger.info('LATEST:    %s', latest)
+                            write_output('LATEST:    %s', latest)
         except UnicodeEncodeError:
             pass
 

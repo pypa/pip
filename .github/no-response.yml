@@ -1,5 +1,5 @@
 # Number of days of inactivity before issue is closed for lack of response
-daysUntilClose: 30
+daysUntilClose: 15
 # Label requiring a response
 responseRequiredLabel: "S: awaiting response"
 # Comment to post when closing an Issue for lack of response. Set to `false` to disable

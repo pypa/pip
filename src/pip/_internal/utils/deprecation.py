@@ -1,6 +1,10 @@
 """
 A module that implements tooling to enable easy warnings about deprecations.
 """
+
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 from __future__ import absolute_import
 
 import logging

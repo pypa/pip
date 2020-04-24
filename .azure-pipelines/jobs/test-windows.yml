@@ -3,19 +3,31 @@ parameters:
 
 jobs:
 - job: Test_Primary
-  displayName: Test Primary
+  displayName: Tests /
 
   pool:
     vmImage: ${{ parameters.vmImage }}
   strategy:
     matrix:
-      Python27-x64:
+      "2.7-x86":
+        python.version: '2.7'
+        python.architecture: x86
+      "2.7":
         python.version: '2.7'
         python.architecture: x64
-      Python36-x64:
+      "3.5":
+        python.version: '3.5'
+        python.architecture: x64
+      "3.6":
         python.version: '3.6'
         python.architecture: x64
-    maxParallel: 2
+      "3.7":
+        python.version: '3.7'
+        python.architecture: x64
+      "3.8":
+        python.version: '3.8'
+        python.architecture: x64
+    maxParallel: 6
 
   steps:
   - template: ../steps/run-tests-windows.yml
@@ -23,7 +35,7 @@ jobs:
       runIntegrationTests: true
 
 - job: Test_Secondary
-  displayName: Test Secondary
+  displayName: Tests /
   # Don't run integration tests for these runs
   # Run after Test_Primary so we don't devour time and jobs if tests are going to fail
   dependsOn: Test_Primary
@@ -32,32 +44,20 @@ jobs:
     vmImage: ${{ parameters.vmImage }}
   strategy:
     matrix:
-      Python34-x64:
-        python.version: '3.4'
-        python.architecture: x64
-      Python35-x64:
-        python.version: '3.5'
-        python.architecture: x64
-      Python37-x64:
-        python.version: '3.7'
-        python.architecture: x64
       # This is for Windows, so test x86 builds
-      Python27-x86:
-        python.version: '2.7'
-        python.architecture: x86
-      Python34-x86:
-        python.version: '3.4'
-        python.architecture: x86
-      Python35-x86:
+      "3.5-x86":
         python.version: '3.5'
         python.architecture: x86
-      Python36-x86:
+      "3.6-x86":
         python.version: '3.6'
         python.architecture: x86
-      Python37-x86:
+      "3.7-x86":
         python.version: '3.7'
         python.architecture: x86
-    maxParallel: 5
+      "3.8-x86":
+        python.version: '3.8'
+        python.architecture: x86
+    maxParallel: 6
 
   steps:
   - template: ../steps/run-tests-windows.yml

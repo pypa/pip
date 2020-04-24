@@ -1,0 +1,31 @@
+diff --git a/src/pip/_vendor/html5lib/_trie/_base.py b/src/pip/_vendor/html5lib/_trie/_base.py
+index a1158bbb..6b71975f 100644
+--- a/src/pip/_vendor/html5lib/_trie/_base.py
++++ b/src/pip/_vendor/html5lib/_trie/_base.py
+@@ -1,6 +1,9 @@
+ from __future__ import absolute_import, division, unicode_literals
+ 
+-from collections import Mapping
++try:
++    from collections.abc import Mapping
++except ImportError:  # Python 2.7
++    from collections import Mapping
+ 
+ 
+ class Trie(Mapping):
+diff --git a/src/pip/_vendor/html5lib/treebuilders/dom.py b/src/pip/_vendor/html5lib/treebuilders/dom.py
+index dcfac220..d8b53004 100644
+--- a/src/pip/_vendor/html5lib/treebuilders/dom.py
++++ b/src/pip/_vendor/html5lib/treebuilders/dom.py
+@@ -1,7 +1,10 @@
+ from __future__ import absolute_import, division, unicode_literals
+ 
+ 
+-from collections import MutableMapping
++try:
++    from collections.abc import MutableMapping
++except ImportError:  # Python 2.7
++    from collections import MutableMapping
+ from xml.dom import minidom, Node
+ import weakref
+ 

@@ -1,17 +1,19 @@
 import os
+from unittest import TestCase
 
 import pytest
 from mock import patch
 from pip._vendor.packaging.version import parse as parse_version
 
-from pip._internal.exceptions import BadCommand
+from pip._internal.exceptions import BadCommand, InstallationError
+from pip._internal.utils.misc import hide_url, hide_value
 from pip._internal.vcs import make_vcs_requirement_url
 from pip._internal.vcs.bazaar import Bazaar
 from pip._internal.vcs.git import Git, looks_like_hash
 from pip._internal.vcs.mercurial import Mercurial
 from pip._internal.vcs.subversion import Subversion
 from pip._internal.vcs.versioncontrol import RevOptions, VersionControl
-from tests.lib import is_svn_installed, pyversion
+from tests.lib import is_svn_installed, need_svn, pyversion
 
 if pyversion >= '3':
     VERBOSE_FALSE = False
@@ -97,13 +99,17 @@ def test_rev_options_make_new():
     assert new_options.vc_class is Git
 
 
-def test_looks_like_hash():
-    assert looks_like_hash(40 * 'a')
-    assert looks_like_hash(40 * 'A')
+@pytest.mark.parametrize('sha, expected', [
+    ((40 * 'a'), True),
+    ((40 * 'A'), True),
     # Test a string containing all valid characters.
-    assert looks_like_hash(18 * 'a' + '0123456789abcdefABCDEF')
-    assert not looks_like_hash(40 * 'g')
-    assert not looks_like_hash(39 * 'a')
+    ((18 * 'a' + '0123456789abcdefABCDEF'), True),
+    ((40 * 'g'), False),
+    ((39 * 'a'), False),
+    ((41 * 'a'), False)
+])
+def test_looks_like_hash(sha, expected):
+    assert looks_like_hash(sha) == expected
 
 
 @pytest.mark.parametrize('vcs_cls, remote_url, expected', [
@@ -118,15 +124,19 @@ def test_should_add_vcs_url_prefix(vcs_cls, remote_url, expected):
     assert actual == expected
 
 
-@patch('pip._internal.vcs.git.Git.get_revision')
 @patch('pip._internal.vcs.git.Git.get_remote_url')
+@patch('pip._internal.vcs.git.Git.get_revision')
+@patch('pip._internal.vcs.git.Git.get_subdirectory')
 @pytest.mark.network
-def test_git_get_src_requirements(mock_get_remote_url, mock_get_revision):
+def test_git_get_src_requirements(
+    mock_get_subdirectory, mock_get_revision, mock_get_remote_url
+):
     git_url = 'https://github.com/pypa/pip-test-package'
     sha = '5547fa909e83df8bd743d3978d6667497983a4b7'
 
     mock_get_remote_url.return_value = git_url
     mock_get_revision.return_value = sha
+    mock_get_subdirectory.return_value = None
 
     ret = Git.get_src_requirement('.', 'pip-test-package')
 
@@ -282,6 +292,21 @@ def test_version_control__get_url_rev_and_auth__missing_plus(url):
     assert 'malformed VCS url' in str(excinfo.value)
 
 
+@pytest.mark.parametrize('url', [
+    # Test a URL with revision part as empty.
+    'git+https://github.com/MyUser/myProject.git@#egg=py_pkg',
+])
+def test_version_control__get_url_rev_and_auth__no_revision(url):
+    """
+    Test passing a URL to VersionControl.get_url_rev_and_auth() with
+    empty revision
+    """
+    with pytest.raises(InstallationError) as excinfo:
+        VersionControl.get_url_rev_and_auth(url)
+
+    assert 'an empty revision (after @)' in str(excinfo.value)
+
+
 @pytest.mark.parametrize('url, expected', [
     # Test http.
     ('bzr+http://bzr.myproject.org/MyProject/trunk/#egg=MyProject',
@@ -337,7 +362,7 @@ def test_subversion__get_url_rev_and_auth(url, expected):
 @pytest.mark.parametrize('username, password, expected', [
     (None, None, []),
     ('user', None, []),
-    ('user', 'pass', []),
+    ('user', hide_value('pass'), []),
 ])
 def test_git__make_rev_args(username, password, expected):
     """
@@ -350,7 +375,8 @@ def test_git__make_rev_args(username, password, expected):
 @pytest.mark.parametrize('username, password, expected', [
     (None, None, []),
     ('user', None, ['--username', 'user']),
-    ('user', 'pass', ['--username', 'user', '--password', 'pass']),
+    ('user', hide_value('pass'),
+     ['--username', 'user', '--password', hide_value('pass')]),
 ])
 def test_subversion__make_rev_args(username, password, expected):
     """
@@ -364,12 +390,15 @@ def test_subversion__get_url_rev_options():
     """
     Test Subversion.get_url_rev_options().
     """
-    url = 'svn+https://user:pass@svn.example.com/MyProject@v1.0#egg=MyProject'
-    url, rev_options = Subversion().get_url_rev_options(url)
-    assert url == 'https://svn.example.com/MyProject'
+    secret_url = (
+        'svn+https://user:pass@svn.example.com/MyProject@v1.0#egg=MyProject'
+    )
+    hidden_url = hide_url(secret_url)
+    url, rev_options = Subversion().get_url_rev_options(hidden_url)
+    assert url == hide_url('https://svn.example.com/MyProject')
     assert rev_options.rev == 'v1.0'
     assert rev_options.extra_args == (
-        ['--username', 'user', '--password', 'pass']
+        ['--username', 'user', '--password', hide_value('pass')]
     )
 
 
@@ -397,7 +426,7 @@ def test_subversion__init_use_interactive(
     assert svn.use_interactive == expected
 
 
-@pytest.mark.svn
+@need_svn
 def test_subversion__call_vcs_version():
     """
     Test Subversion.call_vcs_version() against local ``svn``.
@@ -494,3 +523,68 @@ def test_subversion__get_remote_call_options(
     svn = Subversion(use_interactive=use_interactive)
     svn._vcs_version = vcs_version
     assert svn.get_remote_call_options() == expected_options
+
+
+class TestSubversionArgs(TestCase):
+    def setUp(self):
+        patcher = patch('pip._internal.vcs.versioncontrol.call_subprocess')
+        self.addCleanup(patcher.stop)
+        self.call_subprocess_mock = patcher.start()
+
+        # Test Data.
+        self.url = 'svn+http://username:password@svn.example.com/'
+        # use_interactive is set to False to test that remote call options are
+        # properly added.
+        self.svn = Subversion(use_interactive=False)
+        self.rev_options = RevOptions(Subversion)
+        self.dest = '/tmp/test'
+
+    def assert_call_args(self, args):
+        assert self.call_subprocess_mock.call_args[0][0] == args
+
+    def test_obtain(self):
+        self.svn.obtain(self.dest, hide_url(self.url))
+        self.assert_call_args([
+            'svn', 'checkout', '-q', '--non-interactive', '--username',
+            'username', '--password', hide_value('password'),
+            hide_url('http://svn.example.com/'), '/tmp/test',
+        ])
+
+    def test_export(self):
+        self.svn.export(self.dest, hide_url(self.url))
+        self.assert_call_args([
+            'svn', 'export', '--non-interactive', '--username', 'username',
+            '--password', hide_value('password'),
+            hide_url('http://svn.example.com/'), '/tmp/test',
+        ])
+
+    def test_fetch_new(self):
+        self.svn.fetch_new(self.dest, hide_url(self.url), self.rev_options)
+        self.assert_call_args([
+            'svn', 'checkout', '-q', '--non-interactive',
+            hide_url('svn+http://username:password@svn.example.com/'),
+            '/tmp/test',
+        ])
+
+    def test_fetch_new_revision(self):
+        rev_options = RevOptions(Subversion, '123')
+        self.svn.fetch_new(self.dest, hide_url(self.url), rev_options)
+        self.assert_call_args([
+            'svn', 'checkout', '-q', '--non-interactive', '-r', '123',
+            hide_url('svn+http://username:password@svn.example.com/'),
+            '/tmp/test',
+        ])
+
+    def test_switch(self):
+        self.svn.switch(self.dest, hide_url(self.url), self.rev_options)
+        self.assert_call_args([
+            'svn', 'switch', '--non-interactive',
+            hide_url('svn+http://username:password@svn.example.com/'),
+            '/tmp/test',
+        ])
+
+    def test_update(self):
+        self.svn.update(self.dest, hide_url(self.url), self.rev_options)
+        self.assert_call_args([
+            'svn', 'update', '--non-interactive', '/tmp/test',
+        ])

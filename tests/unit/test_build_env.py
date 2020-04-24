@@ -3,9 +3,7 @@ from textwrap import dedent
 import pytest
 
 from pip._internal.build_env import BuildEnvironment
-from pip._internal.download import PipSession
-from pip._internal.index import PackageFinder
-from tests.lib import create_basic_wheel_for_package
+from tests.lib import create_basic_wheel_for_package, make_test_finder
 
 
 def indent(text, prefix):
@@ -16,7 +14,7 @@ def indent(text, prefix):
 def run_with_build_env(script, setup_script_contents,
                        test_script_contents=None):
     build_env_script = script.scratch_path / 'build_env.py'
-    build_env_script.write(
+    build_env_script.write_text(
         dedent(
             '''
             from __future__ import print_function
@@ -24,28 +22,46 @@ def run_with_build_env(script, setup_script_contents,
             import sys
 
             from pip._internal.build_env import BuildEnvironment
-            from pip._internal.download import PipSession
-            from pip._internal.index import PackageFinder
+            from pip._internal.index.collector import LinkCollector
+            from pip._internal.index.package_finder import PackageFinder
+            from pip._internal.models.search_scope import SearchScope
+            from pip._internal.models.selection_prefs import (
+                SelectionPreferences
+            )
+            from pip._internal.network.session import PipSession
+            from pip._internal.utils.temp_dir import global_tempdir_manager
 
-            finder = PackageFinder.create([%r], [], session=PipSession())
-            build_env = BuildEnvironment()
+            link_collector = LinkCollector(
+                session=PipSession(),
+                search_scope=SearchScope.create([{scratch!r}], []),
+            )
+            selection_prefs = SelectionPreferences(
+                allow_yanked=True,
+            )
+            finder = PackageFinder.create(
+                link_collector=link_collector,
+                selection_prefs=selection_prefs,
+            )
 
-            try:
-            ''' % str(script.scratch_path)) +
+            with global_tempdir_manager():
+                build_env = BuildEnvironment()
+            '''.format(scratch=str(script.scratch_path))) +
         indent(dedent(setup_script_contents), '    ') +
-        dedent(
-            '''
+        indent(
+            dedent(
+                '''
                 if len(sys.argv) > 1:
                     with build_env:
                         subprocess.check_call((sys.executable, sys.argv[1]))
-            finally:
-                build_env.cleanup()
-            ''')
+                '''
+            ),
+            '    '
+        )
     )
     args = ['python', build_env_script]
     if test_script_contents is not None:
         test_script = script.scratch_path / 'test.py'
-        test_script.write(dedent(test_script_contents))
+        test_script.write_text(dedent(test_script_contents))
         args.append(test_script)
     return script.run(*args)
 
@@ -59,19 +75,20 @@ def test_build_env_allow_empty_requirements_install():
 def test_build_env_allow_only_one_install(script):
     create_basic_wheel_for_package(script, 'foo', '1.0')
     create_basic_wheel_for_package(script, 'bar', '1.0')
-    finder = PackageFinder.create(
-        [script.scratch_path], [], session=PipSession(),
-    )
+    finder = make_test_finder(find_links=[script.scratch_path])
     build_env = BuildEnvironment()
     for prefix in ('normal', 'overlay'):
-        build_env.install_requirements(finder, ['foo'], prefix,
-                                       'installing foo in %s' % prefix)
+        build_env.install_requirements(
+            finder, ['foo'], prefix,
+            'installing foo in {prefix}'.format(**locals()))
         with pytest.raises(AssertionError):
-            build_env.install_requirements(finder, ['bar'], prefix,
-                                           'installing bar in %s' % prefix)
+            build_env.install_requirements(
+                finder, ['bar'], prefix,
+                'installing bar in {prefix}'.format(**locals()))
         with pytest.raises(AssertionError):
-            build_env.install_requirements(finder, [], prefix,
-                                           'installing in %s' % prefix)
+            build_env.install_requirements(
+                finder, [], prefix,
+                'installing in {prefix}'.format(**locals()))
 
 
 def test_build_env_requirements_check(script):
@@ -151,6 +168,7 @@ def test_build_env_overlay_prefix_has_priority(script):
     assert result.stdout.strip() == '2.0', str(result)
 
 
+@pytest.mark.incompatible_with_test_venv
 def test_build_env_isolation(script):
 
     # Create dummy `pkg` wheel.
@@ -165,7 +183,7 @@ def test_build_env_isolation(script):
     # And to another directory available through a .pth file.
     target = script.scratch_path / 'pth_install'
     script.pip_install_local('-t', target, pkg_whl)
-    (script.site_packages_path / 'build_requires.pth').write(
+    (script.site_packages_path / 'build_requires.pth').write_text(
         str(target) + '\n'
     )
 
@@ -186,7 +204,9 @@ def test_build_env_isolation(script):
         except ImportError:
             pass
         else:
-            print('imported `pkg` from `%s`' % pkg.__file__, file=sys.stderr)
+            print(
+                'imported `pkg` from `{pkg.__file__}`'.format(**locals()),
+                file=sys.stderr)
             print('system sites:\n  ' + '\n  '.join(sorted({
                           get_python_lib(plat_specific=0),
                           get_python_lib(plat_specific=1),

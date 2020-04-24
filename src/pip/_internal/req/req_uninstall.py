@@ -14,8 +14,15 @@ from pip._internal.locations import bin_py, bin_user
 from pip._internal.utils.compat import WINDOWS, cache_from_source, uses_pycache
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
-    FakeFile, ask, dist_in_usersite, dist_is_local, egg_link_path, is_local,
-    normalize_path, renames, rmtree,
+    FakeFile,
+    ask,
+    dist_in_usersite,
+    dist_is_local,
+    egg_link_path,
+    is_local,
+    normalize_path,
+    renames,
+    rmtree,
 )
 from pip._internal.utils.temp_dir import AdjacentTempDirectory, TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -52,7 +59,7 @@ def _script_names(dist, script_name, is_gui):
 
 
 def _unique(fn):
-    # type: (Callable) -> Callable[..., Iterator[Any]]
+    # type: (Callable[..., Iterator[Any]]) -> Callable[..., Iterator[Any]]
     @functools.wraps(fn)
     def unique(*args, **kw):
         # type: (Any, Any) -> Iterator[Any]
@@ -220,10 +227,8 @@ class StashedUninstallPathSet(object):
 
         try:
             save_dir = AdjacentTempDirectory(path)  # type: TempDirectory
-            save_dir.create()
         except OSError:
             save_dir = TempDirectory(kind="uninstall")
-            save_dir.create()
         self._save_dirs[os.path.normcase(path)] = save_dir
 
         return save_dir.path
@@ -249,7 +254,6 @@ class StashedUninstallPathSet(object):
             # Did not find any suitable root
             head = os.path.dirname(path)
             save_dir = TempDirectory(kind='uninstall')
-            save_dir.create()
             self._save_dirs[head] = save_dir
 
         relpath = os.path.relpath(path, head)
@@ -260,14 +264,16 @@ class StashedUninstallPathSet(object):
     def stash(self, path):
         # type: (str) -> str
         """Stashes the directory or file and returns its new location.
+        Handle symlinks as files to avoid modifying the symlink targets.
         """
-        if os.path.isdir(path):
+        path_is_dir = os.path.isdir(path) and not os.path.islink(path)
+        if path_is_dir:
             new_path = self._get_directory_stash(path)
         else:
             new_path = self._get_file_stash(path)
 
         self._moves.append((path, new_path))
-        if os.path.isdir(path) and os.path.isdir(new_path):
+        if (path_is_dir and os.path.isdir(new_path)):
             # If we're moving a directory, we need to
             # remove the destination first or else it will be
             # moved to inside the existing directory.
@@ -289,12 +295,12 @@ class StashedUninstallPathSet(object):
         # type: () -> None
         """Undoes the uninstall by moving stashed files back."""
         for p in self._moves:
-            logging.info("Moving to %s\n from %s", *p)
+            logger.info("Moving to %s\n from %s", *p)
 
         for new_path, path in self._moves:
             try:
                 logger.debug('Replacing %s from %s', new_path, path)
-                if os.path.isfile(new_path):
+                if os.path.isfile(new_path) or os.path.islink(new_path):
                     os.unlink(new_path)
                 elif os.path.isdir(new_path):
                     rmtree(new_path)
@@ -534,8 +540,9 @@ class UninstallPathSet(object):
             with open(develop_egg_link, 'r') as fh:
                 link_pointer = os.path.normcase(fh.readline().strip())
             assert (link_pointer == dist.location), (
-                'Egg-link %s does not match installed location of %s '
-                '(at %s)' % (link_pointer, dist.project_name, dist.location)
+                'Egg-link {} does not match installed location of {} '
+                '(at {})'.format(
+                    link_pointer, dist.project_name, dist.location)
             )
             paths_to_remove.add(develop_egg_link)
             easy_install_pth = os.path.join(os.path.dirname(develop_egg_link),
@@ -578,10 +585,6 @@ class UninstallPathSet(object):
 class UninstallPthEntries(object):
     def __init__(self, pth_file):
         # type: (str) -> None
-        if not os.path.isfile(pth_file):
-            raise UninstallationError(
-                "Cannot remove entries from nonexistent file %s" % pth_file
-            )
         self.file = pth_file
         self.entries = set()  # type: Set[str]
         self._saved_lines = None  # type: Optional[List[bytes]]
@@ -593,6 +596,11 @@ class UninstallPthEntries(object):
         # backslashes.  This is correct for entries that describe absolute
         # paths outside of site-packages, but all the others use forward
         # slashes.
+        # os.path.splitdrive is used instead of os.path.isabs because isabs
+        # treats non-absolute paths with drive letter markings like c:foo\bar
+        # as absolute paths. It also does not recognize UNC paths if they don't
+        # have more than "\\sever\share". Valid examples: "\\server\share\" or
+        # "\\server\share\folder". Python 2.7.8+ support UNC in splitdrive.
         if WINDOWS and not os.path.splitdrive(entry)[0]:
             entry = entry.replace('\\', '/')
         self.entries.add(entry)
@@ -600,6 +608,14 @@ class UninstallPthEntries(object):
     def remove(self):
         # type: () -> None
         logger.debug('Removing pth entries from %s:', self.file)
+
+        # If the file doesn't exist, log a warning and return
+        if not os.path.isfile(self.file):
+            logger.warning(
+                "Cannot remove entries from nonexistent file {}".format(
+                    self.file)
+            )
+            return
         with open(self.file, 'rb') as fh:
             # windows uses '\r\n' with py3k, but uses '\n' with py2.x
             lines = fh.readlines()

@@ -15,24 +15,24 @@ cases:
 -
   request:
     - install: B
-  transaction:
-    - install:
+  response:
+    - state:
       - B 1.0.0
       - D 1.0.0
       - E 1.0.0
 -
   request:
     - install: C
-  transaction:
-    - install:
+  response:
+    - state:
       - C 1.0.0
       - D 1.0.0
       - F 1.0.0
 -
   request:
     - install: A
-  transaction:
-    - install:
+  response:
+    - state:
       - A 1.0.0
       - B 1.0.0
       - C 1.0.0

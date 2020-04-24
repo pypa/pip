@@ -1,2 +1,0 @@
-Exit conditional sooner if not local_version_is_older for faster execution (src/pip/_internal/utils/outdated.py)
-Moved local and remote pip version check conditional to a variable (src/pip/_internal/utils/outdated.py)

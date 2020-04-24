@@ -1,14 +1,19 @@
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 import logging
 import os
 import subprocess
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
-from pip._internal.configuration import Configuration, kinds
+from pip._internal.configuration import (
+    Configuration,
+    get_configuration_files,
+    kinds,
+)
 from pip._internal.exceptions import PipError
-from pip._internal.locations import running_under_virtualenv, site_config_file
-from pip._internal.utils.deprecation import deprecated
-from pip._internal.utils.misc import get_prog
+from pip._internal.utils.misc import get_prog, write_output
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +21,7 @@ logger = logging.getLogger(__name__)
 class ConfigurationCommand(Command):
     """Manage local and global configuration.
 
-        Subcommands:
+    Subcommands:
 
         list: List the active configuration (or from the file specified)
         edit: Edit the configuration file in an editor
@@ -24,13 +29,13 @@ class ConfigurationCommand(Command):
         set: Set the name=value
         unset: Unset the value associated with name
 
-        If none of --user, --global and --site are passed, a virtual
-        environment configuration file is used if one is active and the file
-        exists. Otherwise, all modifications happen on the to the user file by
-        default.
+    If none of --user, --global and --site are passed, a virtual
+    environment configuration file is used if one is active and the file
+    exists. Otherwise, all modifications happen on the to the user file by
+    default.
     """
 
-    name = 'config'
+    ignore_require_venv = True
     usage = """
         %prog [<file-option>] list
         %prog [<file-option>] [--editor <editor-path>] edit
@@ -39,8 +44,6 @@ class ConfigurationCommand(Command):
         %prog [<file-option>] set name value
         %prog [<file-option>] unset name
     """
-
-    summary = "Manage local and global configuration."
 
     def __init__(self, *args, **kwargs):
         super(ConfigurationCommand, self).__init__(*args, **kwargs)
@@ -80,17 +83,6 @@ class ConfigurationCommand(Command):
             action='store_true',
             default=False,
             help='Use the current environment configuration file only'
-        )
-
-        self.cmd_opts.add_option(
-            '--venv',
-            dest='venv_file',
-            action='store_true',
-            default=False,
-            help=(
-                '[Deprecated] Use the current environment configuration '
-                'file in a virtual environment only'
-            )
         )
 
         self.parser.insert_option_group(0, self.cmd_opts)
@@ -139,21 +131,6 @@ class ConfigurationCommand(Command):
         return SUCCESS
 
     def _determine_file(self, options, need_value):
-        # Convert legacy venv_file option to site_file or error
-        if options.venv_file and not options.site_file:
-            if running_under_virtualenv():
-                options.site_file = True
-                deprecated(
-                    "The --venv option has been deprecated.",
-                    replacement="--site",
-                    gone_in="19.3",
-                )
-            else:
-                raise PipError(
-                    "Legacy --venv option requires a virtual environment. "
-                    "Use --site instead."
-                )
-
         file_options = [key for key, value in (
             (kinds.USER, options.user_file),
             (kinds.GLOBAL, options.global_file),
@@ -164,7 +141,10 @@ class ConfigurationCommand(Command):
             if not need_value:
                 return None
             # Default to user, unless there's a site file.
-            elif os.path.exists(site_config_file):
+            elif any(
+                os.path.exists(site_config_file)
+                for site_config_file in get_configuration_files()[kinds.SITE]
+            ):
                 return kinds.SITE
             else:
                 return kinds.USER
@@ -180,13 +160,13 @@ class ConfigurationCommand(Command):
         self._get_n_args(args, "list", n=0)
 
         for key, value in sorted(self.configuration.items()):
-            logger.info("%s=%r", key, value)
+            write_output("%s=%r", key, value)
 
     def get_name(self, options, args):
         key = self._get_n_args(args, "get [name]", n=1)
         value = self.configuration.get_value(key)
 
-        logger.info("%s", value)
+        write_output("%s", value)
 
     def set_name_value(self, options, args):
         key, value = self._get_n_args(args, "set [name] [value]", n=2)

@@ -1,9 +1,12 @@
+# The following comment should be removed at some point in the future.
+# mypy: strict-optional=False
+# mypy: disallow-untyped-defs=False
+
 from __future__ import absolute_import
 
 import collections
 import logging
 import os
-import re
 
 from pip._vendor import six
 from pip._vendor.packaging.utils import canonicalize_name
@@ -11,11 +14,17 @@ from pip._vendor.pkg_resources import RequirementParseError
 
 from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.req.constructors import (
-    install_req_from_editable, install_req_from_line,
+    install_req_from_editable,
+    install_req_from_line,
 )
 from pip._internal.req.req_file import COMMENT_RE
+from pip._internal.utils.direct_url_helpers import (
+    direct_url_as_pep440_direct_reference,
+    dist_get_direct_url,
+)
 from pip._internal.utils.misc import (
-    dist_is_editable, get_installed_distributions,
+    dist_is_editable,
+    get_installed_distributions,
 )
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -40,7 +49,6 @@ def freeze(
     local_only=None,  # type: Optional[bool]
     user_only=None,  # type: Optional[bool]
     paths=None,  # type: Optional[List[str]]
-    skip_regex=None,  # type: Optional[str]
     isolated=False,  # type: bool
     wheel_cache=None,  # type: Optional[WheelCache]
     exclude_editable=False,  # type: bool
@@ -48,13 +56,9 @@ def freeze(
 ):
     # type: (...) -> Iterator[str]
     find_links = find_links or []
-    skip_match = None
-
-    if skip_regex:
-        skip_match = re.compile(skip_regex).search
 
     for link in find_links:
-        yield '-f %s' % link
+        yield '-f {}'.format(link)
     installations = {}  # type: Dict[str, FrozenRequirement]
     for dist in get_installed_distributions(local_only=local_only,
                                             skip=(),
@@ -74,7 +78,7 @@ def freeze(
             continue
         if exclude_editable and req.editable:
             continue
-        installations[req.name] = req
+        installations[req.canonical_name] = req
 
     if requirement:
         # the options that don't get turned into an InstallRequirement
@@ -90,7 +94,6 @@ def freeze(
                 for line in req_file:
                     if (not line.strip() or
                             line.strip().startswith('#') or
-                            (skip_match and skip_match(line)) or
                             line.startswith((
                                 '-r', '--requirement',
                                 '-Z', '--always-unzip',
@@ -114,13 +117,11 @@ def freeze(
                         line_req = install_req_from_editable(
                             line,
                             isolated=isolated,
-                            wheel_cache=wheel_cache,
                         )
                     else:
                         line_req = install_req_from_line(
                             COMMENT_RE.sub('', line).strip(),
                             isolated=isolated,
-                            wheel_cache=wheel_cache,
                         )
 
                     if not line_req.name:
@@ -133,22 +134,27 @@ def freeze(
                             "  (add #egg=PackageName to the URL to avoid"
                             " this warning)"
                         )
-                    elif line_req.name not in installations:
-                        # either it's not installed, or it is installed
-                        # but has been processed already
-                        if not req_files[line_req.name]:
-                            logger.warning(
-                                "Requirement file [%s] contains %s, but "
-                                "package %r is not installed",
-                                req_file_path,
-                                COMMENT_RE.sub('', line).strip(), line_req.name
-                            )
-                        else:
-                            req_files[line_req.name].append(req_file_path)
                     else:
-                        yield str(installations[line_req.name]).rstrip()
-                        del installations[line_req.name]
-                        req_files[line_req.name].append(req_file_path)
+                        line_req_canonical_name = canonicalize_name(
+                            line_req.name)
+                        if line_req_canonical_name not in installations:
+                            # either it's not installed, or it is installed
+                            # but has been processed already
+                            if not req_files[line_req.name]:
+                                logger.warning(
+                                    "Requirement file [%s] contains %s, but "
+                                    "package %r is not installed",
+                                    req_file_path,
+                                    COMMENT_RE.sub('', line).strip(),
+                                    line_req.name
+                                )
+                            else:
+                                req_files[line_req.name].append(req_file_path)
+                        else:
+                            yield str(installations[
+                                line_req_canonical_name]).rstrip()
+                            del installations[line_req_canonical_name]
+                            req_files[line_req.name].append(req_file_path)
 
         # Warn about requirements that were included multiple times (in a
         # single requirements file or in different requirements files).
@@ -163,7 +169,7 @@ def freeze(
         )
     for installation in sorted(
             installations.values(), key=lambda x: x.name.lower()):
-        if canonicalize_name(installation.name) not in skip:
+        if installation.canonical_name not in skip:
             yield str(installation).rstrip()
 
 
@@ -233,6 +239,7 @@ class FrozenRequirement(object):
     def __init__(self, name, req, editable, comments=()):
         # type: (str, Union[str, Requirement], bool, Iterable[str]) -> None
         self.name = name
+        self.canonical_name = canonicalize_name(name)
         self.req = req
         self.editable = editable
         self.comments = comments
@@ -240,8 +247,20 @@ class FrozenRequirement(object):
     @classmethod
     def from_dist(cls, dist):
         # type: (Distribution) -> FrozenRequirement
+        # TODO `get_requirement_info` is taking care of editable requirements.
+        # TODO This should be refactored when we will add detection of
+        #      editable that provide .dist-info metadata.
         req, editable, comments = get_requirement_info(dist)
+        if req is None and not editable:
+            # if PEP 610 metadata is present, attempt to use it
+            direct_url = dist_get_direct_url(dist)
+            if direct_url:
+                req = direct_url_as_pep440_direct_reference(
+                    direct_url, dist.project_name
+                )
+                comments = []
         if req is None:
+            # name==version requirement
             req = dist.as_requirement()
 
         return cls(dist.project_name, req, editable, comments=comments)
@@ -249,5 +268,5 @@ class FrozenRequirement(object):
     def __str__(self):
         req = self.req
         if self.editable:
-            req = '-e %s' % req
+            req = '-e {}'.format(req)
         return '\n'.join(list(self.comments) + [str(req)]) + '\n'

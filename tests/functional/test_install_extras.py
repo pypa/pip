@@ -112,7 +112,7 @@ def test_install_special_extra(script):
     # make a dummy project
     pkga_path = script.scratch_path / 'pkga'
     pkga_path.mkdir()
-    pkga_path.join("setup.py").write(textwrap.dedent("""
+    pkga_path.joinpath("setup.py").write_text(textwrap.dedent("""
         from setuptools import setup
         setup(name='pkga',
               version='0.1',
@@ -121,7 +121,7 @@ def test_install_special_extra(script):
     """))
 
     result = script.pip(
-        'install', '--no-index', '%s[Hop_hOp-hoP]' % pkga_path,
+        'install', '--no-index', '{pkga_path}[Hop_hOp-hoP]'.format(**locals()),
         expect_error=True)
     assert (
         "Could not find a version that satisfies the requirement missing_pkg"
