@@ -15,7 +15,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from .factory import Factory
 
 if MYPY_CHECK_RUNNING:
-    from typing import Dict, List, Optional, Tuple
+    from typing import Dict, List, Optional, Set, Tuple
 
     from pip._vendor.resolvelib.resolvers import Result
     from pip._vendor.resolvelib.structs import Graph
@@ -157,7 +157,7 @@ def get_topological_weights(graph):
 
     When assigning weight, the longer path (i.e. larger length) is preferred.
     """
-    path = []  # type: List[Optional[str]]
+    path = set()  # type: Set[Optional[str]]
     weights = {}  # type: Dict[Optional[str], int]
 
     def visit(node):
@@ -167,11 +167,10 @@ def get_topological_weights(graph):
             return
 
         # Time to visit the children!
-        path.append(node)
+        path.add(node)
         for child in graph.iter_children(node):
             visit(child)
-        popped = path.pop()
-        assert popped == node, "Sanity check failed. Please file a bug report."
+        path.remove(node)
 
         last_known_parent_count = weights.get(node, 0)
         weights[node] = max(last_known_parent_count, len(path))
