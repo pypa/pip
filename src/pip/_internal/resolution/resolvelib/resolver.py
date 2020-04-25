@@ -61,8 +61,8 @@ class Resolver(BaseResolver):
         # type: (List[InstallRequirement], bool) -> RequirementSet
 
         # FIXME: Implement constraints.
-        if any(r.constraint for r in root_reqs):
-            raise InstallationError("Constraints are not yet supported.")
+        #if any(r.constraint for r in root_reqs):
+        #    raise InstallationError("Constraints are not yet supported.")
 
         provider = PipProvider(
             factory=self.factory,
