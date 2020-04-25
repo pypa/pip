@@ -14,10 +14,11 @@ from __future__ import absolute_import
 import importlib
 from collections import OrderedDict, namedtuple
 
+from pip._internal.exceptions import CommandError
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any
+    from typing import Any, Dict, List, Set
     from pip._internal.cli.base_command import Command
 
 
@@ -94,13 +95,29 @@ commands_dict = OrderedDict([
     )),
 ])  # type: OrderedDict[str, CommandInfo]
 
+aliases_dict = {
+    'add': 'install',
+    'remove': 'uninstall',
+}  # type: Dict[str, str]
+
+aliases_of_commands = {
+    name: [name] for name in commands_dict}  # type: Dict[str, List[str]]
+for alias, name in aliases_dict.items():
+    aliases_of_commands[name].append(alias)
+
+subcommands_set = {cmd for aliases in aliases_of_commands.values()
+                   for cmd in aliases}  # type: Set[str]
+
 
 def create_command(name, **kwargs):
     # type: (str, **Any) -> Command
     """
     Create an instance of the Command class with the given name.
     """
-    module_path, class_name, summary = commands_dict[name]
+    try:
+        module_path, class_name, summary = commands_dict[name]
+    except KeyError:
+        module_path, class_name, summary = commands_dict[aliases_dict[name]]
     module = importlib.import_module(module_path)
     command_class = getattr(module, class_name)
     command = command_class(name=name, summary=summary, **kwargs)
@@ -114,9 +131,20 @@ def get_similar_commands(name):
 
     name = name.lower()
 
-    close_commands = get_close_matches(name, commands_dict.keys())
+    close_commands = get_close_matches(name, subcommands_set)
 
     if close_commands:
         return close_commands[0]
     else:
         return False
+
+
+def check_subcommand(name):
+    # type: (str) -> None
+    """Raise CommandError if the given subcommand not found."""
+    if name not in aliases_dict and name not in commands_dict:
+        guess = get_similar_commands(name)
+        msg = 'unknown command "{}"'.format(name)
+        if guess:
+            msg += ' - maybe you meant "{}"'.format(guess)
+        raise CommandError(msg)

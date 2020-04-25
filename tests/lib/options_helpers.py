@@ -3,7 +3,12 @@
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
-from pip._internal.commands import CommandInfo, commands_dict
+from pip._internal.commands import (
+    CommandInfo,
+    aliases_of_commands,
+    commands_dict,
+    subcommands_set,
+)
 
 
 class FakeCommand(Command):
@@ -23,6 +28,10 @@ class AddFakeCommandMixin(object):
         commands_dict['fake'] = CommandInfo(
             'tests.lib.options_helpers', 'FakeCommand', 'fake summary',
         )
+        aliases_of_commands['fake'] = ['fake']
+        subcommands_set.add('fake')
 
     def teardown(self):
         commands_dict.pop('fake')
+        aliases_of_commands.pop('fake')
+        subcommands_set.remove('fake')

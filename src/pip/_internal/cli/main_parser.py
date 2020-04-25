@@ -9,8 +9,11 @@ from pip._internal.cli.parser import (
     ConfigOptionParser,
     UpdatingDefaultsHelpFormatter,
 )
-from pip._internal.commands import commands_dict, get_similar_commands
-from pip._internal.exceptions import CommandError
+from pip._internal.commands import (
+    aliases_of_commands,
+    check_subcommand,
+    commands_dict,
+)
 from pip._internal.utils.misc import get_pip_version, get_prog
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -47,10 +50,10 @@ def create_main_parser():
     parser.main = True  # type: ignore
 
     # create command listing for description
-    description = [''] + [
-        '{name:27} {command_info.summary}'.format(**locals())
-        for name, command_info in commands_dict.items()
-    ]
+    description = ['']
+    for name, info in commands_dict.items():
+        names = ', '.join(aliases_of_commands[name])
+        description.append('{:27} {.summary}'.format(names, info))
     parser.description = '\n'.join(description)
 
     return parser
@@ -82,16 +85,7 @@ def parse_command(args):
 
     # the subcommand name
     cmd_name = args_else[0]
-
-    if cmd_name not in commands_dict:
-        guess = get_similar_commands(cmd_name)
-
-        msg = ['unknown command "{}"'.format(cmd_name)]
-        if guess:
-            msg.append('maybe you meant "{}"'.format(guess))
-
-        raise CommandError(' - '.join(msg))
-
+    check_subcommand(cmd_name)
     # all the args without the subcommand
     cmd_args = args[:]
     cmd_args.remove(cmd_name)

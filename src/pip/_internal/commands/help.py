@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import SUCCESS
-from pip._internal.exceptions import CommandError
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -19,9 +18,7 @@ class HelpCommand(Command):
 
     def run(self, options, args):
         # type: (Values, List[str]) -> int
-        from pip._internal.commands import (
-            commands_dict, create_command, get_similar_commands,
-        )
+        from pip._internal.commands import check_subcommand, create_command
 
         try:
             # 'pip help' with no args is handled by pip.__init__.parseopt()
@@ -29,15 +26,7 @@ class HelpCommand(Command):
         except IndexError:
             return SUCCESS
 
-        if cmd_name not in commands_dict:
-            guess = get_similar_commands(cmd_name)
-
-            msg = ['unknown command "{}"'.format(cmd_name)]
-            if guess:
-                msg.append('maybe you meant "{}"'.format(guess))
-
-            raise CommandError(' - '.join(msg))
-
+        check_subcommand(cmd_name)
         command = create_command(cmd_name)
         command.parser.print_help()
 
