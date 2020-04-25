@@ -8,7 +8,7 @@ def test_color_always(script):
     ret = script.pip(
         "uninstall", "--color=always", "foo", allow_stderr_warning=True
     )
-    assert colorama.Fore.YELLOW in ret.stderr, "Expected color in output"
+    assert colorama.Fore.YELLOW in ret.stderr
 
 
 def test_color_auto(script):
@@ -19,7 +19,7 @@ def test_color_auto(script):
     ret = script.pip(
         "uninstall", "--color=auto", "foo", allow_stderr_warning=True
     )
-    assert colorama.Fore.YELLOW not in ret.stderr, "Expected no color in output"
+    assert colorama.Fore.YELLOW not in ret.stderr
 
 
 def test_color_never(script):
@@ -27,4 +27,4 @@ def test_color_never(script):
     ret = script.pip(
         "uninstall", "--color=never", "foo", allow_stderr_warning=True
     )
-    assert colorama.Fore.YELLOW not in ret.stderr, "Expected no color in output"
+    assert colorama.Fore.YELLOW not in ret.stderr
