@@ -9,16 +9,17 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 from .candidates import (
     AlreadyInstalledCandidate,
+    DummyCandidate,
     EditableCandidate,
     ExtrasCandidate,
     LinkCandidate,
     RequiresPythonCandidate,
 )
 from .requirements import (
+    ConstraintRequirement,
     ExplicitRequirement,
     RequiresPythonRequirement,
     SpecifierRequirement,
-    ConstraintRequirement,
 )
 
 if MYPY_CHECK_RUNNING:
@@ -63,6 +64,8 @@ class Factory(object):
 
         self._link_candidate_cache = {}  # type: Cache[LinkCandidate]
         self._editable_candidate_cache = {}  # type: Cache[EditableCandidate]
+
+        self.dummy_candidate = DummyCandidate()
 
         if not ignore_installed:
             self._installed_dists = {
@@ -159,7 +162,7 @@ class Factory(object):
 
         specifier = SpecifierRequirement(ireq, factory=self)
         if ireq.constraint:
-            return ConstraintRequirement(specifier)
+            return ConstraintRequirement(specifier, factory=self)
 
         return specifier
 

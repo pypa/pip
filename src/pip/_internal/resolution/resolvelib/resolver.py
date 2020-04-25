@@ -60,10 +60,6 @@ class Resolver(BaseResolver):
     def resolve(self, root_reqs, check_supported_wheels):
         # type: (List[InstallRequirement], bool) -> RequirementSet
 
-        # FIXME: Implement constraints.
-        #if any(r.constraint for r in root_reqs):
-        #    raise InstallationError("Constraints are not yet supported.")
-
         provider = PipProvider(
             factory=self.factory,
             ignore_dependencies=self.ignore_dependencies,

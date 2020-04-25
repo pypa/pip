@@ -119,10 +119,11 @@ class RequiresPythonRequirement(Requirement):
         return self.specifier.contains(candidate.version, prereleases=True)
 
 
-from .candidates import DummyCandidate # FIXME
-class ConstraintRequirement(object):
-    def __init__(self, specifier):
+class ConstraintRequirement(Requirement):
+    def __init__(self, specifier, factory):
+        # type: (SpecifierRequirement, Factory) -> None
         self._specifier = specifier
+        self._factory = factory
 
     def __str__(self):
         # type: () -> str
@@ -142,13 +143,10 @@ class ConstraintRequirement(object):
 
     def find_matches(self):
         # type: () -> Sequence[Candidate]
-        # TODO: What if this is checked first? We'd only get
-        # the dummy, when we check a real requirement, we don't call find_matches, we just merge.
-        # CHECK THIS IN RESOLVELIB!!!
-        return [DummyCandidate()]
+        return [self._factory.dummy_candidate]
 
     def is_satisfied_by(self, candidate):
         # type: (Candidate) -> bool
-        if isinstance(candidate, DummyCandidate):
+        if candidate is self._factory.dummy_candidate:
             return True
         return self._specifier.is_satisfied_by(candidate)

@@ -96,6 +96,7 @@ def make_install_req_from_dist(dist, parent):
 class DummyCandidate(Candidate):
     """A candidate that will never be installed (for constraints)"""
     def __init__(self):
+        # type: () -> None
         self._name = "<Dummy>"
         self._version = Version("0")
 
