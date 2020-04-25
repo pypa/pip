@@ -1,4 +1,5 @@
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
+from pip._vendor.urllib3.exceptions import NewConnectionError, ReadTimeoutError
 
 from pip._internal.exceptions import NetworkConnectionError
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -95,3 +96,8 @@ def response_chunks(response, chunk_size=CONTENT_CHUNK_SIZE):
             if not chunk:
                 break
             yield chunk
+    except (NewConnectionError, ReadTimeoutError) as exc:
+        raise NetworkConnectionError(
+            "Failed to get address for host! Check your network connectivity "
+            "and DNS settings.\nDetails: {}".format(exc)
+        )
