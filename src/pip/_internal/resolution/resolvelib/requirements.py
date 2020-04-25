@@ -119,25 +119,26 @@ class RequiresPythonRequirement(Requirement):
         return self.specifier.contains(candidate.version, prereleases=True)
 
 
+from .candidates import DummyCandidate # FIXME
 class ConstraintRequirement(object):
     def __init__(self, specifier):
         self._specifier = specifier
 
     def __str__(self):
         # type: () -> str
-        return str(self.specifier)
+        return str(self._specifier)
 
     def __repr__(self):
         # type: () -> str
         return "{class_name}({requirement!r})".format(
             class_name=self.__class__.__name__,
-            requirement=str(self.specifier._ireq.req),
+            requirement=str(self._specifier._ireq.req),
         )
 
     @property
     def name(self):
         # type: () -> str
-        return self.specifier.name
+        return self._specifier.name
 
     def find_matches(self):
         # type: () -> Sequence[Candidate]
@@ -150,4 +151,4 @@ class ConstraintRequirement(object):
         # type: (Candidate) -> bool
         if isinstance(candidate, DummyCandidate):
             return True
-        return self.specifier.is_satisfied_by(candidate)
+        return self._specifier.is_satisfied_by(candidate)
