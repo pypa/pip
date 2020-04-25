@@ -1,4 +1,5 @@
-# see: https://medium.com/knerd/the-nine-circles-of-python-dependency-hell-481d53e3e025
+# https://medium.com/knerd/the-nine-circles-of-python-dependency-hell-481d53e3e025
+# Circle 4: Overlapping transitive dependencies
 base:
   available:
     - myapp 0.2.4; depends fussy, capridous
