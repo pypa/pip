@@ -28,7 +28,8 @@ Console logging
 pip offers :ref:`-v, --verbose <--verbose>` and :ref:`-q, --quiet <--quiet>`
 to control the console log level. By default, some messages (error and warnings)
 are colored in the terminal. If you want to suppress the colored output use
-:ref:`--no-color <--no-color>`.
+:ref:`--no-color <--no-color>`. If you want to force colored output when pip
+is not connected to a terminal, use :ref:`--color=always <--color>`.
 
 
 .. _`FileLogging`:
