@@ -529,3 +529,20 @@ def test_new_resolver_handles_prerelease(
         *pip_args
     )
     assert_installed(script, pkg=expected_version)
+
+
+def test_new_resolver_constraints(script):
+    create_basic_wheel_for_package(script, "pkg", "1.0")
+    create_basic_wheel_for_package(script, "pkg", "2.0")
+    create_basic_wheel_for_package(script, "pkg", "3.0")
+    constraints_file = script.scratch_path / "constraints.txt"
+    constraints_file.write_text("pkg<2.0\nconstraint_only<1.0")
+    script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "-c", constraints_file,
+        "pkg"
+    )
+    assert_installed(script, pkg="1.0")
+    assert_not_installed(script, "constraint_only")
