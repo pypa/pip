@@ -45,12 +45,11 @@ def lint_case(case, verbose=False):
             package = convert_to_dict(package)
         assert isinstance(package, dict)
 
-    for request in requests:
+    for request, response in zip(requests, responses):
         check_dict(request, optional=['install', 'uninstall', 'options'])
-
-    for response in responses:
         check_dict(response, optional=['state', 'conflicting'])
         assert len(response) == 1
+        assert isinstance(response.get('state') or [], list)
 
 
 def lint_yml(yml_file, verbose=False):
