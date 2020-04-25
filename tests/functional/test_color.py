@@ -1,8 +1,14 @@
+import sys
+
 import pytest
 
 colorama = pytest.importorskip("pip._vendor.colorama")
 
 
+@pytest.mark.skipif(
+    sys.platform == "win32",
+    reason="colorama strips ANSI sequences from output on Windows",
+)
 def test_color_always(script):
     """It uses colored output when passed --color=always."""
     ret = script.pip(
