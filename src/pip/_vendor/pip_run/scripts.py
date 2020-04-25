@@ -20,12 +20,9 @@ if sys.version_info < (3,):
 
 class Dependencies(list):
     index_url = None
-    dependency_links = []
 
     def params(self):
         prefix = ['--index-url', self.index_url] if self.index_url else []
-        for link in self.dependency_links:
-            prefix.extend(['--find-links', link])
         return prefix + self
 
 
@@ -79,12 +76,6 @@ class DepsReader:
             deps.index_url = self._read('__index_url__')
         except Exception:
             pass
-        try:
-            raw_links = self._read('__dependency_links__')
-        except Exception:
-            pass
-        else:
-            deps.dependency_links = list(pkg_resources.yield_lines(raw_links))
         return deps
 
     def _read(self, var_name):
