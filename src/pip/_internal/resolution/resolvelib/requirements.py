@@ -117,3 +117,37 @@ class RequiresPythonRequirement(Requirement):
         # already implements the prerelease logic, and would have filtered out
         # prerelease candidates if the user does not expect them.
         return self.specifier.contains(candidate.version, prereleases=True)
+
+
+class ConstraintRequirement(object):
+    def __init__(self, specifier):
+        self._specifier = specifier
+
+    def __str__(self):
+        # type: () -> str
+        return str(self.specifier)
+
+    def __repr__(self):
+        # type: () -> str
+        return "{class_name}({requirement!r})".format(
+            class_name=self.__class__.__name__,
+            requirement=str(self.specifier._ireq.req),
+        )
+
+    @property
+    def name(self):
+        # type: () -> str
+        return self.specifier.name
+
+    def find_matches(self):
+        # type: () -> Sequence[Candidate]
+        # TODO: What if this is checked first? We'd only get
+        # the dummy, when we check a real requirement, we don't call find_matches, we just merge.
+        # CHECK THIS IN RESOLVELIB!!!
+        return [DummyCandidate()]
+
+    def is_satisfied_by(self, candidate):
+        # type: (Candidate) -> bool
+        if isinstance(candidate, DummyCandidate):
+            return True
+        return self.specifier.is_satisfied_by(candidate)

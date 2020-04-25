@@ -93,6 +93,31 @@ def make_install_req_from_dist(dist, parent):
     return ireq
 
 
+class DummyCandidate(Candidate):
+    """A candidate that will never be installed (for constraints)"""
+    def __init__(self):
+        self._name = "<Dummy>"
+        self._version = Version("0")
+
+    @property
+    def name(self):
+        # type: () -> str
+        return self._name
+
+    @property
+    def version(self):
+        # type: () -> _BaseVersion
+        return self._version
+
+    def get_dependencies(self):
+        # type: () -> Sequence[Requirement]
+        return []
+
+    def get_install_requirement(self):
+        # type: () -> Optional[InstallRequirement]
+        return None
+
+
 class _InstallRequirementBackedCandidate(Candidate):
     def __init__(
         self,

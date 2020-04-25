@@ -18,6 +18,7 @@ from .requirements import (
     ExplicitRequirement,
     RequiresPythonRequirement,
     SpecifierRequirement,
+    ConstraintRequirement,
 )
 
 if MYPY_CHECK_RUNNING:
@@ -155,7 +156,12 @@ class Factory(object):
                 ireq.link, extras=set(), parent=ireq,
             )
             return ExplicitRequirement(cand)
-        return SpecifierRequirement(ireq, factory=self)
+
+        specifier = SpecifierRequirement(ireq, factory=self)
+        if ireq.constraint:
+            return ConstraintRequirement(specifier)
+
+        return specifier
 
     def make_requirement_from_spec(self, specifier, comes_from):
         # type: (str, InstallRequirement) -> Requirement
