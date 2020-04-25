@@ -53,11 +53,13 @@ It is preferable to run the tests in parallel for better experience during devel
 since the tests can take a long time to finish when run sequentially.
 
 To run tests:
+
 .. code-block:: console
 
     $ tox -e py36 -- -n auto
 
 To run tests without parallelization, run:
+
 .. code-block:: console
 
     $ tox -e py36
