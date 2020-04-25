@@ -30,7 +30,7 @@ cases:
       - A 2.0.0
       - B 2.0.0
       - C 2.0.0
-  # for the last install (A==2.0.0) the old resolver does gives
+  # for the last install (A==2.0.0) the old resolver gives
   #   - A 2.0.0
   #   - B 2.0.0
   #   - C 1.0.0
