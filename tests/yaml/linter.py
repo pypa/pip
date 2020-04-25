@@ -6,7 +6,7 @@ import yaml
 sys.path.insert(0, '../../src')
 sys.path.insert(0, '../..')
 
-from tests.functional.test_yaml import convert_to_dict
+from tests.functional.test_yaml import convert_to_dict  # noqa
 
 
 def check_dict(d, required=None, optional=None):
@@ -74,7 +74,7 @@ if __name__ == '__main__':
     from optparse import OptionParser
 
     p = OptionParser(usage="usage: %prog [options] FILE ...",
-                     description='linter for .yml FILE(s)')
+                     description="linter for pip's yaml test FILE(s)")
 
     p.add_option('-v', '--verbose',
                  action="store_true")
