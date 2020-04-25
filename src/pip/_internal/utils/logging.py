@@ -172,6 +172,9 @@ def _color_wrap(*colors):
     return wrapped
 
 
+COLOR_CHOICES = ['always', 'auto', 'never']
+
+
 class ColorizedStreamHandler(logging.StreamHandler):
 
     # Don't build up a list of colors if we don't have colorama
@@ -184,9 +187,9 @@ class ColorizedStreamHandler(logging.StreamHandler):
     else:
         COLORS = []
 
-    def __init__(self, stream=None, no_color=None):
+    def __init__(self, stream=None, color='auto'):
         logging.StreamHandler.__init__(self, stream)
-        self._no_color = no_color
+        self._color = color
 
         if WINDOWS and colorama:
             self.stream = colorama.AnsiToWin32(self.stream)
@@ -203,8 +206,11 @@ class ColorizedStreamHandler(logging.StreamHandler):
 
     def should_color(self):
         # Don't colorize things if we do not have colorama or if told not to
-        if not colorama or self._no_color:
+        if not colorama or self._color == 'never':
             return False
+
+        if self._color == 'always':
+            return True
 
         real_stream = (
             self.stream if not isinstance(self.stream, colorama.AnsiToWin32)
@@ -275,7 +281,7 @@ class ExcludeLoggerFilter(Filter):
         return not super(ExcludeLoggerFilter, self).filter(record)
 
 
-def setup_logging(verbosity, no_color, user_log_file):
+def setup_logging(verbosity, color, user_log_file):
     """Configures and sets up all of the logging
 
     Returns the requested logging level, as its integer value.
@@ -354,7 +360,7 @@ def setup_logging(verbosity, no_color, user_log_file):
             "console": {
                 "level": level,
                 "class": handler_classes["stream"],
-                "no_color": no_color,
+                "color": color,
                 "stream": log_streams["stdout"],
                 "filters": ["exclude_subprocess", "exclude_warnings"],
                 "formatter": "indent",
@@ -362,7 +368,7 @@ def setup_logging(verbosity, no_color, user_log_file):
             "console_errors": {
                 "level": "WARNING",
                 "class": handler_classes["stream"],
-                "no_color": no_color,
+                "color": color,
                 "stream": log_streams["stderr"],
                 "filters": ["exclude_subprocess"],
                 "formatter": "indent",
@@ -372,7 +378,7 @@ def setup_logging(verbosity, no_color, user_log_file):
             "console_subprocess": {
                 "level": level,
                 "class": handler_classes["stream"],
-                "no_color": no_color,
+                "color": color,
                 "stream": log_streams["stderr"],
                 "filters": ["restrict_to_subprocess"],
                 "formatter": "indent",

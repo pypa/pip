@@ -28,6 +28,7 @@ from pip._internal.models.format_control import FormatControl
 from pip._internal.models.index import PyPI
 from pip._internal.models.target_python import TargetPython
 from pip._internal.utils.hashes import STRONG_HASHES
+from pip._internal.utils.logging import COLOR_CHOICES
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -184,13 +185,26 @@ verbose = partial(
     help='Give more output. Option is additive, and can be used up to 3 times.'
 )  # type: Callable[..., Option]
 
+color = partial(
+    Option,
+    '--color',
+    dest='color',
+    type='choice',
+    choices=COLOR_CHOICES,
+    default='auto',
+    help=(
+        'When to use colored output [' +
+        '|'.join(COLOR_CHOICES) + '] (default: %default).'
+    ),
+)  # type: Callable[..., Option]
+
 no_color = partial(
     Option,
     '--no-color',
-    dest='no_color',
-    action='store_true',
-    default=False,
-    help="Suppress colored output",
+    dest='color',
+    action='store_const',
+    const='never',
+    help="Suppress colored output. This is an alias for --color=never.",
 )  # type: Callable[..., Option]
 
 version = partial(
@@ -945,6 +959,7 @@ general_group = {
         cache_dir,
         no_cache,
         disable_pip_version_check,
+        color,
         no_color,
         no_python_version_warning,
         unstable_feature,

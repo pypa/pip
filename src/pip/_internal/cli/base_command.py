@@ -132,7 +132,7 @@ class Command(CommandContextMixIn):
 
         level_number = setup_logging(
             verbosity=self.verbosity,
-            no_color=options.no_color,
+            color=options.color,
             user_log_file=options.log,
         )
 
