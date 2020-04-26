@@ -3,9 +3,8 @@ from pprint import pprint
 
 import yaml
 
-sys.path.insert(0, '../../src')  # noqa
-sys.path.insert(0, '../..')  # noqa
-from tests.functional.test_yaml import convert_to_dict  # noqa
+sys.path.insert(0, '../../src')
+sys.path.insert(0, '../..')
 
 
 def check_dict(d, required=None, optional=None):
@@ -26,6 +25,8 @@ def check_dict(d, required=None, optional=None):
 
 
 def lint_case(case, verbose=False):
+    from tests.functional.test_yaml import convert_to_dict
+
     if verbose:
         print("--- linting case ---")
         pprint(case)
