@@ -239,13 +239,19 @@ class TestInstallUnpackedWheel(object):
         self.dest_dist_info = os.path.join(
             self.scheme.purelib, 'sample-1.2.0.dist-info')
 
+    def assert_permission(self, path, mode):
+        target_mode = os.stat(path).st_mode & 0o777
+        assert (target_mode & mode) == mode, target_mode
+
     def assert_installed(self):
         # lib
         assert os.path.isdir(
             os.path.join(self.scheme.purelib, 'sample'))
         # dist-info
         metadata = os.path.join(self.dest_dist_info, 'METADATA')
-        assert os.path.isfile(metadata)
+        self.assert_permission(metadata, 0o644)
+        record = os.path.join(self.dest_dist_info, 'RECORD')
+        self.assert_permission(record, 0o644)
         # data files
         data_file = os.path.join(self.scheme.data, 'my_data', 'data_file')
         assert os.path.isfile(data_file)
@@ -286,7 +292,7 @@ class TestInstallUnpackedWheel(object):
         direct_url_path = os.path.join(
             self.dest_dist_info, DIRECT_URL_METADATA_NAME
         )
-        assert os.path.isfile(direct_url_path)
+        assert self.assert_permission(direct_url_path, 0o644)
         with open(direct_url_path, 'rb') as f:
             expected_direct_url_json = direct_url.to_json()
             direct_url_json = f.read().decode("utf-8")
