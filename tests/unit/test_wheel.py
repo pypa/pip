@@ -241,7 +241,7 @@ class TestInstallUnpackedWheel(object):
 
     def assert_permission(self, path, mode):
         target_mode = os.stat(path).st_mode & 0o777
-        assert (target_mode & mode) == mode, target_mode
+        assert (target_mode & mode) == mode, oct(target_mode)
 
     def assert_installed(self):
         # lib
