@@ -152,7 +152,7 @@ class Factory(object):
             #       Specifically, this might be needed in "name @ URL"
             #       syntax - need to check where that syntax is handled.
             cand = self._make_candidate_from_link(
-                ireq.link, extras=set(), parent=ireq,
+                ireq.link, extras=set(ireq.extras), parent=ireq,
             )
             return ExplicitRequirement(cand)
         return SpecifierRequirement(ireq, factory=self)
