@@ -259,9 +259,15 @@ class TestColorizedStreamHandler(object):
         """
         It calls SetConsoleTextAttribute on Windows for colored output.
         """
+        from pip._vendor.colorama import win32
+
         with capsys.disabled():
+            if not win32.winapi_test():
+                pytest.skip("output is not connected to a terminal")
+
             handler = ColorizedStreamHandler(color=color)
             handler.emit(empty_log_record)
+
         assert SetConsoleTextAttribute.calls
 
     @pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
