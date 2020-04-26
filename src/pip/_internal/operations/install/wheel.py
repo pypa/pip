@@ -572,6 +572,7 @@ def install_unpacked_wheel(
         # type: (str, **Any) -> Iterator[NamedTemporaryFileResult]
         with adjacent_tmp_file(path, **kwargs) as f:
             yield f
+        os.chmod(f.name, 0o644)
         replace(f.name, path)
 
     # Record pip as the installer
