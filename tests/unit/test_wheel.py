@@ -292,7 +292,7 @@ class TestInstallUnpackedWheel(object):
         direct_url_path = os.path.join(
             self.dest_dist_info, DIRECT_URL_METADATA_NAME
         )
-        assert self.assert_permission(direct_url_path, 0o644)
+        self.assert_permission(direct_url_path, 0o644)
         with open(direct_url_path, 'rb') as f:
             expected_direct_url_json = direct_url.to_json()
             direct_url_json = f.read().decode("utf-8")
