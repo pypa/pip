@@ -3,9 +3,8 @@ from pprint import pprint
 
 import yaml
 
-sys.path.insert(0, '../../src')
-sys.path.insert(0, '../..')
-
+sys.path.insert(0, '../../src')  # noqa
+sys.path.insert(0, '../..')  # noqa
 from tests.functional.test_yaml import convert_to_dict  # noqa
 
 
@@ -43,7 +42,11 @@ def lint_case(case, verbose=False):
     for package in available:
         if isinstance(package, str):
             package = convert_to_dict(package)
-        assert isinstance(package, dict)
+        if verbose:
+            pprint(package)
+        check_dict(package,
+                   required=['name', 'version'],
+                   optional=['depends', 'extras'])
 
     for request, response in zip(requests, responses):
         check_dict(request, optional=['install', 'uninstall', 'options'])
