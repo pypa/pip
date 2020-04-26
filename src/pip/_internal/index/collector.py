@@ -166,7 +166,9 @@ def _get_html_response(url, session):
             # trip for the conditional GET now instead of only
             # once per 10 minutes.
             # For more information, please see pypa/pip#5670.
-            "Cache-Control": "max-age=0",
+            # However if we want to override Cache-Control, e.g. via CLI,
+            # we can still do so.
+            "Cache-Control": session.headers.get('Cache-Control', 'max-age=0'),
         },
     )
     raise_for_status(resp)
