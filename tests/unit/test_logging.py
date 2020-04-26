@@ -1,9 +1,11 @@
 import errno
 import logging
 import os
+import sys
 import time
 from threading import Thread
 
+import pretend
 import pytest
 from mock import patch
 from pip._vendor.six import PY2
@@ -12,6 +14,7 @@ from pip._internal.utils.logging import (
     BrokenStdoutLoggingError,
     ColorizedStreamHandler,
     IndentingFormatter,
+    colorama,
     indent_log,
 )
 from pip._internal.utils.misc import captured_stderr, captured_stdout
@@ -144,6 +147,36 @@ class TestIndentingFormatter(object):
         assert results[0] == results[1]
 
 
+@pytest.fixture
+def SetConsoleTextAttribute(monkeypatch):
+    """Monkey-patch the SetConsoleTextAttribute function.
+
+    This fixture records calls to the win32 function from the colorama.win32
+    module. Note that colorama.win32 is an internal interface, and may change
+    without notice.
+    """
+    from pip._vendor.colorama import win32
+
+    wrapper = pretend.call_recorder(win32.SetConsoleTextAttribute)
+    monkeypatch.setattr(win32, "SetConsoleTextAttribute", wrapper)
+
+    return wrapper
+
+
+@pytest.fixture
+def empty_log_record():
+    """Log record with an empty message, at WARNING level."""
+    return logging.LogRecord(
+        name="root",
+        level=logging.WARNING,
+        pathname="",
+        lineno=0,
+        msg="",
+        args=(),
+        exc_info=None,
+    )
+
+
 class TestColorizedStreamHandler(object):
 
     def _make_log_record(self):
@@ -216,3 +249,30 @@ class TestColorizedStreamHandler(object):
         # Sanity check that the log record was written, since flush() happens
         # after write().
         assert output.startswith('my error')
+
+    @pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
+    @pytest.mark.skipif(colorama is None, reason="colorama required")
+    @pytest.mark.parametrize("color", ["always", "auto"])
+    def test_emit_with_color_sets_windows_console(
+        self, capsys, empty_log_record, SetConsoleTextAttribute, color
+    ):
+        """
+        It calls SetConsoleTextAttribute on Windows for colored output.
+        """
+        with capsys.disabled():
+            handler = ColorizedStreamHandler(color=color)
+            handler.emit(empty_log_record)
+        assert SetConsoleTextAttribute.calls
+
+    @pytest.mark.skipif(sys.platform != "win32", reason="Windows only")
+    @pytest.mark.skipif(colorama is None, reason="colorama required")
+    def test_emit_without_color_does_not_set_windows_console(
+        self, capsys, empty_log_record, SetConsoleTextAttribute
+    ):
+        """
+        It does not call SetConsoleTextAttribute when color is disabled.
+        """
+        with capsys.disabled():
+            handler = ColorizedStreamHandler(color="never")
+            handler.emit(empty_log_record)
+        assert not SetConsoleTextAttribute.calls
