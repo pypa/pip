@@ -1,5 +1,4 @@
-# https://github.com/pypa/pip/issues/988
-# see comment from benoit-pierre
+# https://github.com/pypa/pip/issues/988#issuecomment-606967707
 base:
   available:
     - A 1.0.0; depends B >= 1.0.0, C >= 1.0.0
