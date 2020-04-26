@@ -8,6 +8,7 @@ from __future__ import absolute_import
 
 import collections
 import compileall
+import contextlib
 import csv
 import logging
 import os.path
@@ -39,10 +40,11 @@ if MYPY_CHECK_RUNNING:
     from email.message import Message
     from typing import (
         Dict, List, Optional, Sequence, Tuple, Any,
-        Iterable, Callable, Set,
+        Iterable, Iterator, Callable, Set,
     )
 
     from pip._internal.models.scheme import Scheme
+    from pip._internal.utils.filesystem import NamedTemporaryFileResult
 
     InstalledCSVRow = Tuple[str, ...]
 
@@ -565,19 +567,24 @@ def install_unpacked_wheel(
         if msg is not None:
             logger.warning(msg)
 
+    @contextlib.contextmanager
+    def _generate_file(path, **kwargs):
+        # type: (str, **Any) -> Iterator[NamedTemporaryFileResult]
+        with adjacent_tmp_file(path, **kwargs) as f:
+            yield f
+        replace(f.name, path)
+
     # Record pip as the installer
     installer_path = os.path.join(dest_info_dir, 'INSTALLER')
-    with adjacent_tmp_file(installer_path) as installer_file:
+    with _generate_file(installer_path) as installer_file:
         installer_file.write(b'pip\n')
-    replace(installer_file.name, installer_path)
     generated.append(installer_path)
 
     # Record the PEP 610 direct URL reference
     if direct_url is not None:
         direct_url_path = os.path.join(dest_info_dir, DIRECT_URL_METADATA_NAME)
-        with adjacent_tmp_file(direct_url_path) as direct_url_file:
+        with _generate_file(direct_url_path) as direct_url_file:
             direct_url_file.write(direct_url.to_json().encode("utf-8"))
-        replace(direct_url_file.name, direct_url_path)
         generated.append(direct_url_path)
 
     # Record details of all files installed
@@ -589,10 +596,9 @@ def install_unpacked_wheel(
             changed=changed,
             generated=generated,
             lib_dir=lib_dir)
-    with adjacent_tmp_file(record_path, **csv_io_kwargs('w')) as record_file:
+    with _generate_file(record_path, **csv_io_kwargs('w')) as record_file:
         writer = csv.writer(record_file)
         writer.writerows(sorted_outrows(rows))  # sort to simplify testing
-    replace(record_file.name, record_path)
 
 
 def install_wheel(
