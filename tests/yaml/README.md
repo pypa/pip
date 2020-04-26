@@ -15,5 +15,17 @@ To run only the yaml tests, use (from the root of the source tree):
 
     $ tox -e py38 -- -m yaml -vv
 
+Or, in order to avoid collecting all the test cases:
+
+    $ tox -e py38 -- tests/functional/test_yaml.py
+
+Or, only a specific test:
+
+    $ tox -e py38 -- tests/functional/test_yaml.py -k simple
+
+Or, just a specific test case:
+
+    $ tox -e py38 -- tests/functional/test_yaml.py -k simple-0
+
 
 <!-- TODO: Add a good description of the format and how it can be used. -->
