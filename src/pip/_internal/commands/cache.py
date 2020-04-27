@@ -24,6 +24,7 @@ class CacheCommand(Command):
 
     Subcommands:
 
+        dir: Show the cache directory.
         info: Show information about the cache.
         list: List filenames of packages stored in the cache.
         remove: Remove one or more package from the cache.
@@ -33,6 +34,7 @@ class CacheCommand(Command):
     """
 
     usage = """
+        %prog dir
         %prog info
         %prog list [<pattern>]
         %prog remove <pattern>
@@ -42,6 +44,7 @@ class CacheCommand(Command):
     def run(self, options, args):
         # type: (Values, List[Any]) -> int
         handlers = {
+            "dir": self.get_cache_dir,
             "info": self.get_cache_info,
             "list": self.list_cache_items,
             "remove": self.remove_cache_items,
@@ -70,6 +73,13 @@ class CacheCommand(Command):
             return ERROR
 
         return SUCCESS
+
+    def get_cache_dir(self, options, args):
+        # type: (Values, List[Any]) -> None
+        if args:
+            raise CommandError('Too many arguments')
+
+        logger.info(options.cache_dir)
 
     def get_cache_info(self, options, args):
         # type: (Values, List[Any]) -> None
