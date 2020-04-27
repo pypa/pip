@@ -9,7 +9,7 @@ from docutils.parsers import rst
 from docutils.statemachine import ViewList
 
 from pip._internal.cli import cmdoptions
-from pip._internal.commands import create_command
+from pip._internal.commands import commands_dict, create_command
 from pip._internal.req.req_file import SUPPORTED_OPTIONS
 
 
@@ -111,6 +111,14 @@ class PipCommandOptions(PipOptions):
 
 class PipReqFileOptionsReference(PipOptions):
 
+    def determine_opt_prefix(self, opt_name):
+        for command in commands_dict:
+            cmd = create_command(command)
+            if cmd.cmd_opts.has_option(opt_name):
+                return command
+
+        raise KeyError('Could not identify prefix of opt {}'.format(opt_name))
+
     def process_options(self):
         for option in SUPPORTED_OPTIONS:
             if getattr(option, 'deprecated', False):
@@ -123,16 +131,16 @@ class PipReqFileOptionsReference(PipOptions):
             else:
                 short_opt_name = ''
 
-            from_install = (
-                'install_'
-                if option not in cmdoptions.general_group['options'] else
-                ''
-            )
+            if option in cmdoptions.general_group['options']:
+                prefix = ''
+            else:
+                prefix = '{}_'.format(self.determine_opt_prefix(opt_name))
+
             self.view_list.append(
                 '  *  :ref:`{short}{long}<{prefix}{opt_name}>`'.format(
                     short=short_opt_name,
                     long=opt_name,
-                    prefix=from_install,
+                    prefix=prefix,
                     opt_name=opt_name
                 ),
                 "\n"
