@@ -101,6 +101,16 @@ def test_cache_dir(script, cache_dir):
     assert os.path.normcase(cache_dir) == result.stdout.strip()
 
 
+def test_cache_dir_too_many_args(script, cache_dir):
+    result = script.pip('cache', 'dir', 'aaa', expect_error=True)
+
+    assert result.stdout == ''
+
+    # This would be `result.stderr == ...`, but pip prints deprecation
+    # warnings on Python 2.7, so we check if the _line_ is in stderr.
+    assert 'ERROR: Too many arguments' in result.stderr.splitlines()
+
+
 @pytest.mark.usefixtures("populate_wheel_cache")
 def test_cache_info(script, wheel_cache_dir, wheel_cache_files):
     result = script.pip('cache', 'info')
@@ -215,7 +225,7 @@ def test_cache_purge_too_many_args(script, wheel_cache_files):
                         expect_error=True)
     assert result.stdout == ''
 
-    # This would be `result.stderr == ...`, but Pip prints deprecation
+    # This would be `result.stderr == ...`, but pip prints deprecation
     # warnings on Python 2.7, so we check if the _line_ is in stderr.
     assert 'ERROR: Too many arguments' in result.stderr.splitlines()
 
