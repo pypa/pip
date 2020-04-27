@@ -573,7 +573,13 @@ class TestExtraMerge(object):
 
     @pytest.mark.parametrize(
         "pkg_builder",
-        [_local_with_setup, _direct_wheel, _wheel_from_index],
+        [
+            pytest.param(
+                _local_with_setup, marks=pytest.mark.xfail(strict=True),
+            ),
+            _direct_wheel,
+            _wheel_from_index,
+        ],
     )
     def test_new_resolver_extra_merge_in_package(
         self, monkeypatch, script, pkg_builder,
