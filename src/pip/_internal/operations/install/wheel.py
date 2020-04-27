@@ -33,7 +33,7 @@ from pip._internal.utils.filesystem import adjacent_tmp_file, replace
 from pip._internal.utils.misc import captured_stdout, ensure_dir, hash_file
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from pip._internal.utils.unpacking import unpack_file
+from pip._internal.utils.unpacking import current_umask, unpack_file
 from pip._internal.utils.wheel import parse_wheel
 
 if MYPY_CHECK_RUNNING:
@@ -567,12 +567,14 @@ def install_unpacked_wheel(
         if msg is not None:
             logger.warning(msg)
 
+    generated_file_mode = 0o666 - current_umask()
+
     @contextlib.contextmanager
     def _generate_file(path, **kwargs):
         # type: (str, **Any) -> Iterator[NamedTemporaryFileResult]
         with adjacent_tmp_file(path, **kwargs) as f:
             yield f
-        os.chmod(f.name, 0o644)
+        os.chmod(f.name, generated_file_mode)
         replace(f.name, path)
 
     # Record pip as the installer
