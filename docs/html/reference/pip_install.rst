@@ -149,7 +149,7 @@ treated as a comment.
 A line ending in an unescaped ``\`` is treated as a line continuation
 and the newline following it is effectively ignored.
 
-Comments are stripped *before* line continuations are processed.
+Comments are stripped *after* line continuations are processed.
 
 To interpret the requirements file in UTF-8 format add a comment
 ``# -*- coding: utf-8 -*-`` to the first or second line of the file.
