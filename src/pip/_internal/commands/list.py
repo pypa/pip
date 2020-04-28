@@ -210,10 +210,10 @@ class ListCommand(IndexGroupCommand):
                 dist.latest_filetype = typ
                 return dist
 
-            # This is done for 2x speed up of requests to pypi.org
-            # so that "real time" of this function
-            # is almost equal to "user time"
             try:
+                # This is done for 2x speed up of requests to pypi.org
+                # so that "real time" of this function
+                # is almost equal to "user time"
                 pool = Pool(DEFAULT_POOLSIZE)
 
                 for dist in pool.imap_unordered(latest_info, packages):
