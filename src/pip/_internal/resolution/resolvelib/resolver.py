@@ -67,10 +67,22 @@ class Resolver(BaseResolver):
         reporter = BaseReporter()
         resolver = RLResolver(provider, reporter)
 
-        requirements = [
-            self.factory.make_requirement_from_install_req(r)
-            for r in root_reqs
-        ]
+        # Build the list of root requirements, making sure that
+        # constraints are at the end. This is necessary to work around
+        # https://github.com/sarugaku/resolvelib/issues/48
+        # as our candidate requirements don't return all of the matches
+        # that a "normal" requirement would.
+        requirements = []
+        constraints = []
+
+        for req in root_reqs:
+            r = self.factory.make_requirement_from_install_req(req)
+            if req.constraint:
+                constraints.append(r)
+            else:
+                requirements.append(r)
+
+        requirements.extend(constraints)
 
         try:
             self._result = resolver.resolve(requirements)
