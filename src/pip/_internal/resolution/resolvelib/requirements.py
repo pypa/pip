@@ -125,6 +125,17 @@ class RequiresPythonRequirement(Requirement):
 
 
 class ConstraintRequirement(Requirement):
+    """A requirement that represents a constraint.
+
+    This requirement acts just like a SpecifierRequirement, except that
+    it doesn't generate any real matches of its own. This is to ensure that
+    if the user doesn't actually request that package X gets installed, a
+    constraint on X doesn't trigger installation.
+
+    ConstraintRequirement objects generate a singleton "dummy" candidate,
+    so that they satisfy the condition that any requirement has at least
+    one match - this is a resolvelib condition.
+    """
     def __init__(self, specifier_requirement, factory):
         # type: (SpecifierRequirement, Factory) -> None
         self._specifier_requirement = specifier_requirement
