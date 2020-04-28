@@ -120,26 +120,26 @@ class RequiresPythonRequirement(Requirement):
 
 
 class ConstraintRequirement(Requirement):
-    def __init__(self, specifier, factory):
+    def __init__(self, specifier_requirement, factory):
         # type: (SpecifierRequirement, Factory) -> None
-        self._specifier = specifier
+        self._specifier_requirement = specifier_requirement
         self._factory = factory
 
     def __str__(self):
         # type: () -> str
-        return str(self._specifier)
+        return str(self._specifier_requirement)
 
     def __repr__(self):
         # type: () -> str
         return "{class_name}({requirement!r})".format(
             class_name=self.__class__.__name__,
-            requirement=str(self._specifier._ireq.req),
+            requirement=str(self._specifier_requirement._ireq.req),
         )
 
     @property
     def name(self):
         # type: () -> str
-        return self._specifier.name
+        return self._specifier_requirement.name
 
     def find_matches(self):
         # type: () -> Sequence[Candidate]
@@ -149,4 +149,4 @@ class ConstraintRequirement(Requirement):
         # type: (Candidate) -> bool
         if candidate is self._factory.dummy_candidate:
             return True
-        return self._specifier.is_satisfied_by(candidate)
+        return self._specifier_requirement.is_satisfied_by(candidate)

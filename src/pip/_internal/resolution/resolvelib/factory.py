@@ -160,11 +160,11 @@ class Factory(object):
             )
             return ExplicitRequirement(cand)
 
-        specifier = SpecifierRequirement(ireq, factory=self)
+        specifier_requirement = SpecifierRequirement(ireq, factory=self)
         if ireq.constraint:
-            return ConstraintRequirement(specifier, factory=self)
+            return ConstraintRequirement(specifier_requirement, factory=self)
 
-        return specifier
+        return specifier_requirement
 
     def make_requirement_from_spec(self, specifier, comes_from):
         # type: (str, InstallRequirement) -> Requirement
