@@ -1,2 +1,0 @@
-Correctly set permissions on metadata files during wheel installation,
-to permit non-privileged users to read from system site-packages.

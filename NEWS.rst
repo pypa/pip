@@ -7,6 +7,27 @@
 
 .. towncrier release notes start
 
+20.1 (2020-04-28)
+=================
+
+Process
+-------
+
+- Document that pip 21.0 will drop support for Python 2.7.
+
+Features
+--------
+
+- Add ``pip cache dir`` to show the cache directory. (`#7350 <https://github.com/pypa/pip/issues/7350>`_)
+
+Bug Fixes
+---------
+
+- Abort pip cache commands early when cache is disabled. (`#8124 <https://github.com/pypa/pip/issues/8124>`_)
+- Correctly set permissions on metadata files during wheel installation,
+  to permit non-privileged users to read from system site-packages. (`#8139 <https://github.com/pypa/pip/issues/8139>`_)
+
+
 20.1b1 (2020-04-21)
 ===================
 
