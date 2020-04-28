@@ -98,7 +98,6 @@ class DummyCandidate(Candidate):
     def __init__(self):
         # type: () -> None
         self._name = "<Dummy>"
-        self._version = Version("0")
 
     @property
     def name(self):
@@ -108,7 +107,7 @@ class DummyCandidate(Candidate):
     @property
     def version(self):
         # type: () -> _BaseVersion
-        return self._version
+        assert False, "Version of a dummy requirement should not be checked"
 
     def get_dependencies(self):
         # type: () -> Sequence[Requirement]
