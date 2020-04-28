@@ -33,6 +33,7 @@ class CacheCommand(Command):
         <pattern> can be a glob expression or a package name.
     """
 
+    ignore_require_venv = True
     usage = """
         %prog dir
         %prog info
