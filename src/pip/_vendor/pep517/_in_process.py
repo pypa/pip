@@ -238,12 +238,22 @@ def build_sdist(sdist_directory, config_settings):
         raise GotUnsupportedOperation(traceback.format_exc())
 
 
+def build_editable():
+    """Invoke the optional build_editable hook."""
+    backend = _build_backend()
+    try:
+        return backend.build_editable()
+    except getattr(backend, 'UnsupportedOperation', _DummyException):
+        raise GotUnsupportedOperation(traceback.format_exc())
+
+
 HOOK_NAMES = {
     'get_requires_for_build_wheel',
     'prepare_metadata_for_build_wheel',
     'build_wheel',
     'get_requires_for_build_sdist',
     'build_sdist',
+    'build_editable',
 }
 
 

@@ -27,7 +27,7 @@ from pip._internal.operations.install.editable_legacy import \
     install_editable as install_editable_legacy
 from pip._internal.operations.install.legacy import LegacyInstallFailure
 from pip._internal.operations.install.legacy import install as install_legacy
-from pip._internal.operations.install.wheel import install_wheel
+from pip._internal.operations.install.wheel import install_wheel, install_unpacked_parsed_wheel
 from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
 from pip._internal.req.req_uninstall import UninstallPathSet
 from pip._internal.utils.deprecation import deprecated
@@ -777,18 +777,47 @@ class InstallRequirement(object):
 
         global_options = global_options if global_options is not None else []
         if self.editable:
-            install_editable_legacy(
-                install_options,
-                global_options,
-                prefix=prefix,
-                home=home,
-                use_user_site=use_user_site,
-                name=self.name,
-                setup_py_path=self.setup_py_path,
-                isolated=self.isolated,
-                build_env=self.build_env,
-                unpacked_source_directory=self.unpacked_source_directory,
-            )
+            if self.metadata_directory and self.metadata_directory.endswith('.dist-info'):
+
+                editable_path = self.pep517_backend.build_editable()
+
+                # create empty RECORD
+                with open(os.path.join(self.metadata_directory, 'RECORD'), 'w+'):
+                    pass
+
+                wheeldir = os.path.dirname(self.metadata_directory)
+
+                # put .pth file in wheeldir
+                with open(os.path.join(wheeldir, self.name + '.pth'), 'w+') as pthfile:
+                    pthfile.write(editable_path['src_root'] + '\n')
+
+                install_unpacked_parsed_wheel(
+                    self.name,
+                    wheeldir,
+                    self.metadata_directory,
+                    {
+                        "Root-Is-Purelib" : "false", # shouldn't matter
+                    },
+                    scheme=scheme,
+                    req_description=str(self.req),
+                    pycompile=pycompile,
+                    warn_script_location=warn_script_location,
+                    direct_url=None,
+                )
+
+            else:
+                install_editable_legacy(
+                    install_options,
+                    global_options,
+                    prefix=prefix,
+                    home=home,
+                    use_user_site=use_user_site,
+                    name=self.name,
+                    setup_py_path=self.setup_py_path,
+                    isolated=self.isolated,
+                    build_env=self.build_env,
+                    unpacked_source_directory=self.unpacked_source_directory,
+                )
             self.install_succeeded = True
             return
 

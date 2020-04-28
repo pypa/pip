@@ -1,7 +1,7 @@
 import threading
 from contextlib import contextmanager
 import os
-from os.path import dirname, abspath, join as pjoin
+from os.path import dirname, abspath, normpath, join as pjoin
 import shutil
 from subprocess import check_call, check_output, STDOUT
 import sys
@@ -224,6 +224,19 @@ class Pep517HookCaller(object):
             'sdist_directory': abspath(sdist_directory),
             'config_settings': config_settings,
         })
+
+
+    def build_editable(self):
+        """Build this project for editable. Usually in-place.
+
+        Returns a dict with the source directory (point .pth here)
+
+        This calls the 'build_editable' backend hook in a subprocess.
+        """
+        editable = self._call_hook('build_editable', {})
+        editable['src_root'] = normpath(pjoin(self.source_dir, editable['src_root']))
+        return editable
+
 
     def _call_hook(self, hook_name, kwargs):
         # On Python 2, pytoml returns Unicode values (which is correct) but the

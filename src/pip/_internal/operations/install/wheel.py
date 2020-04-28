@@ -314,9 +314,52 @@ def install_unpacked_wheel(
     # TODO: Look into moving this into a dedicated class for representing an
     #       installation.
 
-    source = wheeldir.rstrip(os.path.sep) + os.path.sep
-
     info_dir, metadata = parse_wheel(wheel_zip, name)
+
+    return install_unpacked_parsed_wheel(
+        name,
+        wheeldir,
+        info_dir,
+        metadata,
+        scheme,
+        req_description,
+        pycompile=pycompile,
+        warn_script_location=warn_script_location,
+        direct_url=direct_url
+    )
+
+
+def install_unpacked_parsed_wheel(
+    name,  # type: str
+    wheeldir,  # type: str
+    info_dir,  # type: str
+    metadata,  # type: Message
+    scheme,  # type: Scheme
+    req_description,  # type: str
+    pycompile=True,  # type: bool
+    warn_script_location=True,  # type: bool
+    direct_url=None,  # type: Optional[DirectUrl]
+):
+    # type: (...) -> None
+    """Install a wheel.
+
+    :param name: Name of the project to install
+    :param wheeldir: Base directory of the unpacked wheel
+    :param info_dir: Wheel's .dist-info directory
+    :param metadata: Wheel's parsed WHEEL-file
+    :param scheme: Distutils scheme dictating the install directories
+    :param req_description: String used in place of the requirement, for
+        logging
+    :param pycompile: Whether to byte-compile installed Python files
+    :param warn_script_location: Whether to check that scripts are installed
+        into a directory on PATH
+    :raises UnsupportedWheel:
+        * when the directory holds an unpacked wheel with incompatible
+          Wheel-Version
+        * when the .dist-info dir does not match the wheel
+    """
+
+    source = wheeldir.rstrip(os.path.sep) + os.path.sep
 
     if wheel_root_is_purelib(metadata):
         lib_dir = scheme.purelib
