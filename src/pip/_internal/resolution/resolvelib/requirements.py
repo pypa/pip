@@ -74,6 +74,10 @@ class SpecifierRequirement(Requirement):
 
     def is_satisfied_by(self, candidate):
         # type: (Candidate) -> bool
+        # Dummy candidates (from constraints) never match
+        if candidate is self._factory.dummy_candidate:
+            return False
+
         assert candidate.name == self.name, \
             "Internal issue: Candidate is not for this requirement " \
             " {} vs {}".format(candidate.name, self.name)
@@ -112,6 +116,7 @@ class RequiresPythonRequirement(Requirement):
 
     def is_satisfied_by(self, candidate):
         # type: (Candidate) -> bool
+
         assert candidate.name == self._candidate.name, "Not Python candidate"
         # We can safely always allow prereleases here since PackageFinder
         # already implements the prerelease logic, and would have filtered out
