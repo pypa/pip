@@ -42,6 +42,8 @@ if MYPY_CHECK_RUNNING:
 
 
 class Factory(object):
+    _allowed_strategies = {"eager", "only-if-needed", "to-satisfy-only"}
+
     def __init__(
         self,
         finder,  # type: PackageFinder
@@ -54,6 +56,8 @@ class Factory(object):
         py_version_info=None,  # type: Optional[Tuple[int, ...]]
     ):
         # type: (...) -> None
+        assert upgrade_strategy in self._allowed_strategies
+
         self.finder = finder
         self.preparer = preparer
         self._python_candidate = RequiresPythonCandidate(py_version_info)
