@@ -213,14 +213,20 @@ class ListCommand(IndexGroupCommand):
             # This is done for 2x speed up of requests to pypi.org
             # so that "real time" of this function
             # is almost equal to "user time"
-            pool = Pool(DEFAULT_POOLSIZE)
+            try:
+                pool = Pool(DEFAULT_POOLSIZE)
 
-            for dist in pool.imap_unordered(latest_info, packages):
-                if dist is not None:
-                    yield dist
+                for dist in pool.imap_unordered(latest_info, packages):
+                    if dist is not None:
+                        yield dist
 
-            pool.close()
-            pool.join()
+                pool.close()
+                pool.join()
+            except ImportError:
+                for dist in packages:
+                    dist = latest_info(dist)
+                    if dist is not None:
+                        yield dist
 
     def output_package_listing(self, packages, options):
         packages = sorted(
