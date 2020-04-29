@@ -551,8 +551,10 @@ def test_new_resolver_constraints(script):
 def test_new_resolver_constraint_on_dependency(script):
     create_basic_wheel_for_package(script, "base", "1.0", depends=["dep"])
     create_basic_wheel_for_package(script, "dep", "1.0")
+    create_basic_wheel_for_package(script, "dep", "2.0")
+    create_basic_wheel_for_package(script, "dep", "3.0")
     constraints_file = script.scratch_path / "constraints.txt"
-    constraints_file.write_text("dep==1.0")
+    constraints_file.write_text("dep==2.0")
     script.pip(
         "install", "--unstable-feature=resolver",
         "--no-cache-dir", "--no-index",
@@ -561,7 +563,7 @@ def test_new_resolver_constraint_on_dependency(script):
         "base"
     )
     assert_installed(script, base="1.0")
-    assert_installed(script, dep="1.0")
+    assert_installed(script, dep="2.0")
 
 
 def test_new_resolver_constraint_on_path(script):
