@@ -21,7 +21,7 @@ from .requirements import (
 )
 
 if MYPY_CHECK_RUNNING:
-    from typing import Dict, Iterator, Optional, Set, Tuple, TypeVar
+    from typing import Dict, Iterator, List, Optional, Set, Tuple, TypeVar
 
     from pip._vendor.packaging.specifiers import SpecifierSet
     from pip._vendor.packaging.version import _BaseVersion
@@ -70,6 +70,8 @@ class Factory(object):
             }
         else:
             self._installed_dists = {}
+
+        self._constraints = {}  # type: Dict[str,List[SpecifierSet]]
 
     def _make_candidate_from_dist(
         self,
@@ -154,7 +156,7 @@ class Factory(object):
             cand = self._make_candidate_from_link(
                 ireq.link, extras=set(), parent=ireq,
             )
-            return ExplicitRequirement(cand)
+            return ExplicitRequirement(cand, factory=self)
         return SpecifierRequirement(ireq, factory=self)
 
     def make_requirement_from_spec(self, specifier, comes_from):

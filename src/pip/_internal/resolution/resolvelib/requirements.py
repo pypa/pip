@@ -1,5 +1,6 @@
 from pip._vendor.packaging.utils import canonicalize_name
 
+from pip._internal.exceptions import InstallationError
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 from .base import Requirement, format_name
@@ -16,9 +17,10 @@ if MYPY_CHECK_RUNNING:
 
 
 class ExplicitRequirement(Requirement):
-    def __init__(self, candidate):
-        # type: (Candidate) -> None
+    def __init__(self, candidate, factory):
+        # type: (Candidate, Factory) -> None
         self.candidate = candidate
+        self._factory = factory
 
     def __repr__(self):
         # type: () -> str
@@ -35,6 +37,12 @@ class ExplicitRequirement(Requirement):
 
     def find_matches(self):
         # type: () -> Sequence[Candidate]
+        if self.name in self._factory._constraints:
+            raise InstallationError(
+                "Could not satisfy constraints for '{}': "
+                "installation from path or url cannot be "
+                "constrained to a version".format(self.name)
+            )
         return [self.candidate]
 
     def is_satisfied_by(self, candidate):
@@ -70,7 +78,11 @@ class SpecifierRequirement(Requirement):
     def find_matches(self):
         # type: () -> Sequence[Candidate]
         it = self._factory.iter_found_candidates(self._ireq, self.extras)
-        return list(it)
+        constraints = self._factory._constraints.get(self.name, [])
+        lit = [c for c in it if all(
+            s.contains(c.version, prereleases=True) for s in constraints
+        )]
+        return lit
 
     def is_satisfied_by(self, candidate):
         # type: (Candidate) -> bool

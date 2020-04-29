@@ -1,5 +1,6 @@
 import functools
 import logging
+from collections import defaultdict
 
 from pip._vendor import six
 from pip._vendor.packaging.utils import canonicalize_name
@@ -17,6 +18,7 @@ from .factory import Factory
 if MYPY_CHECK_RUNNING:
     from typing import Dict, List, Optional, Tuple
 
+    from pip._vendor.packaging.specifiers import SpecifierSet
     from pip._vendor.resolvelib.resolvers import Result
 
     from pip._internal.cache import WheelCache
@@ -60,9 +62,21 @@ class Resolver(BaseResolver):
     def resolve(self, root_reqs, check_supported_wheels):
         # type: (List[InstallRequirement], bool) -> RequirementSet
 
-        # FIXME: Implement constraints.
-        if any(r.constraint for r in root_reqs):
-            raise InstallationError("Constraints are not yet supported.")
+        constraints = defaultdict(list)  # type: Dict[str,List[SpecifierSet]]
+        requirements = []
+        for req in root_reqs:
+            if req.constraint:
+                assert req.name
+                assert req.specifier
+                name = canonicalize_name(req.name)
+                constraints[name].append(req.specifier)
+            else:
+                requirements.append(
+                    self.factory.make_requirement_from_install_req(req)
+                )
+
+        # TODO: Refactor this, it's just for proof of concept
+        self.factory._constraints = constraints
 
         provider = PipProvider(
             factory=self.factory,
@@ -70,11 +84,6 @@ class Resolver(BaseResolver):
         )
         reporter = BaseReporter()
         resolver = RLResolver(provider, reporter)
-
-        requirements = [
-            self.factory.make_requirement_from_install_req(r)
-            for r in root_reqs
-        ]
 
         try:
             self._result = resolver.resolve(requirements)
