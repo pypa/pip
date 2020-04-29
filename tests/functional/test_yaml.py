@@ -98,9 +98,6 @@ def convert_to_dict(string):
 
 
 def handle_request(script, action, requirement, options, new_resolver=False):
-    assert isinstance(requirement, str), (
-        "Need install requirement to be a string only"
-    )
     if action == 'install':
         args = ['install']
         if new_resolver:
@@ -111,7 +108,14 @@ def handle_request(script, action, requirement, options, new_resolver=False):
         args = ['uninstall', '--yes']
     else:
         raise "Did not excpet action: {!r}".format(action)
-    args.append(requirement)
+
+    if isinstance(requirement, str):
+        args.append(requirement)
+    elif isinstance(requirement, list):
+        args.extend(requirement)
+    else:
+        raise "requirement neither str nor list {!r}".format(requirement)
+
     args.extend(options)
     args.append("--verbose")
 
