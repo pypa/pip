@@ -177,8 +177,8 @@ def test_yaml_based(script, case):
                                 case[':resolver:'] == 'new')
 
         if 0:  # for analyzing output easier
-            with open(DATA_DIR.parent  / "yaml" /
-                  case[':name:'].replace('*', '-'), 'w') as fo:
+            with open(DATA_DIR.parent / "yaml" /
+                      case[':name:'].replace('*', '-'), 'w') as fo:
                 result = effect['result']
                 fo.write("=== RETURNCODE = %d\n" % result.returncode)
                 fo.write("=== STDERR ===:\n%s\n" % result.stderr)
