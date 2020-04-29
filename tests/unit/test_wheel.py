@@ -243,15 +243,15 @@ class TestInstallUnpackedWheel(object):
         target_mode = os.stat(path).st_mode & 0o777
         assert (target_mode & mode) == mode, oct(target_mode)
 
-    def assert_installed(self):
+    def assert_installed(self, expected_permission):
         # lib
         assert os.path.isdir(
             os.path.join(self.scheme.purelib, 'sample'))
         # dist-info
         metadata = os.path.join(self.dest_dist_info, 'METADATA')
-        self.assert_permission(metadata, 0o644)
+        self.assert_permission(metadata, expected_permission)
         record = os.path.join(self.dest_dist_info, 'RECORD')
-        self.assert_permission(record, 0o644)
+        self.assert_permission(record, expected_permission)
         # data files
         data_file = os.path.join(self.scheme.data, 'my_data', 'data_file')
         assert os.path.isfile(data_file)
@@ -268,7 +268,29 @@ class TestInstallUnpackedWheel(object):
             scheme=self.scheme,
             req_description=str(self.req),
         )
-        self.assert_installed()
+        self.assert_installed(0o644)
+
+    @pytest.mark.parametrize("user_mask, expected_permission", [
+        (0o27, 0o640)
+    ])
+    def test_std_install_with_custom_umask(self, data, tmpdir,
+                                           user_mask, expected_permission):
+        """Test that the files created after install honor the permissions
+        set when the user sets a custom umask"""
+
+        prev_umask = os.umask(0)
+        try:
+            os.umask(user_mask)
+            self.prep(data, tmpdir)
+            wheel.install_wheel(
+                self.name,
+                self.wheelpath,
+                scheme=self.scheme,
+                req_description=str(self.req),
+            )
+            self.assert_installed(expected_permission)
+        finally:
+            os.umask(prev_umask)
 
     def test_std_install_with_direct_url(self, data, tmpdir):
         """Test that install_wheel creates direct_url.json metadata when
@@ -340,7 +362,7 @@ class TestInstallUnpackedWheel(object):
             req_description=str(self.req),
             _temp_dir_for_testing=self.src,
         )
-        self.assert_installed()
+        self.assert_installed(0o644)
         assert not os.path.isdir(
             os.path.join(self.dest_dist_info, 'empty_dir'))
 
