@@ -1,0 +1,1 @@
+Get generated file mode by performing bitwise AND with the negation of current umask
