@@ -278,9 +278,8 @@ class TestInstallUnpackedWheel(object):
         """Test that the files created after install honor the permissions
         set when the user sets a custom umask"""
 
-        prev_umask = os.umask(0)
+        prev_umask = os.umask(user_mask)
         try:
-            os.umask(user_mask)
             self.prep(data, tmpdir)
             wheel.install_wheel(
                 self.name,
