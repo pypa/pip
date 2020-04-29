@@ -1,1 +1,1 @@
-Get generated file mode by performing bitwise AND with the negation of current umask
+Fix metadata permission issues when umask has the executable bit set.
