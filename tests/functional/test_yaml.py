@@ -117,43 +117,20 @@ def handle_request(script, action, requirement, options, new_resolver=False):
 
     result = script.pip(*args,
                         allow_stderr_error=True,
-                        allow_stderr_warning=True)
+                        allow_stderr_warning=True,
+                        allow_error=True)
 
-    retval = {
-        "_result_object": result,
-    }
-    if result.returncode == 0:
-        # Check which packages got installed
-        retval["state"] = []
+    # Check which packages got installed
+    state = []
+    for path in os.listdir(script.site_packages_path):
+        if path.endswith(".dist-info"):
+            name, version = (
+                os.path.basename(path)[:-len(".dist-info")]
+            ).rsplit("-", 1)
+            # TODO: information about extras.
+            state.append(" ".join((name, version)))
 
-        for path in os.listdir(script.site_packages_path):
-            if path.endswith(".dist-info"):
-                name, version = (
-                    os.path.basename(path)[:-len(".dist-info")]
-                ).rsplit("-", 1)
-
-                # TODO: information about extras.
-
-                retval["state"].append(" ".join((name, version)))
-
-        retval["state"].sort()
-
-    elif "conflicting" in result.stderr.lower():
-        retval["conflicting"] = []
-
-        message = result.stderr.rsplit("\n", 1)[-1]
-
-        # XXX: There might be a better way than parsing the message
-        for match in re.finditer(message, _conflict_finder_pat):
-            di = match.groupdict()
-            retval["conflicting"].append(
-                {
-                    "required_by": "{} {}".format(di["name"], di["version"]),
-                    "selector": di["selector"]
-                }
-            )
-
-    return retval
+    return {"result": result, "state": sorted(state)}
 
 
 @pytest.mark.yaml
@@ -195,5 +172,23 @@ def test_yaml_based(script, case):
                                 request.get('options', '').split(),
                                 case[':resolver:'] == 'new')
 
-        assert effect['state'] == (response['state'] or []), \
-            str(effect["_result_object"])
+        if 0:  # for analyzing output easier
+            with open(DATA_DIR.parent  / "yaml" /
+                  case[':name:'].replace('*', '-'), 'w') as fo:
+                result = effect['result']
+                fo.write("=== RETURNCODE = %d\n" % result.returncode)
+                fo.write("=== STDERR ===:\n%s\n" % result.stderr)
+
+        if 'state' in response:
+            assert effect['state'] == (response['state'] or []), \
+                str(effect["result"])
+
+        error = False
+        if 'conflicting' in response:
+            error = True
+
+        if error:
+            if case[":resolver:"] == 'old':
+                assert effect["result"].returncode == 0, str(effect["result"])
+            elif case[":resolver:"] == 'new':
+                assert effect["result"].returncode == 1, str(effect["result"])
