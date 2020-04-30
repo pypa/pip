@@ -567,7 +567,7 @@ def install_unpacked_wheel(
         if msg is not None:
             logger.warning(msg)
 
-    generated_file_mode = 0o666 - current_umask()
+    generated_file_mode = 0o666 & ~current_umask()
 
     @contextlib.contextmanager
     def _generate_file(path, **kwargs):
