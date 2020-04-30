@@ -27,7 +27,7 @@ class AbstractProvider(object):
 
         * `requirement` specifies a requirement contributing to the current
           candidate list
-        * `parent` specifies the candidate that provids (dependend on) the
+        * `parent` specifies the candidate that provides (dependend on) the
           requirement, or `None` to indicate a root requirement.
 
         The preference could depend on a various of issues, including (not
@@ -48,22 +48,27 @@ class AbstractProvider(object):
         """
         raise NotImplementedError
 
-    def find_matches(self, requirement):
-        """Find all possible candidates that satisfy a requirement.
+    def find_matches(self, requirements):
+        """Find all possible candidates that satisfy the given requirements.
 
-        This should try to get candidates based on the requirement's type.
+        This should try to get candidates based on the requirements' types.
         For VCS, local, and archive requirements, the one-and-only match is
         returned, and for a "named" requirement, the index(es) should be
         consulted to find concrete candidates for this requirement.
 
-        The returned candidates should be sorted by reversed preference, e.g.
-        the most preferred should be LAST. This is done so list-popping can be
-        as efficient as possible.
+        :param requirements: A collection of requirements which all of the the
+            returned candidates must match. All requirements are guaranteed to
+            have the same identifier. The collection is never empty.
+        :returns: An iterable that orders candidates by preference, e.g. the
+            most preferred candidate should come first.
         """
         raise NotImplementedError
 
     def is_satisfied_by(self, requirement, candidate):
         """Whether the given requirement can be satisfied by a candidate.
+
+        The candidate is guarenteed to have been generated from the
+        requirement.
 
         A boolean should be returned to indicate whether `candidate` is a
         viable solution to the requirement.
@@ -92,30 +97,13 @@ class AbstractResolver(object):
     def resolve(self, requirements, **kwargs):
         """Take a collection of constraints, spit out the resolution result.
 
-        Parameters
-        ----------
-        requirements : Collection
-            A collection of constraints
-        kwargs : optional
-            Additional keyword arguments that subclasses may accept.
+        This returns a representation of the final resolution state, with one
+        guarenteed attribute ``mapping`` that contains resolved candidates as
+        values. The keys are their respective identifiers.
 
-        Raises
-        ------
-        self.base_exception
-            Any raised exception is guaranteed to be a subclass of
-            self.base_exception. The string representation of an exception
-            should be human readable and provide context for why it occurred.
+        :param requirements: A collection of constraints.
+        :param kwargs: Additional keyword arguments that subclasses may accept.
 
-        Returns
-        -------
-        retval : object
-            A representation of the final resolution state. It can be any object
-            with a `mapping` attribute that is a Mapping. Other attributes can
-            be used to provide resolver-specific information.
-
-            The `mapping` attribute MUST be key-value pair is an identifier of a
-            requirement (as returned by the provider's `identify` method) mapped
-            to the resolved candidate (chosen from the return value of the
-            provider's `find_matches` method).
+        :raises: ``self.base_exception`` or its subclass.
         """
         raise NotImplementedError
