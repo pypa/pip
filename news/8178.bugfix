@@ -1,2 +1,2 @@
-Avoid unncessary message about the wheel package not being installed
+Avoid unnecessary message about the wheel package not being installed
 when a wheel would not have been built. Additionally, clarify the message.
