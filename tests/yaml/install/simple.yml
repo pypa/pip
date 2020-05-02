@@ -9,13 +9,32 @@ cases:
 -
   request:
     - install: simple
-  transaction:
-    - install:
+    - uninstall: simple
+  response:
+    - state:
+      - simple 0.2.0
+    - state: null
+-
+  request:
+    - install: simple
+    - install: dep
+  response:
+    - state:
+      - simple 0.2.0
+    - state:
+      - dep 0.1.0
       - simple 0.2.0
 -
   request:
     - install: base
-  transaction:
-    - install:
+  response:
+    - state:
       - base 0.1.0
       - dep 0.1.0
+-
+  request:
+    - install: base
+      options: --no-deps
+  response:
+    - state:
+      - base 0.1.0

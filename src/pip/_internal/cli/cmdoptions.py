@@ -275,16 +275,6 @@ timeout = partial(
     help='Set the socket timeout (default %default seconds).',
 )  # type: Callable[..., Option]
 
-skip_requirements_regex = partial(
-    Option,
-    # A regex to be used to skip requirements
-    '--skip-requirements-regex',
-    dest='skip_requirements_regex',
-    type='str',
-    default='',
-    help=SUPPRESS_HELP,
-)  # type: Callable[..., Option]
-
 
 def exists_action():
     # type: () -> Option
@@ -367,9 +357,11 @@ def find_links():
         action='append',
         default=[],
         metavar='url',
-        help="If a url or path to an html file, then parse for links to "
-             "archives. If a local path or file:// url that's a directory, "
-             "then look for archives in the directory listing.",
+        help="If a URL or path to an html file, then parse for links to "
+             "archives such as sdist (.tar.gz) or wheel (.whl) files. "
+             "If a local path or file:// URL that's a directory,  "
+             "then look for archives in the directory listing. "
+             "Links to VCS project URLs are not supported.",
     )
 
 
@@ -475,12 +467,12 @@ def no_binary():
         "--no-binary", dest="format_control", action="callback",
         callback=_handle_no_binary, type="str",
         default=format_control,
-        help="Do not use binary packages. Can be supplied multiple times, and "
-             "each time adds to the existing value. Accepts either :all: to "
-             "disable all binary packages, :none: to empty the set, or one or "
-             "more package names with commas between them (no colons). Note "
-             "that some packages are tricky to compile and may fail to "
-             "install when this option is used on them.",
+        help='Do not use binary packages. Can be supplied multiple times, and '
+             'each time adds to the existing value. Accepts either ":all:" to '
+             'disable all binary packages, ":none:" to empty the set (notice '
+             'the colons), or one or more package names with commas between '
+             'them (no colons). Note that some packages are tricky to compile '
+             'and may fail to install when this option is used on them.',
     )
 
 
@@ -491,12 +483,12 @@ def only_binary():
         "--only-binary", dest="format_control", action="callback",
         callback=_handle_only_binary, type="str",
         default=format_control,
-        help="Do not use source packages. Can be supplied multiple times, and "
-             "each time adds to the existing value. Accepts either :all: to "
-             "disable all source packages, :none: to empty the set, or one or "
-             "more package names with commas between them. Packages without "
-             "binary distributions will fail to install when this option is "
-             "used on them.",
+        help='Do not use source packages. Can be supplied multiple times, and '
+             'each time adds to the existing value. Accepts either ":all:" to '
+             'disable all source packages, ":none:" to empty the set, or one '
+             'or more package names with commas between them. Packages '
+             'without binary distributions will fail to install when this '
+             'option is used on them.',
     )
 
 
@@ -946,7 +938,6 @@ general_group = {
         proxy,
         retries,
         timeout,
-        skip_requirements_regex,
         exists_action,
         trusted_host,
         cert,

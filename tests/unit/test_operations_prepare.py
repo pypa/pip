@@ -10,18 +10,9 @@ from pip._internal.exceptions import HashMismatch
 from pip._internal.models.link import Link
 from pip._internal.network.download import Downloader
 from pip._internal.network.session import PipSession
-from pip._internal.operations.prepare import (
-    _copy_source_tree,
-    _download_http_url,
-    unpack_url,
-)
+from pip._internal.operations.prepare import _download_http_url, unpack_url
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.urls import path_to_url
-from tests.lib.filesystem import (
-    get_filelist,
-    make_socket_file,
-    make_unreadable_file,
-)
 from tests.lib.path import Path
 from tests.lib.requests_mocks import MockResponse
 
@@ -101,76 +92,6 @@ def clean_project(tmpdir_factory, data):
     return new_project_dir
 
 
-def test_copy_source_tree(clean_project, tmpdir):
-    target = tmpdir.joinpath("target")
-    expected_files = get_filelist(clean_project)
-    assert len(expected_files) == 3
-
-    _copy_source_tree(clean_project, target)
-
-    copied_files = get_filelist(target)
-    assert expected_files == copied_files
-
-
-@pytest.mark.skipif("sys.platform == 'win32' or sys.version_info < (3,)")
-def test_copy_source_tree_with_socket(clean_project, tmpdir, caplog):
-    target = tmpdir.joinpath("target")
-    expected_files = get_filelist(clean_project)
-    socket_path = str(clean_project.joinpath("aaa"))
-    make_socket_file(socket_path)
-
-    _copy_source_tree(clean_project, target)
-
-    copied_files = get_filelist(target)
-    assert expected_files == copied_files
-
-    # Warning should have been logged.
-    assert len(caplog.records) == 1
-    record = caplog.records[0]
-    assert record.levelname == 'WARNING'
-    assert socket_path in record.message
-
-
-@pytest.mark.skipif("sys.platform == 'win32' or sys.version_info < (3,)")
-def test_copy_source_tree_with_socket_fails_with_no_socket_error(
-    clean_project, tmpdir
-):
-    target = tmpdir.joinpath("target")
-    expected_files = get_filelist(clean_project)
-    make_socket_file(clean_project.joinpath("aaa"))
-    unreadable_file = clean_project.joinpath("bbb")
-    make_unreadable_file(unreadable_file)
-
-    with pytest.raises(shutil.Error) as e:
-        _copy_source_tree(clean_project, target)
-
-    errored_files = [err[0] for err in e.value.args[0]]
-    assert len(errored_files) == 1
-    assert unreadable_file in errored_files
-
-    copied_files = get_filelist(target)
-    # All files without errors should have been copied.
-    assert expected_files == copied_files
-
-
-def test_copy_source_tree_with_unreadable_dir_fails(clean_project, tmpdir):
-    target = tmpdir.joinpath("target")
-    expected_files = get_filelist(clean_project)
-    unreadable_file = clean_project.joinpath("bbb")
-    make_unreadable_file(unreadable_file)
-
-    with pytest.raises(shutil.Error) as e:
-        _copy_source_tree(clean_project, target)
-
-    errored_files = [err[0] for err in e.value.args[0]]
-    assert len(errored_files) == 1
-    assert unreadable_file in errored_files
-
-    copied_files = get_filelist(target)
-    # All files without errors should have been copied.
-    assert expected_files == copied_files
-
-
 class Test_unpack_url(object):
 
     def prep(self, tmpdir, data):
@@ -214,40 +135,5 @@ class Test_unpack_url(object):
         unpack_url(dist_url, self.build_dir,
                    downloader=self.no_downloader,
                    download_dir=self.download_dir)
-        assert os.path.isdir(os.path.join(self.build_dir, 'fspkg'))
-
-
-@pytest.mark.parametrize('exclude_dir', [
-    '.nox',
-    '.tox'
-])
-def test_unpack_url_excludes_expected_dirs(tmpdir, exclude_dir):
-    src_dir = tmpdir / 'src'
-    dst_dir = tmpdir / 'dst'
-    src_included_file = src_dir.joinpath('file.txt')
-    src_excluded_dir = src_dir.joinpath(exclude_dir)
-    src_excluded_file = src_dir.joinpath(exclude_dir, 'file.txt')
-    src_included_dir = src_dir.joinpath('subdir', exclude_dir)
-
-    # set up source directory
-    src_excluded_dir.mkdir(parents=True)
-    src_included_dir.mkdir(parents=True)
-    src_included_file.touch()
-    src_excluded_file.touch()
-
-    dst_included_file = dst_dir.joinpath('file.txt')
-    dst_excluded_dir = dst_dir.joinpath(exclude_dir)
-    dst_excluded_file = dst_dir.joinpath(exclude_dir, 'file.txt')
-    dst_included_dir = dst_dir.joinpath('subdir', exclude_dir)
-
-    src_link = Link(path_to_url(src_dir))
-    unpack_url(
-        src_link,
-        dst_dir,
-        Mock(side_effect=AssertionError),
-        download_dir=None
-    )
-    assert not os.path.isdir(dst_excluded_dir)
-    assert not os.path.isfile(dst_excluded_file)
-    assert os.path.isfile(dst_included_file)
-    assert os.path.isdir(dst_included_dir)
+        # test that nothing was copied to build_dir since we build in place
+        assert not os.path.exists(os.path.join(self.build_dir, 'fspkg'))

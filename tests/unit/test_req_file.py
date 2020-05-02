@@ -27,7 +27,6 @@ from pip._internal.req.req_file import (
     join_lines,
     parse_requirements,
     preprocess,
-    skip_regex,
 )
 from tests.lib import make_test_finder, requirements_file
 
@@ -45,9 +44,10 @@ def finder(session):
 @pytest.fixture
 def options(session):
     return stub(
-        isolated_mode=False, index_url='default_url',
-        skip_requirements_regex=False,
-        format_control=FormatControl(set(), set()))
+        isolated_mode=False,
+        index_url='default_url',
+        format_control=FormatControl(set(), set()),
+    )
 
 
 def parse_reqfile(
@@ -79,7 +79,7 @@ class TestPreprocess(object):
           # comment \\
           req2
         """)
-        result = preprocess(content, None)
+        result = preprocess(content)
         assert list(result) == [(1, 'req1'), (3, 'req2')]
 
     def test_comments_and_joins_case2(self):
@@ -87,7 +87,7 @@ class TestPreprocess(object):
           req1\\
           # comment
         """)
-        result = preprocess(content, None)
+        result = preprocess(content)
         assert list(result) == [(1, 'req1')]
 
     def test_comments_and_joins_case3(self):
@@ -96,28 +96,8 @@ class TestPreprocess(object):
           # comment
           req2
         """)
-        result = preprocess(content, None)
+        result = preprocess(content)
         assert list(result) == [(1, 'req1'), (3, 'req2')]
-
-    def test_skip_regex_after_joining_case1(self, options):
-        content = textwrap.dedent("""\
-          patt\\
-          ern
-          line2
-        """)
-        skip_requirements_regex = 'pattern'
-        result = preprocess(content, skip_requirements_regex)
-        assert list(result) == [(3, 'line2')]
-
-    def test_skip_regex_after_joining_case2(self, options):
-        content = textwrap.dedent("""\
-          pattern \\
-          line2
-          line3
-        """)
-        skip_requirements_regex = 'pattern'
-        result = preprocess(content, skip_requirements_regex)
-        assert list(result) == [(3, 'line3')]
 
 
 class TestIgnoreComments(object):
@@ -170,25 +150,6 @@ class TestJoinLines(object):
             (2, 'line 2 '),
         ]
         assert expect == list(join_lines(lines))
-
-
-class TestSkipRegex(object):
-    """tests for `skip_reqex``"""
-
-    def test_skip_regex_pattern_match(self):
-        pattern = '.*Bad.*'
-        line = '--extra-index-url Bad'
-        assert [] == list(skip_regex(enumerate([line]), pattern))
-
-    def test_skip_regex_pattern_not_match(self):
-        pattern = '.*Bad.*'
-        line = '--extra-index-url Good'
-        assert [(0, line)] == list(skip_regex(enumerate([line]), pattern))
-
-    def test_skip_regex_no_options(self):
-        pattern = None
-        line = '--extra-index-url Good'
-        assert [(1, line)] == list(preprocess(line, pattern))
 
 
 @pytest.fixture
@@ -401,10 +362,13 @@ class TestProcessLine(object):
             )
         assert list(finder.trusted_hosts) == ['host1', 'host2:8080']
         session = finder._link_collector.session
-        assert session.adapters['https://host1/'] is session._insecure_adapter
+        assert (
+            session.adapters['https://host1/']
+            is session._trusted_host_adapter
+        )
         assert (
             session.adapters['https://host2:8080/']
-            is session._insecure_adapter
+            is session._trusted_host_adapter
         )
 
         # Test the log message.
@@ -612,17 +576,6 @@ class TestParseRequirements(object):
                            session=PipSession(), options=options))
 
         assert finder.index_urls == ['url1', 'url2']
-
-    def test_skip_regex(self, tmpdir, finder, options):
-        options.skip_requirements_regex = '.*Bad.*'
-        with open(tmpdir.joinpath("req1.txt"), "w") as fp:
-            fp.write("--extra-index-url Bad \n")
-            fp.write("--extra-index-url Good ")
-
-        list(parse_reqfile(tmpdir.joinpath("req1.txt"), finder=finder,
-                           options=options, session=PipSession()))
-
-        assert finder.index_urls == ['Good']
 
     def test_expand_existing_env_variables(self, tmpdir, finder):
         template = (

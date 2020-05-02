@@ -270,6 +270,16 @@ class EphemWheelCache(SimpleWheelCache):
         )
 
 
+class CacheEntry(object):
+    def __init__(
+        self,
+        link,  # type: Link
+        persistent,  # type: bool
+    ):
+        self.link = link
+        self.persistent = persistent
+
+
 class WheelCache(Cache):
     """Wraps EphemWheelCache and SimpleWheelCache into a single Cache
 
@@ -304,16 +314,36 @@ class WheelCache(Cache):
         supported_tags,  # type: List[Tag]
     ):
         # type: (...) -> Link
+        cache_entry = self.get_cache_entry(link, package_name, supported_tags)
+        if cache_entry is None:
+            return link
+        return cache_entry.link
+
+    def get_cache_entry(
+        self,
+        link,            # type: Link
+        package_name,    # type: Optional[str]
+        supported_tags,  # type: List[Tag]
+    ):
+        # type: (...) -> Optional[CacheEntry]
+        """Returns a CacheEntry with a link to a cached item if it exists or
+        None. The cache entry indicates if the item was found in the persistent
+        or ephemeral cache.
+        """
         retval = self._wheel_cache.get(
             link=link,
             package_name=package_name,
             supported_tags=supported_tags,
         )
         if retval is not link:
-            return retval
+            return CacheEntry(retval, persistent=True)
 
-        return self._ephem_cache.get(
+        retval = self._ephem_cache.get(
             link=link,
             package_name=package_name,
             supported_tags=supported_tags,
         )
+        if retval is not link:
+            return CacheEntry(retval, persistent=False)
+
+        return None

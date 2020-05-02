@@ -10,6 +10,11 @@ from mock import patch
 from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.locations import get_scheme
+from pip._internal.models.direct_url import (
+    DIRECT_URL_METADATA_NAME,
+    ArchiveInfo,
+    DirectUrl,
+)
 from pip._internal.models.scheme import Scheme
 from pip._internal.operations.build.wheel_legacy import (
     get_legacy_build_wheel_path,
@@ -141,7 +146,7 @@ def call_get_csv_rows_for_installed(tmpdir, text):
     generated = []
     lib_dir = '/lib/dir'
 
-    with wheel.open_for_csv(path, 'r') as f:
+    with open(path, **wheel.csv_io_kwargs('r')) as f:
         reader = csv.reader(f)
         outrows = wheel.get_csv_rows_for_installed(
             reader, installed=installed, changed=changed,
@@ -234,13 +239,19 @@ class TestInstallUnpackedWheel(object):
         self.dest_dist_info = os.path.join(
             self.scheme.purelib, 'sample-1.2.0.dist-info')
 
-    def assert_installed(self):
+    def assert_permission(self, path, mode):
+        target_mode = os.stat(path).st_mode & 0o777
+        assert (target_mode & mode) == mode, oct(target_mode)
+
+    def assert_installed(self, expected_permission):
         # lib
         assert os.path.isdir(
             os.path.join(self.scheme.purelib, 'sample'))
         # dist-info
         metadata = os.path.join(self.dest_dist_info, 'METADATA')
-        assert os.path.isfile(metadata)
+        self.assert_permission(metadata, expected_permission)
+        record = os.path.join(self.dest_dist_info, 'RECORD')
+        self.assert_permission(record, expected_permission)
         # data files
         data_file = os.path.join(self.scheme.data, 'my_data', 'data_file')
         assert os.path.isfile(data_file)
@@ -257,7 +268,59 @@ class TestInstallUnpackedWheel(object):
             scheme=self.scheme,
             req_description=str(self.req),
         )
-        self.assert_installed()
+        self.assert_installed(0o644)
+
+    @pytest.mark.parametrize("user_mask, expected_permission", [
+        (0o27, 0o640)
+    ])
+    def test_std_install_with_custom_umask(self, data, tmpdir,
+                                           user_mask, expected_permission):
+        """Test that the files created after install honor the permissions
+        set when the user sets a custom umask"""
+
+        prev_umask = os.umask(user_mask)
+        try:
+            self.prep(data, tmpdir)
+            wheel.install_wheel(
+                self.name,
+                self.wheelpath,
+                scheme=self.scheme,
+                req_description=str(self.req),
+            )
+            self.assert_installed(expected_permission)
+        finally:
+            os.umask(prev_umask)
+
+    def test_std_install_with_direct_url(self, data, tmpdir):
+        """Test that install_wheel creates direct_url.json metadata when
+        provided with a direct_url argument. Also test that the RECORDS
+        file contains an entry for direct_url.json in that case.
+        Note direct_url.url is intentionally different from wheelpath,
+        because wheelpath is typically the result of a local build.
+        """
+        self.prep(data, tmpdir)
+        direct_url = DirectUrl(
+            url="file:///home/user/archive.tgz",
+            info=ArchiveInfo(),
+        )
+        wheel.install_wheel(
+            self.name,
+            self.wheelpath,
+            scheme=self.scheme,
+            req_description=str(self.req),
+            direct_url=direct_url,
+        )
+        direct_url_path = os.path.join(
+            self.dest_dist_info, DIRECT_URL_METADATA_NAME
+        )
+        self.assert_permission(direct_url_path, 0o644)
+        with open(direct_url_path, 'rb') as f:
+            expected_direct_url_json = direct_url.to_json()
+            direct_url_json = f.read().decode("utf-8")
+            assert direct_url_json == expected_direct_url_json
+        # check that the direc_url file is part of RECORDS
+        with open(os.path.join(self.dest_dist_info, "RECORD")) as f:
+            assert DIRECT_URL_METADATA_NAME in f.read()
 
     def test_install_prefix(self, data, tmpdir):
         prefix = os.path.join(os.path.sep, 'some', 'path')
@@ -298,7 +361,7 @@ class TestInstallUnpackedWheel(object):
             req_description=str(self.req),
             _temp_dir_for_testing=self.src,
         )
-        self.assert_installed()
+        self.assert_installed(0o644)
         assert not os.path.isdir(
             os.path.join(self.dest_dist_info, 'empty_dir'))
 

@@ -74,7 +74,6 @@ class TestRequirementSet(object):
         make_install_req = partial(
             install_req_from_req_string,
             isolated=False,
-            wheel_cache=None,
             use_pep517=None,
         )
 
@@ -95,6 +94,7 @@ class TestRequirementSet(object):
                 preparer=preparer,
                 make_install_req=make_install_req,
                 finder=finder,
+                wheel_cache=None,
                 use_user_site=False, upgrade_strategy="to-satisfy-only",
                 ignore_dependencies=False, ignore_installed=False,
                 ignore_requires_python=False, force_reinstall=False,
@@ -176,9 +176,7 @@ class TestRequirementSet(object):
         command = create_command('install')
         with requirements_file('--require-hashes', tmpdir) as reqs_file:
             options, args = command.parse_args(['-r', reqs_file])
-            command.get_requirements(
-                args, options, finder, session, wheel_cache=None,
-            )
+            command.get_requirements(args, options, finder, session)
         assert options.require_hashes
 
     def test_unsupported_hashes(self, data):
@@ -643,8 +641,8 @@ def test_mismatched_versions(caplog):
     req = InstallRequirement(
         req=Requirement('simplewheel==2.0'),
         comes_from=None,
-        source_dir="/tmp/somewhere",
     )
+    req.source_dir = "/tmp/somewhere"  # make req believe it has been unpacked
     # Monkeypatch!
     req._metadata = {"name": "simplewheel", "version": "1.0"}
     req.assert_source_matches_version()

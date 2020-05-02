@@ -162,7 +162,7 @@ def _cpython_abis(py_version, warn=False):
     # type: (PythonVersion, bool) -> List[str]
     py_version = tuple(py_version)  # To allow for version comparison.
     abis = []
-    version = "{}{}".format(*py_version[:2])
+    version = _version_nodot(py_version[:2])
     debug = pymalloc = ucs4 = ""
     with_debug = _get_config_var("Py_DEBUG", warn)
     has_refcount = hasattr(sys, "gettotalrefcount")
@@ -221,10 +221,7 @@ def cpython_tags(
     if not python_version:
         python_version = sys.version_info[:2]
 
-    if len(python_version) < 2:
-        interpreter = "cp{}".format(python_version[0])
-    else:
-        interpreter = "cp{}{}".format(*python_version[:2])
+    interpreter = "cp{}".format(_version_nodot(python_version[:2]))
 
     if abis is None:
         if len(python_version) > 1:
@@ -252,8 +249,8 @@ def cpython_tags(
     if _abi3_applies(python_version):
         for minor_version in range(python_version[1] - 1, 1, -1):
             for platform_ in platforms:
-                interpreter = "cp{major}{minor}".format(
-                    major=python_version[0], minor=minor_version
+                interpreter = "cp{version}".format(
+                    version=_version_nodot((python_version[0], minor_version))
                 )
                 yield Tag(interpreter, "abi3", platform_)
 
@@ -305,11 +302,11 @@ def _py_interpreter_range(py_version):
     all previous versions of that major version.
     """
     if len(py_version) > 1:
-        yield "py{major}{minor}".format(major=py_version[0], minor=py_version[1])
+        yield "py{version}".format(version=_version_nodot(py_version[:2]))
     yield "py{major}".format(major=py_version[0])
     if len(py_version) > 1:
         for minor in range(py_version[1] - 1, -1, -1):
-            yield "py{major}{minor}".format(major=py_version[0], minor=minor)
+            yield "py{version}".format(version=_version_nodot((py_version[0], minor)))
 
 
 def compatible_tags(
@@ -636,8 +633,11 @@ def _have_compatible_manylinux_abi(arch):
 def _linux_platforms(is_32bit=_32_BIT_INTERPRETER):
     # type: (bool) -> Iterator[str]
     linux = _normalize_string(distutils.util.get_platform())
-    if linux == "linux_x86_64" and is_32bit:
-        linux = "linux_i686"
+    if is_32bit:
+        if linux == "linux_x86_64":
+            linux = "linux_i686"
+        elif linux == "linux_aarch64":
+            linux = "linux_armv7l"
     manylinux_support = []
     _, arch = linux.split("_", 1)
     if _have_compatible_manylinux_abi(arch):
@@ -704,8 +704,17 @@ def interpreter_version(**kwargs):
     if version:
         version = str(version)
     else:
-        version = "".join(map(str, sys.version_info[:2]))
+        version = _version_nodot(sys.version_info[:2])
     return version
+
+
+def _version_nodot(version):
+    # type: (PythonVersion) -> str
+    if any(v >= 10 for v in version):
+        sep = "_"
+    else:
+        sep = ""
+    return sep.join(map(str, version))
 
 
 def sys_tags(**kwargs):

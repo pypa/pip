@@ -585,11 +585,6 @@ class UninstallPathSet(object):
 class UninstallPthEntries(object):
     def __init__(self, pth_file):
         # type: (str) -> None
-        if not os.path.isfile(pth_file):
-            raise UninstallationError(
-                "Cannot remove entries from nonexistent file {}".format(
-                    pth_file)
-            )
         self.file = pth_file
         self.entries = set()  # type: Set[str]
         self._saved_lines = None  # type: Optional[List[bytes]]
@@ -613,6 +608,14 @@ class UninstallPthEntries(object):
     def remove(self):
         # type: () -> None
         logger.debug('Removing pth entries from %s:', self.file)
+
+        # If the file doesn't exist, log a warning and return
+        if not os.path.isfile(self.file):
+            logger.warning(
+                "Cannot remove entries from nonexistent file {}".format(
+                    self.file)
+            )
+            return
         with open(self.file, 'rb') as fh:
             # windows uses '\r\n' with py3k, but uses '\n' with py2.x
             lines = fh.readlines()

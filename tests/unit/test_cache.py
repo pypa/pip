@@ -90,3 +90,26 @@ def test_get_with_legacy_entry_only(tmpdir):
         os.path.normcase(os.path.dirname(cached_link.file_path)) ==
         os.path.normcase(legacy_path)
     )
+
+
+def test_get_cache_entry(tmpdir):
+    wc = WheelCache(tmpdir, FormatControl())
+    persi_link = Link("https://g.c/o/r/persi")
+    persi_path = wc.get_path_for_link(persi_link)
+    ensure_dir(persi_path)
+    with open(os.path.join(persi_path, "persi-1.0.0-py3-none-any.whl"), "w"):
+        pass
+    ephem_link = Link("https://g.c/o/r/ephem")
+    ephem_path = wc.get_ephem_path_for_link(ephem_link)
+    ensure_dir(ephem_path)
+    with open(os.path.join(ephem_path, "ephem-1.0.0-py3-none-any.whl"), "w"):
+        pass
+    other_link = Link("https://g.c/o/r/other")
+    supported_tags = [Tag("py3", "none", "any")]
+    assert (
+        wc.get_cache_entry(persi_link, "persi", supported_tags).persistent
+    )
+    assert (
+        not wc.get_cache_entry(ephem_link, "ephem", supported_tags).persistent
+    )
+    assert wc.get_cache_entry(other_link, "other", supported_tags) is None

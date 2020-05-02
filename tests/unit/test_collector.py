@@ -1,5 +1,7 @@
 import logging
 import os.path
+import re
+import uuid
 from textwrap import dedent
 
 import mock
@@ -26,7 +28,7 @@ from pip._internal.index.collector import (
 from pip._internal.models.index import PyPI
 from pip._internal.models.link import Link
 from pip._internal.network.session import PipSession
-from tests.lib import make_test_link_collector
+from tests.lib import make_test_link_collector, skip_if_python2
 
 
 @pytest.mark.parametrize(
@@ -355,12 +357,59 @@ def test_parse_links__yanked_reason(anchor_html, expected):
     page = HTMLPage(
         html_bytes,
         encoding=None,
-        url='https://example.com/simple/',
+        # parse_links() is cached by url, so we inject a random uuid to ensure
+        # the page content isn't cached.
+        url='https://example.com/simple-{}/'.format(uuid.uuid4()),
     )
     links = list(parse_links(page))
     link, = links
     actual = link.yanked_reason
     assert actual == expected
+
+
+@skip_if_python2
+def test_parse_links_caches_same_page_by_url():
+    html = (
+        '<html><head><meta charset="utf-8"><head>'
+        '<body><a href="/pkg1-1.0.tar.gz"></a></body></html>'
+    )
+    html_bytes = html.encode('utf-8')
+
+    url = 'https://example.com/simple/'
+
+    page_1 = HTMLPage(
+        html_bytes,
+        encoding=None,
+        url=url,
+    )
+    # Make a second page with zero content, to ensure that it's not accessed,
+    # because the page was cached by url.
+    page_2 = HTMLPage(
+        b'',
+        encoding=None,
+        url=url,
+    )
+    # Make a third page which represents an index url, which should not be
+    # cached, even for the same url. We modify the page content slightly to
+    # verify that the result is not cached.
+    page_3 = HTMLPage(
+        re.sub(b'pkg1', b'pkg2', html_bytes),
+        encoding=None,
+        url=url,
+        cache_link_parsing=False,
+    )
+
+    parsed_links_1 = list(parse_links(page_1))
+    assert len(parsed_links_1) == 1
+    assert 'pkg1' in parsed_links_1[0].url
+
+    parsed_links_2 = list(parse_links(page_2))
+    assert parsed_links_2 == parsed_links_1
+
+    parsed_links_3 = list(parse_links(page_3))
+    assert len(parsed_links_3) == 1
+    assert parsed_links_3 != parsed_links_1
+    assert 'pkg2' in parsed_links_3[0].url
 
 
 def test_request_http_error(caplog):
@@ -528,13 +577,14 @@ class TestLinkCollector(object):
         fake_response = make_fake_html_response(url)
         mock_get_html_response.return_value = fake_response
 
-        location = Link(url)
+        location = Link(url, cache_link_parsing=False)
         link_collector = make_test_link_collector()
         actual = link_collector.fetch_page(location)
 
         assert actual.content == fake_response.content
         assert actual.encoding is None
         assert actual.url == url
+        assert actual.cache_link_parsing == location.cache_link_parsing
 
         # Also check that the right session object was passed to
         # _get_html_response().
@@ -559,8 +609,12 @@ class TestLinkCollector(object):
 
         assert len(actual.find_links) == 1
         check_links_include(actual.find_links, names=['packages'])
+        # Check that find-links URLs are marked as cacheable.
+        assert actual.find_links[0].cache_link_parsing
 
         assert actual.project_urls == [Link('https://pypi.org/simple/twine/')]
+        # Check that index URLs are marked as *un*cacheable.
+        assert not actual.project_urls[0].cache_link_parsing
 
         expected_message = dedent("""\
         1 location(s) to search for versions of twine:

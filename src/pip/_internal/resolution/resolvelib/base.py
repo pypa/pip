@@ -44,7 +44,7 @@ class Candidate(object):
         raise NotImplementedError("Override in subclass")
 
     def get_dependencies(self):
-        # type: () -> Sequence[InstallRequirement]
+        # type: () -> Sequence[Requirement]
         raise NotImplementedError("Override in subclass")
 
     def get_install_requirement(self):

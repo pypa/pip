@@ -8,8 +8,8 @@ cases:
   request:
     - install: A
     - install: B
-  transaction:
-    - install:
+  response:
+    - state:
       - A 1.0.0
       - C 1.0.0
     - conflicting:

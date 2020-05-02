@@ -8,7 +8,7 @@ cases:
     - D 2.0.0
   request:
     - install: A
-  transaction:
+  response:
     - conflicting:
       - required_by: [A 1.0.0, B 1.0.0]
         selector: D == 1.0.0

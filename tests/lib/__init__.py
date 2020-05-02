@@ -27,6 +27,7 @@ from pip._internal.network.session import PipSession
 from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from tests.lib.path import Path, curdir
+from tests.lib.wheel import make_wheel
 
 if MYPY_CHECK_RUNNING:
     from typing import List, Optional
@@ -978,74 +979,84 @@ def create_really_basic_wheel(name, version):
 
 
 def create_basic_wheel_for_package(
-    script, name, version, depends=None, extras=None, extra_files=None
+    script,
+    name,
+    version,
+    depends=None,
+    extras=None,
+    requires_python=None,
+    extra_files=None,
 ):
     if depends is None:
         depends = []
     if extras is None:
         extras = {}
-    files = {
-        "{name}/__init__.py": """
-            __version__ = {version!r}
-            def hello():
-                return "Hello From {name}"
-        """,
-        "{dist_info}/DESCRIPTION": """
-            UNKNOWN
-        """,
-        "{dist_info}/WHEEL": """
-            Wheel-Version: 1.0
-            Generator: pip-test-suite
-            Root-Is-Purelib: true
-            Tag: py2-none-any
-            Tag: py3-none-any
+    if extra_files is None:
+        extra_files = {}
 
+    archive_name = "{}-{}-py2.py3-none-any.whl".format(name, version)
+    archive_path = script.scratch_path / archive_name
 
+    package_init_py = "{name}/__init__.py".format(name=name)
+    assert package_init_py not in extra_files
+    extra_files[package_init_py] = textwrap.dedent(
+        """
+        __version__ = {version!r}
+        def hello():
+            return "Hello From {name}"
         """,
-        "{dist_info}/METADATA": """
-            Metadata-Version: 2.0
-            Name: {name}
-            Version: {version}
-            Summary: UNKNOWN
-            Home-page: UNKNOWN
-            Author: UNKNOWN
-            Author-email: UNKNOWN
-            License: UNKNOWN
-            Platform: UNKNOWN
-            {requires_dist}
+    ).format(version=version, name=name)
 
-            UNKNOWN
-        """,
-        "{dist_info}/top_level.txt": """
-            {name}
-        """,
+    requires_dist = depends + [
+        '{package}; extra == "{extra}"'.format(package=package, extra=extra)
+        for extra, packages in extras.items()
+        for package in packages
+    ]
+
+    metadata_updates = {
+        "Provides-Extra": list(extras),
+        "Requires-Dist": requires_dist,
+    }
+    if requires_python is not None:
+        metadata_updates["Requires-Python"] = requires_python
+
+    wheel_builder = make_wheel(
+        name=name,
+        version=version,
+        wheel_metadata_updates={"Tag": ["py2-none-any", "py3-none-any"]},
+        metadata_updates=metadata_updates,
+        extra_metadata_files={"top_level.txt": name},
+        extra_files=extra_files,
+
         # Have an empty RECORD because we don't want to be checking hashes.
-        "{dist_info}/RECORD": ""
+        record="",
+    )
+    wheel_builder.save_to(archive_path)
+
+    return archive_path
+
+
+def create_basic_sdist_for_package(
+    script, name, version, extra_files=None
+):
+    files = {
+        "setup.py": """
+            from setuptools import find_packages, setup
+            setup(name={name!r}, version={version!r})
+        """,
     }
 
     # Some useful shorthands
-    archive_name = "{name}-{version}-py2.py3-none-any.whl".format(
+    archive_name = "{name}-{version}.tar.gz".format(
         name=name, version=version
     )
-    dist_info = "{name}-{version}.dist-info".format(
-        name=name, version=version
-    )
-
-    requires_dist = "\n".join([
-        "Requires-Dist: {}".format(pkg) for pkg in depends
-    ] + [
-        "Provides-Extra: {}".format(pkg) for pkg in extras.keys()
-    ] + [
-        "Requires-Dist: {}; extra == \"{}\"".format(pkg, extra)
-        for extra in extras for pkg in extras[extra]
-    ])
 
     # Replace key-values with formatted values
     for key, value in list(files.items()):
         del files[key]
-        key = key.format(name=name, dist_info=dist_info)
+        key = key.format(name=name)
         files[key] = textwrap.dedent(value).format(
-            name=name, version=version, requires_dist=requires_dist
+            name=name, version=version
         ).strip()
 
     # Add new files after formatting
@@ -1063,7 +1074,7 @@ def create_basic_wheel_for_package(
     retval = script.scratch_path / archive_name
     generated = shutil.make_archive(
         retval,
-        'zip',
+        'gztar',
         root_dir=script.temp_path,
         base_dir=text_type(os.curdir),
     )
@@ -1079,7 +1090,7 @@ def need_executable(name, check_cmd):
     def wrapper(fn):
         try:
             subprocess.check_output(check_cmd)
-        except OSError:
+        except (OSError, subprocess.CalledProcessError):
             return pytest.mark.skip(
                 reason='{name} is not available'.format(name=name))(fn)
         return fn

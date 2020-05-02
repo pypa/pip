@@ -36,7 +36,6 @@ if MYPY_CHECK_RUNNING:
     from typing import (
         Any, Dict, Optional, Set, Tuple, Union,
     )
-    from pip._internal.cache import WheelCache
     from pip._internal.req.req_file import ParsedRequirement
 
 
@@ -219,21 +218,19 @@ def parse_req_from_editable(editable_req):
 
 def install_req_from_editable(
     editable_req,  # type: str
-    comes_from=None,  # type: Optional[str]
+    comes_from=None,  # type: Optional[Union[InstallRequirement, str]]
     use_pep517=None,  # type: Optional[bool]
     isolated=False,  # type: bool
     options=None,  # type: Optional[Dict[str, Any]]
-    wheel_cache=None,  # type: Optional[WheelCache]
     constraint=False  # type: bool
 ):
     # type: (...) -> InstallRequirement
 
     parts = parse_req_from_editable(editable_req)
 
-    source_dir = parts.link.file_path if parts.link.scheme == 'file' else None
-
     return InstallRequirement(
-        parts.requirement, comes_from, source_dir=source_dir,
+        parts.requirement,
+        comes_from=comes_from,
         editable=True,
         link=parts.link,
         constraint=constraint,
@@ -242,7 +239,6 @@ def install_req_from_editable(
         install_options=options.get("install_options", []) if options else [],
         global_options=options.get("global_options", []) if options else [],
         hash_options=options.get("hashes", {}) if options else {},
-        wheel_cache=wheel_cache,
         extras=parts.extras,
     )
 
@@ -387,7 +383,6 @@ def install_req_from_line(
     use_pep517=None,  # type: Optional[bool]
     isolated=False,  # type: bool
     options=None,  # type: Optional[Dict[str, Any]]
-    wheel_cache=None,  # type: Optional[WheelCache]
     constraint=False,  # type: bool
     line_source=None,  # type: Optional[str]
 ):
@@ -406,7 +401,6 @@ def install_req_from_line(
         install_options=options.get("install_options", []) if options else [],
         global_options=options.get("global_options", []) if options else [],
         hash_options=options.get("hashes", {}) if options else {},
-        wheel_cache=wheel_cache,
         constraint=constraint,
         extras=parts.extras,
     )
@@ -416,7 +410,6 @@ def install_req_from_req_string(
     req_string,  # type: str
     comes_from=None,  # type: Optional[InstallRequirement]
     isolated=False,  # type: bool
-    wheel_cache=None,  # type: Optional[WheelCache]
     use_pep517=None  # type: Optional[bool]
 ):
     # type: (...) -> InstallRequirement
@@ -439,15 +432,13 @@ def install_req_from_req_string(
         )
 
     return InstallRequirement(
-        req, comes_from, isolated=isolated, wheel_cache=wheel_cache,
-        use_pep517=use_pep517
+        req, comes_from, isolated=isolated, use_pep517=use_pep517
     )
 
 
 def install_req_from_parsed_requirement(
     parsed_req,  # type: ParsedRequirement
     isolated=False,  # type: bool
-    wheel_cache=None,  # type: Optional[WheelCache]
     use_pep517=None  # type: Optional[bool]
 ):
     # type: (...) -> InstallRequirement
@@ -458,7 +449,6 @@ def install_req_from_parsed_requirement(
             use_pep517=use_pep517,
             constraint=parsed_req.constraint,
             isolated=isolated,
-            wheel_cache=wheel_cache
         )
 
     else:
@@ -468,7 +458,6 @@ def install_req_from_parsed_requirement(
             use_pep517=use_pep517,
             isolated=isolated,
             options=parsed_req.options,
-            wheel_cache=wheel_cache,
             constraint=parsed_req.constraint,
             line_source=parsed_req.line_source,
         )

@@ -30,8 +30,8 @@ from pip._internal.operations.install.legacy import install as install_legacy
 from pip._internal.operations.install.wheel import install_wheel
 from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
 from pip._internal.req.req_uninstall import UninstallPathSet
-from pip._internal.utils import compatibility_tags
 from pip._internal.utils.deprecation import deprecated
+from pip._internal.utils.direct_url_helpers import direct_url_from_link
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
@@ -55,8 +55,6 @@ if MYPY_CHECK_RUNNING:
         Any, Dict, Iterable, List, Optional, Sequence, Union,
     )
     from pip._internal.build_env import BuildEnvironment
-    from pip._internal.cache import WheelCache
-    from pip._internal.index.package_finder import PackageFinder
     from pip._vendor.pkg_resources import Distribution
     from pip._vendor.packaging.specifiers import SpecifierSet
     from pip._vendor.packaging.markers import Marker
@@ -72,17 +70,18 @@ def _get_dist(metadata_directory):
     """
     dist_dir = metadata_directory.rstrip(os.sep)
 
+    # Build a PathMetadata object, from path to metadata. :wink:
+    base_dir, dist_dir_name = os.path.split(dist_dir)
+    metadata = pkg_resources.PathMetadata(base_dir, dist_dir)
+
     # Determine the correct Distribution object type.
     if dist_dir.endswith(".egg-info"):
         dist_cls = pkg_resources.Distribution
+        dist_name = os.path.splitext(dist_dir_name)[0]
     else:
         assert dist_dir.endswith(".dist-info")
         dist_cls = pkg_resources.DistInfoDistribution
-
-    # Build a PathMetadata object, from path to metadata. :wink:
-    base_dir, dist_dir_name = os.path.split(dist_dir)
-    dist_name = os.path.splitext(dist_dir_name)[0]
-    metadata = pkg_resources.PathMetadata(base_dir, dist_dir)
+        dist_name = os.path.splitext(dist_dir_name)[0].split("-")[0]
 
     return dist_cls(
         base_dir,
@@ -102,7 +101,6 @@ class InstallRequirement(object):
         self,
         req,  # type: Optional[Requirement]
         comes_from,  # type: Optional[Union[str, InstallRequirement]]
-        source_dir=None,  # type: Optional[str]
         editable=False,  # type: bool
         link=None,  # type: Optional[Link]
         markers=None,  # type: Optional[Marker]
@@ -111,7 +109,6 @@ class InstallRequirement(object):
         install_options=None,  # type: Optional[List[str]]
         global_options=None,  # type: Optional[List[str]]
         hash_options=None,  # type: Optional[Dict[str, List[str]]]
-        wheel_cache=None,  # type: Optional[WheelCache]
         constraint=False,  # type: bool
         extras=()  # type: Iterable[str]
     ):
@@ -120,17 +117,27 @@ class InstallRequirement(object):
         self.req = req
         self.comes_from = comes_from
         self.constraint = constraint
-        if source_dir is None:
-            self.source_dir = None  # type: Optional[str]
-        else:
-            self.source_dir = os.path.normpath(os.path.abspath(source_dir))
         self.editable = editable
 
-        self._wheel_cache = wheel_cache
+        # source_dir is the local directory where the linked requirement is
+        # located, or unpacked. In case unpacking is needed, creating and
+        # populating source_dir is done by the RequirementPreparer. Note this
+        # is not necessarily the directory where pyproject.toml or setup.py is
+        # located - that one is obtained via unpacked_source_directory.
+        self.source_dir = None  # type: Optional[str]
+        if self.editable:
+            assert link
+            if link.is_file:
+                self.source_dir = os.path.normpath(
+                    os.path.abspath(link.file_path)
+                )
+
         if link is None and req and req.url:
             # PEP 508 URL requirement
             link = Link(req.url)
         self.link = self.original_link = link
+        self.original_link_is_in_wheel_cache = False
+
         # Path to any downloaded or already-existing package.
         self.local_file_path = None  # type: Optional[str]
         if self.link and self.link.is_file:
@@ -240,32 +247,6 @@ class InstallRequirement(object):
             name=self.__class__.__name__,
             state=", ".join(state),
         )
-
-    def populate_link(self, finder, upgrade, require_hashes):
-        # type: (PackageFinder, bool, bool) -> None
-        """Ensure that if a link can be found for this, that it is found.
-
-        Note that self.link may still be None - if Upgrade is False and the
-        requirement is already installed.
-
-        If require_hashes is True, don't use the wheel cache, because cached
-        wheels, always built locally, have different hashes than the files
-        downloaded from the index server and thus throw false hash mismatches.
-        Furthermore, cached wheels at present have undeterministic contents due
-        to file modification times.
-        """
-        if self.link is None:
-            self.link = finder.find_requirement(self, upgrade)
-        if self._wheel_cache is not None and not require_hashes:
-            old_link = self.link
-            supported_tags = compatibility_tags.get_supported()
-            self.link = self._wheel_cache.get(
-                link=self.link,
-                package_name=self.name,
-                supported_tags=supported_tags,
-            )
-            if old_link != self.link:
-                logger.debug('Using cached wheel link: %s', self.link)
 
     # Things that are valid for all kinds of requirements?
     @property
@@ -545,7 +526,6 @@ class InstallRequirement(object):
                 build_env=self.build_env,
                 setup_py_path=self.setup_py_path,
                 source_dir=self.unpacked_source_directory,
-                editable=self.editable,
                 isolated=self.isolated,
                 details=self.name or "from {}".format(self.link)
             )
@@ -758,8 +738,6 @@ class InstallRequirement(object):
                 os.path.abspath(self.unpacked_source_directory)
             )
             for dirpath, dirnames, filenames in os.walk(dir):
-                if 'pip-egg-info' in dirnames:
-                    dirnames.remove('pip-egg-info')
                 for dirname in dirnames:
                     dir_arcname = self._get_archive_name(
                         dirname, parentdir=dirpath, rootdir=dir,
@@ -816,6 +794,13 @@ class InstallRequirement(object):
 
         if self.is_wheel:
             assert self.local_file_path
+            direct_url = None
+            if self.original_link:
+                direct_url = direct_url_from_link(
+                    self.original_link,
+                    self.source_dir,
+                    self.original_link_is_in_wheel_cache,
+                )
             install_wheel(
                 self.name,
                 self.local_file_path,
@@ -823,6 +808,7 @@ class InstallRequirement(object):
                 req_description=str(self.req),
                 pycompile=pycompile,
                 warn_script_location=warn_script_location,
+                direct_url=direct_url,
             )
             self.install_succeeded = True
             return

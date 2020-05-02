@@ -149,7 +149,7 @@ treated as a comment.
 A line ending in an unescaped ``\`` is treated as a line continuation
 and the newline following it is effectively ignored.
 
-Comments are stripped *before* line continuations are processed.
+Comments are stripped *after* line continuations are processed.
 
 To interpret the requirements file in UTF-8 format add a comment
 ``# -*- coding: utf-8 -*-`` to the first or second line of the file.
@@ -384,45 +384,51 @@ where ``setup.py`` is not in the root of project, the "subdirectory" component
 is used. The value of the "subdirectory" component should be a path starting
 from the root of the project to where ``setup.py`` is located.
 
-So if your repository layout is:
+If your repository layout is::
 
-    - pkg_dir/
+   pkg_dir
+   ├── setup.py  # setup.py for package "pkg"
+   └── some_module.py
+   other_dir
+   └── some_file
+   some_other_file
 
-      - setup.py  # setup.py for package ``pkg``
-      - some_module.py
-    - other_dir/
+Then, to install from this repository, the syntax would be::
 
-      - some_file
-    - some_other_file
-
-You'll need to use ``pip install -e "vcs+protocol://repo_url/#egg=pkg&subdirectory=pkg_dir"``.
+   $ pip install -e "vcs+protocol://repo_url/#egg=pkg&subdirectory=pkg_dir"
 
 
 Git
 ^^^
 
 pip currently supports cloning over ``git``, ``git+http``, ``git+https``,
-``git+ssh``, ``git+git`` and ``git+file``:
+``git+ssh``, ``git+git`` and ``git+file``.
+
+.. warning::
+
+    Note that the use of ``git``, ``git+git``, and ``git+http`` is discouraged.
+    The former two use `the Git Protocol`_, which lacks authentication, and HTTP is
+    insecure due to lack of TLS based encryption.
 
 Here are the supported forms::
 
-    [-e] git://git.example.com/MyProject#egg=MyProject
     [-e] git+http://git.example.com/MyProject#egg=MyProject
     [-e] git+https://git.example.com/MyProject#egg=MyProject
     [-e] git+ssh://git.example.com/MyProject#egg=MyProject
-    [-e] git+git://git.example.com/MyProject#egg=MyProject
     [-e] git+file:///home/user/projects/MyProject#egg=MyProject
 
 Passing a branch name, a commit hash, a tag name or a git ref is possible like so::
 
-    [-e] git://git.example.com/MyProject.git@master#egg=MyProject
-    [-e] git://git.example.com/MyProject.git@v1.0#egg=MyProject
-    [-e] git://git.example.com/MyProject.git@da39a3ee5e6b4b0d3255bfef95601890afd80709#egg=MyProject
-    [-e] git://git.example.com/MyProject.git@refs/pull/123/head#egg=MyProject
+    [-e] git+https://git.example.com/MyProject.git@master#egg=MyProject
+    [-e] git+https://git.example.com/MyProject.git@v1.0#egg=MyProject
+    [-e] git+https://git.example.com/MyProject.git@da39a3ee5e6b4b0d3255bfef95601890afd80709#egg=MyProject
+    [-e] git+https://git.example.com/MyProject.git@refs/pull/123/head#egg=MyProject
 
 When passing a commit hash, specifying a full hash is preferable to a partial
 hash because a full hash allows pip to operate more efficiently (e.g. by
 making fewer network calls).
+
+.. _`the Git Protocol`: https://git-scm.com/book/en/v2/Git-on-the-Server-The-Protocols
 
 Mercurial
 ^^^^^^^^^
@@ -559,7 +565,7 @@ While this cache attempts to minimize network activity, it does not prevent
 network access altogether. If you want a local install solution that
 circumvents accessing PyPI, see :ref:`Installing from local packages`.
 
-The default location for the cache directory depends on the Operating System:
+The default location for the cache directory depends on the operating system:
 
 Unix
   :file:`~/.cache/pip` and it respects the ``XDG_CACHE_HOME`` directory.
@@ -567,6 +573,9 @@ macOS
   :file:`~/Library/Caches/pip`.
 Windows
   :file:`<CSIDL_LOCAL_APPDATA>\\pip\\Cache`
+
+Run ``pip cache dir`` to show the cache directory and see :ref:`pip cache` to
+inspect and manage pip’s cache.
 
 
 .. _`Wheel cache`:
@@ -717,14 +726,24 @@ local hash.
 
 Local project installs
 ----------------------
+
 pip supports installing local project in both regular mode and editable mode.
 You can install local projects by specifying the project path to pip::
 
 $ pip install path/to/SomeProject
 
-During regular installation, pip will copy the entire project directory to a temporary location and install from there.
-The exception is that pip will exclude .tox and .nox directories present in the top level of the project from being copied.
+pip treats this directory like an unpacked source archive, and directly
+attempts installation.
 
+Prior to pip 20.1, pip copied the entire project directory to a temporary
+location and attempted installation from that directory. This approach was the
+cause of several performance issues, as well as various issues arising when the
+project directory depends on its parent directory (such as the presence of a
+VCS directory). The main user visible effect of this change is that secondary
+build artifacts, if any, would be created in the local directory, whereas
+earlier they were created in a temporary copy of the directory and then
+deleted. This notably includes the ``build`` and ``.egg-info`` directories in
+the case of the setuptools backend.
 
 .. _`editable-installs`:
 
@@ -933,6 +952,17 @@ Examples
     ::
 
       $ pip install --pre SomePackage
+
+
+#. Install packages from source.
+
+   Do not use any binary packages::
+
+     $ pip install SomePackage1 SomePackage2 --no-binary :all:
+
+   Specify ``SomePackage1`` to be installed from source::
+
+     $ pip install SomePackage1 SomePackage2 --no-binary SomePackage1
 
 ----
 

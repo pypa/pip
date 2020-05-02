@@ -7,9 +7,9 @@ from .base import Requirement, format_name
 if MYPY_CHECK_RUNNING:
     from typing import Sequence
 
-    from pip._internal.index.package_finder import PackageFinder
+    from pip._vendor.packaging.specifiers import SpecifierSet
+
     from pip._internal.req.req_install import InstallRequirement
-    from pip._internal.resolution.base import InstallRequirementProvider
 
     from .base import Candidate
     from .factory import Factory
@@ -19,6 +19,13 @@ class ExplicitRequirement(Requirement):
     def __init__(self, candidate):
         # type: (Candidate) -> None
         self.candidate = candidate
+
+    def __repr__(self):
+        # type: () -> str
+        return "{class_name}({candidate!r})".format(
+            class_name=self.__class__.__name__,
+            candidate=self.candidate,
+        )
 
     @property
     def name(self):
@@ -36,20 +43,23 @@ class ExplicitRequirement(Requirement):
 
 
 class SpecifierRequirement(Requirement):
-    def __init__(
-        self,
-        ireq,      # type: InstallRequirement
-        finder,    # type: PackageFinder
-        factory,   # type: Factory
-        make_install_req  # type: InstallRequirementProvider
-    ):
-        # type: (...) -> None
+    def __init__(self, ireq, factory):
+        # type: (InstallRequirement, Factory) -> None
         assert ireq.link is None, "This is a link, not a specifier"
         self._ireq = ireq
         self._factory = factory
-        self._finder = finder
-        self._make_install_req = make_install_req
         self.extras = ireq.req.extras
+
+    def __str__(self):
+        # type: () -> str
+        return str(self._ireq.req)
+
+    def __repr__(self):
+        # type: () -> str
+        return "{class_name}({requirement!r})".format(
+            class_name=self.__class__.__name__,
+            requirement=str(self._ireq.req),
+        )
 
     @property
     def name(self):
@@ -59,23 +69,51 @@ class SpecifierRequirement(Requirement):
 
     def find_matches(self):
         # type: () -> Sequence[Candidate]
-        found = self._finder.find_best_candidate(
-            project_name=self._ireq.req.name,
-            specifier=self._ireq.req.specifier,
-            hashes=self._ireq.hashes(trust_internet=False),
-        )
-        return [
-            self._factory.make_candidate(
-                link=ican.link,
-                extras=self.extras,
-                parent=self._ireq,
-            )
-            for ican in found.iter_applicable()
-        ]
+        it = self._factory.iter_found_candidates(self._ireq, self.extras)
+        return list(it)
 
     def is_satisfied_by(self, candidate):
         # type: (Candidate) -> bool
         assert candidate.name == self.name, \
             "Internal issue: Candidate is not for this requirement " \
             " {} vs {}".format(candidate.name, self.name)
-        return candidate.version in self._ireq.req.specifier
+        # We can safely always allow prereleases here since PackageFinder
+        # already implements the prerelease logic, and would have filtered out
+        # prerelease candidates if the user does not expect them.
+        spec = self._ireq.req.specifier
+        return spec.contains(candidate.version, prereleases=True)
+
+
+class RequiresPythonRequirement(Requirement):
+    """A requirement representing Requires-Python metadata.
+    """
+    def __init__(self, specifier, match):
+        # type: (SpecifierSet, Candidate) -> None
+        self.specifier = specifier
+        self._candidate = match
+
+    def __repr__(self):
+        # type: () -> str
+        return "{class_name}({specifier!r})".format(
+            class_name=self.__class__.__name__,
+            specifier=str(self.specifier),
+        )
+
+    @property
+    def name(self):
+        # type: () -> str
+        return self._candidate.name
+
+    def find_matches(self):
+        # type: () -> Sequence[Candidate]
+        if self._candidate.version in self.specifier:
+            return [self._candidate]
+        return []
+
+    def is_satisfied_by(self, candidate):
+        # type: (Candidate) -> bool
+        assert candidate.name == self._candidate.name, "Not Python candidate"
+        # We can safely always allow prereleases here since PackageFinder
+        # already implements the prerelease logic, and would have filtered out
+        # prerelease candidates if the user does not expect them.
+        return self.specifier.contains(candidate.version, prereleases=True)

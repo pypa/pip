@@ -10,6 +10,7 @@ addons:
 stages:
 - primary
 - secondary
+- experimental
 
 jobs:
   include:
@@ -51,7 +52,19 @@ jobs:
     - env: GROUP=2
       python: 3.5
 
+    # Test experimental stuff that are not part of the standard pip usage.
+    # Helpful for developers working on them to see how they're doing.
+    - stage: experimental
+      env:
+      - GROUP=1
+      - PIP_UNSTABLE_FEATURE=resolver
+    - env:
+      - GROUP=2
+      - PIP_UNSTABLE_FEATURE=resolver
+
   fast_finish: true
+  allow_failures:
+    - stage: experimental
 
 before_install: tools/travis/setup.sh
 install: travis_retry tools/travis/install.sh

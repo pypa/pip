@@ -7,7 +7,6 @@ from __future__ import absolute_import
 import collections
 import logging
 import os
-import re
 
 from pip._vendor import six
 from pip._vendor.packaging.utils import canonicalize_name
@@ -19,6 +18,10 @@ from pip._internal.req.constructors import (
     install_req_from_line,
 )
 from pip._internal.req.req_file import COMMENT_RE
+from pip._internal.utils.direct_url_helpers import (
+    direct_url_as_pep440_direct_reference,
+    dist_get_direct_url,
+)
 from pip._internal.utils.misc import (
     dist_is_editable,
     get_installed_distributions,
@@ -46,7 +49,6 @@ def freeze(
     local_only=None,  # type: Optional[bool]
     user_only=None,  # type: Optional[bool]
     paths=None,  # type: Optional[List[str]]
-    skip_regex=None,  # type: Optional[str]
     isolated=False,  # type: bool
     wheel_cache=None,  # type: Optional[WheelCache]
     exclude_editable=False,  # type: bool
@@ -54,10 +56,6 @@ def freeze(
 ):
     # type: (...) -> Iterator[str]
     find_links = find_links or []
-    skip_match = None
-
-    if skip_regex:
-        skip_match = re.compile(skip_regex).search
 
     for link in find_links:
         yield '-f {}'.format(link)
@@ -96,7 +94,6 @@ def freeze(
                 for line in req_file:
                     if (not line.strip() or
                             line.strip().startswith('#') or
-                            (skip_match and skip_match(line)) or
                             line.startswith((
                                 '-r', '--requirement',
                                 '-Z', '--always-unzip',
@@ -120,13 +117,11 @@ def freeze(
                         line_req = install_req_from_editable(
                             line,
                             isolated=isolated,
-                            wheel_cache=wheel_cache,
                         )
                     else:
                         line_req = install_req_from_line(
                             COMMENT_RE.sub('', line).strip(),
                             isolated=isolated,
-                            wheel_cache=wheel_cache,
                         )
 
                     if not line_req.name:
@@ -252,8 +247,20 @@ class FrozenRequirement(object):
     @classmethod
     def from_dist(cls, dist):
         # type: (Distribution) -> FrozenRequirement
+        # TODO `get_requirement_info` is taking care of editable requirements.
+        # TODO This should be refactored when we will add detection of
+        #      editable that provide .dist-info metadata.
         req, editable, comments = get_requirement_info(dist)
+        if req is None and not editable:
+            # if PEP 610 metadata is present, attempt to use it
+            direct_url = dist_get_direct_url(dist)
+            if direct_url:
+                req = direct_url_as_pep440_direct_reference(
+                    direct_url, dist.project_name
+                )
+                comments = []
         if req is None:
+            # name==version requirement
             req = dist.as_requirement()
 
         return cls(dist.project_name, req, editable, comments=comments)

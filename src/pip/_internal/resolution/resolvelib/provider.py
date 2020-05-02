@@ -51,7 +51,4 @@ class PipProvider(AbstractProvider):
         # type: (Candidate) -> Sequence[Requirement]
         if self._ignore_dependencies:
             return []
-        return [
-            self._factory.make_requirement(r)
-            for r in candidate.get_dependencies()
-        ]
+        return candidate.get_dependencies()
