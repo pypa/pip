@@ -401,6 +401,11 @@ class Configuration(object):
         # finally virtualenv configuration first trumping others
         yield kinds.SITE, config_files[kinds.SITE]
 
+    def get_values_in_config(self, variant):
+        # type: (Kind) -> Dict[str, Any]
+        """Get values present in a config file"""
+        return self._config[variant]
+
     def _get_parser_to_modify(self):
         # type: () -> Tuple[str, RawConfigParser]
         # Determine which parser to modify

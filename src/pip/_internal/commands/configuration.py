@@ -51,7 +51,7 @@ class ConfigurationCommand(Command):
         %prog [<file-option>] get name
         %prog [<file-option>] set name value
         %prog [<file-option>] unset name
-        %prog [<file-option>] list-files
+        %prog [<file-option>] debug
     """
 
     def __init__(self, name, summary, isolated=False):
@@ -107,7 +107,7 @@ class ConfigurationCommand(Command):
             "get": self.get_name,
             "set": self.set_name_value,
             "unset": self.unset_name,
-            "list-files": self.list_config_files,
+            "debug": self.list_config_files,
         }
 
         # Determine action
@@ -172,7 +172,6 @@ class ConfigurationCommand(Command):
 
     def list_values(self, options, args):
         self._get_n_args(args, "list", n=0)
-
         for key, value in sorted(self.configuration.items()):
             write_output("%s=%r", key, value)
 
@@ -196,13 +195,21 @@ class ConfigurationCommand(Command):
 
     def list_config_files(self, options, args):
         self._get_n_args(args, "list-files", n=0)
-
         for variant, files in sorted(self.configuration.iter_config_files()):
             write_output("%s:", variant)
             for fname in files:
                 with indent_log():
+                    file_exists = os.path.exists(fname)
                     write_output("%s, exists: %r ",
-                                 fname, os.path.exists(fname))
+                                 fname, file_exists)
+                    if file_exists:
+                        self.print_config_file_values(variant)
+
+    def print_config_file_values(self, variant):
+        for name, value in self.configuration. \
+                get_values_in_config(variant).items():
+            with indent_log():
+                write_output("%s: %s ", name, value)
 
     def open_in_editor(self, options, args):
         editor = self._determine_editor(options)
