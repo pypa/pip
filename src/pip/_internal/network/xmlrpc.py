@@ -3,17 +3,19 @@
 
 import logging
 
-from pip._vendor import requests
 # NOTE: XMLRPC Client is not annotated in typeshed as on 2017-07-17, which is
 #       why we ignore the type on this import
 from pip._vendor.six.moves import xmlrpc_client  # type: ignore
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
+from pip._internal.exceptions import NetworkConnectionError
+from pip._internal.network.utils import raise_for_status
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import Dict
     from pip._internal.network.session import PipSession
+
 
 logger = logging.getLogger(__name__)
 
@@ -38,10 +40,10 @@ class PipXmlrpcTransport(xmlrpc_client.Transport):
             headers = {'Content-Type': 'text/xml'}
             response = self._session.post(url, data=request_body,
                                           headers=headers, stream=True)
-            response.raise_for_status()
+            raise_for_status(response)
             self.verbose = verbose
             return self.parse_response(response.raw)
-        except requests.HTTPError as exc:
+        except NetworkConnectionError as exc:
             logger.critical(
                 "HTTP error %s while getting %s",
                 exc.response.status_code, url,

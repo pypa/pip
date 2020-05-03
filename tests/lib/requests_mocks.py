@@ -31,9 +31,6 @@ class MockResponse(object):
         self.headers = {'Content-Length': len(contents)}
         self.history = []
 
-    def raise_for_status(self):
-        pass
-
 
 class MockConnection(object):
 

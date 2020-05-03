@@ -18,6 +18,7 @@ from pip._internal.exceptions import (
     RequirementsFileParseError,
 )
 from pip._internal.models.search_scope import SearchScope
+from pip._internal.network.utils import raise_for_status
 from pip._internal.utils.encoding import auto_decode
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import get_url_scheme
@@ -551,7 +552,7 @@ def get_file_content(url, session, comes_from=None):
     if scheme in ['http', 'https']:
         # FIXME: catch some errors
         resp = session.get(url)
-        resp.raise_for_status()
+        raise_for_status(resp)
         return resp.url, resp.text
 
     elif scheme == 'file':

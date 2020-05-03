@@ -99,6 +99,23 @@ class PreviousBuildDirError(PipError):
     """Raised when there's a previous conflicting build directory"""
 
 
+class NetworkConnectionError(PipError):
+    """HTTP connection error"""
+
+    def __init__(self, *args, **kwargs):
+        """
+        Initialize NetworkConnectionError with  `request` and `response`
+        objects.
+        """
+        response = kwargs.pop('response', None)
+        self.response = response
+        self.request = kwargs.pop('request', None)
+        if (response is not None and not self.request and
+                hasattr(response, 'request')):
+            self.request = self.response.request
+        super(NetworkConnectionError, self).__init__(*args, **kwargs)
+
+
 class InvalidWheelFilename(InstallationError):
     """Invalid wheel filename."""
 

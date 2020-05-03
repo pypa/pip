@@ -5,13 +5,13 @@ import logging
 import mimetypes
 import os
 
-from pip._vendor import requests
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE
 
 from pip._internal.cli.progress_bars import DownloadProgressProvider
+from pip._internal.exceptions import NetworkConnectionError
 from pip._internal.models.index import PyPI
 from pip._internal.network.cache import is_from_cache
-from pip._internal.network.utils import HEADERS, response_chunks
+from pip._internal.network.utils import HEADERS, raise_for_status, response_chunks
 from pip._internal.utils.misc import (
     format_size,
     redact_auth_from_url,
@@ -133,7 +133,7 @@ def _http_get_download(session, link):
     # type: (PipSession, Link) -> Response
     target_url = link.url.split('#', 1)[0]
     resp = session.get(target_url, headers=HEADERS, stream=True)
-    resp.raise_for_status()
+    raise_for_status(resp)
     return resp
 
 
@@ -164,7 +164,7 @@ class Downloader(object):
         # type: (Link) -> Download
         try:
             resp = _http_get_download(self._session, link)
-        except requests.HTTPError as e:
+        except NetworkConnectionError as e:
             logger.critical(
                 "HTTP error %s while getting %s", e.response.status_code, link
             )
