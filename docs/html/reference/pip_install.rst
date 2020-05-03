@@ -149,7 +149,7 @@ treated as a comment.
 A line ending in an unescaped ``\`` is treated as a line continuation
 and the newline following it is effectively ignored.
 
-Comments are stripped *before* line continuations are processed.
+Comments are stripped *after* line continuations are processed.
 
 To interpret the requirements file in UTF-8 format add a comment
 ``# -*- coding: utf-8 -*-`` to the first or second line of the file.
@@ -565,7 +565,7 @@ While this cache attempts to minimize network activity, it does not prevent
 network access altogether. If you want a local install solution that
 circumvents accessing PyPI, see :ref:`Installing from local packages`.
 
-The default location for the cache directory depends on the Operating System:
+The default location for the cache directory depends on the operating system:
 
 Unix
   :file:`~/.cache/pip` and it respects the ``XDG_CACHE_HOME`` directory.
@@ -573,6 +573,9 @@ macOS
   :file:`~/Library/Caches/pip`.
 Windows
   :file:`<CSIDL_LOCAL_APPDATA>\\pip\\Cache`
+
+Run ``pip cache dir`` to show the cache directory and see :ref:`pip cache` to
+inspect and manage pip’s cache.
 
 
 .. _`Wheel cache`:

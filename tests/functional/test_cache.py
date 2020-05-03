@@ -95,6 +95,22 @@ def remove_matches_wheel(wheel_cache_dir):
     return _remove_matches_wheel
 
 
+def test_cache_dir(script, cache_dir):
+    result = script.pip('cache', 'dir')
+
+    assert os.path.normcase(cache_dir) == result.stdout.strip()
+
+
+def test_cache_dir_too_many_args(script, cache_dir):
+    result = script.pip('cache', 'dir', 'aaa', expect_error=True)
+
+    assert result.stdout == ''
+
+    # This would be `result.stderr == ...`, but pip prints deprecation
+    # warnings on Python 2.7, so we check if the _line_ is in stderr.
+    assert 'ERROR: Too many arguments' in result.stderr.splitlines()
+
+
 @pytest.mark.usefixtures("populate_wheel_cache")
 def test_cache_info(script, wheel_cache_dir, wheel_cache_files):
     result = script.pip('cache', 'info')
@@ -209,10 +225,22 @@ def test_cache_purge_too_many_args(script, wheel_cache_files):
                         expect_error=True)
     assert result.stdout == ''
 
-    # This would be `result.stderr == ...`, but Pip prints deprecation
+    # This would be `result.stderr == ...`, but pip prints deprecation
     # warnings on Python 2.7, so we check if the _line_ is in stderr.
     assert 'ERROR: Too many arguments' in result.stderr.splitlines()
 
     # Make sure nothing was deleted.
     for filename in wheel_cache_files:
         assert os.path.exists(filename)
+
+
+@pytest.mark.parametrize("command", ["info", "list", "remove", "purge"])
+def test_cache_abort_when_no_cache_dir(script, command):
+    """Running any pip cache command when cache is disabled should
+    abort and log an informative error"""
+    result = script.pip('cache', command, '--no-cache-dir',
+                        expect_error=True)
+    assert result.stdout == ''
+
+    assert ('ERROR: pip cache commands can not function'
+            ' since cache is disabled.' in result.stderr.splitlines())

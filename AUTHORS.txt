@@ -489,6 +489,7 @@ sinscary
 Sorin Sbarnea
 Stavros Korokithakis
 Stefan Scherfke
+Stefano Rivera
 Stephan Erb
 stepshal
 Steve (Gadget) Barnes

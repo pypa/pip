@@ -41,8 +41,12 @@ logger = logging.getLogger(__name__)
 def make_install_req_from_link(link, parent):
     # type: (Link, InstallRequirement) -> InstallRequirement
     assert not parent.editable, "parent is editable"
-    return install_req_from_line(
-        link.url,
+    if parent.req:
+        line = str(parent.req)
+    else:
+        line = link.url
+    ireq = install_req_from_line(
+        line,
         comes_from=parent.comes_from,
         use_pep517=parent.use_pep517,
         isolated=parent.isolated,
@@ -53,6 +57,10 @@ def make_install_req_from_link(link, parent):
             hashes=parent.hash_options
         ),
     )
+    if ireq.link is None:
+        ireq.link = link
+    # TODO: Handle wheel cache resolution.
+    return ireq
 
 
 def make_install_req_from_editable(link, parent):
@@ -405,6 +413,8 @@ class ExtrasCandidate(Candidate):
         ]
         # Add a dependency on the exact base.
         # (See note 2b in the class docstring)
+        # FIXME: This does not work if the base candidate is specified by
+        # link, e.g. "pip install .[dev]" will fail.
         spec = "{}=={}".format(self.base.name, self.base.version)
         deps.append(factory.make_requirement_from_spec(spec, self.base._ireq))
         return deps

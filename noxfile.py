@@ -221,10 +221,10 @@ def build_release(session):
 
         tmp_dist_paths = (build_dir / p for p in tmp_dists)
         session.log(f"# Copying dists from {build_dir}")
-        shutil.rmtree('dist', ignore_errors=True)  # remove empty `dist/`
-        for dist in tmp_dist_paths:
-            session.log(f"# Copying {dist}")
-            shutil.copy(dist, 'dist')
+        os.makedirs('dist', exist_ok=True)
+        for dist, final in zip(tmp_dist_paths, tmp_dists):
+            session.log(f"# Copying {dist} to {final}")
+            shutil.copy(dist, final)
 
 
 def build_dists(session):
