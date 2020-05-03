@@ -529,3 +529,80 @@ def test_new_resolver_handles_prerelease(
         *pip_args
     )
     assert_installed(script, pkg=expected_version)
+
+
+class TestExtraMerge(object):
+    """
+    Test installing a package that depends the same package with different
+    extras, one listed as required and the other as in extra.
+    """
+
+    def _local_with_setup(script, name, version, requires, extras):
+        """Create the package as a local source directory to install from path.
+        """
+        return create_test_package_with_setup(
+            script,
+            name=name,
+            version=version,
+            install_requires=requires,
+            extras_require=extras,
+        )
+
+    def _direct_wheel(script, name, version, requires, extras):
+        """Create the package as a wheel to install from path directly.
+        """
+        return create_basic_wheel_for_package(
+            script,
+            name=name,
+            version=version,
+            depends=requires,
+            extras=extras,
+        )
+
+    def _wheel_from_index(script, name, version, requires, extras):
+        """Create the package as a wheel to install from index.
+        """
+        create_basic_wheel_for_package(
+            script,
+            name=name,
+            version=version,
+            depends=requires,
+            extras=extras,
+        )
+        return name
+
+    @pytest.mark.parametrize(
+        "pkg_builder",
+        [
+            pytest.param(
+                _local_with_setup, marks=pytest.mark.xfail(strict=True),
+            ),
+            _direct_wheel,
+            _wheel_from_index,
+        ],
+    )
+    def test_new_resolver_extra_merge_in_package(
+        self, monkeypatch, script, pkg_builder,
+    ):
+        create_basic_wheel_for_package(script, "depdev", "1.0.0")
+        create_basic_wheel_for_package(
+            script,
+            "dep",
+            "1.0.0",
+            extras={"dev": ["depdev"]},
+        )
+        requirement = pkg_builder(
+            script,
+            name="pkg",
+            version="1.0.0",
+            requires=["dep"],
+            extras={"dev": ["dep[dev]"]},
+        )
+
+        script.pip(
+            "install", "--unstable-feature=resolver",
+            "--no-cache-dir", "--no-index",
+            "--find-links", script.scratch_path,
+            requirement + "[dev]",
+        )
+        assert_installed(script, pkg="1.0.0", dep="1.0.0", depdev="1.0.0")
