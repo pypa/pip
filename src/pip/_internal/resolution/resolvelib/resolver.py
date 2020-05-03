@@ -15,9 +15,10 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from .factory import Factory
 
 if MYPY_CHECK_RUNNING:
-    from typing import Dict, List, Optional, Tuple
+    from typing import Dict, List, Optional, Set, Tuple
 
     from pip._vendor.resolvelib.resolvers import Result
+    from pip._vendor.resolvelib.structs import Graph
 
     from pip._internal.cache import WheelCache
     from pip._internal.index.package_finder import PackageFinder
@@ -114,42 +115,21 @@ class Resolver(BaseResolver):
 
     def get_installation_order(self, req_set):
         # type: (RequirementSet) -> List[InstallRequirement]
-        """Create a list that orders given requirements for installation.
+        """Get order for installation of requirements in RequirementSet.
 
-        The returned list should contain all requirements in ``req_set``,
-        so the caller can loop through it and have a requirement installed
-        before the requiring thing.
+        The returned list contains a requirement before another that depends on
+        it. This helps ensure that the environment is kept consistent as they
+        get installed one-by-one.
 
-        The current implementation walks the resolved dependency graph, and
-        make sure every node has a greater "weight" than all its parents.
+        The current implementation creates a topological ordering of the
+        dependency graph, while breaking any cycles in the graph at arbitrary
+        points. We make no guarantees about where the cycle would be broken,
+        other than they would be broken.
         """
         assert self._result is not None, "must call resolve() first"
-        weights = {}  # type: Dict[Optional[str], int]
 
         graph = self._result.graph
-        key_count = len(self._result.mapping) + 1  # Packages plus sentinal.
-        while len(weights) < key_count:
-            progressed = False
-            for key in graph:
-                if key in weights:
-                    continue
-                parents = list(graph.iter_parents(key))
-                if not all(p in weights for p in parents):
-                    continue
-                if parents:
-                    weight = max(weights[p] for p in parents) + 1
-                else:
-                    weight = 0
-                weights[key] = weight
-                progressed = True
-
-            # FIXME: This check will fail if there are unbreakable cycles.
-            # Implement something to forcifully break them up to continue.
-            if not progressed:
-                raise InstallationError(
-                    "Could not determine installation order due to cicular "
-                    "dependency."
-                )
+        weights = get_topological_weights(graph)
 
         sorted_items = sorted(
             req_set.requirements.items(),
@@ -157,6 +137,52 @@ class Resolver(BaseResolver):
             reverse=True,
         )
         return [ireq for _, ireq in sorted_items]
+
+
+def get_topological_weights(graph):
+    # type: (Graph) -> Dict[Optional[str], int]
+    """Assign weights to each node based on how "deep" they are.
+
+    This implementation may change at any point in the future without prior
+    notice.
+
+    We take the length for the longest path to any node from root, ignoring any
+    paths that contain a single node twice (i.e. cycles). This is done through
+    a depth-first search through the graph, while keeping track of the path to
+    the node.
+
+    Cycles in the graph result would result in node being revisited while also
+    being it's own path. In this case, take no action. This helps ensure we
+    don't get stuck in a cycle.
+
+    When assigning weight, the longer path (i.e. larger length) is preferred.
+    """
+    path = set()  # type: Set[Optional[str]]
+    weights = {}  # type: Dict[Optional[str], int]
+
+    def visit(node):
+        # type: (Optional[str]) -> None
+        if node in path:
+            # We hit a cycle, so we'll break it here.
+            return
+
+        # Time to visit the children!
+        path.add(node)
+        for child in graph.iter_children(node):
+            visit(child)
+        path.remove(node)
+
+        last_known_parent_count = weights.get(node, 0)
+        weights[node] = max(last_known_parent_count, len(path))
+
+    # `None` is guaranteed to be the root node by resolvelib.
+    visit(None)
+
+    # Sanity checks
+    assert weights[None] == 0
+    assert len(weights) == len(graph)
+
+    return weights
 
 
 def _req_set_item_sorter(
