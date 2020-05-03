@@ -82,11 +82,15 @@ def make_install_req_from_editable(link, parent):
 
 def make_install_req_from_dist(dist, parent):
     # type: (Distribution, InstallRequirement) -> InstallRequirement
+    project_name = canonicalize_name(dist.project_name)
+    if parent.req:
+        line = str(parent.req)
+    elif parent.link:
+        line = "{} @ {}".format(project_name, parent.link.url)
+    else:
+        line = "{}=={}".format(project_name, dist.parsed_version)
     ireq = install_req_from_line(
-        "{}=={}".format(
-            canonicalize_name(dist.project_name),
-            dist.parsed_version,
-        ),
+        line,
         comes_from=parent.comes_from,
         use_pep517=parent.use_pep517,
         isolated=parent.isolated,
