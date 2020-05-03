@@ -24,7 +24,7 @@ def resolver(preparer, finder):
         ignore_installed="not-used",
         ignore_requires_python="not-used",
         force_reinstall="not-used",
-        upgrade_strategy="not-used",
+        upgrade_strategy="to-satisfy-only",
     )
     return resolver
 
