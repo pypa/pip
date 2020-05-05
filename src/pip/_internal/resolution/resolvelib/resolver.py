@@ -84,11 +84,9 @@ class Resolver(BaseResolver):
                     self.factory.make_requirement_from_install_req(req)
                 )
 
-        # TODO: Refactor this, it's just for proof of concept
-        self.factory._constraints = constraints
-
         provider = PipProvider(
             factory=self.factory,
+            constraints=constraints,
             ignore_dependencies=self.ignore_dependencies,
         )
         reporter = BaseReporter()

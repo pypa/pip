@@ -64,5 +64,6 @@ def factory(finder, preparer):
 def provider(factory):
     yield PipProvider(
         factory=factory,
+        constraints={},
         ignore_dependencies=False,
     )

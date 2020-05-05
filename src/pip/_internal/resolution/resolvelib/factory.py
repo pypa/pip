@@ -21,7 +21,7 @@ from .requirements import (
 )
 
 if MYPY_CHECK_RUNNING:
-    from typing import Dict, Iterator, List, Optional, Set, Tuple, TypeVar
+    from typing import Dict, Iterator, Optional, Set, Tuple, TypeVar
 
     from pip._vendor.packaging.specifiers import SpecifierSet
     from pip._vendor.packaging.version import _BaseVersion
@@ -78,8 +78,6 @@ class Factory(object):
             }
         else:
             self._installed_dists = {}
-
-        self._constraints = {}  # type: Dict[str,List[SpecifierSet]]
 
     def _make_candidate_from_dist(
         self,
