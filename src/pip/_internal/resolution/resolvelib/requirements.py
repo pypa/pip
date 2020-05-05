@@ -35,9 +35,9 @@ class ExplicitRequirement(Requirement):
         # No need to canonicalise - the candidate did this
         return self.candidate.name
 
-    def find_matches(self):
-        # type: () -> Sequence[Candidate]
-        if self.name in self._factory._constraints:
+    def find_matches(self, constraints):
+        # type: (Sequence[SpecifierSet]) -> Sequence[Candidate]
+        if constraints:
             raise InstallationError(
                 "Could not satisfy constraints for '{}': "
                 "installation from path or url cannot be "
@@ -75,14 +75,12 @@ class SpecifierRequirement(Requirement):
         canonical_name = canonicalize_name(self._ireq.req.name)
         return format_name(canonical_name, self.extras)
 
-    def find_matches(self):
-        # type: () -> Sequence[Candidate]
+    def find_matches(self, constraints):
+        # type: (Sequence[SpecifierSet]) -> Sequence[Candidate]
         it = self._factory.iter_found_candidates(self._ireq, self.extras)
-        constraints = self._factory._constraints.get(self.name, [])
-        lit = [c for c in it if all(
+        return [c for c in it if all(
             s.contains(c.version, prereleases=True) for s in constraints
         )]
-        return lit
 
     def is_satisfied_by(self, candidate):
         # type: (Candidate) -> bool
@@ -116,8 +114,8 @@ class RequiresPythonRequirement(Requirement):
         # type: () -> str
         return self._candidate.name
 
-    def find_matches(self):
-        # type: () -> Sequence[Candidate]
+    def find_matches(self, constraints):
+        # type: (Sequence[SpecifierSet]) -> Sequence[Candidate]
         if self._candidate.version in self.specifier:
             return [self._candidate]
         return []
