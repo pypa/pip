@@ -1,0 +1,19 @@
+base:
+  available:
+    - A 1.0.0; depends B == 1.0.0, B == 2.0.0
+    - B 1.0.0
+    - B 2.0.0
+
+cases:
+-
+  request:
+    - install: A
+  response:
+    - state: null
+  skip: true
+-
+  request:
+    - install: ['B==1.0.0', 'B==2.0.0']
+  response:
+    - state: null
+  skip: true
