@@ -120,7 +120,7 @@ class RequiresPythonRequirement(Requirement):
         # type: (SpecifierSet) -> Sequence[Candidate]
         assert len(constraint) == 0, \
             "RequiresPythonRequirement cannot have constraints"
-        if self._candidate.version in self.specifier:
+        if self.specifier.contains(self._candidate.version, prereleases=True):
             return [self._candidate]
         return []
 
