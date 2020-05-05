@@ -370,9 +370,9 @@ def test_new_resolver_installed(script):
         "install", "--unstable-feature=resolver",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
-        "base>=0.1.0",
+        "base~=0.1.0",
     )
-    assert "Requirement already satisfied: base>=0.1.0" in result.stdout, \
+    assert "Requirement already satisfied: base~=0.1.0" in result.stdout, \
         str(result)
     assert script.site_packages / "base" not in result.files_updated, (
         "base 0.1.0 reinstalled"
