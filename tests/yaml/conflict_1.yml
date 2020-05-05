@@ -28,3 +28,5 @@ cases:
   # -- better would be:
   # cannot install different version (1.0.0, 2.0.0) of package B at the
   # same time.
+  # -- the old error message was actually better here:
+  # Double requirement given: B==2.0.0 (already in B==1.0.0, name='B')
