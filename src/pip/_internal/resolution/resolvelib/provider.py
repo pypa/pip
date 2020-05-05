@@ -18,7 +18,7 @@ class PipProvider(AbstractProvider):
         self,
         factory,  # type: Factory
         roots,  # type: Set[str]
-        constraints,  # type: Dict[str,List[SpecifierSet]]
+        constraints,  # type: Dict[str, List[SpecifierSet]]
         ignore_dependencies,  # type: bool
     ):
         # type: (...) -> None

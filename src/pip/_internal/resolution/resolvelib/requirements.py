@@ -17,10 +17,9 @@ if MYPY_CHECK_RUNNING:
 
 
 class ExplicitRequirement(Requirement):
-    def __init__(self, candidate, factory):
-        # type: (Candidate, Factory) -> None
+    def __init__(self, candidate):
+        # type: (Candidate) -> None
         self.candidate = candidate
-        self._factory = factory
 
     def __repr__(self):
         # type: () -> str
@@ -120,6 +119,8 @@ class RequiresPythonRequirement(Requirement):
 
     def find_matches(self, is_root, constraints):
         # type: (bool, Sequence[SpecifierSet]) -> Sequence[Candidate]
+        assert not constraints, \
+            "You cannot pass constraints to a RequiresPythonRequirement"
         if self._candidate.version in self.specifier:
             return [self._candidate]
         return []

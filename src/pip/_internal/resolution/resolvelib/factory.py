@@ -177,7 +177,7 @@ class Factory(object):
             cand = self._make_candidate_from_link(
                 ireq.link, extras=set(ireq.extras), parent=ireq,
             )
-            return ExplicitRequirement(cand, factory=self)
+            return ExplicitRequirement(cand)
         return SpecifierRequirement(ireq, factory=self)
 
     def make_requirement_from_spec(self, specifier, comes_from):
