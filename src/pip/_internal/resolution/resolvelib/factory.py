@@ -66,8 +66,6 @@ class Factory(object):
         self._ignore_requires_python = ignore_requires_python
         self._upgrade_strategy = upgrade_strategy
 
-        self.root_reqs = set()  # type: Set[str]
-
         self._link_candidate_cache = {}  # type: Cache[LinkCandidate]
         self._editable_candidate_cache = {}  # type: Cache[EditableCandidate]
 
@@ -118,20 +116,20 @@ class Factory(object):
             return ExtrasCandidate(base, extras)
         return base
 
-    def _eligible_for_upgrade(self, dist_name):
-        # type: (str) -> bool
+    def _eligible_for_upgrade(self, dist_name, is_root):
+        # type: (str, bool) -> bool
         if self._upgrade_strategy == "eager":
             return True
         elif self._upgrade_strategy == "only-if-needed":
-            return (dist_name in self.root_reqs)
+            return is_root
         return False
 
-    def iter_found_candidates(self, ireq, extras):
-        # type: (InstallRequirement, Set[str]) -> Iterator[Candidate]
+    def iter_found_candidates(self, ireq, extras, is_root):
+        # type: (InstallRequirement, Set[str], bool) -> Iterator[Candidate]
         name = canonicalize_name(ireq.req.name)
         if not self._force_reinstall:
             installed_dist = self._installed_dists.get(name)
-            can_upgrade = self._eligible_for_upgrade(name)
+            can_upgrade = self._eligible_for_upgrade(name, is_root)
         else:
             installed_dist = None
             can_upgrade = False
@@ -172,9 +170,6 @@ class Factory(object):
 
     def make_requirement_from_install_req(self, ireq):
         # type: (InstallRequirement) -> Requirement
-        if ireq.is_direct and ireq.name:
-            self.root_reqs.add(canonicalize_name(ireq.name))
-
         if ireq.link:
             # TODO: Get name and version from ireq, if possible?
             #       Specifically, this might be needed in "name @ URL"

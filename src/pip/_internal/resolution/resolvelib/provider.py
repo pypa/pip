@@ -3,7 +3,7 @@ from pip._vendor.resolvelib.providers import AbstractProvider
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+    from typing import Any, Dict, List, Optional, Sequence, Set, Tuple, Union
 
     from pip._vendor.packaging.specifiers import SpecifierSet
 
@@ -17,11 +17,13 @@ class PipProvider(AbstractProvider):
     def __init__(
         self,
         factory,  # type: Factory
+        roots,  # type: Set[str]
         constraints,  # type: Dict[str,List[SpecifierSet]]
         ignore_dependencies,  # type: bool
     ):
         # type: (...) -> None
         self._factory = factory
+        self._roots = roots
         self._constraints = constraints
         self._ignore_dependencies = ignore_dependencies
 
@@ -46,7 +48,8 @@ class PipProvider(AbstractProvider):
     def find_matches(self, requirement):
         # type: (Requirement) -> Sequence[Candidate]
         constraints = self._constraints.get(requirement.name, [])
-        return requirement.find_matches(constraints)
+        is_root = (requirement.name in self._roots)
+        return requirement.find_matches(is_root, constraints)
 
     def is_satisfied_by(self, requirement, candidate):
         # type: (Requirement, Candidate) -> bool
