@@ -15,7 +15,6 @@ from pip._internal.index.package_finder import (
     _find_name_version_sep,
     filter_unallowed_hashes,
 )
-from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.link import Link
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
@@ -24,18 +23,7 @@ from pip._internal.network.session import PipSession
 from pip._internal.utils.compatibility_tags import get_supported
 from pip._internal.utils.hashes import Hashes
 from tests.lib import CURRENT_PY_VERSION_INFO
-
-
-def make_mock_candidate(version, yanked_reason=None, hex_digest=None):
-    url = 'https://example.com/pkg-{}.tar.gz'.format(version)
-    if hex_digest is not None:
-        assert len(hex_digest) == 64
-        url += '#sha256={}'.format(hex_digest)
-
-    link = Link(url, yanked_reason=yanked_reason)
-    candidate = InstallationCandidate('mypackage', version, link)
-
-    return candidate
+from tests.lib.index import make_mock_candidate
 
 
 @pytest.mark.parametrize('requires_python, expected', [
@@ -469,63 +457,6 @@ class TestCandidateEvaluator:
         evaluator = CandidateEvaluator.create('my-project')
         actual = evaluator.sort_best_candidate([])
         assert actual is None
-
-    def test_sort_best_candidate__all_yanked(self, caplog):
-        """
-        Test all candidates yanked.
-        """
-        candidates = [
-            make_mock_candidate('1.0', yanked_reason='bad metadata #1'),
-            # Put the best candidate in the middle, to test sorting.
-            make_mock_candidate('3.0', yanked_reason='bad metadata #3'),
-            make_mock_candidate('2.0', yanked_reason='bad metadata #2'),
-        ]
-        expected_best = candidates[1]
-        evaluator = CandidateEvaluator.create('my-project')
-        actual = evaluator.sort_best_candidate(candidates)
-        assert actual is expected_best
-        assert str(actual.version) == '3.0'
-
-        # Check the log messages.
-        assert len(caplog.records) == 1
-        record = caplog.records[0]
-        assert record.levelname == 'WARNING'
-        assert record.message == (
-            'The candidate selected for download or install is a yanked '
-            "version: 'mypackage' candidate "
-            '(version 3.0 at https://example.com/pkg-3.0.tar.gz)\n'
-            'Reason for being yanked: bad metadata #3'
-        )
-
-    @pytest.mark.parametrize('yanked_reason, expected_reason', [
-        # Test no reason given.
-        ('', '<none given>'),
-        # Test a unicode string with a non-ascii character.
-        (u'curly quote: \u2018', u'curly quote: \u2018'),
-    ])
-    def test_sort_best_candidate__yanked_reason(
-        self, caplog, yanked_reason, expected_reason,
-    ):
-        """
-        Test the log message with various reason strings.
-        """
-        candidates = [
-            make_mock_candidate('1.0', yanked_reason=yanked_reason),
-        ]
-        evaluator = CandidateEvaluator.create('my-project')
-        actual = evaluator.sort_best_candidate(candidates)
-        assert str(actual.version) == '1.0'
-
-        assert len(caplog.records) == 1
-        record = caplog.records[0]
-        assert record.levelname == 'WARNING'
-        expected_message = (
-            'The candidate selected for download or install is a yanked '
-            "version: 'mypackage' candidate "
-            '(version 1.0 at https://example.com/pkg-1.0.tar.gz)\n'
-            'Reason for being yanked: '
-        ) + expected_reason
-        assert record.message == expected_message
 
     def test_sort_best_candidate__best_yanked_but_not_all(
         self, caplog,
