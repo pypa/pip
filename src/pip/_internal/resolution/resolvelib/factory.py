@@ -161,9 +161,10 @@ class Factory(object):
 
         # Return installed distribution if it matches the specifier. This is
         # done last so the resolver will prefer it over downloading links.
-        if (installed_dist is not None and
-                not can_upgrade and
-                installed_dist.parsed_version in ireq.req.specifier):
+        if can_upgrade or installed_dist is None:
+            return
+        installed_version = installed_dist.parsed_version
+        if ireq.req.specifier.contains(installed_version, prereleases=True):
             yield self._make_candidate_from_dist(
                 dist=installed_dist,
                 extras=extras,
