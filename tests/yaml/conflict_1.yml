@@ -11,9 +11,20 @@ cases:
   response:
     - state: null
   skip: true
+  # -- currently the error message is:
+  # a 1.0.0 has requirement B==1.0.0, but you'll have b 2.0.0 which is incompatible.
+  # -- better would be:
+  # A 1.0.0 has incompatible requirements B==1.0.0, B==2.0.0
 -
   request:
     - install: ['B==1.0.0', 'B==2.0.0']
   response:
     - state: null
   skip: true
+  # -- currently the error message is:
+  # Could not find a version that satisfies the requirement B==1.0.0
+  # Could not find a version that satisfies the requirement B==2.0.0
+  # No matching distribution found for b, b
+  # -- better would be:
+  # cannot install different version (1.0.0, 2.0.0) of package B at the
+  # same time.
