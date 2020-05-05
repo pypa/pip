@@ -38,3 +38,10 @@ cases:
   response:
     - state:
       - base 0.1.0
+-
+  request:
+    - install: ['dep', 'simple==0.1.0']
+  response:
+    - state:
+      - dep 0.1.0
+      - simple 0.1.0

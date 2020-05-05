@@ -533,6 +533,10 @@ class PipTestEnvironment(TestFileEnvironment):
             `allow_stderr_warning` since warnings are weaker than errors.
         :param allow_stderr_warning: whether a logged warning (or
             deprecation message) is allowed in stderr.
+        :param allow_error: if True (default is False) does not raise
+            exception when the command exit value is non-zero.  Implies
+            expect_error, but in contrast to expect_error will not assert
+            that the exit value is zero.
         :param expect_error: if False (the default), asserts that the command
             exits with 0.  Otherwise, asserts that the command exits with a
             non-zero exit code.  Passing True also implies allow_stderr_error
@@ -553,10 +557,14 @@ class PipTestEnvironment(TestFileEnvironment):
             # Partial fix for ScriptTest.run using `shell=True` on Windows.
             args = [str(a).replace('^', '^^').replace('&', '^&') for a in args]
 
-        # Remove `allow_stderr_error` and `allow_stderr_warning` before
-        # calling run() because PipTestEnvironment doesn't support them.
+        # Remove `allow_stderr_error`, `allow_stderr_warning` and
+        # `allow_error` before calling run() because PipTestEnvironment
+        # doesn't support them.
         allow_stderr_error = kw.pop('allow_stderr_error', None)
         allow_stderr_warning = kw.pop('allow_stderr_warning', None)
+        allow_error = kw.pop('allow_error', None)
+        if allow_error:
+            kw['expect_error'] = True
 
         # Propagate default values.
         expect_error = kw.get('expect_error')
@@ -596,7 +604,7 @@ class PipTestEnvironment(TestFileEnvironment):
         kw['expect_stderr'] = True
         result = super(PipTestEnvironment, self).run(cwd=cwd, *args, **kw)
 
-        if expect_error:
+        if expect_error and not allow_error:
             if result.returncode == 0:
                 __tracebackhide__ = True
                 raise AssertionError("Script passed unexpectedly.")

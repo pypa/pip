@@ -582,3 +582,165 @@ def test_new_resolver_constraint_on_path(script):
 
     msg = "installation from path or url cannot be constrained to a version"
     assert msg in result.stderr, str(result)
+
+
+def test_new_resolver_upgrade_needs_option(script):
+    # Install pkg 1.0.0
+    create_basic_wheel_for_package(script, "pkg", "1.0.0")
+    script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "pkg",
+    )
+
+    # Now release a new version
+    create_basic_wheel_for_package(script, "pkg", "2.0.0")
+
+    # This should not upgrade because we don't specify --upgrade
+    result = script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "pkg",
+    )
+
+    assert "Requirement already satisfied" in result.stdout, str(result)
+    assert_installed(script, pkg="1.0.0")
+
+    # This should upgrade
+    result = script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "--upgrade",
+        "PKG",  # Deliberately uppercase to check canonicalization
+    )
+
+    assert "Uninstalling pkg-1.0.0" in result.stdout, str(result)
+    assert "Successfully uninstalled pkg-1.0.0" in result.stdout, str(result)
+    assert script.site_packages / "pkg" in result.files_updated, (
+        "pkg not upgraded"
+    )
+    assert_installed(script, pkg="2.0.0")
+
+
+def test_new_resolver_upgrade_strategy(script):
+    create_basic_wheel_for_package(script, "base", "1.0.0", depends=["dep"])
+    create_basic_wheel_for_package(script, "dep", "1.0.0")
+    script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "base",
+    )
+
+    assert_installed(script, base="1.0.0")
+    assert_installed(script, dep="1.0.0")
+
+    # Now release new versions
+    create_basic_wheel_for_package(script, "base", "2.0.0", depends=["dep"])
+    create_basic_wheel_for_package(script, "dep", "2.0.0")
+
+    script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "--upgrade",
+        "base",
+    )
+
+    # With upgrade strategy "only-if-needed" (the default), dep should not
+    # be upgraded.
+    assert_installed(script, base="2.0.0")
+    assert_installed(script, dep="1.0.0")
+
+    create_basic_wheel_for_package(script, "base", "3.0.0", depends=["dep"])
+    script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "--upgrade", "--upgrade-strategy=eager",
+        "base",
+    )
+
+    # With upgrade strategy "eager", dep should be upgraded.
+    assert_installed(script, base="3.0.0")
+    assert_installed(script, dep="2.0.0")
+
+
+class TestExtraMerge(object):
+    """
+    Test installing a package that depends the same package with different
+    extras, one listed as required and the other as in extra.
+    """
+
+    def _local_with_setup(script, name, version, requires, extras):
+        """Create the package as a local source directory to install from path.
+        """
+        return create_test_package_with_setup(
+            script,
+            name=name,
+            version=version,
+            install_requires=requires,
+            extras_require=extras,
+        )
+
+    def _direct_wheel(script, name, version, requires, extras):
+        """Create the package as a wheel to install from path directly.
+        """
+        return create_basic_wheel_for_package(
+            script,
+            name=name,
+            version=version,
+            depends=requires,
+            extras=extras,
+        )
+
+    def _wheel_from_index(script, name, version, requires, extras):
+        """Create the package as a wheel to install from index.
+        """
+        create_basic_wheel_for_package(
+            script,
+            name=name,
+            version=version,
+            depends=requires,
+            extras=extras,
+        )
+        return name
+
+    @pytest.mark.parametrize(
+        "pkg_builder",
+        [
+            pytest.param(
+                _local_with_setup, marks=pytest.mark.xfail(strict=True),
+            ),
+            _direct_wheel,
+            _wheel_from_index,
+        ],
+    )
+    def test_new_resolver_extra_merge_in_package(
+        self, monkeypatch, script, pkg_builder,
+    ):
+        create_basic_wheel_for_package(script, "depdev", "1.0.0")
+        create_basic_wheel_for_package(
+            script,
+            "dep",
+            "1.0.0",
+            extras={"dev": ["depdev"]},
+        )
+        requirement = pkg_builder(
+            script,
+            name="pkg",
+            version="1.0.0",
+            requires=["dep"],
+            extras={"dev": ["dep[dev]"]},
+        )
+
+        script.pip(
+            "install", "--unstable-feature=resolver",
+            "--no-cache-dir", "--no-index",
+            "--find-links", script.scratch_path,
+            requirement + "[dev]",
+        )
+        assert_installed(script, pkg="1.0.0", dep="1.0.0", depdev="1.0.0")
