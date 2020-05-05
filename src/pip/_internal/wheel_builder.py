@@ -69,14 +69,6 @@ def _should_build(
     # From this point, this concerns the pip install command only
     # (need_wheel=False).
 
-    if not req.use_pep517 and not is_wheel_installed():
-        # we don't build legacy requirements if wheel is not installed
-        logger.info(
-            "Could not build wheels for %s, "
-            "since package 'wheel' is not installed.", req.name,
-        )
-        return False
-
     if req.editable or not req.source_dir:
         return False
 
@@ -84,6 +76,14 @@ def _should_build(
         logger.info(
             "Skipping wheel build for %s, due to binaries "
             "being disabled for it.", req.name,
+        )
+        return False
+
+    if not req.use_pep517 and not is_wheel_installed():
+        # we don't build legacy requirements if wheel is not installed
+        logger.info(
+            "Using legacy setup.py install for %s, "
+            "since package 'wheel' is not installed.", req.name,
         )
         return False
 
