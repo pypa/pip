@@ -357,7 +357,6 @@ def test_new_resolver_installed(script):
         "dep",
         "0.1.0",
     )
-    satisfied_output = "Requirement already satisfied: base==0.1.0 in"
 
     result = script.pip(
         "install", "--unstable-feature=resolver",
@@ -365,15 +364,16 @@ def test_new_resolver_installed(script):
         "--find-links", script.scratch_path,
         "base",
     )
-    assert satisfied_output not in result.stdout, str(result)
+    assert "Requirement already satisfied" not in result.stdout, str(result)
 
     result = script.pip(
         "install", "--unstable-feature=resolver",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
-        "base",
+        "base>=0.1.0",
     )
-    assert satisfied_output in result.stdout, str(result)
+    assert "Requirement already satisfied: base>=0.1.0" in result.stdout, \
+        str(result)
     assert script.site_packages / "base" not in result.files_updated, (
         "base 0.1.0 reinstalled"
     )
@@ -385,7 +385,7 @@ def test_new_resolver_ignore_installed(script):
         "base",
         "0.1.0",
     )
-    satisfied_output = "Requirement already satisfied: base==0.1.0 in"
+    satisfied_output = "Requirement already satisfied"
 
     result = script.pip(
         "install", "--unstable-feature=resolver",
