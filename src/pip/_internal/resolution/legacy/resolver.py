@@ -175,7 +175,7 @@ class Resolver(BaseResolver):
         # based on link type.
         discovered_reqs = []  # type: List[InstallRequirement]
         hash_errors = HashErrors()
-        for req in chain(root_reqs, discovered_reqs):
+        for req in chain(requirement_set.all_requirements, discovered_reqs):
             try:
                 discovered_reqs.extend(self._resolve_one(requirement_set, req))
             except HashError as exc:
