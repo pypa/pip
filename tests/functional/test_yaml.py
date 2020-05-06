@@ -176,7 +176,7 @@ def test_yaml_based(script, case):
                                 request.get('options', '').split(),
                                 case[':resolver:'] == 'new')
 
-        if 0:  # for analyzing output easier
+        if 1:  # for analyzing output easier
             with open(DATA_DIR.parent / "yaml" /
                       case[':name:'].replace('*', '-'), 'w') as fo:
                 result = effect['result']

@@ -48,6 +48,8 @@ def lint_case(case, verbose=False):
         check_dict(package,
                    required=['name', 'version'],
                    optional=['depends', 'extras'])
+        version = package['version']
+        assert isinstance(version, str), repr(version)
 
     for request, response in zip(requests, responses):
         check_dict(request, optional=['install', 'uninstall', 'options'])
