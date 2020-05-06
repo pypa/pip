@@ -1,6 +1,5 @@
 import functools
 import logging
-from collections import defaultdict
 
 from pip._vendor import six
 from pip._vendor.packaging.utils import canonicalize_name
@@ -71,14 +70,17 @@ class Resolver(BaseResolver):
         # The persistent state that we care about is `root_reqs`.
         assert len(self.factory.root_reqs) == 0, "Factory is being re-used"
 
-        constraints = defaultdict(list)  # type: Dict[str,List[SpecifierSet]]
+        constraints = {}  # type: Dict[str, SpecifierSet]
         requirements = []
         for req in root_reqs:
             if req.constraint:
                 assert req.name
                 assert req.specifier
                 name = canonicalize_name(req.name)
-                constraints[name].append(req.specifier)
+                if name in constraints:
+                    constraints[name] = constraints[name] & req.specifier
+                else:
+                    constraints[name] = req.specifier
             else:
                 requirements.append(
                     self.factory.make_requirement_from_install_req(req)

@@ -17,10 +17,9 @@ if MYPY_CHECK_RUNNING:
 
 
 class ExplicitRequirement(Requirement):
-    def __init__(self, candidate, factory):
-        # type: (Candidate, Factory) -> None
+    def __init__(self, candidate):
+        # type: (Candidate) -> None
         self.candidate = candidate
-        self._factory = factory
 
     def __repr__(self):
         # type: () -> str
@@ -35,9 +34,9 @@ class ExplicitRequirement(Requirement):
         # No need to canonicalise - the candidate did this
         return self.candidate.name
 
-    def find_matches(self, constraints):
+    def find_matches(self, constraint):
         # type: (Sequence[SpecifierSet]) -> Sequence[Candidate]
-        if constraints:
+        if len(constraint) > 0:
             raise InstallationError(
                 "Could not satisfy constraints for '{}': "
                 "installation from path or url cannot be "
@@ -75,12 +74,15 @@ class SpecifierRequirement(Requirement):
         canonical_name = canonicalize_name(self._ireq.req.name)
         return format_name(canonical_name, self.extras)
 
-    def find_matches(self, constraints):
-        # type: (Sequence[SpecifierSet]) -> Sequence[Candidate]
-        it = self._factory.iter_found_candidates(self._ireq, self.extras)
-        return [c for c in it if all(
-            s.contains(c.version, prereleases=True) for s in constraints
-        )]
+    def find_matches(self, constraint):
+        # type: (SpecifierSet) -> Sequence[Candidate]
+        return [
+            c
+            for c in self._factory.iter_found_candidates(
+                self._ireq, self.extras
+            )
+            if constraint.contains(c.version, prereleases=True)
+        ]
 
     def is_satisfied_by(self, candidate):
         # type: (Candidate) -> bool
@@ -114,8 +116,10 @@ class RequiresPythonRequirement(Requirement):
         # type: () -> str
         return self._candidate.name
 
-    def find_matches(self, constraints):
+    def find_matches(self, constraint):
         # type: (Sequence[SpecifierSet]) -> Sequence[Candidate]
+        assert len(constraint) == 0, \
+            "RequiresPythonRequirement cannot have constraints"
         if self._candidate.version in self.specifier:
             return [self._candidate]
         return []

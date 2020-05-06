@@ -24,8 +24,8 @@ class Requirement(object):
         # type: () -> str
         raise NotImplementedError("Subclass should override")
 
-    def find_matches(self, constraints):
-        # type: (Sequence[SpecifierSet]) -> Sequence[Candidate]
+    def find_matches(self, constraint):
+        # type: (SpecifierSet) -> Sequence[Candidate]
         raise NotImplementedError("Subclass should override")
 
     def is_satisfied_by(self, candidate):
