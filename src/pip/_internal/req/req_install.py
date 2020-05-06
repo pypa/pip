@@ -428,6 +428,10 @@ class InstallRequirement(object):
         no_marker.marker = None
         try:
             self.satisfied_by = pkg_resources.get_distribution(str(no_marker))
+            # We cant check url versions properly so force reinstall
+            if self.req.url:
+                self.should_reinstall = True
+                self.satisfied_by = None
         except pkg_resources.DistributionNotFound:
             return
         except pkg_resources.VersionConflict:
