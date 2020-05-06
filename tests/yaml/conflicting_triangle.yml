@@ -20,6 +20,3 @@ cases:
   skip: true
   # -- currently the error message is:
   # a 1.0.0 has requirement C==1.0.0, but you'll have c 2.0.0 which is incompatible.
-  # -- better would be something like:
-  # A 1.0.0 -> C 1.0.0
-  # A 1.0.0 -> B 1.0.0 -> C 2.0.0
