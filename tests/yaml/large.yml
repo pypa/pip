@@ -17,13 +17,13 @@ base:
     - beautifulsoup4 4.6.3
     - name: cachecontrol
       version: 0.12.3
-      depends: ['msgpack-python', 'requests']
+      depends: ['msgpack_python', 'requests']
     - name: cachecontrol
       version: 0.12.4
-      depends: ['msgpack-python', 'requests']
+      depends: ['msgpack_python', 'requests']
     - name: cachecontrol
       version: 0.12.5
-      depends: ['msgpack-python', 'requests']
+      depends: ['msgpack_python', 'requests']
     - certifi 2017.11.5
     - certifi 2017.7.27.1
     - certifi 2018.1.18
@@ -108,10 +108,10 @@ base:
       depends: ['markupsafe >=0.23', 'setuptools']
     - lockfile 0.12.2
     - markupsafe 1.0
-    - msgpack-python 0.4.8
-    - msgpack-python 0.5.1
-    - msgpack-python 0.5.5
-    - msgpack-python 0.5.6
+    - msgpack_python 0.4.8
+    - msgpack_python 0.5.1
+    - msgpack_python 0.5.5
+    - msgpack_python 0.5.6
     - name: packaging
       version: '16.8'
       depends: ['pyparsing', 'six']
@@ -246,3 +246,24 @@ cases:
       - pycparser 2.18
       - six 1.11.0
   skip: old
+-
+  request:
+    - install: cachecontrol
+  response:
+    - state:
+      - asn1crypto 0.24.0
+      - cachecontrol 0.12.5
+      - certifi 2018.8.13
+      - cffi 1.11.5
+      - chardet 3.0.4
+      - cryptography 2.3
+      - cryptography_vectors 2.3.0
+      - idna 2.7
+      - msgpack_python 0.5.6
+      - pycparser 2.18
+      - pyopenssl 18.0.0
+      - pysocks 1.6.8
+      - requests 2.19.1
+      - six 1.11.0
+      - urllib3 1.23
+      - win_inet_pton 1.0.1
