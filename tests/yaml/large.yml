@@ -1,3 +1,5 @@
+# The 129 available packages have been obtained by transforming a
+# conda repodata.json, and doing some manual fixes.
 base:
   available:
     - affine 2.2.0
