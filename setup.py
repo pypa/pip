@@ -56,6 +56,7 @@ setup(
     project_urls={
         "Documentation": "https://pip.pypa.io",
         "Source": "https://github.com/pypa/pip",
+        "Changelog": "https://pip.pypa.io/en/stable/news/",
     },
 
     author='The pip developers',
