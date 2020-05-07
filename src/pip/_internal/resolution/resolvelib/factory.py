@@ -101,11 +101,11 @@ class Factory(object):
 
     def _make_candidate_from_link(
         self,
-        link,          # type: Link
-        extras,        # type: Set[str]
-        parent,        # type: InstallRequirement
-        name=None,     # type: Optional[str]
-        version=None,  # type: Optional[_BaseVersion]
+        link,  # type: Link
+        extras,  # type: Set[str]
+        parent,  # type: InstallRequirement
+        name,  # type: Optional[str]
+        version,  # type: Optional[_BaseVersion]
     ):
         # type: (...) -> Candidate
         # TODO: Check already installed candidate, and use it if the link and
@@ -176,15 +176,16 @@ class Factory(object):
 
     def make_requirement_from_install_req(self, ireq):
         # type: (InstallRequirement) -> Requirement
-        if ireq.link:
-            # TODO: Get name and version from ireq, if possible?
-            #       Specifically, this might be needed in "name @ URL"
-            #       syntax - need to check where that syntax is handled.
-            candidate = self._make_candidate_from_link(
-                ireq.link, extras=set(ireq.extras), parent=ireq,
-            )
-            return self.make_requirement_from_candidate(candidate)
-        return SpecifierRequirement(ireq, factory=self)
+        if not ireq.link:
+            return SpecifierRequirement(ireq, factory=self)
+        cand = self._make_candidate_from_link(
+            ireq.link,
+            extras=set(ireq.extras),
+            parent=ireq,
+            name=canonicalize_name(ireq.name) if ireq.name else None,
+            version=None,
+        )
+        return self.make_requirement_from_candidate(cand)
 
     def make_requirement_from_candidate(self, candidate):
         # type: (Candidate) -> ExplicitRequirement
