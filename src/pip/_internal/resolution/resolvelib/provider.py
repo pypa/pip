@@ -1,9 +1,10 @@
+from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.resolvelib.providers import AbstractProvider
 
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Optional, Sequence, Tuple, Union
+    from typing import Any, Dict, Optional, Sequence, Tuple, Union
 
     from pip._internal.req.req_install import InstallRequirement
 
@@ -15,10 +16,12 @@ class PipProvider(AbstractProvider):
     def __init__(
         self,
         factory,  # type: Factory
+        constraints,  # type: Dict[str, SpecifierSet]
         ignore_dependencies,  # type: bool
     ):
         # type: (...) -> None
         self._factory = factory
+        self._constraints = constraints
         self._ignore_dependencies = ignore_dependencies
 
     def get_install_requirement(self, c):
@@ -41,7 +44,8 @@ class PipProvider(AbstractProvider):
 
     def find_matches(self, requirement):
         # type: (Requirement) -> Sequence[Candidate]
-        return requirement.find_matches()
+        constraint = self._constraints.get(requirement.name, SpecifierSet())
+        return requirement.find_matches(constraint)
 
     def is_satisfied_by(self, requirement, candidate):
         # type: (Requirement, Candidate) -> bool

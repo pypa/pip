@@ -6,6 +6,7 @@ if MYPY_CHECK_RUNNING:
     from typing import Optional, Sequence, Set
 
     from pip._internal.req.req_install import InstallRequirement
+    from pip._vendor.packaging.specifiers import SpecifierSet
     from pip._vendor.packaging.version import _BaseVersion
 
 
@@ -23,8 +24,8 @@ class Requirement(object):
         # type: () -> str
         raise NotImplementedError("Subclass should override")
 
-    def find_matches(self):
-        # type: () -> Sequence[Candidate]
+    def find_matches(self, constraint):
+        # type: (SpecifierSet) -> Sequence[Candidate]
         raise NotImplementedError("Subclass should override")
 
     def is_satisfied_by(self, candidate):

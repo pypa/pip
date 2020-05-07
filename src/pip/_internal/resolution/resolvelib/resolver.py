@@ -17,6 +17,7 @@ from .factory import Factory
 if MYPY_CHECK_RUNNING:
     from typing import Dict, List, Optional, Set, Tuple
 
+    from pip._vendor.packaging.specifiers import SpecifierSet
     from pip._vendor.resolvelib.resolvers import Result
     from pip._vendor.resolvelib.structs import Graph
 
@@ -69,21 +70,29 @@ class Resolver(BaseResolver):
         # The persistent state that we care about is `root_reqs`.
         assert len(self.factory.root_reqs) == 0, "Factory is being re-used"
 
-        # FIXME: Implement constraints.
-        if any(r.constraint for r in root_reqs):
-            raise InstallationError("Constraints are not yet supported.")
+        constraints = {}  # type: Dict[str, SpecifierSet]
+        requirements = []
+        for req in root_reqs:
+            if req.constraint:
+                assert req.name
+                assert req.specifier
+                name = canonicalize_name(req.name)
+                if name in constraints:
+                    constraints[name] = constraints[name] & req.specifier
+                else:
+                    constraints[name] = req.specifier
+            else:
+                requirements.append(
+                    self.factory.make_requirement_from_install_req(req)
+                )
 
         provider = PipProvider(
             factory=self.factory,
+            constraints=constraints,
             ignore_dependencies=self.ignore_dependencies,
         )
         reporter = BaseReporter()
         resolver = RLResolver(provider, reporter)
-
-        requirements = [
-            self.factory.make_requirement_from_install_req(r)
-            for r in root_reqs
-        ]
 
         try:
             self._result = resolver.resolve(requirements)
