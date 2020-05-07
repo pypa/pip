@@ -779,21 +779,23 @@ class InstallRequirement(object):
         if self.editable:
             if self.metadata_directory and self.metadata_directory.endswith('.dist-info'):
 
-                editable_path = self.pep517_backend.build_editable()
+                # XXX the metadata_directory passed to
+                # 'prepare_metadata_for_build_wheel' is the parent
+                metadata_directory = os.path.dirname(self.metadata_directory)
 
-                # create empty RECORD
+                self.pep517_backend.build_editable(
+                    metadata_directory,
+                    scheme.platlib,
+                    {}
+                )
+
+                # create empty RECORD. To make install_unpacked_parsed_wheel work.
                 with open(os.path.join(self.metadata_directory, 'RECORD'), 'w+'):
                     pass
 
-                wheeldir = os.path.dirname(self.metadata_directory)
-
-                # put .pth file in wheeldir
-                with open(os.path.join(wheeldir, self.name + '.pth'), 'w+') as pthfile:
-                    pthfile.write(editable_path['src_root'] + '\n')
-
                 install_unpacked_parsed_wheel(
                     self.name,
-                    wheeldir,
+                    metadata_directory,
                     self.metadata_directory,
                     {
                         "Root-Is-Purelib" : "false", # shouldn't matter

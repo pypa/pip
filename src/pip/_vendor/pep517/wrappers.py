@@ -226,16 +226,21 @@ class Pep517HookCaller(object):
         })
 
 
-    def build_editable(self):
+    def build_editable(self, metadata_directory, target_directory, config_settings=None):
         """Build this project for editable. Usually in-place.
 
-        Returns a dict with the source directory (point .pth here)
+        Copy files into metadata_directory to effect an editable distribution.
+        The metadata_directory has the layout of the root directory of a wheel
+        and has been populated with prepare_metadata_for_build_wheel().
+        It will be copied into target_directory on PYTHONPATH, usually site-packages.
 
         This calls the 'build_editable' backend hook in a subprocess.
         """
-        editable = self._call_hook('build_editable', {})
-        editable['src_root'] = normpath(pjoin(self.source_dir, editable['src_root']))
-        return editable
+        return self._call_hook('build_editable', {
+            'metadata_directory': metadata_directory,
+            'target_directory': target_directory,
+            'config_settings': config_settings,
+        })
 
 
     def _call_hook(self, hook_name, kwargs):
