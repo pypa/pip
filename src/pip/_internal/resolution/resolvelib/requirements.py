@@ -35,7 +35,7 @@ class ExplicitRequirement(Requirement):
         return self.candidate.name
 
     def find_matches(self, constraint):
-        # type: (Sequence[SpecifierSet]) -> Sequence[Candidate]
+        # type: (SpecifierSet) -> Sequence[Candidate]
         if len(constraint) > 0:
             raise InstallationError(
                 "Could not satisfy constraints for '{}': "
@@ -117,7 +117,7 @@ class RequiresPythonRequirement(Requirement):
         return self._candidate.name
 
     def find_matches(self, constraint):
-        # type: (Sequence[SpecifierSet]) -> Sequence[Candidate]
+        # type: (SpecifierSet) -> Sequence[Candidate]
         assert len(constraint) == 0, \
             "RequiresPythonRequirement cannot have constraints"
         if self._candidate.version in self.specifier:
