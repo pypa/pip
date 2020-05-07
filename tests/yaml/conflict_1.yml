@@ -21,7 +21,7 @@ cases:
   response:
     - state: null
   skip: true
-  # -- currently the error message is:
+  # -- currently the (new resolver) error message is:
   # Could not find a version that satisfies the requirement B==1.0.0
   # Could not find a version that satisfies the requirement B==2.0.0
   # No matching distribution found for b, b
@@ -30,6 +30,18 @@ cases:
   # same time.
   # -- the old error message was actually better here:
   # Double requirement given: B==2.0.0 (already in B==1.0.0, name='B')
+-
+  request:
+    - install: B==1.5.0
+  response:
+    - state: null
+  skip: true
+  # -- currently (new resolver) error message is:
+  # Could not find a version that satisfies the requirement B==1.5.0
+  # No matching distribution found for b
+  # -- the old error message was actually better here:
+  # Could not find a version that satisfies the requirement B==1.5.0 (from versions: 1.0.0, 2.0.0)
+  # No matching distribution found for B==1.5.0
 -
   request:
     - install: A==2.0

@@ -1,4 +1,4 @@
-# Fixtures
+# YAML tests for pip's resolver
 
 This directory contains fixtures for testing pip's resolver.
 The fixtures are written as `.yml` files, with a convenient format
