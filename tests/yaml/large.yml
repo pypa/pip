@@ -202,6 +202,7 @@ base:
     - name: setuptools
       version: 40.0.0
       depends: ['certifi >=2016.09', 'wincertstore >=0.2']
+    - six 1.8.2
     - six 1.10.0
     - six 1.11.0
     - toolz 0.8.2
@@ -269,3 +270,21 @@ cases:
       - six 1.11.0
       - urllib3 1.23
       - win_inet_pton 1.0.1
+-
+  request:
+    - install: cytoolz
+  response:
+    - state:
+      - cytoolz 0.9.0.1
+      - toolz 0.9.0
+-
+  request:
+    - install: ['html5lib', 'six ==1.8.2']
+  response:
+    - state: null
+  skip: true
+  # -- the new resolver tells:
+  # Could not find a version that satisfies the requirement six==1.8.2
+  # Could not find a version that satisfies the requirement six>=1.9 (from html5lib)
+  # -- the old error message (which I think was better):
+  # html5lib 1.0.1 has requirement six>=1.9, but you'll have six 1.8.2 which is incompatible.
