@@ -5,10 +5,8 @@ from __future__ import absolute_import
 
 import json
 import logging
-from multiprocessing.dummy import Pool
 
 from pip._vendor import six
-from pip._vendor.requests.adapters import DEFAULT_POOLSIZE
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.req_command import IndexGroupCommand
@@ -210,17 +208,9 @@ class ListCommand(IndexGroupCommand):
                 dist.latest_filetype = typ
                 return dist
 
-            # This is done for 2x speed up of requests to pypi.org
-            # so that "real time" of this function
-            # is almost equal to "user time"
-            pool = Pool(DEFAULT_POOLSIZE)
-
-            for dist in pool.imap_unordered(latest_info, packages):
+            for dist in map(latest_info, packages):
                 if dist is not None:
                     yield dist
-
-            pool.close()
-            pool.join()
 
     def output_package_listing(self, packages, options):
         packages = sorted(
