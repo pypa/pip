@@ -8,6 +8,7 @@ from pip._internal.exceptions import (
     InstallationError,
     UnsupportedPythonVersion,
 )
+from pip._internal.utils.compatibility_tags import get_supported
 from pip._internal.utils.misc import (
     dist_in_site_packages,
     dist_in_usersite,
@@ -37,6 +38,7 @@ if MYPY_CHECK_RUNNING:
     from pip._vendor.pkg_resources import Distribution
     from pip._vendor.resolvelib import ResolutionImpossible
 
+    from pip._internal.cache import CacheEntry, WheelCache
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.models.link import Link
     from pip._internal.operations.prepare import RequirementPreparer
@@ -60,6 +62,7 @@ class Factory(object):
         finder,  # type: PackageFinder
         preparer,  # type: RequirementPreparer
         make_install_req,  # type: InstallRequirementProvider
+        wheel_cache,  # type: Optional[WheelCache]
         use_user_site,  # type: bool
         force_reinstall,  # type: bool
         ignore_installed,  # type: bool
@@ -70,6 +73,7 @@ class Factory(object):
 
         self.finder = finder
         self.preparer = preparer
+        self._wheel_cache = wheel_cache
         self._python_candidate = RequiresPythonCandidate(py_version_info)
         self._make_install_req_from_spec = make_install_req
         self._use_user_site = use_user_site
@@ -217,6 +221,24 @@ class Factory(object):
         if self._ignore_requires_python or specifier is None:
             return None
         return RequiresPythonRequirement(specifier, self._python_candidate)
+
+    def get_wheel_cache_entry(self, link, name):
+        # type: (Link, Optional[str]) -> Optional[CacheEntry]
+        """Look up the link in the wheel cache.
+
+        If ``preparer.require_hashes`` is True, don't use the wheel cache,
+        because cached wheels, always built locally, have different hashes
+        than the files downloaded from the index server and thus throw false
+        hash mismatches. Furthermore, cached wheels at present have
+        undeterministic contents due to file modification times.
+        """
+        if self._wheel_cache is None or self.preparer.require_hashes:
+            return None
+        return self._wheel_cache.get_cache_entry(
+            link=link,
+            package_name=name,
+            supported_tags=get_supported(),
+        )
 
     def should_reinstall(self, candidate):
         # type: (Candidate) -> bool

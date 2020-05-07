@@ -238,9 +238,21 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
         version=None,  # type: Optional[_BaseVersion]
     ):
         # type: (...) -> None
+        cache_entry = factory.get_wheel_cache_entry(link, name)
+        if cache_entry is not None:
+            logger.debug("Using cached wheel link: %s", cache_entry.link)
+            link = cache_entry.link
+        ireq = make_install_req_from_link(link, parent)
+
+        # TODO: Is this logic setting original_link_is_in_wheel_cache correct?
+        if (cache_entry is not None and
+                cache_entry.persistent and
+                parent.link is parent.original_link):
+            ireq.original_link_is_in_wheel_cache = True
+
         super(LinkCandidate, self).__init__(
             link=link,
-            ireq=make_install_req_from_link(link, parent),
+            ireq=ireq,
             factory=factory,
             name=name,
             version=version,
