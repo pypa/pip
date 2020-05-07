@@ -27,7 +27,7 @@ from pip._internal.operations.install.editable_legacy import \
     install_editable as install_editable_legacy
 from pip._internal.operations.install.legacy import LegacyInstallFailure
 from pip._internal.operations.install.legacy import install as install_legacy
-from pip._internal.operations.install.wheel import install_wheel, install_unpacked_parsed_wheel
+from pip._internal.operations.install.wheel import install_wheel, install_editable
 from pip._internal.pyproject import load_pyproject_toml, make_pyproject_path
 from pip._internal.req.req_uninstall import UninstallPathSet
 from pip._internal.utils.deprecation import deprecated
@@ -789,17 +789,10 @@ class InstallRequirement(object):
                     {}
                 )
 
-                # create empty RECORD. To make install_unpacked_parsed_wheel work.
-                with open(os.path.join(self.metadata_directory, 'RECORD'), 'w+'):
-                    pass
-
-                install_unpacked_parsed_wheel(
+                install_editable(
                     self.name,
                     metadata_directory,
                     self.metadata_directory,
-                    {
-                        "Root-Is-Purelib" : "false", # shouldn't matter
-                    },
                     scheme=scheme,
                     req_description=str(self.req),
                     pycompile=pycompile,

@@ -329,6 +329,57 @@ def install_unpacked_wheel(
     )
 
 
+def install_editable(
+    name,  # type: str
+    wheeldir,  # type: str
+    info_dir,  # type: str
+    scheme,  # type: Scheme
+    req_description,  # type: str
+    pycompile=True,  # type: bool
+    warn_script_location=True,  # type: bool
+    direct_url=None,  # type: Optional[DirectUrl]
+):  # type: (...) -> None
+    """Install a directory with a .dist-info folder but no RECORD for
+    editable installs.
+
+    :param name: Name of the project to install
+    :param wheeldir: Base directory of the unpacked wheel
+    :param info_dir: Wheel's .dist-info directory
+    :param scheme: Distutils scheme dictating the install directories
+    :param req_description: String used in place of the requirement, for
+        logging
+    :param pycompile: Whether to byte-compile installed Python files
+    :param warn_script_location: Whether to check that scripts are installed
+        into a directory on PATH
+    :raises UnsupportedWheel:
+        * when the directory holds an unpacked wheel with incompatible
+          Wheel-Version
+        * when the .dist-info dir does not match the wheel
+    """
+
+    # Create RECORD. install_unpacked_parsed_wheel will copy but won't remember
+    # files not in RECORD.
+    record_path = os.path.join(info_dir, 'RECORD')
+    with open(record_path, **csv_io_kwargs('w+')) as record_file:
+        writer = csv.writer(record_file)
+        for dir, _, files in os.walk(wheeldir):
+            writer.writerows(((normpath(os.path.join(dir, f), wheeldir), '', '')) for f in files)
+
+    return install_unpacked_parsed_wheel(
+        name,
+        wheeldir,
+        info_dir,
+        {
+            "Root-Is-Purelib" : "false", # shouldn't matter
+        },
+        scheme,
+        req_description,
+        pycompile=pycompile,
+        warn_script_location=warn_script_location,
+        direct_url=direct_url
+    )
+
+
 def install_unpacked_parsed_wheel(
     name,  # type: str
     wheeldir,  # type: str
