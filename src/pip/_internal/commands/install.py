@@ -5,6 +5,7 @@ import logging
 import operator
 import os
 import shutil
+from distutils.util import change_root
 from optparse import SUPPRESS_HELP
 from site import ENABLE_USER_SITE
 
@@ -637,8 +638,8 @@ def decide_user_install(
     is also asserted in this function.
     """
     # Check for incompatible options
-    locations = {"--target": target_dir, "--user": use_user_site,
-                 "--root": root_path, "--prefix": prefix_path}
+    locations = {"--target": target_dir is not None, "--user": use_user_site,
+                 "--prefix": prefix_path is not None}
     destinations = [k for k, v in locations.items() if v]
     if len(destinations) > 1:
         last, rest = destinations[-1], ", ".join(destinations[:-1])
@@ -646,6 +647,8 @@ def decide_user_install(
                            "{} and {}.".format(rest, last))
 
     if target_dir:
+        if root_path is not None:
+            target_dir = change_root(root_path, target_dir)
         if os.path.exists(target_dir) and not os.path.isdir(target_dir):
             raise InstallationError("Target path exists but is not "
                                     "a directory: {}".format(target_dir))
@@ -655,7 +658,8 @@ def decide_user_install(
         logger.debug("Non-user install due to specified target directory")
         return False
     if prefix_path:
-        if not test_writable_dir(prefix_path):
+        if not site_packages_writable(root=root_path, isolated=isolated_mode,
+                                      prefix=prefix_path):
             raise InstallationError(
                 "Cannot write to prefix path: {}".format(prefix_path))
         logger.debug("Non-user install due to specified prefix path")
@@ -703,9 +707,11 @@ def decide_user_install(
             raise InstallationError(
                 "Can not perform a '--user' install. "
                 "User site-packages are not visible in this virtualenv.")
-    else:
-        if not site_packages_writable(root=root_path, isolated=isolated_mode):
-            raise InstallationError("Cannot write to global site-packages.")
+        if not site_packages_writable(user=use_user_site, root=root_path,
+                                      isolated=isolated_mode):
+            raise InstallationError("Cannot write to user site-packages.")
+    elif not site_packages_writable(root=root_path, isolated=isolated_mode):
+        raise InstallationError("Cannot write to global site-packages.")
     return use_user_site
 
 

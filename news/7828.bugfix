@@ -1,0 +1,1 @@
+Print more concise error when ``--target`` and ``--prefix`` are used together.
