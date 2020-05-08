@@ -74,8 +74,7 @@ class Resolver(BaseResolver):
         requirements = []
         for req in root_reqs:
             if req.constraint:
-                assert req.name
-                assert req.specifier
+                assert req.name, "constraint should have a name"
                 name = canonicalize_name(req.name)
                 if name in constraints:
                     constraints[name] = constraints[name] & req.specifier
