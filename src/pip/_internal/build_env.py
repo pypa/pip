@@ -167,8 +167,9 @@ class BuildEnvironment(object):
         prefix.setup = True
         if not requirements:
             return
+        command = os.path.join(os.path.dirname(pip_location), '__main__.py')
         args = [
-            sys.executable, os.path.dirname(pip_location), 'install',
+            sys.executable, command, 'install',
             '--ignore-installed', '--no-user', '--prefix', prefix.path,
             '--no-warn-script-location',
         ]  # type: List[str]
