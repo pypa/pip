@@ -1,0 +1,2 @@
+Removes the ability to run pip via ``python src/pip/`` from a checkout without
+setting PYTHONPATH first.
