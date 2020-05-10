@@ -1,7 +1,7 @@
 ---
 name: Pip resolver failure
 about: Use this issue type to report when the pip dependency resolver fails
-labels: ["K: UX", "K: crash"]
+labels: ["K: UX", "K: crash", "C: new resolver", "C: dependency resolution"]
 
 ---
 
