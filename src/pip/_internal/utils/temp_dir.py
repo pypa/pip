@@ -8,6 +8,7 @@ import tempfile
 from contextlib import contextmanager
 
 from pip._vendor.contextlib2 import ExitStack
+from pip._vendor.six import ensure_text
 
 from pip._internal.utils.misc import enum, rmtree
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -193,7 +194,9 @@ class TempDirectory(object):
         """
         self._deleted = True
         if os.path.exists(self._path):
-            rmtree(self._path)
+            # Make sure to pass unicode on Python 2 so the contents with weird
+            # names are also in unicode and can be deleted correctly.
+            rmtree(ensure_text(self._path))
 
 
 class AdjacentTempDirectory(TempDirectory):

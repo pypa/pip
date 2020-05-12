@@ -256,16 +256,15 @@ def _normalized_outrows(outrows):
 
 def _record_to_fs_path(record_path):
     # type: (RecordPath) -> str
-    return ensure_str(record_path, encoding=sys.getfilesystemencoding())
+    return record_path
 
 
 def _fs_to_record_path(path, relative_to=None):
-    # type: (str, Optional[str]) -> RecordPath
+    # type: (text_type, Optional[text_type]) -> RecordPath
     if relative_to is not None:
         path = os.path.relpath(path, relative_to)
     path = path.replace(os.path.sep, '/')
-    p = ensure_text(path, encoding=sys.getfilesystemencoding())
-    return cast('RecordPath', p)
+    return cast('RecordPath', path)
 
 
 def _parse_record_path(record_column):
@@ -387,7 +386,7 @@ def install_unpacked_wheel(
         logger.debug(stdout.getvalue())
 
     def record_installed(srcfile, destfile, modified=False):
-        # type: (str, str, bool) -> None
+        # type: (text_type, text_type, bool) -> None
         """Map archive RECORD paths to installation RECORD paths."""
         oldpath = _fs_to_record_path(srcfile, wheeldir)
         newpath = _fs_to_record_path(destfile, lib_dir)
@@ -396,8 +395,8 @@ def install_unpacked_wheel(
             changed.add(_fs_to_record_path(destfile))
 
     def clobber(
-            source,  # type: str
-            dest,  # type: str
+            source,  # type: text_type
+            dest,  # type: text_type
             is_base,  # type: bool
             fixer=None,  # type: Optional[Callable[[str], Any]]
             filter=None  # type: Optional[Callable[[str], bool]]
@@ -459,7 +458,11 @@ def install_unpacked_wheel(
                     changed = fixer(destfile)
                 record_installed(srcfile, destfile, changed)
 
-    clobber(source, lib_dir, True)
+    clobber(
+        ensure_text(source, encoding=sys.getfilesystemencoding()),
+        ensure_text(lib_dir, encoding=sys.getfilesystemencoding()),
+        True,
+    )
 
     dest_info_dir = os.path.join(lib_dir, info_dir)
 
@@ -492,7 +495,13 @@ def install_unpacked_wheel(
                 filter = is_entrypoint_wrapper
             source = os.path.join(wheeldir, datadir, subdir)
             dest = getattr(scheme, subdir)
-            clobber(source, dest, False, fixer=fixer, filter=filter)
+            clobber(
+                ensure_text(source, encoding=sys.getfilesystemencoding()),
+                ensure_text(dest, encoding=sys.getfilesystemencoding()),
+                False,
+                fixer=fixer,
+                filter=filter,
+            )
 
     maker = PipScriptMaker(None, scheme.scripts)
 
