@@ -127,7 +127,7 @@ def test_basic_install_from_wheel_file(script, data):
                                                         result.stdout)
 
 
-# Installation works, but Path fails to check those weird names on Python 2.
+# Installation seems to work, but scripttest fails to check.
 # I really don't care now since we're desupporting it soon anyway.
 @skip_if_python2
 def test_basic_install_from_unicode_wheel(script, data):

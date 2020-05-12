@@ -194,8 +194,8 @@ class TempDirectory(object):
         """
         self._deleted = True
         if os.path.exists(self._path):
-            # Make sure to pass unicode on Python 2 so the contents with weird
-            # names are also in unicode and can be deleted correctly.
+            # Make sure to pass unicode on Python 2 to make the contents also
+            # use unicode, ensuring non-ASCII names and can be represented.
             rmtree(ensure_text(self._path))
 
 
