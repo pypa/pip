@@ -2,7 +2,7 @@ exclude: 'src/pip/_vendor/'
 
 repos:
 - repo: https://github.com/pre-commit/pre-commit-hooks
-  rev: v2.3.0
+  rev: v2.5.0
   hooks:
   - id: check-builtin-literals
   - id: check-added-large-files
@@ -29,7 +29,7 @@ repos:
     files: \.py$
 
 - repo: https://github.com/pre-commit/mirrors-mypy
-  rev: v0.750
+  rev: v0.760
   hooks:
   - id: mypy
     exclude: docs|tests
@@ -40,7 +40,7 @@ repos:
     args: ["--pretty", "-2"]
 
 - repo: https://github.com/pre-commit/pygrep-hooks
-  rev: v1.4.1
+  rev: v1.5.1
   hooks:
   - id: python-no-log-warn
   - id: python-no-eval
@@ -52,6 +52,6 @@ repos:
     exclude: NEWS.rst
 
 - repo: https://github.com/mgedmin/check-manifest
-  rev: '0.39'
+  rev: '0.42'
   hooks:
   - id: check-manifest
