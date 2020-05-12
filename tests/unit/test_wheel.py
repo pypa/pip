@@ -132,8 +132,7 @@ def test_raise_for_invalid_entrypoint_fail(entrypoint):
         ('', '', '1'),
     ]),
     ([
-        # Include an int to check avoiding the following error:
-        # > TypeError: '<' not supported between instances of 'str' and 'int'
+        # Test the normalization correctly encode everything for csv.writer().
         (u'😉', '', 1),
         (u'', '', ''),
     ], [
