@@ -12,11 +12,15 @@ repos:
   - id: debug-statements
   - id: end-of-file-fixer
     exclude: WHEEL
-  - id: flake8
-    exclude: tests/data
   - id: forbid-new-submodules
   - id: trailing-whitespace
     exclude: .patch
+
+- repo: https://gitlab.com/pycqa/flake8
+  rev: 3.7.9
+  hooks:
+  - id: flake8
+    exclude: tests/data
 
 - repo: https://github.com/timothycrosley/isort
   rev: 4.3.21
