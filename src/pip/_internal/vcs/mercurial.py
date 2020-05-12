@@ -38,7 +38,7 @@ class Mercurial(VersionControl):
 
     @staticmethod
     def get_base_rev_args(rev):
-        return [rev]
+        return ['-r', rev]
 
     def export(self, location, url):
         # type: (str, HiddenText) -> None
