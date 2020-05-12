@@ -29,11 +29,11 @@ repos:
   hooks:
   - id: mypy
     exclude: docs|tests
-    args: []
+    args: ["--pretty"]
   - id: mypy
-    name: mypy, for Py2
+    name: mypy, for Python 2
     exclude: noxfile.py|tools/automation/release|docs|tests
-    args: ["-2"]
+    args: ["--pretty", "-2"]
 
 - repo: https://github.com/pre-commit/pygrep-hooks
   rev: v1.4.1
