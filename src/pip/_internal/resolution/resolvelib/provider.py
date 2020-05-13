@@ -79,7 +79,6 @@ class PipProvider(AbstractProvider):
             if self._upgrade_strategy == "eager":
                 return True
             elif self._upgrade_strategy == "only-if-needed":
-                print(name, self.roots)
                 return (name in self.roots)
             return False
 
