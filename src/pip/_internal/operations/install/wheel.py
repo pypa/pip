@@ -249,8 +249,8 @@ def _normalized_outrows(outrows):
     # For additional background, see--
     # https://github.com/pypa/pip/issues/5868
     return sorted(
-        (ensure_str(row[0], encoding='utf-8'), row[1], str(row[2]))
-        for row in outrows
+        (ensure_str(record_path, encoding='utf-8'), hash_, str(size))
+        for record_path, hash_, size in outrows
     )
 
 
