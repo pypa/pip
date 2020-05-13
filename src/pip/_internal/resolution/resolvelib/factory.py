@@ -42,8 +42,6 @@ if MYPY_CHECK_RUNNING:
 
 
 class Factory(object):
-    _allowed_strategies = {"eager", "only-if-needed", "to-satisfy-only"}
-
     def __init__(
         self,
         finder,  # type: PackageFinder
@@ -52,11 +50,9 @@ class Factory(object):
         force_reinstall,  # type: bool
         ignore_installed,  # type: bool
         ignore_requires_python,  # type: bool
-        upgrade_strategy,  # type: str
         py_version_info=None,  # type: Optional[Tuple[int, ...]]
     ):
         # type: (...) -> None
-        assert upgrade_strategy in self._allowed_strategies
 
         self.finder = finder
         self.preparer = preparer
@@ -64,9 +60,6 @@ class Factory(object):
         self._make_install_req_from_spec = make_install_req
         self._force_reinstall = force_reinstall
         self._ignore_requires_python = ignore_requires_python
-        self._upgrade_strategy = upgrade_strategy
-
-        self.root_reqs = set()  # type: Set[str]
 
         self._link_candidate_cache = {}  # type: Cache[LinkCandidate]
         self._editable_candidate_cache = {}  # type: Cache[EditableCandidate]
@@ -118,23 +111,27 @@ class Factory(object):
             return ExtrasCandidate(base, extras)
         return base
 
-    def _eligible_for_upgrade(self, dist_name):
-        # type: (str) -> bool
-        if self._upgrade_strategy == "eager":
-            return True
-        elif self._upgrade_strategy == "only-if-needed":
-            return (dist_name in self.root_reqs)
-        return False
-
     def iter_found_candidates(self, ireq, extras):
         # type: (InstallRequirement, Set[str]) -> Iterator[Candidate]
         name = canonicalize_name(ireq.req.name)
-        if not self._force_reinstall:
-            installed_dist = self._installed_dists.get(name)
-            can_upgrade = self._eligible_for_upgrade(name)
-        else:
-            installed_dist = None
-            can_upgrade = False
+        seen_versions = set()
+
+        # Yield the installed version, if it matches, unless the user
+        # specified `--force-reinstall`, when we want the version from
+        # the index instead.
+        if not self._force_reinstall and name in self._installed_dists:
+            installed_dist = self._installed_dists[name]
+            installed_version = installed_dist.parsed_version
+            if ireq.req.specifier.contains(
+                installed_version,
+                prereleases=True
+            ):
+                seen_versions.add(installed_version)
+                yield self._make_candidate_from_dist(
+                    dist=installed_dist,
+                    extras=extras,
+                    parent=ireq,
+                )
 
         found = self.finder.find_best_candidate(
             project_name=ireq.req.name,
@@ -142,40 +139,18 @@ class Factory(object):
             hashes=ireq.hashes(trust_internet=False),
         )
         for ican in found.iter_applicable():
-            if (installed_dist is not None and
-                    installed_dist.parsed_version == ican.version):
-                if can_upgrade:
-                    yield self._make_candidate_from_dist(
-                        dist=installed_dist,
-                        extras=extras,
-                        parent=ireq,
-                    )
-                continue
-            yield self._make_candidate_from_link(
-                link=ican.link,
-                extras=extras,
-                parent=ireq,
-                name=name,
-                version=ican.version,
-            )
-
-        # Return installed distribution if it matches the specifier. This is
-        # done last so the resolver will prefer it over downloading links.
-        if can_upgrade or installed_dist is None:
-            return
-        installed_version = installed_dist.parsed_version
-        if ireq.req.specifier.contains(installed_version, prereleases=True):
-            yield self._make_candidate_from_dist(
-                dist=installed_dist,
-                extras=extras,
-                parent=ireq,
-            )
+            if ican.version not in seen_versions:
+                seen_versions.add(ican.version)
+                yield self._make_candidate_from_link(
+                    link=ican.link,
+                    extras=extras,
+                    parent=ireq,
+                    name=name,
+                    version=ican.version,
+                )
 
     def make_requirement_from_install_req(self, ireq):
         # type: (InstallRequirement) -> Requirement
-        if ireq.is_direct and ireq.name:
-            self.root_reqs.add(canonicalize_name(ireq.name))
-
         if ireq.link:
             # TODO: Get name and version from ireq, if possible?
             #       Specifically, this might be needed in "name @ URL"

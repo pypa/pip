@@ -101,6 +101,14 @@ def make_install_req_from_dist(dist, parent):
     return ireq
 
 
+def is_already_installed(cand):
+    # type: (Candidate) -> bool
+    # For an ExtrasCandidate, we check the base
+    if isinstance(cand, ExtrasCandidate):
+        cand = cand.base
+    return isinstance(cand, AlreadyInstalledCandidate)
+
+
 class _InstallRequirementBackedCandidate(Candidate):
     def __init__(
         self,
