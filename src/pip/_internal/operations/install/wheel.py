@@ -75,7 +75,7 @@ logger = logging.getLogger(__name__)
 
 
 def rehash(path, blocksize=1 << 20):
-    # type: (str, int) -> Tuple[str, str]
+    # type: (text_type, int) -> Tuple[str, str]
     """Return (encoded_digest, length) for path using hashlib.sha256()"""
     h, length = hash_file(path, blocksize)
     digest = 'sha256=' + urlsafe_b64encode(
@@ -97,7 +97,7 @@ def csv_io_kwargs(mode):
 
 
 def fix_script(path):
-    # type: (str) -> Optional[bool]
+    # type: (text_type) -> Optional[bool]
     """Replace #!python with #!/path/to/python
     Return True if file was changed.
     """
@@ -255,7 +255,7 @@ def _normalized_outrows(outrows):
 
 
 def _record_to_fs_path(record_path):
-    # type: (RecordPath) -> str
+    # type: (RecordPath) -> text_type
     return record_path
 
 
@@ -398,8 +398,8 @@ def install_unpacked_wheel(
             source,  # type: text_type
             dest,  # type: text_type
             is_base,  # type: bool
-            fixer=None,  # type: Optional[Callable[[str], Any]]
-            filter=None  # type: Optional[Callable[[str], bool]]
+            fixer=None,  # type: Optional[Callable[[text_type], Any]]
+            filter=None  # type: Optional[Callable[[text_type], bool]]
     ):
         # type: (...) -> None
         ensure_dir(dest)  # common for the 'include' path
@@ -471,7 +471,7 @@ def install_unpacked_wheel(
     console, gui = get_entrypoints(ep_file)
 
     def is_entrypoint_wrapper(name):
-        # type: (str) -> bool
+        # type: (text_type) -> bool
         # EP, EP.exe and EP-script.py are scripts generated for
         # entry point EP by setuptools
         if name.lower().endswith('.exe'):

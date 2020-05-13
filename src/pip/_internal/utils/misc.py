@@ -876,7 +876,7 @@ def is_console_interactive():
 
 
 def hash_file(path, blocksize=1 << 20):
-    # type: (str, int) -> Tuple[Any, int]
+    # type: (Text, int) -> Tuple[Any, int]
     """Return (hash, length) for path using hashlib.sha256()
     """
 
