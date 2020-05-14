@@ -7,7 +7,6 @@ import logging
 import os.path
 import sys
 
-from pip._vendor import pkg_resources
 from pip._vendor.packaging import version as packaging_version
 from pip._vendor.six import ensure_binary
 
@@ -19,7 +18,11 @@ from pip._internal.utils.filesystem import (
     check_path_owner,
     replace,
 )
-from pip._internal.utils.misc import ensure_dir, get_installed_version
+from pip._internal.utils.misc import (
+    ensure_dir,
+    get_distribution,
+    get_installed_version,
+)
 from pip._internal.utils.packaging import get_installer
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -110,11 +113,10 @@ def was_installed_by_pip(pkg):
     This is used not to display the upgrade message when pip is in fact
     installed by system package manager, such as dnf on Fedora.
     """
-    try:
-        dist = pkg_resources.get_distribution(pkg)
-        return "pip" == get_installer(dist)
-    except pkg_resources.DistributionNotFound:
+    dist = get_distribution(pkg)
+    if not dist:
         return False
+    return "pip" == get_installer(dist)
 
 
 def pip_self_version_check(session, options):

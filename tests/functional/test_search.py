@@ -168,7 +168,8 @@ def test_latest_prerelease_install_message(caplog, monkeypatch):
 
     dist = pretend.stub(version="1.0.0")
     get_dist = pretend.call_recorder(lambda x: dist)
-    monkeypatch.setattr("pip._vendor.pkg_resources.get_distribution", get_dist)
+    monkeypatch.setattr("pip._internal.commands.search.get_distribution",
+                        get_dist)
     with caplog.at_level(logging.INFO):
         print_results(hits)
 

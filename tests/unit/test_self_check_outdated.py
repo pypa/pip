@@ -6,7 +6,6 @@ import sys
 import freezegun
 import pretend
 import pytest
-from pip._vendor import pkg_resources
 
 from pip._internal import self_outdated_check
 from pip._internal.models.candidate import InstallationCandidate
@@ -98,7 +97,7 @@ def test_pip_self_version_check(monkeypatch, stored_time, installed_ver,
                         pretend.call_recorder(lambda *a, **kw: None))
     monkeypatch.setattr(logger, 'debug',
                         pretend.call_recorder(lambda s, exc_info=None: None))
-    monkeypatch.setattr(pkg_resources, 'get_distribution',
+    monkeypatch.setattr(self_outdated_check, 'get_distribution',
                         lambda name: MockDistribution(installer))
 
     fake_state = pretend.stub(

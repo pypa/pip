@@ -20,6 +20,7 @@ from collections import deque
 from pip._vendor import pkg_resources
 # NOTE: retrying is not annotated in typeshed as on 2017-07-17, which is
 #       why we ignore the type on this import.
+from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.retrying import retry  # type: ignore
 from pip._vendor.six import PY2, text_type
 from pip._vendor.six.moves import input, map, zip_longest
@@ -478,6 +479,40 @@ def get_installed_distributions(
             editables_only_test(d) and
             user_test(d)
             ]
+
+
+def search_distribution(req_name):
+
+    # Canonicalize the name before searching in the list of
+    # installed distributions and also while creating the package
+    # dictionary to get the Distribution object
+    req_name = canonicalize_name(req_name)
+    packages = get_installed_distributions(skip=())
+    pkg_dict = {canonicalize_name(p.key): p for p in packages}
+    return pkg_dict.get(req_name)
+
+
+def get_distribution(req_name):
+    """Given a requirement name, return the installed Distribution object"""
+
+    # Search the distribution by looking through the working set
+    dist = search_distribution(req_name)
+
+    # If distribution could not be found, call working_set.require
+    # to update the working set, and try to find the distribution
+    # again.
+    # This might happen for e.g. when you install a package
+    # twice, once using setup.py develop and again using setup.py install.
+    # Now when run pip uninstall twice, the package gets removed
+    # from the working set in the first uninstall, so we have to populate
+    # the working set again so that pip knows about it and the packages
+    # gets picked up and is successfully uninstalled the second time too.
+    if not dist:
+        try:
+            pkg_resources.working_set.require(req_name)
+        except pkg_resources.DistributionNotFound:
+            return None
+    return search_distribution(req_name)
 
 
 def egg_link_path(dist):
