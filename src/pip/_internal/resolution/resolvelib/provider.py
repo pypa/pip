@@ -3,8 +3,6 @@ from pip._vendor.resolvelib.providers import AbstractProvider
 
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-from .candidates import is_already_installed
-
 if MYPY_CHECK_RUNNING:
     from typing import Any, Dict, Optional, Sequence, Set, Tuple, Union
 
@@ -40,16 +38,16 @@ class PipProvider(AbstractProvider):
         constraints,  # type: Dict[str, SpecifierSet]
         ignore_dependencies,  # type: bool
         upgrade_strategy,  # type: str
-        roots,  # type: Set[str]
+        user_requested,  # type: Set[str]
     ):
         # type: (...) -> None
         self._factory = factory
         self._constraints = constraints
         self._ignore_dependencies = ignore_dependencies
         self._upgrade_strategy = upgrade_strategy
-        self.roots = roots
+        self.user_requested = user_requested
 
-    def sort_matches(self, matches):
+    def _sort_matches(self, matches):
         # type: (Sequence[Candidate]) -> Sequence[Candidate]
 
         # The requirement is responsible for returning a sequence of potential
@@ -76,28 +74,36 @@ class PipProvider(AbstractProvider):
 
         def _eligible_for_upgrade(name):
             # type: (str) -> bool
+            """Are upgrades allowed for this project?
+
+            This checks the upgrade strategy, and whether the project was one
+            that the user specified in the command line, in order to decide
+            whether we should upgrade if there's a newer version available.
+
+            (Note that we don't need access to the `--upgrade` flag, because
+            an upgrade strategy of "to-satisfy-only" means that `--upgrade`
+            was not specified).
+            """
             if self._upgrade_strategy == "eager":
                 return True
             elif self._upgrade_strategy == "only-if-needed":
-                return (name in self.roots)
+                return (name in self.user_requested)
             return False
 
-        def keep_installed(c):
-            # type: (Candidate) -> int
-            """Give priority to an installed version?"""
-            if not is_already_installed(c):
-                return 0
-
-            if _eligible_for_upgrade(c.name):
-                return 0
-
-            return 1
-
-        def key(c):
+        def sort_key(c):
             # type: (Candidate) -> Tuple[int, _BaseVersion]
-            return (keep_installed(c), c.version)
+            """Return a sort key for the matches.
 
-        return sorted(matches, key=key)
+            The highest priority should be given to installed candidates that
+            are not eligible for upgrade. We use the integer value in the first
+            part of the key to sort these before other candidates.
+            """
+            if c.is_installed and not _eligible_for_upgrade(c.name):
+                return (1, c.version)
+
+            return (0, c.version)
+
+        return sorted(matches, key=sort_key)
 
     def get_install_requirement(self, c):
         # type: (Candidate) -> Optional[InstallRequirement]
@@ -121,7 +127,7 @@ class PipProvider(AbstractProvider):
         # type: (Requirement) -> Sequence[Candidate]
         constraint = self._constraints.get(requirement.name, SpecifierSet())
         matches = requirement.find_matches(constraint)
-        return self.sort_matches(matches)
+        return self._sort_matches(matches)
 
     def is_satisfied_by(self, requirement, candidate):
         # type: (Requirement, Candidate) -> bool

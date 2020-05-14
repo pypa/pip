@@ -66,5 +66,5 @@ def provider(factory):
         constraints={},
         ignore_dependencies=False,
         upgrade_strategy="to-satisfy-only",
-        roots=set(),
+        user_requested=set(),
     )

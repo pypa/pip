@@ -69,7 +69,7 @@ class Resolver(BaseResolver):
         # type: (List[InstallRequirement], bool) -> RequirementSet
 
         constraints = {}  # type: Dict[str, SpecifierSet]
-        roots = set()
+        user_requested = set()
         requirements = []
         for req in root_reqs:
             if req.constraint:
@@ -82,7 +82,7 @@ class Resolver(BaseResolver):
                     constraints[name] = req.specifier
             else:
                 if req.is_direct and req.name:
-                    roots.add(canonicalize_name(req.name))
+                    user_requested.add(canonicalize_name(req.name))
                 requirements.append(
                     self.factory.make_requirement_from_install_req(req)
                 )
@@ -92,7 +92,7 @@ class Resolver(BaseResolver):
             constraints=constraints,
             ignore_dependencies=self.ignore_dependencies,
             upgrade_strategy=self.upgrade_strategy,
-            roots=roots,
+            user_requested=user_requested,
         )
         reporter = BaseReporter()
         resolver = RLResolver(provider, reporter)

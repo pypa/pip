@@ -114,6 +114,12 @@ class Factory(object):
     def iter_found_candidates(self, ireq, extras):
         # type: (InstallRequirement, Set[str]) -> Iterator[Candidate]
         name = canonicalize_name(ireq.req.name)
+
+        # We use this to ensure that we only yield a single candidate for
+        # each version (the finder's preferred one for that version). The
+        # requirement needs to return only one candidate per version, so we
+        # implement that logic here so that requirements using this helper
+        # don't all have to do the same thing later.
         seen_versions = set()
 
         # Yield the installed version, if it matches, unless the user

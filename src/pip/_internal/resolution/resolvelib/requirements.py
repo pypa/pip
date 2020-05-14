@@ -76,6 +76,10 @@ class SpecifierRequirement(Requirement):
 
     def find_matches(self, constraint):
         # type: (SpecifierSet) -> Sequence[Candidate]
+
+        # We should only return one candidate per version, but
+        # iter_found_candidates does that for us, so we don't need
+        # to do anything special here.
         return [
             c
             for c in self._factory.iter_found_candidates(
