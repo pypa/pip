@@ -45,7 +45,7 @@ def assert_editable(script, *args):
         "{!r} not all found in {!r}".format(args, script.site_packages_path)
 
 
-def test_new_resolver_can_install(script):
+def test_can_install(script):
     create_basic_wheel_for_package(
         script,
         "simple",
@@ -60,7 +60,7 @@ def test_new_resolver_can_install(script):
     assert_installed(script, simple="0.1.0")
 
 
-def test_new_resolver_can_install_with_version(script):
+def test_can_install_with_version(script):
     create_basic_wheel_for_package(
         script,
         "simple",
@@ -75,7 +75,7 @@ def test_new_resolver_can_install_with_version(script):
     assert_installed(script, simple="0.1.0")
 
 
-def test_new_resolver_picks_latest_version(script):
+def test_picks_latest_version(script):
     create_basic_wheel_for_package(
         script,
         "simple",
@@ -95,7 +95,7 @@ def test_new_resolver_picks_latest_version(script):
     assert_installed(script, simple="0.2.0")
 
 
-def test_new_resolver_picks_installed_version(script):
+def test_picks_installed_version(script):
     create_basic_wheel_for_package(
         script,
         "simple",
@@ -124,7 +124,7 @@ def test_new_resolver_picks_installed_version(script):
     assert_installed(script, simple="0.1.0")
 
 
-def test_new_resolver_picks_installed_version_if_no_match_found(script):
+def test_picks_installed_version_if_no_match_found(script):
     create_basic_wheel_for_package(
         script,
         "simple",
@@ -152,7 +152,7 @@ def test_new_resolver_picks_installed_version_if_no_match_found(script):
     assert_installed(script, simple="0.1.0")
 
 
-def test_new_resolver_installs_dependencies(script):
+def test_installs_dependencies(script):
     create_basic_wheel_for_package(
         script,
         "base",
@@ -173,7 +173,7 @@ def test_new_resolver_installs_dependencies(script):
     assert_installed(script, base="0.1.0", dep="0.1.0")
 
 
-def test_new_resolver_ignore_dependencies(script):
+def test_ignore_dependencies(script):
     create_basic_wheel_for_package(
         script,
         "base",
@@ -204,7 +204,7 @@ def test_new_resolver_ignore_dependencies(script):
         "base >= 0.1.0[add]",
     ],
 )
-def test_new_resolver_installs_extras(tmpdir, script, root_dep):
+def test_installs_extras(tmpdir, script, root_dep):
     req_file = tmpdir.joinpath("requirements.txt")
     req_file.write_text(root_dep)
 
@@ -228,7 +228,7 @@ def test_new_resolver_installs_extras(tmpdir, script, root_dep):
     assert_installed(script, base="0.1.0", dep="0.1.0")
 
 
-def test_new_resolver_installs_extras_warn_missing(script):
+def test_installs_extras_warn_missing(script):
     create_basic_wheel_for_package(
         script,
         "base",
@@ -252,7 +252,7 @@ def test_new_resolver_installs_extras_warn_missing(script):
     assert_installed(script, base="0.1.0", dep="0.1.0")
 
 
-def test_new_resolver_installed_message(script):
+def test_installed_message(script):
     create_basic_wheel_for_package(script, "A", "1.0")
     result = script.pip(
         "install", "--unstable-feature=resolver",
@@ -264,7 +264,7 @@ def test_new_resolver_installed_message(script):
     assert "Successfully installed A-1.0" in result.stdout, str(result)
 
 
-def test_new_resolver_no_dist_message(script):
+def test_no_dist_message(script):
     create_basic_wheel_for_package(script, "A", "1.0")
     result = script.pip(
         "install", "--unstable-feature=resolver",
@@ -287,7 +287,7 @@ def test_new_resolver_no_dist_message(script):
     assert "No matching distribution found for b" in result.stderr, str(result)
 
 
-def test_new_resolver_installs_editable(script):
+def test_installs_editable(script):
     create_basic_wheel_for_package(
         script,
         "base",
@@ -322,7 +322,7 @@ def test_new_resolver_installs_editable(script):
         (">=2", True, "0.2.0"),
     ],
 )
-def test_new_resolver_requires_python(
+def test_requires_python(
     script,
     requires_python,
     ignore_requires_python,
@@ -362,7 +362,7 @@ def test_new_resolver_requires_python(
     assert_installed(script, base="0.1.0", dep=dep_version)
 
 
-def test_new_resolver_requires_python_error(script):
+def test_requires_python_error(script):
     create_basic_wheel_for_package(
         script,
         "base",
@@ -384,7 +384,7 @@ def test_new_resolver_requires_python_error(script):
     assert message in result.stderr, str(result)
 
 
-def test_new_resolver_installed(script):
+def test_installed(script):
     create_basic_wheel_for_package(
         script,
         "base",
@@ -418,7 +418,7 @@ def test_new_resolver_installed(script):
     )
 
 
-def test_new_resolver_ignore_installed(script):
+def test_ignore_installed(script):
     create_basic_wheel_for_package(
         script,
         "base",
@@ -446,7 +446,7 @@ def test_new_resolver_ignore_installed(script):
     )
 
 
-def test_new_resolver_only_builds_sdists_when_needed(script):
+def test_only_builds_sdists_when_needed(script):
     create_basic_wheel_for_package(
         script,
         "base",
@@ -484,7 +484,7 @@ def test_new_resolver_only_builds_sdists_when_needed(script):
     assert_installed(script, base="0.1.0", dep="0.2.0")
 
 
-def test_new_resolver_install_different_version(script):
+def test_install_different_version(script):
     create_basic_wheel_for_package(script, "base", "0.1.0")
     create_basic_wheel_for_package(script, "base", "0.2.0")
 
@@ -511,7 +511,7 @@ def test_new_resolver_install_different_version(script):
     assert_installed(script, base="0.2.0")
 
 
-def test_new_resolver_force_reinstall(script):
+def test_force_reinstall(script):
     create_basic_wheel_for_package(script, "base", "0.1.0")
 
     script.pip(
@@ -553,7 +553,7 @@ def test_new_resolver_force_reinstall(script):
     ],
     ids=["default", "exact-pre", "explicit-pre", "no-stable"],
 )
-def test_new_resolver_handles_prerelease(
+def test_handles_prerelease(
     script,
     available_versions,
     pip_args,
@@ -602,7 +602,7 @@ def test_new_reolver_skips_marker(script, pkg_deps, root_deps):
         ["pkg<2.0"],
     ]
 )
-def test_new_resolver_constraints(script, constraints):
+def test_constraints(script, constraints):
     create_basic_wheel_for_package(script, "pkg", "1.0")
     create_basic_wheel_for_package(script, "pkg", "2.0")
     create_basic_wheel_for_package(script, "pkg", "3.0")
@@ -619,7 +619,7 @@ def test_new_resolver_constraints(script, constraints):
     assert_not_installed(script, "constraint_only")
 
 
-def test_new_resolver_constraint_no_specifier(script):
+def test_constraint_no_specifier(script):
     "It's allowed (but useless...) for a constraint to have no specifier"
     create_basic_wheel_for_package(script, "pkg", "1.0")
     constraints_file = script.scratch_path / "constraints.txt"
@@ -651,7 +651,7 @@ def test_new_resolver_constraint_no_specifier(script):
         ),
     ],
 )
-def test_new_resolver_constraint_reject_invalid(script, constraint, error):
+def test_constraint_reject_invalid(script, constraint, error):
     create_basic_wheel_for_package(script, "pkg", "1.0")
     constraints_file = script.scratch_path / "constraints.txt"
     constraints_file.write_text(constraint)
@@ -667,7 +667,7 @@ def test_new_resolver_constraint_reject_invalid(script, constraint, error):
     assert error in result.stderr, str(result)
 
 
-def test_new_resolver_constraint_on_dependency(script):
+def test_constraint_on_dependency(script):
     create_basic_wheel_for_package(script, "base", "1.0", depends=["dep"])
     create_basic_wheel_for_package(script, "dep", "1.0")
     create_basic_wheel_for_package(script, "dep", "2.0")
@@ -685,7 +685,7 @@ def test_new_resolver_constraint_on_dependency(script):
     assert_installed(script, dep="2.0")
 
 
-def test_new_resolver_constraint_on_path(script):
+def test_constraint_on_path(script):
     setup_py = script.scratch_path / "setup.py"
     text = "from setuptools import setup\nsetup(name='foo', version='2.0')"
     setup_py.write_text(text)
@@ -703,7 +703,7 @@ def test_new_resolver_constraint_on_path(script):
     assert msg in result.stderr, str(result)
 
 
-def test_new_resolver_upgrade_needs_option(script):
+def test_upgrade_needs_option(script):
     # Install pkg 1.0.0
     create_basic_wheel_for_package(script, "pkg", "1.0.0")
     script.pip(
@@ -744,7 +744,7 @@ def test_new_resolver_upgrade_needs_option(script):
     assert_installed(script, pkg="2.0.0")
 
 
-def test_new_resolver_upgrade_strategy(script):
+def test_upgrade_strategy(script):
     create_basic_wheel_for_package(script, "base", "1.0.0", depends=["dep"])
     create_basic_wheel_for_package(script, "dep", "1.0.0")
     script.pip(
@@ -836,7 +836,7 @@ class TestExtraMerge(object):
             _wheel_from_index,
         ],
     )
-    def test_new_resolver_extra_merge_in_package(
+    def test_extra_merge_in_package(
         self, monkeypatch, script, pkg_builder,
     ):
         create_basic_wheel_for_package(script, "depdev", "1.0.0")
@@ -864,7 +864,7 @@ class TestExtraMerge(object):
 
 
 @pytest.mark.xfail(reason="pre-existing build directory")
-def test_new_resolver_build_directory_error_zazo_19(script):
+def test_build_directory_error_zazo_19(script):
     """https://github.com/pradyunsg/zazo/issues/19#issuecomment-631615674
 
     This will first resolve like this:
