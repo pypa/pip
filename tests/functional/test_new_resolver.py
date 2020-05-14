@@ -170,10 +170,8 @@ def test_ignore_dependencies(script):
         "dep",
         "0.1.0",
     )
-    script.pip(
-        "install", "--unstable-feature=resolver",
-        "--no-cache-dir", "--no-index", "--no-deps",
-        "--find-links", script.scratch_path,
+    script.pip_install_with_new_resolver(
+        "--no-deps",
         "base"
     )
     assert_installed(script, base="0.1.0")
@@ -319,18 +317,11 @@ def test_requires_python(
         requires_python=requires_python,
     )
 
-    args = [
-        "install",
-        "--unstable-feature=resolver",
-        "--no-cache-dir",
-        "--no-index",
-        "--find-links", script.scratch_path,
-    ]
+    options = []
     if ignore_requires_python:
-        args.append("--ignore-requires-python")
-    args.append("base")
+        options.append("--ignore-requires-python")
 
-    script.pip(*args)
+    script.pip_install_with_new_resolver(options + ["base"])
 
     assert_installed(script, base="0.1.0", dep=dep_version)
 
@@ -395,10 +386,8 @@ def test_ignore_installed(script):
     )
     assert satisfied_output not in result.stdout, str(result)
 
-    result = script.pip(
-        "install", "--unstable-feature=resolver",
-        "--no-cache-dir", "--no-index", "--ignore-installed",
-        "--find-links", script.scratch_path,
+    result = script.pip_install_with_new_resolver(
+        "--ignore-installed",
         "base",
     )
     assert satisfied_output not in result.stdout, str(result)
@@ -770,10 +759,7 @@ class TestExtraMerge(object):
             extras={"dev": ["dep[dev]"]},
         )
 
-        script.pip(
-            "install", "--unstable-feature=resolver",
-            "--no-cache-dir", "--no-index",
-            "--find-links", script.scratch_path,
+        script.pip_install_with_new_resolver(
             requirement + "[dev]",
         )
         assert_installed(script, pkg="1.0.0", dep="1.0.0", depdev="1.0.0")
