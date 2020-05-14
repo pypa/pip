@@ -655,6 +655,14 @@ class PipTestEnvironment(TestFileEnvironment):
             *args, **kwargs
         )
 
+    def pip_install_with_new_resolver(self, *args, **kwargs):
+        return self.pip(
+            "install", "--unstable-feature=resolver",
+            "--no-cache-dir", "--no-index",
+            "--find-links", self.scratch_path,
+            *args, **kwargs
+        )
+
     def easy_install(self, *args, **kwargs):
         args = ('-m', 'easy_install') + args
         return self.run('python', *args, **kwargs)
