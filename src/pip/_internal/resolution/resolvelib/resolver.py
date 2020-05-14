@@ -2,6 +2,7 @@ import functools
 import logging
 
 from pip._vendor import six
+from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.resolvelib import BaseReporter, ResolutionImpossible
 from pip._vendor.resolvelib import Resolver as RLResolver
@@ -17,7 +18,6 @@ from .factory import Factory
 if MYPY_CHECK_RUNNING:
     from typing import Dict, List, Optional, Set, Tuple
 
-    from pip._vendor.packaging.specifiers import SpecifierSet
     from pip._vendor.resolvelib.resolvers import Result
     from pip._vendor.resolvelib.structs import Graph
 
@@ -74,13 +74,29 @@ class Resolver(BaseResolver):
         requirements = []
         for req in root_reqs:
             if req.constraint:
-                assert req.name
-                assert req.specifier
+                # TODO: Add warnings to accompany these errors, explaining
+                # that these were undocumented behaviour of the old resolver
+                # and will be removed in the new resolver. We need to consider
+                # how we remember to remove these warnings when the new
+                # resolver becomes the default...
+                if not req.name:
+                    raise InstallationError(
+                        "Unnamed requirements are not allowed as constraints"
+                    )
+                if req.link:
+                    raise InstallationError(
+                        "Links are not allowed as constraints"
+                    )
+                if req.extras:
+                    raise InstallationError(
+                        "Constraints cannot have extras"
+                    )
+                specifier = req.specifier or SpecifierSet()
                 name = canonicalize_name(req.name)
                 if name in constraints:
-                    constraints[name] = constraints[name] & req.specifier
+                    constraints[name] = constraints[name] & specifier
                 else:
-                    constraints[name] = req.specifier
+                    constraints[name] = specifier
             else:
                 requirements.append(
                     self.factory.make_requirement_from_install_req(req)
