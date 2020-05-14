@@ -1,15 +1,3 @@
-Add CLI options for enhancing requests with HTTP headers
+Add CLI option -H / --header for enhancing requests with HTTP headers.
 
--H, --header <key:val>      HTTP header to include in all requests. This option
-                            can be used multiple times. Conflicts with
-                            --extra-index-url.
-
-Example:
-
-```
-pip install \
-  --index-url http://pypi.index/simple/ \
-  --trusted-host pypi.index \
-  -H 'X-Spam: ~*~ SPAM ~*~' \
-  requests
-```
+See https://github.com/pypa/pip/issues/8042 for discussion.

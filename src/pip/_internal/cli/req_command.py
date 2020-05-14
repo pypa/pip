@@ -88,11 +88,11 @@ class SessionCommandMixin(CommandContextMixIn):
         # Refuse to set headers when multiple index URLs are set
         index_urls = cls._get_index_urls(options)
         if index_urls and len(index_urls) > 1:
-            logger.warning(
+            raise CommandError(
                 'Refusing to set -H / --header option(s) because multiple '
-                'index URLs are configured.',
+                'index URLs are configured. '
+                'See https://github.com/pypa/pip/issues/8042 for more info.',
             )
-            return None
 
         # Parse header inputs into dict
         headers = {}
@@ -102,7 +102,7 @@ class SessionCommandMixin(CommandContextMixIn):
                 key, val = match.groups()
                 headers[key] = val
             else:
-                logger.critical('Could not parse header {!r}'.format(header))
+                logger.warning('Could not parse header {!r}'.format(header))
         return headers or None
 
     def get_default_session(self, options):
