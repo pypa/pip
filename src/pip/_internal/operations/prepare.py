@@ -24,9 +24,15 @@ from pip._internal.exceptions import (
     PreviousBuildDirError,
     VcsHashUnsupported,
 )
+from pip._internal.utils.filesystem import copy2_fixed
 from pip._internal.utils.hashes import MissingHashes
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.misc import display_path, hide_url
+from pip._internal.utils.misc import (
+    display_path,
+    hide_url,
+    path_to_display,
+    rmtree,
+)
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.unpacking import unpack_file
@@ -127,6 +133,59 @@ def get_http_url(
     return File(from_path, content_type)
 
 
+def _copy2_ignoring_special_files(src, dest):
+    # type: (str, str) -> None
+    """Copying special files is not supported, but as a convenience to users
+    we skip errors copying them. This supports tools that may create e.g.
+    socket files in the project source directory.
+    """
+    try:
+        copy2_fixed(src, dest)
+    except shutil.SpecialFileError as e:
+        # SpecialFileError may be raised due to either the source or
+        # destination. If the destination was the cause then we would actually
+        # care, but since the destination directory is deleted prior to
+        # copy we ignore all of them assuming it is caused by the source.
+        logger.warning(
+            "Ignoring special file error '%s' encountered copying %s to %s.",
+            str(e),
+            path_to_display(src),
+            path_to_display(dest),
+        )
+
+
+def _copy_source_tree(source, target):
+    # type: (str, str) -> None
+    target_abspath = os.path.abspath(target)
+    target_basename = os.path.basename(target_abspath)
+    target_dirname = os.path.dirname(target_abspath)
+
+    def ignore(d, names):
+        # type: (str, List[str]) -> List[str]
+        skipped = []  # type: List[str]
+        if d == source:
+            # Pulling in those directories can potentially be very slow,
+            # exclude the following directories if they appear in the top
+            # level dir (and only it).
+            # See discussion at https://github.com/pypa/pip/pull/6770
+            skipped += ['.tox', '.nox']
+        if os.path.abspath(d) == target_dirname:
+            # Prevent an infinite recursion if the target is in source.
+            # This can happen when TMPDIR is set to ${PWD}/...
+            # and we copy PWD to TMPDIR.
+            skipped += [target_basename]
+        return skipped
+
+    kwargs = dict(ignore=ignore, symlinks=True)  # type: CopytreeKwargs
+
+    if not PY2:
+        # Python 2 does not support copy_function, so we only ignore
+        # errors on special file copy in Python 3.
+        kwargs['copy_function'] = _copy2_ignoring_special_files
+
+    shutil.copytree(source, target, **kwargs)
+
+
 def get_file_url(
     link,  # type: Link
     download_dir=None,  # type: Optional[str]
@@ -180,9 +239,11 @@ def unpack_url(
         unpack_vcs_link(link, location)
         return None
 
-    # If it's a url to a local directory, we build in-place.
-    # There is nothing to be done here.
+    # If it's a url to a local directory
     if link.is_existing_dir():
+        if os.path.isdir(location):
+            rmtree(location)
+        _copy_source_tree(link.file_path, location)
         return None
 
     # file urls
@@ -354,25 +415,21 @@ class RequirementPreparer(object):
         with indent_log():
             # Since source_dir is only set for editable requirements.
             assert req.source_dir is None
-            if link.is_existing_dir():
-                # Build local directories in place.
-                req.source_dir = link.file_path
-            else:
-                req.ensure_has_source_dir(self.build_dir, autodelete_unpacked)
-                # If a checkout exists, it's unwise to keep going.  version
-                # inconsistencies are logged later, but do not fail the
-                # installation.
-                # FIXME: this won't upgrade when there's an existing
-                # package unpacked in `req.source_dir`
-                if os.path.exists(os.path.join(req.source_dir, 'setup.py')):
-                    raise PreviousBuildDirError(
-                        "pip can't proceed with requirements '{}' due to a"
-                        " pre-existing build directory ({}). This is "
-                        "likely due to a previous installation that failed"
-                        ". pip is being responsible and not assuming it "
-                        "can delete this. Please delete it and try again."
-                        .format(req, req.source_dir)
-                    )
+            req.ensure_has_source_dir(self.build_dir, autodelete_unpacked)
+            # If a checkout exists, it's unwise to keep going.  version
+            # inconsistencies are logged later, but do not fail the
+            # installation.
+            # FIXME: this won't upgrade when there's an existing
+            # package unpacked in `req.source_dir`
+            if os.path.exists(os.path.join(req.source_dir, 'setup.py')):
+                raise PreviousBuildDirError(
+                    "pip can't proceed with requirements '{}' due to a"
+                    " pre-existing build directory ({}). This is "
+                    "likely due to a previous installation that failed"
+                    ". pip is being responsible and not assuming it "
+                    "can delete this. Please delete it and try again."
+                    .format(req, req.source_dir)
+                )
 
             # Now that we have the real link, we can tell what kind of
             # requirements we have and raise some more informative errors
