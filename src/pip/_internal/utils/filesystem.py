@@ -3,6 +3,8 @@ import fnmatch
 import os
 import os.path
 import random
+import shutil
+import stat
 import sys
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
@@ -52,6 +54,36 @@ def check_path_owner(path):
         else:
             previous, path = path, os.path.dirname(path)
     return False  # assume we don't own the path
+
+
+def copy2_fixed(src, dest):
+    # type: (str, str) -> None
+    """Wrap shutil.copy2() but map errors copying socket files to
+    SpecialFileError as expected.
+
+    See also https://bugs.python.org/issue37700.
+    """
+    try:
+        shutil.copy2(src, dest)
+    except (OSError, IOError):
+        for f in [src, dest]:
+            try:
+                is_socket_file = is_socket(f)
+            except OSError:
+                # An error has already occurred. Another error here is not
+                # a problem and we can ignore it.
+                pass
+            else:
+                if is_socket_file:
+                    raise shutil.SpecialFileError(
+                        "`{f}` is a socket".format(**locals()))
+
+        raise
+
+
+def is_socket(path):
+    # type: (str) -> bool
+    return stat.S_ISSOCK(os.lstat(path).st_mode)
 
 
 @contextmanager
