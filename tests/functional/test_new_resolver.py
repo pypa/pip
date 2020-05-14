@@ -699,6 +699,7 @@ class TestExtraMerge(object):
     extras, one listed as required and the other as in extra.
     """
 
+    @staticmethod
     def _local_with_setup(script, name, version, requires, extras):
         """Create the package as a local source directory to install from path.
         """
@@ -710,6 +711,7 @@ class TestExtraMerge(object):
             extras_require=extras,
         )
 
+    @staticmethod
     def _direct_wheel(script, name, version, requires, extras):
         """Create the package as a wheel to install from path directly.
         """
@@ -721,6 +723,7 @@ class TestExtraMerge(object):
             extras=extras,
         )
 
+    @staticmethod
     def _wheel_from_index(script, name, version, requires, extras):
         """Create the package as a wheel to install from index.
         """
