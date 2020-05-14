@@ -191,7 +191,12 @@ def test_freeze_svn(script, tmpdir):
 
 
 @pytest.mark.git
-@pytest.mark.xfail
+@pytest.mark.xfail(
+    condition=True,
+    reason="xfail means editable is not in output",
+    run=True,
+    strict=True,
+)
 def test_freeze_exclude_editable(script, tmpdir):
     """
     Test excluding editable from freezing list.
