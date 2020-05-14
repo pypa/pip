@@ -10,6 +10,7 @@ import collections
 import compileall
 import contextlib
 import csv
+import io
 import logging
 import os.path
 import re
@@ -24,7 +25,7 @@ from zipfile import ZipFile
 from pip._vendor import pkg_resources
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor.distlib.util import get_export_entry
-from pip._vendor.six import StringIO
+from pip._vendor.six import PY3, StringIO
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_major_minor_version
@@ -32,7 +33,7 @@ from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
 from pip._internal.utils.filesystem import adjacent_tmp_file, replace
 from pip._internal.utils.misc import captured_stdout, ensure_dir, hash_file
 from pip._internal.utils.temp_dir import TempDirectory
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING, cast
 from pip._internal.utils.unpacking import current_umask, unpack_file
 from pip._internal.utils.wheel import parse_wheel
 
@@ -600,6 +601,12 @@ def install_unpacked_wheel(
             generated=generated,
             lib_dir=lib_dir)
     with _generate_file(record_path, **csv_io_kwargs('w')) as record_file:
+
+        # For Python 3, we create the file in text mode, hence we
+        # cast record_file to io.StringIO
+        if PY3:
+            record_file = cast(io.StringIO, record_file)
+
         writer = csv.writer(record_file)
         writer.writerows(sorted_outrows(rows))  # sort to simplify testing
 
