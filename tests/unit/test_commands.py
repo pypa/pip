@@ -7,6 +7,7 @@ from pip._internal.cli.req_command import (
     SessionCommandMixin,
 )
 from pip._internal.commands import commands_dict, create_command
+from pip._internal.exceptions import CommandError
 
 # These are the expected names of the commands whose classes inherit from
 # IndexGroupCommand.
@@ -134,12 +135,6 @@ def test_requirement_commands():
             [],
             {'X-Parrot': 'DEAD'},
         ),
-        # Valid headers, but multiple index URLs
-        (
-            ['X-Spam: SPAM', 'X-Parrot: DEAD'],
-            ['https://pypi.extra/simple/'],
-            None,
-        )
     ],
 )
 def test_session_mixin_get_headers(headers, extra_index_urls, exp):
@@ -149,3 +144,23 @@ def test_session_mixin_get_headers(headers, extra_index_urls, exp):
     options.extra_index_urls = extra_index_urls
     ret = SessionCommandMixin._get_headers(options)
     assert ret == exp
+
+
+@pytest.mark.parametrize(
+    'headers, extra_index_urls, exp',
+    [
+        # Valid headers, but multiple index URLs
+        (
+            ['X-Spam: SPAM', 'X-Parrot: DEAD'],
+            ['https://pypi.extra/simple/'],
+            None,
+        )
+    ]
+)
+def test_session_mixin_get_headers_error(headers, extra_index_urls, exp):
+    command = create_command('install')
+    options = command.parser.get_default_values()
+    options.headers = headers
+    options.extra_index_urls = extra_index_urls
+    with pytest.raises(CommandError):
+        SessionCommandMixin._get_headers(options)
