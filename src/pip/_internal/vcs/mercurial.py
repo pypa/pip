@@ -144,7 +144,6 @@ class Mercurial(VersionControl):
             r = cls.run_command(
                 ['root'],
                 cwd=location,
-                on_returncode='raise',
                 log_failed_cmd=False,
             )
         except BadCommand:

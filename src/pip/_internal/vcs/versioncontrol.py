@@ -84,7 +84,6 @@ def make_vcs_requirement_url(repo_url, rev, project_name, subdir=None):
 def call_subprocess(
     cmd,  # type: Union[List[str], CommandArgs]
     cwd=None,  # type: Optional[str]
-    on_returncode='raise',  # type: str
     extra_environ=None,  # type: Optional[Mapping[str, Any]]
     extra_ok_returncodes=None,  # type: Optional[Iterable[int]]
     log_failed_cmd=True  # type: Optional[bool]
@@ -150,32 +149,21 @@ def call_subprocess(
         proc.returncode and proc.returncode not in extra_ok_returncodes
     )
     if proc_had_error:
-        if on_returncode == 'raise':
-            if not showing_subprocess and log_failed_cmd:
-                # Then the subprocess streams haven't been logged to the
-                # console yet.
-                msg = make_subprocess_output_error(
-                    cmd_args=cmd,
-                    cwd=cwd,
-                    lines=all_output,
-                    exit_status=proc.returncode,
-                )
-                subprocess_logger.error(msg)
-            exc_msg = (
-                'Command errored out with exit status {}: {} '
-                'Check the logs for full command output.'
-            ).format(proc.returncode, command_desc)
-            raise SubProcessError(exc_msg)
-        elif on_returncode == 'warn':
-            subprocess_logger.warning(
-                'Command "{}" had error code {} in {}'.format(
-                    command_desc, proc.returncode, cwd)
+        if not showing_subprocess and log_failed_cmd:
+            # Then the subprocess streams haven't been logged to the
+            # console yet.
+            msg = make_subprocess_output_error(
+                cmd_args=cmd,
+                cwd=cwd,
+                lines=all_output,
+                exit_status=proc.returncode,
             )
-        elif on_returncode == 'ignore':
-            pass
-        else:
-            raise ValueError('Invalid value: on_returncode={!r}'.format(
-                             on_returncode))
+            subprocess_logger.error(msg)
+        exc_msg = (
+            'Command errored out with exit status {}: {} '
+            'Check the logs for full command output.'
+        ).format(proc.returncode, command_desc)
+        raise SubProcessError(exc_msg)
     return ''.join(all_output)
 
 
@@ -768,7 +756,6 @@ class VersionControl(object):
         cls,
         cmd,  # type: Union[List[str], CommandArgs]
         cwd=None,  # type: Optional[str]
-        on_returncode='raise',  # type: str
         extra_environ=None,  # type: Optional[Mapping[str, Any]]
         extra_ok_returncodes=None,  # type: Optional[Iterable[int]]
         log_failed_cmd=True  # type: bool
@@ -782,7 +769,6 @@ class VersionControl(object):
         cmd = make_command(cls.name, *cmd)
         try:
             return call_subprocess(cmd, cwd,
-                                   on_returncode=on_returncode,
                                    extra_environ=extra_environ,
                                    extra_ok_returncodes=extra_ok_returncodes,
                                    log_failed_cmd=log_failed_cmd)

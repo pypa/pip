@@ -134,8 +134,13 @@ class Git(VersionControl):
           rev: the revision name.
         """
         # Pass rev to pre-filter the list.
-        output = cls.run_command(['show-ref', rev], cwd=dest,
-                                 on_returncode='ignore')
+
+        output = ''
+        try:
+            output = cls.run_command(['show-ref', rev], cwd=dest)
+        except SubProcessError:
+            pass
+
         refs = {}
         for line in output.strip().splitlines():
             try:
@@ -378,7 +383,6 @@ class Git(VersionControl):
             r = cls.run_command(
                 ['rev-parse', '--show-toplevel'],
                 cwd=location,
-                on_returncode='raise',
                 log_failed_cmd=False,
             )
         except BadCommand:
