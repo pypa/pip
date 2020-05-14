@@ -12,6 +12,9 @@ from tests.lib import (
 )
 
 
+#
+# Helpers
+#
 def assert_installed(script, **kwargs):
     ret = script.pip('list', '--format=json')
     installed = set(
@@ -45,6 +48,9 @@ def assert_editable(script, *args):
         "{!r} not all found in {!r}".format(args, script.site_packages_path)
 
 
+#
+# Actual tests follow!
+#
 def test_can_install(script):
     create_basic_wheel_for_package(
         script,
