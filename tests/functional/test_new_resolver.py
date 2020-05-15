@@ -208,8 +208,8 @@ def test_new_resolver_installs_extras(script):
         "base[add,missing]",
         expect_stderr=True,
     )
-    assert "WARNING: Invalid extras specified" in result.stderr, str(result)
-    assert ": missing" in result.stderr, str(result)
+    assert "does not provide the extra" in result.stderr, str(result)
+    assert "missing" in result.stderr, str(result)
     assert_installed(script, base="0.1.0", dep="0.1.0")
 
 
