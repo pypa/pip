@@ -69,7 +69,7 @@ class Resolver(BaseResolver):
         # type: (List[InstallRequirement], bool) -> RequirementSet
 
         constraints = {}  # type: Dict[str, SpecifierSet]
-        user_requested = set()
+        user_requested = set()  # type: Set[str]
         requirements = []
         for req in root_reqs:
             if req.constraint:

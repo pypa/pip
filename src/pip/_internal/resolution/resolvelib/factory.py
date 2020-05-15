@@ -120,7 +120,7 @@ class Factory(object):
         # requirement needs to return only one candidate per version, so we
         # implement that logic here so that requirements using this helper
         # don't all have to do the same thing later.
-        seen_versions = set()
+        seen_versions = set()  # type: Set[_BaseVersion]
 
         # Yield the installed version, if it matches, unless the user
         # specified `--force-reinstall`, when we want the version from
