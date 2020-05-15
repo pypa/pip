@@ -2,7 +2,6 @@ import functools
 import logging
 
 from pip._vendor import six
-from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.resolvelib import BaseReporter, ResolutionImpossible
 from pip._vendor.resolvelib import Resolver as RLResolver
@@ -19,6 +18,7 @@ from .factory import Factory
 if MYPY_CHECK_RUNNING:
     from typing import Dict, List, Optional, Set, Tuple
 
+    from pip._vendor.packaging.specifiers import SpecifierSet
     from pip._vendor.resolvelib.resolvers import Result
     from pip._vendor.resolvelib.structs import Graph
 
@@ -109,12 +109,11 @@ class Resolver(BaseResolver):
                 # Ensure we only accept valid constraints
                 reject_invalid_constraint_types(req)
 
-                specifier = req.specifier or SpecifierSet()
                 name = canonicalize_name(req.name)
                 if name in constraints:
-                    constraints[name] = constraints[name] & specifier
+                    constraints[name] = constraints[name] & req.specifier
                 else:
-                    constraints[name] = specifier
+                    constraints[name] = req.specifier
             else:
                 requirements.append(
                     self.factory.make_requirement_from_install_req(req)
