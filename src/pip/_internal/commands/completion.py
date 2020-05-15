@@ -4,7 +4,7 @@ import sys
 import textwrap
 
 from pip._internal.cli.base_command import Command
-from pip._internal.cli.status_codes import ERROR, SUCCESS
+from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.utils.misc import get_prog
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -99,4 +99,4 @@ class CompletionCommand(Command):
             sys.stderr.write(
                 'ERROR: You must pass {}\n' .format(' or '.join(shell_options))
             )
-            return ERROR
+            return SUCCESS
