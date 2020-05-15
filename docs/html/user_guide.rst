@@ -95,7 +95,7 @@ pip can be configured to connect through a proxy server in various ways:
   a JSON-encoded string in the user-agent variable used in pip's requests.
 
 User and password fields should not contain the following characters `[`, `]`,
-`#`, `?` as they are given special meaning by the underlying urllib.
+`#`, `?` as these symbols are reserved in the underlying libraries.
 
 .. _`Requirements Files`:
 
