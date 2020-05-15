@@ -1741,7 +1741,7 @@ def test_user_config_accepted(script):
 
 @pytest.mark.parametrize(
     'install_args, expected_message', [
-        ([], 'Requirement already satisfied: pip in'),
+        ([], 'Requirement already satisfied: pip'),
         (['--upgrade'], 'Requirement already up-to-date: pip in'),
     ]
 )
