@@ -30,11 +30,23 @@ if MYPY_CHECK_RUNNING:
 
 def pytest_addoption(parser):
     parser.addoption(
-        "--keep-tmpdir", action="store_true",
-        default=False, help="keep temporary test directories"
+        "--keep-tmpdir",
+        action="store_true",
+        default=False,
+        help="keep temporary test directories",
     )
-    parser.addoption("--use-venv", action="store_true",
-                     help="use venv for virtual environment creation")
+    parser.addoption(
+        "--new-resolver",
+        action="store_true",
+        default=False,
+        help="use new resolver in tests",
+    )
+    parser.addoption(
+        "--use-venv",
+        action="store_true",
+        default=False,
+        help="use venv for virtual environment creation",
+    )
 
 
 def pytest_collection_modifyitems(config, items):
@@ -73,6 +85,18 @@ def pytest_collection_modifyitems(config, items):
             raise RuntimeError(
                 "Unknown test type (filename = {})".format(module_path)
             )
+
+
+@pytest.fixture(scope="session", autouse=True)
+def use_new_resolver(request):
+    """Set environment variable to make pip default to the new resolver.
+    """
+    new_resolver = request.config.getoption("--new-resolver")
+    if new_resolver:
+        os.environ["PIP_UNSTABLE_FEATURE"] = "resolver"
+    else:
+        os.environ.pop("PIP_UNSTABLE_FEATURE", None)
+    yield new_resolver
 
 
 @pytest.fixture(scope='session')
