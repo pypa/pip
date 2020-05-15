@@ -1,1 +1,1 @@
-Look for version string in the entire output of svn --version, not just the first line
+The VCS commands run by pip as subprocesses don't merge stdout and stderr anymore, improving the output parsing by subsequent commands.
