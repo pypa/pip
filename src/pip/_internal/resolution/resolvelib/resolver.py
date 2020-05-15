@@ -10,6 +10,7 @@ from pip._internal.exceptions import InstallationError
 from pip._internal.req.req_set import RequirementSet
 from pip._internal.resolution.base import BaseResolver
 from pip._internal.resolution.resolvelib.provider import PipProvider
+from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 from .factory import Factory
@@ -29,6 +30,37 @@ if MYPY_CHECK_RUNNING:
 
 
 logger = logging.getLogger(__name__)
+
+
+def reject_invalid_constraint_types(req):
+    # type: (InstallRequirement) -> None
+
+    # Check for unsupported forms
+    problem = ""
+    if not req.name:
+        problem = "Unnamed requirements are not allowed as constraints"
+    elif req.link:
+        problem = "Links are not allowed as constraints"
+    elif req.extras:
+        problem = "Constraints cannot have extras"
+
+    if problem:
+        deprecated(
+            reason=(
+                "Constraints are only allowed to take the form of a package "
+                "name and a version specifier. Other forms were originally "
+                "permitted as an accident of the implementation, but were "
+                "undocumented. The new implementation of the resolver no "
+                "longer supports these forms."
+            ),
+            replacement=(
+                "replacing the constraint with a requirement."
+            ),
+            # No plan yet for when the new resolver becomes default
+            gone_in=None,
+            issue=8210
+        )
+        raise InstallationError(problem)
 
 
 class Resolver(BaseResolver):
@@ -73,8 +105,9 @@ class Resolver(BaseResolver):
         requirements = []
         for req in root_reqs:
             if req.constraint:
-                assert req.name
-                assert req.specifier
+                # Ensure we only accept valid constraints
+                reject_invalid_constraint_types(req)
+
                 name = canonicalize_name(req.name)
                 if name in constraints:
                     constraints[name] = constraints[name] & req.specifier

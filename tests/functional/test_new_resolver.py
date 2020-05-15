@@ -548,6 +548,54 @@ def test_new_resolver_constraints(script):
     assert_not_installed(script, "constraint_only")
 
 
+def test_new_resolver_constraint_no_specifier(script):
+    "It's allowed (but useless...) for a constraint to have no specifier"
+    create_basic_wheel_for_package(script, "pkg", "1.0")
+    constraints_file = script.scratch_path / "constraints.txt"
+    constraints_file.write_text("pkg")
+    script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "-c", constraints_file,
+        "pkg"
+    )
+    assert_installed(script, pkg="1.0")
+
+
+@pytest.mark.parametrize(
+    "constraint, error",
+    [
+        (
+            "dist.zip",
+            "Unnamed requirements are not allowed as constraints",
+        ),
+        (
+            "req @ https://example.com/dist.zip",
+            "Links are not allowed as constraints",
+        ),
+        (
+            "pkg[extra]",
+            "Constraints cannot have extras",
+        ),
+    ],
+)
+def test_new_resolver_constraint_reject_invalid(script, constraint, error):
+    create_basic_wheel_for_package(script, "pkg", "1.0")
+    constraints_file = script.scratch_path / "constraints.txt"
+    constraints_file.write_text(constraint)
+    result = script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "-c", constraints_file,
+        "pkg",
+        expect_error=True,
+        expect_stderr=True,
+    )
+    assert error in result.stderr, str(result)
+
+
 def test_new_resolver_constraint_on_dependency(script):
     create_basic_wheel_for_package(script, "base", "1.0", depends=["dep"])
     create_basic_wheel_for_package(script, "dep", "1.0")
