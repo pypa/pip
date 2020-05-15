@@ -32,6 +32,8 @@ logger = logging.getLogger(__name__)
 
 
 class Resolver(BaseResolver):
+    _allowed_strategies = {"eager", "only-if-needed", "to-satisfy-only"}
+
     def __init__(
         self,
         preparer,  # type: RequirementPreparer
@@ -47,6 +49,9 @@ class Resolver(BaseResolver):
         py_version_info=None,  # type: Optional[Tuple[int, ...]]
     ):
         super(Resolver, self).__init__()
+
+        assert upgrade_strategy in self._allowed_strategies
+
         self.factory = Factory(
             finder=finder,
             preparer=preparer,
@@ -54,23 +59,17 @@ class Resolver(BaseResolver):
             force_reinstall=force_reinstall,
             ignore_installed=ignore_installed,
             ignore_requires_python=ignore_requires_python,
-            upgrade_strategy=upgrade_strategy,
             py_version_info=py_version_info,
         )
         self.ignore_dependencies = ignore_dependencies
+        self.upgrade_strategy = upgrade_strategy
         self._result = None  # type: Optional[Result]
 
     def resolve(self, root_reqs, check_supported_wheels):
         # type: (List[InstallRequirement], bool) -> RequirementSet
 
-        # The factory should not have retained state from any previous usage.
-        # In theory this could only happen if self was reused to do a second
-        # resolve, which isn't something we do at the moment. We assert here
-        # in order to catch the issue if that ever changes.
-        # The persistent state that we care about is `root_reqs`.
-        assert len(self.factory.root_reqs) == 0, "Factory is being re-used"
-
         constraints = {}  # type: Dict[str, SpecifierSet]
+        user_requested = set()  # type: Set[str]
         requirements = []
         for req in root_reqs:
             if req.constraint:
@@ -82,6 +81,8 @@ class Resolver(BaseResolver):
                 else:
                     constraints[name] = req.specifier
             else:
+                if req.is_direct and req.name:
+                    user_requested.add(canonicalize_name(req.name))
                 requirements.append(
                     self.factory.make_requirement_from_install_req(req)
                 )
@@ -90,6 +91,8 @@ class Resolver(BaseResolver):
             factory=self.factory,
             constraints=constraints,
             ignore_dependencies=self.ignore_dependencies,
+            upgrade_strategy=self.upgrade_strategy,
+            user_requested=user_requested,
         )
         reporter = BaseReporter()
         resolver = RLResolver(provider, reporter)

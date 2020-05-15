@@ -102,6 +102,9 @@ def make_install_req_from_dist(dist, parent):
 
 
 class _InstallRequirementBackedCandidate(Candidate):
+    # These are not installed
+    is_installed = False
+
     def __init__(
         self,
         link,          # type: Link
@@ -271,6 +274,8 @@ class EditableCandidate(_InstallRequirementBackedCandidate):
 
 
 class AlreadyInstalledCandidate(Candidate):
+    is_installed = True
+
     def __init__(
         self,
         dist,  # type: Distribution
@@ -392,6 +397,11 @@ class ExtrasCandidate(Candidate):
         # type: () -> _BaseVersion
         return self.base.version
 
+    @property
+    def is_installed(self):
+        # type: () -> _BaseVersion
+        return self.base.is_installed
+
     def get_dependencies(self):
         # type: () -> Sequence[Requirement]
         factory = self.base._factory
@@ -428,6 +438,8 @@ class ExtrasCandidate(Candidate):
 
 
 class RequiresPythonCandidate(Candidate):
+    is_installed = False
+
     def __init__(self, py_version_info):
         # type: (Optional[Tuple[int, ...]]) -> None
         if py_version_info is not None:

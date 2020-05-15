@@ -44,6 +44,11 @@ class Candidate(object):
         # type: () -> _BaseVersion
         raise NotImplementedError("Override in subclass")
 
+    @property
+    def is_installed(self):
+        # type: () -> bool
+        raise NotImplementedError("Override in subclass")
+
     def get_dependencies(self):
         # type: () -> Sequence[Requirement]
         raise NotImplementedError("Override in subclass")
