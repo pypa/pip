@@ -1,6 +1,3 @@
-# The following comment should be removed at some point in the future.
-# mypy: disallow-untyped-defs=False
-
 from __future__ import absolute_import
 
 import locale
@@ -67,7 +64,6 @@ def create_vendor_txt_map():
 
 def get_module_from_module_name(module_name):
     # type: (str) -> ModuleType
-
     # Module name can be uppercase in vendor.txt for some reason...
     module_name = module_name.lower()
     # PATCH: setuptools is actually only pkg_resources.
@@ -84,8 +80,7 @@ def get_module_from_module_name(module_name):
 
 
 def get_vendor_version_from_module(module_name):
-    # type: (str) -> str
-
+    # type: (str) -> Optional[str]
     module = get_module_from_module_name(module_name)
     version = getattr(module, '__version__', None)
 
@@ -169,6 +164,7 @@ def show_tags(options):
 
 
 def ca_bundle_info(config):
+    # type: (Dict[str, str]) -> str
     levels = set()
     for key, value in config.items():
         levels.add(key.split('.')[0])
@@ -198,6 +194,7 @@ class DebugCommand(Command):
     ignore_require_venv = True
 
     def __init__(self, *args, **kw):
+        # type: (*Any, **Any) -> None
         super(DebugCommand, self).__init__(*args, **kw)
 
         cmd_opts = self.cmd_opts
@@ -206,7 +203,7 @@ class DebugCommand(Command):
         self.parser.config.load()
 
     def run(self, options, args):
-        # type: (Values, List[Any]) -> int
+        # type: (Values, List[str]) -> int
         logger.warning(
             "This command is only meant for debugging. "
             "Do not use this with automation for parsing and getting these "
