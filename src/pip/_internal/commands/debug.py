@@ -80,7 +80,7 @@ def get_module_from_module_name(module_name):
 
 
 def get_vendor_version_from_module(module_name):
-    # type: (str) -> str
+    # type: (str) -> Optional[str]
     module = get_module_from_module_name(module_name)
     version = getattr(module, '__version__', None)
 
