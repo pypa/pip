@@ -10,7 +10,6 @@ import collections
 import compileall
 import contextlib
 import csv
-import io
 import logging
 import os.path
 import re
@@ -25,7 +24,7 @@ from zipfile import ZipFile
 from pip._vendor import pkg_resources
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor.distlib.util import get_export_entry
-from pip._vendor.six import PY3, StringIO
+from pip._vendor.six import StringIO
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_major_minor_version
@@ -39,6 +38,7 @@ from pip._internal.utils.wheel import parse_wheel
 
 if MYPY_CHECK_RUNNING:
     from email.message import Message
+    import typing  # noqa F401
     from typing import (
         Dict, List, Optional, Sequence, Tuple, Any,
         Iterable, Iterator, Callable, Set,
@@ -602,12 +602,14 @@ def install_unpacked_wheel(
             lib_dir=lib_dir)
     with _generate_file(record_path, **csv_io_kwargs('w')) as record_file:
 
-        # For Python 3, we create the file in text mode, hence we
-        # cast record_file to io.StringIO
-        if PY3:
-            record_file = cast(io.StringIO, record_file)
+        # The type mypy infers for record_file using reveal_type
+        # is different for Python 3 (typing.IO[Any]) and
+        # Python 2 (typing.BinaryIO), leading us to explicitly
+        # cast to typing.IO[str] as a workaround
+        # for bad Python 2 behaviour
+        record_file_obj = cast('typing.IO[str]', record_file)
 
-        writer = csv.writer(record_file)
+        writer = csv.writer(record_file_obj)
         writer.writerows(sorted_outrows(rows))  # sort to simplify testing
 
 
