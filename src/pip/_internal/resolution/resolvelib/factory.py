@@ -4,8 +4,13 @@ from pip._internal.exceptions import (
     InstallationError,
     UnsupportedPythonVersion,
 )
-from pip._internal.utils.misc import get_installed_distributions
+from pip._internal.utils.misc import (
+    dist_in_site_packages,
+    dist_in_usersite,
+    get_installed_distributions,
+)
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.virtualenv import running_under_virtualenv
 
 from .candidates import (
     AlreadyInstalledCandidate,
@@ -47,6 +52,7 @@ class Factory(object):
         finder,  # type: PackageFinder
         preparer,  # type: RequirementPreparer
         make_install_req,  # type: InstallRequirementProvider
+        use_user_site,  # type: bool
         force_reinstall,  # type: bool
         ignore_installed,  # type: bool
         ignore_requires_python,  # type: bool
@@ -58,6 +64,7 @@ class Factory(object):
         self.preparer = preparer
         self._python_candidate = RequiresPythonCandidate(py_version_info)
         self._make_install_req_from_spec = make_install_req
+        self._use_user_site = use_user_site
         self._force_reinstall = force_reinstall
         self._ignore_requires_python = ignore_requires_python
 
@@ -181,7 +188,32 @@ class Factory(object):
     def should_reinstall(self, candidate):
         # type: (Candidate) -> bool
         # TODO: Are there more cases this needs to return True? Editable?
-        return candidate.name in self._installed_dists
+        dist = self._installed_dists.get(candidate.name)
+        if dist is None:  # Not installed, no uninstallation required.
+            return False
+
+        # We're installing into global site. The current installation must
+        # be uninstalled, no matter it's in global or user site, because the
+        # user site installation has precedence over global.
+        if not self._use_user_site:
+            return True
+
+        # We're installing into user site. Remove the user site installation.
+        if dist_in_usersite(dist):
+            return True
+
+        # We're installing into user site, but the installed incompatible
+        # package is in global site. We can't uninstall that, and would let
+        # the new user installation to "shadow" it. But shadowing won't work
+        # in virtual environments, so we error out.
+        if running_under_virtualenv() and dist_in_site_packages(dist):
+            raise InstallationError(
+                "Will not install to the user site because it will "
+                "lack sys.path precedence to {} in {}".format(
+                    dist.project_name, dist.location,
+                )
+            )
+        return False
 
     def _report_requires_python_error(
         self,
