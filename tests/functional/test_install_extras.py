@@ -1,3 +1,4 @@
+import re
 import textwrap
 from os.path import join
 
@@ -100,11 +101,11 @@ def test_nonexistent_options_listed_in_order(script, data):
         '--find-links=' + data.find_links,
         'simplewheel[nonexistent, nope]', expect_stderr=True,
     )
-    msg = (
-        "  WARNING: simplewheel 2.0 does not provide the extra 'nonexistent'\n"
-        "  WARNING: simplewheel 2.0 does not provide the extra 'nope'"
+    matches = re.findall(
+        "WARNING: simplewheel 2.0 does not provide the extra '([a-z]*)'",
+        result.stderr
     )
-    assert msg in result.stderr
+    assert matches == ['nonexistent', 'nope']
 
 
 def test_install_special_extra(script):

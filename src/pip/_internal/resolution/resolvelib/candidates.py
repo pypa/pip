@@ -410,11 +410,12 @@ class ExtrasCandidate(Candidate):
         # support. We ignore any unsupported extras here.
         valid_extras = self.extras.intersection(self.base.dist.extras)
         invalid_extras = self.extras.difference(self.base.dist.extras)
-        if invalid_extras:
+        for extra in sorted(invalid_extras):
             logger.warning(
-                "Invalid extras specified in %s: %s",
-                self.name,
-                ','.join(sorted(invalid_extras))
+                "%s %s does not provide the extra '%s'",
+                self.base.name,
+                self.version,
+                extra
             )
 
         deps = [
