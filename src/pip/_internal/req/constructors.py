@@ -8,9 +8,6 @@ These are meant to be used elsewhere within pip to create instances of
 InstallRequirement.
 """
 
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-
 import logging
 import os
 import re
@@ -188,7 +185,7 @@ class RequirementParts(object):
             requirement,  # type: Optional[Requirement]
             link,         # type: Optional[Link]
             markers,      # type: Optional[Marker]
-            extras,       # type: Set[str]
+            extras,       # type: Optional[Set[str]]
     ):
         self.requirement = requirement
         self.link = link
@@ -264,7 +261,7 @@ def _looks_like_path(name):
 
 
 def _get_url_from_path(path, name):
-    # type: (str, str) -> str
+    # type: (str, str) -> Optional[str]
     """
     First, it checks whether a provided path is an installable directory
     (e.g. it has a setup.py). If it is, returns the path.
