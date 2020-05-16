@@ -172,7 +172,10 @@ require_virtualenv = partial(
     dest='require_venv',
     action='store_true',
     default=False,
-    help=SUPPRESS_HELP
+    help=(
+        "Run pip within a virtual environment, raise error if no environment "
+        "is found."
+    ),
 )  # type: Callable[..., Option]
 
 verbose = partial(
