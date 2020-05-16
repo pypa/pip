@@ -1,2 +1,2 @@
-Generate PEP 376 REQUESTED metadata for top level requirements installed
+Generate PEP 376 REQUESTED metadata for user supplied requirements installed
 by pip.
