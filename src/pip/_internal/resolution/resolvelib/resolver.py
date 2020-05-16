@@ -159,7 +159,7 @@ class Resolver(BaseResolver):
 
         req_set = RequirementSet(check_supported_wheels=check_supported_wheels)
         for candidate in self._result.mapping.values():
-            ireq = provider.get_install_requirement(candidate)
+            ireq = candidate.get_install_requirement()
             if ireq is None:
                 continue
             ireq.should_reinstall = self.factory.should_reinstall(candidate)

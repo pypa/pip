@@ -6,7 +6,6 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 if MYPY_CHECK_RUNNING:
     from typing import Any, Dict, Optional, Sequence, Set, Tuple, Union
 
-    from pip._internal.req.req_install import InstallRequirement
     from pip._vendor.packaging.version import _BaseVersion
 
     from .base import Requirement, Candidate
@@ -104,10 +103,6 @@ class PipProvider(AbstractProvider):
             return (0, c.version)
 
         return sorted(matches, key=sort_key)
-
-    def get_install_requirement(self, c):
-        # type: (Candidate) -> Optional[InstallRequirement]
-        return c.get_install_requirement()
 
     def identify(self, dependency):
         # type: (Union[Requirement, Candidate]) -> str
