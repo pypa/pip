@@ -242,8 +242,9 @@ def test_prompt_for_authentication(script, data, cert_factory):
         result = script.pip('install', "--index-url", url,
                             "--cert", cert_path, "--client-cert", cert_path,
                             'simple', expect_error=True)
-    print(result)
-    assert 'User for {}:{}'.format(server.host, server.port) in result.stdout
+
+    assert 'User for {}:{}'.format(server.host, server.port) in \
+           result.stdout, str(result)
 
 
 def test_do_not_prompt_for_authentication(script, data, cert_factory):
