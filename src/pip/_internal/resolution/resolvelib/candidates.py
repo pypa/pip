@@ -461,7 +461,7 @@ class RequiresPythonCandidate(Candidate):
     def name(self):
         # type: () -> str
         # Avoid conflicting with the PyPI package "Python".
-        return "<Python fom Requires-Python>"
+        return "<Python from Requires-Python>"
 
     @property
     def version(self):
