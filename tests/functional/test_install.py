@@ -885,21 +885,16 @@ def test_install_package_with_target(script):
     assert singlemodule_py in result.files_updated, str(result)
 
 
-def test_install_package_to_usersite_with_target_must_fail(script):
+@pytest.mark.parametrize("target_option", ['--target', '-t'])
+def test_install_package_to_usersite_with_target_must_fail(script,
+                                                           target_option):
     """
     Test that installing package to usersite with target
     must raise error
     """
     target_dir = script.scratch_path / 'target'
     result = script.pip_install_local(
-        '--user', '-t', target_dir, "simple==1.0", expect_error=True
-    )
-    assert "Can not combine '--user' and '--target'" in result.stderr, (
-        str(result)
-    )
-
-    result = script.pip_install_local(
-        '--user', '--target', target_dir, "simple==1.0", expect_error=True
+        '--user', target_option, target_dir, "simple==1.0", expect_error=True
     )
     assert "Can not combine '--user' and '--target'" in result.stderr, (
         str(result)
