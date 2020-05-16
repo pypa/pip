@@ -21,6 +21,8 @@ from functools import partial
 from optparse import SUPPRESS_HELP, Option, OptionGroup
 from textwrap import dedent
 
+from pip._vendor.pkg_resources import iter_entry_points
+
 from pip._internal.cli.progress_bars import BAR_TYPES
 from pip._internal.exceptions import CommandError
 from pip._internal.locations import USER_CACHE_DIR, get_src_prefix
@@ -920,6 +922,35 @@ unstable_feature = partial(
 )  # type: Callable[..., Option]
 
 
+discovered_auth_plugins = {
+    entry_point.name: entry_point
+    for entry_point
+    in iter_entry_points('pip.auth_plugins')
+}
+
+
+def _handle_auth_plugin(option, opt_str, value, parser):
+    # type: (Option, str, str, OptionParser) -> None
+    plugin = discovered_auth_plugins[value].load()
+    setattr(parser.values, option.dest, plugin.Auth)
+
+
+auth_plugin = partial(
+    PipOption,
+    '--auth', '--auth-plugin',
+    dest='auth_class',
+    type='choice',
+    metavar='plugin',
+    default=None,
+    choices=list(discovered_auth_plugins.keys()),
+    action='callback',
+    callback=_handle_auth_plugin,
+    help='Specify authentication plugin to be used: {}.'.format(
+        ', '.join(discovered_auth_plugins.keys()) or 'no plugins found'
+    ),
+)  # type: Callable[..., Option]
+
+
 ##########
 # groups #
 ##########
@@ -948,6 +979,7 @@ general_group = {
         no_color,
         no_python_version_warning,
         unstable_feature,
+        auth_plugin,
     ]
 }  # type: Dict[str, Any]
 
