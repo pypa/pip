@@ -219,7 +219,8 @@ def install_req_from_editable(
     use_pep517=None,  # type: Optional[bool]
     isolated=False,  # type: bool
     options=None,  # type: Optional[Dict[str, Any]]
-    constraint=False  # type: bool
+    constraint=False,  # type: bool
+    user_supplied=False,  # type: bool
 ):
     # type: (...) -> InstallRequirement
 
@@ -228,6 +229,7 @@ def install_req_from_editable(
     return InstallRequirement(
         parts.requirement,
         comes_from=comes_from,
+        user_supplied=user_supplied,
         editable=True,
         link=parts.link,
         constraint=constraint,
@@ -382,6 +384,7 @@ def install_req_from_line(
     options=None,  # type: Optional[Dict[str, Any]]
     constraint=False,  # type: bool
     line_source=None,  # type: Optional[str]
+    user_supplied=False,  # type: bool
 ):
     # type: (...) -> InstallRequirement
     """Creates an InstallRequirement from a name, which might be a
@@ -400,6 +403,7 @@ def install_req_from_line(
         hash_options=options.get("hashes", {}) if options else {},
         constraint=constraint,
         extras=parts.extras,
+        user_supplied=user_supplied,
     )
 
 
@@ -407,7 +411,8 @@ def install_req_from_req_string(
     req_string,  # type: str
     comes_from=None,  # type: Optional[InstallRequirement]
     isolated=False,  # type: bool
-    use_pep517=None  # type: Optional[bool]
+    use_pep517=None,  # type: Optional[bool]
+    user_supplied=False,  # type: bool
 ):
     # type: (...) -> InstallRequirement
     try:
@@ -429,14 +434,19 @@ def install_req_from_req_string(
         )
 
     return InstallRequirement(
-        req, comes_from, isolated=isolated, use_pep517=use_pep517
+        req,
+        comes_from,
+        isolated=isolated,
+        use_pep517=use_pep517,
+        user_supplied=user_supplied,
     )
 
 
 def install_req_from_parsed_requirement(
     parsed_req,  # type: ParsedRequirement
     isolated=False,  # type: bool
-    use_pep517=None  # type: Optional[bool]
+    use_pep517=None,  # type: Optional[bool]
+    user_supplied=False,  # type: bool
 ):
     # type: (...) -> InstallRequirement
     if parsed_req.is_editable:
@@ -446,6 +456,7 @@ def install_req_from_parsed_requirement(
             use_pep517=use_pep517,
             constraint=parsed_req.constraint,
             isolated=isolated,
+            user_supplied=user_supplied,
         )
 
     else:
@@ -457,5 +468,6 @@ def install_req_from_parsed_requirement(
             options=parsed_req.options,
             constraint=parsed_req.constraint,
             line_source=parsed_req.line_source,
+            user_supplied=user_supplied,
         )
     return req

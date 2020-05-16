@@ -110,7 +110,8 @@ class InstallRequirement(object):
         global_options=None,  # type: Optional[List[str]]
         hash_options=None,  # type: Optional[Dict[str, List[str]]]
         constraint=False,  # type: bool
-        extras=()  # type: Iterable[str]
+        extras=(),  # type: Iterable[str]
+        user_supplied=False,  # type: bool
     ):
         # type: (...) -> None
         assert req is None or isinstance(req, Requirement), req
@@ -174,7 +175,7 @@ class InstallRequirement(object):
         # User supplied requirement are explicitly requested for installation
         # by the user via CLI arguments or requirements files, as opposed to,
         # e.g. dependencies, extras or constraints.
-        self.user_supplied = False
+        self.user_supplied = user_supplied
 
         # Set by the legacy resolver when the requirement has been downloaded
         # TODO: This introduces a strong coupling between the resolver and the
