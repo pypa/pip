@@ -1,6 +1,3 @@
-# The following comment should be removed at some point in the future.
-# mypy: disallow-untyped-defs=False
-
 from __future__ import absolute_import
 
 import logging
@@ -23,6 +20,12 @@ from pip._internal.network.xmlrpc import PipXmlrpcTransport
 from pip._internal.utils.compat import get_terminal_size
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import write_output
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from optparse import Values
+    from typing import Any, List, Dict, Optional
+
 
 logger = logging.getLogger(__name__)
 
@@ -35,6 +38,7 @@ class SearchCommand(Command, SessionCommandMixin):
     ignore_require_venv = True
 
     def __init__(self, *args, **kw):
+        # type: (*Any, **Any) -> None
         super(SearchCommand, self).__init__(*args, **kw)
         self.cmd_opts.add_option(
             '-i', '--index',
@@ -46,6 +50,7 @@ class SearchCommand(Command, SessionCommandMixin):
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
+        # type: (Values, List[str]) -> int
         if not args:
             raise CommandError('Missing required argument (search query).')
         query = args
@@ -62,6 +67,7 @@ class SearchCommand(Command, SessionCommandMixin):
         return NO_MATCHES_FOUND
 
     def search(self, query, options):
+        # type: (List[str], Values) -> List[Dict[str, str]]
         index_url = options.index
 
         session = self.get_default_session(options)
@@ -73,12 +79,13 @@ class SearchCommand(Command, SessionCommandMixin):
 
 
 def transform_hits(hits):
+    # type: (List[Dict[str, str]]) -> List[Dict[str, Any]]
     """
     The list from pypi is really a list of versions. We want a list of
     packages with the list of versions stored inline. This converts the
     list from pypi into one we can use.
     """
-    packages = OrderedDict()
+    packages = OrderedDict()  # type: OrderedDict[str, Any]
     for hit in hits:
         name = hit['name']
         summary = hit['summary']
@@ -101,6 +108,7 @@ def transform_hits(hits):
 
 
 def print_results(hits, name_column_width=None, terminal_width=None):
+    # type: (List[Dict[str, Any]], Optional[int], Optional[int]) -> None
     if not hits:
         return
     if name_column_width is None:
@@ -143,4 +151,5 @@ def print_results(hits, name_column_width=None, terminal_width=None):
 
 
 def highest_version(versions):
+    # type: (List[str]) -> str
     return max(versions, key=parse_version)
