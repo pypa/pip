@@ -94,10 +94,6 @@ def search_packages_info(query):
             'required_by': get_requiring_packages(dist.project_name)
         }
         file_list = None
-        # Set metadata to empty string to avoid metadata being typed as
-        # Optional[Any] in function calls using metadata below
-        # and since dist.get_metadata returns us a str, the default
-        # value of empty string should be valid
         metadata = ''
         if isinstance(dist, pkg_resources.DistInfoDistribution):
             # RECORDs should be part of .dist-info metadatas
