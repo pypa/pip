@@ -1,1 +1,1 @@
-Add ``--require-virtualenv`` option to docs.
+Document ``--require-virtualenv`` option, and how to use it.

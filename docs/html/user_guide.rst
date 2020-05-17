@@ -428,6 +428,16 @@ set like this:
     ignore-installed = true
     no-dependencies = yes
 
+Similarly ``pip`` also provides an option ``require-virtualenv``, which can be
+set to true if an operation should be performed within a virtual environement.
+It would abort the operation if no active virtual environment is detected. You
+can set the option just as above:
+
+.. code-block:: ini
+
+    [install]
+    require-virtualenv = true
+
 To enable the boolean options ``--no-compile``, ``--no-warn-script-location``
 and ``--no-cache-dir``, falsy values have to be used:
 

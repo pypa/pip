@@ -173,8 +173,8 @@ require_virtualenv = partial(
     action='store_true',
     default=False,
     help=(
-        "Run pip within a virtual environment, raise error if no environment "
-        "is found."
+        "Require a virtualenv to be active. Aborts when no active virtualenv "
+        "is detected."
     ),
 )  # type: Callable[..., Option]
 
