@@ -32,12 +32,13 @@ from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
 from pip._internal.utils.filesystem import adjacent_tmp_file, replace
 from pip._internal.utils.misc import captured_stdout, ensure_dir, hash_file
 from pip._internal.utils.temp_dir import TempDirectory
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING, cast
 from pip._internal.utils.unpacking import current_umask, unpack_file
 from pip._internal.utils.wheel import parse_wheel
 
 if MYPY_CHECK_RUNNING:
     from email.message import Message
+    import typing  # noqa F401
     from typing import (
         Dict, List, Optional, Sequence, Tuple, Any,
         Iterable, Iterator, Callable, Set,
@@ -600,7 +601,15 @@ def install_unpacked_wheel(
             generated=generated,
             lib_dir=lib_dir)
     with _generate_file(record_path, **csv_io_kwargs('w')) as record_file:
-        writer = csv.writer(record_file)
+
+        # The type mypy infers for record_file using reveal_type
+        # is different for Python 3 (typing.IO[Any]) and
+        # Python 2 (typing.BinaryIO), leading us to explicitly
+        # cast to typing.IO[str] as a workaround
+        # for bad Python 2 behaviour
+        record_file_obj = cast('typing.IO[str]', record_file)
+
+        writer = csv.writer(record_file_obj)
         writer.writerows(sorted_outrows(rows))  # sort to simplify testing
 
 
