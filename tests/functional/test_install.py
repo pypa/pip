@@ -1902,3 +1902,9 @@ def test_install_verify_package_name_normalization(script, package_name):
     result = script.pip('install', package_name)
     assert 'Requirement already satisfied: {}'.format(
         package_name) in result.stdout
+
+
+def test_install_logs_pip_version_in_debug(script):
+    result = script.pip('install', '-v', 'INITools==0.2')
+    pattern = "Using pip .* from .*"
+    assert_re_match(pattern, result.stdout)
