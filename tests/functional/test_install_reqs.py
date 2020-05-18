@@ -420,7 +420,7 @@ def test_install_with_extras_from_install(script, data):
     )
     result = script.pip_install_local(
         '-c', script.scratch_path / 'constraints.txt', 'LocalExtras[baz]')
-    assert script.site_packages / 'singlemodule.py'in result.files_created
+    assert script.site_packages / 'singlemodule.py' in result.files_created
 
 
 def test_install_with_extras_joined(script, data):
@@ -432,7 +432,7 @@ def test_install_with_extras_joined(script, data):
         '-c', script.scratch_path / 'constraints.txt', 'LocalExtras[baz]'
     )
     assert script.site_packages / 'simple' in result.files_created
-    assert script.site_packages / 'singlemodule.py'in result.files_created
+    assert script.site_packages / 'singlemodule.py' in result.files_created
 
 
 def test_install_with_extras_editable_joined(script, data):
@@ -443,7 +443,7 @@ def test_install_with_extras_editable_joined(script, data):
     result = script.pip_install_local(
         '-c', script.scratch_path / 'constraints.txt', 'LocalExtras[baz]')
     assert script.site_packages / 'simple' in result.files_created
-    assert script.site_packages / 'singlemodule.py'in result.files_created
+    assert script.site_packages / 'singlemodule.py' in result.files_created
 
 
 def test_install_distribution_full_union(script, data):

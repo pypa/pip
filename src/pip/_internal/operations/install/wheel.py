@@ -32,16 +32,21 @@ from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
 from pip._internal.utils.filesystem import adjacent_tmp_file, replace
 from pip._internal.utils.misc import captured_stdout, ensure_dir, hash_file
 from pip._internal.utils.temp_dir import TempDirectory
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING, cast
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.unpacking import current_umask, unpack_file
 from pip._internal.utils.wheel import parse_wheel
 
-if MYPY_CHECK_RUNNING:
+# Use the custom cast function at runtime to make cast work,
+# and import typing.cast when performing pre-commit and type
+# checks
+if not MYPY_CHECK_RUNNING:
+    from pip._internal.utils.typing import cast
+else:
     from email.message import Message
     import typing  # noqa F401
     from typing import (
         Dict, List, Optional, Sequence, Tuple, Any,
-        Iterable, Iterator, Callable, Set,
+        Iterable, Iterator, Callable, Set, IO, cast
     )
 
     from pip._internal.models.scheme import Scheme
@@ -607,7 +612,7 @@ def install_unpacked_wheel(
         # Python 2 (typing.BinaryIO), leading us to explicitly
         # cast to typing.IO[str] as a workaround
         # for bad Python 2 behaviour
-        record_file_obj = cast('typing.IO[str]', record_file)
+        record_file_obj = cast('IO[str]', record_file)
 
         writer = csv.writer(record_file_obj)
         writer.writerows(sorted_outrows(rows))  # sort to simplify testing
