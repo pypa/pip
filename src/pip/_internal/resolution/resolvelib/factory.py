@@ -1,3 +1,6 @@
+import collections
+
+from pip._vendor import six
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.exceptions import (
@@ -44,6 +47,7 @@ if MYPY_CHECK_RUNNING:
 
     C = TypeVar("C")
     Cache = Dict[Link, C]
+    VersionCandidates = Dict[_BaseVersion, Candidate]
 
 
 class Factory(object):
@@ -127,11 +131,12 @@ class Factory(object):
         # requirement needs to return only one candidate per version, so we
         # implement that logic here so that requirements using this helper
         # don't all have to do the same thing later.
-        seen_versions = set()  # type: Set[_BaseVersion]
+        candidates = collections.OrderedDict()  # type: VersionCandidates
 
         # Yield the installed version, if it matches, unless the user
         # specified `--force-reinstall`, when we want the version from
         # the index instead.
+        installed_version = None
         if not self._force_reinstall and name in self._installed_dists:
             installed_dist = self._installed_dists[name]
             installed_version = installed_dist.parsed_version
@@ -139,12 +144,12 @@ class Factory(object):
                 installed_version,
                 prereleases=True
             ):
-                seen_versions.add(installed_version)
-                yield self._make_candidate_from_dist(
+                candidate = self._make_candidate_from_dist(
                     dist=installed_dist,
                     extras=extras,
                     parent=ireq,
                 )
+                candidates[installed_version] = candidate
 
         found = self.finder.find_best_candidate(
             project_name=ireq.req.name,
@@ -152,15 +157,18 @@ class Factory(object):
             hashes=ireq.hashes(trust_internet=False),
         )
         for ican in found.iter_applicable():
-            if ican.version not in seen_versions:
-                seen_versions.add(ican.version)
-                yield self._make_candidate_from_link(
-                    link=ican.link,
-                    extras=extras,
-                    parent=ireq,
-                    name=name,
-                    version=ican.version,
-                )
+            if ican.version == installed_version:
+                continue
+            candidate = self._make_candidate_from_link(
+                link=ican.link,
+                extras=extras,
+                parent=ireq,
+                name=name,
+                version=ican.version,
+            )
+            candidates[ican.version] = candidate
+
+        return six.itervalues(candidates)
 
     def make_requirement_from_install_req(self, ireq):
         # type: (InstallRequirement) -> Requirement
