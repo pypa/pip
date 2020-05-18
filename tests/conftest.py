@@ -49,6 +49,20 @@ def pytest_addoption(parser):
     )
 
 
+def pytest_configure(config):
+    config.addinivalue_line("markers", "network: tests that needs network")
+    config.addinivalue_line("markers", "incompatible_with_test_venv")
+    config.addinivalue_line("markers", "incompatible_with_venv")
+    config.addinivalue_line("markers", "no_auto_tempdir_manager")
+    config.addinivalue_line("markers", "unit: unit tests")
+    config.addinivalue_line("markers", "integration: integration tests")
+    config.addinivalue_line("markers", "bzr: VCS: Bazaar")
+    config.addinivalue_line("markers", "svn: VCS: Subversion")
+    config.addinivalue_line("markers", "mercurial: VCS: Mercurial")
+    config.addinivalue_line("markers", "git: VCS: git")
+    config.addinivalue_line("markers", "yaml: yaml based tests")
+
+
 def pytest_collection_modifyitems(config, items):
     for item in items:
         if not hasattr(item, 'module'):  # e.g.: DoctestTextfile
