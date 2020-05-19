@@ -17,7 +17,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from .base import Candidate, format_name
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Iterable, Optional, Set, Tuple, Union
+    from typing import Any, FrozenSet, Iterable, Optional, Tuple, Union
 
     from pip._vendor.packaging.version import _BaseVersion
     from pip._vendor.pkg_resources import Distribution
@@ -131,6 +131,10 @@ class _InstallRequirementBackedCandidate(Candidate):
             class_name=self.__class__.__name__,
             link=str(self.link),
         )
+
+    def __hash__(self):
+        # type: () -> int
+        return hash((self.__class__, self.link))
 
     def __eq__(self, other):
         # type: (Any) -> bool
@@ -313,6 +317,10 @@ class AlreadyInstalledCandidate(Candidate):
             distribution=self.dist,
         )
 
+    def __hash__(self):
+        # type: () -> int
+        return hash((self.__class__, self.name, self.version))
+
     def __eq__(self, other):
         # type: (Any) -> bool
         if isinstance(other, self.__class__):
@@ -371,7 +379,7 @@ class ExtrasCandidate(Candidate):
     def __init__(
         self,
         base,  # type: BaseCandidate
-        extras,  # type: Set[str]
+        extras,  # type: FrozenSet[str]
     ):
         # type: (...) -> None
         self.base = base
@@ -384,6 +392,10 @@ class ExtrasCandidate(Candidate):
             base=self.base,
             extras=self.extras,
         )
+
+    def __hash__(self):
+        # type: () -> int
+        return hash((self.base, self.extras))
 
     def __eq__(self, other):
         # type: (Any) -> bool
