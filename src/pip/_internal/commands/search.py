@@ -25,7 +25,11 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 if MYPY_CHECK_RUNNING:
     from optparse import Values
     from typing import Any, List, Dict, Optional
-
+    from typing_extensions import TypedDict
+    TransformedHit = TypedDict(
+        'TransformedHit',
+        {'name': str, 'summary': str, 'versions': List[str]},
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -79,13 +83,13 @@ class SearchCommand(Command, SessionCommandMixin):
 
 
 def transform_hits(hits):
-    # type: (List[Dict[str, str]]) -> List[Dict[str, Any]]
+    # type: (List[Dict[str, str]]) -> List[TransformedHit]
     """
     The list from pypi is really a list of versions. We want a list of
     packages with the list of versions stored inline. This converts the
     list from pypi into one we can use.
     """
-    packages = OrderedDict()  # type: OrderedDict[str, Any]
+    packages = OrderedDict()  # type: OrderedDict[str, TransformedHit]
     for hit in hits:
         name = hit['name']
         summary = hit['summary']
@@ -108,7 +112,7 @@ def transform_hits(hits):
 
 
 def print_results(hits, name_column_width=None, terminal_width=None):
-    # type: (List[Dict[str, Any]], Optional[int], Optional[int]) -> None
+    # type: (List[TransformedHit], Optional[int], Optional[int]) -> None
     if not hits:
         return
     if name_column_width is None:
@@ -126,8 +130,9 @@ def print_results(hits, name_column_width=None, terminal_width=None):
             target_width = terminal_width - name_column_width - 5
             if target_width > 10:
                 # wrap and indent summary to fit terminal
-                summary = textwrap.wrap(summary, target_width)
-                summary = ('\n' + ' ' * (name_column_width + 3)).join(summary)
+                summary_lines = textwrap.wrap(summary, target_width)
+                summary = ('\n' + ' ' * (name_column_width + 3)).join(
+                    summary_lines)
 
         line = '{name_latest:{name_column_width}} - {summary}'.format(
             name_latest='{name} ({latest})'.format(**locals()),
