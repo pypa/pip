@@ -541,7 +541,7 @@ class FakeFile(object):
     """Wrap a list of lines in an object with readline() to make
     ConfigParser happy."""
     def __init__(self, lines):
-        self._gen = (l for l in lines)
+        self._gen = iter(lines)
 
     def readline(self):
         try:

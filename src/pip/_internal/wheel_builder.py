@@ -36,7 +36,8 @@ logger = logging.getLogger(__name__)
 
 
 def _contains_egg_info(
-        s, _egg_info_re=re.compile(r'([a-z0-9_.]+)-([a-z0-9_.!+-]+)', re.I)):
+        s, _egg_info_re=re.compile(r'([a-z0-9_.]+)-([a-z0-9_.!+-]+)',
+                                   re.IGNORECASE)):
     # type: (str, Pattern[str]) -> bool
     """Determine whether the string looks like an egg_info.
 

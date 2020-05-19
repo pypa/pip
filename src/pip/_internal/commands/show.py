@@ -99,7 +99,7 @@ def search_packages_info(query):
             # RECORDs should be part of .dist-info metadatas
             if dist.has_metadata('RECORD'):
                 lines = dist.get_metadata_lines('RECORD')
-                paths = [l.split(',')[0] for l in lines]
+                paths = [line.split(',')[0] for line in lines]
                 paths = [os.path.join(dist.location, p) for p in paths]
                 file_list = [os.path.relpath(p, dist.location) for p in paths]
 
