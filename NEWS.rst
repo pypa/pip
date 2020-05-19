@@ -7,6 +7,24 @@
 
 .. towncrier release notes start
 
+20.1.1 (2020-05-19)
+===================
+
+Deprecations and Removals
+-------------------------
+
+- Revert building of local directories in place, restoring the pre-20.1
+  behaviour of copying to a temporary directory. (`#7555 <https://github.com/pypa/pip/issues/7555>`_)
+- Drop parallelization from ``pip list --outdated``. (`#8167 <https://github.com/pypa/pip/issues/8167>`_)
+
+Bug Fixes
+---------
+
+- Fix metadata permission issues when umask has the executable bit set. (`#8164 <https://github.com/pypa/pip/issues/8164>`_)
+- Avoid unnecessary message about the wheel package not being installed
+  when a wheel would not have been built. Additionally, clarify the message. (`#8178 <https://github.com/pypa/pip/issues/8178>`_)
+
+
 20.1 (2020-04-28)
 =================
 
