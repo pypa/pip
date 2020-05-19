@@ -131,7 +131,7 @@ def get_prog():
 # Retry every half second for up to 3 seconds
 @retry(stop_max_delay=3000, wait_fixed=500)
 def rmtree(dir, ignore_errors=False):
-    # type: (str, bool) -> None
+    # type: (Text, bool) -> None
     shutil.rmtree(dir, ignore_errors=ignore_errors,
                   onerror=rmtree_errorhandler)
 
@@ -876,7 +876,7 @@ def is_console_interactive():
 
 
 def hash_file(path, blocksize=1 << 20):
-    # type: (str, int) -> Tuple[Any, int]
+    # type: (Text, int) -> Tuple[Any, int]
     """Return (hash, length) for path using hashlib.sha256()
     """
 
