@@ -82,11 +82,15 @@ def make_install_req_from_editable(link, parent):
 
 def make_install_req_from_dist(dist, parent):
     # type: (Distribution, InstallRequirement) -> InstallRequirement
+    project_name = canonicalize_name(dist.project_name)
+    if parent.req:
+        line = str(parent.req)
+    elif parent.link:
+        line = "{} @ {}".format(project_name, parent.link.url)
+    else:
+        line = "{}=={}".format(project_name, dist.parsed_version)
     ireq = install_req_from_line(
-        "{}=={}".format(
-            canonicalize_name(dist.project_name),
-            dist.parsed_version,
-        ),
+        line,
         comes_from=parent.comes_from,
         use_pep517=parent.use_pep517,
         isolated=parent.isolated,
@@ -102,6 +106,9 @@ def make_install_req_from_dist(dist, parent):
 
 
 class _InstallRequirementBackedCandidate(Candidate):
+    # These are not installed
+    is_installed = False
+
     def __init__(
         self,
         link,          # type: Link
@@ -271,6 +278,8 @@ class EditableCandidate(_InstallRequirementBackedCandidate):
 
 
 class AlreadyInstalledCandidate(Candidate):
+    is_installed = True
+
     def __init__(
         self,
         dist,  # type: Distribution
@@ -392,6 +401,11 @@ class ExtrasCandidate(Candidate):
         # type: () -> _BaseVersion
         return self.base.version
 
+    @property
+    def is_installed(self):
+        # type: () -> _BaseVersion
+        return self.base.is_installed
+
     def get_dependencies(self):
         # type: () -> Sequence[Requirement]
         factory = self.base._factory
@@ -400,11 +414,12 @@ class ExtrasCandidate(Candidate):
         # support. We ignore any unsupported extras here.
         valid_extras = self.extras.intersection(self.base.dist.extras)
         invalid_extras = self.extras.difference(self.base.dist.extras)
-        if invalid_extras:
+        for extra in sorted(invalid_extras):
             logger.warning(
-                "Invalid extras specified in %s: %s",
-                self.name,
-                ','.join(sorted(invalid_extras))
+                "%s %s does not provide the extra '%s'",
+                self.base.name,
+                self.version,
+                extra
             )
 
         deps = [
@@ -428,6 +443,8 @@ class ExtrasCandidate(Candidate):
 
 
 class RequiresPythonCandidate(Candidate):
+    is_installed = False
+
     def __init__(self, py_version_info):
         # type: (Optional[Tuple[int, ...]]) -> None
         if py_version_info is not None:
@@ -444,7 +461,7 @@ class RequiresPythonCandidate(Candidate):
     def name(self):
         # type: () -> str
         # Avoid conflicting with the PyPI package "Python".
-        return "<Python fom Requires-Python>"
+        return "<Python from Requires-Python>"
 
     @property
     def version(self):

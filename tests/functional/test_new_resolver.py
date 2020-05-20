@@ -208,8 +208,8 @@ def test_new_resolver_installs_extras(script):
         "base[add,missing]",
         expect_stderr=True,
     )
-    assert "WARNING: Invalid extras specified" in result.stderr, str(result)
-    assert ": missing" in result.stderr, str(result)
+    assert "does not provide the extra" in result.stderr, str(result)
+    assert "missing" in result.stderr, str(result)
     assert_installed(script, base="0.1.0", dep="0.1.0")
 
 
@@ -357,7 +357,6 @@ def test_new_resolver_installed(script):
         "dep",
         "0.1.0",
     )
-    satisfied_output = "Requirement already satisfied: base==0.1.0 in"
 
     result = script.pip(
         "install", "--unstable-feature=resolver",
@@ -365,15 +364,16 @@ def test_new_resolver_installed(script):
         "--find-links", script.scratch_path,
         "base",
     )
-    assert satisfied_output not in result.stdout, str(result)
+    assert "Requirement already satisfied" not in result.stdout, str(result)
 
     result = script.pip(
         "install", "--unstable-feature=resolver",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
-        "base",
+        "base~=0.1.0",
     )
-    assert satisfied_output in result.stdout, str(result)
+    assert "Requirement already satisfied: base~=0.1.0" in result.stdout, \
+        str(result)
     assert script.site_packages / "base" not in result.files_updated, (
         "base 0.1.0 reinstalled"
     )
@@ -385,7 +385,7 @@ def test_new_resolver_ignore_installed(script):
         "base",
         "0.1.0",
     )
-    satisfied_output = "Requirement already satisfied: base==0.1.0 in"
+    satisfied_output = "Requirement already satisfied"
 
     result = script.pip(
         "install", "--unstable-feature=resolver",
@@ -529,6 +529,116 @@ def test_new_resolver_handles_prerelease(
         *pip_args
     )
     assert_installed(script, pkg=expected_version)
+
+
+@pytest.mark.parametrize(
+    "constraints",
+    [
+        ["pkg<2.0", "constraint_only<1.0"],
+        # This also tests the pkg constraint don't get merged with the
+        # requirement prematurely. (pypa/pip#8134)
+        ["pkg<2.0"],
+    ]
+)
+def test_new_resolver_constraints(script, constraints):
+    create_basic_wheel_for_package(script, "pkg", "1.0")
+    create_basic_wheel_for_package(script, "pkg", "2.0")
+    create_basic_wheel_for_package(script, "pkg", "3.0")
+    constraints_file = script.scratch_path / "constraints.txt"
+    constraints_file.write_text("\n".join(constraints))
+    script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "-c", constraints_file,
+        "pkg"
+    )
+    assert_installed(script, pkg="1.0")
+    assert_not_installed(script, "constraint_only")
+
+
+def test_new_resolver_constraint_no_specifier(script):
+    "It's allowed (but useless...) for a constraint to have no specifier"
+    create_basic_wheel_for_package(script, "pkg", "1.0")
+    constraints_file = script.scratch_path / "constraints.txt"
+    constraints_file.write_text("pkg")
+    script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "-c", constraints_file,
+        "pkg"
+    )
+    assert_installed(script, pkg="1.0")
+
+
+@pytest.mark.parametrize(
+    "constraint, error",
+    [
+        (
+            "dist.zip",
+            "Unnamed requirements are not allowed as constraints",
+        ),
+        (
+            "req @ https://example.com/dist.zip",
+            "Links are not allowed as constraints",
+        ),
+        (
+            "pkg[extra]",
+            "Constraints cannot have extras",
+        ),
+    ],
+)
+def test_new_resolver_constraint_reject_invalid(script, constraint, error):
+    create_basic_wheel_for_package(script, "pkg", "1.0")
+    constraints_file = script.scratch_path / "constraints.txt"
+    constraints_file.write_text(constraint)
+    result = script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "-c", constraints_file,
+        "pkg",
+        expect_error=True,
+        expect_stderr=True,
+    )
+    assert error in result.stderr, str(result)
+
+
+def test_new_resolver_constraint_on_dependency(script):
+    create_basic_wheel_for_package(script, "base", "1.0", depends=["dep"])
+    create_basic_wheel_for_package(script, "dep", "1.0")
+    create_basic_wheel_for_package(script, "dep", "2.0")
+    create_basic_wheel_for_package(script, "dep", "3.0")
+    constraints_file = script.scratch_path / "constraints.txt"
+    constraints_file.write_text("dep==2.0")
+    script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "-c", constraints_file,
+        "base"
+    )
+    assert_installed(script, base="1.0")
+    assert_installed(script, dep="2.0")
+
+
+def test_new_resolver_constraint_on_path(script):
+    setup_py = script.scratch_path / "setup.py"
+    text = "from setuptools import setup\nsetup(name='foo', version='2.0')"
+    setup_py.write_text(text)
+    constraints_txt = script.scratch_path / "constraints.txt"
+    constraints_txt.write_text("foo==1.0")
+    result = script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "-c", constraints_txt,
+        str(script.scratch_path),
+        expect_error=True,
+    )
+
+    msg = "installation from path or url cannot be constrained to a version"
+    assert msg in result.stderr, str(result)
 
 
 def test_new_resolver_upgrade_needs_option(script):

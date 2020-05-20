@@ -10,6 +10,7 @@ from pip._internal.exceptions import InstallationError
 from pip._internal.req.req_set import RequirementSet
 from pip._internal.resolution.base import BaseResolver
 from pip._internal.resolution.resolvelib.provider import PipProvider
+from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 from .factory import Factory
@@ -17,6 +18,7 @@ from .factory import Factory
 if MYPY_CHECK_RUNNING:
     from typing import Dict, List, Optional, Set, Tuple
 
+    from pip._vendor.packaging.specifiers import SpecifierSet
     from pip._vendor.resolvelib.resolvers import Result
     from pip._vendor.resolvelib.structs import Graph
 
@@ -30,7 +32,40 @@ if MYPY_CHECK_RUNNING:
 logger = logging.getLogger(__name__)
 
 
+def reject_invalid_constraint_types(req):
+    # type: (InstallRequirement) -> None
+
+    # Check for unsupported forms
+    problem = ""
+    if not req.name:
+        problem = "Unnamed requirements are not allowed as constraints"
+    elif req.link:
+        problem = "Links are not allowed as constraints"
+    elif req.extras:
+        problem = "Constraints cannot have extras"
+
+    if problem:
+        deprecated(
+            reason=(
+                "Constraints are only allowed to take the form of a package "
+                "name and a version specifier. Other forms were originally "
+                "permitted as an accident of the implementation, but were "
+                "undocumented. The new implementation of the resolver no "
+                "longer supports these forms."
+            ),
+            replacement=(
+                "replacing the constraint with a requirement."
+            ),
+            # No plan yet for when the new resolver becomes default
+            gone_in=None,
+            issue=8210
+        )
+        raise InstallationError(problem)
+
+
 class Resolver(BaseResolver):
+    _allowed_strategies = {"eager", "only-if-needed", "to-satisfy-only"}
+
     def __init__(
         self,
         preparer,  # type: RequirementPreparer
@@ -46,44 +81,55 @@ class Resolver(BaseResolver):
         py_version_info=None,  # type: Optional[Tuple[int, ...]]
     ):
         super(Resolver, self).__init__()
+
+        assert upgrade_strategy in self._allowed_strategies
+
         self.factory = Factory(
             finder=finder,
             preparer=preparer,
             make_install_req=make_install_req,
+            use_user_site=use_user_site,
             force_reinstall=force_reinstall,
             ignore_installed=ignore_installed,
             ignore_requires_python=ignore_requires_python,
-            upgrade_strategy=upgrade_strategy,
             py_version_info=py_version_info,
         )
         self.ignore_dependencies = ignore_dependencies
+        self.upgrade_strategy = upgrade_strategy
         self._result = None  # type: Optional[Result]
 
     def resolve(self, root_reqs, check_supported_wheels):
         # type: (List[InstallRequirement], bool) -> RequirementSet
 
-        # The factory should not have retained state from any previous usage.
-        # In theory this could only happen if self was reused to do a second
-        # resolve, which isn't something we do at the moment. We assert here
-        # in order to catch the issue if that ever changes.
-        # The persistent state that we care about is `root_reqs`.
-        assert len(self.factory.root_reqs) == 0, "Factory is being re-used"
+        constraints = {}  # type: Dict[str, SpecifierSet]
+        user_requested = set()  # type: Set[str]
+        requirements = []
+        for req in root_reqs:
+            if req.constraint:
+                # Ensure we only accept valid constraints
+                reject_invalid_constraint_types(req)
 
-        # FIXME: Implement constraints.
-        if any(r.constraint for r in root_reqs):
-            raise InstallationError("Constraints are not yet supported.")
+                name = canonicalize_name(req.name)
+                if name in constraints:
+                    constraints[name] = constraints[name] & req.specifier
+                else:
+                    constraints[name] = req.specifier
+            else:
+                if req.is_direct and req.name:
+                    user_requested.add(canonicalize_name(req.name))
+                requirements.append(
+                    self.factory.make_requirement_from_install_req(req)
+                )
 
         provider = PipProvider(
             factory=self.factory,
+            constraints=constraints,
             ignore_dependencies=self.ignore_dependencies,
+            upgrade_strategy=self.upgrade_strategy,
+            user_requested=user_requested,
         )
         reporter = BaseReporter()
         resolver = RLResolver(provider, reporter)
-
-        requirements = [
-            self.factory.make_requirement_from_install_req(r)
-            for r in root_reqs
-        ]
 
         try:
             self._result = resolver.resolve(requirements)
@@ -113,7 +159,7 @@ class Resolver(BaseResolver):
 
         req_set = RequirementSet(check_supported_wheels=check_supported_wheels)
         for candidate in self._result.mapping.values():
-            ireq = provider.get_install_requirement(candidate)
+            ireq = candidate.get_install_requirement()
             if ireq is None:
                 continue
             ireq.should_reinstall = self.factory.should_reinstall(candidate)

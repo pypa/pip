@@ -1,4 +1,5 @@
 import pytest
+from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.resolvelib import BaseReporter, Resolver
 
 from pip._internal.resolution.resolvelib.base import Candidate
@@ -58,14 +59,14 @@ def test_new_resolver_correct_number_of_matches(test_cases, factory):
     """Requirements should return the correct number of candidates"""
     for spec, name, matches in test_cases:
         req = factory.make_requirement_from_spec(spec, comes_from=None)
-        assert len(req.find_matches()) == matches
+        assert len(req.find_matches(SpecifierSet())) == matches
 
 
 def test_new_resolver_candidates_match_requirement(test_cases, factory):
     """Candidates returned from find_matches should satisfy the requirement"""
     for spec, name, matches in test_cases:
         req = factory.make_requirement_from_spec(spec, comes_from=None)
-        for c in req.find_matches():
+        for c in req.find_matches(SpecifierSet()):
             assert isinstance(c, Candidate)
             assert req.is_satisfied_by(c)
 

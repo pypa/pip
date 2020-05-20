@@ -375,6 +375,18 @@ def test_rmtree_retries_for_3sec(tmpdir, monkeypatch):
         rmtree('foo')
 
 
+if sys.byteorder == "little":
+    expected_byte_string = (
+        u"b'\\xff\\xfe/\\x00p\\x00a\\x00t\\x00h\\x00/"
+        "\\x00d\\x00\\xe9\\x00f\\x00'"
+    )
+elif sys.byteorder == "big":
+    expected_byte_string = (
+        u"b'\\xfe\\xff\\x00/\\x00p\\x00a\\x00t\\x00h\\"
+        "x00/\\x00d\\x00\\xe9\\x00f'"
+    )
+
+
 @pytest.mark.parametrize('path, fs_encoding, expected', [
     (None, None, None),
     # Test passing a text (unicode) string.
@@ -383,9 +395,7 @@ def test_rmtree_retries_for_3sec(tmpdir, monkeypatch):
     (u'/path/déf'.encode('utf-8'), 'utf-8', u'/path/déf'),
     # Test a bytes object with a character that can't be decoded.
     (u'/path/déf'.encode('utf-8'), 'ascii', u"b'/path/d\\xc3\\xa9f'"),
-    (u'/path/déf'.encode('utf-16'), 'utf-8',
-     u"b'\\xff\\xfe/\\x00p\\x00a\\x00t\\x00h\\x00/"
-     "\\x00d\\x00\\xe9\\x00f\\x00'"),
+    (u'/path/déf'.encode('utf-16'), 'utf-8', expected_byte_string),
 ])
 def test_path_to_display(monkeypatch, path, fs_encoding, expected):
     monkeypatch.setattr(sys, 'getfilesystemencoding', lambda: fs_encoding)

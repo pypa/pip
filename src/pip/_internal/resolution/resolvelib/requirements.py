@@ -1,5 +1,6 @@
 from pip._vendor.packaging.utils import canonicalize_name
 
+from pip._internal.exceptions import InstallationError
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 from .base import Requirement, format_name
@@ -33,8 +34,14 @@ class ExplicitRequirement(Requirement):
         # No need to canonicalise - the candidate did this
         return self.candidate.name
 
-    def find_matches(self):
-        # type: () -> Sequence[Candidate]
+    def find_matches(self, constraint):
+        # type: (SpecifierSet) -> Sequence[Candidate]
+        if len(constraint) > 0:
+            raise InstallationError(
+                "Could not satisfy constraints for '{}': "
+                "installation from path or url cannot be "
+                "constrained to a version".format(self.name)
+            )
         return [self.candidate]
 
     def is_satisfied_by(self, candidate):
@@ -67,10 +74,19 @@ class SpecifierRequirement(Requirement):
         canonical_name = canonicalize_name(self._ireq.req.name)
         return format_name(canonical_name, self.extras)
 
-    def find_matches(self):
-        # type: () -> Sequence[Candidate]
-        it = self._factory.iter_found_candidates(self._ireq, self.extras)
-        return list(it)
+    def find_matches(self, constraint):
+        # type: (SpecifierSet) -> Sequence[Candidate]
+
+        # We should only return one candidate per version, but
+        # iter_found_candidates does that for us, so we don't need
+        # to do anything special here.
+        return [
+            c
+            for c in self._factory.iter_found_candidates(
+                self._ireq, self.extras
+            )
+            if constraint.contains(c.version, prereleases=True)
+        ]
 
     def is_satisfied_by(self, candidate):
         # type: (Candidate) -> bool
@@ -104,9 +120,11 @@ class RequiresPythonRequirement(Requirement):
         # type: () -> str
         return self._candidate.name
 
-    def find_matches(self):
-        # type: () -> Sequence[Candidate]
-        if self._candidate.version in self.specifier:
+    def find_matches(self, constraint):
+        # type: (SpecifierSet) -> Sequence[Candidate]
+        assert len(constraint) == 0, \
+            "RequiresPythonRequirement cannot have constraints"
+        if self.specifier.contains(self._candidate.version, prereleases=True):
             return [self._candidate]
         return []
 

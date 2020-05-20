@@ -1,17 +1,13 @@
-# The following comment should be removed at some point in the future.
-# mypy: disallow-untyped-defs=False
-
 from __future__ import absolute_import
 
 import json
 import logging
-from multiprocessing.dummy import Pool
 
 from pip._vendor import six
-from pip._vendor.requests.adapters import DEFAULT_POOLSIZE
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.req_command import IndexGroupCommand
+from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.exceptions import CommandError
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.models.selection_prefs import SelectionPreferences
@@ -23,6 +19,14 @@ from pip._internal.utils.misc import (
     write_output,
 )
 from pip._internal.utils.packaging import get_installer
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from optparse import Values
+    from typing import Any, List, Set, Tuple, Iterator
+
+    from pip._internal.network.session import PipSession
+    from pip._vendor.pkg_resources import Distribution
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +42,7 @@ class ListCommand(IndexGroupCommand):
       %prog [options]"""
 
     def __init__(self, *args, **kw):
+        # type: (*Any, **Any) -> None
         super(ListCommand, self).__init__(*args, **kw)
 
         cmd_opts = self.cmd_opts
@@ -118,6 +123,7 @@ class ListCommand(IndexGroupCommand):
         self.parser.insert_option_group(0, cmd_opts)
 
     def _build_package_finder(self, options, session):
+        # type: (Values, PipSession) -> PackageFinder
         """
         Create a package finder appropriate to this list command.
         """
@@ -135,6 +141,7 @@ class ListCommand(IndexGroupCommand):
         )
 
     def run(self, options, args):
+        # type: (Values, List[str]) -> int
         if options.outdated and options.uptodate:
             raise CommandError(
                 "Options --outdated and --uptodate cannot be combined.")
@@ -162,30 +169,40 @@ class ListCommand(IndexGroupCommand):
             packages = self.get_uptodate(packages, options)
 
         self.output_package_listing(packages, options)
+        return SUCCESS
 
     def get_outdated(self, packages, options):
+        # type: (List[Distribution], Values) -> List[Distribution]
         return [
             dist for dist in self.iter_packages_latest_infos(packages, options)
             if dist.latest_version > dist.parsed_version
         ]
 
     def get_uptodate(self, packages, options):
+        # type: (List[Distribution], Values) -> List[Distribution]
         return [
             dist for dist in self.iter_packages_latest_infos(packages, options)
             if dist.latest_version == dist.parsed_version
         ]
 
     def get_not_required(self, packages, options):
-        dep_keys = set()
+        # type: (List[Distribution], Values) -> List[Distribution]
+        dep_keys = set()  # type: Set[Distribution]
         for dist in packages:
             dep_keys.update(requirement.key for requirement in dist.requires())
-        return {pkg for pkg in packages if pkg.key not in dep_keys}
+
+        # Create a set to remove duplicate packages, and cast it to a list
+        # to keep the return type consistent with get_outdated and
+        # get_uptodate
+        return list({pkg for pkg in packages if pkg.key not in dep_keys})
 
     def iter_packages_latest_infos(self, packages, options):
+        # type: (List[Distribution], Values) -> Iterator[Distribution]
         with self._build_session(options) as session:
             finder = self._build_package_finder(options, session)
 
             def latest_info(dist):
+                # type: (Distribution) -> Distribution
                 typ = 'unknown'
                 all_candidates = finder.find_all_candidates(dist.key)
                 if not options.pre:
@@ -210,19 +227,12 @@ class ListCommand(IndexGroupCommand):
                 dist.latest_filetype = typ
                 return dist
 
-            # This is done for 2x speed up of requests to pypi.org
-            # so that "real time" of this function
-            # is almost equal to "user time"
-            pool = Pool(DEFAULT_POOLSIZE)
-
-            for dist in pool.imap_unordered(latest_info, packages):
+            for dist in map(latest_info, packages):
                 if dist is not None:
                     yield dist
 
-            pool.close()
-            pool.join()
-
     def output_package_listing(self, packages, options):
+        # type: (List[Distribution], Values) -> None
         packages = sorted(
             packages,
             key=lambda dist: dist.project_name.lower(),
@@ -241,6 +251,7 @@ class ListCommand(IndexGroupCommand):
             write_output(format_for_json(packages, options))
 
     def output_package_listing_columns(self, data, header):
+        # type: (List[List[str]], List[str]) -> None
         # insert the header first: we need to know the size of column names
         if len(data) > 0:
             data.insert(0, header)
@@ -256,6 +267,7 @@ class ListCommand(IndexGroupCommand):
 
 
 def format_for_columns(pkgs, options):
+    # type: (List[Distribution], Values) -> Tuple[List[List[str]], List[str]]
     """
     Convert the package data into something usable
     by output_package_listing_columns.
@@ -293,6 +305,7 @@ def format_for_columns(pkgs, options):
 
 
 def format_for_json(packages, options):
+    # type: (List[Distribution], Values) -> str
     data = []
     for dist in packages:
         info = {

@@ -1,9 +1,6 @@
 """Support for installing and building the "wheel" binary package format.
 """
 
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-
 from __future__ import absolute_import
 
 import collections
@@ -24,7 +21,14 @@ from zipfile import ZipFile
 from pip._vendor import pkg_resources
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor.distlib.util import get_export_entry
-from pip._vendor.six import StringIO
+from pip._vendor.six import (
+    PY2,
+    StringIO,
+    ensure_str,
+    ensure_text,
+    itervalues,
+    text_type,
+)
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_major_minor_version
@@ -36,29 +40,42 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.unpacking import current_umask, unpack_file
 from pip._internal.utils.wheel import parse_wheel
 
-if MYPY_CHECK_RUNNING:
+# Use the custom cast function at runtime to make cast work,
+# and import typing.cast when performing pre-commit and type
+# checks
+if not MYPY_CHECK_RUNNING:
+    from pip._internal.utils.typing import cast
+else:
     from email.message import Message
     from typing import (
-        Dict, List, Optional, Sequence, Tuple, Any,
-        Iterable, Iterator, Callable, Set,
+        Any,
+        Callable,
+        Dict,
+        IO,
+        Iterable,
+        Iterator,
+        List,
+        NewType,
+        Optional,
+        Sequence,
+        Set,
+        Tuple,
+        Union,
+        cast,
     )
 
     from pip._internal.models.scheme import Scheme
     from pip._internal.utils.filesystem import NamedTemporaryFileResult
 
-    InstalledCSVRow = Tuple[str, ...]
+    RecordPath = NewType('RecordPath', text_type)
+    InstalledCSVRow = Tuple[RecordPath, str, Union[int, str]]
 
 
 logger = logging.getLogger(__name__)
 
 
-def normpath(src, p):
-    # type: (str, str) -> str
-    return os.path.relpath(src, p).replace(os.path.sep, '/')
-
-
 def rehash(path, blocksize=1 << 20):
-    # type: (str, int) -> Tuple[str, str]
+    # type: (text_type, int) -> Tuple[str, str]
     """Return (encoded_digest, length) for path using hashlib.sha256()"""
     h, length = hash_file(path, blocksize)
     digest = 'sha256=' + urlsafe_b64encode(
@@ -73,14 +90,14 @@ def csv_io_kwargs(mode):
     """Return keyword arguments to properly open a CSV file
     in the given mode.
     """
-    if sys.version_info.major < 3:
+    if PY2:
         return {'mode': '{}b'.format(mode)}
     else:
-        return {'mode': mode, 'newline': ''}
+        return {'mode': mode, 'newline': '', 'encoding': 'utf-8'}
 
 
 def fix_script(path):
-    # type: (str) -> Optional[bool]
+    # type: (text_type) -> Optional[bool]
     """Replace #!python with #!/path/to/python
     Return True if file was changed.
     """
@@ -211,9 +228,12 @@ def message_about_scripts_not_on_PATH(scripts):
     return "\n".join(msg_lines)
 
 
-def sorted_outrows(outrows):
-    # type: (Iterable[InstalledCSVRow]) -> List[InstalledCSVRow]
-    """Return the given rows of a RECORD file in sorted order.
+def _normalized_outrows(outrows):
+    # type: (Iterable[InstalledCSVRow]) -> List[Tuple[str, str, str]]
+    """Normalize the given rows of a RECORD file.
+
+    Items in each row are converted into str. Rows are then sorted to make
+    the value more predictable for tests.
 
     Each row is a 3-tuple (path, hash, size) and corresponds to a record of
     a RECORD file (see PEP 376 and PEP 427 for details).  For the rows
@@ -228,13 +248,35 @@ def sorted_outrows(outrows):
     # coerce each element to a string to avoid a TypeError in this case.
     # For additional background, see--
     # https://github.com/pypa/pip/issues/5868
-    return sorted(outrows, key=lambda row: tuple(str(x) for x in row))
+    return sorted(
+        (ensure_str(record_path, encoding='utf-8'), hash_, str(size))
+        for record_path, hash_, size in outrows
+    )
+
+
+def _record_to_fs_path(record_path):
+    # type: (RecordPath) -> text_type
+    return record_path
+
+
+def _fs_to_record_path(path, relative_to=None):
+    # type: (text_type, Optional[text_type]) -> RecordPath
+    if relative_to is not None:
+        path = os.path.relpath(path, relative_to)
+    path = path.replace(os.path.sep, '/')
+    return cast('RecordPath', path)
+
+
+def _parse_record_path(record_column):
+    # type: (str) -> RecordPath
+    p = ensure_text(record_column, encoding='utf-8')
+    return cast('RecordPath', p)
 
 
 def get_csv_rows_for_installed(
     old_csv_rows,  # type: Iterable[List[str]]
-    installed,  # type: Dict[str, str]
-    changed,  # type: Set[str]
+    installed,  # type: Dict[RecordPath, RecordPath]
+    changed,  # type: Set[RecordPath]
     generated,  # type: List[str]
     lib_dir,  # type: str
 ):
@@ -249,21 +291,20 @@ def get_csv_rows_for_installed(
             logger.warning(
                 'RECORD line has more than three elements: {}'.format(row)
             )
-        # Make a copy because we are mutating the row.
-        row = list(row)
-        old_path = row[0]
-        new_path = installed.pop(old_path, old_path)
-        row[0] = new_path
-        if new_path in changed:
-            digest, length = rehash(new_path)
-            row[1] = digest
-            row[2] = length
-        installed_rows.append(tuple(row))
+        old_record_path = _parse_record_path(row[0])
+        new_record_path = installed.pop(old_record_path, old_record_path)
+        if new_record_path in changed:
+            digest, length = rehash(_record_to_fs_path(new_record_path))
+        else:
+            digest = row[1] if len(row) > 1 else ''
+            length = row[2] if len(row) > 2 else ''
+        installed_rows.append((new_record_path, digest, length))
     for f in generated:
+        path = _fs_to_record_path(f, lib_dir)
         digest, length = rehash(f)
-        installed_rows.append((normpath(f, lib_dir), digest, str(length)))
-    for f in installed:
-        installed_rows.append((installed[f], '', ''))
+        installed_rows.append((path, digest, length))
+    for installed_record_path in itervalues(installed):
+        installed_rows.append((installed_record_path, '', ''))
     return installed_rows
 
 
@@ -332,8 +373,8 @@ def install_unpacked_wheel(
     #   installed = files copied from the wheel to the destination
     #   changed = files changed while installing (scripts #! line typically)
     #   generated = files newly generated during the install (script wrappers)
-    installed = {}  # type: Dict[str, str]
-    changed = set()
+    installed = {}  # type: Dict[RecordPath, RecordPath]
+    changed = set()  # type: Set[RecordPath]
     generated = []  # type: List[str]
 
     # Compile all of the pyc files that we're going to be installing
@@ -345,20 +386,20 @@ def install_unpacked_wheel(
         logger.debug(stdout.getvalue())
 
     def record_installed(srcfile, destfile, modified=False):
-        # type: (str, str, bool) -> None
+        # type: (text_type, text_type, bool) -> None
         """Map archive RECORD paths to installation RECORD paths."""
-        oldpath = normpath(srcfile, wheeldir)
-        newpath = normpath(destfile, lib_dir)
+        oldpath = _fs_to_record_path(srcfile, wheeldir)
+        newpath = _fs_to_record_path(destfile, lib_dir)
         installed[oldpath] = newpath
         if modified:
-            changed.add(destfile)
+            changed.add(_fs_to_record_path(destfile))
 
     def clobber(
-            source,  # type: str
-            dest,  # type: str
+            source,  # type: text_type
+            dest,  # type: text_type
             is_base,  # type: bool
-            fixer=None,  # type: Optional[Callable[[str], Any]]
-            filter=None  # type: Optional[Callable[[str], bool]]
+            fixer=None,  # type: Optional[Callable[[text_type], Any]]
+            filter=None  # type: Optional[Callable[[text_type], bool]]
     ):
         # type: (...) -> None
         ensure_dir(dest)  # common for the 'include' path
@@ -417,7 +458,11 @@ def install_unpacked_wheel(
                     changed = fixer(destfile)
                 record_installed(srcfile, destfile, changed)
 
-    clobber(source, lib_dir, True)
+    clobber(
+        ensure_text(source, encoding=sys.getfilesystemencoding()),
+        ensure_text(lib_dir, encoding=sys.getfilesystemencoding()),
+        True,
+    )
 
     dest_info_dir = os.path.join(lib_dir, info_dir)
 
@@ -426,7 +471,7 @@ def install_unpacked_wheel(
     console, gui = get_entrypoints(ep_file)
 
     def is_entrypoint_wrapper(name):
-        # type: (str) -> bool
+        # type: (text_type) -> bool
         # EP, EP.exe and EP-script.py are scripts generated for
         # entry point EP by setuptools
         if name.lower().endswith('.exe'):
@@ -450,7 +495,13 @@ def install_unpacked_wheel(
                 filter = is_entrypoint_wrapper
             source = os.path.join(wheeldir, datadir, subdir)
             dest = getattr(scheme, subdir)
-            clobber(source, dest, False, fixer=fixer, filter=filter)
+            clobber(
+                ensure_text(source, encoding=sys.getfilesystemencoding()),
+                ensure_text(dest, encoding=sys.getfilesystemencoding()),
+                False,
+                fixer=fixer,
+                filter=filter,
+            )
 
     maker = PipScriptMaker(None, scheme.scripts)
 
@@ -600,8 +651,11 @@ def install_unpacked_wheel(
             generated=generated,
             lib_dir=lib_dir)
     with _generate_file(record_path, **csv_io_kwargs('w')) as record_file:
-        writer = csv.writer(record_file)
-        writer.writerows(sorted_outrows(rows))  # sort to simplify testing
+        # The type mypy infers for record_file is different for Python 3
+        # (typing.IO[Any]) and Python 2 (typing.BinaryIO). We explicitly
+        # cast to typing.IO[str] as a workaround.
+        writer = csv.writer(cast('IO[str]', record_file))
+        writer.writerows(_normalized_outrows(rows))
 
 
 def install_wheel(

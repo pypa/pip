@@ -1,11 +1,19 @@
+import collections
+
+from pip._vendor import six
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.exceptions import (
     InstallationError,
     UnsupportedPythonVersion,
 )
-from pip._internal.utils.misc import get_installed_distributions
+from pip._internal.utils.misc import (
+    dist_in_site_packages,
+    dist_in_usersite,
+    get_installed_distributions,
+)
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.virtualenv import running_under_virtualenv
 
 from .candidates import (
     AlreadyInstalledCandidate,
@@ -39,34 +47,30 @@ if MYPY_CHECK_RUNNING:
 
     C = TypeVar("C")
     Cache = Dict[Link, C]
+    VersionCandidates = Dict[_BaseVersion, Candidate]
 
 
 class Factory(object):
-    _allowed_strategies = {"eager", "only-if-needed", "to-satisfy-only"}
-
     def __init__(
         self,
         finder,  # type: PackageFinder
         preparer,  # type: RequirementPreparer
         make_install_req,  # type: InstallRequirementProvider
+        use_user_site,  # type: bool
         force_reinstall,  # type: bool
         ignore_installed,  # type: bool
         ignore_requires_python,  # type: bool
-        upgrade_strategy,  # type: str
         py_version_info=None,  # type: Optional[Tuple[int, ...]]
     ):
         # type: (...) -> None
-        assert upgrade_strategy in self._allowed_strategies
 
         self.finder = finder
         self.preparer = preparer
         self._python_candidate = RequiresPythonCandidate(py_version_info)
         self._make_install_req_from_spec = make_install_req
+        self._use_user_site = use_user_site
         self._force_reinstall = force_reinstall
         self._ignore_requires_python = ignore_requires_python
-        self._upgrade_strategy = upgrade_strategy
-
-        self.root_reqs = set()  # type: Set[str]
 
         self._link_candidate_cache = {}  # type: Cache[LinkCandidate]
         self._editable_candidate_cache = {}  # type: Cache[EditableCandidate]
@@ -118,23 +122,34 @@ class Factory(object):
             return ExtrasCandidate(base, extras)
         return base
 
-    def _eligible_for_upgrade(self, dist_name):
-        # type: (str) -> bool
-        if self._upgrade_strategy == "eager":
-            return True
-        elif self._upgrade_strategy == "only-if-needed":
-            return (dist_name in self.root_reqs)
-        return False
-
     def iter_found_candidates(self, ireq, extras):
         # type: (InstallRequirement, Set[str]) -> Iterator[Candidate]
         name = canonicalize_name(ireq.req.name)
-        if not self._force_reinstall:
-            installed_dist = self._installed_dists.get(name)
-            can_upgrade = self._eligible_for_upgrade(name)
-        else:
-            installed_dist = None
-            can_upgrade = False
+
+        # We use this to ensure that we only yield a single candidate for
+        # each version (the finder's preferred one for that version). The
+        # requirement needs to return only one candidate per version, so we
+        # implement that logic here so that requirements using this helper
+        # don't all have to do the same thing later.
+        candidates = collections.OrderedDict()  # type: VersionCandidates
+
+        # Yield the installed version, if it matches, unless the user
+        # specified `--force-reinstall`, when we want the version from
+        # the index instead.
+        installed_version = None
+        if not self._force_reinstall and name in self._installed_dists:
+            installed_dist = self._installed_dists[name]
+            installed_version = installed_dist.parsed_version
+            if ireq.req.specifier.contains(
+                installed_version,
+                prereleases=True
+            ):
+                candidate = self._make_candidate_from_dist(
+                    dist=installed_dist,
+                    extras=extras,
+                    parent=ireq,
+                )
+                candidates[installed_version] = candidate
 
         found = self.finder.find_best_candidate(
             project_name=ireq.req.name,
@@ -142,40 +157,21 @@ class Factory(object):
             hashes=ireq.hashes(trust_internet=False),
         )
         for ican in found.iter_applicable():
-            if (installed_dist is not None and
-                    installed_dist.parsed_version == ican.version):
-                if can_upgrade:
-                    yield self._make_candidate_from_dist(
-                        dist=installed_dist,
-                        extras=extras,
-                        parent=ireq,
-                    )
+            if ican.version == installed_version:
                 continue
-            yield self._make_candidate_from_link(
+            candidate = self._make_candidate_from_link(
                 link=ican.link,
                 extras=extras,
                 parent=ireq,
                 name=name,
                 version=ican.version,
             )
+            candidates[ican.version] = candidate
 
-        # Return installed distribution if it matches the specifier. This is
-        # done last so the resolver will prefer it over downloading links.
-        if can_upgrade or installed_dist is None:
-            return
-        installed_version = installed_dist.parsed_version
-        if ireq.req.specifier.contains(installed_version, prereleases=True):
-            yield self._make_candidate_from_dist(
-                dist=installed_dist,
-                extras=extras,
-                parent=ireq,
-            )
+        return six.itervalues(candidates)
 
     def make_requirement_from_install_req(self, ireq):
         # type: (InstallRequirement) -> Requirement
-        if ireq.is_direct and ireq.name:
-            self.root_reqs.add(canonicalize_name(ireq.name))
-
         if ireq.link:
             # TODO: Get name and version from ireq, if possible?
             #       Specifically, this might be needed in "name @ URL"
@@ -200,7 +196,32 @@ class Factory(object):
     def should_reinstall(self, candidate):
         # type: (Candidate) -> bool
         # TODO: Are there more cases this needs to return True? Editable?
-        return candidate.name in self._installed_dists
+        dist = self._installed_dists.get(candidate.name)
+        if dist is None:  # Not installed, no uninstallation required.
+            return False
+
+        # We're installing into global site. The current installation must
+        # be uninstalled, no matter it's in global or user site, because the
+        # user site installation has precedence over global.
+        if not self._use_user_site:
+            return True
+
+        # We're installing into user site. Remove the user site installation.
+        if dist_in_usersite(dist):
+            return True
+
+        # We're installing into user site, but the installed incompatible
+        # package is in global site. We can't uninstall that, and would let
+        # the new user installation to "shadow" it. But shadowing won't work
+        # in virtual environments, so we error out.
+        if running_under_virtualenv() and dist_in_site_packages(dist):
+            raise InstallationError(
+                "Will not install to the user site because it will "
+                "lack sys.path precedence to {} in {}".format(
+                    dist.project_name, dist.location,
+                )
+            )
+        return False
 
     def _report_requires_python_error(
         self,

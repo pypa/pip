@@ -57,10 +57,10 @@ jobs:
     - stage: experimental
       env:
       - GROUP=1
-      - PIP_UNSTABLE_FEATURE=resolver
+      - NEW_RESOLVER=1
     - env:
       - GROUP=2
-      - PIP_UNSTABLE_FEATURE=resolver
+      - NEW_RESOLVER=1
 
   fast_finish: true
   allow_failures:

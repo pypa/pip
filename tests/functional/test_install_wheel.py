@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import distutils
 import glob
 import os
@@ -123,6 +125,36 @@ def test_basic_install_from_wheel_file(script, data):
     assert installer_temp not in result.files_created, (dist_info_folder,
                                                         result.files_created,
                                                         result.stdout)
+
+
+# Installation seems to work, but scripttest fails to check.
+# I really don't care now since we're desupporting it soon anyway.
+@skip_if_python2
+def test_basic_install_from_unicode_wheel(script, data):
+    """
+    Test installing from a wheel (that has a script)
+    """
+    make_wheel(
+        'unicode_package',
+        '1.0',
+        extra_files={
+            'வணக்கம்/__init__.py': b'',
+            'வணக்கம்/નમસ્તે.py': b'',
+        },
+    ).save_to_dir(script.scratch_path)
+
+    result = script.pip(
+        'install', 'unicode_package==1.0', '--no-index',
+        '--find-links', script.scratch_path,
+    )
+    dist_info_folder = script.site_packages / 'unicode_package-1.0.dist-info'
+    assert dist_info_folder in result.files_created, str(result)
+
+    file1 = script.site_packages.joinpath('வணக்கம்', '__init__.py')
+    assert file1 in result.files_created, str(result)
+
+    file2 = script.site_packages.joinpath('வணக்கம்', 'નમસ્તે.py')
+    assert file2 in result.files_created, str(result)
 
 
 def test_install_from_wheel_with_headers(script, data):

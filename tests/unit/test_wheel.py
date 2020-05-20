@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 """Tests for wheel binary packages and .dist-info."""
 import csv
 import logging
@@ -114,8 +116,8 @@ def test_raise_for_invalid_entrypoint_fail(entrypoint):
 
 @pytest.mark.parametrize("outrows, expected", [
     ([
-        ('', '', 'a'),
-        ('', '', ''),
+        (u'', '', 'a'),
+        (u'', '', ''),
     ], [
         ('', '', ''),
         ('', '', 'a'),
@@ -123,15 +125,23 @@ def test_raise_for_invalid_entrypoint_fail(entrypoint):
     ([
         # Include an int to check avoiding the following error:
         # > TypeError: '<' not supported between instances of 'str' and 'int'
-        ('', '', 1),
-        ('', '', ''),
+        (u'', '', 1),
+        (u'', '', ''),
     ], [
         ('', '', ''),
-        ('', '', 1),
+        ('', '', '1'),
+    ]),
+    ([
+        # Test the normalization correctly encode everything for csv.writer().
+        (u'😉', '', 1),
+        (u'', '', ''),
+    ], [
+        ('', '', ''),
+        ('😉', '', '1'),
     ]),
 ])
-def test_sorted_outrows(outrows, expected):
-    actual = wheel.sorted_outrows(outrows)
+def test_normalized_outrows(outrows, expected):
+    actual = wheel._normalized_outrows(outrows)
     assert actual == expected
 
 
@@ -141,7 +151,7 @@ def call_get_csv_rows_for_installed(tmpdir, text):
 
     # Test that an installed file appearing in RECORD has its filename
     # updated in the new RECORD file.
-    installed = {'a': 'z'}
+    installed = {u'a': 'z'}
     changed = set()
     generated = []
     lib_dir = '/lib/dir'
@@ -180,9 +190,9 @@ def test_get_csv_rows_for_installed__long_lines(tmpdir, caplog):
     outrows = call_get_csv_rows_for_installed(tmpdir, text)
 
     expected = [
-        ('z', 'b', 'c', 'd'),
+        ('z', 'b', 'c'),
         ('e', 'f', 'g'),
-        ('h', 'i', 'j', 'k'),
+        ('h', 'i', 'j'),
     ]
     assert outrows == expected
 

@@ -123,6 +123,26 @@ def test_keyring_get_password_after_prompt(monkeypatch):
     assert actual == ("user", "user!netloc", False)
 
 
+def test_keyring_get_password_after_prompt_when_none(monkeypatch):
+    keyring = KeyringModuleV1()
+    monkeypatch.setattr('pip._internal.network.auth.keyring', keyring)
+    auth = MultiDomainBasicAuth()
+
+    def ask_input(prompt):
+        assert prompt == "User for unknown.com: "
+        return "user"
+
+    def ask_password(prompt):
+        assert prompt == "Password: "
+        return "fake_password"
+
+    monkeypatch.setattr('pip._internal.network.auth.ask_input', ask_input)
+    monkeypatch.setattr(
+        'pip._internal.network.auth.ask_password', ask_password)
+    actual = auth._prompt_for_password("unknown.com")
+    assert actual == ("user", "fake_password", True)
+
+
 def test_keyring_get_password_username_in_index(monkeypatch):
     keyring = KeyringModuleV1()
     monkeypatch.setattr('pip._internal.network.auth.keyring', keyring)
