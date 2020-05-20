@@ -4,6 +4,7 @@ Tests for the resolver
 
 import os
 import re
+import sys
 
 import pytest
 import yaml
@@ -187,7 +188,7 @@ def test_yaml_based(script, case):
             assert effect['state'] == (response['state'] or []), str(result)
 
         error = response.get('error')
-        if error and case[":resolver:"] == 'new':
+        if error and case[":resolver:"] == 'new' and sys.platform != 'win32':
             return_code = error.get('code')
             if return_code:
                 assert result.returncode == return_code
