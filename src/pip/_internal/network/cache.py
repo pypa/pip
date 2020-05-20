@@ -1,9 +1,6 @@
 """HTTP cache implementation.
 """
 
-# The following comment should be removed at some point in the future.
-# mypy: disallow-untyped-defs=False
-
 import os
 from contextlib import contextmanager
 
@@ -16,7 +13,7 @@ from pip._internal.utils.misc import ensure_dir
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional
+    from typing import Optional, Iterator
 
 
 def is_from_cache(response):
@@ -26,6 +23,7 @@ def is_from_cache(response):
 
 @contextmanager
 def suppressed_cache_errors():
+    # type: () -> Iterator[None]
     """If we can't access the cache then we can just skip caching and process
     requests as if caching wasn't enabled.
     """

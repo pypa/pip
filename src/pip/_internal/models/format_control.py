@@ -1,6 +1,3 @@
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.exceptions import CommandError
@@ -42,7 +39,7 @@ class FormatControl(object):
 
     @staticmethod
     def handle_mutual_excludes(value, target, other):
-        # type: (str, Optional[Set[str]], Optional[Set[str]]) -> None
+        # type: (str, Set[str], Set[str]) -> None
         if value.startswith('-'):
             raise CommandError(
                 "--no-binary / --only-binary option requires 1 argument."
