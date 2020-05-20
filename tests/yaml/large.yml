@@ -282,7 +282,10 @@ cases:
     - install: ['html5lib', 'six ==1.8.2']
   response:
     - state: null
-  skip: true
+      error:
+        code: 1
+        stderr: satisfies the requirement
+  skip: old
   # -- the new resolver tells:
   # Could not find a version that satisfies the requirement six==1.8.2
   # Could not find a version that satisfies the requirement six>=1.9 (from html5lib)
