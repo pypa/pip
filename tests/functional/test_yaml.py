@@ -175,24 +175,22 @@ def test_yaml_based(script, case):
                                 request[action],
                                 request.get('options', '').split(),
                                 case[':resolver:'] == 'new')
+        result = effect['result']
 
         if 0:  # for analyzing output easier
             with open(DATA_DIR.parent / "yaml" /
                       case[':name:'].replace('*', '-'), 'w') as fo:
-                result = effect['result']
                 fo.write("=== RETURNCODE = %d\n" % result.returncode)
                 fo.write("=== STDERR ===:\n%s\n" % result.stderr)
 
         if 'state' in response:
-            assert effect['state'] == (response['state'] or []), \
-                str(effect["result"])
+            assert effect['state'] == (response['state'] or []), str(result)
 
-        error = False
-        if 'conflicting' in response:
-            error = True
-
-        if error:
-            if case[":resolver:"] == 'old':
-                assert effect["result"].returncode == 0, str(effect["result"])
-            elif case[":resolver:"] == 'new':
-                assert effect["result"].returncode == 1, str(effect["result"])
+        error = response.get('error')
+        if error and case[":resolver:"] == 'new':
+            return_code = error.get('code')
+            if return_code:
+                assert result.returncode == return_code
+            stderr = error.get('stderr')
+            if stderr:
+                assert stderr in result.stderr
