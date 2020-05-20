@@ -354,34 +354,22 @@ class TestPipResult(object):
                 )
 
     def did_create(self, path, message=None):
-        if message is None:
-            message = str(self)
-        else:
-            message = "\n".join((message, str(self)))
+        return '{}\n{}'.format(message, self) if message else self
 
         assert str(path) in self.files_created, message
 
     def did_not_create(self, path, message=None):
-        if message is None:
-            message = str(self)
-        else:
-            message = "\n".join((message, str(self)))
+        return '{}\n{}'.format(message, self) if message else self
 
         assert str(path) not in self.files_created, message
 
     def did_update(self, path, message=None):
-        if message is None:
-            message = str(self)
-        else:
-            message = "\n".join((message, str(self)))
+        return '{}\n{}'.format(message, self) if message else self
 
         assert str(path) in self.files_updated, message
 
     def did_not_update(self, path, message=None):
-        if message is None:
-            message = str(self)
-        else:
-            message = "\n".join((message, str(self)))
+        return '{}\n{}'.format(message, self) if message else self
 
         assert str(path) not in self.files_updated, message
 
