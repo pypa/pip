@@ -132,7 +132,10 @@ class Resolver(BaseResolver):
         resolver = RLResolver(provider, reporter)
 
         try:
-            self._result = resolver.resolve(requirements)
+            try_to_avoid_resolution_too_deep = 2000000
+            self._result = resolver.resolve(
+                requirements, max_rounds=try_to_avoid_resolution_too_deep,
+            )
 
         except ResolutionImpossible as e:
             error = self.factory.get_installation_error(e)
