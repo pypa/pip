@@ -1,10 +1,6 @@
 """Utilities related archives.
 """
 
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-# mypy: disallow-untyped-defs=False
-
 from __future__ import absolute_import
 
 import logging
@@ -48,6 +44,7 @@ except ImportError:
 
 
 def current_umask():
+    # type: () -> int
     """Get the current umask which involves having to set it temporarily."""
     mask = os.umask(0)
     os.umask(mask)
@@ -208,6 +205,7 @@ def untar_file(filename, location):
                     )
                     continue
             else:
+                fp = None
                 try:
                     fp = tar.extractfile(member)
                 except (KeyError, AttributeError) as exc:
@@ -220,8 +218,10 @@ def untar_file(filename, location):
                     continue
                 ensure_dir(os.path.dirname(path))
                 with open(path, 'wb') as destfp:
-                    shutil.copyfileobj(fp, destfp)
-                fp.close()
+                    if fp:
+                        shutil.copyfileobj(fp, destfp)
+                if fp:
+                    fp.close()
                 # Update the timestamp (useful for cython compiled files)
                 # https://github.com/python/typeshed/issues/2673
                 tar.utime(member, path)  # type: ignore
