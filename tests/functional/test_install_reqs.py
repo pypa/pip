@@ -189,6 +189,7 @@ def test_respect_order_in_requirements_file(script, data):
     )
 
 
+@pytest.mark.fails_on_new_resolver
 def test_install_local_editable_with_extras(script, data):
     to_install = data.packages.joinpath("LocalExtras")
     res = script.pip_install_local(
@@ -336,6 +337,7 @@ def test_constraints_local_install_causes_error(script, data):
     assert 'Could not satisfy constraints for' in result.stderr
 
 
+@pytest.mark.fails_on_new_resolver
 def test_constraints_constrain_to_local_editable(script, data):
     to_install = data.src.joinpath("singlemodule")
     script.scratch_path.joinpath("constraints.txt").write_text(
@@ -347,6 +349,7 @@ def test_constraints_constrain_to_local_editable(script, data):
     assert 'Running setup.py develop for singlemodule' in result.stdout
 
 
+@pytest.mark.fails_on_new_resolver
 def test_constraints_constrain_to_local(script, data):
     to_install = data.src.joinpath("singlemodule")
     script.scratch_path.joinpath("constraints.txt").write_text(
@@ -358,6 +361,7 @@ def test_constraints_constrain_to_local(script, data):
     assert 'Running setup.py install for singlemodule' in result.stdout
 
 
+@pytest.mark.fails_on_new_resolver
 def test_constrained_to_url_install_same_url(script, data):
     to_install = data.src.joinpath("singlemodule")
     constraints = path_to_url(to_install) + "#egg=singlemodule"
@@ -403,6 +407,7 @@ def test_double_install_spurious_hash_mismatch(
         assert 'Successfully installed simple-1.0' in str(result)
 
 
+@pytest.mark.fails_on_new_resolver
 def test_install_with_extras_from_constraints(script, data):
     to_install = data.packages.joinpath("LocalExtras")
     script.scratch_path.joinpath("constraints.txt").write_text(
@@ -413,6 +418,7 @@ def test_install_with_extras_from_constraints(script, data):
     assert script.site_packages / 'simple' in result.files_created
 
 
+@pytest.mark.fails_on_new_resolver
 def test_install_with_extras_from_install(script, data):
     to_install = data.packages.joinpath("LocalExtras")
     script.scratch_path.joinpath("constraints.txt").write_text(
@@ -423,6 +429,7 @@ def test_install_with_extras_from_install(script, data):
     assert script.site_packages / 'singlemodule.py' in result.files_created
 
 
+@pytest.mark.fails_on_new_resolver
 def test_install_with_extras_joined(script, data):
     to_install = data.packages.joinpath("LocalExtras")
     script.scratch_path.joinpath("constraints.txt").write_text(
@@ -435,6 +442,7 @@ def test_install_with_extras_joined(script, data):
     assert script.site_packages / 'singlemodule.py' in result.files_created
 
 
+@pytest.mark.fails_on_new_resolver
 def test_install_with_extras_editable_joined(script, data):
     to_install = data.packages.joinpath("LocalExtras")
     script.scratch_path.joinpath("constraints.txt").write_text(
@@ -465,6 +473,7 @@ def test_install_distribution_duplicate_extras(script, data):
         assert expected in result.stderr
 
 
+@pytest.mark.fails_on_new_resolver
 def test_install_distribution_union_with_constraints(script, data):
     to_install = data.packages.joinpath("LocalExtras")
     script.scratch_path.joinpath("constraints.txt").write_text(
@@ -475,6 +484,7 @@ def test_install_distribution_union_with_constraints(script, data):
     assert script.site_packages / 'singlemodule.py' in result.files_created
 
 
+@pytest.mark.fails_on_new_resolver
 def test_install_distribution_union_with_versions(script, data):
     to_install_001 = data.packages.joinpath("LocalExtras")
     to_install_002 = data.packages.joinpath("LocalExtras-0.0.2")
@@ -497,6 +507,7 @@ def test_install_distribution_union_conflicting_extras(script, data):
     assert "Conflict" in result.stderr
 
 
+@pytest.mark.fails_on_new_resolver
 def test_install_unsupported_wheel_link_with_marker(script):
     script.scratch_path.joinpath("with-marker.txt").write_text(
         textwrap.dedent("""\
@@ -515,6 +526,7 @@ def test_install_unsupported_wheel_link_with_marker(script):
     assert len(result.files_created) == 0
 
 
+@pytest.mark.fails_on_new_resolver
 def test_install_unsupported_wheel_file(script, data):
     # Trying to install a local wheel with an incompatible version/type
     # should fail.

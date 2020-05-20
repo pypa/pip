@@ -42,6 +42,12 @@ def pytest_addoption(parser):
         help="use new resolver in tests",
     )
     parser.addoption(
+        "--new-resolver-runtests",
+        action="store_true",
+        default=False,
+        help="run the skipped tests for the new resolver",
+    )
+    parser.addoption(
         "--use-venv",
         action="store_true",
         default=False,
@@ -58,6 +64,12 @@ def pytest_collection_modifyitems(config, items):
         if (item.get_closest_marker('network') is not None and
                 "CI" in os.environ):
             item.add_marker(pytest.mark.flaky(reruns=3))
+
+        if (item.get_closest_marker('fails_on_new_resolver') and
+                config.getoption("--new-resolver") and
+                not config.getoption("--new-resolver-runtests")):
+            item.add_marker(pytest.mark.skip(
+                'This test does not work with the new resolver'))
 
         if six.PY3:
             if (item.get_closest_marker('incompatible_with_test_venv') and

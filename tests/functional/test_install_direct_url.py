@@ -1,5 +1,7 @@
 import re
 
+import pytest
+
 from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
 from tests.lib import _create_test_package, path_to_url
 
@@ -30,6 +32,7 @@ def test_install_vcs_editable_no_direct_url(script, with_wheel):
     assert not _get_created_direct_url(result, "testpkg")
 
 
+@pytest.mark.fails_on_new_resolver
 def test_install_vcs_non_editable_direct_url(script, with_wheel):
     pkg_path = _create_test_package(script, name="testpkg")
     url = path_to_url(pkg_path)

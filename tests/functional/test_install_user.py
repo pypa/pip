@@ -126,6 +126,7 @@ class Tests_UserSite:
 
     @pytest.mark.network
     @pytest.mark.incompatible_with_test_venv
+    @pytest.mark.fails_on_new_resolver
     def test_install_user_conflict_in_globalsite(self, virtualenv, script):
         """
         Test user install with conflict in global site ignores site and
@@ -158,6 +159,7 @@ class Tests_UserSite:
 
     @pytest.mark.network
     @pytest.mark.incompatible_with_test_venv
+    @pytest.mark.fails_on_new_resolver
     def test_upgrade_user_conflict_in_globalsite(self, virtualenv, script):
         """
         Test user install/upgrade with conflict in global site ignores site and
@@ -189,6 +191,7 @@ class Tests_UserSite:
 
     @pytest.mark.network
     @pytest.mark.incompatible_with_test_venv
+    @pytest.mark.fails_on_new_resolver
     def test_install_user_conflict_in_globalsite_and_usersite(
             self, virtualenv, script):
         """
