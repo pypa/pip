@@ -1235,3 +1235,23 @@ cases:
   response:
     - state:
       - alabaster 0.7.11
+-
+  request:
+    - install: ipython==6.3.1
+  response:
+    - state:
+      - backcall 0.1.0
+      - decorator 4.3.0
+      - ipython 6.3.1
+      - ipython_genutils 0.2.0
+      - jedi 0.12.1
+      - parso 0.3.1
+      - pexpect 4.6.0
+      - pickleshare 0.7.4
+      - prompt_toolkit 1.0.15
+      - ptyprocess 0.6.0
+      - pygments 2.2.0
+      - simplegeneric 0.8.1
+      - six 1.11.0
+      - traitlets 4.3.2
+      - wcwidth 0.1.7
