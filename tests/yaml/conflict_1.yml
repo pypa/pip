@@ -17,6 +17,15 @@ cases:
   # A 1.0.0 has incompatible requirements B==1.0.0, B==2.0.0
 -
   request:
+    - install: ['B==1.0.0', 'B']
+  response:
+    - state:
+       - B 1.0.0
+  skip: old
+  # -- old error:
+  # Double requirement given: B (already in B==1.0.0, name='B')
+-
+  request:
     - install: ['B==1.0.0', 'B==2.0.0']
   response:
     - state: null
