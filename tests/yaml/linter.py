@@ -53,9 +53,12 @@ def lint_case(case, verbose=False):
 
     for request, response in zip(requests, responses):
         check_dict(request, optional=['install', 'uninstall', 'options'])
-        check_dict(response, optional=['state', 'conflicting'])
-        assert len(response) == 1
+        check_dict(response, optional=['state', 'error'])
+        assert len(response) >= 1
         assert isinstance(response.get('state') or [], list)
+        error = response.get('error')
+        if error:
+            check_dict(error, optional=['code', 'stderr'])
 
 
 def lint_yml(yml_file, verbose=False):
