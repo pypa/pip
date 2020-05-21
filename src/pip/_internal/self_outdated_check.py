@@ -1,6 +1,3 @@
-# The following comment should be removed at some point in the future.
-# mypy: disallow-untyped-defs=False
-
 from __future__ import absolute_import
 
 import datetime
@@ -104,6 +101,7 @@ class SelfCheckState(object):
 
     @property
     def key(self):
+        # type: () -> str
         return sys.prefix
 
     def save(self, pypi_version, current_time):
