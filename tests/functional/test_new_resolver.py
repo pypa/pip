@@ -194,16 +194,14 @@ def test_new_resolver_ignore_dependencies(script):
     [
         "base[add]",
         "base[add] >= 0.1.0",
-        pytest.param(  # Non-standard syntax. To deprecate, see pypa/pip#8288.
-            "base >= 0.1.0[add]",
-            marks=pytest.mark.skipif(
-                "sys.platform == 'win32'",
-                reason="script.pip() does not handle >= on Windows",
-            ),
-        ),
+        # Non-standard syntax. To deprecate, see pypa/pip#8288.
+        "base >= 0.1.0[add]",
     ],
 )
-def test_new_resolver_installs_extras(script, root_dep):
+def test_new_resolver_installs_extras(tmpdir, script, root_dep):
+    req_file = tmpdir.joinpath("requirements.txt")
+    req_file.write_text(root_dep)
+
     create_basic_wheel_for_package(
         script,
         "base",
@@ -219,7 +217,7 @@ def test_new_resolver_installs_extras(script, root_dep):
         "install", "--unstable-feature=resolver",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
-        root_dep,
+        "-r", req_file,
     )
     assert_installed(script, base="0.1.0", dep="0.1.0")
 
