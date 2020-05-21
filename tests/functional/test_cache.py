@@ -170,7 +170,7 @@ def test_cache_list_name_and_version_match(script):
     assert not list_matches_wheel('zzz-7.8.9', result)
 
 
-@pytest.mark.usefixture("populate_wheel_cache")
+@pytest.mark.usefixtures("populate_wheel_cache")
 def test_cache_remove_no_arguments(script):
     """Running `pip cache remove` with no arguments should cause an error."""
     script.pip('cache', 'remove', expect_error=True)
