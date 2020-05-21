@@ -418,7 +418,11 @@ class ExtrasCandidate(Candidate):
             )
 
         for r in self.base.dist.requires(valid_extras):
-            yield factory.make_requirement_from_spec(str(r), self.base._ireq)
+            requirement = factory.make_requirement_from_spec_matching_extras(
+                str(r), self.base._ireq, valid_extras,
+            )
+            if requirement:
+                yield requirement
 
         # Add a dependency on the exact base.
         # (See note 2b in the class docstring)
