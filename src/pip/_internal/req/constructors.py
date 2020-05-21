@@ -75,7 +75,7 @@ def convert_extras(extras):
 
 
 def parse_editable(editable_req):
-    # type: (str) -> Tuple[Optional[str], str, Optional[Set[str]]]
+    # type: (str) -> Tuple[Optional[str], str, Set[str]]
     """Parses an editable requirement into:
         - a requirement name
         - an URL
@@ -117,7 +117,7 @@ def parse_editable(editable_req):
                 Requirement("placeholder" + extras.lower()).extras,
             )
         else:
-            return package_name, url_no_extras, None
+            return package_name, url_no_extras, set()
 
     for version_control in vcs:
         if url.lower().startswith('{}:'.format(version_control)):
@@ -146,7 +146,7 @@ def parse_editable(editable_req):
             "Could not detect requirement name for '{}', please specify one "
             "with #egg=your_package_name".format(editable_req)
         )
-    return package_name, url, None
+    return package_name, url, set()
 
 
 def deduce_helpful_msg(req):
@@ -185,7 +185,7 @@ class RequirementParts(object):
             requirement,  # type: Optional[Requirement]
             link,         # type: Optional[Link]
             markers,      # type: Optional[Marker]
-            extras,       # type: Optional[Set[str]]
+            extras,       # type: Set[str]
     ):
         self.requirement = requirement
         self.link = link
@@ -236,7 +236,7 @@ def install_req_from_editable(
         install_options=options.get("install_options", []) if options else [],
         global_options=options.get("global_options", []) if options else [],
         hash_options=options.get("hashes", {}) if options else {},
-        extras=parts.extras if parts.extras else set(),
+        extras=parts.extras,
     )
 
 
@@ -399,7 +399,7 @@ def install_req_from_line(
         global_options=options.get("global_options", []) if options else [],
         hash_options=options.get("hashes", {}) if options else {},
         constraint=constraint,
-        extras=parts.extras if parts.extras else set(),
+        extras=parts.extras,
     )
 
 
