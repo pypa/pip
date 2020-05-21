@@ -274,7 +274,7 @@ def upload_release(session):
             f"Remove dist/ and run 'nox -s build-release -- {version}'"
         )
     # Sanity check: Make sure the files are correctly named.
-    distfile_names = sorted(map(os.path.basename, distribution_files))
+    distfile_names = map(os.path.basename, distribution_files)
     expected_distribution_files = [
         f"pip-{version}-py2.py3-none-any.whl",
         f"pip-{version}.tar.gz",
