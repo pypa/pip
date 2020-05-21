@@ -380,6 +380,7 @@ Nick Coghlan
 Nick Stenning
 Nick Timkovich
 Nicolas Bock
+Nicole Harris
 Nikhil Benesch
 Nikolay Korolev
 Nitesh Sharma
@@ -419,6 +420,7 @@ Peter Lisák
 Peter Waller
 petr-tik
 Phaneendra Chiruvella
+Phil Elson
 Phil Freo
 Phil Pennock
 Phil Whelan
