@@ -1,4 +1,5 @@
 import collections
+import logging
 
 from pip._vendor import six
 from pip._vendor.packaging.utils import canonicalize_name
@@ -48,6 +49,9 @@ if MYPY_CHECK_RUNNING:
     C = TypeVar("C")
     Cache = Dict[Link, C]
     VersionCandidates = Dict[_BaseVersion, Candidate]
+
+
+logger = logging.getLogger(__name__)
 
 
 class Factory(object):
@@ -196,6 +200,10 @@ class Factory(object):
         # type: (...) -> Optional[Requirement]
         ireq = self._make_install_req_from_spec(specifier, comes_from)
         if not ireq.match_markers(requested_extras):
+            logger.info(
+                "Ignoring %s: markers '%s' don't match your environment",
+                ireq.name, ireq.markers,
+            )
             return None
         return self.make_requirement_from_install_req(ireq)
 
