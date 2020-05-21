@@ -532,6 +532,29 @@ def test_new_resolver_handles_prerelease(
 
 
 @pytest.mark.parametrize(
+    "pkg_deps, root_deps",
+    [
+        # This tests the marker is picked up from a transitive dependency.
+        (["dep; os_name == 'nonexist_os'"], ["pkg"]),
+        # This tests the marker is picked up from a root dependency.
+        ([], ["pkg", "dep; os_name == 'nonexist_os'"]),
+    ]
+)
+def test_new_reolver_skips_marker(script, pkg_deps, root_deps):
+    create_basic_wheel_for_package(script, "pkg", "1.0", depends=pkg_deps)
+    create_basic_wheel_for_package(script, "dep", "1.0")
+
+    script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        *root_deps
+    )
+    assert_installed(script, pkg="1.0")
+    assert_not_installed(script, "dep")
+
+
+@pytest.mark.parametrize(
     "constraints",
     [
         ["pkg<2.0", "constraint_only<1.0"],
