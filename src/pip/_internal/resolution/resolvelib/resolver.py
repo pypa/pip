@@ -105,6 +105,8 @@ class Resolver(BaseResolver):
         user_requested = set()  # type: Set[str]
         requirements = []
         for req in root_reqs:
+            if not req.match_markers():
+                continue
             if req.constraint:
                 # Ensure we only accept valid constraints
                 reject_invalid_constraint_types(req)
