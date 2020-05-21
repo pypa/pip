@@ -7,6 +7,7 @@ import logging
 import os
 import shutil
 import sys
+import uuid
 import zipfile
 
 from pip._vendor import pkg_resources, six
@@ -354,16 +355,16 @@ class InstallRequirement(object):
             )
 
             return self._temp_build_dir.path
-        if self.editable:
-            name = self.name.lower()
-        else:
-            name = self.name
+        dir_name = "{}_{}".format(
+            canonicalize_name(self.name),
+            uuid.uuid4().hex,
+        )
         # FIXME: Is there a better place to create the build_dir? (hg and bzr
         # need this)
         if not os.path.exists(build_dir):
             logger.debug('Creating directory %s', build_dir)
             os.makedirs(build_dir)
-        actual_build_dir = os.path.join(build_dir, name)
+        actual_build_dir = os.path.join(build_dir, dir_name)
         # `None` indicates that we respect the globally-configured deletion
         # settings, which is what we actually want when auto-deleting.
         delete_arg = None if autodelete else False
