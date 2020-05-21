@@ -17,7 +17,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from .base import Candidate, format_name
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Optional, Sequence, Set, Tuple, Union
+    from typing import Any, Iterable, Optional, Set, Tuple, Union
 
     from pip._vendor.packaging.version import _BaseVersion
     from pip._vendor.pkg_resources import Distribution
@@ -212,18 +212,15 @@ class _InstallRequirementBackedCandidate(Candidate):
             return None
         return spec
 
-    def get_dependencies(self):
-        # type: () -> Sequence[Requirement]
-        deps = [
-            self._factory.make_requirement_from_spec(str(r), self._ireq)
-            for r in self.dist.requires()
-        ]
+    def iter_dependencies(self):
+        # type: () -> Iterable[Requirement]
+        for r in self.dist.requires():
+            yield self._factory.make_requirement_from_spec(str(r), self._ireq)
         python_dep = self._factory.make_requires_python_requirement(
             self._get_requires_python_specifier(),
         )
         if python_dep:
-            deps.append(python_dep)
-        return deps
+            yield python_dep
 
     def get_install_requirement(self):
         # type: () -> Optional[InstallRequirement]
@@ -326,12 +323,10 @@ class AlreadyInstalledCandidate(Candidate):
         # type: () -> _BaseVersion
         return self.dist.parsed_version
 
-    def get_dependencies(self):
-        # type: () -> Sequence[Requirement]
-        return [
-            self._factory.make_requirement_from_spec(str(r), self._ireq)
-            for r in self.dist.requires()
-        ]
+    def iter_dependencies(self):
+        # type: () -> Iterable[Requirement]
+        for r in self.dist.requires():
+            yield self._factory.make_requirement_from_spec(str(r), self._ireq)
 
     def get_install_requirement(self):
         # type: () -> Optional[InstallRequirement]
@@ -406,8 +401,8 @@ class ExtrasCandidate(Candidate):
         # type: () -> _BaseVersion
         return self.base.is_installed
 
-    def get_dependencies(self):
-        # type: () -> Sequence[Requirement]
+    def iter_dependencies(self):
+        # type: () -> Iterable[Requirement]
         factory = self.base._factory
 
         # The user may have specified extras that the candidate doesn't
@@ -422,17 +417,15 @@ class ExtrasCandidate(Candidate):
                 extra
             )
 
-        deps = [
-            factory.make_requirement_from_spec(str(r), self.base._ireq)
-            for r in self.base.dist.requires(valid_extras)
-        ]
+        for r in self.base.dist.requires(valid_extras):
+            yield factory.make_requirement_from_spec(str(r), self.base._ireq)
+
         # Add a dependency on the exact base.
         # (See note 2b in the class docstring)
         # FIXME: This does not work if the base candidate is specified by
         # link, e.g. "pip install .[dev]" will fail.
         spec = "{}=={}".format(self.base.name, self.base.version)
-        deps.append(factory.make_requirement_from_spec(spec, self.base._ireq))
-        return deps
+        yield factory.make_requirement_from_spec(spec, self.base._ireq)
 
     def get_install_requirement(self):
         # type: () -> Optional[InstallRequirement]
@@ -468,9 +461,9 @@ class RequiresPythonCandidate(Candidate):
         # type: () -> _BaseVersion
         return self._version
 
-    def get_dependencies(self):
-        # type: () -> Sequence[Requirement]
-        return []
+    def iter_dependencies(self):
+        # type: () -> Iterable[Requirement]
+        return ()
 
     def get_install_requirement(self):
         # type: () -> Optional[InstallRequirement]
