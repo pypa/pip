@@ -425,11 +425,7 @@ class ExtrasCandidate(Candidate):
                 yield requirement
 
         # Add a dependency on the exact base.
-        # (See note 2b in the class docstring)
-        # FIXME: This does not work if the base candidate is specified by
-        # link, e.g. "pip install .[dev]" will fail.
-        spec = "{}=={}".format(self.base.name, self.base.version)
-        yield factory.make_requirement_from_spec(spec, self.base._ireq)
+        yield factory.make_requirement_from_candidate(self.base)
 
     def get_install_requirement(self):
         # type: () -> Optional[InstallRequirement]
