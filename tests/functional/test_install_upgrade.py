@@ -36,6 +36,7 @@ def test_invalid_upgrade_strategy_causes_error(script):
     assert "invalid choice" in result.stderr
 
 
+@pytest.mark.fails_on_new_resolver
 def test_only_if_needed_does_not_upgrade_deps_when_satisfied(script):
     """
     It doesn't upgrade a dependency if it already satisfies the requirements.
@@ -181,6 +182,7 @@ def test_upgrade_if_requested(script):
     )
 
 
+@pytest.mark.fails_on_new_resolver
 def test_upgrade_with_newest_already_installed(script, data):
     """
     If the newest version of a package is already installed, the package should
@@ -249,6 +251,7 @@ def test_uninstall_before_upgrade_from_url(script):
 
 
 @pytest.mark.network
+@pytest.mark.fails_on_new_resolver
 def test_upgrade_to_same_version_from_url(script):
     """
     When installing from a URL the same version that is already installed, no

@@ -148,6 +148,7 @@ def test_pep518_with_user_pip(script, pip_src, data, common_wheels):
     )
 
 
+@pytest.mark.fails_on_new_resolver
 def test_pep518_with_extra_and_markers(script, data, common_wheels):
     script.pip(
         'wheel', '--no-index',
@@ -532,6 +533,7 @@ def assert_re_match(pattern, text):
 
 
 @pytest.mark.network
+@pytest.mark.fails_on_new_resolver
 def test_hashed_install_failure_later_flag(script, tmpdir):
     with requirements_file(
         "blessings==1.0\n"
@@ -937,6 +939,7 @@ def test_install_nonlocal_compatible_wheel(script, data):
     assert result.returncode == ERROR
 
 
+@pytest.mark.fails_on_new_resolver
 def test_install_nonlocal_compatible_wheel_path(script, data):
     target_dir = script.scratch_path / 'target'
 
@@ -1491,6 +1494,7 @@ def test_double_install(script):
     assert msg not in result.stderr
 
 
+@pytest.mark.fails_on_new_resolver
 def test_double_install_fail(script):
     """
     Test double install failing with two different version requirements
@@ -1746,6 +1750,7 @@ def test_user_config_accepted(script):
     ]
 )
 @pytest.mark.parametrize("use_module", [True, False])
+@pytest.mark.fails_on_new_resolver
 def test_install_pip_does_not_modify_pip_when_satisfied(
         script, install_args, expected_message, use_module):
     """
@@ -1757,6 +1762,7 @@ def test_install_pip_does_not_modify_pip_when_satisfied(
     assert expected_message in result.stdout, str(result)
 
 
+@pytest.mark.fails_on_new_resolver
 def test_ignore_yanked_file(script, data):
     """
     Test ignore a "yanked" file.
@@ -1794,6 +1800,7 @@ def test_valid_index_url_argument(script, shared_data):
     assert 'Successfully installed Dinner' in result.stdout, str(result)
 
 
+@pytest.mark.fails_on_new_resolver
 def test_install_yanked_file_and_print_warning(script, data):
     """
     Test install a "yanked" file and print a warning.
@@ -1873,6 +1880,7 @@ def test_install_skip_work_dir_pkg(script, data):
     assert 'Successfully installed simple' in result.stdout
 
 
+@pytest.mark.fails_on_new_resolver
 def test_install_include_work_dir_pkg(script, data):
     """
     Test that install of a package in working directory
