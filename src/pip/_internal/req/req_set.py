@@ -1,6 +1,3 @@
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-
 from __future__ import absolute_import
 
 import logging
@@ -122,7 +119,8 @@ class RequirementSet(object):
             return [install_req], None
 
         try:
-            existing_req = self.get_requirement(install_req.name)
+            existing_req = self.get_requirement(
+                install_req.name)  # type: Optional[InstallRequirement]
         except KeyError:
             existing_req = None
 
