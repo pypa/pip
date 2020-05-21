@@ -55,7 +55,7 @@ class SpecifierRequirement(Requirement):
         assert ireq.link is None, "This is a link, not a specifier"
         self._ireq = ireq
         self._factory = factory
-        self.extras = ireq.req.extras
+        self.extras = set(ireq.extras)
 
     def __str__(self):
         # type: () -> str
