@@ -666,7 +666,9 @@ def test_download_exit_status_code_when_blank_requirements_file(script):
     Test download exit status code when blank requirements file specified
     """
     script.scratch_path.joinpath("blank.txt").write_text("\n")
-    script.pip('download', '-r', 'blank.txt')
+    result = script.pip('download', '-r', 'blank.txt', expect_error=True)
+    print(result)
+    assert result.returncode == ERROR
 
 
 def test_download_prefer_binary_when_tarball_higher_than_wheel(script, data):
