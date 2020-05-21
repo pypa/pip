@@ -1,2 +1,0 @@
-Revert building of local directories in place, restoring the pre-20.1
-behaviour of copying to a temporary directory.

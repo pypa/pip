@@ -1,2 +1,0 @@
-Correctly treat wheels contenting non-ASCII file contents so they can be
-installed on Windows.

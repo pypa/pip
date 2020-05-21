@@ -1,1 +1,0 @@
-Fix metadata permission issues when umask has the executable bit set.
