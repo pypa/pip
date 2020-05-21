@@ -417,15 +417,15 @@ class ExtrasCandidate(Candidate):
                 extra
             )
 
+        # Add a dependency on the exact base.
+        yield factory.make_requirement_from_candidate(self.base)
+
         for r in self.base.dist.requires(valid_extras):
             requirement = factory.make_requirement_from_spec_matching_extras(
                 str(r), self.base._ireq, valid_extras,
             )
             if requirement:
                 yield requirement
-
-        # Add a dependency on the exact base.
-        yield factory.make_requirement_from_candidate(self.base)
 
     def get_install_requirement(self):
         # type: () -> Optional[InstallRequirement]
