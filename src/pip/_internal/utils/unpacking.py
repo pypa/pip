@@ -205,7 +205,6 @@ def untar_file(filename, location):
                     )
                     continue
             else:
-                fp = None
                 try:
                     fp = tar.extractfile(member)
                 except (KeyError, AttributeError) as exc:
@@ -217,11 +216,10 @@ def untar_file(filename, location):
                     )
                     continue
                 ensure_dir(os.path.dirname(path))
+                assert fp is not None
                 with open(path, 'wb') as destfp:
-                    if fp:
-                        shutil.copyfileobj(fp, destfp)
-                if fp:
-                    fp.close()
+                    shutil.copyfileobj(fp, destfp)
+                fp.close()
                 # Update the timestamp (useful for cython compiled files)
                 # https://github.com/python/typeshed/issues/2673
                 tar.utime(member, path)  # type: ignore
