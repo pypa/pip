@@ -23,7 +23,9 @@ if MYPY_CHECK_RUNNING:
     from typing import Dict, Optional, Tuple, List, Any
 
     from pip._internal.vcs.versioncontrol import AuthInfo
+
     from pip._vendor.requests.models import Response, Request
+
     Credentials = Tuple[str, str, str]
 
 logger = logging.getLogger(__name__)
@@ -180,7 +182,7 @@ class MultiDomainBasicAuth(AuthBase):
             username, password = self._get_new_credentials(original_url)
 
         if username is not None or password is not None:
-            # Convert the username and password if they 're None, so that
+            # Convert the username and password if they're None, so that
             # this netloc will show up as "cached" in the conditional above.
             # Further, HTTPBasicAuth doesn't accept None, so it makes sense to
             # cache the value that is going to be used.
@@ -236,7 +238,7 @@ class MultiDomainBasicAuth(AuthBase):
         return ask("Save credentials to keyring [y/N]: ", ["y", "n"]) == "y"
 
     def handle_401(self, resp, **kwargs):
-        # type: (Response, **Any) -> None
+        # type: (Response, **Any) -> Response
         # We only care about 401 responses, anything else we want to just
         #   pass through the actual response
         if resp.status_code != 401:
