@@ -236,7 +236,7 @@ def install_req_from_editable(
         install_options=options.get("install_options", []) if options else [],
         global_options=options.get("global_options", []) if options else [],
         hash_options=options.get("hashes", {}) if options else {},
-        extras=parts.extras,
+        extras=parts.extras if parts.extras else set(),
     )
 
 
@@ -399,7 +399,7 @@ def install_req_from_line(
         global_options=options.get("global_options", []) if options else [],
         hash_options=options.get("hashes", {}) if options else {},
         constraint=constraint,
-        extras=parts.extras,
+        extras=parts.extras if parts.extras else set(),
     )
 
 

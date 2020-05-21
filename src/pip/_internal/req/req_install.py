@@ -110,7 +110,7 @@ class InstallRequirement(object):
         global_options=None,  # type: Optional[List[str]]
         hash_options=None,  # type: Optional[Dict[str, List[str]]]
         constraint=False,  # type: bool
-        extras=()  # type: Optional[Iterable[str]]
+        extras=()  # type: Iterable[str]
     ):
         # type: (...) -> None
         assert req is None or isinstance(req, Requirement), req

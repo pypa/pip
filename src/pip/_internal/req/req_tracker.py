@@ -95,8 +95,8 @@ class RequirementTracker(object):
         """Add an InstallRequirement to build tracking.
         """
 
-        # Get the file to write information about this requirement.
         assert req.link
+        # Get the file to write information about this requirement.
         entry_path = self._entry_path(req.link)
 
         # Try reading from the file. If it exists and can be read from, a build
