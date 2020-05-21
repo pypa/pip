@@ -43,7 +43,7 @@ from pip._internal.utils.virtualenv import virtualenv_no_global
 from pip._internal.wheel_builder import build, should_build_for_install_command
 
 if MYPY_CHECK_RUNNING:
-    from optparse import Values
+    from optparse import Values, OptionGroup
     from typing import Any, Iterable, List, Optional
 
     from pip._internal.models.format_control import FormatControl
@@ -87,11 +87,8 @@ class InstallCommand(RequirementCommand):
       %prog [options] [-e] <local project path> ...
       %prog [options] <archive url/path> ..."""
 
-    def __init__(self, *args, **kw):
-        super(InstallCommand, self).__init__(*args, **kw)
-
-        cmd_opts = self.cmd_opts
-
+    def add_options(self, cmd_opts):
+        # type: (OptionGroup) -> None
         cmd_opts.add_option(cmdoptions.requirements())
         cmd_opts.add_option(cmdoptions.constraints())
         cmd_opts.add_option(cmdoptions.no_deps())

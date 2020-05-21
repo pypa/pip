@@ -41,17 +41,15 @@ class SearchCommand(Command, SessionCommandMixin):
       %prog [options] <query>"""
     ignore_require_venv = True
 
-    def __init__(self, *args, **kw):
-        # type: (*Any, **Any) -> None
-        super(SearchCommand, self).__init__(*args, **kw)
-        self.cmd_opts.add_option(
+    def add_options(self, cmd_opts):
+        cmd_opts.add_option(
             '-i', '--index',
             dest='index',
             metavar='URL',
             default=PyPI.pypi_url,
             help='Base URL of Python Package Index (default %default)')
 
-        self.parser.insert_option_group(0, self.cmd_opts)
+        self.parser.insert_option_group(0, cmd_opts)
 
     def run(self, options, args):
         # type: (Values, List[str]) -> int

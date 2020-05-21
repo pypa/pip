@@ -18,8 +18,8 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.wheel_builder import build, should_build_for_wheel_command
 
 if MYPY_CHECK_RUNNING:
-    from optparse import Values
-    from typing import Any, List
+    from optparse import Values, OptionGroup
+    from typing import List
 
 
 logger = logging.getLogger(__name__)
@@ -47,10 +47,8 @@ class WheelCommand(RequirementCommand):
       %prog [options] [-e] <local project path> ...
       %prog [options] <archive url/path> ..."""
 
-    def __init__(self, *args, **kw):
-        # type: (*Any, **Any) -> None
-        super(WheelCommand, self).__init__(*args, **kw)
-
+    def add_options(self, cmd_opts):
+        # type: (OptionGroup) -> None
         cmd_opts = self.cmd_opts
 
         cmd_opts.add_option(

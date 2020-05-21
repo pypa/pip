@@ -39,12 +39,7 @@ class DownloadCommand(RequirementCommand):
       %prog [options] <local project path> ...
       %prog [options] <archive url/path> ..."""
 
-    def __init__(self, *args, **kw):
-        # type: (*Any, **Any) -> None
-        super(DownloadCommand, self).__init__(*args, **kw)
-
-        cmd_opts = self.cmd_opts
-
+    def add_options(self, cmd_opts):
         cmd_opts.add_option(cmdoptions.constraints())
         cmd_opts.add_option(cmdoptions.requirements())
         cmd_opts.add_option(cmdoptions.build_dir())

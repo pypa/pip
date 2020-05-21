@@ -9,8 +9,8 @@ from pip._internal.utils.misc import get_prog
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, List
-    from optparse import Values
+    from typing import List
+    from optparse import Values, OptionGroup
 
 BASE_COMPLETION = """
 # pip {shell} completion start{script}# pip {shell} completion end
@@ -56,12 +56,8 @@ class CompletionCommand(Command):
 
     ignore_require_venv = True
 
-    def __init__(self, *args, **kw):
-        # type: (*Any, **Any) -> None
-        super(CompletionCommand, self).__init__(*args, **kw)
-
-        cmd_opts = self.cmd_opts
-
+    def add_options(self, cmd_opts):
+        # type: (OptionGroup) -> None
         cmd_opts.add_option(
             '--bash', '-b',
             action='store_const',

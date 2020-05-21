@@ -13,8 +13,8 @@ from pip._internal.utils.misc import write_output
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from optparse import Values
-    from typing import Any, List, Dict, Iterator
+    from optparse import Values, OptionGroup
+    from typing import List, Dict, Iterator
 
 logger = logging.getLogger(__name__)
 
@@ -30,17 +30,16 @@ class ShowCommand(Command):
       %prog [options] <package> ..."""
     ignore_require_venv = True
 
-    def __init__(self, *args, **kw):
-        # type: (*Any, **Any) -> None
-        super(ShowCommand, self).__init__(*args, **kw)
-        self.cmd_opts.add_option(
+    def add_options(self, cmd_opts):
+        # type: (OptionGroup) -> None
+        cmd_opts.add_option(
             '-f', '--files',
             dest='files',
             action='store_true',
             default=False,
             help='Show the full list of installed files for each package.')
 
-        self.parser.insert_option_group(0, self.cmd_opts)
+        self.parser.insert_option_group(0, cmd_opts)
 
     def run(self, options, args):
         # type: (Values, List[str]) -> int

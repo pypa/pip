@@ -9,8 +9,10 @@ class SimpleCommand(Command):
 
     def __init__(self):
         super(SimpleCommand, self).__init__('fake', 'fake summary')
-        self.cmd_opts.add_option(cmdoptions.no_binary())
-        self.cmd_opts.add_option(cmdoptions.only_binary())
+
+    def add_options(self, cmd_opts):
+        cmd_opts.add_option(cmdoptions.no_binary())
+        cmd_opts.add_option(cmdoptions.only_binary())
 
     def run(self, options, args):
         self.options = options

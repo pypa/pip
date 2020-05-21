@@ -22,8 +22,8 @@ from pip._internal.utils.packaging import get_installer
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from optparse import Values
-    from typing import Any, List, Set, Tuple, Iterator
+    from optparse import Values, OptionGroup
+    from typing import List, Set, Tuple, Iterator
 
     from pip._internal.network.session import PipSession
     from pip._vendor.pkg_resources import Distribution
@@ -41,12 +41,8 @@ class ListCommand(IndexGroupCommand):
     usage = """
       %prog [options]"""
 
-    def __init__(self, *args, **kw):
-        # type: (*Any, **Any) -> None
-        super(ListCommand, self).__init__(*args, **kw)
-
-        cmd_opts = self.cmd_opts
-
+    def add_options(self, cmd_opts):
+        # type: (OptionGroup) -> None
         cmd_opts.add_option(
             '-o', '--outdated',
             action='store_true',

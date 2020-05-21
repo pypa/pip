@@ -45,12 +45,15 @@ class ConfigurationCommand(Command):
         %prog [<file-option>] unset name
     """
 
-    def __init__(self, *args, **kwargs):
-        super(ConfigurationCommand, self).__init__(*args, **kwargs)
+    def __init__(self, name, summary, isolated=False):
+        super(ConfigurationCommand, self).__init__(
+            name, summary, isolated=isolated
+        )
 
         self.configuration = None
 
-        self.cmd_opts.add_option(
+    def add_options(self, cmd_opts):
+        cmd_opts.add_option(
             '--editor',
             dest='editor',
             action='store',
@@ -61,7 +64,7 @@ class ConfigurationCommand(Command):
             )
         )
 
-        self.cmd_opts.add_option(
+        cmd_opts.add_option(
             '--global',
             dest='global_file',
             action='store_true',
@@ -69,7 +72,7 @@ class ConfigurationCommand(Command):
             help='Use the system-wide configuration file only'
         )
 
-        self.cmd_opts.add_option(
+        cmd_opts.add_option(
             '--user',
             dest='user_file',
             action='store_true',
@@ -77,7 +80,7 @@ class ConfigurationCommand(Command):
             help='Use the user configuration file only'
         )
 
-        self.cmd_opts.add_option(
+        cmd_opts.add_option(
             '--site',
             dest='site_file',
             action='store_true',
@@ -85,7 +88,7 @@ class ConfigurationCommand(Command):
             help='Use the current environment configuration file only'
         )
 
-        self.parser.insert_option_group(0, self.cmd_opts)
+        self.parser.insert_option_group(0, cmd_opts)
 
     def run(self, options, args):
         handlers = {
