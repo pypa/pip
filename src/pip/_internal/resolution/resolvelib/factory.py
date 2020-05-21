@@ -187,6 +187,7 @@ class Factory(object):
         return SpecifierRequirement(ireq, factory=self)
 
     def make_requirement_from_candidate(self, candidate):
+        # type: (Candidate) -> ExplicitRequirement
         return ExplicitRequirement(candidate)
 
     def make_requirement_from_spec(self, specifier, comes_from):
