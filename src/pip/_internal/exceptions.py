@@ -1,8 +1,5 @@
 """Exceptions used throughout package"""
 
-# The following comment should be removed at some point in the future.
-# mypy: disallow-untyped-defs=False
-
 from __future__ import absolute_import
 
 from itertools import chain, groupby, repeat
@@ -12,9 +9,14 @@ from pip._vendor.six import iteritems
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional
+    from typing import Optional, List, Dict
     from pip._vendor.pkg_resources import Distribution
     from pip._internal.req.req_install import InstallRequirement
+    from pip._vendor.six import PY3
+    if PY3:
+        from hashlib import _Hash
+    else:
+        from hashlib import _hash as _Hash
 
 
 class PipError(Exception):
@@ -100,12 +102,15 @@ class HashErrors(InstallationError):
     """Multiple HashError instances rolled into one for reporting"""
 
     def __init__(self):
-        self.errors = []
+        # type: () -> None
+        self.errors = []  # type: List[HashError]
 
     def append(self, error):
+        # type: (HashError) -> None
         self.errors.append(error)
 
     def __str__(self):
+        # type: () -> str
         lines = []
         self.errors.sort(key=lambda e: e.order)
         for cls, errors_of_cls in groupby(self.errors, lambda e: e.__class__):
@@ -113,11 +118,14 @@ class HashErrors(InstallationError):
             lines.extend(e.body() for e in errors_of_cls)
         if lines:
             return '\n'.join(lines)
+        return ''
 
     def __nonzero__(self):
+        # type: () -> bool
         return bool(self.errors)
 
     def __bool__(self):
+        # type: () -> bool
         return self.__nonzero__()
 
 
@@ -139,8 +147,10 @@ class HashError(InstallationError):
     """
     req = None  # type: Optional[InstallRequirement]
     head = ''
+    order = None  # type: Optional[int]
 
     def body(self):
+        # type: () -> str
         """Return a summary of me for display under the heading.
 
         This default implementation simply prints a description of the
@@ -153,9 +163,11 @@ class HashError(InstallationError):
         return '    {}'.format(self._requirement_name())
 
     def __str__(self):
+        # type: () -> str
         return '{}\n{}'.format(self.head, self.body())
 
     def _requirement_name(self):
+        # type: () -> str
         """Return a description of the requirement that triggered me.
 
         This default implementation returns long description of the req, with
@@ -196,13 +208,15 @@ class HashMissing(HashError):
             'has a hash.)')
 
     def __init__(self, gotten_hash):
+        # type: (str) -> None
         """
         :param gotten_hash: The hash of the (possibly malicious) archive we
             just downloaded
         """
-        self.gotten_hash = gotten_hash
+        self.gotten_hash = gotten_hash  # type: str
 
     def body(self):
+        # type: () -> str
         # Dodge circular import.
         from pip._internal.utils.hashes import FAVORITE_HASH
 
@@ -245,20 +259,23 @@ class HashMismatch(HashError):
             'someone may have tampered with them.')
 
     def __init__(self, allowed, gots):
+        # type: (Dict[str, List[str]], Dict[str, _Hash]) -> None
         """
         :param allowed: A dict of algorithm names pointing to lists of allowed
             hex digests
         :param gots: A dict of algorithm names pointing to hashes we
             actually got from the files under suspicion
         """
-        self.allowed = allowed
-        self.gots = gots
+        self.allowed = allowed  # type: Dict[str, List[str]]
+        self.gots = gots  # type: Dict[str, _Hash]
 
     def body(self):
+        # type: () -> str
         return '    {}:\n{}'.format(self._requirement_name(),
                                     self._hash_comparison())
 
     def _hash_comparison(self):
+        # type: () -> str
         """
         Return a comparison of actual and expected hash values.
 
@@ -270,11 +287,12 @@ class HashMismatch(HashError):
 
         """
         def hash_then_or(hash_name):
+            # type: (str) -> chain[str]
             # For now, all the decent hashes have 6-char names, so we can get
             # away with hard-coding space literals.
             return chain([hash_name], repeat('    or'))
 
-        lines = []
+        lines = []  # type: List[str]
         for hash_name, expecteds in iteritems(self.allowed):
             prefix = hash_then_or(hash_name)
             lines.extend(('        Expected {} {}'.format(next(prefix), e))
@@ -294,15 +312,18 @@ class ConfigurationFileCouldNotBeLoaded(ConfigurationError):
     """
 
     def __init__(self, reason="could not be loaded", fname=None, error=None):
+        # type: (str, Optional[str], Optional[Exception]) -> None
         super(ConfigurationFileCouldNotBeLoaded, self).__init__(error)
         self.reason = reason
         self.fname = fname
         self.error = error
 
     def __str__(self):
+        # type: () -> str
         if self.fname is not None:
             message_part = " in {}.".format(self.fname)
         else:
             assert self.error is not None
-            message_part = ".\n{}\n".format(self.error.message)
+            # message attribute for Exception is only available for Python 2
+            message_part = ".\n{}\n".format(self.error.message)  # type: ignore
         return "Configuration file {}{}".format(self.reason, message_part)
