@@ -353,6 +353,27 @@ class TestPipResult(object):
                     .format(**locals())
                 )
 
+    def did_create(self, path, message=None):
+        assert str(path) in self.files_created, _one_or_both(message, self)
+
+    def did_not_create(self, path, message=None):
+        assert str(path) not in self.files_created, _one_or_both(message, self)
+
+    def did_update(self, path, message=None):
+        assert str(path) in self.files_updated, _one_or_both(message, self)
+
+    def did_not_update(self, path, message=None):
+        assert str(path) not in self.files_updated, _one_or_both(message, self)
+
+
+def _one_or_both(a, b):
+    """Returns f"{a}\n{b}" if a is truthy, else returns str(b).
+    """
+    if not a:
+        return str(b)
+
+    return "{a}\n{b}".format(a=a, b=b)
+
 
 def make_check_stderr_message(stderr, line, reason):
     """
