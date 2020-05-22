@@ -180,11 +180,15 @@ class Factory(object):
             # TODO: Get name and version from ireq, if possible?
             #       Specifically, this might be needed in "name @ URL"
             #       syntax - need to check where that syntax is handled.
-            cand = self._make_candidate_from_link(
+            candidate = self._make_candidate_from_link(
                 ireq.link, extras=set(ireq.extras), parent=ireq,
             )
-            return ExplicitRequirement(cand)
+            return self.make_requirement_from_candidate(candidate)
         return SpecifierRequirement(ireq, factory=self)
+
+    def make_requirement_from_candidate(self, candidate):
+        # type: (Candidate) -> ExplicitRequirement
+        return ExplicitRequirement(candidate)
 
     def make_requirement_from_spec(self, specifier, comes_from):
         # type: (str, InstallRequirement) -> Requirement

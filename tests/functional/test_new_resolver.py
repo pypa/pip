@@ -825,9 +825,7 @@ class TestExtraMerge(object):
     @pytest.mark.parametrize(
         "pkg_builder",
         [
-            pytest.param(
-                _local_with_setup, marks=pytest.mark.xfail(strict=True),
-            ),
+            _local_with_setup,
             _direct_wheel,
             _wheel_from_index,
         ],

@@ -347,8 +347,8 @@ class ExtrasCandidate(Candidate):
        to treat it as a separate node in the dependency graph.
     2. When we're getting the candidate's dependencies,
        a) We specify that we want the extra dependencies as well.
-       b) We add a dependency on the base candidate (matching the name and
-          version).  See below for why this is needed.
+       b) We add a dependency on the base candidate.
+          See below for why this is needed.
     3. We return None for the underlying InstallRequirement, as the base
        candidate will provide it, and we don't want to end up with duplicates.
 
@@ -417,19 +417,16 @@ class ExtrasCandidate(Candidate):
                 extra
             )
 
+        # Add a dependency on the exact base
+        # (See note 2b in the class docstring)
+        yield factory.make_requirement_from_candidate(self.base)
+
         for r in self.base.dist.requires(valid_extras):
             requirement = factory.make_requirement_from_spec_matching_extras(
                 str(r), self.base._ireq, valid_extras,
             )
             if requirement:
                 yield requirement
-
-        # Add a dependency on the exact base.
-        # (See note 2b in the class docstring)
-        # FIXME: This does not work if the base candidate is specified by
-        # link, e.g. "pip install .[dev]" will fail.
-        spec = "{}=={}".format(self.base.name, self.base.version)
-        yield factory.make_requirement_from_spec(spec, self.base._ireq)
 
     def get_install_requirement(self):
         # type: () -> Optional[InstallRequirement]
