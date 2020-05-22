@@ -1494,15 +1494,21 @@ def test_double_install(script):
     assert msg not in result.stderr
 
 
-@pytest.mark.fails_on_new_resolver
-def test_double_install_fail(script):
+def test_double_install_fail(script, use_new_resolver):
     """
     Test double install failing with two different version requirements
     """
-    result = script.pip('install', 'pip==*', 'pip==7.1.2', expect_error=True)
-    msg = ("Double requirement given: pip==7.1.2 (already in pip==*, "
-           "name='pip')")
-    assert msg in result.stderr
+    result = script.pip(
+        'install',
+        'pip==7.*',
+        'pip==7.1.2',
+        # The new resolver is perfectly capable of handling this
+        expect_error=(not use_new_resolver)
+    )
+    if not use_new_resolver:
+        msg = ("Double requirement given: pip==7.1.2 (already in pip==7.*, "
+               "name='pip')")
+        assert msg in result.stderr
 
 
 def _get_expected_error_text():
