@@ -244,7 +244,6 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
             link = cache_entry.link
         ireq = make_install_req_from_link(link, parent)
 
-        # TODO: Is this logic setting original_link_is_in_wheel_cache correct?
         if (cache_entry is not None and
                 cache_entry.persistent and
                 parent.link is parent.original_link):
