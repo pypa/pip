@@ -21,6 +21,16 @@ if MYPY_CHECK_RUNNING:
 __all__ = ["create_main_parser", "parse_command"]
 
 
+def wrap(arr, width):
+    out = [[]]
+    arr_sorted = sorted(arr)
+    for word in arr_sorted:
+        if len(', '.join(out[-1] + [word])) <= width:
+            out[-1] += [word]
+        else:
+            out.append([word])
+    return '\n'.join(['    ' + ', '.join(line) for line in out])
+
 def create_main_parser():
     # type: () -> ConfigOptionParser
     """Creates and returns the main parser for pip's CLI
@@ -86,9 +96,10 @@ def parse_command(args):
     if cmd_name not in commands_dict:
         guess = get_similar_commands(cmd_name)
 
-        msg = ['unknown command "{}"'.format(cmd_name)]
+        msg = ['unknown command "{}" \n'.format(cmd_name)]
+        msg.append("command should be one of: \n{}".format(wrap(commands_dict.keys(), width=40)))
         if guess:
-            msg.append('maybe you meant "{}"'.format(guess))
+            msg.append('maybe you meant "{}" \n'.format(guess))
 
         raise CommandError(' - '.join(msg))
 
