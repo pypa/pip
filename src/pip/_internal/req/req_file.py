@@ -63,6 +63,7 @@ SUPPORTED_OPTIONS = [
     cmdoptions.require_hashes,
     cmdoptions.pre,
     cmdoptions.trusted_host,
+    cmdoptions.unstable_feature,
     cmdoptions.always_unzip,  # Deprecated
 ]  # type: List[Callable[..., optparse.Option]]
 

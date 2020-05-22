@@ -382,6 +382,10 @@ class TestProcessLine(object):
         # noop, but confirm it can be set
         line_processor("--always-unzip", "file", 1, finder=finder)
 
+    def test_unstable_feature(self, line_processor):
+        """--unstable-feature can be set in requirements files."""
+        line_processor("--unstable-feature=resolver", "filename", 1)
+
     def test_set_finder_allow_all_prereleases(self, line_processor, finder):
         line_processor("--pre", "file", 1, finder=finder)
         assert finder.allow_all_prereleases
