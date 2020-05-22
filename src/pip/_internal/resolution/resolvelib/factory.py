@@ -162,7 +162,7 @@ class Factory(object):
         for ireq in ireqs:
             specifier &= ireq.req.specifier
             hashes |= ireq.hashes(trust_internet=False)
-            extras |= ireq.req.extras
+            extras |= frozenset(ireq.extras)
 
         # We use this to ensure that we only yield a single candidate for
         # each version (the finder's preferred one for that version). The
