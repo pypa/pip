@@ -6,7 +6,7 @@ import os
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.cli.req_command import RequirementCommand, with_cleanup
-from pip._internal.cli.status_codes import ERROR, SUCCESS
+from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.req.req_tracker import get_requirement_tracker
 from pip._internal.utils.misc import ensure_dir, normalize_path, write_output
 from pip._internal.utils.temp_dir import TempDirectory
@@ -143,6 +143,5 @@ class DownloadCommand(RequirementCommand):
                                if req.successfully_downloaded])
         if downloaded:
             write_output('Successfully downloaded %s', downloaded)
-            return SUCCESS
 
-        return ERROR
+        return SUCCESS
