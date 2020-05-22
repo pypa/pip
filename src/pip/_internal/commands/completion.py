@@ -10,7 +10,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import List
-    from optparse import Values, OptionGroup
+    from optparse import Values
 
 BASE_COMPLETION = """
 # pip {shell} completion start{script}# pip {shell} completion end
@@ -56,28 +56,28 @@ class CompletionCommand(Command):
 
     ignore_require_venv = True
 
-    def add_options(self, cmd_opts):
-        # type: (OptionGroup) -> None
-        cmd_opts.add_option(
+    def add_options(self):
+        # type: () -> None
+        self.cmd_opts.add_option(
             '--bash', '-b',
             action='store_const',
             const='bash',
             dest='shell',
             help='Emit completion code for bash')
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '--zsh', '-z',
             action='store_const',
             const='zsh',
             dest='shell',
             help='Emit completion code for zsh')
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '--fish', '-f',
             action='store_const',
             const='fish',
             dest='shell',
             help='Emit completion code for fish')
 
-        self.parser.insert_option_group(0, cmd_opts)
+        self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
         #  type: (Values, List[str]) -> int

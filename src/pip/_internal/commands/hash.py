@@ -11,7 +11,7 @@ from pip._internal.utils.misc import read_chunks, write_output
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from optparse import Values, OptionGroup
+    from optparse import Values
     from typing import List
 
 logger = logging.getLogger(__name__)
@@ -28,9 +28,9 @@ class HashCommand(Command):
     usage = '%prog [options] <file> ...'
     ignore_require_venv = True
 
-    def add_options(self, cmd_opts):
-        # type: (OptionGroup) -> None
-        cmd_opts.add_option(
+    def add_options(self):
+        # type: () -> None
+        self.cmd_opts.add_option(
             '-a', '--algorithm',
             dest='algorithm',
             choices=STRONG_HASHES,
@@ -38,7 +38,7 @@ class HashCommand(Command):
             default=FAVORITE_HASH,
             help='The hash algorithm to use: one of {}'.format(
                  ', '.join(STRONG_HASHES)))
-        self.parser.insert_option_group(0, cmd_opts)
+        self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
         # type: (Values, List[str]) -> int

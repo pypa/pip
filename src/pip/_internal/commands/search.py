@@ -24,7 +24,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from optparse import Values
-    from typing import Any, List, Dict, Optional
+    from typing import List, Dict, Optional
     from typing_extensions import TypedDict
     TransformedHit = TypedDict(
         'TransformedHit',
@@ -41,15 +41,16 @@ class SearchCommand(Command, SessionCommandMixin):
       %prog [options] <query>"""
     ignore_require_venv = True
 
-    def add_options(self, cmd_opts):
-        cmd_opts.add_option(
+    def add_options(self):
+        # type: () -> None
+        self.cmd_opts.add_option(
             '-i', '--index',
             dest='index',
             metavar='URL',
             default=PyPI.pypi_url,
             help='Base URL of Python Package Index (default %default)')
 
-        self.parser.insert_option_group(0, cmd_opts)
+        self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
         # type: (Values, List[str]) -> int

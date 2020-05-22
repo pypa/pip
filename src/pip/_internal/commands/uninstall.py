@@ -15,7 +15,7 @@ from pip._internal.utils.misc import protect_pip_from_modification_on_windows
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from optparse import Values, OptionGroup
+    from optparse import Values
     from typing import List
 
 
@@ -34,9 +34,9 @@ class UninstallCommand(Command, SessionCommandMixin):
       %prog [options] <package> ...
       %prog [options] -r <requirements file> ..."""
 
-    def add_options(self, cmd_opts):
-        # type: (OptionGroup) -> None
-        cmd_opts.add_option(
+    def add_options(self):
+        # type: () -> None
+        self.cmd_opts.add_option(
             '-r', '--requirement',
             dest='requirements',
             action='append',
@@ -45,13 +45,13 @@ class UninstallCommand(Command, SessionCommandMixin):
             help='Uninstall all the packages listed in the given requirements '
                  'file.  This option can be used multiple times.',
         )
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '-y', '--yes',
             dest='yes',
             action='store_true',
             help="Don't ask for confirmation of uninstall deletions.")
 
-        self.parser.insert_option_group(0, cmd_opts)
+        self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
         # type: (Values, List[str]) -> int

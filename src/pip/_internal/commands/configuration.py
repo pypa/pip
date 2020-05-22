@@ -52,8 +52,8 @@ class ConfigurationCommand(Command):
 
         self.configuration = None
 
-    def add_options(self, cmd_opts):
-        cmd_opts.add_option(
+    def add_options(self):
+        self.cmd_opts.add_option(
             '--editor',
             dest='editor',
             action='store',
@@ -64,7 +64,7 @@ class ConfigurationCommand(Command):
             )
         )
 
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '--global',
             dest='global_file',
             action='store_true',
@@ -72,7 +72,7 @@ class ConfigurationCommand(Command):
             help='Use the system-wide configuration file only'
         )
 
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '--user',
             dest='user_file',
             action='store_true',
@@ -80,7 +80,7 @@ class ConfigurationCommand(Command):
             help='Use the user configuration file only'
         )
 
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '--site',
             dest='site_file',
             action='store_true',
@@ -88,7 +88,7 @@ class ConfigurationCommand(Command):
             help='Use the current environment configuration file only'
         )
 
-        self.parser.insert_option_group(0, cmd_opts)
+        self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
         handlers = {

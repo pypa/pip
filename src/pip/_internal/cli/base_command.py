@@ -87,13 +87,12 @@ class Command(CommandContextMixIn):
             self.parser,
         )
         self.parser.add_option_group(gen_opts)
-        try:
-            # mypy raises error due to
-            # https://github.com/python/mypy/issues/5868
-            self.add_options(self.cmd_opts)  # type: ignore
-        except AttributeError:
-            # it means that the base class has not defined the method
-            logger.debug("No add_options method defined in the class")
+
+        self.add_options()
+
+    def add_options(self):
+        # type: () -> None
+        pass
 
     def handle_pip_version_check(self, options):
         # type: (Values) -> None
