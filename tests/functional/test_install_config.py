@@ -1,5 +1,4 @@
 import os
-import re
 import tempfile
 import textwrap
 
@@ -16,11 +15,9 @@ def test_options_from_env_vars(script):
     script.environ['PIP_NO_INDEX'] = '1'
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
     assert "Ignoring indexes:" in result.stdout, str(result)
-    assert re.search(
-        "DistributionNotFound: No matching distribution found for "
-        "(?i:INITools)",
-        result.stdout
-    ), str(result)
+    msg = "DistributionNotFound: No matching distribution found for INITools"
+    # Case insensitive as the new resolver canonicalises the project name
+    assert msg.lower() in result.stdout.lower(), str(result)
 
 
 def test_command_line_options_override_env_vars(script, virtualenv):
@@ -61,11 +58,9 @@ def test_env_vars_override_config_file(script, virtualenv):
         no-index = 1
         """))
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
-    assert re.search(
-        "DistributionNotFound: No matching distribution found for "
-        "(?i:INITools)",
-        result.stdout
-    ), str(result)
+    msg = "DistributionNotFound: No matching distribution found for INITools"
+    # Case insensitive as the new resolver canonicalises the project name
+    assert msg.lower() in result.stdout.lower(), str(result)
     script.environ['PIP_NO_INDEX'] = '0'
     virtualenv.clear()
     result = script.pip('install', '-vvv', 'INITools')
@@ -189,11 +184,9 @@ def test_options_from_venv_config(script, virtualenv):
         f.write(conf)
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
     assert "Ignoring indexes:" in result.stdout, str(result)
-    assert re.search(
-        "DistributionNotFound: No matching distribution found for "
-        "(?i:INITools)",
-        result.stdout
-    ), str(result)
+    msg = "DistributionNotFound: No matching distribution found for INITools"
+    # Case insensitive as the new resolver canonicalises the project name
+    assert msg.lower() in result.stdout.lower(), str(result)
 
 
 def test_install_no_binary_via_config_disables_cached_wheels(
