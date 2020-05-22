@@ -55,6 +55,10 @@ elif [[ "$GROUP" == "2" ]]; then
     # Separate Job for running integration tests for 'pip install'
     tox -- -m integration -n auto --duration=5 -k "test_install" \
         --use-venv $RESOLVER_SWITCH
+elif [[ "$GROUP" == "3" ]]; then
+    # Separate Job for tests that fail with the new resolver
+    tox -- -m fails_on_new_resolver -n auto --duration=5 \
+        --use-venv $RESOLVER_SWITCH --new-resolver-runtests
 else
     # Non-Testing Jobs should run once
     tox
