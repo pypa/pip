@@ -230,7 +230,7 @@ class Factory(object):
         because cached wheels, always built locally, have different hashes
         than the files downloaded from the index server and thus throw false
         hash mismatches. Furthermore, cached wheels at present have
-        undeterministic contents due to file modification times.
+        nondeterministic contents due to file modification times.
         """
         if self._wheel_cache is None or self.preparer.require_hashes:
             return None
