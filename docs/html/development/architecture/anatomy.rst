@@ -25,7 +25,6 @@ The ``README``, license, ``pyproject.toml``, ``setup.py``, and so on are in the 
 * ``setup.cfg``
 * ``setup.py``
 * ``tox.ini`` -- ``pip`` uses Tox, an automation tool, configured by this `tox.ini`_ file. ``tox.ini`` describes a few environments ``pip`` uses during development for simplifying how tests are run (complicated situation there). Example: ``tox -e -py36``. We can run tests for different versions of Python by changing “36” to “27” or similar.
-* ``.appveyor.yml``
 * ``.coveragerc``
 * ``.gitattributes``
 * ``.gitignore``
