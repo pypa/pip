@@ -11,6 +11,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 if MYPY_CHECK_RUNNING:
     from typing import Optional, List, Dict
     from pip._vendor.pkg_resources import Distribution
+    from pip._vendor.six.moves import configparser
     from pip._internal.req.req_install import InstallRequirement
     from pip._vendor.six import PY3
     if PY3:
@@ -312,7 +313,7 @@ class ConfigurationFileCouldNotBeLoaded(ConfigurationError):
     """
 
     def __init__(self, reason="could not be loaded", fname=None, error=None):
-        # type: (str, Optional[str], Optional[Exception]) -> None
+        # type: (str, Optional[str], Optional[configparser.Error]) -> None
         super(ConfigurationFileCouldNotBeLoaded, self).__init__(error)
         self.reason = reason
         self.fname = fname
@@ -324,6 +325,5 @@ class ConfigurationFileCouldNotBeLoaded(ConfigurationError):
             message_part = " in {}.".format(self.fname)
         else:
             assert self.error is not None
-            # message attribute for Exception is only available for Python 2
-            message_part = ".\n{}\n".format(self.error.message)  # type: ignore
+            message_part = ".\n{}\n".format(self.error)
         return "Configuration file {}{}".format(self.reason, message_part)
