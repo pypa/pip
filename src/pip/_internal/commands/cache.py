@@ -30,7 +30,7 @@ class CacheCommand(Command):
     - remove: Remove one or more package from the cache.
     - purge: Remove all items from the cache.
 
-    <pattern> can be a glob expression or a package name.
+    ``<pattern>`` can be a glob expression or a package name.
     """
 
     ignore_require_venv = True
