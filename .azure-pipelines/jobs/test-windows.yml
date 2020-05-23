@@ -12,10 +12,13 @@ jobs:
       "2.7-x86":
         python.version: '2.7'
         python.architecture: x86
-      "2.7":
+      "2.7":  # because Python 2!
         python.version: '2.7'
         python.architecture: x64
-      "3.8":
+      "3.5":  # lowest Py3 version
+        python.version: '3.5'
+        python.architecture: x64
+      "3.8":  # current
         python.version: '3.8'
         python.architecture: x64
     maxParallel: 6
@@ -35,9 +38,6 @@ jobs:
     vmImage: ${{ parameters.vmImage }}
   strategy:
     matrix:
-      "3.5":
-        python.version: '3.5'
-        python.architecture: x64
       "3.6":
         python.version: '3.6'
         python.architecture: x64
