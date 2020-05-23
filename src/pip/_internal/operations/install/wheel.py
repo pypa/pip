@@ -30,6 +30,7 @@ from pip._internal.locations import get_major_minor_version
 from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.filesystem import adjacent_tmp_file, replace
+from pip._internal.utils.messages import oxford_comma_join
 from pip._internal.utils.misc import captured_stdout, ensure_dir, hash_file
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -407,15 +408,18 @@ def _report_file_owner_conflicts(lib_dir, name, source_dir, info_dir):
                 # There are no other owners for this file.
                 continue
             destfile = os.path.join(lib_dir, basedir, f)
-            for owner in files_from_other_owners[partial_src]:
-                deprecated(
-                    reason=('Overwriting or removing {} for {} '
-                            'which is also owned by {}'.format(
-                                destfile, name, owner)),
-                    replacement=None,
-                    gone_in="21.0",
-                    issue="4625",
-                )
+            deprecated(
+                reason=(
+                    'Overwriting or removing {} for {} '
+                    'which is also owned by {}'.format(
+                        destfile, name,
+                        oxford_comma_join(
+                            sorted(files_from_other_owners[partial_src])),
+                    )),
+                replacement=None,
+                gone_in="21.0",
+                issue=4625,
+            )
 
 
 def install_unpacked_wheel(

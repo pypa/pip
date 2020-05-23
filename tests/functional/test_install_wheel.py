@@ -756,9 +756,5 @@ def test_report_file_owner_conflicts_multiple(script, tmpdir):
     assert msg in result.stderr
 
     msg = 'Overwriting or removing {} for {} which is also owned by {}'.format(
-        full_path, 'wheel3', 'wheel1 1.0')
-    assert msg in result.stderr
-
-    msg = 'Overwriting or removing {} for {} which is also owned by {}'.format(
-        full_path, 'wheel3', 'wheel2 2.0')
+        full_path, 'wheel3', 'wheel1 1.0 and wheel2 2.0')
     assert msg in result.stderr
