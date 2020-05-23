@@ -1884,29 +1884,3 @@ def test_install_skip_work_dir_pkg(script, data):
 
     assert 'Requirement already satisfied: simple' not in result.stdout
     assert 'Successfully installed simple' in result.stdout
-
-
-@pytest.mark.fails_on_new_resolver
-def test_install_include_work_dir_pkg(script, data):
-    """
-    Test that install of a package in working directory
-    should fail on the second attempt after an install
-    if working directory is added in PYTHONPATH
-    """
-
-    # Create a test package, install it and then uninstall it
-    pkg_path = create_test_package_with_setup(
-        script, name='simple', version='1.0')
-    script.pip('install', '-e', '.',
-               expect_stderr=True, cwd=pkg_path)
-    script.pip('uninstall', 'simple', '-y')
-
-    script.environ.update({'PYTHONPATH': pkg_path})
-
-    # Running the install command again from the working directory
-    # will be a no-op, as the package is found to be installed,
-    # when the package directory is in PYTHONPATH
-    result = script.pip('install', '--find-links',
-                        data.find_links, 'simple',
-                        expect_stderr=True, cwd=pkg_path)
-    assert 'Requirement already satisfied: simple' in result.stdout
