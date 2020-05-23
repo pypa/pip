@@ -163,7 +163,7 @@ class BuildEnvironment(object):
         finder,  # type: PackageFinder
         requirements,  # type: Iterable[str]
         prefix_as_string,  # type: str
-        message  # type: Optional[str]
+        message  # type: str
     ):
         # type: (...) -> None
         prefix = self._prefixes[prefix_as_string]
@@ -199,7 +199,6 @@ class BuildEnvironment(object):
             args.append('--pre')
         args.append('--')
         args.extend(requirements)
-        assert message
         with open_spinner(message) as spinner:
             call_subprocess(args, spinner=spinner)
 
@@ -234,7 +233,7 @@ class NoOpBuildEnvironment(BuildEnvironment):
         finder,  # type: PackageFinder
         requirements,  # type: Iterable[str]
         prefix_as_string,  # type: str
-        message  # type: Optional[str]
+        message  # type: str
     ):
         # type: (...) -> None
         raise NotImplementedError()
