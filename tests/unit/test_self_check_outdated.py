@@ -161,15 +161,14 @@ def _options():
         ('1970-01-9T10:00:00Z', '6.9.0', '6.9.0', 'pip', False, False),
     ]
 )
-def test_pip_self_version_check(monkeypatch, stored_time, installed_ver,
-                                new_ver, installer,
+@patch("pip._internal.self_outdated_check.logger.warning")
+def test_pip_self_version_check(mock_logger_warning, monkeypatch, stored_time,
+                                installed_ver, new_ver, installer,
                                 check_if_upgrade_required, check_warn_logs):
     monkeypatch.setattr(self_outdated_check, 'get_installed_version',
                         lambda name: installed_ver)
     monkeypatch.setattr(self_outdated_check, 'PackageFinder',
                         MockPackageFinder)
-    monkeypatch.setattr(logger, 'warning',
-                        pretend.call_recorder(lambda *a, **kw: None))
     monkeypatch.setattr(logger, 'debug',
                         pretend.call_recorder(lambda s, exc_info=None: None))
     monkeypatch.setattr(pkg_resources, 'get_distribution',
@@ -209,9 +208,16 @@ def test_pip_self_version_check(monkeypatch, stored_time, installed_ver,
 
     # Ensure we warn the user or not
     if check_warn_logs:
-        assert len(logger.warning.calls) == 1
+        assert logger.warning.call_count == 1
+        pip_cmd = "{} -m pip".format(sys.executable)
+        logger.warning.assert_called_once_with(
+            "You are using pip version %s; however, version %s is "
+            "available.\nYou should consider upgrading via the "
+            "'%s install --upgrade pip' command.",
+            installed_ver, new_ver, pip_cmd
+        )
     else:
-        assert len(logger.warning.calls) == 0
+        assert logger.warning.call_count == 0
 
 
 statefile_name_case_1 = (

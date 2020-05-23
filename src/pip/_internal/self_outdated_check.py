@@ -233,7 +233,7 @@ def pip_self_version_check(session, options):
             "You are using pip version %s; however, version %s is "
             "available.\nYou should consider upgrading via the "
             "'%s install --upgrade pip' command.",
-            pip_version, pypi_version, pip_cmd
+            str(pip_version), pypi_version, pip_cmd
         )
     except Exception:
         logger.debug(
