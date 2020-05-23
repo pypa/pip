@@ -1,6 +1,3 @@
-# The following comment should be removed at some point in the future.
-# mypy: disallow-untyped-defs=False
-
 from __future__ import absolute_import
 
 import logging
@@ -9,9 +6,15 @@ import os
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.cli.req_command import RequirementCommand, with_cleanup
+from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.req.req_tracker import get_requirement_tracker
 from pip._internal.utils.misc import ensure_dir, normalize_path, write_output
 from pip._internal.utils.temp_dir import TempDirectory
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from optparse import Values
+    from typing import Any, List
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +40,7 @@ class DownloadCommand(RequirementCommand):
       %prog [options] <archive url/path> ..."""
 
     def __init__(self, *args, **kw):
+        # type: (*Any, **Any) -> None
         super(DownloadCommand, self).__init__(*args, **kw)
 
         cmd_opts = self.cmd_opts
@@ -77,6 +81,8 @@ class DownloadCommand(RequirementCommand):
 
     @with_cleanup
     def run(self, options, args):
+        # type: (Values, List[str]) -> int
+
         options.ignore_installed = True
         # editable doesn't really make sense for `pip download`, but the bowels
         # of the RequirementSet code require that property.
@@ -132,11 +138,10 @@ class DownloadCommand(RequirementCommand):
             reqs, check_supported_wheels=True
         )
 
-        downloaded = ' '.join([
-            req.name for req in requirement_set.requirements.values()
-            if req.successfully_downloaded
-        ])
+        downloaded = ' '.join([req.name  # type: ignore
+                               for req in requirement_set.requirements.values()
+                               if req.successfully_downloaded])
         if downloaded:
             write_output('Successfully downloaded %s', downloaded)
 
-        return requirement_set
+        return SUCCESS
