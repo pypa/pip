@@ -77,6 +77,31 @@ def test_get_html_response_archive_to_http_scheme(url, content_type):
 @pytest.mark.parametrize(
     "url",
     [
+        ("ftp://python.org/python-3.7.1.zip"),
+        ("file:///opt/data/pip-18.0.tar.gz"),
+    ],
+)
+def test_get_html_page_invalid_content_type_archive(caplog, url):
+    """`_get_html_page()` should warn if an archive URL is not HTML
+    and therefore cannot be used for a HEAD request.
+    """
+    caplog.set_level(logging.WARNING)
+    link = Link(url)
+
+    session = mock.Mock(PipSession)
+
+    assert _get_html_page(link, session=session) is None
+    assert ('pip._internal.index.collector',
+            logging.WARNING,
+            'Skipping page {} because it looks like an archive, and cannot '
+            'be checked by HEAD.'.format(
+                url)) \
+        in caplog.record_tuples
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
         "http://python.org/python-3.7.1.zip",
         "https://pypi.org/pip-18.0.tar.gz",
     ],
@@ -463,14 +488,14 @@ def test_get_html_page_invalid_scheme(caplog, url, vcs_scheme):
 
     Only file:, http:, https:, and ftp: are allowed.
     """
-    with caplog.at_level(logging.DEBUG):
+    with caplog.at_level(logging.WARNING):
         page = _get_html_page(Link(url), session=mock.Mock(PipSession))
 
     assert page is None
     assert caplog.record_tuples == [
         (
             "pip._internal.index.collector",
-            logging.DEBUG,
+            logging.WARNING,
             "Cannot look at {} URL {}".format(vcs_scheme, url),
         ),
     ]
