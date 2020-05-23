@@ -18,6 +18,7 @@ class Base(object):
 class KeyBasedCompareMixin(Base):
     """Provides comparison capabilities that is based on a key
     """
+
     __slots__ = ['_compare_key', '_defining_class']
 
     def __init__(self, key, defining_class):
