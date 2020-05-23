@@ -429,7 +429,6 @@ class InstallRequirement(object):
         """
         if self.req is None:
             return
-
         # get_distribution() will resolve the entire list of requirements
         # anyway, and we've already determined that we need the requirement
         # in question, so strip the marker so that we don't try to
