@@ -14,7 +14,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from optparse import Values
-    from typing import Any, List
+    from typing import List
 
 logger = logging.getLogger(__name__)
 
@@ -39,29 +39,25 @@ class DownloadCommand(RequirementCommand):
       %prog [options] <local project path> ...
       %prog [options] <archive url/path> ..."""
 
-    def __init__(self, *args, **kw):
-        # type: (*Any, **Any) -> None
-        super(DownloadCommand, self).__init__(*args, **kw)
+    def add_options(self):
+        # type: () -> None
+        self.cmd_opts.add_option(cmdoptions.constraints())
+        self.cmd_opts.add_option(cmdoptions.requirements())
+        self.cmd_opts.add_option(cmdoptions.build_dir())
+        self.cmd_opts.add_option(cmdoptions.no_deps())
+        self.cmd_opts.add_option(cmdoptions.global_options())
+        self.cmd_opts.add_option(cmdoptions.no_binary())
+        self.cmd_opts.add_option(cmdoptions.only_binary())
+        self.cmd_opts.add_option(cmdoptions.prefer_binary())
+        self.cmd_opts.add_option(cmdoptions.src())
+        self.cmd_opts.add_option(cmdoptions.pre())
+        self.cmd_opts.add_option(cmdoptions.require_hashes())
+        self.cmd_opts.add_option(cmdoptions.progress_bar())
+        self.cmd_opts.add_option(cmdoptions.no_build_isolation())
+        self.cmd_opts.add_option(cmdoptions.use_pep517())
+        self.cmd_opts.add_option(cmdoptions.no_use_pep517())
 
-        cmd_opts = self.cmd_opts
-
-        cmd_opts.add_option(cmdoptions.constraints())
-        cmd_opts.add_option(cmdoptions.requirements())
-        cmd_opts.add_option(cmdoptions.build_dir())
-        cmd_opts.add_option(cmdoptions.no_deps())
-        cmd_opts.add_option(cmdoptions.global_options())
-        cmd_opts.add_option(cmdoptions.no_binary())
-        cmd_opts.add_option(cmdoptions.only_binary())
-        cmd_opts.add_option(cmdoptions.prefer_binary())
-        cmd_opts.add_option(cmdoptions.src())
-        cmd_opts.add_option(cmdoptions.pre())
-        cmd_opts.add_option(cmdoptions.require_hashes())
-        cmd_opts.add_option(cmdoptions.progress_bar())
-        cmd_opts.add_option(cmdoptions.no_build_isolation())
-        cmd_opts.add_option(cmdoptions.use_pep517())
-        cmd_opts.add_option(cmdoptions.no_use_pep517())
-
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '-d', '--dest', '--destination-dir', '--destination-directory',
             dest='download_dir',
             metavar='dir',
@@ -69,7 +65,7 @@ class DownloadCommand(RequirementCommand):
             help=("Download packages into <dir>."),
         )
 
-        cmdoptions.add_target_python_options(cmd_opts)
+        cmdoptions.add_target_python_options(self.cmd_opts)
 
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,
@@ -77,7 +73,7 @@ class DownloadCommand(RequirementCommand):
         )
 
         self.parser.insert_option_group(0, index_opts)
-        self.parser.insert_option_group(0, cmd_opts)
+        self.parser.insert_option_group(0, self.cmd_opts)
 
     @with_cleanup
     def run(self, options, args):

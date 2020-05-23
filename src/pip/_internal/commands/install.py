@@ -87,18 +87,15 @@ class InstallCommand(RequirementCommand):
       %prog [options] [-e] <local project path> ...
       %prog [options] <archive url/path> ..."""
 
-    def __init__(self, *args, **kw):
-        super(InstallCommand, self).__init__(*args, **kw)
+    def add_options(self):
+        # type: () -> None
+        self.cmd_opts.add_option(cmdoptions.requirements())
+        self.cmd_opts.add_option(cmdoptions.constraints())
+        self.cmd_opts.add_option(cmdoptions.no_deps())
+        self.cmd_opts.add_option(cmdoptions.pre())
 
-        cmd_opts = self.cmd_opts
-
-        cmd_opts.add_option(cmdoptions.requirements())
-        cmd_opts.add_option(cmdoptions.constraints())
-        cmd_opts.add_option(cmdoptions.no_deps())
-        cmd_opts.add_option(cmdoptions.pre())
-
-        cmd_opts.add_option(cmdoptions.editable())
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(cmdoptions.editable())
+        self.cmd_opts.add_option(
             '-t', '--target',
             dest='target_dir',
             metavar='dir',
@@ -108,9 +105,9 @@ class InstallCommand(RequirementCommand):
                  '<dir>. Use --upgrade to replace existing packages in <dir> '
                  'with new versions.'
         )
-        cmdoptions.add_target_python_options(cmd_opts)
+        cmdoptions.add_target_python_options(self.cmd_opts)
 
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '--user',
             dest='use_user_site',
             action='store_true',
@@ -118,19 +115,19 @@ class InstallCommand(RequirementCommand):
                  "platform. Typically ~/.local/, or %APPDATA%\\Python on "
                  "Windows. (See the Python documentation for site.USER_BASE "
                  "for full details.)")
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '--no-user',
             dest='use_user_site',
             action='store_false',
             help=SUPPRESS_HELP)
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '--root',
             dest='root_path',
             metavar='dir',
             default=None,
             help="Install everything relative to this alternate root "
                  "directory.")
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '--prefix',
             dest='prefix_path',
             metavar='dir',
@@ -138,11 +135,11 @@ class InstallCommand(RequirementCommand):
             help="Installation prefix where lib, bin and other top-level "
                  "folders are placed")
 
-        cmd_opts.add_option(cmdoptions.build_dir())
+        self.cmd_opts.add_option(cmdoptions.build_dir())
 
-        cmd_opts.add_option(cmdoptions.src())
+        self.cmd_opts.add_option(cmdoptions.src())
 
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '-U', '--upgrade',
             dest='upgrade',
             action='store_true',
@@ -151,7 +148,7 @@ class InstallCommand(RequirementCommand):
                  'upgrade-strategy used.'
         )
 
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '--upgrade-strategy',
             dest='upgrade_strategy',
             default='only-if-needed',
@@ -165,14 +162,14 @@ class InstallCommand(RequirementCommand):
                  'satisfy the requirements of the upgraded package(s).'
         )
 
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '--force-reinstall',
             dest='force_reinstall',
             action='store_true',
             help='Reinstall all packages even if they are already '
                  'up-to-date.')
 
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '-I', '--ignore-installed',
             dest='ignore_installed',
             action='store_true',
@@ -182,15 +179,15 @@ class InstallCommand(RequirementCommand):
                  'with a different package manager!'
         )
 
-        cmd_opts.add_option(cmdoptions.ignore_requires_python())
-        cmd_opts.add_option(cmdoptions.no_build_isolation())
-        cmd_opts.add_option(cmdoptions.use_pep517())
-        cmd_opts.add_option(cmdoptions.no_use_pep517())
+        self.cmd_opts.add_option(cmdoptions.ignore_requires_python())
+        self.cmd_opts.add_option(cmdoptions.no_build_isolation())
+        self.cmd_opts.add_option(cmdoptions.use_pep517())
+        self.cmd_opts.add_option(cmdoptions.no_use_pep517())
 
-        cmd_opts.add_option(cmdoptions.install_options())
-        cmd_opts.add_option(cmdoptions.global_options())
+        self.cmd_opts.add_option(cmdoptions.install_options())
+        self.cmd_opts.add_option(cmdoptions.global_options())
 
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             "--compile",
             action="store_true",
             dest="compile",
@@ -198,21 +195,21 @@ class InstallCommand(RequirementCommand):
             help="Compile Python source files to bytecode",
         )
 
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             "--no-compile",
             action="store_false",
             dest="compile",
             help="Do not compile Python source files to bytecode",
         )
 
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             "--no-warn-script-location",
             action="store_false",
             dest="warn_script_location",
             default=True,
             help="Do not warn when installing scripts outside PATH",
         )
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             "--no-warn-conflicts",
             action="store_false",
             dest="warn_about_conflicts",
@@ -220,11 +217,11 @@ class InstallCommand(RequirementCommand):
             help="Do not warn about broken dependencies",
         )
 
-        cmd_opts.add_option(cmdoptions.no_binary())
-        cmd_opts.add_option(cmdoptions.only_binary())
-        cmd_opts.add_option(cmdoptions.prefer_binary())
-        cmd_opts.add_option(cmdoptions.require_hashes())
-        cmd_opts.add_option(cmdoptions.progress_bar())
+        self.cmd_opts.add_option(cmdoptions.no_binary())
+        self.cmd_opts.add_option(cmdoptions.only_binary())
+        self.cmd_opts.add_option(cmdoptions.prefer_binary())
+        self.cmd_opts.add_option(cmdoptions.require_hashes())
+        self.cmd_opts.add_option(cmdoptions.progress_bar())
 
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,
@@ -232,7 +229,7 @@ class InstallCommand(RequirementCommand):
         )
 
         self.parser.insert_option_group(0, index_opts)
-        self.parser.insert_option_group(0, cmd_opts)
+        self.parser.insert_option_group(0, self.cmd_opts)
 
     @with_cleanup
     def run(self, options, args):

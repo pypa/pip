@@ -88,6 +88,12 @@ class Command(CommandContextMixIn):
         )
         self.parser.add_option_group(gen_opts)
 
+        self.add_options()
+
+    def add_options(self):
+        # type: () -> None
+        pass
+
     def handle_pip_version_check(self, options):
         # type: (Values) -> None
         """

@@ -15,7 +15,7 @@ DEV_PKGS = {'pip', 'setuptools', 'distribute', 'wheel'}
 
 if MYPY_CHECK_RUNNING:
     from optparse import Values
-    from typing import Any, List
+    from typing import List
 
 
 class FreezeCommand(Command):
@@ -29,10 +29,8 @@ class FreezeCommand(Command):
       %prog [options]"""
     log_streams = ("ext://sys.stderr", "ext://sys.stderr")
 
-    def __init__(self, *args, **kw):
-        # type: (*Any, **Any) -> None
-        super(FreezeCommand, self).__init__(*args, **kw)
-
+    def add_options(self):
+        # type: () -> None
         self.cmd_opts.add_option(
             '-r', '--requirement',
             dest='requirements',

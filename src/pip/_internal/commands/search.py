@@ -24,7 +24,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from optparse import Values
-    from typing import Any, List, Dict, Optional
+    from typing import List, Dict, Optional
     from typing_extensions import TypedDict
     TransformedHit = TypedDict(
         'TransformedHit',
@@ -41,9 +41,8 @@ class SearchCommand(Command, SessionCommandMixin):
       %prog [options] <query>"""
     ignore_require_venv = True
 
-    def __init__(self, *args, **kw):
-        # type: (*Any, **Any) -> None
-        super(SearchCommand, self).__init__(*args, **kw)
+    def add_options(self):
+        # type: () -> None
         self.cmd_opts.add_option(
             '-i', '--index',
             dest='index',

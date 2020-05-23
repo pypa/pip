@@ -23,7 +23,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from optparse import Values
-    from typing import Any, List, Set, Tuple, Iterator
+    from typing import List, Set, Tuple, Iterator
 
     from pip._internal.network.session import PipSession
     from pip._vendor.pkg_resources import Distribution
@@ -41,28 +41,24 @@ class ListCommand(IndexGroupCommand):
     usage = """
       %prog [options]"""
 
-    def __init__(self, *args, **kw):
-        # type: (*Any, **Any) -> None
-        super(ListCommand, self).__init__(*args, **kw)
-
-        cmd_opts = self.cmd_opts
-
-        cmd_opts.add_option(
+    def add_options(self):
+        # type: () -> None
+        self.cmd_opts.add_option(
             '-o', '--outdated',
             action='store_true',
             default=False,
             help='List outdated packages')
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '-u', '--uptodate',
             action='store_true',
             default=False,
             help='List uptodate packages')
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '-e', '--editable',
             action='store_true',
             default=False,
             help='List editable projects.')
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '-l', '--local',
             action='store_true',
             default=False,
@@ -75,8 +71,8 @@ class ListCommand(IndexGroupCommand):
             action='store_true',
             default=False,
             help='Only output packages installed in user-site.')
-        cmd_opts.add_option(cmdoptions.list_path())
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(cmdoptions.list_path())
+        self.cmd_opts.add_option(
             '--pre',
             action='store_true',
             default=False,
@@ -84,7 +80,7 @@ class ListCommand(IndexGroupCommand):
                   "pip only finds stable versions."),
         )
 
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '--format',
             action='store',
             dest='list_format',
@@ -94,7 +90,7 @@ class ListCommand(IndexGroupCommand):
                  "or json",
         )
 
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '--not-required',
             action='store_true',
             dest='not_required',
@@ -102,13 +98,13 @@ class ListCommand(IndexGroupCommand):
                  "installed packages.",
         )
 
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '--exclude-editable',
             action='store_false',
             dest='include_editable',
             help='Exclude editable package from output.',
         )
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '--include-editable',
             action='store_true',
             dest='include_editable',
@@ -120,7 +116,7 @@ class ListCommand(IndexGroupCommand):
         )
 
         self.parser.insert_option_group(0, index_opts)
-        self.parser.insert_option_group(0, cmd_opts)
+        self.parser.insert_option_group(0, self.cmd_opts)
 
     def _build_package_finder(self, options, session):
         # type: (Values, PipSession) -> PackageFinder

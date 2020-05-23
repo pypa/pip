@@ -45,11 +45,14 @@ class ConfigurationCommand(Command):
         %prog [<file-option>] unset name
     """
 
-    def __init__(self, *args, **kwargs):
-        super(ConfigurationCommand, self).__init__(*args, **kwargs)
+    def __init__(self, name, summary, isolated=False):
+        super(ConfigurationCommand, self).__init__(
+            name, summary, isolated=isolated
+        )
 
         self.configuration = None
 
+    def add_options(self):
         self.cmd_opts.add_option(
             '--editor',
             dest='editor',
