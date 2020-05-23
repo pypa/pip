@@ -399,7 +399,7 @@ def _report_file_owner_conflicts(lib_dir, name, source_dir, info_dir):
         # we don't need to scan the source.
         return
 
-    for dir, subdirs, files in os.walk(source_dir):
+    for dir, _subdirs, files in os.walk(source_dir):
         basedir = dir[len(source_dir):].lstrip(os.path.sep)
         for f in files:
             partial_src = os.path.join(basedir, f)
