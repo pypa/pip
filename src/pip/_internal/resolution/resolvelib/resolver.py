@@ -6,7 +6,7 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.resolvelib import BaseReporter, ResolutionImpossible
 from pip._vendor.resolvelib import Resolver as RLResolver
 
-from pip._internal.exceptions import InstallationError
+from pip._internal.exceptions import DistributionNotFound, InstallationError
 from pip._internal.req.req_set import RequirementSet
 from pip._internal.resolution.base import BaseResolver
 from pip._internal.resolution.resolvelib.provider import PipProvider
@@ -155,11 +155,10 @@ class Resolver(BaseResolver):
                             parent.name
                         ))
                     )
-                raise InstallationError(
+                raise DistributionNotFound(
                     "No matching distribution found for " +
                     ", ".join([r.name for r, _ in e.causes])
                 )
-                raise
             six.raise_from(error, e)
 
         req_set = RequirementSet(check_supported_wheels=check_supported_wheels)

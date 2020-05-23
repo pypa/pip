@@ -7,7 +7,6 @@ import pytest
 from tests.lib.server import file_response, package_page
 
 
-@pytest.mark.fails_on_new_resolver
 def test_options_from_env_vars(script):
     """
     Test if ConfigOptionParser reads env vars (e.g. not using PyPI here)
@@ -16,10 +15,9 @@ def test_options_from_env_vars(script):
     script.environ['PIP_NO_INDEX'] = '1'
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
     assert "Ignoring indexes:" in result.stdout, str(result)
-    assert (
-        "DistributionNotFound: No matching distribution found for INITools"
-        in result.stdout
-    )
+    msg = "DistributionNotFound: No matching distribution found for INITools"
+    # Case insensitive as the new resolver canonicalises the project name
+    assert msg.lower() in result.stdout.lower(), str(result)
 
 
 def test_command_line_options_override_env_vars(script, virtualenv):
@@ -44,7 +42,6 @@ def test_command_line_options_override_env_vars(script, virtualenv):
 
 
 @pytest.mark.network
-@pytest.mark.fails_on_new_resolver
 def test_env_vars_override_config_file(script, virtualenv):
     """
     Test that environmental variables override settings in config files.
@@ -61,10 +58,9 @@ def test_env_vars_override_config_file(script, virtualenv):
         no-index = 1
         """))
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
-    assert (
-        "DistributionNotFound: No matching distribution found for INITools"
-        in result.stdout
-    )
+    msg = "DistributionNotFound: No matching distribution found for INITools"
+    # Case insensitive as the new resolver canonicalises the project name
+    assert msg.lower() in result.stdout.lower(), str(result)
     script.environ['PIP_NO_INDEX'] = '0'
     virtualenv.clear()
     result = script.pip('install', '-vvv', 'INITools')
@@ -176,7 +172,6 @@ def test_config_file_override_stack(
     assert requests[3]["PATH_INFO"] == "/files/INITools-0.2.tar.gz"
 
 
-@pytest.mark.fails_on_new_resolver
 def test_options_from_venv_config(script, virtualenv):
     """
     Test if ConfigOptionParser reads a virtualenv-local config file
@@ -189,10 +184,9 @@ def test_options_from_venv_config(script, virtualenv):
         f.write(conf)
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
     assert "Ignoring indexes:" in result.stdout, str(result)
-    assert (
-        "DistributionNotFound: No matching distribution found for INITools"
-        in result.stdout
-    )
+    msg = "DistributionNotFound: No matching distribution found for INITools"
+    # Case insensitive as the new resolver canonicalises the project name
+    assert msg.lower() in result.stdout.lower(), str(result)
 
 
 def test_install_no_binary_via_config_disables_cached_wheels(
