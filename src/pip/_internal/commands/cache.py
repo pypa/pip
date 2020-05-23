@@ -24,13 +24,13 @@ class CacheCommand(Command):
 
     Subcommands:
 
-        dir: Show the cache directory.
-        info: Show information about the cache.
-        list: List filenames of packages stored in the cache.
-        remove: Remove one or more package from the cache.
-        purge: Remove all items from the cache.
+    - dir: Show the cache directory.
+    - info: Show information about the cache.
+    - list: List filenames of packages stored in the cache.
+    - remove: Remove one or more package from the cache.
+    - purge: Remove all items from the cache.
 
-        <pattern> can be a glob expression or a package name.
+    ``<pattern>`` can be a glob expression or a package name.
     """
 
     ignore_require_venv = True
