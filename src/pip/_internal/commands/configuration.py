@@ -19,15 +19,16 @@ logger = logging.getLogger(__name__)
 
 
 class ConfigurationCommand(Command):
-    """Manage local and global configuration.
+    """
+    Manage local and global configuration.
 
     Subcommands:
 
-        list: List the active configuration (or from the file specified)
-        edit: Edit the configuration file in an editor
-        get: Get the value associated with name
-        set: Set the name=value
-        unset: Unset the value associated with name
+    - list: List the active configuration (or from the file specified)
+    - edit: Edit the configuration file in an editor
+    - get: Get the value associated with name
+    - set: Set the name=value
+    - unset: Unset the value associated with name
 
     If none of --user, --global and --site are passed, a virtual
     environment configuration file is used if one is active and the file
