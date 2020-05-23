@@ -693,6 +693,15 @@ class PackageFinder(object):
         # type: () -> None
         self._candidate_prefs.allow_all_prereleases = True
 
+    @property
+    def prefer_binary(self):
+        # type: () -> bool
+        return self._candidate_prefs.prefer_binary
+
+    def set_prefer_binary(self):
+        # type: () -> None
+        self._candidate_prefs.prefer_binary = True
+
     def make_link_evaluator(self, project_name):
         # type: (str) -> LinkEvaluator
         canonical_name = canonicalize_name(project_name)

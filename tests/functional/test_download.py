@@ -689,6 +689,30 @@ def test_download_prefer_binary_when_tarball_higher_than_wheel(script, data):
     )
 
 
+def test_prefer_binary_tarball_higher_than_wheel_req_file(script, data):
+    fake_wheel(data, 'source-0.8-py2.py3-none-any.whl')
+    script.scratch_path.joinpath("test-req.txt").write_text(textwrap.dedent("""
+                --prefer-binary
+                 source
+                """))
+    result = script.pip(
+        'download',
+        '-r', script.scratch_path / 'test-req.txt',
+        '--no-index',
+        '-f', data.packages,
+        '-d', '.'
+    )
+
+    assert (
+        Path('scratch') / 'source-0.8-py2.py3-none-any.whl'
+        in result.files_created
+    )
+    assert (
+        Path('scratch') / 'source-1.0.tar.gz'
+        not in result.files_created
+    )
+
+
 def test_download_prefer_binary_when_wheel_doesnt_satisfy_req(script, data):
     fake_wheel(data, 'source-0.8-py2.py3-none-any.whl')
     script.scratch_path.joinpath("test-req.txt").write_text(textwrap.dedent("""
@@ -713,6 +737,30 @@ def test_download_prefer_binary_when_wheel_doesnt_satisfy_req(script, data):
     )
 
 
+def test_prefer_binary_when_wheel_doesnt_satisfy_req_req_file(script, data):
+    fake_wheel(data, 'source-0.8-py2.py3-none-any.whl')
+    script.scratch_path.joinpath("test-req.txt").write_text(textwrap.dedent("""
+        --prefer-binary
+        source>0.9
+        """))
+
+    result = script.pip(
+        'download',
+        '--no-index',
+        '-f', data.packages,
+        '-d', '.',
+        '-r', script.scratch_path / 'test-req.txt'
+    )
+    assert (
+        Path('scratch') / 'source-1.0.tar.gz'
+        in result.files_created
+    )
+    assert (
+        Path('scratch') / 'source-0.8-py2.py3-none-any.whl'
+        not in result.files_created
+    )
+
+
 def test_download_prefer_binary_when_only_tarball_exists(script, data):
     result = script.pip(
         'download',
@@ -720,6 +768,24 @@ def test_download_prefer_binary_when_only_tarball_exists(script, data):
         '--no-index',
         '-f', data.packages,
         '-d', '.', 'source'
+    )
+    assert (
+        Path('scratch') / 'source-1.0.tar.gz'
+        in result.files_created
+    )
+
+
+def test_prefer_binary_when_only_tarball_exists_req_file(script, data):
+    script.scratch_path.joinpath("test-req.txt").write_text(textwrap.dedent("""
+            --prefer-binary
+            source
+            """))
+    result = script.pip(
+        'download',
+        '--no-index',
+        '-f', data.packages,
+        '-d', '.',
+        '-r', script.scratch_path / 'test-req.txt'
     )
     assert (
         Path('scratch') / 'source-1.0.tar.gz'
