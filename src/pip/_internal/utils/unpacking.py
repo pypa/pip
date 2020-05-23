@@ -1,10 +1,6 @@
 """Utilities related archives.
 """
 
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-# mypy: disallow-untyped-defs=False
-
 from __future__ import absolute_import
 
 import logging
@@ -48,6 +44,7 @@ except ImportError:
 
 
 def current_umask():
+    # type: () -> int
     """Get the current umask which involves having to set it temporarily."""
     mask = os.umask(0)
     os.umask(mask)
@@ -219,6 +216,7 @@ def untar_file(filename, location):
                     )
                     continue
                 ensure_dir(os.path.dirname(path))
+                assert fp is not None
                 with open(path, 'wb') as destfp:
                     shutil.copyfileobj(fp, destfp)
                 fp.close()
