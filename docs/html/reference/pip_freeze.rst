@@ -1,31 +1,33 @@
 
 .. _`pip freeze`:
 
+==========
 pip freeze
------------
+==========
 
 .. contents::
 
+
 Usage
-*****
+=====
 
 .. pip-command-usage:: freeze
 
 
 Description
-***********
+===========
 
 .. pip-command-description:: freeze
 
 
 Options
-*******
+=======
 
 .. pip-command-options:: freeze
 
 
 Examples
-********
+========
 
 #. Generate output suitable for a requirements file.
 

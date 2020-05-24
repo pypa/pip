@@ -1,6 +1,7 @@
 import pytest
 
-from pip._internal import pep425tags
+from pip._internal.commands.debug import create_vendor_txt_map
+from pip._internal.utils import compatibility_tags
 
 
 @pytest.mark.parametrize('expected_text', [
@@ -10,6 +11,13 @@ from pip._internal import pep425tags
     'locale.getpreferredencoding: ',
     'sys.platform: ',
     'sys.implementation:',
+    '\'cert\' config value: ',
+    'REQUESTS_CA_BUNDLE: ',
+    'CURL_CA_BUNDLE: ',
+    'pip._vendor.certifi.where(): ',
+    'pip._vendor.DEBUNDLED: ',
+    'vendored library versions:',
+
 ])
 def test_debug(script, expected_text):
     """
@@ -20,6 +28,18 @@ def test_debug(script, expected_text):
     stdout = result.stdout
 
     assert expected_text in stdout
+
+
+def test_debug__library_versions(script):
+    """
+    Check the library versions normal output.
+    """
+    args = ['debug']
+    result = script.pip(*args, allow_stderr_warning=True)
+    stdout = result.stdout
+    vendored_versions = create_vendor_txt_map()
+    for name, value in vendored_versions.items():
+        assert '{}=={}'.format(name, value) in stdout
 
 
 @pytest.mark.parametrize(
@@ -37,7 +57,7 @@ def test_debug__tags(script, args):
     result = script.pip(*args, allow_stderr_warning=True)
     stdout = result.stdout
 
-    tags = pep425tags.get_supported()
+    tags = compatibility_tags.get_supported()
     expected_tag_header = 'Compatible tags: {}'.format(len(tags))
     assert expected_tag_header in stdout
 

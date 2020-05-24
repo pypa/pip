@@ -1,3 +1,3 @@
-* Pip version:
+* pip version:
 * Python version:
 * Operating system:

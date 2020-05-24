@@ -1,12 +1,16 @@
 import sys
 
-from pip._internal.pep425tags import get_supported, version_info_to_nodot
+from pip._internal.utils.compatibility_tags import (
+    get_supported,
+    version_info_to_nodot,
+)
 from pip._internal.utils.misc import normalize_version_info
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import List, Optional, Tuple
-    from pip._internal.pep425tags import Pep425Tag
+
+    from pip._vendor.packaging.tags import Tag
 
 
 class TargetPython(object):
@@ -33,10 +37,10 @@ class TargetPython(object):
         :param py_version_info: An optional tuple of ints representing the
             Python version information to use (e.g. `sys.version_info[:3]`).
             This can have length 1, 2, or 3 when provided.
-        :param abi: A string or None. This is passed to pep425tags.py's
+        :param abi: A string or None. This is passed to compatibility_tags.py's
             get_supported() function as is.
         :param implementation: A string or None. This is passed to
-            pep425tags.py's get_supported() function as is.
+            compatibility_tags.py's get_supported() function as is.
         """
         # Store the given py_version_info for when we call get_supported().
         self._given_py_version_info = py_version_info
@@ -55,7 +59,7 @@ class TargetPython(object):
         self.py_version_info = py_version_info
 
         # This is used to cache the return value of get_tags().
-        self._valid_tags = None  # type: Optional[List[Pep425Tag]]
+        self._valid_tags = None  # type: Optional[List[Tag]]
 
     def format_given(self):
         # type: () -> str
@@ -80,7 +84,7 @@ class TargetPython(object):
         )
 
     def get_tags(self):
-        # type: () -> List[Pep425Tag]
+        # type: () -> List[Tag]
         """
         Return the supported PEP 425 tags to check wheel candidates against.
 
@@ -91,12 +95,12 @@ class TargetPython(object):
             # versions=None uses special default logic.
             py_version_info = self._given_py_version_info
             if py_version_info is None:
-                versions = None
+                version = None
             else:
-                versions = [version_info_to_nodot(py_version_info)]
+                version = version_info_to_nodot(py_version_info)
 
             tags = get_supported(
-                versions=versions,
+                version=version,
                 platform=self.platform,
                 abi=self.abi,
                 impl=self.implementation,

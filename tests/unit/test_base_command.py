@@ -2,10 +2,14 @@ import logging
 import os
 import time
 
-from mock import patch
+import pytest
+from mock import Mock, patch
 
 from pip._internal.cli.base_command import Command
+from pip._internal.cli.status_codes import SUCCESS
+from pip._internal.utils import temp_dir
 from pip._internal.utils.logging import BrokenStdoutLoggingError
+from pip._internal.utils.temp_dir import TempDirectory
 
 
 class FakeCommand(Command):
@@ -145,3 +149,65 @@ class Test_base_command_logging(object):
         cmd = FakeCommandWithUnicode()
         log_path = tmpdir.joinpath('log')
         cmd.main(['fake_unicode', '--log', log_path])
+
+
+@pytest.mark.no_auto_tempdir_manager
+def test_base_command_provides_tempdir_helpers():
+    assert temp_dir._tempdir_manager is None
+    assert temp_dir._tempdir_registry is None
+
+    def assert_helpers_set(options, args):
+        assert temp_dir._tempdir_manager is not None
+        assert temp_dir._tempdir_registry is not None
+
+    c = Command("fake", "fake")
+    c.run = Mock(side_effect=assert_helpers_set)
+    assert c.main(["fake"]) == SUCCESS
+    c.run.assert_called_once()
+
+
+not_deleted = "not_deleted"
+
+
+@pytest.mark.parametrize("kind,exists", [
+    (not_deleted, True), ("deleted", False)
+])
+@pytest.mark.no_auto_tempdir_manager
+def test_base_command_global_tempdir_cleanup(kind, exists):
+    assert temp_dir._tempdir_manager is None
+    assert temp_dir._tempdir_registry is None
+
+    class Holder(object):
+        value = None
+
+    def create_temp_dirs(options, args):
+        c.tempdir_registry.set_delete(not_deleted, False)
+        Holder.value = TempDirectory(kind=kind, globally_managed=True).path
+
+    c = Command("fake", "fake")
+    c.run = Mock(side_effect=create_temp_dirs)
+    assert c.main(["fake"]) == SUCCESS
+    c.run.assert_called_once()
+    assert os.path.exists(Holder.value) == exists
+
+
+@pytest.mark.parametrize("kind,exists", [
+    (not_deleted, True), ("deleted", False)
+])
+@pytest.mark.no_auto_tempdir_manager
+def test_base_command_local_tempdir_cleanup(kind, exists):
+    assert temp_dir._tempdir_manager is None
+    assert temp_dir._tempdir_registry is None
+
+    def create_temp_dirs(options, args):
+        c.tempdir_registry.set_delete(not_deleted, False)
+
+        with TempDirectory(kind=kind) as d:
+            path = d.path
+            assert os.path.exists(path)
+        assert os.path.exists(path) == exists
+
+    c = Command("fake", "fake")
+    c.run = Mock(side_effect=create_temp_dirs)
+    assert c.main(["fake"]) == SUCCESS
+    c.run.assert_called_once()

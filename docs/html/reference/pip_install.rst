@@ -1,25 +1,27 @@
 .. _`pip install`:
 
+===========
 pip install
------------
+===========
 
 .. contents::
 
+
 Usage
-*****
+=====
 
 .. pip-command-usage:: install
 
+
 Description
-***********
+===========
 
 .. pip-command-description:: install
 
-
 Overview
-++++++++
+--------
 
-Pip install has several stages:
+pip install has several stages:
 
 1. Identify the base requirements. The user supplied arguments are processed
    here.
@@ -28,7 +30,7 @@ Pip install has several stages:
 4. Install the packages (and uninstall anything being upgraded/replaced).
 
 Argument Handling
-+++++++++++++++++
+-----------------
 
 When looking at the items to be installed, pip checks what type of item
 each is, in the following order:
@@ -44,7 +46,7 @@ Each item identified is added to the set of requirements to be satisfied by
 the install.
 
 Working Out the Name and Version
-++++++++++++++++++++++++++++++++
+--------------------------------
 
 For each candidate item, pip needs to know the project name and version. For
 wheels (identified by the ``.whl`` file extension) this can be obtained from
@@ -59,7 +61,7 @@ Any URL may use the ``#egg=name`` syntax (see :ref:`VCS Support`) to
 explicitly state the project name.
 
 Satisfying Requirements
-+++++++++++++++++++++++
+-----------------------
 
 Once pip has the set of requirements to satisfy, it chooses which version of
 each requirement to install using the simple rule that the latest version that
@@ -69,9 +71,10 @@ the chosen version is available, it is assumed that any source is acceptable
 (as otherwise the versions would differ).
 
 Installation Order
-++++++++++++++++++
+------------------
 
 .. note::
+
    This section is only about installation order of runtime dependencies, and
    does not apply to build dependencies (those are specified using PEP 518).
 
@@ -124,7 +127,7 @@ profile:
 .. _`Requirements File Format`:
 
 Requirements File Format
-++++++++++++++++++++++++
+------------------------
 
 Each line of the requirements file indicates something to be installed,
 and like arguments to :ref:`pip install`, the following forms are supported::
@@ -146,21 +149,28 @@ treated as a comment.
 A line ending in an unescaped ``\`` is treated as a line continuation
 and the newline following it is effectively ignored.
 
-Comments are stripped *before* line continuations are processed.
+Comments are stripped *after* line continuations are processed.
+
+To interpret the requirements file in UTF-8 format add a comment
+``# -*- coding: utf-8 -*-`` to the first or second line of the file.
 
 The following options are supported:
 
-  *  :ref:`-i, --index-url <--index-url>`
-  *  :ref:`--extra-index-url <--extra-index-url>`
-  *  :ref:`--no-index <--no-index>`
-  *  :ref:`-f, --find-links <--find-links>`
+  *  :ref:`-i, --index-url <install_--index-url>`
+  *  :ref:`--extra-index-url <install_--extra-index-url>`
+  *  :ref:`--no-index <install_--no-index>`
+  *  :ref:`-c, --constraint <install_--constraint>`
+  *  :ref:`-r, --requirement <install_--requirement>`
+  *  :ref:`-e, --editable <install_--editable>`
+  *  :ref:`-f, --find-links <install_--find-links>`
   *  :ref:`--no-binary <install_--no-binary>`
   *  :ref:`--only-binary <install_--only-binary>`
-  *  :ref:`--require-hashes <--require-hashes>`
+  *  :ref:`--require-hashes <install_--require-hashes>`
+  *  :ref:`--pre <install_--pre>`
   *  :ref:`--trusted-host <--trusted-host>`
 
-For example, to specify :ref:`--no-index <--no-index>` and two
-:ref:`--find-links <--find-links>` locations:
+For example, to specify :ref:`--no-index <install_--no-index>` and two
+:ref:`--find-links <install_--find-links>` locations:
 
 ::
 
@@ -180,7 +190,7 @@ You can also refer to :ref:`constraints files <Constraints Files>`, like this::
 .. _`Using Environment Variables`:
 
 Using Environment Variables
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Since version 10, pip supports the use of environment variables inside the
 requirements file. You can now store sensitive data (tokens, keys, etc.) in
@@ -202,7 +212,7 @@ runtime.
 .. _`Example Requirements File`:
 
 Example Requirements File
-~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Use ``pip install -r example-requirements.txt`` to install::
 
@@ -238,14 +248,14 @@ Use ``pip install -r example-requirements.txt`` to install::
 .. _`Requirement Specifiers`:
 
 Requirement Specifiers
-++++++++++++++++++++++
+----------------------
 
 pip supports installing from a package index using a :term:`requirement
 specifier <pypug:Requirement Specifier>`. Generally speaking, a requirement
 specifier is composed of a project name followed by optional :term:`version
 specifiers <pypug:Version Specifier>`.  :pep:`508` contains a full specification
-of the format of a requirement (pip does not support the ``url_req`` form
-of specifier at this time).
+of the format of a requirement. Since version 18.1 pip supports the
+``url_req``-form specification.
 
 Some examples:
 
@@ -265,6 +275,13 @@ Since version 6.0, pip also supports specifiers containing `environment markers
   SomeProject ==5.4 ; python_version < '2.7'
   SomeProject; sys_platform == 'win32'
 
+Since version 19.1, pip also supports `direct references
+<https://www.python.org/dev/peps/pep-0440/#direct-references>`__ like so:
+
+ ::
+
+  SomeProject @ file:///somewhere/...
+
 Environment markers are supported in the command line and in requirements files.
 
 .. note::
@@ -276,7 +293,7 @@ Environment markers are supported in the command line and in requirements files.
 .. _`Per-requirement Overrides`:
 
 Per-requirement Overrides
-+++++++++++++++++++++++++
+-------------------------
 
 Since version 7.0 pip supports controlling the command line options given to
 ``setup.py`` via requirements files. This disables the use of wheels (cached or
@@ -314,7 +331,7 @@ installation error.
 .. _`Pre Release Versions`:
 
 Pre-release Versions
-++++++++++++++++++++
+--------------------
 
 Starting with v1.4, pip will only install stable versions as specified by
 `pre-releases`_ by default. If a version cannot be parsed as a compliant :pep:`440`
@@ -334,7 +351,7 @@ that enables installation of pre-releases and development releases.
 .. _`VCS Support`:
 
 VCS Support
-+++++++++++
+-----------
 
 pip supports installing from Git, Mercurial, Subversion and Bazaar, and detects
 the type of VCS using URL prefixes: ``git+``, ``hg+``, ``svn+``, and ``bzr+``.
@@ -367,52 +384,57 @@ where ``setup.py`` is not in the root of project, the "subdirectory" component
 is used. The value of the "subdirectory" component should be a path starting
 from the root of the project to where ``setup.py`` is located.
 
-So if your repository layout is:
+If your repository layout is::
 
-    - pkg_dir/
+   pkg_dir
+   ├── setup.py  # setup.py for package "pkg"
+   └── some_module.py
+   other_dir
+   └── some_file
+   some_other_file
 
-      - setup.py  # setup.py for package ``pkg``
-      - some_module.py
-    - other_dir/
+Then, to install from this repository, the syntax would be::
 
-      - some_file
-    - some_other_file
-
-You'll need to use ``pip install -e vcs+protocol://repo_url/#egg=pkg&subdirectory=pkg_dir``.
+   $ pip install -e "vcs+protocol://repo_url/#egg=pkg&subdirectory=pkg_dir"
 
 
 Git
-~~~
+^^^
 
 pip currently supports cloning over ``git``, ``git+http``, ``git+https``,
-``git+ssh``, ``git+git`` and ``git+file``:
+``git+ssh``, ``git+git`` and ``git+file``.
+
+.. warning::
+
+    Note that the use of ``git``, ``git+git``, and ``git+http`` is discouraged.
+    The former two use `the Git Protocol`_, which lacks authentication, and HTTP is
+    insecure due to lack of TLS based encryption.
 
 Here are the supported forms::
 
-    [-e] git://git.example.com/MyProject#egg=MyProject
     [-e] git+http://git.example.com/MyProject#egg=MyProject
     [-e] git+https://git.example.com/MyProject#egg=MyProject
     [-e] git+ssh://git.example.com/MyProject#egg=MyProject
-    [-e] git+git://git.example.com/MyProject#egg=MyProject
     [-e] git+file:///home/user/projects/MyProject#egg=MyProject
-    -e git+git@git.example.com:MyProject#egg=MyProject
 
 Passing a branch name, a commit hash, a tag name or a git ref is possible like so::
 
-    [-e] git://git.example.com/MyProject.git@master#egg=MyProject
-    [-e] git://git.example.com/MyProject.git@v1.0#egg=MyProject
-    [-e] git://git.example.com/MyProject.git@da39a3ee5e6b4b0d3255bfef95601890afd80709#egg=MyProject
-    [-e] git://git.example.com/MyProject.git@refs/pull/123/head#egg=MyProject
+    [-e] git+https://git.example.com/MyProject.git@master#egg=MyProject
+    [-e] git+https://git.example.com/MyProject.git@v1.0#egg=MyProject
+    [-e] git+https://git.example.com/MyProject.git@da39a3ee5e6b4b0d3255bfef95601890afd80709#egg=MyProject
+    [-e] git+https://git.example.com/MyProject.git@refs/pull/123/head#egg=MyProject
 
 When passing a commit hash, specifying a full hash is preferable to a partial
 hash because a full hash allows pip to operate more efficiently (e.g. by
 making fewer network calls).
 
-Mercurial
-~~~~~~~~~
+.. _`the Git Protocol`: https://git-scm.com/book/en/v2/Git-on-the-Server-The-Protocols
 
-The supported schemes are: ``hg+http``, ``hg+https``,
-``hg+static-http`` and ``hg+ssh``.
+Mercurial
+^^^^^^^^^
+
+The supported schemes are: ``hg+file``, ``hg+http``, ``hg+https``,
+``hg+static-http``, and ``hg+ssh``.
 
 Here are the supported forms::
 
@@ -430,7 +452,7 @@ branch name like so::
     [-e] hg+http://hg.example.com/MyProject@special_feature#egg=MyProject
 
 Subversion
-~~~~~~~~~~
+^^^^^^^^^^
 
 pip supports the URL schemes ``svn``, ``svn+svn``, ``svn+http``, ``svn+https``, ``svn+ssh``.
 
@@ -450,7 +472,7 @@ out the revision from 2008-01-01. You can only check out specific
 revisions using ``-e svn+...``.
 
 Bazaar
-~~~~~~
+^^^^^^
 
 pip supports Bazaar using the ``bzr+http``, ``bzr+https``, ``bzr+ssh``,
 ``bzr+sftp``, ``bzr+ftp`` and ``bzr+lp`` schemes.
@@ -469,7 +491,7 @@ Tags or revisions can be installed like so::
     [-e] bzr+http://bzr.example.com/MyProject/trunk@v1.0#egg=MyProject
 
 Using Environment Variables
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Since version 10, pip also makes it possible to use environment variables which
 makes it possible to reference private repositories without having to store
@@ -485,12 +507,12 @@ allowing Basic Auth for authentication can be refenced like this::
    ``%VARIABLE%`` won't work.
 
 Finding Packages
-++++++++++++++++
+----------------
 
 pip searches for packages on `PyPI`_ using the
 `HTTP simple interface <https://pypi.org/simple/>`_,
 which is documented `here <https://setuptools.readthedocs.io/en/latest/easy_install.html#package-index-api>`_
-and `there <https://www.python.org/dev/peps/pep-0301/>`_.
+and `there <https://www.python.org/dev/peps/pep-0503/>`_.
 
 pip offers a number of package index options for modifying how packages are
 found.
@@ -508,7 +530,7 @@ See the :ref:`pip install Examples<pip install Examples>`.
 .. _`SSL Certificate Verification`:
 
 SSL Certificate Verification
-++++++++++++++++++++++++++++
+----------------------------
 
 Starting with v1.3, pip provides SSL certificate verification over https, to
 prevent man-in-the-middle attacks against PyPI downloads.
@@ -517,7 +539,7 @@ prevent man-in-the-middle attacks against PyPI downloads.
 .. _`Caching`:
 
 Caching
-+++++++
+-------
 
 Starting with v6.0, pip provides an on-by-default cache which functions
 similarly to that of a web browser. While the cache is on by default and is
@@ -543,7 +565,7 @@ While this cache attempts to minimize network activity, it does not prevent
 network access altogether. If you want a local install solution that
 circumvents accessing PyPI, see :ref:`Installing from local packages`.
 
-The default location for the cache directory depends on the Operating System:
+The default location for the cache directory depends on the operating system:
 
 Unix
   :file:`~/.cache/pip` and it respects the ``XDG_CACHE_HOME`` directory.
@@ -552,21 +574,27 @@ macOS
 Windows
   :file:`<CSIDL_LOCAL_APPDATA>\\pip\\Cache`
 
+Run ``pip cache dir`` to show the cache directory and see :ref:`pip cache` to
+inspect and manage pip’s cache.
+
 
 .. _`Wheel cache`:
 
 Wheel Cache
-~~~~~~~~~~~
+^^^^^^^^^^^
 
-Pip will read from the subdirectory ``wheels`` within the pip cache directory
+pip will read from the subdirectory ``wheels`` within the pip cache directory
 and use any packages found there. This is disabled via the same
 ``--no-cache-dir`` option that disables the HTTP cache. The internal structure
 of that is not part of the pip API. As of 7.0, pip makes a subdirectory for
 each sdist that wheels are built from and places the resulting wheels inside.
 
-Pip attempts to choose the best wheels from those built in preference to
+As of version 20.0, pip also caches wheels when building from an immutable Git
+reference (i.e. a commit hash).
+
+pip attempts to choose the best wheels from those built in preference to
 building a new wheel. Note that this means when a package has both optional
-C extensions and builds `py` tagged wheels when the C extension can't be built
+C extensions and builds ``py`` tagged wheels when the C extension can't be built
 that pip will not attempt to build a better wheel for Pythons that would have
 supported it, once any generic wheel is built. To correct this, make sure that
 the wheels are built with Python specific tags - e.g. pp on PyPy.
@@ -578,7 +606,7 @@ automatically and insert it into the wheel cache.
 .. _`hash-checking mode`:
 
 Hash-Checking Mode
-++++++++++++++++++
+------------------
 
 Since version 8.0, pip can check downloaded package archives against local
 hashes to protect against remote tampering. To verify a package against one or
@@ -658,6 +686,7 @@ Hash-checking mode also works with :ref:`pip download` and :ref:`pip wheel`. A
 <Repeatability>` is available in the User Guide.
 
 .. warning::
+
     Beware of the ``setup_requires`` keyword arg in :file:`setup.py`. The
     (rare) packages that use it will cause those dependencies to be downloaded
     by setuptools directly, skipping pip's hash-checking. If you need to use
@@ -665,6 +694,7 @@ Hash-checking mode also works with :ref:`pip download` and :ref:`pip wheel`. A
     setup_requires<controlling-setup-requires>`.
 
 .. warning::
+
     Be careful not to nullify all your security work when you install your
     actual project by using setuptools directly: for example, by calling
     ``python setup.py install``, ``python setup.py develop``, or
@@ -683,7 +713,7 @@ Hash-checking mode also works with :ref:`pip download` and :ref:`pip wheel`. A
 
 
 Hashes from PyPI
-~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^
 
 PyPI provides an MD5 hash in the fragment portion of each package download URL,
 like ``#md5=123...``, which pip checks as a protection against download
@@ -695,20 +725,23 @@ local hash.
 
 
 Local project installs
-++++++++++++++++++++++
+----------------------
+
 pip supports installing local project in both regular mode and editable mode.
 You can install local projects by specifying the project path to pip::
 
 $ pip install path/to/SomeProject
 
-During regular installation, pip will copy the entire project directory to a temporary location and install from there.
-The exception is that pip will exclude .tox and .nox directories present in the top level of the project from being copied.
+During regular installation, pip will copy the entire project directory to a
+temporary location and install from there. The exception is that pip will
+exclude .tox and .nox directories present in the top level of the project from
+being copied.
 
 
 .. _`editable-installs`:
 
 "Editable" Installs
-~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^
 
 "Editable" installs are fundamentally `"setuptools develop mode"
 <https://setuptools.readthedocs.io/en/latest/setuptools.html#development-mode>`_
@@ -729,7 +762,7 @@ which creates the "egg-info" directly relative the current working directory.
 .. _`controlling-setup-requires`:
 
 Controlling setup_requires
-++++++++++++++++++++++++++
+--------------------------
 
 Setuptools offers the ``setup_requires`` `setup() keyword
 <https://setuptools.readthedocs.io/en/latest/setuptools.html#new-and-changed-setup-keywords>`_
@@ -762,7 +795,7 @@ To have the dependency located from a local directory and not crawl PyPI, add th
 
 
 Build System Interface
-++++++++++++++++++++++
+----------------------
 
 In order for pip to install a package from source, ``setup.py`` must implement
 the following commands::
@@ -807,20 +840,22 @@ Installing a package from a wheel does not invoke the build system at all.
 
 .. _`pip install Options`:
 
+
 Options
-*******
+=======
 
 .. pip-command-options:: install
 
-.. pip-index-options::
+.. pip-index-options:: install
 
 
 .. _`pip install Examples`:
 
-Examples
-********
 
-#. Install `SomePackage` and its dependencies from `PyPI`_ using :ref:`Requirement Specifiers`
+Examples
+========
+
+#. Install ``SomePackage`` and its dependencies from `PyPI`_ using :ref:`Requirement Specifiers`
 
     ::
 
@@ -836,7 +871,7 @@ Examples
       $ pip install -r requirements.txt
 
 
-#. Upgrade an already installed `SomePackage` to the latest from PyPI.
+#. Upgrade an already installed ``SomePackage`` to the latest from PyPI.
 
     ::
 
@@ -880,6 +915,14 @@ Examples
       $ pip install http://my.package.repo/SomePackage-1.0.4.zip
 
 
+#. Install a particular source archive file following :pep:`440` direct references.
+
+    ::
+
+      $ pip install SomeProject==1.0.4@http://my.package.repo//SomeProject-1.2.3-py33-none-any.whl
+      $ pip install "SomeProject==1.0.4 @ http://my.package.repo//SomeProject-1.2.3-py33-none-any.whl"
+
+
 #. Install from alternative package repositories.
 
    Install from a different index, and not `PyPI`_ ::
@@ -902,6 +945,17 @@ Examples
     ::
 
       $ pip install --pre SomePackage
+
+
+#. Install packages from source.
+
+   Do not use any binary packages::
+
+     $ pip install SomePackage1 SomePackage2 --no-binary :all:
+
+   Specify ``SomePackage1`` to be installed from source::
+
+     $ pip install SomePackage1 SomePackage2 --no-binary SomePackage1
 
 ----
 

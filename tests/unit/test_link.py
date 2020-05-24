@@ -131,6 +131,7 @@ class TestLink:
     @pytest.mark.parametrize('url, expected', [
         ('git+https://github.com/org/repo', True),
         ('bzr+http://bzr.myproject.org/MyProject/trunk/#egg=MyProject', True),
+        ('hg+file://hg.company.com/repo', True),
         ('https://example.com/some.whl', False),
         ('file://home/foo/some.whl', False),
     ])

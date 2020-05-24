@@ -2,6 +2,7 @@
 
 import locale
 import os
+import sys
 
 import pytest
 
@@ -10,7 +11,6 @@ from pip._internal.utils.compat import (
     console_to_str,
     expanduser,
     get_path_uid,
-    native_str,
     str_to_display,
 )
 
@@ -31,7 +31,8 @@ def test_get_path_uid_without_NOFOLLOW(monkeypatch):
 @pytest.mark.skipif("sys.platform == 'win32'")
 @pytest.mark.skipif("not hasattr(os, 'symlink')")
 def test_get_path_uid_symlink(tmpdir):
-    f = tmpdir.mkdir("symlink").joinpath("somefile")
+    f = tmpdir / "symlink" / "somefile"
+    f.parent.mkdir()
     f.write_text("content")
     fs = f + '_link'
     os.symlink(f, fs)
@@ -43,7 +44,8 @@ def test_get_path_uid_symlink(tmpdir):
 @pytest.mark.skipif("not hasattr(os, 'symlink')")
 def test_get_path_uid_symlink_without_NOFOLLOW(tmpdir, monkeypatch):
     monkeypatch.delattr("os.O_NOFOLLOW")
-    f = tmpdir.mkdir("symlink").joinpath("somefile")
+    f = tmpdir / "symlink" / "somefile"
+    f.parent.mkdir()
     f.write_text("content")
     fs = f + '_link'
     os.symlink(f, fs)
@@ -90,8 +92,13 @@ def test_str_to_display__decode_error(monkeypatch, caplog):
     # Encode with an incompatible encoding.
     data = u'ab'.encode('utf-16')
     actual = str_to_display(data)
+    # Keep the expected value endian safe
+    if sys.byteorder == "little":
+        expected = "\\xff\\xfea\x00b\x00"
+    elif sys.byteorder == "big":
+        expected = "\\xfe\\xff\x00a\x00b"
 
-    assert actual == u'\\xff\\xfea\x00b\x00', (
+    assert actual == expected, (
         # Show the encoding for easier troubleshooting.
         'encoding: {!r}'.format(locale.getpreferredencoding())
     )
@@ -126,13 +133,6 @@ def test_console_to_str_warning(monkeypatch):
     console_to_str(some_bytes)
 
 
-def test_to_native_str_type():
-    some_bytes = b"test\xE9 et approuv\xC3\xE9"
-    some_unicode = b"test\xE9 et approuv\xE9".decode('iso-8859-15')
-    assert isinstance(native_str(some_bytes, True), str)
-    assert isinstance(native_str(some_unicode, True), str)
-
-
 @pytest.mark.parametrize("home,path,expanded", [
     ("/Users/test", "~", "/Users/test"),
     ("/Users/test", "~/.cache", "/Users/test/.cache"),
@@ -142,4 +142,5 @@ def test_to_native_str_type():
 ])
 def test_expanduser(home, path, expanded, monkeypatch):
     monkeypatch.setenv("HOME", home)
+    monkeypatch.setenv("USERPROFILE", home)
     assert expanduser(path) == expanded

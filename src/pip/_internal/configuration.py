@@ -77,6 +77,7 @@ CONFIG_BASENAME = 'pip.ini' if WINDOWS else 'pip.conf'
 
 
 def get_configuration_files():
+    # type: () -> Dict[Kind, List[str]]
     global_config_files = [
         os.path.join(path, CONFIG_BASENAME)
         for path in appdirs.site_config_dirs('pip')
@@ -419,3 +420,7 @@ class Configuration(object):
         file_parser_tuple = (fname, parser)
         if file_parser_tuple not in self._modified_parsers:
             self._modified_parsers.append(file_parser_tuple)
+
+    def __repr__(self):
+        # type: () -> str
+        return "{}({!r})".format(self.__class__.__name__, self._dictionary)

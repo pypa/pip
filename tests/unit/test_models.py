@@ -47,7 +47,7 @@ class TestInstallationCandidate(object):
         obj = candidate.InstallationCandidate(
             "A", "1.0.0", "https://somewhere.com/path/A-1.0.0.tar.gz"
         )
-        assert obj.project == "A"
+        assert obj.name == "A"
         assert obj.version == parse_version("1.0.0")
         assert obj.link == "https://somewhere.com/path/A-1.0.0.tar.gz"
 
@@ -57,4 +57,4 @@ class TestInstallationCandidate(object):
         obj = candidate.InstallationCandidate(
             "A", "1.0.0", "https://somewhere.com/path/A-1.0.0.tar.gz"
         )
-        assert obj._compare_key == (obj.project, obj.version, obj.link)
+        assert obj._compare_key == (obj.name, obj.version, obj.link)

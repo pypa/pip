@@ -1,5 +1,9 @@
 """Stuff that differs in different Python versions and platform
 distributions."""
+
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 from __future__ import absolute_import, division
 
 import codecs
@@ -9,21 +13,12 @@ import os
 import shutil
 import sys
 
-from pip._vendor.six import text_type
-from pip._vendor.urllib3.util import IS_PYOPENSSL
+from pip._vendor.six import PY2, text_type
 
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import Optional, Text, Tuple, Union
-
-try:
-    import _ssl  # noqa
-except ImportError:
-    ssl = None
-else:
-    # This additional assignment was needed to prevent a mypy error.
-    ssl = _ssl
 
 try:
     import ipaddress
@@ -37,20 +32,14 @@ except ImportError:
 
 
 __all__ = [
-    "ipaddress", "uses_pycache", "console_to_str", "native_str",
+    "ipaddress", "uses_pycache", "console_to_str",
     "get_path_uid", "stdlib_pkgs", "WINDOWS", "samefile", "get_terminal_size",
-    "get_extension_suffixes",
 ]
 
 
 logger = logging.getLogger(__name__)
 
-HAS_TLS = (ssl is not None) or IS_PYOPENSSL
-
-if sys.version_info >= (3, 4):
-    uses_pycache = True
-    from importlib.util import cache_from_source
-else:
+if PY2:
     import imp
 
     try:
@@ -60,27 +49,41 @@ else:
         cache_from_source = None
 
     uses_pycache = cache_from_source is not None
-
-
-if sys.version_info >= (3, 5):
-    backslashreplace_decode = "backslashreplace"
 else:
-    # In version 3.4 and older, backslashreplace exists
+    uses_pycache = True
+    from importlib.util import cache_from_source
+
+
+if PY2:
+    # In Python 2.7, backslashreplace exists
     # but does not support use for decoding.
     # We implement our own replace handler for this
     # situation, so that we can consistently use
     # backslash replacement for all versions.
     def backslashreplace_decode_fn(err):
         raw_bytes = (err.object[i] for i in range(err.start, err.end))
-        if sys.version_info[0] == 2:
-            # Python 2 gave us characters - convert to numeric bytes
-            raw_bytes = (ord(b) for b in raw_bytes)
-        return u"".join(u"\\x%x" % c for c in raw_bytes), err.end
+        # Python 2 gave us characters - convert to numeric bytes
+        raw_bytes = (ord(b) for b in raw_bytes)
+        return u"".join(map(u"\\x{:x}".format, raw_bytes)), err.end
     codecs.register_error(
         "backslashreplace_decode",
         backslashreplace_decode_fn,
     )
     backslashreplace_decode = "backslashreplace_decode"
+else:
+    backslashreplace_decode = "backslashreplace"
+
+
+def has_tls():
+    # type: () -> bool
+    try:
+        import _ssl  # noqa: F401  # ignore unused
+        return True
+    except ImportError:
+        pass
+
+    from pip._vendor.urllib3.util import IS_PYOPENSSL
+    return IS_PYOPENSSL
 
 
 def str_to_display(data, desc=None):
@@ -156,22 +159,6 @@ def console_to_str(data):
     return str_to_display(data, desc='Subprocess output')
 
 
-if sys.version_info >= (3,):
-    def native_str(s, replace=False):
-        # type: (str, bool) -> str
-        if isinstance(s, bytes):
-            return s.decode('utf-8', 'replace' if replace else 'strict')
-        return s
-
-else:
-    def native_str(s, replace=False):
-        # type: (str, bool) -> str
-        # Replace is ignored -- unicode to UTF-8 can't fail
-        if isinstance(s, text_type):
-            return s.encode('utf-8')
-        return s
-
-
 def get_path_uid(path):
     # type: (str) -> int
     """
@@ -197,21 +184,10 @@ def get_path_uid(path):
         else:
             # raise OSError for parity with os.O_NOFOLLOW above
             raise OSError(
-                "%s is a symlink; Will not return uid for symlinks" % path
+                "{} is a symlink; Will not return uid for symlinks".format(
+                    path)
             )
     return file_uid
-
-
-if sys.version_info >= (3, 4):
-    from importlib.machinery import EXTENSION_SUFFIXES
-
-    def get_extension_suffixes():
-        return EXTENSION_SUFFIXES
-else:
-    from imp import get_suffixes
-
-    def get_extension_suffixes():
-        return [suffix[0] for suffix in get_suffixes()]
 
 
 def expanduser(path):
@@ -282,12 +258,13 @@ else:
             return cr
         cr = ioctl_GWINSZ(0) or ioctl_GWINSZ(1) or ioctl_GWINSZ(2)
         if not cr:
-            try:
-                fd = os.open(os.ctermid(), os.O_RDONLY)
-                cr = ioctl_GWINSZ(fd)
-                os.close(fd)
-            except Exception:
-                pass
+            if sys.platform != "win32":
+                try:
+                    fd = os.open(os.ctermid(), os.O_RDONLY)
+                    cr = ioctl_GWINSZ(fd)
+                    os.close(fd)
+                except Exception:
+                    pass
         if not cr:
             cr = (os.environ.get('LINES', 25), os.environ.get('COLUMNS', 80))
         return int(cr[1]), int(cr[0])

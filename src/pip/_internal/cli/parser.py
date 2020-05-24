@@ -1,4 +1,8 @@
 """Base option parser setup"""
+
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 from __future__ import absolute_import
 
 import logging
@@ -27,14 +31,14 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
         optparse.IndentedHelpFormatter.__init__(self, *args, **kwargs)
 
     def format_option_strings(self, option):
-        return self._format_option_strings(option, ' <%s>', ', ')
+        return self._format_option_strings(option)
 
-    def _format_option_strings(self, option, mvarfmt=' <%s>', optsep=', '):
+    def _format_option_strings(self, option, mvarfmt=' <{}>', optsep=', '):
         """
         Return a comma-separated list of option strings and metavars.
 
         :param option:  tuple of (short opt, long opt), e.g: ('-f', '--format')
-        :param mvarfmt: metavar format string - evaluated as mvarfmt % metavar
+        :param mvarfmt: metavar format string
         :param optsep:  separator
         """
         opts = []
@@ -48,7 +52,7 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
 
         if option.takes_value():
             metavar = option.metavar or option.dest.lower()
-            opts.append(mvarfmt % metavar.lower())
+            opts.append(mvarfmt.format(metavar.lower()))
 
         return ''.join(opts)
 
@@ -62,7 +66,8 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
         Ensure there is only one newline between usage and the first heading
         if there is no description.
         """
-        msg = '\nUsage: %s\n' % self.indent_lines(textwrap.dedent(usage), "  ")
+        msg = '\nUsage: {}\n'.format(
+            self.indent_lines(textwrap.dedent(usage), "  "))
         return msg
 
     def format_description(self, description):
@@ -78,7 +83,7 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
             description = description.rstrip()
             # dedent, then reindent
             description = self.indent_lines(textwrap.dedent(description), "  ")
-            description = '%s:\n%s\n' % (label, description)
+            description = '{}:\n{}\n'.format(label, description)
             return description
         else:
             return ''
@@ -146,7 +151,7 @@ class ConfigOptionParser(CustomOptionParser):
         try:
             return option.check_value(key, val)
         except optparse.OptionValueError as exc:
-            print("An error occurred during configuration: %s" % exc)
+            print("An error occurred during configuration: {}".format(exc))
             sys.exit(3)
 
     def _get_ordered_configuration_items(self):
@@ -245,7 +250,7 @@ class ConfigOptionParser(CustomOptionParser):
 
     def error(self, msg):
         self.print_usage(sys.stderr)
-        self.exit(UNKNOWN_ERROR, "%s\n" % msg)
+        self.exit(UNKNOWN_ERROR, "{}\n".format(msg))
 
 
 def invalid_config_error_message(action, key, val):

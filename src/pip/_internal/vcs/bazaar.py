@@ -1,3 +1,6 @@
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 from __future__ import absolute_import
 
 import logging
@@ -5,13 +8,10 @@ import os
 
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
-from pip._internal.utils.misc import (
-    display_path,
-    make_command,
-    path_to_url,
-    rmtree,
-)
+from pip._internal.utils.misc import display_path, rmtree
+from pip._internal.utils.subprocess import make_command
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.urls import path_to_url
 from pip._internal.vcs.versioncontrol import VersionControl, vcs
 
 if MYPY_CHECK_RUNNING:
@@ -54,8 +54,7 @@ class Bazaar(VersionControl):
 
         url, rev_options = self.get_url_rev_options(url)
         self.run_command(
-            make_command('export', location, url, rev_options.to_args()),
-            show_stdout=False,
+            make_command('export', location, url, rev_options.to_args())
         )
 
     def fetch_new(self, dest, url, rev_options):
@@ -92,7 +91,7 @@ class Bazaar(VersionControl):
 
     @classmethod
     def get_remote_url(cls, location):
-        urls = cls.run_command(['info'], show_stdout=False, cwd=location)
+        urls = cls.run_command(['info'], cwd=location)
         for line in urls.splitlines():
             line = line.strip()
             for x in ('checkout of branch: ',
@@ -107,7 +106,7 @@ class Bazaar(VersionControl):
     @classmethod
     def get_revision(cls, location):
         revision = cls.run_command(
-            ['revno'], show_stdout=False, cwd=location,
+            ['revno'], cwd=location,
         )
         return revision.splitlines()[-1]
 

@@ -56,6 +56,7 @@ class Hashes(object):
         hash_name,   # type: str
         hex_digest,  # type: str
     ):
+        # type: (...) -> bool
         """Return whether the given hex digest is allowed."""
         return hex_digest in self._allowed.get(hash_name, [])
 
@@ -72,7 +73,9 @@ class Hashes(object):
             try:
                 gots[hash_name] = hashlib.new(hash_name)
             except (ValueError, TypeError):
-                raise InstallationError('Unknown hash name: %s' % hash_name)
+                raise InstallationError(
+                    'Unknown hash name: {}'.format(hash_name)
+                )
 
         for chunk in chunks:
             for hash in itervalues(gots):

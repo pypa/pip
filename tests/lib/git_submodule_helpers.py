@@ -31,7 +31,9 @@ def _pull_in_submodule_changes_to_module(env, module_path, rel_path):
     submodule_path = module_path / rel_path
     env.run('git', 'pull', '-q', 'origin', 'master', cwd=submodule_path)
     # Pass -a to stage the submodule changes that were just pulled in.
-    _git_commit(env, module_path, message='submodule change', args=['-a'])
+    _git_commit(
+        env, module_path, message='submodule change', stage_modified=True
+    )
 
 
 def _create_test_package_with_submodule(env, rel_path):

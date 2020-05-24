@@ -113,8 +113,9 @@ def test_run_method_should_return_success_when_find_packages():
     """
     command = create_command('search')
     cmdline = "--index=https://pypi.org/pypi pip"
-    options, args = command.parse_args(cmdline.split())
-    status = command.run(options, args)
+    with command.main_context():
+        options, args = command.parse_args(cmdline.split())
+        status = command.run(options, args)
     assert status == SUCCESS
 
 
@@ -125,8 +126,9 @@ def test_run_method_should_return_no_matches_found_when_does_not_find_pkgs():
     """
     command = create_command('search')
     cmdline = "--index=https://pypi.org/pypi nonexistentpackage"
-    options, args = command.parse_args(cmdline.split())
-    status = command.run(options, args)
+    with command.main_context():
+        options, args = command.parse_args(cmdline.split())
+        status = command.run(options, args)
     assert status == NO_MATCHES_FOUND
 
 

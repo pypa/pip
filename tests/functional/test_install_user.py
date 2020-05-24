@@ -6,7 +6,8 @@ from os.path import curdir, isdir, isfile
 
 import pytest
 
-from tests.lib import pyversion
+from tests.lib import pyversion  # noqa: F401
+from tests.lib import need_svn
 from tests.lib.local_repos import local_checkout
 
 
@@ -27,6 +28,7 @@ def _patch_dist_in_site_packages(virtualenv):
 class Tests_UserSite:
 
     @pytest.mark.network
+    @pytest.mark.incompatible_with_test_venv
     def test_reset_env_system_site_packages_usersite(self, script):
         """
         Check user site works as expected.
@@ -41,7 +43,8 @@ class Tests_UserSite:
         assert 'INITools' == project_name, project_name
 
     @pytest.mark.network
-    @pytest.mark.svn
+    @need_svn
+    @pytest.mark.incompatible_with_test_venv
     def test_install_subversion_usersite_editable_with_distribute(
             self, script, tmpdir):
         """
@@ -50,14 +53,14 @@ class Tests_UserSite:
         """
         result = script.pip(
             'install', '--user', '-e',
-            '%s#egg=initools' %
-            local_checkout(
-                'svn+http://svn.colorstudy.com/INITools/trunk',
-                tmpdir.joinpath("cache"),
+            '{checkout}#egg=initools'.format(
+                checkout=local_checkout(
+                    'svn+http://svn.colorstudy.com/INITools', tmpdir)
             )
         )
         result.assert_installed('INITools', use_user_site=True)
 
+    @pytest.mark.incompatible_with_test_venv
     def test_install_from_current_directory_into_usersite(
             self, script, data, with_wheel):
         """
@@ -67,7 +70,6 @@ class Tests_UserSite:
         result = script.pip(
             'install', '-vvv', '--user', curdir,
             cwd=run_from,
-            expect_error=False,
         )
 
         fspkg_folder = script.user_site / 'fspkg'
@@ -78,7 +80,6 @@ class Tests_UserSite:
         )
         assert dist_info_folder in result.files_created
 
-    @pytest.mark.incompatible_with_test_venv
     def test_install_user_venv_nositepkgs_fails(self, virtualenv,
                                                 script, data):
         """
@@ -99,6 +100,7 @@ class Tests_UserSite:
         )
 
     @pytest.mark.network
+    @pytest.mark.incompatible_with_test_venv
     def test_install_user_conflict_in_usersite(self, script):
         """
         Test user install with conflict in usersite updates usersite.
@@ -111,7 +113,8 @@ class Tests_UserSite:
 
         # usersite has 0.1
         egg_info_folder = (
-            script.user_site / 'INITools-0.1-py%s.egg-info' % pyversion
+            script.user_site /
+            'INITools-0.1-py{pyversion}.egg-info'.format(**globals())
         )
         initools_v3_file = (
             # file only in 0.3
@@ -122,6 +125,8 @@ class Tests_UserSite:
         assert not isfile(initools_v3_file), initools_v3_file
 
     @pytest.mark.network
+    @pytest.mark.incompatible_with_test_venv
+    @pytest.mark.fails_on_new_resolver
     def test_install_user_conflict_in_globalsite(self, virtualenv, script):
         """
         Test user install with conflict in global site ignores site and
@@ -136,7 +141,8 @@ class Tests_UserSite:
 
         # usersite has 0.1
         egg_info_folder = (
-            script.user_site / 'INITools-0.1-py%s.egg-info' % pyversion
+            script.user_site /
+            'INITools-0.1-py{pyversion}.egg-info'.format(**globals())
         )
         initools_folder = script.user_site / 'initools'
         assert egg_info_folder in result2.files_created, str(result2)
@@ -145,13 +151,15 @@ class Tests_UserSite:
         # site still has 0.2 (can't look in result1; have to check)
         egg_info_folder = (
             script.base_path / script.site_packages /
-            'INITools-0.2-py%s.egg-info' % pyversion
+            'INITools-0.2-py{pyversion}.egg-info'.format(**globals())
         )
         initools_folder = script.base_path / script.site_packages / 'initools'
         assert isdir(egg_info_folder)
         assert isdir(initools_folder)
 
     @pytest.mark.network
+    @pytest.mark.incompatible_with_test_venv
+    @pytest.mark.fails_on_new_resolver
     def test_upgrade_user_conflict_in_globalsite(self, virtualenv, script):
         """
         Test user install/upgrade with conflict in global site ignores site and
@@ -165,7 +173,8 @@ class Tests_UserSite:
 
         # usersite has 0.3.1
         egg_info_folder = (
-            script.user_site / 'INITools-0.3.1-py%s.egg-info' % pyversion
+            script.user_site /
+            'INITools-0.3.1-py{pyversion}.egg-info'.format(**globals())
         )
         initools_folder = script.user_site / 'initools'
         assert egg_info_folder in result2.files_created, str(result2)
@@ -174,13 +183,15 @@ class Tests_UserSite:
         # site still has 0.2 (can't look in result1; have to check)
         egg_info_folder = (
             script.base_path / script.site_packages /
-            'INITools-0.2-py%s.egg-info' % pyversion
+            'INITools-0.2-py{pyversion}.egg-info'.format(**globals())
         )
         initools_folder = script.base_path / script.site_packages / 'initools'
         assert isdir(egg_info_folder), result2.stdout
         assert isdir(initools_folder)
 
     @pytest.mark.network
+    @pytest.mark.incompatible_with_test_venv
+    @pytest.mark.fails_on_new_resolver
     def test_install_user_conflict_in_globalsite_and_usersite(
             self, virtualenv, script):
         """
@@ -197,7 +208,8 @@ class Tests_UserSite:
 
         # usersite has 0.1
         egg_info_folder = (
-            script.user_site / 'INITools-0.1-py%s.egg-info' % pyversion
+            script.user_site /
+            'INITools-0.1-py{pyversion}.egg-info'.format(**globals())
         )
         initools_v3_file = (
             # file only in 0.3
@@ -210,13 +222,14 @@ class Tests_UserSite:
         # site still has 0.2 (can't just look in result1; have to check)
         egg_info_folder = (
             script.base_path / script.site_packages /
-            'INITools-0.2-py%s.egg-info' % pyversion
+            'INITools-0.2-py{pyversion}.egg-info'.format(**globals())
         )
         initools_folder = script.base_path / script.site_packages / 'initools'
         assert isdir(egg_info_folder)
         assert isdir(initools_folder)
 
     @pytest.mark.network
+    @pytest.mark.incompatible_with_test_venv
     def test_install_user_in_global_virtualenv_with_conflict_fails(
             self, script):
         """
@@ -238,6 +251,9 @@ class Tests_UserSite:
         dist_location = resultp.stdout.strip()
         assert (
             "Will not install to the user site because it will lack sys.path "
-            "precedence to %s in %s" %
-            ('INITools', dist_location) in result2.stderr
+            "precedence to {name} in {location}".format(
+                name='INITools',
+                location=dist_location,
+            )
+            in result2.stderr
         )

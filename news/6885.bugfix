@@ -1,1 +1,0 @@
-Fix 'm' flag erroneously being appended to ABI tag in Python 3.8 on platforms that do not provide SOABI

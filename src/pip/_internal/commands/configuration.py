@@ -1,3 +1,6 @@
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 import logging
 import os
 import subprocess
@@ -10,30 +13,30 @@ from pip._internal.configuration import (
     kinds,
 )
 from pip._internal.exceptions import PipError
-from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.misc import get_prog, write_output
-from pip._internal.utils.virtualenv import running_under_virtualenv
 
 logger = logging.getLogger(__name__)
 
 
 class ConfigurationCommand(Command):
-    """Manage local and global configuration.
+    """
+    Manage local and global configuration.
 
-        Subcommands:
+    Subcommands:
 
-        list: List the active configuration (or from the file specified)
-        edit: Edit the configuration file in an editor
-        get: Get the value associated with name
-        set: Set the name=value
-        unset: Unset the value associated with name
+    - list: List the active configuration (or from the file specified)
+    - edit: Edit the configuration file in an editor
+    - get: Get the value associated with name
+    - set: Set the name=value
+    - unset: Unset the value associated with name
 
-        If none of --user, --global and --site are passed, a virtual
-        environment configuration file is used if one is active and the file
-        exists. Otherwise, all modifications happen on the to the user file by
-        default.
+    If none of --user, --global and --site are passed, a virtual
+    environment configuration file is used if one is active and the file
+    exists. Otherwise, all modifications happen on the to the user file by
+    default.
     """
 
+    ignore_require_venv = True
     usage = """
         %prog [<file-option>] list
         %prog [<file-option>] [--editor <editor-path>] edit
@@ -43,11 +46,14 @@ class ConfigurationCommand(Command):
         %prog [<file-option>] unset name
     """
 
-    def __init__(self, *args, **kwargs):
-        super(ConfigurationCommand, self).__init__(*args, **kwargs)
+    def __init__(self, name, summary, isolated=False):
+        super(ConfigurationCommand, self).__init__(
+            name, summary, isolated=isolated
+        )
 
         self.configuration = None
 
+    def add_options(self):
         self.cmd_opts.add_option(
             '--editor',
             dest='editor',
@@ -81,17 +87,6 @@ class ConfigurationCommand(Command):
             action='store_true',
             default=False,
             help='Use the current environment configuration file only'
-        )
-
-        self.cmd_opts.add_option(
-            '--venv',
-            dest='venv_file',
-            action='store_true',
-            default=False,
-            help=(
-                '[Deprecated] Use the current environment configuration '
-                'file in a virtual environment only'
-            )
         )
 
         self.parser.insert_option_group(0, self.cmd_opts)
@@ -140,21 +135,6 @@ class ConfigurationCommand(Command):
         return SUCCESS
 
     def _determine_file(self, options, need_value):
-        # Convert legacy venv_file option to site_file or error
-        if options.venv_file and not options.site_file:
-            if running_under_virtualenv():
-                options.site_file = True
-                deprecated(
-                    "The --venv option has been deprecated.",
-                    replacement="--site",
-                    gone_in="19.3",
-                )
-            else:
-                raise PipError(
-                    "Legacy --venv option requires a virtual environment. "
-                    "Use --site instead."
-                )
-
         file_options = [key for key, value in (
             (kinds.USER, options.user_file),
             (kinds.GLOBAL, options.global_file),

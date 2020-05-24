@@ -1,5 +1,7 @@
 """Utilities for defining models
 """
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
 
 import operator
 

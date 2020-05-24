@@ -48,7 +48,7 @@ def create_main_parser():
 
     # create command listing for description
     description = [''] + [
-        '%-27s %s' % (name, command_info.summary)
+        '{name:27} {command_info.summary}'.format(**locals())
         for name, command_info in commands_dict.items()
     ]
     parser.description = '\n'.join(description)
@@ -86,9 +86,9 @@ def parse_command(args):
     if cmd_name not in commands_dict:
         guess = get_similar_commands(cmd_name)
 
-        msg = ['unknown command "%s"' % cmd_name]
+        msg = ['unknown command "{}"'.format(cmd_name)]
         if guess:
-            msg.append('maybe you meant "%s"' % guess)
+            msg.append('maybe you meant "{}"'.format(guess))
 
         raise CommandError(' - '.join(msg))
 

@@ -1,17 +1,20 @@
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 from __future__ import absolute_import
 
 import logging
 import os
 import re
-import sys
 
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     display_path,
-    make_command,
+    is_console_interactive,
     rmtree,
     split_auth_from_netloc,
 )
+from pip._internal.utils.subprocess import make_command
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs.versioncontrol import VersionControl, vcs
 
@@ -23,7 +26,8 @@ _svn_info_xml_url_re = re.compile(r'<url>(.*)</url>')
 
 if MYPY_CHECK_RUNNING:
     from typing import Optional, Tuple
-    from pip._internal.utils.misc import CommandArgs, HiddenText
+    from pip._internal.utils.subprocess import CommandArgs
+    from pip._internal.utils.misc import HiddenText
     from pip._internal.vcs.versioncontrol import AuthInfo, RevOptions
 
 
@@ -128,7 +132,7 @@ class Subversion(VersionControl):
 
     @classmethod
     def _get_svn_url_rev(cls, location):
-        from pip._internal.exceptions import InstallationError
+        from pip._internal.exceptions import SubProcessError
 
         entries_path = os.path.join(location, cls.dirname, 'entries')
         if os.path.exists(entries_path):
@@ -147,7 +151,8 @@ class Subversion(VersionControl):
         elif data.startswith('<?xml'):
             match = _svn_xml_url_re.search(data)
             if not match:
-                raise ValueError('Badly formatted data: %r' % data)
+                raise ValueError(
+                    'Badly formatted data: {data!r}'.format(**locals()))
             url = match.group(1)    # get repository URL
             revs = [int(m.group(1)) for m in _svn_rev_re.finditer(data)] + [0]
         else:
@@ -160,13 +165,12 @@ class Subversion(VersionControl):
                 # are only potentially needed for remote server requests.
                 xml = cls.run_command(
                     ['info', '--xml', location],
-                    show_stdout=False,
                 )
                 url = _svn_info_xml_url_re.search(xml).group(1)
                 revs = [
                     int(m.group(1)) for m in _svn_info_xml_rev_re.finditer(xml)
                 ]
-            except InstallationError:
+            except SubProcessError:
                 url, revs = None, []
 
         if revs:
@@ -184,7 +188,7 @@ class Subversion(VersionControl):
     def __init__(self, use_interactive=None):
         # type: (bool) -> None
         if use_interactive is None:
-            use_interactive = sys.stdin.isatty()
+            use_interactive = is_console_interactive()
         self.use_interactive = use_interactive
 
         # This member is used to cache the fetched version of the current
@@ -210,7 +214,8 @@ class Subversion(VersionControl):
         #   svn, version 1.7.14 (r1542130)
         #      compiled Mar 28 2018, 08:49:13 on x86_64-pc-linux-gnu
         version_prefix = 'svn, version '
-        version = self.run_command(['--version'], show_stdout=False)
+        version = self.run_command(['--version'])
+
         if not version.startswith(version_prefix):
             return ()
 
@@ -292,7 +297,7 @@ class Subversion(VersionControl):
                 'export', self.get_remote_call_options(),
                 rev_options.to_args(), url, location,
             )
-            self.run_command(cmd_args, show_stdout=False)
+            self.run_command(cmd_args)
 
     def fetch_new(self, dest, url, rev_options):
         # type: (str, HiddenText, RevOptions) -> None

@@ -1,4 +1,8 @@
 """Exceptions used throughout package"""
+
+# The following comment should be removed at some point in the future.
+# mypy: disallow-untyped-defs=False
+
 from __future__ import absolute_import
 
 from itertools import chain, groupby, repeat
@@ -80,6 +84,11 @@ class CommandError(PipError):
     """Raised when there is an error in command-line arguments"""
 
 
+class SubProcessError(PipError):
+    """Raised when there is an error raised while executing a
+    command in subprocess"""
+
+
 class PreviousBuildDirError(PipError):
     """Raised when there's a previous conflicting build directory"""
 
@@ -143,13 +152,13 @@ class HashError(InstallationError):
         triggering requirement.
 
         :param req: The InstallRequirement that provoked this error, with
-            populate_link() having already been called
+            its link already populated by the resolver's _populate_link().
 
         """
-        return '    %s' % self._requirement_name()
+        return '    {}'.format(self._requirement_name())
 
     def __str__(self):
-        return '%s\n%s' % (self.head, self.body())
+        return '{}\n{}'.format(self.head, self.body())
 
     def _requirement_name(self):
         """Return a description of the requirement that triggered me.
@@ -211,9 +220,9 @@ class HashMissing(HashError):
                        # In case someone feeds something downright stupid
                        # to InstallRequirement's constructor.
                        else getattr(self.req, 'req', None))
-        return '    %s --hash=%s:%s' % (package or 'unknown package',
-                                        FAVORITE_HASH,
-                                        self.gotten_hash)
+        return '    {} --hash={}:{}'.format(package or 'unknown package',
+                                            FAVORITE_HASH,
+                                            self.gotten_hash)
 
 
 class HashUnpinned(HashError):
@@ -251,8 +260,8 @@ class HashMismatch(HashError):
         self.gots = gots
 
     def body(self):
-        return '    %s:\n%s' % (self._requirement_name(),
-                                self._hash_comparison())
+        return '    {}:\n{}'.format(self._requirement_name(),
+                                    self._hash_comparison())
 
     def _hash_comparison(self):
         """
@@ -273,11 +282,10 @@ class HashMismatch(HashError):
         lines = []
         for hash_name, expecteds in iteritems(self.allowed):
             prefix = hash_then_or(hash_name)
-            lines.extend(('        Expected %s %s' % (next(prefix), e))
+            lines.extend(('        Expected {} {}'.format(next(prefix), e))
                          for e in expecteds)
-            lines.append('             Got        %s\n' %
-                         self.gots[hash_name].hexdigest())
-            prefix = '    or'
+            lines.append('             Got        {}\n'.format(
+                         self.gots[hash_name].hexdigest()))
         return '\n'.join(lines)
 
 

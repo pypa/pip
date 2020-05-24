@@ -1,3 +1,29 @@
+20.2b1 (2020-05-21)
+===================
+
+Deprecations and Removals
+-------------------------
+
+- Drop parallelization from ``pip list --outdated``. (`#8167 <https://github.com/pypa/pip/issues/8167>`_)
+
+Bug Fixes
+---------
+
+- Correctly treat wheels contenting non-ASCII file contents so they can be
+  installed on Windows. (`#5712 <https://github.com/pypa/pip/issues/5712>`_)
+- Revert building of local directories in place, restoring the pre-20.1
+  behaviour of copying to a temporary directory. (`#7555 <https://github.com/pypa/pip/issues/7555>`_)
+- Prompt the user for password if the keyring backend doesn't return one (`#7998 <https://github.com/pypa/pip/issues/7998>`_)
+- Fix metadata permission issues when umask has the executable bit set. (`#8164 <https://github.com/pypa/pip/issues/8164>`_)
+- Avoid unnecessary message about the wheel package not being installed
+  when a wheel would not have been built. Additionally, clarify the message. (`#8178 <https://github.com/pypa/pip/issues/8178>`_)
+
+Improved Documentation
+----------------------
+
+- Add GitHub issue template for reporting when the dependency resolver fails (`#8207 <https://github.com/pypa/pip/issues/8207>`_)
+
+
 .. NOTE: You should *NOT* be adding new change log entries to this file, this
          file is managed by towncrier. You *may* edit previous change logs to
          fix problems like typo corrections or such.
@@ -6,6 +32,352 @@
              https://pip.pypa.io/en/latest/development/contributing/#news-entries
 
 .. towncrier release notes start
+
+20.1.1 (2020-05-19)
+===================
+
+Deprecations and Removals
+-------------------------
+
+- Revert building of local directories in place, restoring the pre-20.1
+  behaviour of copying to a temporary directory. (`#7555 <https://github.com/pypa/pip/issues/7555>`_)
+- Drop parallelization from ``pip list --outdated``. (`#8167 <https://github.com/pypa/pip/issues/8167>`_)
+
+Bug Fixes
+---------
+
+- Fix metadata permission issues when umask has the executable bit set. (`#8164 <https://github.com/pypa/pip/issues/8164>`_)
+- Avoid unnecessary message about the wheel package not being installed
+  when a wheel would not have been built. Additionally, clarify the message. (`#8178 <https://github.com/pypa/pip/issues/8178>`_)
+
+
+20.1 (2020-04-28)
+=================
+
+Process
+-------
+
+- Document that pip 21.0 will drop support for Python 2.7.
+
+Features
+--------
+
+- Add ``pip cache dir`` to show the cache directory. (`#7350 <https://github.com/pypa/pip/issues/7350>`_)
+
+Bug Fixes
+---------
+
+- Abort pip cache commands early when cache is disabled. (`#8124 <https://github.com/pypa/pip/issues/8124>`_)
+- Correctly set permissions on metadata files during wheel installation,
+  to permit non-privileged users to read from system site-packages. (`#8139 <https://github.com/pypa/pip/issues/8139>`_)
+
+
+20.1b1 (2020-04-21)
+===================
+
+Deprecations and Removals
+-------------------------
+
+- Remove emails from AUTHORS.txt to prevent usage for spamming, and only populate names in AUTHORS.txt at time of release (`#5979 <https://github.com/pypa/pip/issues/5979>`_)
+- Remove deprecated ``--skip-requirements-regex`` option. (`#7297 <https://github.com/pypa/pip/issues/7297>`_)
+- Building of local directories is now done in place, instead of a temporary
+  location containing a copy of the directory tree. (`#7555 <https://github.com/pypa/pip/issues/7555>`_)
+- Remove unused ``tests/scripts/test_all_pip.py`` test script and the ``tests/scripts`` folder. (`#7680 <https://github.com/pypa/pip/issues/7680>`_)
+
+Features
+--------
+
+- pip now implements PEP 610, so ``pip freeze`` has better fidelity
+  in presence of distributions installed from Direct URL requirements. (`#609 <https://github.com/pypa/pip/issues/609>`_)
+- Add ``pip cache`` command for inspecting/managing pip's wheel cache. (`#6391 <https://github.com/pypa/pip/issues/6391>`_)
+- Raise error if ``--user`` and ``--target`` are used together in ``pip install`` (`#7249 <https://github.com/pypa/pip/issues/7249>`_)
+- Significantly improve performance when ``--find-links`` points to a very large HTML page. (`#7729 <https://github.com/pypa/pip/issues/7729>`_)
+- Indicate when wheel building is skipped, due to lack of the ``wheel`` package. (`#7768 <https://github.com/pypa/pip/issues/7768>`_)
+- Change default behaviour to always cache responses from trusted-host source. (`#7847 <https://github.com/pypa/pip/issues/7847>`_)
+- An alpha version of a new resolver is available via ``--unstable-feature=resolver``. (`#988 <https://github.com/pypa/pip/issues/988>`_)
+
+Bug Fixes
+---------
+
+- Correctly freeze a VCS editable package when it is nested inside another VCS repository. (`#3988 <https://github.com/pypa/pip/issues/3988>`_)
+- Correctly handle ``%2F`` in URL parameters to avoid accidentally unescape them
+  into ``/``. (`#6446 <https://github.com/pypa/pip/issues/6446>`_)
+- Reject VCS URLs with an empty revision. (`#7402 <https://github.com/pypa/pip/issues/7402>`_)
+- Warn when an invalid URL is passed with ``--index-url`` (`#7430 <https://github.com/pypa/pip/issues/7430>`_)
+- Use better mechanism for handling temporary files, when recording metadata
+  about installed files (RECORD) and the installer (INSTALLER). (`#7699 <https://github.com/pypa/pip/issues/7699>`_)
+- Correctly detect global site-packages availability of virtual environments
+  created by PyPA’s virtualenv>=20.0. (`#7718 <https://github.com/pypa/pip/issues/7718>`_)
+- Remove current directory from ``sys.path`` when invoked as ``python -m pip <command>`` (`#7731 <https://github.com/pypa/pip/issues/7731>`_)
+- Stop failing uninstallation, when trying to remove non-existent files. (`#7856 <https://github.com/pypa/pip/issues/7856>`_)
+- Prevent an infinite recursion with ``pip wheel`` when ``$TMPDIR`` is within the source directory. (`#7872 <https://github.com/pypa/pip/issues/7872>`_)
+- Significantly speedup ``pip list --outdated`` by parallelizing index interaction. (`#7962 <https://github.com/pypa/pip/issues/7962>`_)
+- Improve Windows compatibility when detecting writability in folder. (`#8013 <https://github.com/pypa/pip/issues/8013>`_)
+
+Vendored Libraries
+------------------
+
+- Update semi-supported debundling script to reflect that appdirs is vendored.
+- Add ResolveLib as a vendored dependency.
+- Upgrade certifi to 2020.04.05.1
+- Upgrade contextlib2 to 0.6.0.post1
+- Upgrade distro to 1.5.0.
+- Upgrade idna to 2.9.
+- Upgrade msgpack to 1.0.0.
+- Upgrade packaging to 20.3.
+- Upgrade pep517 to 0.8.2.
+- Upgrade pyparsing to 2.4.7.
+- Remove pytoml as a vendored dependency.
+- Upgrade requests to 2.23.0.
+- Add toml as a vendored dependency.
+- Upgrade urllib3 to 1.25.8.
+
+Improved Documentation
+----------------------
+
+- Emphasize that VCS URLs using git, git+git and git+http are insecure due to
+  lack of authentication and encryption (`#1983 <https://github.com/pypa/pip/issues/1983>`_)
+- Clarify the usage of --no-binary command. (`#3191 <https://github.com/pypa/pip/issues/3191>`_)
+- Clarify the usage of freeze command in the example of Using pip in your program (`#7008 <https://github.com/pypa/pip/issues/7008>`_)
+- Add a "Copyright" page. (`#7767 <https://github.com/pypa/pip/issues/7767>`_)
+- Added example of defining multiple values for options which support them (`#7803 <https://github.com/pypa/pip/issues/7803>`_)
+
+
+20.0.2 (2020-01-24)
+===================
+
+Bug Fixes
+---------
+
+- Fix a regression in generation of compatibility tags. (`#7626 <https://github.com/pypa/pip/issues/7626>`_)
+
+Vendored Libraries
+------------------
+
+- Upgrade packaging to 20.1
+
+
+20.0.1 (2020-01-21)
+===================
+
+Bug Fixes
+---------
+
+- Rename an internal module, to avoid ImportErrors due to improper uninstallation. (`#7621 <https://github.com/pypa/pip/issues/7621>`_)
+
+
+20.0 (2020-01-21)
+=================
+
+Process
+-------
+
+- Switch to a dedicated CLI tool for vendoring dependencies.
+
+Deprecations and Removals
+-------------------------
+
+- Remove wheel tag calculation from pip and use ``packaging.tags``. This
+  should provide more tags ordered better than in prior releases. (`#6908 <https://github.com/pypa/pip/issues/6908>`_)
+- Deprecate setup.py-based builds that do not generate an ``.egg-info`` directory. (`#6998 <https://github.com/pypa/pip/issues/6998>`_)
+- The pip>=20 wheel cache is not retro-compatible with previous versions. Until
+  pip 21.0, pip will continue to take advantage of existing legacy cache
+  entries. (`#7296 <https://github.com/pypa/pip/issues/7296>`_)
+- Deprecate undocumented ``--skip-requirements-regex`` option. (`#7297 <https://github.com/pypa/pip/issues/7297>`_)
+- Deprecate passing install-location-related options via ``--install-option``. (`#7309 <https://github.com/pypa/pip/issues/7309>`_)
+- Use literal "abi3" for wheel tag on CPython 3.x, to align with PEP 384
+  which only defines it for this platform. (`#7327 <https://github.com/pypa/pip/issues/7327>`_)
+- Remove interpreter-specific major version tag e.g. ``cp3-none-any``
+  from consideration. This behavior was not documented strictly, and this
+  tag in particular is `not useful <https://snarky.ca/the-challenges-in-designing-a-library-for-pep-425/>`_.
+  Anyone with a use case can create an issue with pypa/packaging. (`#7355 <https://github.com/pypa/pip/issues/7355>`_)
+- Wheel processing no longer permits wheels containing more than one top-level
+  .dist-info directory. (`#7487 <https://github.com/pypa/pip/issues/7487>`_)
+- Support for the ``git+git@`` form of VCS requirement is being deprecated and
+  will be removed in pip 21.0. Switch to ``git+https://`` or
+  ``git+ssh://``. ``git+git://`` also works but its use is discouraged as it is
+  insecure. (`#7543 <https://github.com/pypa/pip/issues/7543>`_)
+
+Features
+--------
+
+- Default to doing a user install (as if ``--user`` was passed) when the main
+  site-packages directory is not writeable and user site-packages are enabled. (`#1668 <https://github.com/pypa/pip/issues/1668>`_)
+- Warn if a path in PATH starts with tilde during ``pip install``. (`#6414 <https://github.com/pypa/pip/issues/6414>`_)
+- Cache wheels built from Git requirements that are considered immutable,
+  because they point to a commit hash. (`#6640 <https://github.com/pypa/pip/issues/6640>`_)
+- Add option ``--no-python-version-warning`` to silence warnings
+  related to deprecation of Python versions. (`#6673 <https://github.com/pypa/pip/issues/6673>`_)
+- Cache wheels that ``pip wheel`` built locally, matching what
+  ``pip install`` does. This particularly helps performance in workflows where
+  ``pip wheel`` is used for `building before installing
+  <https://pip.pypa.io/en/stable/user_guide/#installing-from-local-packages>`_.
+  Users desiring the original behavior can use ``pip wheel --no-cache-dir``. (`#6852 <https://github.com/pypa/pip/issues/6852>`_)
+- Display CA information in ``pip debug``. (`#7146 <https://github.com/pypa/pip/issues/7146>`_)
+- Show only the filename (instead of full URL), when downloading from PyPI. (`#7225 <https://github.com/pypa/pip/issues/7225>`_)
+- Suggest a more robust command to upgrade pip itself to avoid confusion when the
+  current pip command is not available as ``pip``. (`#7376 <https://github.com/pypa/pip/issues/7376>`_)
+- Define all old pip console script entrypoints to prevent import issues in
+  stale wrapper scripts. (`#7498 <https://github.com/pypa/pip/issues/7498>`_)
+- The build step of ``pip wheel`` now builds all wheels to a cache first,
+  then copies them to the wheel directory all at once.
+  Before, it built them to a temporary directory and moved
+  them to the wheel directory one by one. (`#7517 <https://github.com/pypa/pip/issues/7517>`_)
+- Expand ``~`` prefix to user directory in path options, configs, and
+  environment variables. Values that may be either URL or path are not
+  currently supported, to avoid ambiguity:
+
+  * ``--find-links``
+  * ``--constraint``, ``-c``
+  * ``--requirement``, ``-r``
+  * ``--editable``, ``-e`` (`#980 <https://github.com/pypa/pip/issues/980>`_)
+
+Bug Fixes
+---------
+
+- Correctly handle system site-packages, in virtual environments created with venv (PEP 405). (`#5702 <https://github.com/pypa/pip/issues/5702>`_, `#7155 <https://github.com/pypa/pip/issues/7155>`_)
+- Fix case sensitive comparison of pip freeze when used with -r option. (`#5716 <https://github.com/pypa/pip/issues/5716>`_)
+- Enforce PEP 508 requirement format in ``pyproject.toml``
+  ``build-system.requires``. (`#6410 <https://github.com/pypa/pip/issues/6410>`_)
+- Make ``ensure_dir()`` also ignore ``ENOTEMPTY`` as seen on Windows. (`#6426 <https://github.com/pypa/pip/issues/6426>`_)
+- Fix building packages which specify ``backend-path`` in pyproject.toml. (`#6599 <https://github.com/pypa/pip/issues/6599>`_)
+- Do not attempt to run ``setup.py clean`` after a ``pep517`` build error,
+  since a ``setup.py`` may not exist in that case. (`#6642 <https://github.com/pypa/pip/issues/6642>`_)
+- Fix passwords being visible in the index-url in
+  "Downloading <url>" message. (`#6783 <https://github.com/pypa/pip/issues/6783>`_)
+- Change method from shutil.remove to shutil.rmtree in noxfile.py. (`#7191 <https://github.com/pypa/pip/issues/7191>`_)
+- Skip running tests which require subversion, when svn isn't installed (`#7193 <https://github.com/pypa/pip/issues/7193>`_)
+- Fix not sending client certificates when using ``--trusted-host``. (`#7207 <https://github.com/pypa/pip/issues/7207>`_)
+- Make sure ``pip wheel`` never outputs pure python wheels with a
+  python implementation tag. Better fix/workaround for
+  `#3025 <https://github.com/pypa/pip/issues/3025>`_ by
+  using a per-implementation wheel cache instead of caching pure python
+  wheels with an implementation tag in their name. (`#7296 <https://github.com/pypa/pip/issues/7296>`_)
+- Include ``subdirectory`` URL fragments in cache keys. (`#7333 <https://github.com/pypa/pip/issues/7333>`_)
+- Fix typo in warning message when any of ``--build-option``, ``--global-option``
+  and ``--install-option`` is used in requirements.txt (`#7340 <https://github.com/pypa/pip/issues/7340>`_)
+- Fix the logging of cached HTTP response shown as downloading. (`#7393 <https://github.com/pypa/pip/issues/7393>`_)
+- Effectively disable the wheel cache when it is not writable, as is the
+  case with the http cache. (`#7488 <https://github.com/pypa/pip/issues/7488>`_)
+- Correctly handle relative cache directory provided via --cache-dir. (`#7541 <https://github.com/pypa/pip/issues/7541>`_)
+
+Vendored Libraries
+------------------
+
+- Upgrade CacheControl to 0.12.5
+- Upgrade certifi to 2019.9.11
+- Upgrade colorama to 0.4.1
+- Upgrade distlib to 0.2.9.post0
+- Upgrade ipaddress to 1.0.22
+- Update packaging to 20.0.
+- Upgrade pkg_resources (via setuptools) to 44.0.0
+- Upgrade pyparsing to 2.4.2
+- Upgrade six to 1.12.0
+- Upgrade urllib3 to 1.25.6
+
+Improved Documentation
+----------------------
+
+- Document that "coding: utf-8" is supported in requirements.txt (`#7182 <https://github.com/pypa/pip/issues/7182>`_)
+- Explain how to get pip's source code in `Getting Started <https://pip.pypa.io/en/stable/development/getting-started/>`_ (`#7197 <https://github.com/pypa/pip/issues/7197>`_)
+- Describe how basic authentication credentials in URLs work. (`#7201 <https://github.com/pypa/pip/issues/7201>`_)
+- Add more clear installation instructions (`#7222 <https://github.com/pypa/pip/issues/7222>`_)
+- Fix documentation links for index options (`#7347 <https://github.com/pypa/pip/issues/7347>`_)
+- Better document the requirements file format (`#7385 <https://github.com/pypa/pip/issues/7385>`_)
+
+
+19.3.1 (2019-10-17)
+===================
+
+Features
+--------
+
+- Document Python 3.8 support. (`#7219 <https://github.com/pypa/pip/issues/7219>`_)
+
+Bug Fixes
+---------
+
+- Fix bug that prevented installation of PEP 517 packages without ``setup.py``. (`#6606 <https://github.com/pypa/pip/issues/6606>`_)
+
+
+19.3 (2019-10-14)
+=================
+
+Deprecations and Removals
+-------------------------
+
+- Remove undocumented support for un-prefixed URL requirements pointing
+  to SVN repositories. Users relying on this can get the original behavior
+  by prefixing their URL with ``svn+`` (which is backwards-compatible). (`#7037 <https://github.com/pypa/pip/issues/7037>`_)
+- Remove the deprecated ``--venv`` option from ``pip config``. (`#7163 <https://github.com/pypa/pip/issues/7163>`_)
+
+Features
+--------
+
+- Print a better error message when ``--no-binary`` or ``--only-binary`` is given
+  an argument starting with ``-``. (`#3191 <https://github.com/pypa/pip/issues/3191>`_)
+- Make ``pip show`` warn about packages not found. (`#6858 <https://github.com/pypa/pip/issues/6858>`_)
+- Support including a port number in ``--trusted-host`` for both HTTP and HTTPS. (`#6886 <https://github.com/pypa/pip/issues/6886>`_)
+- Redact single-part login credentials from URLs in log messages. (`#6891 <https://github.com/pypa/pip/issues/6891>`_)
+- Implement manylinux2014 platform tag support.  manylinux2014 is the successor
+  to manylinux2010.  It allows carefully compiled binary wheels to be installed
+  on compatible Linux platforms.  The manylinux2014 platform tag definition can
+  be found in `PEP599 <https://www.python.org/dev/peps/pep-0599/>`_. (`#7102 <https://github.com/pypa/pip/issues/7102>`_)
+
+Bug Fixes
+---------
+
+- Abort installation if any archive contains a file which would be placed
+  outside the extraction location. (`#3907 <https://github.com/pypa/pip/issues/3907>`_)
+- pip's CLI completion code no longer prints a Traceback if it is interrupted. (`#3942 <https://github.com/pypa/pip/issues/3942>`_)
+- Correct inconsistency related to the ``hg+file`` scheme. (`#4358 <https://github.com/pypa/pip/issues/4358>`_)
+- Fix ``rmtree_errorhandler`` to skip non-existing directories. (`#4910 <https://github.com/pypa/pip/issues/4910>`_)
+- Ignore errors copying socket files for local source installs (in Python 3). (`#5306 <https://github.com/pypa/pip/issues/5306>`_)
+- Fix requirement line parser to correctly handle PEP 440 requirements with a URL
+  pointing to an archive file. (`#6202 <https://github.com/pypa/pip/issues/6202>`_)
+- The ``pip-wheel-metadata`` directory does not need to persist between invocations of pip, use a temporary directory instead of the current ``setup.py`` directory. (`#6213 <https://github.com/pypa/pip/issues/6213>`_)
+- Fix ``--trusted-host`` processing under HTTPS to trust any port number used
+  with the host. (`#6705 <https://github.com/pypa/pip/issues/6705>`_)
+- Switch to new ``distlib`` wheel script template. This should be functionally
+  equivalent for end users. (`#6763 <https://github.com/pypa/pip/issues/6763>`_)
+- Skip copying .tox and .nox directories to temporary build directories (`#6770 <https://github.com/pypa/pip/issues/6770>`_)
+- Fix handling of tokens (single part credentials) in URLs. (`#6795 <https://github.com/pypa/pip/issues/6795>`_)
+- Fix a regression that caused ``~`` expansion not to occur in ``--find-links``
+  paths. (`#6804 <https://github.com/pypa/pip/issues/6804>`_)
+- Fix bypassed pip upgrade warning on Windows. (`#6841 <https://github.com/pypa/pip/issues/6841>`_)
+- Fix 'm' flag erroneously being appended to ABI tag in Python 3.8 on platforms that do not provide SOABI (`#6885 <https://github.com/pypa/pip/issues/6885>`_)
+- Hide security-sensitive strings like passwords in log messages related to
+  version control system (aka VCS) command invocations. (`#6890 <https://github.com/pypa/pip/issues/6890>`_)
+- Correctly uninstall symlinks that were installed in a virtualenv,
+  by tools such as ``flit install --symlink``. (`#6892 <https://github.com/pypa/pip/issues/6892>`_)
+- Don't fail installation using pip.exe on Windows when pip wouldn't be upgraded. (`#6924 <https://github.com/pypa/pip/issues/6924>`_)
+- Use canonical distribution names when computing ``Required-By`` in ``pip show``. (`#6947 <https://github.com/pypa/pip/issues/6947>`_)
+- Don't use hardlinks for locking selfcheck state file. (`#6954 <https://github.com/pypa/pip/issues/6954>`_)
+- Ignore "require_virtualenv" in ``pip config`` (`#6991 <https://github.com/pypa/pip/issues/6991>`_)
+- Fix ``pip freeze`` not showing correct entry for mercurial packages that use subdirectories. (`#7071 <https://github.com/pypa/pip/issues/7071>`_)
+- Fix a crash when ``sys.stdin`` is set to ``None``, such as on AWS Lambda. (`#7118 <https://github.com/pypa/pip/issues/7118>`_, `#7119 <https://github.com/pypa/pip/issues/7119>`_)
+
+Vendored Libraries
+------------------
+
+- Upgrade certifi to 2019.9.11
+- Add contextlib2 0.6.0 as a vendored dependency.
+- Remove Lockfile as a vendored dependency.
+- Upgrade msgpack to 0.6.2
+- Upgrade packaging to 19.2
+- Upgrade pep517 to 0.7.0
+- Upgrade pyparsing to 2.4.2
+- Upgrade pytoml to 0.1.21
+- Upgrade setuptools to 41.4.0
+- Upgrade urllib3 to 1.25.6
+
+Improved Documentation
+----------------------
+
+- Document caveats for UNC paths in uninstall and add .pth unit tests. (`#6516 <https://github.com/pypa/pip/issues/6516>`_)
+- Add architectural overview documentation. (`#6637 <https://github.com/pypa/pip/issues/6637>`_)
+- Document that ``--ignore-installed`` is dangerous. (`#6794 <https://github.com/pypa/pip/issues/6794>`_)
+
 
 19.2.3 (2019-08-25)
 ===================
@@ -284,7 +656,7 @@ Bug Fixes
 - Handle ``requests.exceptions.RetryError`` raised in ``PackageFinder`` that was causing pip to fail silently when some indexes were unreachable. (`#5270 <https://github.com/pypa/pip/issues/5270>`_, `#5483 <https://github.com/pypa/pip/issues/5483>`_)
 - Handle a broken stdout pipe more gracefully (e.g. when running ``pip list | head``). (`#4170 <https://github.com/pypa/pip/issues/4170>`_)
 - Fix crash from setting ``PIP_NO_CACHE_DIR=yes``. (`#5385 <https://github.com/pypa/pip/issues/5385>`_)
-- Fix crash from unparseable requirements when checking installed packages. (`#5839 <https://github.com/pypa/pip/issues/5839>`_)
+- Fix crash from unparsable requirements when checking installed packages. (`#5839 <https://github.com/pypa/pip/issues/5839>`_)
 - Fix content type detection if a directory named like an archive is used as a package source. (`#5838 <https://github.com/pypa/pip/issues/5838>`_)
 - Fix listing of outdated packages that are not dependencies of installed packages in ``pip list --outdated --not-required`` (`#5737 <https://github.com/pypa/pip/issues/5737>`_)
 - Fix sorting ``TypeError`` in ``move_wheel_files()`` when installing some packages. (`#5868 <https://github.com/pypa/pip/issues/5868>`_)
@@ -1302,7 +1674,7 @@ Improved Documentation
   convince some servers who double compress the downloaded file to stop doing
   so. (#1688)
 - Stop breaking when given pip commands in uppercase (#1559, #1725)
-- Pip no longer adds duplicate logging consumers, so it won't create duplicate
+- pip no longer adds duplicate logging consumers, so it won't create duplicate
   output when being called multiple times. (#1618, #1723)
 - `pip wheel` now returns an error code if any wheels fail to build. (#1769)
 - `pip wheel` wasn't building wheels for dependencies of editable requirements.
@@ -1425,7 +1797,7 @@ Improved Documentation
 - pip will now install Mac OSX platform wheels from PyPI. (:pull:`1278`)
 - pip now generates the appropriate platform-specific console scripts when
   installing wheels. (#1251)
-- Pip now confirms a wheel is supported when installing directly from a path or
+- pip now confirms a wheel is supported when installing directly from a path or
   url. (#1315)
 - ``--ignore-installed`` now behaves again as designed, after it was
   unintentionally broke in v0.8.3 when fixing #14. (#1097, #1352)
@@ -1634,7 +2006,7 @@ Improved Documentation
   Dan Callahan for report and patch. (#182)
 - Understand version tags without minor version ("py3") in sdist filenames.
   Thanks Stuart Andrews for report and Olivier Girardot for patch. (#310)
-- Pip now supports optionally installing setuptools "extras" dependencies; e.g.
+- pip now supports optionally installing setuptools "extras" dependencies; e.g.
   "pip install Paste[openid]". Thanks Matt Maker and Olivier Girardot. (#7)
 - freeze no longer borks on requirements files with --index-url or --find-links.
   Thanks Herbert Pfennig. (#391)
@@ -1759,7 +2131,7 @@ Improved Documentation
 
 - Track which ``build/`` directories pip creates, never remove directories
   it doesn't create.  From Hugo Lopes Tavares.
-- Pip now accepts file:// index URLs. Thanks Dave Abrahams.
+- pip now accepts file:// index URLs. Thanks Dave Abrahams.
 - Various cleanup to make test-running more consistent and less fragile.
   Thanks Dave Abrahams.
 - Real Windows support (with passing tests). Thanks Dave Abrahams.
