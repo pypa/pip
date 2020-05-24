@@ -1,5 +1,6 @@
 import datetime
 import json
+import logging
 import os
 import sys
 
@@ -161,8 +162,7 @@ def _options():
         ('1970-01-9T10:00:00Z', '6.9.0', '6.9.0', 'pip', False, False),
     ]
 )
-@patch("pip._internal.self_outdated_check.logger.warning")
-def test_pip_self_version_check(mock_logger_warning, monkeypatch, stored_time,
+def test_pip_self_version_check(monkeypatch, caplog, stored_time,
                                 installed_ver, new_ver, installer,
                                 check_if_upgrade_required, check_warn_logs):
     monkeypatch.setattr(self_outdated_check, 'get_installed_version',
@@ -206,18 +206,20 @@ def test_pip_self_version_check(mock_logger_warning, monkeypatch, stored_time,
         # See that save was not called
         assert fake_state.save.calls == []
 
+    caplog.set_level(logging.WARNING)
     # Ensure we warn the user or not
     if check_warn_logs:
-        assert logger.warning.call_count == 1
+        assert len(caplog.records) == 1
         pip_cmd = "{} -m pip".format(sys.executable)
-        logger.warning.assert_called_once_with(
-            "You are using pip version %s; however, version %s is "
+        message = caplog.records[0].getMessage()
+        expected_message = (
+            "You are using pip version {}; however, version {} is "
             "available.\nYou should consider upgrading via the "
-            "'%s install --upgrade pip' command.",
-            installed_ver, new_ver, pip_cmd
-        )
+            "'{} install --upgrade pip' command."
+        ).format(installed_ver, new_ver, pip_cmd)
+        assert message == expected_message
     else:
-        assert logger.warning.call_count == 0
+        assert len(caplog.records) == 0
 
 
 statefile_name_case_1 = (
