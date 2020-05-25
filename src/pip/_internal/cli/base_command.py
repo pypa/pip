@@ -19,7 +19,6 @@ from pip._internal.cli.parser import (
 from pip._internal.cli.status_codes import (
     ERROR,
     PREVIOUS_BUILD_DIR_ERROR,
-    SUCCESS,
     UNKNOWN_ERROR,
     VIRTUALENV_NOT_FOUND,
 )
@@ -229,5 +228,3 @@ class Command(CommandContextMixIn):
             return UNKNOWN_ERROR
         finally:
             self.handle_pip_version_check(options)
-
-        return SUCCESS
