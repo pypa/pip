@@ -1,7 +1,3 @@
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-# mypy: disallow-untyped-defs=False
-
 from __future__ import absolute_import
 
 import collections
@@ -60,10 +56,15 @@ def freeze(
     for link in find_links:
         yield '-f {}'.format(link)
     installations = {}  # type: Dict[str, FrozenRequirement]
-    for dist in get_installed_distributions(local_only=local_only,
-                                            skip=(),
-                                            user_only=user_only,
-                                            paths=paths):
+
+    # None is a Falsy value, so pass False if local_only
+    # and user_only is None
+    for dist in get_installed_distributions(
+            local_only=local_only if local_only else False,
+            skip=(),
+            user_only=user_only if user_only else False,
+            paths=paths
+    ):
         try:
             req = FrozenRequirement.from_dist(dist)
         except RequirementParseError as exc:
@@ -265,6 +266,7 @@ class FrozenRequirement(object):
         return cls(dist.project_name, req, editable, comments=comments)
 
     def __str__(self):
+        # type: () -> str
         req = self.req
         if self.editable:
             req = '-e {}'.format(req)
