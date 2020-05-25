@@ -6,8 +6,6 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 if MYPY_CHECK_RUNNING:
     from typing import Any, Dict, Optional, Sequence, Set, Tuple, Union
 
-    from pip._vendor.packaging.version import _BaseVersion
-
     from .base import Requirement, Candidate
     from .factory import Factory
 
@@ -90,17 +88,22 @@ class PipProvider(AbstractProvider):
             return False
 
         def sort_key(c):
-            # type: (Candidate) -> Tuple[int, _BaseVersion]
+            # type: (Candidate) -> int
             """Return a sort key for the matches.
 
             The highest priority should be given to installed candidates that
             are not eligible for upgrade. We use the integer value in the first
             part of the key to sort these before other candidates.
+
+            We only pull the installed candidate to the bottom (i.e. most
+            preferred), but otherwise keep the ordering returned by the
+            requirement. The requirement is responsible for returning a list
+            otherwise sorted for the resolver, taking account for versions
+            and binary preferences as specified by the user.
             """
             if c.is_installed and not _eligible_for_upgrade(c.name):
-                return (1, c.version)
-
-            return (0, c.version)
+                return 1
+            return 0
 
         return sorted(matches, key=sort_key)
 
