@@ -669,7 +669,6 @@ def test_download_exit_status_code_when_blank_requirements_file(script):
     script.pip('download', '-r', 'blank.txt')
 
 
-@pytest.mark.fails_on_new_resolver
 def test_download_prefer_binary_when_tarball_higher_than_wheel(script, data):
     fake_wheel(data, 'source-0.8-py2.py3-none-any.whl')
     result = script.pip(
