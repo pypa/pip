@@ -189,7 +189,6 @@ def test_respect_order_in_requirements_file(script, data):
     )
 
 
-@pytest.mark.fails_on_new_resolver
 def test_install_local_editable_with_extras(script, data):
     to_install = data.packages.joinpath("LocalExtras")
     res = script.pip_install_local(

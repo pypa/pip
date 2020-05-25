@@ -136,7 +136,6 @@ def test_install_special_extra(script):
         pytest.param('[extra2]', '1.0', marks=pytest.mark.xfail),
         pytest.param('[extra1,extra2]', '1.0', marks=pytest.mark.xfail),
     ])
-@pytest.mark.fails_on_new_resolver
 def test_install_extra_merging(script, data, extra_to_install, simple_version):
     # Check that extra specifications in the extras section are honoured.
     pkga_path = script.scratch_path / 'pkga'
