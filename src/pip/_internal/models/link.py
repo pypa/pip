@@ -30,6 +30,7 @@ class Link(KeyBasedCompareMixin):
         "comes_from",
         "requires_python",
         "yanked_reason",
+        "cache_link_parsing",
     ]
 
     def __init__(
