@@ -536,7 +536,16 @@ def dist_location(dist):
 
 def write_output(msg, *args):
     # type: (str, str) -> None
-    print(msg % args)
+
+    # Use args to format msg only when provided, otherwise
+    # print msg directly. This avoids cases where msg contains
+    # a %-string, but formatting parameters were not provided
+    # which will throw TypeError: not enough arguments for format string
+    # if not special cases
+    if args:
+        print(msg % args)
+    else:
+        print(msg)
     # This will also help output to be redirected
     # to a log file if provided
     output_logger.info(msg, *args)
