@@ -1,10 +1,6 @@
 """Validation of dependencies of packages
 """
 
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-# mypy: disallow-untyped-defs=False
-
 import logging
 from collections import namedtuple
 
@@ -65,8 +61,11 @@ def check_package_set(package_set, should_ignore=None):
     If should_ignore is passed, it should be a callable that takes a
     package name and returns a boolean.
     """
-    if should_ignore is None:
-        def should_ignore(name):
+    if should_ignore:
+        should_ignore_package = should_ignore
+    else:
+        def should_ignore_package(name):
+            # type: (str) -> bool
             return False
 
     missing = {}
@@ -77,7 +76,7 @@ def check_package_set(package_set, should_ignore=None):
         missing_deps = set()  # type: Set[Missing]
         conflicting_deps = set()  # type: Set[Conflicting]
 
-        if should_ignore(package_name):
+        if should_ignore_package(package_name):
             continue
 
         for req in package_set[package_name].requires:
@@ -139,6 +138,7 @@ def _simulate_installation_of(to_install, package_set):
         abstract_dist = make_distribution_for_install_requirement(inst_req)
         dist = abstract_dist.get_pkg_resources_distribution()
 
+        assert dist is not None
         name = canonicalize_name(dist.key)
         package_set[name] = PackageDetails(dist.version, dist.requires())
 
