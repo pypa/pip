@@ -1,6 +1,3 @@
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-
 from __future__ import absolute_import
 
 import logging
@@ -188,7 +185,8 @@ def call_subprocess(
             stderr=subprocess.STDOUT, stdin=subprocess.PIPE,
             stdout=subprocess.PIPE, cwd=cwd, env=env,
         )
-        proc.stdin.close()
+        if proc.stdin:
+            proc.stdin.close()
     except Exception as exc:
         if log_failed_cmd:
             subprocess_logger.critical(
@@ -198,7 +196,9 @@ def call_subprocess(
     all_output = []
     while True:
         # The "line" value is a unicode string in Python 2.
-        line = console_to_str(proc.stdout.readline())
+        line = None
+        if proc.stdout:
+            line = console_to_str(proc.stdout.readline())
         if not line:
             break
         line = line.rstrip()
@@ -207,7 +207,7 @@ def call_subprocess(
         # Show the line immediately.
         log_subprocess(line)
         # Update the spinner.
-        if use_spinner:
+        if use_spinner and spinner:
             spinner.spin()
     try:
         proc.wait()
@@ -217,7 +217,7 @@ def call_subprocess(
     proc_had_error = (
         proc.returncode and proc.returncode not in extra_ok_returncodes
     )
-    if use_spinner:
+    if use_spinner and spinner:
         if proc_had_error:
             spinner.finish("error")
         else:
