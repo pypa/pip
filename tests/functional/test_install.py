@@ -148,7 +148,6 @@ def test_pep518_with_user_pip(script, pip_src, data, common_wheels):
     )
 
 
-@pytest.mark.fails_on_new_resolver
 def test_pep518_with_extra_and_markers(script, data, common_wheels):
     script.pip(
         'wheel', '--no-index',
