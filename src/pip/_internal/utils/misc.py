@@ -548,7 +548,7 @@ def write_output(msg, *args):
         print(msg)
     # This will also help output to be redirected
     # to a log file if provided
-    output_logger.info(msg, *args)
+    output_logger.info("OUTPUT: " + msg, *args)
 
 
 class FakeFile(object):

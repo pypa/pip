@@ -198,5 +198,5 @@ def test_search_print_results_should_contain_latest_versions(caplog):
         print_results(hits)
 
     log_messages = sorted([r.getMessage() for r in caplog.records])
-    assert log_messages[0].startswith('testlib1 (1.0.5)')
-    assert log_messages[1].startswith('testlib2 (2.0.3)')
+    assert 'testlib1 (1.0.5)' in log_messages[0]
+    assert 'testlib2 (2.0.3)' in log_messages[1]
