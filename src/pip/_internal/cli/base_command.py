@@ -193,10 +193,7 @@ class Command(CommandContextMixIn):
 
         try:
             status = self.run(options, args)
-            # FIXME: all commands should return an exit status
-            # and when it is done, isinstance is not needed anymore
-            if isinstance(status, int):
-                return status
+            return status
         except PreviousBuildDirError as exc:
             logger.critical(str(exc))
             logger.debug('Exception information:', exc_info=True)
