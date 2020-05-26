@@ -61,11 +61,14 @@ def create_vendor_txt_map():
     # Transform into "module" -> version dict.
     return dict(line.split('==', 1) for line in lines)  # type: ignore
 
+
 def create_debundle_txt_map():
     # type: () -> Dict[str, str]
     wheels = [fn for fn in os.listdir(pip._vendor.WHEEL_DIR)]
     # Transform into "module" -> version dict.
-    return dict((wheel.split('-')[0], wheel.split('-')[1]) for wheel in wheels) # type: ignore
+    return dict((wheel.split('-')[0],
+        wheel.split('-')[1]) for wheel in wheels)  # type: ignore
+
 
 def get_module_from_module_name(module_name):
     # type: (str) -> ModuleType
@@ -133,11 +136,13 @@ def show_vendor_versions():
     with indent_log():
         show_actual_vendor_versions(vendor_txt_versions)
 
+
 def show_debundled_versions():
     # type: () -> None
     logger.info('debundled wheel versions:')
     debundle_txt_versions = create_debundle_txt_map()
-    for module_name, installed_version in sorted(debundle_txt_versions.items()):
+    for module_name, installed_version in sorted(
+            debundle_txt_versions.items()):
         with indent_log():
             logger.info(
                 '{name}=={actual}'.format(
@@ -145,6 +150,7 @@ def show_debundled_versions():
                     actual=installed_version,
                 )
             )
+
 
 def show_tags(options):
     # type: (Values) -> None
