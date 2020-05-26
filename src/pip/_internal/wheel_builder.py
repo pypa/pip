@@ -1,9 +1,6 @@
 """Orchestrator for building wheels from InstallRequirements.
 """
 
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-
 import logging
 import os.path
 import re
@@ -134,6 +131,7 @@ def _should_cache(
             return True
         return False
 
+    assert req.link
     base, ext = req.link.splitext()
     if _contains_egg_info(base):
         return True
@@ -151,6 +149,7 @@ def _get_cache_dir(
     wheel need to be stored.
     """
     cache_available = bool(wheel_cache.cache_dir)
+    assert req.link
     if cache_available and _should_cache(req):
         cache_dir = wheel_cache.get_path_for_link(req.link)
     else:
@@ -198,7 +197,9 @@ def _build_one_inside_env(
 ):
     # type: (...) -> Optional[str]
     with TempDirectory(kind="wheel") as temp_dir:
+        assert req.name
         if req.use_pep517:
+            assert req.metadata_directory
             wheel_path = build_wheel_pep517(
                 name=req.name,
                 backend=req.pep517_backend,
@@ -273,7 +274,7 @@ def build(
     # Build the wheels.
     logger.info(
         'Building wheels for collected packages: %s',
-        ', '.join(req.name for req in requirements),
+        ', '.join(req.name for req in requirements if req.name),
     )
 
     with indent_log():
@@ -296,12 +297,12 @@ def build(
     if build_successes:
         logger.info(
             'Successfully built %s',
-            ' '.join([req.name for req in build_successes]),
+            ' '.join([req.name for req in build_successes if req.name]),
         )
     if build_failures:
         logger.info(
             'Failed to build %s',
-            ' '.join([req.name for req in build_failures]),
+            ' '.join([req.name for req in build_failures if req.name]),
         )
     # Return a list of requirements that failed to build
     return build_successes, build_failures
