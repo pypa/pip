@@ -1,9 +1,7 @@
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
-from pip._internal.utils.models import Base
 
-
-class PackageIndex(Base):
+class PackageIndex(object):
     """Represents a Package Index and provides easier access to endpoints
     """
 

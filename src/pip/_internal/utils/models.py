@@ -7,15 +7,8 @@ import operator
 
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-if MYPY_CHECK_RUNNING:
-    from typing import List
 
-
-class Base(object):
-    __slots__ = []  # type: List[str]
-
-
-class KeyBasedCompareMixin(Base):
+class KeyBasedCompareMixin(object):
     """Provides comparison capabilities that is based on a key
     """
 

@@ -9,7 +9,6 @@ from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._internal.models.index import PyPI
 from pip._internal.utils.compat import has_tls
 from pip._internal.utils.misc import normalize_path, redact_auth_from_url
-from pip._internal.utils.models import Base
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -19,7 +18,7 @@ if MYPY_CHECK_RUNNING:
 logger = logging.getLogger(__name__)
 
 
-class SearchScope(Base):
+class SearchScope(object):
 
     """
     Encapsulates the locations that pip is configured to search.

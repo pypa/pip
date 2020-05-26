@@ -3,14 +3,13 @@ import operator
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.exceptions import CommandError
-from pip._internal.utils.models import Base
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import Optional, Set, FrozenSet
 
 
-class FormatControl(Base):
+class FormatControl(object):
     """Helper for managing formats from which a package can be installed.
     """
 

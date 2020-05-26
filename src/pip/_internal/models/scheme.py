@@ -5,10 +5,8 @@ For a general overview of available schemes and their context, see
 https://docs.python.org/3/install/index.html#alternate-installation.
 """
 
-from pip._internal.utils.models import Base
 
-
-class Scheme(Base):
+class Scheme(object):
     """A Scheme holds paths which are used as the base directories for
     artifacts associated with a Python package.
     """
