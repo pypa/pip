@@ -185,8 +185,9 @@ def call_subprocess(
             stderr=subprocess.STDOUT, stdin=subprocess.PIPE,
             stdout=subprocess.PIPE, cwd=cwd, env=env,
         )
-        if proc.stdin:
-            proc.stdin.close()
+        assert proc.stdin
+        assert proc.stdout
+        proc.stdin.close()
     except Exception as exc:
         if log_failed_cmd:
             subprocess_logger.critical(
@@ -196,9 +197,7 @@ def call_subprocess(
     all_output = []
     while True:
         # The "line" value is a unicode string in Python 2.
-        line = None
-        if proc.stdout:
-            line = console_to_str(proc.stdout.readline())
+        line = console_to_str(proc.stdout.readline())
         if not line:
             break
         line = line.rstrip()
