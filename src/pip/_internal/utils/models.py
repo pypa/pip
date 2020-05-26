@@ -5,8 +5,6 @@
 
 import operator
 
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
 
 class KeyBasedCompareMixin(object):
     """Provides comparison capabilities that is based on a key
