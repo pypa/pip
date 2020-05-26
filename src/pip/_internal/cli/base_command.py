@@ -148,7 +148,7 @@ class Command(CommandContextMixIn):
         ):
             message = (
                 "pip 21.0 will drop support for Python 2.7 in January 2021. "
-                "More details about Python 2 support in pip, can be found at "
+                "More details about Python 2 support in pip can be found at "
                 "https://pip.pypa.io/en/latest/development/release-process/#python-2-support"  # noqa
             )
             if platform.python_implementation() == "CPython":
