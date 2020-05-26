@@ -42,8 +42,8 @@ logger = logging.getLogger(__name__)
 def freeze(
     requirement=None,  # type: Optional[List[str]]
     find_links=None,  # type: Optional[List[str]]
-    local_only=None,  # type: Optional[bool]
-    user_only=None,  # type: Optional[bool]
+    local_only=False,  # type: bool
+    user_only=False,  # type: bool
     paths=None,  # type: Optional[List[str]]
     isolated=False,  # type: bool
     wheel_cache=None,  # type: Optional[WheelCache]
@@ -57,12 +57,10 @@ def freeze(
         yield '-f {}'.format(link)
     installations = {}  # type: Dict[str, FrozenRequirement]
 
-    # None is a Falsy value, so pass False if local_only
-    # and user_only is None
     for dist in get_installed_distributions(
-            local_only=local_only if local_only else False,
+            local_only=local_only,
             skip=(),
-            user_only=user_only if user_only else False,
+            user_only=user_only,
             paths=paths
     ):
         try:
