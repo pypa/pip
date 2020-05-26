@@ -67,7 +67,7 @@ def create_debundle_txt_map():
     wheels = [fn for fn in os.listdir(pip._vendor.WHEEL_DIR)]
     # Transform into "module" -> version dict.
     return dict((wheel.split('-')[0],
-        wheel.split('-')[1]) for wheel in wheels)  # type: ignore
+            wheel.split('-')[1]) for wheel in wheels)  # type: ignore
 
 
 def get_module_from_module_name(module_name):
