@@ -117,7 +117,7 @@ class Factory(object):
     def _make_candidate_from_link(
         self,
         link,  # type: Link
-        extras,  # type: Set[str]
+        extras,  # type: FrozenSet[str]
         parent,  # type: InstallRequirement
         name,  # type: Optional[str]
         version,  # type: Optional[_BaseVersion]
@@ -239,7 +239,7 @@ class Factory(object):
             return SpecifierRequirement(ireq)
         cand = self._make_candidate_from_link(
             ireq.link,
-            extras=set(ireq.extras),
+            extras=frozenset(ireq.extras),
             parent=ireq,
             name=canonicalize_name(ireq.name) if ireq.name else None,
             version=None,
