@@ -106,10 +106,10 @@ class Factory(object):
         self,
         dist,  # type: Distribution
         extras,  # type: FrozenSet[str]
-        parent,  # type: InstallRequirement
+        template,  # type: InstallRequirement
     ):
         # type: (...) -> Candidate
-        base = AlreadyInstalledCandidate(dist, parent, factory=self)
+        base = AlreadyInstalledCandidate(dist, template, factory=self)
         if extras:
             return ExtrasCandidate(base, extras)
         return base
@@ -118,23 +118,23 @@ class Factory(object):
         self,
         link,  # type: Link
         extras,  # type: FrozenSet[str]
-        parent,  # type: InstallRequirement
+        template,  # type: InstallRequirement
         name,  # type: Optional[str]
         version,  # type: Optional[_BaseVersion]
     ):
         # type: (...) -> Candidate
         # TODO: Check already installed candidate, and use it if the link and
         # editable flag match.
-        if parent.editable:
+        if template.editable:
             if link not in self._editable_candidate_cache:
                 self._editable_candidate_cache[link] = EditableCandidate(
-                    link, parent, factory=self, name=name, version=version,
+                    link, template, factory=self, name=name, version=version,
                 )
             base = self._editable_candidate_cache[link]  # type: BaseCandidate
         else:
             if link not in self._link_candidate_cache:
                 self._link_candidate_cache[link] = LinkCandidate(
-                    link, parent, factory=self, name=name, version=version,
+                    link, template, factory=self, name=name, version=version,
                 )
             base = self._link_candidate_cache[link]
         if extras:
@@ -151,11 +151,11 @@ class Factory(object):
             return ()
 
         # The InstallRequirement implementation requires us to give it a
-        # "parent", which doesn't really fit with graph-based resolution.
-        # Here we just choose the first requirement to represent all of them.
+        # "template". Here we just choose the first requirement to represent
+        # all of them.
         # Hopefully the Project model can correct this mismatch in the future.
-        parent = ireqs[0]
-        name = canonicalize_name(parent.req.name)
+        template = ireqs[0]
+        name = canonicalize_name(template.req.name)
 
         hashes = Hashes()
         extras = frozenset()  # type: FrozenSet[str]
@@ -182,7 +182,7 @@ class Factory(object):
                 candidate = self._make_candidate_from_dist(
                     dist=installed_dist,
                     extras=extras,
-                    parent=parent,
+                    template=template,
                 )
                 candidates[installed_version] = candidate
 
@@ -197,7 +197,7 @@ class Factory(object):
             candidate = self._make_candidate_from_link(
                 link=ican.link,
                 extras=extras,
-                parent=parent,
+                template=template,
                 name=name,
                 version=ican.version,
             )
@@ -240,7 +240,7 @@ class Factory(object):
         cand = self._make_candidate_from_link(
             ireq.link,
             extras=frozenset(ireq.extras),
-            parent=ireq,
+            template=ireq,
             name=canonicalize_name(ireq.name) if ireq.name else None,
             version=None,
         )
@@ -328,15 +328,15 @@ class Factory(object):
     def _report_requires_python_error(
         self,
         requirement,  # type: RequiresPythonRequirement
-        parent,  # type: Candidate
+        template,  # type: Candidate
     ):
         # type: (...) -> UnsupportedPythonVersion
-        template = (
+        message_format = (
             "Package {package!r} requires a different Python: "
             "{version} not in {specifier!r}"
         )
-        message = template.format(
-            package=parent.name,
+        message = message_format.format(
+            package=template.name,
             version=self._python_candidate.version,
             specifier=str(requirement.specifier),
         )
