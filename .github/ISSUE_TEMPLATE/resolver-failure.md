@@ -5,16 +5,30 @@ labels: ["K: UX", "K: crash", "C: new resolver", "C: dependency resolution"]
 ---
 
 <!--
-  Please provide as much information as you can about your failure, so that we can understand the root cause.
+Please provide as much information as you can about your failure, so that we can understand the root cause.
 
-  For example, if you are installing packages from pypi.org, we'd like to see:
+Try if your issue has been fixed in the in-development version of pip. Use the following command to install pip from master:
 
-  - Your terminal output
-  - Any inputs to pip, for example:
-    - any package requirements: any CLI arguments and/or your requirements.txt file
-    - any already installed packages, outputted via `pip freeze`
+    python -m pip install -U "pip @ git+https://github.com/pypa/pip.git"
+-->
 
-  It would be great if you could also include your dependency tree. For this you can use pipdeptree: https://pypi.org/project/pipdeptree/
+**What did you want to do?**
+<!-- Include any inputs you gave to pip, for example:
 
-  For users installing packages from a private repository or local directory, please try your best to describe your setup. We'd like to understand how to reproduce the error locally, so would need (at a minimum) a description of the packages you are trying to install, and a list of dependencies for each package.
+* Package requirements: any CLI arguments and/or your requirements.txt file
+* Already installed packages, outputted via `pip freeze`
+-->
+
+**Output**
+
+```
+Paste what pip outputted in a code block. https://github.github.com/gfm/#fenced-code-blocks
+```
+
+**Additional information**
+
+<!--
+It would be great if you could also include your dependency tree. For this you can use pipdeptree: https://pypi.org/project/pipdeptree/
+
+For users installing packages from a private repository or local directory, please try your best to describe your setup. We'd like to understand how to reproduce the error locally, so would need (at a minimum) a description of the packages you are trying to install, and a list of dependencies for each package.
 -->
