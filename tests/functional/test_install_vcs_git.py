@@ -495,6 +495,7 @@ def test_install_git_branch_not_cached(script, with_wheel):
     ), result.stdout
 
 
+@pytest.mark.fails_on_new_resolver
 def test_install_git_sha_cached(script, with_wheel):
     """
     Installing git urls with a sha revision does cause wheel caching.

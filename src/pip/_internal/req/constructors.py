@@ -8,9 +8,6 @@ These are meant to be used elsewhere within pip to create instances of
 InstallRequirement.
 """
 
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-
 import logging
 import os
 import re
@@ -78,7 +75,7 @@ def convert_extras(extras):
 
 
 def parse_editable(editable_req):
-    # type: (str) -> Tuple[Optional[str], str, Optional[Set[str]]]
+    # type: (str) -> Tuple[Optional[str], str, Set[str]]
     """Parses an editable requirement into:
         - a requirement name
         - an URL
@@ -120,7 +117,7 @@ def parse_editable(editable_req):
                 Requirement("placeholder" + extras.lower()).extras,
             )
         else:
-            return package_name, url_no_extras, None
+            return package_name, url_no_extras, set()
 
     for version_control in vcs:
         if url.lower().startswith('{}:'.format(version_control)):
@@ -149,7 +146,7 @@ def parse_editable(editable_req):
             "Could not detect requirement name for '{}', please specify one "
             "with #egg=your_package_name".format(editable_req)
         )
-    return package_name, url, None
+    return package_name, url, set()
 
 
 def deduce_helpful_msg(req):
@@ -264,7 +261,7 @@ def _looks_like_path(name):
 
 
 def _get_url_from_path(path, name):
-    # type: (str, str) -> str
+    # type: (str, str) -> Optional[str]
     """
     First, it checks whether a provided path is an installable directory
     (e.g. it has a setup.py). If it is, returns the path.

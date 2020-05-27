@@ -60,6 +60,7 @@ SUPPORTED_OPTIONS = [
     cmdoptions.find_links,
     cmdoptions.no_binary,
     cmdoptions.only_binary,
+    cmdoptions.prefer_binary,
     cmdoptions.require_hashes,
     cmdoptions.pre,
     cmdoptions.trusted_host,
@@ -259,6 +260,9 @@ def handle_option_line(
 
         if opts.pre:
             finder.set_allow_all_prereleases()
+
+        if opts.prefer_binary:
+            finder.set_prefer_binary()
 
         if session:
             for host in opts.trusted_hosts or []:

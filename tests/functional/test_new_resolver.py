@@ -3,6 +3,7 @@ import os
 import sys
 
 import pytest
+from pip._vendor.packaging.utils import canonicalize_name
 
 from tests.lib import (
     create_basic_sdist_for_package,
@@ -14,20 +15,25 @@ from tests.lib import (
 def assert_installed(script, **kwargs):
     ret = script.pip('list', '--format=json')
     installed = set(
-        (val['name'], val['version'])
+        (canonicalize_name(val['name']), val['version'])
         for val in json.loads(ret.stdout)
     )
-    assert set(kwargs.items()) <= installed, \
-        "{!r} not all in {!r}".format(kwargs, installed)
+    expected = set((canonicalize_name(k), v) for k, v in kwargs.items())
+    assert expected <= installed, \
+        "{!r} not all in {!r}".format(expected, installed)
 
 
 def assert_not_installed(script, *args):
     ret = script.pip("list", "--format=json")
-    installed = set(val["name"] for val in json.loads(ret.stdout))
+    installed = set(
+        canonicalize_name(val["name"])
+        for val in json.loads(ret.stdout)
+    )
     # None of the given names should be listed as installed, i.e. their
     # intersection should be empty.
-    assert not (set(args) & installed), \
-        "{!r} contained in {!r}".format(args, installed)
+    expected = set(canonicalize_name(k) for k in args)
+    assert not (expected & installed), \
+        "{!r} contained in {!r}".format(expected, installed)
 
 
 def assert_editable(script, *args):
@@ -189,7 +195,40 @@ def test_new_resolver_ignore_dependencies(script):
     assert_not_installed(script, "dep")
 
 
-def test_new_resolver_installs_extras(script):
+@pytest.mark.parametrize(
+    "root_dep",
+    [
+        "base[add]",
+        "base[add] >= 0.1.0",
+        # Non-standard syntax. To deprecate, see pypa/pip#8288.
+        "base >= 0.1.0[add]",
+    ],
+)
+def test_new_resolver_installs_extras(tmpdir, script, root_dep):
+    req_file = tmpdir.joinpath("requirements.txt")
+    req_file.write_text(root_dep)
+
+    create_basic_wheel_for_package(
+        script,
+        "base",
+        "0.1.0",
+        extras={"add": ["dep"]},
+    )
+    create_basic_wheel_for_package(
+        script,
+        "dep",
+        "0.1.0",
+    )
+    script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "-r", req_file,
+    )
+    assert_installed(script, base="0.1.0", dep="0.1.0")
+
+
+def test_new_resolver_installs_extras_warn_missing(script):
     create_basic_wheel_for_package(
         script,
         "base",
@@ -532,6 +571,29 @@ def test_new_resolver_handles_prerelease(
 
 
 @pytest.mark.parametrize(
+    "pkg_deps, root_deps",
+    [
+        # This tests the marker is picked up from a transitive dependency.
+        (["dep; os_name == 'nonexist_os'"], ["pkg"]),
+        # This tests the marker is picked up from a root dependency.
+        ([], ["pkg", "dep; os_name == 'nonexist_os'"]),
+    ]
+)
+def test_new_reolver_skips_marker(script, pkg_deps, root_deps):
+    create_basic_wheel_for_package(script, "pkg", "1.0", depends=pkg_deps)
+    create_basic_wheel_for_package(script, "dep", "1.0")
+
+    script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        *root_deps
+    )
+    assert_installed(script, pkg="1.0")
+    assert_not_installed(script, "dep")
+
+
+@pytest.mark.parametrize(
     "constraints",
     [
         ["pkg<2.0", "constraint_only<1.0"],
@@ -769,9 +831,7 @@ class TestExtraMerge(object):
     @pytest.mark.parametrize(
         "pkg_builder",
         [
-            pytest.param(
-                _local_with_setup, marks=pytest.mark.xfail(strict=True),
-            ),
+            _local_with_setup,
             _direct_wheel,
             _wheel_from_index,
         ],
@@ -801,3 +861,43 @@ class TestExtraMerge(object):
             requirement + "[dev]",
         )
         assert_installed(script, pkg="1.0.0", dep="1.0.0", depdev="1.0.0")
+
+
+@pytest.mark.xfail(reason="pre-existing build directory")
+def test_new_resolver_build_directory_error_zazo_19(script):
+    """https://github.com/pradyunsg/zazo/issues/19#issuecomment-631615674
+
+    This will first resolve like this:
+
+    1. Pin pkg-b==2.0.0 (since pkg-b has fewer choices)
+    2. Pin pkg-a==3.0.0 -> Conflict due to dependency pkg-b<2
+    3. Pin pkg-b==1.0.0
+
+    Since pkg-b is only available as sdist, both the first and third steps
+    would trigger building from source. This ensures the preparer can build
+    different versions of a package for the resolver.
+
+    The preparer would fail with the following message if the different
+    versions end up using the same build directory::
+
+        ERROR: pip can't proceed with requirements 'pkg-b ...' due to a
+        pre-existing build directory (...). This is likely due to a previous
+        installation that failed. pip is being responsible and not assuming it
+        can delete this. Please delete it and try again.
+    """
+    create_basic_wheel_for_package(
+        script, "pkg_a", "3.0.0", depends=["pkg-b<2"],
+    )
+    create_basic_wheel_for_package(script, "pkg_a", "2.0.0")
+    create_basic_wheel_for_package(script, "pkg_a", "1.0.0")
+
+    create_basic_sdist_for_package(script, "pkg_b", "2.0.0")
+    create_basic_sdist_for_package(script, "pkg_b", "1.0.0")
+
+    script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "pkg-a", "pkg-b",
+    )
+    assert_installed(script, pkg_a="3.0.0", pkg_b="1.0.0")

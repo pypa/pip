@@ -62,6 +62,7 @@ def test_pip_wheel_success(script, data):
     assert "Successfully built simple" in result.stdout, result.stdout
 
 
+@pytest.mark.fails_on_new_resolver
 def test_pip_wheel_build_cache(script, data):
     """
     Test 'pip wheel' builds and caches.

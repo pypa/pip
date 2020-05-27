@@ -170,6 +170,8 @@ def _test_writable_dir_win(path):
                 # This could be because there's a directory with the same name.
                 # But it's highly unlikely there's a directory called that,
                 # so we'll assume it's because the parent dir is not writable.
+                # This could as well be because the parent dir is not readable,
+                # due to non-privileged user access.
                 return False
             raise
         else:

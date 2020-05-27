@@ -1,6 +1,3 @@
-# The following comment should be removed at some point in the future.
-# mypy: disallow-untyped-defs=False
-
 from __future__ import absolute_import
 
 import logging
@@ -9,9 +6,15 @@ import os
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.cli.req_command import RequirementCommand, with_cleanup
+from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.req.req_tracker import get_requirement_tracker
 from pip._internal.utils.misc import ensure_dir, normalize_path, write_output
 from pip._internal.utils.temp_dir import TempDirectory
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from optparse import Values
+    from typing import List
 
 logger = logging.getLogger(__name__)
 
@@ -36,28 +39,25 @@ class DownloadCommand(RequirementCommand):
       %prog [options] <local project path> ...
       %prog [options] <archive url/path> ..."""
 
-    def __init__(self, *args, **kw):
-        super(DownloadCommand, self).__init__(*args, **kw)
+    def add_options(self):
+        # type: () -> None
+        self.cmd_opts.add_option(cmdoptions.constraints())
+        self.cmd_opts.add_option(cmdoptions.requirements())
+        self.cmd_opts.add_option(cmdoptions.build_dir())
+        self.cmd_opts.add_option(cmdoptions.no_deps())
+        self.cmd_opts.add_option(cmdoptions.global_options())
+        self.cmd_opts.add_option(cmdoptions.no_binary())
+        self.cmd_opts.add_option(cmdoptions.only_binary())
+        self.cmd_opts.add_option(cmdoptions.prefer_binary())
+        self.cmd_opts.add_option(cmdoptions.src())
+        self.cmd_opts.add_option(cmdoptions.pre())
+        self.cmd_opts.add_option(cmdoptions.require_hashes())
+        self.cmd_opts.add_option(cmdoptions.progress_bar())
+        self.cmd_opts.add_option(cmdoptions.no_build_isolation())
+        self.cmd_opts.add_option(cmdoptions.use_pep517())
+        self.cmd_opts.add_option(cmdoptions.no_use_pep517())
 
-        cmd_opts = self.cmd_opts
-
-        cmd_opts.add_option(cmdoptions.constraints())
-        cmd_opts.add_option(cmdoptions.requirements())
-        cmd_opts.add_option(cmdoptions.build_dir())
-        cmd_opts.add_option(cmdoptions.no_deps())
-        cmd_opts.add_option(cmdoptions.global_options())
-        cmd_opts.add_option(cmdoptions.no_binary())
-        cmd_opts.add_option(cmdoptions.only_binary())
-        cmd_opts.add_option(cmdoptions.prefer_binary())
-        cmd_opts.add_option(cmdoptions.src())
-        cmd_opts.add_option(cmdoptions.pre())
-        cmd_opts.add_option(cmdoptions.require_hashes())
-        cmd_opts.add_option(cmdoptions.progress_bar())
-        cmd_opts.add_option(cmdoptions.no_build_isolation())
-        cmd_opts.add_option(cmdoptions.use_pep517())
-        cmd_opts.add_option(cmdoptions.no_use_pep517())
-
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '-d', '--dest', '--destination-dir', '--destination-directory',
             dest='download_dir',
             metavar='dir',
@@ -65,7 +65,7 @@ class DownloadCommand(RequirementCommand):
             help=("Download packages into <dir>."),
         )
 
-        cmdoptions.add_target_python_options(cmd_opts)
+        cmdoptions.add_target_python_options(self.cmd_opts)
 
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,
@@ -73,10 +73,12 @@ class DownloadCommand(RequirementCommand):
         )
 
         self.parser.insert_option_group(0, index_opts)
-        self.parser.insert_option_group(0, cmd_opts)
+        self.parser.insert_option_group(0, self.cmd_opts)
 
     @with_cleanup
     def run(self, options, args):
+        # type: (Values, List[str]) -> int
+
         options.ignore_installed = True
         # editable doesn't really make sense for `pip download`, but the bowels
         # of the RequirementSet code require that property.
@@ -132,11 +134,10 @@ class DownloadCommand(RequirementCommand):
             reqs, check_supported_wheels=True
         )
 
-        downloaded = ' '.join([
-            req.name for req in requirement_set.requirements.values()
-            if req.successfully_downloaded
-        ])
+        downloaded = ' '.join([req.name  # type: ignore
+                               for req in requirement_set.requirements.values()
+                               if req.successfully_downloaded])
         if downloaded:
             write_output('Successfully downloaded %s', downloaded)
 
-        return requirement_set
+        return SUCCESS

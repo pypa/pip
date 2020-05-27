@@ -54,8 +54,7 @@ class Bazaar(VersionControl):
 
         url, rev_options = self.get_url_rev_options(url)
         self.run_command(
-            make_command('export', location, url, rev_options.to_args()),
-            show_stdout=False,
+            make_command('export', location, url, rev_options.to_args())
         )
 
     def fetch_new(self, dest, url, rev_options):
@@ -92,7 +91,7 @@ class Bazaar(VersionControl):
 
     @classmethod
     def get_remote_url(cls, location):
-        urls = cls.run_command(['info'], show_stdout=False, cwd=location)
+        urls = cls.run_command(['info'], cwd=location)
         for line in urls.splitlines():
             line = line.strip()
             for x in ('checkout of branch: ',
@@ -107,7 +106,7 @@ class Bazaar(VersionControl):
     @classmethod
     def get_revision(cls, location):
         revision = cls.run_command(
-            ['revno'], show_stdout=False, cwd=location,
+            ['revno'], cwd=location,
         )
         return revision.splitlines()[-1]
 

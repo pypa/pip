@@ -20,7 +20,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from types import ModuleType
-    from typing import Any, List, Optional, Dict
+    from typing import List, Optional, Dict
     from optparse import Values
 
 logger = logging.getLogger(__name__)
@@ -193,13 +193,10 @@ class DebugCommand(Command):
       %prog <options>"""
     ignore_require_venv = True
 
-    def __init__(self, *args, **kw):
-        # type: (*Any, **Any) -> None
-        super(DebugCommand, self).__init__(*args, **kw)
-
-        cmd_opts = self.cmd_opts
-        cmdoptions.add_target_python_options(cmd_opts)
-        self.parser.insert_option_group(0, cmd_opts)
+    def add_options(self):
+        # type: () -> None
+        cmdoptions.add_target_python_options(self.cmd_opts)
+        self.parser.insert_option_group(0, self.cmd_opts)
         self.parser.config.load()
 
     def run(self, options, args):

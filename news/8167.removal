@@ -1,1 +1,0 @@
-Drop parallelization from ``pip list --outdated``.

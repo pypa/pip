@@ -1,1 +1,0 @@
-Prompt the user for password if the keyring backend doesn't return one

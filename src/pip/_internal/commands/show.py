@@ -14,7 +14,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from optparse import Values
-    from typing import Any, List, Dict, Iterator
+    from typing import List, Dict, Iterator
 
 logger = logging.getLogger(__name__)
 
@@ -30,9 +30,8 @@ class ShowCommand(Command):
       %prog [options] <package> ..."""
     ignore_require_venv = True
 
-    def __init__(self, *args, **kw):
-        # type: (*Any, **Any) -> None
-        super(ShowCommand, self).__init__(*args, **kw)
+    def add_options(self):
+        # type: () -> None
         self.cmd_opts.add_option(
             '-f', '--files',
             dest='files',

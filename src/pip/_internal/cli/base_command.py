@@ -28,6 +28,7 @@ from pip._internal.exceptions import (
     CommandError,
     InstallationError,
     PreviousBuildDirError,
+    SubProcessError,
     UninstallationError,
 )
 from pip._internal.utils.deprecation import deprecated
@@ -87,6 +88,12 @@ class Command(CommandContextMixIn):
             self.parser,
         )
         self.parser.add_option_group(gen_opts)
+
+        self.add_options()
+
+    def add_options(self):
+        # type: () -> None
+        pass
 
     def handle_pip_version_check(self, options):
         # type: (Values) -> None
@@ -195,7 +202,8 @@ class Command(CommandContextMixIn):
             logger.debug('Exception information:', exc_info=True)
 
             return PREVIOUS_BUILD_DIR_ERROR
-        except (InstallationError, UninstallationError, BadCommand) as exc:
+        except (InstallationError, UninstallationError, BadCommand,
+                SubProcessError) as exc:
             logger.critical(str(exc))
             logger.debug('Exception information:', exc_info=True)
 

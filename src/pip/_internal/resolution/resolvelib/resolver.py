@@ -6,7 +6,7 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.resolvelib import BaseReporter, ResolutionImpossible
 from pip._vendor.resolvelib import Resolver as RLResolver
 
-from pip._internal.exceptions import InstallationError
+from pip._internal.exceptions import DistributionNotFound, InstallationError
 from pip._internal.req.req_set import RequirementSet
 from pip._internal.resolution.base import BaseResolver
 from pip._internal.resolution.resolvelib.provider import PipProvider
@@ -105,6 +105,8 @@ class Resolver(BaseResolver):
         user_requested = set()  # type: Set[str]
         requirements = []
         for req in root_reqs:
+            if not req.match_markers():
+                continue
             if req.constraint:
                 # Ensure we only accept valid constraints
                 reject_invalid_constraint_types(req)
@@ -132,7 +134,10 @@ class Resolver(BaseResolver):
         resolver = RLResolver(provider, reporter)
 
         try:
-            self._result = resolver.resolve(requirements)
+            try_to_avoid_resolution_too_deep = 2000000
+            self._result = resolver.resolve(
+                requirements, max_rounds=try_to_avoid_resolution_too_deep,
+            )
 
         except ResolutionImpossible as e:
             error = self.factory.get_installation_error(e)
@@ -150,11 +155,10 @@ class Resolver(BaseResolver):
                             parent.name
                         ))
                     )
-                raise InstallationError(
+                raise DistributionNotFound(
                     "No matching distribution found for " +
                     ", ".join([r.name for r, _ in e.causes])
                 )
-                raise
             six.raise_from(error, e)
 
         req_set = RequirementSet(check_supported_wheels=check_supported_wheels)

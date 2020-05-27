@@ -353,6 +353,27 @@ class TestPipResult(object):
                     .format(**locals())
                 )
 
+    def did_create(self, path, message=None):
+        assert str(path) in self.files_created, _one_or_both(message, self)
+
+    def did_not_create(self, path, message=None):
+        assert str(path) not in self.files_created, _one_or_both(message, self)
+
+    def did_update(self, path, message=None):
+        assert str(path) in self.files_updated, _one_or_both(message, self)
+
+    def did_not_update(self, path, message=None):
+        assert str(path) not in self.files_updated, _one_or_both(message, self)
+
+
+def _one_or_both(a, b):
+    """Returns f"{a}\n{b}" if a is truthy, else returns str(b).
+    """
+    if not a:
+        return str(b)
+
+    return "{a}\n{b}".format(a=a, b=b)
+
 
 def make_check_stderr_message(stderr, line, reason):
     """
@@ -1002,6 +1023,9 @@ def create_basic_wheel_for_package(
     if extra_files is None:
         extra_files = {}
 
+    # Fix wheel distribution name by replacing runs of non-alphanumeric
+    # characters with an underscore _ as per PEP 491
+    name = re.sub(r"[^\w\d.]+", "_", name, re.UNICODE)
     archive_name = "{}-{}-py2.py3-none-any.whl".format(name, version)
     archive_path = script.scratch_path / archive_name
 
