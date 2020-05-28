@@ -106,19 +106,34 @@ def make_install_req_from_dist(dist, template):
 
 
 class _InstallRequirementBackedCandidate(Candidate):
-    # These are not installed
+    """A candidate backed by an ``InstallRequirement``.
+
+    This represents a package request with the target not being already
+    in the environment, and needs to be fetched and installed. The backing
+    ``InstallRequirement`` is responsible for most of the leg work; this
+    class exposes appropriate information to the resolver.
+
+    :param link: The link passed to the ``InstallRequirement``. The backing
+        ``InstallRequirement`` will use this link to fetch the distribution.
+    :param source_link: The link this candidate "originates" from. This is
+        different from ``link`` when the link is found in the wheel cache.
+        ``link`` would point to the wheel cache, while this points to the
+        found remote link (e.g. from pypi.org).
+    """
     is_installed = False
 
     def __init__(
         self,
         link,          # type: Link
+        source_link,   # type: Link
         ireq,          # type: InstallRequirement
         factory,       # type: Factory
         name=None,     # type: Optional[str]
         version=None,  # type: Optional[_BaseVersion]
     ):
         # type: (...) -> None
-        self.link = link
+        self._link = link
+        self._source_link = source_link
         self._factory = factory
         self._ireq = ireq
         self._name = name
@@ -129,23 +144,28 @@ class _InstallRequirementBackedCandidate(Candidate):
         # type: () -> str
         return "{class_name}({link!r})".format(
             class_name=self.__class__.__name__,
-            link=str(self.link),
+            link=str(self._link),
         )
 
     def __hash__(self):
         # type: () -> int
-        return hash((self.__class__, self.link))
+        return hash((self.__class__, self._link))
 
     def __eq__(self, other):
         # type: (Any) -> bool
         if isinstance(other, self.__class__):
-            return self.link == other.link
+            return self._link == other._link
         return False
 
     # Needed for Python 2, which does not implement this by default
     def __ne__(self, other):
         # type: (Any) -> bool
         return not self.__eq__(other)
+
+    @property
+    def source_link(self):
+        # type: () -> Optional[Link]
+        return self._source_link
 
     @property
     def name(self):
@@ -234,6 +254,7 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
         version=None,  # type: Optional[_BaseVersion]
     ):
         # type: (...) -> None
+        source_link = link
         cache_entry = factory.get_wheel_cache_entry(link, name)
         if cache_entry is not None:
             logger.debug("Using cached wheel link: %s", cache_entry.link)
@@ -247,6 +268,7 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
 
         super(LinkCandidate, self).__init__(
             link=link,
+            source_link=source_link,
             ireq=ireq,
             factory=factory,
             name=name,
@@ -272,6 +294,7 @@ class EditableCandidate(_InstallRequirementBackedCandidate):
         # type: (...) -> None
         super(EditableCandidate, self).__init__(
             link=link,
+            source_link=link,
             ireq=make_install_req_from_editable(link, template),
             factory=factory,
             name=name,
@@ -285,6 +308,7 @@ class EditableCandidate(_InstallRequirementBackedCandidate):
 
 class AlreadyInstalledCandidate(Candidate):
     is_installed = True
+    source_link = None
 
     def __init__(
         self,
@@ -418,6 +442,11 @@ class ExtrasCandidate(Candidate):
         # type: () -> _BaseVersion
         return self.base.is_installed
 
+    @property
+    def source_link(self):
+        # type: () -> Optional[Link]
+        return self.base.source_link
+
     def iter_dependencies(self):
         # type: () -> Iterable[Optional[Requirement]]
         factory = self.base._factory
@@ -455,6 +484,7 @@ class ExtrasCandidate(Candidate):
 
 class RequiresPythonCandidate(Candidate):
     is_installed = False
+    source_link = None
 
     def __init__(self, py_version_info):
         # type: (Optional[Tuple[int, ...]]) -> None

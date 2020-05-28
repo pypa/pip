@@ -167,6 +167,21 @@ class Resolver(BaseResolver):
             ireq = candidate.get_install_requirement()
             if ireq is None:
                 continue
+            link = candidate.source_link
+            if link and link.is_yanked:
+                # The reason can contain non-ASCII characters, Unicode
+                # is required for Python 2.
+                msg = (
+                    u'The candidate selected for download or install is a '
+                    u'yanked version: {name!r} candidate (version {version} '
+                    u'at {link})\nReason for being yanked: {reason}'
+                ).format(
+                    name=candidate.name,
+                    version=candidate.version,
+                    link=link,
+                    reason=link.yanked_reason or u'<none given>',
+                )
+                logger.warning(msg)
             ireq.should_reinstall = self.factory.should_reinstall(candidate)
             req_set.add_named_requirement(ireq)
 
