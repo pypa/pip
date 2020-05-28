@@ -3,15 +3,20 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Iterable, Optional, Sequence, Set
+    from typing import FrozenSet, Iterable, Optional, Tuple
+
+    from pip._vendor.packaging.version import _BaseVersion
 
     from pip._internal.req.req_install import InstallRequirement
-    from pip._vendor.packaging.specifiers import SpecifierSet
-    from pip._vendor.packaging.version import _BaseVersion
+
+    CandidateLookup = Tuple[
+        Optional["Candidate"],
+        Optional[InstallRequirement],
+    ]
 
 
 def format_name(project, extras):
-    # type: (str, Set[str]) -> str
+    # type: (str, FrozenSet[str]) -> str
     if not extras:
         return project
     canonical_extras = sorted(canonicalize_name(e) for e in extras)
@@ -24,13 +29,13 @@ class Requirement(object):
         # type: () -> str
         raise NotImplementedError("Subclass should override")
 
-    def find_matches(self, constraint):
-        # type: (SpecifierSet) -> Sequence[Candidate]
-        raise NotImplementedError("Subclass should override")
-
     def is_satisfied_by(self, candidate):
         # type: (Candidate) -> bool
         return False
+
+    def get_candidate_lookup(self):
+        # type: () -> CandidateLookup
+        raise NotImplementedError("Subclass should override")
 
 
 class Candidate(object):

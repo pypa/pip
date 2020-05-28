@@ -1,19 +1,15 @@
 from pip._vendor.packaging.utils import canonicalize_name
 
-from pip._internal.exceptions import InstallationError
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 from .base import Requirement, format_name
 
 if MYPY_CHECK_RUNNING:
-    from typing import Sequence
-
     from pip._vendor.packaging.specifiers import SpecifierSet
 
     from pip._internal.req.req_install import InstallRequirement
 
-    from .base import Candidate
-    from .factory import Factory
+    from .base import Candidate, CandidateLookup
 
 
 class ExplicitRequirement(Requirement):
@@ -34,15 +30,9 @@ class ExplicitRequirement(Requirement):
         # No need to canonicalise - the candidate did this
         return self.candidate.name
 
-    def find_matches(self, constraint):
-        # type: (SpecifierSet) -> Sequence[Candidate]
-        if len(constraint) > 0:
-            raise InstallationError(
-                "Could not satisfy constraints for '{}': "
-                "installation from path or url cannot be "
-                "constrained to a version".format(self.name)
-            )
-        return [self.candidate]
+    def get_candidate_lookup(self):
+        # type: () -> CandidateLookup
+        return self.candidate, None
 
     def is_satisfied_by(self, candidate):
         # type: (Candidate) -> bool
@@ -50,12 +40,11 @@ class ExplicitRequirement(Requirement):
 
 
 class SpecifierRequirement(Requirement):
-    def __init__(self, ireq, factory):
-        # type: (InstallRequirement, Factory) -> None
+    def __init__(self, ireq):
+        # type: (InstallRequirement) -> None
         assert ireq.link is None, "This is a link, not a specifier"
         self._ireq = ireq
-        self._factory = factory
-        self.extras = set(ireq.extras)
+        self._extras = frozenset(ireq.extras)
 
     def __str__(self):
         # type: () -> str
@@ -72,21 +61,11 @@ class SpecifierRequirement(Requirement):
     def name(self):
         # type: () -> str
         canonical_name = canonicalize_name(self._ireq.req.name)
-        return format_name(canonical_name, self.extras)
+        return format_name(canonical_name, self._extras)
 
-    def find_matches(self, constraint):
-        # type: (SpecifierSet) -> Sequence[Candidate]
-
-        # We should only return one candidate per version, but
-        # iter_found_candidates does that for us, so we don't need
-        # to do anything special here.
-        return [
-            c
-            for c in self._factory.iter_found_candidates(
-                self._ireq, self.extras
-            )
-            if constraint.contains(c.version, prereleases=True)
-        ]
+    def get_candidate_lookup(self):
+        # type: () -> CandidateLookup
+        return None, self._ireq
 
     def is_satisfied_by(self, candidate):
         # type: (Candidate) -> bool
@@ -120,13 +99,11 @@ class RequiresPythonRequirement(Requirement):
         # type: () -> str
         return self._candidate.name
 
-    def find_matches(self, constraint):
-        # type: (SpecifierSet) -> Sequence[Candidate]
-        assert len(constraint) == 0, \
-            "RequiresPythonRequirement cannot have constraints"
+    def get_candidate_lookup(self):
+        # type: () -> CandidateLookup
         if self.specifier.contains(self._candidate.version, prereleases=True):
-            return [self._candidate]
-        return []
+            return self._candidate, None
+        return None, None
 
     def is_satisfied_by(self, candidate):
         # type: (Candidate) -> bool

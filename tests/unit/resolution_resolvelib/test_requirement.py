@@ -57,16 +57,18 @@ def test_new_resolver_requirement_has_name(test_cases, factory):
 
 def test_new_resolver_correct_number_of_matches(test_cases, factory):
     """Requirements should return the correct number of candidates"""
-    for spec, name, matches in test_cases:
+    for spec, name, match_count in test_cases:
         req = factory.make_requirement_from_spec(spec, comes_from=None)
-        assert len(req.find_matches(SpecifierSet())) == matches
+        matches = factory.find_candidates([req], SpecifierSet())
+        assert len(list(matches)) == match_count
 
 
 def test_new_resolver_candidates_match_requirement(test_cases, factory):
-    """Candidates returned from find_matches should satisfy the requirement"""
+    """Candidates returned from find_candidates should satisfy the requirement
+    """
     for spec, name, matches in test_cases:
         req = factory.make_requirement_from_spec(spec, comes_from=None)
-        for c in req.find_matches(SpecifierSet()):
+        for c in factory.find_candidates([req], SpecifierSet()):
             assert isinstance(c, Candidate)
             assert req.is_satisfied_by(c)
 
