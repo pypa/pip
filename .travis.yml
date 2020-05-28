@@ -42,12 +42,13 @@ jobs:
       - GROUP=2
       - NEW_RESOLVER=1
     - env:
+      - EXPECT_FAIL=1
       - GROUP=3
       - NEW_RESOLVER=1
 
   fast_finish: true
   allow_failures:
-    - env: GROUP=3 NEW_RESOLVER=1
+    - env: EXPECT_FAIL=1
 
 before_install: tools/travis/setup.sh
 install: travis_retry tools/travis/install.sh
