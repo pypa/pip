@@ -85,15 +85,15 @@ def test_get_legacy_build_wheel_path__multiple_names(caplog):
 @pytest.mark.parametrize(
     "console_scripts",
     [
-        "pip = pip._internal.main:pip",
-        "pip:pip = pip._internal.main:pip",
-        pytest.param("進入點 = 套件.模組:函式", marks=skip_if_python2),
+        u"pip = pip._internal.main:pip",
+        u"pip:pip = pip._internal.main:pip",
+        pytest.param(u"進入點 = 套件.模組:函式", marks=skip_if_python2),
     ],
 )
 def test_get_entrypoints(tmpdir, console_scripts):
     entry_points = tmpdir.joinpath("entry_points.txt")
     with io.open(str(entry_points), "w", encoding="utf-8") as fp:
-        fp.write("""
+        fp.write(u"""
             [console_scripts]
             {}
             [section]
