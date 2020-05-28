@@ -30,8 +30,11 @@ class FakeCommand(Command):
 
     def run(self, options, args):
         logging.getLogger("pip.tests").info("fake")
+        # Return SUCCESS from run if run_func is not provided
         if self.run_func:
             return self.run_func()
+        else:
+            return SUCCESS
 
 
 class FakeCommandWithUnicode(FakeCommand):
