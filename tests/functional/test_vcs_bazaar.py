@@ -55,7 +55,7 @@ def test_export_rev(script, tmpdir):
     create_file(source_dir / 'test_file', 'something new')
     script.run(
         'bzr', 'commit', '-q',
-        '--author', 'pip <pypa-dev@googlegroups.com>',
+        '--author', 'pip <distutils-sig@python.org>',
         '-m', 'change test file', cwd=source_dir,
     )
 

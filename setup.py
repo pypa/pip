@@ -60,7 +60,7 @@ setup(
     },
 
     author='The pip developers',
-    author_email='pypa-dev@groups.google.com',
+    author_email='distutils-sig@python.org',
 
     package_dir={"": "src"},
     packages=find_packages(
