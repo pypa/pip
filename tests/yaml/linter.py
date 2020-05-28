@@ -1,3 +1,4 @@
+import re
 import sys
 from pprint import pprint
 
@@ -59,6 +60,16 @@ def lint_case(case, verbose=False):
         error = response.get('error')
         if error:
             check_dict(error, optional=['code', 'stderr'])
+            stderr = error.get('stderr')
+            if stderr:
+                if isinstance(stderr, str):
+                    patters = [stderr]
+                elif isinstance(stderr, list):
+                    patters = stderr
+                else:
+                    raise "string or list expected, found %r" % stderr
+                for patter in patters:
+                    re.compile(patter, re.I)
 
 
 def lint_yml(yml_file, verbose=False):
