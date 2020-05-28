@@ -15,32 +15,32 @@ stages:
 jobs:
   include:
     # Basic Checks
-    - stage: primary
-      env: TOXENV=docs
-    - env: TOXENV=lint
-    - env: TOXENV=vendoring
+    # - stage: primary
+    #   env: TOXENV=docs
+    # - env: TOXENV=lint
+    # - env: TOXENV=vendoring
 
-    # Complete checking for ensuring compatibility
-    # PyPy
-    - stage: secondary
-      env: GROUP=1
-      python: pypy3.5-7.0.0
-    - env: GROUP=2
-      python: pypy3.5-7.0.0
-    - env: GROUP=1
-      python: pypy2.7-7.1.1
-    - env: GROUP=2
-      python: pypy2.7-7.1.1
+    # # Complete checking for ensuring compatibility
+    # # PyPy
+    # - stage: secondary
+    #   env: GROUP=1
+    #   python: pypy3.5-7.0.0
+    # - env: GROUP=2
+    #   python: pypy3.5-7.0.0
+    # - env: GROUP=1
+    #   python: pypy2.7-7.1.1
+    # - env: GROUP=2
+    #   python: pypy2.7-7.1.1
 
-    # Test experimental stuff that are not part of the standard pip usage.
-    # Helpful for developers working on them to see how they're doing.
-    - stage: experimental
-      env:
-      - GROUP=1
-      - NEW_RESOLVER=1
-    - env:
-      - GROUP=2
-      - NEW_RESOLVER=1
+    # # Test experimental stuff that are not part of the standard pip usage.
+    # # Helpful for developers working on them to see how they're doing.
+    # - stage: experimental
+    #   env:
+    #   - GROUP=1
+    #   - NEW_RESOLVER=1
+    # - env:
+    #   - GROUP=2
+    #   - NEW_RESOLVER=1
     - env:
       - GROUP=3
       - NEW_RESOLVER=1
