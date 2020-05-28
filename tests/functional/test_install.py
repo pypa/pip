@@ -1449,6 +1449,7 @@ def test_install_no_binary_disables_cached_wheels(script, data, with_wheel):
     assert "Running setup.py install for upper" in str(res), str(res)
 
 
+@pytest.mark.fails_on_new_resolver
 def test_install_editable_with_wrong_egg_name(script):
     script.scratch_path.joinpath("pkga").mkdir()
     pkga_path = script.scratch_path / 'pkga'
