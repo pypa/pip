@@ -38,23 +38,23 @@ if MYPY_CHECK_RUNNING:
 logger = logging.getLogger(__name__)
 
 
-def make_install_req_from_link(link, parent):
+def make_install_req_from_link(link, template):
     # type: (Link, InstallRequirement) -> InstallRequirement
-    assert not parent.editable, "parent is editable"
-    if parent.req:
-        line = str(parent.req)
+    assert not template.editable, "template is editable"
+    if template.req:
+        line = str(template.req)
     else:
         line = link.url
     ireq = install_req_from_line(
         line,
-        comes_from=parent.comes_from,
-        use_pep517=parent.use_pep517,
-        isolated=parent.isolated,
-        constraint=parent.constraint,
+        comes_from=template.comes_from,
+        use_pep517=template.use_pep517,
+        isolated=template.isolated,
+        constraint=template.constraint,
         options=dict(
-            install_options=parent.install_options,
-            global_options=parent.global_options,
-            hashes=parent.hash_options
+            install_options=template.install_options,
+            global_options=template.global_options,
+            hashes=template.hash_options
         ),
     )
     if ireq.link is None:
@@ -63,42 +63,42 @@ def make_install_req_from_link(link, parent):
     return ireq
 
 
-def make_install_req_from_editable(link, parent):
+def make_install_req_from_editable(link, template):
     # type: (Link, InstallRequirement) -> InstallRequirement
-    assert parent.editable, "parent not editable"
+    assert template.editable, "template not editable"
     return install_req_from_editable(
         link.url,
-        comes_from=parent.comes_from,
-        use_pep517=parent.use_pep517,
-        isolated=parent.isolated,
-        constraint=parent.constraint,
+        comes_from=template.comes_from,
+        use_pep517=template.use_pep517,
+        isolated=template.isolated,
+        constraint=template.constraint,
         options=dict(
-            install_options=parent.install_options,
-            global_options=parent.global_options,
-            hashes=parent.hash_options
+            install_options=template.install_options,
+            global_options=template.global_options,
+            hashes=template.hash_options
         ),
     )
 
 
-def make_install_req_from_dist(dist, parent):
+def make_install_req_from_dist(dist, template):
     # type: (Distribution, InstallRequirement) -> InstallRequirement
     project_name = canonicalize_name(dist.project_name)
-    if parent.req:
-        line = str(parent.req)
-    elif parent.link:
-        line = "{} @ {}".format(project_name, parent.link.url)
+    if template.req:
+        line = str(template.req)
+    elif template.link:
+        line = "{} @ {}".format(project_name, template.link.url)
     else:
         line = "{}=={}".format(project_name, dist.parsed_version)
     ireq = install_req_from_line(
         line,
-        comes_from=parent.comes_from,
-        use_pep517=parent.use_pep517,
-        isolated=parent.isolated,
-        constraint=parent.constraint,
+        comes_from=template.comes_from,
+        use_pep517=template.use_pep517,
+        isolated=template.isolated,
+        constraint=template.constraint,
         options=dict(
-            install_options=parent.install_options,
-            global_options=parent.global_options,
-            hashes=parent.hash_options
+            install_options=template.install_options,
+            global_options=template.global_options,
+            hashes=template.hash_options
         ),
     )
     ireq.satisfied_by = dist
@@ -236,7 +236,7 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
     def __init__(
         self,
         link,          # type: Link
-        parent,        # type: InstallRequirement
+        template,        # type: InstallRequirement
         factory,       # type: Factory
         name=None,     # type: Optional[str]
         version=None,  # type: Optional[_BaseVersion]
@@ -246,11 +246,11 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
         if cache_entry is not None:
             logger.debug("Using cached wheel link: %s", cache_entry.link)
             link = cache_entry.link
-        ireq = make_install_req_from_link(link, parent)
+        ireq = make_install_req_from_link(link, template)
 
         if (cache_entry is not None and
                 cache_entry.persistent and
-                parent.link is parent.original_link):
+                template.link is template.original_link):
             ireq.original_link_is_in_wheel_cache = True
 
         super(LinkCandidate, self).__init__(
@@ -270,7 +270,7 @@ class EditableCandidate(_InstallRequirementBackedCandidate):
     def __init__(
         self,
         link,          # type: Link
-        parent,        # type: InstallRequirement
+        template,        # type: InstallRequirement
         factory,       # type: Factory
         name=None,     # type: Optional[str]
         version=None,  # type: Optional[_BaseVersion]
@@ -278,7 +278,7 @@ class EditableCandidate(_InstallRequirementBackedCandidate):
         # type: (...) -> None
         super(EditableCandidate, self).__init__(
             link=link,
-            ireq=make_install_req_from_editable(link, parent),
+            ireq=make_install_req_from_editable(link, template),
             factory=factory,
             name=name,
             version=version,
@@ -295,12 +295,12 @@ class AlreadyInstalledCandidate(Candidate):
     def __init__(
         self,
         dist,  # type: Distribution
-        parent,  # type: InstallRequirement
+        template,  # type: InstallRequirement
         factory,  # type: Factory
     ):
         # type: (...) -> None
         self.dist = dist
-        self._ireq = make_install_req_from_dist(dist, parent)
+        self._ireq = make_install_req_from_dist(dist, template)
         self._factory = factory
 
         # This is just logging some messages, so we can do it eagerly.
