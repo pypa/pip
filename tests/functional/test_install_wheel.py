@@ -197,9 +197,12 @@ def test_install_wheel_with_target_and_data_files(script, data, with_wheel):
                         '-t', target_dir,
                         '--no-index')
 
-    result.did_create(Path('scratch') / 'prjwithdatafile' / 'packages1' / 'README.txt')
-    result.did_create(Path('scratch') / 'prjwithdatafile' / 'packages2' / 'README.txt')
-    result.did_not_create(Path('scratch') / 'prjwithdatafile' / 'lib' / 'python')
+    result.did_create(
+        Path('scratch') / 'prjwithdatafile' / 'packages1' / 'README.txt')
+    result.did_create(
+        Path('scratch') / 'prjwithdatafile' / 'packages2' / 'README.txt')
+    result.did_not_create(
+        Path('scratch') / 'prjwithdatafile' / 'lib' / 'python')
 
 
 def test_install_wheel_with_root(script, shared_data, tmpdir):
