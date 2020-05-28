@@ -105,7 +105,7 @@ class Command(CommandContextMixIn):
         assert not hasattr(options, 'no_index')
 
     def run(self, options, args):
-        # type: (Values, List[Any]) -> Any
+        # type: (Values, List[Any]) -> int
         raise NotImplementedError
 
     def parse_args(self, args):

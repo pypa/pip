@@ -14,6 +14,11 @@ from pip._internal.configuration import (
 )
 from pip._internal.exceptions import PipError
 from pip._internal.utils.misc import get_prog, write_output
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from typing import List
+    from optparse import Values
 
 logger = logging.getLogger(__name__)
 
@@ -92,6 +97,7 @@ class ConfigurationCommand(Command):
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
+        # type: (Values, List[str]) -> int
         handlers = {
             "list": self.list_values,
             "edit": self.open_in_editor,
