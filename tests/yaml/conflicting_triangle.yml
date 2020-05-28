@@ -14,7 +14,7 @@ cases:
       - C 1.0.0
     - error:
         code: 0
-        stderr: incompatible
+        stderr: ['requirement\s+c==1\.0\.0', 'is\s+incompatible']
   skip: old
   # -- currently the error message is:
   # a 1.0.0 has requirement C==1.0.0, but you'll have c 2.0.0 which is incompatible.

@@ -22,7 +22,7 @@ cases:
   response:
     - state: null
       error:
-        stderr: 'No matching distribution found'
+        stderr: 'no matching distribution found for\s+six'
   skip: old
   # -- currently the error message is:
   # Could not find a version that satisfies the requirement six<1.12

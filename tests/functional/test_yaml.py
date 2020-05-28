@@ -11,20 +11,6 @@ import yaml
 
 from tests.lib import DATA_DIR, create_basic_wheel_for_package, path_to_url
 
-_conflict_finder_pat = re.compile(
-    # Conflicting Requirements: \
-    # A 1.0.0 requires B == 2.0.0, C 1.0.0 requires B == 1.0.0.
-    r"""
-        (?P<package>[\w\-_]+?)
-        [ ]
-        (?P<version>\S+?)
-        [ ]requires[ ]
-        (?P<selector>.+?)
-        (?=,|\.$)
-    """,
-    re.X
-)
-
 
 def generate_yaml_tests(directory):
     """
@@ -138,6 +124,29 @@ def handle_request(script, action, requirement, options, new_resolver=False):
     return {"result": result, "state": sorted(state)}
 
 
+def check_error(error, result):
+    return_code = error.get('code')
+    if return_code:
+        assert result.returncode == return_code
+
+    stderr = error.get('stderr')
+    if not stderr:
+        return
+
+    if isinstance(stderr, str):
+        patters = [stderr]
+    elif isinstance(stderr, list):
+        patters = stderr
+    else:
+        raise "string or list expected, found %r" % stderr
+
+    for patter in patters:
+        pat = re.compile(patter, re.I)
+        match = pat.search(result.stderr)
+        assert match, 'regex %r not found in stderr: %r' % (
+            stderr, result.stderr)
+
+
 @pytest.mark.yaml
 @pytest.mark.parametrize(
     "case", generate_yaml_tests(DATA_DIR.parent / "yaml"), ids=id_func
@@ -189,9 +198,4 @@ def test_yaml_based(script, case):
 
         error = response.get('error')
         if error and case[":resolver:"] == 'new' and sys.platform != 'win32':
-            return_code = error.get('code')
-            if return_code:
-                assert result.returncode == return_code
-            stderr = error.get('stderr')
-            if stderr:
-                assert stderr in result.stderr
+            check_error(error, result)
