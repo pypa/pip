@@ -2,6 +2,7 @@
 
 """Tests for wheel binary packages and .dist-info."""
 import csv
+import io
 import logging
 import os
 import textwrap
@@ -29,7 +30,7 @@ from pip._internal.operations.install.wheel import (
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import hash_file
 from pip._internal.utils.unpacking import unpack_file
-from tests.lib import DATA_DIR, assert_paths_equal
+from tests.lib import DATA_DIR, assert_paths_equal, skip_if_python2
 
 
 def call_get_legacy_build_wheel_path(caplog, names):
@@ -81,12 +82,17 @@ def test_get_legacy_build_wheel_path__multiple_names(caplog):
     ]
 
 
-@pytest.mark.parametrize("console_scripts",
-                         ["pip = pip._internal.main:pip",
-                          "pip:pip = pip._internal.main:pip"])
+@pytest.mark.parametrize(
+    "console_scripts",
+    [
+        "pip = pip._internal.main:pip",
+        "pip:pip = pip._internal.main:pip",
+        pytest.param("進入點 = 套件.模組:函式", marks=skip_if_python2),
+    ],
+)
 def test_get_entrypoints(tmpdir, console_scripts):
     entry_points = tmpdir.joinpath("entry_points.txt")
-    with open(str(entry_points), "w") as fp:
+    with io.open(str(entry_points), "w", encoding="utf-8") as fp:
         fp.write("""
             [console_scripts]
             {}

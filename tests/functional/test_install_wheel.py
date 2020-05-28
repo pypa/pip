@@ -348,6 +348,28 @@ def test_install_from_wheel_gen_uppercase_entrypoint(
         assert bool(os.access(script.base_path / wrapper_file, os.X_OK))
 
 
+# pkg_resources.EntryPoint() does not parse unicode correctly on Python 2.
+@skip_if_python2
+def test_install_from_wheel_gen_unicode_entrypoint(script):
+    make_wheel(
+        "script_wheel_unicode",
+        "1.0",
+        console_scripts=["進入點 = 模組:函式"],
+    ).save_to_dir(script.scratch_path)
+
+    result = script.pip(
+        "install",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "script_wheel_unicode",
+    )
+    if os.name == "nt":
+        result.did_create(script.bin.joinpath("進入點.exe"))
+    else:
+        result.did_create(script.bin.joinpath("進入點"))
+
+
 def test_install_from_wheel_with_legacy(script, shared_data, tmpdir):
     """
     Test installing scripts (legacy scripts are preserved)
