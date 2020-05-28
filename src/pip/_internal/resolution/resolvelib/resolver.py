@@ -88,6 +88,7 @@ class Resolver(BaseResolver):
             finder=finder,
             preparer=preparer,
             make_install_req=make_install_req,
+            wheel_cache=wheel_cache,
             use_user_site=use_user_site,
             force_reinstall=force_reinstall,
             ignore_installed=ignore_installed,

@@ -4,7 +4,16 @@ from pip._vendor.resolvelib.providers import AbstractProvider
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Dict, Optional, Sequence, Set, Tuple, Union
+    from typing import (
+        Any,
+        Dict,
+        Iterable,
+        Optional,
+        Sequence,
+        Set,
+        Tuple,
+        Union,
+    )
 
     from .base import Requirement, Candidate
     from .factory import Factory
@@ -45,7 +54,7 @@ class PipProvider(AbstractProvider):
         self.user_requested = user_requested
 
     def _sort_matches(self, matches):
-        # type: (Sequence[Candidate]) -> Sequence[Candidate]
+        # type: (Iterable[Candidate]) -> Sequence[Candidate]
 
         # The requirement is responsible for returning a sequence of potential
         # candidates, one per version. The provider handles the logic of
@@ -68,7 +77,6 @@ class PipProvider(AbstractProvider):
         #      - The project was specified on the command line, or
         #      - The project is a dependency and the "eager" upgrade strategy
         #        was requested.
-
         def _eligible_for_upgrade(name):
             # type: (str) -> bool
             """Are upgrades allowed for this project?
@@ -121,11 +129,15 @@ class PipProvider(AbstractProvider):
         # Use the "usual" value for now
         return len(candidates)
 
-    def find_matches(self, requirement):
-        # type: (Requirement) -> Sequence[Candidate]
-        constraint = self._constraints.get(requirement.name, SpecifierSet())
-        matches = requirement.find_matches(constraint)
-        return self._sort_matches(matches)
+    def find_matches(self, requirements):
+        # type: (Sequence[Requirement]) -> Iterable[Candidate]
+        if not requirements:
+            return []
+        constraint = self._constraints.get(
+            requirements[0].name, SpecifierSet(),
+        )
+        candidates = self._factory.find_candidates(requirements, constraint)
+        return reversed(self._sort_matches(candidates))
 
     def is_satisfied_by(self, requirement, candidate):
         # type: (Requirement, Candidate) -> bool

@@ -8,6 +8,8 @@ from pip._internal.exceptions import (
     InstallationError,
     UnsupportedPythonVersion,
 )
+from pip._internal.utils.compatibility_tags import get_supported
+from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.misc import (
     dist_in_site_packages,
     dist_in_usersite,
@@ -30,13 +32,24 @@ from .requirements import (
 )
 
 if MYPY_CHECK_RUNNING:
-    from typing import Dict, Iterable, Iterator, Optional, Set, Tuple, TypeVar
+    from typing import (
+        FrozenSet,
+        Dict,
+        Iterable,
+        List,
+        Optional,
+        Sequence,
+        Set,
+        Tuple,
+        TypeVar,
+    )
 
     from pip._vendor.packaging.specifiers import SpecifierSet
     from pip._vendor.packaging.version import _BaseVersion
     from pip._vendor.pkg_resources import Distribution
     from pip._vendor.resolvelib import ResolutionImpossible
 
+    from pip._internal.cache import CacheEntry, WheelCache
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.models.link import Link
     from pip._internal.operations.prepare import RequirementPreparer
@@ -60,6 +73,7 @@ class Factory(object):
         finder,  # type: PackageFinder
         preparer,  # type: RequirementPreparer
         make_install_req,  # type: InstallRequirementProvider
+        wheel_cache,  # type: Optional[WheelCache]
         use_user_site,  # type: bool
         force_reinstall,  # type: bool
         ignore_installed,  # type: bool
@@ -68,8 +82,9 @@ class Factory(object):
     ):
         # type: (...) -> None
 
-        self.finder = finder
+        self._finder = finder
         self.preparer = preparer
+        self._wheel_cache = wheel_cache
         self._python_candidate = RequiresPythonCandidate(py_version_info)
         self._make_install_req_from_spec = make_install_req
         self._use_user_site = use_user_site
@@ -90,45 +105,64 @@ class Factory(object):
     def _make_candidate_from_dist(
         self,
         dist,  # type: Distribution
-        extras,  # type: Set[str]
-        parent,  # type: InstallRequirement
+        extras,  # type: FrozenSet[str]
+        template,  # type: InstallRequirement
     ):
         # type: (...) -> Candidate
-        base = AlreadyInstalledCandidate(dist, parent, factory=self)
+        base = AlreadyInstalledCandidate(dist, template, factory=self)
         if extras:
             return ExtrasCandidate(base, extras)
         return base
 
     def _make_candidate_from_link(
         self,
-        link,          # type: Link
-        extras,        # type: Set[str]
-        parent,        # type: InstallRequirement
-        name=None,     # type: Optional[str]
-        version=None,  # type: Optional[_BaseVersion]
+        link,  # type: Link
+        extras,  # type: FrozenSet[str]
+        template,  # type: InstallRequirement
+        name,  # type: Optional[str]
+        version,  # type: Optional[_BaseVersion]
     ):
         # type: (...) -> Candidate
         # TODO: Check already installed candidate, and use it if the link and
         # editable flag match.
-        if parent.editable:
+        if template.editable:
             if link not in self._editable_candidate_cache:
                 self._editable_candidate_cache[link] = EditableCandidate(
-                    link, parent, factory=self, name=name, version=version,
+                    link, template, factory=self, name=name, version=version,
                 )
             base = self._editable_candidate_cache[link]  # type: BaseCandidate
         else:
             if link not in self._link_candidate_cache:
                 self._link_candidate_cache[link] = LinkCandidate(
-                    link, parent, factory=self, name=name, version=version,
+                    link, template, factory=self, name=name, version=version,
                 )
             base = self._link_candidate_cache[link]
         if extras:
             return ExtrasCandidate(base, extras)
         return base
 
-    def iter_found_candidates(self, ireq, extras):
-        # type: (InstallRequirement, Set[str]) -> Iterator[Candidate]
-        name = canonicalize_name(ireq.req.name)
+    def _iter_found_candidates(
+        self,
+        ireqs,  # type: Sequence[InstallRequirement]
+        specifier,  # type: SpecifierSet
+    ):
+        # type: (...) -> Iterable[Candidate]
+        if not ireqs:
+            return ()
+
+        # The InstallRequirement implementation requires us to give it a
+        # "template". Here we just choose the first requirement to represent
+        # all of them.
+        # Hopefully the Project model can correct this mismatch in the future.
+        template = ireqs[0]
+        name = canonicalize_name(template.req.name)
+
+        hashes = Hashes()
+        extras = frozenset()  # type: FrozenSet[str]
+        for ireq in ireqs:
+            specifier &= ireq.req.specifier
+            hashes |= ireq.hashes(trust_internet=False)
+            extras |= frozenset(ireq.extras)
 
         # We use this to ensure that we only yield a single candidate for
         # each version (the finder's preferred one for that version). The
@@ -144,21 +178,18 @@ class Factory(object):
         if not self._force_reinstall and name in self._installed_dists:
             installed_dist = self._installed_dists[name]
             installed_version = installed_dist.parsed_version
-            if ireq.req.specifier.contains(
-                installed_version,
-                prereleases=True
-            ):
+            if specifier.contains(installed_version, prereleases=True):
                 candidate = self._make_candidate_from_dist(
                     dist=installed_dist,
                     extras=extras,
-                    parent=ireq,
+                    template=template,
                 )
                 candidates[installed_version] = candidate
 
-        found = self.finder.find_best_candidate(
-            project_name=ireq.req.name,
-            specifier=ireq.req.specifier,
-            hashes=ireq.hashes(trust_internet=False),
+        found = self._finder.find_best_candidate(
+            project_name=name,
+            specifier=specifier,
+            hashes=hashes,
         )
         for ican in found.iter_applicable():
             if ican.version == installed_version:
@@ -166,7 +197,7 @@ class Factory(object):
             candidate = self._make_candidate_from_link(
                 link=ican.link,
                 extras=extras,
-                parent=ireq,
+                template=template,
                 name=name,
                 version=ican.version,
             )
@@ -174,17 +205,46 @@ class Factory(object):
 
         return six.itervalues(candidates)
 
+    def find_candidates(self, requirements, constraint):
+        # type: (Sequence[Requirement], SpecifierSet) -> Iterable[Candidate]
+        explicit_candidates = set()  # type: Set[Candidate]
+        ireqs = []  # type: List[InstallRequirement]
+        for req in requirements:
+            cand, ireq = req.get_candidate_lookup()
+            if cand is not None:
+                explicit_candidates.add(cand)
+            if ireq is not None:
+                ireqs.append(ireq)
+
+        # If none of the requirements want an explicit candidate, we can ask
+        # the finder for candidates.
+        if not explicit_candidates:
+            return self._iter_found_candidates(ireqs, constraint)
+
+        if constraint:
+            name = explicit_candidates.pop().name
+            raise InstallationError(
+                "Could not satisfy constraints for {!r}: installation from "
+                "path or url cannot be constrained to a version".format(name)
+            )
+
+        return (
+            c for c in explicit_candidates
+            if all(req.is_satisfied_by(c) for req in requirements)
+        )
+
     def make_requirement_from_install_req(self, ireq):
         # type: (InstallRequirement) -> Requirement
-        if ireq.link:
-            # TODO: Get name and version from ireq, if possible?
-            #       Specifically, this might be needed in "name @ URL"
-            #       syntax - need to check where that syntax is handled.
-            candidate = self._make_candidate_from_link(
-                ireq.link, extras=set(ireq.extras), parent=ireq,
-            )
-            return self.make_requirement_from_candidate(candidate)
-        return SpecifierRequirement(ireq, factory=self)
+        if not ireq.link:
+            return SpecifierRequirement(ireq)
+        cand = self._make_candidate_from_link(
+            ireq.link,
+            extras=frozenset(ireq.extras),
+            template=ireq,
+            name=canonicalize_name(ireq.name) if ireq.name else None,
+            version=None,
+        )
+        return self.make_requirement_from_candidate(cand)
 
     def make_requirement_from_candidate(self, candidate):
         # type: (Candidate) -> ExplicitRequirement
@@ -216,6 +276,24 @@ class Factory(object):
         if self._ignore_requires_python or specifier is None:
             return None
         return RequiresPythonRequirement(specifier, self._python_candidate)
+
+    def get_wheel_cache_entry(self, link, name):
+        # type: (Link, Optional[str]) -> Optional[CacheEntry]
+        """Look up the link in the wheel cache.
+
+        If ``preparer.require_hashes`` is True, don't use the wheel cache,
+        because cached wheels, always built locally, have different hashes
+        than the files downloaded from the index server and thus throw false
+        hash mismatches. Furthermore, cached wheels at present have
+        nondeterministic contents due to file modification times.
+        """
+        if self._wheel_cache is None or self.preparer.require_hashes:
+            return None
+        return self._wheel_cache.get_cache_entry(
+            link=link,
+            package_name=name,
+            supported_tags=get_supported(),
+        )
 
     def should_reinstall(self, candidate):
         # type: (Candidate) -> bool
@@ -250,15 +328,15 @@ class Factory(object):
     def _report_requires_python_error(
         self,
         requirement,  # type: RequiresPythonRequirement
-        parent,  # type: Candidate
+        template,  # type: Candidate
     ):
         # type: (...) -> UnsupportedPythonVersion
-        template = (
+        message_format = (
             "Package {package!r} requires a different Python: "
             "{version} not in {specifier!r}"
         )
-        message = template.format(
-            package=parent.name,
+        message = message_format.format(
+            package=template.name,
             version=self._python_candidate.version,
             specifier=str(requirement.specifier),
         )
