@@ -192,6 +192,7 @@ class Command(CommandContextMixIn):
 
         try:
             status = self.run(options, args)
+            assert isinstance(status, int)
             return status
         except PreviousBuildDirError as exc:
             logger.critical(str(exc))
