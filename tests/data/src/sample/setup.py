@@ -39,7 +39,7 @@ setup(
 
     # Author details
     author='The Python Packaging Authority',
-    author_email='pypa-dev@googlegroups.com',
+    author_email='distutils-sig@python.org',
 
     # Choose your license
     license='MIT',
