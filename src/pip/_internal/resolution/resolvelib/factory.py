@@ -205,6 +205,31 @@ class Factory(object):
 
         return six.itervalues(candidates)
 
+    def _filter_explicit_candidates(
+        self,
+        explicit_candidates,  # type: Set[Candidate]
+        requirements,  # type: Sequence[Requirement]
+    ):
+        # type: (...) -> Iterable[Candidate]
+        for c in explicit_candidates:
+            if not all(req.is_satisfied_by(c) for req in requirements):
+                continue
+            dist = self._installed_dists.get(c.name)
+            if dist:
+                extras = getattr(c, "extras", frozenset())
+                template = c.get_install_requirement()
+                # Does not work because an AlreadyInstalledCandidate
+                # does not satisfy the ExplicitRequirement :-(
+                if template:
+                    # TODO: Can template be None here?
+                    yield self._make_candidate_from_dist(
+                        dist,
+                        extras,
+                        template
+                    )
+            else:
+                yield c
+
     def find_candidates(self, requirements, constraint):
         # type: (Sequence[Requirement], SpecifierSet) -> Iterable[Candidate]
         explicit_candidates = set()  # type: Set[Candidate]
@@ -228,9 +253,9 @@ class Factory(object):
                 "path or url cannot be constrained to a version".format(name)
             )
 
-        return (
-            c for c in explicit_candidates
-            if all(req.is_satisfied_by(c) for req in requirements)
+        return self._filter_explicit_candidates(
+            explicit_candidates,
+            requirements
         )
 
     def make_requirement_from_install_req(self, ireq):
