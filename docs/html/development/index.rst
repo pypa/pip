@@ -8,7 +8,7 @@ testing, and documentation.
 
 You can also join ``#pypa`` (general packaging discussion and user support) and
 ``#pypa-dev`` (discussion about development of packaging tools) `on Freenode`_,
-or the `pypa-dev mailing list`_, to ask questions or get involved.
+or the `distutils-sig mailing list`_, to ask questions or get involved.
 
 .. toctree::
     :maxdepth: 2
@@ -27,4 +27,4 @@ or the `pypa-dev mailing list`_, to ask questions or get involved.
     references might be broken.
 
 .. _`on Freenode`: https://webchat.freenode.net/?channels=%23pypa-dev,pypa
-.. _`pypa-dev mailing list`: https://groups.google.com/forum/#!forum/pypa-dev
+.. _`distutils-sig mailing list`: https://mail.python.org/mailman3/lists/distutils-sig.python.org/
