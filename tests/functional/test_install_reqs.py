@@ -519,7 +519,6 @@ def test_install_unsupported_wheel_link_with_marker(script):
     assert len(result.files_created) == 0
 
 
-@pytest.mark.fails_on_new_resolver
 def test_install_unsupported_wheel_file(script, data):
     # Trying to install a local wheel with an incompatible version/type
     # should fail.
