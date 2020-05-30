@@ -51,7 +51,7 @@ rooms, and mailing lists is expected to follow the `PyPA Code of Conduct`_.
 .. _learn more and take our survey: https://pyfound.blogspot.com/2020/03/new-pip-resolver-to-roll-out-this-year.html
 .. _Issue tracking: https://github.com/pypa/pip/issues
 .. _Discourse channel: https://discuss.python.org/c/packaging
-.. _Development mailing list: https://groups.google.com/forum/#!forum/pypa-dev
+.. _Development mailing list: https://mail.python.org/mailman3/lists/distutils-sig.python.org/
 .. _User IRC: https://webchat.freenode.net/?channels=%23pypa
 .. _Development IRC: https://webchat.freenode.net/?channels=%23pypa-dev
 .. _PyPA Code of Conduct: https://www.pypa.io/en/latest/code-of-conduct/
