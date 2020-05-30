@@ -425,6 +425,7 @@ class InstallCommand(RequirementCommand):
                 )
         except EnvironmentError as error:
             show_traceback = (self.verbosity >= 1)
+
             message = create_env_error_message(
                 error, show_traceback, options.use_user_site,
             )
@@ -432,7 +433,7 @@ class InstallCommand(RequirementCommand):
 
             return ERROR
 
-        if options.target_dir:
+        if options.target_dir and target_temp_dir:
             self._handle_target_dir(
                 options.target_dir, target_temp_dir, options.upgrade
             )
@@ -440,7 +441,7 @@ class InstallCommand(RequirementCommand):
         return SUCCESS
 
     def _handle_target_dir(self, target_dir, target_temp_dir, upgrade):
-        # type: (str, Optional[TempDirectory], bool) -> None
+        # type: (str, TempDirectory, bool) -> None
         ensure_dir(target_dir)
 
         # Checking both purelib and platlib directories for installed
