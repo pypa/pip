@@ -214,7 +214,7 @@ class HashMissing(HashError):
         :param gotten_hash: The hash of the (possibly malicious) archive we
             just downloaded
         """
-        self.gotten_hash = gotten_hash  # type: str
+        self.gotten_hash = gotten_hash
 
     def body(self):
         # type: () -> str
@@ -267,8 +267,8 @@ class HashMismatch(HashError):
         :param gots: A dict of algorithm names pointing to hashes we
             actually got from the files under suspicion
         """
-        self.allowed = allowed  # type: Dict[str, List[str]]
-        self.gots = gots  # type: Dict[str, _Hash]
+        self.allowed = allowed
+        self.gots = gots
 
     def body(self):
         # type: () -> str
