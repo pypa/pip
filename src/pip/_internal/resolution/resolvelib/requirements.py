@@ -36,6 +36,19 @@ class ExplicitRequirement(Requirement):
 
     def is_satisfied_by(self, candidate):
         # type: (Candidate) -> bool
+
+        # Allow an already installed copy of the project with the same
+        # version to satisfy the requirement as well.
+        # TODO: Can we avoid the direct reference to the
+        # candidates module here?
+        from .candidates import AlreadyInstalledCandidate
+        if (
+            isinstance(candidate, AlreadyInstalledCandidate) and
+            candidate.name == self.candidate.name and
+            candidate.version == self.candidate.version
+        ):
+            return True
+
         return candidate == self.candidate
 
 
