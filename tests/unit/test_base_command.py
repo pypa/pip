@@ -30,8 +30,11 @@ class FakeCommand(Command):
 
     def run(self, options, args):
         logging.getLogger("pip.tests").info("fake")
+        # Return SUCCESS from run if run_func is not provided
         if self.run_func:
             return self.run_func()
+        else:
+            return SUCCESS
 
 
 class FakeCommandWithUnicode(FakeCommand):
@@ -159,6 +162,7 @@ def test_base_command_provides_tempdir_helpers():
     def assert_helpers_set(options, args):
         assert temp_dir._tempdir_manager is not None
         assert temp_dir._tempdir_registry is not None
+        return SUCCESS
 
     c = Command("fake", "fake")
     c.run = Mock(side_effect=assert_helpers_set)
@@ -183,6 +187,7 @@ def test_base_command_global_tempdir_cleanup(kind, exists):
     def create_temp_dirs(options, args):
         c.tempdir_registry.set_delete(not_deleted, False)
         Holder.value = TempDirectory(kind=kind, globally_managed=True).path
+        return SUCCESS
 
     c = Command("fake", "fake")
     c.run = Mock(side_effect=create_temp_dirs)
@@ -206,6 +211,7 @@ def test_base_command_local_tempdir_cleanup(kind, exists):
             path = d.path
             assert os.path.exists(path)
         assert os.path.exists(path) == exists
+        return SUCCESS
 
     c = Command("fake", "fake")
     c.run = Mock(side_effect=create_temp_dirs)
