@@ -376,8 +376,8 @@ class InstallCommand(RequirementCommand):
                 deprecated(
                     reason=(
                         "Could not build wheels for {} which do not use "
-                        "PEP 517. pip will fall back to legacy setup.py "
-                        "install for these.".format(
+                        "PEP 517. pip will fall back to legacy 'setup.py "
+                        "install' for these.".format(
                             ", ".join(r.name for r in legacy_build_failures)
                         )
                     ),
