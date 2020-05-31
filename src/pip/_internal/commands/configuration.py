@@ -35,7 +35,7 @@ class ConfigurationCommand(Command):
     - get: Get the value associated with name
     - set: Set the name=value
     - unset: Unset the value associated with name
-    - list-files: List the configuration files
+    - debug: List the configuration files and values defined under them
 
     If none of --user, --global and --site are passed, a virtual
     environment configuration file is used if one is active and the file
@@ -107,7 +107,7 @@ class ConfigurationCommand(Command):
             "get": self.get_name,
             "set": self.set_name_value,
             "unset": self.unset_name,
-            "debug": self.list_config_files,
+            "debug": self.list_config_values,
         }
 
         # Determine action
@@ -193,8 +193,8 @@ class ConfigurationCommand(Command):
 
         self._save_configuration()
 
-    def list_config_files(self, options, args):
-        self._get_n_args(args, "list-files", n=0)
+    def list_config_values(self, options, args):
+        self._get_n_args(args, "debug", n=0)
         for variant, files in sorted(self.configuration.iter_config_files()):
             write_output("%s:", variant)
             for fname in files:

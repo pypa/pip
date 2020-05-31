@@ -1,1 +1,1 @@
-Add a subcommand ``list-files`` to ``pip config`` to list available configuration files and their location
+Add a subcommand ``debug`` to ``pip config`` to list available configuration sources and the key-value pairs defined in them.
