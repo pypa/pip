@@ -1,2 +1,2 @@
-Requirements file options are now extracted from the code instead
-of being maintained manually.
+List of options supported in requirements file are extracted from source of truth,
+instead of being maintained manually.
