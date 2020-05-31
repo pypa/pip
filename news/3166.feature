@@ -1,1 +1,1 @@
-Logs information about pip environment when installing a package.
+Log debugging information about pip, in ``pip install --verbose``.
