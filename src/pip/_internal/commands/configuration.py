@@ -213,7 +213,7 @@ class ConfigurationCommand(Command):
 
     def print_config_file_values(self, variant):
         """Get key-value pairs from the file of a variant"""
-        for name, value in self.configuration. \
+        for name, value in self.configuration.\
                 get_values_in_config(variant).items():
             with indent_log():
                 write_output("%s: %s", name, value)
@@ -222,7 +222,7 @@ class ConfigurationCommand(Command):
         """Get key-values pairs present as environment variables"""
         write_output("%s:", 'env_var')
         with indent_log():
-            for key, value in self.configuration.get_environ_vars():
+            for key, value in sorted(self.configuration.get_environ_vars()):
                 env_var = 'PIP_{}'.format(key.upper())
                 write_output("%s=%r", env_var, value)
 
