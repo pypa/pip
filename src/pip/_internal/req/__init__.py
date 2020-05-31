@@ -1,6 +1,8 @@
 import collections
 import logging
 from typing import Iterator, List, Optional, Sequence, Tuple
+import sys
+from functools import partial
 
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -10,9 +12,9 @@ from .req_install import InstallRequirement
 from .req_set import RequirementSet
 
 try:
-    from multiprocessing.pool import Pool
+    from multiprocessing.pool import Pool  # noqa
 except ImportError:  # Platform-specific: No multiprocessing available
-    Pool = None
+    Pool = None   # type: ignore
 
 __all__ = [
     "RequirementSet", "InstallRequirement",
@@ -67,65 +69,110 @@ def install_given_reqs(
         )
 
     # pre allocate installed package names
-    installed = [None] * len(to_install)
-    install_args = [install_options, global_options, dict(
-    	root=root, home=home, prefix=prefix, warn_script_location=warn_script_location,
-    	use_user_site=use_user_site, pycompile=pycompile)]
+    installed = [None] * len(
+        to_install
+    )  # type: List[Union[None, InstallationResult, BaseException]]
 
-    if Pool is not None:
-        # first let's try to install in parallel, if we fail we do it by order.
+    install_args = [install_options, global_options, dict(
+        root=root, home=home, prefix=prefix,
+        warn_script_location=warn_script_location,
+        use_user_site=use_user_site, pycompile=pycompile)]
+
+    with indent_log():
+        # first try to install in parallel
+        installed_pool = __safe_pool_map(
+            partial(__single_install, install_args, in_subprocess=True),
+            to_install)
+        if installed_pool:
+            installed = installed_pool
+
+        for i, requirement in enumerate(to_install):
+            if installed[i] is None:
+                installed[i] = __single_install(
+                    install_args, requirement, in_subprocess=False)
+            elif isinstance(installed[i], BaseException):
+                raise installed[i]   # type: ignore
+
+    return [i for i in installed if isinstance(i, InstallationResult)]
+
+
+def __safe_pool_map(
+        func,               # type: Callable[[Any], Any]
+        iterable,           # type: Iterable[Any]
+):
+    # type: (...) -> Optional[List[Any]]
+    """
+    Safe call to Pool map, if Pool is not available return None
+    """
+    # Disable multiprocessing on Windows python 2.7
+    if sys.platform == 'win32' and sys.version_info.major == 2:
+        return None
+
+    if not iterable or Pool is None:
+        return None
+
+    # first let's try to install in parallel,
+    # if we fail we do it by order.
+    try:
+        # Pool context would have been nice, but not supported on Python 2.7
+        # Once officially dropped, switch to context to avoid close/join calls
         pool = Pool()
+    except ImportError:
+        return [func(i) for i in iterable]
+    else:
         try:
-            pool_result = pool.starmap_async(__single_install, [(install_args, r) for r in to_install])
             # python 2.7 timeout=None will not catch KeyboardInterrupt
-            installed = pool_result.get(timeout=999999)
+            results = pool.map_async(func, iterable).get(timeout=999999)
         except (KeyboardInterrupt, SystemExit):
             pool.terminate()
             raise
-        except Exception:
-            # we will reinstall sequentially
-            pass
-        pool.close()
-        pool.join()
-
-    with indent_log():
-        for i, requirement in enumerate(to_install):
-            if installed[i] is None:
-                installed[i] = __single_install(install_args, requirement, allow_raise=True)
-
-    return [i for i in installed if i is not None]
+        else:
+            pool.close()
+            pool.join()
+            return results
 
 
-def __single_install(args, a_requirement, allow_raise=False):
-    if a_requirement.should_reinstall:
-        logger.info('Attempting uninstall: %s', a_requirement.name)
+def __single_install(
+        install_args,           # type: List[Any]
+        requirement,            # type: InstallRequirement
+        in_subprocess=False,    # type: bool
+):
+    # type: (...) -> Union[None, InstallationResult, BaseException]
+    """
+    Install a single requirement, returns InstallationResult
+    (to be called per requirement, either in parallel or serially)
+    """
+    if (in_subprocess and
+            (requirement.should_reinstall or not requirement.is_wheel)):
+        return None
+
+    if requirement.should_reinstall:
+        logger.info('Attempting uninstall: %s', requirement.name)
         with indent_log():
-            uninstalled_pathset = a_requirement.uninstall(
+            uninstalled_pathset = requirement.uninstall(
                 auto_confirm=True
             )
     try:
-        a_requirement.install(
-            args[0],   # install_options,
-            args[1],   # global_options,
-            **args[2]  # **kwargs
+        requirement.install(
+            install_args[0],   # install_options,
+            install_args[1],   # global_options,
+            **install_args[2]  # **kwargs
         )
-    except Exception:
-        should_rollback = (
-                a_requirement.should_reinstall and
-                not a_requirement.install_succeeded
-        )
+    except (KeyboardInterrupt, SystemExit):
+        # always raise, we catch it in external loop
+        raise
+    except BaseException as ex:
+        should_rollback = (requirement.should_reinstall and
+                           not requirement.install_succeeded)
         # if install did not succeed, rollback previous uninstall
         if should_rollback:
             uninstalled_pathset.rollback()
-        if allow_raise:
-            raise
-    else:
-        should_commit = (
-                a_requirement.should_reinstall and
-                a_requirement.install_succeeded
-        )
-        if should_commit:
-            uninstalled_pathset.commit()
-        return InstallationResult(a_requirement.name)
+        if in_subprocess:
+            return ex
+        raise
 
-    return None
+    should_commit = (requirement.should_reinstall and
+                     requirement.install_succeeded)
+    if should_commit:
+        uninstalled_pathset.commit()
+    return InstallationResult(requirement.name)
