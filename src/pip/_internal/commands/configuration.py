@@ -172,6 +172,7 @@ class ConfigurationCommand(Command):
 
     def list_values(self, options, args):
         self._get_n_args(args, "list", n=0)
+
         for key, value in sorted(self.configuration.items()):
             write_output("%s=%r", key, value)
 
@@ -194,22 +195,36 @@ class ConfigurationCommand(Command):
         self._save_configuration()
 
     def list_config_values(self, options, args):
+        """List config key-value pairs across different config files"""
         self._get_n_args(args, "debug", n=0)
+
+        self.print_env_var_values()
+        # Iterate over config files and print if they exist, and the
+        # key-value pairs present in them if they do
         for variant, files in sorted(self.configuration.iter_config_files()):
             write_output("%s:", variant)
             for fname in files:
                 with indent_log():
                     file_exists = os.path.exists(fname)
-                    write_output("%s, exists: %r ",
+                    write_output("%s, exists: %r",
                                  fname, file_exists)
                     if file_exists:
                         self.print_config_file_values(variant)
 
     def print_config_file_values(self, variant):
+        """Get key-value pairs from the file of a variant"""
         for name, value in self.configuration. \
                 get_values_in_config(variant).items():
             with indent_log():
-                write_output("%s: %s ", name, value)
+                write_output("%s: %s", name, value)
+
+    def print_env_var_values(self):
+        """Get key-values pairs present as environment variables"""
+        write_output("%s:", 'env_var')
+        with indent_log():
+            for key, value in self.configuration.get_environ_vars():
+                env_var = 'PIP_{}'.format(key.upper())
+                write_output("%s=%r", env_var, value)
 
     def open_in_editor(self, options, args):
         editor = self._determine_editor(options)

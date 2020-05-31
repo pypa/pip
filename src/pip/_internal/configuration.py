@@ -342,7 +342,7 @@ class Configuration(object):
         """Loads configuration from environment variables
         """
         self._config[kinds.ENV_VAR].update(
-            self._normalized_keys(":env:", self._get_environ_vars())
+            self._normalized_keys(":env:", self.get_environ_vars())
         )
 
     def _normalized_keys(self, section, items):
@@ -358,7 +358,7 @@ class Configuration(object):
             normalized[key] = val
         return normalized
 
-    def _get_environ_vars(self):
+    def get_environ_vars(self):
         # type: () -> Iterable[Tuple[str, str]]
         """Returns a generator with all environmental vars with prefix PIP_"""
         for key, val in os.environ.items():
