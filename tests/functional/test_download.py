@@ -55,9 +55,7 @@ def test_download_wheel(script, data):
         '-f', data.packages,
         '-d', '.', 'meta'
     )
-    result.did_create(
-        Path('scratch') / 'meta-1.0-py2.py3-none-any.whl'
-    )
+    result.did_create(Path('scratch') / 'meta-1.0-py2.py3-none-any.whl')
     result.did_not_create(script.site_packages / 'piptestpackage')
 
 
@@ -73,9 +71,7 @@ def test_single_download_from_requirements_file(script):
     result = script.pip(
         'download', '-r', script.scratch_path / 'test-req.txt', '-d', '.',
     )
-    result.did_create(
-        Path('scratch') / 'INITools-0.1.tar.gz'
-    )
+    result.did_create(Path('scratch') / 'INITools-0.1.tar.gz')
     result.did_not_create(script.site_packages / 'initools')
 
 
@@ -87,9 +83,7 @@ def test_basic_download_should_download_dependencies(script):
     result = script.pip(
         'download', 'Paste[openid]==1.7.5.1', '-d', '.'
     )
-    result.did_create(
-        Path('scratch') / 'Paste-1.7.5.1.tar.gz'
-    )
+    result.did_create(Path('scratch') / 'Paste-1.7.5.1.tar.gz')
     openid_tarball_prefix = str(Path('scratch') / 'python-openid-')
     assert any(
         path.startswith(openid_tarball_prefix) for path in result.files_created
@@ -107,9 +101,7 @@ def test_download_wheel_archive(script, data):
         'download', wheel_path,
         '-d', '.', '--no-deps'
     )
-    result.did_create(
-        Path('scratch') / wheel_filename
-    )
+    result.did_create(Path('scratch') / wheel_filename)
 
 
 def test_download_should_download_wheel_deps(script, data):
@@ -123,12 +115,8 @@ def test_download_should_download_wheel_deps(script, data):
         'download', wheel_path,
         '-d', '.', '--find-links', data.find_links, '--no-index'
     )
-    result.did_create(
-        Path('scratch') / wheel_filename
-    )
-    result.did_create(
-        Path('scratch') / dep_filename
-    )
+    result.did_create(Path('scratch') / wheel_filename)
+    result.did_create(Path('scratch') / dep_filename)
 
 
 @pytest.mark.network
@@ -143,9 +131,7 @@ def test_download_should_skip_existing_files(script):
     result = script.pip(
         'download', '-r', script.scratch_path / 'test-req.txt', '-d', '.',
     )
-    result.did_create(
-        Path('scratch') / 'INITools-0.1.tar.gz'
-    )
+    result.did_create(Path('scratch') / 'INITools-0.1.tar.gz')
     result.did_not_create(script.site_packages / 'initools')
 
     # adding second package to test-req.txt
@@ -162,9 +148,7 @@ def test_download_should_skip_existing_files(script):
     assert any(
         path.startswith(openid_tarball_prefix) for path in result.files_created
     )
-    result.did_not_create(
-        Path('scratch') / 'INITools-0.1.tar.gz'
-    )
+    result.did_not_create(Path('scratch') / 'INITools-0.1.tar.gz')
     result.did_not_create(script.site_packages / 'initools')
     result.did_not_create(script.site_packages / 'openid')
 
@@ -177,9 +161,7 @@ def test_download_vcs_link(script):
     result = script.pip(
         'download', '-d', '.', 'git+git://github.com/pypa/pip-test-package.git'
     )
-    result.did_create(
-        Path('scratch') / 'pip-test-package-0.1.1.zip'
-    )
+    result.did_create(Path('scratch') / 'pip-test-package-0.1.1.zip')
     result.did_not_create(script.site_packages / 'piptestpackage')
 
 
@@ -197,9 +179,7 @@ def test_only_binary_set_then_download_specific_platform(script, data):
         '--platform', 'linux_x86_64',
         'fake'
     )
-    result.did_create(
-        Path('scratch') / 'fake-1.0-py2.py3-none-any.whl'
-    )
+    result.did_create(Path('scratch') / 'fake-1.0-py2.py3-none-any.whl')
 
 
 def test_no_deps_set_then_download_specific_platform(script, data):
@@ -216,9 +196,7 @@ def test_no_deps_set_then_download_specific_platform(script, data):
         '--platform', 'linux_x86_64',
         'fake'
     )
-    result.did_create(
-        Path('scratch') / 'fake-1.0-py2.py3-none-any.whl'
-    )
+    result.did_create(Path('scratch') / 'fake-1.0-py2.py3-none-any.whl')
 
 
 def test_download_specific_platform_fails(script, data):
@@ -273,9 +251,7 @@ def test_download_specify_platform(script, data):
         '--platform', 'linux_x86_64',
         'fake'
     )
-    result.did_create(
-        Path('scratch') / 'fake-1.0-py2.py3-none-any.whl'
-    )
+    result.did_create(Path('scratch') / 'fake-1.0-py2.py3-none-any.whl')
 
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
@@ -357,9 +333,7 @@ class TestDownloadPlatformManylinuxes(object):
             '--platform', platform,
             'fake',
         )
-        result.did_create(
-            Path('scratch') / 'fake-1.0-py2.py3-none-any.whl'
-        )
+        result.did_create(Path('scratch') / 'fake-1.0-py2.py3-none-any.whl')
 
     @pytest.mark.parametrize("wheel_abi,platform", [
         ("manylinux1_x86_64", "manylinux1_x86_64"),
@@ -384,9 +358,7 @@ class TestDownloadPlatformManylinuxes(object):
             '--platform', platform,
             'fake',
         )
-        result.did_create(
-            Path('scratch') / wheel
-        )
+        result.did_create(Path('scratch') / wheel)
 
     def test_explicit_platform_only(self, data, script):
         """
@@ -417,9 +389,7 @@ def test_download__python_version(script, data):
         '--python-version', '2',
         'fake'
     )
-    result.did_create(
-        Path('scratch') / 'fake-1.0-py2.py3-none-any.whl'
-    )
+    result.did_create(Path('scratch') / 'fake-1.0-py2.py3-none-any.whl')
 
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
@@ -466,9 +436,7 @@ def test_download__python_version(script, data):
         '--python-version', '2',
         'fake'
     )
-    result.did_create(
-        Path('scratch') / 'fake-1.0-py2-none-any.whl'
-    )
+    result.did_create(Path('scratch') / 'fake-1.0-py2-none-any.whl')
 
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
@@ -485,9 +453,7 @@ def test_download__python_version(script, data):
         '--python-version', '3',
         'fake'
     )
-    result.did_create(
-        Path('scratch') / 'fake-2.0-py3-none-any.whl'
-    )
+    result.did_create(Path('scratch') / 'fake-2.0-py3-none-any.whl')
 
 
 def make_wheel_with_python_requires(script, package_name, python_requires):
@@ -561,9 +527,7 @@ def test_download_specify_abi(script, data):
         '--abi', 'fake_abi',
         'fake'
     )
-    result.did_create(
-        Path('scratch') / 'fake-1.0-py2.py3-none-any.whl'
-    )
+    result.did_create(Path('scratch') / 'fake-1.0-py2.py3-none-any.whl')
 
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
@@ -623,9 +587,7 @@ def test_download_specify_implementation(script, data):
         '--implementation', 'fk',
         'fake'
     )
-    result.did_create(
-        Path('scratch') / 'fake-1.0-py2.py3-none-any.whl'
-    )
+    result.did_create(Path('scratch') / 'fake-1.0-py2.py3-none-any.whl')
 
     data.reset()
     fake_wheel(data, 'fake-1.0-fk3-none-any.whl')
@@ -637,9 +599,7 @@ def test_download_specify_implementation(script, data):
         '--python-version', '3',
         'fake'
     )
-    result.did_create(
-        Path('scratch') / 'fake-1.0-fk3-none-any.whl'
-    )
+    result.did_create(Path('scratch') / 'fake-1.0-fk3-none-any.whl')
 
     result = script.pip(
         'download', '--no-index', '--find-links', data.find_links,
@@ -680,12 +640,8 @@ def test_download_prefer_binary_when_tarball_higher_than_wheel(script, data):
         '-f', data.packages,
         '-d', '.', 'source'
     )
-    result.did_create(
-        Path('scratch') / 'source-0.8-py2.py3-none-any.whl'
-    )
-    result.did_not_create(
-        Path('scratch') / 'source-1.0.tar.gz'
-    )
+    result.did_create(Path('scratch') / 'source-0.8-py2.py3-none-any.whl')
+    result.did_not_create(Path('scratch') / 'source-1.0.tar.gz')
 
 
 def test_prefer_binary_tarball_higher_than_wheel_req_file(script, data):
@@ -702,12 +658,8 @@ def test_prefer_binary_tarball_higher_than_wheel_req_file(script, data):
         '-d', '.'
     )
 
-    result.did_create(
-        Path('scratch') / 'source-0.8-py2.py3-none-any.whl'
-    )
-    result.did_not_create(
-        Path('scratch') / 'source-1.0.tar.gz'
-    )
+    result.did_create(Path('scratch') / 'source-0.8-py2.py3-none-any.whl')
+    result.did_not_create(Path('scratch') / 'source-1.0.tar.gz')
 
 
 def test_download_prefer_binary_when_wheel_doesnt_satisfy_req(script, data):
@@ -724,12 +676,8 @@ def test_download_prefer_binary_when_wheel_doesnt_satisfy_req(script, data):
         '-d', '.',
         '-r', script.scratch_path / 'test-req.txt'
     )
-    result.did_create(
-        Path('scratch') / 'source-1.0.tar.gz'
-    )
-    result.did_not_create(
-        Path('scratch') / 'source-0.8-py2.py3-none-any.whl'
-    )
+    result.did_create(Path('scratch') / 'source-1.0.tar.gz')
+    result.did_not_create(Path('scratch') / 'source-0.8-py2.py3-none-any.whl')
 
 
 def test_prefer_binary_when_wheel_doesnt_satisfy_req_req_file(script, data):
@@ -746,12 +694,8 @@ def test_prefer_binary_when_wheel_doesnt_satisfy_req_req_file(script, data):
         '-d', '.',
         '-r', script.scratch_path / 'test-req.txt'
     )
-    result.did_create(
-        Path('scratch') / 'source-1.0.tar.gz'
-    )
-    result.did_not_create(
-        Path('scratch') / 'source-0.8-py2.py3-none-any.whl'
-    )
+    result.did_create(Path('scratch') / 'source-1.0.tar.gz')
+    result.did_not_create(Path('scratch') / 'source-0.8-py2.py3-none-any.whl')
 
 
 def test_download_prefer_binary_when_only_tarball_exists(script, data):
@@ -762,9 +706,7 @@ def test_download_prefer_binary_when_only_tarball_exists(script, data):
         '-f', data.packages,
         '-d', '.', 'source'
     )
-    result.did_create(
-        Path('scratch') / 'source-1.0.tar.gz'
-    )
+    result.did_create(Path('scratch') / 'source-1.0.tar.gz')
 
 
 def test_prefer_binary_when_only_tarball_exists_req_file(script, data):
@@ -779,9 +721,7 @@ def test_prefer_binary_when_only_tarball_exists_req_file(script, data):
         '-d', '.',
         '-r', script.scratch_path / 'test-req.txt'
     )
-    result.did_create(
-        Path('scratch') / 'source-1.0.tar.gz'
-    )
+    result.did_create(Path('scratch') / 'source-1.0.tar.gz')
 
 
 @pytest.fixture(scope="session")
