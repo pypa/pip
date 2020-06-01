@@ -1,0 +1,4 @@
+Deprecate -b/--build/--build-dir/--build-directory. Its current behaviour is confusing
+and breaks in case different versions of the same distribution need to be built during
+the resolution process. Using the TMPDIR/TEMP/TMP environment variable, possibly
+combined with --no-clean covers known use cases.
