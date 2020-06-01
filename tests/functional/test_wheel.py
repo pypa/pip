@@ -201,6 +201,9 @@ def test_no_clean_option_blocks_cleaning_after_wheel(script, data):
         '--find-links={data.find_links}'.format(**locals()),
         'simple',
         expect_temp=True,
+        # TODO: allow_stderr_warning is used for the --build deprecation,
+        #       remove it when removing support for --build
+        allow_stderr_warning=True,
     )
     build = build / 'simple'
     assert exists(build), \
