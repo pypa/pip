@@ -141,8 +141,7 @@ def check_error(error, result):
         raise "string or list expected, found %r" % stderr
 
     for patter in patters:
-        pat = re.compile(patter, re.I)
-        match = pat.search(result.stderr)
+        match = re.search(patter, result.stderr)
         assert match, 'regex %r not found in stderr: %r' % (
             stderr, result.stderr)
 
