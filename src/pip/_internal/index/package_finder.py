@@ -659,6 +659,11 @@ class PackageFinder(object):
         )
 
     @property
+    def target_python(self):
+        # type: () -> TargetPython
+        return self._target_python
+
+    @property
     def search_scope(self):
         # type: () -> SearchScope
         return self._link_collector.search_scope
