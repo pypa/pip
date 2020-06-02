@@ -5,6 +5,7 @@ import pytest
 
 from tests.lib import (
     _create_test_package_with_subdirectory,
+    create_basic_wheel_for_package,
     need_svn,
     path_to_url,
     pyversion,
@@ -412,14 +413,19 @@ def test_install_with_extras_from_constraints(script, data):
     result.did_create(script.site_packages / 'simple')
 
 
-@pytest.mark.fails_on_new_resolver
-def test_install_with_extras_from_install(script, data):
-    to_install = data.packages.joinpath("LocalExtras")
-    script.scratch_path.joinpath("constraints.txt").write_text(
-        "{url}#egg=LocalExtras".format(url=path_to_url(to_install))
+def test_install_with_extras_from_install(script):
+    create_basic_wheel_for_package(
+        script,
+        name="LocalExtras",
+        version="0.0.1",
+        extras={"bar": "simple", "baz": ["singlemodule"]},
     )
+    script.scratch_path.joinpath("constraints.txt").write_text("LocalExtras")
     result = script.pip_install_local(
-        '-c', script.scratch_path / 'constraints.txt', 'LocalExtras[baz]')
+        '--find-links', script.scratch_path,
+        '-c', script.scratch_path / 'constraints.txt',
+        'LocalExtras[baz]',
+    )
     result.did_create(script.site_packages / 'singlemodule.py')
 
 
