@@ -147,4 +147,4 @@ class PipProvider(AbstractProvider):
         # type: (Candidate) -> Sequence[Requirement]
         if self._ignore_dependencies:
             return []
-        return list(candidate.iter_dependencies())
+        return [r for r in candidate.iter_dependencies() if r is not None]

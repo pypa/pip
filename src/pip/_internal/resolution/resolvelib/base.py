@@ -55,7 +55,7 @@ class Candidate(object):
         raise NotImplementedError("Override in subclass")
 
     def iter_dependencies(self):
-        # type: () -> Iterable[Requirement]
+        # type: () -> Iterable[Optional[Requirement]]
         raise NotImplementedError("Override in subclass")
 
     def get_install_requirement(self):
