@@ -95,7 +95,7 @@ def is_within_directory(directory, target):
     return prefix == abs_directory
 
 
-def set_file_modes(path):
+def set_extracted_file_to_default_mode_plus_executable(path):
     # type: (Union[str, Text]) -> None
     """
     Make file present at path have execute for user/group/world
@@ -149,7 +149,7 @@ def unzip_file(filename, location, flatten=True):
                     # if mode and regular file and any execute permissions for
                     # user/group/world?
                     if mode and stat.S_ISREG(mode) and mode & 0o111:
-                        set_file_modes(fn)
+                        set_extracted_file_to_default_mode_plus_executable(fn)
     finally:
         zipfp.close()
 
@@ -232,7 +232,7 @@ def untar_file(filename, location):
                 tar.utime(member, path)  # type: ignore
                 # member have any execute permissions for user/group/world?
                 if member.mode & 0o111:
-                    set_file_modes(path)
+                    set_extracted_file_to_default_mode_plus_executable(path)
     finally:
         tar.close()
 
