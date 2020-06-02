@@ -95,6 +95,15 @@ def is_within_directory(directory, target):
     return prefix == abs_directory
 
 
+def set_file_modes(path):
+    # type: (Union[str, Text]) -> None
+    """
+    Make file present at path have execute for user/group/world
+    (chmod +x) is no-op on windows per python docs
+    """
+    os.chmod(path, (0o777 & ~current_umask() | 0o111))
+
+
 def unzip_file(filename, location, flatten=True):
     # type: (str, str, bool) -> None
     """
@@ -140,9 +149,7 @@ def unzip_file(filename, location, flatten=True):
                     # if mode and regular file and any execute permissions for
                     # user/group/world?
                     if mode and stat.S_ISREG(mode) and mode & 0o111:
-                        # make dest file have execute for user/group/world
-                        # (chmod +x) no-op on windows per python docs
-                        os.chmod(fn, (0o777 - current_umask() | 0o111))
+                        set_file_modes(fn)
     finally:
         zipfp.close()
 
@@ -225,9 +232,7 @@ def untar_file(filename, location):
                 tar.utime(member, path)  # type: ignore
                 # member have any execute permissions for user/group/world?
                 if member.mode & 0o111:
-                    # make dest file have execute for user/group/world
-                    # no-op on windows per python docs
-                    os.chmod(path, (0o777 - current_umask() | 0o111))
+                    set_file_modes(path)
     finally:
         tar.close()
 
