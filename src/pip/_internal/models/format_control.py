@@ -29,7 +29,7 @@ class FormatControl(object):
         # type: (object) -> bool
         if not isinstance(other, self.__class__):
             return NotImplemented
-            
+
         if self.__slots__ != other.__slots__:
             return NotImplemented
 
