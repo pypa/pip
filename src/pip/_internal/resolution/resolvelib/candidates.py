@@ -5,6 +5,7 @@ from pip._vendor.packaging.specifiers import InvalidSpecifier, SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
 
+from pip._internal.exceptions import MetadataInconsistent
 from pip._internal.req.constructors import (
     install_req_from_editable,
     install_req_from_line,
@@ -175,26 +176,18 @@ class _InstallRequirementBackedCandidate(Candidate):
         self._dist = abstract_dist.get_pkg_resources_distribution()
         assert self._dist is not None, "Distribution already installed"
 
-        # TODO: Abort cleanly here, as the resolution has been
-        #       based on the wrong name/version until now, and
-        #       so is wrong.
         # TODO: (Longer term) Rather than abort, reject this candidate
         #       and backtrack. This would need resolvelib support.
-        # These should be "proper" errors, not just asserts, as they
-        # can result from user errors like a requirement "foo @ URL"
-        # when the project at URL has a name of "bar" in its metadata.
-        assert (
-            self._name is None or
-            self._name == canonicalize_name(self._dist.project_name)
-        ), "Name mismatch: {!r} vs {!r}".format(
-            self._name, canonicalize_name(self._dist.project_name),
-        )
-        assert (
-            self._version is None or
-            self._version == self._dist.parsed_version
-        ), "Version mismatch: {!r} vs {!r}".format(
-            self._version, self._dist.parsed_version,
-        )
+        name = canonicalize_name(self._dist.project_name)
+        if self._name is not None and self._name != name:
+            raise MetadataInconsistent(
+                self._ireq, "name", self._dist.project_name,
+            )
+        version = self._dist.parsed_version
+        if self._version is not None and self._version != version:
+            raise MetadataInconsistent(
+                self._ireq, "version", self._dist.version,
+            )
 
     @property
     def dist(self):
