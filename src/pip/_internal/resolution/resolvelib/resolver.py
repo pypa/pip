@@ -106,8 +106,6 @@ class Resolver(BaseResolver):
         user_requested = set()  # type: Set[str]
         requirements = []
         for req in root_reqs:
-            if not req.match_markers():
-                continue
             if req.constraint:
                 # Ensure we only accept valid constraints
                 reject_invalid_constraint_types(req)
@@ -120,9 +118,11 @@ class Resolver(BaseResolver):
             else:
                 if req.is_direct and req.name:
                     user_requested.add(canonicalize_name(req.name))
-                requirements.append(
-                    self.factory.make_requirement_from_install_req(req)
+                r = self.factory.make_requirement_from_install_req(
+                    req, requested_extras=(),
                 )
+                if r is not None:
+                    requirements.append(r)
 
         provider = PipProvider(
             factory=self.factory,
