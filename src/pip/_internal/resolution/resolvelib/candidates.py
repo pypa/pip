@@ -57,8 +57,8 @@ def make_install_req_from_link(link, template):
             hashes=template.hash_options
         ),
     )
-    if ireq.link is None:
-        ireq.link = link
+    ireq.original_link = template.original_link
+    ireq.link = link
     return ireq
 
 
