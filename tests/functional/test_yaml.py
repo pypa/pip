@@ -197,4 +197,7 @@ def test_yaml_based(script, case):
 
         error = response.get('error')
         if error and case[":resolver:"] == 'new' and sys.platform != 'win32':
+            # Note: we currently skip running these tests on Windows, as they
+            # were failing due to different error codes.  There should not
+            # be a reason for not running these this check on Windows.
             check_error(error, result)
