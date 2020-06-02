@@ -19,7 +19,6 @@ from pip._internal.cli.parser import (
 from pip._internal.cli.status_codes import (
     ERROR,
     PREVIOUS_BUILD_DIR_ERROR,
-    SUCCESS,
     UNKNOWN_ERROR,
     VIRTUALENV_NOT_FOUND,
 )
@@ -106,7 +105,7 @@ class Command(CommandContextMixIn):
         assert not hasattr(options, 'no_index')
 
     def run(self, options, args):
-        # type: (Values, List[Any]) -> Any
+        # type: (Values, List[Any]) -> int
         raise NotImplementedError
 
     def parse_args(self, args):
@@ -193,10 +192,8 @@ class Command(CommandContextMixIn):
 
         try:
             status = self.run(options, args)
-            # FIXME: all commands should return an exit status
-            # and when it is done, isinstance is not needed anymore
-            if isinstance(status, int):
-                return status
+            assert isinstance(status, int)
+            return status
         except PreviousBuildDirError as exc:
             logger.critical(str(exc))
             logger.debug('Exception information:', exc_info=True)
@@ -232,5 +229,3 @@ class Command(CommandContextMixIn):
             return UNKNOWN_ERROR
         finally:
             self.handle_pip_version_check(options)
-
-        return SUCCESS
