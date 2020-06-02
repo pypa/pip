@@ -256,12 +256,7 @@ class Factory(object):
         # type: (Candidate) -> ExplicitRequirement
         return ExplicitRequirement(candidate)
 
-    def make_requirement_from_spec(self, specifier, comes_from):
-        # type: (str, InstallRequirement) -> Requirement
-        ireq = self._make_install_req_from_spec(specifier, comes_from)
-        return self.make_requirement_from_install_req(ireq, ())
-
-    def make_requirement_from_spec_matching_extras(
+    def make_requirement_from_spec(
         self,
         specifier,  # type: str
         comes_from,  # type: InstallRequirement

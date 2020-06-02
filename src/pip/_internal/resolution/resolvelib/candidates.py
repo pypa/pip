@@ -445,7 +445,7 @@ class ExtrasCandidate(Candidate):
         yield factory.make_requirement_from_candidate(self.base)
 
         for r in self.base.dist.requires(valid_extras):
-            requirement = factory.make_requirement_from_spec_matching_extras(
+            requirement = factory.make_requirement_from_spec(
                 str(r), self.base._ireq, valid_extras,
             )
             if requirement:
