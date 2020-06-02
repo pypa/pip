@@ -27,14 +27,16 @@ class FormatControl(object):
 
     def __eq__(self, other):
         # type: (object) -> bool
-        if isinstance(other, self.__class__):
-            if self.__slots__ == other.__slots__:
-                attr_getters = [operator.attrgetter(attr)
-                                for attr in self.__slots__]
-                return all(getter(self) == getter(other)
-                           for getter in attr_getters)
+        if not isinstance(other, self.__class__):
+            return NotImplemented
+            
+        if self.__slots__ != other.__slots__:
+            return NotImplemented
 
-        return False
+        return all(
+            getattr(self, k) == getattr(other, k)
+            for k in self.__slots__
+        )
 
     def __ne__(self, other):
         # type: (object) -> bool
