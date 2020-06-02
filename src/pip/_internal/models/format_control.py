@@ -26,10 +26,10 @@ class FormatControl(object):
     def __eq__(self, other):
         # type: (object) -> bool
         if not isinstance(other, self.__class__):
-            return NotImplemented
+            return False
 
         if self.__slots__ != other.__slots__:
-            return NotImplemented
+            return False
 
         return all(
             getattr(self, k) == getattr(other, k)
