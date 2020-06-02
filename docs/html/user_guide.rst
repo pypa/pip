@@ -455,7 +455,6 @@ which can be written on multiple lines:
         http://mirror1.example.com
         http://mirror2.example.com
 
-    [install]
     trusted-host =
         http://mirror1.example.com
         http://mirror2.example.com
