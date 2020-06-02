@@ -59,7 +59,6 @@ def make_install_req_from_link(link, template):
     )
     if ireq.link is None:
         ireq.link = link
-    # TODO: Handle wheel cache resolution.
     return ireq
 
 
