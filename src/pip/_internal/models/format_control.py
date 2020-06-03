@@ -26,7 +26,7 @@ class FormatControl(object):
     def __eq__(self, other):
         # type: (object) -> bool
         if not isinstance(other, self.__class__):
-            return False
+            return NotImplemented
 
         if self.__slots__ != other.__slots__:
             return False
