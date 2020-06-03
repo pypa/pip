@@ -12,6 +12,8 @@ class InstallationCandidate(KeyBasedCompareMixin):
     """Represents a potential "candidate" for installation.
     """
 
+    __slots__ = ["name", "version", "link"]
+
     def __init__(self, name, version, link):
         # type: (str, str, Link) -> None
         self.name = name

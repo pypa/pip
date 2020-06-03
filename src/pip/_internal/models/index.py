@@ -5,6 +5,9 @@ class PackageIndex(object):
     """Represents a Package Index and provides easier access to endpoints
     """
 
+    __slots__ = ['url', 'netloc', 'simple_url', 'pypi_url',
+                 'file_storage_domain']
+
     def __init__(self, url, file_storage_domain):
         # type: (str, str) -> None
         super(PackageIndex, self).__init__()

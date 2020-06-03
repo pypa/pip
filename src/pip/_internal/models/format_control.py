@@ -11,6 +11,8 @@ class FormatControl(object):
     """Helper for managing formats from which a package can be installed.
     """
 
+    __slots__ = ["no_binary", "only_binary"]
+
     def __init__(self, no_binary=None, only_binary=None):
         # type: (Optional[Set[str]], Optional[Set[str]]) -> None
         if no_binary is None:
@@ -23,7 +25,16 @@ class FormatControl(object):
 
     def __eq__(self, other):
         # type: (object) -> bool
-        return self.__dict__ == other.__dict__
+        if not isinstance(other, self.__class__):
+            return NotImplemented
+
+        if self.__slots__ != other.__slots__:
+            return False
+
+        return all(
+            getattr(self, k) == getattr(other, k)
+            for k in self.__slots__
+        )
 
     def __ne__(self, other):
         # type: (object) -> bool

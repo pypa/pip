@@ -20,6 +20,16 @@ class TargetPython(object):
     for a package install, download, etc.
     """
 
+    __slots__ = [
+        "_given_py_version_info",
+        "abi",
+        "implementation",
+        "platform",
+        "py_version",
+        "py_version_info",
+        "_valid_tags",
+    ]
+
     def __init__(
         self,
         platform=None,  # type: Optional[str]
