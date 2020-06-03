@@ -9,11 +9,14 @@ from pip._vendor.six import iteritems
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional, List, Dict
+    from typing import Any, Optional, List, Dict
+
     from pip._vendor.pkg_resources import Distribution
-    from pip._vendor.six.moves import configparser
-    from pip._internal.req.req_install import InstallRequirement
     from pip._vendor.six import PY3
+    from pip._vendor.six.moves import configparser
+
+    from pip._internal.req.req_install import InstallRequirement
+
     if PY3:
         from hashlib import _Hash
     else:
@@ -102,6 +105,26 @@ class InvalidWheelFilename(InstallationError):
 
 class UnsupportedWheel(InstallationError):
     """Unsupported wheel."""
+
+
+class MetadataInconsistent(InstallationError):
+    """Built metadata contains inconsistent information.
+
+    This is raised when the metadata contains values (e.g. name and version)
+    that do not match the information previously obtained from sdist filename
+    or user-supplied ``#egg=`` value.
+    """
+    def __init__(self, ireq, field, built):
+        # type: (InstallRequirement, str, Any) -> None
+        self.ireq = ireq
+        self.field = field
+        self.built = built
+
+    def __str__(self):
+        # type: () -> str
+        return "Requested {} has different {} in metadata: {!r}".format(
+            self.ireq, self.field, self.built,
+        )
 
 
 class HashErrors(InstallationError):
