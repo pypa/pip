@@ -1449,8 +1449,7 @@ def test_install_no_binary_disables_cached_wheels(script, data, with_wheel):
     assert "Running setup.py install for upper" in str(res), str(res)
 
 
-@pytest.mark.fails_on_new_resolver
-def test_install_editable_with_wrong_egg_name(script):
+def test_install_editable_with_wrong_egg_name(script, use_new_resolver):
     script.scratch_path.joinpath("pkga").mkdir()
     pkga_path = script.scratch_path / 'pkga'
     pkga_path.joinpath("setup.py").write_text(textwrap.dedent("""
@@ -1461,11 +1460,15 @@ def test_install_editable_with_wrong_egg_name(script):
     result = script.pip(
         'install', '--editable',
         'file://{pkga_path}#egg=pkgb'.format(**locals()),
+        expect_error=use_new_resolver,
     )
     assert ("Generating metadata for package pkgb produced metadata "
             "for project name pkga. Fix your #egg=pkgb "
             "fragments.") in result.stderr
-    assert "Successfully installed pkga" in str(result), str(result)
+    if use_new_resolver:
+        assert "has different name in metadata" in result.stderr, str(result)
+    else:
+        assert "Successfully installed pkga" in str(result), str(result)
 
 
 def test_install_tar_xz(script, data):
