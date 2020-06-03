@@ -143,19 +143,48 @@ class Resolver(BaseResolver):
         except ResolutionImpossible as e:
             error = self.factory.get_installation_error(e)
             if not error:
-                # TODO: This needs fixing, we need to look at the
-                # factory.get_installation_error infrastructure, as that
-                # doesn't really allow for the logger.critical calls I'm
-                # using here.
+                # > pip install ward==0.44.1b0 py2neo==4.3.0 --unstable-feature=resolver
+                #
+                # ERROR: Cannot install ward v0.44.1b0 and py2neo v4.3.0 because these package versions have conflicting dependencies.
+                # The conflict is caused by:
+                #     ward 0.44.1b0 depends on pygments <3.0.0,>=2.4.2
+                #     py2neo 4.3.0 depends on pygments ~=2.3.1
+                #
+                # There are a number of possible solutions. For instructions on how to do these steps visit: https://pypa.io/SomeLink
+
+                def text_join(parts):
+                    # type: (List[str]) -> str
+                    return ", ".join(parts[:-1]) + " and " + parts[-1]
+                def readable_form(req):
+                    # type: (InstallRequirement) -> str
+                    return "{} {}".format(req.name, req.version)
+
+                # TODO: I haven't considered what happens if `parent` is None.
+                # I'm not even sure how that case arises...
+
+                logger.critical(
+                    "Cannot install " +
+                    text_join([
+                        readable_form(parent)
+                        for req, parent in e.causes
+                        if parent
+                    ]) +
+                    " because these package versions" +
+                    " have conflicting dependencies."
+                )
+                logger.info("The conflict is caused by: ")
                 for req, parent in e.causes:
-                    logger.critical(
-                        "Could not find a version that satisfies " +
-                        "the requirement " +
-                        str(req) +
-                        ("" if parent is None else " (from {})".format(
-                            parent.name
-                        ))
+                    logger.info(
+                        "    " +
+                        readable_form(parent) +
+                        " depends on " +
+                        str(req)
                     )
+                logger.info(
+                    "There are a number of possible solutions. " +
+                    "For instructions on how to do these steps visit: " +
+                    "https://pypa.io/SomeLink"
+                )
                 raise DistributionNotFound(
                     "No matching distribution found for " +
                     ", ".join(sorted(set(r.name for r, _ in e.causes)))
