@@ -158,7 +158,7 @@ class Resolver(BaseResolver):
                     )
                 raise DistributionNotFound(
                     "No matching distribution found for " +
-                    ", ".join([r.name for r, _ in e.causes])
+                    ", ".join(sorted(set(r.name for r, _ in e.causes)))
                 )
             six.raise_from(error, e)
 
