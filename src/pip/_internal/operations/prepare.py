@@ -379,6 +379,7 @@ class RequirementPreparer(object):
     def prepare_linked_requirement(
         self,
         req,  # type: InstallRequirement
+        parallel_builds=False,  # type: bool
     ):
         # type: (...) -> AbstractDistribution
         """Prepare a requirement that would be obtained from req.link
@@ -415,7 +416,11 @@ class RequirementPreparer(object):
         with indent_log():
             # Since source_dir is only set for editable requirements.
             assert req.source_dir is None
-            req.ensure_has_source_dir(self.build_dir, autodelete_unpacked)
+            req.ensure_has_source_dir(
+                self.build_dir,
+                autodelete=autodelete_unpacked,
+                parallel_builds=parallel_builds,
+            )
             # If a checkout exists, it's unwise to keep going.  version
             # inconsistencies are logged later, but do not fail the
             # installation.

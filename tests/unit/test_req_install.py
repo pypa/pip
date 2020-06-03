@@ -21,7 +21,7 @@ class TestInstallRequirementBuildDirectory(object):
         requirement = InstallRequirement(None, None)
         tmp_dir = tempfile.mkdtemp('-build', 'pip-')
         tmp_build_dir = requirement.ensure_build_location(
-            tmp_dir, autodelete=False
+            tmp_dir, autodelete=False, parallel_builds=False,
         )
         assert (
             os.path.dirname(tmp_build_dir) ==

@@ -340,8 +340,8 @@ class InstallRequirement(object):
                 s += '->' + comes_from
         return s
 
-    def ensure_build_location(self, build_dir, autodelete):
-        # type: (str, bool) -> str
+    def ensure_build_location(self, build_dir, autodelete, parallel_builds):
+        # type: (str, bool, bool) -> str
         assert build_dir is not None
         if self._temp_build_dir is not None:
             assert self._temp_build_dir.path
@@ -355,10 +355,13 @@ class InstallRequirement(object):
             )
 
             return self._temp_build_dir.path
-        dir_name = "{}_{}".format(
-            canonicalize_name(self.name),
-            uuid.uuid4().hex,
-        )
+
+        # When parallel builds are enabled, add a UUID to the build directory
+        # name so multiple builds do not interfere with each other.
+        dir_name = canonicalize_name(self.name)
+        if parallel_builds:
+            dir_name = "{}_{}".format(dir_name, uuid.uuid4().hex)
+
         # FIXME: Is there a better place to create the build_dir? (hg and bzr
         # need this)
         if not os.path.exists(build_dir):
@@ -589,8 +592,13 @@ class InstallRequirement(object):
             )
 
     # For both source distributions and editables
-    def ensure_has_source_dir(self, parent_dir, autodelete=False):
-        # type: (str, bool) -> None
+    def ensure_has_source_dir(
+        self,
+        parent_dir,
+        autodelete=False,
+        parallel_builds=False,
+    ):
+        # type: (str, bool, bool) -> None
         """Ensure that a source_dir is set.
 
         This will create a temporary build dir if the name of the requirement
@@ -602,7 +610,9 @@ class InstallRequirement(object):
         """
         if self.source_dir is None:
             self.source_dir = self.ensure_build_location(
-                parent_dir, autodelete
+                parent_dir,
+                autodelete=autodelete,
+                parallel_builds=parallel_builds,
             )
 
     # For editable installations

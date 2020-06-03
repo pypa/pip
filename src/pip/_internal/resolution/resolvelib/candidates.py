@@ -263,7 +263,9 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
 
     def _prepare_abstract_distribution(self):
         # type: () -> AbstractDistribution
-        return self._factory.preparer.prepare_linked_requirement(self._ireq)
+        return self._factory.preparer.prepare_linked_requirement(
+            self._ireq, parallel_builds=True,
+        )
 
 
 class EditableCandidate(_InstallRequirementBackedCandidate):
