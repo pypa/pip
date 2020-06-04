@@ -233,8 +233,14 @@ class Factory(object):
             if all(req.is_satisfied_by(c) for req in requirements)
         )
 
-    def make_requirement_from_install_req(self, ireq):
-        # type: (InstallRequirement) -> Requirement
+    def make_requirement_from_install_req(self, ireq, requested_extras):
+        # type: (InstallRequirement, Iterable[str]) -> Optional[Requirement]
+        if not ireq.match_markers(requested_extras):
+            logger.info(
+                "Ignoring %s: markers '%s' don't match your environment",
+                ireq.name, ireq.markers,
+            )
+            return None
         if not ireq.link:
             return SpecifierRequirement(ireq)
         cand = self._make_candidate_from_link(
@@ -250,12 +256,7 @@ class Factory(object):
         # type: (Candidate) -> ExplicitRequirement
         return ExplicitRequirement(candidate)
 
-    def make_requirement_from_spec(self, specifier, comes_from):
-        # type: (str, InstallRequirement) -> Requirement
-        ireq = self._make_install_req_from_spec(specifier, comes_from)
-        return self.make_requirement_from_install_req(ireq)
-
-    def make_requirement_from_spec_matching_extras(
+    def make_requirement_from_spec(
         self,
         specifier,  # type: str
         comes_from,  # type: InstallRequirement
@@ -263,13 +264,7 @@ class Factory(object):
     ):
         # type: (...) -> Optional[Requirement]
         ireq = self._make_install_req_from_spec(specifier, comes_from)
-        if not ireq.match_markers(requested_extras):
-            logger.info(
-                "Ignoring %s: markers '%s' don't match your environment",
-                ireq.name, ireq.markers,
-            )
-            return None
-        return self.make_requirement_from_install_req(ireq)
+        return self.make_requirement_from_install_req(ireq, requested_extras)
 
     def make_requires_python_requirement(self, specifier):
         # type: (Optional[SpecifierSet]) -> Optional[Requirement]

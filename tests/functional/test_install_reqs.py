@@ -507,7 +507,6 @@ def test_install_distribution_union_conflicting_extras(script, data):
     assert "Conflict" in result.stderr
 
 
-@pytest.mark.fails_on_new_resolver
 def test_install_unsupported_wheel_link_with_marker(script):
     script.scratch_path.joinpath("with-marker.txt").write_text(
         textwrap.dedent("""\
