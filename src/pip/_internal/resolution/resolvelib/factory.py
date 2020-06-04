@@ -171,20 +171,20 @@ class Factory(object):
         # don't all have to do the same thing later.
         candidates = collections.OrderedDict()  # type: VersionCandidates
 
-        # Yield the installed version, if it matches, unless the user
+        # Get the installed version, if it matches, unless the user
         # specified `--force-reinstall`, when we want the version from
         # the index instead.
         installed_version = None
+        installed_candidate = None
         if not self._force_reinstall and name in self._installed_dists:
             installed_dist = self._installed_dists[name]
             installed_version = installed_dist.parsed_version
             if specifier.contains(installed_version, prereleases=True):
-                candidate = self._make_candidate_from_dist(
+                installed_candidate = self._make_candidate_from_dist(
                     dist=installed_dist,
                     extras=extras,
                     template=template,
                 )
-                candidates[installed_version] = candidate
 
         found = self._finder.find_best_candidate(
             project_name=name,
@@ -192,16 +192,21 @@ class Factory(object):
             hashes=hashes,
         )
         for ican in found.iter_applicable():
-            if ican.version == installed_version:
-                continue
-            candidate = self._make_candidate_from_link(
-                link=ican.link,
-                extras=extras,
-                template=template,
-                name=name,
-                version=ican.version,
-            )
+            if ican.version == installed_version and installed_candidate:
+                candidate = installed_candidate
+            else:
+                candidate = self._make_candidate_from_link(
+                    link=ican.link,
+                    extras=extras,
+                    template=template,
+                    name=name,
+                    version=ican.version,
+                )
             candidates[ican.version] = candidate
+
+        # Yield the installed version even if it is not found on the index.
+        if installed_version and installed_candidate:
+            candidates[installed_version] = installed_candidate
 
         return six.itervalues(candidates)
 
