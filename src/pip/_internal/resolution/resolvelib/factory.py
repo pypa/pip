@@ -5,6 +5,7 @@ from pip._vendor import six
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.exceptions import (
+    DistributionNotFound,
     InstallationError,
     UnsupportedPythonVersion,
 )
@@ -343,11 +344,79 @@ class Factory(object):
         return UnsupportedPythonVersion(message)
 
     def get_installation_error(self, e):
-        # type: (ResolutionImpossible) -> Optional[InstallationError]
+        # type: (ResolutionImpossible) -> InstallationError
+
+        assert e.causes, "Installation error reported with no cause"
+
+        # If one of the things we can't solve is "we need Python X.Y",
+        # that is what we report.
         for cause in e.causes:
             if isinstance(cause.requirement, RequiresPythonRequirement):
                 return self._report_requires_python_error(
                     cause.requirement,
                     cause.parent,
                 )
-        return None
+
+        # Otherwise, we have a set of causes which can't all be satisfied
+        # at once.
+
+        # The simplest case is when we have *one* cause that can't be
+        # satisfied. We just report that case.
+        if len(e.causes) == 1:
+            req, parent = e.causes[0]
+            logger.critical(
+                "Could not find a version that satisfies " +
+                "the requirement " +
+                str(req) +
+                ("" if parent is None else " (from {})".format(
+                    parent.name
+                ))
+            )
+            return DistributionNotFound(
+                'No matching distribution found for {}'.format(req)
+            )
+
+        # OK, we now have a list of requirements that can't all be
+        # satisfied at once.
+
+        # A couple of formatting helpers
+        def text_join(parts):
+            # type: (List[str]) -> str
+            if len(parts) == 1:
+                return parts[0]
+
+            return ", ".join(parts[:-1]) + " and " + parts[-1]
+
+        def readable_form(cand):
+            # type: (Candidate) -> str
+            return "{} {}".format(cand.name, cand.version)
+
+        msg = "Cannot install {} because these package versions " \
+              "have conflicting dependencies.".format(
+                  text_join([
+                      readable_form(parent)
+                      for req, parent in e.causes
+                      if parent
+                  ])
+              )
+
+        msg = msg + "\nThe conflict is caused by:"
+        for req, parent in e.causes:
+            msg = msg + "\n    "
+            if parent:
+                msg = msg + readable_form(parent) + " depends on "
+            else:
+                msg = msg + "The user requested "
+            msg = msg + str(req)
+
+        msg = msg + "\n\n" + \
+            "There are a number of possible solutions. " + \
+            "For instructions on how to do these steps visit: " + \
+            "https://pypa.io/SomeLink"
+
+        logger.critical(msg)
+
+        return DistributionNotFound(
+            "No matching distribution found for " +
+            ", ".join(sorted(set(r.name for r, _ in e.causes)))
+        )
