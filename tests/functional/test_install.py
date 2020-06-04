@@ -1358,7 +1358,7 @@ def test_install_builds_wheels(script, data, with_wheel):
     # Must have installed it all
     assert expected in str(res), str(res)
     wheels = []
-    for top, dirs, files in os.walk(wheels_cache):
+    for _, _, files in os.walk(wheels_cache):
         wheels.extend(files)
     # and built wheels for upper and wheelbroken
     assert "Building wheel for upper" in str(res), str(res)
