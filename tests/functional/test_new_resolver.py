@@ -901,3 +901,25 @@ def test_new_resolver_build_directory_error_zazo_19(script):
         "pkg-a", "pkg-b",
     )
     assert_installed(script, pkg_a="3.0.0", pkg_b="1.0.0")
+
+
+def test_new_resolver_upgrade_same_version(script):
+    create_basic_wheel_for_package(script, "pkg", "2")
+    create_basic_wheel_for_package(script, "pkg", "1")
+
+    script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "pkg",
+    )
+    assert_installed(script, pkg="2")
+
+    script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "--upgrade",
+        "pkg",
+    )
+    assert_installed(script, pkg="2")
