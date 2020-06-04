@@ -191,7 +191,11 @@ def test_pip_wheel_fail(script, data):
     assert result.returncode != 0
 
 
-def test_no_clean_option_blocks_cleaning_after_wheel(script, data):
+def test_no_clean_option_blocks_cleaning_after_wheel(
+    script,
+    data,
+    use_new_resolver,
+):
     """
     Test --no-clean option blocks cleaning after wheel build
     """
@@ -202,9 +206,11 @@ def test_no_clean_option_blocks_cleaning_after_wheel(script, data):
         'simple',
         expect_temp=True,
     )
-    build = build / 'simple'
-    assert exists(build), \
-        "build/simple should still exist {result}".format(**locals())
+
+    if not use_new_resolver:
+        build = build / 'simple'
+        message = "build/simple should still exist {}".format(result)
+        assert exists(build), message
 
 
 def test_pip_wheel_source_deps(script, data):
@@ -224,7 +230,11 @@ def test_pip_wheel_source_deps(script, data):
     assert "Successfully built source" in result.stdout, result.stdout
 
 
-def test_pip_wheel_fail_cause_of_previous_build_dir(script, data):
+def test_pip_wheel_fail_cause_of_previous_build_dir(
+    script,
+    data,
+    use_new_resolver,
+):
     """
     Test when 'pip wheel' tries to install a package that has a previous build
     directory
@@ -240,11 +250,14 @@ def test_pip_wheel_fail_cause_of_previous_build_dir(script, data):
         'wheel', '--no-index',
         '--find-links={data.find_links}'.format(**locals()),
         '--build', script.venv_path / 'build',
-        'simple==3.0', expect_error=True, expect_temp=True,
+        'simple==3.0',
+        expect_error=(not use_new_resolver),
+        expect_temp=(not use_new_resolver),
     )
 
     # Then I see that the error code is the right one
-    assert result.returncode == PREVIOUS_BUILD_DIR_ERROR, result
+    if not use_new_resolver:
+        assert result.returncode == PREVIOUS_BUILD_DIR_ERROR, result
 
 
 def test_wheel_package_with_latin1_setup(script, data):

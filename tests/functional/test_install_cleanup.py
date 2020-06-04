@@ -20,7 +20,11 @@ def test_no_clean_option_blocks_cleaning_after_install(script, data):
 
 
 @pytest.mark.network
-def test_cleanup_prevented_upon_build_dir_exception(script, data):
+def test_cleanup_prevented_upon_build_dir_exception(
+    script,
+    data,
+    use_new_resolver,
+):
     """
     Test no cleanup occurs after a PreviousBuildDirError
     """
@@ -31,12 +35,14 @@ def test_cleanup_prevented_upon_build_dir_exception(script, data):
     result = script.pip(
         'install', '-f', data.find_links, '--no-index', 'simple',
         '--build', build,
-        expect_error=True, expect_temp=True,
+        expect_error=(not use_new_resolver),
+        expect_temp=(not use_new_resolver),
     )
 
-    assert result.returncode == PREVIOUS_BUILD_DIR_ERROR, str(result)
-    assert "pip can't proceed" in result.stderr, str(result)
-    assert exists(build_simple), str(result)
+    if not use_new_resolver:
+        assert result.returncode == PREVIOUS_BUILD_DIR_ERROR, str(result)
+        assert "pip can't proceed" in result.stderr, str(result)
+        assert exists(build_simple), str(result)
 
 
 @pytest.mark.network
