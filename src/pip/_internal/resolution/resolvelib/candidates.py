@@ -167,7 +167,7 @@ class _InstallRequirementBackedCandidate(Candidate):
         return "{} {} (from {})".format(
             self.name,
             self.version,
-            self.link.file_path
+            self.link.file_path if self.link.is_file else self.link
         )
 
     def _prepare_abstract_distribution(self):
