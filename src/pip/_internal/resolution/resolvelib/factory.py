@@ -391,23 +391,26 @@ class Factory(object):
             # type: (Candidate) -> str
             return "{} {}".format(cand.name, cand.version)
 
-        msg = "Cannot install {} because these package versions " \
-              "have conflicting dependencies.".format(
-                  text_join([
-                      readable_form(parent)
-                      for req, parent in e.causes
-                      if parent
-                  ])
-              )
+        if any(parent for _, parent in e.causes):
+            msg = "Cannot install {} because these package versions " \
+                "have conflicting dependencies.".format(
+                    text_join([
+                        readable_form(parent)
+                        for req, parent in e.causes
+                        if parent
+                    ])
+                )
+            msg = msg + "\nThe conflict is caused by:"
+        else:
+            msg = "The following requirements are inconsistent:"
 
-        msg = msg + "\nThe conflict is caused by:"
         for req, parent in e.causes:
             msg = msg + "\n    "
             if parent:
                 msg = msg + readable_form(parent) + " depends on "
             else:
                 msg = msg + "The user requested "
-            msg = msg + str(req)
+            msg = msg + req.format_for_error()
 
         msg = msg + "\n\n" + \
             "There are a number of possible solutions. " + \

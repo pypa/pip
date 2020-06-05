@@ -30,6 +30,10 @@ class ExplicitRequirement(Requirement):
         # No need to canonicalise - the candidate did this
         return self.candidate.name
 
+    def format_for_error(self):
+        # type: () -> str
+        return self.candidate.format_for_error()
+
     def get_candidate_lookup(self):
         # type: () -> CandidateLookup
         return self.candidate, None
@@ -62,6 +66,10 @@ class SpecifierRequirement(Requirement):
         # type: () -> str
         canonical_name = canonicalize_name(self._ireq.req.name)
         return format_name(canonical_name, self._extras)
+
+    def format_for_error(self):
+        # type: () -> str
+        return str(self)
 
     def get_candidate_lookup(self):
         # type: () -> CandidateLookup
@@ -98,6 +106,10 @@ class RequiresPythonRequirement(Requirement):
     def name(self):
         # type: () -> str
         return self._candidate.name
+
+    def format_for_error(self):
+        # type: () -> str
+        return "Python " + str(self.specifier)
 
     def get_candidate_lookup(self):
         # type: () -> CandidateLookup

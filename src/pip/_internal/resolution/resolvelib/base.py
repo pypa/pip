@@ -37,6 +37,10 @@ class Requirement(object):
         # type: () -> CandidateLookup
         raise NotImplementedError("Subclass should override")
 
+    def format_for_error(self):
+        # type: () -> str
+        raise NotImplementedError("Subclass should override")
+
 
 class Candidate(object):
     @property
@@ -61,3 +65,7 @@ class Candidate(object):
     def get_install_requirement(self):
         # type: () -> Optional[InstallRequirement]
         raise NotImplementedError("Override in subclass")
+
+    def format_for_error(self):
+        # type: () -> str
+        raise NotImplementedError("Subclass should override")

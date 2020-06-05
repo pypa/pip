@@ -925,3 +925,17 @@ def test_new_resolver_upgrade_same_version(script):
         "pkg",
     )
     assert_installed(script, pkg="2")
+
+
+def test_new_resolver_local_and_req(script):
+    source_dir = create_test_package_with_setup(
+        script,
+        name="pkg",
+        version="0.1.0",
+    )
+    script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        source_dir, "pkg!=0.1.0",
+        expect_error=True,
+    )

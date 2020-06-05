@@ -162,6 +162,14 @@ class _InstallRequirementBackedCandidate(Candidate):
             self._version = self.dist.parsed_version
         return self._version
 
+    def format_for_error(self):
+        # type: () -> str
+        return "{} {} (from {})".format(
+            self.name,
+            self.version,
+            self.link.file_path
+        )
+
     def _prepare_abstract_distribution(self):
         # type: () -> AbstractDistribution
         raise NotImplementedError("Override in subclass")
@@ -336,6 +344,10 @@ class AlreadyInstalledCandidate(Candidate):
         # type: () -> _BaseVersion
         return self.dist.parsed_version
 
+    def format_for_error(self):
+        # type: () -> str
+        return "{} {} (Installed)".format(self.name, self.version)
+
     def iter_dependencies(self):
         # type: () -> Iterable[Optional[Requirement]]
         for r in self.dist.requires():
@@ -413,6 +425,13 @@ class ExtrasCandidate(Candidate):
         # type: () -> _BaseVersion
         return self.base.version
 
+    def format_for_error(self):
+        # type: () -> str
+        return "{} [{}]".format(
+            self.base.format_for_error(),
+            ", ".join(sorted(self.extras))
+        )
+
     @property
     def is_installed(self):
         # type: () -> _BaseVersion
@@ -478,6 +497,10 @@ class RequiresPythonCandidate(Candidate):
     def version(self):
         # type: () -> _BaseVersion
         return self._version
+
+    def format_for_error(self):
+        # type: () -> str
+        return "Python {}".format(self.version)
 
     def iter_dependencies(self):
         # type: () -> Iterable[Optional[Requirement]]
