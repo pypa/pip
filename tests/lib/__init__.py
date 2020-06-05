@@ -264,9 +264,11 @@ class TestPipResult(object):
         def __str__(self):
             return str(self._impl)
 
-    def assert_installed(self, pkg_name, editable=True, with_files=[],
-                         without_files=[], without_egg_link=False,
+    def assert_installed(self, pkg_name, editable=True, with_files=None,
+                         without_files=None, without_egg_link=False,
                          use_user_site=False, sub_dir=False):
+        with_files = with_files or []
+        without_files = without_files or []
         e = self.test_env
 
         if editable:

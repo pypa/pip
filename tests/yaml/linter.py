@@ -68,7 +68,7 @@ def lint_yml(yml_file, verbose=False):
     check_dict(data, required=['cases'], optional=['base'])
     base = data.get("base", {})
     cases = data["cases"]
-    for i, case_template in enumerate(cases):
+    for _, case_template in enumerate(cases):
         case = base.copy()
         case.update(case_template)
         lint_case(case, verbose)

@@ -561,7 +561,7 @@ class TestParseRequirements(object):
         """
         # this requirements file just contains a comment previously this has
         # failed in py3: https://github.com/pypa/pip/issues/760
-        for req in parse_reqfile(
+        for _ in parse_reqfile(
                 'https://raw.githubusercontent.com/pypa/'
                 'pip-test-package/master/'
                 'tests/req_just_comment.txt', session=PipSession()):

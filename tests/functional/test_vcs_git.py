@@ -41,7 +41,7 @@ def do_commit(script, dest):
 def add_commits(script, dest, count):
     """Return a list of the commit hashes from oldest to newest."""
     shas = []
-    for index in range(count):
+    for _ in range(count):
         sha = do_commit(script, dest)
         shas.append(sha)
 
