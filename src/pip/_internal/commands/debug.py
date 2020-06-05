@@ -22,6 +22,7 @@ if MYPY_CHECK_RUNNING:
     from types import ModuleType
     from typing import List, Optional, Dict
     from optparse import Values
+    from pip._internal.configuration import Configuration
 
 logger = logging.getLogger(__name__)
 
@@ -164,9 +165,9 @@ def show_tags(options):
 
 
 def ca_bundle_info(config):
-    # type: (Dict[str, str]) -> str
+    # type: (Configuration) -> str
     levels = set()
-    for key in config:
+    for key, _ in config.items():
         levels.add(key.split('.')[0])
 
     if not levels:
