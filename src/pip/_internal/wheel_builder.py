@@ -23,7 +23,7 @@ from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Any, Callable, Iterable, List, Optional, Pattern, Tuple,
+        Any, Callable, Iterable, List, Optional, Tuple,
     )
 
     from pip._internal.cache import WheelCache
@@ -34,11 +34,11 @@ if MYPY_CHECK_RUNNING:
 
 logger = logging.getLogger(__name__)
 
+_egg_info_re = re.compile(r'([a-z0-9_.]+)-([a-z0-9_.!+-]+)', re.IGNORECASE)
 
-def _contains_egg_info(
-        s, _egg_info_re=re.compile(r'([a-z0-9_.]+)-([a-z0-9_.!+-]+)',
-                                   re.IGNORECASE)):
-    # type: (str, Pattern[str]) -> bool
+
+def _contains_egg_info(s):
+    # type: (str) -> bool
     """Determine whether the string looks like an egg_info.
 
     :param s: The string to parse. E.g. foo-2.1

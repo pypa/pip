@@ -87,7 +87,7 @@ def get_vendor_version_from_module(module_name):
     if not version:
         # Try to find version in debundled module info
         pkg_set = pkg_resources.WorkingSet(
-            [os.path.dirname(getattr(module, '__file__'))]
+            [os.path.dirname(getattr(module, '__file__', None))]
         )
         package = pkg_set.find(pkg_resources.Requirement.parse(module_name))
         version = getattr(package, 'version', None)
@@ -166,7 +166,7 @@ def show_tags(options):
 def ca_bundle_info(config):
     # type: (Dict[str, str]) -> str
     levels = set()
-    for key, value in config.items():
+    for key in config:
         levels.add(key.split('.')[0])
 
     if not levels:
