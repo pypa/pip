@@ -17,7 +17,7 @@ import stat
 import sys
 from collections import deque
 
-from pip._vendor import pkg_resources, six
+from pip._vendor import pkg_resources
 # NOTE: retrying is not annotated in typeshed as on 2017-07-17, which is
 #       why we ignore the type on this import.
 from pip._vendor.retrying import retry  # type: ignore
@@ -545,13 +545,7 @@ class FakeFile(object):
 
     def readline(self):
         try:
-            try:
-                return next(self._gen)
-            except NameError:
-                # flake8-bugbear B305 suggests using six.next for
-                # Python 2 compatibility. This along with the try/except
-                # block can be removed once we drop Python 2 support
-                return six.next(self._gen)
+            return next(self._gen)
         except StopIteration:
             return ''
 
