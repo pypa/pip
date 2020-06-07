@@ -927,6 +927,7 @@ def test_install_nonlocal_compatible_wheel(script, data):
     assert result.returncode == ERROR
 
 
+@pytest.mark.fails_on_new_resolver
 def test_install_nonlocal_compatible_wheel_path(script, data):
     target_dir = script.scratch_path / 'target'
 
