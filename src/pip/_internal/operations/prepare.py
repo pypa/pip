@@ -376,29 +376,26 @@ class RequirementPreparer(object):
             "Could not find or access download directory '{}'"
             .format(self.download_dir))
 
-    def prepare_linked_requirement(
-        self,
-        req,  # type: InstallRequirement
-        parallel_builds=False,  # type: bool
-    ):
-        # type: (...) -> AbstractDistribution
-        """Prepare a requirement that would be obtained from req.link
-        """
-        assert req.link
-        link = req.link
-
-        # TODO: Breakup into smaller functions
-        if link.scheme == 'file':
-            path = link.file_path
+    def _log_preparing_link(self, req):
+        # type: (InstallRequirement) -> None
+        """Log the way the link prepared."""
+        if req.link.is_file:
+            path = req.link.file_path
             logger.info('Processing %s', display_path(path))
         else:
             logger.info('Collecting %s', req.req or req)
 
-        download_dir = self.download_dir
+    def prepare_linked_requirement(self, req, parallel_builds=False):
+        # type: (InstallRequirement, bool) -> AbstractDistribution
+        """Prepare a requirement to be obtained from req.link."""
+        assert req.link
+        link = req.link
+        self._log_preparing_link(req)
         if link.is_wheel and self.wheel_download_dir:
-            # when doing 'pip wheel` we download wheels to a
-            # dedicated dir.
+            # Download wheels to a dedicated dir when doing `pip wheel`.
             download_dir = self.wheel_download_dir
+        else:
+            download_dir = self.download_dir
 
         if link.is_wheel:
             if download_dir:
