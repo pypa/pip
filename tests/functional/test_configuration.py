@@ -141,3 +141,15 @@ class TestBasicLoading(ConfigurationMixin):
         assert "global.timeout: 60" in result.stdout
         assert "freeze.timeout: 10" in result.stdout
         assert re.search(r"site:\n(  .+\n)+", result.stdout)
+
+    def test_global_config_file(self, script):
+        """Test that the system-wide  configuration can be identified"""
+
+        # We cannot  write to system-wide files which might have permissions
+        # defined in a way that the tox virtualenvcannot write to those
+        # locations. Additionally we cannot patch those paths since pip config
+        # commands runs inside a subprocess.
+        # So we just check if the file can be identified
+        global_config_file = get_configuration_files()[kinds.GLOBAL][0]
+        result = script.pip("config", "debug")
+        assert "{}, exists:".format(global_config_file) in result.stdout
