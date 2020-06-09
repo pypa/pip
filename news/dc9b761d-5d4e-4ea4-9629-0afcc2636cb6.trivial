@@ -1,0 +1,1 @@
+Add methods for path lookups in ``test_install_reqs.py`` and ``test_install_upgrade.py``.
