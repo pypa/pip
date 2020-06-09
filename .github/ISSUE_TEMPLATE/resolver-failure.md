@@ -9,7 +9,7 @@ Please provide as much information as you can about your failure, so that we can
 
 Try if your issue has been fixed in the in-development version of pip. Use the following command to install pip from master:
 
-    python -m pip install -U "pip @ git+https://github.com/pypa/pip.git"
+    python -m pip install -U "pip @ https://github.com/pypa/pip/archive/master.zip"
 -->
 
 **What did you want to do?**
