@@ -413,8 +413,9 @@ def test_new_resolver_installed(script):
     )
     assert "Requirement already satisfied: base~=0.1.0" in result.stdout, \
         str(result)
-    assert script.site_packages / "base" not in result.files_updated, (
-        "base 0.1.0 reinstalled"
+    result.did_not_update(
+        script.site_packages / "base",
+        message="base 0.1.0 reinstalled"
     )
 
 
@@ -441,8 +442,9 @@ def test_new_resolver_ignore_installed(script):
         "base",
     )
     assert satisfied_output not in result.stdout, str(result)
-    assert script.site_packages / "base" in result.files_updated, (
-        "base 0.1.0 not reinstalled"
+    result.did_update(
+        script.site_packages / "base",
+        message="base 0.1.0 not reinstalled"
     )
 
 
@@ -505,8 +507,9 @@ def test_new_resolver_install_different_version(script):
 
     assert "Uninstalling base-0.1.0" in result.stdout, str(result)
     assert "Successfully uninstalled base-0.1.0" in result.stdout, str(result)
-    assert script.site_packages / "base" in result.files_updated, (
-        "base not upgraded"
+    result.did_update(
+        script.site_packages / "base",
+        message="base not upgraded"
     )
     assert_installed(script, base="0.2.0")
 
@@ -533,8 +536,9 @@ def test_new_resolver_force_reinstall(script):
 
     assert "Uninstalling base-0.1.0" in result.stdout, str(result)
     assert "Successfully uninstalled base-0.1.0" in result.stdout, str(result)
-    assert script.site_packages / "base" in result.files_updated, (
-        "base not reinstalled"
+    result.did_update(
+        script.site_packages / "base",
+        message="base not reinstalled"
     )
     assert_installed(script, base="0.1.0")
 
@@ -738,8 +742,9 @@ def test_new_resolver_upgrade_needs_option(script):
 
     assert "Uninstalling pkg-1.0.0" in result.stdout, str(result)
     assert "Successfully uninstalled pkg-1.0.0" in result.stdout, str(result)
-    assert script.site_packages / "pkg" in result.files_updated, (
-        "pkg not upgraded"
+    result.did_update(
+        script.site_packages / "pkg",
+        message="pkg not upgraded"
     )
     assert_installed(script, pkg="2.0.0")
 
