@@ -863,7 +863,6 @@ class TestExtraMerge(object):
         assert_installed(script, pkg="1.0.0", dep="1.0.0", depdev="1.0.0")
 
 
-@pytest.mark.xfail(reason="pre-existing build directory")
 def test_new_resolver_build_directory_error_zazo_19(script):
     """https://github.com/pradyunsg/zazo/issues/19#issuecomment-631615674
 

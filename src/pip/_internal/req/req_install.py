@@ -7,6 +7,7 @@ import logging
 import os
 import shutil
 import sys
+import uuid
 import zipfile
 
 from pip._vendor import pkg_resources, six
@@ -339,8 +340,8 @@ class InstallRequirement(object):
                 s += '->' + comes_from
         return s
 
-    def ensure_build_location(self, build_dir, autodelete):
-        # type: (str, bool) -> str
+    def ensure_build_location(self, build_dir, autodelete, parallel_builds):
+        # type: (str, bool, bool) -> str
         assert build_dir is not None
         if self._temp_build_dir is not None:
             assert self._temp_build_dir.path
@@ -354,16 +355,19 @@ class InstallRequirement(object):
             )
 
             return self._temp_build_dir.path
-        if self.editable:
-            name = self.name.lower()
-        else:
-            name = self.name
+
+        # When parallel builds are enabled, add a UUID to the build directory
+        # name so multiple builds do not interfere with each other.
+        dir_name = canonicalize_name(self.name)
+        if parallel_builds:
+            dir_name = "{}_{}".format(dir_name, uuid.uuid4().hex)
+
         # FIXME: Is there a better place to create the build_dir? (hg and bzr
         # need this)
         if not os.path.exists(build_dir):
             logger.debug('Creating directory %s', build_dir)
             os.makedirs(build_dir)
-        actual_build_dir = os.path.join(build_dir, name)
+        actual_build_dir = os.path.join(build_dir, dir_name)
         # `None` indicates that we respect the globally-configured deletion
         # settings, which is what we actually want when auto-deleting.
         delete_arg = None if autodelete else False
@@ -588,8 +592,13 @@ class InstallRequirement(object):
             )
 
     # For both source distributions and editables
-    def ensure_has_source_dir(self, parent_dir, autodelete=False):
-        # type: (str, bool) -> None
+    def ensure_has_source_dir(
+        self,
+        parent_dir,
+        autodelete=False,
+        parallel_builds=False,
+    ):
+        # type: (str, bool, bool) -> None
         """Ensure that a source_dir is set.
 
         This will create a temporary build dir if the name of the requirement
@@ -601,7 +610,9 @@ class InstallRequirement(object):
         """
         if self.source_dir is None:
             self.source_dir = self.ensure_build_location(
-                parent_dir, autodelete
+                parent_dir,
+                autodelete=autodelete,
+                parallel_builds=parallel_builds,
             )
 
     # For editable installations
