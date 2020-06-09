@@ -73,12 +73,12 @@ class Tests_UserSite:
         )
 
         fspkg_folder = script.user_site / 'fspkg'
-        assert fspkg_folder in result.files_created, result.stdout
+        result.did_create(fspkg_folder)
 
         dist_info_folder = (
             script.user_site / 'FSPkg-0.1.dev0.dist-info'
         )
-        assert dist_info_folder in result.files_created
+        result.did_create(dist_info_folder)
 
     def test_install_user_venv_nositepkgs_fails(self, virtualenv,
                                                 script, data):
@@ -121,7 +121,7 @@ class Tests_UserSite:
             script.base_path / script.user_site / 'initools' /
             'configparser.py'
         )
-        assert egg_info_folder in result2.files_created, str(result2)
+        result2.did_create(egg_info_folder)
         assert not isfile(initools_v3_file), initools_v3_file
 
     @pytest.mark.network
@@ -145,8 +145,8 @@ class Tests_UserSite:
             'INITools-0.1-py{pyversion}.egg-info'.format(**globals())
         )
         initools_folder = script.user_site / 'initools'
-        assert egg_info_folder in result2.files_created, str(result2)
-        assert initools_folder in result2.files_created, str(result2)
+        result2.did_create(egg_info_folder)
+        result2.did_create(initools_folder)
 
         # site still has 0.2 (can't look in result1; have to check)
         egg_info_folder = (
@@ -177,8 +177,8 @@ class Tests_UserSite:
             'INITools-0.3.1-py{pyversion}.egg-info'.format(**globals())
         )
         initools_folder = script.user_site / 'initools'
-        assert egg_info_folder in result2.files_created, str(result2)
-        assert initools_folder in result2.files_created, str(result2)
+        result2.did_create(egg_info_folder)
+        result2.did_create(initools_folder)
 
         # site still has 0.2 (can't look in result1; have to check)
         egg_info_folder = (
@@ -216,7 +216,7 @@ class Tests_UserSite:
             script.base_path / script.user_site / 'initools' /
             'configparser.py'
         )
-        assert egg_info_folder in result3.files_created, str(result3)
+        result3.did_create(egg_info_folder)
         assert not isfile(initools_v3_file), initools_v3_file
 
         # site still has 0.2 (can't just look in result1; have to check)

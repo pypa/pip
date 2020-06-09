@@ -16,7 +16,7 @@ def test_new_resolver_install_user(script):
         "--user",
         "base",
     )
-    assert script.user_site / "base" in result.files_created, str(result)
+    result.did_create(script.user_site / "base")
 
 
 @pytest.mark.incompatible_with_test_venv
@@ -41,7 +41,7 @@ def test_new_resolver_install_user_satisfied_by_global_site(script):
         "base==1.0.0",
     )
 
-    assert script.user_site / "base" not in result.files_created, str(result)
+    result.did_not_create(script.user_site / "base")
 
 
 @pytest.mark.incompatible_with_test_venv
@@ -72,8 +72,8 @@ def test_new_resolver_install_user_conflict_in_user_site(script):
     base_1_dist_info = script.user_site / "base-1.0.0.dist-info"
     base_2_dist_info = script.user_site / "base-2.0.0.dist-info"
 
-    assert base_1_dist_info in result.files_created, str(result)
-    assert base_2_dist_info not in result.files_created, str(result)
+    result.did_create(base_1_dist_info)
+    result.did_not_create(base_2_dist_info)
 
 
 @pytest.mark.incompatible_with_test_venv
@@ -142,7 +142,7 @@ def test_new_resolver_install_user_reinstall_global_site(script):
         "base==1.0.0",
     )
 
-    assert script.user_site / "base" in result.files_created, str(result)
+    result.did_create(script.user_site / "base")
 
     site_packages_content = set(os.listdir(script.site_packages_path))
     assert "base" in site_packages_content
@@ -174,7 +174,7 @@ def test_new_resolver_install_user_conflict_in_global_site(script):
     )
 
     base_2_dist_info = script.user_site / "base-2.0.0.dist-info"
-    assert base_2_dist_info in result.files_created, str(result)
+    result.did_create(base_2_dist_info)
 
     site_packages_content = set(os.listdir(script.site_packages_path))
     assert "base-1.0.0.dist-info" in site_packages_content
@@ -216,7 +216,7 @@ def test_new_resolver_install_user_conflict_in_global_and_user_sites(script):
     base_1_dist_info = script.user_site / "base-1.0.0.dist-info"
     base_2_dist_info = script.user_site / "base-2.0.0.dist-info"
 
-    assert base_1_dist_info in result.files_created, str(result)
+    result.did_create(base_1_dist_info)
     assert base_2_dist_info in result.files_deleted, str(result)
 
     site_packages_content = set(os.listdir(script.site_packages_path))
