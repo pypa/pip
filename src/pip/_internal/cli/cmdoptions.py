@@ -835,7 +835,7 @@ always_unzip = partial(
 # TODO: Move into a class that inherits from partial, currently does not
 # work as mypy complains functools.partial is a generic class.
 # This way we know we can ignore this option in docs auto generation
-setattr(always_unzip, 'deprecated', True)
+setattr(always_unzip, 'deprecated', True)  # noqa: B010
 
 
 def _handle_merge_hash(option, opt_str, value, parser):
