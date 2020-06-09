@@ -33,7 +33,7 @@ def check_force_reinstall(script, specifier, expected):
     # site_packages_path is absolute, but files_created mapping uses
     # relative paths as key.
     fixed_key = os.path.relpath(to_fix, script.base_path)
-    assert fixed_key in result2.files_created, 'force-reinstall failed'
+    result2.did_create(fixed_key, message='force-reinstall failed')
 
     result3 = script.pip('uninstall', 'simplewheel', '-y')
     assert_all_changes(result, result3, [script.venv / 'build', 'cache'])
