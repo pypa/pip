@@ -27,7 +27,7 @@ def build_wheel_pep517(
     if build_options:
         # PEP 517 does not support --build-options
         logger.error('Cannot build wheel for %s using PEP 517 when '
-                     '--build-option is present' % (name,))
+                     '--build-option is present', name)
         return None
     try:
         logger.debug('Destination directory: %s', tempd)

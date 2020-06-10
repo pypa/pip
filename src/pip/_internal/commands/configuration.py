@@ -266,10 +266,8 @@ class ConfigurationCommand(Command):
         try:
             self.configuration.save()
         except Exception:
-            logger.error(
-                "Unable to save configuration. Please report this as a bug.",
-                exc_info=True
-            )
+            logger.exception("Unable to save configuration. "
+                             "Please report this as a bug.")
             raise PipError("Internal Error.")
 
     def _determine_editor(self, options):
