@@ -200,8 +200,6 @@ def test_new_resolver_ignore_dependencies(script):
     [
         "base[add]",
         "base[add] >= 0.1.0",
-        # Non-standard syntax. To deprecate, see pypa/pip#8288.
-        "base >= 0.1.0[add]",
     ],
 )
 def test_new_resolver_installs_extras(tmpdir, script, root_dep):
@@ -225,6 +223,32 @@ def test_new_resolver_installs_extras(tmpdir, script, root_dep):
         "--find-links", script.scratch_path,
         "-r", req_file,
     )
+    assert_installed(script, base="0.1.0", dep="0.1.0")
+
+
+def test_new_resolver_installs_extras_deprecated(tmpdir, script):
+    req_file = tmpdir.joinpath("requirements.txt")
+    req_file.write_text("base >= 0.1.0[add]")
+
+    create_basic_wheel_for_package(
+        script,
+        "base",
+        "0.1.0",
+        extras={"add": ["dep"]},
+    )
+    create_basic_wheel_for_package(
+        script,
+        "dep",
+        "0.1.0",
+    )
+    result = script.pip(
+        "install", "--use-feature=2020-resolver",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "-r", req_file,
+        expect_stderr=True
+    )
+    assert "DEPRECATION: Extras after version" in result.stderr
     assert_installed(script, base="0.1.0", dep="0.1.0")
 
 

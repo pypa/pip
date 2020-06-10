@@ -23,6 +23,7 @@ from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
 from pip._internal.pyproject import make_pyproject_path
 from pip._internal.req.req_install import InstallRequirement
+from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.filetypes import ARCHIVE_EXTENSIONS
 from pip._internal.utils.misc import is_installable_dir, splitext
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -370,6 +371,17 @@ def parse_req_from_line(name, line_source):
             if add_msg:
                 msg += '\nHint: {}'.format(add_msg)
             raise InstallationError(msg)
+        else:
+            # Deprecate extras after specifiers: "name>=1.0[extras]"
+            # This currently works by accident because _strip_extras() parses
+            # any extras in the end of the string and those are saved in
+            # RequirementParts
+            for spec in req.specifier:
+                spec_str = str(spec)
+                if spec_str.endswith(']'):
+                    msg = "Extras after version '{}'.".format(spec_str)
+                    replace = "moving the extras before version specifiers"
+                    deprecated(msg, replacement=replace, gone_in="21.0")
     else:
         req = None
 
