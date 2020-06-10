@@ -545,10 +545,7 @@ class FakeFile(object):
 
     def readline(self):
         try:
-            try:
-                return next(self._gen)
-            except NameError:
-                return self._gen.next()
+            return next(self._gen)
         except StopIteration:
             return ''
 

@@ -167,7 +167,9 @@ class DownloadProgressMixin(object):
     def iter(self, it):  # type: ignore
         for x in it:
             yield x
-            self.next(len(x))
+            # B305 is incorrectly raised here
+            # https://github.com/PyCQA/flake8-bugbear/issues/59
+            self.next(len(x))  # noqa: B305
         self.finish()
 
 

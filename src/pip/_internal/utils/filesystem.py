@@ -155,7 +155,7 @@ def _test_writable_dir_win(path):
     # and we can't use tempfile: http://bugs.python.org/issue22107
     basename = 'accesstest_deleteme_fishfingers_custard_'
     alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789'
-    for i in range(10):
+    for _ in range(10):
         name = basename + ''.join(random.choice(alphabet) for _ in range(6))
         file = os.path.join(path, name)
         try:
@@ -190,7 +190,7 @@ def find_files(path, pattern):
     """Returns a list of absolute paths of files beneath path, recursively,
     with filenames which match the UNIX-style shell glob pattern."""
     result = []  # type: List[str]
-    for root, dirs, files in os.walk(path):
+    for root, _, files in os.walk(path):
         matches = fnmatch.filter(files, pattern)
         result.extend(os.path.join(root, f) for f in matches)
     return result
