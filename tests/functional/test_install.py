@@ -1760,7 +1760,6 @@ def test_install_pip_does_not_modify_pip_when_satisfied(
     assert expected_message in result.stdout, str(result)
 
 
-@pytest.mark.fails_on_new_resolver
 def test_ignore_yanked_file(script, data):
     """
     Test ignore a "yanked" file.
