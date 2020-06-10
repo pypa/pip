@@ -12,7 +12,6 @@ pass on state. To be consistent, all options will follow this design.
 
 from __future__ import absolute_import
 
-import logging
 import os
 import textwrap
 import warnings
@@ -34,8 +33,6 @@ if MYPY_CHECK_RUNNING:
     from typing import Any, Callable, Dict, Optional, Tuple
     from optparse import OptionParser, Values
     from pip._internal.cli.parser import ConfigOptionParser
-
-logger = logging.getLogger(__name__)
 
 
 def raise_option_error(parser, option, msg):

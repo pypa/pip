@@ -505,7 +505,7 @@ class InstallCommand(RequirementCommand):
         try:
             package_set, _dep_info = check_install_conflicts(to_install)
         except Exception:
-            logger.error("Error checking for conflicts.", exc_info=True)
+            logger.exception("Error checking for conflicts.")
             return
         missing, conflicting = _dep_info
 

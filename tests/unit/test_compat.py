@@ -125,8 +125,7 @@ def test_console_to_str_warning(monkeypatch):
     some_bytes = b"a\xE9b"
 
     def check_warning(msg, *args, **kwargs):
-        assert msg.startswith(
-            "Subprocess output does not appear to be encoded as")
+        assert args[0] == 'Subprocess output'
 
     monkeypatch.setattr(locale, 'getpreferredencoding', lambda: 'utf-8')
     monkeypatch.setattr(pip_compat.logger, 'warning', check_warning)

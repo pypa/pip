@@ -435,7 +435,7 @@ class Resolver(BaseResolver):
                 )
                 for missing in missing_requested:
                     logger.warning(
-                        '%s does not provide the extra \'%s\'',
+                        "%s does not provide the extra '%s'",
                         dist, missing
                     )
 
