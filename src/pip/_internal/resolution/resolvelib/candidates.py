@@ -13,6 +13,7 @@ from pip._internal.req.constructors import (
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.misc import normalize_version_info
 from pip._internal.utils.packaging import get_requires_python
+from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 from .base import Candidate, format_name
@@ -194,9 +195,9 @@ class _InstallRequirementBackedCandidate(Candidate):
         self._prepare()
         return self._dist
 
-    def _get_requires_python_specifier(self):
-        # type: () -> Optional[SpecifierSet]
-        requires_python = get_requires_python(self.dist)
+    def _get_requires_python_specifier(self, dist):
+        # type: (Distribution) -> Optional[SpecifierSet]
+        requires_python = get_requires_python(dist)
         if requires_python is None:
             return None
         try:
@@ -210,10 +211,18 @@ class _InstallRequirementBackedCandidate(Candidate):
 
     def iter_dependencies(self):
         # type: () -> Iterable[Optional[Requirement]]
-        for r in self.dist.requires():
+        if self.link.is_wheel:
+            assert self._ireq.name is not None
+            dist = self._factory.preparer.downloader.download_partial(
+                self.link,
+                TempDirectory(kind="unpack", globally_managed=True).path,
+                self._ireq.name)
+        else:
+            dist = self.dist
+        for r in dist.requires():
             yield self._factory.make_requirement_from_spec(str(r), self._ireq)
         python_dep = self._factory.make_requires_python_requirement(
-            self._get_requires_python_specifier(),
+            self._get_requires_python_specifier(dist),
         )
         if python_dep:
             yield python_dep
