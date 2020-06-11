@@ -202,10 +202,7 @@ def test_installs_extras(tmpdir, script, root_dep):
         "dep",
         "0.1.0",
     )
-    script.pip(
-        "install", "--unstable-feature=resolver",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
+    script.pip_install_with_new_resolver(
         "-r", req_file,
     )
     assert_installed(script, base="0.1.0", dep="0.1.0")
@@ -512,10 +509,7 @@ def test_new_reolver_skips_marker(script, pkg_deps, root_deps):
     create_basic_wheel_for_package(script, "pkg", "1.0", depends=pkg_deps)
     create_basic_wheel_for_package(script, "dep", "1.0")
 
-    script.pip(
-        "install", "--unstable-feature=resolver",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
+    script.pip_install_with_new_resolver(
         *root_deps
     )
     assert_installed(script, pkg="1.0")
@@ -550,10 +544,7 @@ def test_constraint_no_specifier(script):
     create_basic_wheel_for_package(script, "pkg", "1.0")
     constraints_file = script.scratch_path / "constraints.txt"
     constraints_file.write_text("pkg")
-    script.pip(
-        "install", "--unstable-feature=resolver",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
+    script.pip_install_with_new_resolver(
         "-c", constraints_file,
         "pkg"
     )
@@ -581,10 +572,7 @@ def test_constraint_reject_invalid(script, constraint, error):
     create_basic_wheel_for_package(script, "pkg", "1.0")
     constraints_file = script.scratch_path / "constraints.txt"
     constraints_file.write_text(constraint)
-    result = script.pip(
-        "install", "--unstable-feature=resolver",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
+    result = script.pip_install_with_new_resolver(
         "-c", constraints_file,
         "pkg",
         expect_error=True,
@@ -614,9 +602,7 @@ def test_constraint_on_path(script):
     setup_py.write_text(text)
     constraints_txt = script.scratch_path / "constraints.txt"
     constraints_txt.write_text("foo==1.0")
-    result = script.pip(
-        "install", "--unstable-feature=resolver",
-        "--no-cache-dir", "--no-index",
+    result = script.pip_install_with_new_resolver(
         "-c", constraints_txt,
         str(script.scratch_path),
         expect_error=True,
@@ -799,10 +785,7 @@ def test_build_directory_error_zazo_19(script):
     create_basic_sdist_for_package(script, "pkg_b", "2.0.0")
     create_basic_sdist_for_package(script, "pkg_b", "1.0.0")
 
-    script.pip(
-        "install", "--unstable-feature=resolver",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
+    script.pip_install_with_new_resolver(
         "pkg-a", "pkg-b",
     )
     assert_installed(script, pkg_a="3.0.0", pkg_b="1.0.0")
