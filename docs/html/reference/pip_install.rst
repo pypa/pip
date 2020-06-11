@@ -158,11 +158,16 @@ The following options are supported:
 
 .. pip-requirements-file-options-ref-list::
 
+Please note that the above options are global options, and should be specified on their individual lines.
+The options which can be applied to individual requirements are
+:ref:`--install-option <install_--install-option>`, :ref:`--global-option <install_--global-option>` and ``--hash``.
+
 For example, to specify :ref:`--no-index <install_--no-index>` and two
 :ref:`--find-links <install_--find-links>` locations:
 
 ::
 
+--pre
 --no-index
 --find-links /my/local/archives
 --find-links http://some.archives.com/archives
