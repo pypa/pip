@@ -162,7 +162,7 @@ Please note that the above options are global options, and should be specified o
 The options which can be applied to individual requirements are
 :ref:`--install-option <install_--install-option>`, :ref:`--global-option <install_--global-option>` and ``--hash``.
 
-For example, to specify :ref:`--no-index <install_--no-index>` and two
+For example, to specify :ref:`--pre <install_--pre>`, :ref:`--no-index <install_--no-index>` and two
 :ref:`--find-links <install_--find-links>` locations:
 
 ::
