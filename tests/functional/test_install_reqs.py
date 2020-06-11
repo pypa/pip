@@ -332,40 +332,56 @@ def test_constraints_local_install_causes_error(script, data):
     assert 'Could not satisfy constraints for' in result.stderr
 
 
-@pytest.mark.fails_on_new_resolver
-def test_constraints_constrain_to_local_editable(script, data):
+def test_constraints_constrain_to_local_editable(
+    script,
+    data,
+    use_new_resolver
+):
     to_install = data.src.joinpath("singlemodule")
     script.scratch_path.joinpath("constraints.txt").write_text(
         "-e {url}#egg=singlemodule".format(url=path_to_url(to_install))
     )
     result = script.pip(
         'install', '--no-index', '-f', data.find_links, '-c',
-        script.scratch_path / 'constraints.txt', 'singlemodule')
-    assert 'Running setup.py develop for singlemodule' in result.stdout
+        script.scratch_path / 'constraints.txt', 'singlemodule',
+        expect_error=use_new_resolver
+    )
+    if use_new_resolver:
+        assert 'Links are not allowed as constraints' in result.stderr
+    else:
+        assert 'Running setup.py develop for singlemodule' in result.stdout
 
 
-@pytest.mark.fails_on_new_resolver
-def test_constraints_constrain_to_local(script, data):
+def test_constraints_constrain_to_local(script, data, use_new_resolver):
     to_install = data.src.joinpath("singlemodule")
     script.scratch_path.joinpath("constraints.txt").write_text(
         "{url}#egg=singlemodule".format(url=path_to_url(to_install))
     )
     result = script.pip(
         'install', '--no-index', '-f', data.find_links, '-c',
-        script.scratch_path / 'constraints.txt', 'singlemodule')
-    assert 'Running setup.py install for singlemodule' in result.stdout
+        script.scratch_path / 'constraints.txt', 'singlemodule',
+        expect_error=use_new_resolver
+    )
+    if use_new_resolver:
+        assert 'Links are not allowed as constraints' in result.stderr
+    else:
+        assert 'Running setup.py install for singlemodule' in result.stdout
 
 
-@pytest.mark.fails_on_new_resolver
-def test_constrained_to_url_install_same_url(script, data):
+def test_constrained_to_url_install_same_url(script, data, use_new_resolver):
     to_install = data.src.joinpath("singlemodule")
     constraints = path_to_url(to_install) + "#egg=singlemodule"
     script.scratch_path.joinpath("constraints.txt").write_text(constraints)
     result = script.pip(
         'install', '--no-index', '-f', data.find_links, '-c',
-        script.scratch_path / 'constraints.txt', to_install)
-    assert ('Running setup.py install for singlemodule'
-            in result.stdout), str(result)
+        script.scratch_path / 'constraints.txt', to_install,
+        expect_error=use_new_resolver
+    )
+    if use_new_resolver:
+        assert 'Links are not allowed as constraints' in result.stderr
+    else:
+        assert ('Running setup.py install for singlemodule'
+                in result.stdout), str(result)
 
 
 def test_double_install_spurious_hash_mismatch(
@@ -402,15 +418,19 @@ def test_double_install_spurious_hash_mismatch(
         assert 'Successfully installed simple-1.0' in str(result)
 
 
-@pytest.mark.fails_on_new_resolver
-def test_install_with_extras_from_constraints(script, data):
+def test_install_with_extras_from_constraints(script, data, use_new_resolver):
     to_install = data.packages.joinpath("LocalExtras")
     script.scratch_path.joinpath("constraints.txt").write_text(
         "{url}#egg=LocalExtras[bar]".format(url=path_to_url(to_install))
     )
     result = script.pip_install_local(
-        '-c', script.scratch_path / 'constraints.txt', 'LocalExtras')
-    result.did_create(script.site_packages / 'simple')
+        '-c', script.scratch_path / 'constraints.txt', 'LocalExtras',
+        expect_error=use_new_resolver
+    )
+    if use_new_resolver:
+        assert 'Links are not allowed as constraints' in result.stderr
+    else:
+        result.did_create(script.site_packages / 'simple')
 
 
 def test_install_with_extras_from_install(script):
@@ -429,29 +449,36 @@ def test_install_with_extras_from_install(script):
     result.did_create(script.site_packages / 'singlemodule.py')
 
 
-@pytest.mark.fails_on_new_resolver
-def test_install_with_extras_joined(script, data):
+def test_install_with_extras_joined(script, data, use_new_resolver):
     to_install = data.packages.joinpath("LocalExtras")
     script.scratch_path.joinpath("constraints.txt").write_text(
         "{url}#egg=LocalExtras[bar]".format(url=path_to_url(to_install))
     )
     result = script.pip_install_local(
-        '-c', script.scratch_path / 'constraints.txt', 'LocalExtras[baz]'
+        '-c', script.scratch_path / 'constraints.txt', 'LocalExtras[baz]',
+        expect_error=use_new_resolver
     )
-    result.did_create(script.site_packages / 'simple')
-    result.did_create(script.site_packages / 'singlemodule.py')
+    if use_new_resolver:
+        assert 'Links are not allowed as constraints' in result.stderr
+    else:
+        result.did_create(script.site_packages / 'simple')
+        result.did_create(script.site_packages / 'singlemodule.py')
 
 
-@pytest.mark.fails_on_new_resolver
-def test_install_with_extras_editable_joined(script, data):
+def test_install_with_extras_editable_joined(script, data, use_new_resolver):
     to_install = data.packages.joinpath("LocalExtras")
     script.scratch_path.joinpath("constraints.txt").write_text(
         "-e {url}#egg=LocalExtras[bar]".format(url=path_to_url(to_install))
     )
     result = script.pip_install_local(
-        '-c', script.scratch_path / 'constraints.txt', 'LocalExtras[baz]')
-    result.did_create(script.site_packages / 'simple')
-    result.did_create(script.site_packages / 'singlemodule.py')
+        '-c', script.scratch_path / 'constraints.txt', 'LocalExtras[baz]',
+        expect_error=use_new_resolver
+    )
+    if use_new_resolver:
+        assert 'Links are not allowed as constraints' in result.stderr
+    else:
+        result.did_create(script.site_packages / 'simple')
+        result.did_create(script.site_packages / 'singlemodule.py')
 
 
 def test_install_distribution_full_union(script, data):
@@ -473,15 +500,24 @@ def test_install_distribution_duplicate_extras(script, data):
         assert expected in result.stderr
 
 
-@pytest.mark.fails_on_new_resolver
-def test_install_distribution_union_with_constraints(script, data):
+def test_install_distribution_union_with_constraints(
+    script,
+    data,
+    use_new_resolver
+):
     to_install = data.packages.joinpath("LocalExtras")
     script.scratch_path.joinpath("constraints.txt").write_text(
         "{to_install}[bar]".format(**locals()))
     result = script.pip_install_local(
-        '-c', script.scratch_path / 'constraints.txt', to_install + '[baz]')
-    assert 'Running setup.py install for LocalExtras' in result.stdout
-    result.did_create(script.site_packages / 'singlemodule.py')
+        '-c', script.scratch_path / 'constraints.txt', to_install + '[baz]',
+        expect_error=use_new_resolver
+    )
+    if use_new_resolver:
+        msg = 'Unnamed requirements are not allowed as constraints'
+        assert msg in result.stderr
+    else:
+        assert 'Running setup.py install for LocalExtras' in result.stdout
+        result.did_create(script.site_packages / 'singlemodule.py')
 
 
 @pytest.mark.fails_on_new_resolver
