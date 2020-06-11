@@ -7,7 +7,9 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._internal.exceptions import (
     InstallationError,
     UnsupportedPythonVersion,
+    UnsupportedWheel,
 )
+from pip._internal.models.wheel import Wheel
 from pip._internal.utils.compatibility_tags import get_supported
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.misc import (
@@ -248,6 +250,13 @@ class Factory(object):
             return None
         if not ireq.link:
             return SpecifierRequirement(ireq)
+        if ireq.link.is_wheel:
+            wheel = Wheel(ireq.link.filename)
+            if not wheel.supported(self._finder.target_python.get_tags()):
+                msg = "{} is not a supported wheel on this platform.".format(
+                    wheel.filename,
+                )
+                raise UnsupportedWheel(msg)
         cand = self._make_candidate_from_link(
             ireq.link,
             extras=frozenset(ireq.extras),
