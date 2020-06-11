@@ -391,35 +391,54 @@ class Factory(object):
             # type: (Candidate) -> str
             return "{} {}".format(cand.name, cand.version)
 
-        if any(parent for _, parent in e.causes):
-            msg = "Cannot install {} because these package versions " \
-                "have conflicting dependencies.".format(
-                    text_join([
-                        readable_form(parent)
-                        for req, parent in e.causes
-                        if parent
-                    ])
-                )
-            msg = msg + "\nThe conflict is caused by:"
-        else:
-            msg = "The following requirements are inconsistent:"
+        triggers = []
+        for req, parent in e.causes:
+            if parent is None:
+                # This is a root requirement, so we can report it directly
+                trigger = req.format_for_error()
+            else:
+                ireq = parent.get_install_requirement()
+                if ireq and ireq.comes_from:
+                    trigger = "{}".format(
+                        ireq.comes_from.name
+                    )
+                else:
+                    trigger = "{} {}".format(
+                        parent.name,
+                        parent.version
+                    )
+            triggers.append(trigger)
 
+        if triggers:
+            info = text_join(triggers)
+        else:
+            info = "the requested packages"
+
+        msg = "Cannot install {} because these package versions " \
+            "have conflicting dependencies.".format(info)
+        logger.critical(msg)
+        msg = "\nThe conflict is caused by:"
         for req, parent in e.causes:
             msg = msg + "\n    "
             if parent:
-                msg = msg + readable_form(parent) + " depends on "
+                msg = msg + "{} {} depends on ".format(
+                    parent.name,
+                    parent.version
+                )
             else:
                 msg = msg + "The user requested "
             msg = msg + req.format_for_error()
 
         msg = msg + "\n\n" + \
-            "There are a number of possible solutions. " + \
-            "For instructions on how to do these steps visit: " + \
-            "https://pypa.io/SomeLink"
+            "To fix this you could try to:\n" + \
+            "1. loosen the range of package versions you've specified\n" + \
+            "2. remove package versions to allow pip attempt to solve " + \
+            "the dependency conflict\n"
 
-        logger.critical(msg)
+        logger.info(msg)
 
         return DistributionNotFound(
-            "No matching distribution found for " +
-            ", ".join(sorted(set(r.name for r, _ in e.causes)))
+            "ResolutionImpossible For help visit: "
+            "https://pip.pypa.io/en/stable/user_guide/"
+            "#dependency-conflicts-resolution-impossible"
         )
