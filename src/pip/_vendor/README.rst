@@ -127,7 +127,7 @@ semi-supported method (that we don't test in our CI) and requires a bit of
 extra work on your end in order to solve the problems described above.
 
 1. Delete everything in ``pip/_vendor/`` **except** for
-   ``pip/_vendor/__init__.py``.
+   ``pip/_vendor/__init__.py`` and ``pip/_vendor/vendor.txt``.
 
 2. Generate wheels for each of pip's dependencies (and any of their
    dependencies) using your patched copies of these libraries. These must be
