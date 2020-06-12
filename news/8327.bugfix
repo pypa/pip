@@ -1,0 +1,1 @@
+The pip debug command takes module versions from vendor.txt even when they are debundled.  Enhance the debug command output to instead show the location, name, and version of the debundled modules when appropriate.

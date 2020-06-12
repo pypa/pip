@@ -63,6 +63,14 @@ def create_vendor_txt_map():
     return dict(line.split('==', 1) for line in lines)  # type: ignore
 
 
+def create_debundle_txt_map():
+    # type: () -> Dict[str, str]
+    wheels = [fn for fn in os.listdir(pip._vendor.WHEEL_DIR)]
+    # Transform into "module" -> version dict.
+    return dict((wheel.split('-')[0],
+                wheel.split('-')[1]) for wheel in wheels)  # type: ignore
+
+
 def get_module_from_module_name(module_name):
     # type: (str) -> ModuleType
     # Module name can be uppercase in vendor.txt for some reason...
@@ -132,6 +140,21 @@ def show_vendor_versions():
     vendor_txt_versions = create_vendor_txt_map()
     with indent_log():
         show_actual_vendor_versions(vendor_txt_versions)
+
+
+def show_debundled_versions():
+    # type: () -> None
+    logger.info('debundled wheel versions:')
+    debundle_txt_versions = create_debundle_txt_map()
+    for module_name, installed_version in sorted(
+            debundle_txt_versions.items()):
+        with indent_log():
+            logger.info(
+                '{name}=={actual}'.format(
+                    name=module_name,
+                    actual=installed_version,
+                )
+            )
 
 
 def show_tags(options):
@@ -229,7 +252,11 @@ class DebugCommand(Command):
         show_value("pip._vendor.certifi.where()", where())
         show_value("pip._vendor.DEBUNDLED", pip._vendor.DEBUNDLED)
 
-        show_vendor_versions()
+        if not pip._vendor.DEBUNDLED:
+            show_vendor_versions()
+        else:
+            show_value("pip._vendor.WHEEL_DIR", pip._vendor.WHEEL_DIR)
+            show_debundled_versions()
 
         show_tags(options)
 
