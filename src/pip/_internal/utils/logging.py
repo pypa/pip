@@ -16,6 +16,10 @@ from pip._vendor.six import PY2
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
 from pip._internal.utils.misc import ensure_dir
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from typing import Any, Tuple
 
 try:
     import threading
@@ -51,7 +55,55 @@ else:
     colorama = _colorama
 
 
+class LogMessage:
+    """Lazily interpolated log message formatted using str.format."""
+    def __init__(self, message, args):
+        # type: (str, Tuple[Any, ...]) -> None
+        self.message, self.args = message, args
+
+    def __str__(self):
+        # type: () -> str
+        return self.message.format(*self.args)
+
+
+class FormatLogger(logging.Logger):
+    """Logger adapter that uses str.format for messages formatting."""
+    def __init__(self, name):
+        # type: (str) -> None
+        super(FormatLogger, self).__init__(name)
+
+    def log(self, level, msg, *args, **kwargs):
+        # type: (int, str, *Any, **Any) -> None
+        super(FormatLogger, self).log(level, LogMessage(msg, args), **kwargs)
+
+    def debug(self, msg, *args, **kwargs):
+        # type: (str, *Any, **Any) -> None
+        self.log(logging.DEBUG, msg, *args, **kwargs)
+
+    def info(self, msg, *args, **kwargs):
+        # type: (str, *Any, **Any) -> None
+        self.log(logging.INFO, msg, *args, **kwargs)
+
+    def warning(self, msg, *args, **kwargs):
+        # type: (str, *Any, **Any) -> None
+        self.log(logging.WARNING, msg, *args, **kwargs)
+
+    def error(self, msg, *args, **kwargs):
+        # type: (str, *Any, **Any) -> None
+        self.log(logging.ERROR, msg, *args, **kwargs)
+
+    def exception(self, msg, *args, **kwargs):
+        # type: (str, *Any, **Any) -> None
+        kwargs['exc_info'] = True
+        self.log(logging.ERROR, msg, *args, **kwargs)
+
+    def critical(self, msg, *args, **kwargs):
+        # type: (str, *Any, **Any) -> None
+        self.log(logging.CRITICAL, msg, *args, **kwargs)
+
+
 _log_state = threading.local()
+logging.setLoggerClass(FormatLogger)
 subprocess_logger = getLogger('pip.subprocessor')
 
 
