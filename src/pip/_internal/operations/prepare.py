@@ -385,6 +385,42 @@ class RequirementPreparer(object):
         else:
             logger.info('Collecting %s', req.req or req)
 
+    def _ensure_link_req_src_dir(self, req, download_dir, parallel_builds):
+        # type: (InstallRequirement, Optional[str], bool) -> None
+        """Ensure source_dir of a linked InstallRequirement."""
+        # Since source_dir is only set for editable requirements.
+        if req.link.is_wheel:
+            if download_dir:
+                # When downloading, we only unpack wheels to get
+                # metadata.
+                autodelete_unpacked = True
+            else:
+                # When installing a wheel, we use the unpacked wheel.
+                autodelete_unpacked = False
+        else:
+            # We always delete unpacked sdists after pip runs.
+            autodelete_unpacked = True
+        assert req.source_dir is None
+        req.ensure_has_source_dir(
+            self.build_dir,
+            autodelete=autodelete_unpacked,
+            parallel_builds=parallel_builds,
+        )
+
+        # If a checkout exists, it's unwise to keep going.  version
+        # inconsistencies are logged later, but do not fail the
+        # installation.
+        # FIXME: this won't upgrade when there's an existing
+        # package unpacked in `req.source_dir`
+        if os.path.exists(os.path.join(req.source_dir, 'setup.py')):
+            raise PreviousBuildDirError(
+                "pip can't proceed with requirements '{}' due to a"
+                "pre-existing build directory ({}). This is likely "
+                "due to a previous installation that failed . pip is "
+                "being responsible and not assuming it can delete this. "
+                "Please delete it and try again.".format(req, req.source_dir)
+            )
+
     def prepare_linked_requirement(self, req, parallel_builds=False):
         # type: (InstallRequirement, bool) -> AbstractDistribution
         """Prepare a requirement to be obtained from req.link."""
@@ -397,42 +433,8 @@ class RequirementPreparer(object):
         else:
             download_dir = self.download_dir
 
-        if link.is_wheel:
-            if download_dir:
-                # When downloading, we only unpack wheels to get
-                # metadata.
-                autodelete_unpacked = True
-            else:
-                # When installing a wheel, we use the unpacked
-                # wheel.
-                autodelete_unpacked = False
-        else:
-            # We always delete unpacked sdists after pip runs.
-            autodelete_unpacked = True
-
         with indent_log():
-            # Since source_dir is only set for editable requirements.
-            assert req.source_dir is None
-            req.ensure_has_source_dir(
-                self.build_dir,
-                autodelete=autodelete_unpacked,
-                parallel_builds=parallel_builds,
-            )
-            # If a checkout exists, it's unwise to keep going.  version
-            # inconsistencies are logged later, but do not fail the
-            # installation.
-            # FIXME: this won't upgrade when there's an existing
-            # package unpacked in `req.source_dir`
-            if os.path.exists(os.path.join(req.source_dir, 'setup.py')):
-                raise PreviousBuildDirError(
-                    "pip can't proceed with requirements '{}' due to a"
-                    " pre-existing build directory ({}). This is "
-                    "likely due to a previous installation that failed"
-                    ". pip is being responsible and not assuming it "
-                    "can delete this. Please delete it and try again."
-                    .format(req, req.source_dir)
-                )
-
+            self._ensure_link_req_src_dir(req, download_dir, parallel_builds)
             # Now that we have the real link, we can tell what kind of
             # requirements we have and raise some more informative errors
             # than otherwise. (For example, we can raise VcsHashUnsupported
