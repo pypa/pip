@@ -72,7 +72,7 @@ def search_packages_info(query):
         [name for name, pkg in zip(query, query_names) if pkg not in installed]
     )
     if missing:
-        logger.warning('Package(s) not found: %s', ', '.join(missing))
+        logger.warning('Package(s) not found: {}', ', '.join(missing))
 
     def get_requiring_packages(package_name):
         # type: (str) -> List[str]
@@ -156,31 +156,31 @@ def print_results(distributions, list_files=False, verbose=False):
         if i > 0:
             write_output("---")
 
-        write_output("Name: %s", dist.get('name', ''))
-        write_output("Version: %s", dist.get('version', ''))
-        write_output("Summary: %s", dist.get('summary', ''))
-        write_output("Home-page: %s", dist.get('home-page', ''))
-        write_output("Author: %s", dist.get('author', ''))
-        write_output("Author-email: %s", dist.get('author-email', ''))
-        write_output("License: %s", dist.get('license', ''))
-        write_output("Location: %s", dist.get('location', ''))
-        write_output("Requires: %s", ', '.join(dist.get('requires', [])))
-        write_output("Required-by: %s", ', '.join(dist.get('required_by', [])))
+        write_output("Name: {}", dist.get('name', ''))
+        write_output("Version: {}", dist.get('version', ''))
+        write_output("Summary: {}", dist.get('summary', ''))
+        write_output("Home-page: {}", dist.get('home-page', ''))
+        write_output("Author: {}", dist.get('author', ''))
+        write_output("Author-email: {}", dist.get('author-email', ''))
+        write_output("License: {}", dist.get('license', ''))
+        write_output("Location: {}", dist.get('location', ''))
+        write_output("Requires: {}", ', '.join(dist.get('requires', [])))
+        write_output("Required-by: {}", ', '.join(dist.get('required_by', [])))
 
         if verbose:
-            write_output("Metadata-Version: %s",
+            write_output("Metadata-Version: {}",
                          dist.get('metadata-version', ''))
-            write_output("Installer: %s", dist.get('installer', ''))
+            write_output("Installer: {}", dist.get('installer', ''))
             write_output("Classifiers:")
             for classifier in dist.get('classifiers', []):
-                write_output("  %s", classifier)
+                write_output("  {}", classifier)
             write_output("Entry-points:")
             for entry in dist.get('entry_points', []):
-                write_output("  %s", entry.strip())
+                write_output("  {}", entry.strip())
         if list_files:
             write_output("Files:")
             for line in dist.get('files', []):
-                write_output("  %s", line.strip())
+                write_output("  {}", line.strip())
             if "files" not in dist:
                 write_output("Cannot locate installed-files.txt")
     return results_printed

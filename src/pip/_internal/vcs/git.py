@@ -190,7 +190,7 @@ class Git(VersionControl):
         # the form of a Git commit hash.
         if not looks_like_hash(rev):
             logger.warning(
-                "Did not find branch or tag '%s', assuming revision or ref.",
+                "Did not find branch or tag '{}', assuming revision or ref.",
                 rev,
             )
 
@@ -226,7 +226,7 @@ class Git(VersionControl):
     def fetch_new(self, dest, url, rev_options):
         # type: (str, HiddenText, RevOptions) -> None
         rev_display = rev_options.to_display()
-        logger.info('Cloning %s%s to %s', url, rev_display, display_path(dest))
+        logger.info('Cloning {}{} to {}', url, rev_display, display_path(dest))
         self.run_command(make_command('clone', '-q', url, dest))
 
         if rev_options.rev:
@@ -386,7 +386,7 @@ class Git(VersionControl):
                 log_failed_cmd=False,
             )
         except BadCommand:
-            logger.debug("could not determine if %s is under git control "
+            logger.debug("could not determine if {} is under git control "
                          "because git is not available", location)
             return None
         except SubProcessError:

@@ -52,7 +52,7 @@ def generate_metadata(
     Returns the generated metadata directory.
     """
     logger.debug(
-        'Running setup.py (path:%s) egg_info for package %s',
+        'Running setup.py (path:{}) egg_info for package {}',
         setup_py_path, details,
     )
 

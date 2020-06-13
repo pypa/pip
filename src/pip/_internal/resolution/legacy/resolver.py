@@ -81,7 +81,7 @@ def _check_dist_requires_python(
         )
     except specifiers.InvalidSpecifier as exc:
         logger.warning(
-            "Package %r has an invalid Requires-Python: %s",
+            "Package {!r} has an invalid Requires-Python: {}",
             dist.project_name, exc,
         )
         return
@@ -92,8 +92,8 @@ def _check_dist_requires_python(
     version = '.'.join(map(str, version_info))
     if ignore_requires_python:
         logger.debug(
-            'Ignoring failed Requires-Python check for package %r: '
-            '%s not in %r',
+            'Ignoring failed Requires-Python check for package {!r}: '
+            '{} not in {!r}',
             dist.project_name, version, requires_python,
         )
         return
@@ -309,7 +309,7 @@ class Resolver(BaseResolver):
             supported_tags=get_supported(),
         )
         if cache_entry is not None:
-            logger.debug('Using cached wheel link: %s', cache_entry.link)
+            logger.debug('Using cached wheel link: {}', cache_entry.link)
             if req.link is req.original_link and cache_entry.persistent:
                 req.original_link_is_in_wheel_cache = True
             req.link = cache_entry.link
@@ -359,7 +359,7 @@ class Resolver(BaseResolver):
             else:
                 logger.info(
                     'Requirement already satisfied (use --upgrade to upgrade):'
-                    ' %s', req,
+                    ' {}', req,
                 )
 
         return abstract_dist
@@ -427,7 +427,7 @@ class Resolver(BaseResolver):
             if not self.ignore_dependencies:
                 if req_to_install.extras:
                     logger.debug(
-                        "Installing extra requirements: %r",
+                        "Installing extra requirements: {!r}",
                         ','.join(req_to_install.extras),
                     )
                 missing_requested = sorted(
@@ -435,7 +435,7 @@ class Resolver(BaseResolver):
                 )
                 for missing in missing_requested:
                     logger.warning(
-                        "%s does not provide the extra '%s'",
+                        "{} does not provide the extra '{}'",
                         dist, missing
                     )
 

@@ -122,7 +122,7 @@ def dist_get_direct_url(dist):
         UnicodeDecodeError
     ) as e:
         logger.warning(
-            "Error parsing %s for %s: %s",
+            "Error parsing {} for {}: {}",
             DIRECT_URL_METADATA_NAME,
             dist.project_name,
             e,

@@ -175,7 +175,7 @@ def call_subprocess(
     if command_desc is None:
         command_desc = format_command_args(cmd)
 
-    log_subprocess("Running command %s", command_desc)
+    log_subprocess("Running command {}", command_desc)
     env = os.environ.copy()
     if extra_environ:
         env.update(extra_environ)
@@ -192,7 +192,7 @@ def call_subprocess(
     except Exception as exc:
         if log_failed_cmd:
             subprocess_logger.critical(
-                "Error %s while executing command %s", exc, command_desc,
+                "Error {} while executing command {}", exc, command_desc,
             )
         raise
     all_output = []
@@ -241,7 +241,7 @@ def call_subprocess(
             raise InstallationError(exc_msg)
         elif on_returncode == 'warn':
             subprocess_logger.warning(
-                'Command "%s" had error code %s in %s',
+                'Command "{}" had error code {} in {}',
                 command_desc,
                 proc.returncode,
                 cwd,

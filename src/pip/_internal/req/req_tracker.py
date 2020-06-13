@@ -57,7 +57,7 @@ def get_requirement_tracker():
                 TempDirectory(kind='req-tracker')
             ).path
             ctx.enter_context(update_env_context_manager(PIP_REQ_TRACKER=root))
-            logger.debug("Initialized build tracking at %s", root)
+            logger.debug("Initialized build tracking at {}", root)
 
         with RequirementTracker(root) as tracker:
             yield tracker
@@ -69,11 +69,11 @@ class RequirementTracker(object):
         # type: (str) -> None
         self._root = root
         self._entries = set()  # type: Set[InstallRequirement]
-        logger.debug("Created build tracker: %s", self._root)
+        logger.debug("Created build tracker: {}", self._root)
 
     def __enter__(self):
         # type: () -> RequirementTracker
-        logger.debug("Entered build tracker: %s", self._root)
+        logger.debug("Entered build tracker: {}", self._root)
         return self
 
     def __exit__(
@@ -121,7 +121,7 @@ class RequirementTracker(object):
             fp.write(str(req))
         self._entries.add(req)
 
-        logger.debug('Added %s to build tracker %r', req, self._root)
+        logger.debug('Added {} to build tracker {!r}', req, self._root)
 
     def remove(self, req):
         # type: (InstallRequirement) -> None
@@ -133,14 +133,14 @@ class RequirementTracker(object):
         os.unlink(self._entry_path(req.link))
         self._entries.remove(req)
 
-        logger.debug('Removed %s from build tracker %r', req, self._root)
+        logger.debug('Removed {} from build tracker {!r}', req, self._root)
 
     def cleanup(self):
         # type: () -> None
         for req in set(self._entries):
             self.remove(req)
 
-        logger.debug("Removed build tracker: %r", self._root)
+        logger.debug("Removed build tracker: {!r}", self._root)
 
     @contextlib.contextmanager
     def track(self, req):

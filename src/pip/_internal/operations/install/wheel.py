@@ -292,7 +292,7 @@ def get_csv_rows_for_installed(
     installed_rows = []  # type: List[InstalledCSVRow]
     for row in old_csv_rows:
         if len(row) > 3:
-            logger.warning('RECORD line has more than three elements: %s', row)
+            logger.warning('RECORD line has more than three elements: {}', row)
         old_record_path = _parse_record_path(row[0])
         new_record_path = installed.pop(old_record_path, old_record_path)
         if new_record_path in changed:

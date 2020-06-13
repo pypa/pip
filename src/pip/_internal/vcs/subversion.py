@@ -122,7 +122,7 @@ class Subversion(VersionControl):
                 # We've traversed up to the root of the filesystem without
                 # finding setup.py
                 logger.warning(
-                    "Could not find setup.py for directory %s (tried all "
+                    "Could not find setup.py for directory {} (tried all "
                     "parent directories)",
                     orig_location,
                 )
@@ -287,7 +287,7 @@ class Subversion(VersionControl):
         """Export the svn repository at the url to the destination location"""
         url, rev_options = self.get_url_rev_options(url)
 
-        logger.info('Exporting svn repository %s to %s', url, location)
+        logger.info('Exporting svn repository {} to {}', url, location)
         with indent_log():
             if os.path.exists(location):
                 # Subversion doesn't like to check out over an existing
@@ -303,7 +303,7 @@ class Subversion(VersionControl):
         # type: (str, HiddenText, RevOptions) -> None
         rev_display = rev_options.to_display()
         logger.info(
-            'Checking out %s%s to %s',
+            'Checking out {}{} to {}',
             url,
             rev_display,
             display_path(dest),

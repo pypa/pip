@@ -77,7 +77,7 @@ def install(
                 )
 
             if not os.path.exists(record_filename):
-                logger.debug('Record file %s not found', record_filename)
+                logger.debug('Record file {} not found', record_filename)
                 # Signal to the caller that we didn't install the new package
                 return False
 

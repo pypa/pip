@@ -426,7 +426,7 @@ class InstallCommand(RequirementCommand):
             installed_desc = ' '.join(items)
             if installed_desc:
                 write_output(
-                    'Successfully installed %s', installed_desc,
+                    'Successfully installed {}', installed_desc,
                 )
         except EnvironmentError as error:
             show_traceback = (self.verbosity >= 1)
@@ -477,14 +477,14 @@ class InstallCommand(RequirementCommand):
                     if os.path.exists(target_item_dir):
                         if not upgrade:
                             logger.warning(
-                                'Target directory %s already exists. Specify '
+                                'Target directory {} already exists. Specify '
                                 '--upgrade to force replacement.',
                                 target_item_dir
                             )
                             continue
                         if os.path.islink(target_item_dir):
                             logger.warning(
-                                'Target directory %s already exists and is '
+                                'Target directory {} already exists and is '
                                 'a link. pip will not automatically replace '
                                 'links, please remove if replacement is '
                                 'desired.',
@@ -514,7 +514,7 @@ class InstallCommand(RequirementCommand):
             version = package_set[project_name][0]
             for dependency in missing[project_name]:
                 logger.critical(
-                    "%s %s requires %s, which is not installed.",
+                    "{} {} requires {}, which is not installed.",
                     project_name, version, dependency[1],
                 )
 
@@ -522,7 +522,7 @@ class InstallCommand(RequirementCommand):
             version = package_set[project_name][0]
             for dep_name, dep_version, req in conflicting[project_name]:
                 logger.critical(
-                    "%s %s has requirement %s, but you'll have %s %s which is "
+                    "{} {} has requirement {}, but you'll have {} {} which is "
                     "incompatible.",
                     project_name, version, req, dep_name, dep_version,
                 )

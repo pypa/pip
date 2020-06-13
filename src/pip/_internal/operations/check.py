@@ -53,7 +53,7 @@ def create_package_set_from_installed(**kwargs):
             package_set[name] = PackageDetails(dist.version, dist.requires())
         except RequirementParseError as e:
             # Don't crash on broken metadata
-            logger.warning("Error parsing requirements for %s: %s", name, e)
+            logger.warning("Error parsing requirements for {}: {}", name, e)
             problems = True
     return package_set, problems
 

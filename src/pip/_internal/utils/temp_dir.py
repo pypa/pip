@@ -185,7 +185,7 @@ class TempDirectory(object):
         path = os.path.realpath(
             tempfile.mkdtemp(prefix="pip-{}-".format(kind))
         )
-        logger.debug("Created temporary directory: %s", path)
+        logger.debug("Created temporary directory: {}", path)
         return path
 
     def cleanup(self):
@@ -269,5 +269,5 @@ class AdjacentTempDirectory(TempDirectory):
             path = os.path.realpath(
                 tempfile.mkdtemp(prefix="pip-{}-".format(kind)))
 
-        logger.debug("Created temporary directory: %s", path)
+        logger.debug("Created temporary directory: {}", path)
         return path

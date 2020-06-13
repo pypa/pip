@@ -61,7 +61,7 @@ class Bazaar(VersionControl):
         # type: (str, HiddenText, RevOptions) -> None
         rev_display = rev_options.to_display()
         logger.info(
-            'Checking out %s%s to %s',
+            'Checking out {}{} to {}',
             url,
             rev_display,
             display_path(dest),

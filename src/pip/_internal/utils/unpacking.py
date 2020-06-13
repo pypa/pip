@@ -175,7 +175,7 @@ def untar_file(filename, location):
         mode = 'r'
     else:
         logger.warning(
-            'Cannot determine compression type for file %s', filename,
+            'Cannot determine compression type for file {}', filename,
         )
         mode = 'r:*'
     tar = tarfile.open(filename, mode)
@@ -207,7 +207,7 @@ def untar_file(filename, location):
                     # Some corrupt tar files seem to produce this
                     # (specifically bad symlinks)
                     logger.warning(
-                        'In the tar file %s the member %s is invalid: %s',
+                        'In the tar file {} the member {} is invalid: {}',
                         filename, member.name, exc,
                     )
                     continue
@@ -218,7 +218,7 @@ def untar_file(filename, location):
                     # Some corrupt tar files seem to produce this
                     # (specifically bad symlinks)
                     logger.warning(
-                        'In the tar file %s the member %s is invalid: %s',
+                        'In the tar file {} the member {} is invalid: {}',
                         filename, member.name, exc,
                     )
                     continue
@@ -266,7 +266,7 @@ def unpack_file(
         # FIXME: handle?
         # FIXME: magic signatures?
         logger.critical(
-            'Cannot unpack file %s (downloaded from %s, content-type: %s); '
+            'Cannot unpack file {} (downloaded from {}, content-type: {}); '
             'cannot detect archive format',
             filename, location, content_type,
         )

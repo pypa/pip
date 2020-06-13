@@ -91,7 +91,7 @@ def build_wheel_legacy(
 
     spin_message = 'Building wheel for {} (setup.py)'.format(name)
     with open_spinner(spin_message) as spinner:
-        logger.debug('Destination directory: %s', tempd)
+        logger.debug('Destination directory: {}', tempd)
 
         try:
             output = call_subprocess(
@@ -101,7 +101,7 @@ def build_wheel_legacy(
             )
         except Exception:
             spinner.finish("error")
-            logger.error('Failed building wheel for %s', name)
+            logger.error('Failed building wheel for {}', name)
             return None
 
         names = os.listdir(tempd)

@@ -109,7 +109,7 @@ class ConfigurationCommand(Command):
         # Determine action
         if not args or args[0] not in handlers:
             logger.error(
-                "Need an action (%s) to perform.",
+                "Need an action ({}) to perform.",
                 ", ".join(sorted(handlers)),
             )
             return ERROR
@@ -171,13 +171,13 @@ class ConfigurationCommand(Command):
         self._get_n_args(args, "list", n=0)
 
         for key, value in sorted(self.configuration.items()):
-            write_output("%s=%r", key, value)
+            write_output("{}={!r}", key, value)
 
     def get_name(self, options, args):
         key = self._get_n_args(args, "get [name]", n=1)
         value = self.configuration.get_value(key)
 
-        write_output("%s", value)
+        write_output("{}", value)
 
     def set_name_value(self, options, args):
         key, value = self._get_n_args(args, "set [name] [value]", n=2)

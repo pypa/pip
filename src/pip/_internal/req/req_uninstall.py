@@ -295,19 +295,19 @@ class StashedUninstallPathSet(object):
         # type: () -> None
         """Undoes the uninstall by moving stashed files back."""
         for p in self._moves:
-            logger.info("Moving to %s\n from %s", *p)
+            logger.info("Moving to {}\n from {}", *p)
 
         for new_path, path in self._moves:
             try:
-                logger.debug('Replacing %s from %s', new_path, path)
+                logger.debug('Replacing {} from {}', new_path, path)
                 if os.path.isfile(new_path) or os.path.islink(new_path):
                     os.unlink(new_path)
                 elif os.path.isdir(new_path):
                     rmtree(new_path)
                 renames(path, new_path)
             except OSError as ex:
-                logger.error("Failed to restore %s", new_path)
-                logger.debug("Exception: %s", ex)
+                logger.error("Failed to restore {}", new_path)
+                logger.debug("Exception: {}", ex)
 
         self.commit()
 
@@ -374,7 +374,7 @@ class UninstallPathSet(object):
 
         if not self.paths:
             logger.info(
-                "Can't uninstall '%s'. No files were found to uninstall.",
+                "Can't uninstall '{}'. No files were found to uninstall.",
                 self.dist.project_name,
             )
             return
@@ -382,7 +382,7 @@ class UninstallPathSet(object):
         dist_name_version = (
             self.dist.project_name + "-" + self.dist.version
         )
-        logger.info('Uninstalling %s:', dist_name_version)
+        logger.info('Uninstalling {}:', dist_name_version)
 
         with indent_log():
             if auto_confirm or self._allowed_to_proceed(verbose):
@@ -392,12 +392,12 @@ class UninstallPathSet(object):
 
                 for path in sorted(compact(for_rename)):
                     moved.stash(path)
-                    logger.debug('Removing file or directory %s', path)
+                    logger.debug('Removing file or directory {}', path)
 
                 for pth in self.pth.values():
                     pth.remove()
 
-                logger.info('Successfully uninstalled %s', dist_name_version)
+                logger.info('Successfully uninstalled {}', dist_name_version)
 
     def _allowed_to_proceed(self, verbose):
         # type: (bool) -> bool
@@ -435,11 +435,11 @@ class UninstallPathSet(object):
         """Rollback the changes previously made by remove()."""
         if not self._moved_paths.can_rollback:
             logger.error(
-                "Can't roll back %s; was not uninstalled",
+                "Can't roll back {}; was not uninstalled",
                 self.dist.project_name,
             )
             return
-        logger.info('Rolling back uninstall of %s', self.dist.project_name)
+        logger.info('Rolling back uninstall of {}', self.dist.project_name)
         self._moved_paths.rollback()
         for pth in self.pth.values():
             pth.rollback()
@@ -455,7 +455,7 @@ class UninstallPathSet(object):
         dist_path = normalize_path(dist.location)
         if not dist_is_local(dist):
             logger.info(
-                "Not uninstalling %s at %s, outside environment %s",
+                "Not uninstalling {} at {}, outside environment {}",
                 dist.key,
                 dist_path,
                 sys.prefix,
@@ -466,7 +466,7 @@ class UninstallPathSet(object):
                                      sysconfig.get_path("platstdlib")}
                          if p}:
             logger.info(
-                "Not uninstalling %s at %s, as it is in the standard library.",
+                "Not uninstalling {} at {}, as it is in the standard library.",
                 dist.key,
                 dist_path,
             )
@@ -551,7 +551,7 @@ class UninstallPathSet(object):
 
         else:
             logger.debug(
-                'Not sure how to uninstall: %s - Check: %s',
+                'Not sure how to uninstall: {} - Check: {}',
                 dist, dist.location,
             )
 
@@ -607,12 +607,12 @@ class UninstallPthEntries(object):
 
     def remove(self):
         # type: () -> None
-        logger.debug('Removing pth entries from %s:', self.file)
+        logger.debug('Removing pth entries from {}:', self.file)
 
         # If the file doesn't exist, log a warning and return
         if not os.path.isfile(self.file):
             logger.warning(
-                "Cannot remove entries from nonexistent file %s", self.file
+                "Cannot remove entries from nonexistent file {}", self.file
             )
             return
         with open(self.file, 'rb') as fh:
@@ -628,7 +628,7 @@ class UninstallPthEntries(object):
             lines[-1] = lines[-1] + endline.encode("utf-8")
         for entry in self.entries:
             try:
-                logger.debug('Removing entry: %s', entry)
+                logger.debug('Removing entry: {}', entry)
                 lines.remove((entry + endline).encode("utf-8"))
             except ValueError:
                 pass
@@ -639,10 +639,10 @@ class UninstallPthEntries(object):
         # type: () -> bool
         if self._saved_lines is None:
             logger.error(
-                'Cannot roll back changes to %s, none were made', self.file
+                'Cannot roll back changes to {}, none were made', self.file
             )
             return False
-        logger.debug('Rolling %s back to previous state', self.file)
+        logger.debug('Rolling {} back to previous state', self.file)
         with open(self.file, 'wb') as fh:
             fh.writelines(self._saved_lines)
         return True

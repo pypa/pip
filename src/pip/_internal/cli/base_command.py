@@ -181,7 +181,7 @@ class Command(CommandContextMixIn):
             options.cache_dir = normalize_path(options.cache_dir)
             if not check_path_owner(options.cache_dir):
                 logger.warning(
-                    "The directory '%s' or its parent directory is not owned "
+                    "The directory '{}' or its parent directory is not owned "
                     "or is not writable by the current user. The cache "
                     "has been disabled. Check the permissions and owner of "
                     "that directory. If executing pip with sudo, you may want "
@@ -206,7 +206,7 @@ class Command(CommandContextMixIn):
 
             return ERROR
         except CommandError as exc:
-            logger.critical('%s', exc)
+            logger.critical('{}', exc)
             logger.debug('Exception information:', exc_info=True)
 
             return ERROR

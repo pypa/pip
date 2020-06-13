@@ -123,7 +123,7 @@ def call_subprocess(
     except Exception as exc:
         if log_failed_cmd:
             subprocess_logger.critical(
-                "Error %s while executing command %s", exc, command_desc,
+                "Error {} while executing command {}", exc, command_desc,
             )
         raise
     all_output = []
@@ -183,7 +183,7 @@ def find_path_to_setup_from_repo_root(location, repo_root):
             # We've traversed up to the root of the filesystem without
             # finding setup.py
             logger.warning(
-                "Could not find setup.py for directory %s (tried all "
+                "Could not find setup.py for directory {} (tried all "
                 "parent directories)",
                 orig_location,
             )
@@ -311,11 +311,11 @@ class VcsSupport(object):
     def register(self, cls):
         # type: (Type[VersionControl]) -> None
         if not hasattr(cls, 'name'):
-            logger.warning('Cannot register VCS %s', cls.__name__)
+            logger.warning('Cannot register VCS {}', cls.__name__)
             return
         if cls.name not in self._registry:
             self._registry[cls.name] = cls()
-            logger.debug('Registered VCS backend: %s', cls.name)
+            logger.debug('Registered VCS backend: {}', cls.name)
 
     def unregister(self, name):
         # type: (str) -> None
@@ -333,7 +333,7 @@ class VcsSupport(object):
             repo_path = vcs_backend.get_repository_root(location)
             if not repo_path:
                 continue
-            logger.debug('Determine that %s uses VCS: %s',
+            logger.debug('Determine that {} uses VCS: {}',
                          location, vcs_backend.name)
             vcs_backends[repo_path] = vcs_backend
 
@@ -646,14 +646,14 @@ class VersionControl(object):
             existing_url = self.get_remote_url(dest)
             if self.compare_urls(existing_url, url.secret):
                 logger.debug(
-                    '%s in %s exists, and has correct URL (%s)',
+                    '{} in {} exists, and has correct URL ({})',
                     self.repo_name.title(),
                     display_path(dest),
                     url,
                 )
                 if not self.is_commit_id_equal(dest, rev_options.rev):
                     logger.info(
-                        'Updating %s %s%s',
+                        'Updating {} {}{}',
                         display_path(dest),
                         self.repo_name,
                         rev_display,
@@ -664,7 +664,7 @@ class VersionControl(object):
                 return
 
             logger.warning(
-                '%s %s in %s exists with URL %s',
+                '{} {} in {} exists with URL {}',
                 self.name,
                 self.repo_name,
                 display_path(dest),
@@ -674,7 +674,7 @@ class VersionControl(object):
                       ('s', 'i', 'w', 'b'))
         else:
             logger.warning(
-                'Directory %s already exists, and is not a %s %s.',
+                'Directory {} already exists, and is not a {} {}.',
                 dest,
                 self.name,
                 self.repo_name,
@@ -684,7 +684,7 @@ class VersionControl(object):
                       ('i', 'w', 'b'))
 
         logger.warning(
-            'The plan is to install the %s repository %s',
+            'The plan is to install the {} repository {}',
             self.name,
             url,
         )
@@ -695,7 +695,7 @@ class VersionControl(object):
             sys.exit(-1)
 
         if response == 'w':
-            logger.warning('Deleting %s', display_path(dest))
+            logger.warning('Deleting {}', display_path(dest))
             rmtree(dest)
             self.fetch_new(dest, url, rev_options)
             return
@@ -703,7 +703,7 @@ class VersionControl(object):
         if response == 'b':
             dest_dir = backup_dir(dest)
             logger.warning(
-                'Backing up %s to %s', display_path(dest), dest_dir,
+                'Backing up {} to {}', display_path(dest), dest_dir,
             )
             shutil.move(dest, dest_dir)
             self.fetch_new(dest, url, rev_options)
@@ -712,7 +712,7 @@ class VersionControl(object):
         # Do nothing if the response is "i".
         if response == 's':
             logger.info(
-                'Switching %s %s to %s%s',
+                'Switching {} {} to {}{}',
                 self.repo_name,
                 display_path(dest),
                 url,
@@ -789,7 +789,7 @@ class VersionControl(object):
         """
         Return whether a directory path is a repository directory.
         """
-        logger.debug('Checking in %s for %s (%s)...',
+        logger.debug('Checking in {} for {} ({})...',
                      path, cls.dirname, cls.name)
         return os.path.exists(os.path.join(path, cls.dirname))
 

@@ -55,7 +55,7 @@ def get_metadata(dist):
         metadata_name = 'PKG-INFO'
         metadata = dist.get_metadata(metadata_name)
     else:
-        logger.warning("No metadata found in %s", display_path(dist.location))
+        logger.warning("No metadata found in {}", display_path(dist.location))
         metadata = ''
 
     if metadata is None:

@@ -72,7 +72,7 @@ def freeze(
             # location. We also include the exception message to aid
             # troubleshooting.
             logger.warning(
-                'Could not generate requirement for distribution %r: %s',
+                'Could not generate requirement for distribution {!r}: {}',
                 dist, exc
             )
             continue
@@ -126,8 +126,8 @@ def freeze(
 
                     if not line_req.name:
                         logger.info(
-                            "Skipping line in requirement file [%s] because "
-                            "it's not clear what it would install: %s",
+                            "Skipping line in requirement file [{}] because "
+                            "it's not clear what it would install: {}",
                             req_file_path, line.strip(),
                         )
                         logger.info(
@@ -142,8 +142,8 @@ def freeze(
                             # but has been processed already
                             if not req_files[line_req.name]:
                                 logger.warning(
-                                    "Requirement file [%s] contains %s, but "
-                                    "package %r is not installed",
+                                    "Requirement file [{}] contains {}, but "
+                                    "package {!r} is not installed",
                                     req_file_path,
                                     COMMENT_RE.sub('', line).strip(),
                                     line_req.name
@@ -160,7 +160,7 @@ def freeze(
         # single requirements file or in different requirements files).
         for name, files in six.iteritems(req_files):
             if len(files) > 1:
-                logger.warning("Requirement %s included multiple times [%s]",
+                logger.warning("Requirement {} included multiple times [{}]",
                                name, ', '.join(sorted(set(files))))
 
         yield(
@@ -190,7 +190,7 @@ def get_requirement_info(dist):
     if vcs_backend is None:
         req = dist.as_requirement()
         logger.debug(
-            'No VCS found for editable requirement "%s" in: %r', req,
+            'No VCS found for editable requirement "{}" in: {!r}', req,
             location,
         )
         comments = [
@@ -211,8 +211,8 @@ def get_requirement_info(dist):
 
     except BadCommand:
         logger.warning(
-            'cannot determine version of editable source in %s '
-            '(%s command not found in path)',
+            'cannot determine version of editable source in {} '
+            '({} command not found in path)',
             location,
             vcs_backend.name,
         )
@@ -220,7 +220,7 @@ def get_requirement_info(dist):
 
     except InstallationError as exc:
         logger.warning(
-            "Error when trying to get requirement for VCS system %s, "
+            "Error when trying to get requirement for VCS system {}, "
             "falling back to uneditable format", exc
         )
     else:
@@ -228,7 +228,7 @@ def get_requirement_info(dist):
             return (req, True, [])
 
     logger.warning(
-        'Could not determine repository location of %s', location
+        'Could not determine repository location of {}', location
     )
     comments = ['## !! Could not determine repository location']
 

@@ -36,7 +36,7 @@ except ImportError:
     keyring = None
 except Exception as exc:
     logger.warning(
-        "Keyring is skipped due to an exception: %s", str(exc),
+        "Keyring is skipped due to an exception: {}", str(exc),
     )
     keyring = None
 
@@ -53,21 +53,21 @@ def get_keyring_auth(url, username):
         except AttributeError:
             pass
         else:
-            logger.debug("Getting credentials from keyring for %s", url)
+            logger.debug("Getting credentials from keyring for {}", url)
             cred = get_credential(url, username)
             if cred is not None:
                 return cred.username, cred.password
             return None
 
         if username:
-            logger.debug("Getting password from keyring for %s", url)
+            logger.debug("Getting password from keyring for {}", url)
             password = keyring.get_password(url, username)
             if password:
                 return username, password
 
     except Exception as exc:
         logger.warning(
-            "Keyring is skipped due to an exception: %s", str(exc),
+            "Keyring is skipped due to an exception: {}", str(exc),
         )
     return None
 
@@ -121,7 +121,7 @@ class MultiDomainBasicAuth(AuthBase):
         # Start with the credentials embedded in the url
         username, password = url_user_password
         if username is not None and password is not None:
-            logger.debug("Found credentials in url for %s", netloc)
+            logger.debug("Found credentials in url for {}", netloc)
             return url_user_password
 
         # Find a matching index url for this request
@@ -131,20 +131,20 @@ class MultiDomainBasicAuth(AuthBase):
             index_info = split_auth_netloc_from_url(index_url)
             if index_info:
                 index_url, _, index_url_user_password = index_info
-                logger.debug("Found index url %s", index_url)
+                logger.debug("Found index url {}", index_url)
 
         # If an index URL was found, try its embedded credentials
         if index_url and index_url_user_password[0] is not None:
             username, password = index_url_user_password
             if username is not None and password is not None:
-                logger.debug("Found credentials in index url for %s", netloc)
+                logger.debug("Found credentials in index url for {}", netloc)
                 return index_url_user_password
 
         # Get creds from netrc if we still don't have them
         if allow_netrc:
             netrc_auth = get_netrc_auth(original_url)
             if netrc_auth:
-                logger.debug("Found credentials in netrc for %s", netloc)
+                logger.debug("Found credentials in netrc for {}", netloc)
                 return netrc_auth
 
         # If we don't have a password and keyring is available, use it.
@@ -155,7 +155,7 @@ class MultiDomainBasicAuth(AuthBase):
                 get_keyring_auth(netloc, username)
             )
             if kr_auth:
-                logger.debug("Found credentials in keyring for %s", netloc)
+                logger.debug("Found credentials in keyring for {}", netloc)
                 return kr_auth
 
         return username, password
@@ -288,7 +288,7 @@ class MultiDomainBasicAuth(AuthBase):
         """Response callback to warn about incorrect credentials."""
         if resp.status_code == 401:
             logger.warning(
-                '401 Error, Credentials not correct for %s', resp.request.url,
+                '401 Error, Credentials not correct for {}', resp.request.url,
             )
 
     def save_credentials(self, resp, **kwargs):

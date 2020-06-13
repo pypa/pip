@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 def show_value(name, value):
     # type: (str, Optional[str]) -> None
-    logger.info('%s: %s', name, value)
+    logger.info('{}: {}', name, value)
 
 
 def show_sys_implementation():
@@ -115,7 +115,7 @@ def show_actual_vendor_versions(vendor_txt_versions):
         elif actual_version != expected_version:
             extra_message = ' (CONFLICT: vendor.txt suggests version should'\
                             ' be {})'.format(expected_version)
-        logger.info('%s==%s%s', module_name, actual_version, extra_message)
+        logger.info('{}=={}{}', module_name, actual_version, extra_message)
 
 
 def show_vendor_versions():

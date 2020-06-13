@@ -88,7 +88,7 @@ class RequirementSet(object):
         # If the markers do not match, ignore this requirement.
         if not install_req.match_markers(extras_requested):
             logger.info(
-                "Ignoring %s: markers '%s' don't match your environment",
+                "Ignoring {}: markers '{}' don't match your environment",
                 install_req.name, install_req.markers,
             )
             return [], None
@@ -169,7 +169,7 @@ class RequirementSet(object):
             set(existing_req.extras) | set(install_req.extras)
         ))
         logger.debug(
-            "Setting %s extras to: %s",
+            "Setting {} extras to: {}",
             existing_req, existing_req.extras,
         )
         # Return the existing requirement for addition to the parent and

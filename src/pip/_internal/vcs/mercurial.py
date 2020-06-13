@@ -54,7 +54,7 @@ class Mercurial(VersionControl):
         # type: (str, HiddenText, RevOptions) -> None
         rev_display = rev_options.to_display()
         logger.info(
-            'Cloning hg %s%s to %s',
+            'Cloning hg {}{} to {}',
             url,
             rev_display,
             display_path(dest),
@@ -76,7 +76,7 @@ class Mercurial(VersionControl):
                 config.write(config_file)
         except (OSError, configparser.NoSectionError) as exc:
             logger.warning(
-                'Could not switch Mercurial repository to %s: %s', url, exc,
+                'Could not switch Mercurial repository to {}: {}', url, exc,
             )
         else:
             cmd_args = make_command('update', '-q', rev_options.to_args())
@@ -147,7 +147,7 @@ class Mercurial(VersionControl):
                 log_failed_cmd=False,
             )
         except BadCommand:
-            logger.debug("could not determine if %s is under hg control "
+            logger.debug("could not determine if {} is under hg control "
                          "because hg is not available", location)
             return None
         except SubProcessError:

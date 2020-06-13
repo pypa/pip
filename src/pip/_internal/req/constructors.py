@@ -173,7 +173,7 @@ def deduce_helpful_msg(req):
                 ).format(req)
         except RequirementParseError:
             logger.debug(
-                "Cannot parse '%s' as requirements file", req, exc_info=True
+                "Cannot parse '{}' as requirements file", req, exc_info=True
             )
     else:
         msg += " File '{}' does not exist.".format(req)
@@ -288,7 +288,7 @@ def _get_url_from_path(path, name):
         # like a path, try to treat it as a PEP 440 URL req instead.
         return None
     logger.warning(
-        'Requirement %r looks like a filename, but the '
+        'Requirement {!r} looks like a filename, but the '
         'file does not exist',
         name
     )

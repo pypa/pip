@@ -59,7 +59,7 @@ def _should_build(
     if req.is_wheel:
         if need_wheel:
             logger.info(
-                'Skipping %s, due to already being wheel.', req.name,
+                'Skipping {}, due to already being wheel.', req.name,
             )
         return False
 
@@ -75,7 +75,7 @@ def _should_build(
 
     if not check_binary_allowed(req):
         logger.info(
-            "Skipping wheel build for %s, due to binaries "
+            "Skipping wheel build for {}, due to binaries "
             "being disabled for it.", req.name,
         )
         return False
@@ -83,7 +83,7 @@ def _should_build(
     if not req.use_pep517 and not is_wheel_installed():
         # we don't build legacy requirements if wheel is not installed
         logger.info(
-            "Using legacy setup.py install for %s, "
+            "Using legacy setup.py install for {}, "
             "since package 'wheel' is not installed.", req.name,
         )
         return False
@@ -178,7 +178,7 @@ def _build_one(
         ensure_dir(output_dir)
     except OSError as e:
         logger.warning(
-            "Building wheel for %s failed: %s",
+            "Building wheel for {} failed: {}",
             req.name, e,
         )
         return None
@@ -222,15 +222,14 @@ def _build_one_inside_env(
             try:
                 wheel_hash, length = hash_file(wheel_path)
                 shutil.move(wheel_path, dest_path)
-                logger.info('Created wheel for %s: '
-                            'filename=%s size=%d sha256=%s',
-                            req.name, wheel_name, length,
-                            wheel_hash.hexdigest())
-                logger.info('Stored in directory: %s', output_dir)
+                logger.info(
+                    'Created wheel for {}: filename={} size={} sha256={}',
+                    req.name, wheel_name, length, wheel_hash.hexdigest())
+                logger.info('Stored in directory: {}', output_dir)
                 return dest_path
             except Exception as e:
                 logger.warning(
-                    "Building wheel for %s failed: %s",
+                    "Building wheel for {} failed: {}",
                     req.name, e,
                 )
         # Ignore return, we can't do anything else useful.
@@ -246,12 +245,12 @@ def _clean_one_legacy(req, global_options):
         global_options=global_options,
     )
 
-    logger.info('Running setup.py clean for %s', req.name)
+    logger.info('Running setup.py clean for {}', req.name)
     try:
         call_subprocess(clean_args, cwd=req.source_dir)
         return True
     except Exception:
-        logger.error('Failed cleaning build dir for %s', req.name)
+        logger.error('Failed cleaning build dir for {}', req.name)
         return False
 
 
@@ -272,7 +271,7 @@ def build(
 
     # Build the wheels.
     logger.info(
-        'Building wheels for collected packages: %s',
+        'Building wheels for collected packages: {}',
         ', '.join(req.name for req in requirements),
     )
 
@@ -295,12 +294,12 @@ def build(
     # notify success/failure
     if build_successes:
         logger.info(
-            'Successfully built %s',
+            'Successfully built {}',
             ' '.join([req.name for req in build_successes]),
         )
     if build_failures:
         logger.info(
-            'Failed to build %s',
+            'Failed to build {}',
             ' '.join([req.name for req in build_failures]),
         )
     # Return a list of requirements that failed to build

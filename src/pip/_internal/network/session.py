@@ -403,10 +403,10 @@ class PipSession(requests.Session):
         # will not accept it as a valid location to search. We will however
         # log a warning that we are ignoring it.
         logger.warning(
-            "The repository located at %s is not a trusted or secure host and "
+            "The repository located at {} is not a trusted or secure host and "
             "is being ignored. If this repository is available via HTTPS we "
             "recommend you use HTTPS instead, otherwise you may silence "
-            "this warning and allow it anyway with '--trusted-host %s'.",
+            "this warning and allow it anyway with '--trusted-host {}'.",
             origin_host,
             origin_host,
         )

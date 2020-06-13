@@ -69,7 +69,7 @@ def main(args=None):
         locale.setlocale(locale.LC_ALL, '')
     except locale.Error as e:
         # setlocale can apparently crash if locale are uninitialized
-        logger.debug("Ignoring error %s when setting locale", e)
+        logger.debug("Ignoring error {} when setting locale", e)
     command = create_command(cmd_name, isolated=("--isolated" in cmd_args))
 
     return command.main(cmd_args)

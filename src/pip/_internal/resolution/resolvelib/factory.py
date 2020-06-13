@@ -245,7 +245,7 @@ class Factory(object):
         # type: (InstallRequirement, Iterable[str]) -> Optional[Requirement]
         if not ireq.match_markers(requested_extras):
             logger.info(
-                "Ignoring %s: markers '%s' don't match your environment",
+                "Ignoring {}: markers '{}' don't match your environment",
                 ireq.name, ireq.markers,
             )
             return None
@@ -378,7 +378,7 @@ class Factory(object):
             else:
                 req_disp = '{} (from {})'.format(req, parent.name)
             logger.critical(
-                "Could not find a version that satisfies the requirement %s",
+                "Could not find a version that satisfies the requirement {}",
                 req_disp,
             )
             return DistributionNotFound(

@@ -43,7 +43,7 @@ class PipXmlrpcTransport(xmlrpc_client.Transport):
             return self.parse_response(response.raw)
         except requests.HTTPError as exc:
             logger.critical(
-                "HTTP error %s while getting %s",
+                "HTTP error {} while getting {}",
                 exc.response.status_code, url,
             )
             raise

@@ -365,7 +365,7 @@ class InstallRequirement(object):
         # FIXME: Is there a better place to create the build_dir? (hg and bzr
         # need this)
         if not os.path.exists(build_dir):
-            logger.debug('Creating directory %s', build_dir)
+            logger.debug('Creating directory {}', build_dir)
             os.makedirs(build_dir)
         actual_build_dir = os.path.join(build_dir, dir_name)
         # `None` indicates that we respect the globally-configured deletion
@@ -409,9 +409,9 @@ class InstallRequirement(object):
 
         # If we're here, there's a mismatch. Log a warning about it.
         logger.warning(
-            'Generating metadata for package %s '
-            'produced metadata for project name %s. Fix your '
-            '#egg=%s fragments.',
+            'Generating metadata for package {} '
+            'produced metadata for project name {}. Fix your '
+            '#egg={} fragments.',
             self.name, metadata_name, self.name
         )
         self.req = Requirement(metadata_name)
@@ -579,13 +579,13 @@ class InstallRequirement(object):
         version = self.metadata['version']
         if self.req.specifier and version not in self.req.specifier:
             logger.warning(
-                'Requested %s, but installing version %s',
+                'Requested {}, but installing version {}',
                 self,
                 version,
             )
         else:
             logger.debug(
-                'Source in %s has version %s, which satisfies requirement %s',
+                'Source in {} has version {}, which satisfies requirement {}',
                 display_path(self.source_dir),
                 version,
                 self,
@@ -620,7 +620,7 @@ class InstallRequirement(object):
         # type: (bool) -> None
         if not self.link:
             logger.debug(
-                "Cannot update repository at %s; repository location is "
+                "Cannot update repository at {}; repository location is "
                 "unknown",
                 self.source_dir,
             )
@@ -678,10 +678,10 @@ class InstallRequirement(object):
         try:
             dist = pkg_resources.get_distribution(self.req.name)
         except pkg_resources.DistributionNotFound:
-            logger.warning("Skipping %s as it is not installed.", self.name)
+            logger.warning("Skipping {} as it is not installed.", self.name)
             return None
         else:
-            logger.info('Found existing installation: %s', dist)
+            logger.info('Found existing installation: {}', dist)
 
         uninstalled_pathset = UninstallPathSet.from_dist(dist)
         uninstalled_pathset.remove(auto_confirm, verbose)
@@ -725,12 +725,12 @@ class InstallRequirement(object):
             if response == 'i':
                 create_archive = False
             elif response == 'w':
-                logger.warning('Deleting %s', display_path(archive_path))
+                logger.warning('Deleting {}', display_path(archive_path))
                 os.remove(archive_path)
             elif response == 'b':
                 dest_file = backup_dir(archive_path)
                 logger.warning(
-                    'Backing up %s to %s',
+                    'Backing up {} to {}',
                     display_path(archive_path),
                     display_path(dest_file),
                 )
@@ -763,7 +763,7 @@ class InstallRequirement(object):
                     filename = os.path.join(dirpath, filename)
                     zip_output.write(filename, file_arcname)
 
-        logger.info('Saved %s', display_path(archive_path))
+        logger.info('Saved {}', display_path(archive_path))
 
     def install(
         self,

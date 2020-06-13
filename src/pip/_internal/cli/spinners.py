@@ -92,7 +92,7 @@ class NonInteractiveSpinner(SpinnerInterface):
         # type: (str) -> None
         assert not self._finished
         self._rate_limiter.reset()
-        logger.info("%s: %s", self._message, status)
+        logger.info("{}: {}", self._message, status)
 
     def spin(self):
         # type: () -> None

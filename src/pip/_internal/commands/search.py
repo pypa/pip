@@ -142,14 +142,14 @@ def print_results(hits, name_column_width=None, terminal_width=None):
                 dist = pkg_resources.get_distribution(name)
                 with indent_log():
                     if dist.version == latest:
-                        write_output('INSTALLED: %s (latest)', dist.version)
+                        write_output('INSTALLED: {} (latest)', dist.version)
                     else:
-                        write_output('INSTALLED: %s', dist.version)
+                        write_output('INSTALLED: {}', dist.version)
                         if parse_version(latest).pre:
-                            write_output('LATEST:    %s (pre-release; install'
+                            write_output('LATEST:    {} (pre-release; install'
                                          ' with "pip install --pre")', latest)
                         else:
-                            write_output('LATEST:    %s', latest)
+                            write_output('LATEST:    {}', latest)
         except UnicodeEncodeError:
             pass
 

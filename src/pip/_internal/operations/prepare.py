@@ -147,7 +147,7 @@ def _copy2_ignoring_special_files(src, dest):
         # care, but since the destination directory is deleted prior to
         # copy we ignore all of them assuming it is caused by the source.
         logger.warning(
-            "Ignoring special file error '%s' encountered copying %s to %s.",
+            "Ignoring special file error '{}' encountered copying {} to {}.",
             str(e),
             path_to_display(src),
             path_to_display(dest),
@@ -298,13 +298,13 @@ def _check_download_dir(link, download_dir, hashes):
         return None
 
     # If already downloaded, does its hash match?
-    logger.info('File was already downloaded %s', download_path)
+    logger.info('File was already downloaded {}', download_path)
     if hashes:
         try:
             hashes.check_against_path(download_path)
         except HashMismatch:
             logger.warning(
-                'Previously-downloaded file %s has bad hash. '
+                'Previously-downloaded file {} has bad hash. '
                 'Re-downloading.',
                 download_path
             )
@@ -390,9 +390,9 @@ class RequirementPreparer(object):
         # TODO: Breakup into smaller functions
         if link.scheme == 'file':
             path = link.file_path
-            logger.info('Processing %s', display_path(path))
+            logger.info('Processing {}', display_path(path))
         else:
-            logger.info('Collecting %s', req.req or req)
+            logger.info('Collecting {}', req.req or req)
 
         download_dir = self.download_dir
         if link.is_wheel and self.wheel_download_dir:
@@ -475,7 +475,7 @@ class RequirementPreparer(object):
                 )
             except requests.HTTPError as exc:
                 logger.critical(
-                    'Could not install requirement %s because of error %s',
+                    'Could not install requirement {} because of error {}',
                     req,
                     exc,
                 )
@@ -503,7 +503,7 @@ class RequirementPreparer(object):
                     if not os.path.exists(download_location):
                         shutil.copy(local_file.path, download_location)
                         logger.info(
-                            'Saved %s', display_path(download_location)
+                            'Saved {}', display_path(download_location)
                         )
 
             if self._download_should_save:
@@ -521,7 +521,7 @@ class RequirementPreparer(object):
         """
         assert req.editable, "cannot prepare a non-editable req as editable"
 
-        logger.info('Obtaining %s', req)
+        logger.info('Obtaining {}', req)
 
         with indent_log():
             if self.require_hashes:
@@ -557,7 +557,7 @@ class RequirementPreparer(object):
             "is set to {}".format(req.satisfied_by)
         )
         logger.info(
-            'Requirement %s: %s (%s)',
+            'Requirement {}: {} ({})',
             skip_reason, req, req.satisfied_by.version
         )
         with indent_log():

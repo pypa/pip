@@ -32,7 +32,7 @@ class CheckCommand(Command):
             version = package_set[project_name].version
             for dependency in missing[project_name]:
                 write_output(
-                    "%s %s requires %s, which is not installed.",
+                    "{} {} requires {}, which is not installed.",
                     project_name, version, dependency[0],
                 )
 
@@ -40,7 +40,7 @@ class CheckCommand(Command):
             version = package_set[project_name].version
             for dep_name, dep_version, req in conflicting[project_name]:
                 write_output(
-                    "%s %s has requirement %s, but you have %s %s.",
+                    "{} {} has requirement {}, but you have {} {}.",
                     project_name, version, req, dep_name, dep_version,
                 )
 

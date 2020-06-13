@@ -230,9 +230,8 @@ class _InstallRequirementBackedCandidate(Candidate):
         try:
             spec = SpecifierSet(requires_python)
         except InvalidSpecifier as e:
-            logger.warning(
-                "Package %r has an invalid Requires-Python: %s", self.name, e,
-            )
+            logger.warning("Package {!r} has an invalid Requires-Python: {}",
+                           self.name, e)
             return None
         return spec
 
@@ -265,7 +264,7 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
         source_link = link
         cache_entry = factory.get_wheel_cache_entry(link, name)
         if cache_entry is not None:
-            logger.debug("Using cached wheel link: %s", cache_entry.link)
+            logger.debug("Using cached wheel link: {}", cache_entry.link)
             link = cache_entry.link
         ireq = make_install_req_from_link(link, template)
 
@@ -476,7 +475,7 @@ class ExtrasCandidate(Candidate):
         invalid_extras = self.extras.difference(self.base.dist.extras)
         for extra in sorted(invalid_extras):
             logger.warning(
-                "%s %s does not provide the extra '%s'",
+                "{} {} does not provide the extra '{}'",
                 self.base.name,
                 self.version,
                 extra

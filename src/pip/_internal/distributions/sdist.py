@@ -75,12 +75,12 @@ class SourceDistribution(AbstractDistribution):
                              conflicting)
         if missing:
             logger.warning(
-                "Missing build requirements in pyproject.toml for %s.",
+                "Missing build requirements in pyproject.toml for {}.",
                 self.req,
             )
             logger.warning(
                 "The project does not specify a build backend, and "
-                "pip cannot fall back to setuptools without %s.",
+                "pip cannot fall back to setuptools without {}.",
                 " and ".join(map(repr, sorted(missing)))
             )
         # Install any extra build dependencies that the backend requests.

@@ -144,7 +144,7 @@ def _get_html_response(url, session):
     if _is_url_like_archive(url):
         _ensure_html_response(url, session=session)
 
-    logger.debug('Getting page %s', redact_auth_from_url(url))
+    logger.debug('Getting page {}', redact_auth_from_url(url))
 
     resp = session.get(
         url,
@@ -409,7 +409,7 @@ def _handle_get_page_fail(
     # type: (...) -> None
     if meth is None:
         meth = logger.debug
-    meth("Could not fetch URL %s: %s - skipping", link, reason)
+    meth("Could not fetch URL {}: {} - skipping", link, reason)
 
 
 def _make_html_page(response, cache_link_parsing=True):
@@ -434,7 +434,7 @@ def _get_html_page(link, session=None):
     # Check for VCS schemes that do not support lookup as web pages.
     vcs_scheme = _match_vcs_scheme(url)
     if vcs_scheme:
-        logger.debug('Cannot look at %s URL %s', vcs_scheme, link)
+        logger.debug('Cannot look at {} URL {}', vcs_scheme, link)
         return None
 
     # Tack index.html onto file:// URLs that point to directories
@@ -445,18 +445,18 @@ def _get_html_page(link, session=None):
         if not url.endswith('/'):
             url += '/'
         url = urllib_parse.urljoin(url, 'index.html')
-        logger.debug(' file: URL is directory, getting %s', url)
+        logger.debug(' file: URL is directory, getting {}', url)
 
     try:
         resp = _get_html_response(url, session=session)
     except _NotHTTP:
         logger.debug(
-            'Skipping page %s because it looks like an archive, and cannot '
+            'Skipping page {} because it looks like an archive, and cannot '
             'be checked by HEAD.', link,
         )
     except _NotHTML as exc:
         logger.warning(
-            'Skipping page %s because the %s request got Content-Type: %s.'
+            'Skipping page {} because the {} request got Content-Type: {}.'
             'The only supported Content-Type is text/html',
             link, exc.request_desc, exc.content_type,
         )
@@ -525,13 +525,13 @@ def group_locations(locations, expand_dir=False):
                     urls.append(url)
                 else:
                     logger.warning(
-                        "Path '%s' is ignored: it is a directory.", path,
+                        "Path '{}' is ignored: it is a directory.", path,
                     )
             elif os.path.isfile(path):
                 sort_path(path)
             else:
                 logger.warning(
-                    "Url '%s' is ignored: it is neither a file "
+                    "Url '{}' is ignored: it is neither a file "
                     "nor a directory.", url,
                 )
         elif is_url(url):
@@ -539,7 +539,7 @@ def group_locations(locations, expand_dir=False):
             urls.append(url)
         else:
             logger.warning(
-                "Url '%s' is ignored. It is either a non-existing "
+                "Url '{}' is ignored. It is either a non-existing "
                 "path or lacks a specific scheme.", url,
             )
 

@@ -122,7 +122,7 @@ def str_to_display(data, desc=None):
         decoded_data = data.decode(encoding)
     except UnicodeDecodeError:
         logger.warning(
-            '%s does not appear to be encoded as %s',
+            '{} does not appear to be encoded as {}',
             desc or 'Bytes object',
             encoding,
         )

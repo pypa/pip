@@ -56,7 +56,7 @@ def make_link_collector(
     index_urls = [options.index_url] + options.extra_index_urls
     if options.no_index and not suppress_no_index:
         logger.debug(
-            'Ignoring indexes: %s',
+            'Ignoring indexes: {}',
             ','.join(redact_auth_from_url(url) for url in index_urls),
         )
         index_urls = []
@@ -228,9 +228,9 @@ def pip_self_version_check(session, options):
         # `sys.executable`.
         pip_cmd = "{} -m pip".format(sys.executable)
         logger.warning(
-            "You are using pip version %s; however, version %s is "
+            "You are using pip version {}; however, version {} is "
             "available.\nYou should consider upgrading via the "
-            "'%s install --upgrade pip' command.",
+            "'{} install --upgrade pip' command.",
             pip_version, pypi_version, pip_cmd
         )
     except Exception:

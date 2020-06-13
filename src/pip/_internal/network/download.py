@@ -57,9 +57,9 @@ def _prepare_download(
         logged_url = '{} ({})'.format(logged_url, format_size(total_length))
 
     if is_from_cache(resp):
-        logger.info("Using cached %s", logged_url)
+        logger.info("Using cached {}", logged_url)
     else:
-        logger.info("Downloading %s", logged_url)
+        logger.info("Downloading {}", logged_url)
 
     if logger.getEffectiveLevel() > logging.INFO:
         show_progress = False
@@ -189,7 +189,7 @@ class Downloader(object):
             resp = _http_get_download(self._session, link)
         except requests.HTTPError as e:
             logger.critical(
-                "HTTP error %s while getting %s", e.response.status_code, link
+                "HTTP error {} while getting {}", e.response.status_code, link
             )
             raise
 

@@ -220,6 +220,6 @@ def check_compatibility(version, name):
         )
     elif version > VERSION_COMPATIBLE:
         logger.warning(
-            'Installing from a newer Wheel-Version (%s)',
+            'Installing from a newer Wheel-Version ({})',
             '.'.join(map(str, version)),
         )

@@ -244,7 +244,7 @@ class Configuration(object):
         self._ensure_have_load_only()
 
         for fname, parser in self._modified_parsers:
-            logger.info("Writing to %s", fname)
+            logger.info("Writing to {}", fname)
 
             # Ensure directory exists.
             ensure_dir(os.path.dirname(fname))
@@ -260,7 +260,7 @@ class Configuration(object):
         # type: () -> None
         if self.load_only is None:
             raise ConfigurationError("Needed a specific file to be modifying.")
-        logger.debug("Will be working with %s variant only", self.load_only)
+        logger.debug("Will be working with {} variant only", self.load_only)
 
     @property
     def _dictionary(self):
@@ -294,7 +294,7 @@ class Configuration(object):
                 # that variant, not the others.
                 if self.load_only is not None and variant != self.load_only:
                     logger.debug(
-                        "Skipping file '%s' (variant: %s)", fname, variant
+                        "Skipping file '{}' (variant: {})", fname, variant
                     )
                     continue
 
@@ -305,7 +305,7 @@ class Configuration(object):
 
     def _load_file(self, variant, fname):
         # type: (Kind, str) -> RawConfigParser
-        logger.debug("For variant '%s', will try loading '%s'", variant, fname)
+        logger.debug("For variant '{}', will try loading '{}'", variant, fname)
         parser = self._construct_parser(fname)
 
         for section in parser.sections():

@@ -79,7 +79,7 @@ def _check_link_requires_python(
         )
     except specifiers.InvalidSpecifier:
         logger.debug(
-            "Ignoring invalid Requires-Python (%r) for link: %s",
+            "Ignoring invalid Requires-Python ({!r}) for link: {}",
             link.requires_python, link,
         )
     else:
@@ -87,14 +87,14 @@ def _check_link_requires_python(
             version = '.'.join(map(str, version_info))
             if not ignore_requires_python:
                 logger.debug(
-                    'Link requires a different Python (%s not in: %r): %s',
+                    'Link requires a different Python ({} not in: {!r}): {}',
                     version, link.requires_python, link,
                 )
                 return False
 
             logger.debug(
-                'Ignoring failed Requires-Python check (%s not in: %r) '
-                'for link: %s',
+                'Ignoring failed Requires-Python check ({} not in: {!r}) '
+                'for link: {}',
                 version, link.requires_python, link,
             )
 
@@ -237,7 +237,7 @@ class LinkEvaluator(object):
             # _log_skipped_link().
             return (False, None)
 
-        logger.debug('Found link %s, version: %s', link, version)
+        logger.debug('Found link {}, version: {}', link, version)
 
         return (True, version)
 
@@ -265,7 +265,7 @@ def filter_unallowed_hashes(
     """
     if not hashes:
         logger.debug(
-            'Given no hashes to check %s links for project %r: '
+            'Given no hashes to check {} links for project {!r}: '
             'discarding no candidates',
             len(candidates),
             project_name,
@@ -304,8 +304,8 @@ def filter_unallowed_hashes(
         )
 
     logger.debug(
-        'Checked %s links for project %r against %s hashes '
-        '(%s matches, %s no digest): %s',
+        'Checked {} links for project {!r} against {} hashes '
+        '({} matches, {} no digest): {}',
         len(candidates),
         project_name,
         hashes.digest_count,
@@ -746,7 +746,7 @@ class PackageFinder(object):
             # the reason contains non-ascii characters.
             #   Also, put the link at the end so the reason is more visible
             # and because the link string is usually very long.
-            logger.debug(u'Skipping link: %s: %s', reason, link)
+            logger.debug(u'Skipping link: {}: {}', reason, link)
             self._logged_links.add(link)
 
     def get_install_candidate(self, link_evaluator, link):
@@ -785,7 +785,7 @@ class PackageFinder(object):
     def process_project_url(self, project_url, link_evaluator):
         # type: (Link, LinkEvaluator) -> List[InstallationCandidate]
         logger.debug(
-            'Fetching project page and analyzing links: %s', project_url,
+            'Fetching project page and analyzing links: {}', project_url,
         )
         html_page = self._link_collector.fetch_page(project_url)
         if html_page is None:
@@ -834,7 +834,7 @@ class PackageFinder(object):
         if file_versions:
             file_versions.sort(reverse=True)
             logger.debug(
-                'Local files found: %s',
+                'Local files found: {}',
                 ', '.join([
                     url_to_path(candidate.link.url)
                     for candidate in file_versions
@@ -917,8 +917,8 @@ class PackageFinder(object):
 
         if installed_version is None and best_candidate is None:
             logger.critical(
-                'Could not find a version that satisfies the requirement %s '
-                '(from versions: %s)',
+                'Could not find a version that satisfies the requirement {} '
+                '(from versions: {})',
                 req,
                 _format_versions(best_candidate_result.iter_all()),
             )
@@ -937,14 +937,14 @@ class PackageFinder(object):
         if not upgrade and installed_version is not None:
             if best_installed:
                 logger.debug(
-                    'Existing installed version (%s) is most up-to-date and '
+                    'Existing installed version ({}) is most up-to-date and '
                     'satisfies requirement',
                     installed_version,
                 )
             else:
                 logger.debug(
-                    'Existing installed version (%s) satisfies requirement '
-                    '(most up-to-date version is %s)',
+                    'Existing installed version ({}) satisfies requirement '
+                    '(most up-to-date version is {})',
                     installed_version,
                     best_candidate.version,
                 )
@@ -953,15 +953,15 @@ class PackageFinder(object):
         if best_installed:
             # We have an existing version, and its the best version
             logger.debug(
-                'Installed version (%s) is most up-to-date (past versions: '
-                '%s)',
+                'Installed version ({}) is most up-to-date (past versions: '
+                '{})',
                 installed_version,
                 _format_versions(best_candidate_result.iter_applicable()),
             )
             raise BestVersionAlreadyInstalled
 
         logger.debug(
-            'Using version %s (newest of versions: %s)',
+            'Using version {} (newest of versions: {})',
             best_candidate.version,
             _format_versions(best_candidate_result.iter_applicable()),
         )
