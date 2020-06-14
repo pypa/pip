@@ -69,9 +69,6 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'get_installed_version', 'remove_auth_from_url']
 
 
-logger = logging.getLogger(__name__)
-
-
 def get_pip_version():
     # type: () -> str
     pip_pkg_dir = os.path.join(os.path.dirname(__file__), "..", "..")
@@ -534,7 +531,9 @@ def dist_location(dist):
 
 def write_output(msg, *args):
     # type: (str, str) -> None
-    logger.info(msg, *args)
+    # Make sure utils.logging has set the logger class.
+    # We can't use import to do it because there're be circular import.
+    logging.getLogger(__name__).info(msg, *args)
 
 
 class FakeFile(object):
