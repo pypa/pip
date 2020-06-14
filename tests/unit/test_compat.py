@@ -125,6 +125,7 @@ def test_console_to_str_warning(monkeypatch):
     some_bytes = b"a\xE9b"
 
     def check_warning(msg, *args, **kwargs):
+        assert 'does not appear to be encoded as' in msg
         assert args[0] == 'Subprocess output'
 
     monkeypatch.setattr(locale, 'getpreferredencoding', lambda: 'utf-8')
