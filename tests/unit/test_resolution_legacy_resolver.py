@@ -3,6 +3,7 @@ import logging
 import mock
 import pytest
 from pip._vendor import pkg_resources
+from pip._vendor.six import PY2
 
 from pip._internal.exceptions import (
     NoneMetadataError,
@@ -275,4 +276,5 @@ class TestYankedWarning(object):
             '(version 1.0 at https://example.com/pkg-1.0.tar.gz)\n'
             'Reason for being yanked: '
         ) + expected_reason
-        assert record.message == expected_message
+        message = record.message.decode('utf-8') if PY2 else record.message
+        assert message == expected_message

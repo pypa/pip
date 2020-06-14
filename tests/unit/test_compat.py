@@ -87,7 +87,12 @@ def test_str_to_display__encoding(monkeypatch, data, encoding, expected):
     )
 
 
-def test_str_to_display__decode_error(monkeypatch, caplog):
+def test_str_to_display__decode_error(monkeypatch):
+    def check_warning(msg, *args, **kwargs):
+        assert 'does not appear to be encoded as' in msg
+        assert args == ('Bytes object', 'utf-8')
+
+    monkeypatch.setattr(pip_compat.logger, 'warning', check_warning)
     monkeypatch.setattr(locale, 'getpreferredencoding', lambda: 'utf-8')
     # Encode with an incompatible encoding.
     data = u'ab'.encode('utf-16')
@@ -101,12 +106,6 @@ def test_str_to_display__decode_error(monkeypatch, caplog):
     assert actual == expected, (
         # Show the encoding for easier troubleshooting.
         'encoding: {!r}'.format(locale.getpreferredencoding())
-    )
-    assert len(caplog.records) == 1
-    record = caplog.records[0]
-    assert record.levelname == 'WARNING'
-    assert record.message == (
-        'Bytes object does not appear to be encoded as utf-8'
     )
 
 

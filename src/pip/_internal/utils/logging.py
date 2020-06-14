@@ -11,7 +11,7 @@ import os
 import sys
 from logging import Filter, getLogger
 
-from pip._vendor.six import PY2
+from pip._vendor.six import PY2, python_2_unicode_compatible
 
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
@@ -55,6 +55,7 @@ else:
     colorama = _colorama
 
 
+@python_2_unicode_compatible
 class LogMessage:
     """Lazily interpolated log message formatted using str.format."""
     def __init__(self, message, args):
