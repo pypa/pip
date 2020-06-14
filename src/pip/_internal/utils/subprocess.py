@@ -175,7 +175,7 @@ def call_subprocess(
     if command_desc is None:
         command_desc = format_command_args(cmd)
 
-    log_subprocess("Running command %s", command_desc)
+    log_subprocess("Running command {}", command_desc)
     env = os.environ.copy()
     if extra_environ:
         env.update(extra_environ)

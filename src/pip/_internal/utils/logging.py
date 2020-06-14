@@ -68,14 +68,18 @@ class LogMessage:
 
 
 class FormatLogger(logging.Logger):
-    """Logger adapter that uses str.format for messages formatting."""
+    """Logger adapter that uses str.format for messages formatting.
+
+    Skip formatting if no varadic argument is passed to the methods.
+    """
     def __init__(self, name):
         # type: (str) -> None
         super(FormatLogger, self).__init__(name)
 
     def log(self, level, msg, *args, **kwargs):
         # type: (int, str, *Any, **Any) -> None
-        super(FormatLogger, self).log(level, LogMessage(msg, args), **kwargs)
+        message = LogMessage(msg, args) if args else msg
+        super(FormatLogger, self).log(level, message, **kwargs)
 
     def debug(self, msg, *args, **kwargs):
         # type: (str, *Any, **Any) -> None
@@ -104,8 +108,8 @@ class FormatLogger(logging.Logger):
 
 
 _log_state = threading.local()
-subprocess_logger = getLogger('pip.subprocessor')
 logging.setLoggerClass(FormatLogger)
+subprocess_logger = getLogger('pip.subprocessor')
 logger = getLogger(__name__)
 
 
@@ -454,6 +458,6 @@ def setup_logging(verbosity, no_color, user_log_file):
 
 
 def write_output(msg, *args):
-    # type: (str, str) -> None
+    # type: (str, *Any) -> None
     """Thread-safely log msg.format(*args)."""
     logger.info(msg, *args)

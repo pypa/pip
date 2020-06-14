@@ -40,7 +40,7 @@ def _showwarning(message, category, filename, lineno, file=None, line=None):
         # We use a specially named logger which will handle all of the
         # deprecation messages for pip.
         logger = logging.getLogger("pip._internal.deprecations")
-        logger.warning(str(message))
+        logger.warning(message)
     else:
         _original_showwarning(
             message, category, filename, lineno, file, line,

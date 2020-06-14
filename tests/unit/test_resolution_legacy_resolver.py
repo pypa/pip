@@ -276,5 +276,7 @@ class TestYankedWarning(object):
             '(version 1.0 at https://example.com/pkg-1.0.tar.gz)\n'
             'Reason for being yanked: '
         ) + expected_reason
+        # The log record is not unicode but str on Python 2 because
+        # it is deduced from str(utils.logging.FormatLogger).
         message = record.message.decode('utf-8') if PY2 else record.message
         assert message == expected_message

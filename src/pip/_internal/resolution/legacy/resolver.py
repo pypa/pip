@@ -271,16 +271,13 @@ class Resolver(BaseResolver):
         # Log a warning per PEP 592 if necessary before returning.
         link = best_candidate.link
         if link.is_yanked:
-            reason = link.yanked_reason or '<none given>'
-            msg = (
-                # Mark this as a unicode string to prevent
-                # "UnicodeEncodeError: 'ascii' codec can't encode character"
-                # in Python 2 when the reason contains non-ascii characters.
+            # Mark this as a unicode string to prevent
+            # "UnicodeEncodeError: 'ascii' codec can't encode character"
+            # in Python 2 when the reason contains non-ascii characters.
+            logger.warning(
                 u'The candidate selected for download or install is a '
-                'yanked version: {candidate}\n'
-                'Reason for being yanked: {reason}'
-            ).format(candidate=best_candidate, reason=reason)
-            logger.warning(msg)
+                'yanked version: {}\nReason for being yanked: {}',
+                best_candidate, link.yanked_reason or '<none given>')
 
         return link
 
