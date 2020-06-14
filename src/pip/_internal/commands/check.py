@@ -6,7 +6,7 @@ from pip._internal.operations.check import (
     check_package_set,
     create_package_set_from_installed,
 )
-from pip._internal.utils.misc import write_output
+from pip._internal.utils.logging import write_output
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 logger = logging.getLogger(__name__)

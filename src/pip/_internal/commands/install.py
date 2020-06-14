@@ -31,11 +31,11 @@ from pip._internal.req.req_tracker import get_requirement_tracker
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.distutils_args import parse_distutils_args
 from pip._internal.utils.filesystem import test_writable_dir
+from pip._internal.utils.logging import write_output
 from pip._internal.utils.misc import (
     ensure_dir,
     get_installed_version,
     protect_pip_from_modification_on_windows,
-    write_output,
 )
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING

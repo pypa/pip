@@ -9,7 +9,6 @@ import errno
 import getpass
 import hashlib
 import io
-import logging
 import os
 import posixpath
 import shutil
@@ -527,13 +526,6 @@ def dist_location(dist):
     if egg_link:
         return normalize_path(egg_link)
     return normalize_path(dist.location)
-
-
-def write_output(msg, *args):
-    # type: (str, str) -> None
-    # Make sure utils.logging has set the logger class.
-    # We can't use import to do it because there're be circular import.
-    logging.getLogger(__name__).info(msg, *args)
 
 
 class FakeFile(object):

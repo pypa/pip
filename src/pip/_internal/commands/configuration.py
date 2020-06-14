@@ -13,7 +13,8 @@ from pip._internal.configuration import (
     kinds,
 )
 from pip._internal.exceptions import PipError
-from pip._internal.utils.misc import get_prog, write_output
+from pip._internal.utils.logging import write_output
+from pip._internal.utils.misc import get_prog
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:

@@ -18,8 +18,7 @@ from pip._internal.exceptions import CommandError
 from pip._internal.models.index import PyPI
 from pip._internal.network.xmlrpc import PipXmlrpcTransport
 from pip._internal.utils.compat import get_terminal_size
-from pip._internal.utils.logging import indent_log
-from pip._internal.utils.misc import write_output
+from pip._internal.utils.logging import indent_log, write_output
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:

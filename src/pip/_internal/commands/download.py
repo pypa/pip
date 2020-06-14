@@ -8,7 +8,8 @@ from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.cli.req_command import RequirementCommand, with_cleanup
 from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.req.req_tracker import get_requirement_tracker
-from pip._internal.utils.misc import ensure_dir, normalize_path, write_output
+from pip._internal.utils.logging import write_output
+from pip._internal.utils.misc import ensure_dir, normalize_path
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 

@@ -104,8 +104,9 @@ class FormatLogger(logging.Logger):
 
 
 _log_state = threading.local()
-logging.setLoggerClass(FormatLogger)
 subprocess_logger = getLogger('pip.subprocessor')
+logging.setLoggerClass(FormatLogger)
+logger = getLogger(__name__)
 
 
 class BrokenStdoutLoggingError(Exception):
@@ -450,3 +451,9 @@ def setup_logging(verbosity, no_color, user_log_file):
     })
 
     return level_number
+
+
+def write_output(msg, *args):
+    # type: (str, str) -> None
+    """Thread-safely log msg.format(*args)."""
+    logger.info(msg, *args)
