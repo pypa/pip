@@ -183,6 +183,10 @@ class Downloader(object):
         self._session = session
         self._progress_bar = progress_bar
 
+    def get_session(self):
+        # type: () -> PipSession
+        return self._session
+
     def __call__(self, link):
         # type: (Link) -> Download
         try:

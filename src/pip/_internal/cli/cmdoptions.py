@@ -919,7 +919,7 @@ unstable_feature = partial(
     metavar='feature',
     action='append',
     default=[],
-    choices=['resolver'],
+    choices=['resolver', 'shallow_wheels'],
     help=SUPPRESS_HELP,  # TODO: Enable this when the resolver actually works.
     # help='Enable unstable feature(s) that may be backward incompatible.',
 )  # type: Callable[..., Option]

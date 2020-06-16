@@ -1,10 +1,14 @@
 from __future__ import absolute_import
 
 import logging
+import threading
 from collections import OrderedDict
 
 from pip._vendor.packaging.utils import canonicalize_name
 
+from pip._internal.distributions.shallow_wheel import (
+    DistributionNeedingFinalHydration,
+)
 from pip._internal.exceptions import InstallationError
 from pip._internal.models.wheel import Wheel
 from pip._internal.utils import compatibility_tags
@@ -29,6 +33,7 @@ class RequirementSet(object):
         self.check_supported_wheels = check_supported_wheels
 
         self.unnamed_requirements = []  # type: List[InstallRequirement]
+        self.dists_needing_final_hydration = []  # type: List[DistributionNeedingFinalHydration]  # noqa: E501
 
     def __str__(self):
         # type: () -> str
@@ -51,6 +56,39 @@ class RequirementSet(object):
             count=len(requirements),
             reqs=', '.join(str(req.req) for req in requirements),
         )
+
+    def add_dist_needing_final_hydration(self, dist):
+        # type: (DistributionNeedingFinalHydration) -> None
+        assert isinstance(dist, DistributionNeedingFinalHydration)
+        self.dists_needing_final_hydration.append(dist)
+
+    def perform_all_final_hydration(self):
+        # type: () -> None
+        if not self.dists_needing_final_hydration:
+            return
+
+        exceptions = []
+
+        def do_hydrate(dist):
+            # type: (DistributionNeedingFinalHydration) -> None
+            try:
+                dist.finally_hydrate()
+            except Exception as e:
+                exceptions.append(e)
+
+        all_threads = [
+            threading.Thread(
+                target=do_hydrate, name='download dist {}'.format(dist),
+                args=(dist,),
+            ) for dist in self.dists_needing_final_hydration
+        ]
+        for t in all_threads:
+            t.start()
+        for t in all_threads:
+            t.join()
+        if exceptions:
+            raise ValueError('at least one thread failed (errors below):\n{}'
+                             .format('\n'.join(str(e) for e in exceptions)))
 
     def add_unnamed_requirement(self, install_req):
         # type: (InstallRequirement) -> None

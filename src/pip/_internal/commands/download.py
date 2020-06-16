@@ -133,6 +133,7 @@ class DownloadCommand(RequirementCommand):
         requirement_set = resolver.resolve(
             reqs, check_supported_wheels=True
         )
+        requirement_set.perform_all_final_hydration()
 
         downloaded = ' '.join([req.name  # type: ignore
                                for req in requirement_set.requirements.values()

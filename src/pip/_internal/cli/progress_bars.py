@@ -14,7 +14,7 @@ from pip._internal.utils.misc import format_size
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Dict, List
+    from typing import Any, Dict, List, Optional
 
 try:
     from pip._vendor import colorama
@@ -22,6 +22,18 @@ try:
 # ImportError.
 except Exception:
     colorama = None
+
+
+def _signal_unless_backgrounded(signum, handler):
+    # type: (int, Any) -> Optional[Any]
+    try:
+        return signal(signum, handler)
+    except ValueError:
+        # FIXME: this otherwise doesn't work when called from a non-main
+        # thread. This therefore fails if we try to download more than one
+        # wheel at once via threading, which calls back to Downloader, which
+        # uses this progress bar.
+        return None
 
 
 def _select_progress_class(preferred, fallback):
@@ -84,7 +96,8 @@ class InterruptibleMixin(object):
             **kwargs
         )
 
-        self.original_handler = signal(SIGINT, self.handle_sigint)
+        self.original_handler = _signal_unless_backgrounded(
+            SIGINT, self.handle_sigint)
 
         # If signal() returns None, the previous handler was not installed from
         # Python, and we cannot restore it. This probably should not happen,
@@ -103,7 +116,7 @@ class InterruptibleMixin(object):
         normally, or gets interrupted.
         """
         super(InterruptibleMixin, self).finish()  # type: ignore
-        signal(SIGINT, self.original_handler)
+        _signal_unless_backgrounded(SIGINT, self.original_handler)
 
     def handle_sigint(self, signum, frame):  # type: ignore
         """

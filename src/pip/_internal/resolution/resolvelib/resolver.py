@@ -6,6 +6,9 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.resolvelib import BaseReporter, ResolutionImpossible
 from pip._vendor.resolvelib import Resolver as RLResolver
 
+from pip._internal.distributions.shallow_wheel import (
+    DistributionNeedingFinalHydration,
+)
 from pip._internal.exceptions import InstallationError
 from pip._internal.req.req_set import RequirementSet
 from pip._internal.resolution.base import BaseResolver
@@ -166,6 +169,10 @@ class Resolver(BaseResolver):
                 logger.warning(msg)
             ireq.should_reinstall = self.factory.should_reinstall(candidate)
             req_set.add_named_requirement(ireq)
+
+            dist = candidate.dist
+            if isinstance(dist, DistributionNeedingFinalHydration):
+                req_set.add_dist_needing_final_hydration(dist)
 
         return req_set
 

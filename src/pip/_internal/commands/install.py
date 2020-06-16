@@ -326,6 +326,7 @@ class InstallCommand(RequirementCommand):
             requirement_set = resolver.resolve(
                 reqs, check_supported_wheels=not options.target_dir
             )
+            requirement_set.perform_all_final_hydration()
 
             try:
                 pip_req = requirement_set.get_requirement("pip")

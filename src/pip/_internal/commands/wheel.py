@@ -155,6 +155,7 @@ class WheelCommand(RequirementCommand):
         requirement_set = resolver.resolve(
             reqs, check_supported_wheels=True
         )
+        requirement_set.perform_all_final_hydration()
 
         reqs_to_build = [
             r for r in requirement_set.requirements.values()

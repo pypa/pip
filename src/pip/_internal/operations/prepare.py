@@ -16,6 +16,7 @@ from pip._internal.distributions import (
     make_distribution_for_install_requirement,
 )
 from pip._internal.distributions.installed import InstalledDistribution
+from pip._internal.distributions.shallow_wheel import ShallowWheelDistribution
 from pip._internal.exceptions import (
     DirectoryUrlHashUnsupported,
     HashMismatch,
@@ -24,6 +25,7 @@ from pip._internal.exceptions import (
     PreviousBuildDirError,
     VcsHashUnsupported,
 )
+from pip._internal.network.shallow.httpfile import url_is_remote
 from pip._internal.utils.filesystem import copy2_fixed
 from pip._internal.utils.hashes import MissingHashes
 from pip._internal.utils.logging import indent_log
@@ -329,6 +331,7 @@ class RequirementPreparer(object):
         finder,  # type: PackageFinder
         require_hashes,  # type: bool
         use_user_site,  # type: bool
+        use_shallow_wheels,  # type: bool
     ):
         # type: (...) -> None
         super(RequirementPreparer, self).__init__()
@@ -361,6 +364,9 @@ class RequirementPreparer(object):
 
         # Should install in user site-packages?
         self.use_user_site = use_user_site
+
+        # Can wheels be partially downloaded to improve resolve performance?
+        self.use_shallow_wheels = use_shallow_wheels
 
     @property
     def _download_should_save(self):
@@ -401,6 +407,9 @@ class RequirementPreparer(object):
             download_dir = self.wheel_download_dir
 
         if link.is_wheel:
+            if self.use_shallow_wheels and url_is_remote(link.url):
+                return ShallowWheelDistribution(
+                    req, self.downloader, download_dir)
             if download_dir:
                 # When downloading, we only unpack wheels to get
                 # metadata.

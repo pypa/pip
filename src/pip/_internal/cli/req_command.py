@@ -231,6 +231,7 @@ class RequirementCommand(IndexGroupCommand):
             finder=finder,
             require_hashes=options.require_hashes,
             use_user_site=use_user_site,
+            use_shallow_wheels=('shallow_wheels' in options.unstable_features),
         )
 
     @staticmethod
