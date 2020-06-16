@@ -42,9 +42,14 @@ else:
     def blocked_signals():
         """Block all signals for e.g. starting a worker thread.
         """
-        old_mask = signal.pthread_sigmask(
-            signal.SIG_SETMASK, range(1, signal.NSIG)
-        )
+        # valid_signals() was added in Python 3.8 (and not using it results
+        # in a warning on pthread_sigmask() call)
+        try:
+            mask = signal.valid_signals()
+        except AttributeError:
+            mask = range(1, signal.NSIG)
+
+        old_mask = signal.pthread_sigmask(signal.SIG_SETMASK, mask)
         try:
             yield
         finally:
