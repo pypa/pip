@@ -1589,7 +1589,9 @@ def test_install_compatible_python_requires(script):
 
 
 @pytest.mark.network
-def test_install_pep508_with_url(script):
+def test_install_pep508_with_url(script, virtualenv):
+    virtualenv.user_site_packages = False
+
     res = script.pip(
         'install', '--no-index',
         'packaging@https://files.pythonhosted.org/packages/2f/2b/'
@@ -1601,7 +1603,9 @@ def test_install_pep508_with_url(script):
 
 
 @pytest.mark.network
-def test_install_pep508_with_url_in_install_requires(script):
+def test_install_pep508_with_url_in_install_requires(script, virtualenv):
+    virtualenv.user_site_packages = False
+
     pkga_path = create_test_package_with_setup(
         script, name='pkga', version='1.0',
         install_requires=[
