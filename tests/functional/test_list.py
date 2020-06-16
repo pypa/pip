@@ -1,5 +1,6 @@
 import json
 import os
+import re
 
 import pytest
 
@@ -24,8 +25,8 @@ def test_basic_list(simple_script):
 
     """
     result = simple_script.pip('list')
-    assert 'simple     1.0' in result.stdout, str(result)
-    assert 'simple2    3.0' in result.stdout, str(result)
+    assert re.search(r'simple\s+1\.0', result.stdout) is not None, str(result)
+    assert re.search(r'simple2\s+3\.0', result.stdout) is not None, str(result)
 
 
 def test_verbose_flag(simple_script):
@@ -37,8 +38,8 @@ def test_verbose_flag(simple_script):
     assert 'Version' in result.stdout, str(result)
     assert 'Location' in result.stdout, str(result)
     assert 'Installer' in result.stdout, str(result)
-    assert 'simple     1.0' in result.stdout, str(result)
-    assert 'simple2    3.0' in result.stdout, str(result)
+    assert re.search(r'simple\s+1\.0', result.stdout) is not None, str(result)
+    assert re.search(r'simple2\s+3\.0', result.stdout) is not None, str(result)
 
 
 def test_columns_flag(simple_script):
@@ -49,8 +50,8 @@ def test_columns_flag(simple_script):
     assert 'Package' in result.stdout, str(result)
     assert 'Version' in result.stdout, str(result)
     assert 'simple (1.0)' not in result.stdout, str(result)
-    assert 'simple     1.0' in result.stdout, str(result)
-    assert 'simple2    3.0' in result.stdout, str(result)
+    assert re.search(r'simple\s+1\.0', result.stdout) is not None, str(result)
+    assert re.search(r'simple2\s+3\.0', result.stdout) is not None, str(result)
 
 
 def test_format_priority(simple_script):
@@ -61,16 +62,16 @@ def test_format_priority(simple_script):
                                expect_stderr=True)
     assert 'simple==1.0' in result.stdout, str(result)
     assert 'simple2==3.0' in result.stdout, str(result)
-    assert 'simple     1.0' not in result.stdout, str(result)
-    assert 'simple2    3.0' not in result.stdout, str(result)
+    assert re.search(r'simple\s+1\.0', result.stdout) is None, str(result)
+    assert re.search(r'simple2\s+3\.0', result.stdout) is None, str(result)
 
     result = simple_script.pip('list', '--format=freeze', '--format=columns')
     assert 'Package' in result.stdout, str(result)
     assert 'Version' in result.stdout, str(result)
     assert 'simple==1.0' not in result.stdout, str(result)
     assert 'simple2==3.0' not in result.stdout, str(result)
-    assert 'simple     1.0' in result.stdout, str(result)
-    assert 'simple2    3.0' in result.stdout, str(result)
+    assert re.search(r'simple\s+1\.0', result.stdout) is not None, str(result)
+    assert re.search(r'simple2\s+3\.0', result.stdout) is not None, str(result)
 
 
 def test_local_flag(simple_script):
@@ -91,7 +92,7 @@ def test_local_columns_flag(simple_script):
     assert 'Package' in result.stdout
     assert 'Version' in result.stdout
     assert 'simple (1.0)' not in result.stdout
-    assert 'simple     1.0' in result.stdout, str(result)
+    assert re.search(r'simple\s+1\.0', result.stdout) is not None, str(result)
 
 
 @pytest.mark.network
@@ -177,7 +178,7 @@ def test_uptodate_columns_flag(script, data):
     assert 'Location' in result.stdout      # editables included
     assert 'pip-test-package (0.1.1,' not in result.stdout
     assert 'pip-test-package 0.1.1' in result.stdout, str(result)
-    assert 'simple2          3.0' in result.stdout, str(result)
+    assert re.search(r'simple2\s+3\.0', result.stdout) is not None, str(result)
 
 
 @pytest.mark.network
