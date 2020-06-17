@@ -59,8 +59,10 @@ class CacheCommand(Command):
 
         # Determine action
         if not args or args[0] not in handlers:
-            logger.error("Need an action (%s) to perform.",
-                         ", ".join(sorted(handlers)))
+            logger.error(
+                "Need an action (%s) to perform.",
+                ", ".join(sorted(handlers)),
+            )
             return ERROR
 
         action = args[0]

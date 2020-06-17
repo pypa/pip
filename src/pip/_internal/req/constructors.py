@@ -173,8 +173,9 @@ def deduce_helpful_msg(req):
                     " the packages specified within it."
                 ).format(req)
         except RequirementParseError:
-            logger.debug("Cannot parse '%s' as requirements file",
-                         req, exc_info=True)
+            logger.debug(
+                "Cannot parse '%s' as requirements file", req, exc_info=True
+            )
     else:
         msg += " File '{}' does not exist.".format(req)
     return msg
