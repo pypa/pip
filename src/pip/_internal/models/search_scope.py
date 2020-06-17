@@ -95,8 +95,8 @@ class SearchScope(object):
                 # exceptions for malformed URLs
                 if not purl.scheme and not purl.netloc:
                     logger.warning(
-                        'The index url "{}" seems invalid, '
-                        'please provide a scheme.'.format(redacted_index_url))
+                        'The index url "%s" seems invalid, '
+                        'please provide a scheme.', redacted_index_url)
 
                 redacted_index_urls.append(redacted_index_url)
 
