@@ -436,7 +436,7 @@ class InstallCommand(RequirementCommand):
             message = create_env_error_message(
                 error, show_traceback, options.use_user_site,
             )
-            logger.error(message, exc_info=show_traceback)
+            logger.error(message, exc_info=show_traceback)  # noqa
 
             return ERROR
 

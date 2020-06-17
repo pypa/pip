@@ -377,13 +377,13 @@ class Factory(object):
         # satisfied. We just report that case.
         if len(e.causes) == 1:
             req, parent = e.causes[0]
+            if parent is None:
+                req_disp = str(req)
+            else:
+                req_disp = '{} (from {})'.format(req, parent.name)
             logger.critical(
-                "Could not find a version that satisfies " +
-                "the requirement " +
-                str(req) +
-                ("" if parent is None else " (from {})".format(
-                    parent.name
-                ))
+                "Could not find a version that satisfies the requirement %s",
+                req_disp,
             )
             return DistributionNotFound(
                 'No matching distribution found for {}'.format(req)

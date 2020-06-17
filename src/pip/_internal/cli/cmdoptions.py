@@ -831,11 +831,11 @@ def _handle_merge_hash(option, opt_str, value, parser):
     try:
         algo, digest = value.split(':', 1)
     except ValueError:
-        parser.error('Arguments to {} must be a hash name '
+        parser.error('Arguments to {} must be a hash name '  # noqa
                      'followed by a value, like --hash=sha256:'
                      'abcde...'.format(opt_str))
     if algo not in STRONG_HASHES:
-        parser.error('Allowed hash algorithms for {} are {}.'.format(
+        parser.error('Allowed hash algorithms for {} are {}.'.format(  # noqa
                      opt_str, ', '.join(STRONG_HASHES)))
     parser.values.hashes.setdefault(algo, []).append(digest)
 
