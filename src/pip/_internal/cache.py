@@ -232,7 +232,8 @@ class SimpleWheelCache(Cache):
                 logger.debug(
                     "Ignoring cached wheel %s for %s as it "
                     "does not match the expected distribution name %s.",
-                    wheel_name, link, package_name)
+                    wheel_name, link, package_name,
+                )
                 continue
             if not wheel.supported(supported_tags):
                 # Built for a different python/arch/etc

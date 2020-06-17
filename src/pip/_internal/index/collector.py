@@ -525,7 +525,8 @@ def group_locations(locations, expand_dir=False):
                     urls.append(url)
                 else:
                     logger.warning(
-                        "Path '%s' is ignored: it is a directory.", path)
+                        "Path '%s' is ignored: it is a directory.", path,
+                    )
             elif os.path.isfile(path):
                 sort_path(path)
             else:

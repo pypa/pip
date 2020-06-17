@@ -108,8 +108,10 @@ class ConfigurationCommand(Command):
 
         # Determine action
         if not args or args[0] not in handlers:
-            logger.error("Need an action (%s) to perform.",
-                         ", ".join(sorted(handlers)))
+            logger.error(
+                "Need an action (%s) to perform.",
+                ", ".join(sorted(handlers)),
+            )
             return ERROR
 
         action = args[0]
@@ -225,8 +227,9 @@ class ConfigurationCommand(Command):
         try:
             self.configuration.save()
         except Exception:
-            logger.exception("Unable to save configuration. "
-                             "Please report this as a bug.")
+            logger.exception(
+                "Unable to save configuration. Please report this as a bug."
+            )
             raise PipError("Internal Error.")
 
     def _determine_editor(self, options):
