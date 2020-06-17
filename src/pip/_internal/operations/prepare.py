@@ -471,7 +471,8 @@ class RequirementPreparer(object):
             try:
                 local_file = unpack_url(
                     link, req.source_dir, self.downloader, download_dir,
-                    hashes=self._get_linked_req_hashes(req))
+                    hashes=self._get_linked_req_hashes(req)
+                )
             except requests.HTTPError as exc:
                 raise InstallationError(
                     'Could not install requirement {} because of HTTP '
@@ -492,7 +493,8 @@ class RequirementPreparer(object):
                     logger.info('Link is a directory, ignoring download_dir')
                 elif local_file:
                     download_location = os.path.join(
-                        download_dir, link.filename)
+                        download_dir, link.filename
+                    )
                     if not os.path.exists(download_location):
                         shutil.copy(local_file.path, download_location)
                         download_path = display_path(download_location)
