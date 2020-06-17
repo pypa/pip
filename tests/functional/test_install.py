@@ -1797,7 +1797,6 @@ def test_valid_index_url_argument(script, shared_data):
     assert 'Successfully installed Dinner' in result.stdout, str(result)
 
 
-@pytest.mark.fails_on_new_resolver
 def test_install_yanked_file_and_print_warning(script, data):
     """
     Test install a "yanked" file and print a warning.

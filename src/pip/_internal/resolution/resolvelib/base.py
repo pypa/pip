@@ -7,6 +7,7 @@ if MYPY_CHECK_RUNNING:
 
     from pip._vendor.packaging.version import _BaseVersion
 
+    from pip._internal.models.link import Link
     from pip._internal.req.req_install import InstallRequirement
 
     CandidateLookup = Tuple[
@@ -52,6 +53,11 @@ class Candidate(object):
     @property
     def is_installed(self):
         # type: () -> bool
+        raise NotImplementedError("Override in subclass")
+
+    @property
+    def source_link(self):
+        # type: () -> Optional[Link]
         raise NotImplementedError("Override in subclass")
 
     def iter_dependencies(self):
