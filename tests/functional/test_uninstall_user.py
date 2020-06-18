@@ -22,7 +22,6 @@ class Tests_UninstallUserSite:
         result2 = script.pip('uninstall', '-y', 'INITools')
         assert_all_changes(result1, result2, [script.venv / 'build', 'cache'])
 
-    @pytest.mark.fails_on_new_resolver
     def test_uninstall_from_usersite_with_dist_in_global_site(
             self, virtualenv, script):
         """

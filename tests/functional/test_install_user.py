@@ -15,13 +15,16 @@ def _patch_dist_in_site_packages(virtualenv):
     # Since the tests are run from a virtualenv, and to avoid the "Will not
     # install to the usersite because it will lack sys.path precedence..."
     # error: Monkey patch `pip._internal.req.req_install.dist_in_site_packages`
+    # and `pip._internal.resolution.resolvelib.factory.dist_in_site_packages`
     # so it's possible to install a conflicting distribution in the user site.
     virtualenv.sitecustomize = textwrap.dedent("""
         def dist_in_site_packages(dist):
             return False
 
         from pip._internal.req import req_install
+        from pip._internal.resolution.resolvelib import factory
         req_install.dist_in_site_packages = dist_in_site_packages
+        factory.dist_in_site_packages = dist_in_site_packages
     """)
 
 
@@ -126,7 +129,6 @@ class Tests_UserSite:
 
     @pytest.mark.network
     @pytest.mark.incompatible_with_test_venv
-    @pytest.mark.fails_on_new_resolver
     def test_install_user_conflict_in_globalsite(self, virtualenv, script):
         """
         Test user install with conflict in global site ignores site and
@@ -159,7 +161,6 @@ class Tests_UserSite:
 
     @pytest.mark.network
     @pytest.mark.incompatible_with_test_venv
-    @pytest.mark.fails_on_new_resolver
     def test_upgrade_user_conflict_in_globalsite(self, virtualenv, script):
         """
         Test user install/upgrade with conflict in global site ignores site and
@@ -191,7 +192,6 @@ class Tests_UserSite:
 
     @pytest.mark.network
     @pytest.mark.incompatible_with_test_venv
-    @pytest.mark.fails_on_new_resolver
     def test_install_user_conflict_in_globalsite_and_usersite(
             self, virtualenv, script):
         """
