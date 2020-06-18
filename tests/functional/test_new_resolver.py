@@ -282,9 +282,7 @@ def test_new_resolver_no_dist_message(script):
 
     assert "Could not find a version that satisfies the requirement B" \
         in result.stderr, str(result)
-    # TODO: This reports the canonical name of the project. But the current
-    #       resolver reports the originally specified name (i.e. uppercase B)
-    assert "No matching distribution found for b" in result.stderr, str(result)
+    assert "No matching distribution found for B" in result.stderr, str(result)
 
 
 def test_new_resolver_installs_editable(script):
@@ -927,3 +925,17 @@ def test_new_resolver_upgrade_same_version(script):
         "pkg",
     )
     assert_installed(script, pkg="2")
+
+
+def test_new_resolver_local_and_req(script):
+    source_dir = create_test_package_with_setup(
+        script,
+        name="pkg",
+        version="0.1.0",
+    )
+    script.pip(
+        "install", "--unstable-feature=resolver",
+        "--no-cache-dir", "--no-index",
+        source_dir, "pkg!=0.1.0",
+        expect_error=True,
+    )

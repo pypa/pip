@@ -6,7 +6,7 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.resolvelib import BaseReporter, ResolutionImpossible
 from pip._vendor.resolvelib import Resolver as RLResolver
 
-from pip._internal.exceptions import DistributionNotFound, InstallationError
+from pip._internal.exceptions import InstallationError
 from pip._internal.req.req_set import RequirementSet
 from pip._internal.resolution.base import BaseResolver
 from pip._internal.resolution.resolvelib.provider import PipProvider
@@ -142,24 +142,6 @@ class Resolver(BaseResolver):
 
         except ResolutionImpossible as e:
             error = self.factory.get_installation_error(e)
-            if not error:
-                # TODO: This needs fixing, we need to look at the
-                # factory.get_installation_error infrastructure, as that
-                # doesn't really allow for the logger.critical calls I'm
-                # using here.
-                for req, parent in e.causes:
-                    logger.critical(
-                        "Could not find a version that satisfies " +
-                        "the requirement " +
-                        str(req) +
-                        ("" if parent is None else " (from {})".format(
-                            parent.name
-                        ))
-                    )
-                raise DistributionNotFound(
-                    "No matching distribution found for " +
-                    ", ".join([r.name for r, _ in e.causes])
-                )
             six.raise_from(error, e)
 
         req_set = RequirementSet(check_supported_wheels=check_supported_wheels)

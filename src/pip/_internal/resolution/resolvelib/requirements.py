@@ -30,6 +30,10 @@ class ExplicitRequirement(Requirement):
         # No need to canonicalise - the candidate did this
         return self.candidate.name
 
+    def format_for_error(self):
+        # type: () -> str
+        return self.candidate.format_for_error()
+
     def get_candidate_lookup(self):
         # type: () -> CandidateLookup
         return self.candidate, None
@@ -62,6 +66,21 @@ class SpecifierRequirement(Requirement):
         # type: () -> str
         canonical_name = canonicalize_name(self._ireq.req.name)
         return format_name(canonical_name, self._extras)
+
+    def format_for_error(self):
+        # type: () -> str
+
+        # Convert comma-separated specifiers into "A, B, ..., F and G"
+        # This makes the specifier a bit more "human readable", without
+        # risking a change in meaning. (Hopefully! Not all edge cases have
+        # been checked)
+        parts = [s.strip() for s in str(self).split(",")]
+        if len(parts) == 0:
+            return ""
+        elif len(parts) == 1:
+            return parts[0]
+
+        return ", ".join(parts[:-1]) + " and " + parts[-1]
 
     def get_candidate_lookup(self):
         # type: () -> CandidateLookup
@@ -98,6 +117,10 @@ class RequiresPythonRequirement(Requirement):
     def name(self):
         # type: () -> str
         return self._candidate.name
+
+    def format_for_error(self):
+        # type: () -> str
+        return "Python " + str(self.specifier)
 
     def get_candidate_lookup(self):
         # type: () -> CandidateLookup
