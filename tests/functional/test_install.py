@@ -927,8 +927,7 @@ def test_install_nonlocal_compatible_wheel(script, data):
     assert result.returncode == ERROR
 
 
-@pytest.mark.fails_on_new_resolver
-def test_install_nonlocal_compatible_wheel_path(script, data):
+def test_install_nonlocal_compatible_wheel_path(script, data, use_new_resolver):
     target_dir = script.scratch_path / 'target'
 
     # Test a full path requirement
@@ -937,12 +936,16 @@ def test_install_nonlocal_compatible_wheel_path(script, data):
         '-t', target_dir,
         '--no-index',
         '--only-binary=:all:',
-        Path(data.packages) / 'simplewheel-2.0-py3-fakeabi-fakeplat.whl'
+        Path(data.packages) / 'simplewheel-2.0-py3-fakeabi-fakeplat.whl',
+        expect_error=use_new_resolver
     )
-    assert result.returncode == SUCCESS
+    if use_new_resolver:
+        assert result.returncode == ERROR
+    else:
+        assert result.returncode == SUCCESS
 
-    distinfo = Path('scratch') / 'target' / 'simplewheel-2.0.dist-info'
-    result.did_create(distinfo)
+        distinfo = Path('scratch') / 'target' / 'simplewheel-2.0.dist-info'
+        result.did_create(distinfo)
 
     # Test a full path requirement (without --target)
     result = script.pip(
