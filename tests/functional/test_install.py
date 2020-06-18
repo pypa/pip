@@ -927,7 +927,11 @@ def test_install_nonlocal_compatible_wheel(script, data):
     assert result.returncode == ERROR
 
 
-def test_install_nonlocal_compatible_wheel_path(script, data, use_new_resolver):
+def test_install_nonlocal_compatible_wheel_path(
+    script,
+    data,
+    use_new_resolver
+):
     target_dir = script.scratch_path / 'target'
 
     # Test a full path requirement
