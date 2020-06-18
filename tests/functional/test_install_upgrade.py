@@ -36,8 +36,10 @@ def test_invalid_upgrade_strategy_causes_error(script):
     assert "invalid choice" in result.stderr
 
 
-@pytest.mark.fails_on_new_resolver
-def test_only_if_needed_does_not_upgrade_deps_when_satisfied(script):
+def test_only_if_needed_does_not_upgrade_deps_when_satisfied(
+    script,
+    use_new_resolver
+):
     """
     It doesn't upgrade a dependency if it already satisfies the requirements.
 
@@ -57,9 +59,12 @@ def test_only_if_needed_does_not_upgrade_deps_when_satisfied(script):
             .format(**globals()))
         not in result.files_deleted
     ), "should not have uninstalled simple==2.0"
+
+    msg = "Requirement already satisfied"
+    if not use_new_resolver:
+        msg = msg + ", skipping upgrade: simple"
     assert (
-        "Requirement already satisfied, skipping upgrade: simple"
-        in result.stdout
+        msg in result.stdout
     ), "did not print correct message for not-upgraded requirement"
 
 
@@ -178,8 +183,7 @@ def test_upgrade_if_requested(script):
     )
 
 
-@pytest.mark.fails_on_new_resolver
-def test_upgrade_with_newest_already_installed(script, data):
+def test_upgrade_with_newest_already_installed(script, data, use_new_resolver):
     """
     If the newest version of a package is already installed, the package should
     not be reinstalled and the user should be informed.
@@ -189,7 +193,11 @@ def test_upgrade_with_newest_already_installed(script, data):
         'install', '--upgrade', '-f', data.find_links, '--no-index', 'simple'
     )
     assert not result.files_created, 'simple upgraded when it should not have'
-    assert 'already up-to-date' in result.stdout, result.stdout
+    if use_new_resolver:
+        msg = "Requirement already satisfied"
+    else:
+        msg = "already up-to-date"
+    assert msg in result.stdout, result.stdout
 
 
 @pytest.mark.network
