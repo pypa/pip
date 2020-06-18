@@ -3,7 +3,28 @@ from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Iterator
+    from typing import Dict, Iterator
+
+# The following comments and HTTP headers were originally added by
+# Donald Stufft in git commit 22c562429a61bb77172039e480873fb239dd8c03.
+#
+# We use Accept-Encoding: identity here because requests defaults to
+# accepting compressed responses. This breaks in a variety of ways
+# depending on how the server is configured.
+# - Some servers will notice that the file isn't a compressible file
+#   and will leave the file alone and with an empty Content-Encoding
+# - Some servers will notice that the file is already compressed and
+#   will leave the file alone, adding a Content-Encoding: gzip header
+# - Some servers won't notice anything at all and will take a file
+#   that's already been compressed and compress it again, and set
+#   the Content-Encoding: gzip header
+# By setting this to request only the identity encoding we're hoping
+# to eliminate the third case.  Hopefully there does not exist a server
+# which when given a file will notice it is already compressed and that
+# you're not asking for a compressed file and will then decompress it
+# before sending because if that's the case I don't think it'll ever be
+# possible to make this work.
+HEADERS = {'Accept-Encoding': 'identity'}  # type: Dict[str, str]
 
 
 def response_chunks(response, chunk_size=CONTENT_CHUNK_SIZE):
