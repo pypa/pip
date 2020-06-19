@@ -1744,16 +1744,17 @@ def test_user_config_accepted(script):
 @pytest.mark.parametrize(
     'install_args, expected_message', [
         ([], 'Requirement already satisfied: pip'),
-        (['--upgrade'], 'Requirement already up-to-date: pip in'),
+        (['--upgrade'], 'Requirement already {}: pip in'),
     ]
 )
 @pytest.mark.parametrize("use_module", [True, False])
-@pytest.mark.fails_on_new_resolver
 def test_install_pip_does_not_modify_pip_when_satisfied(
-        script, install_args, expected_message, use_module):
+        script, install_args, expected_message, use_module, use_new_resolver):
     """
     Test it doesn't upgrade the pip if it already satisfies the requirement.
     """
+    variation = "satisfied" if use_new_resolver else "up-to-date"
+    expected_message = expected_message.format(variation)
     result = script.pip_install_local(
         'pip', *install_args, use_module=use_module
     )
