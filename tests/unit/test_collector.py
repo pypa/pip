@@ -496,7 +496,8 @@ def test_get_html_page_invalid_scheme(caplog, url, vcs_scheme):
         (
             "pip._internal.index.collector",
             logging.WARNING,
-            "Cannot look at {} URL {}".format(vcs_scheme, url),
+            "Cannot look at {} URL {} because it does not support "
+            "lookup as web pages.".format(vcs_scheme, url),
         ),
     ]
 
