@@ -10,16 +10,16 @@ from pytest import mark
 
 DUNDER_IMPORT = '__builtin__.__import__' if PY2 else 'builtins.__import__'
 FUNC, ITERABLE = factorial, range(42)
-MAPS = ('map_multiprocess', 'imap_multiprocess',
-        'map_multithread', 'imap_multithread')
+MAPS = 'map_multiprocess', 'map_multithread'
 _import = __import__
 
 
 def reload_parallel():
     try:
         del modules['pip._internal.utils.parallel']
-    finally:
-        return import_module('pip._internal.utils.parallel')
+    except KeyError:
+        pass
+    return import_module('pip._internal.utils.parallel')
 
 
 def lack_sem_open(name, *args, **kwargs):
@@ -31,6 +31,8 @@ def lack_sem_open(name, *args, **kwargs):
 
 def have_sem_open(name, *args, **kwargs):
     """Make sure multiprocessing.synchronize import is successful."""
+    # We don't care about the return value
+    # since we don't use the pool with this import.
     if name.endswith('synchronize'):
         return
     return _import(name, *args, **kwargs)
@@ -45,8 +47,7 @@ def test_lack_sem_open(name, monkeypatch):
     """
     monkeypatch.setattr(DUNDER_IMPORT, lack_sem_open)
     parallel = reload_parallel()
-    fallback = '_{}_fallback'.format(name.split('_')[0])
-    assert getattr(parallel, name) is getattr(parallel, fallback)
+    assert getattr(parallel, name) is parallel._map_fallback
 
 
 @mark.parametrize('name', MAPS)
@@ -54,7 +55,7 @@ def test_have_sem_open(name, monkeypatch):
     """Test fallback when sem_open is available."""
     monkeypatch.setattr(DUNDER_IMPORT, have_sem_open)
     parallel = reload_parallel()
-    impl = ('_{}_py2' if PY2 else '_{}_py3').format(name)
+    impl = '_map_fallback' if PY2 else '_{}'.format(name)
     assert getattr(parallel, name) is getattr(parallel, impl)
 
 
@@ -63,10 +64,3 @@ def test_map(name):
     """Test correctness of result of asynchronous maps."""
     map_async = getattr(reload_parallel(), name)
     assert set(map_async(FUNC, ITERABLE)) == set(map(FUNC, ITERABLE))
-
-
-@mark.parametrize('name', ('map_multiprocess', 'map_multithread'))
-def test_map_order(name):
-    """Test result ordering of asynchronous maps."""
-    map_async = getattr(reload_parallel(), name)
-    assert tuple(map_async(FUNC, ITERABLE)) == tuple(map(FUNC, ITERABLE))
