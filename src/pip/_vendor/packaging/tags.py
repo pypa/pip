@@ -59,13 +59,14 @@ _32_BIT_INTERPRETER = sys.maxsize <= 2 ** 32
 
 class Tag(object):
 
-    __slots__ = ["_interpreter", "_abi", "_platform"]
+    __slots__ = ["_interpreter", "_abi", "_platform", "_hash"]
 
     def __init__(self, interpreter, abi, platform):
         # type: (str, str, str) -> None
         self._interpreter = interpreter.lower()
         self._abi = abi.lower()
         self._platform = platform.lower()
+        self._hash = hash((self._interpreter, self._abi, self._platform))
 
     @property
     def interpreter(self):
@@ -95,7 +96,7 @@ class Tag(object):
 
     def __hash__(self):
         # type: () -> int
-        return hash((self._interpreter, self._abi, self._platform))
+        return self._hash
 
     def __str__(self):
         # type: () -> str
