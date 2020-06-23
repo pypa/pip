@@ -41,7 +41,13 @@ def test_cleanup_prevented_upon_build_dir_exception(
         '--build', build,
         expect_error=(not use_new_resolver),
         expect_temp=(not use_new_resolver),
+        expect_stderr=True,
     )
+
+    assert (
+        "The -b/--build/--build-dir/--build-directory "
+        "option is deprecated."
+    ) in result.stderr
 
     if not use_new_resolver:
         assert result.returncode == PREVIOUS_BUILD_DIR_ERROR, str(result)

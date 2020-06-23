@@ -252,7 +252,13 @@ def test_pip_wheel_fail_cause_of_previous_build_dir(
         'simple==3.0',
         expect_error=(not use_new_resolver),
         expect_temp=(not use_new_resolver),
+        expect_stderr=True,
     )
+
+    assert (
+        "The -b/--build/--build-dir/--build-directory "
+        "option is deprecated."
+    ) in result.stderr
 
     # Then I see that the error code is the right one
     if not use_new_resolver:
