@@ -129,6 +129,8 @@ class ListCommand(IndexGroupCommand):
         selection_prefs = SelectionPreferences(
             allow_yanked=False,
             allow_all_prereleases=options.pre,
+            use_regex_link_parsing=(
+                'regex_link_parsing' in options.unstable_features),
         )
 
         return PackageFinder.create(

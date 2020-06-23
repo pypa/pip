@@ -593,6 +593,7 @@ class PackageFinder(object):
         format_control=None,  # type: Optional[FormatControl]
         candidate_prefs=None,         # type: CandidatePreferences
         ignore_requires_python=None,  # type: Optional[bool]
+        use_regex_link_parsing=False,  # type: bool
     ):
         # type: (...) -> None
         """
@@ -620,6 +621,8 @@ class PackageFinder(object):
 
         # These are boring links that have already been logged somehow.
         self._logged_links = set()  # type: Set[Link]
+
+        self._use_regex_link_parsing = use_regex_link_parsing
 
     # Don't include an allow_yanked default value to make sure each call
     # site considers whether yanked releases are allowed. This also causes
@@ -656,6 +659,7 @@ class PackageFinder(object):
             allow_yanked=selection_prefs.allow_yanked,
             format_control=selection_prefs.format_control,
             ignore_requires_python=selection_prefs.ignore_requires_python,
+            use_regex_link_parsing=selection_prefs.use_regex_link_parsing,
         )
 
     @property
@@ -791,7 +795,7 @@ class PackageFinder(object):
         if html_page is None:
             return []
 
-        page_links = list(parse_links(html_page))
+        page_links = list(parse_links(html_page, self._use_regex_link_parsing))
 
         with indent_log():
             package_links = self.evaluate_links(

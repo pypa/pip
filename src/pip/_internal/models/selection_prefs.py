@@ -12,7 +12,8 @@ class SelectionPreferences(object):
     """
 
     __slots__ = ['allow_yanked', 'allow_all_prereleases', 'format_control',
-                 'prefer_binary', 'ignore_requires_python']
+                 'prefer_binary', 'ignore_requires_python',
+                 'use_regex_link_parsing']
 
     # Don't include an allow_yanked default value to make sure each call
     # site considers whether yanked releases are allowed. This also causes
@@ -25,6 +26,7 @@ class SelectionPreferences(object):
         format_control=None,          # type: Optional[FormatControl]
         prefer_binary=False,          # type: bool
         ignore_requires_python=None,  # type: Optional[bool]
+        use_regex_link_parsing=False,  # type: bool
     ):
         # type: (...) -> None
         """Create a SelectionPreferences object.
@@ -47,3 +49,4 @@ class SelectionPreferences(object):
         self.format_control = format_control
         self.prefer_binary = prefer_binary
         self.ignore_requires_python = ignore_requires_python
+        self.use_regex_link_parsing = use_regex_link_parsing

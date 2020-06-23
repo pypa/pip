@@ -394,6 +394,8 @@ class RequirementCommand(IndexGroupCommand):
             allow_all_prereleases=options.pre,
             prefer_binary=options.prefer_binary,
             ignore_requires_python=ignore_requires_python,
+            use_regex_link_parsing=(
+                'regex_link_parsing' in options.unstable_features),
         )
 
         return PackageFinder.create(

@@ -9,7 +9,7 @@ import logging
 import mimetypes
 import os
 import re
-from collections import OrderedDict
+from collections import OrderedDict, namedtuple
 
 from pip._vendor import html5lib, requests
 from pip._vendor.distlib.compat import unescape
@@ -324,9 +324,9 @@ class CacheablePageContent(object):
 
 
 def with_cached_html_pages(
-    fn,    # type: Callable[[HTMLPage], Iterable[Link]]
+    fn,    # type: Callable[[HTMLPage, bool], Iterable[Link]]
 ):
-    # type: (...) -> Callable[[HTMLPage], List[Link]]
+    # type: (...) -> Callable[[HTMLPage, bool], List[Link]]
     """
     Given a function that parses an Iterable[Link] from an HTMLPage, cache the
     function's result (keyed by CacheablePageContent), unless the HTMLPage
@@ -339,21 +339,97 @@ def with_cached_html_pages(
         return list(fn(cacheable_page.page))
 
     @functools.wraps(fn)
-    def wrapper_wrapper(page):
-        # type: (HTMLPage) -> List[Link]
+    def wrapper_wrapper(page, use_regex_link_parsing):
+        # type: (HTMLPage, bool) -> List[Link]
         if page.cache_link_parsing:
             return wrapper(CacheablePageContent(page))
-        return list(fn(page))
+        return list(fn(page, use_regex_link_parsing))
 
     return wrapper_wrapper
 
 
-@with_cached_html_pages
-def parse_links(page):
+_link_pattern = re.compile(r'href.?=.?"([^"]+)"')
+
+_max_search_gap = 50            # type: int
+
+
+class MatchedHref(namedtuple('MatchedHref', [
+        'tag',
+        'href',
+        'requires_python',
+        'yanked_reason',
+])):
+    def __new__(cls, tag, href, requires_python=None, yanked_reason=None):
+        # type: (str, str, Optional[str], Optional[str]) -> MatchedHref
+        return super(MatchedHref, cls).__new__(
+            cls,
+            tag=tag,
+            href=href,
+            requires_python=requires_python,
+            yanked_reason=yanked_reason)
+
+
+def _match_hrefs_with_regex(page_content):
+    # type: (str) -> Iterable[MatchedHref]
+    for href_match in _link_pattern.finditer(page_content):
+        href = href_match.group(1)
+        # (1) Find the tag name by searching backwards.
+        start = href_match.start()
+        backwards_start = max(0, start - _max_search_gap)
+        a_tag_start = page_content.rfind('<a', backwards_start, start)
+        base_tag_start = page_content.rfind('<base', backwards_start, start)
+        tag_start = max(a_tag_start, base_tag_start)
+        if tag_start == -1:
+            # This is neither <a> nor <base> -- ignore it.
+            continue
+        tag_first_char = page_content[tag_start+1:tag_start + 2]
+        if tag_first_char == 'a':
+            tag = 'a'
+        else:
+            assert tag_first_char == 'b'
+            tag = 'base'
+        # (2) Find any data-requires-python or data-yanked anchors.
+        # FIXME: TODO!!
+        pyrequire = None
+        yanked_reason = None
+
+        result = MatchedHref(
+            tag=tag,
+            href=href,
+            requires_python=pyrequire,
+            yanked_reason=yanked_reason,
+        )
+        yield result
+
+
+def _parse_links_regex(page_url, page_content):
+    # type: (str, str) -> Iterable[Link]
+    base_url = None             # type: Optional[str]
+    anchor_links = []           # type: List[MatchedHref]
+    for matched_href in _match_hrefs_with_regex(page_content):
+        if matched_href.tag == 'a':
+            anchor_links.append(matched_href)
+        else:
+            assert matched_href.tag == 'base'
+            if base_url is None:
+                base_url = matched_href.href
+    if base_url is None:
+        base_url = page_url
+
+    for matched_href in anchor_links:
+        href = matched_href.href
+        url = _clean_link(urllib_parse.urljoin(base_url, href))
+        link = Link(
+            url,
+            comes_from=page_url,
+            requires_python=matched_href.requires_python,
+            yanked_reason=matched_href.yanked_reason,
+        )
+        yield link
+
+
+def _parse_links_html5lib(page):
     # type: (HTMLPage) -> Iterable[Link]
-    """
-    Parse an HTML document, and yield its anchor elements as Link objects.
-    """
     document = html5lib.parse(
         page.content,
         transport_encoding=page.encoding,
@@ -371,6 +447,19 @@ def parse_links(page):
         if link is None:
             continue
         yield link
+
+
+@with_cached_html_pages
+def parse_links(page, use_regex_link_parsing):
+    # type: (HTMLPage, bool) -> Iterable[Link]
+    """
+    Parse an HTML document, and yield its anchor elements as Link objects.
+    """
+    if use_regex_link_parsing:
+        yield from _parse_links_regex(page.url, page.decode_content())
+    else:
+        yield from _parse_links_html5lib(page)
+
 
 
 class HTMLPage(object):
@@ -399,6 +488,10 @@ class HTMLPage(object):
     def __str__(self):
         # type: () -> str
         return redact_auth_from_url(self.url)
+
+    def decode_content(self):
+        # type: () -> str
+        return self.content.decode(self.encoding)
 
 
 def _handle_get_page_fail(
