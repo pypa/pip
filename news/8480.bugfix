@@ -1,0 +1,1 @@
+Improve the performance of v1 and v2 resolves by caching the return value of __hash__ for the Tag object.
