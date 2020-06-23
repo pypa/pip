@@ -1,0 +1,1 @@
+The ``--unstable-feature=regex_link_parsing`` option is added, which uses regular expressions to find href links instead of parsing with html5lib. Turning on this option increased resolve performance by 12% on ``tensorflow==1.14.0``.
