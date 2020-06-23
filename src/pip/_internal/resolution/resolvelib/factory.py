@@ -84,7 +84,6 @@ class Factory(object):
         py_version_info=None,  # type: Optional[Tuple[int, ...]]
     ):
         # type: (...) -> None
-
         self._finder = finder
         self.preparer = preparer
         self._wheel_cache = wheel_cache
@@ -104,6 +103,11 @@ class Factory(object):
             }
         else:
             self._installed_dists = {}
+
+    @property
+    def force_reinstall(self):
+        # type: () -> bool
+        return self._force_reinstall
 
     def _make_candidate_from_dist(
         self,
@@ -305,22 +309,22 @@ class Factory(object):
             supported_tags=get_supported(),
         )
 
-    def should_reinstall(self, candidate):
-        # type: (Candidate) -> bool
+    def get_dist_to_uninstall(self, candidate):
+        # type: (Candidate) -> Optional[Distribution]
         # TODO: Are there more cases this needs to return True? Editable?
         dist = self._installed_dists.get(candidate.name)
         if dist is None:  # Not installed, no uninstallation required.
-            return False
+            return None
 
         # We're installing into global site. The current installation must
         # be uninstalled, no matter it's in global or user site, because the
         # user site installation has precedence over global.
         if not self._use_user_site:
-            return True
+            return dist
 
         # We're installing into user site. Remove the user site installation.
         if dist_in_usersite(dist):
-            return True
+            return dist
 
         # We're installing into user site, but the installed incompatible
         # package is in global site. We can't uninstall that, and would let
@@ -333,7 +337,7 @@ class Factory(object):
                     dist.project_name, dist.location,
                 )
             )
-        return False
+        return None
 
     def _report_requires_python_error(
         self,

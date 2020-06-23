@@ -60,6 +60,11 @@ class Candidate(object):
         raise NotImplementedError("Override in subclass")
 
     @property
+    def is_editable(self):
+        # type: () -> bool
+        raise NotImplementedError("Override in subclass")
+
+    @property
     def source_link(self):
         # type: () -> Optional[Link]
         raise NotImplementedError("Override in subclass")

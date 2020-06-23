@@ -249,7 +249,6 @@ def test_uninstall_before_upgrade_from_url(script):
 
 
 @pytest.mark.network
-@pytest.mark.fails_on_new_resolver
 def test_upgrade_to_same_version_from_url(script):
     """
     When installing from a URL the same version that is already installed, no

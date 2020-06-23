@@ -11,6 +11,7 @@ from pip._internal.req.req_install import check_invalid_constraint_type
 from pip._internal.req.req_set import RequirementSet
 from pip._internal.resolution.base import BaseResolver
 from pip._internal.resolution.resolvelib.provider import PipProvider
+from pip._internal.utils.misc import dist_is_editable
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 from .factory import Factory
@@ -120,6 +121,27 @@ class Resolver(BaseResolver):
             ireq = candidate.get_install_requirement()
             if ireq is None:
                 continue
+
+            # Check if there is already an installation under the same name,
+            # and set a flag for later stages to uninstall it, if needed.
+            # * There isn't, good -- no uninstalltion needed.
+            # * The --force-reinstall flag is set. Always reinstall.
+            # * The installation is different in version or editable-ness, so
+            #   we need to uninstall it to install the new distribution.
+            # * The installed version is the same as the pending distribution.
+            #   Skip this distrubiton altogether to save work.
+            installed_dist = self.factory.get_dist_to_uninstall(candidate)
+            if installed_dist is None:
+                ireq.should_reinstall = False
+            elif self.factory.force_reinstall:
+                ireq.should_reinstall = True
+            elif installed_dist.parsed_version != candidate.version:
+                ireq.should_reinstall = True
+            elif dist_is_editable(installed_dist) != candidate.is_editable:
+                ireq.should_reinstall = True
+            else:
+                continue
+
             link = candidate.source_link
             if link and link.is_yanked:
                 # The reason can contain non-ASCII characters, Unicode
@@ -135,7 +157,7 @@ class Resolver(BaseResolver):
                     reason=link.yanked_reason or u'<none given>',
                 )
                 logger.warning(msg)
-            ireq.should_reinstall = self.factory.should_reinstall(candidate)
+
             req_set.add_named_requirement(ireq)
 
         return req_set
