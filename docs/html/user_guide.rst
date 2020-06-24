@@ -1023,4 +1023,109 @@ of ability. Some examples that you could consider include:
 * ``distlib`` - Packaging and distribution utilities (including functions for
   interacting with PyPI).
 
+Testing the 20.2 beta
+=====================
+
+Please test pip 20.2b2.
+
+Watch out for
+-------------
+
+The big thing in this beta is changes to the pip dependency resolver within pip.
+
+Computers need to know the right order to install pieces of software
+("to install `x`, you need to install `y` first"). So, when Python
+programmers share software as packages, they have to precisely describe
+those installation prerequisites, and pip needs to navigate tricky
+situations where it's getting conflicting instructions. This new
+dependency resolver will make pip better at handling that tricky
+logic, and easier for you to use and troubleshoot.
+
+The most significant changes to the resolver are:
+
+* It will **reduce inconsistency**: it will *no longer install a
+combination of packages that is mutually inconsistent*. In older
+versions of pip, it is possible for pip to install a package which
+does not satisfy the declared requirements of another installed
+package. For example, in pip 20.0, ``pip install "six<1.12"
+"virtualenv==20.0.2"`` does the wrong thing, “successfully” installing
+``six==1.11``, even though ``virtualenv==20.0.2`` requires
+``six>=1.12.0,<2`` (`defined here
+<https://github.com/pypa/virtualenv/blob/20.0.2/setup.cfg#L42-L50>`__).
+The new resolver, instead, outright rejects installing anything
+if it gets that input.
+
+* It will be **stricter** - if you ask pip to install two packages with
+incompatible requirements, it will refuse (rather than installing a
+broken combination, like it did in previous versions).
+
+So, if you have been using workarounds to force pip to deal with
+incompatible or inconsistent requirements combinations, now's a good
+time to fix the underlying problem in the packages, because pip will
+be stricter from here on out.
+
+
+How to test
+-----------
+
+1. **Install the beta** [specific instructions TKTK].
+
+2. **Run ``pip check`` on your current environment**. This
+   will report if you have any inconsistencies in your set of installed
+   packages. Having a clean installation will make it much less likely
+   that you will hit issues when the new resolver is released (and may
+   address hidden problems in your current environment!). If you run
+   ``pip check`` and run into stuff you can’t figure out, please `ask
+   for help in our issuetracker or chat <https://pip.pypa.io/>`__.
+
+3. **Test the new version of pip** (see below). While we have tried to
+   make sure that pip’s test suite covers as many cases as we can, we
+   are very aware that there are people using pip with many different
+   workflows and build processes, and we will not be able to cover all
+   of those without your help.
+
+   -  If you use pip to install your software, try out the new resolver
+      and let us know if it works for you with ``pip install``. Try:
+        - installing several packages simultaneously
+        - re-creating an environment using a ``requirements.txt`` file
+   -  If you have a build pipeline that depends on pip installing your
+      dependencies for you, check that the new resolver does what you
+      need.
+   -  Run your project’s CI (test suite, build process, etc.) using the
+      new resolver, and let us know of any issues.
+   -  If you have encountered resolver issues with pip in the past,
+      check whether the new resolver fixes them. Also, let us know if
+      the new resolver has issues with any workarounds you put in to
+      address the current resolver’s limitations. We’ll need to ensure
+      that people can transition off such workarounds smoothly.
+   -  If you develop or support a tool that wraps pip or uses it to
+      deliver part of your functionality, please test your integration
+      with the beta.
+
+Please report bugs [GitHub link or something else TKTK].
+
+Setups we might need more testing on
+------------------------------------
+
+*    Windows
+
+*    Macintosh
+
+*    Debian, Fedora, Red Hat, CentOS, Mint, Arch, Raspbian, Gentoo
+
+*    Japanese-localized filesystems/OSes
+
+*    Multi-user installations
+
+*    Using virtualenvs
+
+*    Dependency resolution for any kind of version control systems (e.g., you are installing from Git, Subversion, Mercurial, or CVS)
+
+*    Installing from source code held in local directories
+
+*    Using the most recent versions of Python 3.6, 3.7, 3.8, and 3.9
+
+*    Customized terminals (where you have modified how error messages and standard output display)
+
+
 .. _freeze: https://pip.pypa.io/en/latest/reference/pip_freeze/
