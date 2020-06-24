@@ -1,3 +1,4 @@
+import re
 import sys
 from pprint import pprint
 
@@ -48,12 +49,27 @@ def lint_case(case, verbose=False):
         check_dict(package,
                    required=['name', 'version'],
                    optional=['depends', 'extras'])
+        version = package['version']
+        assert isinstance(version, str), repr(version)
 
     for request, response in zip(requests, responses):
         check_dict(request, optional=['install', 'uninstall', 'options'])
-        check_dict(response, optional=['state', 'conflicting'])
-        assert len(response) == 1
+        check_dict(response, optional=['state', 'error'])
+        assert len(response) >= 1
         assert isinstance(response.get('state') or [], list)
+        error = response.get('error')
+        if error:
+            check_dict(error, optional=['code', 'stderr'])
+            stderr = error.get('stderr')
+            if stderr:
+                if isinstance(stderr, str):
+                    patters = [stderr]
+                elif isinstance(stderr, list):
+                    patters = stderr
+                else:
+                    raise "string or list expected, found %r" % stderr
+                for patter in patters:
+                    re.compile(patter, re.I)
 
 
 def lint_yml(yml_file, verbose=False):

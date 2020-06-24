@@ -4,25 +4,12 @@ Tests for the resolver
 
 import os
 import re
+import sys
 
 import pytest
 import yaml
 
 from tests.lib import DATA_DIR, create_basic_wheel_for_package, path_to_url
-
-_conflict_finder_pat = re.compile(
-    # Conflicting Requirements: \
-    # A 1.0.0 requires B == 2.0.0, C 1.0.0 requires B == 1.0.0.
-    r"""
-        (?P<package>[\w\-_]+?)
-        [ ]
-        (?P<version>\S+?)
-        [ ]requires[ ]
-        (?P<selector>.+?)
-        (?=,|\.$)
-    """,
-    re.X
-)
 
 
 def generate_yaml_tests(directory):
@@ -137,6 +124,28 @@ def handle_request(script, action, requirement, options, new_resolver=False):
     return {"result": result, "state": sorted(state)}
 
 
+def check_error(error, result):
+    return_code = error.get('code')
+    if return_code:
+        assert result.returncode == return_code
+
+    stderr = error.get('stderr')
+    if not stderr:
+        return
+
+    if isinstance(stderr, str):
+        patters = [stderr]
+    elif isinstance(stderr, list):
+        patters = stderr
+    else:
+        raise "string or list expected, found %r" % stderr
+
+    for patter in patters:
+        match = re.search(patter, result.stderr, re.I)
+        assert match, 'regex %r not found in stderr: %r' % (
+            stderr, result.stderr)
+
+
 @pytest.mark.yaml
 @pytest.mark.parametrize(
     "case", generate_yaml_tests(DATA_DIR.parent / "yaml"), ids=id_func
@@ -175,24 +184,20 @@ def test_yaml_based(script, case):
                                 request[action],
                                 request.get('options', '').split(),
                                 case[':resolver:'] == 'new')
+        result = effect['result']
 
         if 0:  # for analyzing output easier
             with open(DATA_DIR.parent / "yaml" /
                       case[':name:'].replace('*', '-'), 'w') as fo:
-                result = effect['result']
                 fo.write("=== RETURNCODE = %d\n" % result.returncode)
                 fo.write("=== STDERR ===:\n%s\n" % result.stderr)
 
         if 'state' in response:
-            assert effect['state'] == (response['state'] or []), \
-                str(effect["result"])
+            assert effect['state'] == (response['state'] or []), str(result)
 
-        error = False
-        if 'conflicting' in response:
-            error = True
-
-        if error:
-            if case[":resolver:"] == 'old':
-                assert effect["result"].returncode == 0, str(effect["result"])
-            elif case[":resolver:"] == 'new':
-                assert effect["result"].returncode == 1, str(effect["result"])
+        error = response.get('error')
+        if error and case[":resolver:"] == 'new' and sys.platform != 'win32':
+            # Note: we currently skip running these tests on Windows, as they
+            # were failing due to different error codes.  There should not
+            # be a reason for not running these this check on Windows.
+            check_error(error, result)

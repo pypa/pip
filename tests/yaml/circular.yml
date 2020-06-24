@@ -16,7 +16,6 @@ cases:
       - B 1.0.0
       - C 1.0.0
       - D 1.0.0
-  skip: new
 -
   request:
     - install: B
@@ -26,7 +25,6 @@ cases:
       - B 1.0.0
       - C 1.0.0
       - D 1.0.0
-  skip: new
 -
   request:
     - install: C
@@ -36,7 +34,6 @@ cases:
       - B 1.0.0
       - C 1.0.0
       - D 1.0.0
-  skip: new
 -
   request:
     - install: D
@@ -46,4 +43,3 @@ cases:
       - B 1.0.0
       - C 1.0.0
       - D 1.0.0
-  skip: new
