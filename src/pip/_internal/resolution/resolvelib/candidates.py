@@ -5,7 +5,7 @@ from pip._vendor.packaging.specifiers import InvalidSpecifier, SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
 
-from pip._internal.exceptions import MetadataInconsistent
+from pip._internal.exceptions import HashError, MetadataInconsistent
 from pip._internal.req.constructors import (
     install_req_from_editable,
     install_req_from_line,
@@ -202,7 +202,12 @@ class _InstallRequirementBackedCandidate(Candidate):
         if self._dist is not None:
             return
 
-        abstract_dist = self._prepare_abstract_distribution()
+        try:
+            abstract_dist = self._prepare_abstract_distribution()
+        except HashError as e:
+            e.req = self._ireq
+            raise
+
         self._dist = abstract_dist.get_pkg_resources_distribution()
         assert self._dist is not None, "Distribution already installed"
 
