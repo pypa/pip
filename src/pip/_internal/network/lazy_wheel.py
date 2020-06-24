@@ -1,6 +1,6 @@
 """Lazy ZIP over HTTP"""
 
-__all__ = ['LazyZip']
+__all__ = ['dist_from_wheel_url']
 
 from bisect import bisect_left, bisect_right
 from contextlib import contextmanager
@@ -12,24 +12,44 @@ from pip._vendor.six.moves import range
 
 from pip._internal.network.utils import HEADERS, response_chunks
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.wheel import pkg_resources_distribution_for_wheel
 
 if MYPY_CHECK_RUNNING:
     from typing import Any, Dict, Iterator, List, Optional, Tuple
 
+    from pip._vendor.pkg_resources import Distribution
     from pip._vendor.requests.models import Response
 
     from pip._internal.network.session import PipSession
 
 
-class LazyZip:
+def dist_from_wheel_url(name, url, session):
+    # type: (str, str, PipSession) -> Distribution
+    """Return a pkg_resources.Distribution from the given wheel URL.
+
+    This uses HTTP range requests to only fetch the potion of the wheel
+    containing metadata, just enough for the object to be constructed.
+    If such requests are not supported, RuntimeError is raised.
+    """
+    with LazyZipOverHTTP(url, session) as wheel:
+        # For read-only ZIP files, ZipFile only needs methods read,
+        # seek, seekable and tell, not the whole IO protocol.
+        zip_file = ZipFile(wheel)  # type: ignore
+        # After context manager exit, wheel.name
+        # is an invalid file by intention.
+        return pkg_resources_distribution_for_wheel(zip_file, name, wheel.name)
+
+
+class LazyZipOverHTTP(object):
     """File-like object mapped to a ZIP file over HTTP.
 
     This uses HTTP range requests to lazily fetch the file's content,
-    which is supposed to be fed to ZipFile.
+    which is supposed to be fed to ZipFile.  If such requests are not
+    supported by the server, raise RuntimeError during initialization.
     """
 
-    def __init__(self, session, url, chunk_size=CONTENT_CHUNK_SIZE):
-        # type: (PipSession, str, int) -> None
+    def __init__(self, url, session, chunk_size=CONTENT_CHUNK_SIZE):
+        # type: (str, PipSession, int) -> None
         head = session.head(url, headers=HEADERS)
         head.raise_for_status()
         assert head.status_code == 200
@@ -39,7 +59,9 @@ class LazyZip:
         self.truncate(self._length)
         self._left = []  # type: List[int]
         self._right = []  # type: List[int]
-        self._check_zip('bytes' in head.headers.get('Accept-Ranges', 'none'))
+        if 'bytes' not in head.headers.get('Accept-Ranges', 'none'):
+            raise RuntimeError('range request is not supported')
+        self._check_zip()
 
     @property
     def mode(self):
@@ -50,7 +72,7 @@ class LazyZip:
     @property
     def name(self):
         # type: () -> str
-        """File name."""
+        """Path to the underlying file."""
         return self._file.name
 
     def seekable(self):
@@ -120,7 +142,7 @@ class LazyZip:
         return False
 
     def __enter__(self):
-        # type: () -> LazyZip
+        # type: () -> LazyZipOverHTTP
         self._file.__enter__()
         return self
 
@@ -141,21 +163,16 @@ class LazyZip:
         finally:
             self.seek(pos)
 
-    def _check_zip(self, range_request):
-        # type: (bool) -> None
+    def _check_zip(self):
+        # type: () -> None
         """Check and download until the file is a valid ZIP."""
         end = self._length - 1
-        if not range_request:
-            self._download(0, end)
-            return
         for start in reversed(range(0, end, self._chunk_size)):
             self._download(start, end)
             with self._stay():
                 try:
                     # For read-only ZIP files, ZipFile only needs
                     # methods read, seek, seekable and tell.
-                    # The best way to type-hint in this case is to use
-                    # Python 3.8+ typing.Protocol.
                     ZipFile(self)  # type: ignore
                 except BadZipfile:
                     pass
