@@ -48,6 +48,7 @@ def make_install_req_from_link(link, template):
         line = link.url
     ireq = install_req_from_line(
         line,
+        user_supplied=template.user_supplied,
         comes_from=template.comes_from,
         use_pep517=template.use_pep517,
         isolated=template.isolated,
@@ -68,6 +69,7 @@ def make_install_req_from_editable(link, template):
     assert template.editable, "template not editable"
     return install_req_from_editable(
         link.url,
+        user_supplied=template.user_supplied,
         comes_from=template.comes_from,
         use_pep517=template.use_pep517,
         isolated=template.isolated,
@@ -91,6 +93,7 @@ def make_install_req_from_dist(dist, template):
         line = "{}=={}".format(project_name, dist.parsed_version)
     ireq = install_req_from_line(
         line,
+        user_supplied=template.user_supplied,
         comes_from=template.comes_from,
         use_pep517=template.use_pep517,
         isolated=template.isolated,

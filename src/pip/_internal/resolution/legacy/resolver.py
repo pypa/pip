@@ -195,7 +195,7 @@ class Resolver(BaseResolver):
             return True
         else:
             assert self.upgrade_strategy == "only-if-needed"
-            return req.is_direct
+            return req.user_supplied or req.constraint
 
     def _set_req_to_reinstall(self, req):
         # type: (InstallRequirement) -> None
@@ -419,7 +419,7 @@ class Resolver(BaseResolver):
                 # 'unnamed' requirements will get added here
                 # 'unnamed' requirements can only come from being directly
                 # provided by the user.
-                assert req_to_install.is_direct
+                assert req_to_install.user_supplied
                 requirement_set.add_requirement(
                     req_to_install, parent_req_name=None,
                 )

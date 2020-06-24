@@ -339,6 +339,7 @@ def install_unpacked_wheel(
     pycompile=True,  # type: bool
     warn_script_location=True,  # type: bool
     direct_url=None,  # type: Optional[DirectUrl]
+    requested=False,  # type: bool
 ):
     # type: (...) -> None
     """Install a wheel.
@@ -645,6 +646,13 @@ def install_unpacked_wheel(
             direct_url_file.write(direct_url.to_json().encode("utf-8"))
         generated.append(direct_url_path)
 
+    # Record the REQUESTED file
+    if requested:
+        requested_path = os.path.join(dest_info_dir, 'REQUESTED')
+        with open(requested_path, "w"):
+            pass
+        generated.append(requested_path)
+
     # Record details of all files installed
     record_path = os.path.join(dest_info_dir, 'RECORD')
     with open(record_path, **csv_io_kwargs('r')) as record_file:
@@ -671,6 +679,7 @@ def install_wheel(
     warn_script_location=True,  # type: bool
     _temp_dir_for_testing=None,  # type: Optional[str]
     direct_url=None,  # type: Optional[DirectUrl]
+    requested=False,  # type: bool
 ):
     # type: (...) -> None
     with TempDirectory(
@@ -686,4 +695,5 @@ def install_wheel(
             pycompile=pycompile,
             warn_script_location=warn_script_location,
             direct_url=direct_url,
+            requested=requested,
         )

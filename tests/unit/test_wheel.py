@@ -301,6 +301,19 @@ class TestInstallUnpackedWheel(object):
         finally:
             os.umask(prev_umask)
 
+    def test_std_install_requested(self, data, tmpdir):
+        self.prep(data, tmpdir)
+        wheel.install_wheel(
+            self.name,
+            self.wheelpath,
+            scheme=self.scheme,
+            req_description=str(self.req),
+            requested=True,
+        )
+        self.assert_installed(0o644)
+        requested_path = os.path.join(self.dest_dist_info, 'REQUESTED')
+        assert os.path.isfile(requested_path)
+
     def test_std_install_with_direct_url(self, data, tmpdir):
         """Test that install_wheel creates direct_url.json metadata when
         provided with a direct_url argument. Also test that the RECORDS

@@ -309,25 +309,25 @@ class RequirementCommand(IndexGroupCommand):
                 req_to_add = install_req_from_parsed_requirement(
                     parsed_req,
                     isolated=options.isolated_mode,
+                    user_supplied=False,
                 )
-                req_to_add.is_direct = True
                 requirements.append(req_to_add)
 
         for req in args:
             req_to_add = install_req_from_line(
                 req, None, isolated=options.isolated_mode,
                 use_pep517=options.use_pep517,
+                user_supplied=True,
             )
-            req_to_add.is_direct = True
             requirements.append(req_to_add)
 
         for req in options.editables:
             req_to_add = install_req_from_editable(
                 req,
+                user_supplied=True,
                 isolated=options.isolated_mode,
                 use_pep517=options.use_pep517,
             )
-            req_to_add.is_direct = True
             requirements.append(req_to_add)
 
         # NOTE: options.require_hashes may be set if --require-hashes is True
@@ -338,9 +338,9 @@ class RequirementCommand(IndexGroupCommand):
                 req_to_add = install_req_from_parsed_requirement(
                     parsed_req,
                     isolated=options.isolated_mode,
-                    use_pep517=options.use_pep517
+                    use_pep517=options.use_pep517,
+                    user_supplied=True,
                 )
-                req_to_add.is_direct = True
                 requirements.append(req_to_add)
 
         # If any requirement has hash options, enable hash checking.
