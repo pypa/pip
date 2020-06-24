@@ -520,14 +520,34 @@ def test_install_distribution_union_with_constraints(
         result.did_create(script.site_packages / 'singlemodule.py')
 
 
-@pytest.mark.fails_on_new_resolver
-def test_install_distribution_union_with_versions(script, data):
+def test_install_distribution_union_with_versions(
+    script,
+    data,
+    use_new_resolver,
+):
     to_install_001 = data.packages.joinpath("LocalExtras")
     to_install_002 = data.packages.joinpath("LocalExtras-0.0.2")
     result = script.pip_install_local(
-        to_install_001 + "[bar]", to_install_002 + "[baz]")
-    assert ("Successfully installed LocalExtras-0.0.1 simple-3.0 " +
-            "singlemodule-0.0.1" in result.stdout)
+        to_install_001 + "[bar]",
+        to_install_002 + "[baz]",
+        expect_error=use_new_resolver,
+    )
+    if use_new_resolver:
+        assert (
+            "Cannot install localextras[bar] 0.0.1 and localextras[baz] 0.0.2 "
+            "because these package versions have conflicting dependencies."
+        ) in result.stderr
+        assert (
+            "localextras[bar] 0.0.1 depends on localextras 0.0.1"
+        ) in result.stdout
+        assert (
+            "localextras[baz] 0.0.2 depends on localextras 0.0.2"
+        ) in result.stdout
+    else:
+        assert (
+            "Successfully installed LocalExtras-0.0.1 simple-3.0 "
+            "singlemodule-0.0.1"
+        ) in result.stdout
 
 
 @pytest.mark.xfail
