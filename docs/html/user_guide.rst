@@ -1064,6 +1064,12 @@ incompatible or inconsistent requirements combinations, now's a good
 time to fix the underlying problem in the packages, because pip will
 be stricter from here on out.
 
+We are also changing our support for :ref:`Constraints Files` :
+
+* Unnamed requirements are not allowed as constraints
+* Links are not allowed as constraints
+* Constraints cannot have extras
+
 
 How to test
 -----------
@@ -1089,6 +1095,7 @@ How to test
         - installing several packages simultaneously
         - re-creating an environment using a ``requirements.txt`` file
 	- using ``pip --force-reinstall`` to check whether it does what you think it should
+	- using constraints files
    -  If you have a build pipeline that depends on pip installing your
       dependencies for you, check that the new resolver does what you
       need.
