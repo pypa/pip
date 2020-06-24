@@ -540,8 +540,6 @@ _freeze_req_opts = textwrap.dedent("""\
     # Unchanged requirements below this line
     -r ignore.txt
     --requirement ignore.txt
-    -Z ignore
-    --always-unzip ignore
     -f http://ignore
     -i http://ignore
     --pre

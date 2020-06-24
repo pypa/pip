@@ -87,8 +87,7 @@ def test_uninstall_easy_install_after_import(script):
     Uninstall an easy_installed package after it's been imported
 
     """
-    result = script.easy_install('--always-unzip', 'INITools==0.2',
-                                 expect_stderr=True)
+    result = script.easy_install('INITools==0.2', expect_stderr=True)
     # the import forces the generation of __pycache__ if the version of python
     # supports it
     script.run('python', '-c', "import initools")
