@@ -36,7 +36,9 @@ cases:
     - state: null
       error:
         code: 1
-        stderr: 'no\s+matching\s+distribution'
+        stderr: >-
+          Cannot install B==1.0.0 and B==2.0.0 because these
+          package versions have conflicting dependencies.
   skip: old
   # -- currently the (new resolver) error message is:
   # Could not find a version that satisfies the requirement B==1.0.0

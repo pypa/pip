@@ -22,9 +22,7 @@ cases:
   response:
     - state: null
       error:
-        stderr: 'no matching distribution found for six'
+        stderr: >-
+          Cannot install six<1.12 and virtualenv 20.0.2 because these
+          package versions have conflicting dependencies.
   skip: old
-  # -- currently the error message is:
-  # Could not find a version that satisfies the requirement six<1.12
-  # Could not find a version that satisfies the requirement six<2,>=1.12.0 (from virtualenv)
-  # No matching distribution found for six, six
