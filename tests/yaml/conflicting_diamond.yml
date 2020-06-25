@@ -11,13 +11,9 @@ cases:
   response:
     - error:
         code: 1
-        stderr: 'no matching distribution found'
+        stderr: >-
+          Cannot install A and A because these package
+          versions have conflicting dependencies.
+        # TODO: Tweak this error message to make sense.
+        # https://github.com/pypa/pip/issues/8495
   skip: old
-  # -- currently the error message is:
-  # Could not find a version that satisfies the requirement D==2.0.0 (from c)
-  # Could not find a version that satisfies the requirement D==1.0.0 (from b)
-  # No matching distribution found for d, d
-  # -- This is a bit confusing, as both versions of D are available.
-  # -- better would be something like:
-  # A 1.0.0 -> B 1.0.0 -> D 1.0.0
-  # A 1.0.0 -> C 1.0.0 -> D 2.0.0

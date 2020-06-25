@@ -287,10 +287,9 @@ cases:
     - state: null
       error:
         code: 1
-        stderr: 'version that satisfies the requirement'
+        stderr: >-
+          Cannot install six==1.8.2, html5lib 1.0.1, six==1.8.2 and
+          html5lib 0.999999999 because these package versions have
+          conflicting dependencies.
+
   skip: old
-  # -- the new resolver tells:
-  # Could not find a version that satisfies the requirement six==1.8.2
-  # Could not find a version that satisfies the requirement six>=1.9 (from html5lib)
-  # -- the old error message (which I think was better):
-  # html5lib 1.0.1 has requirement six>=1.9, but you'll have six 1.8.2 which is incompatible.
