@@ -206,7 +206,8 @@ def call_subprocess(
         # Show the line immediately.
         log_subprocess(line)
         # Update the spinner.
-        if use_spinner and spinner:
+        if use_spinner:
+            assert spinner
             spinner.spin()
     try:
         proc.wait()
@@ -216,7 +217,8 @@ def call_subprocess(
     proc_had_error = (
         proc.returncode and proc.returncode not in extra_ok_returncodes
     )
-    if use_spinner and spinner:
+    if use_spinner:
+        assert spinner
         if proc_had_error:
             spinner.finish("error")
         else:
