@@ -28,7 +28,7 @@ class MockResponse(object):
         self.status_code = 200
         self.connection = None
         self.url = None
-        self.headers = {}
+        self.headers = {'Content-Length': len(contents)}
         self.history = []
 
     def raise_for_status(self):
