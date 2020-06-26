@@ -9,9 +9,9 @@ from pip._internal.cli import cmdoptions
 from pip._internal.cli.req_command import IndexGroupCommand
 from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.exceptions import CommandError
+from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.models.selection_prefs import SelectionPreferences
-from pip._internal.self_outdated_check import make_link_collector
 from pip._internal.utils.misc import (
     dist_is_editable,
     get_installed_distributions,
@@ -123,7 +123,7 @@ class ListCommand(IndexGroupCommand):
         """
         Create a package finder appropriate to this list command.
         """
-        link_collector = make_link_collector(session, options=options)
+        link_collector = LinkCollector.create(session, options=options)
 
         # Pass allow_yanked=False to ignore yanked versions.
         selection_prefs = SelectionPreferences(

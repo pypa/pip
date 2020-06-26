@@ -13,6 +13,7 @@ from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.command_context import CommandContextMixIn
 from pip._internal.exceptions import CommandError, PreviousBuildDirError
+from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.network.download import Downloader
@@ -25,10 +26,7 @@ from pip._internal.req.constructors import (
     install_req_from_req_string,
 )
 from pip._internal.req.req_file import parse_requirements
-from pip._internal.self_outdated_check import (
-    make_link_collector,
-    pip_self_version_check,
-)
+from pip._internal.self_outdated_check import pip_self_version_check
 from pip._internal.utils.temp_dir import tempdir_kinds
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -387,7 +385,7 @@ class RequirementCommand(IndexGroupCommand):
         :param ignore_requires_python: Whether to ignore incompatible
             "Requires-Python" values in links. Defaults to False.
         """
-        link_collector = make_link_collector(session, options=options)
+        link_collector = LinkCollector.create(session, options=options)
         selection_prefs = SelectionPreferences(
             allow_yanked=True,
             format_control=options.format_control,
