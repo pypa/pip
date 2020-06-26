@@ -243,7 +243,7 @@ no_input = partial(
     dest='no_input',
     action='store_true',
     default=False,
-    help=SUPPRESS_HELP
+    help="Disable prompting for input."
 )  # type: Callable[..., Option]
 
 proxy = partial(
