@@ -61,12 +61,6 @@ def check_package_set(package_set, should_ignore=None):
     If should_ignore is passed, it should be a callable that takes a
     package name and returns a boolean.
     """
-    if should_ignore:
-        should_ignore_package = should_ignore
-    else:
-        def should_ignore_package(name):
-            # type: (str) -> bool
-            return False
 
     missing = {}
     conflicting = {}
@@ -76,7 +70,7 @@ def check_package_set(package_set, should_ignore=None):
         missing_deps = set()  # type: Set[Missing]
         conflicting_deps = set()  # type: Set[Conflicting]
 
-        if should_ignore_package(package_name):
+        if should_ignore and should_ignore(package_name):
             continue
 
         for req in package_set[package_name].requires:
