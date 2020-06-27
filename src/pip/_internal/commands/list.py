@@ -19,6 +19,7 @@ from pip._internal.utils.misc import (
     write_output,
 )
 from pip._internal.utils.packaging import get_installer
+from pip._internal.utils.parallel import map_multithread
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -223,7 +224,7 @@ class ListCommand(IndexGroupCommand):
                 dist.latest_filetype = typ
                 return dist
 
-            for dist in map(latest_info, packages):
+            for dist in map_multithread(latest_info, packages):
                 if dist is not None:
                     yield dist
 
