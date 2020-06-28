@@ -15,7 +15,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from optparse import Values
-    from typing import List, Dict, Iterator
+    from typing import List, Dict, Iterator, Any
 
 logger = logging.getLogger(__name__)
 
@@ -167,6 +167,7 @@ def search_packages_info(query):
 
 
 def print_results_default(distributions, list_files=False, verbose=False):
+    # type: (Iterator[Dict[str, str]], bool, bool) -> bool
     """
     Print the information from installed distributions found in default format.
     """
@@ -207,6 +208,7 @@ def print_results_default(distributions, list_files=False, verbose=False):
 
 
 def print_results_json(distributions, list_files=False, verbose=False):
+    # type: (Iterator[Dict[str, Any]], bool, bool) -> bool
     """
     Build a dictionary with information from installed distributions
         found in JSON format.
@@ -237,7 +239,7 @@ def print_results_json(distributions, list_files=False, verbose=False):
             pkg_info["installer"] = dist.get('installer', '')
             pkg_info["classifiers"] = dist.get('classifiers', [])
             pkg_info["entry-points"] = \
-                [entry.strip() for entry in dist.get('entry_points')]\
+                [entry.strip() for entry in dist.get('entry_points', [])]\
                 if 'entry_points' in dist else []
 
         if list_files:
@@ -245,7 +247,7 @@ def print_results_json(distributions, list_files=False, verbose=False):
                 pkg_info["files"] = None
             else:
                 pkg_info['files'] = [line.strip()
-                                     for line in dist.get('files')]
+                                     for line in dist.get('files', [])]
 
         pkg_infos_list.append(pkg_info)
 

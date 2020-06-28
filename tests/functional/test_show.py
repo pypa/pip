@@ -410,6 +410,7 @@ def test_show_required_by_packages_requiring_capitalized(script, data):
 
     result = script.pip('show', 'Requires_Capitalized')
     lines = result.stdout.splitlines()
+    print(lines)
 
     assert 'Name: Requires-Capitalized' in lines
     assert 'Required-by: requires-requires-capitalized' in lines
@@ -450,4 +451,3 @@ def test_show_include_work_dir_pkg(script):
     result = script.pip('show', 'simple', cwd=pkg_path)
     lines = result.stdout.splitlines()
     assert 'Name: simple' in lines
-
