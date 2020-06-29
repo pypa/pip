@@ -453,7 +453,7 @@ def _get_html_page(link, session=None):
     except _NotHTTP:
         logger.warning(
             'Skipping page %s because it looks like an archive, and cannot '
-            'be checked by HEAD.', link,
+            'be checked by a HTTP HEAD request.', link,
         )
     except _NotHTML as exc:
         logger.warning(

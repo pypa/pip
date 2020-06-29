@@ -94,7 +94,7 @@ def test_get_html_page_invalid_content_type_archive(caplog, url):
     assert ('pip._internal.index.collector',
             logging.WARNING,
             'Skipping page {} because it looks like an archive, and cannot '
-            'be checked by HEAD.'.format(
+            'be checked by a HTTP HEAD request.'.format(
                 url)) \
         in caplog.record_tuples
 
