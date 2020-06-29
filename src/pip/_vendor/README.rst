@@ -8,7 +8,7 @@ Vendoring Policy
 * Vendored libraries **MUST** be released copies of libraries available on
   PyPI.
 
-* Libraries to be vendored **MUST** be available under a license that allows
+* Vendored libraries **MUST** be available under a license that allows
   them to be integrated into ``pip``, which is released under the MIT license.
 
 * Vendored libraries **MUST** be accompanied with LICENSE files.
