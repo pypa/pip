@@ -434,7 +434,8 @@ def _get_html_page(link, session=None):
     # Check for VCS schemes that do not support lookup as web pages.
     vcs_scheme = _match_vcs_scheme(url)
     if vcs_scheme:
-        logger.debug('Cannot look at %s URL %s', vcs_scheme, link)
+        logger.warning('Cannot look at %s URL %s because it does not support '
+                       'lookup as web pages.', vcs_scheme, link)
         return None
 
     # Tack index.html onto file:// URLs that point to directories
@@ -450,9 +451,9 @@ def _get_html_page(link, session=None):
     try:
         resp = _get_html_response(url, session=session)
     except _NotHTTP:
-        logger.debug(
+        logger.warning(
             'Skipping page %s because it looks like an archive, and cannot '
-            'be checked by HEAD.', link,
+            'be checked by a HTTP HEAD request.', link,
         )
     except _NotHTML as exc:
         logger.warning(
