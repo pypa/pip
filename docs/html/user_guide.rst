@@ -1031,7 +1031,7 @@ Please test pip 20.2b2.
 Watch out for
 -------------
 
-The big thing in this beta is changes to the pip dependency resolver within pip.
+The big change in this beta is to the pip dependency resolver within pip.
 
 Computers need to know the right order to install pieces of software
 ("to install `x`, you need to install `y` first"). So, when Python
@@ -1063,6 +1063,14 @@ So, if you have been using workarounds to force pip to deal with
 incompatible or inconsistent requirements combinations, now's a good
 time to fix the underlying problem in the packages, because pip will
 be stricter from here on out.
+
+This also means that, when you run a ``pip install`` command, pip only
+considers the packages you are installing in that command, and may
+break already-installed packages. It will not guarantee that your
+environment will be consistent all the time. If you ``pip install x``
+and then ``pip install y``, it's possible that the version of ``y``
+you get will be different than it would be if you had run ``pip
+install x y`` in a single command.
 
 We are also changing our support for :ref:`Constraints Files` :
 
