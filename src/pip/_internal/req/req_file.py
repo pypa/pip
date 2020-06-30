@@ -64,7 +64,6 @@ SUPPORTED_OPTIONS = [
     cmdoptions.require_hashes,
     cmdoptions.pre,
     cmdoptions.trusted_host,
-    cmdoptions.always_unzip,  # Deprecated
 ]  # type: List[Callable[..., optparse.Option]]
 
 # options to be passed to requirements

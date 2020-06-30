@@ -96,7 +96,6 @@ def freeze(
                             line.strip().startswith('#') or
                             line.startswith((
                                 '-r', '--requirement',
-                                '-Z', '--always-unzip',
                                 '-f', '--find-links',
                                 '-i', '--index-url',
                                 '--pre',

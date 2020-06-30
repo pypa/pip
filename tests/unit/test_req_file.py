@@ -378,10 +378,6 @@ class TestProcessLine(object):
         )
         assert expected in actual
 
-    def test_noop_always_unzip(self, line_processor, finder):
-        # noop, but confirm it can be set
-        line_processor("--always-unzip", "file", 1, finder=finder)
-
     def test_set_finder_allow_all_prereleases(self, line_processor, finder):
         line_processor("--pre", "file", 1, finder=finder)
         assert finder.allow_all_prereleases
