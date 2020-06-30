@@ -9,7 +9,7 @@ Deprecations and Removals
 Bug Fixes
 ---------
 
-- Correctly treat wheels contenting non-ASCII file contents so they can be
+- Correctly treat wheels containing non-ASCII file contents so they can be
   installed on Windows. (`#5712 <https://github.com/pypa/pip/issues/5712>`_)
 - Revert building of local directories in place, restoring the pre-20.1
   behaviour of copying to a temporary directory. (`#7555 <https://github.com/pypa/pip/issues/7555>`_)

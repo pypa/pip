@@ -7,6 +7,7 @@ import collections
 import compileall
 import contextlib
 import csv
+import io
 import logging
 import os.path
 import re
@@ -21,14 +22,7 @@ from zipfile import ZipFile
 from pip._vendor import pkg_resources
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor.distlib.util import get_export_entry
-from pip._vendor.six import (
-    PY2,
-    StringIO,
-    ensure_str,
-    ensure_text,
-    itervalues,
-    text_type,
-)
+from pip._vendor.six import PY2, ensure_str, ensure_text, itervalues, text_type
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_major_minor_version
@@ -131,11 +125,11 @@ def get_entrypoints(filename):
     # means that they may or may not be valid INI files. The attempt here is to
     # strip leading and trailing whitespace in order to make them valid INI
     # files.
-    with open(filename) as fp:
-        data = StringIO()
+    with io.open(filename, encoding="utf-8") as fp:
+        data = io.StringIO()
         for line in fp:
             data.write(line.strip())
-            data.write("\n")
+            data.write(u"\n")
         data.seek(0)
 
     # get the entry points and then the script names
