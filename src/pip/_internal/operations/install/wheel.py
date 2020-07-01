@@ -31,11 +31,13 @@ from pip._vendor.six import (
 )
 from pip._vendor.six.moves import filterfalse, map
 
+from pip._internal.commands.hash import hash_of_file
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_major_minor_version
 from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
 from pip._internal.models.scheme import SCHEME_KEYS
 from pip._internal.utils.filesystem import adjacent_tmp_file, replace
+from pip._internal.utils.hashes import STRONG_HASHES
 from pip._internal.utils.misc import (
     captured_stdout,
     ensure_dir,
@@ -757,6 +759,15 @@ def _install_wheel(
     with _generate_file(installer_path) as installer_file:
         installer_file.write(b'pip\n')
     generated.append(installer_path)
+
+    # Document source package hash
+    hash_file_path = os.path.join(dest_info_dir, 'HASH')
+    if not os.path.exists(hash_file_path):
+        with open(hash_file_path, 'w') as dest_hash_file:
+            for alg in STRONG_HASHES:
+                dest_hash_file.write('{}:{}\n'.format(
+                    alg, hash_of_file(cast('str', wheel_zip.filename), alg)))
+        generated.append(hash_file_path)
 
     # Record the PEP 610 direct URL reference
     if direct_url is not None:

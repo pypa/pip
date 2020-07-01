@@ -49,11 +49,11 @@ class HashCommand(Command):
         algorithm = options.algorithm
         for path in args:
             write_output('%s:\n--hash=%s:%s',
-                         path, algorithm, _hash_of_file(path, algorithm))
+                         path, algorithm, hash_of_file(path, algorithm))
         return SUCCESS
 
 
-def _hash_of_file(path, algorithm):
+def hash_of_file(path, algorithm):
     # type: (str, str) -> str
     """Return the hash digest of a file."""
     with open(path, 'rb') as archive:
