@@ -48,7 +48,8 @@ def freeze(
     isolated=False,  # type: bool
     wheel_cache=None,  # type: Optional[WheelCache]
     exclude_editable=False,  # type: bool
-    skip=()  # type: Container[str]
+    skip=(),  # type: Container[str]
+    hashes_alg=None  # type: Optional[str]
 ):
     # type: (...) -> Iterator[str]
     find_links = find_links or []
@@ -63,6 +64,7 @@ def freeze(
             user_only=user_only,
             paths=paths
     ):
+        dist_selected_hash = None  # type: Optional[List[str]]
         try:
             req = FrozenRequirement.from_dist(dist)
         except RequirementParseError as exc:
@@ -77,6 +79,20 @@ def freeze(
             continue
         if exclude_editable and req.editable:
             continue
+        if hashes_alg:
+            if dist.has_metadata('HASH'):
+                dist_hashes = dist.get_metadata_lines('HASH')
+                dist_selected_hash = [
+                    single_hash for single_hash in dist_hashes if (
+                        hashes_alg == single_hash.split(':')[0])]
+                if dist_selected_hash:
+                    req.hash = dist_selected_hash[0]
+            else:
+                logger.warning(
+                    'Could not locate %s information for distribution %r',
+                    hashes_alg, dist
+                )
+
         installations[req.canonical_name] = req
 
     if requirement:
@@ -168,7 +184,11 @@ def freeze(
     for installation in sorted(
             installations.values(), key=lambda x: x.name.lower()):
         if installation.canonical_name not in skip:
-            yield str(installation).rstrip()
+            if installation.hash:
+                yield '{} --hash={}'.format(
+                    str(installation).rstrip(), installation.hash)
+            else:
+                yield str(installation).rstrip()
 
 
 def get_requirement_info(dist):
@@ -241,6 +261,7 @@ class FrozenRequirement(object):
         self.req = req
         self.editable = editable
         self.comments = comments
+        self.hash = None  # type: Optional[str]
 
     @classmethod
     def from_dist(cls, dist):

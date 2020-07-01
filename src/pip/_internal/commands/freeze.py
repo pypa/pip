@@ -9,6 +9,7 @@ from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.models.format_control import FormatControl
 from pip._internal.operations.freeze import freeze
 from pip._internal.utils.compat import stdlib_pkgs
+from pip._internal.utils.hashes import FAVORITE_HASH, STRONG_HASHES
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 DEV_PKGS = {'pip', 'setuptools', 'distribute', 'wheel'}
@@ -73,6 +74,20 @@ class FreezeCommand(Command):
             dest='exclude_editable',
             action='store_true',
             help='Exclude editable package from output.')
+        self.cmd_opts.add_option(
+            '--hashes',
+            dest='do_hashes',
+            action='store_true',
+            default=False,
+            help='Print hash of packages as well.')
+        self.cmd_opts.add_option(
+            '-a', '--algorithm',
+            dest='algorithm',
+            choices=STRONG_HASHES,
+            action='store',
+            default=FAVORITE_HASH,
+            help='The hash algorithm to use: one of {}'.format(
+                 ', '.join(STRONG_HASHES)))
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
@@ -86,6 +101,8 @@ class FreezeCommand(Command):
 
         cmdoptions.check_list_path_option(options)
 
+        hashes_alg = options.algorithm if options.do_hashes else None
+
         freeze_kwargs = dict(
             requirement=options.requirements,
             find_links=options.find_links,
@@ -96,6 +113,7 @@ class FreezeCommand(Command):
             wheel_cache=wheel_cache,
             skip=skip,
             exclude_editable=options.exclude_editable,
+            hashes_alg=hashes_alg,
         )
 
         for line in freeze(**freeze_kwargs):
