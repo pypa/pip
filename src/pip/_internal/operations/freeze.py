@@ -8,7 +8,7 @@ from pip._vendor import six
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.pkg_resources import RequirementParseError
 
-from pip._internal.exceptions import BadCommand, InstallationError
+from pip._internal.exceptions import BadCommand, FreezeError, InstallationError
 from pip._internal.req.constructors import (
     install_req_from_editable,
     install_req_from_line,
@@ -88,9 +88,9 @@ def freeze(
                 if dist_selected_hash:
                     req.hash = dist_selected_hash[0]
             else:
-                logger.warning(
-                    'Could not locate %s information for distribution %r',
-                    hashes_alg, dist
+                raise FreezeError(
+                    'Could not locate {} information for'
+                    ' distribution {}'.format(hashes_alg, dist)
                 )
 
         installations[req.canonical_name] = req

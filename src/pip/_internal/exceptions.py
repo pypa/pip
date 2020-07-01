@@ -36,6 +36,10 @@ class InstallationError(PipError):
     """General exception during installation"""
 
 
+class FreezeError(PipError):
+    """ General exception during freeze"""
+
+
 class UninstallationError(PipError):
     """General exception during uninstallation"""
 
