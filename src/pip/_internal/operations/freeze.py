@@ -79,7 +79,7 @@ def freeze(
             continue
         if exclude_editable and req.editable:
             continue
-        if hashes_alg:
+        if hashes_alg and req.canonical_name not in skip:
             if dist.has_metadata('HASH'):
                 dist_hashes = dist.get_metadata_lines('HASH')
                 dist_selected_hash = [
