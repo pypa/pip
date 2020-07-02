@@ -47,7 +47,7 @@ else:
         try:
             mask = signal.valid_signals()
         except AttributeError:
-            mask = range(1, signal.NSIG)
+            mask = set(range(1, signal.NSIG))
 
         old_mask = signal.pthread_sigmask(signal.SIG_SETMASK, mask)
         try:
