@@ -280,7 +280,7 @@ class Configuration(object):
         # type: () -> None
         """Loads configuration from configuration files
         """
-        config_files = dict(self._iter_config_files())
+        config_files = dict(self.iter_config_files())
         if config_files[kinds.ENV][0:1] == [os.devnull]:
             logger.debug(
                 "Skipping loading configuration files due to "
@@ -342,7 +342,7 @@ class Configuration(object):
         """Loads configuration from environment variables
         """
         self._config[kinds.ENV_VAR].update(
-            self._normalized_keys(":env:", self._get_environ_vars())
+            self._normalized_keys(":env:", self.get_environ_vars())
         )
 
     def _normalized_keys(self, section, items):
@@ -358,7 +358,7 @@ class Configuration(object):
             normalized[key] = val
         return normalized
 
-    def _get_environ_vars(self):
+    def get_environ_vars(self):
         # type: () -> Iterable[Tuple[str, str]]
         """Returns a generator with all environmental vars with prefix PIP_"""
         for key, val in os.environ.items():
@@ -370,7 +370,7 @@ class Configuration(object):
                 yield key[4:].lower(), val
 
     # XXX: This is patched in the tests.
-    def _iter_config_files(self):
+    def iter_config_files(self):
         # type: () -> Iterable[Tuple[Kind, List[str]]]
         """Yields variant and configuration files associated with it.
 
@@ -400,6 +400,11 @@ class Configuration(object):
 
         # finally virtualenv configuration first trumping others
         yield kinds.SITE, config_files[kinds.SITE]
+
+    def get_values_in_config(self, variant):
+        # type: (Kind) -> Dict[str, Any]
+        """Get values present in a config file"""
+        return self._config[variant]
 
     def _get_parser_to_modify(self):
         # type: () -> Tuple[str, RawConfigParser]

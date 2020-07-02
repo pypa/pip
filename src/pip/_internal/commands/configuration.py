@@ -13,6 +13,7 @@ from pip._internal.configuration import (
     kinds,
 )
 from pip._internal.exceptions import PipError
+from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import get_prog, write_output
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -34,6 +35,7 @@ class ConfigurationCommand(Command):
     - get: Get the value associated with name
     - set: Set the name=value
     - unset: Unset the value associated with name
+    - debug: List the configuration files and values defined under them
 
     If none of --user, --global and --site are passed, a virtual
     environment configuration file is used if one is active and the file
@@ -49,6 +51,7 @@ class ConfigurationCommand(Command):
         %prog [<file-option>] get name
         %prog [<file-option>] set name value
         %prog [<file-option>] unset name
+        %prog [<file-option>] debug
     """
 
     def __init__(self, name, summary, isolated=False):
@@ -103,7 +106,8 @@ class ConfigurationCommand(Command):
             "edit": self.open_in_editor,
             "get": self.get_name,
             "set": self.set_name_value,
-            "unset": self.unset_name
+            "unset": self.unset_name,
+            "debug": self.list_config_values,
         }
 
         # Determine action
@@ -189,6 +193,38 @@ class ConfigurationCommand(Command):
         self.configuration.unset_value(key)
 
         self._save_configuration()
+
+    def list_config_values(self, options, args):
+        """List config key-value pairs across different config files"""
+        self._get_n_args(args, "debug", n=0)
+
+        self.print_env_var_values()
+        # Iterate over config files and print if they exist, and the
+        # key-value pairs present in them if they do
+        for variant, files in sorted(self.configuration.iter_config_files()):
+            write_output("%s:", variant)
+            for fname in files:
+                with indent_log():
+                    file_exists = os.path.exists(fname)
+                    write_output("%s, exists: %r",
+                                 fname, file_exists)
+                    if file_exists:
+                        self.print_config_file_values(variant)
+
+    def print_config_file_values(self, variant):
+        """Get key-value pairs from the file of a variant"""
+        for name, value in self.configuration.\
+                get_values_in_config(variant).items():
+            with indent_log():
+                write_output("%s: %s", name, value)
+
+    def print_env_var_values(self):
+        """Get key-values pairs present as environment variables"""
+        write_output("%s:", 'env_var')
+        with indent_log():
+            for key, value in sorted(self.configuration.get_environ_vars()):
+                env_var = 'PIP_{}'.format(key.upper())
+                write_output("%s=%r", env_var, value)
 
     def open_in_editor(self, options, args):
         editor = self._determine_editor(options)
