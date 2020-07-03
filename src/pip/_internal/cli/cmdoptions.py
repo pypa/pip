@@ -922,7 +922,7 @@ use_new_feature = partial(
 
 use_deprecated_feature = partial(
     Option,
-    '--deprecated-feature',
+    '--use-deprecated',
     dest='deprecated_features_enabled',
     metavar='feature',
     action='append',
