@@ -37,10 +37,20 @@ class CacheCommand(Command):
     usage = """
         %prog dir
         %prog info
-        %prog list [<pattern>]
+        %prog list [<pattern>] [--abspath]
         %prog remove <pattern>
         %prog purge
     """
+
+    def add_options(self):
+        # type: () -> None
+        self.cmd_opts.add_option(
+            '--abspath',
+            dest='abspath',
+            action='store_true',
+            help='List the absolute path of wheels')
+
+        self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
         # type: (Values, List[Any]) -> int
@@ -118,15 +128,20 @@ class CacheCommand(Command):
         files = self._find_wheels(options, pattern)
 
         if not files:
-            logger.info('Nothing cached.')
+            if not options.abspath:
+                logger.info('Nothing cached.')
             return
 
         results = []
         for filename in files:
             wheel = os.path.basename(filename)
             size = filesystem.format_file_size(filename)
-            results.append(' - {} ({})'.format(wheel, size))
-        logger.info('Cache contents:\n')
+            if options.abspath:
+                results.append(filename)
+            else:
+                results.append(' - {} ({})'.format(wheel, size))
+        if not options.abspath:
+            logger.info('Cache contents:\n')
         logger.info('\n'.join(sorted(results)))
 
     def remove_cache_items(self, options, args):
