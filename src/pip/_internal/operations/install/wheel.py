@@ -96,19 +96,20 @@ def fix_script(path):
     Return True if file was changed.
     """
     # XXX RECORD hashes will need to be updated
-    if os.path.isfile(path):
-        with open(path, 'rb') as script:
-            firstline = script.readline()
-            if not firstline.startswith(b'#!python'):
-                return False
-            exename = sys.executable.encode(sys.getfilesystemencoding())
-            firstline = b'#!' + exename + os.linesep.encode("ascii")
-            rest = script.read()
-        with open(path, 'wb') as script:
-            script.write(firstline)
-            script.write(rest)
-        return True
-    return None
+    if not os.path.isfile(path):
+        return None
+
+    with open(path, 'rb') as script:
+        firstline = script.readline()
+        if not firstline.startswith(b'#!python'):
+            return False
+        exename = sys.executable.encode(sys.getfilesystemencoding())
+        firstline = b'#!' + exename + os.linesep.encode("ascii")
+        rest = script.read()
+    with open(path, 'wb') as script:
+        script.write(firstline)
+        script.write(rest)
+    return True
 
 
 def wheel_root_is_purelib(metadata):
