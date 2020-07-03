@@ -107,6 +107,12 @@ def test_get_entrypoints(tmpdir, console_scripts):
     )
 
 
+def test_get_entrypoints_no_entrypoints(tmpdir):
+    console, gui = wheel.get_entrypoints(str(tmpdir / 'entry_points.txt'))
+    assert console == {}
+    assert gui == {}
+
+
 def test_raise_for_invalid_entrypoint_ok():
     _raise_for_invalid_entrypoint("hello = hello:main")
 
