@@ -155,11 +155,17 @@ def get_header_scheme_path_for_script(script, dist_name):
     return Path(result.strip())
 
 
-def test_install_from_wheel_with_headers(script, data):
+def test_install_from_wheel_with_headers(script):
     """
     Test installing from a wheel file with headers
     """
-    package = data.packages.joinpath("headers.dist-0.1-py2.py3-none-any.whl")
+    package = make_wheel(
+        'headers.dist',
+        '0.1',
+        extra_data_files={
+            'headers/header.h': '',
+        },
+    ).save_to_dir(script.scratch_path)
     result = script.pip('install', package, '--no-index')
     dist_info_folder = script.site_packages / 'headers.dist-0.1.dist-info'
     result.did_create(dist_info_folder)
