@@ -121,7 +121,7 @@ def wheel_dist_info_dir(source, name):
     it doesn't match the provided name.
     """
     # Zip file path separators must be /
-    subdirs = list(set(p.split("/")[0] for p in source.namelist()))
+    subdirs = set(p.split("/", 1)[0] for p in source.namelist())
 
     info_dirs = [s for s in subdirs if s.endswith('.dist-info')]
 
