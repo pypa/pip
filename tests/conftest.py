@@ -105,9 +105,9 @@ def use_new_resolver(request):
     """
     new_resolver = request.config.getoption("--new-resolver")
     if new_resolver:
-        os.environ["PIP_UNSTABLE_FEATURE"] = "resolver"
+        os.environ["PIP_USE_FEATURE"] = "2020-resolver"
     else:
-        os.environ.pop("PIP_UNSTABLE_FEATURE", None)
+        os.environ.pop("PIP_USE_FEATURE", None)
     yield new_resolver
 
 
