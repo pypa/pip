@@ -204,6 +204,13 @@ class Command(CommandContextMixIn):
                 issue=8333,
             )
 
+        if 'resolver' in options.unstable_features:
+            logger.critical(
+                "--unstable-feature=resolver is no longer supported, and "
+                "has been replaced with --use-feature=2020-resolver instead."
+            )
+            sys.exit(ERROR)
+
         try:
             status = self.run(options, args)
             assert isinstance(status, int)
