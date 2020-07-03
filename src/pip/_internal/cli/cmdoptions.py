@@ -906,8 +906,31 @@ unstable_feature = partial(
     action='append',
     default=[],
     choices=['resolver'],
-    help=SUPPRESS_HELP,  # TODO: Enable this when the resolver actually works.
-    # help='Enable unstable feature(s) that may be backward incompatible.',
+    help=SUPPRESS_HELP,  # TODO: drop this in pip 20.3
+)  # type: Callable[..., Option]
+
+use_new_feature = partial(
+    Option,
+    '--use-feature',
+    dest='features_enabled',
+    metavar='feature',
+    action='append',
+    default=[],
+    choices=['2020-resolver'],
+    help='Enable new functionality, that may be backward incompatible.',
+)  # type: Callable[..., Option]
+
+use_deprecated_feature = partial(
+    Option,
+    '--deprecated-feature',
+    dest='deprecated_features_enabled',
+    metavar='feature',
+    action='append',
+    default=[],
+    choices=[],
+    help=(
+        'Enable deprecated functionality, that will be removed in the future.'
+    ),
 )  # type: Callable[..., Option]
 
 
@@ -939,6 +962,8 @@ general_group = {
         no_color,
         no_python_version_warning,
         unstable_feature,
+        use_new_feature,
+        use_deprecated_feature,
     ]
 }  # type: Dict[str, Any]
 
