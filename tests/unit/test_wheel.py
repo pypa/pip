@@ -91,15 +91,17 @@ def test_get_legacy_build_wheel_path__multiple_names(caplog):
     ],
 )
 def test_get_entrypoints(tmpdir, console_scripts):
+    entry_points_text = u"""
+        [console_scripts]
+        {}
+        [section]
+        common:one = module:func
+        common:two = module:other_func
+    """.format(console_scripts)
+
     entry_points = tmpdir.joinpath("entry_points.txt")
     with io.open(str(entry_points), "w", encoding="utf-8") as fp:
-        fp.write(u"""
-            [console_scripts]
-            {}
-            [section]
-            common:one = module:func
-            common:two = module:other_func
-        """.format(console_scripts))
+        fp.write(entry_points_text)
 
     assert wheel.get_entrypoints(str(entry_points)) == (
         dict([console_scripts.split(' = ')]),
