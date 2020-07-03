@@ -366,10 +366,6 @@ def install_unpacked_wheel(
     else:
         lib_dir = scheme.platlib
 
-    # Zip file path separators must be /
-    subdirs = set(p.split("/", 1)[0] for p in wheel_zip.namelist())
-    data_dirs = [s for s in subdirs if s.endswith('.data')]
-
     # Record details of the files moved
     #   installed = files copied from the wheel to the destination
     #   changed = files changed while installing (scripts #! line typically)
@@ -485,6 +481,10 @@ def install_unpacked_wheel(
             matchname = name
         # Ignore setuptools-generated scripts
         return (matchname in console or matchname in gui)
+
+    # Zip file path separators must be /
+    subdirs = set(p.split("/", 1)[0] for p in wheel_zip.namelist())
+    data_dirs = [s for s in subdirs if s.endswith('.data')]
 
     for datadir in data_dirs:
         fixer = None
