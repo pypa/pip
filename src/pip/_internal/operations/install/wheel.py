@@ -7,7 +7,6 @@ import collections
 import compileall
 import contextlib
 import csv
-import io
 import logging
 import os.path
 import re
@@ -124,16 +123,14 @@ def wheel_root_is_purelib(metadata):
 
 def get_entrypoints(filename, distribution):
     # type: (str, Distribution) -> Tuple[Dict[str, str], Dict[str, str]]
-    if not os.path.exists(filename):
-        return {}, {}
-
-    with io.open(filename, encoding="utf-8") as fp:
-        data = fp.read()
-
     # get the entry points and then the script names
-    entry_points = pkg_resources.EntryPoint.parse_map(data)
-    console = entry_points.get('console_scripts', {})
-    gui = entry_points.get('gui_scripts', {})
+    try:
+        console = distribution.get_entry_map('console_scripts')
+        gui = distribution.get_entry_map('gui_scripts')
+    except KeyError:
+        # Our dict-based Distribution raises KeyError if entry_points.txt
+        # doesn't exist.
+        return {}, {}
 
     def _split_ep(s):
         # type: (pkg_resources.EntryPoint) -> Tuple[str, str]
