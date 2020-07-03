@@ -469,16 +469,24 @@ def install_unpacked_wheel(
             filter=None  # type: Optional[Callable[[text_type], bool]]
     ):
         # type: (...) -> None
-        for dir, subdirs, files in os.walk(source):
-            basedir = dir[len(source):].lstrip(os.path.sep)
-            if is_base and basedir == '':
-                subdirs[:] = [s for s in subdirs if not s.endswith('.data')]
-            for f in files:
-                # Skip unwanted files
-                if filter and filter(f):
-                    continue
-                srcfile = os.path.join(dir, f)
-                destfile = os.path.join(dest, basedir, f)
+        def files_to_process():
+            # type: () -> Iterable[Tuple[text_type, text_type]]
+            for dir, subdirs, files in os.walk(source):
+                basedir = dir[len(source):].lstrip(os.path.sep)
+                if is_base and basedir == '':
+                    subdirs[:] = [
+                        s for s in subdirs if not s.endswith('.data')
+                    ]
+                for f in files:
+                    # Skip unwanted files
+                    if filter and filter(f):
+                        continue
+                    srcfile = os.path.join(dir, f)
+                    destfile = os.path.join(dest, basedir, f)
+                    yield srcfile, destfile
+
+        if True:  # this just preserves indentation for a cleaner commit diff
+            for srcfile, destfile in files_to_process():
                 # directory creation is lazy and after the file filtering above
                 # to ensure we don't install empty dirs; empty dirs can't be
                 # uninstalled.
