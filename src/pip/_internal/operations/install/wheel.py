@@ -32,7 +32,10 @@ from pip._internal.utils.misc import captured_stdout, ensure_dir, hash_file
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.unpacking import current_umask, unpack_file
-from pip._internal.utils.wheel import parse_wheel
+from pip._internal.utils.wheel import (
+    parse_wheel,
+    pkg_resources_distribution_for_wheel,
+)
 
 # Use the custom cast function at runtime to make cast work,
 # and import typing.cast when performing pre-commit and type
@@ -57,6 +60,8 @@ else:
         Union,
         cast,
     )
+
+    from pip._vendor.pkg_resources import Distribution
 
     from pip._internal.models.scheme import Scheme
     from pip._internal.utils.filesystem import NamedTemporaryFileResult
@@ -117,8 +122,8 @@ def wheel_root_is_purelib(metadata):
     return metadata.get("Root-Is-Purelib", "").lower() == "true"
 
 
-def get_entrypoints(filename):
-    # type: (str) -> Tuple[Dict[str, str], Dict[str, str]]
+def get_entrypoints(filename, distribution):
+    # type: (str, Distribution) -> Tuple[Dict[str, str], Dict[str, str]]
     if not os.path.exists(filename):
         return {}, {}
 
@@ -321,6 +326,7 @@ def install_unpacked_wheel(
     name,  # type: str
     wheeldir,  # type: str
     wheel_zip,  # type: ZipFile
+    wheel_path,  # type: str
     scheme,  # type: Scheme
     req_description,  # type: str
     pycompile=True,  # type: bool
@@ -452,8 +458,11 @@ def install_unpacked_wheel(
     dest_info_dir = os.path.join(lib_dir, info_dir)
 
     # Get the defined entry points
+    distribution = pkg_resources_distribution_for_wheel(
+        wheel_zip, name, wheel_path
+    )
     ep_file = os.path.join(dest_info_dir, 'entry_points.txt')
-    console, gui = get_entrypoints(ep_file)
+    console, gui = get_entrypoints(ep_file, distribution)
 
     def is_entrypoint_wrapper(name):
         # type: (text_type) -> bool
@@ -679,6 +688,7 @@ def install_wheel(
             name=name,
             wheeldir=unpacked_dir.path,
             wheel_zip=z,
+            wheel_path=wheel_path,
             scheme=scheme,
             req_description=req_description,
             pycompile=pycompile,

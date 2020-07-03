@@ -30,7 +30,9 @@ from pip._internal.operations.install.wheel import (
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import hash_file
 from pip._internal.utils.unpacking import unpack_file
+from pip._internal.utils.wheel import pkg_resources_distribution_for_wheel
 from tests.lib import DATA_DIR, assert_paths_equal, skip_if_python2
+from tests.lib.wheel import make_wheel
 
 
 def call_get_legacy_build_wheel_path(caplog, names):
@@ -99,18 +101,36 @@ def test_get_entrypoints(tmpdir, console_scripts):
         common:two = module:other_func
     """.format(console_scripts)
 
+    wheel_zip = make_wheel(
+        "simple",
+        "0.1.0",
+        extra_metadata_files={
+            "entry_points.txt": entry_points_text,
+        },
+    ).as_zipfile()
+    distribution = pkg_resources_distribution_for_wheel(
+        wheel_zip, "simple", "<in memory>"
+    )
+
     entry_points = tmpdir.joinpath("entry_points.txt")
     with io.open(str(entry_points), "w", encoding="utf-8") as fp:
         fp.write(entry_points_text)
 
-    assert wheel.get_entrypoints(str(entry_points)) == (
+    assert wheel.get_entrypoints(str(entry_points), distribution) == (
         dict([console_scripts.split(' = ')]),
         {},
     )
 
 
 def test_get_entrypoints_no_entrypoints(tmpdir):
-    console, gui = wheel.get_entrypoints(str(tmpdir / 'entry_points.txt'))
+    wheel_zip = make_wheel("simple", "0.1.0").as_zipfile()
+    distribution = pkg_resources_distribution_for_wheel(
+        wheel_zip, "simple", "<in memory>"
+    )
+
+    console, gui = wheel.get_entrypoints(
+        str(tmpdir / 'entry_points.txt'), distribution
+    )
     assert console == {}
     assert gui == {}
 
