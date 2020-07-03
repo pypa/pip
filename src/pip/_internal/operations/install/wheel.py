@@ -452,8 +452,6 @@ def install_unpacked_wheel(
         True,
     )
 
-    dest_info_dir = os.path.join(lib_dir, info_dir)
-
     # Get the defined entry points
     distribution = pkg_resources_distribution_for_wheel(
         wheel_zip, name, wheel_path
@@ -623,6 +621,8 @@ def install_unpacked_wheel(
             yield f
         os.chmod(f.name, generated_file_mode)
         replace(f.name, path)
+
+    dest_info_dir = os.path.join(lib_dir, info_dir)
 
     # Record pip as the installer
     installer_path = os.path.join(dest_info_dir, 'INSTALLER')
