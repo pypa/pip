@@ -121,8 +121,8 @@ def wheel_root_is_purelib(metadata):
     return metadata.get("Root-Is-Purelib", "").lower() == "true"
 
 
-def get_entrypoints(filename, distribution):
-    # type: (str, Distribution) -> Tuple[Dict[str, str], Dict[str, str]]
+def get_entrypoints(distribution):
+    # type: (Distribution) -> Tuple[Dict[str, str], Dict[str, str]]
     # get the entry points and then the script names
     try:
         console = distribution.get_entry_map('console_scripts')
@@ -458,8 +458,7 @@ def install_unpacked_wheel(
     distribution = pkg_resources_distribution_for_wheel(
         wheel_zip, name, wheel_path
     )
-    ep_file = os.path.join(dest_info_dir, 'entry_points.txt')
-    console, gui = get_entrypoints(ep_file, distribution)
+    console, gui = get_entrypoints(distribution)
 
     def is_entrypoint_wrapper(name):
         # type: (text_type) -> bool

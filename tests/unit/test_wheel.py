@@ -2,7 +2,6 @@
 
 """Tests for wheel binary packages and .dist-info."""
 import csv
-import io
 import logging
 import os
 import textwrap
@@ -92,7 +91,7 @@ def test_get_legacy_build_wheel_path__multiple_names(caplog):
         pytest.param(u"進入點 = 套件.模組:函式", marks=skip_if_python2),
     ],
 )
-def test_get_entrypoints(tmpdir, console_scripts):
+def test_get_entrypoints(console_scripts):
     entry_points_text = u"""
         [console_scripts]
         {}
@@ -112,25 +111,19 @@ def test_get_entrypoints(tmpdir, console_scripts):
         wheel_zip, "simple", "<in memory>"
     )
 
-    entry_points = tmpdir.joinpath("entry_points.txt")
-    with io.open(str(entry_points), "w", encoding="utf-8") as fp:
-        fp.write(entry_points_text)
-
-    assert wheel.get_entrypoints(str(entry_points), distribution) == (
+    assert wheel.get_entrypoints(distribution) == (
         dict([console_scripts.split(' = ')]),
         {},
     )
 
 
-def test_get_entrypoints_no_entrypoints(tmpdir):
+def test_get_entrypoints_no_entrypoints():
     wheel_zip = make_wheel("simple", "0.1.0").as_zipfile()
     distribution = pkg_resources_distribution_for_wheel(
         wheel_zip, "simple", "<in memory>"
     )
 
-    console, gui = wheel.get_entrypoints(
-        str(tmpdir / 'entry_points.txt'), distribution
-    )
+    console, gui = wheel.get_entrypoints(distribution)
     assert console == {}
     assert gui == {}
 
