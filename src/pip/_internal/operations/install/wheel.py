@@ -265,7 +265,7 @@ def _parse_record_path(record_column):
 
 
 def get_csv_rows_for_installed(
-    old_csv_rows,  # type: Iterable[List[str]]
+    old_csv_rows,  # type: List[List[str]]
     installed,  # type: Dict[RecordPath, RecordPath]
     changed,  # type: Set[RecordPath]
     generated,  # type: List[str]
@@ -642,12 +642,15 @@ def install_unpacked_wheel(
     # Record details of all files installed
     record_path = os.path.join(dest_info_dir, 'RECORD')
     with open(record_path, **csv_io_kwargs('r')) as record_file:
-        rows = get_csv_rows_for_installed(
-            csv.reader(record_file),
-            installed=installed,
-            changed=changed,
-            generated=generated,
-            lib_dir=lib_dir)
+        record_rows = list(csv.reader(record_file))
+
+    rows = get_csv_rows_for_installed(
+        record_rows,
+        installed=installed,
+        changed=changed,
+        generated=generated,
+        lib_dir=lib_dir)
+
     with _generate_file(record_path, **csv_io_kwargs('w')) as record_file:
         # The type mypy infers for record_file is different for Python 3
         # (typing.IO[Any]) and Python 2 (typing.BinaryIO). We explicitly
