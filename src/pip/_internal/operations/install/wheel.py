@@ -345,10 +345,6 @@ def install_unpacked_wheel(
           Wheel-Version
         * when the .dist-info dir does not match the wheel
     """
-    # TODO: Investigate and break this up.
-    # TODO: Look into moving this into a dedicated class for representing an
-    #       installation.
-
     source = wheeldir.rstrip(os.path.sep) + os.path.sep
 
     info_dir, metadata = parse_wheel(wheel_zip, name)
