@@ -485,51 +485,50 @@ def install_unpacked_wheel(
                     destfile = os.path.join(dest, basedir, f)
                     yield srcfile, destfile
 
-        if True:  # this just preserves indentation for a cleaner commit diff
-            for srcfile, destfile in files_to_process():
-                # directory creation is lazy and after the file filtering above
-                # to ensure we don't install empty dirs; empty dirs can't be
-                # uninstalled.
-                parent_dir = os.path.dirname(destfile)
-                ensure_dir(parent_dir)
+        for srcfile, destfile in files_to_process():
+            # directory creation is lazy and after the file filtering above
+            # to ensure we don't install empty dirs; empty dirs can't be
+            # uninstalled.
+            parent_dir = os.path.dirname(destfile)
+            ensure_dir(parent_dir)
 
-                # copyfile (called below) truncates the destination if it
-                # exists and then writes the new contents. This is fine in most
-                # cases, but can cause a segfault if pip has loaded a shared
-                # object (e.g. from pyopenssl through its vendored urllib3)
-                # Since the shared object is mmap'd an attempt to call a
-                # symbol in it will then cause a segfault. Unlinking the file
-                # allows writing of new contents while allowing the process to
-                # continue to use the old copy.
-                if os.path.exists(destfile):
-                    os.unlink(destfile)
+            # copyfile (called below) truncates the destination if it
+            # exists and then writes the new contents. This is fine in most
+            # cases, but can cause a segfault if pip has loaded a shared
+            # object (e.g. from pyopenssl through its vendored urllib3)
+            # Since the shared object is mmap'd an attempt to call a
+            # symbol in it will then cause a segfault. Unlinking the file
+            # allows writing of new contents while allowing the process to
+            # continue to use the old copy.
+            if os.path.exists(destfile):
+                os.unlink(destfile)
 
-                # We use copyfile (not move, copy, or copy2) to be extra sure
-                # that we are not moving directories over (copyfile fails for
-                # directories) as well as to ensure that we are not copying
-                # over any metadata because we want more control over what
-                # metadata we actually copy over.
-                shutil.copyfile(srcfile, destfile)
+            # We use copyfile (not move, copy, or copy2) to be extra sure
+            # that we are not moving directories over (copyfile fails for
+            # directories) as well as to ensure that we are not copying
+            # over any metadata because we want more control over what
+            # metadata we actually copy over.
+            shutil.copyfile(srcfile, destfile)
 
-                # Copy over the metadata for the file, currently this only
-                # includes the atime and mtime.
+            # Copy over the metadata for the file, currently this only
+            # includes the atime and mtime.
+            st = os.stat(srcfile)
+            if hasattr(os, "utime"):
+                os.utime(destfile, (st.st_atime, st.st_mtime))
+
+            # If our file is executable, then make our destination file
+            # executable.
+            if os.access(srcfile, os.X_OK):
                 st = os.stat(srcfile)
-                if hasattr(os, "utime"):
-                    os.utime(destfile, (st.st_atime, st.st_mtime))
+                permissions = (
+                    st.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+                )
+                os.chmod(destfile, permissions)
 
-                # If our file is executable, then make our destination file
-                # executable.
-                if os.access(srcfile, os.X_OK):
-                    st = os.stat(srcfile)
-                    permissions = (
-                        st.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
-                    )
-                    os.chmod(destfile, permissions)
-
-                changed = False
-                if fixer:
-                    changed = fixer(destfile)
-                record_installed(srcfile, destfile, changed)
+            changed = False
+            if fixer:
+                changed = fixer(destfile)
+            record_installed(srcfile, destfile, changed)
 
     clobber(
         ensure_text(source, encoding=sys.getfilesystemencoding()),
