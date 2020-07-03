@@ -1,16 +1,19 @@
 import logging
 import sys
 
+from pip._vendor.contextlib2 import suppress
 from pip._vendor.packaging.specifiers import InvalidSpecifier, SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
 
 from pip._internal.exceptions import HashError, MetadataInconsistent
+from pip._internal.network.lazy_wheel import dist_from_wheel_url
 from pip._internal.req.constructors import (
     install_req_from_editable,
     install_req_from_line,
 )
 from pip._internal.req.req_install import InstallRequirement
+from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import dist_is_editable, normalize_version_info
 from pip._internal.utils.packaging import get_requires_python
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -197,6 +200,18 @@ class _InstallRequirementBackedCandidate(Candidate):
         # type: () -> AbstractDistribution
         raise NotImplementedError("Override in subclass")
 
+    def _check_metadata_consistency(self, dist):
+        # type: (Distribution) -> None
+        """Check for consistency of project name and version of dist."""
+        # TODO: (Longer term) Rather than abort, reject this candidate
+        #       and backtrack. This would need resolvelib support.
+        name = canonicalize_name(dist.project_name)
+        if self._name is not None and self._name != name:
+            raise MetadataInconsistent(self._ireq, "name", dist.project_name)
+        version = dist.parsed_version
+        if self._version is not None and self._version != version:
+            raise MetadataInconsistent(self._ireq, "version", dist.version)
+
     def _prepare(self):
         # type: () -> None
         if self._dist is not None:
@@ -210,19 +225,7 @@ class _InstallRequirementBackedCandidate(Candidate):
 
         self._dist = abstract_dist.get_pkg_resources_distribution()
         assert self._dist is not None, "Distribution already installed"
-
-        # TODO: (Longer term) Rather than abort, reject this candidate
-        #       and backtrack. This would need resolvelib support.
-        name = canonicalize_name(self._dist.project_name)
-        if self._name is not None and self._name != name:
-            raise MetadataInconsistent(
-                self._ireq, "name", self._dist.project_name,
-            )
-        version = self._dist.parsed_version
-        if self._version is not None and self._version != version:
-            raise MetadataInconsistent(
-                self._ireq, "version", self._dist.version,
-            )
+        self._check_metadata_consistency(self._dist)
 
     @property
     def dist(self):
@@ -230,29 +233,34 @@ class _InstallRequirementBackedCandidate(Candidate):
         self._prepare()
         return self._dist
 
-    def _get_requires_python_specifier(self):
-        # type: () -> Optional[SpecifierSet]
-        requires_python = get_requires_python(self.dist)
+    def _get_requires_python_specifier(self, dist):
+        # type: (Distribution) -> Optional[SpecifierSet]
+        requires_python = get_requires_python(dist)
         if requires_python is None:
             return None
         try:
             spec = SpecifierSet(requires_python)
         except InvalidSpecifier as e:
+            name = canonicalize_name(dist.project_name)
             logger.warning(
-                "Package %r has an invalid Requires-Python: %s", self.name, e,
+                "Package %r has an invalid Requires-Python: %s", name, e,
             )
             return None
         return spec
 
-    def iter_dependencies(self):
-        # type: () -> Iterable[Optional[Requirement]]
-        for r in self.dist.requires():
+    def _iter_dependencies(self, dist):
+        # type: (Distribution) -> Iterable[Optional[Requirement]]
+        for r in dist.requires():
             yield self._factory.make_requirement_from_spec(str(r), self._ireq)
         python_dep = self._factory.make_requires_python_requirement(
-            self._get_requires_python_specifier(),
+            self._get_requires_python_specifier(dist),
         )
         if python_dep:
             yield python_dep
+
+    def iter_dependencies(self):
+        # type: () -> Iterable[Optional[Requirement]]
+        return self._iter_dependencies(self.dist)
 
     def get_install_requirement(self):
         # type: () -> Optional[InstallRequirement]
@@ -292,6 +300,27 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
             name=name,
             version=version,
         )
+
+    def iter_dependencies(self):
+        # type: () -> Iterable[Optional[Requirement]]
+        dist = None  # type: Optional[Distribution]
+        preparer, req = self._factory.preparer, self._ireq
+        remote_wheel = self._link.is_wheel and not self._link.is_file
+        # TODO: Opt-in as unstable feature.
+        if remote_wheel and not preparer.require_hashes:
+            assert self._name is not None
+            logger.info('Collecting %s', req.req or req)
+            # If RuntimeError is raised, fallback to self.dist.
+            with indent_log(), suppress(RuntimeError):
+                logger.info(
+                    'Obtaining dependency information from %s %s',
+                    self._name, self._version,
+                )
+                url = self._link.url.split('#', 1)[0]
+                session = preparer.downloader._session
+                dist = dist_from_wheel_url(self._name, url, session)
+                self._check_metadata_consistency(dist)
+        return self._iter_dependencies(dist or self.dist)
 
     def _prepare_abstract_distribution(self):
         # type: () -> AbstractDistribution
