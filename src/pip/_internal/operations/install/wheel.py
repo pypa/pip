@@ -493,10 +493,12 @@ def install_unpacked_wheel(
             if subdir == 'scripts':
                 fixer = fix_script
                 filter = is_entrypoint_wrapper
-            source = os.path.join(wheeldir, datadir, subdir)
+            full_datadir_path = os.path.join(wheeldir, datadir, subdir)
             dest = getattr(scheme, subdir)
             clobber(
-                ensure_text(source, encoding=sys.getfilesystemencoding()),
+                ensure_text(
+                    full_datadir_path, encoding=sys.getfilesystemencoding()
+                ),
                 ensure_text(dest, encoding=sys.getfilesystemencoding()),
                 False,
                 fixer=fixer,
