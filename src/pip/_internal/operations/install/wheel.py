@@ -451,12 +451,24 @@ def install_unpacked_wheel(
     changed = set()  # type: Set[RecordPath]
     generated = []  # type: List[str]
 
+    def pyc_source_file_paths():
+        # type: () -> Iterator[str]
+        for dir_path, subdir_paths, files in os.walk(source):
+            subdir_paths[:] = [
+                p for p in subdir_paths if p != '__pycache__'
+            ]
+            for path in files:
+                yield os.path.join(dir_path, path)
+
     # Compile all of the pyc files that we're going to be installing
     if pycompile:
         with captured_stdout() as stdout:
             with warnings.catch_warnings():
                 warnings.filterwarnings('ignore')
-                compileall.compile_dir(source, force=True, quiet=True)
+                for path in pyc_source_file_paths():
+                    compileall.compile_file(
+                        path, force=True, quiet=True
+                    )
         logger.debug(stdout.getvalue())
 
     def record_installed(srcfile, destfile, modified=False):
