@@ -644,10 +644,11 @@ def install_unpacked_wheel(
             pass
         generated.append(requested_path)
 
+    record_text = distribution.get_metadata('RECORD')
+    record_rows = list(csv.reader(record_text.splitlines()))
+
     # Record details of all files installed
     record_path = os.path.join(dest_info_dir, 'RECORD')
-    with open(record_path, **csv_io_kwargs('r')) as record_file:
-        record_rows = list(csv.reader(record_file))
 
     rows = get_csv_rows_for_installed(
         record_rows,
