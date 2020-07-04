@@ -7,6 +7,7 @@ import collections
 import compileall
 import contextlib
 import csv
+import importlib
 import logging
 import os.path
 import re
@@ -467,6 +468,18 @@ def install_unpacked_wheel(
                     continue
                 yield os.path.join(dir_path, path)
 
+    def pyc_output_path(path):
+        # type: (text_type) -> text_type
+        """Return the path the pyc file would have been written to.
+        """
+        if PY2:
+            if sys.flags.optimize:
+                return path + 'o'
+            else:
+                return path + 'c'
+        else:
+            return importlib.util.cache_from_source(path)
+
     # Compile all of the pyc files that we're going to be installing
     if pycompile:
         with captured_stdout() as stdout:
@@ -478,9 +491,11 @@ def install_unpacked_wheel(
                     path_arg = ensure_str(
                         path, encoding=sys.getfilesystemencoding()
                     )
-                    compileall.compile_file(
+                    success = compileall.compile_file(
                         path_arg, force=True, quiet=True
                     )
+                    if success:
+                        assert os.path.exists(pyc_output_path(path))
         logger.debug(stdout.getvalue())
 
     def record_installed(srcfile, destfile, modified=False):
