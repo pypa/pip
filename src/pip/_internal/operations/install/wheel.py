@@ -7,7 +7,6 @@ import collections
 import compileall
 import contextlib
 import csv
-import io
 import logging
 import os.path
 import re
@@ -32,7 +31,10 @@ from pip._internal.utils.misc import captured_stdout, ensure_dir, hash_file
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.unpacking import current_umask, unpack_file
-from pip._internal.utils.wheel import parse_wheel
+from pip._internal.utils.wheel import (
+    parse_wheel,
+    pkg_resources_distribution_for_wheel,
+)
 
 # Use the custom cast function at runtime to make cast work,
 # and import typing.cast when performing pre-commit and type
@@ -57,6 +59,8 @@ else:
         Union,
         cast,
     )
+
+    from pip._vendor.pkg_resources import Distribution
 
     from pip._internal.models.scheme import Scheme
     from pip._internal.utils.filesystem import NamedTemporaryFileResult
@@ -117,18 +121,16 @@ def wheel_root_is_purelib(metadata):
     return metadata.get("Root-Is-Purelib", "").lower() == "true"
 
 
-def get_entrypoints(filename):
-    # type: (str) -> Tuple[Dict[str, str], Dict[str, str]]
-    if not os.path.exists(filename):
-        return {}, {}
-
-    with io.open(filename, encoding="utf-8") as fp:
-        data = fp.read()
-
+def get_entrypoints(distribution):
+    # type: (Distribution) -> Tuple[Dict[str, str], Dict[str, str]]
     # get the entry points and then the script names
-    entry_points = pkg_resources.EntryPoint.parse_map(data)
-    console = entry_points.get('console_scripts', {})
-    gui = entry_points.get('gui_scripts', {})
+    try:
+        console = distribution.get_entry_map('console_scripts')
+        gui = distribution.get_entry_map('gui_scripts')
+    except KeyError:
+        # Our dict-based Distribution raises KeyError if entry_points.txt
+        # doesn't exist.
+        return {}, {}
 
     def _split_ep(s):
         # type: (pkg_resources.EntryPoint) -> Tuple[str, str]
@@ -321,6 +323,7 @@ def install_unpacked_wheel(
     name,  # type: str
     wheeldir,  # type: str
     wheel_zip,  # type: ZipFile
+    wheel_path,  # type: str
     scheme,  # type: Scheme
     req_description,  # type: str
     pycompile=True,  # type: bool
@@ -449,11 +452,11 @@ def install_unpacked_wheel(
         True,
     )
 
-    dest_info_dir = os.path.join(lib_dir, info_dir)
-
     # Get the defined entry points
-    ep_file = os.path.join(dest_info_dir, 'entry_points.txt')
-    console, gui = get_entrypoints(ep_file)
+    distribution = pkg_resources_distribution_for_wheel(
+        wheel_zip, name, wheel_path
+    )
+    console, gui = get_entrypoints(distribution)
 
     def is_entrypoint_wrapper(name):
         # type: (text_type) -> bool
@@ -619,6 +622,8 @@ def install_unpacked_wheel(
         os.chmod(f.name, generated_file_mode)
         replace(f.name, path)
 
+    dest_info_dir = os.path.join(lib_dir, info_dir)
+
     # Record pip as the installer
     installer_path = os.path.join(dest_info_dir, 'INSTALLER')
     with _generate_file(installer_path) as installer_file:
@@ -679,6 +684,7 @@ def install_wheel(
             name=name,
             wheeldir=unpacked_dir.path,
             wheel_zip=z,
+            wheel_path=wheel_path,
             scheme=scheme,
             req_description=req_description,
             pycompile=pycompile,

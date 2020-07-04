@@ -2,7 +2,6 @@
 
 """Tests for wheel binary packages and .dist-info."""
 import csv
-import io
 import logging
 import os
 import textwrap
@@ -30,7 +29,9 @@ from pip._internal.operations.install.wheel import (
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import hash_file
 from pip._internal.utils.unpacking import unpack_file
+from pip._internal.utils.wheel import pkg_resources_distribution_for_wheel
 from tests.lib import DATA_DIR, assert_paths_equal, skip_if_python2
+from tests.lib.wheel import make_wheel
 
 
 def call_get_legacy_build_wheel_path(caplog, names):
@@ -90,25 +91,39 @@ def test_get_legacy_build_wheel_path__multiple_names(caplog):
         pytest.param(u"進入點 = 套件.模組:函式", marks=skip_if_python2),
     ],
 )
-def test_get_entrypoints(tmpdir, console_scripts):
-    entry_points = tmpdir.joinpath("entry_points.txt")
-    with io.open(str(entry_points), "w", encoding="utf-8") as fp:
-        fp.write(u"""
-            [console_scripts]
-            {}
-            [section]
-            common:one = module:func
-            common:two = module:other_func
-        """.format(console_scripts))
+def test_get_entrypoints(console_scripts):
+    entry_points_text = u"""
+        [console_scripts]
+        {}
+        [section]
+        common:one = module:func
+        common:two = module:other_func
+    """.format(console_scripts)
 
-    assert wheel.get_entrypoints(str(entry_points)) == (
+    wheel_zip = make_wheel(
+        "simple",
+        "0.1.0",
+        extra_metadata_files={
+            "entry_points.txt": entry_points_text,
+        },
+    ).as_zipfile()
+    distribution = pkg_resources_distribution_for_wheel(
+        wheel_zip, "simple", "<in memory>"
+    )
+
+    assert wheel.get_entrypoints(distribution) == (
         dict([console_scripts.split(' = ')]),
         {},
     )
 
 
-def test_get_entrypoints_no_entrypoints(tmpdir):
-    console, gui = wheel.get_entrypoints(str(tmpdir / 'entry_points.txt'))
+def test_get_entrypoints_no_entrypoints():
+    wheel_zip = make_wheel("simple", "0.1.0").as_zipfile()
+    distribution = pkg_resources_distribution_for_wheel(
+        wheel_zip, "simple", "<in memory>"
+    )
+
+    console, gui = wheel.get_entrypoints(distribution)
     assert console == {}
     assert gui == {}
 
