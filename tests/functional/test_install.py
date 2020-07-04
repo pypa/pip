@@ -405,7 +405,7 @@ def test_vcs_url_urlquote_normalization(script, tmpdir):
     )
 
 
-@pytest.mark.parametrize("resolver", ["", "--unstable-feature=resolver"])
+@pytest.mark.parametrize("resolver", ["", "--use-feature=2020-resolver"])
 def test_basic_install_from_local_directory(script, data, resolver):
     """
     Test installing from a local directory.

@@ -88,7 +88,7 @@ def handle_request(script, action, requirement, options, new_resolver=False):
     if action == 'install':
         args = ['install']
         if new_resolver:
-            args.append("--unstable-feature=resolver")
+            args.append("--use-feature=2020-resolver")
         args.extend(["--no-index", "--find-links",
                      path_to_url(script.scratch_path)])
     elif action == 'uninstall':

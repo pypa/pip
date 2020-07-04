@@ -259,7 +259,7 @@ class RequirementCommand(IndexGroupCommand):
         # The long import name and duplicated invocation is needed to convince
         # Mypy into correctly typechecking. Otherwise it would complain the
         # "Resolver" class being redefined.
-        if 'resolver' in options.unstable_features:
+        if '2020-resolver' in options.features_enabled:
             import pip._internal.resolution.resolvelib.resolver
             return pip._internal.resolution.resolvelib.resolver.Resolver(
                 preparer=preparer,
