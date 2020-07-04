@@ -258,9 +258,15 @@ class TestInstallUnpackedWheel(object):
     """
 
     def prep(self, data, tmpdir):
+        # Since Path implements __add__, os.path.join returns a Path object.
+        # Passing Path objects to interfaces expecting str (like
+        # `compileall.compile_file`) can cause failures, so we normalize it
+        # to a string here.
+        tmpdir = str(tmpdir)
         self.name = 'sample'
-        self.wheelpath = data.packages.joinpath(
-            'sample-1.2.0-py2.py3-none-any.whl')
+        self.wheelpath = os.path.join(
+            str(data.packages), 'sample-1.2.0-py2.py3-none-any.whl'
+        )
         self.req = Requirement('sample')
         self.src = os.path.join(tmpdir, 'src')
         self.dest = os.path.join(tmpdir, 'dest')
