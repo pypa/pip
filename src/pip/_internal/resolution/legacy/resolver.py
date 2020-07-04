@@ -28,6 +28,7 @@ from pip._internal.exceptions import (
     HashErrors,
     UnsupportedPythonVersion,
 )
+from pip._internal.req.req_install import check_invalid_constraint_type
 from pip._internal.req.req_set import RequirementSet
 from pip._internal.resolution.base import BaseResolver
 from pip._internal.utils.compatibility_tags import get_supported
@@ -167,6 +168,8 @@ class Resolver(BaseResolver):
             check_supported_wheels=check_supported_wheels
         )
         for req in root_reqs:
+            if req.constraint:
+                check_invalid_constraint_type(req)
             requirement_set.add_requirement(req)
 
         # Actually prepare the files, and collect any exceptions. Most hash
