@@ -461,6 +461,10 @@ def install_unpacked_wheel(
                 p for p in subdir_paths if p != '__pycache__'
             ]
             for path in files:
+                if not os.path.isfile(path):
+                    continue
+                if not path.endswith('.py'):
+                    continue
                 yield os.path.join(dir_path, path)
 
     # Compile all of the pyc files that we're going to be installing
