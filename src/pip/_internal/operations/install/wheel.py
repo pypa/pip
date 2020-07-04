@@ -452,52 +452,6 @@ def install_unpacked_wheel(
     changed = set()  # type: Set[RecordPath]
     generated = []  # type: List[str]
 
-    def pyc_source_file_paths():
-        # type: () -> Iterator[text_type]
-        decoded_source = ensure_text(
-            source, encoding=sys.getfilesystemencoding()
-        )
-        for dir_path, subdir_paths, files in os.walk(decoded_source):
-            subdir_paths[:] = [
-                p for p in subdir_paths if p != '__pycache__'
-            ]
-            for path in files:
-                if not os.path.isfile(path):
-                    continue
-                if not path.endswith('.py'):
-                    continue
-                yield os.path.join(dir_path, path)
-
-    def pyc_output_path(path):
-        # type: (text_type) -> text_type
-        """Return the path the pyc file would have been written to.
-        """
-        if PY2:
-            if sys.flags.optimize:
-                return path + 'o'
-            else:
-                return path + 'c'
-        else:
-            return importlib.util.cache_from_source(path)
-
-    # Compile all of the pyc files that we're going to be installing
-    if pycompile:
-        with captured_stdout() as stdout:
-            with warnings.catch_warnings():
-                warnings.filterwarnings('ignore')
-                for path in pyc_source_file_paths():
-                    # Python 2's `compileall.compile_file` requires a str in
-                    # error cases, so we must convert to the native type.
-                    path_arg = ensure_str(
-                        path, encoding=sys.getfilesystemencoding()
-                    )
-                    success = compileall.compile_file(
-                        path_arg, force=True, quiet=True
-                    )
-                    if success:
-                        assert os.path.exists(pyc_output_path(path))
-        logger.debug(stdout.getvalue())
-
     def record_installed(srcfile, destfile, modified=False):
         # type: (text_type, text_type, bool) -> None
         """Map archive RECORD paths to installation RECORD paths."""
@@ -621,6 +575,52 @@ def install_unpacked_wheel(
                 fixer=fixer,
                 filter=filter,
             )
+
+    def pyc_source_file_paths():
+        # type: () -> Iterator[text_type]
+        # We de-duplicate installation paths, since there can be overlap (e.g.
+        # file in .data maps to same location as file in wheel root).
+        # Sorting installation paths makes it easier to reproduce and debug
+        # issues related to permissions on existing files.
+        for installed_path in sorted(set(installed.values())):
+            full_installed_path = os.path.join(lib_dir, installed_path)
+            if not os.path.isfile(full_installed_path):
+                continue
+            if not full_installed_path.endswith('.py'):
+                continue
+            yield full_installed_path
+
+    def pyc_output_path(path):
+        # type: (text_type) -> text_type
+        """Return the path the pyc file would have been written to.
+        """
+        if PY2:
+            if sys.flags.optimize:
+                return path + 'o'
+            else:
+                return path + 'c'
+        else:
+            return importlib.util.cache_from_source(path)
+
+    # Compile all of the pyc files for the installed files
+    if pycompile:
+        with captured_stdout() as stdout:
+            with warnings.catch_warnings():
+                warnings.filterwarnings('ignore')
+                for path in pyc_source_file_paths():
+                    # Python 2's `compileall.compile_file` requires a str in
+                    # error cases, so we must convert to the native type.
+                    path_arg = ensure_str(
+                        path, encoding=sys.getfilesystemencoding()
+                    )
+                    success = compileall.compile_file(
+                        path_arg, force=True, quiet=True
+                    )
+                    if success:
+                        pyc_path = pyc_output_path(path)
+                        assert os.path.exists(pyc_path)
+                        record_installed(pyc_path, pyc_path)
+        logger.debug(stdout.getvalue())
 
     maker = PipScriptMaker(None, scheme.scripts)
 
