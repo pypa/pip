@@ -864,3 +864,35 @@ class InstallRequirement(object):
             raise
 
         self.install_succeeded = success
+
+
+def check_invalid_constraint_type(req):
+    # type: (InstallRequirement) -> str
+
+    # Check for unsupported forms
+    problem = ""
+    if not req.name:
+        problem = "Unnamed requirements are not allowed as constraints"
+    elif req.link:
+        problem = "Links are not allowed as constraints"
+    elif req.extras:
+        problem = "Constraints cannot have extras"
+
+    if problem:
+        deprecated(
+            reason=(
+                "Constraints are only allowed to take the form of a package "
+                "name and a version specifier. Other forms were originally "
+                "permitted as an accident of the implementation, but were "
+                "undocumented. The new implementation of the resolver no "
+                "longer supports these forms."
+            ),
+            replacement=(
+                "replacing the constraint with a requirement."
+            ),
+            # No plan yet for when the new resolver becomes default
+            gone_in=None,
+            issue=8210
+        )
+
+    return problem
