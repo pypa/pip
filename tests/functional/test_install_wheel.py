@@ -159,11 +159,12 @@ def test_install_from_wheel_with_headers(script):
     """
     Test installing from a wheel file with headers
     """
+    header_text = '/* hello world */\n'
     package = make_wheel(
         'headers.dist',
         '0.1',
         extra_data_files={
-            'headers/header.h': '',
+            'headers/header.h': header_text
         },
     ).save_to_dir(script.scratch_path)
     result = script.pip('install', package, '--no-index')
@@ -174,7 +175,7 @@ def test_install_from_wheel_with_headers(script):
         script, 'headers.dist'
     )
     header_path = header_scheme_path / 'header.h'
-    assert header_path.read_text() == ''
+    assert header_path.read_text() == header_text
 
 
 def test_install_wheel_with_target(script, shared_data, with_wheel, tmpdir):
