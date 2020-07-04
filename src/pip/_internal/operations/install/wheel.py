@@ -647,15 +647,15 @@ def install_unpacked_wheel(
     record_text = distribution.get_metadata('RECORD')
     record_rows = list(csv.reader(record_text.splitlines()))
 
-    # Record details of all files installed
-    record_path = os.path.join(dest_info_dir, 'RECORD')
-
     rows = get_csv_rows_for_installed(
         record_rows,
         installed=installed,
         changed=changed,
         generated=generated,
         lib_dir=lib_dir)
+
+    # Record details of all files installed
+    record_path = os.path.join(dest_info_dir, 'RECORD')
 
     with _generate_file(record_path, **csv_io_kwargs('w')) as record_file:
         # The type mypy infers for record_file is different for Python 3
