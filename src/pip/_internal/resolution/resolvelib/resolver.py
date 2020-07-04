@@ -32,8 +32,8 @@ if MYPY_CHECK_RUNNING:
 logger = logging.getLogger(__name__)
 
 
-def reject_invalid_constraint_types(req):
-    # type: (InstallRequirement) -> None
+def check_invalid_constraint_type(req):
+    # type: (InstallRequirement) -> str
 
     # Check for unsupported forms
     problem = ""
@@ -60,7 +60,8 @@ def reject_invalid_constraint_types(req):
             gone_in=None,
             issue=8210
         )
-        raise InstallationError(problem)
+
+    return problem
 
 
 class Resolver(BaseResolver):
@@ -108,7 +109,9 @@ class Resolver(BaseResolver):
         for req in root_reqs:
             if req.constraint:
                 # Ensure we only accept valid constraints
-                reject_invalid_constraint_types(req)
+                problem = check_invalid_constraint_type(req)
+                if problem:
+                    raise InstallationError(problem)
 
                 name = canonicalize_name(req.name)
                 if name in constraints:
