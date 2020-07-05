@@ -23,7 +23,7 @@ from pip._vendor import pkg_resources
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor.distlib.util import get_export_entry
 from pip._vendor.six import PY2, ensure_str, ensure_text, itervalues, text_type
-from pip._vendor.six.moves import map
+from pip._vendor.six.moves import filterfalse, map
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_major_minor_version
@@ -47,7 +47,6 @@ else:
     from email.message import Message
     from typing import (
         Any,
-        Callable,
         Dict,
         IO,
         Iterable,
@@ -538,7 +537,6 @@ def install_unpacked_wheel(
         source,  # type: text_type
         dest,  # type: text_type
         is_base,  # type: bool
-        filter=None,  # type: Optional[Callable[[text_type], bool]]
     ):
         # type: (...) -> Iterable[File]
         for dir, subdirs, files in os.walk(source):
@@ -546,9 +544,6 @@ def install_unpacked_wheel(
             if is_base and basedir == '':
                 subdirs[:] = [s for s in subdirs if not s.endswith('.data')]
             for f in files:
-                # Skip unwanted files
-                if filter and filter(f):
-                    continue
                 srcfile = os.path.join(dir, f)
                 destfile = os.path.join(dest, basedir, f)
                 yield DiskFile(srcfile, destfile)
@@ -574,10 +569,12 @@ def install_unpacked_wheel(
     )
     console, gui = get_entrypoints(distribution)
 
-    def is_entrypoint_wrapper(name):
-        # type: (text_type) -> bool
+    def is_entrypoint_wrapper(file):
+        # type: (File) -> bool
         # EP, EP.exe and EP-script.py are scripts generated for
         # entry point EP by setuptools
+        path = file.dest_path
+        name = os.path.basename(path)
         if name.lower().endswith('.exe'):
             matchname = name[:-4]
         elif name.lower().endswith('-script.py'):
@@ -594,10 +591,7 @@ def install_unpacked_wheel(
     data_dirs = [s for s in subdirs if s.endswith('.data')]
 
     for datadir in data_dirs:
-        filter = None
         for subdir in os.listdir(os.path.join(wheeldir, datadir)):
-            if subdir == 'scripts':
-                filter = is_entrypoint_wrapper
             full_datadir_path = os.path.join(wheeldir, datadir, subdir)
             dest = getattr(scheme, subdir)
             data_scheme_files = files_to_process(
@@ -606,9 +600,11 @@ def install_unpacked_wheel(
                 ),
                 ensure_text(dest, encoding=sys.getfilesystemencoding()),
                 False,
-                filter=filter,
             )
             if subdir == 'scripts':
+                data_scheme_files = filterfalse(
+                    is_entrypoint_wrapper, data_scheme_files
+                )
                 data_scheme_files = map(ScriptFile, data_scheme_files)
             clobber(data_scheme_files)
 
