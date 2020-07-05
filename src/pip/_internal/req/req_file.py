@@ -2,9 +2,6 @@
 Requirements file parsing
 """
 
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-
 from __future__ import absolute_import
 
 import optparse
@@ -101,7 +98,7 @@ class ParsedLine(object):
         self,
         filename,  # type: str
         lineno,  # type: int
-        comes_from,  # type: str
+        comes_from,  # type: Optional[str]
         args,  # type: str
         opts,  # type: Values
         constraint,  # type: bool
@@ -227,7 +224,7 @@ def handle_option_line(
     # type:  (...) -> None
 
     # percolate hash-checking option upward
-    if opts.require_hashes:
+    if options and opts.require_hashes:
         options.require_hashes = opts.require_hashes
 
     # set finder options
@@ -319,7 +316,7 @@ class RequirementsFileParser(object):
         self,
         session,  # type: PipSession
         line_parser,  # type: LineParser
-        comes_from,  # type: str
+        comes_from,  # type: Optional[str]
     ):
         # type: (...) -> None
         self._session = session
@@ -481,6 +478,7 @@ def join_lines(lines_enum):
                 line = ' ' + line
             if new_line:
                 new_line.append(line)
+                assert primary_line_number is not None
                 yield primary_line_number, ''.join(new_line)
                 new_line = []
             else:
@@ -492,6 +490,7 @@ def join_lines(lines_enum):
 
     # last line contains \
     if new_line:
+        assert primary_line_number is not None
         yield primary_line_number, ''.join(new_line)
 
     # TODO: handle space after '\'.
