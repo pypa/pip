@@ -538,14 +538,6 @@ def install_unpacked_wheel(
                 destfile = os.path.join(dest, basedir, f)
                 yield File(srcfile, destfile)
 
-    def clobber(
-            files,  # type: Iterator[File]
-    ):
-        # type: (...) -> None
-        for f in files:
-            f.save()
-            record_installed(f.src_path, f.dest_path, f.changed)
-
     files = files_to_process(
         ensure_text(source, encoding=sys.getfilesystemencoding()),
         ensure_text(lib_dir, encoding=sys.getfilesystemencoding()),
@@ -600,7 +592,9 @@ def install_unpacked_wheel(
 
             files = chain(files, data_scheme_files)
 
-    clobber(files)
+    for file in files:
+        file.save()
+        record_installed(file.src_path, file.dest_path, file.changed)
 
     def pyc_source_file_paths():
         # type: () -> Iterator[text_type]
