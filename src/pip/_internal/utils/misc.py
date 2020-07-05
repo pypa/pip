@@ -16,6 +16,7 @@ import shutil
 import stat
 import sys
 from collections import deque
+from itertools import tee
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.utils import canonicalize_name
@@ -23,7 +24,7 @@ from pip._vendor.packaging.utils import canonicalize_name
 #       why we ignore the type on this import.
 from pip._vendor.retrying import retry  # type: ignore
 from pip._vendor.six import PY2, text_type
-from pip._vendor.six.moves import input, map, zip_longest
+from pip._vendor.six.moves import filter, filterfalse, input, map, zip_longest
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib.parse import unquote as urllib_unquote
 
@@ -53,12 +54,13 @@ else:
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Any, AnyStr, Container, Iterable, Iterator, List, Optional, Text,
-        Tuple, Union,
+        Any, AnyStr, Callable, Container, Iterable, Iterator, List, Optional,
+        Text, Tuple, TypeVar, Union,
     )
     from pip._vendor.pkg_resources import Distribution
 
     VersionInfo = Tuple[int, int, int]
+    T = TypeVar("T")
 
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
@@ -923,3 +925,18 @@ def pairwise(iterable):
     """
     iterable = iter(iterable)
     return zip_longest(iterable, iterable)
+
+
+def partition(
+    pred,  # type: Callable[[T], bool]
+    iterable,  # type: Iterable[T]
+):
+    # type: (...) -> Tuple[Iterable[T], Iterable[T]]
+    """
+    Use a predicate to partition entries into false entries and true entries,
+    like
+
+        partition(is_odd, range(10)) --> 0 2 4 6 8   and  1 3 5 7 9
+    """
+    t1, t2 = tee(iterable)
+    return filterfalse(pred, t1), filter(pred, t2)
