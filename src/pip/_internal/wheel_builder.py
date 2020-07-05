@@ -8,11 +8,10 @@ import shutil
 from tempfile import NamedTemporaryFile
 from zipfile import ZipFile
 
-from pip._internal.commands.hash import hash_of_file
 from pip._internal.models.link import Link
 from pip._internal.operations.build.wheel import build_wheel_pep517
 from pip._internal.operations.build.wheel_legacy import build_wheel_legacy
-from pip._internal.utils.hashes import STRONG_HASHES
+from pip._internal.utils.hashes import write_hash_file
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import ensure_dir, hash_file, is_wheel_installed
 from pip._internal.utils.setuptools_build import make_setuptools_clean_args
@@ -230,11 +229,7 @@ def _build_one_inside_env(
                     hash_file_path = os.path.join(info_dir, 'HASH')
 
                     dest_hash_file = NamedTemporaryFile(mode='w')
-                    with open(
-                            dest_hash_file.name, mode='w') as hash_file_write:
-                        for alg in STRONG_HASHES:
-                            hash_file_write.write('{}:{}\n'.format(
-                                alg, hash_of_file(req.local_file_path, alg)))
+                    write_hash_file(req.local_file_path, dest_hash_file.name)
                     # TODO: Modify RECORD as well
                     wheel_zip.write(dest_hash_file.name, hash_file_path)
                     dest_hash_file.close()

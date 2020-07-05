@@ -33,6 +33,24 @@ FAVORITE_HASH = 'sha256'
 STRONG_HASHES = ['sha256', 'sha384', 'sha512']
 
 
+def hash_of_file(path, algorithm):
+    # type: (str, str) -> str
+    """Return the hash digest of a file."""
+    with open(path, 'rb') as archive:
+        hash = hashlib.new(algorithm)
+        for chunk in read_chunks(archive):
+            hash.update(chunk)
+    return hash.hexdigest()
+
+
+def write_hash_file(source_file_path, hash_file_path):
+    # type: (str, str) -> None
+    with open(hash_file_path, mode='w') as hash_file_write:
+        for alg in STRONG_HASHES:
+            hash_file_write.write('{}:{}\n'.format(
+                alg, hash_of_file(source_file_path, alg)))
+
+
 class Hashes(object):
     """A wrapper that builds multiple hashes at once and checks them against
     known-good values

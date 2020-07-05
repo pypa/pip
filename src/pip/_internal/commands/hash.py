@@ -1,13 +1,16 @@
 from __future__ import absolute_import
 
-import hashlib
 import logging
 import sys
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
-from pip._internal.utils.hashes import FAVORITE_HASH, STRONG_HASHES
-from pip._internal.utils.misc import read_chunks, write_output
+from pip._internal.utils.hashes import (
+    FAVORITE_HASH,
+    STRONG_HASHES,
+    hash_of_file,
+)
+from pip._internal.utils.misc import write_output
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -51,13 +54,3 @@ class HashCommand(Command):
             write_output('%s:\n--hash=%s:%s',
                          path, algorithm, hash_of_file(path, algorithm))
         return SUCCESS
-
-
-def hash_of_file(path, algorithm):
-    # type: (str, str) -> str
-    """Return the hash digest of a file."""
-    with open(path, 'rb') as archive:
-        hash = hashlib.new(algorithm)
-        for chunk in read_chunks(archive):
-            hash.update(chunk)
-    return hash.hexdigest()
