@@ -468,31 +468,33 @@ def install_unpacked_wheel(
         if modified:
             changed.add(_fs_to_record_path(destfile))
 
+    def files_to_process(
+        source,  # type: text_type
+        dest,  # type: text_type
+        is_base,  # type: bool
+        filter=None,  # type: Optional[Callable[[text_type], bool]]
+    ):
+        # type: (...) -> Iterable[File]
+        for dir, subdirs, files in os.walk(source):
+            basedir = dir[len(source):].lstrip(os.path.sep)
+            if is_base and basedir == '':
+                subdirs[:] = [
+                    s for s in subdirs if not s.endswith('.data')
+                ]
+            for f in files:
+                # Skip unwanted files
+                if filter and filter(f):
+                    continue
+                srcfile = os.path.join(dir, f)
+                destfile = os.path.join(dest, basedir, f)
+                yield File(srcfile, destfile)
+
     def clobber(
-            source,  # type: text_type
-            dest,  # type: text_type
-            is_base,  # type: bool
+            files,  # type: Iterator[File]
             fixer=None,  # type: Optional[Callable[[text_type], Any]]
-            filter=None  # type: Optional[Callable[[text_type], bool]]
     ):
         # type: (...) -> None
-        def files_to_process():
-            # type: () -> Iterable[File]
-            for dir, subdirs, files in os.walk(source):
-                basedir = dir[len(source):].lstrip(os.path.sep)
-                if is_base and basedir == '':
-                    subdirs[:] = [
-                        s for s in subdirs if not s.endswith('.data')
-                    ]
-                for f in files:
-                    # Skip unwanted files
-                    if filter and filter(f):
-                        continue
-                    srcfile = os.path.join(dir, f)
-                    destfile = os.path.join(dest, basedir, f)
-                    yield File(srcfile, destfile)
-
-        for f in files_to_process():
+        for f in files:
             # directory creation is lazy and after the file filtering above
             # to ensure we don't install empty dirs; empty dirs can't be
             # uninstalled.
@@ -537,11 +539,12 @@ def install_unpacked_wheel(
                 changed = fixer(f.dest_path)
             record_installed(f.src_path, f.dest_path, changed)
 
-    clobber(
+    root_scheme_files = files_to_process(
         ensure_text(source, encoding=sys.getfilesystemencoding()),
         ensure_text(lib_dir, encoding=sys.getfilesystemencoding()),
         True,
     )
+    clobber(root_scheme_files)
 
     # Get the defined entry points
     distribution = pkg_resources_distribution_for_wheel(
@@ -578,15 +581,15 @@ def install_unpacked_wheel(
                 filter = is_entrypoint_wrapper
             full_datadir_path = os.path.join(wheeldir, datadir, subdir)
             dest = getattr(scheme, subdir)
-            clobber(
+            data_scheme_files = files_to_process(
                 ensure_text(
                     full_datadir_path, encoding=sys.getfilesystemencoding()
                 ),
                 ensure_text(dest, encoding=sys.getfilesystemencoding()),
                 False,
-                fixer=fixer,
                 filter=filter,
             )
+            clobber(data_scheme_files, fixer=fixer)
 
     def pyc_source_file_paths():
         # type: () -> Iterator[text_type]
