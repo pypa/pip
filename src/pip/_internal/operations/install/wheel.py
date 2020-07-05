@@ -559,10 +559,11 @@ def install_unpacked_wheel(
     )
     console, gui = get_entrypoints(distribution)
 
-    def is_entrypoint_wrapper(path):
-        # type: (text_type) -> bool
+    def not_entrypoint_wrapper(file):
+        # type: (File) -> bool
         # EP, EP.exe and EP-script.py are scripts generated for
         # entry point EP by setuptools
+        path = file.src_path
         name = os.path.basename(path)
         if name.lower().endswith('.exe'):
             matchname = name[:-4]
@@ -573,7 +574,7 @@ def install_unpacked_wheel(
         else:
             matchname = name
         # Ignore setuptools-generated scripts
-        return (matchname in console or matchname in gui)
+        return not (matchname in console or matchname in gui)
 
     # Zip file path separators must be /
     subdirs = set(p.split("/", 1)[0] for p in wheel_zip.namelist())
@@ -591,10 +592,9 @@ def install_unpacked_wheel(
                 False,
             )
             if subdir == 'scripts':
-                data_scheme_files = [
-                    f for f in data_scheme_files
-                    if not is_entrypoint_wrapper(f.src_path)
-                ]
+                data_scheme_files = filter(
+                    not_entrypoint_wrapper, data_scheme_files
+                )
                 data_scheme_files = map(
                     ScriptFile.from_file, data_scheme_files
                 )
