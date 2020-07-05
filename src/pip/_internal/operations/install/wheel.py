@@ -96,13 +96,13 @@ def csv_io_kwargs(mode):
 
 
 def fix_script(path):
-    # type: (text_type) -> Optional[bool]
+    # type: (text_type) -> bool
     """Replace #!python with #!/path/to/python
     Return True if file was changed.
     """
     # XXX RECORD hashes will need to be updated
     if not os.path.isfile(path):
-        return None
+        return False
 
     with open(path, 'rb') as script:
         firstline = script.readline()
