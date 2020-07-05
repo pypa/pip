@@ -471,7 +471,6 @@ def install_unpacked_wheel(
         # type: (...) -> None
         for dir, subdirs, files in os.walk(source):
             basedir = dir[len(source):].lstrip(os.path.sep)
-            destdir = os.path.join(dest, basedir)
             if is_base and basedir == '':
                 subdirs[:] = [s for s in subdirs if not s.endswith('.data')]
             for f in files:
@@ -483,7 +482,8 @@ def install_unpacked_wheel(
                 # directory creation is lazy and after the file filtering above
                 # to ensure we don't install empty dirs; empty dirs can't be
                 # uninstalled.
-                ensure_dir(destdir)
+                parent_dir = os.path.dirname(destfile)
+                ensure_dir(parent_dir)
 
                 # copyfile (called below) truncates the destination if it
                 # exists and then writes the new contents. This is fine in most
