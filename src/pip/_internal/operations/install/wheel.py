@@ -23,6 +23,7 @@ from pip._vendor import pkg_resources
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor.distlib.util import get_export_entry
 from pip._vendor.six import PY2, ensure_str, ensure_text, itervalues, text_type
+from pip._vendor.six.moves import map
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_major_minor_version
@@ -73,6 +74,7 @@ else:
     class File(Protocol):
         src_path = None  # type: text_type
         dest_path = None  # type: text_type
+        changed = None  # type: bool
 
         def save(self):
             # type: () -> None
@@ -401,6 +403,7 @@ class DiskFile(object):
         # type: (text_type, text_type) -> None
         self.src_path = src_path
         self.dest_path = dest_path
+        self.changed = False
 
     def save(self):
         # type: () -> None
@@ -442,6 +445,20 @@ class DiskFile(object):
                 st.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
             )
             os.chmod(self.dest_path, permissions)
+
+
+class ScriptFile(object):
+    def __init__(self, file):
+        # type: (File) -> None
+        self._file = file
+        self.src_path = self._file.src_path
+        self.dest_path = self._file.dest_path
+        self.changed = False
+
+    def save(self):
+        # type: () -> None
+        self._file.save()
+        self.changed = fix_script(self.dest_path)
 
 
 class MissingCallableSuffix(Exception):
@@ -538,15 +555,11 @@ def install_unpacked_wheel(
 
     def clobber(
             files,  # type: Iterable[File]
-            fixer=None,  # type: Optional[Callable[[text_type], Any]]
     ):
         # type: (...) -> None
         for file in files:
             file.save()
-            changed = False
-            if fixer:
-                changed = fixer(file.dest_path)
-            record_installed(file.src_path, file.dest_path, changed)
+            record_installed(file.src_path, file.dest_path, file.changed)
 
     root_scheme_files = files_to_process(
         ensure_text(source, encoding=sys.getfilesystemencoding()),
@@ -581,12 +594,9 @@ def install_unpacked_wheel(
     data_dirs = [s for s in subdirs if s.endswith('.data')]
 
     for datadir in data_dirs:
-        fixer = None
         filter = None
         for subdir in os.listdir(os.path.join(wheeldir, datadir)):
-            fixer = None
             if subdir == 'scripts':
-                fixer = fix_script
                 filter = is_entrypoint_wrapper
             full_datadir_path = os.path.join(wheeldir, datadir, subdir)
             dest = getattr(scheme, subdir)
@@ -598,7 +608,9 @@ def install_unpacked_wheel(
                 False,
                 filter=filter,
             )
-            clobber(data_scheme_files, fixer=fixer)
+            if subdir == 'scripts':
+                data_scheme_files = map(ScriptFile, data_scheme_files)
+            clobber(data_scheme_files)
 
     def pyc_source_file_paths():
         # type: () -> Iterator[text_type]
