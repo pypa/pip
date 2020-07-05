@@ -135,7 +135,7 @@ def parse_requirements(
     constraint=False,  # type: bool
 ):
     # type: (...) -> Iterator[ParsedRequirement]
-    """Parse a requirements file and yield InstallRequirement instances.
+    """Parse a requirements file and yield ParsedRequirement instances.
 
     :param filename:    Path or url of requirements file.
     :param session:     PipSession instance.
