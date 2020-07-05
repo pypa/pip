@@ -393,6 +393,7 @@ class File(object):
         # type: (text_type, text_type) -> None
         self.src_path = src_path
         self.dest_path = dest_path
+        self.changed = False
 
     def save(self):
         # type: () -> None
@@ -434,6 +435,18 @@ class File(object):
                 st.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
             )
             os.chmod(self.dest_path, permissions)
+
+
+class ScriptFile(File):
+    def save(self):
+        # type: () -> None
+        super(ScriptFile, self).save()
+        self.changed = fix_script(self.dest_path)
+
+    @classmethod
+    def from_file(cls, file):
+        # type: (File) -> ScriptFile
+        return cls(file.src_path, file.dest_path)
 
 
 class MissingCallableSuffix(Exception):
@@ -532,15 +545,11 @@ def install_unpacked_wheel(
 
     def clobber(
             files,  # type: Iterator[File]
-            fixer=None,  # type: Optional[Callable[[text_type], Any]]
     ):
         # type: (...) -> None
         for f in files:
             f.save()
-            changed = False
-            if fixer:
-                changed = fixer(f.dest_path)
-            record_installed(f.src_path, f.dest_path, changed)
+            record_installed(f.src_path, f.dest_path, f.changed)
 
     root_scheme_files = files_to_process(
         ensure_text(source, encoding=sys.getfilesystemencoding()),
@@ -575,12 +584,9 @@ def install_unpacked_wheel(
     data_dirs = [s for s in subdirs if s.endswith('.data')]
 
     for datadir in data_dirs:
-        fixer = None
         filter = None
         for subdir in os.listdir(os.path.join(wheeldir, datadir)):
-            fixer = None
             if subdir == 'scripts':
-                fixer = fix_script
                 filter = is_entrypoint_wrapper
             full_datadir_path = os.path.join(wheeldir, datadir, subdir)
             dest = getattr(scheme, subdir)
@@ -592,7 +598,11 @@ def install_unpacked_wheel(
                 False,
                 filter=filter,
             )
-            clobber(data_scheme_files, fixer=fixer)
+            if subdir == 'scripts':
+                data_scheme_files = map(
+                    ScriptFile.from_file, data_scheme_files
+                )
+            clobber(data_scheme_files)
 
     def pyc_source_file_paths():
         # type: () -> Iterator[text_type]
