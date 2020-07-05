@@ -46,7 +46,6 @@ else:
     from email.message import Message
     from typing import (
         Any,
-        Callable,
         Dict,
         IO,
         Iterable,
@@ -526,7 +525,6 @@ def install_unpacked_wheel(
         source,  # type: text_type
         dest,  # type: text_type
         is_base,  # type: bool
-        filter=None,  # type: Optional[Callable[[text_type], bool]]
     ):
         # type: (...) -> Iterable[File]
         for dir, subdirs, files in os.walk(source):
@@ -538,9 +536,6 @@ def install_unpacked_wheel(
             for f in files:
                 srcfile = os.path.join(dir, f)
                 destfile = os.path.join(dest, basedir, f)
-                # Skip unwanted files
-                if filter and filter(srcfile):
-                    continue
                 yield File(srcfile, destfile)
 
     def clobber(
@@ -585,10 +580,7 @@ def install_unpacked_wheel(
     data_dirs = [s for s in subdirs if s.endswith('.data')]
 
     for datadir in data_dirs:
-        filter = None
         for subdir in os.listdir(os.path.join(wheeldir, datadir)):
-            if subdir == 'scripts':
-                filter = is_entrypoint_wrapper
             full_datadir_path = os.path.join(wheeldir, datadir, subdir)
             dest = getattr(scheme, subdir)
             data_scheme_files = files_to_process(
@@ -597,9 +589,12 @@ def install_unpacked_wheel(
                 ),
                 ensure_text(dest, encoding=sys.getfilesystemencoding()),
                 False,
-                filter=filter,
             )
             if subdir == 'scripts':
+                data_scheme_files = [
+                    f for f in data_scheme_files
+                    if not is_entrypoint_wrapper(f.src_path)
+                ]
                 data_scheme_files = map(
                     ScriptFile.from_file, data_scheme_files
                 )
