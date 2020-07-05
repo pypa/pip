@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import csv
 import distutils
 import glob
 import os
@@ -280,6 +281,28 @@ def test_wheel_record_lines_in_deterministic_order(script, data):
         p for p in Path(record_path).read_text().split('\n') if p
     ]
     assert record_lines == sorted(record_lines)
+
+
+def test_wheel_record_lines_have_hash_for_data_files(script):
+    package = make_wheel(
+        "simple",
+        "0.1.0",
+        extra_data_files={
+            "purelib/info.txt": "c",
+        },
+    ).save_to_dir(script.scratch_path)
+    script.pip("install", package)
+    record_file = (
+        script.site_packages_path / "simple-0.1.0.dist-info" / "RECORD"
+    )
+    record_text = record_file.read_text()
+    record_rows = list(csv.reader(record_text.splitlines()))
+    records = {
+        r[0]: r[1:] for r in record_rows
+    }
+    assert records["info.txt"] == [
+        "sha256=Ln0sA6lQeuJl7PW1NWiFpTOTogKdJBOUmXJloaJa78Y", "1"
+    ]
 
 
 @pytest.mark.incompatible_with_test_venv
