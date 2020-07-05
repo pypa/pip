@@ -71,7 +71,7 @@ else:
     InstalledCSVRow = Tuple[RecordPath, str, Union[int, str]]
 
     class File(Protocol):
-        src_path = None  # type: text_type
+        src_record_path = None  # type: RecordPath
         dest_path = None  # type: text_type
         changed = None  # type: bool
 
@@ -398,10 +398,11 @@ def get_console_script_specs(console):
 
 
 class DiskFile(object):
-    def __init__(self, src_path, dest_path):
-        # type: (text_type, text_type) -> None
-        self.src_path = src_path
+    def __init__(self, src_record_path, dest_path, src_disk_path):
+        # type: (RecordPath, text_type, text_type) -> None
+        self.src_record_path = src_record_path
         self.dest_path = dest_path
+        self._src_disk_path = src_disk_path
         self.changed = False
 
     def save(self):
@@ -428,18 +429,18 @@ class DiskFile(object):
         # directories) as well as to ensure that we are not copying
         # over any metadata because we want more control over what
         # metadata we actually copy over.
-        shutil.copyfile(self.src_path, self.dest_path)
+        shutil.copyfile(self._src_disk_path, self.dest_path)
 
         # Copy over the metadata for the file, currently this only
         # includes the atime and mtime.
-        st = os.stat(self.src_path)
+        st = os.stat(self._src_disk_path)
         if hasattr(os, "utime"):
             os.utime(self.dest_path, (st.st_atime, st.st_mtime))
 
         # If our file is executable, then make our destination file
         # executable.
-        if os.access(self.src_path, os.X_OK):
-            st = os.stat(self.src_path)
+        if os.access(self._src_disk_path, os.X_OK):
+            st = os.stat(self._src_disk_path)
             permissions = (
                 st.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
             )
@@ -450,7 +451,7 @@ class ScriptFile(object):
     def __init__(self, file):
         # type: (File) -> None
         self._file = file
-        self.src_path = self._file.src_path
+        self.src_record_path = self._file.src_record_path
         self.dest_path = self._file.dest_path
         self.changed = False
 
@@ -525,11 +526,10 @@ def install_unpacked_wheel(
     generated = []  # type: List[str]
 
     def record_installed(srcfile, destfile, modified=False):
-        # type: (text_type, text_type, bool) -> None
+        # type: (RecordPath, text_type, bool) -> None
         """Map archive RECORD paths to installation RECORD paths."""
-        oldpath = _fs_to_record_path(srcfile, wheeldir)
         newpath = _fs_to_record_path(destfile, lib_dir)
-        installed[oldpath] = newpath
+        installed[srcfile] = newpath
         if modified:
             changed.add(_fs_to_record_path(destfile))
 
@@ -544,9 +544,12 @@ def install_unpacked_wheel(
             if is_base and basedir == '':
                 subdirs[:] = [s for s in subdirs if not s.endswith('.data')]
             for f in files:
-                srcfile = os.path.join(dir, f)
+                srcfile = os.path.join(basedir, f).replace(os.path.sep, "/")
                 destfile = os.path.join(dest, basedir, f)
-                yield DiskFile(srcfile, destfile)
+                src_disk_path = os.path.join(dir, f)
+                yield DiskFile(
+                    cast('RecordPath', srcfile), destfile, src_disk_path
+                )
 
     files = files_to_process(
         ensure_text(source, encoding=sys.getfilesystemencoding()),
@@ -602,7 +605,7 @@ def install_unpacked_wheel(
 
     for file in files:
         file.save()
-        record_installed(file.src_path, file.dest_path, file.changed)
+        record_installed(file.src_record_path, file.dest_path, file.changed)
 
     def pyc_source_file_paths():
         # type: () -> Iterator[text_type]
@@ -647,7 +650,10 @@ def install_unpacked_wheel(
                     if success:
                         pyc_path = pyc_output_path(path)
                         assert os.path.exists(pyc_path)
-                        record_installed(pyc_path, pyc_path)
+                        record_installed(
+                            _fs_to_record_path(pyc_path, wheeldir),
+                            pyc_path,
+                        )
         logger.debug(stdout.getvalue())
 
     maker = PipScriptMaker(None, scheme.scripts)
