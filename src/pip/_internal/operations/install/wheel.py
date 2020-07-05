@@ -388,6 +388,13 @@ def get_console_script_specs(console):
     return scripts_to_generate
 
 
+class File(object):
+    def __init__(self, src_path, dest_path):
+        # type: (text_type, text_type) -> None
+        self.src_path = src_path
+        self.dest_path = dest_path
+
+
 class MissingCallableSuffix(Exception):
     pass
 
@@ -470,7 +477,7 @@ def install_unpacked_wheel(
     ):
         # type: (...) -> None
         def files_to_process():
-            # type: () -> Iterable[Tuple[text_type, text_type]]
+            # type: () -> Iterable[File]
             for dir, subdirs, files in os.walk(source):
                 basedir = dir[len(source):].lstrip(os.path.sep)
                 if is_base and basedir == '':
@@ -483,13 +490,13 @@ def install_unpacked_wheel(
                         continue
                     srcfile = os.path.join(dir, f)
                     destfile = os.path.join(dest, basedir, f)
-                    yield srcfile, destfile
+                    yield File(srcfile, destfile)
 
-        for srcfile, destfile in files_to_process():
+        for f in files_to_process():
             # directory creation is lazy and after the file filtering above
             # to ensure we don't install empty dirs; empty dirs can't be
             # uninstalled.
-            parent_dir = os.path.dirname(destfile)
+            parent_dir = os.path.dirname(f.dest_path)
             ensure_dir(parent_dir)
 
             # copyfile (called below) truncates the destination if it
@@ -500,35 +507,35 @@ def install_unpacked_wheel(
             # symbol in it will then cause a segfault. Unlinking the file
             # allows writing of new contents while allowing the process to
             # continue to use the old copy.
-            if os.path.exists(destfile):
-                os.unlink(destfile)
+            if os.path.exists(f.dest_path):
+                os.unlink(f.dest_path)
 
             # We use copyfile (not move, copy, or copy2) to be extra sure
             # that we are not moving directories over (copyfile fails for
             # directories) as well as to ensure that we are not copying
             # over any metadata because we want more control over what
             # metadata we actually copy over.
-            shutil.copyfile(srcfile, destfile)
+            shutil.copyfile(f.src_path, f.dest_path)
 
             # Copy over the metadata for the file, currently this only
             # includes the atime and mtime.
-            st = os.stat(srcfile)
+            st = os.stat(f.src_path)
             if hasattr(os, "utime"):
-                os.utime(destfile, (st.st_atime, st.st_mtime))
+                os.utime(f.dest_path, (st.st_atime, st.st_mtime))
 
             # If our file is executable, then make our destination file
             # executable.
-            if os.access(srcfile, os.X_OK):
-                st = os.stat(srcfile)
+            if os.access(f.src_path, os.X_OK):
+                st = os.stat(f.src_path)
                 permissions = (
                     st.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
                 )
-                os.chmod(destfile, permissions)
+                os.chmod(f.dest_path, permissions)
 
             changed = False
             if fixer:
-                changed = fixer(destfile)
-            record_installed(srcfile, destfile, changed)
+                changed = fixer(f.dest_path)
+            record_installed(f.src_path, f.dest_path, changed)
 
     clobber(
         ensure_text(source, encoding=sys.getfilesystemencoding()),
