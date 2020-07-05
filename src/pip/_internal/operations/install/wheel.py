@@ -518,14 +518,13 @@ def install_unpacked_wheel(
         if modified:
             changed.add(_fs_to_record_path(destfile))
 
-    def clobber(
-            source,  # type: text_type
-            dest,  # type: text_type
-            is_base,  # type: bool
-            fixer=None,  # type: Optional[Callable[[text_type], Any]]
-            filter=None  # type: Optional[Callable[[text_type], bool]]
+    def files_to_process(
+        source,  # type: text_type
+        dest,  # type: text_type
+        is_base,  # type: bool
+        filter=None,  # type: Optional[Callable[[text_type], bool]]
     ):
-        # type: (...) -> None
+        # type: (...) -> Iterable[File]
         for dir, subdirs, files in os.walk(source):
             basedir = dir[len(source):].lstrip(os.path.sep)
             if is_base and basedir == '':
@@ -536,19 +535,26 @@ def install_unpacked_wheel(
                     continue
                 srcfile = os.path.join(dir, f)
                 destfile = os.path.join(dest, basedir, f)
-                file = DiskFile(srcfile, destfile)
+                yield DiskFile(srcfile, destfile)
 
-                file.save()
-                changed = False
-                if fixer:
-                    changed = fixer(file.dest_path)
-                record_installed(file.src_path, file.dest_path, changed)
+    def clobber(
+            files,  # type: Iterable[File]
+            fixer=None,  # type: Optional[Callable[[text_type], Any]]
+    ):
+        # type: (...) -> None
+        for file in files:
+            file.save()
+            changed = False
+            if fixer:
+                changed = fixer(file.dest_path)
+            record_installed(file.src_path, file.dest_path, changed)
 
-    clobber(
+    root_scheme_files = files_to_process(
         ensure_text(source, encoding=sys.getfilesystemencoding()),
         ensure_text(lib_dir, encoding=sys.getfilesystemencoding()),
         True,
     )
+    clobber(root_scheme_files)
 
     # Get the defined entry points
     distribution = pkg_resources_distribution_for_wheel(
@@ -585,15 +591,15 @@ def install_unpacked_wheel(
                 filter = is_entrypoint_wrapper
             full_datadir_path = os.path.join(wheeldir, datadir, subdir)
             dest = getattr(scheme, subdir)
-            clobber(
+            data_scheme_files = files_to_process(
                 ensure_text(
                     full_datadir_path, encoding=sys.getfilesystemencoding()
                 ),
                 ensure_text(dest, encoding=sys.getfilesystemencoding()),
                 False,
-                fixer=fixer,
                 filter=filter,
             )
+            clobber(data_scheme_files, fixer=fixer)
 
     def pyc_source_file_paths():
         # type: () -> Iterator[text_type]
