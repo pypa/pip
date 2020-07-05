@@ -394,6 +394,47 @@ class File(object):
         self.src_path = src_path
         self.dest_path = dest_path
 
+    def save(self):
+        # type: () -> None
+        # directory creation is lazy and after the file filtering above
+        # to ensure we don't install empty dirs; empty dirs can't be
+        # uninstalled.
+        parent_dir = os.path.dirname(self.dest_path)
+        ensure_dir(parent_dir)
+
+        # copyfile (called below) truncates the destination if it
+        # exists and then writes the new contents. This is fine in most
+        # cases, but can cause a segfault if pip has loaded a shared
+        # object (e.g. from pyopenssl through its vendored urllib3)
+        # Since the shared object is mmap'd an attempt to call a
+        # symbol in it will then cause a segfault. Unlinking the file
+        # allows writing of new contents while allowing the process to
+        # continue to use the old copy.
+        if os.path.exists(self.dest_path):
+            os.unlink(self.dest_path)
+
+        # We use copyfile (not move, copy, or copy2) to be extra sure
+        # that we are not moving directories over (copyfile fails for
+        # directories) as well as to ensure that we are not copying
+        # over any metadata because we want more control over what
+        # metadata we actually copy over.
+        shutil.copyfile(self.src_path, self.dest_path)
+
+        # Copy over the metadata for the file, currently this only
+        # includes the atime and mtime.
+        st = os.stat(self.src_path)
+        if hasattr(os, "utime"):
+            os.utime(self.dest_path, (st.st_atime, st.st_mtime))
+
+        # If our file is executable, then make our destination file
+        # executable.
+        if os.access(self.src_path, os.X_OK):
+            st = os.stat(self.src_path)
+            permissions = (
+                st.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+            )
+            os.chmod(self.dest_path, permissions)
+
 
 class MissingCallableSuffix(Exception):
     pass
@@ -495,45 +536,7 @@ def install_unpacked_wheel(
     ):
         # type: (...) -> None
         for f in files:
-            # directory creation is lazy and after the file filtering above
-            # to ensure we don't install empty dirs; empty dirs can't be
-            # uninstalled.
-            parent_dir = os.path.dirname(f.dest_path)
-            ensure_dir(parent_dir)
-
-            # copyfile (called below) truncates the destination if it
-            # exists and then writes the new contents. This is fine in most
-            # cases, but can cause a segfault if pip has loaded a shared
-            # object (e.g. from pyopenssl through its vendored urllib3)
-            # Since the shared object is mmap'd an attempt to call a
-            # symbol in it will then cause a segfault. Unlinking the file
-            # allows writing of new contents while allowing the process to
-            # continue to use the old copy.
-            if os.path.exists(f.dest_path):
-                os.unlink(f.dest_path)
-
-            # We use copyfile (not move, copy, or copy2) to be extra sure
-            # that we are not moving directories over (copyfile fails for
-            # directories) as well as to ensure that we are not copying
-            # over any metadata because we want more control over what
-            # metadata we actually copy over.
-            shutil.copyfile(f.src_path, f.dest_path)
-
-            # Copy over the metadata for the file, currently this only
-            # includes the atime and mtime.
-            st = os.stat(f.src_path)
-            if hasattr(os, "utime"):
-                os.utime(f.dest_path, (st.st_atime, st.st_mtime))
-
-            # If our file is executable, then make our destination file
-            # executable.
-            if os.access(f.src_path, os.X_OK):
-                st = os.stat(f.src_path)
-                permissions = (
-                    st.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
-                )
-                os.chmod(f.dest_path, permissions)
-
+            f.save()
             changed = False
             if fixer:
                 changed = fixer(f.dest_path)
