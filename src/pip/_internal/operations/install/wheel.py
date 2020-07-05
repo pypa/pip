@@ -16,7 +16,7 @@ import stat
 import sys
 import warnings
 from base64 import urlsafe_b64encode
-from itertools import starmap
+from itertools import chain, starmap
 from zipfile import ZipFile
 
 from pip._vendor import pkg_resources
@@ -556,12 +556,11 @@ def install_unpacked_wheel(
             file.save()
             record_installed(file.src_path, file.dest_path, file.changed)
 
-    root_scheme_files = files_to_process(
+    files = files_to_process(
         ensure_text(source, encoding=sys.getfilesystemencoding()),
         ensure_text(lib_dir, encoding=sys.getfilesystemencoding()),
         True,
     )
-    clobber(root_scheme_files)
 
     # Get the defined entry points
     distribution = pkg_resources_distribution_for_wheel(
@@ -606,7 +605,10 @@ def install_unpacked_wheel(
                     is_entrypoint_wrapper, data_scheme_files
                 )
                 data_scheme_files = map(ScriptFile, data_scheme_files)
-            clobber(data_scheme_files)
+
+            files = chain(files, data_scheme_files)
+
+    clobber(files)
 
     def pyc_source_file_paths():
         # type: () -> Iterator[text_type]
