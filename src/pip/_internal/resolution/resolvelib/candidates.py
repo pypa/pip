@@ -304,12 +304,11 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
     def iter_dependencies(self):
         # type: () -> Iterable[Optional[Requirement]]
         dist = None  # type: Optional[Distribution]
-        preparer, req = self._factory.preparer, self._ireq
+        preparer, lazy_wheel = self._factory.preparer, self._factory.lazy_wheel
         remote_wheel = self._link.is_wheel and not self._link.is_file
-        # TODO: Opt-in as unstable feature.
-        if remote_wheel and not preparer.require_hashes:
+        if lazy_wheel and remote_wheel and not preparer.require_hashes:
             assert self._name is not None
-            logger.info('Collecting %s', req.req or req)
+            logger.info('Collecting %s', self._ireq.req or self._ireq)
             # If RuntimeError is raised, fallback to self.dist.
             with indent_log(), suppress(RuntimeError):
                 logger.info(
