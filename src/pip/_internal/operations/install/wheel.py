@@ -469,8 +469,6 @@ def install_unpacked_wheel(
             filter=None  # type: Optional[Callable[[text_type], bool]]
     ):
         # type: (...) -> None
-        ensure_dir(dest)  # common for the 'include' path
-
         for dir, subdirs, files in os.walk(source):
             basedir = dir[len(source):].lstrip(os.path.sep)
             destdir = os.path.join(dest, basedir)
