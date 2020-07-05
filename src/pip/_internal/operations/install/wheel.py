@@ -536,11 +536,11 @@ def install_unpacked_wheel(
                     s for s in subdirs if not s.endswith('.data')
                 ]
             for f in files:
-                # Skip unwanted files
-                if filter and filter(f):
-                    continue
                 srcfile = os.path.join(dir, f)
                 destfile = os.path.join(dest, basedir, f)
+                # Skip unwanted files
+                if filter and filter(srcfile):
+                    continue
                 yield File(srcfile, destfile)
 
     def clobber(
@@ -564,10 +564,11 @@ def install_unpacked_wheel(
     )
     console, gui = get_entrypoints(distribution)
 
-    def is_entrypoint_wrapper(name):
+    def is_entrypoint_wrapper(path):
         # type: (text_type) -> bool
         # EP, EP.exe and EP-script.py are scripts generated for
         # entry point EP by setuptools
+        name = os.path.basename(path)
         if name.lower().endswith('.exe'):
             matchname = name[:-4]
         elif name.lower().endswith('-script.py'):
