@@ -105,7 +105,6 @@ class ParsedLine(object):
         self,
         filename,  # type: str
         lineno,  # type: int
-        comes_from,  # type: Optional[str]
         args,  # type: str
         opts,  # type: Values
         constraint,  # type: bool
@@ -113,7 +112,6 @@ class ParsedLine(object):
         # type: (...) -> None
         self.filename = filename
         self.lineno = lineno
-        self.comes_from = comes_from
         self.opts = opts
         self.constraint = constraint
 
@@ -134,7 +132,6 @@ def parse_requirements(
     filename,  # type: str
     session,  # type: PipSession
     finder=None,  # type: Optional[PackageFinder]
-    comes_from=None,  # type: Optional[str]
     options=None,  # type: Optional[optparse.Values]
     constraint=False,  # type: bool
 ):
@@ -144,13 +141,12 @@ def parse_requirements(
     :param filename:    Path or url of requirements file.
     :param session:     PipSession instance.
     :param finder:      Instance of pip.index.PackageFinder.
-    :param comes_from:  Origin description of requirements.
     :param options:     cli options.
     :param constraint:  If true, parsing a constraint file rather than
         requirements file.
     """
     line_parser = get_line_parser(finder)
-    parser = RequirementsFileParser(session, line_parser, comes_from)
+    parser = RequirementsFileParser(session, line_parser)
 
     for parsed_line in parser.parse(filename, constraint):
         parsed_req = handle_line(
@@ -333,12 +329,10 @@ class RequirementsFileParser(object):
         self,
         session,  # type: PipSession
         line_parser,  # type: LineParser
-        comes_from,  # type: Optional[str]
     ):
         # type: (...) -> None
         self._session = session
         self._line_parser = line_parser
-        self._comes_from = comes_from
 
     def parse(self, filename, constraint):
         # type: (str, bool) -> Iterator[ParsedLine]
@@ -382,9 +376,7 @@ class RequirementsFileParser(object):
 
     def _parse_file(self, filename, constraint):
         # type: (str, bool) -> Iterator[ParsedLine]
-        _, content = get_file_content(
-            filename, self._session, comes_from=self._comes_from
-        )
+        _, content = get_file_content(filename, self._session)
 
         lines_enum = preprocess(content)
 
@@ -399,7 +391,6 @@ class RequirementsFileParser(object):
             yield ParsedLine(
                 filename,
                 line_number,
-                self._comes_from,
                 args_str,
                 opts,
                 constraint,
@@ -553,15 +544,14 @@ def expand_env_variables(lines_enum):
         yield line_number, line
 
 
-def get_file_content(url, session, comes_from=None):
-    # type: (str, PipSession, Optional[str]) -> Tuple[str, Text]
+def get_file_content(url, session):
+    # type: (str, PipSession) -> Tuple[str, Text]
     """Gets the content of a file; it may be a filename, file: URL, or
     http: URL.  Returns (location, content).  Content is unicode.
     Respects # -*- coding: declarations on the retrieved files.
 
     :param url:         File path or url.
     :param session:     PipSession instance.
-    :param comes_from:  Origin description of requirements.
     """
     scheme = get_url_scheme(url)
 
@@ -572,11 +562,6 @@ def get_file_content(url, session, comes_from=None):
         return resp.url, resp.text
 
     elif scheme == 'file':
-        if comes_from and comes_from.startswith('http'):
-            raise InstallationError(
-                'Requirements file {} references URL {}, '
-                'which is local'.format(comes_from, url)
-            )
         url = url_to_path(url)
 
     try:

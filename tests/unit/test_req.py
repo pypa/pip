@@ -47,7 +47,6 @@ def get_processed_req_from_line(line, fname='file', lineno=1):
     parsed_line = ParsedLine(
         fname,
         lineno,
-        fname,
         args_str,
         opts,
         False,
