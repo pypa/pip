@@ -299,7 +299,8 @@ class TestInstallUnpackedWheel(object):
                     ...
                     """
                 ),
-                "top_level.txt": "sample\n"
+                "top_level.txt": "sample\n",
+                "empty_dir/empty_dir/": "",
             },
             extra_data_files={
                 "data/my_data/data_file": "some data",
@@ -447,16 +448,11 @@ class TestInstallUnpackedWheel(object):
         """
         # e.g. https://github.com/pypa/pip/issues/1632#issuecomment-38027275
         self.prep(data, tmpdir)
-        src_empty_dir = os.path.join(
-            self.src_dist_info, 'empty_dir', 'empty_dir')
-        os.makedirs(src_empty_dir)
-        assert os.path.isdir(src_empty_dir)
         wheel.install_wheel(
             self.name,
             self.wheelpath,
             scheme=self.scheme,
             req_description=str(self.req),
-            _temp_dir_for_testing=self.src,
         )
         self.assert_installed(0o644)
         assert not os.path.isdir(
