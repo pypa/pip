@@ -18,9 +18,9 @@ import sys
 from collections import deque
 
 from pip._vendor import pkg_resources
+from pip._vendor.packaging.utils import canonicalize_name
 # NOTE: retrying is not annotated in typeshed as on 2017-07-17, which is
 #       why we ignore the type on this import.
-from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.retrying import retry  # type: ignore
 from pip._vendor.six import PY2, text_type
 from pip._vendor.six.moves import input, map, zip_longest
