@@ -726,13 +726,12 @@ def install_wheel(
     req_description,  # type: str
     pycompile=True,  # type: bool
     warn_script_location=True,  # type: bool
-    _temp_dir_for_testing=None,  # type: Optional[str]
     direct_url=None,  # type: Optional[DirectUrl]
     requested=False,  # type: bool
 ):
     # type: (...) -> None
     with TempDirectory(
-        path=_temp_dir_for_testing, kind="unpacked-wheel"
+        kind="unpacked-wheel"
     ) as unpacked_dir, ZipFile(wheel_path, allowZip64=True) as z:
         unpack_file(wheel_path, unpacked_dir.path)
         install_unpacked_wheel(

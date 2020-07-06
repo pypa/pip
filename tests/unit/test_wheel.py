@@ -264,9 +264,51 @@ class TestInstallUnpackedWheel(object):
         # to a string here.
         tmpdir = str(tmpdir)
         self.name = 'sample'
-        self.wheelpath = os.path.join(
-            str(data.packages), 'sample-1.2.0-py2.py3-none-any.whl'
-        )
+        self.wheelpath = make_wheel(
+            "sample",
+            "1.2.0",
+            metadata_body=textwrap.dedent(
+                """
+                A sample Python project
+                =======================
+
+                ...
+                """
+            ),
+            metadata_updates={
+                "Requires-Dist": ["peppercorn"],
+            },
+            extra_files={
+                "sample/__init__.py": textwrap.dedent(
+                    '''
+                    __version__ = '1.2.0'
+
+                    def main():
+                        """Entry point for the application script"""
+                        print("Call your main application code here")
+                    '''
+                ),
+                "sample/package_data.dat": "some data",
+            },
+            extra_metadata_files={
+                "DESCRIPTION.rst": textwrap.dedent(
+                    """
+                    A sample Python project
+                    =======================
+
+                    ...
+                    """
+                ),
+                "top_level.txt": "sample\n",
+                "empty_dir/empty_dir/": "",
+            },
+            extra_data_files={
+                "data/my_data/data_file": "some data",
+            },
+            console_scripts=[
+                "sample = sample:main",
+            ],
+        ).save_to_dir(tmpdir)
         self.req = Requirement('sample')
         self.src = os.path.join(tmpdir, 'src')
         self.dest = os.path.join(tmpdir, 'dest')
@@ -406,16 +448,11 @@ class TestInstallUnpackedWheel(object):
         """
         # e.g. https://github.com/pypa/pip/issues/1632#issuecomment-38027275
         self.prep(data, tmpdir)
-        src_empty_dir = os.path.join(
-            self.src_dist_info, 'empty_dir', 'empty_dir')
-        os.makedirs(src_empty_dir)
-        assert os.path.isdir(src_empty_dir)
         wheel.install_wheel(
             self.name,
             self.wheelpath,
             scheme=self.scheme,
             req_description=str(self.req),
-            _temp_dir_for_testing=self.src,
         )
         self.assert_installed(0o644)
         assert not os.path.isdir(
