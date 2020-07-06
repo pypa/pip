@@ -488,6 +488,43 @@ class PipScriptMaker(ScriptMaker):
         return super(PipScriptMaker, self).make(specification, options)
 
 
+@contextlib.contextmanager
+def _generate_file(path, generated_file_mode, **kwargs):
+    # type: (str, int, **Any) -> Iterator[NamedTemporaryFileResult]
+    with adjacent_tmp_file(path, **kwargs) as f:
+        yield f
+    os.chmod(f.name, generated_file_mode)
+    replace(f.name, path)
+
+
+def write_record_file(
+    record_path,  # type: str
+    record_rows,  # type: List[List[str]]
+    installed,  # type: Dict[RecordPath, RecordPath]
+    changed,  # type: Set[RecordPath]
+    generated,  # type: List[str]
+    lib_dir,  # type: str
+    generated_file_mode,  # type: int
+):
+    # type: (...) -> None
+    rows = get_csv_rows_for_installed(
+        record_rows,
+        installed=installed,
+        changed=changed,
+        generated=generated,
+        lib_dir=lib_dir)
+
+    with _generate_file(
+            record_path,
+            generated_file_mode,
+            **csv_io_kwargs('w')) as record_file:
+        # The type mypy infers for record_file is different for Python 3
+        # (typing.IO[Any]) and Python 2 (typing.BinaryIO). We explicitly
+        # cast to typing.IO[str] as a workaround.
+        writer = csv.writer(cast('IO[str]', record_file))
+        writer.writerows(_normalized_outrows(rows))
+
+
 def _install_wheel(
     name,  # type: str
     wheel_zip,  # type: ZipFile
@@ -743,19 +780,11 @@ def _install_wheel(
 
     generated_file_mode = 0o666 & ~current_umask()
 
-    @contextlib.contextmanager
-    def _generate_file(path, **kwargs):
-        # type: (str, **Any) -> Iterator[NamedTemporaryFileResult]
-        with adjacent_tmp_file(path, **kwargs) as f:
-            yield f
-        os.chmod(f.name, generated_file_mode)
-        replace(f.name, path)
-
     dest_info_dir = os.path.join(lib_dir, info_dir)
 
     # Record pip as the installer
     installer_path = os.path.join(dest_info_dir, 'INSTALLER')
-    with _generate_file(installer_path) as installer_file:
+    with _generate_file(installer_path, generated_file_mode) as installer_file:
         installer_file.write(b'pip\n')
     generated.append(installer_path)
 
@@ -768,7 +797,8 @@ def _install_wheel(
     # Record the PEP 610 direct URL reference
     if direct_url is not None:
         direct_url_path = os.path.join(dest_info_dir, DIRECT_URL_METADATA_NAME)
-        with _generate_file(direct_url_path) as direct_url_file:
+        with _generate_file(
+                direct_url_path, generated_file_mode) as direct_url_file:
             direct_url_file.write(direct_url.to_json().encode("utf-8"))
         generated.append(direct_url_path)
 
@@ -782,22 +812,17 @@ def _install_wheel(
     record_text = distribution.get_metadata('RECORD')
     record_rows = list(csv.reader(record_text.splitlines()))
 
-    rows = get_csv_rows_for_installed(
-        record_rows,
-        installed=installed,
-        changed=changed,
-        generated=generated,
-        lib_dir=lib_dir)
-
     # Record details of all files installed
     record_path = os.path.join(dest_info_dir, 'RECORD')
-
-    with _generate_file(record_path, **csv_io_kwargs('w')) as record_file:
-        # The type mypy infers for record_file is different for Python 3
-        # (typing.IO[Any]) and Python 2 (typing.BinaryIO). We explicitly
-        # cast to typing.IO[str] as a workaround.
-        writer = csv.writer(cast('IO[str]', record_file))
-        writer.writerows(_normalized_outrows(rows))
+    write_record_file(
+        record_path,
+        record_rows,
+        installed,
+        changed,
+        generated,
+        lib_dir,
+        generated_file_mode
+    )
 
 
 @contextlib.contextmanager

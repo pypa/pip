@@ -193,6 +193,25 @@ def _build_one(
         )
 
 
+def _create_hash_file(
+    req,  # type: InstallRequirement
+    wheel_path,  # type: str
+):
+    # type: (...) -> None
+    assert req.name
+    assert req.local_file_path
+
+    with ZipFile(wheel_path, mode='a', allowZip64=True) as wheel_zip:
+        info_dir, metadata = parse_wheel(wheel_zip, req.name)
+        hash_file_path = os.path.join(info_dir, 'HASH')
+
+        dest_hash_file = NamedTemporaryFile(mode='w')
+        write_hash_file(req.local_file_path, dest_hash_file.name)
+        # TODO: Modify RECORD as well
+        wheel_zip.write(dest_hash_file.name, hash_file_path)
+        dest_hash_file.close()
+
+
 def _build_one_inside_env(
     req,  # type: InstallRequirement
     output_dir,  # type: str
@@ -223,16 +242,7 @@ def _build_one_inside_env(
 
         if wheel_path is not None:
             if req.local_file_path and os.path.isfile(req.local_file_path):
-                with ZipFile(
-                        wheel_path, mode='a', allowZip64=True) as wheel_zip:
-                    info_dir, metadata = parse_wheel(wheel_zip, req.name)
-                    hash_file_path = os.path.join(info_dir, 'HASH')
-
-                    dest_hash_file = NamedTemporaryFile(mode='w')
-                    write_hash_file(req.local_file_path, dest_hash_file.name)
-                    # TODO: Modify RECORD as well
-                    wheel_zip.write(dest_hash_file.name, hash_file_path)
-                    dest_hash_file.close()
+                _create_hash_file(req, wheel_path)
 
             wheel_name = os.path.basename(wheel_path)
             dest_path = os.path.join(output_dir, wheel_name)
