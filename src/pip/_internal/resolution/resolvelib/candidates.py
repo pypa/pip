@@ -1,13 +1,15 @@
 import logging
 import sys
 
-from pip._vendor.contextlib2 import suppress
 from pip._vendor.packaging.specifiers import InvalidSpecifier, SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
 
 from pip._internal.exceptions import HashError, MetadataInconsistent
-from pip._internal.network.lazy_wheel import dist_from_wheel_url
+from pip._internal.network.lazy_wheel import (
+    HTTPRangeRequestUnsupported,
+    dist_from_wheel_url,
+)
 from pip._internal.req.constructors import (
     install_req_from_editable,
     install_req_from_line,
@@ -309,16 +311,22 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
         if lazy_wheel and remote_wheel and not preparer.require_hashes:
             assert self._name is not None
             logger.info('Collecting %s', self._ireq.req or self._ireq)
-            # If RuntimeError is raised, fallback to self.dist.
-            with indent_log(), suppress(RuntimeError):
+            with indent_log():
                 logger.info(
                     'Obtaining dependency information from %s %s',
                     self._name, self._version,
                 )
                 url = self._link.url.split('#', 1)[0]
                 session = preparer.downloader._session
-                dist = dist_from_wheel_url(self._name, url, session)
-                self._check_metadata_consistency(dist)
+                try:
+                    dist = dist_from_wheel_url(self._name, url, session)
+                except HTTPRangeRequestUnsupported:
+                    logger.debug(
+                        'Failed to get dependency information '
+                        'using HTTP range requests from %s', url,
+                    )
+                else:
+                    self._check_metadata_consistency(dist)
         return self._iter_dependencies(dist or self.dist)
 
     def _prepare_abstract_distribution(self):
