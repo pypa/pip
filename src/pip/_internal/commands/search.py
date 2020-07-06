@@ -19,7 +19,7 @@ from pip._internal.models.index import PyPI
 from pip._internal.network.xmlrpc import PipXmlrpcTransport
 from pip._internal.utils.compat import get_terminal_size
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.misc import write_output
+from pip._internal.utils.misc import get_distribution, write_output
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -139,7 +139,7 @@ def print_results(hits, name_column_width=None, terminal_width=None):
         try:
             write_output(line)
             if name in installed_packages:
-                dist = pkg_resources.get_distribution(name)
+                dist = get_distribution(name)
                 with indent_log():
                     if dist.version == latest:
                         write_output('INSTALLED: %s (latest)', dist.version)

@@ -41,6 +41,7 @@ from pip._internal.utils.misc import (
     display_path,
     dist_in_site_packages,
     dist_in_usersite,
+    get_distribution,
     get_installed_version,
     hide_url,
     redact_auth_from_url,
@@ -434,12 +435,17 @@ class InstallRequirement(object):
         # evaluate it.
         no_marker = Requirement(str(self.req))
         no_marker.marker = None
+
+        # pkg_resources uses the canonical name to look up packages, but
+        # the name passed passed to get_distribution is not canonicalized
+        # so we have to explicitly convert it to a canonical name
+        no_marker.name = canonicalize_name(no_marker.name)
         try:
             self.satisfied_by = pkg_resources.get_distribution(str(no_marker))
         except pkg_resources.DistributionNotFound:
             return
         except pkg_resources.VersionConflict:
-            existing_dist = pkg_resources.get_distribution(
+            existing_dist = get_distribution(
                 self.req.name
             )
             if use_user_site:
@@ -679,13 +685,11 @@ class InstallRequirement(object):
 
         """
         assert self.req
-        try:
-            dist = pkg_resources.get_distribution(self.req.name)
-        except pkg_resources.DistributionNotFound:
+        dist = get_distribution(self.req.name)
+        if not dist:
             logger.warning("Skipping %s as it is not installed.", self.name)
             return None
-        else:
-            logger.info('Found existing installation: %s', dist)
+        logger.info('Found existing installation: %s', dist)
 
         uninstalled_pathset = UninstallPathSet.from_dist(dist)
         uninstalled_pathset.remove(auto_confirm, verbose)
