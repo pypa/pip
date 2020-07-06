@@ -11,7 +11,7 @@ from pip._internal.req.constructors import (
     install_req_from_line,
 )
 from pip._internal.req.req_install import InstallRequirement
-from pip._internal.utils.misc import normalize_version_info
+from pip._internal.utils.misc import dist_is_editable, normalize_version_info
 from pip._internal.utils.packaging import get_requires_python
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -261,6 +261,8 @@ class _InstallRequirementBackedCandidate(Candidate):
 
 
 class LinkCandidate(_InstallRequirementBackedCandidate):
+    is_editable = False
+
     def __init__(
         self,
         link,          # type: Link
@@ -299,6 +301,8 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
 
 
 class EditableCandidate(_InstallRequirementBackedCandidate):
+    is_editable = True
+
     def __init__(
         self,
         link,          # type: Link
@@ -375,6 +379,11 @@ class AlreadyInstalledCandidate(Candidate):
     def version(self):
         # type: () -> _BaseVersion
         return self.dist.parsed_version
+
+    @property
+    def is_editable(self):
+        # type: () -> bool
+        return dist_is_editable(self.dist)
 
     def format_for_error(self):
         # type: () -> str
@@ -466,8 +475,13 @@ class ExtrasCandidate(Candidate):
 
     @property
     def is_installed(self):
-        # type: () -> _BaseVersion
+        # type: () -> bool
         return self.base.is_installed
+
+    @property
+    def is_editable(self):
+        # type: () -> bool
+        return self.base.is_editable
 
     @property
     def source_link(self):
