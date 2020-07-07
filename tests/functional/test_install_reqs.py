@@ -1,3 +1,4 @@
+import json
 import os
 import textwrap
 
@@ -5,6 +6,7 @@ import pytest
 
 from tests.lib import (
     _create_test_package_with_subdirectory,
+    create_basic_sdist_for_package,
     create_basic_wheel_for_package,
     need_svn,
     path_to_url,
@@ -13,6 +15,51 @@ from tests.lib import (
 )
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
+
+
+class ArgRecordingSdist(object):
+    def __init__(self, sdist_path, args_path):
+        self.sdist_path = sdist_path
+        self._args_path = args_path
+
+    def args(self):
+        return json.loads(self._args_path.read_text())
+
+
+@pytest.fixture()
+def arg_recording_sdist_maker(script):
+    arg_writing_setup_py = textwrap.dedent(
+        """
+        import io
+        import json
+        import os
+        import sys
+
+        from setuptools import setup
+
+        args_path = os.path.join(os.environ["OUTPUT_DIR"], "{name}.json")
+        with open(args_path, 'w') as f:
+            json.dump(sys.argv, f)
+
+        setup(name={name!r}, version="0.1.0")
+        """
+    )
+    output_dir = script.scratch_path.joinpath(
+        "args_recording_sdist_maker_output"
+    )
+    output_dir.mkdir(parents=True)
+    script.environ["OUTPUT_DIR"] = str(output_dir)
+
+    def _arg_recording_sdist_maker(name):
+        # type: (str) -> ArgRecordingSdist
+        extra_files = {"setup.py": arg_writing_setup_py.format(name=name)}
+        sdist_path = create_basic_sdist_for_package(
+            script, name, "0.1.0", extra_files
+        )
+        args_path = output_dir / "{}.json".format(name)
+        return ArgRecordingSdist(sdist_path, args_path)
+
+    return _arg_recording_sdist_maker
 
 
 @pytest.mark.network
@@ -605,7 +652,42 @@ def test_install_unsupported_wheel_file(script, data):
     assert len(result.files_created) == 0
 
 
-def test_install_options_local_to_package(script, data):
+def test_install_options_local_to_package(script, arg_recording_sdist_maker):
+    """Make sure --install-options does not leak across packages.
+
+    A requirements.txt file can have per-package --install-options; these
+    should be isolated to just the package instead of leaking to subsequent
+    packages.  This needs to be a functional test because the bug was around
+    cross-contamination at install time.
+    """
+
+    simple1_sdist = arg_recording_sdist_maker("simple1")
+    simple2_sdist = arg_recording_sdist_maker("simple2")
+
+    reqs_file = script.scratch_path.joinpath("reqs.txt")
+    reqs_file.write_text(
+        textwrap.dedent(
+            """
+            simple1 --install-option='-O0'
+            simple2
+            """
+        )
+    )
+    script.pip(
+        'install',
+        '--no-index', '-f', str(simple1_sdist.sdist_path.parent),
+        '-r', reqs_file,
+    )
+
+    simple1_args = simple1_sdist.args()
+    assert 'install' in simple1_args
+    assert '-O0' in simple1_args
+    simple2_args = simple2_sdist.args()
+    assert 'install' in simple2_args
+    assert '-O0' not in simple2_args
+
+
+def test_install_options_local_to_package_old(script, data):
     """Make sure --install-options does not leak across packages.
 
     A requirements.txt file can have per-package --install-options; these
