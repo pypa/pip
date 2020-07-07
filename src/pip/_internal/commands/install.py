@@ -433,7 +433,8 @@ class InstallCommand(RequirementCommand):
 
             return ERROR
 
-        if options.target_dir and target_temp_dir:
+        if options.target_dir:
+            assert target_temp_dir
             self._handle_target_dir(
                 options.target_dir, target_temp_dir, options.upgrade
             )
