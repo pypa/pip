@@ -21,7 +21,6 @@ from pip._internal.locations import distutils_scheme
 from pip._internal.operations.check import check_install_conflicts
 from pip._internal.req import install_given_reqs
 from pip._internal.req.req_tracker import get_requirement_tracker
-from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.distutils_args import parse_distutils_args
 from pip._internal.utils.filesystem import test_writable_dir
 from pip._internal.utils.misc import (
@@ -639,20 +638,12 @@ def warn_deprecated_install_options(requirements, options):
     if not offenders:
         return
 
-    deprecated(
-        reason=(
-            "Location-changing options found in --install-option: {}. "
-            "This configuration may cause unexpected behavior and is "
-            "unsupported.".format(
-                "; ".join(offenders)
-            )
-        ),
-        replacement=(
-            "using pip-level options like --user, --prefix, --root, and "
-            "--target"
-        ),
-        gone_in="20.2",
-        issue=7309,
+    raise CommandError(
+        "Location-changing options found in --install-option: {}."
+        " This is unsupported, use pip-level options like --user,"
+        " --prefix, --root, and --target instead.".format(
+            "; ".join(offenders)
+        )
     )
 
 

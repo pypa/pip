@@ -680,35 +680,14 @@ def test_install_options_local_to_package(script, arg_recording_sdist_maker):
     assert '-O0' not in simple2_args
 
 
-def test_install_options_local_to_package_old(script, data):
-    """Make sure --install-options does not leak across packages.
-
-    A requirements.txt file can have per-package --install-options; these
-    should be isolated to just the package instead of leaking to subsequent
-    packages.  This needs to be a functional test because the bug was around
-    cross-contamination at install time.
-    """
-    home_simple = script.scratch_path.joinpath("for-simple")
-    test_simple = script.scratch.joinpath("for-simple")
-    home_simple.mkdir()
+def test_location_related_install_option_fails(script):
+    simple_sdist = create_basic_sdist_for_package(script, "simple", "0.1.0")
     reqs_file = script.scratch_path.joinpath("reqs.txt")
-    reqs_file.write_text(
-        textwrap.dedent("""
-            simple --install-option='--home={home_simple}'
-            INITools
-            """.format(**locals())))
+    reqs_file.write_text("simple --install-option='--home=/tmp'")
     result = script.pip(
         'install',
-        '--no-index', '-f', data.find_links,
+        '--no-index', '-f', str(simple_sdist.parent),
         '-r', reqs_file,
-        expect_stderr=True,
+        expect_error=True
     )
-
-    simple = test_simple / 'lib' / 'python' / 'simple'
-    bad = test_simple / 'lib' / 'python' / 'initools'
-    good = script.site_packages / 'initools'
-    result.did_create(simple)
-    assert result.files_created[simple].dir
-    result.did_not_create(bad)
-    result.did_create(good)
-    assert result.files_created[good].dir
+    assert "['--home'] from simple" in result.stderr
