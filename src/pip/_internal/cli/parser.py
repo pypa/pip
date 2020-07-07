@@ -108,6 +108,13 @@ class UpdatingDefaultsHelpFormatter(PrettyHelpFormatter):
         return optparse.IndentedHelpFormatter.expand_default(self, option)
 
 
+class CustomOption(optparse.Option):
+
+    def process(self, opt, value, values, parser):
+        parser.provided_options.add(opt)
+        return super(CustomOption, self).process(opt, value, values, parser)
+
+
 class CustomOptionParser(optparse.OptionParser):
 
     def insert_option_group(self, idx, *args, **kwargs):
@@ -138,6 +145,9 @@ class ConfigOptionParser(CustomOptionParser):
 
         isolated = kwargs.pop("isolated", False)
         self.config = Configuration(isolated)
+        self.provided_options = set()
+
+        kwargs.setdefault("option_class", CustomOption)
 
         assert self.name
         optparse.OptionParser.__init__(self, *args, **kwargs)

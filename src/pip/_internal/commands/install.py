@@ -226,18 +226,33 @@ class InstallCommand(RequirementCommand):
         options.src_dir = os.path.abspath(options.src_dir)
         install_options = options.install_options or []
         if options.use_user_site:
+            explicit_opt = self.parser.provided_options
+            if "--user" not in explicit_opt:
+                # user option was implicit, so allow it to be disabled
+                # by explicit options
+                if options.prefix_path and "--prefix" in explicit_opt:
+                    options.use_user_site = False
+                if options.target_dir and "--target" in explicit_opt:
+                    options.use_user_site = False
+            if options.use_user_site:
+                if options.prefix_path:
+                    raise CommandError(
+                        "Can not combine '--user' and '--prefix' as they imply "
+                        "different installation locations"
+                    )
+                if options.target_dir:
+                    raise CommandError(
+                        "Can not combine '--user' and '--target' as they imply "
+                        "different installation locations"
+                    )
+                if virtualenv_no_global():
+                    raise InstallationError(
+                        "Can not perform a '--user' install. User site-packages "
+                        "are not visible in this virtualenv."
+                    )
+                install_options.append('--user')
             if options.prefix_path:
-                raise CommandError(
-                    "Can not combine '--user' and '--prefix' as they imply "
-                    "different installation locations"
-                )
-            if virtualenv_no_global():
-                raise InstallationError(
-                    "Can not perform a '--user' install. User site-packages "
-                    "are not visible in this virtualenv."
-                )
-            install_options.append('--user')
-            install_options.append('--prefix=')
+                install_options.append('--prefix=')
 
         target_temp_dir = TempDirectory(kind="target")
         if options.target_dir:
