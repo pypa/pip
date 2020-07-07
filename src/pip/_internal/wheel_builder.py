@@ -1,6 +1,7 @@
 """Orchestrator for building wheels from InstallRequirements.
 """
 
+import csv
 import logging
 import os.path
 import re
@@ -11,6 +12,11 @@ from zipfile import ZipFile
 from pip._internal.models.link import Link
 from pip._internal.operations.build.wheel import build_wheel_pep517
 from pip._internal.operations.build.wheel_legacy import build_wheel_legacy
+from pip._internal.operations.install.wheel import (
+    fs_to_record_path,
+    rehash,
+    write_record_file,
+)
 from pip._internal.utils.hashes import write_hash_file
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import ensure_dir, hash_file, is_wheel_installed
@@ -18,13 +24,14 @@ from pip._internal.utils.setuptools_build import make_setuptools_clean_args
 from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.unpacking import current_umask
 from pip._internal.utils.urls import path_to_url
 from pip._internal.utils.wheel import parse_wheel
 from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Any, Callable, Iterable, List, Optional, Tuple,
+        Any, Callable, Iterable, List, Optional, Tuple, cast
     )
 
     from pip._internal.cache import WheelCache
@@ -32,6 +39,8 @@ if MYPY_CHECK_RUNNING:
 
     BinaryAllowedPredicate = Callable[[InstallRequirement], bool]
     BuildResult = Tuple[List[InstallRequirement], List[InstallRequirement]]
+else:
+    from pip._internal.utils.typing import cast
 
 logger = logging.getLogger(__name__)
 
@@ -193,6 +202,45 @@ def _build_one(
         )
 
 
+def _update_record_file(
+    info_dir,  # type: str
+    wheel_zip,  # type: ZipFile
+    record_path,  # type: str
+    hash_file_path,  # type: str
+    temp_hash_file_path,  # type: str
+    wheel_path,  # type: str
+):
+    # type: (...) -> None
+    with wheel_zip.open(record_path, mode='r') as f:
+        record_text = f.read().decode('utf-8')
+
+    record_rows = list(cast('Any', csv.reader(record_text.splitlines())))
+
+    generated_file_mode = 0o666 & ~current_umask()
+
+    path = fs_to_record_path(hash_file_path, info_dir)
+    digest, length = rehash(temp_hash_file_path)
+    record_rows.append((path, digest, length))
+
+    temp_record_file = NamedTemporaryFile(mode='w')
+    write_record_file(
+        temp_record_file.name,
+        record_rows,
+        generated_file_mode
+    )
+
+    temp_zip_path = 'temp.zip'
+    with ZipFile(temp_zip_path, 'w') as zout:
+        for item in wheel_zip.infolist():
+            if item.filename == record_path:
+                # Write our new file instead
+                zout.write(temp_record_file.name, record_path)
+            else:
+                buff = wheel_zip.read(item.filename)
+                zout.writestr(item.filename, buff)
+    shutil.move(temp_zip_path, wheel_path)
+
+
 def _create_hash_file(
     req,  # type: InstallRequirement
     wheel_path,  # type: str
@@ -204,12 +252,20 @@ def _create_hash_file(
     with ZipFile(wheel_path, mode='a', allowZip64=True) as wheel_zip:
         info_dir, metadata = parse_wheel(wheel_zip, req.name)
         hash_file_path = os.path.join(info_dir, 'HASH')
+        record_path = os.path.join(info_dir, 'RECORD')
 
-        dest_hash_file = NamedTemporaryFile(mode='w')
-        write_hash_file(req.local_file_path, dest_hash_file.name)
-        # TODO: Modify RECORD as well
-        wheel_zip.write(dest_hash_file.name, hash_file_path)
-        dest_hash_file.close()
+        temp_hash_file = NamedTemporaryFile(mode='w')
+        write_hash_file(req.local_file_path, temp_hash_file.name)
+        _update_record_file(
+            info_dir,
+            wheel_zip,
+            record_path,
+            hash_file_path,
+            temp_hash_file.name,
+            wheel_path
+        )
+        wheel_zip.write(temp_hash_file.name, hash_file_path)
+        temp_hash_file.close()
 
 
 def _build_one_inside_env(

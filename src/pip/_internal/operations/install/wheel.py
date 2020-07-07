@@ -276,7 +276,7 @@ def _record_to_fs_path(record_path):
     return record_path
 
 
-def _fs_to_record_path(path, relative_to=None):
+def fs_to_record_path(path, relative_to=None):
     # type: (text_type, Optional[text_type]) -> RecordPath
     if relative_to is not None:
         # On Windows, do not handle relative paths if they belong to different
@@ -295,7 +295,7 @@ def _parse_record_path(record_column):
 
 
 def get_csv_rows_for_installed(
-    old_csv_rows,  # type: List[List[str]]
+    old_csv_rows,  # type: List[Tuple[RecordPath, str, Union[int, str]]]
     installed,  # type: Dict[RecordPath, RecordPath]
     changed,  # type: Set[RecordPath]
     generated,  # type: List[str]
@@ -310,16 +310,16 @@ def get_csv_rows_for_installed(
     for row in old_csv_rows:
         if len(row) > 3:
             logger.warning('RECORD line has more than three elements: %s', row)
-        old_record_path = _parse_record_path(row[0])
+        old_record_path = _parse_record_path(cast('str', row[0]))
         new_record_path = installed.pop(old_record_path, old_record_path)
         if new_record_path in changed:
             digest, length = rehash(_record_to_fs_path(new_record_path))
         else:
             digest = row[1] if len(row) > 1 else ''
-            length = row[2] if len(row) > 2 else ''
+            length = cast('str', row)[2] if len(row) > 2 else ''
         installed_rows.append((new_record_path, digest, length))
     for f in generated:
-        path = _fs_to_record_path(f, lib_dir)
+        path = fs_to_record_path(f, lib_dir)
         digest, length = rehash(f)
         installed_rows.append((path, digest, length))
     for installed_record_path in itervalues(installed):
@@ -499,21 +499,10 @@ def _generate_file(path, generated_file_mode, **kwargs):
 
 def write_record_file(
     record_path,  # type: str
-    record_rows,  # type: List[List[str]]
-    installed,  # type: Dict[RecordPath, RecordPath]
-    changed,  # type: Set[RecordPath]
-    generated,  # type: List[str]
-    lib_dir,  # type: str
+    updated_record_rows,  # type: List[Tuple[RecordPath, str, Union[int, str]]]
     generated_file_mode,  # type: int
 ):
     # type: (...) -> None
-    rows = get_csv_rows_for_installed(
-        record_rows,
-        installed=installed,
-        changed=changed,
-        generated=generated,
-        lib_dir=lib_dir)
-
     with _generate_file(
             record_path,
             generated_file_mode,
@@ -522,7 +511,7 @@ def write_record_file(
         # (typing.IO[Any]) and Python 2 (typing.BinaryIO). We explicitly
         # cast to typing.IO[str] as a workaround.
         writer = csv.writer(cast('IO[str]', record_file))
-        writer.writerows(_normalized_outrows(rows))
+        writer.writerows(_normalized_outrows(updated_record_rows))
 
 
 def _install_wheel(
@@ -569,10 +558,10 @@ def _install_wheel(
     def record_installed(srcfile, destfile, modified=False):
         # type: (RecordPath, text_type, bool) -> None
         """Map archive RECORD paths to installation RECORD paths."""
-        newpath = _fs_to_record_path(destfile, lib_dir)
+        newpath = fs_to_record_path(destfile, lib_dir)
         installed[srcfile] = newpath
         if modified:
-            changed.add(_fs_to_record_path(destfile))
+            changed.add(fs_to_record_path(destfile))
 
     def all_paths():
         # type: () -> Iterable[RecordPath]
@@ -810,17 +799,24 @@ def _install_wheel(
         generated.append(requested_path)
 
     record_text = distribution.get_metadata('RECORD')
-    record_rows = list(csv.reader(record_text.splitlines()))
+    record_rows = cast(
+        'List[Tuple[RecordPath, str, Union[int, str]]]',
+        list(csv.reader(record_text.splitlines()))
+    )
 
     # Record details of all files installed
     record_path = os.path.join(dest_info_dir, 'RECORD')
+
+    rows = get_csv_rows_for_installed(
+        record_rows,
+        installed=installed,
+        changed=changed,
+        generated=generated,
+        lib_dir=lib_dir)
+
     write_record_file(
         record_path,
-        record_rows,
-        installed,
-        changed,
-        generated,
-        lib_dir,
+        rows,
         generated_file_mode
     )
 
