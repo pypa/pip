@@ -7,6 +7,7 @@ import collections
 import compileall
 import contextlib
 import csv
+import importlib
 import logging
 import os.path
 import re
@@ -21,14 +22,7 @@ from zipfile import ZipFile
 from pip._vendor import pkg_resources
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor.distlib.util import get_export_entry
-from pip._vendor.six import (
-    PY2,
-    StringIO,
-    ensure_str,
-    ensure_text,
-    itervalues,
-    text_type,
-)
+from pip._vendor.six import PY2, ensure_str, ensure_text, itervalues, text_type
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_major_minor_version
@@ -38,7 +32,10 @@ from pip._internal.utils.misc import captured_stdout, ensure_dir, hash_file
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.unpacking import current_umask, unpack_file
-from pip._internal.utils.wheel import parse_wheel
+from pip._internal.utils.wheel import (
+    parse_wheel,
+    pkg_resources_distribution_for_wheel,
+)
 
 # Use the custom cast function at runtime to make cast work,
 # and import typing.cast when performing pre-commit and type
@@ -63,6 +60,8 @@ else:
         Union,
         cast,
     )
+
+    from pip._vendor.pkg_resources import Distribution
 
     from pip._internal.models.scheme import Scheme
     from pip._internal.utils.filesystem import NamedTemporaryFileResult
@@ -102,19 +101,20 @@ def fix_script(path):
     Return True if file was changed.
     """
     # XXX RECORD hashes will need to be updated
-    if os.path.isfile(path):
-        with open(path, 'rb') as script:
-            firstline = script.readline()
-            if not firstline.startswith(b'#!python'):
-                return False
-            exename = sys.executable.encode(sys.getfilesystemencoding())
-            firstline = b'#!' + exename + os.linesep.encode("ascii")
-            rest = script.read()
-        with open(path, 'wb') as script:
-            script.write(firstline)
-            script.write(rest)
-        return True
-    return None
+    if not os.path.isfile(path):
+        return None
+
+    with open(path, 'rb') as script:
+        firstline = script.readline()
+        if not firstline.startswith(b'#!python'):
+            return False
+        exename = sys.executable.encode(sys.getfilesystemencoding())
+        firstline = b'#!' + exename + os.linesep.encode("ascii")
+        rest = script.read()
+    with open(path, 'wb') as script:
+        script.write(firstline)
+        script.write(rest)
+    return True
 
 
 def wheel_root_is_purelib(metadata):
@@ -122,26 +122,16 @@ def wheel_root_is_purelib(metadata):
     return metadata.get("Root-Is-Purelib", "").lower() == "true"
 
 
-def get_entrypoints(filename):
-    # type: (str) -> Tuple[Dict[str, str], Dict[str, str]]
-    if not os.path.exists(filename):
-        return {}, {}
-
-    # This is done because you can pass a string to entry_points wrappers which
-    # means that they may or may not be valid INI files. The attempt here is to
-    # strip leading and trailing whitespace in order to make them valid INI
-    # files.
-    with open(filename) as fp:
-        data = StringIO()
-        for line in fp:
-            data.write(line.strip())
-            data.write("\n")
-        data.seek(0)
-
+def get_entrypoints(distribution):
+    # type: (Distribution) -> Tuple[Dict[str, str], Dict[str, str]]
     # get the entry points and then the script names
-    entry_points = pkg_resources.EntryPoint.parse_map(data)
-    console = entry_points.get('console_scripts', {})
-    gui = entry_points.get('gui_scripts', {})
+    try:
+        console = distribution.get_entry_map('console_scripts')
+        gui = distribution.get_entry_map('gui_scripts')
+    except KeyError:
+        # Our dict-based Distribution raises KeyError if entry_points.txt
+        # doesn't exist.
+        return {}, {}
 
     def _split_ep(s):
         # type: (pkg_resources.EntryPoint) -> Tuple[str, str]
@@ -278,7 +268,7 @@ def _parse_record_path(record_column):
 
 
 def get_csv_rows_for_installed(
-    old_csv_rows,  # type: Iterable[List[str]]
+    old_csv_rows,  # type: List[List[str]]
     installed,  # type: Dict[RecordPath, RecordPath]
     changed,  # type: Set[RecordPath]
     generated,  # type: List[str]
@@ -312,6 +302,92 @@ def get_csv_rows_for_installed(
     return installed_rows
 
 
+def get_console_script_specs(console):
+    # type: (Dict[str, str]) -> List[str]
+    """
+    Given the mapping from entrypoint name to callable, return the relevant
+    console script specs.
+    """
+    # Don't mutate caller's version
+    console = console.copy()
+
+    scripts_to_generate = []
+
+    # Special case pip and setuptools to generate versioned wrappers
+    #
+    # The issue is that some projects (specifically, pip and setuptools) use
+    # code in setup.py to create "versioned" entry points - pip2.7 on Python
+    # 2.7, pip3.3 on Python 3.3, etc. But these entry points are baked into
+    # the wheel metadata at build time, and so if the wheel is installed with
+    # a *different* version of Python the entry points will be wrong. The
+    # correct fix for this is to enhance the metadata to be able to describe
+    # such versioned entry points, but that won't happen till Metadata 2.0 is
+    # available.
+    # In the meantime, projects using versioned entry points will either have
+    # incorrect versioned entry points, or they will not be able to distribute
+    # "universal" wheels (i.e., they will need a wheel per Python version).
+    #
+    # Because setuptools and pip are bundled with _ensurepip and virtualenv,
+    # we need to use universal wheels. So, as a stopgap until Metadata 2.0, we
+    # override the versioned entry points in the wheel and generate the
+    # correct ones. This code is purely a short-term measure until Metadata 2.0
+    # is available.
+    #
+    # To add the level of hack in this section of code, in order to support
+    # ensurepip this code will look for an ``ENSUREPIP_OPTIONS`` environment
+    # variable which will control which version scripts get installed.
+    #
+    # ENSUREPIP_OPTIONS=altinstall
+    #   - Only pipX.Y and easy_install-X.Y will be generated and installed
+    # ENSUREPIP_OPTIONS=install
+    #   - pipX.Y, pipX, easy_install-X.Y will be generated and installed. Note
+    #     that this option is technically if ENSUREPIP_OPTIONS is set and is
+    #     not altinstall
+    # DEFAULT
+    #   - The default behavior is to install pip, pipX, pipX.Y, easy_install
+    #     and easy_install-X.Y.
+    pip_script = console.pop('pip', None)
+    if pip_script:
+        if "ENSUREPIP_OPTIONS" not in os.environ:
+            scripts_to_generate.append('pip = ' + pip_script)
+
+        if os.environ.get("ENSUREPIP_OPTIONS", "") != "altinstall":
+            scripts_to_generate.append(
+                'pip{} = {}'.format(sys.version_info[0], pip_script)
+            )
+
+        scripts_to_generate.append(
+            'pip{} = {}'.format(get_major_minor_version(), pip_script)
+        )
+        # Delete any other versioned pip entry points
+        pip_ep = [k for k in console if re.match(r'pip(\d(\.\d)?)?$', k)]
+        for k in pip_ep:
+            del console[k]
+    easy_install_script = console.pop('easy_install', None)
+    if easy_install_script:
+        if "ENSUREPIP_OPTIONS" not in os.environ:
+            scripts_to_generate.append(
+                'easy_install = ' + easy_install_script
+            )
+
+        scripts_to_generate.append(
+            'easy_install-{} = {}'.format(
+                get_major_minor_version(), easy_install_script
+            )
+        )
+        # Delete any other versioned easy_install entry points
+        easy_install_ep = [
+            k for k in console if re.match(r'easy_install(-\d\.\d)?$', k)
+        ]
+        for k in easy_install_ep:
+            del console[k]
+
+    # Generate the console entry points specified in the wheel
+    scripts_to_generate.extend(starmap('{} = {}'.format, console.items()))
+
+    return scripts_to_generate
+
+
 class MissingCallableSuffix(Exception):
     pass
 
@@ -334,11 +410,13 @@ def install_unpacked_wheel(
     name,  # type: str
     wheeldir,  # type: str
     wheel_zip,  # type: ZipFile
+    wheel_path,  # type: str
     scheme,  # type: Scheme
     req_description,  # type: str
     pycompile=True,  # type: bool
     warn_script_location=True,  # type: bool
     direct_url=None,  # type: Optional[DirectUrl]
+    requested=False,  # type: bool
 ):
     # type: (...) -> None
     """Install a wheel.
@@ -357,10 +435,6 @@ def install_unpacked_wheel(
           Wheel-Version
         * when the .dist-info dir does not match the wheel
     """
-    # TODO: Investigate and break this up.
-    # TODO: Look into moving this into a dedicated class for representing an
-    #       installation.
-
     source = wheeldir.rstrip(os.path.sep) + os.path.sep
 
     info_dir, metadata = parse_wheel(wheel_zip, name)
@@ -370,9 +444,6 @@ def install_unpacked_wheel(
     else:
         lib_dir = scheme.platlib
 
-    subdirs = os.listdir(source)
-    data_dirs = [s for s in subdirs if s.endswith('.data')]
-
     # Record details of the files moved
     #   installed = files copied from the wheel to the destination
     #   changed = files changed while installing (scripts #! line typically)
@@ -380,14 +451,6 @@ def install_unpacked_wheel(
     installed = {}  # type: Dict[RecordPath, RecordPath]
     changed = set()  # type: Set[RecordPath]
     generated = []  # type: List[str]
-
-    # Compile all of the pyc files that we're going to be installing
-    if pycompile:
-        with captured_stdout() as stdout:
-            with warnings.catch_warnings():
-                warnings.filterwarnings('ignore')
-                compileall.compile_dir(source, force=True, quiet=True)
-        logger.debug(stdout.getvalue())
 
     def record_installed(srcfile, destfile, modified=False):
         # type: (text_type, text_type, bool) -> None
@@ -468,11 +531,11 @@ def install_unpacked_wheel(
         True,
     )
 
-    dest_info_dir = os.path.join(lib_dir, info_dir)
-
     # Get the defined entry points
-    ep_file = os.path.join(dest_info_dir, 'entry_points.txt')
-    console, gui = get_entrypoints(ep_file)
+    distribution = pkg_resources_distribution_for_wheel(
+        wheel_zip, name, wheel_path
+    )
+    console, gui = get_entrypoints(distribution)
 
     def is_entrypoint_wrapper(name):
         # type: (text_type) -> bool
@@ -489,6 +552,10 @@ def install_unpacked_wheel(
         # Ignore setuptools-generated scripts
         return (matchname in console or matchname in gui)
 
+    # Zip file path separators must be /
+    subdirs = set(p.split("/", 1)[0] for p in wheel_zip.namelist())
+    data_dirs = [s for s in subdirs if s.endswith('.data')]
+
     for datadir in data_dirs:
         fixer = None
         filter = None
@@ -497,15 +564,63 @@ def install_unpacked_wheel(
             if subdir == 'scripts':
                 fixer = fix_script
                 filter = is_entrypoint_wrapper
-            source = os.path.join(wheeldir, datadir, subdir)
+            full_datadir_path = os.path.join(wheeldir, datadir, subdir)
             dest = getattr(scheme, subdir)
             clobber(
-                ensure_text(source, encoding=sys.getfilesystemencoding()),
+                ensure_text(
+                    full_datadir_path, encoding=sys.getfilesystemencoding()
+                ),
                 ensure_text(dest, encoding=sys.getfilesystemencoding()),
                 False,
                 fixer=fixer,
                 filter=filter,
             )
+
+    def pyc_source_file_paths():
+        # type: () -> Iterator[text_type]
+        # We de-duplicate installation paths, since there can be overlap (e.g.
+        # file in .data maps to same location as file in wheel root).
+        # Sorting installation paths makes it easier to reproduce and debug
+        # issues related to permissions on existing files.
+        for installed_path in sorted(set(installed.values())):
+            full_installed_path = os.path.join(lib_dir, installed_path)
+            if not os.path.isfile(full_installed_path):
+                continue
+            if not full_installed_path.endswith('.py'):
+                continue
+            yield full_installed_path
+
+    def pyc_output_path(path):
+        # type: (text_type) -> text_type
+        """Return the path the pyc file would have been written to.
+        """
+        if PY2:
+            if sys.flags.optimize:
+                return path + 'o'
+            else:
+                return path + 'c'
+        else:
+            return importlib.util.cache_from_source(path)
+
+    # Compile all of the pyc files for the installed files
+    if pycompile:
+        with captured_stdout() as stdout:
+            with warnings.catch_warnings():
+                warnings.filterwarnings('ignore')
+                for path in pyc_source_file_paths():
+                    # Python 2's `compileall.compile_file` requires a str in
+                    # error cases, so we must convert to the native type.
+                    path_arg = ensure_str(
+                        path, encoding=sys.getfilesystemencoding()
+                    )
+                    success = compileall.compile_file(
+                        path_arg, force=True, quiet=True
+                    )
+                    if success:
+                        pyc_path = pyc_output_path(path)
+                        assert os.path.exists(pyc_path)
+                        record_installed(pyc_path, pyc_path)
+        logger.debug(stdout.getvalue())
 
     maker = PipScriptMaker(None, scheme.scripts)
 
@@ -523,79 +638,8 @@ def install_unpacked_wheel(
     # See https://bitbucket.org/pypa/distlib/issue/32/
     maker.set_mode = True
 
-    scripts_to_generate = []
-
-    # Special case pip and setuptools to generate versioned wrappers
-    #
-    # The issue is that some projects (specifically, pip and setuptools) use
-    # code in setup.py to create "versioned" entry points - pip2.7 on Python
-    # 2.7, pip3.3 on Python 3.3, etc. But these entry points are baked into
-    # the wheel metadata at build time, and so if the wheel is installed with
-    # a *different* version of Python the entry points will be wrong. The
-    # correct fix for this is to enhance the metadata to be able to describe
-    # such versioned entry points, but that won't happen till Metadata 2.0 is
-    # available.
-    # In the meantime, projects using versioned entry points will either have
-    # incorrect versioned entry points, or they will not be able to distribute
-    # "universal" wheels (i.e., they will need a wheel per Python version).
-    #
-    # Because setuptools and pip are bundled with _ensurepip and virtualenv,
-    # we need to use universal wheels. So, as a stopgap until Metadata 2.0, we
-    # override the versioned entry points in the wheel and generate the
-    # correct ones. This code is purely a short-term measure until Metadata 2.0
-    # is available.
-    #
-    # To add the level of hack in this section of code, in order to support
-    # ensurepip this code will look for an ``ENSUREPIP_OPTIONS`` environment
-    # variable which will control which version scripts get installed.
-    #
-    # ENSUREPIP_OPTIONS=altinstall
-    #   - Only pipX.Y and easy_install-X.Y will be generated and installed
-    # ENSUREPIP_OPTIONS=install
-    #   - pipX.Y, pipX, easy_install-X.Y will be generated and installed. Note
-    #     that this option is technically if ENSUREPIP_OPTIONS is set and is
-    #     not altinstall
-    # DEFAULT
-    #   - The default behavior is to install pip, pipX, pipX.Y, easy_install
-    #     and easy_install-X.Y.
-    pip_script = console.pop('pip', None)
-    if pip_script:
-        if "ENSUREPIP_OPTIONS" not in os.environ:
-            scripts_to_generate.append('pip = ' + pip_script)
-
-        if os.environ.get("ENSUREPIP_OPTIONS", "") != "altinstall":
-            scripts_to_generate.append(
-                'pip{} = {}'.format(sys.version_info[0], pip_script)
-            )
-
-        scripts_to_generate.append(
-            'pip{} = {}'.format(get_major_minor_version(), pip_script)
-        )
-        # Delete any other versioned pip entry points
-        pip_ep = [k for k in console if re.match(r'pip(\d(\.\d)?)?$', k)]
-        for k in pip_ep:
-            del console[k]
-    easy_install_script = console.pop('easy_install', None)
-    if easy_install_script:
-        if "ENSUREPIP_OPTIONS" not in os.environ:
-            scripts_to_generate.append(
-                'easy_install = ' + easy_install_script
-            )
-
-        scripts_to_generate.append(
-            'easy_install-{} = {}'.format(
-                get_major_minor_version(), easy_install_script
-            )
-        )
-        # Delete any other versioned easy_install entry points
-        easy_install_ep = [
-            k for k in console if re.match(r'easy_install(-\d\.\d)?$', k)
-        ]
-        for k in easy_install_ep:
-            del console[k]
-
     # Generate the console and GUI entry points specified in the wheel
-    scripts_to_generate.extend(starmap('{} = {}'.format, console.items()))
+    scripts_to_generate = get_console_script_specs(console)
 
     gui_scripts_to_generate = list(starmap('{} = {}'.format, gui.items()))
 
@@ -632,6 +676,8 @@ def install_unpacked_wheel(
         os.chmod(f.name, generated_file_mode)
         replace(f.name, path)
 
+    dest_info_dir = os.path.join(lib_dir, info_dir)
+
     # Record pip as the installer
     installer_path = os.path.join(dest_info_dir, 'INSTALLER')
     with _generate_file(installer_path) as installer_file:
@@ -645,15 +691,26 @@ def install_unpacked_wheel(
             direct_url_file.write(direct_url.to_json().encode("utf-8"))
         generated.append(direct_url_path)
 
+    # Record the REQUESTED file
+    if requested:
+        requested_path = os.path.join(dest_info_dir, 'REQUESTED')
+        with open(requested_path, "w"):
+            pass
+        generated.append(requested_path)
+
+    record_text = distribution.get_metadata('RECORD')
+    record_rows = list(csv.reader(record_text.splitlines()))
+
+    rows = get_csv_rows_for_installed(
+        record_rows,
+        installed=installed,
+        changed=changed,
+        generated=generated,
+        lib_dir=lib_dir)
+
     # Record details of all files installed
     record_path = os.path.join(dest_info_dir, 'RECORD')
-    with open(record_path, **csv_io_kwargs('r')) as record_file:
-        rows = get_csv_rows_for_installed(
-            csv.reader(record_file),
-            installed=installed,
-            changed=changed,
-            generated=generated,
-            lib_dir=lib_dir)
+
     with _generate_file(record_path, **csv_io_kwargs('w')) as record_file:
         # The type mypy infers for record_file is different for Python 3
         # (typing.IO[Any]) and Python 2 (typing.BinaryIO). We explicitly
@@ -669,21 +726,23 @@ def install_wheel(
     req_description,  # type: str
     pycompile=True,  # type: bool
     warn_script_location=True,  # type: bool
-    _temp_dir_for_testing=None,  # type: Optional[str]
     direct_url=None,  # type: Optional[DirectUrl]
+    requested=False,  # type: bool
 ):
     # type: (...) -> None
     with TempDirectory(
-        path=_temp_dir_for_testing, kind="unpacked-wheel"
+        kind="unpacked-wheel"
     ) as unpacked_dir, ZipFile(wheel_path, allowZip64=True) as z:
         unpack_file(wheel_path, unpacked_dir.path)
         install_unpacked_wheel(
             name=name,
             wheeldir=unpacked_dir.path,
             wheel_zip=z,
+            wheel_path=wheel_path,
             scheme=scheme,
             req_description=req_description,
             pycompile=pycompile,
             warn_script_location=warn_script_location,
             direct_url=direct_url,
+            requested=requested,
         )

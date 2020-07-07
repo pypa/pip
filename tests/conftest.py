@@ -105,9 +105,9 @@ def use_new_resolver(request):
     """
     new_resolver = request.config.getoption("--new-resolver")
     if new_resolver:
-        os.environ["PIP_UNSTABLE_FEATURE"] = "resolver"
+        os.environ["PIP_USE_FEATURE"] = "2020-resolver"
     else:
-        os.environ.pop("PIP_UNSTABLE_FEATURE", None)
+        os.environ.pop("PIP_USE_FEATURE", None)
     yield new_resolver
 
 
@@ -206,7 +206,7 @@ def isolate(tmpdir):
     # and cause test failures.
     os.environ["GIT_CONFIG_NOSYSTEM"] = "1"
     os.environ["GIT_AUTHOR_NAME"] = "pip"
-    os.environ["GIT_AUTHOR_EMAIL"] = "pypa-dev@googlegroups.com"
+    os.environ["GIT_AUTHOR_EMAIL"] = "distutils-sig@python.org"
 
     # We want to disable the version check from running in the tests
     os.environ["PIP_DISABLE_PIP_VERSION_CHECK"] = "true"
@@ -218,7 +218,7 @@ def isolate(tmpdir):
     os.makedirs(os.path.join(home_dir, ".config", "git"))
     with open(os.path.join(home_dir, ".config", "git", "config"), "wb") as fp:
         fp.write(
-            b"[user]\n\tname = pip\n\temail = pypa-dev@googlegroups.com\n"
+            b"[user]\n\tname = pip\n\temail = distutils-sig@python.org\n"
         )
 
 

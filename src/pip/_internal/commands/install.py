@@ -1,10 +1,3 @@
-# The following comment should be removed at some point in the future.
-# It's included for now because without it InstallCommand.run() has a
-# couple errors where we have to know req.name is str rather than
-# Optional[str] for the InstallRequirement req.
-# mypy: strict-optional=False
-# mypy: disallow-untyped-defs=False
-
 from __future__ import absolute_import
 
 import errno
@@ -44,7 +37,7 @@ from pip._internal.wheel_builder import build, should_build_for_install_command
 
 if MYPY_CHECK_RUNNING:
     from optparse import Values
-    from typing import Any, Iterable, List, Optional
+    from typing import Iterable, List, Optional
 
     from pip._internal.models.format_control import FormatControl
     from pip._internal.req.req_install import InstallRequirement
@@ -233,7 +226,7 @@ class InstallCommand(RequirementCommand):
 
     @with_cleanup
     def run(self, options, args):
-        # type: (Values, List[Any]) -> int
+        # type: (Values, List[str]) -> int
         if options.use_user_site and options.target_dir is not None:
             raise CommandError("Can not combine '--user' and '--target'")
 
@@ -269,6 +262,7 @@ class InstallCommand(RequirementCommand):
             # Create a target directory for using with the target option
             target_temp_dir = TempDirectory(kind="target")
             target_temp_dir_path = target_temp_dir.path
+            self.enter_context(target_temp_dir)
 
         global_options = options.global_options or []
 
@@ -330,7 +324,7 @@ class InstallCommand(RequirementCommand):
             try:
                 pip_req = requirement_set.get_requirement("pip")
             except KeyError:
-                modifying_pip = None
+                modifying_pip = False
             else:
                 # If we're not replacing an already installed pip,
                 # we're not modifying it.
@@ -369,7 +363,8 @@ class InstallCommand(RequirementCommand):
                 raise InstallationError(
                     "Could not build wheels for {} which use"
                     " PEP 517 and cannot be installed directly".format(
-                        ", ".join(r.name for r in pep517_build_failures)))
+                        ", ".join(r.name  # type: ignore
+                                  for r in pep517_build_failures)))
 
             to_install = resolver.get_installation_order(
                 requirement_set
@@ -396,9 +391,9 @@ class InstallCommand(RequirementCommand):
                 root=options.root_path,
                 home=target_temp_dir_path,
                 prefix=options.prefix_path,
-                pycompile=options.compile,
                 warn_script_location=warn_script_location,
                 use_user_site=options.use_user_site,
+                pycompile=options.compile,
             )
 
             lib_locations = get_lib_location_guesses(
@@ -439,6 +434,7 @@ class InstallCommand(RequirementCommand):
             return ERROR
 
         if options.target_dir:
+            assert target_temp_dir
             self._handle_target_dir(
                 options.target_dir, target_temp_dir, options.upgrade
             )
@@ -446,62 +442,63 @@ class InstallCommand(RequirementCommand):
         return SUCCESS
 
     def _handle_target_dir(self, target_dir, target_temp_dir, upgrade):
+        # type: (str, TempDirectory, bool) -> None
         ensure_dir(target_dir)
 
         # Checking both purelib and platlib directories for installed
         # packages to be moved to target directory
         lib_dir_list = []
 
-        with target_temp_dir:
-            # Checking both purelib and platlib directories for installed
-            # packages to be moved to target directory
-            scheme = distutils_scheme('', home=target_temp_dir.path)
-            purelib_dir = scheme['purelib']
-            platlib_dir = scheme['platlib']
-            data_dir = scheme['data']
+        # Checking both purelib and platlib directories for installed
+        # packages to be moved to target directory
+        scheme = distutils_scheme('', home=target_temp_dir.path)
+        purelib_dir = scheme['purelib']
+        platlib_dir = scheme['platlib']
+        data_dir = scheme['data']
 
-            if os.path.exists(purelib_dir):
-                lib_dir_list.append(purelib_dir)
-            if os.path.exists(platlib_dir) and platlib_dir != purelib_dir:
-                lib_dir_list.append(platlib_dir)
-            if os.path.exists(data_dir):
-                lib_dir_list.append(data_dir)
+        if os.path.exists(purelib_dir):
+            lib_dir_list.append(purelib_dir)
+        if os.path.exists(platlib_dir) and platlib_dir != purelib_dir:
+            lib_dir_list.append(platlib_dir)
+        if os.path.exists(data_dir):
+            lib_dir_list.append(data_dir)
 
-            for lib_dir in lib_dir_list:
-                for item in os.listdir(lib_dir):
-                    if lib_dir == data_dir:
-                        ddir = os.path.join(data_dir, item)
-                        if any(s.startswith(ddir) for s in lib_dir_list[:-1]):
-                            continue
-                    target_item_dir = os.path.join(target_dir, item)
-                    if os.path.exists(target_item_dir):
-                        if not upgrade:
-                            logger.warning(
-                                'Target directory %s already exists. Specify '
-                                '--upgrade to force replacement.',
-                                target_item_dir
-                            )
-                            continue
-                        if os.path.islink(target_item_dir):
-                            logger.warning(
-                                'Target directory %s already exists and is '
-                                'a link. pip will not automatically replace '
-                                'links, please remove if replacement is '
-                                'desired.',
-                                target_item_dir
-                            )
-                            continue
-                        if os.path.isdir(target_item_dir):
-                            shutil.rmtree(target_item_dir)
-                        else:
-                            os.remove(target_item_dir)
+        for lib_dir in lib_dir_list:
+            for item in os.listdir(lib_dir):
+                if lib_dir == data_dir:
+                    ddir = os.path.join(data_dir, item)
+                    if any(s.startswith(ddir) for s in lib_dir_list[:-1]):
+                        continue
+                target_item_dir = os.path.join(target_dir, item)
+                if os.path.exists(target_item_dir):
+                    if not upgrade:
+                        logger.warning(
+                            'Target directory %s already exists. Specify '
+                            '--upgrade to force replacement.',
+                            target_item_dir
+                        )
+                        continue
+                    if os.path.islink(target_item_dir):
+                        logger.warning(
+                            'Target directory %s already exists and is '
+                            'a link. pip will not automatically replace '
+                            'links, please remove if replacement is '
+                            'desired.',
+                            target_item_dir
+                        )
+                        continue
+                    if os.path.isdir(target_item_dir):
+                        shutil.rmtree(target_item_dir)
+                    else:
+                        os.remove(target_item_dir)
 
-                    shutil.move(
-                        os.path.join(lib_dir, item),
-                        target_item_dir
-                    )
+                shutil.move(
+                    os.path.join(lib_dir, item),
+                    target_item_dir
+                )
 
     def _warn_about_conflicts(self, to_install):
+        # type: (List[InstallRequirement]) -> None
         try:
             package_set, _dep_info = check_install_conflicts(to_install)
         except Exception:
@@ -528,14 +525,24 @@ class InstallCommand(RequirementCommand):
                 )
 
 
-def get_lib_location_guesses(*args, **kwargs):
-    scheme = distutils_scheme('', *args, **kwargs)
+def get_lib_location_guesses(
+        user=False,  # type: bool
+        home=None,  # type: Optional[str]
+        root=None,  # type: Optional[str]
+        isolated=False,  # type: bool
+        prefix=None  # type: Optional[str]
+):
+    # type:(...) -> List[str]
+    scheme = distutils_scheme('', user=user, home=home, root=root,
+                              isolated=isolated, prefix=prefix)
     return [scheme['purelib'], scheme['platlib']]
 
 
-def site_packages_writable(**kwargs):
+def site_packages_writable(root, isolated):
+    # type: (Optional[str], bool) -> bool
     return all(
-        test_writable_dir(d) for d in set(get_lib_location_guesses(**kwargs))
+        test_writable_dir(d) for d in set(
+            get_lib_location_guesses(root=root, isolated=isolated))
     )
 
 
@@ -650,6 +657,7 @@ def warn_deprecated_install_options(requirements, options):
 
 
 def create_env_error_message(error, show_traceback, using_user_site):
+    # type: (EnvironmentError, bool, bool) -> str
     """Format an error message for an EnvironmentError
 
     It may occur anytime during the execution of the install command.

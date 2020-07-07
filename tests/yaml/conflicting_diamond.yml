@@ -9,9 +9,11 @@ cases:
   request:
     - install: A
   response:
-    - conflicting:
-      - required_by: [A 1.0.0, B 1.0.0]
-        selector: D == 1.0.0
-      - required_by: [A 1.0.0, C 1.0.0]
-        selector: D == 2.0.0
-  skip: true
+    - error:
+        code: 1
+        stderr: >-
+          Cannot install A and A because these package
+          versions have conflicting dependencies.
+        # TODO: Tweak this error message to make sense.
+        # https://github.com/pypa/pip/issues/8495
+  skip: old

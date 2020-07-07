@@ -9,7 +9,8 @@ from docutils.parsers import rst
 from docutils.statemachine import ViewList
 
 from pip._internal.cli import cmdoptions
-from pip._internal.commands import create_command
+from pip._internal.commands import commands_dict, create_command
+from pip._internal.req.req_file import SUPPORTED_OPTIONS
 
 
 class PipCommandUsage(rst.Directive):
@@ -108,9 +109,50 @@ class PipCommandOptions(PipOptions):
         )
 
 
+class PipReqFileOptionsReference(PipOptions):
+
+    def determine_opt_prefix(self, opt_name):
+        for command in commands_dict:
+            cmd = create_command(command)
+            if cmd.cmd_opts.has_option(opt_name):
+                return command
+
+        raise KeyError('Could not identify prefix of opt {}'.format(opt_name))
+
+    def process_options(self):
+        for option in SUPPORTED_OPTIONS:
+            if getattr(option, 'deprecated', False):
+                continue
+
+            opt = option()
+            opt_name = opt._long_opts[0]
+            if opt._short_opts:
+                short_opt_name = '{}, '.format(opt._short_opts[0])
+            else:
+                short_opt_name = ''
+
+            if option in cmdoptions.general_group['options']:
+                prefix = ''
+            else:
+                prefix = '{}_'.format(self.determine_opt_prefix(opt_name))
+
+            self.view_list.append(
+                '  *  :ref:`{short}{long}<{prefix}{opt_name}>`'.format(
+                    short=short_opt_name,
+                    long=opt_name,
+                    prefix=prefix,
+                    opt_name=opt_name
+                ),
+                "\n"
+            )
+
+
 def setup(app):
     app.add_directive('pip-command-usage', PipCommandUsage)
     app.add_directive('pip-command-description', PipCommandDescription)
     app.add_directive('pip-command-options', PipCommandOptions)
     app.add_directive('pip-general-options', PipGeneralOptions)
     app.add_directive('pip-index-options', PipIndexOptions)
+    app.add_directive(
+        'pip-requirements-file-options-ref-list', PipReqFileOptionsReference
+    )

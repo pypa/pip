@@ -19,7 +19,6 @@ from pip._internal.cli.parser import (
 from pip._internal.cli.status_codes import (
     ERROR,
     PREVIOUS_BUILD_DIR_ERROR,
-    SUCCESS,
     UNKNOWN_ERROR,
     VIRTUALENV_NOT_FOUND,
 )
@@ -106,7 +105,7 @@ class Command(CommandContextMixIn):
         assert not hasattr(options, 'no_index')
 
     def run(self, options, args):
-        # type: (Values, List[Any]) -> Any
+        # type: (Values, List[Any]) -> int
         raise NotImplementedError
 
     def parse_args(self, args):
@@ -149,7 +148,7 @@ class Command(CommandContextMixIn):
         ):
             message = (
                 "pip 21.0 will drop support for Python 2.7 in January 2021. "
-                "More details about Python 2 support in pip, can be found at "
+                "More details about Python 2 support in pip can be found at "
                 "https://pip.pypa.io/en/latest/development/release-process/#python-2-support"  # noqa
             )
             if platform.python_implementation() == "CPython":
@@ -191,12 +190,31 @@ class Command(CommandContextMixIn):
                 )
                 options.cache_dir = None
 
+        if getattr(options, "build_dir", None):
+            deprecated(
+                reason=(
+                    "The -b/--build/--build-dir/--build-directory "
+                    "option is deprecated."
+                ),
+                replacement=(
+                    "use the TMPDIR/TEMP/TMP environment variable, "
+                    "possibly combined with --no-clean"
+                ),
+                gone_in="20.3",
+                issue=8333,
+            )
+
+        if 'resolver' in options.unstable_features:
+            logger.critical(
+                "--unstable-feature=resolver is no longer supported, and "
+                "has been replaced with --use-feature=2020-resolver instead."
+            )
+            sys.exit(ERROR)
+
         try:
             status = self.run(options, args)
-            # FIXME: all commands should return an exit status
-            # and when it is done, isinstance is not needed anymore
-            if isinstance(status, int):
-                return status
+            assert isinstance(status, int)
+            return status
         except PreviousBuildDirError as exc:
             logger.critical(str(exc))
             logger.debug('Exception information:', exc_info=True)
@@ -232,5 +250,3 @@ class Command(CommandContextMixIn):
             return UNKNOWN_ERROR
         finally:
             self.handle_pip_version_check(options)
-
-        return SUCCESS

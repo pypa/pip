@@ -8,6 +8,9 @@ Vendoring Policy
 * Vendored libraries **MUST** be released copies of libraries available on
   PyPI.
 
+* Vendored libraries **MUST** be available under a license that allows
+  them to be integrated into ``pip``, which is released under the MIT license.
+
 * Vendored libraries **MUST** be accompanied with LICENSE files.
 
 * The versions of libraries vendored in pip **MUST** be reflected in
@@ -100,8 +103,9 @@ Modifications
 * ``setuptools`` is completely stripped to only keep ``pkg_resources``
 * ``pkg_resources`` has been modified to import its dependencies from ``pip._vendor``
 * ``packaging`` has been modified to import its dependencies from ``pip._vendor``
-* ``html5lib`` has been modified to import six from ``pip._vendor`` and
-  to prefer importing from ``collections.abc`` instead of ``collections``.
+* ``html5lib`` has been modified to import six from ``pip._vendor``, to prefer
+  importing from ``collections.abc`` instead of ``collections`` and does not import
+  ``xml.etree.cElementTree`` on Python 3.
 * ``CacheControl`` has been modified to import its dependencies from ``pip._vendor``
 * ``requests`` has been modified to import its other dependencies from ``pip._vendor``
   and to *not* load ``simplejson`` (all platforms) and ``pyopenssl`` (Windows).

@@ -18,6 +18,7 @@ import sys
 from collections import deque
 
 from pip._vendor import pkg_resources
+from pip._vendor.packaging.utils import canonicalize_name
 # NOTE: retrying is not annotated in typeshed as on 2017-07-17, which is
 #       why we ignore the type on this import.
 from pip._vendor.retrying import retry  # type: ignore
@@ -482,6 +483,40 @@ def get_installed_distributions(
             ]
 
 
+def search_distribution(req_name):
+
+    # Canonicalize the name before searching in the list of
+    # installed distributions and also while creating the package
+    # dictionary to get the Distribution object
+    req_name = canonicalize_name(req_name)
+    packages = get_installed_distributions(skip=())
+    pkg_dict = {canonicalize_name(p.key): p for p in packages}
+    return pkg_dict.get(req_name)
+
+
+def get_distribution(req_name):
+    """Given a requirement name, return the installed Distribution object"""
+
+    # Search the distribution by looking through the working set
+    dist = search_distribution(req_name)
+
+    # If distribution could not be found, call working_set.require
+    # to update the working set, and try to find the distribution
+    # again.
+    # This might happen for e.g. when you install a package
+    # twice, once using setup.py develop and again using setup.py install.
+    # Now when run pip uninstall twice, the package gets removed
+    # from the working set in the first uninstall, so we have to populate
+    # the working set again so that pip knows about it and the packages
+    # gets picked up and is successfully uninstalled the second time too.
+    if not dist:
+        try:
+            pkg_resources.working_set.require(req_name)
+        except pkg_resources.DistributionNotFound:
+            return None
+    return search_distribution(req_name)
+
+
 def egg_link_path(dist):
     # type: (Distribution) -> Optional[str]
     """
@@ -535,7 +570,7 @@ def dist_location(dist):
 
 
 def write_output(msg, *args):
-    # type: (str, str) -> None
+    # type: (Any, Any) -> None
 
     # Use args to format msg only when provided, otherwise
     # print msg directly. This avoids cases where msg contains
@@ -559,10 +594,7 @@ class FakeFile(object):
 
     def readline(self):
         try:
-            try:
-                return next(self._gen)
-            except NameError:
-                return self._gen.next()
+            return next(self._gen)
         except StopIteration:
             return ''
 
@@ -615,26 +647,6 @@ def captured_stderr():
     See captured_stdout().
     """
     return captured_output('stderr')
-
-
-class cached_property(object):
-    """A property that is only computed once per instance and then replaces
-       itself with an ordinary attribute. Deleting the attribute resets the
-       property.
-
-       Source: https://github.com/bottlepy/bottle/blob/0.11.5/bottle.py#L175
-    """
-
-    def __init__(self, func):
-        self.__doc__ = getattr(func, '__doc__')
-        self.func = func
-
-    def __get__(self, obj, cls):
-        if obj is None:
-            # We're being accessed from the class itself, not from an object
-            return self
-        value = obj.__dict__[self.func.__name__] = self.func(obj)
-        return value
 
 
 def get_installed_version(dist_name, working_set=None):

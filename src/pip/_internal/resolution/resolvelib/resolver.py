@@ -6,11 +6,12 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.resolvelib import BaseReporter, ResolutionImpossible
 from pip._vendor.resolvelib import Resolver as RLResolver
 
-from pip._internal.exceptions import DistributionNotFound, InstallationError
+from pip._internal.exceptions import InstallationError
+from pip._internal.req.req_install import check_invalid_constraint_type
 from pip._internal.req.req_set import RequirementSet
 from pip._internal.resolution.base import BaseResolver
 from pip._internal.resolution.resolvelib.provider import PipProvider
-from pip._internal.utils.deprecation import deprecated
+from pip._internal.utils.misc import dist_is_editable
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 from .factory import Factory
@@ -30,37 +31,6 @@ if MYPY_CHECK_RUNNING:
 
 
 logger = logging.getLogger(__name__)
-
-
-def reject_invalid_constraint_types(req):
-    # type: (InstallRequirement) -> None
-
-    # Check for unsupported forms
-    problem = ""
-    if not req.name:
-        problem = "Unnamed requirements are not allowed as constraints"
-    elif req.link:
-        problem = "Links are not allowed as constraints"
-    elif req.extras:
-        problem = "Constraints cannot have extras"
-
-    if problem:
-        deprecated(
-            reason=(
-                "Constraints are only allowed to take the form of a package "
-                "name and a version specifier. Other forms were originally "
-                "permitted as an accident of the implementation, but were "
-                "undocumented. The new implementation of the resolver no "
-                "longer supports these forms."
-            ),
-            replacement=(
-                "replacing the constraint with a requirement."
-            ),
-            # No plan yet for when the new resolver becomes default
-            gone_in=None,
-            issue=8210
-        )
-        raise InstallationError(problem)
 
 
 class Resolver(BaseResolver):
@@ -88,6 +58,7 @@ class Resolver(BaseResolver):
             finder=finder,
             preparer=preparer,
             make_install_req=make_install_req,
+            wheel_cache=wheel_cache,
             use_user_site=use_user_site,
             force_reinstall=force_reinstall,
             ignore_installed=ignore_installed,
@@ -105,11 +76,11 @@ class Resolver(BaseResolver):
         user_requested = set()  # type: Set[str]
         requirements = []
         for req in root_reqs:
-            if not req.match_markers():
-                continue
             if req.constraint:
                 # Ensure we only accept valid constraints
-                reject_invalid_constraint_types(req)
+                problem = check_invalid_constraint_type(req)
+                if problem:
+                    raise InstallationError(problem)
 
                 name = canonicalize_name(req.name)
                 if name in constraints:
@@ -117,11 +88,13 @@ class Resolver(BaseResolver):
                 else:
                     constraints[name] = req.specifier
             else:
-                if req.is_direct and req.name:
+                if req.user_supplied and req.name:
                     user_requested.add(canonicalize_name(req.name))
-                requirements.append(
-                    self.factory.make_requirement_from_install_req(req)
+                r = self.factory.make_requirement_from_install_req(
+                    req, requested_extras=(),
                 )
+                if r is not None:
+                    requirements.append(r)
 
         provider = PipProvider(
             factory=self.factory,
@@ -141,24 +114,6 @@ class Resolver(BaseResolver):
 
         except ResolutionImpossible as e:
             error = self.factory.get_installation_error(e)
-            if not error:
-                # TODO: This needs fixing, we need to look at the
-                # factory.get_installation_error infrastructure, as that
-                # doesn't really allow for the logger.critical calls I'm
-                # using here.
-                for req, parent in e.causes:
-                    logger.critical(
-                        "Could not find a version that satisfies " +
-                        "the requirement " +
-                        str(req) +
-                        ("" if parent is None else " (from {})".format(
-                            parent.name
-                        ))
-                    )
-                raise DistributionNotFound(
-                    "No matching distribution found for " +
-                    ", ".join([r.name for r, _ in e.causes])
-                )
             six.raise_from(error, e)
 
         req_set = RequirementSet(check_supported_wheels=check_supported_wheels)
@@ -166,7 +121,43 @@ class Resolver(BaseResolver):
             ireq = candidate.get_install_requirement()
             if ireq is None:
                 continue
-            ireq.should_reinstall = self.factory.should_reinstall(candidate)
+
+            # Check if there is already an installation under the same name,
+            # and set a flag for later stages to uninstall it, if needed.
+            # * There isn't, good -- no uninstalltion needed.
+            # * The --force-reinstall flag is set. Always reinstall.
+            # * The installation is different in version or editable-ness, so
+            #   we need to uninstall it to install the new distribution.
+            # * The installed version is the same as the pending distribution.
+            #   Skip this distrubiton altogether to save work.
+            installed_dist = self.factory.get_dist_to_uninstall(candidate)
+            if installed_dist is None:
+                ireq.should_reinstall = False
+            elif self.factory.force_reinstall:
+                ireq.should_reinstall = True
+            elif installed_dist.parsed_version != candidate.version:
+                ireq.should_reinstall = True
+            elif dist_is_editable(installed_dist) != candidate.is_editable:
+                ireq.should_reinstall = True
+            else:
+                continue
+
+            link = candidate.source_link
+            if link and link.is_yanked:
+                # The reason can contain non-ASCII characters, Unicode
+                # is required for Python 2.
+                msg = (
+                    u'The candidate selected for download or install is a '
+                    u'yanked version: {name!r} candidate (version {version} '
+                    u'at {link})\nReason for being yanked: {reason}'
+                ).format(
+                    name=candidate.name,
+                    version=candidate.version,
+                    link=link,
+                    reason=link.yanked_reason or u'<none given>',
+                )
+                logger.warning(msg)
+
             req_set.add_named_requirement(ireq)
 
         return req_set

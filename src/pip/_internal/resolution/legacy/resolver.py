@@ -28,6 +28,7 @@ from pip._internal.exceptions import (
     HashErrors,
     UnsupportedPythonVersion,
 )
+from pip._internal.req.req_install import check_invalid_constraint_type
 from pip._internal.req.req_set import RequirementSet
 from pip._internal.resolution.base import BaseResolver
 from pip._internal.utils.compatibility_tags import get_supported
@@ -167,6 +168,8 @@ class Resolver(BaseResolver):
             check_supported_wheels=check_supported_wheels
         )
         for req in root_reqs:
+            if req.constraint:
+                check_invalid_constraint_type(req)
             requirement_set.add_requirement(req)
 
         # Actually prepare the files, and collect any exceptions. Most hash
@@ -195,7 +198,7 @@ class Resolver(BaseResolver):
             return True
         else:
             assert self.upgrade_strategy == "only-if-needed"
-            return req.is_direct
+            return req.user_supplied or req.constraint
 
     def _set_req_to_reinstall(self, req):
         # type: (InstallRequirement) -> None
@@ -419,7 +422,7 @@ class Resolver(BaseResolver):
                 # 'unnamed' requirements will get added here
                 # 'unnamed' requirements can only come from being directly
                 # provided by the user.
-                assert req_to_install.is_direct
+                assert req_to_install.user_supplied
                 requirement_set.add_requirement(
                     req_to_install, parent_req_name=None,
                 )

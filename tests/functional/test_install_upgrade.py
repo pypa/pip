@@ -36,8 +36,10 @@ def test_invalid_upgrade_strategy_causes_error(script):
     assert "invalid choice" in result.stderr
 
 
-@pytest.mark.fails_on_new_resolver
-def test_only_if_needed_does_not_upgrade_deps_when_satisfied(script):
+def test_only_if_needed_does_not_upgrade_deps_when_satisfied(
+    script,
+    use_new_resolver
+):
     """
     It doesn't upgrade a dependency if it already satisfies the requirements.
 
@@ -57,9 +59,12 @@ def test_only_if_needed_does_not_upgrade_deps_when_satisfied(script):
             .format(**globals()))
         not in result.files_deleted
     ), "should not have uninstalled simple==2.0"
+
+    msg = "Requirement already satisfied"
+    if not use_new_resolver:
+        msg = msg + ", skipping upgrade: simple"
     assert (
-        "Requirement already satisfied, skipping upgrade: simple"
-        in result.stdout
+        msg in result.stdout
     ), "did not print correct message for not-upgraded requirement"
 
 
@@ -82,9 +87,7 @@ def test_only_if_needed_does_upgrade_deps_when_no_longer_satisfied(script):
         script.site_packages /
         'simple-3.0-py{pyversion}.egg-info'.format(**globals())
     )
-    assert (
-        expected in result.files_created
-    ), "should have installed simple==3.0"
+    result.did_create(expected, message="should have installed simple==3.0")
     expected = (
         script.site_packages /
         'simple-1.0-py{pyversion}.egg-info'.format(**globals())
@@ -131,11 +134,11 @@ def test_eager_does_upgrade_dependecies_when_no_longer_satisfied(script):
             'require_simple-1.0-py{pyversion}.egg-info'.format(**globals()))
         not in result.files_deleted
     ), "should have installed require_simple==1.0"
-    assert (
+    result.did_create(
         script.site_packages /
-        'simple-3.0-py{pyversion}.egg-info'.format(**globals())
-        in result.files_created
-    ), "should have installed simple==3.0"
+        'simple-3.0-py{pyversion}.egg-info'.format(**globals()),
+        message="should have installed simple==3.0"
+    )
     assert (
         script.site_packages /
         'simple-1.0-py{pyversion}.egg-info'.format(**globals())
@@ -159,10 +162,9 @@ def test_upgrade_to_specific_version(script):
         .format(**globals())
         in result.files_deleted
     )
-    assert (
+    result.did_create(
         script.site_packages / 'INITools-0.2-py{pyversion}.egg-info'
         .format(**globals())
-        in result.files_created
     )
 
 
@@ -175,15 +177,13 @@ def test_upgrade_if_requested(script):
     script.pip('install', 'INITools==0.1')
     result = script.pip('install', '--upgrade', 'INITools')
     assert result.files_created, 'pip install --upgrade did not upgrade'
-    assert (
+    result.did_not_create(
         script.site_packages /
         'INITools-0.1-py{pyversion}.egg-info'.format(**globals())
-        not in result.files_created
     )
 
 
-@pytest.mark.fails_on_new_resolver
-def test_upgrade_with_newest_already_installed(script, data):
+def test_upgrade_with_newest_already_installed(script, data, use_new_resolver):
     """
     If the newest version of a package is already installed, the package should
     not be reinstalled and the user should be informed.
@@ -193,7 +193,11 @@ def test_upgrade_with_newest_already_installed(script, data):
         'install', '--upgrade', '-f', data.find_links, '--no-index', 'simple'
     )
     assert not result.files_created, 'simple upgraded when it should not have'
-    assert 'already up-to-date' in result.stdout, result.stdout
+    if use_new_resolver:
+        msg = "Requirement already satisfied"
+    else:
+        msg = "already up-to-date"
+    assert msg in result.stdout, result.stdout
 
 
 @pytest.mark.network
@@ -203,9 +207,7 @@ def test_upgrade_force_reinstall_newest(script):
     version if --force-reinstall is supplied.
     """
     result = script.pip('install', 'INITools')
-    assert script.site_packages / 'initools' in result.files_created, (
-        sorted(result.files_created.keys())
-    )
+    result.did_create(script.site_packages / 'initools')
     result2 = script.pip(
         'install', '--upgrade', '--force-reinstall', 'INITools'
     )
@@ -221,9 +223,7 @@ def test_uninstall_before_upgrade(script):
 
     """
     result = script.pip('install', 'INITools==0.2')
-    assert script.site_packages / 'initools' in result.files_created, (
-        sorted(result.files_created.keys())
-    )
+    result.did_create(script.site_packages / 'initools')
     result2 = script.pip('install', 'INITools==0.3')
     assert result2.files_created, 'upgrade to INITools 0.3 failed'
     result3 = script.pip('uninstall', 'initools', '-y')
@@ -237,9 +237,7 @@ def test_uninstall_before_upgrade_from_url(script):
 
     """
     result = script.pip('install', 'INITools==0.2')
-    assert script.site_packages / 'initools' in result.files_created, (
-        sorted(result.files_created.keys())
-    )
+    result.did_create(script.site_packages / 'initools')
     result2 = script.pip(
         'install',
         'https://files.pythonhosted.org/packages/source/I/INITools/INITools-'
@@ -251,7 +249,6 @@ def test_uninstall_before_upgrade_from_url(script):
 
 
 @pytest.mark.network
-@pytest.mark.fails_on_new_resolver
 def test_upgrade_to_same_version_from_url(script):
     """
     When installing from a URL the same version that is already installed, no
@@ -259,9 +256,7 @@ def test_upgrade_to_same_version_from_url(script):
 
     """
     result = script.pip('install', 'INITools==0.3')
-    assert script.site_packages / 'initools' in result.files_created, (
-        sorted(result.files_created.keys())
-    )
+    result.did_create(script.site_packages / 'initools')
     result2 = script.pip(
         'install',
         'https://files.pythonhosted.org/packages/source/I/INITools/INITools-'
@@ -315,9 +310,7 @@ def test_uninstall_rollback(script, data):
     result = script.pip(
         'install', '-f', data.find_links, '--no-index', 'broken==0.1'
     )
-    assert script.site_packages / 'broken.py' in result.files_created, list(
-        result.files_created.keys()
-    )
+    result.did_create(script.site_packages / 'broken.py')
     result2 = script.pip(
         'install', '-f', data.find_links, '--no-index', 'broken===0.2broken',
         expect_error=True,
@@ -342,15 +335,13 @@ def test_should_not_install_always_from_cache(script):
     script.pip('install', 'INITools==0.2')
     script.pip('uninstall', '-y', 'INITools')
     result = script.pip('install', 'INITools==0.1')
-    assert (
+    result.did_not_create(
         script.site_packages /
         'INITools-0.2-py{pyversion}.egg-info'.format(**globals())
-        not in result.files_created
     )
-    assert (
+    result.did_create(
         script.site_packages /
         'INITools-0.1-py{pyversion}.egg-info'.format(**globals())
-        in result.files_created
     )
 
 

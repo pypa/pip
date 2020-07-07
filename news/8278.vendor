@@ -1,0 +1,1 @@
+Vendored htmlib5 no longer imports deprecated xml.etree.cElementTree on Python 3.

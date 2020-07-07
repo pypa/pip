@@ -22,6 +22,7 @@ if MYPY_CHECK_RUNNING:
     from types import ModuleType
     from typing import List, Optional, Dict
     from optparse import Values
+    from pip._internal.configuration import Configuration
 
 logger = logging.getLogger(__name__)
 
@@ -86,8 +87,12 @@ def get_vendor_version_from_module(module_name):
 
     if not version:
         # Try to find version in debundled module info
+        # The type for module.__file__ is Optional[str] in
+        # Python 2, and str in Python 3. The type: ignore is
+        # added to account for Python 2, instead of a cast
+        # and should be removed once we drop Python 2 support
         pkg_set = pkg_resources.WorkingSet(
-            [os.path.dirname(getattr(module, '__file__'))]
+            [os.path.dirname(module.__file__)]  # type: ignore
         )
         package = pkg_set.find(pkg_resources.Requirement.parse(module_name))
         version = getattr(package, 'version', None)
@@ -164,9 +169,9 @@ def show_tags(options):
 
 
 def ca_bundle_info(config):
-    # type: (Dict[str, str]) -> str
+    # type: (Configuration) -> str
     levels = set()
-    for key, value in config.items():
+    for key, _ in config.items():
         levels.add(key.split('.')[0])
 
     if not levels:

@@ -1,8 +1,0 @@
-include DESCRIPTION.rst
-
-# Include the test suite (FIXME: does not work yet)
-# recursive-include tests *
-
-# If using Python 2.6 or less, then have to include package data, even though
-# it's already declared in setup.py
-include sample/*.dat

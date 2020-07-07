@@ -56,7 +56,7 @@ class Subversion(VersionControl):
         # Note: taken from setuptools.command.egg_info
         revision = 0
 
-        for base, dirs, files in os.walk(location):
+        for base, dirs, _ in os.walk(location):
             if cls.dirname not in dirs:
                 dirs[:] = []
                 continue    # no sense walking uncontrolled subdirs

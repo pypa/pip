@@ -28,9 +28,7 @@ def test_basic_uninstall(script):
 
     """
     result = script.pip('install', 'INITools==0.2')
-    assert join(script.site_packages, 'initools') in result.files_created, (
-        sorted(result.files_created.keys())
-    )
+    result.did_create(join(script.site_packages, 'initools'))
     # the import forces the generation of __pycache__ if the version of python
     # supports it
     script.run('python', '-c', "import initools")
@@ -89,8 +87,7 @@ def test_uninstall_easy_install_after_import(script):
     Uninstall an easy_installed package after it's been imported
 
     """
-    result = script.easy_install('--always-unzip', 'INITools==0.2',
-                                 expect_stderr=True)
+    result = script.easy_install('INITools==0.2', expect_stderr=True)
     # the import forces the generation of __pycache__ if the version of python
     # supports it
     script.run('python', '-c', "import initools")
@@ -147,9 +144,7 @@ def test_basic_uninstall_namespace_package(script):
 
     """
     result = script.pip('install', 'pd.requires==0.0.3')
-    assert join(script.site_packages, 'pd') in result.files_created, (
-        sorted(result.files_created.keys())
-    )
+    result.did_create(join(script.site_packages, 'pd'))
     result2 = script.pip('uninstall', 'pd.find', '-y')
     assert join(script.site_packages, 'pd') not in result2.files_deleted, (
         sorted(result2.files_deleted.keys())
@@ -171,16 +166,12 @@ def test_uninstall_overlapping_package(script, data):
     child_pkg = data.packages.joinpath("child-0.1.tar.gz")
 
     result1 = script.pip('install', parent_pkg)
-    assert join(script.site_packages, 'parent') in result1.files_created, (
-        sorted(result1.files_created.keys())
-    )
+    result1.did_create(join(script.site_packages, 'parent'))
     result2 = script.pip('install', child_pkg)
-    assert join(script.site_packages, 'child') in result2.files_created, (
-        sorted(result2.files_created.keys())
-    )
-    assert normpath(
+    result2.did_create(join(script.site_packages, 'child'))
+    result2.did_create(normpath(
         join(script.site_packages, 'parent/plugins/child_plugin.py')
-    ) in result2.files_created, sorted(result2.files_created.keys())
+    ))
     # The import forces the generation of __pycache__ if the version of python
     #  supports it
     script.run('python', '-c', "import parent.plugins.child_plugin, child")
@@ -267,9 +258,7 @@ def test_uninstall_console_scripts(script):
         entry_points={'console_scripts': ['discover = discover:main']},
     )
     result = script.pip('install', pkg_path)
-    assert script.bin / 'discover' + script.exe in result.files_created, (
-        sorted(result.files_created.keys())
-    )
+    result.did_create(script.bin / 'discover' + script.exe)
     result2 = script.pip('uninstall', 'discover', '-y')
     assert_all_changes(result, result2, [script.venv / 'build', 'cache'])
 
@@ -305,9 +294,7 @@ def test_uninstall_easy_installed_console_scripts(script):
     # setuptools >= 42.0.0 deprecates easy_install and prints a warning when
     # used
     result = script.easy_install('discover', allow_stderr_warning=True)
-    assert script.bin / 'discover' + script.exe in result.files_created, (
-        sorted(result.files_created.keys())
-    )
+    result.did_create(script.bin / 'discover' + script.exe)
     result2 = script.pip('uninstall', 'discover', '-y')
     assert_all_changes(
         result,
@@ -374,9 +361,9 @@ def _test_uninstall_editable_with_source_outside_venv(
         expect_stderr=True,
     )
     result2 = script.pip('install', '-e', temp_pkg_dir)
-    assert join(
+    result2.did_create(join(
         script.site_packages, 'pip-test-package.egg-link'
-    ) in result2.files_created, list(result2.files_created.keys())
+    ))
     result3 = script.pip('uninstall', '-y', 'pip-test-package')
     assert_all_changes(
         result,
@@ -476,7 +463,7 @@ def test_uninstall_wheel(script, data):
     package = data.packages.joinpath("simple.dist-0.1-py2.py3-none-any.whl")
     result = script.pip('install', package, '--no-index')
     dist_info_folder = script.site_packages / 'simple.dist-0.1.dist-info'
-    assert dist_info_folder in result.files_created
+    result.did_create(dist_info_folder)
     result2 = script.pip('uninstall', 'simple.dist', '-y')
     assert_all_changes(result, result2, [])
 

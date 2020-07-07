@@ -387,7 +387,7 @@ class TestOptionsConfigFiles(object):
         cp = pip._internal.configuration.Configuration(isolated=False)
 
         files = []
-        for _, val in cp._iter_config_files():
+        for _, val in cp.iter_config_files():
             files.extend(val)
 
         assert len(files) == 4

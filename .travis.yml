@@ -47,7 +47,9 @@ jobs:
 
   fast_finish: true
   allow_failures:
-    - stage: experimental
+    - env:
+      - GROUP=3
+      - NEW_RESOLVER=1
 
 before_install: tools/travis/setup.sh
 install: travis_retry tools/travis/install.sh

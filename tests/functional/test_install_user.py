@@ -15,13 +15,16 @@ def _patch_dist_in_site_packages(virtualenv):
     # Since the tests are run from a virtualenv, and to avoid the "Will not
     # install to the usersite because it will lack sys.path precedence..."
     # error: Monkey patch `pip._internal.req.req_install.dist_in_site_packages`
+    # and `pip._internal.resolution.resolvelib.factory.dist_in_site_packages`
     # so it's possible to install a conflicting distribution in the user site.
     virtualenv.sitecustomize = textwrap.dedent("""
         def dist_in_site_packages(dist):
             return False
 
         from pip._internal.req import req_install
+        from pip._internal.resolution.resolvelib import factory
         req_install.dist_in_site_packages = dist_in_site_packages
+        factory.dist_in_site_packages = dist_in_site_packages
     """)
 
 
@@ -73,12 +76,12 @@ class Tests_UserSite:
         )
 
         fspkg_folder = script.user_site / 'fspkg'
-        assert fspkg_folder in result.files_created, result.stdout
+        result.did_create(fspkg_folder)
 
         dist_info_folder = (
             script.user_site / 'FSPkg-0.1.dev0.dist-info'
         )
-        assert dist_info_folder in result.files_created
+        result.did_create(dist_info_folder)
 
     def test_install_user_venv_nositepkgs_fails(self, virtualenv,
                                                 script, data):
@@ -121,12 +124,11 @@ class Tests_UserSite:
             script.base_path / script.user_site / 'initools' /
             'configparser.py'
         )
-        assert egg_info_folder in result2.files_created, str(result2)
+        result2.did_create(egg_info_folder)
         assert not isfile(initools_v3_file), initools_v3_file
 
     @pytest.mark.network
     @pytest.mark.incompatible_with_test_venv
-    @pytest.mark.fails_on_new_resolver
     def test_install_user_conflict_in_globalsite(self, virtualenv, script):
         """
         Test user install with conflict in global site ignores site and
@@ -145,8 +147,8 @@ class Tests_UserSite:
             'INITools-0.1-py{pyversion}.egg-info'.format(**globals())
         )
         initools_folder = script.user_site / 'initools'
-        assert egg_info_folder in result2.files_created, str(result2)
-        assert initools_folder in result2.files_created, str(result2)
+        result2.did_create(egg_info_folder)
+        result2.did_create(initools_folder)
 
         # site still has 0.2 (can't look in result1; have to check)
         egg_info_folder = (
@@ -159,7 +161,6 @@ class Tests_UserSite:
 
     @pytest.mark.network
     @pytest.mark.incompatible_with_test_venv
-    @pytest.mark.fails_on_new_resolver
     def test_upgrade_user_conflict_in_globalsite(self, virtualenv, script):
         """
         Test user install/upgrade with conflict in global site ignores site and
@@ -177,8 +178,8 @@ class Tests_UserSite:
             'INITools-0.3.1-py{pyversion}.egg-info'.format(**globals())
         )
         initools_folder = script.user_site / 'initools'
-        assert egg_info_folder in result2.files_created, str(result2)
-        assert initools_folder in result2.files_created, str(result2)
+        result2.did_create(egg_info_folder)
+        result2.did_create(initools_folder)
 
         # site still has 0.2 (can't look in result1; have to check)
         egg_info_folder = (
@@ -191,7 +192,6 @@ class Tests_UserSite:
 
     @pytest.mark.network
     @pytest.mark.incompatible_with_test_venv
-    @pytest.mark.fails_on_new_resolver
     def test_install_user_conflict_in_globalsite_and_usersite(
             self, virtualenv, script):
         """
@@ -216,7 +216,7 @@ class Tests_UserSite:
             script.base_path / script.user_site / 'initools' /
             'configparser.py'
         )
-        assert egg_info_folder in result3.files_created, str(result3)
+        result3.did_create(egg_info_folder)
         assert not isfile(initools_v3_file), initools_v3_file
 
         # site still has 0.2 (can't just look in result1; have to check)

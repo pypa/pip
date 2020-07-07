@@ -156,24 +156,18 @@ To interpret the requirements file in UTF-8 format add a comment
 
 The following options are supported:
 
-  *  :ref:`-i, --index-url <install_--index-url>`
-  *  :ref:`--extra-index-url <install_--extra-index-url>`
-  *  :ref:`--no-index <install_--no-index>`
-  *  :ref:`-c, --constraint <install_--constraint>`
-  *  :ref:`-r, --requirement <install_--requirement>`
-  *  :ref:`-e, --editable <install_--editable>`
-  *  :ref:`-f, --find-links <install_--find-links>`
-  *  :ref:`--no-binary <install_--no-binary>`
-  *  :ref:`--only-binary <install_--only-binary>`
-  *  :ref:`--require-hashes <install_--require-hashes>`
-  *  :ref:`--pre <install_--pre>`
-  *  :ref:`--trusted-host <--trusted-host>`
+.. pip-requirements-file-options-ref-list::
 
-For example, to specify :ref:`--no-index <install_--no-index>` and two
+Please note that the above options are global options, and should be specified on their individual lines.
+The options which can be applied to individual requirements are
+:ref:`--install-option <install_--install-option>`, :ref:`--global-option <install_--global-option>` and ``--hash``.
+
+For example, to specify :ref:`--pre <install_--pre>`, :ref:`--no-index <install_--no-index>` and two
 :ref:`--find-links <install_--find-links>` locations:
 
 ::
 
+--pre
 --no-index
 --find-links /my/local/archives
 --find-links http://some.archives.com/archives

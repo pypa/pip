@@ -46,6 +46,18 @@ class Hashes(object):
         """
         self._allowed = {} if hashes is None else hashes
 
+    def __or__(self, other):
+        # type: (Hashes) -> Hashes
+        if not isinstance(other, Hashes):
+            return NotImplemented
+        new = self._allowed.copy()
+        for alg, values in iteritems(other._allowed):
+            try:
+                new[alg] += values
+            except KeyError:
+                new[alg] = values
+        return Hashes(new)
+
     @property
     def digest_count(self):
         # type: () -> int

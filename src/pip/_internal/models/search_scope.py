@@ -24,6 +24,8 @@ class SearchScope(object):
     Encapsulates the locations that pip is configured to search.
     """
 
+    __slots__ = ["find_links", "index_urls"]
+
     @classmethod
     def create(
         cls,

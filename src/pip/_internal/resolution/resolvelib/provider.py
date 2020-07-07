@@ -4,9 +4,16 @@ from pip._vendor.resolvelib.providers import AbstractProvider
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Dict, Optional, Sequence, Set, Tuple, Union
-
-    from pip._vendor.packaging.version import _BaseVersion
+    from typing import (
+        Any,
+        Dict,
+        Iterable,
+        Optional,
+        Sequence,
+        Set,
+        Tuple,
+        Union,
+    )
 
     from .base import Requirement, Candidate
     from .factory import Factory
@@ -47,7 +54,7 @@ class PipProvider(AbstractProvider):
         self.user_requested = user_requested
 
     def _sort_matches(self, matches):
-        # type: (Sequence[Candidate]) -> Sequence[Candidate]
+        # type: (Iterable[Candidate]) -> Sequence[Candidate]
 
         # The requirement is responsible for returning a sequence of potential
         # candidates, one per version. The provider handles the logic of
@@ -70,7 +77,6 @@ class PipProvider(AbstractProvider):
         #      - The project was specified on the command line, or
         #      - The project is a dependency and the "eager" upgrade strategy
         #        was requested.
-
         def _eligible_for_upgrade(name):
             # type: (str) -> bool
             """Are upgrades allowed for this project?
@@ -90,17 +96,22 @@ class PipProvider(AbstractProvider):
             return False
 
         def sort_key(c):
-            # type: (Candidate) -> Tuple[int, _BaseVersion]
+            # type: (Candidate) -> int
             """Return a sort key for the matches.
 
             The highest priority should be given to installed candidates that
             are not eligible for upgrade. We use the integer value in the first
             part of the key to sort these before other candidates.
+
+            We only pull the installed candidate to the bottom (i.e. most
+            preferred), but otherwise keep the ordering returned by the
+            requirement. The requirement is responsible for returning a list
+            otherwise sorted for the resolver, taking account for versions
+            and binary preferences as specified by the user.
             """
             if c.is_installed and not _eligible_for_upgrade(c.name):
-                return (1, c.version)
-
-            return (0, c.version)
+                return 1
+            return 0
 
         return sorted(matches, key=sort_key)
 
@@ -118,11 +129,15 @@ class PipProvider(AbstractProvider):
         # Use the "usual" value for now
         return len(candidates)
 
-    def find_matches(self, requirement):
-        # type: (Requirement) -> Sequence[Candidate]
-        constraint = self._constraints.get(requirement.name, SpecifierSet())
-        matches = requirement.find_matches(constraint)
-        return self._sort_matches(matches)
+    def find_matches(self, requirements):
+        # type: (Sequence[Requirement]) -> Iterable[Candidate]
+        if not requirements:
+            return []
+        constraint = self._constraints.get(
+            requirements[0].name, SpecifierSet(),
+        )
+        candidates = self._factory.find_candidates(requirements, constraint)
+        return reversed(self._sort_matches(candidates))
 
     def is_satisfied_by(self, requirement, candidate):
         # type: (Requirement, Candidate) -> bool
@@ -132,4 +147,4 @@ class PipProvider(AbstractProvider):
         # type: (Candidate) -> Sequence[Requirement]
         if self._ignore_dependencies:
             return []
-        return list(candidate.iter_dependencies())
+        return [r for r in candidate.iter_dependencies() if r is not None]

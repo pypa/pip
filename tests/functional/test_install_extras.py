@@ -14,7 +14,7 @@ def test_simple_extras_install_from_pypi(script):
         'install', 'Paste[openid]==1.7.5.1', expect_stderr=True,
     )
     initools_folder = script.site_packages / 'openid'
-    assert initools_folder in result.files_created, result.files_created
+    result.did_create(initools_folder)
 
 
 def test_extras_after_wheel(script, data):
@@ -27,13 +27,13 @@ def test_extras_after_wheel(script, data):
         'install', '--no-index', '-f', data.find_links,
         'requires_simple_extra', expect_stderr=True,
     )
-    assert simple not in no_extra.files_created, no_extra.files_created
+    no_extra.did_not_create(simple)
 
     extra = script.pip(
         'install', '--no-index', '-f', data.find_links,
         'requires_simple_extra[extra]', expect_stderr=True,
     )
-    assert simple in extra.files_created, extra.files_created
+    extra.did_create(simple)
 
 
 @pytest.mark.network
@@ -44,12 +44,8 @@ def test_no_extras_uninstall(script):
     result = script.pip(
         'install', 'Paste[openid]==1.7.5.1', expect_stderr=True,
     )
-    assert join(script.site_packages, 'paste') in result.files_created, (
-        sorted(result.files_created.keys())
-    )
-    assert join(script.site_packages, 'openid') in result.files_created, (
-        sorted(result.files_created.keys())
-    )
+    result.did_create(join(script.site_packages, 'paste'))
+    result.did_create(join(script.site_packages, 'openid'))
     result2 = script.pip('uninstall', 'Paste', '-y')
     # openid should not be uninstalled
     initools_folder = script.site_packages / 'openid'
@@ -136,7 +132,6 @@ def test_install_special_extra(script):
         pytest.param('[extra2]', '1.0', marks=pytest.mark.xfail),
         pytest.param('[extra1,extra2]', '1.0', marks=pytest.mark.xfail),
     ])
-@pytest.mark.fails_on_new_resolver
 def test_install_extra_merging(script, data, extra_to_install, simple_version):
     # Check that extra specifications in the extras section are honoured.
     pkga_path = script.scratch_path / 'pkga'

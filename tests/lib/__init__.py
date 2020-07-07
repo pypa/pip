@@ -264,9 +264,11 @@ class TestPipResult(object):
         def __str__(self):
             return str(self._impl)
 
-    def assert_installed(self, pkg_name, editable=True, with_files=[],
-                         without_files=[], without_egg_link=False,
+    def assert_installed(self, pkg_name, editable=True, with_files=None,
+                         without_files=None, without_egg_link=False,
                          use_user_site=False, sub_dir=False):
+        with_files = with_files or []
+        without_files = without_files or []
         e = self.test_env
 
         if editable:
@@ -782,7 +784,7 @@ def _git_commit(
         args.append("--all")
 
     new_args = [
-        'git', 'commit', '-q', '--author', 'pip <pypa-dev@googlegroups.com>',
+        'git', 'commit', '-q', '--author', 'pip <distutils-sig@python.org>',
     ]
     new_args.extend(args)
     new_args.extend(['-m', message])
@@ -799,7 +801,7 @@ def _vcs_add(script, version_pkg_path, vcs='git'):
         script.run('hg', 'add', '.', cwd=version_pkg_path)
         script.run(
             'hg', 'commit', '-q',
-            '--user', 'pip <pypa-dev@googlegroups.com>',
+            '--user', 'pip <distutils-sig@python.org>',
             '-m', 'initial version', cwd=version_pkg_path,
         )
     elif vcs == 'svn':
@@ -818,11 +820,11 @@ def _vcs_add(script, version_pkg_path, vcs='git'):
         script.run('bzr', 'init', cwd=version_pkg_path)
         script.run('bzr', 'add', '.', cwd=version_pkg_path)
         script.run(
-            'bzr', 'whoami', 'pip <pypa-dev@googlegroups.com>',
+            'bzr', 'whoami', 'pip <distutils-sig@python.org>',
             cwd=version_pkg_path)
         script.run(
             'bzr', 'commit', '-q',
-            '--author', 'pip <pypa-dev@googlegroups.com>',
+            '--author', 'pip <distutils-sig@python.org>',
             '-m', 'initial version', cwd=version_pkg_path,
         )
     else:

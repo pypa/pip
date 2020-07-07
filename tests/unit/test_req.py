@@ -56,7 +56,7 @@ def get_processed_req_from_line(line, fname='file', lineno=1):
     parsed_req = handle_requirement_line(parsed_line)
     assert parsed_req is not None
     req = install_req_from_parsed_requirement(parsed_req)
-    req.is_direct = True
+    req.user_supplied = True
     return req
 
 
@@ -109,7 +109,7 @@ class TestRequirementSet(object):
             pass
         reqset = RequirementSet()
         req = install_req_from_line('simple')
-        req.is_direct = True
+        req.user_supplied = True
         reqset.add_requirement(req)
         finder = make_test_finder(find_links=[data.find_links])
         with self._basic_resolver(finder) as resolver:
@@ -133,7 +133,7 @@ class TestRequirementSet(object):
         req = install_req_from_editable(
             data.packages.joinpath("LocalEnvironMarker")
         )
-        req.is_direct = True
+        req.user_supplied = True
         reqset.add_requirement(req)
         finder = make_test_finder(find_links=[data.find_links])
         with self._basic_resolver(finder) as resolver:
@@ -626,10 +626,10 @@ def test_exclusive_environment_markers():
     """Make sure RequirementSet accepts several excluding env markers"""
     eq36 = install_req_from_line(
         "Django>=1.6.10,<1.7 ; python_version == '3.6'")
-    eq36.is_direct = True
+    eq36.user_supplied = True
     ne36 = install_req_from_line(
         "Django>=1.6.10,<1.8 ; python_version != '3.6'")
-    ne36.is_direct = True
+    ne36.user_supplied = True
 
     req_set = RequirementSet()
     req_set.add_requirement(eq36)

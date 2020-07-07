@@ -12,9 +12,9 @@ cases:
     - state:
       - A 1.0.0
       - C 1.0.0
-    - conflicting:
-      - required_by: [A 1.0.0]
-        selector: C == 1.0.0
-      - required_by: [B 1.0.0]
-        selector: C == 2.0.0
-  skip: true
+    - error:
+        code: 0
+        stderr: ['requirement c==1\.0\.0', 'is incompatible']
+  skip: old
+  # -- currently the error message is:
+  # a 1.0.0 has requirement C==1.0.0, but you'll have c 2.0.0 which is incompatible.

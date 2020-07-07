@@ -2,12 +2,15 @@ from __future__ import absolute_import, division, unicode_literals
 
 from types import ModuleType
 
-from pip._vendor.six import text_type
+from pip._vendor.six import text_type, PY3
 
-try:
-    import xml.etree.cElementTree as default_etree
-except ImportError:
+if PY3:
     import xml.etree.ElementTree as default_etree
+else:
+    try:
+        import xml.etree.cElementTree as default_etree
+    except ImportError:
+        import xml.etree.ElementTree as default_etree
 
 
 __all__ = ["default_etree", "MethodDispatcher", "isSurrogatePair",

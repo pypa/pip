@@ -13,6 +13,7 @@ from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip._internal.index.collector import (
     HTMLPage,
+    LinkCollector,
     _clean_link,
     _clean_url_path,
     _determine_base_url,
@@ -72,6 +73,31 @@ def test_get_html_response_archive_to_http_scheme(url, content_type):
         mock.call.head(url, allow_redirects=True),
     ])
     assert ctx.value.args == (content_type, "HEAD")
+
+
+@pytest.mark.parametrize(
+    "url",
+    [
+        ("ftp://python.org/python-3.7.1.zip"),
+        ("file:///opt/data/pip-18.0.tar.gz"),
+    ],
+)
+def test_get_html_page_invalid_content_type_archive(caplog, url):
+    """`_get_html_page()` should warn if an archive URL is not HTML
+    and therefore cannot be used for a HEAD request.
+    """
+    caplog.set_level(logging.WARNING)
+    link = Link(url)
+
+    session = mock.Mock(PipSession)
+
+    assert _get_html_page(link, session=session) is None
+    assert ('pip._internal.index.collector',
+            logging.WARNING,
+            'Skipping page {} because it looks like an archive, and cannot '
+            'be checked by a HTTP HEAD request.'.format(
+                url)) \
+        in caplog.record_tuples
 
 
 @pytest.mark.parametrize(
@@ -463,15 +489,16 @@ def test_get_html_page_invalid_scheme(caplog, url, vcs_scheme):
 
     Only file:, http:, https:, and ftp: are allowed.
     """
-    with caplog.at_level(logging.DEBUG):
+    with caplog.at_level(logging.WARNING):
         page = _get_html_page(Link(url), session=mock.Mock(PipSession))
 
     assert page is None
     assert caplog.record_tuples == [
         (
             "pip._internal.index.collector",
-            logging.DEBUG,
-            "Cannot look at {} URL {}".format(vcs_scheme, url),
+            logging.WARNING,
+            "Cannot look at {} URL {} because it does not support "
+            "lookup as web pages.".format(vcs_scheme, url),
         ),
     ]
 
@@ -652,3 +679,76 @@ class TestLinkCollector(object):
         assert caplog.record_tuples == [
             ('pip._internal.index.collector', logging.DEBUG, expected_message),
         ]
+
+
+@pytest.mark.parametrize(
+    'find_links, no_index, suppress_no_index, expected', [
+        (['link1'], False, False,
+         (['link1'], ['default_url', 'url1', 'url2'])),
+        (['link1'], False, True, (['link1'], ['default_url', 'url1', 'url2'])),
+        (['link1'], True, False, (['link1'], [])),
+        # Passing suppress_no_index=True suppresses no_index=True.
+        (['link1'], True, True, (['link1'], ['default_url', 'url1', 'url2'])),
+        # Test options.find_links=False.
+        (False, False, False, ([], ['default_url', 'url1', 'url2'])),
+    ],
+)
+def test_link_collector_create(
+    find_links, no_index, suppress_no_index, expected,
+):
+    """
+    :param expected: the expected (find_links, index_urls) values.
+    """
+    expected_find_links, expected_index_urls = expected
+    session = PipSession()
+    options = pretend.stub(
+        find_links=find_links,
+        index_url='default_url',
+        extra_index_urls=['url1', 'url2'],
+        no_index=no_index,
+    )
+    link_collector = LinkCollector.create(
+        session, options=options, suppress_no_index=suppress_no_index,
+    )
+
+    assert link_collector.session is session
+
+    search_scope = link_collector.search_scope
+    assert search_scope.find_links == expected_find_links
+    assert search_scope.index_urls == expected_index_urls
+
+
+@patch('pip._internal.utils.misc.expanduser')
+def test_link_collector_create_find_links_expansion(
+    mock_expanduser, tmpdir,
+):
+    """
+    Test "~" expansion in --find-links paths.
+    """
+    # This is a mock version of expanduser() that expands "~" to the tmpdir.
+    def expand_path(path):
+        if path.startswith('~/'):
+            path = os.path.join(tmpdir, path[2:])
+        return path
+
+    mock_expanduser.side_effect = expand_path
+
+    session = PipSession()
+    options = pretend.stub(
+        find_links=['~/temp1', '~/temp2'],
+        index_url='default_url',
+        extra_index_urls=[],
+        no_index=False,
+    )
+    # Only create temp2 and not temp1 to test that "~" expansion only occurs
+    # when the directory exists.
+    temp2_dir = os.path.join(tmpdir, 'temp2')
+    os.mkdir(temp2_dir)
+
+    link_collector = LinkCollector.create(session, options=options)
+
+    search_scope = link_collector.search_scope
+    # Only ~/temp2 gets expanded. Also, the path is normalized when expanded.
+    expected_temp2_dir = os.path.normcase(temp2_dir)
+    assert search_scope.find_links == ['~/temp1', expected_temp2_dir]
+    assert search_scope.index_urls == ['default_url']

@@ -13,7 +13,7 @@ from .req_install import InstallRequirement
 from .req_set import RequirementSet
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, List, Sequence
+    from typing import List, Optional, Sequence
 
 __all__ = [
     "RequirementSet", "InstallRequirement",
@@ -36,9 +36,13 @@ class InstallationResult(object):
 def install_given_reqs(
     to_install,  # type: List[InstallRequirement]
     install_options,  # type: List[str]
-    global_options=(),  # type: Sequence[str]
-    *args,  # type: Any
-    **kwargs  # type: Any
+    global_options,  # type: Sequence[str]
+    root,  # type: Optional[str]
+    home,  # type: Optional[str]
+    prefix,  # type: Optional[str]
+    warn_script_location,  # type: bool
+    use_user_site,  # type: bool
+    pycompile,  # type: bool
 ):
     # type: (...) -> List[InstallationResult]
     """
@@ -67,8 +71,12 @@ def install_given_reqs(
                 requirement.install(
                     install_options,
                     global_options,
-                    *args,
-                    **kwargs
+                    root=root,
+                    home=home,
+                    prefix=prefix,
+                    warn_script_location=warn_script_location,
+                    use_user_site=use_user_site,
+                    pycompile=pycompile,
                 )
             except Exception:
                 should_rollback = (
