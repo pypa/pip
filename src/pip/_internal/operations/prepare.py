@@ -260,8 +260,9 @@ def unpack_url(
         )
 
     # unpack the archive to the build dir location. even when only downloading
-    # archives, they have to be unpacked to parse dependencies
-    unpack_file(file.path, location, file.content_type)
+    # archives, they have to be unpacked to parse dependencies, except wheels
+    if not link.is_wheel:
+        unpack_file(file.path, location, file.content_type)
 
     return file
 
@@ -390,20 +391,14 @@ class RequirementPreparer(object):
         """Ensure source_dir of a linked InstallRequirement."""
         # Since source_dir is only set for editable requirements.
         if req.link.is_wheel:
-            if download_dir:
-                # When downloading, we only unpack wheels to get
-                # metadata.
-                autodelete_unpacked = True
-            else:
-                # When installing a wheel, we use the unpacked wheel.
-                autodelete_unpacked = False
-        else:
-            # We always delete unpacked sdists after pip runs.
-            autodelete_unpacked = True
+            # We don't need to unpack wheels, so no need for a source
+            # directory.
+            return
         assert req.source_dir is None
+        # We always delete unpacked sdists after pip runs.
         req.ensure_has_source_dir(
             self.build_dir,
-            autodelete=autodelete_unpacked,
+            autodelete=True,
             parallel_builds=parallel_builds,
         )
 
