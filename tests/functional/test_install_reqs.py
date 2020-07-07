@@ -306,28 +306,21 @@ def test_wheel_user_with_prefix_in_pydistutils_cfg(
     assert 'installed requiresupper' in result.stdout
 
 
-def test_install_option_in_requirements_file(script, data, virtualenv):
-    """
-    Test --install-option in requirements file overrides same option in cli
-    """
+def test_install_option_in_requirements_file_overrides_cli(
+    script, arg_recording_sdist_maker
+):
+    simple_sdist = arg_recording_sdist_maker("simple")
 
-    script.scratch_path.joinpath("home1").mkdir()
-    script.scratch_path.joinpath("home2").mkdir()
+    reqs_file = script.scratch_path.joinpath("reqs.txt")
+    reqs_file.write_text("simple --install-option='-O0'")
 
-    script.scratch_path.joinpath("reqs.txt").write_text(
-        textwrap.dedent(
-            """simple --install-option='--home={home}'""".format(
-                home=script.scratch_path.joinpath("home1"))))
-
-    result = script.pip(
-        'install', '--no-index', '-f', data.find_links, '-r',
-        script.scratch_path / 'reqs.txt',
-        '--install-option=--home={home}'.format(
-            home=script.scratch_path.joinpath("home2")),
-        expect_stderr=True)
-
-    package_dir = script.scratch / 'home1' / 'lib' / 'python' / 'simple'
-    result.did_create(package_dir)
+    script.pip(
+        'install', '--no-index', '-f', str(simple_sdist.sdist_path.parent),
+        '-r', str(reqs_file), '--install-option=-O1',
+    )
+    simple_args = simple_sdist.args()
+    assert 'install' in simple_args
+    assert simple_args.index('-O1') < simple_args.index('-O0')
 
 
 def test_constraints_not_installed_by_default(script, data):
