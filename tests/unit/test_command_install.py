@@ -7,7 +7,7 @@ from pip._vendor.packaging.requirements import Requirement
 from pip._internal.commands.install import (
     create_env_error_message,
     decide_user_install,
-    warn_deprecated_install_options,
+    reject_location_related_install_options,
 )
 from pip._internal.exceptions import CommandError
 from pip._internal.req.req_install import InstallRequirement
@@ -45,15 +45,15 @@ class TestDecideUserInstall:
         assert decide_user_install(use_user_site=None) is result
 
 
-def test_deprecation_notice_for_pip_install_options():
+def test_rejection_for_pip_install_options():
     install_options = ["--prefix=/hello"]
     with pytest.raises(CommandError) as e:
-        warn_deprecated_install_options([], install_options)
+        reject_location_related_install_options([], install_options)
 
     assert "['--prefix'] from command line" in str(e.value)
 
 
-def test_deprecation_notice_for_requirement_options():
+def test_rejection_for_location_requirement_options():
     install_options = []
 
     bad_named_req_options = ["--home=/wow"]
@@ -68,7 +68,7 @@ def test_deprecation_notice_for_requirement_options():
     )
 
     with pytest.raises(CommandError) as e:
-        warn_deprecated_install_options(
+        reject_location_related_install_options(
             [bad_named_req, bad_unnamed_req], install_options
         )
 
