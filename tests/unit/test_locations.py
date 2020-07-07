@@ -130,3 +130,19 @@ class TestDistutilsScheme:
         scheme = distutils_scheme('example')
         assert scheme['platlib'] == install_lib + os.path.sep
         assert scheme['purelib'] == install_lib + os.path.sep
+
+    def test_prefix_modifies_appropriately(self):
+        prefix = os.path.abspath(os.path.join('somewhere', 'else'))
+
+        normal_scheme = distutils_scheme("example")
+        prefix_scheme = distutils_scheme("example", prefix=prefix)
+
+        def _calculate_expected(value):
+            path = os.path.join(prefix, os.path.relpath(value, sys.prefix))
+            return os.path.normpath(path)
+
+        expected = {
+            k: _calculate_expected(v)
+            for k, v in normal_scheme.items()
+        }
+        assert prefix_scheme == expected
