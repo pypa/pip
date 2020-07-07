@@ -568,7 +568,7 @@ def dist_location(dist):
 
 
 def write_output(msg, *args):
-    # type: (str, str) -> None
+    # type: (Any, Any) -> None
     logger.info(msg, *args)
 
 

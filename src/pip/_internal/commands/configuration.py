@@ -205,8 +205,8 @@ class ConfigurationCommand(Command):
             for fname in files:
                 with indent_log():
                     file_exists = os.path.exists(fname)
-                    write_output("%s, exists: %s",
-                                 fname, str(file_exists))
+                    write_output("%s, exists: %r",
+                                 fname, file_exists)
                     if file_exists:
                         self.print_config_file_values(variant)
 
