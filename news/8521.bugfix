@@ -1,0 +1,2 @@
+Headers provided by wheels in .data directories are now correctly installed
+into the user-provided locations, such as ``--prefix``.
