@@ -394,12 +394,11 @@ class RequirementPreparer(object):
             # We don't need to unpack wheels, so no need for a source
             # directory.
             return
-        # We always delete unpacked sdists after pip runs.
-        autodelete_unpacked = True
         assert req.source_dir is None
+        # We always delete unpacked sdists after pip runs.
         req.ensure_has_source_dir(
             self.build_dir,
-            autodelete=autodelete_unpacked,
+            autodelete=True,
             parallel_builds=parallel_builds,
         )
 
