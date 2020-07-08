@@ -1,3 +1,4 @@
+import re
 import textwrap
 from os.path import join
 
@@ -13,7 +14,7 @@ def test_simple_extras_install_from_pypi(script):
         'install', 'Paste[openid]==1.7.5.1', expect_stderr=True,
     )
     initools_folder = script.site_packages / 'openid'
-    assert initools_folder in result.files_created, result.files_created
+    result.did_create(initools_folder)
 
 
 def test_extras_after_wheel(script, data):
@@ -26,13 +27,13 @@ def test_extras_after_wheel(script, data):
         'install', '--no-index', '-f', data.find_links,
         'requires_simple_extra', expect_stderr=True,
     )
-    assert simple not in no_extra.files_created, no_extra.files_created
+    no_extra.did_not_create(simple)
 
     extra = script.pip(
         'install', '--no-index', '-f', data.find_links,
         'requires_simple_extra[extra]', expect_stderr=True,
     )
-    assert simple in extra.files_created, extra.files_created
+    extra.did_create(simple)
 
 
 @pytest.mark.network
@@ -43,12 +44,8 @@ def test_no_extras_uninstall(script):
     result = script.pip(
         'install', 'Paste[openid]==1.7.5.1', expect_stderr=True,
     )
-    assert join(script.site_packages, 'paste') in result.files_created, (
-        sorted(result.files_created.keys())
-    )
-    assert join(script.site_packages, 'openid') in result.files_created, (
-        sorted(result.files_created.keys())
-    )
+    result.did_create(join(script.site_packages, 'paste'))
+    result.did_create(join(script.site_packages, 'openid'))
     result2 = script.pip('uninstall', 'Paste', '-y')
     # openid should not be uninstalled
     initools_folder = script.site_packages / 'openid'
@@ -100,11 +97,11 @@ def test_nonexistent_options_listed_in_order(script, data):
         '--find-links=' + data.find_links,
         'simplewheel[nonexistent, nope]', expect_stderr=True,
     )
-    msg = (
-        "  simplewheel 2.0 does not provide the extra 'nonexistent'\n"
-        "  simplewheel 2.0 does not provide the extra 'nope'"
+    matches = re.findall(
+        "WARNING: simplewheel 2.0 does not provide the extra '([a-z]*)'",
+        result.stderr
     )
-    assert msg in result.stderr
+    assert matches == ['nonexistent', 'nope']
 
 
 def test_install_special_extra(script):
@@ -112,7 +109,7 @@ def test_install_special_extra(script):
     # make a dummy project
     pkga_path = script.scratch_path / 'pkga'
     pkga_path.mkdir()
-    pkga_path.join("setup.py").write(textwrap.dedent("""
+    pkga_path.joinpath("setup.py").write_text(textwrap.dedent("""
         from setuptools import setup
         setup(name='pkga',
               version='0.1',
@@ -121,8 +118,37 @@ def test_install_special_extra(script):
     """))
 
     result = script.pip(
-        'install', '--no-index', '%s[Hop_hOp-hoP]' % pkga_path,
+        'install', '--no-index', '{pkga_path}[Hop_hOp-hoP]'.format(**locals()),
         expect_error=True)
     assert (
         "Could not find a version that satisfies the requirement missing_pkg"
     ) in result.stderr, str(result)
+
+
+@pytest.mark.parametrize(
+    "extra_to_install, simple_version", [
+        ['', '3.0'],
+        pytest.param('[extra1]', '2.0', marks=pytest.mark.xfail),
+        pytest.param('[extra2]', '1.0', marks=pytest.mark.xfail),
+        pytest.param('[extra1,extra2]', '1.0', marks=pytest.mark.xfail),
+    ])
+def test_install_extra_merging(script, data, extra_to_install, simple_version):
+    # Check that extra specifications in the extras section are honoured.
+    pkga_path = script.scratch_path / 'pkga'
+    pkga_path.mkdir()
+    pkga_path.joinpath("setup.py").write_text(textwrap.dedent("""
+        from setuptools import setup
+        setup(name='pkga',
+              version='0.1',
+              install_requires=['simple'],
+              extras_require={'extra1': ['simple<3'],
+                              'extra2': ['simple==1.*']},
+        )
+    """))
+
+    result = script.pip_install_local(
+        '{pkga_path}{extra_to_install}'.format(**locals()),
+    )
+
+    assert ('Successfully installed pkga-0.1 simple-{}'.format(simple_version)
+            ) in result.stdout

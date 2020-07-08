@@ -1,9 +1,26 @@
 """Exceptions used throughout package"""
+
 from __future__ import absolute_import
 
 from itertools import chain, groupby, repeat
 
 from pip._vendor.six import iteritems
+
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from typing import Any, Optional, List, Dict
+
+    from pip._vendor.pkg_resources import Distribution
+    from pip._vendor.six import PY3
+    from pip._vendor.six.moves import configparser
+
+    from pip._internal.req.req_install import InstallRequirement
+
+    if PY3:
+        from hashlib import _Hash
+    else:
+        from hashlib import _hash as _Hash
 
 
 class PipError(Exception):
@@ -20,6 +37,36 @@ class InstallationError(PipError):
 
 class UninstallationError(PipError):
     """General exception during uninstallation"""
+
+
+class NoneMetadataError(PipError):
+    """
+    Raised when accessing "METADATA" or "PKG-INFO" metadata for a
+    pip._vendor.pkg_resources.Distribution object and
+    `dist.has_metadata('METADATA')` returns True but
+    `dist.get_metadata('METADATA')` returns None (and similarly for
+    "PKG-INFO").
+    """
+
+    def __init__(self, dist, metadata_name):
+        # type: (Distribution, str) -> None
+        """
+        :param dist: A Distribution object.
+        :param metadata_name: The name of the metadata being accessed
+            (can be "METADATA" or "PKG-INFO").
+        """
+        self.dist = dist
+        self.metadata_name = metadata_name
+
+    def __str__(self):
+        # type: () -> str
+        # Use `dist` in the error message because its stringification
+        # includes more information, like the version and location.
+        return (
+            'None {} metadata found for distribution: {}'.format(
+                self.metadata_name, self.dist,
+            )
+        )
 
 
 class DistributionNotFound(InstallationError):
@@ -43,6 +90,11 @@ class CommandError(PipError):
     """Raised when there is an error in command-line arguments"""
 
 
+class SubProcessError(PipError):
+    """Raised when there is an error raised while executing a
+    command in subprocess"""
+
+
 class PreviousBuildDirError(PipError):
     """Raised when there's a previous conflicting build directory"""
 
@@ -55,16 +107,39 @@ class UnsupportedWheel(InstallationError):
     """Unsupported wheel."""
 
 
+class MetadataInconsistent(InstallationError):
+    """Built metadata contains inconsistent information.
+
+    This is raised when the metadata contains values (e.g. name and version)
+    that do not match the information previously obtained from sdist filename
+    or user-supplied ``#egg=`` value.
+    """
+    def __init__(self, ireq, field, built):
+        # type: (InstallRequirement, str, Any) -> None
+        self.ireq = ireq
+        self.field = field
+        self.built = built
+
+    def __str__(self):
+        # type: () -> str
+        return "Requested {} has different {} in metadata: {!r}".format(
+            self.ireq, self.field, self.built,
+        )
+
+
 class HashErrors(InstallationError):
     """Multiple HashError instances rolled into one for reporting"""
 
     def __init__(self):
-        self.errors = []
+        # type: () -> None
+        self.errors = []  # type: List[HashError]
 
     def append(self, error):
+        # type: (HashError) -> None
         self.errors.append(error)
 
     def __str__(self):
+        # type: () -> str
         lines = []
         self.errors.sort(key=lambda e: e.order)
         for cls, errors_of_cls in groupby(self.errors, lambda e: e.__class__):
@@ -72,11 +147,14 @@ class HashErrors(InstallationError):
             lines.extend(e.body() for e in errors_of_cls)
         if lines:
             return '\n'.join(lines)
+        return ''
 
     def __nonzero__(self):
+        # type: () -> bool
         return bool(self.errors)
 
     def __bool__(self):
+        # type: () -> bool
         return self.__nonzero__()
 
 
@@ -96,25 +174,29 @@ class HashError(InstallationError):
         typically available earlier.
 
     """
-    req = None
+    req = None  # type: Optional[InstallRequirement]
     head = ''
+    order = None  # type: Optional[int]
 
     def body(self):
+        # type: () -> str
         """Return a summary of me for display under the heading.
 
         This default implementation simply prints a description of the
         triggering requirement.
 
         :param req: The InstallRequirement that provoked this error, with
-            populate_link() having already been called
+            its link already populated by the resolver's _populate_link().
 
         """
-        return '    %s' % self._requirement_name()
+        return '    {}'.format(self._requirement_name())
 
     def __str__(self):
-        return '%s\n%s' % (self.head, self.body())
+        # type: () -> str
+        return '{}\n{}'.format(self.head, self.body())
 
     def _requirement_name(self):
+        # type: () -> str
         """Return a description of the requirement that triggered me.
 
         This default implementation returns long description of the req, with
@@ -155,6 +237,7 @@ class HashMissing(HashError):
             'has a hash.)')
 
     def __init__(self, gotten_hash):
+        # type: (str) -> None
         """
         :param gotten_hash: The hash of the (possibly malicious) archive we
             just downloaded
@@ -162,6 +245,7 @@ class HashMissing(HashError):
         self.gotten_hash = gotten_hash
 
     def body(self):
+        # type: () -> str
         # Dodge circular import.
         from pip._internal.utils.hashes import FAVORITE_HASH
 
@@ -174,9 +258,9 @@ class HashMissing(HashError):
                        # In case someone feeds something downright stupid
                        # to InstallRequirement's constructor.
                        else getattr(self.req, 'req', None))
-        return '    %s --hash=%s:%s' % (package or 'unknown package',
-                                        FAVORITE_HASH,
-                                        self.gotten_hash)
+        return '    {} --hash={}:{}'.format(package or 'unknown package',
+                                            FAVORITE_HASH,
+                                            self.gotten_hash)
 
 
 class HashUnpinned(HashError):
@@ -204,6 +288,7 @@ class HashMismatch(HashError):
             'someone may have tampered with them.')
 
     def __init__(self, allowed, gots):
+        # type: (Dict[str, List[str]], Dict[str, _Hash]) -> None
         """
         :param allowed: A dict of algorithm names pointing to lists of allowed
             hex digests
@@ -214,10 +299,12 @@ class HashMismatch(HashError):
         self.gots = gots
 
     def body(self):
-        return '    %s:\n%s' % (self._requirement_name(),
-                                self._hash_comparison())
+        # type: () -> str
+        return '    {}:\n{}'.format(self._requirement_name(),
+                                    self._hash_comparison())
 
     def _hash_comparison(self):
+        # type: () -> str
         """
         Return a comparison of actual and expected hash values.
 
@@ -229,18 +316,18 @@ class HashMismatch(HashError):
 
         """
         def hash_then_or(hash_name):
+            # type: (str) -> chain[str]
             # For now, all the decent hashes have 6-char names, so we can get
             # away with hard-coding space literals.
             return chain([hash_name], repeat('    or'))
 
-        lines = []
+        lines = []  # type: List[str]
         for hash_name, expecteds in iteritems(self.allowed):
             prefix = hash_then_or(hash_name)
-            lines.extend(('        Expected %s %s' % (next(prefix), e))
+            lines.extend(('        Expected {} {}'.format(next(prefix), e))
                          for e in expecteds)
-            lines.append('             Got        %s\n' %
-                         self.gots[hash_name].hexdigest())
-            prefix = '    or'
+            lines.append('             Got        {}\n'.format(
+                         self.gots[hash_name].hexdigest()))
         return '\n'.join(lines)
 
 
@@ -254,15 +341,17 @@ class ConfigurationFileCouldNotBeLoaded(ConfigurationError):
     """
 
     def __init__(self, reason="could not be loaded", fname=None, error=None):
+        # type: (str, Optional[str], Optional[configparser.Error]) -> None
         super(ConfigurationFileCouldNotBeLoaded, self).__init__(error)
         self.reason = reason
         self.fname = fname
         self.error = error
 
     def __str__(self):
+        # type: () -> str
         if self.fname is not None:
             message_part = " in {}.".format(self.fname)
         else:
             assert self.error is not None
-            message_part = ".\n{}\n".format(self.error.message)
+            message_part = ".\n{}\n".format(self.error)
         return "Configuration file {}{}".format(self.reason, message_part)

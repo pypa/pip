@@ -3,22 +3,27 @@
 
 import os
 import logging
-from pip._vendor import pytoml
+from pip._vendor import toml
 import shutil
 from subprocess import check_call
 import sys
 from sysconfig import get_paths
 from tempfile import mkdtemp
 
-from .wrappers import Pep517HookCaller
+from .wrappers import Pep517HookCaller, LoggerWrapper
 
 log = logging.getLogger(__name__)
 
+
 def _load_pyproject(source_dir):
     with open(os.path.join(source_dir, 'pyproject.toml')) as f:
-        pyproject_data = pytoml.load(f)
+        pyproject_data = toml.load(f)
     buildsys = pyproject_data['build-system']
-    return buildsys['requires'], buildsys['build-backend']
+    return (
+        buildsys['requires'],
+        buildsys['build-backend'],
+        buildsys.get('backend-path'),
+    )
 
 
 class BuildEnvironment(object):
@@ -89,11 +94,22 @@ class BuildEnvironment(object):
         if not reqs:
             return
         log.info('Calling pip to install %s', reqs)
-        check_call([sys.executable, '-m', 'pip', 'install', '--ignore-installed',
-                    '--prefix', self.path] + list(reqs))
+        cmd = [
+            sys.executable, '-m', 'pip', 'install', '--ignore-installed',
+            '--prefix', self.path] + list(reqs)
+        check_call(
+            cmd,
+            stdout=LoggerWrapper(log, logging.INFO),
+            stderr=LoggerWrapper(log, logging.ERROR),
+        )
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        if self._cleanup and (self.path is not None) and os.path.isdir(self.path):
+        needs_cleanup = (
+            self._cleanup and
+            self.path is not None and
+            os.path.isdir(self.path)
+        )
+        if needs_cleanup:
             shutil.rmtree(self.path)
 
         if self.save_path is None:
@@ -105,6 +121,7 @@ class BuildEnvironment(object):
             os.environ.pop('PYTHONPATH', None)
         else:
             os.environ['PYTHONPATH'] = self.save_pythonpath
+
 
 def build_wheel(source_dir, wheel_dir, config_settings=None):
     """Build a wheel from a source directory using PEP 517 hooks.
@@ -118,8 +135,8 @@ def build_wheel(source_dir, wheel_dir, config_settings=None):
     """
     if config_settings is None:
         config_settings = {}
-    requires, backend = _load_pyproject(source_dir)
-    hooks = Pep517HookCaller(source_dir, backend)
+    requires, backend, backend_path = _load_pyproject(source_dir)
+    hooks = Pep517HookCaller(source_dir, backend, backend_path)
 
     with BuildEnvironment() as env:
         env.pip_install(requires)
@@ -140,8 +157,8 @@ def build_sdist(source_dir, sdist_dir, config_settings=None):
     """
     if config_settings is None:
         config_settings = {}
-    requires, backend = _load_pyproject(source_dir)
-    hooks = Pep517HookCaller(source_dir, backend)
+    requires, backend, backend_path = _load_pyproject(source_dir)
+    hooks = Pep517HookCaller(source_dir, backend, backend_path)
 
     with BuildEnvironment() as env:
         env.pip_install(requires)

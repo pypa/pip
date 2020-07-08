@@ -1,0 +1,19 @@
+cryptography==2.8
+csv23
+enum34; python_version < '3.4'
+freezegun
+mock
+pretend
+# pytest 5.x only supports python 3.5+
+pytest<5.0.0
+pytest-cov
+# Prevent installing 9.0 which has install_requires "pytest >= 5.0".
+pytest-rerunfailures<9.0
+pytest-timeout
+pytest-xdist
+pyyaml
+setuptools>=39.2.0  # Needed for `setuptools.wheel.Wheel` support.
+scripttest
+https://github.com/pypa/virtualenv/archive/legacy.zip#egg=virtualenv
+werkzeug==0.16.0
+wheel

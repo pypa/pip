@@ -3,30 +3,36 @@ import os
 
 import pytest
 
+from tests.lib import create_test_package_with_setup
+from tests.lib.path import Path
 
-def test_basic_list(script, data):
+
+@pytest.fixture(scope="session")
+def simple_script(tmpdir_factory, script_factory, shared_data):
+    tmpdir = Path(str(tmpdir_factory.mktemp("pip_test_package")))
+    script = script_factory(tmpdir.joinpath("workspace"))
+    script.pip(
+        'install', '-f', shared_data.find_links, '--no-index', 'simple==1.0',
+        'simple2==3.0',
+    )
+    return script
+
+
+def test_basic_list(simple_script):
     """
     Test default behavior of list command without format specifier.
 
     """
-    script.pip(
-        'install', '-f', data.find_links, '--no-index', 'simple==1.0',
-        'simple2==3.0',
-    )
-    result = script.pip('list')
+    result = simple_script.pip('list')
     assert 'simple     1.0' in result.stdout, str(result)
     assert 'simple2    3.0' in result.stdout, str(result)
 
 
-def test_verbose_flag(script, data):
+def test_verbose_flag(simple_script):
     """
     Test the list command with the '-v' option
     """
-    script.pip(
-        'install', '-f', data.find_links, '--no-index', 'simple==1.0',
-        'simple2==3.0',
-    )
-    result = script.pip('list', '-v', '--format=columns')
+    result = simple_script.pip('list', '-v', '--format=columns')
     assert 'Package' in result.stdout, str(result)
     assert 'Version' in result.stdout, str(result)
     assert 'Location' in result.stdout, str(result)
@@ -35,15 +41,11 @@ def test_verbose_flag(script, data):
     assert 'simple2    3.0' in result.stdout, str(result)
 
 
-def test_columns_flag(script, data):
+def test_columns_flag(simple_script):
     """
     Test the list command with the '--format=columns' option
     """
-    script.pip(
-        'install', '-f', data.find_links, '--no-index', 'simple==1.0',
-        'simple2==3.0',
-    )
-    result = script.pip('list', '--format=columns')
+    result = simple_script.pip('list', '--format=columns')
     assert 'Package' in result.stdout, str(result)
     assert 'Version' in result.stdout, str(result)
     assert 'simple (1.0)' not in result.stdout, str(result)
@@ -51,22 +53,18 @@ def test_columns_flag(script, data):
     assert 'simple2    3.0' in result.stdout, str(result)
 
 
-def test_format_priority(script, data):
+def test_format_priority(simple_script):
     """
     Test that latest format has priority over previous ones.
     """
-    script.pip(
-        'install', '-f', data.find_links, '--no-index', 'simple==1.0',
-        'simple2==3.0',
-    )
-    result = script.pip('list', '--format=columns', '--format=freeze',
-                        expect_stderr=True)
+    result = simple_script.pip('list', '--format=columns', '--format=freeze',
+                               expect_stderr=True)
     assert 'simple==1.0' in result.stdout, str(result)
     assert 'simple2==3.0' in result.stdout, str(result)
     assert 'simple     1.0' not in result.stdout, str(result)
     assert 'simple2    3.0' not in result.stdout, str(result)
 
-    result = script.pip('list', '--format=freeze', '--format=columns')
+    result = simple_script.pip('list', '--format=freeze', '--format=columns')
     assert 'Package' in result.stdout, str(result)
     assert 'Version' in result.stdout, str(result)
     assert 'simple==1.0' not in result.stdout, str(result)
@@ -75,23 +73,21 @@ def test_format_priority(script, data):
     assert 'simple2    3.0' in result.stdout, str(result)
 
 
-def test_local_flag(script, data):
+def test_local_flag(simple_script):
     """
     Test the behavior of --local flag in the list command
 
     """
-    script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
-    result = script.pip('list', '--local', '--format=json')
+    result = simple_script.pip('list', '--local', '--format=json')
     assert {"name": "simple", "version": "1.0"} in json.loads(result.stdout)
 
 
-def test_local_columns_flag(script, data):
+def test_local_columns_flag(simple_script):
     """
     Test the behavior of --local --format=columns flags in the list command
 
     """
-    script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
-    result = script.pip('list', '--local', '--format=columns')
+    result = simple_script.pip('list', '--local', '--format=columns')
     assert 'Package' in result.stdout
     assert 'Version' in result.stdout
     assert 'simple (1.0)' not in result.stdout
@@ -99,6 +95,7 @@ def test_local_columns_flag(script, data):
 
 
 @pytest.mark.network
+@pytest.mark.incompatible_with_test_venv
 def test_user_flag(script, data):
     """
     Test the behavior of --user flag in the list command
@@ -115,6 +112,7 @@ def test_user_flag(script, data):
 
 
 @pytest.mark.network
+@pytest.mark.incompatible_with_test_venv
 def test_user_columns_flag(script, data):
     """
     Test the behavior of --user --format=columns flags in the list command
@@ -247,50 +245,53 @@ def test_outdated_columns_flag(script, data):
     assert 'simple2' not in result.stdout, str(result)  # 3.0 is latest
 
 
-@pytest.mark.network
-def test_editables_flag(script, data):
-    """
-    Test the behavior of --editables flag in the list command
-    """
-    script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
-    result = script.pip(
+@pytest.fixture(scope="session")
+def pip_test_package_script(tmpdir_factory, script_factory, shared_data):
+    tmpdir = Path(str(tmpdir_factory.mktemp("pip_test_package")))
+    script = script_factory(tmpdir.joinpath("workspace"))
+    script.pip(
+        'install', '-f', shared_data.find_links, '--no-index', 'simple==1.0'
+    )
+    script.pip(
         'install', '-e',
         'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package'
     )
-    result = script.pip('list', '--editable', '--format=json')
-    result2 = script.pip('list', '--editable')
+    return script
+
+
+@pytest.mark.network
+def test_editables_flag(pip_test_package_script):
+    """
+    Test the behavior of --editables flag in the list command
+    """
+    result = pip_test_package_script.pip('list', '--editable', '--format=json')
+    result2 = pip_test_package_script.pip('list', '--editable')
     assert {"name": "simple", "version": "1.0"} \
         not in json.loads(result.stdout)
     assert os.path.join('src', 'pip-test-package') in result2.stdout
 
 
 @pytest.mark.network
-def test_exclude_editable_flag(script, data):
+def test_exclude_editable_flag(pip_test_package_script):
     """
     Test the behavior of --editables flag in the list command
     """
-    script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
-    result = script.pip(
-        'install', '-e',
-        'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package'
+    result = pip_test_package_script.pip(
+        'list', '--exclude-editable', '--format=json'
     )
-    result = script.pip('list', '--exclude-editable', '--format=json')
     assert {"name": "simple", "version": "1.0"} in json.loads(result.stdout)
     assert "pip-test-package" \
         not in {p["name"] for p in json.loads(result.stdout)}
 
 
 @pytest.mark.network
-def test_editables_columns_flag(script, data):
+def test_editables_columns_flag(pip_test_package_script):
     """
     Test the behavior of --editables flag in the list command
     """
-    script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
-    result = script.pip(
-        'install', '-e',
-        'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package'
+    result = pip_test_package_script.pip(
+        'list', '--editable', '--format=columns'
     )
-    result = script.pip('list', '--editable', '--format=columns')
     assert 'Package' in result.stdout
     assert 'Version' in result.stdout
     assert 'Location' in result.stdout
@@ -300,16 +301,11 @@ def test_editables_columns_flag(script, data):
 
 
 @pytest.mark.network
-def test_uptodate_editables_flag(script, data):
+def test_uptodate_editables_flag(pip_test_package_script, data):
     """
     test the behavior of --editable --uptodate flag in the list command
     """
-    script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
-    result = script.pip(
-        'install', '-e',
-        'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package'
-    )
-    result = script.pip(
+    result = pip_test_package_script.pip(
         'list', '-f', data.find_links, '--no-index',
         '--editable', '--uptodate',
     )
@@ -320,17 +316,12 @@ def test_uptodate_editables_flag(script, data):
 
 
 @pytest.mark.network
-def test_uptodate_editables_columns_flag(script, data):
+def test_uptodate_editables_columns_flag(pip_test_package_script, data):
     """
     test the behavior of --editable --uptodate --format=columns flag in the
     list command
     """
-    script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
-    result = script.pip(
-        'install', '-e',
-        'git+https://github.com/pypa/pip-test-package.git#egg=pip-test-package'
-    )
-    result = script.pip(
+    result = pip_test_package_script.pip(
         'list', '-f', data.find_links, '--no-index',
         '--editable', '--uptodate', '--format=columns',
     )
@@ -384,14 +375,31 @@ def test_outdated_editables_columns_flag(script, data):
     )
 
 
+def test_outdated_not_required_flag(script, data):
+    """
+    test the behavior of --outdated --not-required flag in the list command
+    """
+    script.pip(
+        'install', '-f', data.find_links, '--no-index',
+        'simple==2.0', 'require_simple==1.0'
+    )
+    result = script.pip(
+        'list', '-f', data.find_links, '--no-index', '--outdated',
+        '--not-required', '--format=json',
+    )
+    assert [] == json.loads(result.stdout)
+
+
 def test_outdated_pre(script, data):
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
 
     # Let's build a fake wheelhouse
-    script.scratch_path.join("wheelhouse").mkdir()
+    script.scratch_path.joinpath("wheelhouse").mkdir()
     wheelhouse_path = script.scratch_path / 'wheelhouse'
-    wheelhouse_path.join('simple-1.1-py2.py3-none-any.whl').write('')
-    wheelhouse_path.join('simple-2.0.dev0-py2.py3-none-any.whl').write('')
+    wheelhouse_path.joinpath('simple-1.1-py2.py3-none-any.whl').write_text('')
+    wheelhouse_path.joinpath(
+        'simple-2.0.dev0-py2.py3-none-any.whl'
+    ).write_text('')
     result = script.pip(
         'list', '--no-index', '--find-links', wheelhouse_path,
         '--format=json',
@@ -417,9 +425,9 @@ def test_outdated_formats(script, data):
     script.pip('install', '-f', data.find_links, '--no-index', 'simple==1.0')
 
     # Let's build a fake wheelhouse
-    script.scratch_path.join("wheelhouse").mkdir()
+    script.scratch_path.joinpath("wheelhouse").mkdir()
     wheelhouse_path = script.scratch_path / 'wheelhouse'
-    wheelhouse_path.join('simple-1.1-py2.py3-none-any.whl').write('')
+    wheelhouse_path.joinpath('simple-1.1-py2.py3-none-any.whl').write_text('')
     result = script.pip(
         'list', '--no-index', '--find-links', wheelhouse_path,
         '--format=freeze',
@@ -462,30 +470,115 @@ def test_not_required_flag(script, data):
     assert 'TopoRequires3 ' not in result.stdout
 
 
-def test_list_freeze(script, data):
+def test_list_freeze(simple_script):
     """
     Test freeze formatting of list command
 
     """
-    script.pip(
-        'install', '-f', data.find_links, '--no-index', 'simple==1.0',
-        'simple2==3.0',
-    )
-    result = script.pip('list', '--format=freeze')
+    result = simple_script.pip('list', '--format=freeze')
     assert 'simple==1.0' in result.stdout, str(result)
     assert 'simple2==3.0' in result.stdout, str(result)
 
 
-def test_list_json(script, data):
+def test_list_json(simple_script):
     """
     Test json formatting of list command
 
     """
-    script.pip(
-        'install', '-f', data.find_links, '--no-index', 'simple==1.0',
-        'simple2==3.0',
-    )
-    result = script.pip('list', '--format=json')
+    result = simple_script.pip('list', '--format=json')
     data = json.loads(result.stdout)
     assert {'name': 'simple', 'version': '1.0'} in data
     assert {'name': 'simple2', 'version': '3.0'} in data
+
+
+def test_list_path(tmpdir, script, data):
+    """
+    Test list with --path.
+    """
+    result = script.pip('list', '--path', tmpdir, '--format=json')
+    json_result = json.loads(result.stdout)
+    assert {'name': 'simple', 'version': '2.0'} not in json_result
+
+    script.pip_install_local('--target', tmpdir, 'simple==2.0')
+    result = script.pip('list', '--path', tmpdir, '--format=json')
+    json_result = json.loads(result.stdout)
+    assert {'name': 'simple', 'version': '2.0'} in json_result
+
+
+@pytest.mark.incompatible_with_test_venv
+def test_list_path_exclude_user(tmpdir, script, data):
+    """
+    Test list with --path and make sure packages from --user are not picked
+    up.
+    """
+    script.pip_install_local('--user', 'simple2')
+    script.pip_install_local('--target', tmpdir, 'simple==1.0')
+
+    result = script.pip('list', '--user', '--format=json')
+    json_result = json.loads(result.stdout)
+    assert {'name': 'simple2', 'version': '3.0'} in json_result
+
+    result = script.pip('list', '--path', tmpdir, '--format=json')
+    json_result = json.loads(result.stdout)
+    assert {'name': 'simple', 'version': '1.0'} in json_result
+
+
+def test_list_path_multiple(tmpdir, script, data):
+    """
+    Test list with multiple --path arguments.
+    """
+    path1 = tmpdir / "path1"
+    os.mkdir(path1)
+    path2 = tmpdir / "path2"
+    os.mkdir(path2)
+
+    script.pip_install_local('--target', path1, 'simple==2.0')
+    script.pip_install_local('--target', path2, 'simple2==3.0')
+
+    result = script.pip('list', '--path', path1, '--format=json')
+    json_result = json.loads(result.stdout)
+    assert {'name': 'simple', 'version': '2.0'} in json_result
+
+    result = script.pip('list', '--path', path1, '--path', path2,
+                        '--format=json')
+    json_result = json.loads(result.stdout)
+    assert {'name': 'simple', 'version': '2.0'} in json_result
+    assert {'name': 'simple2', 'version': '3.0'} in json_result
+
+
+def test_list_skip_work_dir_pkg(script):
+    """
+    Test that list should not include package in working directory
+    """
+
+    # Create a test package and create .egg-info dir
+    pkg_path = create_test_package_with_setup(
+        script, name='simple', version='1.0')
+    script.run('python', 'setup.py', 'egg_info',
+               expect_stderr=True, cwd=pkg_path)
+
+    # List should not include package simple when run from package directory
+    result = script.pip('list', '--format=json', cwd=pkg_path)
+    json_result = json.loads(result.stdout)
+    assert {'name': 'simple', 'version': '1.0'} not in json_result
+
+
+def test_list_include_work_dir_pkg(script):
+    """
+    Test that list should include package in working directory
+    if working directory is added in PYTHONPATH
+    """
+
+    # Create a test package and create .egg-info dir
+    pkg_path = create_test_package_with_setup(
+        script, name='simple', version='1.0')
+    script.run('python', 'setup.py', 'egg_info',
+               expect_stderr=True, cwd=pkg_path)
+
+    script.environ.update({'PYTHONPATH': pkg_path})
+
+    # List should include package simple when run from package directory
+    # when the package directory is in PYTHONPATH
+    result = script.pip('list', '--format=json', cwd=pkg_path)
+    json_result = json.loads(result.stdout)
+    assert {'name': 'simple', 'version': '1.0'} in json_result

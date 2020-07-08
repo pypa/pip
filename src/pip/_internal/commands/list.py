@@ -4,52 +4,62 @@ import json
 import logging
 
 from pip._vendor import six
-from pip._vendor.six.moves import zip_longest
 
 from pip._internal.cli import cmdoptions
-from pip._internal.cli.base_command import Command
+from pip._internal.cli.req_command import IndexGroupCommand
+from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.exceptions import CommandError
-from pip._internal.index import PackageFinder
+from pip._internal.index.collector import LinkCollector
+from pip._internal.index.package_finder import PackageFinder
+from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.utils.misc import (
-    dist_is_editable, get_installed_distributions,
+    dist_is_editable,
+    get_installed_distributions,
+    tabulate,
+    write_output,
 )
 from pip._internal.utils.packaging import get_installer
+from pip._internal.utils.parallel import map_multithread
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from optparse import Values
+    from typing import List, Set, Tuple, Iterator
+
+    from pip._internal.network.session import PipSession
+    from pip._vendor.pkg_resources import Distribution
 
 logger = logging.getLogger(__name__)
 
 
-class ListCommand(Command):
+class ListCommand(IndexGroupCommand):
     """
     List installed packages, including editables.
 
     Packages are listed in a case-insensitive sorted order.
     """
-    name = 'list'
+
     usage = """
       %prog [options]"""
-    summary = 'List installed packages.'
 
-    def __init__(self, *args, **kw):
-        super(ListCommand, self).__init__(*args, **kw)
-
-        cmd_opts = self.cmd_opts
-
-        cmd_opts.add_option(
+    def add_options(self):
+        # type: () -> None
+        self.cmd_opts.add_option(
             '-o', '--outdated',
             action='store_true',
             default=False,
             help='List outdated packages')
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '-u', '--uptodate',
             action='store_true',
             default=False,
             help='List uptodate packages')
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '-e', '--editable',
             action='store_true',
             default=False,
             help='List editable projects.')
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '-l', '--local',
             action='store_true',
             default=False,
@@ -62,8 +72,8 @@ class ListCommand(Command):
             action='store_true',
             default=False,
             help='Only output packages installed in user-site.')
-
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(cmdoptions.list_path())
+        self.cmd_opts.add_option(
             '--pre',
             action='store_true',
             default=False,
@@ -71,7 +81,7 @@ class ListCommand(Command):
                   "pip only finds stable versions."),
         )
 
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '--format',
             action='store',
             dest='list_format',
@@ -81,7 +91,7 @@ class ListCommand(Command):
                  "or json",
         )
 
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '--not-required',
             action='store_true',
             dest='not_required',
@@ -89,13 +99,13 @@ class ListCommand(Command):
                  "installed packages.",
         )
 
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '--exclude-editable',
             action='store_false',
             dest='include_editable',
             help='Exclude editable package from output.',
         )
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '--include-editable',
             action='store_true',
             dest='include_editable',
@@ -107,79 +117,89 @@ class ListCommand(Command):
         )
 
         self.parser.insert_option_group(0, index_opts)
-        self.parser.insert_option_group(0, cmd_opts)
+        self.parser.insert_option_group(0, self.cmd_opts)
 
-    def _build_package_finder(self, options, index_urls, session):
+    def _build_package_finder(self, options, session):
+        # type: (Values, PipSession) -> PackageFinder
         """
         Create a package finder appropriate to this list command.
         """
-        return PackageFinder(
-            find_links=options.find_links,
-            index_urls=index_urls,
+        link_collector = LinkCollector.create(session, options=options)
+
+        # Pass allow_yanked=False to ignore yanked versions.
+        selection_prefs = SelectionPreferences(
+            allow_yanked=False,
             allow_all_prereleases=options.pre,
-            trusted_hosts=options.trusted_hosts,
-            process_dependency_links=options.process_dependency_links,
-            session=session,
+        )
+
+        return PackageFinder.create(
+            link_collector=link_collector,
+            selection_prefs=selection_prefs,
         )
 
     def run(self, options, args):
+        # type: (Values, List[str]) -> int
         if options.outdated and options.uptodate:
             raise CommandError(
                 "Options --outdated and --uptodate cannot be combined.")
+
+        cmdoptions.check_list_path_option(options)
 
         packages = get_installed_distributions(
             local_only=options.local,
             user_only=options.user,
             editables_only=options.editable,
             include_editables=options.include_editable,
+            paths=options.path,
         )
+
+        # get_not_required must be called firstly in order to find and
+        # filter out all dependencies correctly. Otherwise a package
+        # can't be identified as requirement because some parent packages
+        # could be filtered out before.
+        if options.not_required:
+            packages = self.get_not_required(packages, options)
 
         if options.outdated:
             packages = self.get_outdated(packages, options)
         elif options.uptodate:
             packages = self.get_uptodate(packages, options)
 
-        if options.not_required:
-            packages = self.get_not_required(packages, options)
-
         self.output_package_listing(packages, options)
+        return SUCCESS
 
     def get_outdated(self, packages, options):
+        # type: (List[Distribution], Values) -> List[Distribution]
         return [
             dist for dist in self.iter_packages_latest_infos(packages, options)
             if dist.latest_version > dist.parsed_version
         ]
 
     def get_uptodate(self, packages, options):
+        # type: (List[Distribution], Values) -> List[Distribution]
         return [
             dist for dist in self.iter_packages_latest_infos(packages, options)
             if dist.latest_version == dist.parsed_version
         ]
 
     def get_not_required(self, packages, options):
-        dep_keys = set()
+        # type: (List[Distribution], Values) -> List[Distribution]
+        dep_keys = set()  # type: Set[Distribution]
         for dist in packages:
             dep_keys.update(requirement.key for requirement in dist.requires())
-        return {pkg for pkg in packages if pkg.key not in dep_keys}
+
+        # Create a set to remove duplicate packages, and cast it to a list
+        # to keep the return type consistent with get_outdated and
+        # get_uptodate
+        return list({pkg for pkg in packages if pkg.key not in dep_keys})
 
     def iter_packages_latest_infos(self, packages, options):
-        index_urls = [options.index_url] + options.extra_index_urls
-        if options.no_index:
-            logger.debug('Ignoring indexes: %s', ','.join(index_urls))
-            index_urls = []
-
-        dependency_links = []
-        for dist in packages:
-            if dist.has_metadata('dependency_links.txt'):
-                dependency_links.extend(
-                    dist.get_metadata_lines('dependency_links.txt'),
-                )
-
+        # type: (List[Distribution], Values) -> Iterator[Distribution]
         with self._build_session(options) as session:
-            finder = self._build_package_finder(options, index_urls, session)
-            finder.add_dependency_links(dependency_links)
+            finder = self._build_package_finder(options, session)
 
-            for dist in packages:
+            def latest_info(dist):
+                # type: (Distribution) -> Distribution
                 typ = 'unknown'
                 all_candidates = finder.find_all_candidates(dist.key)
                 if not options.pre:
@@ -187,21 +207,29 @@ class ListCommand(Command):
                     all_candidates = [candidate for candidate in all_candidates
                                       if not candidate.version.is_prerelease]
 
-                if not all_candidates:
-                    continue
-                best_candidate = max(all_candidates,
-                                     key=finder._candidate_sort_key)
+                evaluator = finder.make_candidate_evaluator(
+                    project_name=dist.project_name,
+                )
+                best_candidate = evaluator.sort_best_candidate(all_candidates)
+                if best_candidate is None:
+                    return None
+
                 remote_version = best_candidate.version
-                if best_candidate.location.is_wheel:
+                if best_candidate.link.is_wheel:
                     typ = 'wheel'
                 else:
                     typ = 'sdist'
                 # This is dirty but makes the rest of the code much cleaner
                 dist.latest_version = remote_version
                 dist.latest_filetype = typ
-                yield dist
+                return dist
+
+            for dist in map_multithread(latest_info, packages):
+                if dist is not None:
+                    yield dist
 
     def output_package_listing(self, packages, options):
+        # type: (List[Distribution], Values) -> None
         packages = sorted(
             packages,
             key=lambda dist: dist.project_name.lower(),
@@ -212,14 +240,15 @@ class ListCommand(Command):
         elif options.list_format == 'freeze':
             for dist in packages:
                 if options.verbose >= 1:
-                    logger.info("%s==%s (%s)", dist.project_name,
-                                dist.version, dist.location)
+                    write_output("%s==%s (%s)", dist.project_name,
+                                 dist.version, dist.location)
                 else:
-                    logger.info("%s==%s", dist.project_name, dist.version)
+                    write_output("%s==%s", dist.project_name, dist.version)
         elif options.list_format == 'json':
-            logger.info(format_for_json(packages, options))
+            write_output(format_for_json(packages, options))
 
     def output_package_listing_columns(self, data, header):
+        # type: (List[List[str]], List[str]) -> None
         # insert the header first: we need to know the size of column names
         if len(data) > 0:
             data.insert(0, header)
@@ -231,28 +260,11 @@ class ListCommand(Command):
             pkg_strings.insert(1, " ".join(map(lambda x: '-' * x, sizes)))
 
         for val in pkg_strings:
-            logger.info(val)
-
-
-def tabulate(vals):
-    # From pfmoore on GitHub:
-    # https://github.com/pypa/pip/issues/3651#issuecomment-216932564
-    assert len(vals) > 0
-
-    sizes = [0] * max(len(x) for x in vals)
-    for row in vals:
-        sizes = [max(s, len(str(c))) for s, c in zip_longest(sizes, row)]
-
-    result = []
-    for row in vals:
-        display = " ".join([str(c).ljust(s) if c is not None else ''
-                            for s, c in zip_longest(sizes, row)])
-        result.append(display)
-
-    return result, sizes
+            write_output(val)
 
 
 def format_for_columns(pkgs, options):
+    # type: (List[Distribution], Values) -> Tuple[List[List[str]], List[str]]
     """
     Convert the package data into something usable
     by output_package_listing_columns.
@@ -290,6 +302,7 @@ def format_for_columns(pkgs, options):
 
 
 def format_for_json(packages, options):
+    # type: (List[Distribution], Values) -> str
     data = []
     for dist in packages:
         info = {

@@ -1,2 +1,0 @@
-Remove the deprecated SVN editable detection based on dependency links
-during freeze.

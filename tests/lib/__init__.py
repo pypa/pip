@@ -1,24 +1,50 @@
 from __future__ import absolute_import
 
-from contextlib import contextmanager
 import os
-import sys
 import re
-import textwrap
-import site
 import shutil
+import site
 import subprocess
+import sys
+import textwrap
+from base64 import urlsafe_b64encode
+from contextlib import contextmanager
+from hashlib import sha256
+from io import BytesIO
+from textwrap import dedent
+from zipfile import ZipFile
 
 import pytest
+from pip._vendor.six import PY2, ensure_binary, text_type
 from scripttest import FoundDir, TestFileEnvironment
 
+from pip._internal.index.collector import LinkCollector
+from pip._internal.index.package_finder import PackageFinder
+from pip._internal.locations import get_major_minor_version
+from pip._internal.models.search_scope import SearchScope
+from pip._internal.models.selection_prefs import SelectionPreferences
+from pip._internal.network.session import PipSession
+from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from tests.lib.path import Path, curdir
+from tests.lib.wheel import make_wheel
 
-DATA_DIR = Path(__file__).folder.folder.join("data").abspath
-SRC_DIR = Path(__file__).abspath.folder.folder.folder
+if MYPY_CHECK_RUNNING:
+    from typing import List, Optional
+    from pip._internal.models.target_python import TargetPython
 
-pyversion = sys.version[:3]
+
+DATA_DIR = Path(__file__).parent.parent.joinpath("data").resolve()
+SRC_DIR = Path(__file__).resolve().parent.parent.parent
+
+pyversion = get_major_minor_version()
 pyversion_tuple = sys.version_info
+
+CURRENT_PY_VERSION_INFO = sys.version_info[:3]
+
+
+def assert_paths_equal(actual, expected):
+    assert os.path.normpath(actual) == os.path.normpath(expected)
 
 
 def path_to_url(path):
@@ -38,6 +64,16 @@ def path_to_url(path):
     return 'file://' + url
 
 
+def _test_path_to_file_url(path):
+    """
+    Convert a test Path to a "file://" URL.
+
+    Args:
+      path: a tests.lib.path.Path object.
+    """
+    return 'file://' + path.resolve().replace('\\', '/')
+
+
 def create_file(path, contents=None):
     """Create a file on the path, with the given contents
     """
@@ -49,6 +85,66 @@ def create_file(path, contents=None):
             f.write(contents)
         else:
             f.write("\n")
+
+
+def make_test_search_scope(
+    find_links=None,  # type: Optional[List[str]]
+    index_urls=None,  # type: Optional[List[str]]
+):
+    if find_links is None:
+        find_links = []
+    if index_urls is None:
+        index_urls = []
+
+    return SearchScope.create(find_links=find_links, index_urls=index_urls)
+
+
+def make_test_link_collector(
+    find_links=None,  # type: Optional[List[str]]
+    index_urls=None,  # type: Optional[List[str]]
+    session=None,     # type: Optional[PipSession]
+):
+    # type: (...) -> LinkCollector
+    """
+    Create a LinkCollector object for testing purposes.
+    """
+    if session is None:
+        session = PipSession()
+
+    search_scope = make_test_search_scope(
+        find_links=find_links,
+        index_urls=index_urls,
+    )
+
+    return LinkCollector(session=session, search_scope=search_scope)
+
+
+def make_test_finder(
+    find_links=None,  # type: Optional[List[str]]
+    index_urls=None,  # type: Optional[List[str]]
+    allow_all_prereleases=False,  # type: bool
+    session=None,                 # type: Optional[PipSession]
+    target_python=None,           # type: Optional[TargetPython]
+):
+    # type: (...) -> PackageFinder
+    """
+    Create a PackageFinder for testing purposes.
+    """
+    link_collector = make_test_link_collector(
+        find_links=find_links,
+        index_urls=index_urls,
+        session=session,
+    )
+    selection_prefs = SelectionPreferences(
+        allow_yanked=True,
+        allow_all_prereleases=allow_all_prereleases,
+    )
+
+    return PackageFinder.create(
+        link_collector=link_collector,
+        selection_prefs=selection_prefs,
+        target_python=target_python,
+    )
 
 
 class TestData(object):
@@ -65,7 +161,7 @@ class TestData(object):
 
     def __init__(self, root, source=None):
         self.source = source or DATA_DIR
-        self.root = Path(root).abspath
+        self.root = Path(root).resolve()
 
     @classmethod
     def copy(cls, root):
@@ -74,36 +170,39 @@ class TestData(object):
         return obj
 
     def reset(self):
-        self.root.rmtree()
-        self.source.copytree(self.root)
+        # Check explicitly for the target directory to avoid overly-broad
+        # try/except.
+        if self.root.exists():
+            shutil.rmtree(self.root)
+        shutil.copytree(self.source, self.root, symlinks=True)
 
     @property
     def packages(self):
-        return self.root.join("packages")
+        return self.root.joinpath("packages")
 
     @property
     def packages2(self):
-        return self.root.join("packages2")
+        return self.root.joinpath("packages2")
 
     @property
     def packages3(self):
-        return self.root.join("packages3")
+        return self.root.joinpath("packages3")
 
     @property
     def src(self):
-        return self.root.join("src")
+        return self.root.joinpath("src")
 
     @property
     def indexes(self):
-        return self.root.join("indexes")
+        return self.root.joinpath("indexes")
 
     @property
     def reqfiles(self):
-        return self.root.join("reqfiles")
+        return self.root.joinpath("reqfiles")
 
     @property
     def completion_paths(self):
-        return self.root.join("completion_paths")
+        return self.root.joinpath("completion_paths")
 
     @property
     def find_links(self):
@@ -119,10 +218,10 @@ class TestData(object):
 
     @property
     def backends(self):
-        return path_to_url(self.root.join("backends"))
+        return path_to_url(self.root.joinpath("backends"))
 
     def index_url(self, index="simple"):
-        return path_to_url(self.root.join("indexes", index))
+        return path_to_url(self.root.joinpath("indexes", index))
 
 
 class TestFailure(AssertionError):
@@ -165,9 +264,11 @@ class TestPipResult(object):
         def __str__(self):
             return str(self._impl)
 
-    def assert_installed(self, pkg_name, editable=True, with_files=[],
-                         without_files=[], without_egg_link=False,
+    def assert_installed(self, pkg_name, editable=True, with_files=None,
+                         without_files=None, without_egg_link=False,
                          use_user_site=False, sub_dir=False):
+        with_files = with_files or []
+        without_files = without_files or []
         e = self.test_env
 
         if editable:
@@ -187,14 +288,16 @@ class TestPipResult(object):
         if without_egg_link:
             if egg_link_path in self.files_created:
                 raise TestFailure(
-                    'unexpected egg link file created: %r\n%s' %
-                    (egg_link_path, self)
+                    'unexpected egg link file created: '
+                    '{egg_link_path!r}\n{self}'
+                    .format(**locals())
                 )
         else:
             if egg_link_path not in self.files_created:
                 raise TestFailure(
-                    'expected egg link file missing: %r\n%s' %
-                    (egg_link_path, self)
+                    'expected egg link file missing: '
+                    '{egg_link_path!r}\n{self}'
+                    .format(**locals())
                 )
 
             egg_link_file = self.files_created[egg_link_path]
@@ -203,15 +306,15 @@ class TestPipResult(object):
             # FIXME: I don't understand why there's a trailing . here
             if not (egg_link_contents.endswith('\n.') and
                     egg_link_contents[:-2].endswith(pkg_dir)):
-                raise TestFailure(textwrap.dedent(u'''\
-                    Incorrect egg_link file %r
-                    Expected ending: %r
+                raise TestFailure(textwrap.dedent(
+                    u'''\
+                    Incorrect egg_link file {egg_link_file!r}
+                    Expected ending: {expected_ending!r}
                     ------- Actual contents -------
-                    %s
-                    -------------------------------''' % (
-                    egg_link_file,
-                    pkg_dir + '\n.',
-                    repr(egg_link_contents))
+                    {egg_link_contents!r}
+                    -------------------------------'''.format(
+                        expected_ending=pkg_dir + '\n.',
+                        **locals())
                 ))
 
         if use_user_site:
@@ -220,32 +323,119 @@ class TestPipResult(object):
             pth_file = e.site_packages / 'easy-install.pth'
 
         if (pth_file in self.files_updated) == without_egg_link:
-            raise TestFailure('%r unexpectedly %supdated by install' % (
-                pth_file, (not without_egg_link and 'not ' or '')))
+            raise TestFailure(
+                '{pth_file} unexpectedly {maybe}updated by install'.format(
+                    maybe=not without_egg_link and 'not ' or '',
+                    **locals()))
 
         if (pkg_dir in self.files_created) == (curdir in without_files):
             raise TestFailure(textwrap.dedent('''\
-            expected package directory %r %sto be created
+            expected package directory {pkg_dir!r} {maybe}to be created
             actually created:
-            %s
-            ''') % (
-                pkg_dir,
-                (curdir in without_files and 'not ' or ''),
-                sorted(self.files_created.keys())))
+            {files}
+            ''').format(
+                pkg_dir=pkg_dir,
+                maybe=curdir in without_files and 'not ' or '',
+                files=sorted(self.files_created.keys()),
+            ))
 
         for f in with_files:
-            if not (pkg_dir / f).normpath in self.files_created:
+            normalized_path = os.path.normpath(pkg_dir / f)
+            if normalized_path not in self.files_created:
                 raise TestFailure(
-                    'Package directory %r missing expected content %r' %
-                    (pkg_dir, f)
+                    'Package directory {pkg_dir!r} missing '
+                    'expected content {f!r}'.format(**locals())
                 )
 
         for f in without_files:
-            if (pkg_dir / f).normpath in self.files_created:
+            normalized_path = os.path.normpath(pkg_dir / f)
+            if normalized_path in self.files_created:
                 raise TestFailure(
-                    'Package directory %r has unexpected content %f' %
-                    (pkg_dir, f)
+                    'Package directory {pkg_dir!r} has unexpected content {f}'
+                    .format(**locals())
                 )
+
+    def did_create(self, path, message=None):
+        assert str(path) in self.files_created, _one_or_both(message, self)
+
+    def did_not_create(self, path, message=None):
+        assert str(path) not in self.files_created, _one_or_both(message, self)
+
+    def did_update(self, path, message=None):
+        assert str(path) in self.files_updated, _one_or_both(message, self)
+
+    def did_not_update(self, path, message=None):
+        assert str(path) not in self.files_updated, _one_or_both(message, self)
+
+
+def _one_or_both(a, b):
+    """Returns f"{a}\n{b}" if a is truthy, else returns str(b).
+    """
+    if not a:
+        return str(b)
+
+    return "{a}\n{b}".format(a=a, b=b)
+
+
+def make_check_stderr_message(stderr, line, reason):
+    """
+    Create an exception message to use inside check_stderr().
+    """
+    return dedent("""\
+    {reason}:
+     Caused by line: {line!r}
+     Complete stderr: {stderr}
+    """).format(stderr=stderr, line=line, reason=reason)
+
+
+def _check_stderr(
+    stderr, allow_stderr_warning, allow_stderr_error,
+):
+    """
+    Check the given stderr for logged warnings and errors.
+
+    :param stderr: stderr output as a string.
+    :param allow_stderr_warning: whether a logged warning (or deprecation
+        message) is allowed. Must be True if allow_stderr_error is True.
+    :param allow_stderr_error: whether a logged error is allowed.
+    """
+    assert not (allow_stderr_error and not allow_stderr_warning)
+
+    lines = stderr.splitlines()
+    for line in lines:
+        # First check for logging errors, which we don't allow during
+        # tests even if allow_stderr_error=True (since a logging error
+        # would signal a bug in pip's code).
+        #    Unlike errors logged with logger.error(), these errors are
+        # sent directly to stderr and so bypass any configured log formatter.
+        # The "--- Logging error ---" string is used in Python 3.4+, and
+        # "Logged from file " is used in Python 2.
+        if (line.startswith('--- Logging error ---') or
+                line.startswith('Logged from file ')):
+            reason = 'stderr has a logging error, which is never allowed'
+            msg = make_check_stderr_message(stderr, line=line, reason=reason)
+            raise RuntimeError(msg)
+        if allow_stderr_error:
+            continue
+
+        if line.startswith('ERROR: '):
+            reason = (
+                'stderr has an unexpected error '
+                '(pass allow_stderr_error=True to permit this)'
+            )
+            msg = make_check_stderr_message(stderr, line=line, reason=reason)
+            raise RuntimeError(msg)
+        if allow_stderr_warning:
+            continue
+
+        if (line.startswith('WARNING: ') or
+                line.startswith(DEPRECATION_MSG_PREFIX)):
+            reason = (
+                'stderr has an unexpected warning '
+                '(pass allow_stderr_warning=True to permit this)'
+            )
+            msg = make_check_stderr_message(stderr, line=line, reason=reason)
+            raise RuntimeError(msg)
 
 
 class PipTestEnvironment(TestFileEnvironment):
@@ -276,24 +466,27 @@ class PipTestEnvironment(TestFileEnvironment):
         self.site_packages_path = venv.site
         self.bin_path = venv.bin
 
-        self.user_base_path = self.venv_path.join("user")
-        self.user_site_path = self.venv_path.join(
+        self.user_base_path = self.venv_path.joinpath("user")
+        self.user_site_path = self.venv_path.joinpath(
             "user",
             site.USER_SITE[len(site.USER_BASE) + 1:],
         )
         if sys.platform == 'win32':
             if sys.version_info >= (3, 5):
-                scripts_base = self.user_site_path.join('..').normpath
+                scripts_base = Path(
+                    os.path.normpath(self.user_site_path.joinpath('..'))
+                )
             else:
                 scripts_base = self.user_base_path
-            self.user_bin_path = scripts_base.join('Scripts')
+            self.user_bin_path = scripts_base.joinpath('Scripts')
         else:
-            self.user_bin_path = self.user_base_path.join(
-                self.bin_path - self.venv_path
+            self.user_bin_path = self.user_base_path.joinpath(
+                os.path.relpath(self.bin_path, self.venv_path)
             )
 
         # Create a Directory to use as a scratch pad
-        self.scratch_path = base_path.join("scratch").mkdir()
+        self.scratch_path = base_path.joinpath("scratch")
+        self.scratch_path.mkdir()
 
         # Set our default working directory
         kwargs.setdefault("cwd", self.scratch_path)
@@ -313,14 +506,21 @@ class PipTestEnvironment(TestFileEnvironment):
         environ["PYTHONIOENCODING"] = "UTF-8"
         kwargs["environ"] = environ
 
+        # Whether all pip invocations should expect stderr
+        # (useful for Python version deprecation)
+        self.pip_expect_warning = kwargs.pop('pip_expect_warning', None)
+
         # Call the TestFileEnvironment __init__
         super(PipTestEnvironment, self).__init__(base_path, *args, **kwargs)
 
         # Expand our absolute path directories into relative
         for name in ["base", "venv", "bin", "lib", "site_packages",
                      "user_base", "user_site", "user_bin", "scratch"]:
-            real_name = "%s_path" % name
-            setattr(self, name, getattr(self, real_name) - self.base_path)
+            real_name = "{name}_path".format(**locals())
+            relative_path = Path(os.path.relpath(
+                getattr(self, real_name), self.base_path
+            ))
+            setattr(self, name, relative_path)
 
         # Make sure temp_path is a Path object
         self.temp_path = Path(self.temp_path)
@@ -329,8 +529,8 @@ class PipTestEnvironment(TestFileEnvironment):
 
         # create easy-install.pth in user_site, so we always have it updated
         #   instead of created
-        self.user_site_path.makedirs()
-        self.user_site_path.join("easy-install.pth").touch()
+        self.user_site_path.mkdir(parents=True)
+        self.user_site_path.joinpath("easy-install.pth").touch()
 
     def _ignore_file(self, fn):
         if fn.endswith('__pycache__') or fn.endswith(".pyc"):
@@ -350,8 +550,28 @@ class PipTestEnvironment(TestFileEnvironment):
             super(PipTestEnvironment, self)._find_traverse(path, result)
 
     def run(self, *args, **kw):
+        """
+        :param allow_stderr_error: whether a logged error is allowed in
+            stderr.  Passing True for this argument implies
+            `allow_stderr_warning` since warnings are weaker than errors.
+        :param allow_stderr_warning: whether a logged warning (or
+            deprecation message) is allowed in stderr.
+        :param allow_error: if True (default is False) does not raise
+            exception when the command exit value is non-zero.  Implies
+            expect_error, but in contrast to expect_error will not assert
+            that the exit value is zero.
+        :param expect_error: if False (the default), asserts that the command
+            exits with 0.  Otherwise, asserts that the command exits with a
+            non-zero exit code.  Passing True also implies allow_stderr_error
+            and allow_stderr_warning.
+        :param expect_stderr: whether to allow warnings in stderr (equivalent
+            to `allow_stderr_warning`).  This argument is an abbreviated
+            version of `allow_stderr_warning` and is also kept for backwards
+            compatibility.
+        """
         if self.verbose:
-            print('>> running %s %s' % (args, kw))
+            print('>> running {args} {kw}'.format(**locals()))
+
         cwd = kw.pop('cwd', None)
         run_from = kw.pop('run_from', None)
         assert not cwd or not run_from, "Don't use run_from; it's going away"
@@ -359,18 +579,70 @@ class PipTestEnvironment(TestFileEnvironment):
         if sys.platform == 'win32':
             # Partial fix for ScriptTest.run using `shell=True` on Windows.
             args = [str(a).replace('^', '^^').replace('&', '^&') for a in args]
-        return TestPipResult(
-            super(PipTestEnvironment, self).run(cwd=cwd, *args, **kw),
-            verbose=self.verbose,
+
+        # Remove `allow_stderr_error`, `allow_stderr_warning` and
+        # `allow_error` before calling run() because PipTestEnvironment
+        # doesn't support them.
+        allow_stderr_error = kw.pop('allow_stderr_error', None)
+        allow_stderr_warning = kw.pop('allow_stderr_warning', None)
+        allow_error = kw.pop('allow_error', None)
+        if allow_error:
+            kw['expect_error'] = True
+
+        # Propagate default values.
+        expect_error = kw.get('expect_error')
+        if expect_error:
+            # Then default to allowing logged errors.
+            if allow_stderr_error is not None and not allow_stderr_error:
+                raise RuntimeError(
+                    'cannot pass allow_stderr_error=False with '
+                    'expect_error=True'
+                )
+            allow_stderr_error = True
+
+        elif kw.get('expect_stderr'):
+            # Then default to allowing logged warnings.
+            if allow_stderr_warning is not None and not allow_stderr_warning:
+                raise RuntimeError(
+                    'cannot pass allow_stderr_warning=False with '
+                    'expect_stderr=True'
+                )
+            allow_stderr_warning = True
+
+        if allow_stderr_error:
+            if allow_stderr_warning is not None and not allow_stderr_warning:
+                raise RuntimeError(
+                    'cannot pass allow_stderr_warning=False with '
+                    'allow_stderr_error=True'
+                )
+
+        # Default values if not set.
+        if allow_stderr_error is None:
+            allow_stderr_error = False
+        if allow_stderr_warning is None:
+            allow_stderr_warning = allow_stderr_error
+
+        # Pass expect_stderr=True to allow any stderr.  We do this because
+        # we do our checking of stderr further on in check_stderr().
+        kw['expect_stderr'] = True
+        result = super(PipTestEnvironment, self).run(cwd=cwd, *args, **kw)
+
+        if expect_error and not allow_error:
+            if result.returncode == 0:
+                __tracebackhide__ = True
+                raise AssertionError("Script passed unexpectedly.")
+
+        _check_stderr(
+            result.stderr, allow_stderr_error=allow_stderr_error,
+            allow_stderr_warning=allow_stderr_warning,
         )
 
+        return TestPipResult(result, verbose=self.verbose)
+
     def pip(self, *args, **kwargs):
-        # On old versions of Python, urllib3/requests will raise a warning
-        # about the lack of an SSLContext. Expect it when running commands
-        # that will touch the outside world.
-        if (pyversion_tuple < (2, 7, 9) and
-                args and args[0] in ('search', 'install', 'download')):
-            kwargs['expect_stderr'] = True
+        __tracebackhide__ = True
+        if self.pip_expect_warning:
+            kwargs['allow_stderr_warning'] = True
         if kwargs.pop('use_module', True):
             exe = 'python'
             args = ('-m', 'pip') + args
@@ -482,102 +754,54 @@ def _create_main_file(dir_path, name=None, output=None):
         print({!r})
     """.format(output))
     filename = '{}.py'.format(name)
-    dir_path.join(filename).write(text)
+    dir_path.joinpath(filename).write_text(text)
 
 
-def _create_test_package_with_subdirectory(script, subdirectory):
-    script.scratch_path.join("version_pkg").mkdir()
-    version_pkg_path = script.scratch_path / 'version_pkg'
-    _create_main_file(version_pkg_path, name="version_pkg", output="0.1")
-    version_pkg_path.join("setup.py").write(
-        textwrap.dedent("""
-    from setuptools import setup, find_packages
-    setup(name='version_pkg',
-          version='0.1',
-          packages=find_packages(),
-          py_modules=['version_pkg'],
-          entry_points=dict(console_scripts=['version_pkg=version_pkg:main']))
-        """))
+def _git_commit(
+    env_or_script,
+    repo_dir,
+    message=None,
+    allow_empty=False,
+    stage_modified=False,
+):
+    """
+    Run git-commit.
 
-    subdirectory_path = version_pkg_path.join(subdirectory)
-    subdirectory_path.mkdir()
-    _create_main_file(subdirectory_path, name="version_subpkg", output="0.1")
+    Args:
+      env_or_script: pytest's `script` or `env` argument.
+      repo_dir: a path to a Git repository.
+      message: an optional commit message.
+    """
+    if message is None:
+        message = 'test commit'
 
-    subdirectory_path.join('setup.py').write(
-        textwrap.dedent("""
-from setuptools import setup, find_packages
-setup(name='version_subpkg',
-      version='0.1',
-      packages=find_packages(),
-      py_modules=['version_subpkg'],
-      entry_points=dict(console_scripts=['version_pkg=version_subpkg:main']))
-        """))
+    args = []
 
-    script.run('git', 'init', cwd=version_pkg_path)
-    script.run('git', 'add', '.', cwd=version_pkg_path)
-    script.run(
-        'git', 'commit', '-q',
-        '--author', 'pip <pypa-dev@googlegroups.com>',
-        '-am', 'initial version', cwd=version_pkg_path
-    )
+    if allow_empty:
+        args.append("--allow-empty")
 
-    return version_pkg_path
+    if stage_modified:
+        args.append("--all")
 
-
-def _create_test_package_with_srcdir(script, name='version_pkg', vcs='git'):
-    script.scratch_path.join(name).mkdir()
-    version_pkg_path = script.scratch_path / name
-    subdir_path = version_pkg_path.join('subdir')
-    subdir_path.mkdir()
-    src_path = subdir_path.join('src')
-    src_path.mkdir()
-    pkg_path = src_path.join('pkg')
-    pkg_path.mkdir()
-    pkg_path.join('__init__.py').write('')
-    subdir_path.join("setup.py").write(textwrap.dedent("""
-        from setuptools import setup, find_packages
-        setup(
-            name='{name}',
-            version='0.1',
-            packages=find_packages(),
-            package_dir={{'': 'src'}},
-        )
-    """.format(name=name)))
-    return _vcs_add(script, version_pkg_path, vcs)
-
-
-def _create_test_package(script, name='version_pkg', vcs='git'):
-    script.scratch_path.join(name).mkdir()
-    version_pkg_path = script.scratch_path / name
-    _create_main_file(version_pkg_path, name=name, output='0.1')
-    version_pkg_path.join("setup.py").write(textwrap.dedent("""
-        from setuptools import setup, find_packages
-        setup(
-            name='{name}',
-            version='0.1',
-            packages=find_packages(),
-            py_modules=['{name}'],
-            entry_points=dict(console_scripts=['{name}={name}:main'])
-        )
-    """.format(name=name)))
-    return _vcs_add(script, version_pkg_path, vcs)
+    new_args = [
+        'git', 'commit', '-q', '--author', 'pip <distutils-sig@python.org>',
+    ]
+    new_args.extend(args)
+    new_args.extend(['-m', message])
+    env_or_script.run(*new_args, cwd=repo_dir)
 
 
 def _vcs_add(script, version_pkg_path, vcs='git'):
     if vcs == 'git':
         script.run('git', 'init', cwd=version_pkg_path)
         script.run('git', 'add', '.', cwd=version_pkg_path)
-        script.run(
-            'git', 'commit', '-q',
-            '--author', 'pip <pypa-dev@googlegroups.com>',
-            '-am', 'initial version', cwd=version_pkg_path,
-        )
+        _git_commit(script, version_pkg_path, message='initial version')
     elif vcs == 'hg':
         script.run('hg', 'init', cwd=version_pkg_path)
         script.run('hg', 'add', '.', cwd=version_pkg_path)
         script.run(
             'hg', 'commit', '-q',
-            '--user', 'pip <pypa-dev@googlegroups.com>',
+            '--user', 'pip <distutils-sig@python.org>',
             '-m', 'initial version', cwd=version_pkg_path,
         )
     elif vcs == 'svn':
@@ -596,16 +820,90 @@ def _vcs_add(script, version_pkg_path, vcs='git'):
         script.run('bzr', 'init', cwd=version_pkg_path)
         script.run('bzr', 'add', '.', cwd=version_pkg_path)
         script.run(
-            'bzr', 'whoami', 'pip <pypa-dev@googlegroups.com>',
+            'bzr', 'whoami', 'pip <distutils-sig@python.org>',
             cwd=version_pkg_path)
         script.run(
             'bzr', 'commit', '-q',
-            '--author', 'pip <pypa-dev@googlegroups.com>',
+            '--author', 'pip <distutils-sig@python.org>',
             '-m', 'initial version', cwd=version_pkg_path,
         )
     else:
-        raise ValueError('Unknown vcs: %r' % vcs)
+        raise ValueError('Unknown vcs: {vcs}'.format(**locals()))
     return version_pkg_path
+
+
+def _create_test_package_with_subdirectory(script, subdirectory):
+    script.scratch_path.joinpath("version_pkg").mkdir()
+    version_pkg_path = script.scratch_path / 'version_pkg'
+    _create_main_file(version_pkg_path, name="version_pkg", output="0.1")
+    version_pkg_path.joinpath("setup.py").write_text(
+        textwrap.dedent("""
+    from setuptools import setup, find_packages
+    setup(name='version_pkg',
+          version='0.1',
+          packages=find_packages(),
+          py_modules=['version_pkg'],
+          entry_points=dict(console_scripts=['version_pkg=version_pkg:main']))
+        """))
+
+    subdirectory_path = version_pkg_path.joinpath(subdirectory)
+    subdirectory_path.mkdir()
+    _create_main_file(subdirectory_path, name="version_subpkg", output="0.1")
+
+    subdirectory_path.joinpath('setup.py').write_text(
+        textwrap.dedent("""
+from setuptools import setup, find_packages
+setup(name='version_subpkg',
+      version='0.1',
+      packages=find_packages(),
+      py_modules=['version_subpkg'],
+      entry_points=dict(console_scripts=['version_pkg=version_subpkg:main']))
+        """))
+
+    script.run('git', 'init', cwd=version_pkg_path)
+    script.run('git', 'add', '.', cwd=version_pkg_path)
+    _git_commit(script, version_pkg_path, message='initial version')
+
+    return version_pkg_path
+
+
+def _create_test_package_with_srcdir(script, name='version_pkg', vcs='git'):
+    script.scratch_path.joinpath(name).mkdir()
+    version_pkg_path = script.scratch_path / name
+    subdir_path = version_pkg_path.joinpath('subdir')
+    subdir_path.mkdir()
+    src_path = subdir_path.joinpath('src')
+    src_path.mkdir()
+    pkg_path = src_path.joinpath('pkg')
+    pkg_path.mkdir()
+    pkg_path.joinpath('__init__.py').write_text('')
+    subdir_path.joinpath("setup.py").write_text(textwrap.dedent("""
+        from setuptools import setup, find_packages
+        setup(
+            name='{name}',
+            version='0.1',
+            packages=find_packages(),
+            package_dir={{'': 'src'}},
+        )
+    """.format(name=name)))
+    return _vcs_add(script, version_pkg_path, vcs)
+
+
+def _create_test_package(script, name='version_pkg', vcs='git'):
+    script.scratch_path.joinpath(name).mkdir()
+    version_pkg_path = script.scratch_path / name
+    _create_main_file(version_pkg_path, name=name, output='0.1')
+    version_pkg_path.joinpath("setup.py").write_text(textwrap.dedent("""
+        from setuptools import setup, find_packages
+        setup(
+            name='{name}',
+            version='0.1',
+            packages=find_packages(),
+            py_modules=['{name}'],
+            entry_points=dict(console_scripts=['{name}={name}:main'])
+        )
+    """.format(name=name)))
+    return _vcs_add(script, version_pkg_path, vcs)
 
 
 def _create_svn_repo(script, version_pkg_path):
@@ -627,17 +925,9 @@ def _change_test_package_version(script, version_pkg_path):
     _create_main_file(
         version_pkg_path, name='version_pkg', output='some different version'
     )
-    script.run(
-        'git', 'clean', '-qfdx',
-        cwd=version_pkg_path,
-        expect_stderr=True,
-    )
-    script.run(
-        'git', 'commit', '-q',
-        '--author', 'pip <pypa-dev@googlegroups.com>',
-        '-am', 'messed version',
-        cwd=version_pkg_path,
-        expect_stderr=True,
+    # Pass -a to stage the change to the main file.
+    _git_commit(
+        script, version_pkg_path, message='messed version', stage_modified=True
     )
 
 
@@ -647,7 +937,7 @@ def assert_raises_regexp(exception, reg, run, *args, **kwargs):
 
     try:
         run(*args, **kwargs)
-        assert False, "%s should have been thrown" % exception
+        assert False, "{exception} should have been thrown".format(**locals())
     except exception:
         e = sys.exc_info()[1]
         p = re.compile(reg)
@@ -664,97 +954,167 @@ def requirements_file(contents, tmpdir):
 
     """
     path = tmpdir / 'reqs.txt'
-    path.write(contents)
+    path.write_text(contents)
     yield path
-    path.remove()
+    path.unlink()
 
 
 def create_test_package_with_setup(script, **setup_kwargs):
     assert 'name' in setup_kwargs, setup_kwargs
     pkg_path = script.scratch_path / setup_kwargs['name']
     pkg_path.mkdir()
-    pkg_path.join("setup.py").write(textwrap.dedent("""
+    pkg_path.joinpath("setup.py").write_text(textwrap.dedent("""
         from setuptools import setup
-        kwargs = %r
+        kwargs = {setup_kwargs!r}
         setup(**kwargs)
-    """) % setup_kwargs)
+    """).format(**locals()))
     return pkg_path
 
 
-def create_basic_wheel_for_package(script, name, version, depends, extras):
-    files = {
-        "{name}/__init__.py": """
-            def hello():
-                return "Hello From {name}"
-        """,
-        "{dist_info}/DESCRIPTION": """
-            UNKNOWN
-        """,
-        "{dist_info}/WHEEL": """
-            Wheel-Version: 1.0
-            Generator: pip-test-suite
-            Root-Is-Purelib: true
-            Tag: py2-none-any
-            Tag: py3-none-any
+def urlsafe_b64encode_nopad(data):
+    # type: (bytes) -> str
+    return urlsafe_b64encode(data).rstrip(b"=").decode("ascii")
 
 
-        """,
-        "{dist_info}/METADATA": """
-            Metadata-Version: 2.0
-            Name: {name}
-            Version: {version}
-            Summary: UNKNOWN
-            Home-page: UNKNOWN
-            Author: UNKNOWN
-            Author-email: UNKNOWN
-            License: UNKNOWN
-            Platform: UNKNOWN
-            {requires_dist}
+def create_really_basic_wheel(name, version):
+    # type: (str, str) -> bytes
+    def digest(contents):
+        return "sha256={}".format(
+            urlsafe_b64encode_nopad(sha256(contents).digest())
+        )
 
-            UNKNOWN
+    def add_file(path, text):
+        contents = text.encode("utf-8")
+        z.writestr(path, contents)
+        records.append((path, digest(contents), str(len(contents))))
+
+    dist_info = "{}-{}.dist-info".format(name, version)
+    record_path = "{}/RECORD".format(dist_info)
+    records = [(record_path, "", "")]
+    buf = BytesIO()
+    with ZipFile(buf, "w") as z:
+        add_file("{}/WHEEL".format(dist_info), "Wheel-Version: 1.0")
+        add_file(
+            "{}/METADATA".format(dist_info),
+            dedent(
+                """\
+                Metadata-Version: 2.1
+                Name: {}
+                Version: {}
+                """.format(name, version)
+            ),
+        )
+        z.writestr(record_path, "\n".join(",".join(r) for r in records))
+    buf.seek(0)
+    return buf.read()
+
+
+def create_basic_wheel_for_package(
+    script,
+    name,
+    version,
+    depends=None,
+    extras=None,
+    requires_python=None,
+    extra_files=None,
+):
+    if depends is None:
+        depends = []
+    if extras is None:
+        extras = {}
+    if extra_files is None:
+        extra_files = {}
+
+    # Fix wheel distribution name by replacing runs of non-alphanumeric
+    # characters with an underscore _ as per PEP 491
+    name = re.sub(r"[^\w\d.]+", "_", name, re.UNICODE)
+    archive_name = "{}-{}-py2.py3-none-any.whl".format(name, version)
+    archive_path = script.scratch_path / archive_name
+
+    package_init_py = "{name}/__init__.py".format(name=name)
+    assert package_init_py not in extra_files
+    extra_files[package_init_py] = textwrap.dedent(
+        """
+        __version__ = {version!r}
+        def hello():
+            return "Hello From {name}"
         """,
-        "{dist_info}/top_level.txt": """
-            {name}
-        """,
+    ).format(version=version, name=name)
+
+    requires_dist = depends + [
+        '{package}; extra == "{extra}"'.format(package=package, extra=extra)
+        for extra, packages in extras.items()
+        for package in packages
+    ]
+
+    metadata_updates = {
+        "Provides-Extra": list(extras),
+        "Requires-Dist": requires_dist,
+    }
+    if requires_python is not None:
+        metadata_updates["Requires-Python"] = requires_python
+
+    wheel_builder = make_wheel(
+        name=name,
+        version=version,
+        wheel_metadata_updates={"Tag": ["py2-none-any", "py3-none-any"]},
+        metadata_updates=metadata_updates,
+        extra_metadata_files={"top_level.txt": name},
+        extra_files=extra_files,
+
         # Have an empty RECORD because we don't want to be checking hashes.
-        "{dist_info}/RECORD": ""
+        record="",
+    )
+    wheel_builder.save_to(archive_path)
+
+    return archive_path
+
+
+def create_basic_sdist_for_package(
+    script, name, version, extra_files=None
+):
+    files = {
+        "setup.py": """
+            from setuptools import find_packages, setup
+            setup(name={name!r}, version={version!r})
+        """,
     }
 
     # Some useful shorthands
-    archive_name = "{name}-{version}-py2.py3-none-any.whl".format(
+    archive_name = "{name}-{version}.tar.gz".format(
         name=name, version=version
     )
-    dist_info = "{name}-{version}.dist-info".format(
-        name=name, version=version
-    )
-
-    requires_dist = "\n".join([
-        "Requires-Dist: {}".format(pkg) for pkg in depends
-    ] + [
-        "Provides-Extra: {}".format(pkg) for pkg in extras.keys()
-    ] + [
-        "Requires-Dist: {}; extra == \"{}\"".format(pkg, extra)
-        for extra in extras for pkg in extras[extra]
-    ])
 
     # Replace key-values with formatted values
     for key, value in list(files.items()):
         del files[key]
-        key = key.format(name=name, dist_info=dist_info)
+        key = key.format(name=name)
         files[key] = textwrap.dedent(value).format(
-            name=name, version=version, requires_dist=requires_dist
+            name=name, version=version
         ).strip()
+
+    # Add new files after formatting
+    if extra_files:
+        files.update(extra_files)
 
     for fname in files:
         path = script.temp_path / fname
-        path.folder.mkdir()
-        path.write(files[fname])
+        path.parent.mkdir(exist_ok=True, parents=True)
+        path.write_bytes(ensure_binary(files[fname]))
 
+    # The base_dir cast is required to make `shutil.make_archive()` use
+    # Unicode paths on Python 2, making it able to properly archive
+    # files with non-ASCII names.
     retval = script.scratch_path / archive_name
-    generated = shutil.make_archive(retval, 'zip', script.temp_path)
+    generated = shutil.make_archive(
+        retval,
+        'gztar',
+        root_dir=script.temp_path,
+        base_dir=text_type(os.curdir),
+    )
     shutil.move(generated, retval)
 
-    script.temp_path.rmtree()
+    shutil.rmtree(script.temp_path)
     script.temp_path.mkdir()
 
     return retval
@@ -764,10 +1124,27 @@ def need_executable(name, check_cmd):
     def wrapper(fn):
         try:
             subprocess.check_output(check_cmd)
-        except OSError:
-            return pytest.mark.skip(reason='%s is not available' % name)(fn)
+        except (OSError, subprocess.CalledProcessError):
+            return pytest.mark.skip(
+                reason='{name} is not available'.format(name=name))(fn)
         return fn
     return wrapper
+
+
+def is_bzr_installed():
+    try:
+        subprocess.check_output(('bzr', 'version', '--short'))
+    except OSError:
+        return False
+    return True
+
+
+def is_svn_installed():
+    try:
+        subprocess.check_output(('svn', '--version'))
+    except OSError:
+        return False
+    return True
 
 
 def need_bzr(fn):
@@ -776,7 +1153,26 @@ def need_bzr(fn):
     )(fn))
 
 
+def need_svn(fn):
+    return pytest.mark.svn(need_executable(
+        'Subversion', ('svn', '--version')
+    )(need_executable(
+        'Subversion Admin', ('svnadmin', '--version')
+    )(fn)))
+
+
 def need_mercurial(fn):
     return pytest.mark.mercurial(need_executable(
         'Mercurial', ('hg', 'version')
     )(fn))
+
+
+skip_if_python2 = pytest.mark.skipif(PY2, reason="Non-Python 2 only")
+skip_if_not_python2 = pytest.mark.skipif(not PY2, reason="Python 2 only")
+
+
+# Workaround for test failures after new wheel release.
+windows_workaround_7667 = pytest.mark.skipif(
+    "sys.platform == 'win32' and sys.version_info < (3,)",
+    reason="Workaround for #7667",
+)

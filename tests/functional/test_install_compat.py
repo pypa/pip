@@ -6,7 +6,8 @@ import os
 
 import pytest
 
-from tests.lib import assert_all_changes, pyversion
+from tests.lib import pyversion  # noqa: F401
+from tests.lib import assert_all_changes
 
 
 @pytest.mark.network
@@ -21,20 +22,27 @@ def test_debian_egg_name_workaround(script):
     https://bitbucket.org/ianb/pip/issue/104/pip-uninstall-on-ubuntu-linux
 
     """
-    result = script.pip('install', 'INITools==0.2', expect_error=True)
+    result = script.pip('install', 'INITools==0.2')
 
     egg_info = os.path.join(
-        script.site_packages, "INITools-0.2-py%s.egg-info" % pyversion)
+        script.site_packages,
+        "INITools-0.2-py{pyversion}.egg-info".format(**globals()))
 
     # Debian only removes pyversion for global installs, not inside a venv
     # so even if this test runs on a Debian/Ubuntu system with broken
     # setuptools, since our test runs inside a venv we'll still have the normal
     # .egg-info
-    assert egg_info in result.files_created, "Couldn't find %s" % egg_info
+    result.did_create(
+        egg_info,
+        message="Couldn't find {egg_info}".format(**locals())
+    )
 
     # The Debian no-pyversion version of the .egg-info
     mangled = os.path.join(script.site_packages, "INITools-0.2.egg-info")
-    assert mangled not in result.files_created, "Found unexpected %s" % mangled
+    result.did_not_create(
+        mangled,
+        message="Found unexpected {mangled}".format(**locals())
+    )
 
     # Simulate a Debian install by copying the .egg-info to their name for it
     full_egg_info = os.path.join(script.base_path, egg_info)
@@ -54,5 +62,5 @@ def test_setup_py_with_dos_line_endings(script, data):
 
     Refs https://github.com/pypa/pip/issues/237
     """
-    to_install = data.packages.join("LineEndings")
-    script.pip('install', to_install, expect_error=False)
+    to_install = data.packages.joinpath("LineEndings")
+    script.pip('install', to_install)

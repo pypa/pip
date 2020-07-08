@@ -1,0 +1,2 @@
+Correctly treat non-ASCII entry point declarations in wheels so they can be
+installed on Windows.

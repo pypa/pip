@@ -1,0 +1,2 @@
+Refactor the commands by removing the ``__init__`` method and defining and explicit
+``add_options`` method for adding command options.

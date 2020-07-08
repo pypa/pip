@@ -17,20 +17,20 @@ def test_find_links_relative_path(script, data):
         cwd=data.root,
     )
     egg_info_folder = (
-        script.site_packages / 'parent-0.1-py%s.egg-info' % pyversion
+        script.site_packages / 'parent-0.1-py{}.egg-info'.format(pyversion)
     )
     initools_folder = script.site_packages / 'parent'
-    assert egg_info_folder in result.files_created, str(result)
-    assert initools_folder in result.files_created, str(result)
+    result.did_create(egg_info_folder)
+    result.did_create(initools_folder)
 
 
 def test_find_links_requirements_file_relative_path(script, data):
     """Test find-links as a relative path to a reqs file."""
-    script.scratch_path.join("test-req.txt").write(textwrap.dedent("""
+    script.scratch_path.joinpath("test-req.txt").write_text(textwrap.dedent("""
         --no-index
-        --find-links=%s
+        --find-links={}
         parent==0.1
-        """ % data.packages.replace(os.path.sep, '/')))
+        """ .format(data.packages.replace(os.path.sep, '/'))))
     result = script.pip(
         'install',
         '-r',
@@ -38,11 +38,11 @@ def test_find_links_requirements_file_relative_path(script, data):
         cwd=data.root,
     )
     egg_info_folder = (
-        script.site_packages / 'parent-0.1-py%s.egg-info' % pyversion
+        script.site_packages / 'parent-0.1-py{}.egg-info'.format(pyversion)
     )
     initools_folder = script.site_packages / 'parent'
-    assert egg_info_folder in result.files_created, str(result)
-    assert initools_folder in result.files_created, str(result)
+    result.did_create(egg_info_folder)
+    result.did_create(initools_folder)
 
 
 def test_install_from_file_index_hash_link(script, data):
@@ -52,9 +52,9 @@ def test_install_from_file_index_hash_link(script, data):
     """
     result = script.pip('install', '-i', data.index_url(), 'simple==1.0')
     egg_info_folder = (
-        script.site_packages / 'simple-1.0-py%s.egg-info' % pyversion
+        script.site_packages / 'simple-1.0-py{}.egg-info'.format(pyversion)
     )
-    assert egg_info_folder in result.files_created, str(result)
+    result.did_create(egg_info_folder)
 
 
 def test_file_index_url_quoting(script, data):
@@ -63,12 +63,9 @@ def test_file_index_url_quoting(script, data):
     """
     index_url = data.index_url(urllib_parse.quote("in dex"))
     result = script.pip(
-        'install', '-vvv', '--index-url', index_url, 'simple',
-        expect_error=False,
+        'install', '-vvv', '--index-url', index_url, 'simple'
     )
-    assert (script.site_packages / 'simple') in result.files_created, (
-        str(result.stdout)
+    result.did_create(script.site_packages / 'simple')
+    result.did_create(
+        script.site_packages / 'simple-1.0-py{}.egg-info'.format(pyversion)
     )
-    assert (
-        script.site_packages / 'simple-1.0-py%s.egg-info' % pyversion
-    ) in result.files_created, str(result)

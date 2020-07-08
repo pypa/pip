@@ -1,6 +1,5 @@
 from setuptools import setup
 
-
 setup(
     name='simple_namespace',
     version='1.0',

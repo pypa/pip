@@ -1,8 +1,11 @@
 ---
 name: Bug report
 about: Create a report to help us improve
-
 ---
+
+<!--
+If you're reporting an issue for `--unstable-feature=resolver`, use the "Dependency resolver failures / errors" template instead.
+-->
 
 **Environment**
 

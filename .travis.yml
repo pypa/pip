@@ -1,69 +1,55 @@
 language: python
 cache: pip
-dist: trusty
-python: 3.6
+dist: xenial
+python: 3.8
+addons:
+  apt:
+    packages:
+    - bzr
 
 stages:
 - primary
 - secondary
+- experimental
 
 jobs:
   include:
     # Basic Checks
     - stage: primary
       env: TOXENV=docs
-    - env: TOXENV=lint-py2
-      python: 2.7
-    - env: TOXENV=lint-py3
-    - env: TOXENV=mypy
-    - env: TOXENV=packaging
-    # Latest CPython
-    - env: GROUP=1
-      python: 2.7
-    - env: GROUP=2
-      python: 2.7
-    - env: GROUP=1
-      python: 3.6
-    - env: GROUP=2
-      python: 3.6
+    - env: TOXENV=lint
+    - env: TOXENV=vendoring
+
     # Complete checking for ensuring compatibility
     # PyPy
     - stage: secondary
       env: GROUP=1
-      python: pypy3
+      python: pypy3.5-7.0.0
     - env: GROUP=2
-      python: pypy3
+      python: pypy3.5-7.0.0
     - env: GROUP=1
-      python: pypy
+      python: pypy2.7-7.1.1
     - env: GROUP=2
-      python: pypy
-    # Other Supported CPython
-    - env: GROUP=1
-      python: 3.7
-      dist: xenial
-    - env: GROUP=2
-      python: 3.7
-      dist: xenial
-    - env: GROUP=1
-      python: 3.5
-    - env: GROUP=2
-      python: 3.5
-    - env: GROUP=1
-      python: 3.4
-    - env: GROUP=2
-      python: 3.4
+      python: pypy2.7-7.1.1
 
-    - env: GROUP=1
-      python: 3.8-dev
-      dist: xenial
-    - env: GROUP=2
-      python: 3.8-dev
-      dist: xenial
+    # Test experimental stuff that are not part of the standard pip usage.
+    # Helpful for developers working on them to see how they're doing.
+    - stage: experimental
+      env:
+      - GROUP=1
+      - NEW_RESOLVER=1
+    - env:
+      - GROUP=2
+      - NEW_RESOLVER=1
+    - env:
+      - GROUP=3
+      - NEW_RESOLVER=1
 
-  # It's okay to fail on the in-development CPython version.
   fast_finish: true
   allow_failures:
-    - python: 3.8-dev
+    - env:
+      - GROUP=3
+      - NEW_RESOLVER=1
 
 before_install: tools/travis/setup.sh
 install: travis_retry tools/travis/install.sh

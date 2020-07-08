@@ -1,30 +1,65 @@
-"""Tests for the resolver
+"""
+Tests for the resolver
 """
 
 import os
 import re
+import sys
 
 import pytest
+import yaml
 
 from tests.lib import DATA_DIR, create_basic_wheel_for_package, path_to_url
-from tests.lib.yaml_helpers import generate_yaml_tests, id_func
-
-_conflict_finder_re = re.compile(
-    # Conflicting Requirements: \
-    # A 1.0.0 requires B == 2.0.0, C 1.0.0 requires B == 1.0.0.
-    r"""
-        (?P<package>[\w\-_]+?)
-        [ ]
-        (?P<version>\S+?)
-        [ ]requires[ ]
-        (?P<selector>.+?)
-        (?=,|\.$)
-    """,
-    re.X
-)
 
 
-def _convert_to_dict(string):
+def generate_yaml_tests(directory):
+    """
+    Generate yaml test cases from the yaml files in the given directory
+    """
+    for yml_file in directory.glob("*.yml"):
+        data = yaml.safe_load(yml_file.read_text())
+        assert "cases" in data, "A fixture needs cases to be used in testing"
+
+        # Strip the parts of the directory to only get a name without
+        # extension and resolver directory
+        base_name = str(yml_file)[len(str(directory)) + 1:-4]
+
+        base = data.get("base", {})
+        cases = data["cases"]
+
+        for resolver in 'old', 'new':
+            for i, case_template in enumerate(cases):
+                case = base.copy()
+                case.update(case_template)
+
+                case[":name:"] = base_name
+                if len(cases) > 1:
+                    case[":name:"] += "-" + str(i)
+                case[":name:"] += "*" + resolver
+                case[":resolver:"] = resolver
+
+                skip = case.pop("skip", False)
+                assert skip in [False, True, 'old', 'new']
+                if skip is True or skip == resolver:
+                    case = pytest.param(case, marks=pytest.mark.xfail)
+
+                yield case
+
+
+def id_func(param):
+    """
+    Give a nice parameter name to the generated function parameters
+    """
+    if isinstance(param, dict) and ":name:" in param:
+        return param[":name:"]
+
+    retval = str(param)
+    if len(retval) > 25:
+        retval = retval[:20] + "..." + retval[-2:]
+    return retval
+
+
+def convert_to_dict(string):
 
     def stripping_split(my_str, splitwith, count=None):
         if count is None:
@@ -49,65 +84,79 @@ def _convert_to_dict(string):
     return retval
 
 
-def handle_install_request(script, requirement):
-    assert isinstance(requirement, str), (
-        "Need install requirement to be a string only"
-    )
-    result = script.pip(
-        "install",
-        "--no-index", "--find-links", path_to_url(script.scratch_path),
-        requirement
-    )
+def handle_request(script, action, requirement, options, new_resolver=False):
+    if action == 'install':
+        args = ['install']
+        if new_resolver:
+            args.append("--use-feature=2020-resolver")
+        args.extend(["--no-index", "--find-links",
+                     path_to_url(script.scratch_path)])
+    elif action == 'uninstall':
+        args = ['uninstall', '--yes']
+    else:
+        raise "Did not excpet action: {!r}".format(action)
 
-    retval = {}
-    if result.returncode == 0:
-        # Check which packages got installed
-        retval["install"] = []
+    if isinstance(requirement, str):
+        args.append(requirement)
+    elif isinstance(requirement, list):
+        args.extend(requirement)
+    else:
+        raise "requirement neither str nor list {!r}".format(requirement)
 
-        for path in result.files_created:
-            if path.endswith(".dist-info"):
-                name, version = (
-                    os.path.basename(path)[:-len(".dist-info")]
-                ).rsplit("-", 1)
+    args.extend(options)
+    args.append("--verbose")
 
-                # TODO: information about extras.
+    result = script.pip(*args,
+                        allow_stderr_error=True,
+                        allow_stderr_warning=True,
+                        allow_error=True)
 
-                retval["install"].append(" ".join((name, version)))
+    # Check which packages got installed
+    state = []
+    for path in os.listdir(script.site_packages_path):
+        if path.endswith(".dist-info"):
+            name, version = (
+                os.path.basename(path)[:-len(".dist-info")]
+            ).rsplit("-", 1)
+            # TODO: information about extras.
+            state.append(" ".join((name, version)))
 
-        retval["install"].sort()
+    return {"result": result, "state": sorted(state)}
 
-        # TODO: Support checking uninstallations
-        # retval["uninstall"] = []
 
-    elif "conflicting" in result.stderr.lower():
-        retval["conflicting"] = []
+def check_error(error, result):
+    return_code = error.get('code')
+    if return_code:
+        assert result.returncode == return_code
 
-        message = result.stderr.rsplit("\n", 1)[-1]
+    stderr = error.get('stderr')
+    if not stderr:
+        return
 
-        # XXX: There might be a better way than parsing the message
-        for match in re.finditer(message, _conflict_finder_re):
-            di = match.groupdict()
-            retval["conflicting"].append(
-                {
-                    "required_by": "{} {}".format(di["name"], di["version"]),
-                    "selector": di["selector"]
-                }
-            )
+    if isinstance(stderr, str):
+        patters = [stderr]
+    elif isinstance(stderr, list):
+        patters = stderr
+    else:
+        raise "string or list expected, found %r" % stderr
 
-    return retval
+    for patter in patters:
+        match = re.search(patter, result.stderr, re.I)
+        assert match, 'regex %r not found in stderr: %r' % (
+            stderr, result.stderr)
 
 
 @pytest.mark.yaml
 @pytest.mark.parametrize(
-    "case", generate_yaml_tests(DATA_DIR.folder / "yaml"), ids=id_func
+    "case", generate_yaml_tests(DATA_DIR.parent / "yaml"), ids=id_func
 )
 def test_yaml_based(script, case):
     available = case.get("available", [])
     requests = case.get("request", [])
-    transaction = case.get("transaction", [])
+    responses = case.get("response", [])
 
-    assert len(requests) == len(transaction), (
-        "Expected requests and transaction counts to be same"
+    assert len(requests) == len(responses), (
+        "Expected requests and responses counts to be same"
     )
 
     # Create a custom index of all the packages that are supposed to be
@@ -115,29 +164,40 @@ def test_yaml_based(script, case):
     # XXX: This doesn't work because this isn't making an index of files.
     for package in available:
         if isinstance(package, str):
-            package = _convert_to_dict(package)
+            package = convert_to_dict(package)
 
         assert isinstance(package, dict), "Needs to be a dictionary"
 
         create_basic_wheel_for_package(script, **package)
 
-    available_actions = {
-        "install": handle_install_request
-    }
-
     # use scratch path for index
-    for request, expected in zip(requests, transaction):
-        # The name of the key is what action has to be taken
-        assert len(request.keys()) == 1, "Expected only one action"
+    for request, response in zip(requests, responses):
 
-        # Get the only key
-        action = list(request.keys())[0]
-
-        assert action in available_actions.keys(), (
-            "Unsupported action {!r}".format(action)
-        )
+        for action in 'install', 'uninstall':
+            if action in request:
+                break
+        else:
+            raise "Unsupported request {!r}".format(request)
 
         # Perform the requested action
-        effect = available_actions[action](script, request[action])
+        effect = handle_request(script, action,
+                                request[action],
+                                request.get('options', '').split(),
+                                case[':resolver:'] == 'new')
+        result = effect['result']
 
-        assert effect == expected, "Fixture did not succeed."
+        if 0:  # for analyzing output easier
+            with open(DATA_DIR.parent / "yaml" /
+                      case[':name:'].replace('*', '-'), 'w') as fo:
+                fo.write("=== RETURNCODE = %d\n" % result.returncode)
+                fo.write("=== STDERR ===:\n%s\n" % result.stderr)
+
+        if 'state' in response:
+            assert effect['state'] == (response['state'] or []), str(result)
+
+        error = response.get('error')
+        if error and case[":resolver:"] == 'new' and sys.platform != 'win32':
+            # Note: we currently skip running these tests on Windows, as they
+            # were failing due to different error codes.  There should not
+            # be a reason for not running these this check on Windows.
+            check_error(error, result)

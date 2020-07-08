@@ -30,24 +30,17 @@ def vendored(modulename):
     vendored_name = "{0}.{1}".format(__name__, modulename)
 
     try:
-        __import__(vendored_name, globals(), locals(), level=0)
+        __import__(modulename, globals(), locals(), level=0)
     except ImportError:
-        try:
-            __import__(modulename, globals(), locals(), level=0)
-        except ImportError:
-            # We can just silently allow import failures to pass here. If we
-            # got to this point it means that ``import pip._vendor.whatever``
-            # failed and so did ``import whatever``. Since we're importing this
-            # upfront in an attempt to alias imports, not erroring here will
-            # just mean we get a regular import error whenever pip *actually*
-            # tries to import one of these modules to use it, which actually
-            # gives us a better error message than we would have otherwise
-            # gotten.
-            pass
-        else:
-            sys.modules[vendored_name] = sys.modules[modulename]
-            base, head = vendored_name.rsplit(".", 1)
-            setattr(sys.modules[base], head, sys.modules[modulename])
+        # This error used to be silenced in earlier variants of this file, to instead
+        # raise the error when pip actually tries to use the missing module. 
+        # Based on inputs in #5354, this was changed to explicitly raise the error.
+        # Re-raising the exception without modifying it is an intentional choice. 
+        raise
+    else:
+        sys.modules[vendored_name] = sys.modules[modulename]
+        base, head = vendored_name.rsplit(".", 1)
+        setattr(sys.modules[base], head, sys.modules[modulename])
 
 
 # If we're operating in a debundled setup, then we want to go ahead and trigger
@@ -61,12 +54,14 @@ if DEBUNDLED:
     sys.path[:] = glob.glob(os.path.join(WHEEL_DIR, "*.whl")) + sys.path
 
     # Actually alias all of our vendored dependencies.
+    vendored("appdirs")
     vendored("cachecontrol")
+    vendored("certifi")
     vendored("colorama")
+    vendored("contextlib2")
     vendored("distlib")
     vendored("distro")
     vendored("html5lib")
-    vendored("lockfile")
     vendored("six")
     vendored("six.moves")
     vendored("six.moves.urllib")
@@ -74,11 +69,12 @@ if DEBUNDLED:
     vendored("packaging")
     vendored("packaging.version")
     vendored("packaging.specifiers")
+    vendored("pep517")
     vendored("pkg_resources")
     vendored("progress")
-    vendored("pytoml")
     vendored("retrying")
     vendored("requests")
+    vendored("requests.exceptions")
     vendored("requests.packages")
     vendored("requests.packages.urllib3")
     vendored("requests.packages.urllib3._collections")
@@ -107,4 +103,8 @@ if DEBUNDLED:
     vendored("requests.packages.urllib3.util.ssl_")
     vendored("requests.packages.urllib3.util.timeout")
     vendored("requests.packages.urllib3.util.url")
+    vendored("resolvelib")
+    vendored("toml")
+    vendored("toml.encoder")
+    vendored("toml.decoder")
     vendored("urllib3")

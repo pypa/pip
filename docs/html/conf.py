@@ -54,7 +54,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'pip'
-copyright = '2008-2017, PyPA'
+copyright = '2008-2020, PyPA'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -83,7 +83,7 @@ with open(pip_init) as f:
             break
 
 # We have this here because readthedocs plays tricks sometimes and there seems
-# to be a hiesenbug, related to the version of pip discovered. This is here to
+# to be a heisenbug, related to the version of pip discovered. This is here to
 # help debug that if someone decides to do that in the future.
 print(version)
 
@@ -127,7 +127,7 @@ pygments_style = 'sphinx'
 extlinks = {
     'issue': ('https://github.com/pypa/pip/issues/%s', '#'),
     'pull': ('https://github.com/pypa/pip/pull/%s', 'PR #'),
-    'pypi': ('https://pypi.org/project/%s', ''),
+    'pypi': ('https://pypi.org/project/%s/', ''),
 }
 
 # -- Options for HTML output --------------------------------------------------
@@ -173,9 +173,21 @@ html_static_path = []
 # using the given strftime format.
 html_last_updated_fmt = '%b %d, %Y'
 
-# If true, SmartyPants will be used to convert quotes and dashes to
-# typographically correct entities.
-smart_quotes = False
+# If true, the Docutils Smart Quotes transform (originally based on
+# SmartyPants) will be used to convert characters like quotes and dashes
+# to typographically correct entities.  The default is True.
+smartquotes = True
+
+# This string, for use with Docutils 0.14 or later, customizes the
+# SmartQuotes transform. The default of "qDe" converts normal quote
+# characters ('"' and "'"), en and em dashes ("--" and "---"), and
+# ellipses "...".
+#    For now, we disable the conversion of dashes so that long options
+# like "--find-links" won't render as "-find-links" if included in the
+# text in places where monospaced type can't be used. For example, backticks
+# can't be used inside roles like :ref:`--no-index <--no-index>` because
+# of nesting.
+smartquotes_action = "qe"
 
 # Custom sidebar templates, maps document names to template names.
 html_sidebars = {
@@ -261,11 +273,26 @@ man_pages = [
     )
 ]
 
+
+def to_document_name(path, base_dir):
+    """Convert a provided path to a Sphinx "document name".
+    """
+    relative_path = os.path.relpath(path, base_dir)
+    root, _ = os.path.splitext(relative_path)
+    return root.replace(os.sep, '/')
+
+
 # Here, we crawl the entire man/commands/ directory and list every file with
 # appropriate name and details
-for fname in glob.glob('man/commands/*.rst'):
-    fname_base = fname[4:-4]
-    outname = 'pip-' + fname_base[13:]
+man_dir = os.path.join(docs_dir, 'man')
+raw_subcommands = glob.glob(os.path.join(man_dir, 'commands/*.rst'))
+if not raw_subcommands:
+    raise FileNotFoundError(
+        'The individual subcommand manpages could not be found!'
+    )
+for fname in raw_subcommands:
+    fname_base = to_document_name(fname, man_dir)
+    outname = 'pip-' + fname_base.split('/')[1]
     description = u'description of {} command'.format(
         outname.replace('-', ' ')
     )

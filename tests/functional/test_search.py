@@ -1,10 +1,14 @@
 import logging
 
+import pretend
 import pytest
 
 from pip._internal.cli.status_codes import NO_MATCHES_FOUND, SUCCESS
+from pip._internal.commands import create_command
 from pip._internal.commands.search import (
-    SearchCommand, highest_version, print_results, transform_hits,
+    highest_version,
+    print_results,
+    transform_hits,
 )
 from tests.lib import pyversion
 
@@ -107,10 +111,11 @@ def test_run_method_should_return_success_when_find_packages():
     """
     Test SearchCommand.run for found package
     """
-    command = SearchCommand()
+    command = create_command('search')
     cmdline = "--index=https://pypi.org/pypi pip"
-    options, args = command.parse_args(cmdline.split())
-    status = command.run(options, args)
+    with command.main_context():
+        options, args = command.parse_args(cmdline.split())
+        status = command.run(options, args)
     assert status == SUCCESS
 
 
@@ -119,10 +124,11 @@ def test_run_method_should_return_no_matches_found_when_does_not_find_pkgs():
     """
     Test SearchCommand.run for no matches
     """
-    command = SearchCommand()
+    command = create_command('search')
     cmdline = "--index=https://pypi.org/pypi nonexistentpackage"
-    options, args = command.parse_args(cmdline.split())
-    status = command.run(options, args)
+    with command.main_context():
+        options, args = command.parse_args(cmdline.split())
+        status = command.run(options, args)
     assert status == NO_MATCHES_FOUND
 
 
@@ -142,6 +148,34 @@ def test_search_exit_status_code_when_finds_no_package(script):
     """
     result = script.pip('search', 'nonexistentpackage', expect_error=True)
     assert result.returncode == NO_MATCHES_FOUND, result.returncode
+
+
+def test_latest_prerelease_install_message(caplog, monkeypatch):
+    """
+    Test documentation for installing pre-release packages is displayed
+    """
+    hits = [
+        {
+            'name': 'ni',
+            'summary': 'For knights who say Ni!',
+            'versions': ['1.0.0', '1.0.1a']
+        }
+    ]
+
+    installed_package = pretend.stub(project_name="ni")
+    monkeypatch.setattr("pip._vendor.pkg_resources.working_set",
+                        [installed_package])
+
+    dist = pretend.stub(version="1.0.0")
+    get_dist = pretend.call_recorder(lambda x: dist)
+    monkeypatch.setattr("pip._internal.commands.search.get_distribution",
+                        get_dist)
+    with caplog.at_level(logging.INFO):
+        print_results(hits)
+
+    message = caplog.records[-1].getMessage()
+    assert 'pre-release; install with "pip install --pre"' in message
+    assert get_dist.calls == [pretend.call('ni')]
 
 
 def test_search_print_results_should_contain_latest_versions(caplog):

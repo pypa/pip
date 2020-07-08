@@ -1,8 +1,17 @@
 import os
+import ssl
 import tempfile
 import textwrap
 
 import pytest
+
+from tests.lib.server import (
+    authorization_response,
+    file_response,
+    make_mock_server,
+    package_page,
+    server_running,
+)
 
 
 def test_options_from_env_vars(script):
@@ -13,10 +22,9 @@ def test_options_from_env_vars(script):
     script.environ['PIP_NO_INDEX'] = '1'
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
     assert "Ignoring indexes:" in result.stdout, str(result)
-    assert (
-        "DistributionNotFound: No matching distribution found for INITools"
-        in result.stdout
-    )
+    msg = "DistributionNotFound: No matching distribution found for INITools"
+    # Case insensitive as the new resolver canonicalises the project name
+    assert msg.lower() in result.stdout.lower(), str(result)
 
 
 def test_command_line_options_override_env_vars(script, virtualenv):
@@ -44,37 +52,25 @@ def test_command_line_options_override_env_vars(script, virtualenv):
 def test_env_vars_override_config_file(script, virtualenv):
     """
     Test that environmental variables override settings in config files.
-
     """
-    fd, config_file = tempfile.mkstemp('-pip.cfg', 'test-')
-    try:
-        _test_env_vars_override_config_file(script, virtualenv, config_file)
-    finally:
-        # `os.close` is a workaround for a bug in subprocess
-        # https://bugs.python.org/issue3210
-        os.close(fd)
-        os.remove(config_file)
-
-
-def _test_env_vars_override_config_file(script, virtualenv, config_file):
+    config_file = script.scratch_path / "test-pip.cfg"
     # set this to make pip load it
-    script.environ['PIP_CONFIG_FILE'] = config_file
+    script.environ['PIP_CONFIG_FILE'] = str(config_file)
     # It's important that we test this particular config value ('no-index')
     # because there is/was a bug which only shows up in cases in which
     # 'config-item' and 'config_item' hash to the same value modulo the size
     # of the config dictionary.
-    (script.scratch_path / config_file).write(textwrap.dedent("""\
+    config_file.write_text(textwrap.dedent("""\
         [global]
         no-index = 1
         """))
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
-    assert (
-        "DistributionNotFound: No matching distribution found for INITools"
-        in result.stdout
-    )
+    msg = "DistributionNotFound: No matching distribution found for INITools"
+    # Case insensitive as the new resolver canonicalises the project name
+    assert msg.lower() in result.stdout.lower(), str(result)
     script.environ['PIP_NO_INDEX'] = '0'
     virtualenv.clear()
-    result = script.pip('install', '-vvv', 'INITools', expect_error=True)
+    result = script.pip('install', '-vvv', 'INITools')
     assert "Successfully installed INITools" in result.stdout
 
 
@@ -89,23 +85,24 @@ def test_command_line_append_flags(script, virtualenv, data):
     result = script.pip(
         'install', '-vvv', 'INITools', '--trusted-host',
         'test.pypi.org',
-        expect_error=True,
     )
     assert (
-        "Analyzing links from page https://test.pypi.org"
+        "Fetching project page and analyzing links: https://test.pypi.org"
         in result.stdout
     ), str(result)
     virtualenv.clear()
     result = script.pip(
         'install', '-vvv', '--find-links', data.find_links, 'INITools',
         '--trusted-host', 'test.pypi.org',
-        expect_error=True,
     )
     assert (
-        "Analyzing links from page https://test.pypi.org"
+        "Fetching project page and analyzing links: https://test.pypi.org"
         in result.stdout
     )
-    assert "Skipping link %s" % data.find_links in result.stdout
+    assert (
+        'Skipping link: not a file: {}'.format(data.find_links) in
+        result.stdout
+    ), 'stdout: {}'.format(result.stdout)
 
 
 @pytest.mark.network
@@ -115,70 +112,71 @@ def test_command_line_appends_correctly(script, data):
 
     """
     script.environ['PIP_FIND_LINKS'] = (
-        'https://test.pypi.org %s' % data.find_links
+        'https://test.pypi.org {data.find_links}'.format(**locals())
     )
     result = script.pip(
         'install', '-vvv', 'INITools', '--trusted-host',
         'test.pypi.org',
-        expect_error=True,
     )
 
     assert (
-        "Analyzing links from page https://test.pypi.org"
+        "Fetching project page and analyzing links: https://test.pypi.org"
         in result.stdout
     ), result.stdout
-    assert "Skipping link %s" % data.find_links in result.stdout
+    assert (
+        'Skipping link: not a file: {}'.format(data.find_links) in
+        result.stdout
+    ), 'stdout: {}'.format(result.stdout)
 
 
-def test_config_file_override_stack(script, virtualenv):
+def test_config_file_override_stack(
+    script, virtualenv, mock_server, shared_data
+):
     """
     Test config files (global, overriding a global config with a
     local, overriding all with a command line flag).
-
     """
-    fd, config_file = tempfile.mkstemp('-pip.cfg', 'test-')
-    try:
-        _test_config_file_override_stack(script, virtualenv, config_file)
-    finally:
-        # `os.close` is a workaround for a bug in subprocess
-        # https://bugs.python.org/issue3210
-        os.close(fd)
-        os.remove(config_file)
+    mock_server.set_responses([
+        package_page({}),
+        package_page({}),
+        package_page({"INITools-0.2.tar.gz": "/files/INITools-0.2.tar.gz"}),
+        file_response(shared_data.packages.joinpath("INITools-0.2.tar.gz")),
+    ])
+    mock_server.start()
+    base_address = "http://{}:{}".format(mock_server.host, mock_server.port)
 
+    config_file = script.scratch_path / "test-pip.cfg"
 
-def _test_config_file_override_stack(script, virtualenv, config_file):
     # set this to make pip load it
-    script.environ['PIP_CONFIG_FILE'] = config_file
-    (script.scratch_path / config_file).write(textwrap.dedent("""\
+    script.environ['PIP_CONFIG_FILE'] = str(config_file)
+
+    config_file.write_text(textwrap.dedent("""\
         [global]
-        index-url = https://download.zope.org/ppix
-        """))
-    result = script.pip('install', '-vvv', 'INITools', expect_error=True)
-    assert (
-        "Getting page https://download.zope.org/ppix/initools" in result.stdout
-    )
+        index-url = {}/simple1
+        """.format(base_address)))
+    script.pip('install', '-vvv', 'INITools', expect_error=True)
     virtualenv.clear()
-    (script.scratch_path / config_file).write(textwrap.dedent("""\
+
+    config_file.write_text(textwrap.dedent("""\
         [global]
-        index-url = https://download.zope.org/ppix
+        index-url = {address}/simple1
         [install]
-        index-url = https://pypi.gocept.com/
-        """))
-    result = script.pip('install', '-vvv', 'INITools', expect_error=True)
-    assert "Getting page https://pypi.gocept.com/initools" in result.stdout
-    result = script.pip(
-        'install', '-vvv', '--index-url', 'https://pypi.org/simple/',
+        index-url = {address}/simple2
+        """.format(address=base_address))
+    )
+    script.pip('install', '-vvv', 'INITools', expect_error=True)
+    script.pip(
+        'install', '-vvv', '--index-url', "{}/simple3".format(base_address),
         'INITools',
-        expect_error=True,
     )
-    assert (
-        "Getting page http://download.zope.org/ppix/INITools"
-        not in result.stdout
-    )
-    assert "Getting page https://pypi.gocept.com/INITools" not in result.stdout
-    assert (
-        "Getting page https://pypi.org/simple/initools" in result.stdout
-    )
+
+    mock_server.stop()
+    requests = mock_server.get_requests()
+    assert len(requests) == 4
+    assert requests[0]["PATH_INFO"] == "/simple1/initools/"
+    assert requests[1]["PATH_INFO"] == "/simple2/initools/"
+    assert requests[2]["PATH_INFO"] == "/simple3/initools/"
+    assert requests[3]["PATH_INFO"] == "/files/INITools-0.2.tar.gz"
 
 
 def test_options_from_venv_config(script, virtualenv):
@@ -186,17 +184,16 @@ def test_options_from_venv_config(script, virtualenv):
     Test if ConfigOptionParser reads a virtualenv-local config file
 
     """
-    from pip._internal.locations import config_basename
+    from pip._internal.configuration import CONFIG_BASENAME
     conf = "[global]\nno-index = true"
-    ini = virtualenv.location / config_basename
+    ini = virtualenv.location / CONFIG_BASENAME
     with open(ini, 'w') as f:
         f.write(conf)
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
     assert "Ignoring indexes:" in result.stdout, str(result)
-    assert (
-        "DistributionNotFound: No matching distribution found for INITools"
-        in result.stdout
-    )
+    msg = "DistributionNotFound: No matching distribution found for INITools"
+    # Case insensitive as the new resolver canonicalises the project name
+    assert msg.lower() in result.stdout.lower(), str(result)
 
 
 def test_install_no_binary_via_config_disables_cached_wheels(
@@ -216,6 +213,64 @@ def test_install_no_binary_via_config_disables_cached_wheels(
         os.unlink(config_file.name)
     assert "Successfully installed upper-2.0" in str(res), str(res)
     # No wheel building for upper, which was blacklisted
-    assert "Running setup.py bdist_wheel for upper" not in str(res), str(res)
+    assert "Building wheel for upper" not in str(res), str(res)
     # Must have used source, not a cached wheel to install upper.
     assert "Running setup.py install for upper" in str(res), str(res)
+
+
+def test_prompt_for_authentication(script, data, cert_factory):
+    """Test behaviour while installing from a index url
+    requiring authentication
+    """
+    cert_path = cert_factory()
+    ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+    ctx.load_cert_chain(cert_path, cert_path)
+    ctx.load_verify_locations(cafile=cert_path)
+    ctx.verify_mode = ssl.CERT_REQUIRED
+
+    server = make_mock_server(ssl_context=ctx)
+    server.mock.side_effect = [
+        package_page({
+            "simple-3.0.tar.gz": "/files/simple-3.0.tar.gz",
+        }),
+        authorization_response(str(data.packages / "simple-3.0.tar.gz")),
+    ]
+
+    url = "https://{}:{}/simple".format(server.host, server.port)
+
+    with server_running(server):
+        result = script.pip('install', "--index-url", url,
+                            "--cert", cert_path, "--client-cert", cert_path,
+                            'simple', expect_error=True)
+
+    assert 'User for {}:{}'.format(server.host, server.port) in \
+           result.stdout, str(result)
+
+
+def test_do_not_prompt_for_authentication(script, data, cert_factory):
+    """Test behaviour if --no-input option is given while installing
+    from a index url requiring authentication
+    """
+    cert_path = cert_factory()
+    ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+    ctx.load_cert_chain(cert_path, cert_path)
+    ctx.load_verify_locations(cafile=cert_path)
+    ctx.verify_mode = ssl.CERT_REQUIRED
+
+    server = make_mock_server(ssl_context=ctx)
+
+    server.mock.side_effect = [
+        package_page({
+            "simple-3.0.tar.gz": "/files/simple-3.0.tar.gz",
+        }),
+        authorization_response(str(data.packages / "simple-3.0.tar.gz")),
+    ]
+
+    url = "https://{}:{}/simple".format(server.host, server.port)
+
+    with server_running(server):
+        result = script.pip('install', "--index-url", url,
+                            "--cert", cert_path, "--client-cert", cert_path,
+                            '--no-input', 'simple', expect_error=True)
+
+    assert "ERROR: HTTP error 401" in result.stderr

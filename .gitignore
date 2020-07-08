@@ -4,8 +4,8 @@ __pycache__/
 *$py.class
 
 # Distribution / packaging
-build/
-dist/
+/build/
+/dist/
 *.egg
 *.eggs
 *.egg-info/
@@ -18,7 +18,7 @@ docs/build/
 .mypy_cache/
 
 # Unit test / coverage reports
-.tox/
+.[nt]ox/
 htmlcov/
 .coverage
 .coverage.*
@@ -31,9 +31,16 @@ tests/data/common_wheels/
 # Misc
 *~
 .*.sw?
+.env/
 
 # For IntelliJ IDEs (basically PyCharm)
 .idea/
 
+# For Visual Studio Code
+.vscode/
+
 # Scratch Pad for experiments
 .scratch/
+
+# Mac
+.DS_Store

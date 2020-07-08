@@ -1,0 +1,7 @@
+# This is based off of reading the actual source code of the bot. :/
+# https://github.com/tunnckoCoreLabs/triage-new-issues/blob/2ff406030ecce4c25f7bdd454125ba54db1301bd/src/index.js#L7
+#
+# While this file is currently a no-op, it serves the purpose of
+# documenting that this bot is indeed being used, since this is a
+# non-standard probot bot.
+label: "needs triage"

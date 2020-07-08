@@ -17,14 +17,9 @@ def path_to_url(path):
     return 'file://' + url
 
 
-HERE = os.path.dirname(__file__)
-DEP_PATH = os.path.join(HERE, '..', '..', 'indexes', 'simple', 'simple')
-DEP_URL = path_to_url(DEP_PATH)
-
 setup(
     name='LocalExtras',
     version='0.0.1',
     packages=find_packages(),
-    extras_require={'bar': ['simple'], 'baz': ['singlemodule']},
-    dependency_links=[DEP_URL]
+    extras_require={'bar': ['simple'], 'baz': ['singlemodule']}
 )

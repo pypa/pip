@@ -13,7 +13,9 @@ Reference Guide
    pip_list
    pip_show
    pip_search
+   pip_cache
    pip_check
    pip_config
    pip_wheel
    pip_hash
+   pip_debug

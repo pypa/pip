@@ -1,38 +1,49 @@
+# The following comment should be removed at some point in the future.
+# mypy: strict-optional=False
+# mypy: disallow-untyped-defs=False
+
 from __future__ import absolute_import
 
 import contextlib
 import errno
+import getpass
+import hashlib
 import io
-import locale
-# we have a submodule named 'logging' which would shadow this if we used the
-# regular name:
-import logging as std_logging
+import logging
 import os
 import posixpath
-import re
 import shutil
 import stat
-import subprocess
 import sys
-import tarfile
-import zipfile
 from collections import deque
 
 from pip._vendor import pkg_resources
+from pip._vendor.packaging.utils import canonicalize_name
 # NOTE: retrying is not annotated in typeshed as on 2017-07-17, which is
 #       why we ignore the type on this import.
 from pip._vendor.retrying import retry  # type: ignore
-from pip._vendor.six import PY2
-from pip._vendor.six.moves import input
+from pip._vendor.six import PY2, text_type
+from pip._vendor.six.moves import input, map, zip_longest
 from pip._vendor.six.moves.urllib import parse as urllib_parse
+from pip._vendor.six.moves.urllib.parse import unquote as urllib_unquote
 
-from pip._internal.exceptions import CommandError, InstallationError
+from pip import __version__
+from pip._internal.exceptions import CommandError
 from pip._internal.locations import (
-    running_under_virtualenv, site_packages, user_site, virtualenv_no_global,
-    write_delete_marker_file,
+    get_major_minor_version,
+    site_packages,
+    user_site,
 )
 from pip._internal.utils.compat import (
-    WINDOWS, console_to_str, expanduser, stdlib_pkgs,
+    WINDOWS,
+    expanduser,
+    stdlib_pkgs,
+    str_to_display,
+)
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING, cast
+from pip._internal.utils.virtualenv import (
+    running_under_virtualenv,
+    virtualenv_no_global,
 )
 
 if PY2:
@@ -40,56 +51,77 @@ if PY2:
 else:
     from io import StringIO
 
+if MYPY_CHECK_RUNNING:
+    from typing import (
+        Any, AnyStr, Container, Iterable, Iterator, List, Optional, Text,
+        Tuple, Union,
+    )
+    from pip._vendor.pkg_resources import Distribution
+
+    VersionInfo = Tuple[int, int, int]
+
+
 __all__ = ['rmtree', 'display_path', 'backup_dir',
            'ask', 'splitext',
            'format_size', 'is_installable_dir',
-           'is_svn_page', 'file_contents',
-           'split_leading_dir', 'has_leading_dir',
            'normalize_path',
            'renames', 'get_prog',
-           'unzip_file', 'untar_file', 'unpack_file', 'call_subprocess',
            'captured_stdout', 'ensure_dir',
-           'ARCHIVE_EXTENSIONS', 'SUPPORTED_EXTENSIONS',
            'get_installed_version', 'remove_auth_from_url']
 
 
-logger = std_logging.getLogger(__name__)
+logger = logging.getLogger(__name__)
 
-BZ2_EXTENSIONS = ('.tar.bz2', '.tbz')
-XZ_EXTENSIONS = ('.tar.xz', '.txz', '.tlz', '.tar.lz', '.tar.lzma')
-ZIP_EXTENSIONS = ('.zip', '.whl')
-TAR_EXTENSIONS = ('.tar.gz', '.tgz', '.tar')
-ARCHIVE_EXTENSIONS = (
-    ZIP_EXTENSIONS + BZ2_EXTENSIONS + TAR_EXTENSIONS + XZ_EXTENSIONS)
-SUPPORTED_EXTENSIONS = ZIP_EXTENSIONS + TAR_EXTENSIONS
-try:
-    import bz2  # noqa
-    SUPPORTED_EXTENSIONS += BZ2_EXTENSIONS
-except ImportError:
-    logger.debug('bz2 module is not available')
 
-try:
-    # Only for Python 3.3+
-    import lzma  # noqa
-    SUPPORTED_EXTENSIONS += XZ_EXTENSIONS
-except ImportError:
-    logger.debug('lzma module is not available')
+def get_pip_version():
+    # type: () -> str
+    pip_pkg_dir = os.path.join(os.path.dirname(__file__), "..", "..")
+    pip_pkg_dir = os.path.abspath(pip_pkg_dir)
+
+    return (
+        'pip {} from {} (python {})'.format(
+            __version__, pip_pkg_dir, get_major_minor_version(),
+        )
+    )
+
+
+def normalize_version_info(py_version_info):
+    # type: (Tuple[int, ...]) -> Tuple[int, int, int]
+    """
+    Convert a tuple of ints representing a Python version to one of length
+    three.
+
+    :param py_version_info: a tuple of ints representing a Python version,
+        or None to specify no version. The tuple can have any length.
+
+    :return: a tuple of length three if `py_version_info` is non-None.
+        Otherwise, return `py_version_info` unchanged (i.e. None).
+    """
+    if len(py_version_info) < 3:
+        py_version_info += (3 - len(py_version_info)) * (0,)
+    elif len(py_version_info) > 3:
+        py_version_info = py_version_info[:3]
+
+    return cast('VersionInfo', py_version_info)
 
 
 def ensure_dir(path):
+    # type: (AnyStr) -> None
     """os.path.makedirs without EEXIST."""
     try:
         os.makedirs(path)
     except OSError as e:
-        if e.errno != errno.EEXIST:
+        # Windows can raise spurious ENOTEMPTY errors. See #6426.
+        if e.errno != errno.EEXIST and e.errno != errno.ENOTEMPTY:
             raise
 
 
 def get_prog():
+    # type: () -> str
     try:
         prog = os.path.basename(sys.argv[0])
         if prog in ('__main__.py', '-c'):
-            return "%s -m pip" % sys.executable
+            return "{} -m pip".format(sys.executable)
         else:
             return prog
     except (AttributeError, TypeError, IndexError):
@@ -100,6 +132,7 @@ def get_prog():
 # Retry every half second for up to 3 seconds
 @retry(stop_max_delay=3000, wait_fixed=500)
 def rmtree(dir, ignore_errors=False):
+    # type: (Text, bool) -> None
     shutil.rmtree(dir, ignore_errors=ignore_errors,
                   onerror=rmtree_errorhandler)
 
@@ -108,8 +141,13 @@ def rmtree_errorhandler(func, path, exc_info):
     """On Windows, the files in .svn are read-only, so when rmtree() tries to
     remove them, an exception is thrown.  We catch that here, remove the
     read-only attribute, and hopefully continue without problems."""
-    # if file type currently read only
-    if os.stat(path).st_mode & stat.S_IREAD:
+    try:
+        has_attr_readonly = not (os.stat(path).st_mode & stat.S_IWRITE)
+    except (IOError, OSError):
+        # it's equivalent to os.path.exists
+        return
+
+    if has_attr_readonly:
         # convert to read/write
         os.chmod(path, stat.S_IWRITE)
         # use the original function to repeat the operation
@@ -119,7 +157,42 @@ def rmtree_errorhandler(func, path, exc_info):
         raise
 
 
+def path_to_display(path):
+    # type: (Optional[Union[str, Text]]) -> Optional[Text]
+    """
+    Convert a bytes (or text) path to text (unicode in Python 2) for display
+    and logging purposes.
+
+    This function should never error out. Also, this function is mainly needed
+    for Python 2 since in Python 3 str paths are already text.
+    """
+    if path is None:
+        return None
+    if isinstance(path, text_type):
+        return path
+    # Otherwise, path is a bytes object (str in Python 2).
+    try:
+        display_path = path.decode(sys.getfilesystemencoding(), 'strict')
+    except UnicodeDecodeError:
+        # Include the full bytes to make troubleshooting easier, even though
+        # it may not be very human readable.
+        if PY2:
+            # Convert the bytes to a readable str representation using
+            # repr(), and then convert the str to unicode.
+            #   Also, we add the prefix "b" to the repr() return value both
+            # to make the Python 2 output look like the Python 3 output, and
+            # to signal to the user that this is a bytes representation.
+            display_path = str_to_display('b{!r}'.format(path))
+        else:
+            # Silence the "F821 undefined name 'ascii'" flake8 error since
+            # in Python 3 ascii() is a built-in.
+            display_path = ascii(path)  # noqa: F821
+
+    return display_path
+
+
 def display_path(path):
+    # type: (Union[str, Text]) -> str
     """Gives the display value for a given path, making it relative to cwd
     if possible."""
     path = os.path.normcase(os.path.abspath(path))
@@ -132,6 +205,7 @@ def display_path(path):
 
 
 def backup_dir(dir, ext='.bak'):
+    # type: (str, str) -> str
     """Figure out the name of a directory to back up the given dir to
     (adding .bak, .bak2, etc)"""
     n = 1
@@ -143,43 +217,82 @@ def backup_dir(dir, ext='.bak'):
 
 
 def ask_path_exists(message, options):
+    # type: (str, Iterable[str]) -> str
     for action in os.environ.get('PIP_EXISTS_ACTION', '').split():
         if action in options:
             return action
     return ask(message, options)
 
 
+def _check_no_input(message):
+    # type: (str) -> None
+    """Raise an error if no input is allowed."""
+    if os.environ.get('PIP_NO_INPUT'):
+        raise Exception(
+            'No input was expected ($PIP_NO_INPUT set); question: {}'.format(
+                message)
+        )
+
+
 def ask(message, options):
+    # type: (str, Iterable[str]) -> str
     """Ask the message interactively, with the given possible responses"""
     while 1:
-        if os.environ.get('PIP_NO_INPUT'):
-            raise Exception(
-                'No input was expected ($PIP_NO_INPUT set); question: %s' %
-                message
-            )
+        _check_no_input(message)
         response = input(message)
         response = response.strip().lower()
         if response not in options:
             print(
-                'Your response (%r) was not one of the expected responses: '
-                '%s' % (response, ', '.join(options))
+                'Your response ({!r}) was not one of the expected responses: '
+                '{}'.format(response, ', '.join(options))
             )
         else:
             return response
 
 
+def ask_input(message):
+    # type: (str) -> str
+    """Ask for input interactively."""
+    _check_no_input(message)
+    return input(message)
+
+
+def ask_password(message):
+    # type: (str) -> str
+    """Ask for a password interactively."""
+    _check_no_input(message)
+    return getpass.getpass(message)
+
+
 def format_size(bytes):
+    # type: (float) -> str
     if bytes > 1000 * 1000:
-        return '%.1fMB' % (bytes / 1000.0 / 1000)
+        return '{:.1f} MB'.format(bytes / 1000.0 / 1000)
     elif bytes > 10 * 1000:
-        return '%ikB' % (bytes / 1000)
+        return '{} kB'.format(int(bytes / 1000))
     elif bytes > 1000:
-        return '%.1fkB' % (bytes / 1000.0)
+        return '{:.1f} kB'.format(bytes / 1000.0)
     else:
-        return '%ibytes' % bytes
+        return '{} bytes'.format(int(bytes))
+
+
+def tabulate(rows):
+    # type: (Iterable[Iterable[Any]]) -> Tuple[List[str], List[int]]
+    """Return a list of formatted rows and a list of column sizes.
+
+    For example::
+
+    >>> tabulate([['foobar', 2000], [0xdeadbeef]])
+    (['foobar     2000', '3735928559'], [10, 4])
+    """
+    rows = [tuple(map(str, row)) for row in rows]
+    sizes = [max(map(len, col)) for col in zip_longest(*rows, fillvalue='')]
+    table = [" ".join(map(str.ljust, row, sizes)).rstrip() for row in rows]
+    return table, sizes
 
 
 def is_installable_dir(path):
+    # type: (str) -> bool
     """Is path is a directory containing setup.py or pyproject.toml?
     """
     if not os.path.isdir(path):
@@ -193,19 +306,6 @@ def is_installable_dir(path):
     return False
 
 
-def is_svn_page(html):
-    """
-    Returns true if the page appears to be the index page of an svn repository
-    """
-    return (re.search(r'<title>[^<]*Revision \d+:', html) and
-            re.search(r'Powered by (?:<a[^>]*?>)?Subversion', html, re.I))
-
-
-def file_contents(filename):
-    with open(filename, 'rb') as fp:
-        return fp.read().decode('utf-8')
-
-
 def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE):
     """Yield pieces of data from a file-like object until EOF."""
     while True:
@@ -215,33 +315,8 @@ def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE):
         yield chunk
 
 
-def split_leading_dir(path):
-    path = path.lstrip('/').lstrip('\\')
-    if '/' in path and (('\\' in path and path.find('/') < path.find('\\')) or
-                        '\\' not in path):
-        return path.split('/', 1)
-    elif '\\' in path:
-        return path.split('\\', 1)
-    else:
-        return path, ''
-
-
-def has_leading_dir(paths):
-    """Returns true if all the paths have the same leading path name
-    (i.e., everything is in one subdirectory in an archive)"""
-    common_prefix = None
-    for path in paths:
-        prefix, rest = split_leading_dir(path)
-        if not prefix:
-            return False
-        elif common_prefix is None:
-            common_prefix = prefix
-        elif prefix != common_prefix:
-            return False
-    return True
-
-
 def normalize_path(path, resolve_symlinks=True):
+    # type: (str, bool) -> str
     """
     Convert a path to its canonical, case-normalized, absolute version.
 
@@ -255,6 +330,7 @@ def normalize_path(path, resolve_symlinks=True):
 
 
 def splitext(path):
+    # type: (str) -> Tuple[str, str]
     """Like os.path.splitext, but take off .tar too"""
     base, ext = posixpath.splitext(path)
     if base.lower().endswith('.tar'):
@@ -264,6 +340,7 @@ def splitext(path):
 
 
 def renames(old, new):
+    # type: (str, str) -> None
     """Like os.renames(), but handles renaming across devices."""
     # Implementation borrowed from os.renames().
     head, tail = os.path.split(new)
@@ -281,18 +358,22 @@ def renames(old, new):
 
 
 def is_local(path):
+    # type: (str) -> bool
     """
     Return True if path is within sys.prefix, if we're running in a virtualenv.
 
     If we're not in a virtualenv, all paths are considered "local."
 
+    Caution: this function assumes the head of path has been normalized
+    with normalize_path.
     """
     if not running_under_virtualenv():
         return True
-    return normalize_path(path).startswith(normalize_path(sys.prefix))
+    return path.startswith(normalize_path(sys.prefix))
 
 
 def dist_is_local(dist):
+    # type: (Distribution) -> bool
     """
     Return True if given Distribution object is installed locally
     (i.e. within current virtualenv).
@@ -304,25 +385,27 @@ def dist_is_local(dist):
 
 
 def dist_in_usersite(dist):
+    # type: (Distribution) -> bool
     """
     Return True if given Distribution is installed in user site.
     """
-    norm_path = normalize_path(dist_location(dist))
-    return norm_path.startswith(normalize_path(user_site))
+    return dist_location(dist).startswith(normalize_path(user_site))
 
 
 def dist_in_site_packages(dist):
+    # type: (Distribution) -> bool
     """
     Return True if given Distribution is installed in
     sysconfig.get_python_lib().
     """
-    return normalize_path(
-        dist_location(dist)
-    ).startswith(normalize_path(site_packages))
+    return dist_location(dist).startswith(normalize_path(site_packages))
 
 
 def dist_is_editable(dist):
-    """Is distribution an editable install?"""
+    # type: (Distribution) -> bool
+    """
+    Return True if given Distribution is an editable install.
+    """
     for path_item in sys.path:
         egg_link = os.path.join(path_item, dist.project_name + '.egg-link')
         if os.path.isfile(egg_link):
@@ -330,11 +413,15 @@ def dist_is_editable(dist):
     return False
 
 
-def get_installed_distributions(local_only=True,
-                                skip=stdlib_pkgs,
-                                include_editables=True,
-                                editables_only=False,
-                                user_only=False):
+def get_installed_distributions(
+        local_only=True,  # type: bool
+        skip=stdlib_pkgs,  # type: Container[str]
+        include_editables=True,  # type: bool
+        editables_only=False,  # type: bool
+        user_only=False,  # type: bool
+        paths=None  # type: Optional[List[str]]
+):
+    # type: (...) -> List[Distribution]
     """
     Return a list of installed Distribution objects.
 
@@ -351,7 +438,14 @@ def get_installed_distributions(local_only=True,
     If ``user_only`` is True , only report installations in the user
     site directory.
 
+    If ``paths`` is set, only report the distributions present at the
+    specified list of locations.
     """
+    if paths:
+        working_set = pkg_resources.WorkingSet(paths)
+    else:
+        working_set = pkg_resources.working_set
+
     if local_only:
         local_test = dist_is_local
     else:
@@ -378,7 +472,7 @@ def get_installed_distributions(local_only=True,
         def user_test(d):
             return True
 
-    return [d for d in pkg_resources.working_set
+    return [d for d in working_set
             if local_test(d) and
             d.key not in skip and
             editable_test(d) and
@@ -387,7 +481,42 @@ def get_installed_distributions(local_only=True,
             ]
 
 
+def search_distribution(req_name):
+
+    # Canonicalize the name before searching in the list of
+    # installed distributions and also while creating the package
+    # dictionary to get the Distribution object
+    req_name = canonicalize_name(req_name)
+    packages = get_installed_distributions(skip=())
+    pkg_dict = {canonicalize_name(p.key): p for p in packages}
+    return pkg_dict.get(req_name)
+
+
+def get_distribution(req_name):
+    """Given a requirement name, return the installed Distribution object"""
+
+    # Search the distribution by looking through the working set
+    dist = search_distribution(req_name)
+
+    # If distribution could not be found, call working_set.require
+    # to update the working set, and try to find the distribution
+    # again.
+    # This might happen for e.g. when you install a package
+    # twice, once using setup.py develop and again using setup.py install.
+    # Now when run pip uninstall twice, the package gets removed
+    # from the working set in the first uninstall, so we have to populate
+    # the working set again so that pip knows about it and the packages
+    # gets picked up and is successfully uninstalled the second time too.
+    if not dist:
+        try:
+            pkg_resources.working_set.require(req_name)
+        except pkg_resources.DistributionNotFound:
+            return None
+    return search_distribution(req_name)
+
+
 def egg_link_path(dist):
+    # type: (Distribution) -> Optional[str]
     """
     Return the path for the .egg-link file if it exists, otherwise, None.
 
@@ -407,12 +536,9 @@ def egg_link_path(dist):
     """
     sites = []
     if running_under_virtualenv():
-        if virtualenv_no_global():
-            sites.append(site_packages)
-        else:
-            sites.append(site_packages)
-            if user_site:
-                sites.append(user_site)
+        sites.append(site_packages)
+        if not virtualenv_no_global() and user_site:
+            sites.append(user_site)
     else:
         if user_site:
             sites.append(user_site)
@@ -422,333 +548,39 @@ def egg_link_path(dist):
         egglink = os.path.join(site, dist.project_name) + '.egg-link'
         if os.path.isfile(egglink):
             return egglink
+    return None
 
 
 def dist_location(dist):
+    # type: (Distribution) -> str
     """
     Get the site-packages location of this distribution. Generally
     this is dist.location, except in the case of develop-installed
     packages, where dist.location is the source code location, and we
     want to know where the egg-link file is.
 
+    The returned location is normalized (in particular, with symlinks removed).
     """
     egg_link = egg_link_path(dist)
     if egg_link:
-        return egg_link
-    return dist.location
+        return normalize_path(egg_link)
+    return normalize_path(dist.location)
 
 
-def current_umask():
-    """Get the current umask which involves having to set it temporarily."""
-    mask = os.umask(0)
-    os.umask(mask)
-    return mask
-
-
-def unzip_file(filename, location, flatten=True):
-    """
-    Unzip the file (with path `filename`) to the destination `location`.  All
-    files are written based on system defaults and umask (i.e. permissions are
-    not preserved), except that regular file members with any execute
-    permissions (user, group, or world) have "chmod +x" applied after being
-    written. Note that for windows, any execute changes using os.chmod are
-    no-ops per the python docs.
-    """
-    ensure_dir(location)
-    zipfp = open(filename, 'rb')
-    try:
-        zip = zipfile.ZipFile(zipfp, allowZip64=True)
-        leading = has_leading_dir(zip.namelist()) and flatten
-        for info in zip.infolist():
-            name = info.filename
-            fn = name
-            if leading:
-                fn = split_leading_dir(name)[1]
-            fn = os.path.join(location, fn)
-            dir = os.path.dirname(fn)
-            if fn.endswith('/') or fn.endswith('\\'):
-                # A directory
-                ensure_dir(fn)
-            else:
-                ensure_dir(dir)
-                # Don't use read() to avoid allocating an arbitrarily large
-                # chunk of memory for the file's content
-                fp = zip.open(name)
-                try:
-                    with open(fn, 'wb') as destfp:
-                        shutil.copyfileobj(fp, destfp)
-                finally:
-                    fp.close()
-                    mode = info.external_attr >> 16
-                    # if mode and regular file and any execute permissions for
-                    # user/group/world?
-                    if mode and stat.S_ISREG(mode) and mode & 0o111:
-                        # make dest file have execute for user/group/world
-                        # (chmod +x) no-op on windows per python docs
-                        os.chmod(fn, (0o777 - current_umask() | 0o111))
-    finally:
-        zipfp.close()
-
-
-def untar_file(filename, location):
-    """
-    Untar the file (with path `filename`) to the destination `location`.
-    All files are written based on system defaults and umask (i.e. permissions
-    are not preserved), except that regular file members with any execute
-    permissions (user, group, or world) have "chmod +x" applied after being
-    written.  Note that for windows, any execute changes using os.chmod are
-    no-ops per the python docs.
-    """
-    ensure_dir(location)
-    if filename.lower().endswith('.gz') or filename.lower().endswith('.tgz'):
-        mode = 'r:gz'
-    elif filename.lower().endswith(BZ2_EXTENSIONS):
-        mode = 'r:bz2'
-    elif filename.lower().endswith(XZ_EXTENSIONS):
-        mode = 'r:xz'
-    elif filename.lower().endswith('.tar'):
-        mode = 'r'
-    else:
-        logger.warning(
-            'Cannot determine compression type for file %s', filename,
-        )
-        mode = 'r:*'
-    tar = tarfile.open(filename, mode)
-    try:
-        leading = has_leading_dir([
-            member.name for member in tar.getmembers()
-        ])
-        for member in tar.getmembers():
-            fn = member.name
-            if leading:
-                fn = split_leading_dir(fn)[1]
-            path = os.path.join(location, fn)
-            if member.isdir():
-                ensure_dir(path)
-            elif member.issym():
-                try:
-                    tar._extract_member(member, path)
-                except Exception as exc:
-                    # Some corrupt tar files seem to produce this
-                    # (specifically bad symlinks)
-                    logger.warning(
-                        'In the tar file %s the member %s is invalid: %s',
-                        filename, member.name, exc,
-                    )
-                    continue
-            else:
-                try:
-                    fp = tar.extractfile(member)
-                except (KeyError, AttributeError) as exc:
-                    # Some corrupt tar files seem to produce this
-                    # (specifically bad symlinks)
-                    logger.warning(
-                        'In the tar file %s the member %s is invalid: %s',
-                        filename, member.name, exc,
-                    )
-                    continue
-                ensure_dir(os.path.dirname(path))
-                with open(path, 'wb') as destfp:
-                    shutil.copyfileobj(fp, destfp)
-                fp.close()
-                # Update the timestamp (useful for cython compiled files)
-                tar.utime(member, path)
-                # member have any execute permissions for user/group/world?
-                if member.mode & 0o111:
-                    # make dest file have execute for user/group/world
-                    # no-op on windows per python docs
-                    os.chmod(path, (0o777 - current_umask() | 0o111))
-    finally:
-        tar.close()
-
-
-def unpack_file(filename, location, content_type, link):
-    filename = os.path.realpath(filename)
-    if (content_type == 'application/zip' or
-            filename.lower().endswith(ZIP_EXTENSIONS) or
-            zipfile.is_zipfile(filename)):
-        unzip_file(
-            filename,
-            location,
-            flatten=not filename.endswith('.whl')
-        )
-    elif (content_type == 'application/x-gzip' or
-            tarfile.is_tarfile(filename) or
-            filename.lower().endswith(
-                TAR_EXTENSIONS + BZ2_EXTENSIONS + XZ_EXTENSIONS)):
-        untar_file(filename, location)
-    elif (content_type and content_type.startswith('text/html') and
-            is_svn_page(file_contents(filename))):
-        # We don't really care about this
-        from pip._internal.vcs.subversion import Subversion
-        Subversion('svn+' + link.url).unpack(location)
-    else:
-        # FIXME: handle?
-        # FIXME: magic signatures?
-        logger.critical(
-            'Cannot unpack file %s (downloaded from %s, content-type: %s); '
-            'cannot detect archive format',
-            filename, location, content_type,
-        )
-        raise InstallationError(
-            'Cannot determine archive format of %s' % location
-        )
-
-
-def call_subprocess(cmd, show_stdout=True, cwd=None,
-                    on_returncode='raise',
-                    command_desc=None,
-                    extra_environ=None, unset_environ=None, spinner=None):
-    """
-    Args:
-      unset_environ: an iterable of environment variable names to unset
-        prior to calling subprocess.Popen().
-    """
-    if unset_environ is None:
-        unset_environ = []
-    # This function's handling of subprocess output is confusing and I
-    # previously broke it terribly, so as penance I will write a long comment
-    # explaining things.
-    #
-    # The obvious thing that affects output is the show_stdout=
-    # kwarg. show_stdout=True means, let the subprocess write directly to our
-    # stdout. Even though it is nominally the default, it is almost never used
-    # inside pip (and should not be used in new code without a very good
-    # reason); as of 2016-02-22 it is only used in a few places inside the VCS
-    # wrapper code. Ideally we should get rid of it entirely, because it
-    # creates a lot of complexity here for a rarely used feature.
-    #
-    # Most places in pip set show_stdout=False. What this means is:
-    # - We connect the child stdout to a pipe, which we read.
-    # - By default, we hide the output but show a spinner -- unless the
-    #   subprocess exits with an error, in which case we show the output.
-    # - If the --verbose option was passed (= loglevel is DEBUG), then we show
-    #   the output unconditionally. (But in this case we don't want to show
-    #   the output a second time if it turns out that there was an error.)
-    #
-    # stderr is always merged with stdout (even if show_stdout=True).
-    if show_stdout:
-        stdout = None
-    else:
-        stdout = subprocess.PIPE
-    if command_desc is None:
-        cmd_parts = []
-        for part in cmd:
-            if ' ' in part or '\n' in part or '"' in part or "'" in part:
-                part = '"%s"' % part.replace('"', '\\"')
-            cmd_parts.append(part)
-        command_desc = ' '.join(cmd_parts)
-    logger.debug("Running command %s", command_desc)
-    env = os.environ.copy()
-    if extra_environ:
-        env.update(extra_environ)
-    for name in unset_environ:
-        env.pop(name, None)
-    try:
-        proc = subprocess.Popen(
-            cmd, stderr=subprocess.STDOUT, stdin=subprocess.PIPE,
-            stdout=stdout, cwd=cwd, env=env,
-        )
-        proc.stdin.close()
-    except Exception as exc:
-        logger.critical(
-            "Error %s while executing command %s", exc, command_desc,
-        )
-        raise
-    all_output = []
-    if stdout is not None:
-        while True:
-            line = console_to_str(proc.stdout.readline())
-            if not line:
-                break
-            line = line.rstrip()
-            all_output.append(line + '\n')
-            if logger.getEffectiveLevel() <= std_logging.DEBUG:
-                # Show the line immediately
-                logger.debug(line)
-            else:
-                # Update the spinner
-                if spinner is not None:
-                    spinner.spin()
-    try:
-        proc.wait()
-    finally:
-        if proc.stdout:
-            proc.stdout.close()
-    if spinner is not None:
-        if proc.returncode:
-            spinner.finish("error")
-        else:
-            spinner.finish("done")
-    if proc.returncode:
-        if on_returncode == 'raise':
-            if (logger.getEffectiveLevel() > std_logging.DEBUG and
-                    not show_stdout):
-                logger.info(
-                    'Complete output from command %s:', command_desc,
-                )
-                logger.info(
-                    ''.join(all_output) +
-                    '\n----------------------------------------'
-                )
-            raise InstallationError(
-                'Command "%s" failed with error code %s in %s'
-                % (command_desc, proc.returncode, cwd))
-        elif on_returncode == 'warn':
-            logger.warning(
-                'Command "%s" had error code %s in %s',
-                command_desc, proc.returncode, cwd,
-            )
-        elif on_returncode == 'ignore':
-            pass
-        else:
-            raise ValueError('Invalid value: on_returncode=%s' %
-                             repr(on_returncode))
-    if not show_stdout:
-        return ''.join(all_output)
-
-
-def read_text_file(filename):
-    """Return the contents of *filename*.
-
-    Try to decode the file contents with utf-8, the preferred system encoding
-    (e.g., cp1252 on some Windows machines), and latin1, in that order.
-    Decoding a byte string with latin1 will never raise an error. In the worst
-    case, the returned string will contain some garbage characters.
-
-    """
-    with open(filename, 'rb') as fp:
-        data = fp.read()
-
-    encodings = ['utf-8', locale.getpreferredencoding(False), 'latin1']
-    for enc in encodings:
-        try:
-            data = data.decode(enc)
-        except UnicodeDecodeError:
-            continue
-        break
-
-    assert type(data) != bytes  # Latin1 should have worked.
-    return data
-
-
-def _make_build_dir(build_dir):
-    os.makedirs(build_dir)
-    write_delete_marker_file(build_dir)
+def write_output(msg, *args):
+    # type: (Any, Any) -> None
+    logger.info(msg, *args)
 
 
 class FakeFile(object):
     """Wrap a list of lines in an object with readline() to make
     ConfigParser happy."""
     def __init__(self, lines):
-        self._gen = (l for l in lines)
+        self._gen = iter(lines)
 
     def readline(self):
         try:
-            try:
-                return next(self._gen)
-            except NameError:
-                return self._gen.next()
+            return next(self._gen)
         except StopIteration:
             return ''
 
@@ -796,24 +628,11 @@ def captured_stdout():
     return captured_output('stdout')
 
 
-class cached_property(object):
-    """A property that is only computed once per instance and then replaces
-       itself with an ordinary attribute. Deleting the attribute resets the
-       property.
-
-       Source: https://github.com/bottlepy/bottle/blob/0.11.5/bottle.py#L175
+def captured_stderr():
     """
-
-    def __init__(self, func):
-        self.__doc__ = getattr(func, '__doc__')
-        self.func = func
-
-    def __get__(self, obj, cls):
-        if obj is None:
-            # We're being accessed from the class itself, not from an object
-            return self
-        value = obj.__dict__[self.func.__name__] = self.func(obj)
-        return value
+    See captured_stdout().
+    """
+    return captured_output('stderr')
 
 
 def get_installed_version(dist_name, working_set=None):
@@ -847,18 +666,38 @@ def enum(*sequential, **named):
     return type('Enum', (), enums)
 
 
-def make_vcs_requirement_url(repo_url, rev, egg_project_name, subdir=None):
+def build_netloc(host, port):
+    # type: (str, Optional[int]) -> str
     """
-    Return the URL for a VCS requirement.
-
-    Args:
-      repo_url: the remote VCS url, with any needed VCS prefix (e.g. "git+").
+    Build a netloc from a host-port pair
     """
-    req = '{}@{}#egg={}'.format(repo_url, rev, egg_project_name)
-    if subdir:
-        req += '&subdirectory={}'.format(subdir)
+    if port is None:
+        return host
+    if ':' in host:
+        # Only wrap host with square brackets when it is IPv6
+        host = '[{}]'.format(host)
+    return '{}:{}'.format(host, port)
 
-    return req
+
+def build_url_from_netloc(netloc, scheme='https'):
+    # type: (str, str) -> str
+    """
+    Build a full URL from a netloc.
+    """
+    if netloc.count(':') >= 2 and '@' not in netloc and '[' not in netloc:
+        # It must be a bare IPv6 address, so wrap it with brackets.
+        netloc = '[{}]'.format(netloc)
+    return '{}://{}'.format(scheme, netloc)
+
+
+def parse_netloc(netloc):
+    # type: (str) -> Tuple[str, Optional[int]]
+    """
+    Return the host-port pair from a netloc.
+    """
+    url = build_url_from_netloc(netloc)
+    parsed = urllib_parse.urlparse(url)
+    return parsed.hostname, parsed.port
 
 
 def split_auth_from_netloc(netloc):
@@ -878,56 +717,141 @@ def split_auth_from_netloc(netloc):
         # Split from the left because that's how urllib.parse.urlsplit()
         # behaves if more than one : is present (which again can be checked
         # using the password attribute of the return value)
-        user_pass = tuple(auth.split(':', 1))
+        user_pass = auth.split(':', 1)
     else:
         user_pass = auth, None
+
+    user_pass = tuple(
+        None if x is None else urllib_unquote(x) for x in user_pass
+    )
 
     return netloc, user_pass
 
 
 def redact_netloc(netloc):
+    # type: (str) -> str
     """
-    Replace the password in a netloc with "****", if it exists.
+    Replace the sensitive data in a netloc with "****", if it exists.
 
-    For example, "user:pass@example.com" returns "user:****@example.com".
+    For example:
+        - "user:pass@example.com" returns "user:****@example.com"
+        - "accesstoken@example.com" returns "****@example.com"
     """
     netloc, (user, password) = split_auth_from_netloc(netloc)
     if user is None:
         return netloc
-    password = '' if password is None else ':****'
+    if password is None:
+        user = '****'
+        password = ''
+    else:
+        user = urllib_parse.quote(user)
+        password = ':****'
     return '{user}{password}@{netloc}'.format(user=user,
                                               password=password,
                                               netloc=netloc)
 
 
 def _transform_url(url, transform_netloc):
+    """Transform and replace netloc in a url.
+
+    transform_netloc is a function taking the netloc and returning a
+    tuple. The first element of this tuple is the new netloc. The
+    entire tuple is returned.
+
+    Returns a tuple containing the transformed url as item 0 and the
+    original tuple returned by transform_netloc as item 1.
+    """
     purl = urllib_parse.urlsplit(url)
-    netloc = transform_netloc(purl.netloc)
+    netloc_tuple = transform_netloc(purl.netloc)
     # stripped url
     url_pieces = (
-        purl.scheme, netloc, purl.path, purl.query, purl.fragment
+        purl.scheme, netloc_tuple[0], purl.path, purl.query, purl.fragment
     )
     surl = urllib_parse.urlunsplit(url_pieces)
-    return surl
+    return surl, netloc_tuple
 
 
 def _get_netloc(netloc):
-    return split_auth_from_netloc(netloc)[0]
+    return split_auth_from_netloc(netloc)
+
+
+def _redact_netloc(netloc):
+    return (redact_netloc(netloc),)
+
+
+def split_auth_netloc_from_url(url):
+    # type: (str) -> Tuple[str, str, Tuple[str, str]]
+    """
+    Parse a url into separate netloc, auth, and url with no auth.
+
+    Returns: (url_without_auth, netloc, (username, password))
+    """
+    url_without_auth, (netloc, auth) = _transform_url(url, _get_netloc)
+    return url_without_auth, netloc, auth
 
 
 def remove_auth_from_url(url):
-    # Return a copy of url with 'username:password@' removed.
+    # type: (str) -> str
+    """Return a copy of url with 'username:password@' removed."""
     # username/pass params are passed to subversion through flags
     # and are not recognized in the url.
-    return _transform_url(url, _get_netloc)
+    return _transform_url(url, _get_netloc)[0]
 
 
-def redact_password_from_url(url):
+def redact_auth_from_url(url):
+    # type: (str) -> str
     """Replace the password in a given url with ****."""
-    return _transform_url(url, redact_netloc)
+    return _transform_url(url, _redact_netloc)[0]
+
+
+class HiddenText(object):
+    def __init__(
+        self,
+        secret,    # type: str
+        redacted,  # type: str
+    ):
+        # type: (...) -> None
+        self.secret = secret
+        self.redacted = redacted
+
+    def __repr__(self):
+        # type: (...) -> str
+        return '<HiddenText {!r}>'.format(str(self))
+
+    def __str__(self):
+        # type: (...) -> str
+        return self.redacted
+
+    # This is useful for testing.
+    def __eq__(self, other):
+        # type: (Any) -> bool
+        if type(self) != type(other):
+            return False
+
+        # The string being used for redaction doesn't also have to match,
+        # just the raw, original string.
+        return (self.secret == other.secret)
+
+    # We need to provide an explicit __ne__ implementation for Python 2.
+    # TODO: remove this when we drop PY2 support.
+    def __ne__(self, other):
+        # type: (Any) -> bool
+        return not self == other
+
+
+def hide_value(value):
+    # type: (str) -> HiddenText
+    return HiddenText(value, redacted='****')
+
+
+def hide_url(url):
+    # type: (str) -> HiddenText
+    redacted = redact_auth_from_url(url)
+    return HiddenText(url, redacted=redacted)
 
 
 def protect_pip_from_modification_on_windows(modifying_pip):
+    # type: (bool) -> None
     """Protection of pip.exe from modification on Windows
 
     On Windows, any operation modifying pip should be run as:
@@ -954,3 +878,48 @@ def protect_pip_from_modification_on_windows(modifying_pip):
             'To modify pip, please run the following command:\n{}'
             .format(" ".join(new_command))
         )
+
+
+def is_console_interactive():
+    # type: () -> bool
+    """Is this console interactive?
+    """
+    return sys.stdin is not None and sys.stdin.isatty()
+
+
+def hash_file(path, blocksize=1 << 20):
+    # type: (Text, int) -> Tuple[Any, int]
+    """Return (hash, length) for path using hashlib.sha256()
+    """
+
+    h = hashlib.sha256()
+    length = 0
+    with open(path, 'rb') as f:
+        for block in read_chunks(f, size=blocksize):
+            length += len(block)
+            h.update(block)
+    return h, length
+
+
+def is_wheel_installed():
+    """
+    Return whether the wheel package is installed.
+    """
+    try:
+        import wheel  # noqa: F401
+    except ImportError:
+        return False
+
+    return True
+
+
+def pairwise(iterable):
+    # type: (Iterable[Any]) -> Iterator[Tuple[Any, Any]]
+    """
+    Return paired elements.
+
+    For example:
+        s -> (s0, s1), (s2, s3), (s4, s5), ...
+    """
+    iterable = iter(iterable)
+    return zip_longest(iterable, iterable)
