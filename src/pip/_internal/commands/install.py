@@ -37,7 +37,7 @@ from pip._internal.wheel_builder import build, should_build_for_install_command
 
 if MYPY_CHECK_RUNNING:
     from optparse import Values
-    from typing import Iterable, List, Optional
+    from typing import Iterable, List, Optional, Tuple
 
     from pip._internal.models.format_control import FormatControl
     from pip._internal.req.req_install import InstallRequirement
