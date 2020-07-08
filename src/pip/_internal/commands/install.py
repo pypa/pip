@@ -601,24 +601,28 @@ class InstallCommand(RequirementCommand):
 
 
 def get_lib_location_guesses(
-        user=False,  # type: bool
-        home=None,  # type: Optional[str]
-        root=None,  # type: Optional[str]
-        isolated=False,  # type: bool
-        prefix=None  # type: Optional[str]
+    user=False,  # type: bool
+    home=None,  # type: Optional[str]
+    root=None,  # type: Optional[str]
+    isolated=False,  # type: bool
+    prefix=None,  # type: Optional[str]
 ):
-    # type:(...) -> List[str]
+    # type: (...) -> List[str]
     scheme = distutils_scheme('', user=user, home=home, root=root,
                               isolated=isolated, prefix=prefix)
     return [scheme['purelib'], scheme['platlib']]
 
 
-def site_packages_writable(root, isolated):
-    # type: (Optional[str], bool) -> bool
-    return all(
-        test_writable_dir(d) for d in set(
-            get_lib_location_guesses(root=root, isolated=isolated))
-    )
+def site_packages_writable(
+    user=False,  # type: bool
+    root=None,  # type: Optional[str]
+    isolated=False,  # type: bool
+    prefix=None,  # type: Optional[str]
+):
+    # type: (...) -> bool
+    return all(map(test_writable_dir, set(get_lib_location_guesses(
+        user=user, root=root, isolated=isolated, prefix=prefix,
+    ))))
 
 
 def decide_user_install(
