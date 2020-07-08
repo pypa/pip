@@ -9,6 +9,7 @@ import shutil
 from pip._internal.models.link import Link
 from pip._internal.operations.build.wheel import build_wheel_pep517
 from pip._internal.operations.build.wheel_legacy import build_wheel_legacy
+from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import ensure_dir, hash_file, is_wheel_installed
 from pip._internal.utils.setuptools_build import make_setuptools_clean_args
@@ -79,9 +80,18 @@ def _should_build(
 
     if not req.use_pep517 and not is_wheel_installed():
         # we don't build legacy requirements if wheel is not installed
-        logger.info(
-            "Using legacy 'setup.py install' for %s, "
-            "since package 'wheel' is not installed.", req.name,
+        deprecated(
+            reason=(
+                "Cannot build a wheel for {} which do not use PEP 517 "
+                "since package 'wheel' is not installed. "
+                "pip will fall back to legacy 'setup.py install' for this "
+                "package.".format(req.name)
+            ),
+            replacement=(
+                "to install the 'wheel' package or enable --use-pep517"
+            ),
+            gone_in="21.0",
+            issue=8559,
         )
         return False
 

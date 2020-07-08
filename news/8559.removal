@@ -1,0 +1,2 @@
+Deprecate call to 'setup.py install' when 'wheel' is absent for source
+distributions without pyproject.toml
