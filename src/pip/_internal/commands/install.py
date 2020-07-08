@@ -571,10 +571,11 @@ def decide_user_install(
         return False
 
     if use_user_site and '--user' not in args_on_cli:
-        # Implicit
-        if prefix_path and '--prefix' in args_on_cli:
+        # Implicit "--user" could be from configuration file or environment
+        # Explicit "--target" was parsed from CLI arguments
+        if target_dir and '--target' in args_on_cli:
             logger.info(
-                "Ignoring implied '--user' due to '--prefix' argument"
+                "Ignoring implied '--user' due to '--target' argument"
             )
             return False
 
