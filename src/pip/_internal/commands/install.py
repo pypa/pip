@@ -37,7 +37,7 @@ from pip._internal.wheel_builder import build, should_build_for_install_command
 
 if MYPY_CHECK_RUNNING:
     from optparse import Values
-    from typing import Iterable, List, Optional, Tuple
+    from typing import Container, Iterable, List, Optional
 
     from pip._internal.models.format_control import FormatControl
     from pip._internal.req.req_install import InstallRequirement
@@ -553,7 +553,7 @@ def decide_user_install(
     target_dir=None,  # type: Optional[str]
     root_path=None,  # type: Optional[str]
     isolated_mode=False,  # type: bool
-    args_on_cli=(),  # type: Tuple[str, ...]
+    args_on_cli=(),  # type: Container[str]
 ):
     # type: (...) -> bool
     """Determine whether to do a user install based on the input options.
