@@ -584,14 +584,13 @@ def decide_user_install(
                 "Can not combine '--user' and '--prefix' as they imply "
                 "different installation locations"
             )
-        elif virtualenv_no_global():
+        if virtualenv_no_global():
             raise InstallationError(
                 "Can not perform a '--user' install. User site-packages "
                 "are not visible in this virtualenv."
             )
-        else:
-            logger.debug("User install by explicit request")
-            return True
+        logger.debug("User install by explicit request")
+        return True
 
     # If we are here, user installs have not been explicitly requested/avoided
     assert use_user_site is None
