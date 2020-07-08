@@ -553,7 +553,7 @@ def decide_user_install(
     target_dir=None,  # type: Optional[str]
     root_path=None,  # type: Optional[str]
     isolated_mode=False,  # type: bool
-    args_on_cli=(),  # type: Tuple[str]
+    args_on_cli=(),  # type: Tuple[str, ...]
 ):
     # type: (...) -> bool
     """Determine whether to do a user install based on the input options.
