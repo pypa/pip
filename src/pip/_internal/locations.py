@@ -138,7 +138,7 @@ def distutils_scheme(
 
     if running_under_virtualenv():
         scheme['headers'] = os.path.join(
-            sys.prefix,
+            i.prefix,
             'include',
             'site',
             'python{}'.format(get_major_minor_version()),
