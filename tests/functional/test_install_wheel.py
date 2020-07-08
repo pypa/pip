@@ -146,14 +146,37 @@ def test_basic_install_from_unicode_wheel(script, data):
     result.did_create(file2)
 
 
-def test_install_from_wheel_with_headers(script, data):
+def get_header_scheme_path_for_script(script, dist_name):
+    command = (
+        "from pip._internal.locations import get_scheme;"
+        "scheme = get_scheme({!r});"
+        "print(scheme.headers);"
+    ).format(dist_name)
+    result = script.run('python', '-c', command).stdout
+    return Path(result.strip())
+
+
+def test_install_from_wheel_with_headers(script):
     """
     Test installing from a wheel file with headers
     """
-    package = data.packages.joinpath("headers.dist-0.1-py2.py3-none-any.whl")
+    header_text = '/* hello world */\n'
+    package = make_wheel(
+        'headers.dist',
+        '0.1',
+        extra_data_files={
+            'headers/header.h': header_text
+        },
+    ).save_to_dir(script.scratch_path)
     result = script.pip('install', package, '--no-index')
     dist_info_folder = script.site_packages / 'headers.dist-0.1.dist-info'
     result.did_create(dist_info_folder)
+
+    header_scheme_path = get_header_scheme_path_for_script(
+        script, 'headers.dist'
+    )
+    header_path = header_scheme_path / 'header.h'
+    assert header_path.read_text() == header_text
 
 
 def test_install_wheel_with_target(script, shared_data, with_wheel, tmpdir):
