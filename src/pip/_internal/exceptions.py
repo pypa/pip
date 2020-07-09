@@ -9,9 +9,10 @@ from pip._vendor.six import iteritems
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Optional, List, Dict
+    from typing import Any, Optional, List, Dict, Text
 
     from pip._vendor.pkg_resources import Distribution
+    from pip._vendor.requests.models import Response, Request
     from pip._vendor.six import PY3
     from pip._vendor.six.moves import configparser
 
@@ -102,18 +103,24 @@ class PreviousBuildDirError(PipError):
 class NetworkConnectionError(PipError):
     """HTTP connection error"""
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, error_msg, response=None, request=None):
+        # type: (Text, Response, Request) -> None
         """
         Initialize NetworkConnectionError with  `request` and `response`
         objects.
         """
-        response = kwargs.pop('response', None)
         self.response = response
-        self.request = kwargs.pop('request', None)
-        if (response is not None and not self.request and
+        self.request = request
+        self.error_msg = error_msg
+        if (self.response is not None and not self.request and
                 hasattr(response, 'request')):
             self.request = self.response.request
-        super(NetworkConnectionError, self).__init__(*args, **kwargs)
+        super(NetworkConnectionError, self).__init__(
+            error_msg, response, request)
+
+    def __str__(self):
+        # type: () -> str
+        return str(self.error_msg)
 
 
 class InvalidWheelFilename(InstallationError):

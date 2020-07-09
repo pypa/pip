@@ -25,6 +25,7 @@ class MockResponse(object):
         self.raw = FakeStream(contents)
         self.content = contents
         self.request = None
+        self.reason = None
         self.status_code = 200
         self.connection = None
         self.url = None
