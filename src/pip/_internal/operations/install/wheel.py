@@ -28,6 +28,7 @@ from pip._vendor.six.moves import filterfalse, map
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_major_minor_version
 from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
+from pip._internal.models.scheme import SCHEME_KEYS
 from pip._internal.utils.filesystem import adjacent_tmp_file, replace
 from pip._internal.utils.misc import (
     captured_stdout,
@@ -539,24 +540,6 @@ def install_unpacked_wheel(
         if modified:
             changed.add(_fs_to_record_path(destfile))
 
-    def files_to_process(
-        source,  # type: text_type
-        dest,  # type: text_type
-        is_base,  # type: bool
-    ):
-        # type: (...) -> Iterable[File]
-        for dir, subdirs, files in os.walk(source):
-            basedir = dir[len(source):].lstrip(os.path.sep)
-            if is_base and basedir == '':
-                subdirs[:] = [s for s in subdirs if not s.endswith('.data')]
-            for f in files:
-                srcfile = os.path.join(basedir, f).replace(os.path.sep, "/")
-                destfile = os.path.join(dest, basedir, f)
-                src_disk_path = os.path.join(dir, f)
-                yield DiskFile(
-                    cast('RecordPath', srcfile), destfile, src_disk_path
-                )
-
     def all_paths():
         # type: () -> Iterable[RecordPath]
         for dir, _subdirs, files in os.walk(
@@ -578,12 +561,32 @@ def install_unpacked_wheel(
 
         return make_root_scheme_file
 
+    def data_scheme_file_maker(source, scheme):
+        # type: (text_type, Scheme) -> Callable[[RecordPath], File]
+        scheme_paths = {}
+        for key in SCHEME_KEYS:
+            encoded_key = ensure_text(key)
+            scheme_paths[encoded_key] = ensure_text(
+                getattr(scheme, key), encoding=sys.getfilesystemencoding()
+            )
+
+        def make_data_scheme_file(record_path):
+            # type: (RecordPath) -> File
+            normed_path = os.path.normpath(record_path)
+            source_disk_path = os.path.join(source, normed_path)
+            _, scheme_key, dest_subpath = normed_path.split(os.path.sep, 2)
+            scheme_path = scheme_paths[scheme_key]
+            dest_path = os.path.join(scheme_path, dest_subpath)
+            return DiskFile(record_path, dest_path, source_disk_path)
+
+        return make_data_scheme_file
+
     def is_data_scheme_path(path):
         # type: (RecordPath) -> bool
         return path.split("/", 1)[0].endswith(".data")
 
     paths = all_paths()
-    root_scheme_paths, _data_scheme_paths = partition(
+    root_scheme_paths, data_scheme_paths = partition(
         is_data_scheme_path, paths
     )
 
@@ -592,6 +595,25 @@ def install_unpacked_wheel(
         ensure_text(lib_dir, encoding=sys.getfilesystemencoding()),
     )
     files = map(make_root_scheme_file, root_scheme_paths)
+
+    def is_script_scheme_path(path):
+        # type: (RecordPath) -> bool
+        parts = path.split("/", 2)
+        return (
+            len(parts) > 2 and
+            parts[0].endswith(".data") and
+            parts[1] == "scripts"
+        )
+
+    other_scheme_paths, script_scheme_paths = partition(
+        is_script_scheme_path, data_scheme_paths
+    )
+
+    make_data_scheme_file = data_scheme_file_maker(
+        ensure_text(source, encoding=sys.getfilesystemencoding()), scheme
+    )
+    other_scheme_files = map(make_data_scheme_file, other_scheme_paths)
+    files = chain(files, other_scheme_files)
 
     # Get the defined entry points
     distribution = pkg_resources_distribution_for_wheel(
@@ -616,28 +638,12 @@ def install_unpacked_wheel(
         # Ignore setuptools-generated scripts
         return (matchname in console or matchname in gui)
 
-    # Zip file path separators must be /
-    subdirs = set(p.split("/", 1)[0] for p in wheel_zip.namelist())
-    data_dirs = [s for s in subdirs if s.endswith('.data')]
-
-    for datadir in data_dirs:
-        for subdir in os.listdir(os.path.join(wheeldir, datadir)):
-            full_datadir_path = os.path.join(wheeldir, datadir, subdir)
-            dest = getattr(scheme, subdir)
-            data_scheme_files = files_to_process(
-                ensure_text(
-                    full_datadir_path, encoding=sys.getfilesystemencoding()
-                ),
-                ensure_text(dest, encoding=sys.getfilesystemencoding()),
-                False,
-            )
-            if subdir == 'scripts':
-                data_scheme_files = filterfalse(
-                    is_entrypoint_wrapper, data_scheme_files
-                )
-                data_scheme_files = map(ScriptFile, data_scheme_files)
-
-            files = chain(files, data_scheme_files)
+    script_scheme_files = map(make_data_scheme_file, script_scheme_paths)
+    script_scheme_files = filterfalse(
+        is_entrypoint_wrapper, script_scheme_files
+    )
+    script_scheme_files = map(ScriptFile, script_scheme_files)
+    files = chain(files, script_scheme_files)
 
     for file in files:
         file.save()
