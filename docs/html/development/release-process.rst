@@ -86,7 +86,7 @@ policy.
 Features moved behind this flag should always include a warning that indicates
 when the feature is scheduled to be removed.
 
-Once the feature is removed, user's who use the flag should be shown an error.
+Once the feature is removed, users who use the flag should be shown an error.
 
 ``--use-feature``
 -----------------
