@@ -311,7 +311,7 @@ def test_uninstall_rollback(script, data):
     )
     result.did_create(script.site_packages / 'broken.py')
     result2 = script.pip(
-        'install', '-f', data.find_links, '--no-index', 'broken===0.2broken',
+        'install', '-f', data.find_links, '--no-index', 'brokenwheel==0.1',
         expect_error=True,
     )
     assert result2.returncode == 1, str(result2)
