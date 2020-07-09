@@ -191,8 +191,8 @@ def test_uninstall_overlapping_package(script, data):
 
 
 @pytest.mark.parametrize("console_scripts",
-                         ["test_ = distutils_install",
-                          "test_:test_ = distutils_install"])
+                         ["test_ = thescript:main",
+                          "test_:test_ = thescript:main"])
 def test_uninstall_entry_point_colon_in_name(script, console_scripts):
     """
     Test uninstall package with two or more entry points in the same section,
@@ -205,10 +205,11 @@ def test_uninstall_entry_point_colon_in_name(script, console_scripts):
         version='0.1',
         entry_points={"console_scripts": [console_scripts, ],
                       "pip_test.ep":
-                      ["ep:name1 = distutils_install",
-                       "ep:name2 = distutils_install"]
+                      ["ep:name1 = thescript:main",
+                       "ep:name2 = thescript:main"]
                       }
     )
+    (pkg_path / "thescript.py").write_text("def main(): pass")
     script_name = script.bin_path.joinpath(
         console_scripts.split('=')[0].strip()
     )
@@ -235,8 +236,9 @@ def test_uninstall_gui_scripts(script):
         script,
         name=pkg_name,
         version='0.1',
-        entry_points={"gui_scripts": ["test_ = distutils_install", ], }
+        entry_points={"gui_scripts": ["test_ = thescript:main", ], }
     )
+    (pkg_path / "thescript.py").write_text("def main(): pass")
     script_name = script.bin_path.joinpath('test_')
     if sys.platform == 'win32':
         script_name += '.exe'
@@ -273,10 +275,11 @@ def test_uninstall_console_scripts_uppercase_name(script):
         version='0.1',
         entry_points={
             "console_scripts": [
-                "Test = distutils_install",
+                "Test = thescript:main",
             ],
         },
     )
+    (pkg_path / "thescript.py").write_text("def main(): pass")
     script_name = script.bin_path.joinpath('Test' + script.exe)
 
     script.pip('install', pkg_path)
