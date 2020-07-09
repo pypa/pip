@@ -680,10 +680,10 @@ def install_unpacked_wheel(
                     if success:
                         pyc_path = pyc_output_path(path)
                         assert os.path.exists(pyc_path)
-                        record_installed(
-                            _fs_to_record_path(pyc_path, wheeldir),
-                            pyc_path,
+                        pyc_record_path = cast(
+                            "RecordPath", pyc_path.replace(os.path.sep, "/")
                         )
+                        record_installed(pyc_record_path, pyc_path)
         logger.debug(stdout.getvalue())
 
     maker = PipScriptMaker(None, scheme.scripts)
