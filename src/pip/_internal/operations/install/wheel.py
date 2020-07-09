@@ -12,7 +12,6 @@ import logging
 import os.path
 import re
 import shutil
-import stat
 import sys
 import warnings
 from base64 import urlsafe_b64encode
@@ -38,7 +37,12 @@ from pip._internal.utils.misc import (
 )
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from pip._internal.utils.unpacking import current_umask, unpack_file
+from pip._internal.utils.unpacking import (
+    current_umask,
+    set_extracted_file_to_default_mode_plus_executable,
+    unpack_file,
+    zip_item_is_executable,
+)
 from pip._internal.utils.wheel import (
     parse_wheel,
     pkg_resources_distribution_for_wheel,
@@ -404,12 +408,12 @@ def get_console_script_specs(console):
     return scripts_to_generate
 
 
-class DiskFile(object):
-    def __init__(self, src_record_path, dest_path, src_disk_path):
-        # type: (RecordPath, text_type, text_type) -> None
+class ZipBackedFile(object):
+    def __init__(self, src_record_path, dest_path, zip_file):
+        # type: (RecordPath, text_type, ZipFile) -> None
         self.src_record_path = src_record_path
         self.dest_path = dest_path
-        self._src_disk_path = src_disk_path
+        self._zip_file = zip_file
         self.changed = False
 
     def save(self):
@@ -420,8 +424,8 @@ class DiskFile(object):
         parent_dir = os.path.dirname(self.dest_path)
         ensure_dir(parent_dir)
 
-        # copyfile (called below) truncates the destination if it
-        # exists and then writes the new contents. This is fine in most
+        # When we open the output file below, any existing file is truncated
+        # before we start writing the new contents. This is fine in most
         # cases, but can cause a segfault if pip has loaded a shared
         # object (e.g. from pyopenssl through its vendored urllib3)
         # Since the shared object is mmap'd an attempt to call a
@@ -431,27 +435,13 @@ class DiskFile(object):
         if os.path.exists(self.dest_path):
             os.unlink(self.dest_path)
 
-        # We use copyfile (not move, copy, or copy2) to be extra sure
-        # that we are not moving directories over (copyfile fails for
-        # directories) as well as to ensure that we are not copying
-        # over any metadata because we want more control over what
-        # metadata we actually copy over.
-        shutil.copyfile(self._src_disk_path, self.dest_path)
+        with self._zip_file.open(self.src_record_path) as f:
+            with open(self.dest_path, "wb") as dest:
+                shutil.copyfileobj(f, dest)
 
-        # Copy over the metadata for the file, currently this only
-        # includes the atime and mtime.
-        st = os.stat(self._src_disk_path)
-        if hasattr(os, "utime"):
-            os.utime(self.dest_path, (st.st_atime, st.st_mtime))
-
-        # If our file is executable, then make our destination file
-        # executable.
-        if os.access(self._src_disk_path, os.X_OK):
-            st = os.stat(self._src_disk_path)
-            permissions = (
-                st.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
-            )
-            os.chmod(self.dest_path, permissions)
+        zipinfo = self._zip_file.getinfo(self.src_record_path)
+        if zip_item_is_executable(zipinfo):
+            set_extracted_file_to_default_mode_plus_executable(self.dest_path)
 
 
 class ScriptFile(object):
@@ -515,8 +505,6 @@ def install_unpacked_wheel(
           Wheel-Version
         * when the .dist-info dir does not match the wheel
     """
-    source = wheeldir.rstrip(os.path.sep) + os.path.sep
-
     info_dir, metadata = parse_wheel(wheel_zip, name)
 
     if wheel_root_is_purelib(metadata):
@@ -553,19 +541,18 @@ def install_unpacked_wheel(
         # type: (RecordPath) -> bool
         return path.endswith("/")
 
-    def root_scheme_file_maker(source, dest):
-        # type: (text_type, text_type) -> Callable[[RecordPath], File]
+    def root_scheme_file_maker(zip_file, dest):
+        # type: (ZipFile, text_type) -> Callable[[RecordPath], File]
         def make_root_scheme_file(record_path):
             # type: (RecordPath) -> File
             normed_path = os.path.normpath(record_path)
-            source_disk_path = os.path.join(source, normed_path)
             dest_path = os.path.join(dest, normed_path)
-            return DiskFile(record_path, dest_path, source_disk_path)
+            return ZipBackedFile(record_path, dest_path, zip_file)
 
         return make_root_scheme_file
 
-    def data_scheme_file_maker(source, scheme):
-        # type: (text_type, Scheme) -> Callable[[RecordPath], File]
+    def data_scheme_file_maker(zip_file, scheme):
+        # type: (ZipFile, Scheme) -> Callable[[RecordPath], File]
         scheme_paths = {}
         for key in SCHEME_KEYS:
             encoded_key = ensure_text(key)
@@ -576,11 +563,10 @@ def install_unpacked_wheel(
         def make_data_scheme_file(record_path):
             # type: (RecordPath) -> File
             normed_path = os.path.normpath(record_path)
-            source_disk_path = os.path.join(source, normed_path)
             _, scheme_key, dest_subpath = normed_path.split(os.path.sep, 2)
             scheme_path = scheme_paths[scheme_key]
             dest_path = os.path.join(scheme_path, dest_subpath)
-            return DiskFile(record_path, dest_path, source_disk_path)
+            return ZipBackedFile(record_path, dest_path, zip_file)
 
         return make_data_scheme_file
 
@@ -595,7 +581,7 @@ def install_unpacked_wheel(
     )
 
     make_root_scheme_file = root_scheme_file_maker(
-        ensure_text(source, encoding=sys.getfilesystemencoding()),
+        wheel_zip,
         ensure_text(lib_dir, encoding=sys.getfilesystemencoding()),
     )
     files = map(make_root_scheme_file, root_scheme_paths)
@@ -613,9 +599,7 @@ def install_unpacked_wheel(
         is_script_scheme_path, data_scheme_paths
     )
 
-    make_data_scheme_file = data_scheme_file_maker(
-        ensure_text(source, encoding=sys.getfilesystemencoding()), scheme
-    )
+    make_data_scheme_file = data_scheme_file_maker(wheel_zip, scheme)
     other_scheme_files = map(make_data_scheme_file, other_scheme_paths)
     files = chain(files, other_scheme_files)
 

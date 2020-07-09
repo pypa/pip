@@ -22,6 +22,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import Iterable, List, Optional, Text, Union
+    from zipfile import ZipInfo
 
 
 logger = logging.getLogger(__name__)
@@ -104,6 +105,14 @@ def set_extracted_file_to_default_mode_plus_executable(path):
     os.chmod(path, (0o777 & ~current_umask() | 0o111))
 
 
+def zip_item_is_executable(info):
+    # type: (ZipInfo) -> bool
+    mode = info.external_attr >> 16
+    # if mode and regular file and any execute permissions for
+    # user/group/world?
+    return bool(mode and stat.S_ISREG(mode) and mode & 0o111)
+
+
 def unzip_file(filename, location, flatten=True):
     # type: (str, str, bool) -> None
     """
@@ -145,10 +154,7 @@ def unzip_file(filename, location, flatten=True):
                         shutil.copyfileobj(fp, destfp)
                 finally:
                     fp.close()
-                    mode = info.external_attr >> 16
-                    # if mode and regular file and any execute permissions for
-                    # user/group/world?
-                    if mode and stat.S_ISREG(mode) and mode & 0o111:
+                    if zip_item_is_executable(info):
                         set_extracted_file_to_default_mode_plus_executable(fn)
     finally:
         zipfp.close()
