@@ -11,9 +11,6 @@ Some terminology:
   A single word describing where the configuration key-value pair came from
 """
 
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-
 import locale
 import logging
 import os
@@ -185,6 +182,7 @@ class Configuration(object):
         """
         self._ensure_have_load_only()
 
+        assert self.load_only
         fname, parser = self._get_parser_to_modify()
 
         if parser is not None:
@@ -204,6 +202,7 @@ class Configuration(object):
         """
         self._ensure_have_load_only()
 
+        assert self.load_only
         if key not in self._config[self.load_only]:
             raise ConfigurationError("No such key - {}".format(key))
 
@@ -222,7 +221,7 @@ class Configuration(object):
                 # name removed from parser, section may now be empty
                 section_iter = iter(parser.items(section))
                 try:
-                    val = next(section_iter)
+                    val = next(section_iter)  # type: Optional[Tuple[str, str]]
                 except StopIteration:
                     val = None
 
@@ -409,6 +408,7 @@ class Configuration(object):
     def _get_parser_to_modify(self):
         # type: () -> Tuple[str, RawConfigParser]
         # Determine which parser to modify
+        assert self.load_only
         parsers = self._parsers[self.load_only]
         if not parsers:
             # This should not happen if everything works correctly.
