@@ -542,13 +542,16 @@ def install_unpacked_wheel(
 
     def all_paths():
         # type: () -> Iterable[RecordPath]
-        for dir, _subdirs, files in os.walk(
-            ensure_text(source, encoding="utf-8")
-        ):
-            basedir = dir[len(source):].lstrip(os.path.sep)
-            for f in files:
-                path = os.path.join(basedir, f).replace(os.path.sep, "/")
-                yield cast("RecordPath", path)
+        names = wheel_zip.namelist()
+        # If a flag is set, names may be unicode in Python 2. We convert to
+        # text explicitly so these are valid for lookup in RECORD.
+        decoded_names = map(ensure_text, names)
+        for name in decoded_names:
+            yield cast("RecordPath", name)
+
+    def is_dir_path(path):
+        # type: (RecordPath) -> bool
+        return path.endswith("/")
 
     def root_scheme_file_maker(source, dest):
         # type: (text_type, text_type) -> Callable[[RecordPath], File]
@@ -586,8 +589,9 @@ def install_unpacked_wheel(
         return path.split("/", 1)[0].endswith(".data")
 
     paths = all_paths()
+    file_paths = filterfalse(is_dir_path, paths)
     root_scheme_paths, data_scheme_paths = partition(
-        is_data_scheme_path, paths
+        is_data_scheme_path, file_paths
     )
 
     make_root_scheme_file = root_scheme_file_maker(
