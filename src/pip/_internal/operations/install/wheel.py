@@ -29,7 +29,12 @@ from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_major_minor_version
 from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
 from pip._internal.utils.filesystem import adjacent_tmp_file, replace
-from pip._internal.utils.misc import captured_stdout, ensure_dir, hash_file
+from pip._internal.utils.misc import (
+    captured_stdout,
+    ensure_dir,
+    hash_file,
+    partition,
+)
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.unpacking import current_umask, unpack_file
@@ -47,6 +52,7 @@ else:
     from email.message import Message
     from typing import (
         Any,
+        Callable,
         Dict,
         IO,
         Iterable,
@@ -551,11 +557,41 @@ def install_unpacked_wheel(
                     cast('RecordPath', srcfile), destfile, src_disk_path
                 )
 
-    files = files_to_process(
+    def all_paths():
+        # type: () -> Iterable[RecordPath]
+        for dir, _subdirs, files in os.walk(
+            ensure_text(source, encoding="utf-8")
+        ):
+            basedir = dir[len(source):].lstrip(os.path.sep)
+            for f in files:
+                path = os.path.join(basedir, f).replace(os.path.sep, "/")
+                yield cast("RecordPath", path)
+
+    def root_scheme_file_maker(source, dest):
+        # type: (text_type, text_type) -> Callable[[RecordPath], File]
+        def make_root_scheme_file(record_path):
+            # type: (RecordPath) -> File
+            normed_path = os.path.normpath(record_path)
+            source_disk_path = os.path.join(source, normed_path)
+            dest_path = os.path.join(dest, normed_path)
+            return DiskFile(record_path, dest_path, source_disk_path)
+
+        return make_root_scheme_file
+
+    def is_data_scheme_path(path):
+        # type: (RecordPath) -> bool
+        return path.split("/", 1)[0].endswith(".data")
+
+    paths = all_paths()
+    root_scheme_paths, _data_scheme_paths = partition(
+        is_data_scheme_path, paths
+    )
+
+    make_root_scheme_file = root_scheme_file_maker(
         ensure_text(source, encoding=sys.getfilesystemencoding()),
         ensure_text(lib_dir, encoding=sys.getfilesystemencoding()),
-        True,
     )
+    files = map(make_root_scheme_file, root_scheme_paths)
 
     # Get the defined entry points
     distribution = pkg_resources_distribution_for_wheel(
