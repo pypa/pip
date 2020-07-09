@@ -478,7 +478,6 @@ class PipScriptMaker(ScriptMaker):
 
 def install_unpacked_wheel(
     name,  # type: str
-    wheeldir,  # type: str
     wheel_zip,  # type: ZipFile
     wheel_path,  # type: str
     scheme,  # type: Scheme
@@ -492,7 +491,6 @@ def install_unpacked_wheel(
     """Install a wheel.
 
     :param name: Name of the project to install
-    :param wheeldir: Base directory of the unpacked wheel
     :param wheel_zip: open ZipFile for wheel being installed
     :param scheme: Distutils scheme dictating the install directories
     :param req_description: String used in place of the requirement, for
@@ -800,7 +798,6 @@ def install_wheel(
         unpack_file(wheel_path, unpacked_dir.path)
         install_unpacked_wheel(
             name=name,
-            wheeldir=unpacked_dir.path,
             wheel_zip=z,
             wheel_path=wheel_path,
             scheme=scheme,
