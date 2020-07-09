@@ -35,12 +35,10 @@ from pip._internal.utils.misc import (
     hash_file,
     partition,
 )
-from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.unpacking import (
     current_umask,
     set_extracted_file_to_default_mode_plus_executable,
-    unpack_file,
     zip_item_is_executable,
 )
 from pip._internal.utils.wheel import (
@@ -476,7 +474,7 @@ class PipScriptMaker(ScriptMaker):
         return super(PipScriptMaker, self).make(specification, options)
 
 
-def install_unpacked_wheel(
+def _install_wheel(
     name,  # type: str
     wheel_zip,  # type: ZipFile
     wheel_path,  # type: str
@@ -792,11 +790,8 @@ def install_wheel(
     requested=False,  # type: bool
 ):
     # type: (...) -> None
-    with TempDirectory(
-        kind="unpacked-wheel"
-    ) as unpacked_dir, ZipFile(wheel_path, allowZip64=True) as z:
-        unpack_file(wheel_path, unpacked_dir.path)
-        install_unpacked_wheel(
+    with ZipFile(wheel_path, allowZip64=True) as z:
+        _install_wheel(
             name=name,
             wheel_zip=z,
             wheel_path=wheel_path,
