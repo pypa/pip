@@ -407,7 +407,7 @@ def test_constraints_constrain_to_local(script, data, use_new_resolver):
     if use_new_resolver:
         assert 'Links are not allowed as constraints' in result.stderr
     else:
-        assert 'Running setup.py install for singlemodule' in result.stdout
+        assert 'Successfully installed singlemodule' in result.stdout
 
 
 def test_constrained_to_url_install_same_url(script, data, use_new_resolver):
@@ -423,7 +423,7 @@ def test_constrained_to_url_install_same_url(script, data, use_new_resolver):
     if use_new_resolver:
         assert 'Links are not allowed as constraints' in result.stderr
     else:
-        assert ('Running setup.py install for singlemodule'
+        assert ('Successfully installed singlemodule'
                 in result.stdout), str(result)
 
 
@@ -531,7 +531,7 @@ def test_install_distribution_full_union(script, data):
     to_install = data.packages.joinpath("LocalExtras")
     result = script.pip_install_local(
         to_install, to_install + "[bar]", to_install + "[baz]")
-    assert 'Running setup.py install for LocalExtras' in result.stdout
+    assert 'Successfully installed LocalExtras' in result.stdout
     result.did_create(script.site_packages / 'simple')
     result.did_create(script.site_packages / 'singlemodule.py')
 
@@ -563,7 +563,7 @@ def test_install_distribution_union_with_constraints(
         msg = 'Unnamed requirements are not allowed as constraints'
         assert msg in result.stderr
     else:
-        assert 'Running setup.py install for LocalExtras' in result.stdout
+        assert 'Successfully installed LocalExtras' in result.stdout
         result.did_create(script.site_packages / 'singlemodule.py')
 
 
