@@ -1904,7 +1904,8 @@ def test_install_verify_package_name_normalization(script, package_name):
         package_name) in result.stdout
 
 
-def test_install_logs_pip_version_in_debug(script):
-    result = script.pip('install', '-v', 'INITools==0.2')
+def test_install_logs_pip_version_in_debug(script, shared_data):
+    fake_package = shared_data.packages / 'simple-2.0.tar.gz'
+    result = script.pip('install', '-v', fake_package)
     pattern = "Using pip .* from .*"
     assert_re_match(pattern, result.stdout)
