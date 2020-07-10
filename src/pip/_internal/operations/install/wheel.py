@@ -38,6 +38,7 @@ from pip._internal.utils.misc import (
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.unpacking import (
     current_umask,
+    is_within_directory,
     set_extracted_file_to_default_mode_plus_executable,
     zip_item_is_executable,
 )
@@ -537,12 +538,24 @@ def _install_wheel(
         # type: (RecordPath) -> bool
         return path.endswith("/")
 
+    def assert_no_path_traversal(dest_dir_path, target_path):
+        # type: (text_type, text_type) -> None
+        if not is_within_directory(dest_dir_path, target_path):
+            message = (
+                "The wheel {!r} has a file {!r} trying to install"
+                " outside the target directory {!r}"
+            )
+            raise InstallationError(
+                message.format(wheel_path, target_path, dest_dir_path)
+            )
+
     def root_scheme_file_maker(zip_file, dest):
         # type: (ZipFile, text_type) -> Callable[[RecordPath], File]
         def make_root_scheme_file(record_path):
             # type: (RecordPath) -> File
             normed_path = os.path.normpath(record_path)
             dest_path = os.path.join(dest, normed_path)
+            assert_no_path_traversal(dest, dest_path)
             return ZipBackedFile(record_path, dest_path, zip_file)
 
         return make_root_scheme_file
@@ -562,6 +575,7 @@ def _install_wheel(
             _, scheme_key, dest_subpath = normed_path.split(os.path.sep, 2)
             scheme_path = scheme_paths[scheme_key]
             dest_path = os.path.join(scheme_path, dest_subpath)
+            assert_no_path_traversal(scheme_path, dest_path)
             return ZipBackedFile(record_path, dest_path, zip_file)
 
         return make_data_scheme_file
