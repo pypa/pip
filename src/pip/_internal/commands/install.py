@@ -26,6 +26,7 @@ from pip._internal.utils.filesystem import test_writable_dir
 from pip._internal.utils.misc import (
     ensure_dir,
     get_installed_version,
+    get_pip_version,
     protect_pip_from_modification_on_windows,
     write_output,
 )
@@ -238,6 +239,7 @@ class InstallCommand(RequirementCommand):
 
         install_options = options.install_options or []
 
+        logger.debug("Using {}".format(get_pip_version()))
         options.use_user_site = decide_user_install(
             options.use_user_site,
             prefix_path=options.prefix_path,
