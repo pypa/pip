@@ -48,6 +48,12 @@ def pytest_addoption(parser):
         help="run the skipped tests for the new resolver",
     )
     parser.addoption(
+        "--lazy-wheel",
+        action="store_true",
+        default=False,
+        help="use lazy wheels in tests (only affect new resolver)",
+    )
+    parser.addoption(
         "--use-venv",
         action="store_true",
         default=False,
@@ -102,12 +108,16 @@ def pytest_collection_modifyitems(config, items):
 @pytest.fixture(scope="session", autouse=True)
 def use_new_resolver(request):
     """Set environment variable to make pip default to the new resolver.
+
+    Lazy wheel, an optimization, is also decided here.
     """
     new_resolver = request.config.getoption("--new-resolver")
-    if new_resolver:
-        os.environ["PIP_USE_FEATURE"] = "2020-resolver"
-    else:
+    if not new_resolver:
         os.environ.pop("PIP_USE_FEATURE", None)
+    elif request.config.getoption("--lazy-wheel"):
+        os.environ["PIP_USE_FEATURE"] = "2020-resolver lazy-wheel"
+    else:
+        os.environ["PIP_USE_FEATURE"] = "2020-resolver"
     yield new_resolver
 
 
