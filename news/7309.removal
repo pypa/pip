@@ -1,0 +1,1 @@
+Disallow passing install-location-related arguments in ``--install-options``.

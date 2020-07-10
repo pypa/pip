@@ -1,3 +1,4 @@
+import json
 import os
 import textwrap
 
@@ -5,6 +6,7 @@ import pytest
 
 from tests.lib import (
     _create_test_package_with_subdirectory,
+    create_basic_sdist_for_package,
     create_basic_wheel_for_package,
     need_svn,
     path_to_url,
@@ -13,6 +15,51 @@ from tests.lib import (
 )
 from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
+
+
+class ArgRecordingSdist(object):
+    def __init__(self, sdist_path, args_path):
+        self.sdist_path = sdist_path
+        self._args_path = args_path
+
+    def args(self):
+        return json.loads(self._args_path.read_text())
+
+
+@pytest.fixture()
+def arg_recording_sdist_maker(script):
+    arg_writing_setup_py = textwrap.dedent(
+        """
+        import io
+        import json
+        import os
+        import sys
+
+        from setuptools import setup
+
+        args_path = os.path.join(os.environ["OUTPUT_DIR"], "{name}.json")
+        with open(args_path, 'w') as f:
+            json.dump(sys.argv, f)
+
+        setup(name={name!r}, version="0.1.0")
+        """
+    )
+    output_dir = script.scratch_path.joinpath(
+        "args_recording_sdist_maker_output"
+    )
+    output_dir.mkdir(parents=True)
+    script.environ["OUTPUT_DIR"] = str(output_dir)
+
+    def _arg_recording_sdist_maker(name):
+        # type: (str) -> ArgRecordingSdist
+        extra_files = {"setup.py": arg_writing_setup_py.format(name=name)}
+        sdist_path = create_basic_sdist_for_package(
+            script, name, "0.1.0", extra_files
+        )
+        args_path = output_dir / "{}.json".format(name)
+        return ArgRecordingSdist(sdist_path, args_path)
+
+    return _arg_recording_sdist_maker
 
 
 @pytest.mark.network
@@ -259,28 +306,21 @@ def test_wheel_user_with_prefix_in_pydistutils_cfg(
     assert 'installed requiresupper' in result.stdout
 
 
-def test_install_option_in_requirements_file(script, data, virtualenv):
-    """
-    Test --install-option in requirements file overrides same option in cli
-    """
+def test_install_option_in_requirements_file_overrides_cli(
+    script, arg_recording_sdist_maker
+):
+    simple_sdist = arg_recording_sdist_maker("simple")
 
-    script.scratch_path.joinpath("home1").mkdir()
-    script.scratch_path.joinpath("home2").mkdir()
+    reqs_file = script.scratch_path.joinpath("reqs.txt")
+    reqs_file.write_text("simple --install-option='-O0'")
 
-    script.scratch_path.joinpath("reqs.txt").write_text(
-        textwrap.dedent(
-            """simple --install-option='--home={home}'""".format(
-                home=script.scratch_path.joinpath("home1"))))
-
-    result = script.pip(
-        'install', '--no-index', '-f', data.find_links, '-r',
-        script.scratch_path / 'reqs.txt',
-        '--install-option=--home={home}'.format(
-            home=script.scratch_path.joinpath("home2")),
-        expect_stderr=True)
-
-    package_dir = script.scratch / 'home1' / 'lib' / 'python' / 'simple'
-    result.did_create(package_dir)
+    script.pip(
+        'install', '--no-index', '-f', str(simple_sdist.sdist_path.parent),
+        '-r', str(reqs_file), '--install-option=-O1',
+    )
+    simple_args = simple_sdist.args()
+    assert 'install' in simple_args
+    assert simple_args.index('-O1') < simple_args.index('-O0')
 
 
 def test_constraints_not_installed_by_default(script, data):
@@ -605,7 +645,7 @@ def test_install_unsupported_wheel_file(script, data):
     assert len(result.files_created) == 0
 
 
-def test_install_options_local_to_package(script, data):
+def test_install_options_local_to_package(script, arg_recording_sdist_maker):
     """Make sure --install-options does not leak across packages.
 
     A requirements.txt file can have per-package --install-options; these
@@ -613,27 +653,41 @@ def test_install_options_local_to_package(script, data):
     packages.  This needs to be a functional test because the bug was around
     cross-contamination at install time.
     """
-    home_simple = script.scratch_path.joinpath("for-simple")
-    test_simple = script.scratch.joinpath("for-simple")
-    home_simple.mkdir()
+
+    simple1_sdist = arg_recording_sdist_maker("simple1")
+    simple2_sdist = arg_recording_sdist_maker("simple2")
+
     reqs_file = script.scratch_path.joinpath("reqs.txt")
     reqs_file.write_text(
-        textwrap.dedent("""
-            simple --install-option='--home={home_simple}'
-            INITools
-            """.format(**locals())))
-    result = script.pip(
+        textwrap.dedent(
+            """
+            simple1 --install-option='-O0'
+            simple2
+            """
+        )
+    )
+    script.pip(
         'install',
-        '--no-index', '-f', data.find_links,
+        '--no-index', '-f', str(simple1_sdist.sdist_path.parent),
         '-r', reqs_file,
-        expect_stderr=True,
     )
 
-    simple = test_simple / 'lib' / 'python' / 'simple'
-    bad = test_simple / 'lib' / 'python' / 'initools'
-    good = script.site_packages / 'initools'
-    result.did_create(simple)
-    assert result.files_created[simple].dir
-    result.did_not_create(bad)
-    result.did_create(good)
-    assert result.files_created[good].dir
+    simple1_args = simple1_sdist.args()
+    assert 'install' in simple1_args
+    assert '-O0' in simple1_args
+    simple2_args = simple2_sdist.args()
+    assert 'install' in simple2_args
+    assert '-O0' not in simple2_args
+
+
+def test_location_related_install_option_fails(script):
+    simple_sdist = create_basic_sdist_for_package(script, "simple", "0.1.0")
+    reqs_file = script.scratch_path.joinpath("reqs.txt")
+    reqs_file.write_text("simple --install-option='--home=/tmp'")
+    result = script.pip(
+        'install',
+        '--no-index', '-f', str(simple_sdist.parent),
+        '-r', reqs_file,
+        expect_error=True
+    )
+    assert "['--home'] from simple" in result.stderr
