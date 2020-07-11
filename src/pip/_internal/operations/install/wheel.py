@@ -461,13 +461,6 @@ class MissingCallableSuffix(Exception):
     pass
 
 
-def _raise_for_invalid_entrypoint(specification):
-    # type: (str) -> None
-    entry = get_export_entry(specification)
-    if entry is not None and entry.suffix is None:
-        raise MissingCallableSuffix(str(entry))
-
-
 def _install_wheel(
     name,  # type: str
     wheel_zip,  # type: ZipFile
@@ -714,7 +707,9 @@ def _install_wheel(
 
     try:
         for script_spec in chain(scripts_to_generate, gui_scripts_to_generate):
-            _raise_for_invalid_entrypoint(script_spec)
+            entry = get_export_entry(script_spec)
+            if entry is not None and entry.suffix is None:
+                raise MissingCallableSuffix(str(entry))
     except MissingCallableSuffix as e:
         entry = e.args[0]
         raise InstallationError(
