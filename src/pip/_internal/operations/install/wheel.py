@@ -21,7 +21,14 @@ from zipfile import ZipFile
 from pip._vendor import pkg_resources
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor.distlib.util import get_export_entry
-from pip._vendor.six import PY2, ensure_str, ensure_text, itervalues, text_type
+from pip._vendor.six import (
+    PY2,
+    ensure_str,
+    ensure_text,
+    itervalues,
+    reraise,
+    text_type,
+)
 from pip._vendor.six.moves import filterfalse, map
 
 from pip._internal.exceptions import InstallationError
@@ -480,7 +487,6 @@ def _install_wheel(
     wheel_zip,  # type: ZipFile
     wheel_path,  # type: str
     scheme,  # type: Scheme
-    req_description,  # type: str
     pycompile=True,  # type: bool
     warn_script_location=True,  # type: bool
     direct_url=None,  # type: Optional[DirectUrl]
@@ -729,10 +735,10 @@ def _install_wheel(
     except MissingCallableSuffix as e:
         entry = e.args[0]
         raise InstallationError(
-            "Invalid script entry point: {} for req: {} - A callable "
+            "Invalid script entry point: {} - A callable "
             "suffix is required. Cf https://packaging.python.org/"
             "specifications/entry-points/#use-for-scripts for more "
-            "information.".format(entry, req_description)
+            "information.".format(entry)
         )
 
     if warn_script_location:
@@ -793,6 +799,18 @@ def _install_wheel(
         writer.writerows(_normalized_outrows(rows))
 
 
+@contextlib.contextmanager
+def req_error_context(req_description):
+    # type: (str) -> Iterator[None]
+    try:
+        yield
+    except InstallationError as e:
+        message = "For req: {}. {}".format(req_description, e.args[0])
+        reraise(
+            InstallationError, InstallationError(message), sys.exc_info()[2]
+        )
+
+
 def install_wheel(
     name,  # type: str
     wheel_path,  # type: str
@@ -805,14 +823,14 @@ def install_wheel(
 ):
     # type: (...) -> None
     with ZipFile(wheel_path, allowZip64=True) as z:
-        _install_wheel(
-            name=name,
-            wheel_zip=z,
-            wheel_path=wheel_path,
-            scheme=scheme,
-            req_description=req_description,
-            pycompile=pycompile,
-            warn_script_location=warn_script_location,
-            direct_url=direct_url,
-            requested=requested,
-        )
+        with req_error_context(req_description):
+            _install_wheel(
+                name=name,
+                wheel_zip=z,
+                wheel_path=wheel_path,
+                scheme=scheme,
+                pycompile=pycompile,
+                warn_script_location=warn_script_location,
+                direct_url=direct_url,
+                requested=requested,
+            )
