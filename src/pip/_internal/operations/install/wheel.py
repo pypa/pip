@@ -713,14 +713,15 @@ def _install_wheel(
     generated_console_scripts = []  # type: List[str]
 
     try:
-        for script_spec in scripts_to_generate:
+        for script_spec in chain(scripts_to_generate, gui_scripts_to_generate):
             _raise_for_invalid_entrypoint(script_spec)
+
+        for script_spec in scripts_to_generate:
             generated_console_scripts.extend(maker.make(script_spec))
 
         generated.extend(generated_console_scripts)
 
         for script_spec in gui_scripts_to_generate:
-            _raise_for_invalid_entrypoint(script_spec)
             generated.extend(maker.make(script_spec, {'gui': True}))
     except MissingCallableSuffix as e:
         entry = e.args[0]
