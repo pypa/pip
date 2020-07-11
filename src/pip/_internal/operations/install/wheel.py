@@ -715,14 +715,6 @@ def _install_wheel(
     try:
         for script_spec in chain(scripts_to_generate, gui_scripts_to_generate):
             _raise_for_invalid_entrypoint(script_spec)
-
-        for script_spec in scripts_to_generate:
-            generated_console_scripts.extend(maker.make(script_spec))
-
-        generated.extend(generated_console_scripts)
-
-        for script_spec in gui_scripts_to_generate:
-            generated.extend(maker.make(script_spec, {'gui': True}))
     except MissingCallableSuffix as e:
         entry = e.args[0]
         raise InstallationError(
@@ -731,6 +723,14 @@ def _install_wheel(
             "specifications/entry-points/#use-for-scripts for more "
             "information.".format(entry, req_description)
         )
+
+    for script_spec in scripts_to_generate:
+        generated_console_scripts.extend(maker.make(script_spec))
+
+    generated.extend(generated_console_scripts)
+
+    for script_spec in gui_scripts_to_generate:
+        generated.extend(maker.make(script_spec, {'gui': True}))
 
     if warn_script_location:
         msg = message_about_scripts_not_on_PATH(generated_console_scripts)
