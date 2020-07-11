@@ -720,12 +720,13 @@ def _install_wheel(
     generated_console_scripts = []  # type: List[str]
 
     try:
-        generated_console_scripts = maker.make_multiple(scripts_to_generate)
+        for script_spec in scripts_to_generate:
+            generated_console_scripts.extend(maker.make(script_spec))
+
         generated.extend(generated_console_scripts)
 
-        generated.extend(
-            maker.make_multiple(gui_scripts_to_generate, {'gui': True})
-        )
+        for script_spec in gui_scripts_to_generate:
+            generated.extend(maker.make(script_spec, {'gui': True}))
     except MissingCallableSuffix as e:
         entry = e.args[0]
         raise InstallationError(
