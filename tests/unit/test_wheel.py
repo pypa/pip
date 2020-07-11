@@ -23,10 +23,6 @@ from pip._internal.operations.build.wheel_legacy import (
     get_legacy_build_wheel_path,
 )
 from pip._internal.operations.install import wheel
-from pip._internal.operations.install.wheel import (
-    MissingCallableSuffix,
-    _raise_for_invalid_entrypoint,
-)
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import hash_file
 from pip._internal.utils.unpacking import unpack_file
@@ -127,19 +123,6 @@ def test_get_entrypoints_no_entrypoints():
     console, gui = wheel.get_entrypoints(distribution)
     assert console == {}
     assert gui == {}
-
-
-def test_raise_for_invalid_entrypoint_ok():
-    _raise_for_invalid_entrypoint("hello = hello:main")
-
-
-@pytest.mark.parametrize("entrypoint", [
-    "hello = hello",
-    "hello = hello:",
-])
-def test_raise_for_invalid_entrypoint_fail(entrypoint):
-    with pytest.raises(MissingCallableSuffix):
-        _raise_for_invalid_entrypoint(entrypoint)
 
 
 @pytest.mark.parametrize("outrows, expected", [
@@ -306,9 +289,10 @@ class TestInstallUnpackedWheel(object):
             extra_data_files={
                 "data/my_data/data_file": "some data",
             },
-            console_scripts=[
-                "sample = sample:main",
-            ],
+            entry_points={
+                "console_scripts": ["sample = sample:main"],
+                "gui_scripts": ["sample2 = sample:main"],
+            },
         ).save_to_dir(tmpdir)
         self.req = Requirement('sample')
         self.src = os.path.join(tmpdir, 'src')
@@ -479,6 +463,32 @@ class TestInstallUnpackedWheel(object):
         exc_text = str(e.value)
         assert os.path.basename(wheel_path) in exc_text
         assert "example" in exc_text
+
+    @pytest.mark.xfail(strict=True)
+    @pytest.mark.parametrize(
+        "entrypoint", ["hello = hello", "hello = hello:"]
+    )
+    @pytest.mark.parametrize(
+        "entrypoint_type", ["console_scripts", "gui_scripts"]
+    )
+    def test_invalid_entrypoints_fail(
+        self, data, tmpdir, entrypoint, entrypoint_type
+    ):
+        self.prep(data, tmpdir)
+        wheel_path = make_wheel(
+            "simple", "0.1.0", entry_points={entrypoint_type: [entrypoint]}
+        ).save_to_dir(tmpdir)
+        with pytest.raises(InstallationError) as e:
+            wheel.install_wheel(
+                "simple",
+                str(wheel_path),
+                scheme=self.scheme,
+                req_description="simple",
+            )
+
+        exc_text = str(e.value)
+        assert os.path.basename(wheel_path) in exc_text
+        assert entrypoint in exc_text
 
 
 class TestMessageAboutScriptsNotOnPATH(object):
