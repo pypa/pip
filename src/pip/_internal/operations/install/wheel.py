@@ -699,8 +699,6 @@ def _install_wheel(
 
     gui_scripts_to_generate = list(starmap('{} = {}'.format, gui.items()))
 
-    generated_console_scripts = []  # type: List[str]
-
     for script_spec in chain(scripts_to_generate, gui_scripts_to_generate):
         entry = get_export_entry(script_spec)
         if entry is not None and entry.suffix is None:
@@ -710,6 +708,8 @@ def _install_wheel(
                 "specifications/entry-points/#use-for-scripts for more "
                 "information.".format(entry, req_description)
             )
+
+    generated_console_scripts = []  # type: List[str]
 
     for script_spec in scripts_to_generate:
         generated_console_scripts.extend(maker.make(script_spec))
