@@ -464,8 +464,15 @@ class ScriptFile(object):
         self.changed = fix_script(self.dest_path)
 
 
-class MissingCallableSuffix(Exception):
-    pass
+class MissingCallableSuffix(InstallationError):
+    def __init__(self, entry_point):
+        # type: (str) -> None
+        super(MissingCallableSuffix, self).__init__(
+            "Invalid script entry point: {} - A callable "
+            "suffix is required. Cf https://packaging.python.org/"
+            "specifications/entry-points/#use-for-scripts for more "
+            "information.".format(entry_point)
+        )
 
 
 def _raise_for_invalid_entrypoint(specification):
@@ -732,14 +739,8 @@ def _install_wheel(
         generated.extend(
             maker.make_multiple(gui_scripts_to_generate, {'gui': True})
         )
-    except MissingCallableSuffix as e:
-        entry = e.args[0]
-        raise InstallationError(
-            "Invalid script entry point: {} - A callable "
-            "suffix is required. Cf https://packaging.python.org/"
-            "specifications/entry-points/#use-for-scripts for more "
-            "information.".format(entry)
-        )
+    except MissingCallableSuffix:
+        raise
 
     if warn_script_location:
         msg = message_about_scripts_not_on_PATH(generated_console_scripts)
