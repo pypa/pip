@@ -111,7 +111,7 @@ class Configuration(object):
     """
 
     def __init__(self, isolated, load_only=None):
-        # type: (bool, Kind) -> None
+        # type: (bool, Optional[Kind]) -> None
         super(Configuration, self).__init__()
 
         _valid_load_only = [kinds.USER, kinds.GLOBAL, kinds.SITE, None]
@@ -121,8 +121,8 @@ class Configuration(object):
                     ", ".join(map(repr, _valid_load_only[:-1]))
                 )
             )
-        self.isolated = isolated  # type: bool
-        self.load_only = load_only  # type: Optional[Kind]
+        self.isolated = isolated
+        self.load_only = load_only
 
         # The order here determines the override order.
         self._override_order = [
@@ -198,8 +198,7 @@ class Configuration(object):
 
     def unset_value(self, key):
         # type: (str) -> None
-        """Unset a value in the configuration.
-        """
+        """Unset a value in the configuration."""
         self._ensure_have_load_only()
 
         assert self.load_only
@@ -210,29 +209,17 @@ class Configuration(object):
 
         if parser is not None:
             section, name = _disassemble_key(key)
-
-            # Remove the key in the parser
-            modified_something = False
-            if parser.has_section(section):
-                # Returns whether the option was removed or not
-                modified_something = parser.remove_option(section, name)
-
-            if modified_something:
-                # name removed from parser, section may now be empty
-                section_iter = iter(parser.items(section))
-                try:
-                    val = next(section_iter)  # type: Optional[Tuple[str, str]]
-                except StopIteration:
-                    val = None
-
-                if val is None:
-                    parser.remove_section(section)
-
-                self._mark_as_modified(fname, parser)
-            else:
+            if not (parser.has_section(section)
+                    and parser.remove_option(section, name)):
+                # The option was not removed.
                 raise ConfigurationError(
                     "Fatal Internal error [id=1]. Please report as a bug."
                 )
+
+            # The section may be empty after the option was removed.
+            if not parser.items(section):
+                parser.remove_section(section)
+            self._mark_as_modified(fname, parser)
 
         del self._config[self.load_only][key]
 
