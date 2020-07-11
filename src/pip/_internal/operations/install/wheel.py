@@ -471,7 +471,6 @@ def _raise_for_invalid_entrypoint(specification):
 class PipScriptMaker(ScriptMaker):
     def make(self, specification, options=None):
         # type: (str, Dict[str, Any]) -> List[str]
-        _raise_for_invalid_entrypoint(specification)
         return super(PipScriptMaker, self).make(specification, options)
 
 
@@ -721,11 +720,13 @@ def _install_wheel(
 
     try:
         for script_spec in scripts_to_generate:
+            _raise_for_invalid_entrypoint(script_spec)
             generated_console_scripts.extend(maker.make(script_spec))
 
         generated.extend(generated_console_scripts)
 
         for script_spec in gui_scripts_to_generate:
+            _raise_for_invalid_entrypoint(script_spec)
             generated.extend(maker.make(script_spec, {'gui': True}))
     except MissingCallableSuffix as e:
         entry = e.args[0]
