@@ -12,26 +12,36 @@ import logging
 import os.path
 import re
 import shutil
-import stat
 import sys
 import warnings
 from base64 import urlsafe_b64encode
-from itertools import starmap
+from itertools import chain, starmap
 from zipfile import ZipFile
 
 from pip._vendor import pkg_resources
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor.distlib.util import get_export_entry
 from pip._vendor.six import PY2, ensure_str, ensure_text, itervalues, text_type
+from pip._vendor.six.moves import filterfalse, map
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_major_minor_version
 from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
+from pip._internal.models.scheme import SCHEME_KEYS
 from pip._internal.utils.filesystem import adjacent_tmp_file, replace
-from pip._internal.utils.misc import captured_stdout, ensure_dir, hash_file
-from pip._internal.utils.temp_dir import TempDirectory
+from pip._internal.utils.misc import (
+    captured_stdout,
+    ensure_dir,
+    hash_file,
+    partition,
+)
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from pip._internal.utils.unpacking import current_umask, unpack_file
+from pip._internal.utils.unpacking import (
+    current_umask,
+    is_within_directory,
+    set_extracted_file_to_default_mode_plus_executable,
+    zip_item_is_executable,
+)
 from pip._internal.utils.wheel import (
     parse_wheel,
     pkg_resources_distribution_for_wheel,
@@ -54,6 +64,7 @@ else:
         List,
         NewType,
         Optional,
+        Protocol,
         Sequence,
         Set,
         Tuple,
@@ -68,6 +79,15 @@ else:
 
     RecordPath = NewType('RecordPath', text_type)
     InstalledCSVRow = Tuple[RecordPath, str, Union[int, str]]
+
+    class File(Protocol):
+        src_record_path = None  # type: RecordPath
+        dest_path = None  # type: text_type
+        changed = None  # type: bool
+
+        def save(self):
+            # type: () -> None
+            pass
 
 
 logger = logging.getLogger(__name__)
@@ -96,13 +116,12 @@ def csv_io_kwargs(mode):
 
 
 def fix_script(path):
-    # type: (text_type) -> Optional[bool]
+    # type: (text_type) -> bool
     """Replace #!python with #!/path/to/python
     Return True if file was changed.
     """
     # XXX RECORD hashes will need to be updated
-    if not os.path.isfile(path):
-        return None
+    assert os.path.isfile(path)
 
     with open(path, 'rb') as script:
         firstline = script.readline()
@@ -388,6 +407,56 @@ def get_console_script_specs(console):
     return scripts_to_generate
 
 
+class ZipBackedFile(object):
+    def __init__(self, src_record_path, dest_path, zip_file):
+        # type: (RecordPath, text_type, ZipFile) -> None
+        self.src_record_path = src_record_path
+        self.dest_path = dest_path
+        self._zip_file = zip_file
+        self.changed = False
+
+    def save(self):
+        # type: () -> None
+        # directory creation is lazy and after file filtering
+        # to ensure we don't install empty dirs; empty dirs can't be
+        # uninstalled.
+        parent_dir = os.path.dirname(self.dest_path)
+        ensure_dir(parent_dir)
+
+        # When we open the output file below, any existing file is truncated
+        # before we start writing the new contents. This is fine in most
+        # cases, but can cause a segfault if pip has loaded a shared
+        # object (e.g. from pyopenssl through its vendored urllib3)
+        # Since the shared object is mmap'd an attempt to call a
+        # symbol in it will then cause a segfault. Unlinking the file
+        # allows writing of new contents while allowing the process to
+        # continue to use the old copy.
+        if os.path.exists(self.dest_path):
+            os.unlink(self.dest_path)
+
+        with self._zip_file.open(self.src_record_path) as f:
+            with open(self.dest_path, "wb") as dest:
+                shutil.copyfileobj(f, dest)
+
+        zipinfo = self._zip_file.getinfo(self.src_record_path)
+        if zip_item_is_executable(zipinfo):
+            set_extracted_file_to_default_mode_plus_executable(self.dest_path)
+
+
+class ScriptFile(object):
+    def __init__(self, file):
+        # type: (File) -> None
+        self._file = file
+        self.src_record_path = self._file.src_record_path
+        self.dest_path = self._file.dest_path
+        self.changed = False
+
+    def save(self):
+        # type: () -> None
+        self._file.save()
+        self.changed = fix_script(self.dest_path)
+
+
 class MissingCallableSuffix(Exception):
     pass
 
@@ -406,9 +475,8 @@ class PipScriptMaker(ScriptMaker):
         return super(PipScriptMaker, self).make(specification, options)
 
 
-def install_unpacked_wheel(
+def _install_wheel(
     name,  # type: str
-    wheeldir,  # type: str
     wheel_zip,  # type: ZipFile
     wheel_path,  # type: str
     scheme,  # type: Scheme
@@ -422,7 +490,6 @@ def install_unpacked_wheel(
     """Install a wheel.
 
     :param name: Name of the project to install
-    :param wheeldir: Base directory of the unpacked wheel
     :param wheel_zip: open ZipFile for wheel being installed
     :param scheme: Distutils scheme dictating the install directories
     :param req_description: String used in place of the requirement, for
@@ -435,8 +502,6 @@ def install_unpacked_wheel(
           Wheel-Version
         * when the .dist-info dir does not match the wheel
     """
-    source = wheeldir.rstrip(os.path.sep) + os.path.sep
-
     info_dir, metadata = parse_wheel(wheel_zip, name)
 
     if wheel_root_is_purelib(metadata):
@@ -453,83 +518,100 @@ def install_unpacked_wheel(
     generated = []  # type: List[str]
 
     def record_installed(srcfile, destfile, modified=False):
-        # type: (text_type, text_type, bool) -> None
+        # type: (RecordPath, text_type, bool) -> None
         """Map archive RECORD paths to installation RECORD paths."""
-        oldpath = _fs_to_record_path(srcfile, wheeldir)
         newpath = _fs_to_record_path(destfile, lib_dir)
-        installed[oldpath] = newpath
+        installed[srcfile] = newpath
         if modified:
             changed.add(_fs_to_record_path(destfile))
 
-    def clobber(
-            source,  # type: text_type
-            dest,  # type: text_type
-            is_base,  # type: bool
-            fixer=None,  # type: Optional[Callable[[text_type], Any]]
-            filter=None  # type: Optional[Callable[[text_type], bool]]
-    ):
-        # type: (...) -> None
-        ensure_dir(dest)  # common for the 'include' path
+    def all_paths():
+        # type: () -> Iterable[RecordPath]
+        names = wheel_zip.namelist()
+        # If a flag is set, names may be unicode in Python 2. We convert to
+        # text explicitly so these are valid for lookup in RECORD.
+        decoded_names = map(ensure_text, names)
+        for name in decoded_names:
+            yield cast("RecordPath", name)
 
-        for dir, subdirs, files in os.walk(source):
-            basedir = dir[len(source):].lstrip(os.path.sep)
-            destdir = os.path.join(dest, basedir)
-            if is_base and basedir == '':
-                subdirs[:] = [s for s in subdirs if not s.endswith('.data')]
-            for f in files:
-                # Skip unwanted files
-                if filter and filter(f):
-                    continue
-                srcfile = os.path.join(dir, f)
-                destfile = os.path.join(dest, basedir, f)
-                # directory creation is lazy and after the file filtering above
-                # to ensure we don't install empty dirs; empty dirs can't be
-                # uninstalled.
-                ensure_dir(destdir)
+    def is_dir_path(path):
+        # type: (RecordPath) -> bool
+        return path.endswith("/")
 
-                # copyfile (called below) truncates the destination if it
-                # exists and then writes the new contents. This is fine in most
-                # cases, but can cause a segfault if pip has loaded a shared
-                # object (e.g. from pyopenssl through its vendored urllib3)
-                # Since the shared object is mmap'd an attempt to call a
-                # symbol in it will then cause a segfault. Unlinking the file
-                # allows writing of new contents while allowing the process to
-                # continue to use the old copy.
-                if os.path.exists(destfile):
-                    os.unlink(destfile)
+    def assert_no_path_traversal(dest_dir_path, target_path):
+        # type: (text_type, text_type) -> None
+        if not is_within_directory(dest_dir_path, target_path):
+            message = (
+                "The wheel {!r} has a file {!r} trying to install"
+                " outside the target directory {!r}"
+            )
+            raise InstallationError(
+                message.format(wheel_path, target_path, dest_dir_path)
+            )
 
-                # We use copyfile (not move, copy, or copy2) to be extra sure
-                # that we are not moving directories over (copyfile fails for
-                # directories) as well as to ensure that we are not copying
-                # over any metadata because we want more control over what
-                # metadata we actually copy over.
-                shutil.copyfile(srcfile, destfile)
+    def root_scheme_file_maker(zip_file, dest):
+        # type: (ZipFile, text_type) -> Callable[[RecordPath], File]
+        def make_root_scheme_file(record_path):
+            # type: (RecordPath) -> File
+            normed_path = os.path.normpath(record_path)
+            dest_path = os.path.join(dest, normed_path)
+            assert_no_path_traversal(dest, dest_path)
+            return ZipBackedFile(record_path, dest_path, zip_file)
 
-                # Copy over the metadata for the file, currently this only
-                # includes the atime and mtime.
-                st = os.stat(srcfile)
-                if hasattr(os, "utime"):
-                    os.utime(destfile, (st.st_atime, st.st_mtime))
+        return make_root_scheme_file
 
-                # If our file is executable, then make our destination file
-                # executable.
-                if os.access(srcfile, os.X_OK):
-                    st = os.stat(srcfile)
-                    permissions = (
-                        st.st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
-                    )
-                    os.chmod(destfile, permissions)
+    def data_scheme_file_maker(zip_file, scheme):
+        # type: (ZipFile, Scheme) -> Callable[[RecordPath], File]
+        scheme_paths = {}
+        for key in SCHEME_KEYS:
+            encoded_key = ensure_text(key)
+            scheme_paths[encoded_key] = ensure_text(
+                getattr(scheme, key), encoding=sys.getfilesystemencoding()
+            )
 
-                changed = False
-                if fixer:
-                    changed = fixer(destfile)
-                record_installed(srcfile, destfile, changed)
+        def make_data_scheme_file(record_path):
+            # type: (RecordPath) -> File
+            normed_path = os.path.normpath(record_path)
+            _, scheme_key, dest_subpath = normed_path.split(os.path.sep, 2)
+            scheme_path = scheme_paths[scheme_key]
+            dest_path = os.path.join(scheme_path, dest_subpath)
+            assert_no_path_traversal(scheme_path, dest_path)
+            return ZipBackedFile(record_path, dest_path, zip_file)
 
-    clobber(
-        ensure_text(source, encoding=sys.getfilesystemencoding()),
-        ensure_text(lib_dir, encoding=sys.getfilesystemencoding()),
-        True,
+        return make_data_scheme_file
+
+    def is_data_scheme_path(path):
+        # type: (RecordPath) -> bool
+        return path.split("/", 1)[0].endswith(".data")
+
+    paths = all_paths()
+    file_paths = filterfalse(is_dir_path, paths)
+    root_scheme_paths, data_scheme_paths = partition(
+        is_data_scheme_path, file_paths
     )
+
+    make_root_scheme_file = root_scheme_file_maker(
+        wheel_zip,
+        ensure_text(lib_dir, encoding=sys.getfilesystemencoding()),
+    )
+    files = map(make_root_scheme_file, root_scheme_paths)
+
+    def is_script_scheme_path(path):
+        # type: (RecordPath) -> bool
+        parts = path.split("/", 2)
+        return (
+            len(parts) > 2 and
+            parts[0].endswith(".data") and
+            parts[1] == "scripts"
+        )
+
+    other_scheme_paths, script_scheme_paths = partition(
+        is_script_scheme_path, data_scheme_paths
+    )
+
+    make_data_scheme_file = data_scheme_file_maker(wheel_zip, scheme)
+    other_scheme_files = map(make_data_scheme_file, other_scheme_paths)
+    files = chain(files, other_scheme_files)
 
     # Get the defined entry points
     distribution = pkg_resources_distribution_for_wheel(
@@ -537,10 +619,12 @@ def install_unpacked_wheel(
     )
     console, gui = get_entrypoints(distribution)
 
-    def is_entrypoint_wrapper(name):
-        # type: (text_type) -> bool
+    def is_entrypoint_wrapper(file):
+        # type: (File) -> bool
         # EP, EP.exe and EP-script.py are scripts generated for
         # entry point EP by setuptools
+        path = file.dest_path
+        name = os.path.basename(path)
         if name.lower().endswith('.exe'):
             matchname = name[:-4]
         elif name.lower().endswith('-script.py'):
@@ -552,29 +636,16 @@ def install_unpacked_wheel(
         # Ignore setuptools-generated scripts
         return (matchname in console or matchname in gui)
 
-    # Zip file path separators must be /
-    subdirs = set(p.split("/", 1)[0] for p in wheel_zip.namelist())
-    data_dirs = [s for s in subdirs if s.endswith('.data')]
+    script_scheme_files = map(make_data_scheme_file, script_scheme_paths)
+    script_scheme_files = filterfalse(
+        is_entrypoint_wrapper, script_scheme_files
+    )
+    script_scheme_files = map(ScriptFile, script_scheme_files)
+    files = chain(files, script_scheme_files)
 
-    for datadir in data_dirs:
-        fixer = None
-        filter = None
-        for subdir in os.listdir(os.path.join(wheeldir, datadir)):
-            fixer = None
-            if subdir == 'scripts':
-                fixer = fix_script
-                filter = is_entrypoint_wrapper
-            full_datadir_path = os.path.join(wheeldir, datadir, subdir)
-            dest = getattr(scheme, subdir)
-            clobber(
-                ensure_text(
-                    full_datadir_path, encoding=sys.getfilesystemencoding()
-                ),
-                ensure_text(dest, encoding=sys.getfilesystemencoding()),
-                False,
-                fixer=fixer,
-                filter=filter,
-            )
+    for file in files:
+        file.save()
+        record_installed(file.src_record_path, file.dest_path, file.changed)
 
     def pyc_source_file_paths():
         # type: () -> Iterator[text_type]
@@ -619,7 +690,10 @@ def install_unpacked_wheel(
                     if success:
                         pyc_path = pyc_output_path(path)
                         assert os.path.exists(pyc_path)
-                        record_installed(pyc_path, pyc_path)
+                        pyc_record_path = cast(
+                            "RecordPath", pyc_path.replace(os.path.sep, "/")
+                        )
+                        record_installed(pyc_record_path, pyc_path)
         logger.debug(stdout.getvalue())
 
     maker = PipScriptMaker(None, scheme.scripts)
@@ -730,13 +804,9 @@ def install_wheel(
     requested=False,  # type: bool
 ):
     # type: (...) -> None
-    with TempDirectory(
-        kind="unpacked-wheel"
-    ) as unpacked_dir, ZipFile(wheel_path, allowZip64=True) as z:
-        unpack_file(wheel_path, unpacked_dir.path)
-        install_unpacked_wheel(
+    with ZipFile(wheel_path, allowZip64=True) as z:
+        _install_wheel(
             name=name,
-            wheeldir=unpacked_dir.path,
             wheel_zip=z,
             wheel_path=wheel_path,
             scheme=scheme,

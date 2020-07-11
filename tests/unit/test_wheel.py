@@ -11,6 +11,7 @@ import pytest
 from mock import patch
 from pip._vendor.packaging.requirements import Requirement
 
+from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_scheme
 from pip._internal.models.direct_url import (
     DIRECT_URL_METADATA_NAME,
@@ -457,6 +458,27 @@ class TestInstallUnpackedWheel(object):
         self.assert_installed(0o644)
         assert not os.path.isdir(
             os.path.join(self.dest_dist_info, 'empty_dir'))
+
+    @pytest.mark.parametrize(
+        "path",
+        ["/tmp/example", "../example", "./../example"]
+    )
+    def test_wheel_install_rejects_bad_paths(self, data, tmpdir, path):
+        self.prep(data, tmpdir)
+        wheel_path = make_wheel(
+            "simple", "0.1.0", extra_files={path: "example contents\n"}
+        ).save_to_dir(tmpdir)
+        with pytest.raises(InstallationError) as e:
+            wheel.install_wheel(
+                "simple",
+                str(wheel_path),
+                scheme=self.scheme,
+                req_description="simple",
+            )
+
+        exc_text = str(e.value)
+        assert os.path.basename(wheel_path) in exc_text
+        assert "example" in exc_text
 
 
 class TestMessageAboutScriptsNotOnPATH(object):
