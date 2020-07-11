@@ -468,12 +468,6 @@ def _raise_for_invalid_entrypoint(specification):
         raise MissingCallableSuffix(str(entry))
 
 
-class PipScriptMaker(ScriptMaker):
-    def make(self, specification, options=None):
-        # type: (str, Dict[str, Any]) -> List[str]
-        return super(PipScriptMaker, self).make(specification, options)
-
-
 def _install_wheel(
     name,  # type: str
     wheel_zip,  # type: ZipFile
@@ -695,7 +689,7 @@ def _install_wheel(
                         record_installed(pyc_record_path, pyc_path)
         logger.debug(stdout.getvalue())
 
-    maker = PipScriptMaker(None, scheme.scripts)
+    maker = ScriptMaker(None, scheme.scripts)
 
     # Ensure old scripts are overwritten.
     # See https://github.com/pypa/pip/issues/1800
