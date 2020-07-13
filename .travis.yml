@@ -41,21 +41,21 @@ jobs:
     - env:
       - GROUP=1
       - NEW_RESOLVER=1
-      - LAZY_WHEEL=1
+      - FAST_DEPS=1
     - env:
       - GROUP=2
       - NEW_RESOLVER=1
     - env:
       - GROUP=2
       - NEW_RESOLVER=1
-      - LAZY_WHEEL=1
+      - FAST_DEPS=1
     - env:
       - GROUP=3
       - NEW_RESOLVER=1
     - env:
       - GROUP=3
       - NEW_RESOLVER=1
-      - LAZY_WHEEL=1
+      - FAST_DEPS=1
 
   fast_finish: true
   allow_failures:
@@ -65,7 +65,7 @@ jobs:
     - env:
       - GROUP=3
       - NEW_RESOLVER=1
-      - LAZY_WHEEL=1
+      - FAST_DEPS=1
 
 before_install: tools/travis/setup.sh
 install: travis_retry tools/travis/install.sh

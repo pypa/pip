@@ -48,7 +48,7 @@ def pytest_addoption(parser):
         help="run the skipped tests for the new resolver",
     )
     parser.addoption(
-        "--lazy-wheel",
+        "--fast-deps",
         action="store_true",
         default=False,
         help="use lazy wheels in tests (only affect new resolver)",
@@ -114,8 +114,8 @@ def use_new_resolver(request):
     new_resolver = request.config.getoption("--new-resolver")
     if not new_resolver:
         os.environ.pop("PIP_USE_FEATURE", None)
-    elif request.config.getoption("--lazy-wheel"):
-        os.environ["PIP_USE_FEATURE"] = "2020-resolver lazy-wheel"
+    elif request.config.getoption("--fast-deps"):
+        os.environ["PIP_USE_FEATURE"] = "2020-resolver fast-deps"
     else:
         os.environ["PIP_USE_FEATURE"] = "2020-resolver"
     yield new_resolver

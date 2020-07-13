@@ -271,7 +271,7 @@ class RequirementCommand(IndexGroupCommand):
                 force_reinstall=force_reinstall,
                 upgrade_strategy=upgrade_strategy,
                 py_version_info=py_version_info,
-                lazy_wheel='lazy-wheel' in options.features_enabled,
+                lazy_wheel='fast-deps' in options.features_enabled,
             )
         import pip._internal.resolution.legacy.resolver
         return pip._internal.resolution.legacy.resolver.Resolver(

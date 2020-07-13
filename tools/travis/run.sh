@@ -43,10 +43,10 @@ else
     RESOLVER_SWITCH='--new-resolver'
 fi
 
-if [[ -z "$LAZY_WHEEL" ]]; then
-    LAZY_WHEEL_SWITCH=''
+if [[ -z "$FAST_DEPS" ]]; then
+    FAST_DEPS_SWITCH=''
 else
-    LAZY_WHEEL_SWITCH='--lazy-wheel'
+    FAST_DEPS_SWITCH='--fast-deps'
 fi
 
 # Print the commands run for this test.
@@ -56,15 +56,15 @@ if [[ "$GROUP" == "1" ]]; then
     tox -- --use-venv -m unit -n auto
     # Integration tests (not the ones for 'pip install')
     tox -- -m integration -n auto --duration=5 -k "not test_install" \
-        --use-venv $RESOLVER_SWITCH $LAZY_WHEEL_SWITCH
+        --use-venv $RESOLVER_SWITCH $FAST_DEPS_SWITCH
 elif [[ "$GROUP" == "2" ]]; then
     # Separate Job for running integration tests for 'pip install'
     tox -- -m integration -n auto --duration=5 -k "test_install" \
-        --use-venv $RESOLVER_SWITCH $LAZY_WHEEL_SWITCH
+        --use-venv $RESOLVER_SWITCH $FAST_DEPS_SWITCH
 elif [[ "$GROUP" == "3" ]]; then
     # Separate Job for tests that fail with the new resolver
     tox -- -m fails_on_new_resolver -n auto --duration=5 \
-        --use-venv $RESOLVER_SWITCH --new-resolver-runtests $LAZY_WHEEL_SWITCH
+        --use-venv $RESOLVER_SWITCH --new-resolver-runtests $FAST_DEPS_SWITCH
 else
     # Non-Testing Jobs should run once
     tox
