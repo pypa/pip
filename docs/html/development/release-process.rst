@@ -71,6 +71,33 @@ only bugs will be considered, and merged (subject to normal review processes).
 Note that there may be delays due to the lack of developer resources for
 reviewing such pull requests.
 
+Feature Flags
+=============
+
+``--use-deprecated``
+--------------------
+
+Example: ``--use-deprecated=legacy-resolver``
+
+Use for features that will be deprecated. Deprecated features should remain
+available behind this flag for at least six months, as per the deprecation
+policy.
+
+Features moved behind this flag should always include a warning that indicates
+when the feature is scheduled to be removed.
+
+Once the feature is removed, users who use the flag should be shown an error.
+
+``--use-feature``
+-----------------
+
+Example: ``--use-feature=2020-resolver``
+
+Use for new features that users can test before they become pip's default
+behaviour (e.g. alpha or beta releases).
+
+Once the feature becomes the default behaviour, this flag can remain in place,
+but should issue a warning telling the user that it is no longer necessary.
 
 Release Process
 ===============
