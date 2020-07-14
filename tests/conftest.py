@@ -294,6 +294,13 @@ def wheel_install(tmpdir_factory, common_wheels):
                                           'wheel')
 
 
+@pytest.fixture(scope='session')
+def coverage_install(tmpdir_factory, common_wheels):
+    return _common_wheel_editable_install(tmpdir_factory,
+                                          common_wheels,
+                                          'coverage')
+
+
 def install_egg_link(venv, project_name, egg_info_dir):
     with open(venv.site / 'easy-install.pth', 'a') as fp:
         fp.write(str(egg_info_dir.resolve()) + '\n')
@@ -303,7 +310,7 @@ def install_egg_link(venv, project_name, egg_info_dir):
 
 @pytest.fixture(scope='session')
 def virtualenv_template(request, tmpdir_factory, pip_src,
-                        setuptools_install, common_wheels):
+                        setuptools_install, coverage_install):
 
     if six.PY3 and request.config.getoption('--use-venv'):
         venv_type = 'venv'
@@ -326,6 +333,13 @@ def virtualenv_template(request, tmpdir_factory, pip_src,
     )
     subprocess.check_call([venv.bin / 'python', 'setup.py', '-q', 'develop'],
                           cwd=pip_editable)
+
+    # Install coverage and pth file for executing it in any spawned processes
+    # in this virtual environment.
+    install_egg_link(venv, 'coverage', coverage_install)
+    # zz prefix ensures the file is after easy-install.pth.
+    with open(venv.site / 'zz-coverage-helper.pth', 'a') as f:
+        f.write('import coverage; coverage.process_startup()')
 
     # Drop (non-relocatable) launchers.
     for exe in os.listdir(venv.bin):
