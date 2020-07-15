@@ -4,7 +4,7 @@ from shutil import rmtree
 from tempfile import mkdtemp
 
 import pytest
-from mock import Mock
+from mock import Mock, patch
 
 from pip._internal.exceptions import HashMismatch
 from pip._internal.models.link import Link
@@ -58,7 +58,9 @@ def test_unpack_url_with_urllib_response_without_content_type(data):
         rmtree(temp_dir)
 
 
-def test_download_http_url__no_directory_traversal(tmpdir):
+@patch("pip._internal.network.download.raise_for_status")
+def test_download_http_url__no_directory_traversal(mock_raise_for_status,
+                                                   tmpdir):
     """
     Test that directory traversal doesn't happen on download when the
     Content-Disposition header contains a filename with a ".." path part.
@@ -90,6 +92,7 @@ def test_download_http_url__no_directory_traversal(tmpdir):
     # The file should be downloaded to download_dir.
     actual = os.listdir(download_dir)
     assert actual == ['out_dir_file']
+    mock_raise_for_status.assert_called_once_with(resp)
 
 
 @pytest.fixture

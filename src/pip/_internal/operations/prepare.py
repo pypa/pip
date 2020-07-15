@@ -9,7 +9,6 @@ import mimetypes
 import os
 import shutil
 
-from pip._vendor import requests
 from pip._vendor.six import PY2
 
 from pip._internal.distributions import (
@@ -21,6 +20,7 @@ from pip._internal.exceptions import (
     HashMismatch,
     HashUnpinned,
     InstallationError,
+    NetworkConnectionError,
     PreviousBuildDirError,
     VcsHashUnsupported,
 )
@@ -468,7 +468,7 @@ class RequirementPreparer(object):
                     link, req.source_dir, self.downloader, download_dir,
                     hashes=self._get_linked_req_hashes(req)
                 )
-            except requests.HTTPError as exc:
+            except NetworkConnectionError as exc:
                 raise InstallationError(
                     'Could not install requirement {} because of HTTP '
                     'error {} for URL {}'.format(req, exc, link)

@@ -11,6 +11,7 @@ from mock import Mock, patch
 from pip._vendor import html5lib, requests
 from pip._vendor.six.moves.urllib import request as urllib_request
 
+from pip._internal.exceptions import NetworkConnectionError
 from pip._internal.index.collector import (
     HTMLPage,
     LinkCollector,
@@ -55,7 +56,9 @@ def test_get_html_response_archive_to_naive_scheme(url):
         ("https://pypi.org/pip-18.0.tar.gz", "application/gzip"),
     ],
 )
-def test_get_html_response_archive_to_http_scheme(url, content_type):
+@mock.patch("pip._internal.index.collector.raise_for_status")
+def test_get_html_response_archive_to_http_scheme(mock_raise_for_status, url,
+                                                  content_type):
     """
     `_get_html_response()` should send a HEAD request on an archive-like URL
     if the scheme supports it, and raise `_NotHTML` if the response isn't HTML.
@@ -72,6 +75,7 @@ def test_get_html_response_archive_to_http_scheme(url, content_type):
     session.assert_has_calls([
         mock.call.head(url, allow_redirects=True),
     ])
+    mock_raise_for_status.assert_called_once_with(session.head.return_value)
     assert ctx.value.args == (content_type, "HEAD")
 
 
@@ -107,7 +111,10 @@ def test_get_html_page_invalid_content_type_archive(caplog, url):
         "https://pypi.org/pip-18.0.tar.gz",
     ],
 )
-def test_get_html_response_archive_to_http_scheme_is_html(url):
+@mock.patch("pip._internal.index.collector.raise_for_status")
+def test_get_html_response_archive_to_http_scheme_is_html(
+    mock_raise_for_status, url
+):
     """
     `_get_html_response()` should work with archive-like URLs if the HEAD
     request is responded with text/html.
@@ -124,11 +131,13 @@ def test_get_html_response_archive_to_http_scheme_is_html(url):
     assert resp is not None
     assert session.mock_calls == [
         mock.call.head(url, allow_redirects=True),
-        mock.call.head().raise_for_status(),
         mock.call.get(url, headers={
             "Accept": "text/html", "Cache-Control": "max-age=0",
         }),
-        mock.call.get().raise_for_status(),
+    ]
+    assert mock_raise_for_status.mock_calls == [
+        mock.call(session.head.return_value),
+        mock.call(resp)
     ]
 
 
@@ -140,7 +149,8 @@ def test_get_html_response_archive_to_http_scheme_is_html(url):
         "https://python.org/sitemap.xml",
     ],
 )
-def test_get_html_response_no_head(url):
+@mock.patch("pip._internal.index.collector.raise_for_status")
+def test_get_html_response_no_head(mock_raise_for_status, url):
     """
     `_get_html_response()` shouldn't send a HEAD request if the URL does not
     look like an archive, only the GET request that retrieves data.
@@ -160,12 +170,14 @@ def test_get_html_response_no_head(url):
         mock.call(url, headers={
             "Accept": "text/html", "Cache-Control": "max-age=0",
         }),
-        mock.call().raise_for_status(),
         mock.call().headers.get("Content-Type", ""),
     ]
+    mock_raise_for_status.assert_called_once_with(resp)
 
 
-def test_get_html_response_dont_log_clear_text_password(caplog):
+@mock.patch("pip._internal.index.collector.raise_for_status")
+def test_get_html_response_dont_log_clear_text_password(mock_raise_for_status,
+                                                        caplog):
     """
     `_get_html_response()` should redact the password from the index URL
     in its DEBUG log message.
@@ -184,6 +196,7 @@ def test_get_html_response_dont_log_clear_text_password(caplog):
     )
 
     assert resp is not None
+    mock_raise_for_status.assert_called_once_with(resp)
 
     assert len(caplog.records) == 1
     record = caplog.records[0]
@@ -438,12 +451,13 @@ def test_parse_links_caches_same_page_by_url():
     assert 'pkg2' in parsed_links_3[0].url
 
 
-def test_request_http_error(caplog):
+@mock.patch("pip._internal.index.collector.raise_for_status")
+def test_request_http_error(mock_raise_for_status, caplog):
     caplog.set_level(logging.DEBUG)
     link = Link('http://localhost')
     session = Mock(PipSession)
-    session.get.return_value = resp = Mock()
-    resp.raise_for_status.side_effect = requests.HTTPError('Http error')
+    session.get.return_value = Mock()
+    mock_raise_for_status.side_effect = NetworkConnectionError('Http error')
     assert _get_html_page(link, session=session) is None
     assert (
         'Could not fetch URL http://localhost: Http error - skipping'
@@ -510,7 +524,9 @@ def test_get_html_page_invalid_scheme(caplog, url, vcs_scheme):
         "application/json",
     ],
 )
-def test_get_html_page_invalid_content_type(caplog, content_type):
+@mock.patch("pip._internal.index.collector.raise_for_status")
+def test_get_html_page_invalid_content_type(mock_raise_for_status,
+                                            caplog, content_type):
     """`_get_html_page()` should warn if an invalid content-type is given.
     Only text/html is allowed.
     """
@@ -523,8 +539,8 @@ def test_get_html_page_invalid_content_type(caplog, content_type):
         "request.method": "GET",
         "headers": {"Content-Type": content_type},
     })
-
     assert _get_html_page(link, session=session) is None
+    mock_raise_for_status.assert_called_once_with(session.get.return_value)
     assert ('pip._internal.index.collector',
             logging.WARNING,
             'Skipping page {} because the GET request got Content-Type: {}.'

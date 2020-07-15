@@ -13,12 +13,14 @@ from collections import OrderedDict
 
 from pip._vendor import html5lib, requests
 from pip._vendor.distlib.compat import unescape
-from pip._vendor.requests.exceptions import HTTPError, RetryError, SSLError
+from pip._vendor.requests.exceptions import RetryError, SSLError
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 
+from pip._internal.exceptions import NetworkConnectionError
 from pip._internal.models.link import Link
 from pip._internal.models.search_scope import SearchScope
+from pip._internal.network.utils import raise_for_status
 from pip._internal.utils.filetypes import ARCHIVE_EXTENSIONS
 from pip._internal.utils.misc import pairwise, redact_auth_from_url
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -123,7 +125,7 @@ def _ensure_html_response(url, session):
         raise _NotHTTP()
 
     resp = session.head(url, allow_redirects=True)
-    resp.raise_for_status()
+    raise_for_status(resp)
 
     _ensure_html_header(resp)
 
@@ -167,7 +169,7 @@ def _get_html_response(url, session):
             "Cache-Control": "max-age=0",
         },
     )
-    resp.raise_for_status()
+    raise_for_status(resp)
 
     # The check for archives above only works if the url ends with
     # something that looks like an archive. However that is not a
@@ -462,7 +464,7 @@ def _get_html_page(link, session=None):
             'The only supported Content-Type is text/html',
             link, exc.request_desc, exc.content_type,
         )
-    except HTTPError as exc:
+    except NetworkConnectionError as exc:
         _handle_get_page_fail(link, exc)
     except RetryError as exc:
         _handle_get_page_fail(link, exc)
