@@ -104,6 +104,27 @@ def test_nonexistent_options_listed_in_order(script, data):
     assert matches == ['nonexistent', 'nope']
 
 
+def test_install_deprecated_extra(script, data):
+    """
+    Warn about deprecated order of specifiers and extras.
+
+    Test uses a requirements file to avoid a testing issue where
+    the specifier gets interpreted as shell redirect.
+    """
+    script.scratch_path.joinpath("requirements.txt").write_text(
+        "requires_simple_extra>=0.1[extra]"
+    )
+    simple = script.site_packages / 'simple'
+
+    result = script.pip(
+        'install', '--no-index', '--find-links=' + data.find_links,
+        '-r', script.scratch_path / 'requirements.txt', expect_stderr=True,
+    )
+
+    result.did_create(simple)
+    assert ("DEPRECATION: Extras after version" in result.stderr)
+
+
 def test_install_special_extra(script):
     # Check that uppercase letters and '-' are dealt with
     # make a dummy project
