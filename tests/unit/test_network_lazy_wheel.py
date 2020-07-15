@@ -3,7 +3,10 @@ from zipfile import BadZipfile
 from pip._vendor.pkg_resources import Requirement
 from pytest import fixture, mark, raises
 
-from pip._internal.network.lazy_wheel import dist_from_wheel_url
+from pip._internal.network.lazy_wheel import (
+    HTTPRangeRequestUnsupported,
+    dist_from_wheel_url,
+)
 from pip._internal.network.session import PipSession
 from tests.lib.requests_mocks import MockResponse
 
@@ -39,7 +42,7 @@ def test_dist_from_wheel_url(session):
 def test_dist_from_wheel_url_no_range(session, monkeypatch):
     """Test handling when HTTP range requests are not supported."""
     monkeypatch.setattr(session, 'head', lambda *a, **kw: MockResponse(b''))
-    with raises(RuntimeError):
+    with raises(HTTPRangeRequestUnsupported):
         dist_from_wheel_url('mypy', MYPY_0_782_WHL, session)
 
 

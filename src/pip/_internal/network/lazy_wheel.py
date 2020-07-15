@@ -1,6 +1,6 @@
 """Lazy ZIP over HTTP"""
 
-__all__ = ['dist_from_wheel_url']
+__all__ = ['HTTPRangeRequestUnsupported', 'dist_from_wheel_url']
 
 from bisect import bisect_left, bisect_right
 from contextlib import contextmanager
@@ -23,13 +23,18 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.network.session import PipSession
 
 
+class HTTPRangeRequestUnsupported(Exception):
+    pass
+
+
 def dist_from_wheel_url(name, url, session):
     # type: (str, str, PipSession) -> Distribution
     """Return a pkg_resources.Distribution from the given wheel URL.
 
     This uses HTTP range requests to only fetch the potion of the wheel
     containing metadata, just enough for the object to be constructed.
-    If such requests are not supported, RuntimeError is raised.
+    If such requests are not supported, HTTPRangeRequestUnsupported
+    is raised.
     """
     with LazyZipOverHTTP(url, session) as wheel:
         # For read-only ZIP files, ZipFile only needs methods read,
@@ -45,7 +50,8 @@ class LazyZipOverHTTP(object):
 
     This uses HTTP range requests to lazily fetch the file's content,
     which is supposed to be fed to ZipFile.  If such requests are not
-    supported by the server, raise RuntimeError during initialization.
+    supported by the server, raise HTTPRangeRequestUnsupported
+    during initialization.
     """
 
     def __init__(self, url, session, chunk_size=CONTENT_CHUNK_SIZE):
@@ -60,7 +66,7 @@ class LazyZipOverHTTP(object):
         self._left = []  # type: List[int]
         self._right = []  # type: List[int]
         if 'bytes' not in head.headers.get('Accept-Ranges', 'none'):
-            raise RuntimeError('range request is not supported')
+            raise HTTPRangeRequestUnsupported('range request is not supported')
         self._check_zip()
 
     @property
