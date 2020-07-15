@@ -138,6 +138,11 @@ in order to start contributing.
 * Some `good first issues`_ on GitHub for new contributors
 * A deep dive into `pip's architecture`_
 * A guide on `triaging issues`_ for issue tracker
+* Getting started with Git
+
+   - `Hello World for Git`_
+   - `Understanding the GitHub flow`_
+   - `Start using Git on the command line`_
 
 
 .. _`open an issue`: https://github.com/pypa/pip/issues/new?title=Trouble+with+pip+development+environment
@@ -148,3 +153,6 @@ in order to start contributing.
 .. _`good first issues`: https://github.com/pypa/pip/labels/good%20first%20issue
 .. _`pip's architecture`: https://pip.pypa.io/en/latest/development/architecture/
 .. _`triaging issues`: https://pip.pypa.io/en/latest/development/issue-triage/
+.. _`Hello World for Git`: https://guides.github.com/activities/hello-world/
+.. _`Understanding the GitHub flow`: https://guides.github.com/introduction/flow/
+.. _`Start using Git on the command line`: https://docs.gitlab.com/ee/gitlab-basics/start-using-git.html
