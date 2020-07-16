@@ -97,7 +97,7 @@ the `Python Packaging User Guide
 Upgrading pip
 =============
 
-On Windows, Linux or macOS::
+In a shell::
 
  python -m pip install -U pip
 
