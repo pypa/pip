@@ -539,6 +539,9 @@ class InstallCommand(RequirementCommand):
     def _warn_about_conflicts(self, conflict_details):
         # type: (ConflictDetails) -> None
         package_set, (missing, conflicting) = conflict_details
+        if not missing and not conflicting:
+            return
+
         parts = []  # type: List[str]
 
         # NOTE: There is some duplication here, with commands/check.py
