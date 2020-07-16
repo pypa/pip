@@ -8,7 +8,7 @@ Install a package from `PyPI`_:
 
 ::
 
-  $ pip install SomePackage
+  $ python -m pip install SomePackage
   [...]
   Successfully installed SomePackage
 
@@ -18,7 +18,7 @@ network connection:
 
 ::
 
-  $ pip install SomePackage-1.0-py2.py3-none-any.whl
+  $ python -m pip install SomePackage-1.0-py2.py3-none-any.whl
   [...]
   Successfully installed SomePackage
 
@@ -26,7 +26,7 @@ Show what files were installed:
 
 ::
 
-  $ pip show --files SomePackage
+  $ python -m pip show --files SomePackage
   Name: SomePackage
   Version: 1.0
   Location: /my/env/lib/pythonx.x/site-packages
@@ -38,14 +38,14 @@ List what packages are outdated:
 
 ::
 
-  $ pip list --outdated
+  $ python -m pip list --outdated
   SomePackage (Current: 1.0 Latest: 2.0)
 
 Upgrade a package:
 
 ::
 
-  $ pip install --upgrade SomePackage
+  $ python -m pip install --upgrade SomePackage
   [...]
   Found existing installation: SomePackage 1.0
   Uninstalling SomePackage:
@@ -57,7 +57,7 @@ Uninstall a package:
 
 ::
 
-  $ pip uninstall SomePackage
+  $ python -m pip uninstall SomePackage
   Uninstalling SomePackage:
     /my/env/lib/pythonx.x/site-packages/somepackage
   Proceed (y/n)? y

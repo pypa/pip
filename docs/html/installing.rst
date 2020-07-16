@@ -97,12 +97,7 @@ the `Python Packaging User Guide
 Upgrading pip
 =============
 
-On Linux or macOS::
-
- pip install -U pip
-
-
-On Windows [4]_::
+On Windows, Linux or macOS::
 
  python -m pip install -U pip
 
@@ -134,5 +129,3 @@ pip works on Unix/Linux, macOS, and Windows.
        ``--user`` installs for pip itself, should not be considered to be fully
        tested or endorsed. For discussion, see `Issue 1668
        <https://github.com/pypa/pip/issues/1668>`_.
-
-.. [4] https://github.com/pypa/pip/issues/1299
