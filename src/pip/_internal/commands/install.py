@@ -539,24 +539,39 @@ class InstallCommand(RequirementCommand):
     def _warn_about_conflicts(self, conflict_details):
         # type: (ConflictDetails) -> None
         package_set, (missing, conflicting) = conflict_details
+        parts = []  # type: List[str]
 
         # NOTE: There is some duplication here, with commands/check.py
         for project_name in missing:
             version = package_set[project_name][0]
             for dependency in missing[project_name]:
-                logger.critical(
-                    "%s %s requires %s, which is not installed.",
-                    project_name, version, dependency[1],
+                message = (
+                    "{name} {version} requires {requirement}, "
+                    "which is not installed."
+                ).format(
+                    name=project_name,
+                    version=version,
+                    requirement=dependency[1],
                 )
+                parts.append(message)
 
         for project_name in conflicting:
             version = package_set[project_name][0]
             for dep_name, dep_version, req in conflicting[project_name]:
-                logger.critical(
-                    "%s %s has requirement %s, but you'll have %s %s which is "
-                    "incompatible.",
-                    project_name, version, req, dep_name, dep_version,
+                message = (
+                    "{name} {version} requires {requirement}, but you'll have "
+                    "{dep_name} {dep_version} which is incompatible."
+                ).format(
+                    name=project_name,
+                    version=version,
+                    requirement=req,
+                    dep_name=dep_name,
+                    dep_version=dep_version,
                 )
+                parts.append(message)
+
+        for message in parts:
+            logger.critical(message)
 
 
 def get_lib_location_guesses(
