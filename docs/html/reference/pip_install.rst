@@ -895,7 +895,7 @@ Examples
     ::
 
       $ pip install SomePackage[PDF]
-      $ pip install git+https://git.repo/some_pkg.git#egg=SomePackage[PDF]
+      $ pip install "SomePackage[PDF] @ git+https://git.repo/SomePackage@master#subdirectory=subdir_path"
       $ pip install .[PDF]  # project in current directory
       $ pip install SomePackage[PDF]==3.0
       $ pip install SomePackage[PDF,EPUB]  # multiple extras
@@ -913,8 +913,11 @@ Examples
 
     ::
 
-      $ pip install SomeProject==1.0.4@http://my.package.repo//SomeProject-1.2.3-py33-none-any.whl
-      $ pip install "SomeProject==1.0.4 @ http://my.package.repo//SomeProject-1.2.3-py33-none-any.whl"
+      $ pip install SomeProject@http://my.package.repo//SomeProject-1.2.3-py33-none-any.whl
+      $ pip install "SomeProject @ http://my.package.repo//SomeProject-1.2.3-py33-none-any.whl"
+      $ pip install SomeProject@http://my.package.repo//1.2.3.tar.gz
+      $ pip install SomeProject@git+https://git.repo/some_pkg.git@1.3.1
+      $ pip install SomeProject@git+https://git.repo/some_pkg.git@1.3.1#7921be1537eac1e97bc40179a57f0349c2aee67d
 
 
 #. Install from alternative package repositories.
