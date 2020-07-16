@@ -507,7 +507,7 @@ class InstallCommand(RequirementCommand):
     def _determine_conflicts(self, to_install):
         # type: (List[InstallRequirement]) -> Optional[ConflictDetails]
         try:
-            conflict_details = check_install_conflicts(to_install)
+            return check_install_conflicts(to_install)
         except Exception:
             logger.error(
                 "Error while checking for conflicts. Please file an issue on "
@@ -515,7 +515,6 @@ class InstallCommand(RequirementCommand):
                 exc_info=True
             )
             return None
-        return conflict_details
 
     def _warn_about_conflicts(self, conflict_details):
         # type: (ConflictDetails) -> None
