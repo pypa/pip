@@ -592,6 +592,7 @@ def test_get_html_page_invalid_content_type(mock_raise_for_status,
     link = Link(url)
 
     session = mock.Mock(PipSession)
+    session.headers = {}
     session.get.return_value = mock.Mock(**{
         "request.method": "GET",
         "headers": {"Content-Type": content_type},
