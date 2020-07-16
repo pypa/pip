@@ -373,13 +373,13 @@ class InstallCommand(RequirementCommand):
             )
 
             # Check for conflicts in the package set we're installing.
+            conflicts = None  # type: Optional[ConflictDetails]
             should_warn_about_conflicts = (
                 not options.ignore_dependencies and
                 options.warn_about_conflicts
             )
             if should_warn_about_conflicts:
                 conflicts = self._determine_conflicts(to_install)
-                self._warn_about_conflicts(conflicts)
 
             # Don't warn about script install locations if
             # --target has been specified
@@ -421,6 +421,10 @@ class InstallCommand(RequirementCommand):
                 except Exception:
                     pass
                 items.append(item)
+
+            if conflicts is not None:
+                self._warn_about_conflicts(conflicts)
+
             installed_desc = ' '.join(items)
             if installed_desc:
                 write_output(
