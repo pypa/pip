@@ -40,6 +40,7 @@ if MYPY_CHECK_RUNNING:
     from typing import Iterable, List, Optional
 
     from pip._internal.models.format_control import FormatControl
+    from pip._internal.operations.check import ConflictDetails
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.wheel_builder import BinaryAllowedPredicate
 
@@ -371,13 +372,14 @@ class InstallCommand(RequirementCommand):
                 requirement_set
             )
 
-            # Consistency Checking of the package set we're installing.
+            # Check for conflicts in the package set we're installing.
             should_warn_about_conflicts = (
                 not options.ignore_dependencies and
                 options.warn_about_conflicts
             )
             if should_warn_about_conflicts:
-                self._warn_about_conflicts(to_install)
+                conflicts = self._determine_conflicts(to_install)
+                self._warn_about_conflicts(conflicts)
 
             # Don't warn about script install locations if
             # --target has been specified
@@ -498,14 +500,22 @@ class InstallCommand(RequirementCommand):
                     target_item_dir
                 )
 
-    def _warn_about_conflicts(self, to_install):
-        # type: (List[InstallRequirement]) -> None
+    def _determine_conflicts(self, to_install):
+        # type: (List[InstallRequirement]) -> Optional[ConflictDetails]
         try:
-            package_set, _dep_info = check_install_conflicts(to_install)
+            conflict_details = check_install_conflicts(to_install)
         except Exception:
-            logger.error("Error checking for conflicts.", exc_info=True)
-            return
-        missing, conflicting = _dep_info
+            logger.error(
+                "Error while checking for conflicts. Please file an issue on "
+                "pip's issue tracker: https://github.com/pypa/pip/issues/new",
+                exc_info=True
+            )
+            return None
+        return conflict_details
+
+    def _warn_about_conflicts(self, conflict_details):
+        # type: (ConflictDetails) -> None
+        package_set, (missing, conflicting) = conflict_details
 
         # NOTE: There is some duplication here from pip check
         for project_name in missing:
