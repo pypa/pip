@@ -517,7 +517,7 @@ class InstallCommand(RequirementCommand):
         # type: (ConflictDetails) -> None
         package_set, (missing, conflicting) = conflict_details
 
-        # NOTE: There is some duplication here from pip check
+        # NOTE: There is some duplication here, with commands/check.py
         for project_name in missing:
             version = package_set[project_name][0]
             for dependency in missing[project_name]:
