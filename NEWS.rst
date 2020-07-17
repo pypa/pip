@@ -1,37 +1,24 @@
+.. NOTE: You should *NOT* be adding new change log entries to this file, this
+         file is managed by towncrier. You *may* edit previous change logs to
+         fix problems like typo corrections or such.
+         To add a new change log entry, please see
+             https://pip.pypa.io/en/latest/development/contributing/#news-entries
+.. towncrier release notes start
+
 20.2b1 (2020-05-21)
 ===================
-
-Deprecations and Removals
--------------------------
-
-- Drop parallelization from ``pip list --outdated``. (`#8167 <https://github.com/pypa/pip/issues/8167>`_)
 
 Bug Fixes
 ---------
 
 - Correctly treat wheels containing non-ASCII file contents so they can be
   installed on Windows. (`#5712 <https://github.com/pypa/pip/issues/5712>`_)
-- Revert building of local directories in place, restoring the pre-20.1
-  behaviour of copying to a temporary directory. (`#7555 <https://github.com/pypa/pip/issues/7555>`_)
 - Prompt the user for password if the keyring backend doesn't return one (`#7998 <https://github.com/pypa/pip/issues/7998>`_)
-- Fix metadata permission issues when umask has the executable bit set. (`#8164 <https://github.com/pypa/pip/issues/8164>`_)
-- Avoid unnecessary message about the wheel package not being installed
-  when a wheel would not have been built. Additionally, clarify the message. (`#8178 <https://github.com/pypa/pip/issues/8178>`_)
 
 Improved Documentation
 ----------------------
 
 - Add GitHub issue template for reporting when the dependency resolver fails (`#8207 <https://github.com/pypa/pip/issues/8207>`_)
-
-
-.. NOTE: You should *NOT* be adding new change log entries to this file, this
-         file is managed by towncrier. You *may* edit previous change logs to
-         fix problems like typo corrections or such.
-
-         To add a new change log entry, please see
-             https://pip.pypa.io/en/latest/development/contributing/#news-entries
-
-.. towncrier release notes start
 
 20.1.1 (2020-05-19)
 ===================
