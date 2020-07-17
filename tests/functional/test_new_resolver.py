@@ -1,39 +1,13 @@
-import json
 import os
 import sys
 
 import pytest
-from pip._vendor.packaging.utils import canonicalize_name
 
 from tests.lib import (
     create_basic_sdist_for_package,
     create_basic_wheel_for_package,
     create_test_package_with_setup,
 )
-
-
-def assert_installed(script, **kwargs):
-    ret = script.pip('list', '--format=json')
-    installed = set(
-        (canonicalize_name(val['name']), val['version'])
-        for val in json.loads(ret.stdout)
-    )
-    expected = set((canonicalize_name(k), v) for k, v in kwargs.items())
-    assert expected <= installed, \
-        "{!r} not all in {!r}".format(expected, installed)
-
-
-def assert_not_installed(script, *args):
-    ret = script.pip("list", "--format=json")
-    installed = set(
-        canonicalize_name(val["name"])
-        for val in json.loads(ret.stdout)
-    )
-    # None of the given names should be listed as installed, i.e. their
-    # intersection should be empty.
-    expected = set(canonicalize_name(k) for k in args)
-    assert not (expected & installed), \
-        "{!r} contained in {!r}".format(expected, installed)
 
 
 def assert_editable(script, *args):
@@ -57,7 +31,7 @@ def test_new_resolver_can_install(script):
         "--find-links", script.scratch_path,
         "simple"
     )
-    assert_installed(script, simple="0.1.0")
+    script.assert_installed(simple="0.1.0")
 
 
 def test_new_resolver_can_install_with_version(script):
@@ -72,7 +46,7 @@ def test_new_resolver_can_install_with_version(script):
         "--find-links", script.scratch_path,
         "simple==0.1.0"
     )
-    assert_installed(script, simple="0.1.0")
+    script.assert_installed(simple="0.1.0")
 
 
 def test_new_resolver_picks_latest_version(script):
@@ -92,7 +66,7 @@ def test_new_resolver_picks_latest_version(script):
         "--find-links", script.scratch_path,
         "simple"
     )
-    assert_installed(script, simple="0.2.0")
+    script.assert_installed(simple="0.2.0")
 
 
 def test_new_resolver_picks_installed_version(script):
@@ -112,7 +86,7 @@ def test_new_resolver_picks_installed_version(script):
         "--find-links", script.scratch_path,
         "simple==0.1.0"
     )
-    assert_installed(script, simple="0.1.0")
+    script.assert_installed(simple="0.1.0")
 
     result = script.pip(
         "install", "--use-feature=2020-resolver",
@@ -121,7 +95,7 @@ def test_new_resolver_picks_installed_version(script):
         "simple"
     )
     assert "Collecting" not in result.stdout, "Should not fetch new version"
-    assert_installed(script, simple="0.1.0")
+    script.assert_installed(simple="0.1.0")
 
 
 def test_new_resolver_picks_installed_version_if_no_match_found(script):
@@ -141,7 +115,7 @@ def test_new_resolver_picks_installed_version_if_no_match_found(script):
         "--find-links", script.scratch_path,
         "simple==0.1.0"
     )
-    assert_installed(script, simple="0.1.0")
+    script.assert_installed(simple="0.1.0")
 
     result = script.pip(
         "install", "--use-feature=2020-resolver",
@@ -149,7 +123,7 @@ def test_new_resolver_picks_installed_version_if_no_match_found(script):
         "simple"
     )
     assert "Collecting" not in result.stdout, "Should not fetch new version"
-    assert_installed(script, simple="0.1.0")
+    script.assert_installed(simple="0.1.0")
 
 
 def test_new_resolver_installs_dependencies(script):
@@ -170,7 +144,7 @@ def test_new_resolver_installs_dependencies(script):
         "--find-links", script.scratch_path,
         "base"
     )
-    assert_installed(script, base="0.1.0", dep="0.1.0")
+    script.assert_installed(base="0.1.0", dep="0.1.0")
 
 
 def test_new_resolver_ignore_dependencies(script):
@@ -191,8 +165,8 @@ def test_new_resolver_ignore_dependencies(script):
         "--find-links", script.scratch_path,
         "base"
     )
-    assert_installed(script, base="0.1.0")
-    assert_not_installed(script, "dep")
+    script.assert_installed(base="0.1.0")
+    script.assert_not_installed("dep")
 
 
 @pytest.mark.parametrize(
@@ -223,7 +197,7 @@ def test_new_resolver_installs_extras(tmpdir, script, root_dep):
         "--find-links", script.scratch_path,
         "-r", req_file,
     )
-    assert_installed(script, base="0.1.0", dep="0.1.0")
+    script.assert_installed(base="0.1.0", dep="0.1.0")
 
 
 def test_new_resolver_installs_extras_deprecated(tmpdir, script):
@@ -249,7 +223,7 @@ def test_new_resolver_installs_extras_deprecated(tmpdir, script):
         expect_stderr=True
     )
     assert "DEPRECATION: Extras after version" in result.stderr
-    assert_installed(script, base="0.1.0", dep="0.1.0")
+    script.assert_installed(base="0.1.0", dep="0.1.0")
 
 
 def test_new_resolver_installs_extras_warn_missing(script):
@@ -273,7 +247,7 @@ def test_new_resolver_installs_extras_warn_missing(script):
     )
     assert "does not provide the extra" in result.stderr, str(result)
     assert "missing" in result.stderr, str(result)
-    assert_installed(script, base="0.1.0", dep="0.1.0")
+    script.assert_installed(base="0.1.0", dep="0.1.0")
 
 
 def test_new_resolver_installed_message(script):
@@ -328,7 +302,7 @@ def test_new_resolver_installs_editable(script):
         "base",
         "--editable", source_dir,
     )
-    assert_installed(script, base="0.1.0", dep="0.1.0")
+    script.assert_installed(base="0.1.0", dep="0.1.0")
     assert_editable(script, "dep")
 
 
@@ -381,7 +355,7 @@ def test_new_resolver_requires_python(
 
     script.pip(*args)
 
-    assert_installed(script, base="0.1.0", dep=dep_version)
+    script.assert_installed(base="0.1.0", dep=dep_version)
 
 
 def test_new_resolver_requires_python_error(script):
@@ -496,7 +470,7 @@ def test_new_resolver_only_builds_sdists_when_needed(script):
         "--find-links", script.scratch_path,
         "base"
     )
-    assert_installed(script, base="0.1.0", dep="0.2.0")
+    script.assert_installed(base="0.1.0", dep="0.2.0")
 
     # We merge criteria here, as we have two "dep" requirements
     script.pip(
@@ -505,7 +479,7 @@ def test_new_resolver_only_builds_sdists_when_needed(script):
         "--find-links", script.scratch_path,
         "base", "dep"
     )
-    assert_installed(script, base="0.1.0", dep="0.2.0")
+    script.assert_installed(base="0.1.0", dep="0.2.0")
 
 
 def test_new_resolver_install_different_version(script):
@@ -533,7 +507,7 @@ def test_new_resolver_install_different_version(script):
         script.site_packages / "base",
         message="base not upgraded"
     )
-    assert_installed(script, base="0.2.0")
+    script.assert_installed(base="0.2.0")
 
 
 def test_new_resolver_force_reinstall(script):
@@ -562,7 +536,7 @@ def test_new_resolver_force_reinstall(script):
         script.site_packages / "base",
         message="base not reinstalled"
     )
-    assert_installed(script, base="0.1.0")
+    script.assert_installed(base="0.1.0")
 
 
 @pytest.mark.parametrize(
@@ -593,7 +567,7 @@ def test_new_resolver_handles_prerelease(
         "--find-links", script.scratch_path,
         *pip_args
     )
-    assert_installed(script, pkg=expected_version)
+    script.assert_installed(pkg=expected_version)
 
 
 @pytest.mark.parametrize(
@@ -615,8 +589,8 @@ def test_new_reolver_skips_marker(script, pkg_deps, root_deps):
         "--find-links", script.scratch_path,
         *root_deps
     )
-    assert_installed(script, pkg="1.0")
-    assert_not_installed(script, "dep")
+    script.assert_installed(pkg="1.0")
+    script.assert_not_installed("dep")
 
 
 @pytest.mark.parametrize(
@@ -641,8 +615,8 @@ def test_new_resolver_constraints(script, constraints):
         "-c", constraints_file,
         "pkg"
     )
-    assert_installed(script, pkg="1.0")
-    assert_not_installed(script, "constraint_only")
+    script.assert_installed(pkg="1.0")
+    script.assert_not_installed("constraint_only")
 
 
 def test_new_resolver_constraint_no_specifier(script):
@@ -657,7 +631,7 @@ def test_new_resolver_constraint_no_specifier(script):
         "-c", constraints_file,
         "pkg"
     )
-    assert_installed(script, pkg="1.0")
+    script.assert_installed(pkg="1.0")
 
 
 @pytest.mark.parametrize(
@@ -707,8 +681,8 @@ def test_new_resolver_constraint_on_dependency(script):
         "-c", constraints_file,
         "base"
     )
-    assert_installed(script, base="1.0")
-    assert_installed(script, dep="2.0")
+    script.assert_installed(base="1.0")
+    script.assert_installed(dep="2.0")
 
 
 def test_new_resolver_constraint_on_path(script):
@@ -751,7 +725,7 @@ def test_new_resolver_upgrade_needs_option(script):
     )
 
     assert "Requirement already satisfied" in result.stdout, str(result)
-    assert_installed(script, pkg="1.0.0")
+    script.assert_installed(pkg="1.0.0")
 
     # This should upgrade
     result = script.pip(
@@ -768,7 +742,7 @@ def test_new_resolver_upgrade_needs_option(script):
         script.site_packages / "pkg",
         message="pkg not upgraded"
     )
-    assert_installed(script, pkg="2.0.0")
+    script.assert_installed(pkg="2.0.0")
 
 
 def test_new_resolver_upgrade_strategy(script):
@@ -781,8 +755,8 @@ def test_new_resolver_upgrade_strategy(script):
         "base",
     )
 
-    assert_installed(script, base="1.0.0")
-    assert_installed(script, dep="1.0.0")
+    script.assert_installed(base="1.0.0")
+    script.assert_installed(dep="1.0.0")
 
     # Now release new versions
     create_basic_wheel_for_package(script, "base", "2.0.0", depends=["dep"])
@@ -798,8 +772,8 @@ def test_new_resolver_upgrade_strategy(script):
 
     # With upgrade strategy "only-if-needed" (the default), dep should not
     # be upgraded.
-    assert_installed(script, base="2.0.0")
-    assert_installed(script, dep="1.0.0")
+    script.assert_installed(base="2.0.0")
+    script.assert_installed(dep="1.0.0")
 
     create_basic_wheel_for_package(script, "base", "3.0.0", depends=["dep"])
     script.pip(
@@ -811,8 +785,8 @@ def test_new_resolver_upgrade_strategy(script):
     )
 
     # With upgrade strategy "eager", dep should be upgraded.
-    assert_installed(script, base="3.0.0")
-    assert_installed(script, dep="2.0.0")
+    script.assert_installed(base="3.0.0")
+    script.assert_installed(dep="2.0.0")
 
 
 class TestExtraMerge(object):
@@ -887,7 +861,7 @@ class TestExtraMerge(object):
             "--find-links", script.scratch_path,
             requirement + "[dev]",
         )
-        assert_installed(script, pkg="1.0.0", dep="1.0.0", depdev="1.0.0")
+        script.assert_installed(pkg="1.0.0", dep="1.0.0", depdev="1.0.0")
 
 
 def test_new_resolver_build_directory_error_zazo_19(script):
@@ -926,7 +900,7 @@ def test_new_resolver_build_directory_error_zazo_19(script):
         "--find-links", script.scratch_path,
         "pkg-a", "pkg-b",
     )
-    assert_installed(script, pkg_a="3.0.0", pkg_b="1.0.0")
+    script.assert_installed(pkg_a="3.0.0", pkg_b="1.0.0")
 
 
 def test_new_resolver_upgrade_same_version(script):
@@ -939,7 +913,7 @@ def test_new_resolver_upgrade_same_version(script):
         "--find-links", script.scratch_path,
         "pkg",
     )
-    assert_installed(script, pkg="2")
+    script.assert_installed(pkg="2")
 
     script.pip(
         "install", "--use-feature=2020-resolver",
@@ -948,7 +922,7 @@ def test_new_resolver_upgrade_same_version(script):
         "--upgrade",
         "pkg",
     )
-    assert_installed(script, pkg="2")
+    script.assert_installed(pkg="2")
 
 
 def test_new_resolver_local_and_req(script):

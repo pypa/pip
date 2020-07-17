@@ -1,5 +1,6 @@
 from __future__ import absolute_import
 
+import json
 import os
 import re
 import shutil
@@ -15,6 +16,7 @@ from textwrap import dedent
 from zipfile import ZipFile
 
 import pytest
+from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.six import PY2, ensure_binary, text_type
 from scripttest import FoundDir, TestFileEnvironment
 
@@ -660,6 +662,25 @@ class PipTestEnvironment(TestFileEnvironment):
     def easy_install(self, *args, **kwargs):
         args = ('-m', 'easy_install') + args
         return self.run('python', *args, **kwargs)
+
+    def assert_installed(self, **kwargs):
+        # type: (**str) -> None
+        """Assert that every name=version in kwargs is installed."""
+        list_output = json.loads(self.pip('list', '--format=json').stdout)
+        installed = {
+            (canonicalize_name(item['name']), item['version'])
+            for item in list_output
+        }
+        expected = {(canonicalize_name(k), v) for k, v in kwargs.items()}
+        assert expected.issubset(installed)
+
+    def assert_not_installed(self, *names):
+        # type: (*str) -> None
+        """Assert that none of the given names is installed."""
+        list_output = json.loads(self.pip('list', '--format=json').stdout)
+        installed = {canonicalize_name(item['name']) for item in list_output}
+        expected = set(map(canonicalize_name, names))
+        assert expected.isdisjoint(installed)
 
 
 # FIXME ScriptTest does something similar, but only within a single
