@@ -880,6 +880,13 @@ Examples
       $ pip install -e path/to/project       # project in another directory
 
 
+#. Install a project from VCS
+
+    ::
+
+      $ pip install SomeProject@git+https://git.repo/some_pkg.git@1.3.1
+
+
 #. Install a project from VCS in "editable" mode. See the sections on :ref:`VCS Support <VCS Support>` and :ref:`Editable Installs <editable-installs>`.
 
     ::
@@ -916,8 +923,6 @@ Examples
       $ pip install SomeProject@http://my.package.repo//SomeProject-1.2.3-py33-none-any.whl
       $ pip install "SomeProject @ http://my.package.repo//SomeProject-1.2.3-py33-none-any.whl"
       $ pip install SomeProject@http://my.package.repo//1.2.3.tar.gz
-      $ pip install SomeProject@git+https://git.repo/some_pkg.git@1.3.1
-      $ pip install SomeProject@git+https://git.repo/some_pkg.git@1.3.1#7921be1537eac1e97bc40179a57f0349c2aee67d
 
 
 #. Install from alternative package repositories.
