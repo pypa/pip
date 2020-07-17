@@ -29,6 +29,7 @@ if MYPY_CHECK_RUNNING:
     MissingDict = Dict[str, List[Missing]]
     ConflictingDict = Dict[str, List[Conflicting]]
     CheckResult = Tuple[MissingDict, ConflictingDict]
+    ConflictDetails = Tuple[PackageSet, CheckResult]
 
 PackageDetails = namedtuple('PackageDetails', ['version', 'requires'])
 
@@ -99,7 +100,7 @@ def check_package_set(package_set, should_ignore=None):
 
 
 def check_install_conflicts(to_install):
-    # type: (List[InstallRequirement]) -> Tuple[PackageSet, CheckResult]
+    # type: (List[InstallRequirement]) -> ConflictDetails
     """For checking if the dependency graph would be consistent after \
     installing given requirements
     """
