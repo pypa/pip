@@ -444,7 +444,10 @@ class InstallCommand(RequirementCommand):
                 items.append(item)
 
             if conflicts is not None:
-                self._warn_about_conflicts(conflicts)
+                self._warn_about_conflicts(
+                    conflicts,
+                    new_resolver='2020-resolver' in options.features_enabled,
+                )
 
             installed_desc = ' '.join(items)
             if installed_desc:
@@ -536,13 +539,36 @@ class InstallCommand(RequirementCommand):
             )
             return None
 
-    def _warn_about_conflicts(self, conflict_details):
-        # type: (ConflictDetails) -> None
+    def _warn_about_conflicts(self, conflict_details, new_resolver):
+        # type: (ConflictDetails, bool) -> None
         package_set, (missing, conflicting) = conflict_details
         if not missing and not conflicting:
             return
 
         parts = []  # type: List[str]
+        if new_resolver:
+            # NOTE: trailing newlines here are intentional
+            parts.append(
+                "Pip will install or upgrade your package(s) and its "
+                "dependencies without taking into account other packages you "
+                "already have installed. This may cause an uncaught "
+                "dependency conflict.\n"
+            )
+            parts.append(
+                "If you would like pip to take your other packages into "
+                "account, please tell us here: https://forms.gle/cWKMoDs8sUVE29hz9\n"
+            )
+        else:
+            parts.append(
+                "After October 2020 you may experience errors when installing "
+                "or updating packages. This is because pip will change the "
+                "way that it resolves dependency conflicts.\n"
+            )
+            parts.append(
+                "We recommend you use --use-feature=2020-resolver to test "
+                "your packages with the new resolver before it becomes the "
+                "default.\n"
+            )
 
         # NOTE: There is some duplication here, with commands/check.py
         for project_name in missing:
@@ -573,8 +599,7 @@ class InstallCommand(RequirementCommand):
                 )
                 parts.append(message)
 
-        for message in parts:
-            logger.critical(message)
+        logger.critical("\n".join(parts))
 
 
 def get_lib_location_guesses(
