@@ -1,8 +1,12 @@
-.. NOTE: You should *NOT* be adding new change log entries to this file, this
-         file is managed by towncrier. You *may* edit previous change logs to
-         fix problems like typo corrections or such.
-         To add a new change log entry, please see
-             https://pip.pypa.io/en/latest/development/contributing/#news-entries
+.. note
+
+    You should *NOT* be adding new change log entries to this file, this
+    file is managed by towncrier. You *may* edit previous change logs to
+    fix problems like typo corrections or such.
+
+    To add a new change log entry, please see
+        https://pip.pypa.io/en/latest/development/contributing/#news-entries
+
 .. towncrier release notes start
 
 20.2b1 (2020-05-21)
