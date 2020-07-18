@@ -21,6 +21,7 @@ from pip._internal.locations import distutils_scheme
 from pip._internal.operations.check import check_install_conflicts
 from pip._internal.req import install_given_reqs
 from pip._internal.req.req_tracker import get_requirement_tracker
+from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.distutils_args import parse_distutils_args
 from pip._internal.utils.filesystem import test_writable_dir
 from pip._internal.utils.misc import (
@@ -355,18 +356,38 @@ class InstallCommand(RequirementCommand):
 
             # If we're using PEP 517, we cannot do a direct install
             # so we fail here.
-            # We don't care about failures building legacy
-            # requirements, as we'll fall through to a direct
-            # install for those.
-            pep517_build_failures = [
-                r for r in build_failures if r.use_pep517
-            ]
-            if pep517_build_failures:
+            pep517_build_failure_names = [
+                r.name   # type: ignore
+                for r in build_failures if r.use_pep517
+            ]  # type: List[str]
+            if pep517_build_failure_names:
                 raise InstallationError(
                     "Could not build wheels for {} which use"
                     " PEP 517 and cannot be installed directly".format(
-                        ", ".join(r.name  # type: ignore
-                                  for r in pep517_build_failures)))
+                        ", ".join(pep517_build_failure_names)
+                    )
+                )
+
+            # For now, we just warn about failures building legacy
+            # requirements, as we'll fall through to a direct
+            # install for those.
+            legacy_build_failure_names = [
+                r.name  # type: ignore
+                for r in build_failures if not r.use_pep517
+            ]  # type: List[str]
+            if legacy_build_failure_names:
+                deprecated(
+                    reason=(
+                        "Could not build wheels for {} which do not use "
+                        "PEP 517. pip will fall back to legacy 'setup.py "
+                        "install' for these.".format(
+                            ", ".join(legacy_build_failure_names)
+                        )
+                    ),
+                    replacement="to fix the wheel build issue reported above",
+                    gone_in="21.0",
+                    issue=8368,
+                )
 
             to_install = resolver.get_installation_order(
                 requirement_set
