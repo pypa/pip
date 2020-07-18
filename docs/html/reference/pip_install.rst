@@ -920,9 +920,9 @@ Examples
 
     ::
 
-      $ pip install SomeProject@http://my.package.repo//SomeProject-1.2.3-py33-none-any.whl
-      $ pip install "SomeProject @ http://my.package.repo//SomeProject-1.2.3-py33-none-any.whl"
-      $ pip install SomeProject@http://my.package.repo//1.2.3.tar.gz
+      $ pip install SomeProject@http://my.package.repo/SomeProject-1.2.3-py33-none-any.whl
+      $ pip install "SomeProject @ http://my.package.repo/SomeProject-1.2.3-py33-none-any.whl"
+      $ pip install SomeProject@http://my.package.repo/1.2.3.tar.gz
 
 
 #. Install from alternative package repositories.
