@@ -240,7 +240,7 @@ class InstallCommand(RequirementCommand):
 
         install_options = options.install_options or []
 
-        logger.debug("Using {}".format(get_pip_version()))
+        logger.debug("Using %s", get_pip_version())
         options.use_user_site = decide_user_install(
             options.use_user_site,
             prefix_path=options.prefix_path,
@@ -436,7 +436,7 @@ class InstallCommand(RequirementCommand):
             message = create_env_error_message(
                 error, show_traceback, options.use_user_site,
             )
-            logger.error(message, exc_info=show_traceback)
+            logger.error(message, exc_info=show_traceback)  # noqa
 
             return ERROR
 
@@ -509,10 +509,9 @@ class InstallCommand(RequirementCommand):
         try:
             return check_install_conflicts(to_install)
         except Exception:
-            logger.error(
+            logger.exception(
                 "Error while checking for conflicts. Please file an issue on "
-                "pip's issue tracker: https://github.com/pypa/pip/issues/new",
-                exc_info=True
+                "pip's issue tracker: https://github.com/pypa/pip/issues/new"
             )
             return None
 

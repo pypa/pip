@@ -228,10 +228,9 @@ class SimpleWheelCache(Cache):
                 continue
             if canonicalize_name(wheel.name) != canonical_package_name:
                 logger.debug(
-                    "Ignoring cached wheel {} for {} as it "
-                    "does not match the expected distribution name {}.".format(
-                        wheel_name, link, package_name
-                    )
+                    "Ignoring cached wheel %s for %s as it "
+                    "does not match the expected distribution name %s.",
+                    wheel_name, link, package_name,
                 )
                 continue
             if not wheel.supported(supported_tags):

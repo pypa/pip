@@ -121,10 +121,11 @@ def str_to_display(data, desc=None):
     try:
         decoded_data = data.decode(encoding)
     except UnicodeDecodeError:
-        if desc is None:
-            desc = 'Bytes object'
-        msg_format = '{} does not appear to be encoded as %s'.format(desc)
-        logger.warning(msg_format, encoding)
+        logger.warning(
+            '%s does not appear to be encoded as %s',
+            desc or 'Bytes object',
+            encoding,
+        )
         decoded_data = data.decode(encoding, errors=backslashreplace_decode)
 
     # Make sure we can print the output, by encoding it to the output

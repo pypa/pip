@@ -3,7 +3,6 @@
 
 from __future__ import absolute_import
 
-import logging
 import re
 
 from pip._vendor.packaging.tags import (
@@ -22,8 +21,6 @@ if MYPY_CHECK_RUNNING:
     from typing import List, Optional, Tuple
 
     from pip._vendor.packaging.tags import PythonVersion
-
-logger = logging.getLogger(__name__)
 
 _osx_arch_pat = re.compile(r'(.+)_(\d+)_(\d+)_(.+)')
 
