@@ -70,6 +70,19 @@ def list_matches_wheel(wheel_name, result):
     return any(map(lambda l: l.startswith(expected), lines))
 
 
+def list_matches_wheel_abspath(wheel_name, result):
+    """Returns True if any line in `result`, which should be the output of
+    a `pip cache list --abspath` call, is a valid path and belongs to
+    `wheel_name`.
+
+    E.g., If wheel_name is `foo-1.2.3` it searches for a line starting with
+          `foo-1.2.3-py3-none-any.whl`."""
+    lines = result.stdout.splitlines()
+    expected = '{}-py3-none-any.whl'.format(wheel_name)
+    return any(map(lambda l: os.path.basename(l).startswith(expected)
+               and os.path.exists(l), lines))
+
+
 @pytest.fixture
 def remove_matches_wheel(wheel_cache_dir):
     """Returns True if any line in `result`, which should be the output of
@@ -132,12 +145,32 @@ def test_cache_list(script):
     assert list_matches_wheel('zzz-7.8.9', result)
 
 
+@pytest.mark.usefixtures("populate_wheel_cache")
+def test_cache_list_abspath(script):
+    """Running `pip cache list --abspath` should return full
+    paths of exactly what the populate_wheel_cache fixture adds."""
+    result = script.pip('cache', 'list', '--abspath')
+
+    assert list_matches_wheel_abspath('yyy-1.2.3', result)
+    assert list_matches_wheel_abspath('zzz-4.5.6', result)
+    assert list_matches_wheel_abspath('zzz-4.5.7', result)
+    assert list_matches_wheel_abspath('zzz-7.8.9', result)
+
+
 @pytest.mark.usefixtures("empty_wheel_cache")
 def test_cache_list_with_empty_cache(script):
     """Running `pip cache list` with an empty cache should print
     "Nothing cached." and exit."""
     result = script.pip('cache', 'list')
     assert result.stdout == "Nothing cached.\n"
+
+
+@pytest.mark.usefixtures("empty_wheel_cache")
+def test_cache_list_with_empty_cache_abspath(script):
+    """Running `pip cache list --abspath` with an empty cache should not
+    print anything and exit."""
+    result = script.pip('cache', 'list', '--abspath')
+    assert result.stdout.strip() == ""
 
 
 def test_cache_list_too_many_args(script):
@@ -159,6 +192,18 @@ def test_cache_list_name_match(script):
 
 
 @pytest.mark.usefixtures("populate_wheel_cache")
+def test_cache_list_name_match_abspath(script):
+    """Running `pip cache list zzz --abspath` should list paths of
+    zzz-4.5.6, zzz-4.5.7, zzz-7.8.9, but nothing else."""
+    result = script.pip('cache', 'list', 'zzz', '--abspath', '--verbose')
+
+    assert not list_matches_wheel_abspath('yyy-1.2.3', result)
+    assert list_matches_wheel_abspath('zzz-4.5.6', result)
+    assert list_matches_wheel_abspath('zzz-4.5.7', result)
+    assert list_matches_wheel_abspath('zzz-7.8.9', result)
+
+
+@pytest.mark.usefixtures("populate_wheel_cache")
 def test_cache_list_name_and_version_match(script):
     """Running `pip cache list zzz-4.5.6` should list zzz-4.5.6, but
     nothing else."""
@@ -168,6 +213,18 @@ def test_cache_list_name_and_version_match(script):
     assert list_matches_wheel('zzz-4.5.6', result)
     assert not list_matches_wheel('zzz-4.5.7', result)
     assert not list_matches_wheel('zzz-7.8.9', result)
+
+
+@pytest.mark.usefixtures("populate_wheel_cache")
+def test_cache_list_name_and_version_match_abspath(script):
+    """Running `pip cache list zzz-4.5.6 --abspath` should list path of
+    zzz-4.5.6, but nothing else."""
+    result = script.pip('cache', 'list', 'zzz-4.5.6', '--abspath', '--verbose')
+
+    assert not list_matches_wheel_abspath('yyy-1.2.3', result)
+    assert list_matches_wheel_abspath('zzz-4.5.6', result)
+    assert not list_matches_wheel_abspath('zzz-4.5.7', result)
+    assert not list_matches_wheel_abspath('zzz-7.8.9', result)
 
 
 @pytest.mark.usefixtures("populate_wheel_cache")
