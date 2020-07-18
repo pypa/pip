@@ -382,6 +382,10 @@ class TestProcessLine(object):
         line_processor("--pre", "file", 1, finder=finder)
         assert finder.allow_all_prereleases
 
+    def test_use_feature(self, line_processor):
+        """--use-feature can be set in requirements files."""
+        line_processor("--use-feature=2020-resolver", "filename", 1)
+
     def test_relative_local_find_links(
         self, line_processor, finder, monkeypatch, tmpdir
     ):

@@ -62,6 +62,7 @@ SUPPORTED_OPTIONS = [
     cmdoptions.require_hashes,
     cmdoptions.pre,
     cmdoptions.trusted_host,
+    cmdoptions.use_new_feature,
 ]  # type: List[Callable[..., optparse.Option]]
 
 # options to be passed to requirements
