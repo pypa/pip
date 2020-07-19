@@ -548,6 +548,7 @@ _freeze_req_opts = textwrap.dedent("""\
     --extra-index-url http://ignore
     --find-links http://ignore
     --index-url http://ignore
+    --use-feature 2020-resolver
 """)
 
 
