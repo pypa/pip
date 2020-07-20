@@ -269,7 +269,7 @@ Since version 6.0, pip also supports specifiers containing `environment markers
   SomeProject ==5.4 ; python_version < '2.7'
   SomeProject; sys_platform == 'win32'
 
-Since version 19.1, pip also supports `direct references
+Since version 19.3, pip also supports `direct references
 <https://www.python.org/dev/peps/pep-0440/#direct-references>`__ like so:
 
  ::
