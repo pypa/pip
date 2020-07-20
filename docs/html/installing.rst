@@ -97,9 +97,15 @@ the `Python Packaging User Guide
 Upgrading pip
 =============
 
-In a shell::
+.. tabs::
 
- python -m pip install -U pip
+   .. tab:: Linux/MacOS
+
+      python -m pip install -U pip
+
+   .. tab:: Windows
+
+      py -m pip install -U pip
 
 
 .. _compatibility-requirements:
