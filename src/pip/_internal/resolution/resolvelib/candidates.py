@@ -197,6 +197,19 @@ class _InstallRequirementBackedCandidate(Candidate):
         # type: () -> AbstractDistribution
         raise NotImplementedError("Override in subclass")
 
+    def _check_metadata_consistency(self):
+        # type: () -> None
+        """Check for consistency of project name and version of dist."""
+        # TODO: (Longer term) Rather than abort, reject this candidate
+        #       and backtrack. This would need resolvelib support.
+        dist = self._dist  # type: Distribution
+        name = canonicalize_name(dist.project_name)
+        if self._name is not None and self._name != name:
+            raise MetadataInconsistent(self._ireq, "name", dist.project_name)
+        version = dist.parsed_version
+        if self._version is not None and self._version != version:
+            raise MetadataInconsistent(self._ireq, "version", dist.version)
+
     def _prepare(self):
         # type: () -> None
         if self._dist is not None:
@@ -210,19 +223,7 @@ class _InstallRequirementBackedCandidate(Candidate):
 
         self._dist = abstract_dist.get_pkg_resources_distribution()
         assert self._dist is not None, "Distribution already installed"
-
-        # TODO: (Longer term) Rather than abort, reject this candidate
-        #       and backtrack. This would need resolvelib support.
-        name = canonicalize_name(self._dist.project_name)
-        if self._name is not None and self._name != name:
-            raise MetadataInconsistent(
-                self._ireq, "name", self._dist.project_name,
-            )
-        version = self._dist.parsed_version
-        if self._version is not None and self._version != version:
-            raise MetadataInconsistent(
-                self._ireq, "version", self._dist.version,
-            )
+        self._check_metadata_consistency()
 
     @property
     def dist(self):
