@@ -913,7 +913,7 @@ use_new_feature = partial(
     metavar='feature',
     action='append',
     default=[],
-    choices=['2020-resolver'],
+    choices=['2020-resolver', 'fast-deps'],
     help='Enable new functionality, that may be backward incompatible.',
 )  # type: Callable[..., Option]
 
