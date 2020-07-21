@@ -1,4 +1,4 @@
-appdirs==1.4.3
+appdirs==1.4.4
 CacheControl==0.12.6
 colorama==0.4.3
 contextlib2==0.6.0.post1
