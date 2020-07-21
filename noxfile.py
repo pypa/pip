@@ -8,6 +8,7 @@ import glob
 import os
 import shutil
 import sys
+from pathlib import Path
 
 import nox
 
@@ -152,9 +153,50 @@ def lint(session):
 
 @nox.session
 def vendoring(session):
-    session.install("vendoring")
+    session.install("vendoring>=0.3.0")
 
-    session.run("vendoring", "sync", ".", "-v")
+    if "--upgrade" not in session.posargs:
+        session.run("vendoring", "sync", ".", "-v")
+        return
+
+    def pinned_requirements(path):
+        for line in path.read_text().splitlines():
+            one, two = line.split("==", 1)
+            name = one.strip()
+            version = two.split("#")[0].strip()
+            yield name, version
+
+    vendor_txt = Path("src/pip/_vendor/vendor.txt")
+    for name, old_version in pinned_requirements(vendor_txt):
+        # update requirements.txt
+        session.run("vendoring", "update", ".", name)
+
+        # get the updated version
+        new_version = old_version
+        for inner_name, inner_version in pinned_requirements(vendor_txt):
+            if inner_name == name:
+                # this is a dedicated assignment, to make flake8 happy
+                new_version = inner_version
+                break
+        else:
+            session.error(f"Could not find {name} in {vendor_txt}")
+
+        # check if the version changed.
+        if new_version == old_version:
+            continue  # no change, nothing more to do here.
+
+        # synchronize the contents
+        session.run("vendoring", "sync", ".")
+
+        # Determine the correct message
+        message = f"Upgrade {name} to {new_version}"
+
+        # Write our news fragment
+        news_file = Path("news") / (name + ".vendor")
+        news_file.write_text(message + "\n")  # "\n" appeases end-of-line-fixer
+
+        # Commit the changes
+        release.commit_file(session, ".", message=message)
 
 
 # -----------------------------------------------------------------------------
