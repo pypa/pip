@@ -30,7 +30,12 @@ sys.path.insert(0, docs_dir)
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 # extensions = ['sphinx.ext.autodoc']
-extensions = ['sphinx.ext.extlinks', 'pip_sphinxext', 'sphinx.ext.intersphinx', 'sphinx_tabs.tabs']
+extensions = [
+    'sphinx.ext.extlinks',
+    'pip_sphinxext',
+    'sphinx.ext.intersphinx',
+    'sphinx_tabs.tabs'
+]
 
 # intersphinx
 intersphinx_cache_limit = 0
