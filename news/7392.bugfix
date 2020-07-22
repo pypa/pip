@@ -1,0 +1,1 @@
+Allow editor args to be specified as ``EDITOR`` env variable for editing config via pip config.
