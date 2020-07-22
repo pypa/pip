@@ -1,5 +1,6 @@
 import os
 from contextlib import contextmanager
+from tempfile import NamedTemporaryFile
 
 import pytest
 
@@ -286,6 +287,107 @@ class TestOptionsInterspersed(AddFakeCommandMixin):
             main(['--find-links', 'F1', 'fake'])
 
 
+@contextmanager
+def tmpconfig(option, value, section='global'):
+    with NamedTemporaryFile(mode='w', delete=False) as f:
+        f.write('[{}]\n{}={}\n'.format(section, option, value))
+        name = f.name
+    try:
+        yield name
+    finally:
+        os.unlink(name)
+
+
+class TestCountOptions(AddFakeCommandMixin):
+
+    @pytest.mark.parametrize('option', ('verbose', 'quiet'))
+    @pytest.mark.parametrize('value', range(4))
+    def test_cli_long(self, option, value):
+        flags = ['--{}'.format(option)] * value
+        opt1, args1 = main(flags+['fake'])
+        opt2, args2 = main(['fake']+flags)
+        assert getattr(opt1, option) == getattr(opt2, option) == value
+
+    @pytest.mark.parametrize('option', ('verbose', 'quiet'))
+    @pytest.mark.parametrize('value', range(1, 4))
+    def test_cli_short(self, option, value):
+        flag = '-' + option[0]*value
+        opt1, args1 = main([flag, 'fake'])
+        opt2, args2 = main(['fake', flag])
+        assert getattr(opt1, option) == getattr(opt2, option) == value
+
+    @pytest.mark.parametrize('option', ('verbose', 'quiet'))
+    @pytest.mark.parametrize('value', range(4))
+    def test_env_var(self, option, value, monkeypatch):
+        monkeypatch.setenv('PIP_'+option.upper(), str(value))
+        assert getattr(main(['fake'])[0], option) == value
+
+    @pytest.mark.parametrize('option', ('verbose', 'quiet'))
+    @pytest.mark.parametrize('value', range(3))
+    def test_env_var_integrate_cli(self, option, value, monkeypatch):
+        monkeypatch.setenv('PIP_'+option.upper(), str(value))
+        assert getattr(main(['fake', '--'+option])[0], option) == value + 1
+
+    @pytest.mark.parametrize('option', ('verbose', 'quiet'))
+    @pytest.mark.parametrize('value', (-1, 'foobar'))
+    def test_env_var_invalid(self, option, value, monkeypatch, capsys):
+        monkeypatch.setenv('PIP_'+option.upper(), str(value))
+        with assert_option_error(capsys, expected='a non-negative integer'):
+            main(['fake'])
+
+    # Undocumented, support for backward compatibility
+    @pytest.mark.parametrize('option', ('verbose', 'quiet'))
+    @pytest.mark.parametrize('value', ('no', 'false'))
+    def test_env_var_false(self, option, value, monkeypatch):
+        monkeypatch.setenv('PIP_'+option.upper(), str(value))
+        assert getattr(main(['fake'])[0], option) == 0
+
+    # Undocumented, support for backward compatibility
+    @pytest.mark.parametrize('option', ('verbose', 'quiet'))
+    @pytest.mark.parametrize('value', ('yes', 'true'))
+    def test_env_var_true(self, option, value, monkeypatch):
+        monkeypatch.setenv('PIP_'+option.upper(), str(value))
+        assert getattr(main(['fake'])[0], option) == 1
+
+    @pytest.mark.parametrize('option', ('verbose', 'quiet'))
+    @pytest.mark.parametrize('value', range(4))
+    def test_config_file(self, option, value, monkeypatch):
+        with tmpconfig(option, value) as name:
+            monkeypatch.setenv('PIP_CONFIG_FILE', name)
+            assert getattr(main(['fake'])[0], option) == value
+
+    @pytest.mark.parametrize('option', ('verbose', 'quiet'))
+    @pytest.mark.parametrize('value', range(3))
+    def test_config_file_integrate_cli(self, option, value, monkeypatch):
+        with tmpconfig(option, value) as name:
+            monkeypatch.setenv('PIP_CONFIG_FILE', name)
+            assert getattr(main(['fake', '--'+option])[0], option) == value + 1
+
+    @pytest.mark.parametrize('option', ('verbose', 'quiet'))
+    @pytest.mark.parametrize('value', (-1, 'foobar'))
+    def test_config_file_invalid(self, option, value, monkeypatch, capsys):
+        with tmpconfig(option, value) as name:
+            monkeypatch.setenv('PIP_CONFIG_FILE', name)
+            with assert_option_error(capsys, expected='non-negative integer'):
+                main(['fake'])
+
+    # Undocumented, support for backward compatibility
+    @pytest.mark.parametrize('option', ('verbose', 'quiet'))
+    @pytest.mark.parametrize('value', ('no', 'false'))
+    def test_config_file_false(self, option, value, monkeypatch):
+        with tmpconfig(option, value) as name:
+            monkeypatch.setenv('PIP_CONFIG_FILE', name)
+            assert getattr(main(['fake'])[0], option) == 0
+
+    # Undocumented, support for backward compatibility
+    @pytest.mark.parametrize('option', ('verbose', 'quiet'))
+    @pytest.mark.parametrize('value', ('yes', 'true'))
+    def test_config_file_true(self, option, value, monkeypatch):
+        with tmpconfig(option, value) as name:
+            monkeypatch.setenv('PIP_CONFIG_FILE', name)
+            assert getattr(main(['fake'])[0], option) == 1
+
+
 class TestGeneralOptions(AddFakeCommandMixin):
 
     # the reason to specifically test general options is due to the
@@ -309,24 +411,6 @@ class TestGeneralOptions(AddFakeCommandMixin):
         options2, args2 = main(['fake', '--require-virtualenv'])
         assert options1.require_venv
         assert options2.require_venv
-
-    def test_verbose(self):
-        options1, args1 = main(['--verbose', 'fake'])
-        options2, args2 = main(['fake', '--verbose'])
-        assert options1.verbose == options2.verbose == 1
-
-    def test_quiet(self):
-        options1, args1 = main(['--quiet', 'fake'])
-        options2, args2 = main(['fake', '--quiet'])
-        assert options1.quiet == options2.quiet == 1
-
-        options3, args3 = main(['--quiet', '--quiet', 'fake'])
-        options4, args4 = main(['fake', '--quiet', '--quiet'])
-        assert options3.quiet == options4.quiet == 2
-
-        options5, args5 = main(['--quiet', '--quiet', '--quiet', 'fake'])
-        options6, args6 = main(['fake', '--quiet', '--quiet', '--quiet'])
-        assert options5.quiet == options6.quiet == 3
 
     def test_log(self):
         options1, args1 = main(['--log', 'path', 'fake'])
