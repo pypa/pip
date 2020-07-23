@@ -492,10 +492,7 @@ class PipTestEnvironment(TestFileEnvironment):
         kwargs.setdefault("cwd", self.scratch_path)
 
         # Setup our environment
-        environ = kwargs.get("environ")
-        if environ is None:
-            environ = os.environ.copy()
-
+        environ = kwargs.setdefault("environ", os.environ.copy())
         environ["PATH"] = Path.pathsep.join(
             [self.bin_path] + [environ.get("PATH", [])],
         )
@@ -504,7 +501,6 @@ class PipTestEnvironment(TestFileEnvironment):
         environ["PYTHONDONTWRITEBYTECODE"] = "1"
         # Make sure we get UTF-8 on output, even on Windows...
         environ["PYTHONIOENCODING"] = "UTF-8"
-        kwargs["environ"] = environ
 
         # Whether all pip invocations should expect stderr
         # (useful for Python version deprecation)
