@@ -6,6 +6,7 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 from contextlib import contextmanager
 
 import pytest
@@ -556,3 +557,13 @@ def mock_server():
     test_server = MockServer(server)
     with test_server.context:
         yield test_server
+
+
+@pytest.fixture
+def utc():
+    # time.tzset() is not implemented on some platforms, e.g. Windows.
+    tzset = getattr(time, 'tzset', lambda: None)
+    with patch.dict(os.environ, {'TZ': 'UTC'}):
+        tzset()
+        yield
+    tzset()
