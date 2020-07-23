@@ -1023,15 +1023,22 @@ of ability. Some examples that you could consider include:
 * ``distlib`` - Packaging and distribution utilities (including functions for
   interacting with PyPI).
 
-Testing the 20.2 beta
-=====================
+Changes to the pip dependency resolver in 20.2
+==============================================
 
-Please test pip 20.2b2.
+pip 20.1 included an alpha version of the new resolver (hidden behind
+an optional ``--unstable-feature=resolver`` flag). pip 20.2 includes a
+robust beta of the new resolver (hidden behind an optional
+``--use-feature=2020-resolver`` flag) that we encourage you to
+test. We will continue to improve the pip dependency resolver in
+response to testers' feedback. This will help us prepare to release
+pip 20.3, with the new resolver on by default, in October.
 
 Watch out for
 -------------
 
-The big change in this beta is to the pip dependency resolver within pip.
+The big change in this release is to the pip dependency resolver
+within pip.
 
 Computers need to know the right order to install pieces of software
 ("to install `x`, you need to install `y` first"). So, when Python
@@ -1082,7 +1089,7 @@ We are also changing our support for :ref:`Constraints Files` :
 How to test
 -----------
 
-1. **Install the beta** [specific instructions TKTK].
+1. **Install pip 20.2** with ``python -m pip install --upgrade pip``.
 
 2. **Run ``pip check`` on your current environment**. This
    will report if you have any inconsistencies in your set of installed
@@ -1116,7 +1123,7 @@ How to test
       that people can transition off such workarounds smoothly.
    -  If you develop or support a tool that wraps pip or uses it to
       deliver part of your functionality, please test your integration
-      with the beta.
+      with pip 20.2.
 
 Please report bugs [GitHub link or something else TKTK].
 
