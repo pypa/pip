@@ -90,18 +90,29 @@ except (AssertionError, ValueError):
                   "version!".format(urllib3.__version__, chardet.__version__),
                   RequestsDependencyWarning)
 
-# Attempt to enable urllib3's SNI support, if possible
-from pip._internal.utils.compat import WINDOWS
-if not WINDOWS:
+# Attempt to enable urllib3's fallback for SNI support
+# if the standard library doesn't support SNI or the
+# 'ssl' library isn't available.
+try:
+    # Note: This logic prevents upgrading cryptography on Windows, if imported
+    #       as part of pip.
+    from pip._internal.utils.compat import WINDOWS
+    if not WINDOWS:
+        raise ImportError("pip internals: don't import cryptography on Windows")
     try:
+        import ssl
+    except ImportError:
+        ssl = None
+
+    if not getattr(ssl, "HAS_SNI", False):
         from pip._vendor.urllib3.contrib import pyopenssl
         pyopenssl.inject_into_urllib3()
 
         # Check cryptography version
         from cryptography import __version__ as cryptography_version
         _check_cryptography(cryptography_version)
-    except ImportError:
-        pass
+except ImportError:
+    pass
 
 # urllib3's DependencyWarnings should be silenced.
 from pip._vendor.urllib3.exceptions import DependencyWarning
