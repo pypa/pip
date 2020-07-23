@@ -111,7 +111,7 @@ def use_new_resolver(request):
         features.add("2020-resolver")
     else:
         features.discard("2020-resolver")
-    with patch.dict(os.environ, {"PIP_USE_FEATURE", " ".join(features)}):
+    with patch.dict(os.environ, {"PIP_USE_FEATURE": " ".join(features)}):
         yield new_resolver
 
 
