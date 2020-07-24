@@ -49,8 +49,16 @@ class Resolver(BaseResolver):
         force_reinstall,  # type: bool
         upgrade_strategy,  # type: str
         py_version_info=None,  # type: Optional[Tuple[int, ...]]
+        lazy_wheel=False,  # type: bool
     ):
         super(Resolver, self).__init__()
+        if lazy_wheel:
+            logger.warning(
+                'pip is using lazily downloaded wheels using HTTP '
+                'range requests to obtain dependency information. '
+                'This experimental feature is enabled through '
+                '--use-feature=fast-deps and it is not ready for production.'
+            )
 
         assert upgrade_strategy in self._allowed_strategies
 
@@ -64,6 +72,7 @@ class Resolver(BaseResolver):
             ignore_installed=ignore_installed,
             ignore_requires_python=ignore_requires_python,
             py_version_info=py_version_info,
+            lazy_wheel=lazy_wheel,
         )
         self.ignore_dependencies = ignore_dependencies
         self.upgrade_strategy = upgrade_strategy

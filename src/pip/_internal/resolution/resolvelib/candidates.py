@@ -1,16 +1,22 @@
 import logging
 import sys
 
+from pip._vendor.contextlib2 import suppress
 from pip._vendor.packaging.specifiers import InvalidSpecifier, SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
 
 from pip._internal.exceptions import HashError, MetadataInconsistent
+from pip._internal.network.lazy_wheel import (
+    HTTPRangeRequestUnsupported,
+    dist_from_wheel_url,
+)
 from pip._internal.req.constructors import (
     install_req_from_editable,
     install_req_from_line,
 )
 from pip._internal.req.req_install import InstallRequirement
+from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import dist_is_editable, normalize_version_info
 from pip._internal.utils.packaging import get_requires_python
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -142,6 +148,7 @@ class _InstallRequirementBackedCandidate(Candidate):
         self._name = name
         self._version = version
         self._dist = None  # type: Optional[Distribution]
+        self._prepared = False
 
     def __repr__(self):
         # type: () -> str
@@ -197,11 +204,23 @@ class _InstallRequirementBackedCandidate(Candidate):
         # type: () -> AbstractDistribution
         raise NotImplementedError("Override in subclass")
 
+    def _check_metadata_consistency(self):
+        # type: () -> None
+        """Check for consistency of project name and version of dist."""
+        # TODO: (Longer term) Rather than abort, reject this candidate
+        #       and backtrack. This would need resolvelib support.
+        dist = self._dist  # type: Distribution
+        name = canonicalize_name(dist.project_name)
+        if self._name is not None and self._name != name:
+            raise MetadataInconsistent(self._ireq, "name", dist.project_name)
+        version = dist.parsed_version
+        if self._version is not None and self._version != version:
+            raise MetadataInconsistent(self._ireq, "version", dist.version)
+
     def _prepare(self):
         # type: () -> None
-        if self._dist is not None:
+        if self._prepared:
             return
-
         try:
             abstract_dist = self._prepare_abstract_distribution()
         except HashError as e:
@@ -210,24 +229,36 @@ class _InstallRequirementBackedCandidate(Candidate):
 
         self._dist = abstract_dist.get_pkg_resources_distribution()
         assert self._dist is not None, "Distribution already installed"
+        self._check_metadata_consistency()
+        self._prepared = True
 
-        # TODO: (Longer term) Rather than abort, reject this candidate
-        #       and backtrack. This would need resolvelib support.
-        name = canonicalize_name(self._dist.project_name)
-        if self._name is not None and self._name != name:
-            raise MetadataInconsistent(
-                self._ireq, "name", self._dist.project_name,
-            )
-        version = self._dist.parsed_version
-        if self._version is not None and self._version != version:
-            raise MetadataInconsistent(
-                self._ireq, "version", self._dist.version,
-            )
+    def _fetch_metadata(self):
+        # type: () -> None
+        """Fetch metadata, using lazy wheel if possible."""
+        preparer = self._factory.preparer
+        use_lazy_wheel = self._factory.use_lazy_wheel
+        remote_wheel = self._link.is_wheel and not self._link.is_file
+        if use_lazy_wheel and remote_wheel and not preparer.require_hashes:
+            assert self._name is not None
+            logger.info('Collecting %s', self._ireq.req or self._ireq)
+            # If HTTPRangeRequestUnsupported is raised, fallback silently.
+            with indent_log(), suppress(HTTPRangeRequestUnsupported):
+                logger.info(
+                    'Obtaining dependency information from %s %s',
+                    self._name, self._version,
+                )
+                url = self._link.url.split('#', 1)[0]
+                session = preparer.downloader._session
+                self._dist = dist_from_wheel_url(self._name, url, session)
+                self._check_metadata_consistency()
+        if self._dist is None:
+            self._prepare()
 
     @property
     def dist(self):
         # type: () -> Distribution
-        self._prepare()
+        if self._dist is None:
+            self._fetch_metadata()
         return self._dist
 
     def _get_requires_python_specifier(self):
