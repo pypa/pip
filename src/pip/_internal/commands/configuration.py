@@ -4,7 +4,7 @@ import shlex
 import shutil
 import subprocess
 
-from pip._vendor.six import PY3
+from pip._vendor.six import PY2
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
@@ -25,6 +25,19 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.configuration import Kind
 
 logger = logging.getLogger(__name__)
+
+
+def parse_editor_value(editor):
+    # type: (str) -> List[str]
+
+    if PY2:
+        return [editor]
+    result = shutil.which(editor)
+    if result:
+        return [result]
+    if os.path.exists(editor):
+        return [editor]
+    return shlex.split(editor)
 
 
 class ConfigurationCommand(Command):
@@ -235,37 +248,19 @@ class ConfigurationCommand(Command):
     def open_in_editor(self, options, args):
         # type: (Values, List[str]) -> None
         editor = self._determine_editor(options)
+        editor_command = parse_editor_value(editor)
 
         fname = self.configuration.get_file_to_edit()
         if fname is None:
             raise PipError("Could not determine appropriate file.")
 
         try:
-            if PY3:
-                # Since Python2 doesn't support shutil.which(), we only support
-                # editor args for Python 3.
-                args = self._get_editor_cmd(editor)
-            else:
-                args = [editor]
-            args.append(fname)
-            subprocess.check_call(args)
+            subprocess.check_call(editor_command + [fname])
         except subprocess.CalledProcessError as e:
             raise PipError(
                 "Editor Subprocess exited with exit code {}"
                 .format(e.returncode)
             )
-
-    def _get_editor_cmd(self, editor):
-        # type: (str) -> List[str]
-
-        # Currently mypy fails for Python2 as it could not recognise the
-        # shutil.which()
-        result = shutil.which(editor)  # type: ignore
-        if result:
-            return [result]
-        if os.path.exists(editor):
-            return [editor]
-        return shlex.split(editor)
 
     def _get_n_args(self, args, example, n):
         # type: (List[str], str, int) -> Any
