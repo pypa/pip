@@ -6,7 +6,7 @@ import os
 import sys
 from distutils.util import change_root
 
-from pip._internal.utils.deprecation import deprecated
+from pip._internal.exceptions import InstallationError
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import ensure_dir
 from pip._internal.utils.setuptools_build import make_setuptools_install_args
@@ -106,24 +106,12 @@ def install(
             egg_info_dir = prepend_root(directory)
             break
     else:
-        deprecated(
-            reason=(
-                "{} did not indicate that it installed an "
-                ".egg-info directory. Only setup.py projects "
-                "generating .egg-info directories are supported."
-            ).format(req_description),
-            replacement=(
-                "for maintainers: updating the setup.py of {0}. "
-                "For users: contact the maintainers of {0} to let "
-                "them know to update their setup.py.".format(
-                    req_name
-                )
-            ),
-            gone_in="20.2",
-            issue=6998,
-        )
-        # FIXME: put the record somewhere
-        return True
+        message = (
+            "{} did not indicate that it installed an "
+            ".egg-info directory. Only setup.py projects "
+            "generating .egg-info directories are supported."
+        ).format(req_description)
+        raise InstallationError(message)
 
     new_lines = []
     for line in record_lines:
