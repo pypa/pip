@@ -38,7 +38,8 @@ def test_invalid_upgrade_strategy_causes_error(script):
 
 def test_only_if_needed_does_not_upgrade_deps_when_satisfied(
     script,
-    use_new_resolver
+    use_new_resolver,
+    with_wheel
 ):
     """
     It doesn't upgrade a dependency if it already satisfies the requirements.
@@ -50,13 +51,11 @@ def test_only_if_needed_does_not_upgrade_deps_when_satisfied(
     )
 
     assert (
-        (script.site_packages / 'require_simple-1.0-py{pyversion}.egg-info'
-            .format(**globals()))
+        (script.site_packages / 'require_simple-1.0.dist-info')
         not in result.files_deleted
     ), "should have installed require_simple==1.0"
     assert (
-        (script.site_packages / 'simple-2.0-py{pyversion}.egg-info'
-            .format(**globals()))
+        (script.site_packages / 'simple-2.0.dist-info')
         not in result.files_deleted
     ), "should not have uninstalled simple==2.0"
 
@@ -68,7 +67,9 @@ def test_only_if_needed_does_not_upgrade_deps_when_satisfied(
     ), "did not print correct message for not-upgraded requirement"
 
 
-def test_only_if_needed_does_upgrade_deps_when_no_longer_satisfied(script):
+def test_only_if_needed_does_upgrade_deps_when_no_longer_satisfied(
+    script, with_wheel
+):
     """
     It does upgrade a dependency if it no longer satisfies the requirements.
 
@@ -79,25 +80,26 @@ def test_only_if_needed_does_upgrade_deps_when_no_longer_satisfied(script):
     )
 
     assert (
-        (script.site_packages / 'require_simple-1.0-py{pyversion}.egg-info'
-            .format(**globals()))
+        (script.site_packages / 'require_simple-1.0.dist-info')
         not in result.files_deleted
     ), "should have installed require_simple==1.0"
     expected = (
         script.site_packages /
-        'simple-3.0-py{pyversion}.egg-info'.format(**globals())
+        'simple-3.0.dist-info'
     )
     result.did_create(expected, message="should have installed simple==3.0")
     expected = (
         script.site_packages /
-        'simple-1.0-py{pyversion}.egg-info'.format(**globals())
+        'simple-1.0.dist-info'
     )
     assert (
         expected in result.files_deleted
     ), "should have uninstalled simple==1.0"
 
 
-def test_eager_does_upgrade_dependecies_when_currently_satisfied(script):
+def test_eager_does_upgrade_dependecies_when_currently_satisfied(
+    script, with_wheel
+):
     """
     It does upgrade a dependency even if it already satisfies the requirements.
 
@@ -109,17 +111,19 @@ def test_eager_does_upgrade_dependecies_when_currently_satisfied(script):
 
     assert (
         (script.site_packages /
-            'require_simple-1.0-py{pyversion}.egg-info'.format(**globals()))
+            'require_simple-1.0.dist-info')
         not in result.files_deleted
     ), "should have installed require_simple==1.0"
     assert (
         (script.site_packages /
-            'simple-2.0-py{pyversion}.egg-info'.format(**globals()))
+            'simple-2.0.dist-info')
         in result.files_deleted
     ), "should have uninstalled simple==2.0"
 
 
-def test_eager_does_upgrade_dependecies_when_no_longer_satisfied(script):
+def test_eager_does_upgrade_dependecies_when_no_longer_satisfied(
+    script, with_wheel
+):
     """
     It does upgrade a dependency if it no longer satisfies the requirements.
 
@@ -130,24 +134,21 @@ def test_eager_does_upgrade_dependecies_when_no_longer_satisfied(script):
     )
 
     assert (
-        (script.site_packages /
-            'require_simple-1.0-py{pyversion}.egg-info'.format(**globals()))
+        (script.site_packages / 'require_simple-1.0.dist-info')
         not in result.files_deleted
     ), "should have installed require_simple==1.0"
     result.did_create(
-        script.site_packages /
-        'simple-3.0-py{pyversion}.egg-info'.format(**globals()),
+        script.site_packages / 'simple-3.0.dist-info',
         message="should have installed simple==3.0"
     )
     assert (
-        script.site_packages /
-        'simple-1.0-py{pyversion}.egg-info'.format(**globals())
+        script.site_packages / 'simple-1.0.dist-info'
         in result.files_deleted
     ), "should have uninstalled simple==1.0"
 
 
 @pytest.mark.network
-def test_upgrade_to_specific_version(script):
+def test_upgrade_to_specific_version(script, with_wheel):
     """
     It does upgrade to specific version requested.
 
@@ -158,18 +159,16 @@ def test_upgrade_to_specific_version(script):
         'pip install with specific version did not upgrade'
     )
     assert (
-        script.site_packages / 'INITools-0.1-py{pyversion}.egg-info'
-        .format(**globals())
+        script.site_packages / 'INITools-0.1.dist-info'
         in result.files_deleted
     )
     result.did_create(
-        script.site_packages / 'INITools-0.2-py{pyversion}.egg-info'
-        .format(**globals())
+        script.site_packages / 'INITools-0.2.dist-info'
     )
 
 
 @pytest.mark.network
-def test_upgrade_if_requested(script):
+def test_upgrade_if_requested(script, with_wheel):
     """
     And it does upgrade if requested.
 
@@ -179,7 +178,7 @@ def test_upgrade_if_requested(script):
     assert result.files_created, 'pip install --upgrade did not upgrade'
     result.did_not_create(
         script.site_packages /
-        'INITools-0.1-py{pyversion}.egg-info'.format(**globals())
+        'INITools-0.1.dist-info'
     )
 
 
@@ -327,7 +326,7 @@ def test_uninstall_rollback(script, data):
 
 
 @pytest.mark.network
-def test_should_not_install_always_from_cache(script):
+def test_should_not_install_always_from_cache(script, with_wheel):
     """
     If there is an old cached package, pip should download the newer version
     Related to issue #175
@@ -337,16 +336,16 @@ def test_should_not_install_always_from_cache(script):
     result = script.pip('install', 'INITools==0.1')
     result.did_not_create(
         script.site_packages /
-        'INITools-0.2-py{pyversion}.egg-info'.format(**globals())
+        'INITools-0.2.dist-info'
     )
     result.did_create(
         script.site_packages /
-        'INITools-0.1-py{pyversion}.egg-info'.format(**globals())
+        'INITools-0.1.dist-info'
     )
 
 
 @pytest.mark.network
-def test_install_with_ignoreinstalled_requested(script):
+def test_install_with_ignoreinstalled_requested(script, with_wheel):
     """
     Test old conflicting package is completely ignored
     """
@@ -356,11 +355,11 @@ def test_install_with_ignoreinstalled_requested(script):
     # both the old and new metadata should be present.
     assert os.path.exists(
         script.site_packages_path /
-        'INITools-0.1-py{pyversion}.egg-info'.format(**globals())
+        'INITools-0.1.dist-info'
     )
     assert os.path.exists(
         script.site_packages_path /
-        'INITools-0.3-py{pyversion}.egg-info'.format(**globals())
+        'INITools-0.3.dist-info'
     )
 
 
