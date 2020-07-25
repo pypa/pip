@@ -129,7 +129,7 @@ To build it locally, run:
 
 The built documentation can be found in the ``docs/build`` folder.
 
-For each Pull Request made the documentation is deployed following this link
+For each Pull Request made the documentation is deployed following this link:
 
 .. code-block:: console
 
