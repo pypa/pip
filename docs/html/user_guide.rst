@@ -380,17 +380,19 @@ variable ``PIP_CONFIG_FILE``.
   :file:`C:\\Documents and Settings\\All Users\\Application Data\\pip\\pip.ini`
 * On Windows 7 and later the file is hidden, but writeable at
   :file:`C:\\ProgramData\\pip\\pip.ini`
-* System-wide configuration is not supported on Windows Vista
+* Global configuration is not supported on Windows Vista.
+
+The global configuration file is shared by whole Python installation.
 
 If multiple configuration files are found by pip then they are combined in
 the following order:
 
-1. The system-wide file is read
+1. The global file is read
 2. The per-user file is read
 3. The virtualenv-specific file is read
 
 Each file read overrides any values read from previous files, so if the
-global timeout is specified in both the system-wide file and the per-user file
+global timeout is specified in both the global file and the per-user file
 then the latter value will be used.
 
 The names of the settings are derived from the long command line option, e.g.
