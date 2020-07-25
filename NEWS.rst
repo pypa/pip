@@ -9,8 +9,8 @@
 
 .. towncrier release notes start
 
-20.2b1 (2020-05-21)
-===================
+pip 20.2b1 (2020-05-21)
+=======================
 
 Bug Fixes
 ---------
@@ -24,8 +24,8 @@ Improved Documentation
 
 - Add GitHub issue template for reporting when the dependency resolver fails (`#8207 <https://github.com/pypa/pip/issues/8207>`_)
 
-20.1.1 (2020-05-19)
-===================
+pip 20.1.1 (2020-05-19)
+=======================
 
 Deprecations and Removals
 -------------------------
@@ -42,8 +42,8 @@ Bug Fixes
   when a wheel would not have been built. Additionally, clarify the message. (`#8178 <https://github.com/pypa/pip/issues/8178>`_)
 
 
-20.1 (2020-04-28)
-=================
+pip 20.1 (2020-04-28)
+=====================
 
 Process
 -------
@@ -63,8 +63,8 @@ Bug Fixes
   to permit non-privileged users to read from system site-packages. (`#8139 <https://github.com/pypa/pip/issues/8139>`_)
 
 
-20.1b1 (2020-04-21)
-===================
+pip 20.1b1 (2020-04-21)
+=======================
 
 Deprecations and Removals
 -------------------------
@@ -134,8 +134,8 @@ Improved Documentation
 - Added example of defining multiple values for options which support them (`#7803 <https://github.com/pypa/pip/issues/7803>`_)
 
 
-20.0.2 (2020-01-24)
-===================
+pip 20.0.2 (2020-01-24)
+=======================
 
 Bug Fixes
 ---------
@@ -148,8 +148,8 @@ Vendored Libraries
 - Upgrade packaging to 20.1
 
 
-20.0.1 (2020-01-21)
-===================
+pip 20.0.1 (2020-01-21)
+=======================
 
 Bug Fixes
 ---------
@@ -157,8 +157,8 @@ Bug Fixes
 - Rename an internal module, to avoid ImportErrors due to improper uninstallation. (`#7621 <https://github.com/pypa/pip/issues/7621>`_)
 
 
-20.0 (2020-01-21)
-=================
+pip 20.0 (2020-01-21)
+=====================
 
 Process
 -------
@@ -277,8 +277,8 @@ Improved Documentation
 - Better document the requirements file format (`#7385 <https://github.com/pypa/pip/issues/7385>`_)
 
 
-19.3.1 (2019-10-17)
-===================
+pip 19.3.1 (2019-10-17)
+=======================
 
 Features
 --------
@@ -291,8 +291,8 @@ Bug Fixes
 - Fix bug that prevented installation of PEP 517 packages without ``setup.py``. (`#6606 <https://github.com/pypa/pip/issues/6606>`_)
 
 
-19.3 (2019-10-14)
-=================
+pip 19.3 (2019-10-14)
+=====================
 
 Deprecations and Removals
 -------------------------
@@ -370,8 +370,8 @@ Improved Documentation
 - Document that ``--ignore-installed`` is dangerous. (`#6794 <https://github.com/pypa/pip/issues/6794>`_)
 
 
-19.2.3 (2019-08-25)
-===================
+pip 19.2.3 (2019-08-25)
+=======================
 
 Bug Fixes
 ---------
@@ -379,8 +379,8 @@ Bug Fixes
 - Fix 'm' flag erroneously being appended to ABI tag in Python 3.8 on platforms that do not provide SOABI (`#6885 <https://github.com/pypa/pip/issues/6885>`_)
 
 
-19.2.2 (2019-08-11)
-===================
+pip 19.2.2 (2019-08-11)
+=======================
 
 Bug Fixes
 ---------
@@ -390,8 +390,8 @@ Bug Fixes
   paths. (`#6804 <https://github.com/pypa/pip/issues/6804>`_)
 
 
-19.2.1 (2019-07-23)
-===================
+pip 19.2.1 (2019-07-23)
+=======================
 
 Bug Fixes
 ---------
@@ -400,8 +400,8 @@ Bug Fixes
   are provided. (`#6772 <https://github.com/pypa/pip/issues/6772>`_)
 
 
-19.2 (2019-07-22)
-=================
+pip 19.2 (2019-07-22)
+=====================
 
 Deprecations and Removals
 -------------------------
@@ -485,8 +485,8 @@ Improved Documentation
 - Mention that pip can install from git refs. (`#6512 <https://github.com/pypa/pip/issues/6512>`_)
 - Replace a failing example of pip installs with extras with a working one. (`#4733 <https://github.com/pypa/pip/issues/4733>`_)
 
-19.1.1 (2019-05-06)
-===================
+pip 19.1.1 (2019-05-06)
+=======================
 
 Features
 --------
@@ -501,8 +501,8 @@ Bug Fixes
   This interfered with parsing the revision string from VCS urls. (`#6440 <https://github.com/pypa/pip/issues/6440>`_)
 
 
-19.1 (2019-04-23)
-=================
+pip 19.1 (2019-04-23)
+=====================
 
 Features
 --------
@@ -562,8 +562,8 @@ Improved Documentation
   ``--find-links`` in the text. (`#6422 <https://github.com/pypa/pip/issues/6422>`_)
 
 
-19.0.3 (2019-02-20)
-===================
+pip 19.0.3 (2019-02-20)
+=======================
 
 Bug Fixes
 ---------
@@ -573,8 +573,8 @@ Bug Fixes
   of an installed file would not be updated when installing a wheel. (`#6266 <https://github.com/pypa/pip/issues/6266>`_)
 
 
-19.0.2 (2019-02-09)
-===================
+pip 19.0.2 (2019-02-09)
+=======================
 
 Bug Fixes
 ---------
@@ -602,8 +602,8 @@ Improved Documentation
 - Re-write README and documentation index (`#5815 <https://github.com/pypa/pip/issues/5815>`_)
 
 
-19.0.1 (2019-01-23)
-===================
+pip 19.0.1 (2019-01-23)
+=======================
 
 Bug Fixes
 ---------
@@ -611,8 +611,8 @@ Bug Fixes
 - Fix a crash when using --no-cache-dir with PEP 517 distributions (`#6158 <https://github.com/pypa/pip/issues/6158>`_, `#6171 <https://github.com/pypa/pip/issues/6171>`_)
 
 
-19.0 (2019-01-22)
-=================
+pip 19.0 (2019-01-22)
+=====================
 
 Deprecations and Removals
 -------------------------
@@ -685,8 +685,8 @@ Improved Documentation
 - Fix omission of command name in HTML usage documentation (`#5984 <https://github.com/pypa/pip/issues/5984>`_)
 
 
-18.1 (2018-10-05)
-=================
+pip 18.1 (2018-10-05)
+=====================
 
 Features
 --------
@@ -732,8 +732,8 @@ Improved Documentation
 - Fix "Requirements Files" reference in User Guide (`#user_guide_fix_requirements_file_ref <https://github.com/pypa/pip/issues/user_guide_fix_requirements_file_ref>`_)
 
 
-18.0 (2018-07-22)
-=================
+pip 18.0 (2018-07-22)
+=====================
 
 Process
 -------
@@ -810,8 +810,8 @@ Improved Documentation
 - Document that the output of pip show is in RFC-compliant mail header format. (#5261)
 
 
-10.0.1 (2018-04-19)
-===================
+pip 10.0.1 (2018-04-19)
+=======================
 
 Features
 --------
@@ -836,8 +836,8 @@ Vendored Libraries
 - Upgrade distlib to 0.2.7
 
 
-10.0.0 (2018-04-14)
-===================
+pip 10.0.0 (2018-04-14)
+=======================
 
 Bug Fixes
 ---------
@@ -855,8 +855,8 @@ Bug Fixes
 - Don't warn about script locations if ``--target`` is specified. (#5203)
 
 
-10.0.0b2 (2018-04-02)
-=====================
+pip 10.0.0b2 (2018-04-02)
+=========================
 
 Bug Fixes
 ---------
@@ -865,8 +865,8 @@ Bug Fixes
   line endings. (#5131)
 
 
-10.0.0b1 (2018-03-31)
-=====================
+pip 10.0.0b1 (2018-03-31)
+=========================
 
 Deprecations and Removals
 -------------------------
@@ -1082,23 +1082,23 @@ Improved Documentation
   provide a Python API. (#4743)
 
 
-9.0.3 (2018-03-21)
-==================
+pip 9.0.3 (2018-03-21)
+======================
 
 - Fix an error where the vendored requests was not correctly containing itself
   to only the internal vendored prefix.
 - Restore compatibility with 2.6.
 
 
-9.0.2 (2018-03-16)
-==================
+pip 9.0.2 (2018-03-16)
+======================
 
 - Fallback to using SecureTransport on macOS when the linked OpenSSL is too old
   to support TLSv1.2.
 
 
-9.0.1 (2016-11-06)
-==================
+pip 9.0.1 (2016-11-06)
+======================
 
 - Correct the deprecation message when not specifying a --format so that it
   uses the correct setting name (``format``) rather than the incorrect one
@@ -1110,8 +1110,8 @@ Improved Documentation
 - Fix UNC paths on Windows. (#4064)
 
 
-9.0.0 (2016-11-02)
-==================
+pip 9.0.0 (2016-11-02)
+======================
 
 - **BACKWARD INCOMPATIBLE** Remove the attempted autodetection of requirement
   names from URLs, URLs must include a name via ``#egg=``.
@@ -1174,8 +1174,8 @@ Improved Documentation
   ``pip freeze``. (#3680)
 
 
-8.1.2 (2016-05-10)
-==================
+pip 8.1.2 (2016-05-10)
+======================
 
 - Fix a regression on systems with uninitialized locale. (#3575)
 - Use environment markers to filter packages before determining if a required
@@ -1189,15 +1189,15 @@ Improved Documentation
   (#3655)
 
 
-8.1.1 (2016-03-17)
-==================
+pip 8.1.1 (2016-03-17)
+======================
 
 - Fix regression with non-ascii requirement files on Python 2 and add support
   for encoding headers in requirement files. (#3548, #3547)
 
 
-8.1.0 (2016-03-05)
-==================
+pip 8.1.0 (2016-03-05)
+======================
 
 - Implement PEP 513, which adds support for the manylinux1 platform tag,
   allowing carefully compiled binary wheels to be installed on compatible Linux
@@ -1228,8 +1228,8 @@ Improved Documentation
   dependency when ``--require-hashes`` is enabled.
 
 
-8.0.3 (2016-02-25)
-==================
+pip 8.0.3 (2016-02-25)
+======================
 
 - Make ``install --quiet`` really quiet. (#3418)
 - Fix a bug when removing packages in python 3: disable INI-style parsing of the
@@ -1245,15 +1245,15 @@ Improved Documentation
   (like pip, setuptools and wheel) to the freeze output. (#1610)
 
 
-8.0.2 (2016-01-21)
-==================
+pip 8.0.2 (2016-01-21)
+======================
 
 - Stop attempting to trust the system CA trust store because it's extremely
   common for them to be broken, often in incompatible ways. (#3416)
 
 
-8.0.1 (2016-01-21)
-==================
+pip 8.0.1 (2016-01-21)
+======================
 
 - Detect CAPaths in addition to CAFiles on platforms that provide them.
 - Installing argparse or wsgiref will no longer warn or error - pip will allow
@@ -1269,8 +1269,8 @@ Improved Documentation
   until a future date.
 
 
-8.0.0 (2016-01-19)
-==================
+pip 8.0.0 (2016-01-19)
+======================
 
 - **BACKWARD INCOMPATIBLE** Drop support for Python 3.2.
 - **BACKWARD INCOMPATIBLE** Remove the ability to find any files other than the
@@ -1353,15 +1353,15 @@ Improved Documentation
 - Add support for .xz files for python versions supporting them (>= 3.3). (#722)
 
 
-7.1.2 (2015-08-22)
-==================
+pip 7.1.2 (2015-08-22)
+======================
 
 - Don't raise an error if pip is not installed when checking for the latest pip
   version.
 
 
-7.1.1 (2015-08-20)
-==================
+pip 7.1.1 (2015-08-20)
+======================
 
 - Check that the wheel cache directory is writable before we attempt to write
   cached files to them.
@@ -1379,8 +1379,8 @@ Improved Documentation
 - Upgrade ipaddress to 1.0.13.
 
 
-7.1.0 (2015-06-30)
-==================
+pip 7.1.0 (2015-06-30)
+======================
 
 - Allow constraining versions globally without having to know exactly what will
   be installed by the pip command. (#2731)
@@ -1395,14 +1395,14 @@ Improved Documentation
 - Allow ``~`` to be expanded within a cache directory in all situations.
 
 
-7.0.3 (2015-06-01)
-==================
+pip 7.0.3 (2015-06-01)
+======================
 
 - Fixed a regression where ``--no-cache-dir`` would raise an exception. (#2855)
 
 
-7.0.2 (2015-06-01)
-==================
+pip 7.0.2 (2015-06-01)
+======================
 
 - **BACKWARD INCOMPATIBLE** Revert the change (released in v7.0.0) that
   required quoting in requirements files around specifiers containing
@@ -1415,16 +1415,16 @@ Improved Documentation
   to Windows users.
 
 
-7.0.1 (2015-05-22)
-==================
+pip 7.0.1 (2015-05-22)
+======================
 
 - Don't build and cache wheels for non-editable installations from VCSs.
 - Allow ``--allow-all-external`` inside of a requirements.txt file, fixing a
   regression in 7.0.
 
 
-7.0.0 (2015-05-21)
-==================
+pip 7.0.0 (2015-05-21)
+======================
 
 - **BACKWARD INCOMPATIBLE** Removed the deprecated ``--mirror``,
   ``--use-mirrors``, and ``-M`` options.
@@ -1473,15 +1473,15 @@ Improved Documentation
   users will need to use ``--log`` if they wish to have one. (#2798)
 
 
-6.1.1 (2015-04-07)
-==================
+pip 6.1.1 (2015-04-07)
+======================
 
 - No longer ignore dependencies which have been added to the standard library,
   instead continue to install them.
 
 
-6.1.0 (2015-04-07)
-==================
+pip 6.1.0 (2015-04-07)
+======================
 
 - Fixes upgrades failing when no potential links were found for dependencies
   other than the current installation. (#2538, #2502)
@@ -1515,8 +1515,8 @@ Improved Documentation
   the root directory when inside of a virtual environment. (#2421)
 
 
-6.0.8 (2015-02-04)
-==================
+pip 6.0.8 (2015-02-04)
+======================
 
 - Fix an issue where the ``--download`` flag would cause pip to no longer use
   randomized build directories.
@@ -1530,8 +1530,8 @@ Improved Documentation
   it.
 
 
-6.0.7 (2015-01-28)
-==================
+pip 6.0.7 (2015-01-28)
+======================
 
 - Fix a regression where Numpy requires a build path without symlinks to
   properly build.
@@ -1545,21 +1545,21 @@ Improved Documentation
   project without a normalized version.
 
 
-6.0.6 (2015-01-03)
-==================
+pip 6.0.6 (2015-01-03)
+======================
 
 - Continue the regression fix from 6.0.5 which was not a complete fix.
 
 
-6.0.5 (2015-01-03)
-==================
+pip 6.0.5 (2015-01-03)
+======================
 
 - Fix a regression with 6.0.4 under Windows where most commands would raise an
   exception due to Windows not having the ``os.geteuid()`` function.
 
 
-6.0.4 (2015-01-03)
-==================
+pip 6.0.4 (2015-01-03)
+======================
 
 - Fix an issue where ANSI escape codes would be used on Windows even though the
   Windows shell does not support them, causing odd characters to appear with
@@ -1582,16 +1582,16 @@ Improved Documentation
   display of the progress bars.
 
 
-6.0.3 (2014-12-23)
-==================
+pip 6.0.3 (2014-12-23)
+======================
 
 - Fix an issue where the implicit version check new in pip 6.0 could cause pip
   to block for up to 75 seconds if PyPI was not accessible.
 - Make ``--no-index`` imply ``--disable-pip-version-check``.
 
 
-6.0.2 (2014-12-23)
-==================
+pip 6.0.2 (2014-12-23)
+======================
 
 - Fix an issue where the output saying that a package was installed would
   report the old version instead of the new version during an upgrade.
@@ -1599,8 +1599,8 @@ Improved Documentation
 - Document the backwards incompatible PEP 440 change in the 6.0.0 changelog.
 
 
-6.0.1 (2014-12-22)
-==================
+pip 6.0.1 (2014-12-22)
+======================
 
 - Fix executable file permissions for Wheel files when using the distutils
   scripts option.
@@ -1615,8 +1615,8 @@ Improved Documentation
   them.
 
 
-6.0 (2014-12-22)
-================
+pip 6.0 (2014-12-22)
+====================
 
 - **PROCESS** Version numbers are now simply ``X.Y`` where the leading ``1``
   has been dropped.
@@ -1703,15 +1703,15 @@ Improved Documentation
 - Support setuptools style environment markers in a source distribution. (#2153)
 
 
-1.5.6 (2014-05-16)
-==================
+pip 1.5.6 (2014-05-16)
+======================
 
 - Upgrade requests to 2.3.0 to fix an issue with proxies on Python 3.4.1.
   (#1821)
 
 
-1.5.5 (2014-05-03)
-==================
+pip 1.5.5 (2014-05-03)
+======================
 
 - Uninstall issues on debianized pypy, specifically issues with setuptools
   upgrades. (#1632, #1743)
@@ -1722,15 +1722,15 @@ Improved Documentation
   colorama==0.3.1, setuptools==3.4.4).
 
 
-1.5.4 (2014-02-21)
-==================
+pip 1.5.4 (2014-02-21)
+======================
 
 - Correct deprecation warning for ``pip install --build`` to only notify when
   the `--build` value is different than the default.
 
 
-1.5.3 (2014-02-20)
-==================
+pip 1.5.3 (2014-02-20)
+======================
 
 - **DEPRECATION** ``pip install --build`` and ``pip install --no-clean`` are now
   deprecated. (#906)
@@ -1745,8 +1745,8 @@ Improved Documentation
 - Verify that the Wheel version is compatible with this pip. (#1569)
 
 
-1.5.2 (2014-01-26)
-==================
+pip 1.5.2 (2014-01-26)
+======================
 
 - Upgraded the vendored ``pkg_resources`` and ``_markerlib`` to setuptools 2.1.
 - Fixed an error that prevented accessing PyPI when pyopenssl, ndg-httpsclient,
@@ -1755,8 +1755,8 @@ Improved Documentation
   part of the URL in a requirements file.
 
 
-1.5.1 (2014-01-20)
-==================
+pip 1.5.1 (2014-01-20)
+======================
 
 - pip now only requires setuptools (any setuptools, not a certain version) when
   installing distributions from src (i.e. not from wheel). (#1434)
@@ -1767,8 +1767,8 @@ Improved Documentation
   (#1457)
 
 
-1.5 (2014-01-01)
-================
+pip 1.5 (2014-01-01)
+====================
 
 - **BACKWARD INCOMPATIBLE** pip no longer supports the ``--use-mirrors``,
   ``-M``, and ``--mirrors`` flags. The mirroring support has been removed. In
@@ -1823,8 +1823,8 @@ Improved Documentation
   (#1316)
 
 
-1.4.1 (2013-08-07)
-==================
+pip 1.4.1 (2013-08-07)
+======================
 
 - **New Signing Key** Release 1.4.1 is using a different key than normal with
   fingerprint: 7C6B 7C5D 5E2B 6356 A926 F04F 6E3C BCE9 3372 DCFA
@@ -1836,8 +1836,8 @@ Improved Documentation
 - Fixes related to recognizing and cleaning global build dirs. (#1080)
 
 
-1.4 (2013-07-23)
-================
+pip 1.4 (2013-07-23)
+====================
 
 - **BACKWARD INCOMPATIBLE** pip now only installs stable versions by default,
   and offers a new ``--pre`` option to also find pre-release and development
@@ -1871,15 +1871,15 @@ Improved Documentation
 - Fixed git VCS backend with git 1.8.3. (#967)
 
 
-1.3.1 (2013-03-08)
-==================
+pip 1.3.1 (2013-03-08)
+======================
 
 - Fixed a major backward incompatible change of parsing URLs to externally
   hosted packages that got accidentally included in 1.3.
 
 
-1.3 (2013-03-07)
-================
+pip 1.3 (2013-03-07)
+====================
 
 - SSL Cert Verification; Make https the default for PyPI access. Thanks
   James Cleveland, Giovanni Bajo, Marcus Smith and many others.
@@ -1919,16 +1919,16 @@ Improved Documentation
   Thanks Przemek Wrzos. (#253, #693)
 
 
-1.2.1 (2012-09-06)
-==================
+pip 1.2.1 (2012-09-06)
+======================
 
 - Fixed a regression introduced in 1.2 about raising an exception when
   not finding any files to uninstall in the current environment. Thanks for
   the fix, Marcus Smith.
 
 
-1.2 (2012-09-01)
-================
+pip 1.2 (2012-09-01)
+====================
 
 - **Dropped support for Python 2.4** The minimum supported Python version is
   now Python 2.5.
@@ -1975,8 +1975,8 @@ Improved Documentation
 - Added a better help formatter.
 
 
-1.1 (2012-02-16)
-================
+pip 1.1 (2012-02-16)
+====================
 
 - Don't crash when a package's setup.py emits UTF-8 and then fails. Thanks
   Marc Abramowitz. (#326)
@@ -2016,8 +2016,8 @@ Improved Documentation
   changed repo URL. (#351, #365)
 
 
-1.0.2 (2011-07-16)
-==================
+pip 1.0.2 (2011-07-16)
+======================
 
 - Fixed docs issues.
 - Reinstall a package when using the ``install -I`` option. (#295)
@@ -2027,8 +2027,8 @@ Improved Documentation
 - Correctly parse ``--editable`` lines in requirements files. (#320)
 
 
-1.0.1 (2011-04-30)
-==================
+pip 1.0.1 (2011-04-30)
+======================
 
 - Start to use git-flow.
 - `find_command` should not raise AttributeError. (#274)
@@ -2039,8 +2039,8 @@ Improved Documentation
 - Current working directory when running setup.py clean. (#266)
 
 
-1.0 (2011-04-04)
-================
+pip 1.0 (2011-04-04)
+====================
 
 - Added Python 3 support! Huge thanks to Vinay Sajip, Vitaly Babiy, Kelsey
   Hightower, and Alex Gronholm, among others.
@@ -2064,8 +2064,8 @@ Improved Documentation
       installed before using the installer!
 
 
-0.8.3
-=====
+pip 0.8.3
+=========
 
 - Moved main repository to GitHub: https://github.com/pypa/pip
 - Transferred primary maintenance from Ian to Jannis Leidel, Carl Meyer,
@@ -2084,8 +2084,8 @@ Improved Documentation
 - Fixed bug in version string parsing related to the suffix "-dev".
 
 
-0.8.2
-=====
+pip 0.8.2
+=========
 
 - Avoid redundant unpacking of bundles (from pwaller)
 - Fixed checking out the correct tag/branch/commit when updating an editable
@@ -2100,8 +2100,8 @@ Improved Documentation
 - Added ``git+https://`` scheme to Git VCS backend.
 
 
-0.8.1
-=====
+pip 0.8.1
+=========
 
 - Added global --user flag as shortcut for --install-option="--user". From
   Ronny Pfannschmidt.
@@ -2117,8 +2117,8 @@ Improved Documentation
   Ronny Pfannschmidt and Wil Tan. (#39)
 
 
-0.8
-===
+pip 0.8
+=======
 
 - Track which ``build/`` directories pip creates, never remove directories
   it doesn't create.  From Hugo Lopes Tavares.
@@ -2136,15 +2136,15 @@ Improved Documentation
 - Significant test framework changes, from Hugo Lopes Tavares.
 
 
-0.7.2
-=====
+pip 0.7.2
+=========
 
 - Set zip_safe=False to avoid problems some people are encountering where
   pip is installed as a zip file.
 
 
-0.7.1
-=====
+pip 0.7.1
+=========
 
 - Fixed opening of logfile with no directory name. Thanks Alexandre Conrad.
 - Temporary files are consistently cleaned up, especially after
@@ -2152,8 +2152,8 @@ Improved Documentation
 - Tests now require at least ScriptTest 1.0.3.
 
 
-0.7
-===
+pip 0.7
+=======
 
 - Fixed uninstallation on Windows
 - Added ``pip search`` command.
@@ -2195,21 +2195,21 @@ Improved Documentation
 - Leftover build directories are now removed. Thanks Alexandre Conrad.
 
 
-0.6.3
-=====
+pip 0.6.3
+=========
 
 - Fixed import error on Windows with regard to the backwards compatibility
   package
 
-0.6.2
-=====
+pip 0.6.2
+=========
 
 - Fixed uninstall when /tmp is on a different filesystem.
 - Fixed uninstallation of distributions with namespace packages.
 
 
-0.6.1
-=====
+pip 0.6.1
+=========
 
 - Added support for the ``https`` and ``http-static`` schemes to the
   Mercurial and ``ftp`` scheme to the Bazaar backend.
@@ -2220,8 +2220,8 @@ Improved Documentation
   copied into the bundle), from Whit Morriss.
 
 
-0.6
-===
+pip 0.6
+=======
 
 - Add ``pip uninstall`` and uninstall-before upgrade (from Carl Meyer).
 - Extended configurability with config files and environment variables.
@@ -2241,14 +2241,14 @@ Improved Documentation
 - Creates download cache directory if not existing.
 
 
-0.5.1
-=====
+pip 0.5.1
+=========
 
 - Fixed a couple little bugs, with git and with extensions.
 
 
-0.5
-===
+pip 0.5
+=======
 
 - Added ability to override the default log file name (``pip-log.txt``)
   with the environmental variable ``$PIP_LOG_FILE``.
@@ -2284,8 +2284,8 @@ Improved Documentation
   non-empty, non-repo directory.
 
 
-0.4
-===
+pip 0.4
+=======
 
 - Make ``-e`` work better with local hg repositories
 - Construct PyPI URLs the exact way easy_install constructs URLs (you
@@ -2305,8 +2305,8 @@ Improved Documentation
 - Fixed support for Subversion 1.6.
 
 
-0.3.1
-=====
+pip 0.3.1
+=========
 
 - Improved virtualenv restart and various path/cleanup problems on win32.
 - Fixed a regression with installing from svn repositories (when not
@@ -2316,8 +2316,8 @@ Improved Documentation
 - Improve ``pip -h``
 
 
-0.3
-===
+pip 0.3
+=======
 
 - Added support for editable packages created from Git, Mercurial and Bazaar
   repositories and ability to freeze them. Refactored support for version
@@ -2344,8 +2344,8 @@ Improved Documentation
 - Add ``--simulate`` option to ``pip zip``.
 
 
-0.2.1
-=====
+pip 0.2.1
+=========
 
 - Fixed small problem that prevented using ``pip.py`` without actually
   installing pip.
@@ -2360,8 +2360,8 @@ Improved Documentation
 - Turn some tar file errors into warnings.
 
 
-0.2
-===
+pip 0.2
+=======
 
 - Renamed to ``pip``, and to install you now do ``pip install
   PACKAGE``
@@ -2373,8 +2373,8 @@ Improved Documentation
   repository without ``#egg=Package``).
 
 
-0.1.4
-=====
+pip 0.1.4
+=========
 
 - Added an option ``--install-option`` to pass options to pass
   arguments to ``setup.py install``
@@ -2398,16 +2398,16 @@ Improved Documentation
   using this.
 
 
-0.1.3
-=====
+pip 0.1.3
+=========
 
 - Always use ``svn checkout`` (not ``export``) so that
   ``tag_svn_revision`` settings give the revision of the package.
 - Don't update checkouts that came from ``.pybundle`` files.
 
 
-0.1.2
-=====
+pip 0.1.2
+=========
 
 - Improve error text when there are errors fetching HTML pages when
   seeking packages.
@@ -2418,8 +2418,8 @@ Improved Documentation
 - Fix ``dependency_links`` for finding packages.
 
 
-0.1.1
-=====
+pip 0.1.1
+=========
 
 - Fixed a NameError exception when running pip outside of a virtualenv
   environment.
@@ -2427,7 +2427,7 @@ Improved Documentation
 - Fixed use of ``hashlib.md5`` on python2.5+ (also from Prabhu Ramachandran)
 
 
-0.1
-===
+pip 0.1
+=======
 
 - Initial release
