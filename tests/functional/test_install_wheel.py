@@ -340,8 +340,8 @@ def test_install_user_wheel(script, shared_data, with_wheel, tmpdir):
         'install', 'has.script==1.0', '--user', '--no-index',
         '--find-links', tmpdir,
     )
-    egg_info_folder = script.user_site / 'has.script-1.0.dist-info'
-    result.did_create(egg_info_folder)
+    dist_info_folder = script.user_site / 'has.script-1.0.dist-info'
+    result.did_create(dist_info_folder)
     script_file = script.user_bin / 'script.py'
     result.did_create(script_file)
 

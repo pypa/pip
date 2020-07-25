@@ -10,7 +10,6 @@ from tests.lib import (
     create_basic_wheel_for_package,
     need_svn,
     path_to_url,
-    pyversion,
     requirements_file,
 )
 from tests.lib.local_repos import local_checkout
@@ -63,7 +62,7 @@ def arg_recording_sdist_maker(script):
 
 
 @pytest.mark.network
-def test_requirements_file(script):
+def test_requirements_file(script, with_wheel):
     """
     Test installing from a requirements file.
 
@@ -78,12 +77,12 @@ def test_requirements_file(script):
         'install', '-r', script.scratch_path / 'initools-req.txt'
     )
     result.did_create(
-        script.site_packages / 'INITools-0.2-py{}.egg-info'.format(pyversion)
+        script.site_packages / 'INITools-0.2.dist-info'
     )
     result.did_create(script.site_packages / 'initools')
     assert result.files_created[script.site_packages / other_lib_name].dir
-    fn = '{}-{}-py{}.egg-info'.format(
-        other_lib_name, other_lib_version, pyversion)
+    fn = '{}-{}.dist-info'.format(
+        other_lib_name, other_lib_version)
     assert result.files_created[script.site_packages / fn].dir
 
 
@@ -113,15 +112,17 @@ def test_schema_check_in_requirements_file(script):
     ("embedded_rel_path", False),
     ("embedded_rel_path", True),
 ])
-def test_relative_requirements_file(script, data, test_type, editable):
+def test_relative_requirements_file(
+    script, data, test_type, editable, with_wheel
+):
     """
     Test installing from a requirements file with a relative path. For path
     URLs, use an egg= definition.
 
     """
-    egg_info_file = (
+    dist_info_folder = (
         script.site_packages /
-        'FSPkg-0.1.dev0-py{pyversion}.egg-info'.format(**globals())
+        'FSPkg-0.1.dev0.dist-info'
     )
     egg_link_file = (
         script.site_packages / 'FSPkg.egg-link'
@@ -148,7 +149,7 @@ def test_relative_requirements_file(script, data, test_type, editable):
                                script.scratch_path) as reqs_file:
             result = script.pip('install', '-vvv', '-r', reqs_file.name,
                                 cwd=script.scratch_path)
-            result.did_create(egg_info_file)
+            result.did_create(dist_info_folder)
             result.did_create(package_folder)
     else:
         with requirements_file('-e ' + req_path + '\n',
@@ -160,7 +161,7 @@ def test_relative_requirements_file(script, data, test_type, editable):
 
 @pytest.mark.network
 @need_svn
-def test_multiple_requirements_files(script, tmpdir):
+def test_multiple_requirements_files(script, tmpdir, with_wheel):
     """
     Test installing from multiple nested requirements files.
 
@@ -184,8 +185,7 @@ def test_multiple_requirements_files(script, tmpdir):
         'install', '-r', script.scratch_path / 'initools-req.txt'
     )
     assert result.files_created[script.site_packages / other_lib_name].dir
-    fn = '{other_lib_name}-{other_lib_version}-py{pyversion}.egg-info'.format(
-        pyversion=pyversion, **locals())
+    fn = '{other_lib_name}-{other_lib_version}.dist-info'.format(**locals())
     assert result.files_created[script.site_packages / fn].dir
     result.did_create(script.venv / 'src' / 'initools')
 
