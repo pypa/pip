@@ -382,7 +382,7 @@ variable ``PIP_CONFIG_FILE``.
   :file:`C:\\ProgramData\\pip\\pip.ini`
 * Global configuration is not supported on Windows Vista.
 
-The global configuration file is shared by whole Python installation.
+The global configuration file is shared by all Python installations.
 
 If multiple configuration files are found by pip then they are combined in
 the following order:
