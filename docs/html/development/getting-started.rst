@@ -133,7 +133,7 @@ For each Pull Request made the documentation is deployed following this link:
 
 .. code-block:: console
 
-    http://pip--<PR-NUMBER>.org.readthedocs.build/en/<PR-NUMBER>
+    https://pip--<PR-NUMBER>.org.readthedocs.build/en/<PR-NUMBER>
 
 
 What Next?
