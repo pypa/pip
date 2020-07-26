@@ -304,8 +304,7 @@ def test_check_integrity_errors_on_missing_files(data, script, tmpdir):
     result = script.pip_install_local(to_install)
     assert 'Successfully installed pip-test-package' in result.stdout
 
-    target = script.site_packages_path / "piptestpackage/__init__.py"
-    target.unlink()
+    (script.site_packages_path / "piptestpackage/__init__.py").unlink()
 
     result = script.pip('check --integrity', expect_error=True)
     expected_lines = (
