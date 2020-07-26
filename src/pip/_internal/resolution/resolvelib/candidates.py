@@ -29,7 +29,6 @@ if MYPY_CHECK_RUNNING:
     from pip._vendor.packaging.version import _BaseVersion
     from pip._vendor.pkg_resources import Distribution
 
-    from pip._internal.distributions import AbstractDistribution
     from pip._internal.models.link import Link
 
     from .base import Requirement
@@ -200,8 +199,8 @@ class _InstallRequirementBackedCandidate(Candidate):
             self._link.file_path if self._link.is_file else self._link
         )
 
-    def _prepare_abstract_distribution(self):
-        # type: () -> AbstractDistribution
+    def _prepare_distribution(self):
+        # type: () -> Distribution
         raise NotImplementedError("Override in subclass")
 
     def _check_metadata_consistency(self):
@@ -222,12 +221,11 @@ class _InstallRequirementBackedCandidate(Candidate):
         if self._prepared:
             return
         try:
-            abstract_dist = self._prepare_abstract_distribution()
+            self._dist = self._prepare_distribution()
         except HashError as e:
             e.req = self._ireq
             raise
 
-        self._dist = abstract_dist.get_pkg_resources_distribution()
         assert self._dist is not None, "Distribution already installed"
         self._check_metadata_consistency()
         self._prepared = True
@@ -324,8 +322,8 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
             version=version,
         )
 
-    def _prepare_abstract_distribution(self):
-        # type: () -> AbstractDistribution
+    def _prepare_distribution(self):
+        # type: () -> Distribution
         return self._factory.preparer.prepare_linked_requirement(
             self._ireq, parallel_builds=True,
         )
@@ -352,8 +350,8 @@ class EditableCandidate(_InstallRequirementBackedCandidate):
             version=version,
         )
 
-    def _prepare_abstract_distribution(self):
-        # type: () -> AbstractDistribution
+    def _prepare_distribution(self):
+        # type: () -> Distribution
         return self._factory.preparer.prepare_editable_requirement(self._ireq)
 
 
