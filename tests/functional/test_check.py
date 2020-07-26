@@ -307,7 +307,7 @@ def test_check_integrity_errors_on_missing_files(data, script, tmpdir):
     target = script.site_packages_path / "piptestpackage/__init__.py"
     target.unlink()
 
-    result = script.pip('check --integrity')
+    result = script.pip('check --integrity', expect_error=True)
     expected_lines = (
         "piptestpackage is missing the __init__.py file",
     )
