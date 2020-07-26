@@ -292,3 +292,22 @@ def test_check_include_work_dir_pkg(script):
     )
     assert matches_expected_lines(result.stdout, expected_lines)
     assert result.returncode == 1
+
+
+def test_check_integrity_errors_on_missing_files(data, script, tmpdir):
+    """
+    Work-in-progress failing test for a flag that detects broken packages
+    """
+    to_install = data.packages.joinpath("pip-test-package-0.1.tar.gz")
+    result = script.pip_install_local(to_install)
+    assert 'Successfully installed pip-test-package' in result.stdout
+
+    target = script.site_packages_path / "piptestpackage/__init__.py"
+    target.unlink()
+
+    result = script.pip('check --integrity')
+    expected_lines = (
+        "piptestpackage is missing the __init__.py file",
+    )
+    assert matches_expected_lines(result.stdout, expected_lines)
+    assert result.returncode == 1
