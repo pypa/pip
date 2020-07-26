@@ -294,6 +294,10 @@ def test_check_include_work_dir_pkg(script):
     assert result.returncode == 1
 
 
+@pytest.mark.xfail(
+    reason='Not yet implemented: https://github.com/pypa/pip/pull/8633',
+    strict=True,
+)
 def test_check_integrity_errors_on_missing_files(data, script, tmpdir):
     """Ensure that pip check detects a missing file post-install."""
     to_install = data.packages.joinpath("pip-test-package-0.1.tar.gz")
