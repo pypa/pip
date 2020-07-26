@@ -342,7 +342,7 @@ pip allows you to set all command line option defaults in a standard ini
 style config file.
 
 The names and locations of the configuration files vary slightly across
-platforms. You may have per-user, per-virtualenv or site-wide (shared amongst
+platforms. You may have per-user, per-virtualenv or global (shared amongst
 all users) configuration:
 
 **Per-user**:
@@ -369,7 +369,7 @@ variable ``PIP_CONFIG_FILE``.
 * On Unix and macOS the file is :file:`$VIRTUAL_ENV/pip.conf`
 * On Windows the file is: :file:`%VIRTUAL_ENV%\\pip.ini`
 
-**Site-wide**:
+**Global**:
 
 * On Unix the file may be located in :file:`/etc/pip.conf`. Alternatively
   it may be in a "pip" subdirectory of any of the paths set in the
@@ -380,17 +380,19 @@ variable ``PIP_CONFIG_FILE``.
   :file:`C:\\Documents and Settings\\All Users\\Application Data\\pip\\pip.ini`
 * On Windows 7 and later the file is hidden, but writeable at
   :file:`C:\\ProgramData\\pip\\pip.ini`
-* Site-wide configuration is not supported on Windows Vista
+* Global configuration is not supported on Windows Vista.
+
+The global configuration file is shared by all Python installations.
 
 If multiple configuration files are found by pip then they are combined in
 the following order:
 
-1. The site-wide file is read
+1. The global file is read
 2. The per-user file is read
 3. The virtualenv-specific file is read
 
 Each file read overrides any values read from previous files, so if the
-global timeout is specified in both the site-wide file and the per-user file
+global timeout is specified in both the global file and the per-user file
 then the latter value will be used.
 
 The names of the settings are derived from the long command line option, e.g.
