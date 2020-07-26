@@ -40,8 +40,8 @@ You can then invoke your local source tree pip normally.
 
 .. code-block:: console
 
-    $ virtualenv venv # You can also use "python -m venv venv" from python3.3+
-    $ source venv/bin/activate
+    $ virtualenv .env # You can also use "python -m venv .env" from python3.3+
+    $ source .env/bin/activate
     $ python -m pip install -e .
     $ python -m pip --version
 
