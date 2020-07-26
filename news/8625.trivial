@@ -1,0 +1,2 @@
+Fix 2020 resolver error message when conflicting packages are specified
+directly in a requirements file.
