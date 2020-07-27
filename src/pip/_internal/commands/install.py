@@ -546,7 +546,18 @@ class InstallCommand(RequirementCommand):
             return
 
         parts = []  # type: List[str]
-        if new_resolver:
+        if not new_resolver:
+            parts.append(
+                "After October 2020 you may experience errors when installing "
+                "or updating packages. This is because pip will change the "
+                "way that it resolves dependency conflicts.\n"
+            )
+            parts.append(
+                "We recommend you use --use-feature=2020-resolver to test "
+                "your packages with the new resolver before it becomes the "
+                "default.\n"
+            )
+        else:
             # NOTE: trailing newlines here are intentional
             parts.append(
                 "Pip will install or upgrade your package(s) and its "
@@ -558,17 +569,6 @@ class InstallCommand(RequirementCommand):
             parts.append(
                 "If you would like pip to take your other packages into "
                 "account, please tell us here: {}\n".format(form_link)
-            )
-        else:
-            parts.append(
-                "After October 2020 you may experience errors when installing "
-                "or updating packages. This is because pip will change the "
-                "way that it resolves dependency conflicts.\n"
-            )
-            parts.append(
-                "We recommend you use --use-feature=2020-resolver to test "
-                "your packages with the new resolver before it becomes the "
-                "default.\n"
             )
 
         # NOTE: There is some duplication here, with commands/check.py
