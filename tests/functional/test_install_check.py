@@ -5,7 +5,7 @@ def contains_expected_lines(string, expected_lines):
     return set(expected_lines) <= set(string.splitlines())
 
 
-def test_check_install_canonicalization(script, deprecated_python):
+def test_check_install_canonicalization(script):
     pkga_path = create_test_package_with_setup(
         script,
         name='pkgA',
@@ -59,8 +59,7 @@ def test_check_install_canonicalization(script, deprecated_python):
     assert result.returncode == 0
 
 
-def test_check_install_does_not_warn_for_out_of_graph_issues(
-        script, deprecated_python):
+def test_check_install_does_not_warn_for_out_of_graph_issues(script):
     pkg_broken_path = create_test_package_with_setup(
         script,
         name='broken',
