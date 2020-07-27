@@ -554,9 +554,10 @@ class InstallCommand(RequirementCommand):
                 "already have installed. This may cause an uncaught "
                 "dependency conflict.\n"
             )
+            form_link = "https://forms.gle/cWKMoDs8sUVE29hz9"
             parts.append(
                 "If you would like pip to take your other packages into "
-                "account, please tell us here: https://forms.gle/cWKMoDs8sUVE29hz9\n"
+                "account, please tell us here: {}\n".format(form_link)
             )
         else:
             parts.append(
