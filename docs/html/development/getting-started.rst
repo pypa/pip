@@ -129,6 +129,13 @@ To build it locally, run:
 
 The built documentation can be found in the ``docs/build`` folder.
 
+For each Pull Request made the documentation is deployed following this link:
+
+.. code-block:: none
+
+    https://pip--<PR-NUMBER>.org.readthedocs.build/en/<PR-NUMBER>
+
+
 What Next?
 ==========
 
