@@ -17,7 +17,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from .factory import Factory
 
 if MYPY_CHECK_RUNNING:
-    from typing import Dict, List, Optional, Set, Tuple
+    from typing import Dict, Iterable, List, Optional, Set, Tuple
 
     from pip._vendor.packaging.specifiers import SpecifierSet
     from pip._vendor.resolvelib.resolvers import Result
@@ -28,6 +28,7 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.operations.prepare import RequirementPreparer
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.resolution.base import InstallRequirementProvider
+    from pip._internal.resolution.resolvelib.base import Candidate
 
 
 logger = logging.getLogger(__name__)
@@ -120,13 +121,19 @@ class Resolver(BaseResolver):
             self._result = resolver.resolve(
                 requirements, max_rounds=try_to_avoid_resolution_too_deep,
             )
-
         except ResolutionImpossible as e:
             error = self.factory.get_installation_error(e)
             six.raise_from(error, e)
 
+        return self._make_req_set(
+            self._result.mapping.values(),
+            check_supported_wheels,
+        )
+
+    def _make_req_set(self, candidates, check_supported_wheels):
+        # type: (Iterable[Candidate], bool) -> RequirementSet
         req_set = RequirementSet(check_supported_wheels=check_supported_wheels)
-        for candidate in self._result.mapping.values():
+        for candidate in candidates:
             ireq = candidate.get_install_requirement()
             if ireq is None:
                 continue
