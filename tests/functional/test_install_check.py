@@ -35,7 +35,7 @@ def test_check_install_canonicalization(script):
         allow_stderr_error=True,
     )
     expected_lines = [
-        "ERROR: pkga 1.0 requires SPECIAL.missing, which is not installed.",
+        "pkga 1.0 requires SPECIAL.missing, which is not installed.",
     ]
     # Deprecated python versions produce an extra warning on stderr
     assert contains_expected_lines(result.stderr, expected_lines)
@@ -86,8 +86,9 @@ def test_check_install_does_not_warn_for_out_of_graph_issues(script):
         'install', '--no-index', pkg_conflict_path, allow_stderr_error=True,
     )
     assert contains_expected_lines(result.stderr, [
+        "broken 1.0 requires missing, which is not installed.",
         (
-            "ERROR: broken 1.0 has requirement conflict<1.0, but "
+            "broken 1.0 requires conflict<1.0, but "
             "you'll have conflict 1.0 which is incompatible."
         ),
     ])
