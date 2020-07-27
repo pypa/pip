@@ -212,6 +212,8 @@ def test_keyring_set_password(monkeypatch, response_status, creds,
 class KeyringModuleV2(object):
     """Represents the current supported API of keyring"""
 
+    return_username = False
+
     class Credential(object):
         def __init__(self, username, password):
             self.username = username
@@ -225,6 +227,10 @@ class KeyringModuleV2(object):
             return self.Credential("username", "url")
         if system == "example.com":
             return self.Credential("username", "netloc")
+        if self.return_username:
+            # When using SecretService on keyring >= 19.2.0, a null-password
+            # credential is always returned
+            return self.Credential(username, None)
         return None
 
 
@@ -232,11 +238,13 @@ class KeyringModuleV2(object):
     ("http://example.com/path1", ("username", "netloc")),
     ("http://example.com/path2/path3", ("username", "url")),
     ("http://user2@example.com/path2/path3", ("username", "url")),
+    ("http://ss_user@example.com", ("username", "netloc")),
+    ("http://ss_user@example2.com", ("ss_user", None)),
 ))
 def test_keyring_get_credential(monkeypatch, url, expect):
-    monkeypatch.setattr(
-        pip._internal.network.auth, 'keyring', KeyringModuleV2()
-    )
+    keyring = KeyringModuleV2()
+    keyring.return_username = "ss_user" in url
+    monkeypatch.setattr(pip._internal.network.auth, 'keyring', keyring)
     auth = MultiDomainBasicAuth(index_urls=["http://example.com/path2"])
 
     assert auth._get_new_credentials(

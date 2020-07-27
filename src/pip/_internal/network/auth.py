@@ -149,14 +149,19 @@ class MultiDomainBasicAuth(AuthBase):
 
         # If we don't have a password and keyring is available, use it.
         if allow_keyring:
-            # The index url is more specific than the netloc, so try it first
-            kr_auth = (
-                get_keyring_auth(index_url, username) or
-                get_keyring_auth(netloc, username)
-            )
-            if kr_auth:
+            url_kr = get_keyring_auth(index_url, username)
+            netloc_kr = get_keyring_auth(netloc, username)
+            # When using SecretService on keyring >= 19.2.0, a null-password
+            # credential is always returned, so check the netloc result as well
+            if (not url_kr and netloc_kr) or (
+                url_kr and netloc_kr and netloc_kr[1] and not url_kr[1]
+            ):
                 logger.debug("Found credentials in keyring for %s", netloc)
-                return kr_auth
+                return netloc_kr
+            elif url_kr:
+                # The index url is more specific, so it takes priority
+                logger.debug("Found credentials in keyring for %s", url)
+                return url_kr
 
         return username, password
 
