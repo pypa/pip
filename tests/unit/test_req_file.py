@@ -47,6 +47,7 @@ def options(session):
         isolated_mode=False,
         index_url='default_url',
         format_control=FormatControl(set(), set()),
+        features_enabled=[],
     )
 
 
@@ -381,6 +382,13 @@ class TestProcessLine(object):
     def test_set_finder_allow_all_prereleases(self, line_processor, finder):
         line_processor("--pre", "file", 1, finder=finder)
         assert finder.allow_all_prereleases
+
+    def test_use_feature(self, line_processor, options):
+        """--use-feature can be set in requirements files."""
+        line_processor(
+            "--use-feature=2020-resolver", "filename", 1, options=options
+        )
+        assert "2020-resolver" in options.features_enabled
 
     def test_relative_local_find_links(
         self, line_processor, finder, monkeypatch, tmpdir

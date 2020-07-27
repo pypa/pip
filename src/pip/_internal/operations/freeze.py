@@ -100,7 +100,8 @@ def freeze(
                                 '--pre',
                                 '--trusted-host',
                                 '--process-dependency-links',
-                                '--extra-index-url'))):
+                                '--extra-index-url',
+                                '--use-feature'))):
                         line = line.rstrip()
                         if line not in emitted_options:
                             emitted_options.add(line)

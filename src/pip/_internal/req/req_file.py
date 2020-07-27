@@ -62,6 +62,7 @@ SUPPORTED_OPTIONS = [
     cmdoptions.require_hashes,
     cmdoptions.pre,
     cmdoptions.trusted_host,
+    cmdoptions.use_new_feature,
 ]  # type: List[Callable[..., optparse.Option]]
 
 # options to be passed to requirements
@@ -224,12 +225,18 @@ def handle_option_line(
 ):
     # type:  (...) -> None
 
-    # percolate hash-checking option upward
-    if options and opts.require_hashes:
-        options.require_hashes = opts.require_hashes
+    if options:
+        # percolate options upward
+        if opts.require_hashes:
+            options.require_hashes = opts.require_hashes
+        if opts.features_enabled:
+            options.features_enabled.extend(
+                f for f in opts.features_enabled
+                if f not in options.features_enabled
+            )
 
     # set finder options
-    elif finder:
+    if finder:
         find_links = finder.find_links
         index_urls = finder.index_urls
         if opts.index_url:
