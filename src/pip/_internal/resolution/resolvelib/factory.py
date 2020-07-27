@@ -11,6 +11,7 @@ from pip._internal.exceptions import (
     UnsupportedWheel,
 )
 from pip._internal.models.wheel import Wheel
+from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.compatibility_tags import get_supported
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.misc import (
@@ -56,7 +57,6 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.models.link import Link
     from pip._internal.operations.prepare import RequirementPreparer
-    from pip._internal.req.req_install import InstallRequirement
     from pip._internal.resolution.base import InstallRequirementProvider
 
     from .base import Candidate, Requirement
@@ -406,22 +406,22 @@ class Factory(object):
             # type: (Candidate) -> str
             return "{} {}".format(cand.name, cand.version)
 
+        def describe_trigger(parent):
+            # type: (Candidate) -> str
+            ireq = parent.get_install_requirement()
+            if not ireq or not ireq.comes_from:
+                return "{} {}".format(parent.name, parent.version)
+            if isinstance(ireq.comes_from, InstallRequirement):
+                return str(ireq.comes_from.name)
+            return str(ireq.comes_from)
+
         triggers = []
         for req, parent in e.causes:
             if parent is None:
                 # This is a root requirement, so we can report it directly
                 trigger = req.format_for_error()
             else:
-                ireq = parent.get_install_requirement()
-                if ireq and ireq.comes_from:
-                    trigger = "{}".format(
-                        ireq.comes_from.name
-                    )
-                else:
-                    trigger = "{} {}".format(
-                        parent.name,
-                        parent.version
-                    )
+                trigger = describe_trigger(parent)
             triggers.append(trigger)
 
         if triggers:
