@@ -1082,7 +1082,7 @@ install x y`` in a single command.
 
 We are also changing our support for :ref:`Constraints Files`:
 
-* Unnamed requirements are not allowed as constraints
+* Unnamed requirements are not allowed as constraints (see `#6628`_)
 * Links are not allowed as constraints
 * Constraints cannot have extras
 
@@ -1225,3 +1225,4 @@ As discussed in `our announcement on the PSF blog`_, the pip team are in the pro
 .. _resolver testing survey: https://tools.simplysecure.org/survey/index.php?r=survey/index&sid=989272&lang=en
 .. _our announcement on the PSF blog: http://pyfound.blogspot.com/2020/03/new-pip-resolver-to-roll-out-this-year.html
 .. _tensorflow: https://pypi.org/project/tensorflow/
+.. _#6628: https://github.com/pypa/pip/issues/6628
