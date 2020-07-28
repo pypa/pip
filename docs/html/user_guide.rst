@@ -1023,8 +1023,8 @@ of ability. Some examples that you could consider include:
 * ``distlib`` - Packaging and distribution utilities (including functions for
   interacting with PyPI).
 
-Changes to the pip dependency resolver in 20.2
-==============================================
+Changes to the pip dependency resolver in 20.2 (2020)
+=====================================================
 
 pip 20.1 included an alpha version of the new resolver (hidden behind
 an optional ``--unstable-feature=resolver`` flag). pip 20.2 includes a
@@ -1130,19 +1130,23 @@ Please report bugs [GitHub link or something else TKTK].
 Setups we might need more testing on
 ------------------------------------
 
-*    Windows
+*    Windows, including Windows Subsystem for Linux (WSL)
 
 *    Macintosh
 
 *    Debian, Fedora, Red Hat, CentOS, Mint, Arch, Raspbian, Gentoo
 
-*    Japanese-localized filesystems/OSes
+*    non-Latin localized filesystems and OSes, such as Japanese, Chinese, and Korean, and right-to-left such as Hebrew, Urdu, and Arabic
 
 *    Multi-user installations
 
-*    Using virtualenvs
+*    Requirements files with 100+ packages
 
-*    Dependency resolution for any kind of version control systems (e.g., you are installing from Git, Subversion, Mercurial, or CVS)
+*    Requirements files that include hashes or pinned dependencies (perhaps as output from ``pip-compile`` or ``pip-tools``)
+
+*    Continuous integration/continuous deployment setups
+
+*    Installing from any kind of version control systems (i.e., Git, Subversion, Mercurial, or CVS)
 
 *    Installing from source code held in local directories
 
