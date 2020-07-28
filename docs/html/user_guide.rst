@@ -1031,8 +1031,9 @@ an optional ``--unstable-feature=resolver`` flag). pip 20.2 includes a
 robust beta of the new resolver (hidden behind an optional
 ``--use-feature=2020-resolver`` flag) that we encourage you to
 test. We will continue to improve the pip dependency resolver in
-response to testers' feedback. This will help us prepare to release
-pip 20.3, with the new resolver on by default, in October.
+response to testers' feedback. Please give us feedback through the
+`resolver testing survey`_. This will help us prepare to release pip
+20.3, with the new resolver on by default, in October.
 
 Watch out for
 -------------
@@ -1099,11 +1100,20 @@ How to test
    ``pip check`` and run into stuff you can’t figure out, please `ask
    for help in our issuetracker or chat <https://pip.pypa.io/>`__.
 
-3. **Test the new version of pip** (see below). While we have tried to
-   make sure that pip’s test suite covers as many cases as we can, we
-   are very aware that there are people using pip with many different
-   workflows and build processes, and we will not be able to cover all
-   of those without your help.
+3. **Test the new version of pip** (see below). To test the new
+   resolver, use the ``--use-feature=2020-resolver`` flag, as in:
+
+   ``pip install example --use-feature=2020-resolver``
+
+   The more feedback we can get, the more we can make sure that the
+   final release is solid. (Only try the new resolver **in a
+   non-production environment**, though - it isn't ready for you to
+   rely on in production!)
+
+   While we have tried to make sure that pip’s test suite covers as
+   many cases as we can, we are very aware that there are people using
+   pip with many different workflows and build processes, and we will
+   not be able to cover all of those without your help.
 
    -  If you use pip to install your software, try out the new resolver
       and let us know if it works for you with ``pip install``. Try:
@@ -1125,7 +1135,7 @@ How to test
       deliver part of your functionality, please test your integration
       with pip 20.2.
 
-Please report bugs [GitHub link or something else TKTK].
+4. **Please report bugs** through the `resolver testing survey`_.
 
 Setups we might need more testing on
 ------------------------------------
@@ -1142,17 +1152,71 @@ Setups we might need more testing on
 
 *    Requirements files with 100+ packages
 
+*    Installing a package that has multiple requirements files
+
 *    Requirements files that include hashes or pinned dependencies (perhaps as output from ``pip-compile`` or ``pip-tools``)
 
 *    Continuous integration/continuous deployment setups
 
-*    Installing from any kind of version control systems (i.e., Git, Subversion, Mercurial, or CVS)
+*    Installing from any kind of version control systems (i.e., Git, Subversion, Mercurial, or CVS), per :ref:`VCS Support`
 
 *    Installing from source code held in local directories
 
 *    Using the most recent versions of Python 3.6, 3.7, 3.8, and 3.9
 
+*    PyPy
+
 *    Customized terminals (where you have modified how error messages and standard output display)
 
+Examples to try
+^^^^^^^^^^^^^^^
+
+Install:
+
+* `tensorflow`_
+* ``hacking``
+* ``pycodestyle``
+* ``pandas``
+* ``tablib``
+* ``elasticsearch`` and ``requests`` together
+* ``six`` and ``cherrypy`` together
+* ``pip install flake8-import-order==0.17.1 flake8==3.5.0 --use-feature=2020-resolver``
+* ``pip install tornado==5.0 sprockets.http==1.5.0 --use-feature=2020-resolver``
+
+Try:
+
+* ``pip install``
+* ``pip uninstall``
+* ``pip check``
+* ``pip cache``
+
+
+Tell us about
+-------------
+
+Specific things we'd love to get feedback on:
+
+*    Cases where the new resolver produces the wrong result,
+     obviously. We hope there won't be too many of these, but we'd like
+     to trap such bugs now.
+
+*    Cases where the resolver produced an error when you believe it
+     should have been able to work out what to do.
+
+*    Cases where the resolver gives an error because there's a problem
+     with your requirements, but you need better information to work out
+     what's wrong.
+
+*    If you have workarounds to address issues with the current resolver,
+     does the new resolver let you remove those workarounds? Tell us!
+
+
+Context and followup
+--------------------
+
+As discussed in `our announcement on the PSF blog`_, the pip team are in the process of developing a new "dependency resolver" (the part of pip that works out what to install based on your requirements). We have reached a major milestone in this work, and have a testable ("beta") version of the resolver, which you can test, included in this release.
 
 .. _freeze: https://pip.pypa.io/en/latest/reference/pip_freeze/
+.. _resolver testing survey: https://tools.simplysecure.org/survey/index.php?r=survey/index&sid=989272&lang=en
+.. _our announcement on the PSF blog: http://pyfound.blogspot.com/2020/03/new-pip-resolver-to-roll-out-this-year.html
+.. _tensorflow: https://pypi.org/project/tensorflow/
