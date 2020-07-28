@@ -1092,7 +1092,7 @@ How to test
 
 1. **Install pip 20.2** with ``python -m pip install --upgrade pip``.
 
-2. **Run ``pip check`` on your current environment**. This
+2. **Validate your current environment** by running ``pip check``. This
    will report if you have any inconsistencies in your set of installed
    packages. Having a clean installation will make it much less likely
    that you will hit issues when the new resolver is released (and may
@@ -1154,7 +1154,11 @@ Setups we might need more testing on
 
 *    Installing a package that has multiple requirements files
 
-*    Requirements files that include hashes or pinned dependencies (perhaps as output from ``pip-compile`` or ``pip-tools``)
+*    Requirements files that include hashes (:ref:`hash-checking mode`)
+     or pinned dependencies (perhaps as output from ``pip-compile`` or
+     ``pip-tools``)
+
+*    Using :ref:`Constraints Files`
 
 *    Continuous integration/continuous deployment setups
 
