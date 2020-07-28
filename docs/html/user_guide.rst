@@ -1054,20 +1054,20 @@ logic, and easier for you to use and troubleshoot.
 The most significant changes to the resolver are:
 
 * It will **reduce inconsistency**: it will *no longer install a
-combination of packages that is mutually inconsistent*. In older
-versions of pip, it is possible for pip to install a package which
-does not satisfy the declared requirements of another installed
-package. For example, in pip 20.0, ``pip install "six<1.12"
-"virtualenv==20.0.2"`` does the wrong thing, “successfully” installing
-``six==1.11``, even though ``virtualenv==20.0.2`` requires
-``six>=1.12.0,<2`` (`defined here
-<https://github.com/pypa/virtualenv/blob/20.0.2/setup.cfg#L42-L50>`__).
-The new resolver, instead, outright rejects installing anything
-if it gets that input.
+  combination of packages that is mutually inconsistent*. In older
+  versions of pip, it is possible for pip to install a package which
+  does not satisfy the declared requirements of another installed
+  package. For example, in pip 20.0, ``pip install "six<1.12"
+  "virtualenv==20.0.2"`` does the wrong thing, “successfully” installing
+  ``six==1.11``, even though ``virtualenv==20.0.2`` requires
+  ``six>=1.12.0,<2`` (`defined here
+  <https://github.com/pypa/virtualenv/blob/20.0.2/setup.cfg#L42-L50>`__).
+  The new resolver, instead, outright rejects installing anything if it
+  gets that input.
 
 * It will be **stricter** - if you ask pip to install two packages with
-incompatible requirements, it will refuse (rather than installing a
-broken combination, like it did in previous versions).
+  incompatible requirements, it will refuse (rather than installing a
+  broken combination, like it did in previous versions).
 
 So, if you have been using workarounds to force pip to deal with
 incompatible or inconsistent requirements combinations, now's a good
