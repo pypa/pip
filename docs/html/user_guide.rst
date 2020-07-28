@@ -1049,7 +1049,7 @@ programmers share software as packages, they have to precisely describe
 those installation prerequisites, and pip needs to navigate tricky
 situations where it's getting conflicting instructions. This new
 dependency resolver will make pip better at handling that tricky
-logic, and easier for you to use and troubleshoot.
+logic, and make pip easier for you to use and troubleshoot.
 
 The most significant changes to the resolver are:
 
@@ -1080,7 +1080,9 @@ break already-installed packages. It will not guarantee that your
 environment will be consistent all the time. If you ``pip install x``
 and then ``pip install y``, it's possible that the version of ``y``
 you get will be different than it would be if you had run ``pip
-install x y`` in a single command.
+install x y`` in a single command. We would like your thoughts on what
+pip's behavior should be; please answer `our survey on upgrades that
+create conflicts`_.
 
 We are also changing our support for :ref:`Constraints Files`:
 
@@ -1157,7 +1159,7 @@ Setups we might need more testing on
 
 *    Requirements files with 100+ packages
 
-*    Installing a package that has multiple requirements files
+*    An installation workflow that involves multiple requirements files
 
 *    Requirements files that include hashes (:ref:`hash-checking mode`)
      or pinned dependencies (perhaps as output from ``pip-compile`` within
@@ -1239,3 +1241,4 @@ announcements on the `low-traffic packaging announcements list`_.
 .. _our announcement on the PSF blog: http://pyfound.blogspot.com/2020/03/new-pip-resolver-to-roll-out-this-year.html
 .. _tensorflow: https://pypi.org/project/tensorflow/
 .. _low-traffic packaging announcements list: https://mail.python.org/mailman3/lists/pypi-announce.python.org/
+.. _our survey on upgrades that create conflicts: https://docs.google.com/forms/d/e/1FAIpQLSeBkbhuIlSofXqCyhi3kGkLmtrpPOEBwr6iJA6SzHdxWKfqdA/viewform
