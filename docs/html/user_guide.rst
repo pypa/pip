@@ -1080,7 +1080,7 @@ and then ``pip install y``, it's possible that the version of ``y``
 you get will be different than it would be if you had run ``pip
 install x y`` in a single command.
 
-We are also changing our support for :ref:`Constraints Files` :
+We are also changing our support for :ref:`Constraints Files`:
 
 * Unnamed requirements are not allowed as constraints
 * Links are not allowed as constraints
@@ -1098,7 +1098,7 @@ How to test
    that you will hit issues when the new resolver is released (and may
    address hidden problems in your current environment!). If you run
    ``pip check`` and run into stuff you can’t figure out, please `ask
-   for help in our issuetracker or chat <https://pip.pypa.io/>`__.
+   for help in our issue tracker or chat <https://pip.pypa.io/>`__.
 
 3. **Test the new version of pip** (see below). To test the new
    resolver, use the ``--use-feature=2020-resolver`` flag, as in:
@@ -1119,7 +1119,8 @@ How to test
       and let us know if it works for you with ``pip install``. Try:
         - installing several packages simultaneously
         - re-creating an environment using a ``requirements.txt`` file
-	- using ``pip --force-reinstall`` to check whether it does what you think it should
+	- using ``pip install --force-reinstall`` to check whether
+	  it does what you think it should
 	- using constraints files
    -  If you have a build pipeline that depends on pip installing your
       dependencies for you, check that the new resolver does what you
@@ -1155,7 +1156,7 @@ Setups we might need more testing on
 *    Installing a package that has multiple requirements files
 
 *    Requirements files that include hashes (:ref:`hash-checking mode`)
-     or pinned dependencies (perhaps as output from ``pip-compile`` or
+     or pinned dependencies (perhaps as output from ``pip-compile`` within
      ``pip-tools``)
 
 *    Using :ref:`Constraints Files`
