@@ -30,6 +30,7 @@ to need extra work before being released, the release manager always has the
 option to back out the partial change prior to a release. The PR can then be
 reworked and resubmitted for the next release.
 
+.. _`Deprecation Policy`:
 
 Deprecation Policy
 ==================

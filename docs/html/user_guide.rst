@@ -1023,6 +1023,8 @@ of ability. Some examples that you could consider include:
 * ``distlib`` - Packaging and distribution utilities (including functions for
   interacting with PyPI).
 
+.. _`Resolver changes 2020`:
+
 Changes to the pip dependency resolver in 20.2 (2020)
 =====================================================
 
@@ -1215,13 +1217,23 @@ Specific things we'd love to get feedback on:
 *    If you have workarounds to address issues with the current resolver,
      does the new resolver let you remove those workarounds? Tell us!
 
+Please let us know through the `resolver testing survey`_.
 
 Context and followup
 --------------------
 
-As discussed in `our announcement on the PSF blog`_, the pip team are in the process of developing a new "dependency resolver" (the part of pip that works out what to install based on your requirements). We have reached a major milestone in this work, and have a testable ("beta") version of the resolver, which you can test, included in this release.
+As discussed in `our announcement on the PSF blog`_, the pip team are
+in the process of developing a new "dependency resolver" (the part of
+pip that works out what to install based on your requirements). Since
+this work will not change user-visible behavior described in the pip
+documentation, this change is not covered by the :ref:`Deprecation
+Policy`.
+
+We're tracking our rollout in :issue:`6536` and you can watch for
+announcements on the `low-traffic packaging announcements list`_.
 
 .. _freeze: https://pip.pypa.io/en/latest/reference/pip_freeze/
 .. _resolver testing survey: https://tools.simplysecure.org/survey/index.php?r=survey/index&sid=989272&lang=en
 .. _our announcement on the PSF blog: http://pyfound.blogspot.com/2020/03/new-pip-resolver-to-roll-out-this-year.html
 .. _tensorflow: https://pypi.org/project/tensorflow/
+.. _low-traffic packaging announcements list: https://mail.python.org/mailman3/lists/pypi-announce.python.org/
