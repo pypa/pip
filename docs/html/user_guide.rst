@@ -83,7 +83,8 @@ Keyring Support
 ---------------
 
 pip also supports credentials stored in your keyring using the `keyring`_
-library.
+library. Note that ``keyring`` will need to be installed separately, as pip
+does not come with it included.
 
 .. code-block:: shell
 
