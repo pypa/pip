@@ -1119,11 +1119,13 @@ How to test
 
    -  If you use pip to install your software, try out the new resolver
       and let us know if it works for you with ``pip install``. Try:
+
         - installing several packages simultaneously
         - re-creating an environment using a ``requirements.txt`` file
         - using ``pip install --force-reinstall`` to check whether
           it does what you think it should
         - using constraints files
+
    -  If you have a build pipeline that depends on pip installing your
       dependencies for you, check that the new resolver does what you
       need.
