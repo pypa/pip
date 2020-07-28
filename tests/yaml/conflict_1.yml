@@ -11,12 +11,9 @@ cases:
   response:
     - error:
         code: 0
-        stderr: ['requirement', 'is\s+incompatible']
+        stderr: ['incompatible']
   skip: old
-  # -- currently the error message is:
-  # a 1.0.0 has requirement B==1.0.0, but you'll have b 2.0.0 which is
-  # incompatible.
-  # -- better would be:
+  # -- a good error message would be:
   # A 1.0.0 has incompatible requirements B==1.0.0, B==2.0.0
 
 -
