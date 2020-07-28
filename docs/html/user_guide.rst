@@ -1082,9 +1082,9 @@ install x y`` in a single command.
 
 We are also changing our support for :ref:`Constraints Files`:
 
-* Unnamed requirements are not allowed as constraints (see `#6628`_ and `#8210`_)
-* Links are not allowed as constraints (see `#8253`_)
-* Constraints cannot have extras (see `#6628`_)
+* Unnamed requirements are not allowed as constraints (see :issue:`6628` and :issue:`8210`)
+* Links are not allowed as constraints (see :issue:`8253`)
+* Constraints cannot have extras (see :issue:`6628`)
 
 
 How to test
@@ -1225,6 +1225,3 @@ As discussed in `our announcement on the PSF blog`_, the pip team are in the pro
 .. _resolver testing survey: https://tools.simplysecure.org/survey/index.php?r=survey/index&sid=989272&lang=en
 .. _our announcement on the PSF blog: http://pyfound.blogspot.com/2020/03/new-pip-resolver-to-roll-out-this-year.html
 .. _tensorflow: https://pypi.org/project/tensorflow/
-.. _#6628: https://github.com/pypa/pip/issues/6628
-.. _#8210: https://github.com/pypa/pip/issues/8210
-.. _#8253: https://github.com/pypa/pip/issues/8253
