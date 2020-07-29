@@ -1,2 +1,0 @@
-Deprecate legacy setup.py install when building a wheel failed for source
-distributions without pyproject.toml

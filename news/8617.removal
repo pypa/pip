@@ -1,1 +1,0 @@
-Deprecate setup.py-based builds that do not generate an ``.egg-info`` directory.
