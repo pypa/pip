@@ -99,13 +99,13 @@ Upgrading pip
 
 .. tabs::
 
-   .. tab:: Linux/MacOS
+   .. code-tab:: shell Unix/macOS
 
-      python -m pip install -U pip
+      $ python -m pip install -U pip
 
-   .. tab:: Windows
+   .. code-tab:: shell Windows
 
-      py -m pip install -U pip
+      C:\> py -m pip install -U pip
 
 
 .. _compatibility-requirements:

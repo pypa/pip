@@ -9,23 +9,24 @@ Running pip
 ===========
 
 pip is a command line program. When you install pip, a ``pip`` command is added
-to your system, which can be run from the command prompt as follows::
+to your system, which can be run from the command prompt as follows:
 
-  $ pip <pip arguments>
+.. tabs::
 
-If you cannot run the ``pip`` command directly (possibly because the location
-where it was installed isn't on your operating system's ``PATH``) then you can
-run pip via the Python interpreter::
+   .. code-tab:: shell Unix/macOS
 
-  $ python -m pip <pip arguments>
+      $ python -m pip <pip arguments>
 
-On Windows, the ``py`` launcher can be used::
+      # python -m pip executes pip using the Python interpreter you
+      # specified as python. So '/usr/bin/python3.7 -m pip' means
+      # you are executing pip for your interpreter located at /usr/bin/python3.7.
 
-  $ py -m pip <pip arguments>
+   .. code-tab:: shell Windows
 
-Even though pip is available from your Python installation as an importable
-module, via ``import pip``, it is *not supported* to use pip in this way. For
-more details, see :ref:`Using pip from your program`.
+      C:\> py -m pip <pip arguments>
+
+      # py -m pip executes pip using the latest Python interpreter you
+      # have installed. For more details, see https://docs.python.org/3/using/windows.html#launcher.
 
 
 Installing Packages
@@ -36,12 +37,21 @@ directly from distribution files.
 
 
 The most common scenario is to install from `PyPI`_ using :ref:`Requirement
-Specifiers` ::
+Specifiers`
 
-  $ pip install SomePackage            # latest version
-  $ pip install SomePackage==1.0.4     # specific version
-  $ pip install 'SomePackage>=1.0.4'     # minimum version
+.. tabs::
 
+   .. code-tab:: shell Unix/macOS
+
+      $ python -m pip install SomePackage            # latest version
+      $ python -m pip install SomePackage==1.0.4     # specific version
+      $ python -m pip install 'SomePackage>=1.0.4'     # minimum version
+
+   .. code-tab:: shell Windows
+
+      C:\> py -m pip install SomePackage            # latest version
+      C:\> py -m pip install SomePackage==1.0.4     # specific version
+      C:\> py -m pip install 'SomePackage>=1.0.4'     # minimum version
 
 For more information and examples, see the :ref:`pip install` reference.
 
@@ -142,10 +152,17 @@ Requirements Files
 ==================
 
 "Requirements files" are files containing a list of items to be
-installed using :ref:`pip install` like so::
+installed using :ref:`pip install` like so:
 
-   pip install -r requirements.txt
+.. tabs::
 
+   .. code-tab:: shell Unix/macOS
+
+      $ python -m pip install -r requirements.txt
+
+   .. code-tab:: shell Windows
+
+      C:\> py -m pip install -r requirements.txt
 
 Details on the format of the files are here: :ref:`Requirements File Format`.
 
@@ -160,10 +177,17 @@ In practice, there are 4 common uses of Requirements files:
    this case, your requirement file contains a pinned version of everything that
    was installed when ``pip freeze`` was run.
 
-   ::
+.. tabs::
 
-     pip freeze > requirements.txt
-     pip install -r requirements.txt
+   .. code-tab:: shell Unix/macOS
+
+      $ python -m pip freeze > requirements.txt
+      $ python -m pip install -r requirements.txt
+
+   .. code-tab:: shell Windows
+
+      C:\> py -m pip freeze > requirements.txt
+      C:\> py -m pip install -r requirements.txt
 
 2. Requirements files are used to force pip to properly resolve dependencies.
    As it is now, pip `doesn't have true dependency resolution
@@ -228,9 +252,17 @@ contents is nearly identical to :ref:`Requirements Files`. There is one key
 difference: Including a package in a constraints file does not trigger
 installation of the package.
 
-Use a constraints file like so::
+Use a constraints file like so:
 
-   pip install -c constraints.txt
+.. tabs::
+
+   .. code-tab:: shell Unix/macOS
+
+      $ python -m pip install -c constraints.txt
+
+   .. code-tab:: shell Windows
+
+      C:\> py -m pip install -c constraints.txt
 
 Constraints files are used for exactly the same reason as requirements files
 when you don't know exactly what things you want to install. For instance, say
@@ -268,9 +300,15 @@ archives.
 
 To install directly from a wheel archive:
 
-::
+.. tabs::
 
- pip install SomePackage-1.0-py2.py3-none-any.whl
+   .. code-tab:: shell Unix/macOS
+
+      $ python -m pip install SomePackage-1.0-py2.py3-none-any.whl
+
+   .. code-tab:: shell Windows
+
+      C:\> py -m pip install SomePackage-1.0-py2.py3-none-any.whl
 
 
 For the cases where wheels are not available, pip offers :ref:`pip wheel` as a
@@ -283,17 +321,30 @@ convenience, to build wheels for all your requirements and dependencies.
 To build wheels for your requirements and all their dependencies to a local
 directory:
 
-::
+.. tabs::
 
- pip install wheel
- pip wheel --wheel-dir=/local/wheels -r requirements.txt
+   .. code-tab:: shell Unix/macOS
+
+      $ python -m pip install wheel
+      $ python -m pip wheel --wheel-dir=/local/wheels -r requirements.txt
+
+   .. code-tab:: shell Windows
+
+      C:\> py -m pip install wheel
+      C:\> py -m pip wheel --wheel-dir=/local/wheels -r requirements.txt
 
 And *then* to install those requirements just using your local directory of
 wheels (and not from PyPI):
 
-::
+.. tabs::
 
- pip install --no-index --find-links=/local/wheels -r requirements.txt
+   .. code-tab:: shell Unix/macOS
+
+      $ python -m pip install --no-index --find-links=/local/wheels -r requirements.txt
+
+   .. code-tab:: shell Windows
+
+      C:\> py -m pip install --no-index --find-links=/local/wheels -r requirements.txt
 
 
 Uninstalling Packages
@@ -301,9 +352,16 @@ Uninstalling Packages
 
 pip is able to uninstall most packages like so:
 
-::
+.. tabs::
 
- $ pip uninstall SomePackage
+   .. code-tab:: shell Unix/macOS
+
+      $ python -m pip uninstall SomePackage
+
+   .. code-tab:: shell Windows
+
+      C:\> py -m pip uninstall SomePackage
+
 
 pip also performs an automatic uninstall of an old version of a package
 before upgrading to a newer version.
@@ -316,33 +374,62 @@ Listing Packages
 
 To list installed packages:
 
-::
+.. tabs::
 
-  $ pip list
-  docutils (0.9.1)
-  Jinja2 (2.6)
-  Pygments (1.5)
-  Sphinx (1.1.2)
+   .. code-tab:: shell Unix/macOS
+
+      $ python -m pip list
+      docutils (0.9.1)
+      Jinja2 (2.6)
+      Pygments (1.5)
+      Sphinx (1.1.2)
+
+   .. code-tab:: shell Windows
+
+      C:\> py -m pip list
+      docutils (0.9.1)
+      Jinja2 (2.6)
+      Pygments (1.5)
+      Sphinx (1.1.2)
+
 
 To list outdated packages, and show the latest version available:
 
-::
+.. tabs::
 
-  $ pip list --outdated
-  docutils (Current: 0.9.1 Latest: 0.10)
-  Sphinx (Current: 1.1.2 Latest: 1.1.3)
+   .. code-tab:: shell Unix/macOS
 
+      $ python -m pip list --outdated
+      docutils (Current: 0.9.1 Latest: 0.10)
+      Sphinx (Current: 1.1.2 Latest: 1.1.3)
+
+   .. code-tab:: shell Windows
+
+      C:\> py -m pip list --outdated
+      docutils (Current: 0.9.1 Latest: 0.10)
+      Sphinx (Current: 1.1.2 Latest: 1.1.3)
 
 To show details about an installed package:
 
-::
+.. tabs::
 
-  $ pip show sphinx
-  ---
-  Name: Sphinx
-  Version: 1.1.3
-  Location: /my/env/lib/pythonx.x/site-packages
-  Requires: Pygments, Jinja2, docutils
+   .. code-tab:: shell Unix/macOS
+
+      $ python -m pip show sphinx
+      ---
+      Name: Sphinx
+      Version: 1.1.3
+      Location: /my/env/lib/pythonx.x/site-packages
+      Requires: Pygments, Jinja2, docutils
+
+   .. code-tab:: shell Windows
+
+      C:\> py -m pip show sphinx
+      ---
+      Name: Sphinx
+      Version: 1.1.3
+      Location: /my/env/lib/pythonx.x/site-packages
+      Requires: Pygments, Jinja2, docutils
 
 
 For more information and examples, see the :ref:`pip list` and :ref:`pip show`
@@ -353,9 +440,17 @@ Searching for Packages
 ======================
 
 pip can search `PyPI`_ for packages using the ``pip search``
-command::
+command:
 
-    $ pip search "query"
+.. tabs::
+
+   .. code-tab:: shell Unix/macOS
+
+      $ python -m pip search "query"
+
+   .. code-tab:: shell Windows
+
+      C:\> py -m pip search "query"
 
 The query will be used to search the names and summaries of all
 packages.
@@ -384,7 +479,7 @@ all users) configuration:
 
 * On Unix the default configuration file is: :file:`$HOME/.config/pip/pip.conf`
   which respects the ``XDG_CONFIG_HOME`` environment variable.
-* On macOS the configuration file is
+* On macOSOS the configuration file is
   :file:`$HOME/Library/Application Support/pip/pip.conf`
   if directory ``$HOME/Library/Application Support/pip`` exists
   else :file:`$HOME/.config/pip/pip.conf`.
@@ -393,7 +488,7 @@ all users) configuration:
 There are also a legacy per-user configuration file which is also respected,
 these are located at:
 
-* On Unix and macOS the configuration file is: :file:`$HOME/.pip/pip.conf`
+* On Unix and macOSOS the configuration file is: :file:`$HOME/.pip/pip.conf`
 * On Windows the configuration file is: :file:`%HOME%\\pip\\pip.ini`
 
 You can set a custom path location for this config file using the environment
@@ -401,7 +496,7 @@ variable ``PIP_CONFIG_FILE``.
 
 **Inside a virtualenv**:
 
-* On Unix and macOS the file is :file:`$VIRTUAL_ENV/pip.conf`
+* On Unix and macOSOS the file is :file:`$VIRTUAL_ENV/pip.conf`
 * On Windows the file is: :file:`%VIRTUAL_ENV%\\pip.ini`
 
 **Global**:
@@ -410,7 +505,7 @@ variable ``PIP_CONFIG_FILE``.
   it may be in a "pip" subdirectory of any of the paths set in the
   environment variable ``XDG_CONFIG_DIRS`` (if it exists), for example
   :file:`/etc/xdg/pip/pip.conf`.
-* On macOS the file is: :file:`/Library/Application Support/pip/pip.conf`
+* On macOSOS the file is: :file:`/Library/Application Support/pip/pip.conf`
 * On Windows XP the file is:
   :file:`C:\\Documents and Settings\\All Users\\Application Data\\pip\\pip.ini`
 * On Windows 7 and later the file is hidden, but writeable at
@@ -515,22 +610,56 @@ pip's command line options can be set with environment variables using the
 format ``PIP_<UPPER_LONG_NAME>`` . Dashes (``-``) have to be replaced with
 underscores (``_``).
 
-For example, to set the default timeout::
+For example, to set the default timeout:
 
-    export PIP_DEFAULT_TIMEOUT=60
+.. tabs::
 
-This is the same as passing the option to pip directly::
+   .. code-tab:: shell Unix/macOS
 
-    pip --default-timeout=60 [...]
+      $ export PIP_DEFAULT_TIMEOUT=60
+
+   .. code-tab:: shell Windows
+
+      C:\> set PIP_DEFAULT_TIMEOUT=60
+
+This is the same as passing the option to pip directly:
+
+.. tabs::
+
+   .. code-tab:: shell Unix/macOS
+
+      $ python -m pip --default-timeout=60 [...]
+
+   .. code-tab:: shell Windows
+
+      C:\> py -m pip --default-timeout=60 [...]
 
 For command line options which can be repeated, use a space to separate
-multiple values. For example::
+multiple values. For example:
 
-    export PIP_FIND_LINKS="http://mirror1.example.com http://mirror2.example.com"
+.. tabs::
 
-is the same as calling::
+   .. code-tab:: shell Unix/macOS
 
-    pip install --find-links=http://mirror1.example.com --find-links=http://mirror2.example.com
+      $ export PIP_FIND_LINKS="http://mirror1.example.com http://mirror2.example.com"
+
+   .. code-tab:: shell Windows
+
+      C:\> set PIP_FIND_LINKS="http://mirror1.example.com http://mirror2.example.com"
+
+
+is the same as calling:
+
+.. tabs::
+
+   .. code-tab:: shell Unix/macOS
+
+      $ python -m pip install --find-links=http://mirror1.example.com --find-links=http://mirror2.example.com
+
+   .. code-tab:: shell Windows
+
+      C:\> py -m pip install --find-links=http://mirror1.example.com --find-links=http://mirror2.example.com
+
 
 Options that do not take a value, but can be repeated (such as ``--verbose``)
 can be specified using the number of repetitions, so::
@@ -573,15 +702,15 @@ pip comes with support for command line completion in bash, zsh and fish.
 
 To setup for bash::
 
-    $ pip completion --bash >> ~/.profile
+    $ python -m pip completion --bash >> ~/.profile
 
 To setup for zsh::
 
-    $ pip completion --zsh >> ~/.zprofile
+    $ python -m pip completion --zsh >> ~/.zprofile
 
 To setup for fish::
 
-$ pip completion --fish > ~/.config/fish/completions/pip.fish
+    $ python -m pip completion --fish > ~/.config/fish/completions/pip.fish
 
 Alternatively, you can use the result of the ``completion`` command directly
 with the eval function of your shell, e.g. by adding the following to your
@@ -600,24 +729,47 @@ Installing from local packages
 In some cases, you may want to install from local packages only, with no traffic
 to PyPI.
 
-First, download the archives that fulfill your requirements::
+First, download the archives that fulfill your requirements:
 
-$ pip download --destination-directory DIR -r requirements.txt
+.. tabs::
+
+   .. code-tab:: shell Unix/macOS
+
+      $ python -m pip download --destination-directory DIR -r requirements.txt
+
+   .. code-tab:: shell Windows
+
+      C:\> py -m pip download --destination-directory DIR -r requirements.txt
 
 
 Note that ``pip download`` will look in your wheel cache first, before
 trying to download from PyPI.  If you've never installed your requirements
 before, you won't have a wheel cache for those items.  In that case, if some of
 your requirements don't come as wheels from PyPI, and you want wheels, then run
-this instead::
+this instead:
 
-$ pip wheel --wheel-dir DIR -r requirements.txt
+.. tabs::
 
+   .. code-tab:: shell Unix/macOS
+
+      $ python -m pip wheel --wheel-dir DIR -r requirements.txt
+
+   .. code-tab:: shell Windows
+
+      C:\> py -m pip wheel --wheel-dir DIR -r requirements.txt
 
 Then, to install from local only, you'll be using :ref:`--find-links
-<install_--find-links>` and :ref:`--no-index <install_--no-index>` like so::
+<install_--find-links>` and :ref:`--no-index <install_--no-index>` like so:
 
-$ pip install --no-index --find-links=DIR -r requirements.txt
+.. tabs::
+
+   .. code-tab:: shell Unix/macOS
+
+      $ python -m pip install --no-index --find-links=DIR -r requirements.txt
+
+   .. code-tab:: shell Windows
+
+      C:\> -m pip install --no-index --find-links=DIR -r requirements.txt
 
 
 "Only if needed" Recursive Upgrade
@@ -636,10 +788,20 @@ The default strategy is ``only-if-needed``. This was changed in pip 10.0 due to
 the breaking nature of ``eager`` when upgrading conflicting dependencies.
 
 As an historic note, an earlier "fix" for getting the ``only-if-needed``
-behaviour was::
+behaviour was:
 
-  pip install --upgrade --no-deps SomePackage
-  pip install SomePackage
+.. tabs::
+
+   .. code-tab:: shell Unix/macOS
+
+      $ python -m pip install --upgrade --no-deps SomePackage
+      $ python -m pip install SomePackage
+
+   .. code-tab:: shell Windows
+
+      C:\> py -m pip install --upgrade --no-deps SomePackage
+      C:\> py -m pip install SomePackage
+
 
 A proposal for an ``upgrade-all`` command is being considered as a safer
 alternative to the behaviour of eager upgrading.
@@ -662,11 +824,19 @@ Moreover, the "user scheme" can be customized by setting the
 ``site.USER_BASE``.
 
 To install "SomePackage" into an environment with site.USER_BASE customized to
-'/myappenv', do the following::
+'/myappenv', do the following:
 
-    export PYTHONUSERBASE=/myappenv
-    pip install --user SomePackage
+.. tabs::
 
+   .. code-tab:: shell Unix/macOS
+
+      $ export PYTHONUSERBASE=/myappenv
+      $ python -m pip install --user SomePackage
+
+   .. code-tab:: shell Windows
+
+      C:\> set PYTHONUSERBASE=c:/myappenv
+      C:\> py -m pip install --user SomePackage
 
 ``pip install --user`` follows four rules:
 
@@ -689,54 +859,105 @@ To install "SomePackage" into an environment with site.USER_BASE customized to
 To make the rules clearer, here are some examples:
 
 
-From within a ``--no-site-packages`` virtualenv (i.e. the default kind)::
+From within a ``--no-site-packages`` virtualenv (i.e. the default kind):
 
-  $ pip install --user SomePackage
-  Can not perform a '--user' install. User site-packages are not visible in this virtualenv.
+.. tabs::
+
+   .. code-tab:: shell Unix/macOS
+
+      $ python -m pip install --user SomePackage
+      Can not perform a '--user' install. User site-packages are not visible in this virtualenv.
+
+   .. code-tab:: shell Windows
+
+      C:\> py -m pip install --user SomePackage
+      Can not perform a '--user' install. User site-packages are not visible in this virtualenv.
 
 
 From within a ``--system-site-packages`` virtualenv where ``SomePackage==0.3``
-is already installed in the virtualenv::
+is already installed in the virtualenv:
 
-  $ pip install --user SomePackage==0.4
-  Will not install to the user site because it will lack sys.path precedence
+.. tabs::
 
+   .. code-tab:: shell Unix/macOS
 
-From within a real python, where ``SomePackage`` is *not* installed globally::
+      $ python -m pip install --user SomePackage==0.4
+      Will not install to the user site because it will lack sys.path precedence
 
-  $ pip install --user SomePackage
-  [...]
-  Successfully installed SomePackage
+   .. code-tab:: shell Windows
 
+      C:\> py -m pip install --user SomePackage==0.4
+      Will not install to the user site because it will lack sys.path precedence
+
+From within a real python, where ``SomePackage`` is *not* installed globally:
+
+.. tabs::
+
+   .. code-tab:: shell Unix/macOS
+
+      $ python -m pip install --user SomePackage
+      [...]
+      Successfully installed SomePackage
+
+   .. code-tab:: shell Windows
+
+      C:\> py -m pip install --user SomePackage
+      [...]
+      Successfully installed SomePackage
 
 From within a real python, where ``SomePackage`` *is* installed globally, but
-is *not* the latest version::
+is *not* the latest version:
 
-  $ pip install --user SomePackage
-  [...]
-  Requirement already satisfied (use --upgrade to upgrade)
+.. tabs::
 
-  $ pip install --user --upgrade SomePackage
-  [...]
-  Successfully installed SomePackage
+   .. code-tab:: shell Unix/macOS
 
+      $ python -m pip install --user SomePackage
+      [...]
+      Requirement already satisfied (use --upgrade to upgrade)
+      $ python -m pip install --user --upgrade SomePackage
+      [...]
+      Successfully installed SomePackage
+
+   .. code-tab:: shell Windows
+
+      C:\> py -m pip install --user SomePackage
+      [...]
+      Requirement already satisfied (use --upgrade to upgrade)
+      C:\> py -m pip install --user --upgrade SomePackage
+      [...]
+      Successfully installed SomePackage
 
 From within a real python, where ``SomePackage`` *is* installed globally, and
-is the latest version::
+is the latest version:
 
-  $ pip install --user SomePackage
-  [...]
-  Requirement already satisfied (use --upgrade to upgrade)
+.. tabs::
 
-  $ pip install --user --upgrade SomePackage
-  [...]
-  Requirement already up-to-date: SomePackage
+   .. code-tab:: shell Unix/macOS
 
-  # force the install
-  $ pip install --user --ignore-installed SomePackage
-  [...]
-  Successfully installed SomePackage
+      $ python -m pip install --user SomePackage
+      [...]
+      Requirement already satisfied (use --upgrade to upgrade)
+      $ python -m pip install --user --upgrade SomePackage
+      [...]
+      Requirement already up-to-date: SomePackage
+      # force the install
+      $ python -m pip install --user --ignore-installed SomePackage
+      [...]
+      Successfully installed SomePackage
 
+   .. code-tab:: shell Windows
+
+      C:\> py -m pip install --user SomePackage
+      [...]
+      Requirement already satisfied (use --upgrade to upgrade)
+      C:\> py -m pip install --user --upgrade SomePackage
+      [...]
+      Requirement already up-to-date: SomePackage
+      # force the install
+      C:\> py -m pip install --user --ignore-installed SomePackage
+      [...]
+      Successfully installed SomePackage
 
 .. _`Repeatability`:
 
@@ -801,7 +1022,7 @@ index servers are unavailable and avoids time-consuming recompilation. Create
 an archive like this::
 
     $ tempdir=$(mktemp -d /tmp/wheelhouse-XXXXX)
-    $ pip wheel -r requirements.txt --wheel-dir=$tempdir
+    $ python -m pip wheel -r requirements.txt --wheel-dir=$tempdir
     $ cwd=`pwd`
     $ (cd "$tempdir"; tar -cjvf "$cwd/bundled.tar.bz2" *)
 
@@ -809,10 +1030,10 @@ You can then install from the archive like this::
 
     $ tempdir=$(mktemp -d /tmp/wheelhouse-XXXXX)
     $ (cd $tempdir; tar -xvf /path/to/bundled.tar.bz2)
-    $ pip install --force-reinstall --ignore-installed --upgrade --no-index --no-deps $tempdir/*
+    $ python -m pip install --force-reinstall --ignore-installed --upgrade --no-index --no-deps $tempdir/*
 
 Note that compiled packages are typically OS- and architecture-specific, so
-these archives are not necessarily portable across machines.
+these archives are not necessarily portable across macOShines.
 
 Hash-checking mode can be used along with this method to ensure that future
 archives are built with identical packages.
@@ -842,10 +1063,18 @@ Understanding your error message
 When you get a ``ResolutionImpossible`` error, you might see something
 like this:
 
-.. code-block:: console
+.. tabs::
 
-   $ pip install package_coffee==0.44.1 package_tea==4.3.0
-   ...
+   .. code-tab:: shell Unix/macOS
+
+      $ python -m pip install package_coffee==0.44.1 package_tea==4.3.0
+
+   .. code-tab:: shell Windows
+
+      C:\> py -m pip install package_coffee==0.44.1 package_tea==4.3.0
+
+::
+
    Due to conflicting dependencies pip cannot install
    package_coffee and package_tea:
    - package_coffee depends on package_water<3.0.0,>=2.4.2
@@ -936,7 +1165,7 @@ the same version of ``package_water``, you might consider:
    (e.g. ``pip install "package_coffee>0.44.*" "package_tea>4.0.0"``)
 -  Asking pip to install *any* version of ``package_coffee`` and ``package_tea``
    by removing the version specifiers altogether (e.g.
-   ``pip install package_coffee package_tea``)
+   ``python -m pip install package_coffee package_tea``)
 
 In the second case, pip will automatically find a version of both
 ``package_coffee`` and ``package_tea`` that depend on the same version of
@@ -946,9 +1175,17 @@ In the second case, pip will automatically find a version of both
 -  ``package_tea 4.3.0`` which *also* depends on ``package_water 2.6.1``
 
 If you want to prioritize one package over another, you can add version
-specifiers to *only* the more important package::
+specifiers to *only* the more important package:
 
-    pip install package_coffee==0.44.1b0 package_tea
+.. tabs::
+
+   .. code-tab:: shell Unix/macOS
+
+      $ python -m pip install package_coffee==0.44.1b0 package_tea
+
+   .. code-tab:: shell Windows
+
+      C:\> py -m pip install package_coffee==0.44.1b0 package_tea
 
 This will result in:
 
