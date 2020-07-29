@@ -39,6 +39,7 @@ class ListCommand(IndexGroupCommand):
     Packages are listed in a case-insensitive sorted order.
     """
 
+    ignore_require_venv = True
     usage = """
       %prog [options]"""
 
