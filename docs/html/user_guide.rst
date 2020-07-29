@@ -1023,4 +1023,222 @@ of ability. Some examples that you could consider include:
 * ``distlib`` - Packaging and distribution utilities (including functions for
   interacting with PyPI).
 
+.. _`Resolver changes 2020`:
+
+Changes to the pip dependency resolver in 20.2 (2020)
+=====================================================
+
+pip 20.1 included an alpha version of the new resolver (hidden behind
+an optional ``--unstable-feature=resolver`` flag). pip 20.2 includes a
+robust beta of the new resolver (hidden behind an optional
+``--use-feature=2020-resolver`` flag) that we encourage you to
+test. We will continue to improve the pip dependency resolver in
+response to testers' feedback. Please give us feedback through the
+`resolver testing survey`_. This will help us prepare to release pip
+20.3, with the new resolver on by default, in October.
+
+Watch out for
+-------------
+
+The big change in this release is to the pip dependency resolver
+within pip.
+
+Computers need to know the right order to install pieces of software
+("to install `x`, you need to install `y` first"). So, when Python
+programmers share software as packages, they have to precisely describe
+those installation prerequisites, and pip needs to navigate tricky
+situations where it's getting conflicting instructions. This new
+dependency resolver will make pip better at handling that tricky
+logic, and make pip easier for you to use and troubleshoot.
+
+The most significant changes to the resolver are:
+
+* It will **reduce inconsistency**: it will *no longer install a
+  combination of packages that is mutually inconsistent*. In older
+  versions of pip, it is possible for pip to install a package which
+  does not satisfy the declared requirements of another installed
+  package. For example, in pip 20.0, ``pip install "six<1.12"
+  "virtualenv==20.0.2"`` does the wrong thing, “successfully” installing
+  ``six==1.11``, even though ``virtualenv==20.0.2`` requires
+  ``six>=1.12.0,<2`` (`defined here
+  <https://github.com/pypa/virtualenv/blob/20.0.2/setup.cfg#L42-L50>`__).
+  The new resolver, instead, outright rejects installing anything if it
+  gets that input.
+
+* It will be **stricter** - if you ask pip to install two packages with
+  incompatible requirements, it will refuse (rather than installing a
+  broken combination, like it did in previous versions).
+
+So, if you have been using workarounds to force pip to deal with
+incompatible or inconsistent requirements combinations, now's a good
+time to fix the underlying problem in the packages, because pip will
+be stricter from here on out.
+
+This also means that, when you run a ``pip install`` command, pip only
+considers the packages you are installing in that command, and may
+break already-installed packages. It will not guarantee that your
+environment will be consistent all the time. If you ``pip install x``
+and then ``pip install y``, it's possible that the version of ``y``
+you get will be different than it would be if you had run ``pip
+install x y`` in a single command. We would like your thoughts on what
+pip's behavior should be; please answer `our survey on upgrades that
+create conflicts`_.
+
+We are also changing our support for :ref:`Constraints Files`:
+
+* Unnamed requirements are not allowed as constraints (see :issue:`6628` and :issue:`8210`)
+* Links are not allowed as constraints (see :issue:`8253`)
+* Constraints cannot have extras (see :issue:`6628`)
+
+
+How to test
+-----------
+
+1. **Install pip 20.2** with ``python -m pip install --upgrade pip``.
+
+2. **Validate your current environment** by running ``pip check``. This
+   will report if you have any inconsistencies in your set of installed
+   packages. Having a clean installation will make it much less likely
+   that you will hit issues when the new resolver is released (and may
+   address hidden problems in your current environment!). If you run
+   ``pip check`` and run into stuff you can’t figure out, please `ask
+   for help in our issue tracker or chat <https://pip.pypa.io/>`__.
+
+3. **Test the new version of pip** (see below). To test the new
+   resolver, use the ``--use-feature=2020-resolver`` flag, as in:
+
+   ``pip install example --use-feature=2020-resolver``
+
+   The more feedback we can get, the more we can make sure that the
+   final release is solid. (Only try the new resolver **in a
+   non-production environment**, though - it isn't ready for you to
+   rely on in production!)
+
+   While we have tried to make sure that pip’s test suite covers as
+   many cases as we can, we are very aware that there are people using
+   pip with many different workflows and build processes, and we will
+   not be able to cover all of those without your help.
+
+   -  If you use pip to install your software, try out the new resolver
+      and let us know if it works for you with ``pip install``. Try:
+
+        - installing several packages simultaneously
+        - re-creating an environment using a ``requirements.txt`` file
+        - using ``pip install --force-reinstall`` to check whether
+          it does what you think it should
+        - using constraints files
+
+   -  If you have a build pipeline that depends on pip installing your
+      dependencies for you, check that the new resolver does what you
+      need.
+   -  Run your project’s CI (test suite, build process, etc.) using the
+      new resolver, and let us know of any issues.
+   -  If you have encountered resolver issues with pip in the past,
+      check whether the new resolver fixes them. Also, let us know if
+      the new resolver has issues with any workarounds you put in to
+      address the current resolver’s limitations. We’ll need to ensure
+      that people can transition off such workarounds smoothly.
+   -  If you develop or support a tool that wraps pip or uses it to
+      deliver part of your functionality, please test your integration
+      with pip 20.2.
+
+4. **Please report bugs** through the `resolver testing survey`_.
+
+Setups we might need more testing on
+------------------------------------
+
+*    Windows, including Windows Subsystem for Linux (WSL)
+
+*    Macintosh
+
+*    Debian, Fedora, Red Hat, CentOS, Mint, Arch, Raspbian, Gentoo
+
+*    non-Latin localized filesystems and OSes, such as Japanese, Chinese, and Korean, and right-to-left such as Hebrew, Urdu, and Arabic
+
+*    Multi-user installations
+
+*    Requirements files with 100+ packages
+
+*    An installation workflow that involves multiple requirements files
+
+*    Requirements files that include hashes (:ref:`hash-checking mode`)
+     or pinned dependencies (perhaps as output from ``pip-compile`` within
+     ``pip-tools``)
+
+*    Using :ref:`Constraints Files`
+
+*    Continuous integration/continuous deployment setups
+
+*    Installing from any kind of version control systems (i.e., Git, Subversion, Mercurial, or CVS), per :ref:`VCS Support`
+
+*    Installing from source code held in local directories
+
+*    Using the most recent versions of Python 3.6, 3.7, 3.8, and 3.9
+
+*    PyPy
+
+*    Customized terminals (where you have modified how error messages and standard output display)
+
+Examples to try
+^^^^^^^^^^^^^^^
+
+Install:
+
+* `tensorflow`_
+* ``hacking``
+* ``pycodestyle``
+* ``pandas``
+* ``tablib``
+* ``elasticsearch`` and ``requests`` together
+* ``six`` and ``cherrypy`` together
+* ``pip install flake8-import-order==0.17.1 flake8==3.5.0 --use-feature=2020-resolver``
+* ``pip install tornado==5.0 sprockets.http==1.5.0 --use-feature=2020-resolver``
+
+Try:
+
+* ``pip install``
+* ``pip uninstall``
+* ``pip check``
+* ``pip cache``
+
+
+Tell us about
+-------------
+
+Specific things we'd love to get feedback on:
+
+*    Cases where the new resolver produces the wrong result,
+     obviously. We hope there won't be too many of these, but we'd like
+     to trap such bugs now.
+
+*    Cases where the resolver produced an error when you believe it
+     should have been able to work out what to do.
+
+*    Cases where the resolver gives an error because there's a problem
+     with your requirements, but you need better information to work out
+     what's wrong.
+
+*    If you have workarounds to address issues with the current resolver,
+     does the new resolver let you remove those workarounds? Tell us!
+
+Please let us know through the `resolver testing survey`_.
+
+Context and followup
+--------------------
+
+As discussed in `our announcement on the PSF blog`_, the pip team are
+in the process of developing a new "dependency resolver" (the part of
+pip that works out what to install based on your requirements). Since
+this work will not change user-visible behavior described in the pip
+documentation, this change is not covered by the :ref:`Deprecation
+Policy`.
+
+We're tracking our rollout in :issue:`6536` and you can watch for
+announcements on the `low-traffic packaging announcements list`_.
+
 .. _freeze: https://pip.pypa.io/en/latest/reference/pip_freeze/
+.. _resolver testing survey: https://tools.simplysecure.org/survey/index.php?r=survey/index&sid=989272&lang=en
+.. _our announcement on the PSF blog: http://pyfound.blogspot.com/2020/03/new-pip-resolver-to-roll-out-this-year.html
+.. _tensorflow: https://pypi.org/project/tensorflow/
+.. _low-traffic packaging announcements list: https://mail.python.org/mailman3/lists/pypi-announce.python.org/
+.. _our survey on upgrades that create conflicts: https://docs.google.com/forms/d/e/1FAIpQLSeBkbhuIlSofXqCyhi3kGkLmtrpPOEBwr6iJA6SzHdxWKfqdA/viewform
