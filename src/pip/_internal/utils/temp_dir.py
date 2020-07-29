@@ -188,6 +188,10 @@ class TempDirectory(object):
         logger.debug("Created temporary directory: %s", path)
         return path
 
+    def _handle_cleanup_error(self, func, path, excinfo):
+        # type: (Any, str, Any) -> Any
+        logger.warning("Failed to clean up %s (%s)", path, excinfo[1])
+
     def cleanup(self):
         # type: () -> None
         """Remove the temporary directory created and reset state
@@ -196,7 +200,7 @@ class TempDirectory(object):
         if os.path.exists(self._path):
             # Make sure to pass unicode on Python 2 to make the contents also
             # use unicode, ensuring non-ASCII names and can be represented.
-            rmtree(ensure_text(self._path))
+            rmtree(ensure_text(self._path), onerror=self._handle_cleanup_error)
 
 
 class AdjacentTempDirectory(TempDirectory):

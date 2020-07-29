@@ -6,6 +6,7 @@ from __future__ import absolute_import
 
 import contextlib
 import errno
+import functools
 import getpass
 import hashlib
 import io
@@ -133,13 +134,13 @@ def get_prog():
 
 # Retry every half second for up to 3 seconds
 @retry(stop_max_delay=3000, wait_fixed=500)
-def rmtree(dir, ignore_errors=False):
-    # type: (Text, bool) -> None
-    shutil.rmtree(dir, ignore_errors=ignore_errors,
-                  onerror=rmtree_errorhandler)
+def rmtree(dir, ignore_errors=False, onerror=None):
+    # type: (Text, bool, Optional[Callable[[Any, str, Any], Any]]) -> None
+    error_handler = functools.partial(rmtree_errorhandler, onerror=onerror)
+    shutil.rmtree(dir, ignore_errors=ignore_errors, onerror=error_handler)
 
 
-def rmtree_errorhandler(func, path, exc_info):
+def rmtree_errorhandler(func, path, exc_info, onerror=None):
     """On Windows, the files in .svn are read-only, so when rmtree() tries to
     remove them, an exception is thrown.  We catch that here, remove the
     read-only attribute, and hopefully continue without problems."""
@@ -152,9 +153,13 @@ def rmtree_errorhandler(func, path, exc_info):
     if has_attr_readonly:
         # convert to read/write
         os.chmod(path, stat.S_IWRITE)
-        # use the original function to repeat the operation
-        func(path)
+        # use the original function to repeat the operation, but skip this
+        # read-only check
+        func(path, onerror=onerror)
         return
+
+    if onerror:
+        onerror(func, path, exc_info)
     else:
         raise
 

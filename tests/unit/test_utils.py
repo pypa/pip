@@ -357,7 +357,7 @@ def test_rmtree_errorhandler_readonly_directory(tmpdir):
     # Make sure mock_func is called with the given path
     mock_func = Mock()
     rmtree_errorhandler(mock_func, path, None)
-    mock_func.assert_called_with(path)
+    mock_func.assert_called_with(path, onerror=None)
 
     # Make sure the path is now writable
     assert os.stat(path).st_mode & stat.S_IWRITE

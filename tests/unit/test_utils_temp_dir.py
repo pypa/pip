@@ -1,4 +1,5 @@
 import itertools
+import logging
 import os
 import stat
 import tempfile
@@ -61,6 +62,35 @@ def test_deletes_readonly_files():
         create_file(tmp_dir.path, "subfolder", "normal-file")
         create_file(tmp_dir.path, "subfolder", "readonly-file")
         readonly_file(tmp_dir.path, "subfolder", "readonly-file")
+
+
+@pytest.mark.skipif("sys.platform != 'win32'")
+def test_undeletable_files_warning_on_windows(caplog):
+    caplog.set_level(logging.WARNING)
+
+    def create_file(*args):
+        fpath = os.path.join(*args)
+        ensure_dir(os.path.dirname(fpath))
+        with open(fpath, "w") as f:
+            f.write("Holla!")
+
+    open_f = None
+    try:
+        with TempDirectory() as tmp_dir:
+            with open(os.path.join(tmp_dir.path, "normal-file"), "w") as f:
+                f.write("normal")
+
+            # Intentionally leave this file open so the temp directory cleanup
+            # triggers a warning on Windows.
+            open_path = os.path.join(tmp_dir.path, "open-file")
+            open_f = open(open_path, "w")
+            open_f.write("open")
+            open_f.flush()
+
+        assert "Failed to clean up {}".format(open_path) in caplog.text
+    finally:
+        if open_f:
+            open_f.close()
 
 
 def test_path_access_after_context_raises():
