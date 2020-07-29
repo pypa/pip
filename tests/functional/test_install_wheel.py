@@ -681,3 +681,21 @@ def test_correct_package_name_while_creating_wheel_bug(script, package_name):
     package = create_basic_wheel_for_package(script, package_name, '1.0')
     wheel_name = os.path.basename(package)
     assert wheel_name == 'simple_package-1.0-py2.py3-none-any.whl'
+
+
+@pytest.mark.parametrize("name", ["purelib", "abc"])
+def test_wheel_with_file_in_data_dir_has_reasonable_error(
+    script, tmpdir, name
+):
+    """Normally we expect entities in the .data directory to be in a
+    subdirectory, but if they are not then we should show a reasonable error
+    message that includes the path.
+    """
+    wheel_path = make_wheel(
+        "simple", "0.1.0", extra_data_files={name: "hello world"}
+    ).save_to_dir(tmpdir)
+
+    result = script.pip(
+        "install", "--no-index", str(wheel_path), expect_error=True
+    )
+    assert "simple-0.1.0.data/{}".format(name) in result.stderr
