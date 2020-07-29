@@ -9,6 +9,94 @@
 
 .. towncrier release notes start
 
+20.2 (2020-07-29)
+=================
+
+Deprecations and Removals
+-------------------------
+
+- Deprecate setup.py-based builds that do not generate an ``.egg-info`` directory. (`#6998 <https://github.com/pypa/pip/issues/6998>`_, `#8617 <https://github.com/pypa/pip/issues/8617>`_)
+- Disallow passing install-location-related arguments in ``--install-options``. (`#7309 <https://github.com/pypa/pip/issues/7309>`_)
+- Add deprecation warning for invalid requirements format "base>=1.0[extra]" (`#8288 <https://github.com/pypa/pip/issues/8288>`_)
+- Deprecate legacy setup.py install when building a wheel failed for source
+  distributions without pyproject.toml (`#8368 <https://github.com/pypa/pip/issues/8368>`_)
+- Deprecate -b/--build/--build-dir/--build-directory. Its current behaviour is confusing
+  and breaks in case different versions of the same distribution need to be built during
+  the resolution process. Using the TMPDIR/TEMP/TMP environment variable, possibly
+  combined with --no-clean covers known use cases. (`#8372 <https://github.com/pypa/pip/issues/8372>`_)
+- Remove undocumented and deprecated option ``--always-unzip`` (`#8408 <https://github.com/pypa/pip/issues/8408>`_)
+
+Features
+--------
+
+- Log debugging information about pip, in ``pip install --verbose``. (`#3166 <https://github.com/pypa/pip/issues/3166>`_)
+- Refine error messages to avoid showing Python tracebacks when an HTTP error occurs. (`#5380 <https://github.com/pypa/pip/issues/5380>`_)
+- Install wheel files directly instead of extracting them to a temp directory. (`#6030 <https://github.com/pypa/pip/issues/6030>`_)
+- Add a beta version of pip's next-generation dependency resolver.
+
+  Move pip's new resolver into beta, remove the
+  ``--unstable-feature=resolver`` flag, and enable the
+  ``--use-feature=2020-resolver`` flag. The new resolver is
+  significantly stricter and more consistent when it receives
+  incompatible instructions, and reduces support for certain kinds of
+  :ref:`Constraints Files`, so some workarounds and workflows may
+  break. More details about how to test and migrate, and how to report
+  issues, at :ref:`Resolver changes 2020` . Maintainers are preparing to
+  release pip 20.3, with the new resolver on by default, in October. (`#6536 <https://github.com/pypa/pip/issues/6536>`_)
+- Add a subcommand ``debug`` to ``pip config`` to list available configuration sources and the key-value pairs defined in them. (`#6741 <https://github.com/pypa/pip/issues/6741>`_)
+- Warn if index pages have unexpected content-type (`#6754 <https://github.com/pypa/pip/issues/6754>`_)
+- Allow specifying ``--prefer-binary`` option in a requirements file (`#7693 <https://github.com/pypa/pip/issues/7693>`_)
+- Generate PEP 376 REQUESTED metadata for user supplied requirements installed
+  by pip. (`#7811 <https://github.com/pypa/pip/issues/7811>`_)
+- Warn if package url is a vcs or an archive url with invalid scheme (`#8128 <https://github.com/pypa/pip/issues/8128>`_)
+- Parallelize network operations in ``pip list``. (`#8504 <https://github.com/pypa/pip/issues/8504>`_)
+- Allow the new resolver to obtain dependency information through wheels
+  lazily downloaded using HTTP range requests.  To enable this feature,
+  invoke ``pip`` with ``--use-feature=fast-deps``. (`#8588 <https://github.com/pypa/pip/issues/8588>`_)
+- Support ``--use-feature`` in requirements files (`#8601 <https://github.com/pypa/pip/issues/8601>`_)
+
+Bug Fixes
+---------
+
+- Use canonical package names while looking up already installed packages. (`#5021 <https://github.com/pypa/pip/issues/5021>`_)
+- Fix normalizing path on Windows when installing package on another logical disk. (`#7625 <https://github.com/pypa/pip/issues/7625>`_)
+- The VCS commands run by pip as subprocesses don't merge stdout and stderr anymore, improving the output parsing by subsequent commands. (`#7968 <https://github.com/pypa/pip/issues/7968>`_)
+- Correctly treat non-ASCII entry point declarations in wheels so they can be
+  installed on Windows. (`#8342 <https://github.com/pypa/pip/issues/8342>`_)
+- Update author email in config and tests to reflect decommissioning of pypa-dev list. (`#8454 <https://github.com/pypa/pip/issues/8454>`_)
+- Headers provided by wheels in .data directories are now correctly installed
+  into the user-provided locations, such as ``--prefix``, instead of the virtual
+  environment pip is running in. (`#8521 <https://github.com/pypa/pip/issues/8521>`_)
+
+Vendored Libraries
+------------------
+
+- Vendored htmlib5 no longer imports deprecated xml.etree.cElementTree on Python 3.
+- Upgrade appdirs to 1.4.4
+- Upgrade certifi to 2020.6.20
+- Upgrade distlib to 0.3.1
+- Upgrade html5lib to 1.1
+- Upgrade idna to 2.10
+- Upgrade packaging to 20.4
+- Upgrade requests to 2.24.0
+- Upgrade six to 1.15.0
+- Upgrade toml to 0.10.1
+- Upgrade urllib3 to 1.25.9
+
+Improved Documentation
+----------------------
+
+- Add ``--no-input`` option to pip docs (`#7688 <https://github.com/pypa/pip/issues/7688>`_)
+- List of options supported in requirements file are extracted from source of truth,
+  instead of being maintained manually. (`#7908 <https://github.com/pypa/pip/issues/7908>`_)
+- Fix pip config docstring so that the subcommands render correctly in the docs (`#8072 <https://github.com/pypa/pip/issues/8072>`_)
+- replace links to the old pypa-dev mailing list with https://mail.python.org/mailman3/lists/distutils-sig.python.org/ (`#8353 <https://github.com/pypa/pip/issues/8353>`_)
+- Fix example for defining multiple values for options which support them (`#8373 <https://github.com/pypa/pip/issues/8373>`_)
+- Add documentation that helps the user fix dependency conflicts (`#8459 <https://github.com/pypa/pip/issues/8459>`_)
+- Add feature flags to docs (`#8512 <https://github.com/pypa/pip/issues/8512>`_)
+- Document how to install package extras from git branch and source distributions. (`#8576 <https://github.com/pypa/pip/issues/8576>`_)
+
+
 20.2b1 (2020-05-21)
 ===================
 
