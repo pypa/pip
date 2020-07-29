@@ -8,7 +8,7 @@ import os
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE
 
 from pip._internal.cli.progress_bars import DownloadProgressProvider
-from pip._internal.exceptions import NetworkConnectionError
+from pip._internal.exceptions import HashMismatch, NetworkConnectionError
 from pip._internal.models.index import PyPI
 from pip._internal.network.cache import is_from_cache
 from pip._internal.network.utils import (
@@ -21,15 +21,19 @@ from pip._internal.utils.misc import (
     redact_auth_from_url,
     splitext,
 )
+from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Iterable, Optional
+    from typing import Iterable, Optional, Tuple
 
     from pip._vendor.requests.models import Response
 
     from pip._internal.models.link import Link
     from pip._internal.network.session import PipSession
+    from pip._internal.utils.hashes import Hashes
+
+    File = Tuple[str, Optional[str]]
 
 logger = logging.getLogger(__name__)
 
@@ -133,25 +137,31 @@ def _get_http_response_filename(resp, link):
     return filename
 
 
-def _http_get_download(session, link):
-    # type: (PipSession, Link) -> Response
-    target_url = link.url.split('#', 1)[0]
-    resp = session.get(target_url, headers=HEADERS, stream=True)
-    raise_for_status(resp)
-    return resp
+def check_download_dir(link, location, hashes):
+    # type: (Link, str, Optional[Hashes]) -> Optional[str]
+    """Check location for previously downloaded file with correct hash.
 
+    If a correct file is found return its path else None.
+    """
+    download_path = os.path.join(location, link.filename)
 
-class Download(object):
-    def __init__(
-        self,
-        response,  # type: Response
-        filename,  # type: str
-        chunks,  # type: Iterable[bytes]
-    ):
-        # type: (...) -> None
-        self.response = response
-        self.filename = filename
-        self.chunks = chunks
+    if not os.path.exists(download_path):
+        return None
+
+    # If already downloaded, does its hash match?
+    logger.info('File was already downloaded %s', download_path)
+    if hashes:
+        try:
+            hashes.check_against_path(download_path)
+        except HashMismatch:
+            logger.warning(
+                'Previously-downloaded file %s has bad hash. '
+                'Re-downloading.',
+                download_path
+            )
+            os.unlink(download_path)
+            return None
+    return download_path
 
 
 class Downloader(object):
@@ -163,11 +173,14 @@ class Downloader(object):
         # type: (...) -> None
         self._session = session
         self._progress_bar = progress_bar
+        self._tmpdir = TempDirectory(kind='unpack', globally_managed=True)
 
-    def __call__(self, link):
-        # type: (Link) -> Download
+    def _download(self, link, location):
+        # type: (Link, str) -> File
+        url, sep, checksum = link.url.partition('#')
+        response = self._session.get(url, headers=HEADERS, stream=True)
         try:
-            resp = _http_get_download(self._session, link)
+            raise_for_status(response)
         except NetworkConnectionError as e:
             assert e.response is not None
             logger.critical(
@@ -175,8 +188,25 @@ class Downloader(object):
             )
             raise
 
-        return Download(
-            resp,
-            _get_http_response_filename(resp, link),
-            _prepare_download(resp, link, self._progress_bar),
-        )
+        chunks = _prepare_download(response, link, self._progress_bar)
+        filename = _get_http_response_filename(response, link)
+        file_path = os.path.join(location, filename)
+
+        with open(file_path, 'wb') as content_file:
+            for chunk in chunks:
+                content_file.write(chunk)
+        return file_path, response.headers.get('content-type', '')
+
+    def __call__(self, link, location=None, hashes=None):
+        # type: (Link, Optional[str], Optional[Hashes]) -> File
+        if location is None:
+            location = self._tmpdir.path
+        file_path = check_download_dir(link, location, hashes)
+        if file_path is not None:
+            content_type = mimetypes.guess_type(file_path)[0]
+            return file_path, content_type
+
+        file_path, content_type = self._download(link, location)
+        if hashes:
+            hashes.check_against_path(file_path)
+        return file_path, content_type

@@ -17,13 +17,13 @@ from pip._internal.distributions import (
 from pip._internal.distributions.installed import InstalledDistribution
 from pip._internal.exceptions import (
     DirectoryUrlHashUnsupported,
-    HashMismatch,
     HashUnpinned,
     InstallationError,
     NetworkConnectionError,
     PreviousBuildDirError,
     VcsHashUnsupported,
 )
+from pip._internal.network.download import check_download_dir
 from pip._internal.utils.filesystem import copy2_fixed
 from pip._internal.utils.hashes import MissingHashes
 from pip._internal.utils.logging import indent_log
@@ -33,15 +33,12 @@ from pip._internal.utils.misc import (
     path_to_display,
     rmtree,
 )
-from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.unpacking import unpack_file
 from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
-    from typing import (
-        Callable, List, Optional, Tuple,
-    )
+    from typing import Callable, List, Optional
 
     from mypy_extensions import TypedDict
 
@@ -101,7 +98,7 @@ def unpack_vcs_link(link, location):
 
 class File(object):
     def __init__(self, path, content_type):
-        # type: (str, str) -> None
+        # type: (str, Optional[str]) -> None
         self.path = path
         self.content_type = content_type
 
@@ -113,11 +110,10 @@ def get_http_url(
     hashes=None,  # type: Optional[Hashes]
 ):
     # type: (...) -> File
-    temp_dir = TempDirectory(kind="unpack", globally_managed=True)
     # If a download dir is specified, is the file already downloaded there?
     already_downloaded_path = None
     if download_dir:
-        already_downloaded_path = _check_download_dir(
+        already_downloaded_path = check_download_dir(
             link, download_dir, hashes
         )
 
@@ -126,9 +122,7 @@ def get_http_url(
         content_type = mimetypes.guess_type(from_path)[0]
     else:
         # let's download to a tmp dir
-        from_path, content_type = _download_http_url(
-            link, downloader, temp_dir.path, hashes
-        )
+        from_path, content_type = downloader(link, hashes=hashes)
 
     return File(from_path, content_type)
 
@@ -197,7 +191,7 @@ def get_file_url(
     # If a download dir is specified, is the file already there and valid?
     already_downloaded_path = None
     if download_dir:
-        already_downloaded_path = _check_download_dir(
+        already_downloaded_path = check_download_dir(
             link, download_dir, hashes
         )
 
@@ -265,53 +259,6 @@ def unpack_url(
         unpack_file(file.path, location, file.content_type)
 
     return file
-
-
-def _download_http_url(
-    link,  # type: Link
-    downloader,  # type: Downloader
-    temp_dir,  # type: str
-    hashes,  # type: Optional[Hashes]
-):
-    # type: (...) -> Tuple[str, str]
-    """Download link url into temp_dir using provided session"""
-    download = downloader(link)
-
-    file_path = os.path.join(temp_dir, download.filename)
-    with open(file_path, 'wb') as content_file:
-        for chunk in download.chunks:
-            content_file.write(chunk)
-
-    if hashes:
-        hashes.check_against_path(file_path)
-
-    return file_path, download.response.headers.get('content-type', '')
-
-
-def _check_download_dir(link, download_dir, hashes):
-    # type: (Link, str, Optional[Hashes]) -> Optional[str]
-    """ Check download_dir for previously downloaded file with correct hash
-        If a correct file is found return its path else None
-    """
-    download_path = os.path.join(download_dir, link.filename)
-
-    if not os.path.exists(download_path):
-        return None
-
-    # If already downloaded, does its hash match?
-    logger.info('File was already downloaded %s', download_path)
-    if hashes:
-        try:
-            hashes.check_against_path(download_path)
-        except HashMismatch:
-            logger.warning(
-                'Previously-downloaded file %s has bad hash. '
-                'Re-downloading.',
-                download_path
-            )
-            os.unlink(download_path)
-            return None
-    return download_path
 
 
 class RequirementPreparer(object):
