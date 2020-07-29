@@ -699,3 +699,18 @@ def test_wheel_with_file_in_data_dir_has_reasonable_error(
         "install", "--no-index", str(wheel_path), expect_error=True
     )
     assert "simple-0.1.0.data/{}".format(name) in result.stderr
+
+
+def test_wheel_with_unknown_subdir_in_data_dir_has_reasonable_error(
+    script, tmpdir
+):
+    wheel_path = make_wheel(
+        "simple",
+        "0.1.0",
+        extra_data_files={"unknown/hello.txt": "hello world"}
+    ).save_to_dir(tmpdir)
+
+    result = script.pip(
+        "install", "--no-index", str(wheel_path), expect_error=True
+    )
+    assert "simple-0.1.0.data/unknown/hello.txt" in result.stderr
