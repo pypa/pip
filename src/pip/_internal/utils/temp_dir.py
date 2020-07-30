@@ -10,6 +10,7 @@ from contextlib import contextmanager
 from pip._vendor.contextlib2 import ExitStack
 from pip._vendor.six import ensure_text
 
+from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import enum, rmtree
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -193,10 +194,17 @@ class TempDirectory(object):
         """Remove the temporary directory created and reset state
         """
         self._deleted = True
-        if os.path.exists(self._path):
-            # Make sure to pass unicode on Python 2 to make the contents also
-            # use unicode, ensuring non-ASCII names and can be represented.
+        if not os.path.exists(self._path):
+            return
+        # Make sure to pass unicode on Python 2 to make the contents also
+        # use unicode, ensuring non-ASCII names and can be represented.
+        # This is only done on Windows because POSIX platforms use bytes
+        # natively for paths, and the bytes-text conversion omission avoids
+        # errors caused by the environment configuring encodings incorrectly.
+        if WINDOWS:
             rmtree(ensure_text(self._path))
+        else:
+            rmtree(self._path)
 
 
 class AdjacentTempDirectory(TempDirectory):
