@@ -783,7 +783,7 @@ specified packages due to conflicting dependencies (a
 ``ResolutionImpossible`` error).
 
 This documentation is specific to the new resolver, which you can use
-with the flag ``--unstable-feature=resolver``.
+with the flag ``--use-feature=2020-resolver``.
 
 Understanding your error message
 --------------------------------
@@ -1029,13 +1029,13 @@ Changes to the pip dependency resolver in 20.2 (2020)
 =====================================================
 
 pip 20.1 included an alpha version of the new resolver (hidden behind
-an optional ``--unstable-feature=resolver`` flag). pip 20.2 includes a
-robust beta of the new resolver (hidden behind an optional
-``--use-feature=2020-resolver`` flag) that we encourage you to
-test. We will continue to improve the pip dependency resolver in
-response to testers' feedback. Please give us feedback through the
-`resolver testing survey`_. This will help us prepare to release pip
-20.3, with the new resolver on by default, in October.
+an optional ``--unstable-feature=resolver`` flag). pip 20.2 removes
+that flag, and includes a robust beta of the new resolver (hidden
+behind an optional ``--use-feature=2020-resolver`` flag) that we
+encourage you to test. We will continue to improve the pip dependency
+resolver in response to testers' feedback. Please give us feedback
+through the `resolver testing survey`_. This will help us prepare to
+release pip 20.3, with the new resolver on by default, in October.
 
 Watch out for
 -------------

@@ -4,7 +4,7 @@ about: Create a report to help us improve
 ---
 
 <!--
-If you're reporting an issue for `--unstable-feature=resolver`, use the "Dependency resolver failures / errors" template instead.
+If you're reporting an issue for `--use-feature=2020-resolver`, use the "Dependency resolver failures / errors" template instead.
 -->
 
 **Environment**
