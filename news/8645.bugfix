@@ -1,0 +1,2 @@
+Correctly find already-installed distributions with dot (``.``) in the name
+and uninstall them when needed.

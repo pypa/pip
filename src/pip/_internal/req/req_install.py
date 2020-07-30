@@ -429,25 +429,13 @@ class InstallRequirement(object):
         """
         if self.req is None:
             return
-        # get_distribution() will resolve the entire list of requirements
-        # anyway, and we've already determined that we need the requirement
-        # in question, so strip the marker so that we don't try to
-        # evaluate it.
-        no_marker = Requirement(str(self.req))
-        no_marker.marker = None
-
-        # pkg_resources uses the canonical name to look up packages, but
-        # the name passed passed to get_distribution is not canonicalized
-        # so we have to explicitly convert it to a canonical name
-        no_marker.name = canonicalize_name(no_marker.name)
-        try:
-            self.satisfied_by = pkg_resources.get_distribution(str(no_marker))
-        except pkg_resources.DistributionNotFound:
+        existing_dist = get_distribution(self.req.name)
+        if not existing_dist:
             return
-        except pkg_resources.VersionConflict:
-            existing_dist = get_distribution(
-                self.req.name
-            )
+
+        existing_version = existing_dist.parsed_version
+        if not self.req.specifier.contains(existing_version, prereleases=True):
+            self.satisfied_by = None
             if use_user_site:
                 if dist_in_usersite(existing_dist):
                     self.should_reinstall = True
@@ -461,11 +449,13 @@ class InstallRequirement(object):
             else:
                 self.should_reinstall = True
         else:
-            if self.editable and self.satisfied_by:
+            if self.editable:
                 self.should_reinstall = True
                 # when installing editables, nothing pre-existing should ever
                 # satisfy
                 self.satisfied_by = None
+            else:
+                self.satisfied_by = existing_dist
 
     # Things valid for wheels
     @property
