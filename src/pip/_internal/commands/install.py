@@ -688,6 +688,7 @@ def decide_user_install(
     #   (mismatch between user or group id and effective id)
     #   or by an administrator.
     if use_user_site is not None:
+        # use_user_site might be passed as an int.
         use_user_site = bool(use_user_site)
         if use_user_site:
             logger.debug("User install by explicit request")
@@ -695,19 +696,15 @@ def decide_user_install(
             logger.debug("Non-user install by explicit request")
         if use_user_site and ENABLE_USER_SITE is None:
             raise InstallationError(
-                "User site-packages are disabled "
-                "for security reasons or by an administrator."
+                "User site-packages cannot be used because "
+                "site.ENABLE_USER_SITE is None, which indicates "
+                "it was disabled for security reasons or by an administrator."
             )
-    elif ENABLE_USER_SITE is None:
+    elif not ENABLE_USER_SITE:
         logger.debug(
-            "User site-packages are disabled "
-            "for security reasons or by an administrator."
-        )
-        use_user_site = False
-    elif ENABLE_USER_SITE is False:
-        logger.debug(
-            "User site-packages are disabled by user request "
-            "(with 'python -s' or PYTHONNOUSERSITE)"
+            "User site-packages is disabled "
+            "because site.ENABLE_USER_SITE is %s",
+            ENABLE_USER_SITE,
         )
         use_user_site = False
     elif root_path is not None:
@@ -728,7 +725,7 @@ def decide_user_install(
         if virtualenv_no_global():
             raise InstallationError(
                 "Can not perform a '--user' install. "
-                "User site-packages are not visible in this virtualenv."
+                "User site-packages is not visible in this virtualenv."
             )
         if not site_packages_writable(
             user=use_user_site, root=root_path, isolated=isolated_mode,

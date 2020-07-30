@@ -98,7 +98,7 @@ class Tests_UserSite:
             expect_error=True,
         )
         assert (
-            "Can not perform a '--user' install. User site-packages are not "
+            "Can not perform a '--user' install. User site-packages is not "
             "visible in this virtualenv." in result.stderr
         )
 
