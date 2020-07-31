@@ -838,8 +838,8 @@ specifying package versions (e.g. ``~=`` or ``*``):
   semantic versioning.", "``~=3.1``: version ``3.1`` or later, but not version
   ``4.0`` or later. ``~=3.1.2``: version ``3.1.2`` or later, but not
   version ``3.2.0`` or later."
-  ``*``,Can be used at the end of a version number to represent "all", "``== 3.
-  1.*``: any version that starts with ``3.1``. Equivalent to ``~=3.1.0``."
+  ``*``,Can be used at the end of a version number to represent "all", "``== 3.1.*``:
+  any version that starts with ``3.1``. Equivalent to ``~=3.1.0``."
 
 The detailed specification of supported comparison operators can be
 found in :pep:`440`.
@@ -945,7 +945,7 @@ Unfortunately, **the pip team cannot provide support for individual
 dependency conflict errors**. Please *only* open a ticket on the `pip
 issue tracker`_ if you believe that your problem has exposed a bug in pip.
 
-.. _dependency hell: https://en.wikipedia.org/wiki/Dependency_hell>
+.. _dependency hell: https://en.wikipedia.org/wiki/Dependency_hell
 .. _Awesome Python: https://python.libhunt.com/
 .. _Python user Discourse: https://discuss.python.org/c/users/7
 .. _Python user forums: https://www.python.org/community/forums/
