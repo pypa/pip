@@ -10,6 +10,9 @@ from pip._internal.exceptions import InstallationError
 from pip._internal.req.req_install import check_invalid_constraint_type
 from pip._internal.req.req_set import RequirementSet
 from pip._internal.resolution.base import BaseResolver
+from pip._internal.resolution.resolvelib.candidates import (
+    InstallRequirementBackedCandidate,
+)
 from pip._internal.resolution.resolvelib.provider import PipProvider
 from pip._internal.utils.misc import dist_is_editable
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -17,7 +20,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from .factory import Factory
 
 if MYPY_CHECK_RUNNING:
-    from typing import Dict, Iterable, List, Optional, Set, Tuple
+    from typing import Dict, List, Optional, Set, Tuple
 
     from pip._vendor.packaging.specifiers import SpecifierSet
     from pip._vendor.resolvelib.resolvers import Result
@@ -28,7 +31,6 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.operations.prepare import RequirementPreparer
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.resolution.base import InstallRequirementProvider
-    from pip._internal.resolution.resolvelib.base import Candidate
 
 
 logger = logging.getLogger(__name__)
@@ -126,17 +128,36 @@ class Resolver(BaseResolver):
             six.raise_from(error, e)
 
         return self._make_req_set(
-            self._result.mapping.values(),
+            self._get_ireq_backed_candidates(),
             check_supported_wheels,
         )
 
-    def _make_req_set(self, candidates, check_supported_wheels):
-        # type: (Iterable[Candidate], bool) -> RequirementSet
+    def _get_ireq_backed_candidates(self):
+        # type: () -> List[InstallRequirementBackedCandidate]
+        """Return list of pinned, InstallRequirement-backed candidates.
+
+        The candidates returned by this method
+        must have everything ready for installation.
+        """
+        assert self._result is not None, "must call resolve() first"
+        candidates = [
+            candidate for candidate in self._result.mapping.values()
+            if isinstance(candidate, InstallRequirementBackedCandidate)
+        ]
+        if self.factory.use_lazy_wheel:
+            for candidate in candidates:
+                self.factory.preparer.downloader(candidate.link)
+        return candidates
+
+    def _make_req_set(
+        self,
+        candidates,  # type: List[InstallRequirementBackedCandidate]
+        check_supported_wheels,  # type: bool
+    ):
+        # type: (...) -> RequirementSet
         req_set = RequirementSet(check_supported_wheels=check_supported_wheels)
         for candidate in candidates:
             ireq = candidate.get_install_requirement()
-            if ireq is None:
-                continue
 
             # Check if there is already an installation under the same name,
             # and set a flag for later stages to uninstall it, if needed.
