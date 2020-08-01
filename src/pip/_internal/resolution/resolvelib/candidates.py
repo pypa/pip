@@ -114,7 +114,7 @@ def make_install_req_from_dist(dist, template):
     return ireq
 
 
-class _InstallRequirementBackedCandidate(Candidate):
+class InstallRequirementBackedCandidate(Candidate):
     """A candidate backed by an ``InstallRequirement``.
 
     This represents a package request with the target not being already
@@ -141,7 +141,7 @@ class _InstallRequirementBackedCandidate(Candidate):
         version=None,  # type: Optional[_BaseVersion]
     ):
         # type: (...) -> None
-        self._link = link
+        self.link = link
         self._source_link = source_link
         self._factory = factory
         self._ireq = ireq
@@ -154,17 +154,17 @@ class _InstallRequirementBackedCandidate(Candidate):
         # type: () -> str
         return "{class_name}({link!r})".format(
             class_name=self.__class__.__name__,
-            link=str(self._link),
+            link=str(self.link),
         )
 
     def __hash__(self):
         # type: () -> int
-        return hash((self.__class__, self._link))
+        return hash((self.__class__, self.link))
 
     def __eq__(self, other):
         # type: (Any) -> bool
         if isinstance(other, self.__class__):
-            return self._link == other._link
+            return self.link == other.link
         return False
 
     # Needed for Python 2, which does not implement this by default
@@ -194,11 +194,8 @@ class _InstallRequirementBackedCandidate(Candidate):
 
     def format_for_error(self):
         # type: () -> str
-        return "{} {} (from {})".format(
-            self.name,
-            self.version,
-            self._link.file_path if self._link.is_file else self._link
-        )
+        origin = self.link.file_path if self.link.is_file else self.link
+        return "{} {} (from {})".format(self.name, self.version, origin)
 
     def _prepare_abstract_distribution(self):
         # type: () -> AbstractDistribution
@@ -237,7 +234,7 @@ class _InstallRequirementBackedCandidate(Candidate):
         """Fetch metadata, using lazy wheel if possible."""
         preparer = self._factory.preparer
         use_lazy_wheel = self._factory.use_lazy_wheel
-        remote_wheel = self._link.is_wheel and not self._link.is_file
+        remote_wheel = self.link.is_wheel and not self.link.is_file
         if use_lazy_wheel and remote_wheel and not preparer.require_hashes:
             assert self._name is not None
             logger.info('Collecting %s', self._ireq.req or self._ireq)
@@ -247,7 +244,7 @@ class _InstallRequirementBackedCandidate(Candidate):
                     'Obtaining dependency information from %s %s',
                     self._name, self._version,
                 )
-                url = self._link.url.split('#', 1)[0]
+                url, sep, checksum = self.link.url.partition('#')
                 session = preparer.downloader._session
                 self._dist = dist_from_wheel_url(self._name, url, session)
                 self._check_metadata_consistency()
@@ -291,7 +288,7 @@ class _InstallRequirementBackedCandidate(Candidate):
         return self._ireq
 
 
-class LinkCandidate(_InstallRequirementBackedCandidate):
+class LinkCandidate(InstallRequirementBackedCandidate):
     is_editable = False
 
     def __init__(
@@ -331,7 +328,7 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
         )
 
 
-class EditableCandidate(_InstallRequirementBackedCandidate):
+class EditableCandidate(InstallRequirementBackedCandidate):
     is_editable = True
 
     def __init__(
