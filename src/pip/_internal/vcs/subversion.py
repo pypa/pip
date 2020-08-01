@@ -213,6 +213,8 @@ class Subversion(VersionControl):
         #      compiled Feb 25 2019, 14:20:39 on x86_64-apple-darwin17.0.0
         #   svn, version 1.7.14 (r1542130)
         #      compiled Mar 28 2018, 08:49:13 on x86_64-pc-linux-gnu
+        #   svn, version 1.12.0-SlikSvn (SlikSvn/1.12.0)
+        #      compiled May 28 2019, 13:44:56 on x86_64-microsoft-windows6.2
         version_prefix = 'svn, version '
         version = self.run_command(['--version'])
 
@@ -220,7 +222,7 @@ class Subversion(VersionControl):
             return ()
 
         version = version[len(version_prefix):].split()[0]
-        version_list = version.split('.')
+        version_list = version.partition('-')[0].split('.')
         try:
             parsed_version = tuple(map(int, version_list))
         except ValueError:
