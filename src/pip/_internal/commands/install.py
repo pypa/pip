@@ -21,7 +21,6 @@ from pip._internal.locations import distutils_scheme
 from pip._internal.operations.check import check_install_conflicts
 from pip._internal.req import install_given_reqs
 from pip._internal.req.req_tracker import get_requirement_tracker
-from pip._internal.utils.datetime import today_is_later_than
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.distutils_args import parse_distutils_args
 from pip._internal.utils.filesystem import test_writable_dir
@@ -557,19 +556,6 @@ class InstallCommand(RequirementCommand):
                 "We recommend you use --use-feature=2020-resolver to test "
                 "your packages with the new resolver before it becomes the "
                 "default.\n"
-            )
-        elif not today_is_later_than(year=2020, month=7, day=31):
-            # NOTE: trailing newlines here are intentional
-            parts.append(
-                "Pip will install or upgrade your package(s) and its "
-                "dependencies without taking into account other packages you "
-                "already have installed. This may cause an uncaught "
-                "dependency conflict.\n"
-            )
-            form_link = "https://forms.gle/cWKMoDs8sUVE29hz9"
-            parts.append(
-                "If you would like pip to take your other packages into "
-                "account, please tell us here: {}\n".format(form_link)
             )
 
         # NOTE: There is some duplication here, with commands/check.py
