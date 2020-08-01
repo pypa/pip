@@ -223,38 +223,31 @@ def unpack_url(
     # type: (...) -> Optional[File]
     """Unpack link into location, downloading if required.
 
-    :param hashes: A Hashes object, one of whose embedded hashes must match,
-        or HashMismatch will be raised. If the Hashes is empty, no matches are
-        required, and unhashable types of requirements (like VCS ones, which
-        would ordinarily raise HashUnsupported) are allowed.
+    One of embedded hashes in the given Hashes object must match,
+    or HashMismatch will be raised. If the Hashes is empty, no matches
+    are required, and unhashable types of requirements (like VCS ones,
+    which would ordinarily raise HashUnsupported) are allowed.
     """
-    # non-editable vcs urls
+    # Non-editable VCS URL
     if link.is_vcs:
         unpack_vcs_link(link, location)
         return None
 
-    # If it's a url to a local directory
+    # URL to a local directory
     if link.is_existing_dir():
         if os.path.isdir(location):
             rmtree(location)
         _copy_source_tree(link.file_path, location)
         return None
 
-    # file urls
     if link.is_file:
         file = get_file_url(link, download_dir, hashes=hashes)
-
-    # http urls
     else:
-        file = get_http_url(
-            link,
-            downloader,
-            download_dir,
-            hashes=hashes,
-        )
+        file = get_http_url(link, downloader, download_dir, hashes=hashes)
 
-    # unpack the archive to the build dir location. even when only downloading
-    # archives, they have to be unpacked to parse dependencies, except wheels
+    # Unpack the archive to the build directory unless it is a wheel.
+    # Even if the command is download, archives still have to be
+    # unpacked to parse dependencies.
     if not link.is_wheel:
         unpack_file(file.path, location, file.content_type)
 
