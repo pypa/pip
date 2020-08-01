@@ -286,7 +286,7 @@ class _InstallRequirementBackedCandidate(Candidate):
             yield python_dep
 
     def get_install_requirement(self):
-        # type: () -> Optional[InstallRequirement]
+        # type: () -> InstallRequirement
         self._prepare()
         return self._ireq
 
@@ -426,7 +426,7 @@ class AlreadyInstalledCandidate(Candidate):
             yield self._factory.make_requirement_from_spec(str(r), self._ireq)
 
     def get_install_requirement(self):
-        # type: () -> Optional[InstallRequirement]
+        # type: () -> None
         return None
 
 
@@ -547,7 +547,7 @@ class ExtrasCandidate(Candidate):
                 yield requirement
 
     def get_install_requirement(self):
-        # type: () -> Optional[InstallRequirement]
+        # type: () -> None
         # We don't return anything here, because we always
         # depend on the base candidate, and we'll get the
         # install requirement from that.
@@ -590,5 +590,5 @@ class RequiresPythonCandidate(Candidate):
         return ()
 
     def get_install_requirement(self):
-        # type: () -> Optional[InstallRequirement]
+        # type: () -> None
         return None
