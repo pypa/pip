@@ -219,12 +219,9 @@ class _InstallRequirementBackedCandidate(Candidate):
         if self._dist is not None:
             return
         dist = self._fetch_metadata()
-        if dist is not None:
-            self._check_metadata_consistency(dist)
-            self._dist = dist
-            return
         try:
-            dist = self._prepare_distribution()
+            if dist is None:
+                dist = self._prepare_distribution()
         except HashError as e:
             e.req = self._ireq
             raise
