@@ -1,3 +1,4 @@
+import itertools
 import os
 import sys
 import textwrap
@@ -7,6 +8,7 @@ import pytest
 from tests.lib import pyversion  # noqa: F401
 from tests.lib import assert_all_changes
 from tests.lib.local_repos import local_checkout
+from tests.lib.wheel import make_wheel
 
 
 @pytest.mark.network
@@ -439,3 +441,34 @@ class TestUpgradeDistributeToSetuptools(object):
             cwd=pip_src,
             expect_stderr=True,
         )
+
+
+@pytest.mark.parametrize("req1, req2", list(itertools.product(
+    ["foo.bar", "foo_bar", "foo-bar"], ["foo.bar", "foo_bar", "foo-bar"],
+)))
+def test_install_find_existing_package_canonicalize(script, req1, req2):
+    """Ensure an already-installed dist is found no matter how the dist name
+    was normalized on installation. (pypa/pip#8645)
+    """
+    # Create and install a package that's not available in the later stage.
+    req_container = script.scratch_path.joinpath("foo-bar")
+    req_container.mkdir()
+    req_path = make_wheel("foo_bar", "1.0").save_to_dir(req_container)
+    script.pip("install", "--no-index", req_path)
+
+    # Depend on the previously installed, but now unavailable package.
+    pkg_container = script.scratch_path.joinpath("pkg")
+    pkg_container.mkdir()
+    make_wheel(
+        "pkg",
+        "1.0",
+        metadata_updates={"Requires-Dist": req2},
+    ).save_to_dir(pkg_container)
+
+    # Ensure the previously installed package can be correctly used to match
+    # the dependency.
+    result = script.pip(
+        "install", "--no-index", "--find-links", pkg_container, "pkg",
+    )
+    satisfied_message = "Requirement already satisfied: {}".format(req2)
+    assert satisfied_message in result.stdout, str(result)
