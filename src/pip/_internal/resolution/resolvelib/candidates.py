@@ -275,9 +275,9 @@ class _InstallRequirementBackedCandidate(Candidate):
             return None
         return spec
 
-    def iter_dependencies(self, ignore_dependencies):
+    def iter_dependencies(self, with_requires):
         # type: (bool) -> Iterable[Optional[Requirement]]
-        if ignore_dependencies:
+        if not with_requires:
             return
         for r in self.dist.requires():
             yield self._factory.make_requirement_from_spec(str(r), self._ireq)
@@ -422,9 +422,9 @@ class AlreadyInstalledCandidate(Candidate):
         # type: () -> str
         return "{} {} (Installed)".format(self.name, self.version)
 
-    def iter_dependencies(self, ignore_dependencies):
+    def iter_dependencies(self, with_requires):
         # type: (bool) -> Iterable[Optional[Requirement]]
-        if ignore_dependencies:
+        if not with_requires:
             return
         for r in self.dist.requires():
             yield self._factory.make_requirement_from_spec(str(r), self._ireq)
@@ -523,14 +523,14 @@ class ExtrasCandidate(Candidate):
         # type: () -> Optional[Link]
         return self.base.source_link
 
-    def iter_dependencies(self, ignore_dependencies):
+    def iter_dependencies(self, with_requires):
         # type: (bool) -> Iterable[Optional[Requirement]]
         factory = self.base._factory
 
         # Add a dependency on the exact base
         # (See note 2b in the class docstring)
         yield factory.make_requirement_from_candidate(self.base)
-        if ignore_dependencies:
+        if not with_requires:
             return
 
         # The user may have specified extras that the candidate doesn't
@@ -591,7 +591,7 @@ class RequiresPythonCandidate(Candidate):
         # type: () -> str
         return "Python {}".format(self.version)
 
-    def iter_dependencies(self, ignore_dependencies):
+    def iter_dependencies(self, with_requires):
         # type: (bool) -> Iterable[Optional[Requirement]]
         return ()
 

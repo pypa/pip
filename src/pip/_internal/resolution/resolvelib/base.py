@@ -69,7 +69,7 @@ class Candidate(object):
         # type: () -> Optional[Link]
         raise NotImplementedError("Override in subclass")
 
-    def iter_dependencies(self, ignore_dependencies):
+    def iter_dependencies(self, with_requires):
         # type: (bool) -> Iterable[Optional[Requirement]]
         raise NotImplementedError("Override in subclass")
 
