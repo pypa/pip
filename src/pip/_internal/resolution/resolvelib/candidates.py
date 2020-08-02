@@ -147,7 +147,6 @@ class _InstallRequirementBackedCandidate(Candidate):
         self._name = name
         self._version = version
         self._dist = None  # type: Optional[Distribution]
-        self._prepared = False
 
     def __repr__(self):
         # type: () -> str
@@ -217,7 +216,7 @@ class _InstallRequirementBackedCandidate(Candidate):
 
     def _prepare(self):
         # type: () -> None
-        if self._prepared:
+        if self._dist is not None:
             return
         try:
             dist = self._prepare_distribution()
@@ -228,7 +227,6 @@ class _InstallRequirementBackedCandidate(Candidate):
         assert dist is not None, "Distribution already installed"
         self._check_metadata_consistency(dist)
         self._dist = dist
-        self._prepared = True
 
     def _fetch_metadata(self):
         # type: () -> None
