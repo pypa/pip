@@ -40,3 +40,10 @@ cases:
       - E 1.0.0
       - F 1.0.0
   skip: old
+-
+  request:
+    - install: D[extra_1]
+      options: --no-deps
+  response:
+    - state:
+      - D 1.0.0
