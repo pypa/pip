@@ -203,12 +203,11 @@ class _InstallRequirementBackedCandidate(Candidate):
         # type: () -> Distribution
         raise NotImplementedError("Override in subclass")
 
-    def _check_metadata_consistency(self):
-        # type: () -> None
+    def _check_metadata_consistency(self, dist):
+        # type: (Distribution) -> None
         """Check for consistency of project name and version of dist."""
         # TODO: (Longer term) Rather than abort, reject this candidate
         #       and backtrack. This would need resolvelib support.
-        dist = self._dist  # type: Distribution
         name = canonicalize_name(dist.project_name)
         if self._name is not None and self._name != name:
             raise MetadataInconsistent(self._ireq, "name", dist.project_name)
@@ -221,13 +220,14 @@ class _InstallRequirementBackedCandidate(Candidate):
         if self._prepared:
             return
         try:
-            self._dist = self._prepare_distribution()
+            dist = self._prepare_distribution()
         except HashError as e:
             e.req = self._ireq
             raise
 
-        assert self._dist is not None, "Distribution already installed"
-        self._check_metadata_consistency()
+        assert dist is not None, "Distribution already installed"
+        self._check_metadata_consistency(dist)
+        self._dist = dist
         self._prepared = True
 
     def _fetch_metadata(self):
@@ -247,8 +247,9 @@ class _InstallRequirementBackedCandidate(Candidate):
                 )
                 url = self._link.url.split('#', 1)[0]
                 session = preparer.downloader._session
-                self._dist = dist_from_wheel_url(self._name, url, session)
-                self._check_metadata_consistency()
+                dist = dist_from_wheel_url(self._name, url, session)
+                self._check_metadata_consistency(dist)
+                self._dist = dist
         if self._dist is None:
             self._prepare()
 
