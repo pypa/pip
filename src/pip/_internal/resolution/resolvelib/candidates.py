@@ -248,8 +248,7 @@ class _InstallRequirementBackedCandidate(Candidate):
                 dist = dist_from_wheel_url(self._name, url, session)
                 self._check_metadata_consistency(dist)
                 self._dist = dist
-        if self._dist is None:
-            self._prepare()
+        self._prepare()
 
     @property
     def dist(self):
