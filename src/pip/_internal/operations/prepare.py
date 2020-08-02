@@ -469,7 +469,6 @@ class RequirementPreparer(object):
         if use_lazy_wheel and remote_wheel and not preparer.require_hashes:
             wheel = Wheel(link.filename)
             name = canonicalize_name(wheel.name)
-            logger.info('Collecting %s', req.req or req)
             # If HTTPRangeRequestUnsupported is raised, fallback silently.
             with indent_log(), suppress(HTTPRangeRequestUnsupported):
                 logger.info(
@@ -484,12 +483,12 @@ class RequirementPreparer(object):
     def prepare_linked_requirement(self, req, parallel_builds=False):
         # type: (InstallRequirement, bool) -> Distribution
         """Prepare a requirement to be obtained from req.link."""
-        wheel_dist = self._fetch_metadata(req)
-        if wheel_dist is not None:
-            return wheel_dist
         assert req.link
         link = req.link
         self._log_preparing_link(req)
+        wheel_dist = self._fetch_metadata(req)
+        if wheel_dist is not None:
+            return wheel_dist
         if link.is_wheel and self.wheel_download_dir:
             # Download wheels to a dedicated dir when doing `pip wheel`.
             download_dir = self.wheel_download_dir
