@@ -329,6 +329,7 @@ class RequirementPreparer(object):
         finder,  # type: PackageFinder
         require_hashes,  # type: bool
         use_user_site,  # type: bool
+        lazy_wheel,  # type: bool
     ):
         # type: (...) -> None
         super(RequirementPreparer, self).__init__()
@@ -361,6 +362,9 @@ class RequirementPreparer(object):
 
         # Should install in user site-packages?
         self.use_user_site = use_user_site
+
+        # Should wheels be downloaded lazily?
+        self.use_lazy_wheel = lazy_wheel
 
     @property
     def _download_should_save(self):

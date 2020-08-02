@@ -232,7 +232,7 @@ class _InstallRequirementBackedCandidate(Candidate):
         # type: () -> Optional[Distribution]
         """Fetch metadata, using lazy wheel if possible."""
         preparer = self._factory.preparer
-        use_lazy_wheel = self._factory.use_lazy_wheel
+        use_lazy_wheel = preparer.use_lazy_wheel
         remote_wheel = self._link.is_wheel and not self._link.is_file
         if use_lazy_wheel and remote_wheel and not preparer.require_hashes:
             assert self._name is not None
