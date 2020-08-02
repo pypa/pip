@@ -42,10 +42,9 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import DefaultDict, List, Optional, Set, Tuple
-    from pip._vendor import pkg_resources
+    from pip._vendor.pkg_resources import Distribution
 
     from pip._internal.cache import WheelCache
-    from pip._internal.distributions import AbstractDistribution
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.models.link import Link
     from pip._internal.operations.prepare import RequirementPreparer
@@ -58,7 +57,7 @@ logger = logging.getLogger(__name__)
 
 
 def _check_dist_requires_python(
-    dist,  # type: pkg_resources.Distribution
+    dist,  # type: Distribution
     version_info,  # type: Tuple[int, int, int]
     ignore_requires_python=False,  # type: bool
 ):
@@ -317,8 +316,8 @@ class Resolver(BaseResolver):
                 req.original_link_is_in_wheel_cache = True
             req.link = cache_entry.link
 
-    def _get_abstract_dist_for(self, req):
-        # type: (InstallRequirement) -> AbstractDistribution
+    def _get_dist_for(self, req):
+        # type: (InstallRequirement) -> Distribution
         """Takes a InstallRequirement and returns a single AbstractDist \
         representing a prepared variant of the same.
         """
@@ -337,7 +336,7 @@ class Resolver(BaseResolver):
 
         # We eagerly populate the link, since that's our "legacy" behavior.
         self._populate_link(req)
-        abstract_dist = self.preparer.prepare_linked_requirement(req)
+        dist = self.preparer.prepare_linked_requirement(req)
 
         # NOTE
         # The following portion is for determining if a certain package is
@@ -364,8 +363,7 @@ class Resolver(BaseResolver):
                     'Requirement already satisfied (use --upgrade to upgrade):'
                     ' %s', req,
                 )
-
-        return abstract_dist
+        return dist
 
     def _resolve_one(
         self,
@@ -385,10 +383,8 @@ class Resolver(BaseResolver):
 
         req_to_install.prepared = True
 
-        abstract_dist = self._get_abstract_dist_for(req_to_install)
-
         # Parse and return dependencies
-        dist = abstract_dist.get_pkg_resources_distribution()
+        dist = self._get_dist_for(req_to_install)
         # This will raise UnsupportedPythonVersion if the given Python
         # version isn't compatible with the distribution's Requires-Python.
         _check_dist_requires_python(

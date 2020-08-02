@@ -44,8 +44,8 @@ if MYPY_CHECK_RUNNING:
     )
 
     from mypy_extensions import TypedDict
+    from pip._vendor.pkg_resources import Distribution
 
-    from pip._internal.distributions import AbstractDistribution
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.models.link import Link
     from pip._internal.network.download import Downloader
@@ -78,18 +78,17 @@ logger = logging.getLogger(__name__)
 
 
 def _get_prepared_distribution(
-        req,  # type: InstallRequirement
-        req_tracker,  # type: RequirementTracker
-        finder,  # type: PackageFinder
-        build_isolation  # type: bool
+    req,  # type: InstallRequirement
+    req_tracker,  # type: RequirementTracker
+    finder,  # type: PackageFinder
+    build_isolation,  # type: bool
 ):
-    # type: (...) -> AbstractDistribution
-    """Prepare a distribution for installation.
-    """
+    # type: (...) -> Distribution
+    """Prepare a distribution for installation."""
     abstract_dist = make_distribution_for_install_requirement(req)
     with req_tracker.track(req):
         abstract_dist.prepare_distribution_metadata(finder, build_isolation)
-    return abstract_dist
+    return abstract_dist.get_pkg_resources_distribution()
 
 
 def unpack_vcs_link(link, location):
@@ -450,7 +449,7 @@ class RequirementPreparer(object):
         return req.hashes(trust_internet=False) or MissingHashes()
 
     def prepare_linked_requirement(self, req, parallel_builds=False):
-        # type: (InstallRequirement, bool) -> AbstractDistribution
+        # type: (InstallRequirement, bool) -> Distribution
         """Prepare a requirement to be obtained from req.link."""
         assert req.link
         link = req.link
@@ -479,7 +478,7 @@ class RequirementPreparer(object):
             if local_file:
                 req.local_file_path = local_file.path
 
-            abstract_dist = _get_prepared_distribution(
+            dist = _get_prepared_distribution(
                 req, self.req_tracker, self.finder, self.build_isolation,
             )
 
@@ -499,13 +498,13 @@ class RequirementPreparer(object):
                 # Make a .zip of the source_dir we already created.
                 if link.is_vcs:
                     req.archive(self.download_dir)
-        return abstract_dist
+        return dist
 
     def prepare_editable_requirement(
         self,
         req,  # type: InstallRequirement
     ):
-        # type: (...) -> AbstractDistribution
+        # type: (...) -> Distribution
         """Prepare an editable requirement
         """
         assert req.editable, "cannot prepare a non-editable req as editable"
@@ -522,7 +521,7 @@ class RequirementPreparer(object):
             req.ensure_has_source_dir(self.src_dir)
             req.update_editable(not self._download_should_save)
 
-            abstract_dist = _get_prepared_distribution(
+            dist = _get_prepared_distribution(
                 req, self.req_tracker, self.finder, self.build_isolation,
             )
 
@@ -530,14 +529,14 @@ class RequirementPreparer(object):
                 req.archive(self.download_dir)
             req.check_if_exists(self.use_user_site)
 
-        return abstract_dist
+        return dist
 
     def prepare_installed_requirement(
         self,
         req,  # type: InstallRequirement
         skip_reason  # type: str
     ):
-        # type: (...) -> AbstractDistribution
+        # type: (...) -> Distribution
         """Prepare an already-installed requirement
         """
         assert req.satisfied_by, "req should have been satisfied but isn't"
@@ -557,6 +556,4 @@ class RequirementPreparer(object):
                     'completely repeatable environment, install into an '
                     'empty virtualenv.'
                 )
-            abstract_dist = InstalledDistribution(req)
-
-        return abstract_dist
+            return InstalledDistribution(req).get_pkg_resources_distribution()
