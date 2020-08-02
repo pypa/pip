@@ -218,6 +218,9 @@ class _InstallRequirementBackedCandidate(Candidate):
         # type: () -> None
         if self._dist is not None:
             return
+        self._fetch_metadata()
+        if self._dist is not None:
+            return
         try:
             dist = self._prepare_distribution()
         except HashError as e:
@@ -253,7 +256,6 @@ class _InstallRequirementBackedCandidate(Candidate):
     def dist(self):
         # type: () -> Distribution
         if self._dist is None:
-            self._fetch_metadata()
             self._prepare()
         return self._dist
 
