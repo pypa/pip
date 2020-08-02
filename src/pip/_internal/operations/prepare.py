@@ -9,6 +9,8 @@ import mimetypes
 import os
 import shutil
 
+from pip._vendor.contextlib2 import suppress
+from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.six import PY2
 
 from pip._internal.distributions import (
@@ -23,6 +25,11 @@ from pip._internal.exceptions import (
     NetworkConnectionError,
     PreviousBuildDirError,
     VcsHashUnsupported,
+)
+from pip._internal.models.wheel import Wheel
+from pip._internal.network.lazy_wheel import (
+    HTTPRangeRequestUnsupported,
+    dist_from_wheel_url,
 )
 from pip._internal.utils.filesystem import copy2_fixed
 from pip._internal.utils.hashes import MissingHashes
@@ -452,9 +459,34 @@ class RequirementPreparer(object):
         # showing the user what the hash should be.
         return req.hashes(trust_internet=False) or MissingHashes()
 
+    def _fetch_metadata(preparer, req):
+        # type: (InstallRequirement) -> Optional[Distribution]
+        """Fetch metadata, using lazy wheel if possible."""
+        use_lazy_wheel = preparer.use_lazy_wheel
+        assert req.link
+        link = req.link
+        remote_wheel = link.is_wheel and not link.is_file
+        if use_lazy_wheel and remote_wheel and not preparer.require_hashes:
+            wheel = Wheel(link.filename)
+            name = canonicalize_name(wheel.name)
+            logger.info('Collecting %s', req.req or req)
+            # If HTTPRangeRequestUnsupported is raised, fallback silently.
+            with indent_log(), suppress(HTTPRangeRequestUnsupported):
+                logger.info(
+                    'Obtaining dependency information from %s %s',
+                    name, wheel.version,
+                )
+                url = link.url.split('#', 1)[0]
+                session = preparer.downloader._session
+                return dist_from_wheel_url(name, url, session)
+        return None
+
     def prepare_linked_requirement(self, req, parallel_builds=False):
         # type: (InstallRequirement, bool) -> Distribution
         """Prepare a requirement to be obtained from req.link."""
+        wheel_dist = self._fetch_metadata(req)
+        if wheel_dist is not None:
+            return wheel_dist
         assert req.link
         link = req.link
         self._log_preparing_link(req)

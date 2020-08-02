@@ -1,23 +1,17 @@
 import logging
 import sys
 
-from pip._vendor.contextlib2 import suppress
 from pip._vendor.packaging.specifiers import InvalidSpecifier, SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
 
 from pip._internal.exceptions import HashError, MetadataInconsistent
 from pip._internal.models.wheel import Wheel
-from pip._internal.network.lazy_wheel import (
-    HTTPRangeRequestUnsupported,
-    dist_from_wheel_url,
-)
 from pip._internal.req.constructors import (
     install_req_from_editable,
     install_req_from_line,
 )
 from pip._internal.req.req_install import InstallRequirement
-from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import dist_is_editable, normalize_version_info
 from pip._internal.utils.packaging import get_requires_python
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -229,29 +223,6 @@ class _InstallRequirementBackedCandidate(Candidate):
         self._check_metadata_consistency(dist)
         self._dist = dist
 
-    def _fetch_metadata(self, req):
-        # type: (InstallRequirement) -> Optional[Distribution]
-        """Fetch metadata, using lazy wheel if possible."""
-        preparer = self._factory.preparer
-        use_lazy_wheel = preparer.use_lazy_wheel
-        assert req.link
-        link = req.link
-        remote_wheel = link.is_wheel and not link.is_file
-        if use_lazy_wheel and remote_wheel and not preparer.require_hashes:
-            wheel = Wheel(link.filename)
-            name = canonicalize_name(wheel.name)
-            logger.info('Collecting %s', req.req or req)
-            # If HTTPRangeRequestUnsupported is raised, fallback silently.
-            with indent_log(), suppress(HTTPRangeRequestUnsupported):
-                logger.info(
-                    'Obtaining dependency information from %s %s',
-                    name, wheel.version,
-                )
-                url = link.url.split('#', 1)[0]
-                session = preparer.downloader._session
-                return dist_from_wheel_url(name, url, session)
-        return None
-
     @property
     def dist(self):
         # type: () -> Distribution
@@ -338,9 +309,6 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
 
     def _prepare_distribution(self):
         # type: () -> Distribution
-        dist = self._fetch_metadata(self._ireq)
-        if dist is not None:
-            return dist
         return self._factory.preparer.prepare_linked_requirement(
             self._ireq, parallel_builds=True,
         )
