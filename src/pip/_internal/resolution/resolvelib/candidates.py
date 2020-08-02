@@ -233,7 +233,9 @@ class _InstallRequirementBackedCandidate(Candidate):
         """Fetch metadata, using lazy wheel if possible."""
         preparer = self._factory.preparer
         use_lazy_wheel = preparer.use_lazy_wheel
-        remote_wheel = self._link.is_wheel and not self._link.is_file
+        assert self._link == req.link
+        link = req.link
+        remote_wheel = link.is_wheel and not link.is_file
         if use_lazy_wheel and remote_wheel and not preparer.require_hashes:
             assert self._name is not None
             logger.info('Collecting %s', req.req or req)
@@ -243,7 +245,7 @@ class _InstallRequirementBackedCandidate(Candidate):
                     'Obtaining dependency information from %s %s',
                     self._name, self._version,
                 )
-                url = self._link.url.split('#', 1)[0]
+                url = link.url.split('#', 1)[0]
                 session = preparer.downloader._session
                 return dist_from_wheel_url(self._name, url, session)
         return None
