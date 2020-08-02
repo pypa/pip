@@ -228,15 +228,15 @@ class _InstallRequirementBackedCandidate(Candidate):
         self._check_metadata_consistency(dist)
         self._dist = dist
 
-    def _fetch_metadata(self):
-        # type: () -> Optional[Distribution]
+    def _fetch_metadata(self, req):
+        # type: (InstallRequirement) -> Optional[Distribution]
         """Fetch metadata, using lazy wheel if possible."""
         preparer = self._factory.preparer
         use_lazy_wheel = preparer.use_lazy_wheel
         remote_wheel = self._link.is_wheel and not self._link.is_file
         if use_lazy_wheel and remote_wheel and not preparer.require_hashes:
             assert self._name is not None
-            logger.info('Collecting %s', self._ireq.req or self._ireq)
+            logger.info('Collecting %s', req.req or req)
             # If HTTPRangeRequestUnsupported is raised, fallback silently.
             with indent_log(), suppress(HTTPRangeRequestUnsupported):
                 logger.info(
@@ -320,7 +320,7 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
 
     def _prepare_distribution(self):
         # type: () -> Distribution
-        dist = self._fetch_metadata()
+        dist = self._fetch_metadata(self._ireq)
         if dist is not None:
             return dist
         return self._factory.preparer.prepare_linked_requirement(
