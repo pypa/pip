@@ -7,6 +7,7 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
 
 from pip._internal.exceptions import HashError, MetadataInconsistent
+from pip._internal.models.wheel import Wheel
 from pip._internal.network.lazy_wheel import (
     HTTPRangeRequestUnsupported,
     dist_from_wheel_url,
@@ -237,17 +238,22 @@ class _InstallRequirementBackedCandidate(Candidate):
         link = req.link
         remote_wheel = link.is_wheel and not link.is_file
         if use_lazy_wheel and remote_wheel and not preparer.require_hashes:
-            assert self._name is not None
+            wheel = Wheel(link.filename)
+            name = canonicalize_name(wheel.name)
+            assert self._name == name
+            # Version may not be present for PEP 508 direct URLs
+            if self._version is not None:
+                assert self._version == wheel.version
             logger.info('Collecting %s', req.req or req)
             # If HTTPRangeRequestUnsupported is raised, fallback silently.
             with indent_log(), suppress(HTTPRangeRequestUnsupported):
                 logger.info(
                     'Obtaining dependency information from %s %s',
-                    self._name, self._version,
+                    name, wheel.version,
                 )
                 url = link.url.split('#', 1)[0]
                 session = preparer.downloader._session
-                return dist_from_wheel_url(self._name, url, session)
+                return dist_from_wheel_url(name, url, session)
         return None
 
     @property
