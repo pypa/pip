@@ -454,6 +454,6 @@ class Factory(object):
 
         return DistributionNotFound(
             "ResolutionImpossible For help visit: "
-            "https://pip.pypa.io/en/stable/user_guide/"
+            "https://pip.pypa.io/en/latest/user_guide/"
             "#fixing-conflicting-dependencies"
         )
