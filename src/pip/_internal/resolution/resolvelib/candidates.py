@@ -218,10 +218,8 @@ class _InstallRequirementBackedCandidate(Candidate):
         # type: () -> None
         if self._dist is not None:
             return
-        dist = self._fetch_metadata()
         try:
-            if dist is None:
-                dist = self._prepare_distribution()
+            dist = self._prepare_distribution()
         except HashError as e:
             e.req = self._ireq
             raise
@@ -322,6 +320,9 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
 
     def _prepare_distribution(self):
         # type: () -> Distribution
+        dist = self._fetch_metadata()
+        if dist is not None:
+            return dist
         return self._factory.preparer.prepare_linked_requirement(
             self._ireq, parallel_builds=True,
         )
