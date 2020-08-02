@@ -459,12 +459,10 @@ class RequirementPreparer(object):
         # showing the user what the hash should be.
         return req.hashes(trust_internet=False) or MissingHashes()
 
-    def _fetch_metadata(preparer, req):
-        # type: (InstallRequirement) -> Optional[Distribution]
+    def _fetch_metadata(preparer, link):
+        # type: (Link) -> Optional[Distribution]
         """Fetch metadata, using lazy wheel if possible."""
         use_lazy_wheel = preparer.use_lazy_wheel
-        assert req.link
-        link = req.link
         remote_wheel = link.is_wheel and not link.is_file
         if use_lazy_wheel and remote_wheel and not preparer.require_hashes:
             wheel = Wheel(link.filename)
@@ -486,7 +484,7 @@ class RequirementPreparer(object):
         assert req.link
         link = req.link
         self._log_preparing_link(req)
-        wheel_dist = self._fetch_metadata(req)
+        wheel_dist = self._fetch_metadata(link)
         if wheel_dist is not None:
             return wheel_dist
         if link.is_wheel and self.wheel_download_dir:
