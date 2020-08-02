@@ -218,8 +218,10 @@ class _InstallRequirementBackedCandidate(Candidate):
         # type: () -> None
         if self._dist is not None:
             return
-        self._fetch_metadata()
-        if self._dist is not None:
+        dist = self._fetch_metadata()
+        if dist is not None:
+            self._check_metadata_consistency(dist)
+            self._dist = dist
             return
         try:
             dist = self._prepare_distribution()
@@ -232,7 +234,7 @@ class _InstallRequirementBackedCandidate(Candidate):
         self._dist = dist
 
     def _fetch_metadata(self):
-        # type: () -> None
+        # type: () -> Optional[Distribution]
         """Fetch metadata, using lazy wheel if possible."""
         preparer = self._factory.preparer
         use_lazy_wheel = self._factory.use_lazy_wheel
@@ -248,9 +250,8 @@ class _InstallRequirementBackedCandidate(Candidate):
                 )
                 url = self._link.url.split('#', 1)[0]
                 session = preparer.downloader._session
-                dist = dist_from_wheel_url(self._name, url, session)
-                self._check_metadata_consistency(dist)
-                self._dist = dist
+                return dist_from_wheel_url(self._name, url, session)
+        return None
 
     @property
     def dist(self):
