@@ -234,16 +234,12 @@ class _InstallRequirementBackedCandidate(Candidate):
         """Fetch metadata, using lazy wheel if possible."""
         preparer = self._factory.preparer
         use_lazy_wheel = preparer.use_lazy_wheel
-        assert self._link == req.link
+        assert req.link
         link = req.link
         remote_wheel = link.is_wheel and not link.is_file
         if use_lazy_wheel and remote_wheel and not preparer.require_hashes:
             wheel = Wheel(link.filename)
             name = canonicalize_name(wheel.name)
-            assert self._name == name
-            # Version may not be present for PEP 508 direct URLs
-            if self._version is not None:
-                assert self._version == wheel.version
             logger.info('Collecting %s', req.req or req)
             # If HTTPRangeRequestUnsupported is raised, fallback silently.
             with indent_log(), suppress(HTTPRangeRequestUnsupported):
@@ -311,6 +307,20 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
             logger.debug("Using cached wheel link: %s", cache_entry.link)
             link = cache_entry.link
         ireq = make_install_req_from_link(link, template)
+        assert ireq.link == link
+        if ireq.link.is_wheel and not ireq.link.is_file:
+            wheel = Wheel(ireq.link.filename)
+            wheel_name = canonicalize_name(wheel.name)
+            assert name == wheel_name, (
+               "{!r} != {!r} for wheel".format(name, wheel_name)
+            )
+            # Version may not be present for PEP 508 direct URLs
+            if version is not None:
+                assert str(version) == wheel.version, (
+                    "{!r} != {!r} for wheel {}".format(
+                        version, wheel.version, name
+                    )
+                )
 
         if (cache_entry is not None and
                 cache_entry.persistent and
