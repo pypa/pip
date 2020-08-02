@@ -52,14 +52,6 @@ class Resolver(BaseResolver):
         lazy_wheel=False,  # type: bool
     ):
         super(Resolver, self).__init__()
-        if lazy_wheel:
-            logger.warning(
-                'pip is using lazily downloaded wheels using HTTP '
-                'range requests to obtain dependency information. '
-                'This experimental feature is enabled through '
-                '--use-feature=fast-deps and it is not ready for production.'
-            )
-
         assert upgrade_strategy in self._allowed_strategies
 
         self.factory = Factory(

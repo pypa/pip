@@ -259,6 +259,17 @@ class RequirementCommand(IndexGroupCommand):
         # "Resolver" class being redefined.
         if '2020-resolver' in options.features_enabled:
             import pip._internal.resolution.resolvelib.resolver
+
+            lazy_wheel = 'fast-deps' in options.features_enabled
+            if lazy_wheel:
+                logger.warning(
+                    'pip is using lazily downloaded wheels using HTTP '
+                    'range requests to obtain dependency information. '
+                    'This experimental feature is enabled through '
+                    '--use-feature=fast-deps and it is not ready for '
+                    'production.'
+                )
+
             return pip._internal.resolution.resolvelib.resolver.Resolver(
                 preparer=preparer,
                 finder=finder,
@@ -271,7 +282,7 @@ class RequirementCommand(IndexGroupCommand):
                 force_reinstall=force_reinstall,
                 upgrade_strategy=upgrade_strategy,
                 py_version_info=py_version_info,
-                lazy_wheel='fast-deps' in options.features_enabled,
+                lazy_wheel=lazy_wheel,
             )
         import pip._internal.resolution.legacy.resolver
         return pip._internal.resolution.legacy.resolver.Resolver(
