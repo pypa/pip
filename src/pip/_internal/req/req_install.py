@@ -213,6 +213,9 @@ class InstallRequirement(object):
         # but after loading this flag should be treated as read only.
         self.use_pep517 = use_pep517
 
+        # This requirement needs more preparation before it can be built
+        self.needs_more_preparation = False
+
     def __str__(self):
         # type: () -> str
         if self.req:

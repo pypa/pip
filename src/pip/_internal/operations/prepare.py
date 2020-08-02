@@ -486,7 +486,21 @@ class RequirementPreparer(object):
         self._log_preparing_link(req)
         wheel_dist = self._fetch_metadata(link)
         if wheel_dist is not None:
+            req.needs_more_preparation = True
             return wheel_dist
+        return self._prepare_linked_requirement(req, parallel_builds)
+
+    def prepare_linked_requirement_more(self, req, parallel_builds=False):
+        # type: (InstallRequirement, bool) -> None
+        """Prepare a linked requirement more, if needed."""
+        if not req.needs_more_preparation:
+            return
+        self._prepare_linked_requirement(req, parallel_builds)
+
+    def _prepare_linked_requirement(self, req, parallel_builds):
+        # type: (InstallRequirement, bool) -> Distribution
+        assert req.link
+        link = req.link
         if link.is_wheel and self.wheel_download_dir:
             # Download wheels to a dedicated dir when doing `pip wheel`.
             download_dir = self.wheel_download_dir
