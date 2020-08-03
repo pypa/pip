@@ -1223,18 +1223,37 @@ Specific things we'd love to get feedback on:
 
 Please let us know through the `resolver testing survey`_.
 
+Deprecation timeline
+--------------------
+
+We plan for the resolver changeover to proceed as follows, using
+:ref:`Feature Flags` and following our :ref:`Release Cadence`:
+
+*    pip 20.2: a beta of the new resolver is available, opt-in, using
+     the flag ``--use-feature=2020-resolver``. pip defaults to
+     legacy behavior.
+
+*    pip 20.3: pip defaults to the new resolver, but a user can opt-out
+     and choose the old resolver behavior, using the flag
+     ``--use-deprecated=legacy-resolver``.
+
+*    pip 21.0: pip uses new resolver, and the old resolver is no longer
+     available.
+
+Since this work will not change user-visible behavior described in the
+pip documentation, this change is not covered by the :ref:`Deprecation
+Policy`.
+
 Context and followup
 --------------------
 
 As discussed in `our announcement on the PSF blog`_, the pip team are
 in the process of developing a new "dependency resolver" (the part of
-pip that works out what to install based on your requirements). Since
-this work will not change user-visible behavior described in the pip
-documentation, this change is not covered by the :ref:`Deprecation
-Policy`.
+pip that works out what to install based on your requirements).
 
 We're tracking our rollout in :issue:`6536` and you can watch for
-announcements on the `low-traffic packaging announcements list`_.
+announcements on the `low-traffic packaging announcements list`_ and
+`the official Python blog`_.
 
 .. _freeze: https://pip.pypa.io/en/latest/reference/pip_freeze/
 .. _resolver testing survey: https://tools.simplysecure.org/survey/index.php?r=survey/index&sid=989272&lang=en
@@ -1242,3 +1261,4 @@ announcements on the `low-traffic packaging announcements list`_.
 .. _tensorflow: https://pypi.org/project/tensorflow/
 .. _low-traffic packaging announcements list: https://mail.python.org/mailman3/lists/pypi-announce.python.org/
 .. _our survey on upgrades that create conflicts: https://docs.google.com/forms/d/e/1FAIpQLSeBkbhuIlSofXqCyhi3kGkLmtrpPOEBwr6iJA6SzHdxWKfqdA/viewform
+.. _the official Python blog: https://blog.python.org/
