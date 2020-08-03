@@ -242,3 +242,29 @@ def test_keyring_get_credential(monkeypatch, url, expect):
     assert auth._get_new_credentials(
         url, allow_netrc=False, allow_keyring=True
     ) == expect
+
+
+class KeyringModuleBroken(object):
+    """Represents the current supported API of keyring, but broken"""
+
+    def __init__(self):
+        self._call_count = 0
+
+    def get_credential(self, system, username):
+        self._call_count += 1
+        raise Exception("This keyring is broken!")
+
+
+def test_broken_keyring_disables_keyring(monkeypatch):
+    keyring_broken = KeyringModuleBroken()
+    monkeypatch.setattr(pip._internal.network.auth, 'keyring', keyring_broken)
+
+    auth = MultiDomainBasicAuth(index_urls=["http://example.com/"])
+
+    assert keyring_broken._call_count == 0
+    for i in range(5):
+        url = "http://example.com/path" + str(i)
+        assert auth._get_new_credentials(
+            url, allow_netrc=False, allow_keyring=True
+        ) == (None, None)
+        assert keyring_broken._call_count == 1
