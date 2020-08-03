@@ -1,0 +1,2 @@
+Use the same encoding logic from Python 3 to handle ZIP archive entries on
+Python 2, so non-ASCII paths can be resolved as expected.
