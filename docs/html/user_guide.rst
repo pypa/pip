@@ -945,7 +945,7 @@ Unfortunately, **the pip team cannot provide support for individual
 dependency conflict errors**. Please *only* open a ticket on the `pip
 issue tracker`_ if you believe that your problem has exposed a bug in pip.
 
-.. _dependency hell: https://en.wikipedia.org/wiki/Dependency_hell>
+.. _dependency hell: https://en.wikipedia.org/wiki/Dependency_hell
 .. _Awesome Python: https://python.libhunt.com/
 .. _Python user Discourse: https://discuss.python.org/c/users/7
 .. _Python user forums: https://www.python.org/community/forums/
