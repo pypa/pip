@@ -43,6 +43,7 @@ Features
   break. More details about how to test and migrate, and how to report
   issues, at :ref:`Resolver changes 2020` . Maintainers are preparing to
   release pip 20.3, with the new resolver on by default, in October. (`#6536 <https://github.com/pypa/pip/issues/6536>`_)
+- Introduce a new ResolutionImpossible error, raised when pip encounters un-satisfiable dependency conflicts (`#8546 <https://github.com/pypa/pip/issues/8546>`_, `#8377 <https://github.com/pypa/pip/issues/8377>`_)
 - Add a subcommand ``debug`` to ``pip config`` to list available configuration sources and the key-value pairs defined in them. (`#6741 <https://github.com/pypa/pip/issues/6741>`_)
 - Warn if index pages have unexpected content-type (`#6754 <https://github.com/pypa/pip/issues/6754>`_)
 - Allow specifying ``--prefer-binary`` option in a requirements file (`#7693 <https://github.com/pypa/pip/issues/7693>`_)
@@ -92,7 +93,7 @@ Improved Documentation
 - Fix pip config docstring so that the subcommands render correctly in the docs (`#8072 <https://github.com/pypa/pip/issues/8072>`_)
 - replace links to the old pypa-dev mailing list with https://mail.python.org/mailman3/lists/distutils-sig.python.org/ (`#8353 <https://github.com/pypa/pip/issues/8353>`_)
 - Fix example for defining multiple values for options which support them (`#8373 <https://github.com/pypa/pip/issues/8373>`_)
-- Add documentation that helps the user fix dependency conflicts (`#8459 <https://github.com/pypa/pip/issues/8459>`_)
+- Add documentation for the ResolutionImpossible error that helps the user fix dependency conflicts (`#8459 <https://github.com/pypa/pip/issues/8459>`_)
 - Add feature flags to docs (`#8512 <https://github.com/pypa/pip/issues/8512>`_)
 - Document how to install package extras from git branch and source distributions. (`#8576 <https://github.com/pypa/pip/issues/8576>`_)
 
