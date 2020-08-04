@@ -2,6 +2,7 @@
 Release process
 ===============
 
+.. _`Release Cadence`:
 
 Release Cadence
 ===============
@@ -71,6 +72,8 @@ be addressed directly by pip's maintainers. Pull Requests to fix Python 2.7
 only bugs will be considered, and merged (subject to normal review processes).
 Note that there may be delays due to the lack of developer resources for
 reviewing such pull requests.
+
+.. _`Feature Flags`:
 
 Feature Flags
 =============
