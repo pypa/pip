@@ -78,6 +78,7 @@ else:
         Union,
         cast,
     )
+    from zipfile import ZipInfo
 
     from pip._vendor.pkg_resources import Distribution
 
@@ -420,6 +421,15 @@ class ZipBackedFile(object):
         self._zip_file = zip_file
         self.changed = False
 
+    def _getinfo(self):
+        # type: () -> ZipInfo
+        if not PY2:
+            return self._zip_file.getinfo(self.src_record_path)
+        # Python 2 does not expose a way to detect a ZIP's encoding, but the
+        # wheel specification (PEP 427) explicitly mandates that paths should
+        # use UTF-8, so we assume it is true.
+        return self._zip_file.getinfo(self.src_record_path.encode("utf-8"))
+
     def save(self):
         # type: () -> None
         # directory creation is lazy and after file filtering
@@ -439,11 +449,12 @@ class ZipBackedFile(object):
         if os.path.exists(self.dest_path):
             os.unlink(self.dest_path)
 
-        with self._zip_file.open(self.src_record_path) as f:
+        zipinfo = self._getinfo()
+
+        with self._zip_file.open(zipinfo) as f:
             with open(self.dest_path, "wb") as dest:
                 shutil.copyfileobj(f, dest)
 
-        zipinfo = self._zip_file.getinfo(self.src_record_path)
         if zip_item_is_executable(zipinfo):
             set_extracted_file_to_default_mode_plus_executable(self.dest_path)
 
