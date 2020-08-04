@@ -1,2 +1,0 @@
-New resolver: Correctly include the base package when specified with extras
-in ``--no-deps`` mode.
