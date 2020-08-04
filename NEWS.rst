@@ -9,6 +9,34 @@
 
 .. towncrier release notes start
 
+20.2.1 (2020-08-04)
+===================
+
+Features
+--------
+
+- Ignore require-virtualenv in ``pip list`` (`#8603 <https://github.com/pypa/pip/issues/8603>`_)
+
+Bug Fixes
+---------
+
+- Correctly find already-installed distributions with dot (``.``) in the name
+  and uninstall them when needed. (`#8645 <https://github.com/pypa/pip/issues/8645>`_)
+- Trace a better error message on installation failure due to invalid ``.data``
+  files in wheels. (`#8654 <https://github.com/pypa/pip/issues/8654>`_)
+- Fix SVN version detection for alternative SVN distributions. (`#8665 <https://github.com/pypa/pip/issues/8665>`_)
+- New resolver: Correctly include the base package when specified with extras
+  in ``--no-deps`` mode. (`#8677 <https://github.com/pypa/pip/issues/8677>`_)
+- Use UTF-8 to handle ZIP archive entries on Python 2 according to PEP 427, so
+  non-ASCII paths can be resolved as expected. (`#8684 <https://github.com/pypa/pip/issues/8684>`_)
+
+Improved Documentation
+----------------------
+
+- Add details on old resolver deprecation and removal to migration documentation. (`#8371 <https://github.com/pypa/pip/issues/8371>`_)
+- Fix feature flag name in docs. (`#8660 <https://github.com/pypa/pip/issues/8660>`_)
+
+
 20.2 (2020-07-29)
 =================
 
