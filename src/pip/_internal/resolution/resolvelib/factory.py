@@ -453,7 +453,7 @@ class Factory(object):
         logger.info(msg)
 
         return DistributionNotFound(
-            "ResolutionImpossible For help visit: "
-            "https://pip.pypa.io/en/stable/user_guide/"
+            "ResolutionImpossible: for help visit "
+            "https://pip.pypa.io/en/latest/user_guide/"
             "#fixing-conflicting-dependencies"
         )
