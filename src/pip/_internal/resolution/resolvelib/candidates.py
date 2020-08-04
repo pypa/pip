@@ -1,22 +1,17 @@
 import logging
 import sys
 
-from pip._vendor.contextlib2 import suppress
 from pip._vendor.packaging.specifiers import InvalidSpecifier, SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
 
 from pip._internal.exceptions import HashError, MetadataInconsistent
-from pip._internal.network.lazy_wheel import (
-    HTTPRangeRequestUnsupported,
-    dist_from_wheel_url,
-)
+from pip._internal.models.wheel import Wheel
 from pip._internal.req.constructors import (
     install_req_from_editable,
     install_req_from_line,
 )
 from pip._internal.req.req_install import InstallRequirement
-from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import dist_is_editable, normalize_version_info
 from pip._internal.utils.packaging import get_requires_python
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -147,7 +142,6 @@ class _InstallRequirementBackedCandidate(Candidate):
         self._name = name
         self._version = version
         self._dist = None  # type: Optional[Distribution]
-        self._prepared = False
 
     def __repr__(self):
         # type: () -> str
@@ -203,12 +197,11 @@ class _InstallRequirementBackedCandidate(Candidate):
         # type: () -> Distribution
         raise NotImplementedError("Override in subclass")
 
-    def _check_metadata_consistency(self):
-        # type: () -> None
+    def _check_metadata_consistency(self, dist):
+        # type: (Distribution) -> None
         """Check for consistency of project name and version of dist."""
         # TODO: (Longer term) Rather than abort, reject this candidate
         #       and backtrack. This would need resolvelib support.
-        dist = self._dist  # type: Distribution
         name = canonicalize_name(dist.project_name)
         if self._name is not None and self._name != name:
             raise MetadataInconsistent(self._ireq, "name", dist.project_name)
@@ -218,45 +211,23 @@ class _InstallRequirementBackedCandidate(Candidate):
 
     def _prepare(self):
         # type: () -> None
-        if self._prepared:
+        if self._dist is not None:
             return
         try:
-            self._dist = self._prepare_distribution()
+            dist = self._prepare_distribution()
         except HashError as e:
             e.req = self._ireq
             raise
 
-        assert self._dist is not None, "Distribution already installed"
-        self._check_metadata_consistency()
-        self._prepared = True
-
-    def _fetch_metadata(self):
-        # type: () -> None
-        """Fetch metadata, using lazy wheel if possible."""
-        preparer = self._factory.preparer
-        use_lazy_wheel = self._factory.use_lazy_wheel
-        remote_wheel = self._link.is_wheel and not self._link.is_file
-        if use_lazy_wheel and remote_wheel and not preparer.require_hashes:
-            assert self._name is not None
-            logger.info('Collecting %s', self._ireq.req or self._ireq)
-            # If HTTPRangeRequestUnsupported is raised, fallback silently.
-            with indent_log(), suppress(HTTPRangeRequestUnsupported):
-                logger.info(
-                    'Obtaining dependency information from %s %s',
-                    self._name, self._version,
-                )
-                url = self._link.url.split('#', 1)[0]
-                session = preparer.downloader._session
-                self._dist = dist_from_wheel_url(self._name, url, session)
-                self._check_metadata_consistency()
-        if self._dist is None:
-            self._prepare()
+        assert dist is not None, "Distribution already installed"
+        self._check_metadata_consistency(dist)
+        self._dist = dist
 
     @property
     def dist(self):
         # type: () -> Distribution
         if self._dist is None:
-            self._fetch_metadata()
+            self._prepare()
         return self._dist
 
     def _get_requires_python_specifier(self):
@@ -309,6 +280,20 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
             logger.debug("Using cached wheel link: %s", cache_entry.link)
             link = cache_entry.link
         ireq = make_install_req_from_link(link, template)
+        assert ireq.link == link
+        if ireq.link.is_wheel and not ireq.link.is_file:
+            wheel = Wheel(ireq.link.filename)
+            wheel_name = canonicalize_name(wheel.name)
+            assert name == wheel_name, (
+               "{!r} != {!r} for wheel".format(name, wheel_name)
+            )
+            # Version may not be present for PEP 508 direct URLs
+            if version is not None:
+                assert str(version) == wheel.version, (
+                    "{!r} != {!r} for wheel {}".format(
+                        version, wheel.version, name
+                    )
+                )
 
         if (cache_entry is not None and
                 cache_entry.persistent and

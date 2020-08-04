@@ -9,6 +9,8 @@ import mimetypes
 import os
 import shutil
 
+from pip._vendor.contextlib2 import suppress
+from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.six import PY2
 
 from pip._internal.distributions import (
@@ -23,6 +25,11 @@ from pip._internal.exceptions import (
     NetworkConnectionError,
     PreviousBuildDirError,
     VcsHashUnsupported,
+)
+from pip._internal.models.wheel import Wheel
+from pip._internal.network.lazy_wheel import (
+    HTTPRangeRequestUnsupported,
+    dist_from_wheel_url,
 )
 from pip._internal.utils.filesystem import copy2_fixed
 from pip._internal.utils.hashes import MissingHashes
@@ -329,6 +336,7 @@ class RequirementPreparer(object):
         finder,  # type: PackageFinder
         require_hashes,  # type: bool
         use_user_site,  # type: bool
+        lazy_wheel,  # type: bool
     ):
         # type: (...) -> None
         super(RequirementPreparer, self).__init__()
@@ -361,6 +369,9 @@ class RequirementPreparer(object):
 
         # Should install in user site-packages?
         self.use_user_site = use_user_site
+
+        # Should wheels be downloaded lazily?
+        self.use_lazy_wheel = lazy_wheel
 
     @property
     def _download_should_save(self):
@@ -448,12 +459,48 @@ class RequirementPreparer(object):
         # showing the user what the hash should be.
         return req.hashes(trust_internet=False) or MissingHashes()
 
+    def _fetch_metadata(preparer, link):
+        # type: (Link) -> Optional[Distribution]
+        """Fetch metadata, using lazy wheel if possible."""
+        use_lazy_wheel = preparer.use_lazy_wheel
+        remote_wheel = link.is_wheel and not link.is_file
+        if use_lazy_wheel and remote_wheel and not preparer.require_hashes:
+            wheel = Wheel(link.filename)
+            name = canonicalize_name(wheel.name)
+            # If HTTPRangeRequestUnsupported is raised, fallback silently.
+            with indent_log(), suppress(HTTPRangeRequestUnsupported):
+                logger.info(
+                    'Obtaining dependency information from %s %s',
+                    name, wheel.version,
+                )
+                url = link.url.split('#', 1)[0]
+                session = preparer.downloader._session
+                return dist_from_wheel_url(name, url, session)
+        return None
+
     def prepare_linked_requirement(self, req, parallel_builds=False):
         # type: (InstallRequirement, bool) -> Distribution
         """Prepare a requirement to be obtained from req.link."""
         assert req.link
         link = req.link
         self._log_preparing_link(req)
+        wheel_dist = self._fetch_metadata(link)
+        if wheel_dist is not None:
+            req.needs_more_preparation = True
+            return wheel_dist
+        return self._prepare_linked_requirement(req, parallel_builds)
+
+    def prepare_linked_requirement_more(self, req, parallel_builds=False):
+        # type: (InstallRequirement, bool) -> None
+        """Prepare a linked requirement more, if needed."""
+        if not req.needs_more_preparation:
+            return
+        self._prepare_linked_requirement(req, parallel_builds)
+
+    def _prepare_linked_requirement(self, req, parallel_builds):
+        # type: (InstallRequirement, bool) -> Distribution
+        assert req.link
+        link = req.link
         if link.is_wheel and self.wheel_download_dir:
             # Download wheels to a dedicated dir when doing `pip wheel`.
             download_dir = self.wheel_download_dir

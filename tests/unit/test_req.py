@@ -89,6 +89,7 @@ class TestRequirementSet(object):
                 finder=finder,
                 require_hashes=require_hashes,
                 use_user_site=False,
+                lazy_wheel=False,
             )
             yield Resolver(
                 preparer=preparer,
