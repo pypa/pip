@@ -1,2 +1,0 @@
-Use UTF-8 to handle ZIP archive entries on Python 2 according to PEP 427, so
-non-ASCII paths can be resolved as expected.
