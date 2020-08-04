@@ -484,17 +484,19 @@ def get_installed_distributions(
 
 
 def search_distribution(req_name):
+    # type: (str) -> Optional[Distribution]
 
     # Canonicalize the name before searching in the list of
     # installed distributions and also while creating the package
     # dictionary to get the Distribution object
     req_name = canonicalize_name(req_name)
-    packages = get_installed_distributions(skip=())
+    packages = get_installed_distributions(local_only=False, skip=())
     pkg_dict = {canonicalize_name(p.key): p for p in packages}
     return pkg_dict.get(req_name)
 
 
 def get_distribution(req_name):
+    # type: (str) -> Optional[Distribution]
     """Given a requirement name, return the installed Distribution object"""
 
     # Search the distribution by looking through the working set
