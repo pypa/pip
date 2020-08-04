@@ -109,8 +109,10 @@ class LazyZipOverHTTP(object):
         all bytes until EOF are returned.  Fewer than
         size bytes may be returned if EOF is reached.
         """
+        download_size = max(size, self._chunk_size)
         start, length = self.tell(), self._length
-        stop = start + size if 0 <= size <= length-start else length
+        stop = length if size < 0 else min(start+download_size, length)
+        start = max(0, stop-download_size)
         self._download(start, stop-1)
         return self._file.read(size)
 
