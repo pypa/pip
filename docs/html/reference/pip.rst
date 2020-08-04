@@ -7,10 +7,19 @@ pip
 Usage
 *****
 
-::
+.. tabs::
 
- pip <command> [options]
+   .. group-tab:: Unix/macOS
 
+      .. code-block:: shell
+
+         $ python -m pip <command> [options]
+
+   .. group-tab:: Windows
+
+      .. code-block:: shell
+
+         C:\> py -m pip <command> [options]
 
 Description
 ***********
