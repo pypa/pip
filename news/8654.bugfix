@@ -1,2 +1,0 @@
-Trace a better error message on installation failure due to invalid ``.data``
-files in wheels.
