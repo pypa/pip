@@ -194,8 +194,10 @@ class LazyZipOverHTTP(object):
     def _stream_response(self, start, end, base_headers=HEADERS):
         # type: (int, int, Dict[str, str]) -> Response
         """Return HTTP response to a range request from start to end."""
-        headers = {'Range': 'bytes={}-{}'.format(start, end)}
-        headers.update(base_headers)
+        headers = base_headers.copy()
+        headers['Range'] = 'bytes={}-{}'.format(start, end)
+        # TODO: Get range requests to be correctly cached
+        headers['Cache-Control'] = 'no-cache'
         return self._session.get(self._url, headers=headers, stream=True)
 
     def _merge(self, start, end, left, right):
