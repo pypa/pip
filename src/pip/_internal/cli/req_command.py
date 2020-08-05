@@ -238,6 +238,7 @@ class RequirementCommand(IndexGroupCommand):
             wheel_download_dir=wheel_download_dir,
             build_isolation=options.build_isolation,
             req_tracker=req_tracker,
+            session=session,
             downloader=downloader,
             finder=finder,
             require_hashes=options.require_hashes,

@@ -76,6 +76,7 @@ class TestRequirementSet(object):
             isolated=False,
             use_pep517=None,
         )
+        session = PipSession()
 
         with get_requirement_tracker() as tracker:
             preparer = RequirementPreparer(
@@ -85,7 +86,8 @@ class TestRequirementSet(object):
                 wheel_download_dir=None,
                 build_isolation=True,
                 req_tracker=tracker,
-                downloader=Downloader(PipSession(), progress_bar="on"),
+                session=session,
+                downloader=Downloader(session, progress_bar="on"),
                 finder=finder,
                 require_hashes=require_hashes,
                 use_user_site=False,

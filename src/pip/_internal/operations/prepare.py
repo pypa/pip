@@ -56,6 +56,7 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.models.link import Link
     from pip._internal.network.download import Downloader
+    from pip._internal.network.session import PipSession
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.req.req_tracker import RequirementTracker
     from pip._internal.utils.hashes import Hashes
@@ -332,6 +333,7 @@ class RequirementPreparer(object):
         wheel_download_dir,  # type: Optional[str]
         build_isolation,  # type: bool
         req_tracker,  # type: RequirementTracker
+        session,  # type: PipSession
         downloader,  # type: Downloader
         finder,  # type: PackageFinder
         require_hashes,  # type: bool
@@ -344,6 +346,7 @@ class RequirementPreparer(object):
         self.src_dir = src_dir
         self.build_dir = build_dir
         self.req_tracker = req_tracker
+        self._session = session
         self.downloader = downloader
         self.finder = finder
 
@@ -461,22 +464,32 @@ class RequirementPreparer(object):
 
     def _fetch_metadata(preparer, link):
         # type: (Link) -> Optional[Distribution]
-        """Fetch metadata, using lazy wheel if possible."""
-        use_lazy_wheel = preparer.use_lazy_wheel
-        remote_wheel = link.is_wheel and not link.is_file
-        if use_lazy_wheel and remote_wheel and not preparer.require_hashes:
-            wheel = Wheel(link.filename)
-            name = canonicalize_name(wheel.name)
-            # If HTTPRangeRequestUnsupported is raised, fallback silently.
-            with indent_log(), suppress(HTTPRangeRequestUnsupported):
-                logger.info(
-                    'Obtaining dependency information from %s %s',
-                    name, wheel.version,
-                )
-                url = link.url.split('#', 1)[0]
-                session = preparer.downloader._session
-                return dist_from_wheel_url(name, url, session)
-        return None
+        """Fetch metadata using lazy wheel, if possible."""
+        if not self.use_lazy_wheel:
+            return None
+        if self.require_hashes:
+            logger.debug('Lazy wheel is not used as hash checking is required')
+            return None
+        if link.is_file or not link.is_wheel:
+            logger.debug(
+                'Lazy wheel is not used as '
+                '%r does not points to a remote wheel',
+                link,
+            )
+            return None
+
+        wheel = Wheel(link.filename)
+        name = canonicalize_name(wheel.name)
+        logger.info(
+            'Obtaining dependency information from %s %s',
+            name, wheel.version,
+        )
+        url = link.url.split('#', 1)[0]
+        try:
+            return dist_from_wheel_url(name, url, self._session)
+        except HTTPRangeRequestUnsupported:
+            logger.debug('%s does not support range requests', url)
+            return None
 
     def prepare_linked_requirement(self, req, parallel_builds=False):
         # type: (InstallRequirement, bool) -> Distribution
