@@ -9,7 +9,6 @@ import mimetypes
 import os
 import shutil
 
-from pip._vendor.contextlib2 import suppress
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.six import PY2
 
@@ -462,7 +461,7 @@ class RequirementPreparer(object):
         # showing the user what the hash should be.
         return req.hashes(trust_internet=False) or MissingHashes()
 
-    def _fetch_metadata(preparer, link):
+    def _fetch_metadata_using_lazy_wheel(self, link):
         # type: (Link) -> Optional[Distribution]
         """Fetch metadata using lazy wheel, if possible."""
         if not self.use_lazy_wheel:
@@ -497,7 +496,8 @@ class RequirementPreparer(object):
         assert req.link
         link = req.link
         self._log_preparing_link(req)
-        wheel_dist = self._fetch_metadata(link)
+        with indent_log():
+            wheel_dist = self._fetch_metadata_using_lazy_wheel(link)
         if wheel_dist is not None:
             req.needs_more_preparation = True
             return wheel_dist
