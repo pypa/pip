@@ -2,9 +2,8 @@ from tests.lib import create_test_package_with_setup
 
 
 def assert_contains_expected_lines(string, expected_lines):
-    lines = string.splitlines()
     for expected_line in expected_lines:
-        assert any(line.endswith(expected_line) for line in lines)
+        assert (expected_line + '\n') in string
 
 
 def test_check_install_canonicalization(script):
