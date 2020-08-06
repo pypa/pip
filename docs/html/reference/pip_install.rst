@@ -14,11 +14,11 @@ Usage
 
    .. group-tab:: Unix/macOS
 
-      .. pip-command-usage:: install $ python -m pip
+      .. pip-command-usage:: install "python -m pip"
 
    .. group-tab:: Windows
 
-      .. pip-command-usage:: install C:\> py -m pip
+      .. pip-command-usage:: install "py -m pip"
 
 
 

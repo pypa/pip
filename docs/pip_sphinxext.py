@@ -15,15 +15,17 @@ from pip._internal.req.req_file import SUPPORTED_OPTIONS
 
 class PipCommandUsage(rst.Directive):
     required_arguments = 1
-    optional_arguments = 4
+    optional_arguments = 3
 
     def run(self):
         cmd = create_command(self.arguments[0])
-        pip_cmd = '$ python -m pip'
+        cmd_prefix = 'python -m pip'
         if len(self.arguments) > 1:
-            pip_cmd = " ".join(self.arguments[1:])
+            cmd_prefix = " ".join(self.arguments[1:])
+            cmd_prefix = cmd_prefix.strip('"')
+            cmd_prefix = cmd_prefix.strip("'")
         usage = dedent(
-            cmd.usage.replace('%prog', '{} {}'.format(pip_cmd, cmd.name))
+            cmd.usage.replace('%prog', '{} {}'.format(cmd_prefix, cmd.name))
         ).strip()
         node = nodes.literal_block(usage, usage)
         return [node]
