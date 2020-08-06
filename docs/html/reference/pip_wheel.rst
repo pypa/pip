@@ -11,7 +11,15 @@ pip wheel
 Usage
 =====
 
-.. pip-command-usage:: wheel
+.. tabs::
+
+   .. group-tab:: Unix/macOS
+
+      .. pip-command-usage:: wheel "python -m pip"
+
+   .. group-tab:: Windows
+
+      .. pip-command-usage:: wheel "py -m pip"
 
 
 Description
@@ -24,9 +32,22 @@ Build System Interface
 ----------------------
 
 In order for pip to build a wheel, ``setup.py`` must implement the
-``bdist_wheel`` command with the following syntax::
+``bdist_wheel`` command with the following syntax:
 
-    python setup.py bdist_wheel -d TARGET
+.. tabs::
+
+  .. group-tab:: Unix/macOS
+
+    .. code-block:: shell
+
+        $ python setup.py bdist_wheel -d TARGET
+
+  .. group-tab:: Windows
+
+    .. code-block:: shell
+
+        C:\> py setup.py bdist_wheel -d TARGET
+
 
 This command must create a wheel compatible with the invoking Python
 interpreter, and save that wheel in the directory TARGET.
@@ -39,9 +60,22 @@ Customising the build
 It is possible using ``--global-option`` to include additional build commands
 with their arguments in the ``setup.py`` command. This is currently the only
 way to influence the building of C extensions from the command line. For
-example::
+example:
 
-    pip wheel --global-option bdist_ext --global-option -DFOO wheel
+.. tabs::
+
+  .. group-tab:: Unix/macOS
+
+    .. code-block:: shell
+
+        $ python -m pip wheel --global-option bdist_ext --global-option -DFOO wheel
+
+  .. group-tab:: Windows
+
+    .. code-block:: shell
+
+        C:\> py -m pip wheel --global-option bdist_ext --global-option -DFOO wheel
+
 
 will result in a build command of
 
@@ -69,13 +103,34 @@ Examples
 
 #. Build wheels for a requirement (and all its dependencies), and then install
 
-    ::
+    .. tabs::
 
-      $ pip wheel --wheel-dir=/tmp/wheelhouse SomePackage
-      $ pip install --no-index --find-links=/tmp/wheelhouse SomePackage
+      .. group-tab:: Unix/macOS
+
+        .. code-block:: shell
+
+            $ python -m pip wheel --wheel-dir=/tmp/wheelhouse SomePackage
+            $ python -m pip install --no-index --find-links=/tmp/wheelhouse SomePackage
+
+      .. group-tab:: Windows
+
+        .. code-block:: shell
+
+            C:\> py -m pip wheel --wheel-dir=/tmp/wheelhouse SomePackage
+            C:\> py -m pip install --no-index --find-links=/tmp/wheelhouse SomePackage
 
 #. Build a wheel for a package from source
 
-    ::
+    .. tabs::
 
-      $ pip wheel --no-binary SomePackage SomePackage
+      .. group-tab:: Unix/macOS
+
+        .. code-block:: shell
+
+            $ python -m pip wheel --no-binary SomePackage SomePackage
+
+      .. group-tab:: Windows
+
+        .. code-block:: shell
+
+            C:\> py -m pip wheel --no-binary SomePackage SomePackage
