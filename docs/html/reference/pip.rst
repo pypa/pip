@@ -230,9 +230,21 @@ Build Options
 The ``--global-option`` and ``--build-option`` arguments to the ``pip install``
 and ``pip wheel`` inject additional arguments into the ``setup.py`` command
 (``--build-option`` is only available in ``pip wheel``).  These arguments are
-included in the command as follows::
+included in the command as follows:
 
-    python setup.py <global_options> BUILD COMMAND <build_options>
+.. tabs::
+
+  .. group-tab:: Unix/macOS
+
+    .. code-block:: shell
+
+        $ python setup.py <global_options> BUILD COMMAND <build_options>
+
+  .. group-tab:: Windows
+
+    .. code-block:: shell
+
+        C:\> py setup.py <global_options> BUILD COMMAND <build_options>
 
 The options are passed unmodified, and presently offer direct access to the
 distutils command line. Use of ``--global-option`` and ``--build-option``
