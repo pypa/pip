@@ -90,7 +90,8 @@ class Resolver(BaseResolver):
                 problem = check_invalid_constraint_type(req)
                 if problem:
                     raise InstallationError(problem)
-
+                if not req.match_markers():
+                    continue
                 name = canonicalize_name(req.name)
                 if name in constraints:
                     constraints[name] = constraints[name] & req.specifier

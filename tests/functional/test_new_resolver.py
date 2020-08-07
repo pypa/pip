@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+import textwrap
 
 import pytest
 from pip._vendor.packaging.utils import canonicalize_name
@@ -727,6 +728,30 @@ def test_new_resolver_constraint_on_path(script):
 
     msg = "installation from path or url cannot be constrained to a version"
     assert msg in result.stderr, str(result)
+
+
+def test_new_resolver_constraint_only_marker_match(script):
+    create_basic_wheel_for_package(script, "pkg", "1.0")
+    create_basic_wheel_for_package(script, "pkg", "2.0")
+    create_basic_wheel_for_package(script, "pkg", "3.0")
+
+    constrants_content = textwrap.dedent(
+        """
+        pkg==1.0; python_version == "{ver[0]}.{ver[1]}"  # Always satisfies.
+        pkg==2.0; python_version < "0"  # Never satisfies.
+        """
+    ).format(ver=sys.version_info)
+    constraints_txt = script.scratch_path / "constraints.txt"
+    constraints_txt.write_text(constrants_content)
+
+    script.pip(
+        "install", "--use-feature=2020-resolver",
+        "--no-cache-dir", "--no-index",
+        "-c", constraints_txt,
+        "--find-links", script.scratch_path,
+        "pkg",
+    )
+    assert_installed(script, pkg="1.0")
 
 
 def test_new_resolver_upgrade_needs_option(script):
