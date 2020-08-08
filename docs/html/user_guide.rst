@@ -79,6 +79,22 @@ as the "username" and do not provide a password, for example -
 ``https://0123456789abcdef@pypi.company.com``
 
 
+Keyring Support
+---------------
+
+pip also supports credentials stored in your keyring using the `keyring`_
+library. Note that ``keyring`` will need to be installed separately, as pip
+does not come with it included.
+
+.. code-block:: shell
+
+   pip install keyring
+   echo your-password | keyring set pypi.company.com your-username
+   pip install your-package --extra-index-url https://pypi.company.com/
+
+.. _keyring: https://pypi.org/project/keyring/
+
+
 Using a Proxy Server
 ====================
 
