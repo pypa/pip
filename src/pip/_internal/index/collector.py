@@ -477,8 +477,9 @@ def _get_html_page(link, session=None):
     except requests.Timeout:
         _handle_get_page_fail(link, "timed out")
     else:
-        return _make_html_page(resp,
-                               cache_link_parsing=link.cache_link_parsing)
+        return _make_html_page(
+            resp, cache_link_parsing=link.cache_link_parsing,
+        )
     return None
 
 
