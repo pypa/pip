@@ -13,7 +13,7 @@ from collections import OrderedDict
 
 from pip._vendor import html5lib, requests
 from pip._vendor.distlib.compat import unescape
-from pip._vendor.requests.exceptions import RetryError, SSLError
+from pip._vendor.requests.exceptions import ProxyError, RetryError, SSLError
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 
@@ -460,6 +460,16 @@ def _get_html_page(link, session=None):
     except SSLError as exc:
         reason = "There was a problem confirming the ssl certificate"
         logger.warning("Could not fetch URL %s: %s: %s", link, reason, exc)
+    except (requests.ConnectTimeout, ProxyError):
+        template = (
+            "Skipping URL %s since the connection timed out. This is likely "
+            "caused by a misconfigured network or proxy."
+        )
+        logger.warning(template, link)
+        logger.warning(
+            "For help, visit "
+            "https://pip.pypa.io/en/latest/user_guide/#fixing-network-errors"
+        )
     except requests.ConnectionError as exc:
         reason = "connection error"
         logger.warning("Could not fetch URL %s: %s: %s", link, reason, exc)

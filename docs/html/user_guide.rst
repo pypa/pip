@@ -788,7 +788,10 @@ archives are built with identical packages.
     to use such a package, see :ref:`Controlling
     setup_requires<controlling-setup-requires>`.
 
-.. _`Using pip from your program`:
+Fixing network errors
+=====================
+
+TODO
 
 Fixing conflicting dependencies
 ===============================
