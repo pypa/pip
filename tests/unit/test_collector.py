@@ -11,7 +11,7 @@ from mock import Mock, patch
 from pip._vendor import html5lib, requests
 from pip._vendor.six.moves.urllib import request as urllib_request
 
-from pip._internal.exceptions import NetworkConnectionError
+from pip._internal.exceptions import NetworkResponseError
 from pip._internal.index.collector import (
     HTMLPage,
     LinkCollector,
@@ -457,7 +457,7 @@ def test_request_http_error(mock_raise_for_status, caplog):
     link = Link('http://localhost')
     session = Mock(PipSession)
     session.get.return_value = Mock()
-    mock_raise_for_status.side_effect = NetworkConnectionError('Http error')
+    mock_raise_for_status.side_effect = NetworkResponseError('Http error')
     assert _get_html_page(link, session=session) is None
     assert (
         'Could not fetch URL http://localhost: Http error - skipping'

@@ -8,7 +8,7 @@ import os
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE
 
 from pip._internal.cli.progress_bars import DownloadProgressProvider
-from pip._internal.exceptions import NetworkConnectionError
+from pip._internal.exceptions import NetworkResponseError
 from pip._internal.models.index import PyPI
 from pip._internal.network.cache import is_from_cache
 from pip._internal.network.utils import (
@@ -168,7 +168,7 @@ class Downloader(object):
         # type: (Link) -> Download
         try:
             resp = _http_get_download(self._session, link)
-        except NetworkConnectionError as e:
+        except NetworkResponseError as e:
             assert e.response is not None
             logger.critical(
                 "HTTP error %s while getting %s", e.response.status_code, link

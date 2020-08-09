@@ -8,7 +8,7 @@ import logging
 from pip._vendor.six.moves import xmlrpc_client  # type: ignore
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
-from pip._internal.exceptions import NetworkConnectionError
+from pip._internal.exceptions import NetworkResponseError
 from pip._internal.network.utils import raise_for_status
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -43,7 +43,7 @@ class PipXmlrpcTransport(xmlrpc_client.Transport):
             raise_for_status(response)
             self.verbose = verbose
             return self.parse_response(response.raw)
-        except NetworkConnectionError as exc:
+        except NetworkResponseError as exc:
             assert exc.response
             logger.critical(
                 "HTTP error %s while getting %s",

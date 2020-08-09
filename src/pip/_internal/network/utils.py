@@ -1,6 +1,6 @@
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
 
-from pip._internal.exceptions import NetworkConnectionError
+from pip._internal.exceptions import NetworkResponseError
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -52,7 +52,7 @@ def raise_for_status(resp):
             resp.status_code, reason, resp.url)
 
     if http_error_msg:
-        raise NetworkConnectionError(http_error_msg, response=resp)
+        raise NetworkResponseError(http_error_msg, response=resp)
 
 
 def response_chunks(response, chunk_size=CONTENT_CHUNK_SIZE):

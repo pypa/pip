@@ -100,13 +100,13 @@ class PreviousBuildDirError(PipError):
     """Raised when there's a previous conflicting build directory"""
 
 
-class NetworkConnectionError(PipError):
+class NetworkResponseError(PipError):
     """HTTP connection error"""
 
     def __init__(self, error_msg, response=None, request=None):
         # type: (Text, Response, Request) -> None
         """
-        Initialize NetworkConnectionError with  `request` and `response`
+        Initialize NetworkResponseError with  `request` and `response`
         objects.
         """
         self.response = response
@@ -115,7 +115,7 @@ class NetworkConnectionError(PipError):
         if (self.response is not None and not self.request and
                 hasattr(response, 'request')):
             self.request = self.response.request
-        super(NetworkConnectionError, self).__init__(
+        super(NetworkResponseError, self).__init__(
             error_msg, response, request)
 
     def __str__(self):

@@ -21,7 +21,7 @@ from pip._internal.exceptions import (
     HashMismatch,
     HashUnpinned,
     InstallationError,
-    NetworkConnectionError,
+    NetworkResponseError,
     PreviousBuildDirError,
     VcsHashUnsupported,
 )
@@ -527,7 +527,7 @@ class RequirementPreparer(object):
                     link, req.source_dir, self.downloader, download_dir,
                     hashes=self._get_linked_req_hashes(req)
                 )
-            except NetworkConnectionError as exc:
+            except NetworkResponseError as exc:
                 raise InstallationError(
                     'Could not install requirement {} because of HTTP '
                     'error {} for URL {}'.format(req, exc, link)

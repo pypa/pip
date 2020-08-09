@@ -17,7 +17,7 @@ from pip._vendor.requests.exceptions import RetryError, SSLError
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 
-from pip._internal.exceptions import NetworkConnectionError
+from pip._internal.exceptions import NetworkResponseError
 from pip._internal.models.link import Link
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.network.utils import raise_for_status
@@ -464,7 +464,7 @@ def _get_html_page(link, session=None):
             'The only supported Content-Type is text/html',
             link, exc.request_desc, exc.content_type,
         )
-    except NetworkConnectionError as exc:
+    except NetworkResponseError as exc:
         _handle_get_page_fail(link, exc)
     except RetryError as exc:
         _handle_get_page_fail(link, exc)

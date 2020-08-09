@@ -1,6 +1,6 @@
 import pytest
 
-from pip._internal.exceptions import NetworkConnectionError
+from pip._internal.exceptions import NetworkResponseError
 from pip._internal.network.utils import raise_for_status
 from tests.lib.requests_mocks import MockResponse
 
@@ -15,7 +15,7 @@ def test_raise_for_status_raises_exception(status_code, error_type):
     resp.status_code = status_code
     resp.url = "http://www.example.com/whatever.tgz"
     resp.reason = "Network Error"
-    with pytest.raises(NetworkConnectionError) as exc:
+    with pytest.raises(NetworkResponseError) as exc:
         raise_for_status(resp)
         assert str(exc.info) == (
             "{} {}: Network Error for url:"

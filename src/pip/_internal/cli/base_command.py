@@ -26,7 +26,7 @@ from pip._internal.exceptions import (
     BadCommand,
     CommandError,
     InstallationError,
-    NetworkConnectionError,
+    NetworkResponseError,
     PreviousBuildDirError,
     SubProcessError,
     UninstallationError,
@@ -222,7 +222,7 @@ class Command(CommandContextMixIn):
 
             return PREVIOUS_BUILD_DIR_ERROR
         except (InstallationError, UninstallationError, BadCommand,
-                SubProcessError, NetworkConnectionError) as exc:
+                SubProcessError, NetworkResponseError) as exc:
             logger.critical(str(exc))
             logger.debug('Exception information:', exc_info=True)
 
