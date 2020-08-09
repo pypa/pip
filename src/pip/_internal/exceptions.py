@@ -4,7 +4,7 @@ from __future__ import absolute_import
 
 from itertools import chain, groupby, repeat
 
-from pip._vendor.six import iteritems
+from pip._vendor.six import ensure_str, iteritems
 
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -120,7 +120,7 @@ class NetworkResponseError(PipError):
 
     def __str__(self):
         # type: () -> str
-        return str(self.error_msg)
+        return ensure_str(self.error_msg, errors="replace")
 
 
 class InvalidWheelFilename(InstallationError):

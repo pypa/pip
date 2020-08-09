@@ -39,7 +39,7 @@ def raise_for_status(resp):
         try:
             reason = resp.reason.decode('utf-8')
         except UnicodeDecodeError:
-            reason = resp.reason.decode('iso-8859-1')
+            reason = resp.reason.decode('iso-8859-1', errors='replace')
     else:
         reason = resp.reason
 
