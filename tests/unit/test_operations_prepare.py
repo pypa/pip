@@ -10,11 +10,7 @@ from pip._internal.exceptions import HashMismatch
 from pip._internal.models.link import Link
 from pip._internal.network.download import Downloader
 from pip._internal.network.session import PipSession
-from pip._internal.operations.prepare import (
-    _copy_source_tree,
-    _download_http_url,
-    unpack_url,
-)
+from pip._internal.operations.prepare import _copy_source_tree, unpack_url
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.urls import path_to_url
 from tests.lib.filesystem import (
@@ -83,12 +79,7 @@ def test_download_http_url__no_directory_traversal(mock_raise_for_status,
 
     download_dir = tmpdir.joinpath('download')
     os.mkdir(download_dir)
-    file_path, content_type = _download_http_url(
-        link,
-        downloader,
-        download_dir,
-        hashes=None,
-    )
+    file_path, content_type = downloader(link, download_dir)
     # The file should be downloaded to download_dir.
     actual = os.listdir(download_dir)
     assert actual == ['out_dir_file']

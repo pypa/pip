@@ -45,9 +45,7 @@ from pip._internal.utils.unpacking import unpack_file
 from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
-    from typing import (
-        Callable, List, Optional, Tuple,
-    )
+    from typing import Callable, List, Optional
 
     from mypy_extensions import TypedDict
     from pip._vendor.pkg_resources import Distribution
@@ -132,9 +130,9 @@ def get_http_url(
         content_type = mimetypes.guess_type(from_path)[0]
     else:
         # let's download to a tmp dir
-        from_path, content_type = _download_http_url(
-            link, downloader, temp_dir.path, hashes
-        )
+        from_path, content_type = downloader(link, temp_dir.path)
+        if hashes:
+            hashes.check_against_path(from_path)
 
     return File(from_path, content_type)
 
@@ -271,27 +269,6 @@ def unpack_url(
         unpack_file(file.path, location, file.content_type)
 
     return file
-
-
-def _download_http_url(
-    link,  # type: Link
-    downloader,  # type: Downloader
-    temp_dir,  # type: str
-    hashes,  # type: Optional[Hashes]
-):
-    # type: (...) -> Tuple[str, str]
-    """Download link url into temp_dir using provided session"""
-    download = downloader(link)
-
-    file_path = os.path.join(temp_dir, download.filename)
-    with open(file_path, 'wb') as content_file:
-        for chunk in download.chunks:
-            content_file.write(chunk)
-
-    if hashes:
-        hashes.check_against_path(file_path)
-
-    return file_path, download.response.headers.get('content-type', '')
 
 
 def _check_download_dir(link, download_dir, hashes):

@@ -24,7 +24,7 @@ from pip._internal.utils.misc import (
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Iterable, Optional
+    from typing import Iterable, Optional, Tuple
 
     from pip._vendor.requests.models import Response
 
@@ -141,19 +141,6 @@ def _http_get_download(session, link):
     return resp
 
 
-class Download(object):
-    def __init__(
-        self,
-        response,  # type: Response
-        filename,  # type: str
-        chunks,  # type: Iterable[bytes]
-    ):
-        # type: (...) -> None
-        self.response = response
-        self.filename = filename
-        self.chunks = chunks
-
-
 class Downloader(object):
     def __init__(
         self,
@@ -164,8 +151,8 @@ class Downloader(object):
         self._session = session
         self._progress_bar = progress_bar
 
-    def __call__(self, link):
-        # type: (Link) -> Download
+    def __call__(self, link, location):
+        # type: (Link, str) -> Tuple[str, str]
         try:
             resp = _http_get_download(self._session, link)
         except NetworkConnectionError as e:
@@ -175,8 +162,9 @@ class Downloader(object):
             )
             raise
 
-        return Download(
-            resp,
-            _get_http_response_filename(resp, link),
-            _prepare_download(resp, link, self._progress_bar),
-        )
+        filename = _get_http_response_filename(resp, link)
+        chunks = _prepare_download(resp, link, self._progress_bar)
+        with open(os.path.join(location, filename), 'wb') as content_file:
+            for chunk in chunks:
+                content_file.write(chunk)
+            return content_file.name, resp.headers.get('Content-Type', '')
