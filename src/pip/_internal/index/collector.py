@@ -31,7 +31,7 @@ if MYPY_CHECK_RUNNING:
     from optparse import Values
     from typing import (
         Callable, Iterable, List, MutableMapping, Optional,
-        Protocol, Sequence, Tuple, TypeVar, Union,
+        Protocol, Sequence, Tuple, TypeVar,
     )
     import xml.etree.ElementTree
 
@@ -404,17 +404,6 @@ class HTMLPage(object):
         return redact_auth_from_url(self.url)
 
 
-def _handle_get_page_fail(
-    link,  # type: Link
-    reason,  # type: Union[str, Exception]
-    meth=None  # type: Optional[Callable[..., None]]
-):
-    # type: (...) -> None
-    if meth is None:
-        meth = logger.debug
-    meth("Could not fetch URL %s: %s - skipping", link, reason)
-
-
 def _make_html_page(response, cache_link_parsing=True):
     # type: (Response, bool) -> HTMLPage
     encoding = _get_encoding_from_headers(response.headers)
@@ -465,17 +454,17 @@ def _get_html_page(link, session=None):
             link, exc.request_desc, exc.content_type,
         )
     except NetworkResponseError as exc:
-        _handle_get_page_fail(link, exc)
+        logger.warning("Could not fetch URL %s: %s - skipping", link, exc)
     except RetryError as exc:
-        _handle_get_page_fail(link, exc)
+        logger.warning("Could not fetch URL %s: %s - skipping", link, exc)
     except SSLError as exc:
-        reason = "There was a problem confirming the ssl certificate: "
-        reason += str(exc)
-        _handle_get_page_fail(link, reason, meth=logger.info)
+        reason = "There was a problem confirming the ssl certificate"
+        logger.warning("Could not fetch URL %s: %s: %s", link, reason, exc)
     except requests.ConnectionError as exc:
-        _handle_get_page_fail(link, "connection error: {}".format(exc))
+        reason = "connection error"
+        logger.warning("Could not fetch URL %s: %s: %s", link, reason, exc)
     except requests.Timeout:
-        _handle_get_page_fail(link, "timed out")
+        logger.warning("Could not fetch URL %s: %s", link, "timed out")
     else:
         return _make_html_page(
             resp, cache_link_parsing=link.cache_link_parsing,
