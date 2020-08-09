@@ -871,6 +871,11 @@ Examples
 
       $ pip install --upgrade SomePackage
 
+    .. note::
+
+      This will only update ``SomePackage`` as it is a direct requirement. Any
+      of its dependencies (indirect requirements) will be affected by the
+      ``--upgrade-strategy`` command.
 
 #. Install a local project in "editable" mode. See the section on :ref:`Editable Installs <editable-installs>`.
 
