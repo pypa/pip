@@ -169,10 +169,7 @@ class Downloader(object):
         try:
             resp = _http_get_download(self._session, link)
         except NetworkResponseError as e:
-            assert e.response is not None
-            logger.critical(
-                "HTTP error %s while getting %s", e.response.status_code, link
-            )
+            logger.critical("HTTP error %s while getting %s", e.status, link)
             raise
 
         return Download(

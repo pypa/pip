@@ -1,6 +1,9 @@
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
 
-from pip._internal.exceptions import NetworkResponseError
+from pip._internal.exceptions import (
+    NetworkResponseClientError,
+    NetworkResponseServerError,
+)
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -30,7 +33,6 @@ HEADERS = {'Accept-Encoding': 'identity'}  # type: Dict[str, str]
 
 def raise_for_status(resp):
     # type: (Response) -> None
-    http_error_msg = u''
     if isinstance(resp.reason, bytes):
         # We attempt to decode utf-8 first because some servers
         # choose to localize their reason strings. If the string
@@ -44,15 +46,9 @@ def raise_for_status(resp):
         reason = resp.reason
 
     if 400 <= resp.status_code < 500:
-        http_error_msg = u'%s Client Error: %s for url: %s' % (
-            resp.status_code, reason, resp.url)
-
+        raise NetworkResponseClientError(resp.status_code, reason, resp.url)
     elif 500 <= resp.status_code < 600:
-        http_error_msg = u'%s Server Error: %s for url: %s' % (
-            resp.status_code, reason, resp.url)
-
-    if http_error_msg:
-        raise NetworkResponseError(http_error_msg, response=resp)
+        raise NetworkResponseServerError(resp.status_code, reason, resp.url)
 
 
 def response_chunks(response, chunk_size=CONTENT_CHUNK_SIZE):

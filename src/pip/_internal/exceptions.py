@@ -12,7 +12,6 @@ if MYPY_CHECK_RUNNING:
     from typing import Any, Optional, List, Dict, Text
 
     from pip._vendor.pkg_resources import Distribution
-    from pip._vendor.requests.models import Response, Request
     from pip._vendor.six import PY3
     from pip._vendor.six.moves import configparser
 
@@ -103,24 +102,32 @@ class PreviousBuildDirError(PipError):
 class NetworkResponseError(PipError):
     """HTTP connection error"""
 
-    def __init__(self, error_msg, response=None, request=None):
-        # type: (Text, Response, Request) -> None
-        """
-        Initialize NetworkResponseError with  `request` and `response`
-        objects.
-        """
-        self.response = response
-        self.request = request
-        self.error_msg = error_msg
-        if (self.response is not None and not self.request and
-                hasattr(response, 'request')):
-            self.request = self.response.request
-        super(NetworkResponseError, self).__init__(
-            error_msg, response, request)
+    error_type = "Unknown Error"
+
+    def __init__(self, status, reason, url):
+        # type: (int, Text, str) -> None
+        super(NetworkResponseError, self).__init__(status, reason, url)
+        self.status = status
+        self.reason = reason
+        self.url = url
 
     def __str__(self):
         # type: () -> str
-        return ensure_str(self.error_msg, errors="replace")
+        message = u"{} {}: {} for url: {}".format(
+            self.status,
+            self.error_type,
+            self.reason,
+            self.url,
+        )
+        return ensure_str(message, errors="replace")
+
+
+class NetworkResponseClientError(NetworkResponseError):
+    error_type = "Client Error"
+
+
+class NetworkResponseServerError(NetworkResponseError):
+    error_type = "Server Error"
 
 
 class InvalidWheelFilename(InstallationError):

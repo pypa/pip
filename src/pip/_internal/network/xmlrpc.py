@@ -44,9 +44,5 @@ class PipXmlrpcTransport(xmlrpc_client.Transport):
             self.verbose = verbose
             return self.parse_response(response.raw)
         except NetworkResponseError as exc:
-            assert exc.response
-            logger.critical(
-                "HTTP error %s while getting %s",
-                exc.response.status_code, url,
-            )
+            logger.critical("HTTP error %s while getting %s", exc.status, url)
             raise
