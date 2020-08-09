@@ -45,7 +45,7 @@ from pip._internal.utils.unpacking import unpack_file
 from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
-    from typing import Callable, List, Optional
+    from typing import Callable, Dict, List, Optional, Tuple
 
     from mypy_extensions import TypedDict
     from pip._vendor.pkg_resources import Distribution
@@ -130,7 +130,7 @@ def get_http_url(
         content_type = mimetypes.guess_type(from_path)[0]
     else:
         # let's download to a tmp dir
-        from_path, content_type = downloader(link, temp_dir.path)
+        from_path, content_type = downloader.download_one(link, temp_dir.path)
         if hashes:
             hashes.check_against_path(from_path)
 
@@ -352,6 +352,9 @@ class RequirementPreparer(object):
         # Should wheels be downloaded lazily?
         self.use_lazy_wheel = lazy_wheel
 
+        # Memoized downloaded files, as mapping of url: (path, mime type)
+        self._downloaded = {}  # type: Dict[str, Tuple[str, str]]
+
     @property
     def _download_should_save(self):
         # type: () -> bool
@@ -480,12 +483,15 @@ class RequirementPreparer(object):
             return wheel_dist
         return self._prepare_linked_requirement(req, parallel_builds)
 
-    def prepare_linked_requirement_more(self, req, parallel_builds=False):
-        # type: (InstallRequirement, bool) -> None
+    def prepare_linked_requirements_more(self, reqs, parallel_builds=False):
+        # type: (List[InstallRequirement], bool) -> None
         """Prepare a linked requirement more, if needed."""
-        if not req.needs_more_preparation:
-            return
-        self._prepare_linked_requirement(req, parallel_builds)
+        # Let's download to a temporary directory.
+        tmpdir = TempDirectory(kind="unpack", globally_managed=True).path
+        links = (req.link for req in reqs)
+        self._downloaded.update(self.downloader.download_many(links, tmpdir))
+        for req in reqs:
+            self._prepare_linked_requirement(req, parallel_builds)
 
     def _prepare_linked_requirement(self, req, parallel_builds):
         # type: (InstallRequirement, bool) -> Distribution
@@ -499,16 +505,19 @@ class RequirementPreparer(object):
 
         with indent_log():
             self._ensure_link_req_src_dir(req, download_dir, parallel_builds)
-            try:
-                local_file = unpack_url(
-                    link, req.source_dir, self.downloader, download_dir,
-                    hashes=self._get_linked_req_hashes(req)
-                )
-            except NetworkConnectionError as exc:
-                raise InstallationError(
-                    'Could not install requirement {} because of HTTP '
-                    'error {} for URL {}'.format(req, exc, link)
-                )
+            if link.url in self._downloaded:
+                local_file = File(*self._downloaded[link.url])
+            else:
+                try:
+                    local_file = unpack_url(
+                        link, req.source_dir, self.downloader, download_dir,
+                        hashes=self._get_linked_req_hashes(req)
+                    )
+                except NetworkConnectionError as exc:
+                    raise InstallationError(
+                        'Could not install requirement {} because of HTTP '
+                        'error {} for URL {}'.format(req, exc, link)
+                    )
 
             # For use in later processing, preserve the file path on the
             # requirement.

@@ -160,8 +160,10 @@ class Resolver(BaseResolver):
 
             req_set.add_named_requirement(ireq)
 
-        for actual_req in req_set.all_requirements:
-            self.factory.preparer.prepare_linked_requirement_more(actual_req)
+        self.factory.preparer.prepare_linked_requirements_more([
+            req for req in req_set.all_requirements
+            if req.needs_more_preparation
+        ])
 
         return req_set
 

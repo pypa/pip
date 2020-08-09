@@ -151,8 +151,9 @@ class Downloader(object):
         self._session = session
         self._progress_bar = progress_bar
 
-    def __call__(self, link, location):
+    def download_one(self, link, location):
         # type: (Link, str) -> Tuple[str, str]
+        """Download the file given by link into location."""
         try:
             resp = _http_get_download(self._session, link)
         except NetworkConnectionError as e:
@@ -168,3 +169,9 @@ class Downloader(object):
             for chunk in chunks:
                 content_file.write(chunk)
             return content_file.name, resp.headers.get('Content-Type', '')
+
+    def download_many(self, links, location):
+        # type: (Iterable[Link], str) -> Iterable[Tuple[str, Tuple[str, str]]]
+        """Download the files given by links into location."""
+        for link in links:
+            yield link.url, self.download_one(link, location)

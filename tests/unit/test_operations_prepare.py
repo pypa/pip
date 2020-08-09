@@ -79,7 +79,7 @@ def test_download_http_url__no_directory_traversal(mock_raise_for_status,
 
     download_dir = tmpdir.joinpath('download')
     os.mkdir(download_dir)
-    file_path, content_type = downloader(link, download_dir)
+    file_path, content_type = downloader.download_one(link, download_dir)
     # The file should be downloaded to download_dir.
     actual = os.listdir(download_dir)
     assert actual == ['out_dir_file']
