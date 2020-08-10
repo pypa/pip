@@ -164,11 +164,14 @@ class Downloader(object):
             raise
 
         filename = _get_http_response_filename(resp, link)
+        filepath = os.path.join(location, filename)
+
         chunks = _prepare_download(resp, link, self._progress_bar)
-        with open(os.path.join(location, filename), 'wb') as content_file:
+        with open(filepath, 'wb') as content_file:
             for chunk in chunks:
                 content_file.write(chunk)
-            return content_file.name, resp.headers.get('Content-Type', '')
+        content_type = resp.headers.get('Content-Type', '')
+        return filepath, content_type
 
     def download_many(self, links, location):
         # type: (Iterable[Link], str) -> Iterable[Tuple[str, Tuple[str, str]]]

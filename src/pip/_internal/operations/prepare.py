@@ -45,7 +45,7 @@ from pip._internal.utils.unpacking import unpack_file
 from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
-    from typing import Callable, Dict, List, Optional, Tuple
+    from typing import Callable, Dict, Iterable, List, Optional, Tuple
 
     from mypy_extensions import TypedDict
     from pip._vendor.pkg_resources import Distribution
@@ -484,8 +484,10 @@ class RequirementPreparer(object):
         return self._prepare_linked_requirement(req, parallel_builds)
 
     def prepare_linked_requirements_more(self, reqs, parallel_builds=False):
-        # type: (List[InstallRequirement], bool) -> None
+        # type: (Iterable[InstallRequirement], bool) -> None
         """Prepare a linked requirement more, if needed."""
+        reqs = [req for req in reqs if req.needs_more_preparation]
+
         # Let's download to a temporary directory.
         tmpdir = TempDirectory(kind="unpack", globally_managed=True).path
         links = (req.link for req in reqs)
@@ -505,9 +507,7 @@ class RequirementPreparer(object):
 
         with indent_log():
             self._ensure_link_req_src_dir(req, download_dir, parallel_builds)
-            if link.url in self._downloaded:
-                local_file = File(*self._downloaded[link.url])
-            else:
+            if link.url not in self._downloaded:
                 try:
                     local_file = unpack_url(
                         link, req.source_dir, self.downloader, download_dir,
@@ -518,6 +518,8 @@ class RequirementPreparer(object):
                         'Could not install requirement {} because of HTTP '
                         'error {} for URL {}'.format(req, exc, link)
                     )
+            else:
+                local_file = File(*self._downloaded[link.url])
 
             # For use in later processing, preserve the file path on the
             # requirement.
