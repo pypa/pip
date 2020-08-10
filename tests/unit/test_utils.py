@@ -5,6 +5,7 @@ util tests
 
 """
 import codecs
+import itertools
 import os
 import shutil
 import stat
@@ -34,6 +35,7 @@ from pip._internal.utils.misc import (
     build_url_from_netloc,
     egg_link_path,
     format_size,
+    get_distribution,
     get_installed_distributions,
     get_prog,
     hide_url,
@@ -192,26 +194,30 @@ class Tests_EgglinkPath:
 @patch('pip._internal.utils.misc.dist_in_usersite')
 @patch('pip._internal.utils.misc.dist_is_local')
 @patch('pip._internal.utils.misc.dist_is_editable')
-class Tests_get_installed_distributions:
-    """test util.get_installed_distributions"""
+class TestsGetDistributions(object):
+    """Test get_installed_distributions() and get_distribution().
+    """
+    class MockWorkingSet(list):
+        def require(self, name):
+            pass
 
-    workingset = [
-        Mock(test_name="global"),
-        Mock(test_name="editable"),
-        Mock(test_name="normal"),
-        Mock(test_name="user"),
-    ]
+    workingset = MockWorkingSet((
+        Mock(test_name="global", key="global"),
+        Mock(test_name="editable", key="editable"),
+        Mock(test_name="normal", key="normal"),
+        Mock(test_name="user", key="user"),
+    ))
 
-    workingset_stdlib = [
+    workingset_stdlib = MockWorkingSet((
         Mock(test_name='normal', key='argparse'),
         Mock(test_name='normal', key='wsgiref')
-    ]
+    ))
 
-    workingset_freeze = [
+    workingset_freeze = MockWorkingSet((
         Mock(test_name='normal', key='pip'),
         Mock(test_name='normal', key='setuptools'),
         Mock(test_name='normal', key='distribute')
-    ]
+    ))
 
     def dist_is_editable(self, dist):
         return dist.test_name == "editable"
@@ -286,6 +292,46 @@ class Tests_get_installed_distributions:
         dists = get_installed_distributions(
             skip=('setuptools', 'pip', 'distribute'))
         assert len(dists) == 0
+
+    @pytest.mark.parametrize(
+        "working_set, req_name",
+        itertools.chain(
+            itertools.product([workingset], (d.key for d in workingset)),
+            itertools.product(
+                [workingset_stdlib], (d.key for d in workingset_stdlib),
+            ),
+        ),
+    )
+    def test_get_distribution(
+        self,
+        mock_dist_is_editable,
+        mock_dist_is_local,
+        mock_dist_in_usersite,
+        working_set,
+        req_name,
+    ):
+        """Ensure get_distribution() finds all kinds of distributions.
+        """
+        mock_dist_is_editable.side_effect = self.dist_is_editable
+        mock_dist_is_local.side_effect = self.dist_is_local
+        mock_dist_in_usersite.side_effect = self.dist_in_usersite
+        with patch("pip._vendor.pkg_resources.working_set", working_set):
+            dist = get_distribution(req_name)
+        assert dist is not None
+        assert dist.key == req_name
+
+    @patch('pip._vendor.pkg_resources.working_set', workingset)
+    def test_get_distribution_nonexist(
+        self,
+        mock_dist_is_editable,
+        mock_dist_is_local,
+        mock_dist_in_usersite,
+    ):
+        mock_dist_is_editable.side_effect = self.dist_is_editable
+        mock_dist_is_local.side_effect = self.dist_is_local
+        mock_dist_in_usersite.side_effect = self.dist_in_usersite
+        dist = get_distribution("non-exist")
+        assert dist is None
 
 
 def test_rmtree_errorhandler_nonexistent_directory(tmpdir):

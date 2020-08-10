@@ -483,22 +483,39 @@ def get_installed_distributions(
             ]
 
 
-def search_distribution(req_name):
+def _search_distribution(req_name):
+    # type: (str) -> Optional[Distribution]
+    """Find a distribution matching the ``req_name`` in the environment.
 
+    This searches from *all* distributions available in the environment, to
+    match the behavior of ``pkg_resources.get_distribution()``.
+    """
     # Canonicalize the name before searching in the list of
     # installed distributions and also while creating the package
     # dictionary to get the Distribution object
     req_name = canonicalize_name(req_name)
-    packages = get_installed_distributions(skip=())
+    packages = get_installed_distributions(
+        local_only=False,
+        skip=(),
+        include_editables=True,
+        editables_only=False,
+        user_only=False,
+        paths=None,
+    )
     pkg_dict = {canonicalize_name(p.key): p for p in packages}
     return pkg_dict.get(req_name)
 
 
 def get_distribution(req_name):
-    """Given a requirement name, return the installed Distribution object"""
+    # type: (str) -> Optional[Distribution]
+    """Given a requirement name, return the installed Distribution object.
+
+    This searches from *all* distributions available in the environment, to
+    match the behavior of ``pkg_resources.get_distribution()``.
+    """
 
     # Search the distribution by looking through the working set
-    dist = search_distribution(req_name)
+    dist = _search_distribution(req_name)
 
     # If distribution could not be found, call working_set.require
     # to update the working set, and try to find the distribution
@@ -514,7 +531,7 @@ def get_distribution(req_name):
             pkg_resources.working_set.require(req_name)
         except pkg_resources.DistributionNotFound:
             return None
-    return search_distribution(req_name)
+    return _search_distribution(req_name)
 
 
 def egg_link_path(dist):
