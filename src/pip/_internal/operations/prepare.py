@@ -507,11 +507,12 @@ class RequirementPreparer(object):
 
         with indent_log():
             self._ensure_link_req_src_dir(req, download_dir, parallel_builds)
+            hashes = self._get_linked_req_hashes(req)
             if link.url not in self._downloaded:
                 try:
                     local_file = unpack_url(
-                        link, req.source_dir, self.downloader, download_dir,
-                        hashes=self._get_linked_req_hashes(req)
+                        link, req.source_dir, self.downloader,
+                        download_dir, hashes,
                     )
                 except NetworkConnectionError as exc:
                     raise InstallationError(
@@ -519,7 +520,10 @@ class RequirementPreparer(object):
                         'error {} for URL {}'.format(req, exc, link)
                     )
             else:
-                local_file = File(*self._downloaded[link.url])
+                file_path, content_type = self._downloaded[link.url]
+                if hashes:
+                    hashes.check_against_path(file_path)
+                local_file = File(file_path, content_type)
 
             # For use in later processing, preserve the file path on the
             # requirement.
