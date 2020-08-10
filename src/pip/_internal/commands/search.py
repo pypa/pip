@@ -140,6 +140,7 @@ def print_results(hits, name_column_width=None, terminal_width=None):
             write_output(line)
             if name in installed_packages:
                 dist = get_distribution(name)
+                assert dist is not None
                 with indent_log():
                     if dist.version == latest:
                         write_output('INSTALLED: %s (latest)', dist.version)
