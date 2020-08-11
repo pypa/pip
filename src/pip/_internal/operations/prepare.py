@@ -104,10 +104,14 @@ def unpack_vcs_link(link, location):
 
 
 class File(object):
+
     def __init__(self, path, content_type):
-        # type: (str, str) -> None
+        # type: (str, Optional[str]) -> None
         self.path = path
-        self.content_type = content_type
+        if content_type is None:
+            self.content_type = mimetypes.guess_type(path)[0]
+        else:
+            self.content_type = content_type
 
 
 def get_http_url(
@@ -127,7 +131,7 @@ def get_http_url(
 
     if already_downloaded_path:
         from_path = already_downloaded_path
-        content_type = mimetypes.guess_type(from_path)[0]
+        content_type = None
     else:
         # let's download to a tmp dir
         from_path, content_type = downloader.download_one(link, temp_dir.path)
@@ -217,10 +221,7 @@ def get_file_url(
     # one; no internet-sourced hash will be in `hashes`.
     if hashes:
         hashes.check_against_path(from_path)
-
-    content_type = mimetypes.guess_type(from_path)[0]
-
-    return File(from_path, content_type)
+    return File(from_path, None)
 
 
 def unpack_url(
@@ -378,6 +379,13 @@ class RequirementPreparer(object):
         else:
             logger.info('Collecting %s', req.req or req)
 
+    def _get_download_dir(self, link):
+        # type: (Link) -> Optional[str]
+        if link.is_wheel and self.wheel_download_dir:
+            # Download wheels to a dedicated dir when doing `pip wheel`.
+            return self.wheel_download_dir
+        return self.download_dir
+
     def _ensure_link_req_src_dir(self, req, download_dir, parallel_builds):
         # type: (InstallRequirement, Optional[str], bool) -> None
         """Ensure source_dir of a linked InstallRequirement."""
@@ -487,10 +495,19 @@ class RequirementPreparer(object):
         # type: (Iterable[InstallRequirement], bool) -> None
         """Prepare a linked requirement more, if needed."""
         reqs = [req for req in reqs if req.needs_more_preparation]
+        links = []  # type: List[Link]
+        for req in reqs:
+            download_dir = self._get_download_dir(req.link)
+            if download_dir is not None:
+                hashes = self._get_linked_req_hashes(req)
+                file_path = _check_download_dir(req.link, download_dir, hashes)
+            if download_dir is None or file_path is None:
+                links.append(req.link)
+            else:
+                self._downloaded[req.link.url] = file_path, None
 
         # Let's download to a temporary directory.
         tmpdir = TempDirectory(kind="unpack", globally_managed=True).path
-        links = (req.link for req in reqs)
         self._downloaded.update(self.downloader.download_many(links, tmpdir))
         for req in reqs:
             self._prepare_linked_requirement(req, parallel_builds)
@@ -499,11 +516,7 @@ class RequirementPreparer(object):
         # type: (InstallRequirement, bool) -> Distribution
         assert req.link
         link = req.link
-        if link.is_wheel and self.wheel_download_dir:
-            # Download wheels to a dedicated dir when doing `pip wheel`.
-            download_dir = self.wheel_download_dir
-        else:
-            download_dir = self.download_dir
+        download_dir = self._get_download_dir(link)
 
         with indent_log():
             self._ensure_link_req_src_dir(req, download_dir, parallel_builds)
