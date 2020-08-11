@@ -135,6 +135,9 @@ extlinks = {
     'pypi': ('https://pypi.org/project/%s/', ''),
 }
 
+# Turn off sphinx build warnings because of sphinx tabs during man pages build
+sphinx_tabs_nowarn = True
+
 # -- Options for HTML output --------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  Major themes that come with
