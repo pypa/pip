@@ -9,6 +9,25 @@
 
 .. towncrier release notes start
 
+20.2.2 (2020-08-11)
+===================
+
+Bug Fixes
+---------
+
+- Only attempt to use the keyring once and if it fails, don't try again.
+  This prevents spamming users with several keyring unlock prompts when they
+  cannot unlock or don't want to do so. (`#8090 <https://github.com/pypa/pip/issues/8090>`_)
+- Fix regression that distributions in system site-packages are not correctly
+  found when a virtual environment is configured with ``system-site-packages``
+  on. (`#8695 <https://github.com/pypa/pip/issues/8695>`_)
+- Disable caching for range requests, which causes corrupted wheels
+  when pip tries to obtain metadata using the feature ``fast-deps``. (`#8701 <https://github.com/pypa/pip/issues/8701>`_, `#8716 <https://github.com/pypa/pip/issues/8716>`_)
+- Always use UTF-8 to read ``pyvenv.cfg`` to match the built-in ``venv``. (`#8717 <https://github.com/pypa/pip/issues/8717>`_)
+- 2020 Resolver: Correctly handle marker evaluation in constraints and exclude
+  them if their markers do not match the current environment. (`#8724 <https://github.com/pypa/pip/issues/8724>`_)
+
+
 20.2.1 (2020-08-04)
 ===================
 
