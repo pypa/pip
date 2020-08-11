@@ -26,6 +26,7 @@ from pip._internal.exceptions import (
     VcsHashUnsupported,
 )
 from pip._internal.models.wheel import Wheel
+from pip._internal.network.download import BatchDownloader, Downloader
 from pip._internal.network.lazy_wheel import (
     HTTPRangeRequestUnsupported,
     dist_from_wheel_url,
@@ -52,7 +53,6 @@ if MYPY_CHECK_RUNNING:
 
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.models.link import Link
-    from pip._internal.network.download import Downloader
     from pip._internal.network.session import PipSession
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.req.req_tracker import RequirementTracker
@@ -116,7 +116,7 @@ class File(object):
 
 def get_http_url(
     link,  # type: Link
-    downloader,  # type: Downloader
+    download,  # type: Downloader
     download_dir=None,  # type: Optional[str]
     hashes=None,  # type: Optional[Hashes]
 ):
@@ -134,7 +134,7 @@ def get_http_url(
         content_type = None
     else:
         # let's download to a tmp dir
-        from_path, content_type = downloader.download_one(link, temp_dir.path)
+        from_path, content_type = download(link, temp_dir.path)
         if hashes:
             hashes.check_against_path(from_path)
 
@@ -227,7 +227,7 @@ def get_file_url(
 def unpack_url(
     link,  # type: Link
     location,  # type: str
-    downloader,  # type: Downloader
+    download,  # type: Downloader
     download_dir=None,  # type: Optional[str]
     hashes=None,  # type: Optional[Hashes]
 ):
@@ -259,7 +259,7 @@ def unpack_url(
     else:
         file = get_http_url(
             link,
-            downloader,
+            download,
             download_dir,
             hashes=hashes,
         )
@@ -311,7 +311,7 @@ class RequirementPreparer(object):
         build_isolation,  # type: bool
         req_tracker,  # type: RequirementTracker
         session,  # type: PipSession
-        downloader,  # type: Downloader
+        progress_bar,  # type: str
         finder,  # type: PackageFinder
         require_hashes,  # type: bool
         use_user_site,  # type: bool
@@ -324,7 +324,8 @@ class RequirementPreparer(object):
         self.build_dir = build_dir
         self.req_tracker = req_tracker
         self._session = session
-        self.downloader = downloader
+        self._download = Downloader(session, progress_bar)
+        self._batch_download = BatchDownloader(session, progress_bar)
         self.finder = finder
 
         # Where still-packed archives should be written to. If None, they are
@@ -508,7 +509,7 @@ class RequirementPreparer(object):
 
         # Let's download to a temporary directory.
         tmpdir = TempDirectory(kind="unpack", globally_managed=True).path
-        self._downloaded.update(self.downloader.download_many(links, tmpdir))
+        self._downloaded.update(self._batch_download(links, tmpdir))
         for req in reqs:
             self._prepare_linked_requirement(req, parallel_builds)
 
@@ -524,7 +525,7 @@ class RequirementPreparer(object):
             if link.url not in self._downloaded:
                 try:
                     local_file = unpack_url(
-                        link, req.source_dir, self.downloader,
+                        link, req.source_dir, self._download,
                         download_dir, hashes,
                     )
                 except NetworkConnectionError as exc:

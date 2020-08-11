@@ -151,7 +151,7 @@ class Downloader(object):
         self._session = session
         self._progress_bar = progress_bar
 
-    def download_one(self, link, location):
+    def __call__(self, link, location):
         # type: (Link, str) -> Tuple[str, str]
         """Download the file given by link into location."""
         try:
@@ -173,8 +173,38 @@ class Downloader(object):
         content_type = resp.headers.get('Content-Type', '')
         return filepath, content_type
 
-    def download_many(self, links, location):
+
+class BatchDownloader(object):
+
+    def __init__(
+        self,
+        session,  # type: PipSession
+        progress_bar,  # type: str
+    ):
+        # type: (...) -> None
+        self._session = session
+        self._progress_bar = progress_bar
+
+    def __call__(self, links, location):
         # type: (Iterable[Link], str) -> Iterable[Tuple[str, Tuple[str, str]]]
         """Download the files given by links into location."""
         for link in links:
-            yield link.url, self.download_one(link, location)
+            try:
+                resp = _http_get_download(self._session, link)
+            except NetworkConnectionError as e:
+                assert e.response is not None
+                logger.critical(
+                    "HTTP error %s while getting %s",
+                    e.response.status_code, link,
+                )
+                raise
+
+            filename = _get_http_response_filename(resp, link)
+            filepath = os.path.join(location, filename)
+
+            chunks = _prepare_download(resp, link, self._progress_bar)
+            with open(filepath, 'wb') as content_file:
+                for chunk in chunks:
+                    content_file.write(chunk)
+            content_type = resp.headers.get('Content-Type', '')
+            yield link.url, (filepath, content_type)
