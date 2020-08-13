@@ -860,20 +860,20 @@ class InstallRequirement(object):
         except Exception:
             self.install_succeeded = True
             raise
-        else:
-            if self.legacy_install_reason == 8368:
-                deprecated(
-                    reason=(
-                        "{} was installed using the legacy 'setup.py install' "
-                        "method, because a wheel could not be built for it.".
-                        format(self.name)
-                    ),
-                    replacement="to fix the wheel build issue reported above",
-                    gone_in="21.0",
-                    issue=8368,
-                )
 
         self.install_succeeded = success
+
+        if success and self.legacy_install_reason == 8368:
+            deprecated(
+                reason=(
+                    "{} was installed using the legacy 'setup.py install' "
+                    "method, because a wheel could not be built for it.".
+                    format(self.name)
+                ),
+                replacement="to fix the wheel build issue reported above",
+                gone_in="21.0",
+                issue=8368,
+            )
 
 
 def check_invalid_constraint_type(req):
