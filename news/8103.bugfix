@@ -1,2 +1,2 @@
 Propagate ``--extra-index-url`` from requirements file properly to session auth,
-in order that keyrings and other auths will work as expected.
+so that keyring auth will work as expected.
