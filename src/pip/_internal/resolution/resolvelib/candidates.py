@@ -230,31 +230,25 @@ class _InstallRequirementBackedCandidate(Candidate):
             self._prepare()
         return self._dist
 
-    def _get_requires_python_specifier(self):
-        # type: () -> Optional[SpecifierSet]
+    def _get_requires_python_dependency(self):
+        # type: () -> Optional[Requirement]
         requires_python = get_requires_python(self.dist)
         if requires_python is None:
             return None
         try:
             spec = SpecifierSet(requires_python)
         except InvalidSpecifier as e:
-            logger.warning(
-                "Package %r has an invalid Requires-Python: %s", self.name, e,
-            )
+            message = "Package %r has an invalid Requires-Python: %s"
+            logger.warning(message, self.name, e)
             return None
-        return spec
+        return self._factory.make_requires_python_requirement(spec)
 
     def iter_dependencies(self, with_requires):
         # type: (bool) -> Iterable[Optional[Requirement]]
-        if not with_requires:
-            return
-        for r in self.dist.requires():
+        requires = self.dist.requires() if with_requires else ()
+        for r in requires:
             yield self._factory.make_requirement_from_spec(str(r), self._ireq)
-        python_dep = self._factory.make_requires_python_requirement(
-            self._get_requires_python_specifier(),
-        )
-        if python_dep:
-            yield python_dep
+        yield self._get_requires_python_dependency()
 
     def get_install_requirement(self):
         # type: () -> Optional[InstallRequirement]
@@ -285,7 +279,7 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
             wheel = Wheel(ireq.link.filename)
             wheel_name = canonicalize_name(wheel.name)
             assert name == wheel_name, (
-               "{!r} != {!r} for wheel".format(name, wheel_name)
+                "{!r} != {!r} for wheel".format(name, wheel_name)
             )
             # Version may not be present for PEP 508 direct URLs
             if version is not None:
