@@ -15,6 +15,7 @@ from pip._internal.models.index import PyPI
 from pip._internal.network.cache import is_from_cache
 from pip._internal.network.utils import HEADERS, raise_for_status, response_chunks
 from pip._internal.utils.misc import format_size, redact_auth_from_url, splitext
+from pip._internal.utils.parallel import map_multithread
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -200,11 +201,15 @@ class BatchDownloader(object):
         # type: (Iterable[Link], str) -> Iterable[_FileToDownload]
         return map(partial(_FileToDownload, location, self._session), links)
 
+    def _download_one(self, file):
+        # type: (_FileToDownload) -> Tuple[str, Tuple[str, str]]
+        with open(file.path, 'wb') as content_file:
+            for chunk in file.chunks:
+                content_file.write(chunk)
+        return file.url, (file.path, file.type)
+
     def __call__(self, links, location):
         # type: (Iterable[Link], str) -> Iterable[Tuple[str, Tuple[str, str]]]
         """Download the files given by links into location."""
-        for f in self._files_to_download(links, location):
-            with open(f.path, 'wb') as content_file:
-                for chunk in f.chunks:
-                    content_file.write(chunk)
-            yield f.url, (f.path, f.type)
+        files = self._files_to_download(links, location)
+        return map_multithread(self._download_one, files)
