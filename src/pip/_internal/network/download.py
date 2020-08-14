@@ -129,8 +129,17 @@ def _http_get_download(session, link):
     # type: (PipSession, Link) -> Response
     target_url = link.url.split('#', 1)[0]
     resp = session.get(target_url, headers=HEADERS, stream=True)
-    raise_for_status(resp)
-    return resp
+    try:
+        raise_for_status(resp)
+    except NetworkConnectionError as e:
+        assert e.response is not None
+        logger.critical(
+            "HTTP error %s while getting %s",
+            e.response.status_code, link,
+        )
+        raise
+    else:
+        return resp
 
 
 class Downloader(object):
@@ -146,15 +155,7 @@ class Downloader(object):
     def __call__(self, link, location):
         # type: (Link, str) -> Tuple[str, str]
         """Download the file given by link into location."""
-        try:
-            resp = _http_get_download(self._session, link)
-        except NetworkConnectionError as e:
-            assert e.response is not None
-            logger.critical(
-                "HTTP error %s while getting %s", e.response.status_code, link
-            )
-            raise
-
+        resp = _http_get_download(self._session, link)
         filename = _get_http_response_filename(resp, link)
         filepath = os.path.join(location, filename)
 
@@ -181,16 +182,7 @@ class BatchDownloader(object):
         # type: (Iterable[Link], str) -> Iterable[Tuple[str, Tuple[str, str]]]
         """Download the files given by links into location."""
         for link in links:
-            try:
-                resp = _http_get_download(self._session, link)
-            except NetworkConnectionError as e:
-                assert e.response is not None
-                logger.critical(
-                    "HTTP error %s while getting %s",
-                    e.response.status_code, link,
-                )
-                raise
-
+            resp = _http_get_download(self._session, link)
             filename = _get_http_response_filename(resp, link)
             filepath = os.path.join(location, filename)
 
