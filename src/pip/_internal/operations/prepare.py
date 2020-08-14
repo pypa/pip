@@ -26,6 +26,7 @@ from pip._internal.exceptions import (
     VcsHashUnsupported,
 )
 from pip._internal.models.wheel import Wheel
+from pip._internal.network.download import BatchDownloader, Downloader
 from pip._internal.network.lazy_wheel import (
     HTTPRangeRequestUnsupported,
     dist_from_wheel_url,
@@ -45,16 +46,13 @@ from pip._internal.utils.unpacking import unpack_file
 from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
-    from typing import (
-        Callable, List, Optional, Tuple,
-    )
+    from typing import Callable, Dict, Iterable, List, Optional, Tuple
 
     from mypy_extensions import TypedDict
     from pip._vendor.pkg_resources import Distribution
 
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.models.link import Link
-    from pip._internal.network.download import Downloader
     from pip._internal.network.session import PipSession
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.req.req_tracker import RequirementTracker
@@ -106,15 +104,19 @@ def unpack_vcs_link(link, location):
 
 
 class File(object):
+
     def __init__(self, path, content_type):
-        # type: (str, str) -> None
+        # type: (str, Optional[str]) -> None
         self.path = path
-        self.content_type = content_type
+        if content_type is None:
+            self.content_type = mimetypes.guess_type(path)[0]
+        else:
+            self.content_type = content_type
 
 
 def get_http_url(
     link,  # type: Link
-    downloader,  # type: Downloader
+    download,  # type: Downloader
     download_dir=None,  # type: Optional[str]
     hashes=None,  # type: Optional[Hashes]
 ):
@@ -129,12 +131,12 @@ def get_http_url(
 
     if already_downloaded_path:
         from_path = already_downloaded_path
-        content_type = mimetypes.guess_type(from_path)[0]
+        content_type = None
     else:
         # let's download to a tmp dir
-        from_path, content_type = _download_http_url(
-            link, downloader, temp_dir.path, hashes
-        )
+        from_path, content_type = download(link, temp_dir.path)
+        if hashes:
+            hashes.check_against_path(from_path)
 
     return File(from_path, content_type)
 
@@ -219,16 +221,13 @@ def get_file_url(
     # one; no internet-sourced hash will be in `hashes`.
     if hashes:
         hashes.check_against_path(from_path)
-
-    content_type = mimetypes.guess_type(from_path)[0]
-
-    return File(from_path, content_type)
+    return File(from_path, None)
 
 
 def unpack_url(
     link,  # type: Link
     location,  # type: str
-    downloader,  # type: Downloader
+    download,  # type: Downloader
     download_dir=None,  # type: Optional[str]
     hashes=None,  # type: Optional[Hashes]
 ):
@@ -260,7 +259,7 @@ def unpack_url(
     else:
         file = get_http_url(
             link,
-            downloader,
+            download,
             download_dir,
             hashes=hashes,
         )
@@ -271,27 +270,6 @@ def unpack_url(
         unpack_file(file.path, location, file.content_type)
 
     return file
-
-
-def _download_http_url(
-    link,  # type: Link
-    downloader,  # type: Downloader
-    temp_dir,  # type: str
-    hashes,  # type: Optional[Hashes]
-):
-    # type: (...) -> Tuple[str, str]
-    """Download link url into temp_dir using provided session"""
-    download = downloader(link)
-
-    file_path = os.path.join(temp_dir, download.filename)
-    with open(file_path, 'wb') as content_file:
-        for chunk in download.chunks:
-            content_file.write(chunk)
-
-    if hashes:
-        hashes.check_against_path(file_path)
-
-    return file_path, download.response.headers.get('content-type', '')
 
 
 def _check_download_dir(link, download_dir, hashes):
@@ -333,7 +311,7 @@ class RequirementPreparer(object):
         build_isolation,  # type: bool
         req_tracker,  # type: RequirementTracker
         session,  # type: PipSession
-        downloader,  # type: Downloader
+        progress_bar,  # type: str
         finder,  # type: PackageFinder
         require_hashes,  # type: bool
         use_user_site,  # type: bool
@@ -346,7 +324,8 @@ class RequirementPreparer(object):
         self.build_dir = build_dir
         self.req_tracker = req_tracker
         self._session = session
-        self.downloader = downloader
+        self._download = Downloader(session, progress_bar)
+        self._batch_download = BatchDownloader(session, progress_bar)
         self.finder = finder
 
         # Where still-packed archives should be written to. If None, they are
@@ -375,6 +354,9 @@ class RequirementPreparer(object):
         # Should wheels be downloaded lazily?
         self.use_lazy_wheel = lazy_wheel
 
+        # Memoized downloaded files, as mapping of url: (path, mime type)
+        self._downloaded = {}  # type: Dict[str, Tuple[str, str]]
+
     @property
     def _download_should_save(self):
         # type: () -> bool
@@ -397,6 +379,13 @@ class RequirementPreparer(object):
             logger.info('Processing %s', display_path(path))
         else:
             logger.info('Collecting %s', req.req or req)
+
+    def _get_download_dir(self, link):
+        # type: (Link) -> Optional[str]
+        if link.is_wheel and self.wheel_download_dir:
+            # Download wheels to a dedicated dir when doing `pip wheel`.
+            return self.wheel_download_dir
+        return self.download_dir
 
     def _ensure_link_req_src_dir(self, req, download_dir, parallel_builds):
         # type: (InstallRequirement, Optional[str], bool) -> None
@@ -503,35 +492,52 @@ class RequirementPreparer(object):
             return wheel_dist
         return self._prepare_linked_requirement(req, parallel_builds)
 
-    def prepare_linked_requirement_more(self, req, parallel_builds=False):
-        # type: (InstallRequirement, bool) -> None
+    def prepare_linked_requirements_more(self, reqs, parallel_builds=False):
+        # type: (Iterable[InstallRequirement], bool) -> None
         """Prepare a linked requirement more, if needed."""
-        if not req.needs_more_preparation:
-            return
-        self._prepare_linked_requirement(req, parallel_builds)
+        reqs = [req for req in reqs if req.needs_more_preparation]
+        links = []  # type: List[Link]
+        for req in reqs:
+            download_dir = self._get_download_dir(req.link)
+            if download_dir is not None:
+                hashes = self._get_linked_req_hashes(req)
+                file_path = _check_download_dir(req.link, download_dir, hashes)
+            if download_dir is None or file_path is None:
+                links.append(req.link)
+            else:
+                self._downloaded[req.link.url] = file_path, None
+
+        # Let's download to a temporary directory.
+        tmpdir = TempDirectory(kind="unpack", globally_managed=True).path
+        self._downloaded.update(self._batch_download(links, tmpdir))
+        for req in reqs:
+            self._prepare_linked_requirement(req, parallel_builds)
 
     def _prepare_linked_requirement(self, req, parallel_builds):
         # type: (InstallRequirement, bool) -> Distribution
         assert req.link
         link = req.link
-        if link.is_wheel and self.wheel_download_dir:
-            # Download wheels to a dedicated dir when doing `pip wheel`.
-            download_dir = self.wheel_download_dir
-        else:
-            download_dir = self.download_dir
+        download_dir = self._get_download_dir(link)
 
         with indent_log():
             self._ensure_link_req_src_dir(req, download_dir, parallel_builds)
-            try:
-                local_file = unpack_url(
-                    link, req.source_dir, self.downloader, download_dir,
-                    hashes=self._get_linked_req_hashes(req)
-                )
-            except NetworkConnectionError as exc:
-                raise InstallationError(
-                    'Could not install requirement {} because of HTTP '
-                    'error {} for URL {}'.format(req, exc, link)
-                )
+            hashes = self._get_linked_req_hashes(req)
+            if link.url not in self._downloaded:
+                try:
+                    local_file = unpack_url(
+                        link, req.source_dir, self._download,
+                        download_dir, hashes,
+                    )
+                except NetworkConnectionError as exc:
+                    raise InstallationError(
+                        'Could not install requirement {} because of HTTP '
+                        'error {} for URL {}'.format(req, exc, link)
+                    )
+            else:
+                file_path, content_type = self._downloaded[link.url]
+                if hashes:
+                    hashes.check_against_path(file_path)
+                local_file = File(file_path, content_type)
 
             # For use in later processing, preserve the file path on the
             # requirement.

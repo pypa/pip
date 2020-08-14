@@ -18,7 +18,6 @@ from pip._internal.exceptions import (
     InvalidWheelFilename,
     PreviousBuildDirError,
 )
-from pip._internal.network.download import Downloader
 from pip._internal.network.session import PipSession
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import InstallRequirement, RequirementSet
@@ -87,7 +86,7 @@ class TestRequirementSet(object):
                 build_isolation=True,
                 req_tracker=tracker,
                 session=session,
-                downloader=Downloader(session, progress_bar="on"),
+                progress_bar='on',
                 finder=finder,
                 require_hashes=require_hashes,
                 use_user_site=False,

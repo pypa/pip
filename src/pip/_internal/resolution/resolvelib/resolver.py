@@ -160,9 +160,8 @@ class Resolver(BaseResolver):
 
             req_set.add_named_requirement(ireq)
 
-        for actual_req in req_set.all_requirements:
-            self.factory.preparer.prepare_linked_requirement_more(actual_req)
-
+        reqs = req_set.all_requirements
+        self.factory.preparer.prepare_linked_requirements_more(reqs)
         return req_set
 
     def get_installation_order(self, req_set):
