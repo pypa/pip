@@ -4,8 +4,10 @@ import cgi
 import logging
 import mimetypes
 import os
+from functools import partial
 
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE
+from pip._vendor.six.moves import map
 
 from pip._internal.cli.progress_bars import DownloadProgressProvider
 from pip._internal.exceptions import NetworkConnectionError
@@ -168,6 +170,21 @@ class Downloader(object):
         return filepath, content_type
 
 
+class _FileToDownload(object):
+
+    def __init__(self, location, session, link):
+        # type: (str, PipSession, Link) -> None
+        self.url = link.url
+        response = _http_get_download(session, link)
+
+        self.type = response.headers.get('Content-Type', '')
+        self.size = _get_http_response_size(response)
+        self.chunks = _prepare_download(response, link)
+
+        filename = _get_http_response_filename(response, link)
+        self.path = os.path.join(location, filename)
+
+
 class BatchDownloader(object):
 
     def __init__(
@@ -179,17 +196,15 @@ class BatchDownloader(object):
         self._session = session
         self._progress_bar = progress_bar
 
+    def _files_to_download(self, links, location):
+        # type: (Iterable[Link], str) -> Iterable[_FileToDownload]
+        return map(partial(_FileToDownload, location, self._session), links)
+
     def __call__(self, links, location):
         # type: (Iterable[Link], str) -> Iterable[Tuple[str, Tuple[str, str]]]
         """Download the files given by links into location."""
-        for link in links:
-            resp = _http_get_download(self._session, link)
-            filename = _get_http_response_filename(resp, link)
-            filepath = os.path.join(location, filename)
-
-            chunks = _prepare_download(resp, link, self._progress_bar)
-            with open(filepath, 'wb') as content_file:
-                for chunk in chunks:
+        for f in self._files_to_download(links, location):
+            with open(f.path, 'wb') as content_file:
+                for chunk in f.chunks:
                     content_file.write(chunk)
-            content_type = resp.headers.get('Content-Type', '')
-            yield link.url, (filepath, content_type)
+            yield f.url, (f.path, f.type)
