@@ -23,6 +23,8 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.models.link import Link
     from pip._internal.network.session import PipSession
 
+MIN_CHUNKS_TO_SHOW_PROGRESS = 4
+
 logger = logging.getLogger(__name__)
 
 
@@ -34,48 +36,47 @@ def _get_http_response_size(resp):
         return None
 
 
-def _prepare_download(
-    resp,  # type: Response
-    link,  # type: Link
-    progress_bar  # type: str
-):
-    # type: (...) -> Iterable[bytes]
-    total_length = _get_http_response_size(resp)
-
+def _log_response(response_size, from_cache, link):
+    # type: (Optional[int], bool, Link) -> None
     if link.netloc == PyPI.file_storage_domain:
-        url = link.show_url
+        url = redact_auth_from_url(link.show_url)
     else:
-        url = link.url_without_fragment
+        url = redact_auth_from_url(link.url_without_fragment)
 
-    logged_url = redact_auth_from_url(url)
+    if response_size is None:
+        logged_url = url
+    else:
+        logged_url = '{} ({})'.format(url, format_size(response_size))
 
-    if total_length:
-        logged_url = '{} ({})'.format(logged_url, format_size(total_length))
-
-    if is_from_cache(resp):
+    if from_cache:
         logger.info("Using cached %s", logged_url)
     else:
         logger.info("Downloading %s", logged_url)
 
+
+def _should_hide_progress(response_size, from_cache=False):
+    # type: (Optional[int], bool) -> bool
     if logger.getEffectiveLevel() > logging.INFO:
-        show_progress = False
-    elif is_from_cache(resp):
-        show_progress = False
-    elif not total_length:
-        show_progress = True
-    elif total_length > (40 * 1000):
-        show_progress = True
-    else:
-        show_progress = False
+        return True  # hidden explicitly
+    if from_cache or response_size is None:
+        return True  # nothing to show
+    return response_size < MIN_CHUNKS_TO_SHOW_PROGRESS * CONTENT_CHUNK_SIZE
+
+
+def _prepare_download(
+    resp,  # type: Response
+    link,  # type: Link
+    progress_bar,  # type: str
+):
+    # type: (...) -> Iterable[bytes]
+    response_size = _get_http_response_size(resp)
+    from_cache = is_from_cache(resp)
+    _log_response(response_size, from_cache, link)
 
     chunks = response_chunks(resp, CONTENT_CHUNK_SIZE)
-
-    if not show_progress:
+    if _should_hide_progress(response_size, from_cache):
         return chunks
-
-    return DownloadProgressProvider(
-        progress_bar, max=total_length
-    )(chunks)
+    return DownloadProgressProvider(progress_bar, max=response_size)(chunks)
 
 
 def sanitize_content_filename(filename):
