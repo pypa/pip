@@ -4,6 +4,7 @@ import textwrap
 from hashlib import sha256
 
 import pytest
+from pip._vendor.six import PY2
 
 from pip._internal.cli.status_codes import ERROR
 from pip._internal.utils.urls import path_to_url
@@ -474,6 +475,7 @@ def make_wheel_with_python_requires(script, package_name, python_requires):
     package_dir.joinpath('setup.py').write_text(text)
     script.run(
         'python', 'setup.py', 'bdist_wheel', '--universal', cwd=package_dir,
+        allow_stderr_warning=PY2,
     )
 
     file_name = '{}-1.0-py2.py3-none-any.whl'.format(package_name)
