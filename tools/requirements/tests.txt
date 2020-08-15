@@ -10,7 +10,8 @@ pytest-cov
 # Prevent installing 9.0 which has install_requires "pytest >= 5.0".
 pytest-rerunfailures<9.0
 pytest-timeout
-pytest-xdist
+# See https://github.com/pytest-dev/pytest-xdist/issues/580
+pytest-xdist==1.34.0
 pyyaml
 setuptools>=39.2.0  # Needed for `setuptools.wheel.Wheel` support.
 scripttest
