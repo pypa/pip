@@ -238,13 +238,13 @@ included in the command as follows:
 
     .. code-block:: shell
 
-        $ python setup.py <global_options> BUILD COMMAND <build_options>
+        python setup.py <global_options> BUILD COMMAND <build_options>
 
   .. group-tab:: Windows
 
     .. code-block:: shell
 
-        C:\> py setup.py <global_options> BUILD COMMAND <build_options>
+        py setup.py <global_options> BUILD COMMAND <build_options>
 
 The options are passed unmodified, and presently offer direct access to the
 distutils command line. Use of ``--global-option`` and ``--build-option``

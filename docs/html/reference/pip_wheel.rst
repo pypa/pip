@@ -40,13 +40,13 @@ In order for pip to build a wheel, ``setup.py`` must implement the
 
     .. code-block:: shell
 
-        $ python setup.py bdist_wheel -d TARGET
+        python setup.py bdist_wheel -d TARGET
 
   .. group-tab:: Windows
 
     .. code-block:: shell
 
-        C:\> py setup.py bdist_wheel -d TARGET
+        py setup.py bdist_wheel -d TARGET
 
 
 This command must create a wheel compatible with the invoking Python
@@ -68,13 +68,13 @@ example:
 
     .. code-block:: shell
 
-        $ python -m pip wheel --global-option bdist_ext --global-option -DFOO wheel
+        python -m pip wheel --global-option bdist_ext --global-option -DFOO wheel
 
   .. group-tab:: Windows
 
     .. code-block:: shell
 
-        C:\> py -m pip wheel --global-option bdist_ext --global-option -DFOO wheel
+        py -m pip wheel --global-option bdist_ext --global-option -DFOO wheel
 
 
 will result in a build command of
@@ -109,15 +109,15 @@ Examples
 
         .. code-block:: shell
 
-            $ python -m pip wheel --wheel-dir=/tmp/wheelhouse SomePackage
-            $ python -m pip install --no-index --find-links=/tmp/wheelhouse SomePackage
+            python -m pip wheel --wheel-dir=/tmp/wheelhouse SomePackage
+            python -m pip install --no-index --find-links=/tmp/wheelhouse SomePackage
 
       .. group-tab:: Windows
 
         .. code-block:: shell
 
-            C:\> py -m pip wheel --wheel-dir=/tmp/wheelhouse SomePackage
-            C:\> py -m pip install --no-index --find-links=/tmp/wheelhouse SomePackage
+            py -m pip wheel --wheel-dir=/tmp/wheelhouse SomePackage
+            py -m pip install --no-index --find-links=/tmp/wheelhouse SomePackage
 
 #. Build a wheel for a package from source
 
@@ -127,10 +127,10 @@ Examples
 
         .. code-block:: shell
 
-            $ python -m pip wheel --no-binary SomePackage SomePackage
+            python -m pip wheel --no-binary SomePackage SomePackage
 
       .. group-tab:: Windows
 
         .. code-block:: shell
 
-            C:\> py -m pip wheel --no-binary SomePackage SomePackage
+            py -m pip wheel --no-binary SomePackage SomePackage

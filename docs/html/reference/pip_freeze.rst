@@ -72,12 +72,12 @@ Examples
 
         .. code-block:: shell
 
-            $ env1/bin/python -m pip freeze > requirements.txt
-            $ env2/bin/python -m pip install -r requirements.txt
+            env1/bin/python -m pip freeze > requirements.txt
+            env2/bin/python -m pip install -r requirements.txt
 
       .. group-tab:: Windows
 
         .. code-block:: shell
 
-            C:\> env1\bin\python -m pip freeze > requirements.txt
-            C:\> env2\bin\python -m pip install -r requirements.txt
+            env1\bin\python -m pip freeze > requirements.txt
+            env2\bin\python -m pip install -r requirements.txt

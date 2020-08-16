@@ -17,7 +17,7 @@ to your system, which can be run from the command prompt as follows:
 
       .. code-block:: shell
 
-         $ python -m pip <pip arguments>
+         python -m pip <pip arguments>
 
       ``python -m pip`` executes pip using the Python interpreter you
       specified as python. So ``/usr/bin/python3.7 -m pip`` means
@@ -27,7 +27,7 @@ to your system, which can be run from the command prompt as follows:
 
       .. code-block:: shell
 
-         C:\> py -m pip <pip arguments>
+         py -m pip <pip arguments>
 
       ``py -m pip`` executes pip using the latest Python interpreter you
       have installed. For more details, read the `Python Windows launcher`_ docs.
@@ -49,17 +49,17 @@ Specifiers`
 
       .. code-block:: shell
 
-         $ python -m pip install SomePackage            # latest version
-         $ python -m pip install SomePackage==1.0.4     # specific version
-         $ python -m pip install 'SomePackage>=1.0.4'     # minimum version
+         python -m pip install SomePackage            # latest version
+         python -m pip install SomePackage==1.0.4     # specific version
+         python -m pip install 'SomePackage>=1.0.4'     # minimum version
 
    .. group-tab:: Windows
 
       .. code-block:: shell
 
-         C:\> py -m pip install SomePackage            # latest version
-         C:\> py -m pip install SomePackage==1.0.4     # specific version
-         C:\> py -m pip install 'SomePackage>=1.0.4'     # minimum version
+         py -m pip install SomePackage            # latest version
+         py -m pip install SomePackage==1.0.4     # specific version
+         py -m pip install 'SomePackage>=1.0.4'     # minimum version
 
 For more information and examples, see the :ref:`pip install` reference.
 
@@ -168,13 +168,13 @@ installed using :ref:`pip install` like so:
 
       .. code-block:: shell
 
-         $ python -m pip install -r requirements.txt
+         python -m pip install -r requirements.txt
 
    .. group-tab:: Windows
 
       .. code-block:: shell
 
-         C:\> py -m pip install -r requirements.txt
+         py -m pip install -r requirements.txt
 
 Details on the format of the files are here: :ref:`Requirements File Format`.
 
@@ -195,15 +195,15 @@ In practice, there are 4 common uses of Requirements files:
 
       .. code-block:: shell
 
-         $ python -m pip freeze > requirements.txt
-         $ python -m pip install -r requirements.txt
+         python -m pip freeze > requirements.txt
+         python -m pip install -r requirements.txt
 
    .. group-tab:: Windows
 
       .. code-block:: shell
 
-         C:\> py -m pip freeze > requirements.txt
-         C:\> py -m pip install -r requirements.txt
+         py -m pip freeze > requirements.txt
+         py -m pip install -r requirements.txt
 
 2. Requirements files are used to force pip to properly resolve dependencies.
    As it is now, pip `doesn't have true dependency resolution
@@ -276,13 +276,13 @@ Use a constraints file like so:
 
       .. code-block:: shell
 
-         $ python -m pip install -c constraints.txt
+         python -m pip install -c constraints.txt
 
    .. group-tab:: Windows
 
       .. code-block:: shell
 
-         C:\> py -m pip install -c constraints.txt
+         py -m pip install -c constraints.txt
 
 Constraints files are used for exactly the same reason as requirements files
 when you don't know exactly what things you want to install. For instance, say
@@ -326,13 +326,13 @@ To install directly from a wheel archive:
 
       .. code-block:: shell
 
-         $ python -m pip install SomePackage-1.0-py2.py3-none-any.whl
+         python -m pip install SomePackage-1.0-py2.py3-none-any.whl
 
    .. group-tab:: Windows
 
       .. code-block:: shell
 
-         C:\> py -m pip install SomePackage-1.0-py2.py3-none-any.whl
+         py -m pip install SomePackage-1.0-py2.py3-none-any.whl
 
 
 For the cases where wheels are not available, pip offers :ref:`pip wheel` as a
@@ -351,15 +351,15 @@ directory:
 
       .. code-block:: shell
 
-         $ python -m pip install wheel
-         $ python -m pip wheel --wheel-dir=/local/wheels -r requirements.txt
+         python -m pip install wheel
+         python -m pip wheel --wheel-dir=/local/wheels -r requirements.txt
 
    .. group-tab:: Windows
 
       .. code-block:: shell
 
-         C:\> py -m pip install wheel
-         C:\> py -m pip wheel --wheel-dir=/local/wheels -r requirements.txt
+         py -m pip install wheel
+         py -m pip wheel --wheel-dir=/local/wheels -r requirements.txt
 
 And *then* to install those requirements just using your local directory of
 wheels (and not from PyPI):
@@ -370,13 +370,13 @@ wheels (and not from PyPI):
 
       .. code-block:: shell
 
-         $ python -m pip install --no-index --find-links=/local/wheels -r requirements.txt
+         python -m pip install --no-index --find-links=/local/wheels -r requirements.txt
 
    .. group-tab:: Windows
 
       .. code-block:: shell
 
-         C:\> py -m pip install --no-index --find-links=/local/wheels -r requirements.txt
+         py -m pip install --no-index --find-links=/local/wheels -r requirements.txt
 
 
 Uninstalling Packages
@@ -390,13 +390,13 @@ pip is able to uninstall most packages like so:
 
       .. code-block:: shell
 
-         $ python -m pip uninstall SomePackage
+         python -m pip uninstall SomePackage
 
    .. group-tab:: Windows
 
       .. code-block:: shell
 
-         C:\> py -m pip uninstall SomePackage
+         py -m pip uninstall SomePackage
 
 
 pip also performs an automatic uninstall of an old version of a package
@@ -496,13 +496,13 @@ command:
 
       .. code-block:: shell
 
-         $ python -m pip search "query"
+         python -m pip search "query"
 
    .. group-tab:: Windows
 
       .. code-block:: shell
 
-         C:\> py -m pip search "query"
+         py -m pip search "query"
 
 The query will be used to search the names and summaries of all
 packages.
@@ -670,13 +670,13 @@ For example, to set the default timeout:
 
       .. code-block:: shell
 
-         $ export PIP_DEFAULT_TIMEOUT=60
+         export PIP_DEFAULT_TIMEOUT=60
 
    .. group-tab:: Windows
 
       .. code-block:: shell
 
-         C:\> set PIP_DEFAULT_TIMEOUT=60
+         set PIP_DEFAULT_TIMEOUT=60
 
 This is the same as passing the option to pip directly:
 
@@ -686,13 +686,13 @@ This is the same as passing the option to pip directly:
 
       .. code-block:: shell
 
-         $ python -m pip --default-timeout=60 [...]
+         python -m pip --default-timeout=60 [...]
 
    .. group-tab:: Windows
 
       .. code-block:: shell
 
-         C:\> py -m pip --default-timeout=60 [...]
+         py -m pip --default-timeout=60 [...]
 
 For command line options which can be repeated, use a space to separate
 multiple values. For example:
@@ -703,13 +703,13 @@ multiple values. For example:
 
       .. code-block:: shell
 
-         $ export PIP_FIND_LINKS="http://mirror1.example.com http://mirror2.example.com"
+         export PIP_FIND_LINKS="http://mirror1.example.com http://mirror2.example.com"
 
    .. group-tab:: Windows
 
       .. code-block:: shell
 
-         C:\> set PIP_FIND_LINKS="http://mirror1.example.com http://mirror2.example.com"
+         set PIP_FIND_LINKS="http://mirror1.example.com http://mirror2.example.com"
 
 
 is the same as calling:
@@ -720,13 +720,13 @@ is the same as calling:
 
       .. code-block:: shell
 
-         $ python -m pip install --find-links=http://mirror1.example.com --find-links=http://mirror2.example.com
+         python -m pip install --find-links=http://mirror1.example.com --find-links=http://mirror2.example.com
 
    .. group-tab:: Windows
 
       .. code-block:: shell
 
-         C:\> py -m pip install --find-links=http://mirror1.example.com --find-links=http://mirror2.example.com
+         py -m pip install --find-links=http://mirror1.example.com --find-links=http://mirror2.example.com
 
 
 Options that do not take a value, but can be repeated (such as ``--verbose``)
@@ -770,15 +770,15 @@ pip comes with support for command line completion in bash, zsh and fish.
 
 To setup for bash::
 
-    $ python -m pip completion --bash >> ~/.profile
+    python -m pip completion --bash >> ~/.profile
 
 To setup for zsh::
 
-    $ python -m pip completion --zsh >> ~/.zprofile
+    python -m pip completion --zsh >> ~/.zprofile
 
 To setup for fish::
 
-    $ python -m pip completion --fish > ~/.config/fish/completions/pip.fish
+    python -m pip completion --fish > ~/.config/fish/completions/pip.fish
 
 Alternatively, you can use the result of the ``completion`` command directly
 with the eval function of your shell, e.g. by adding the following to your
@@ -805,13 +805,13 @@ First, download the archives that fulfill your requirements:
 
       .. code-block:: shell
 
-         $ python -m pip download --destination-directory DIR -r requirements.txt
+         python -m pip download --destination-directory DIR -r requirements.txt
 
    .. group-tab:: Windows
 
       .. code-block:: shell
 
-         C:\> py -m pip download --destination-directory DIR -r requirements.txt
+         py -m pip download --destination-directory DIR -r requirements.txt
 
 
 Note that ``pip download`` will look in your wheel cache first, before
@@ -826,13 +826,13 @@ this instead:
 
       .. code-block:: shell
 
-         $ python -m pip wheel --wheel-dir DIR -r requirements.txt
+         python -m pip wheel --wheel-dir DIR -r requirements.txt
 
    .. group-tab:: Windows
 
       .. code-block:: shell
 
-         C:\> py -m pip wheel --wheel-dir DIR -r requirements.txt
+         py -m pip wheel --wheel-dir DIR -r requirements.txt
 
 Then, to install from local only, you'll be using :ref:`--find-links
 <install_--find-links>` and :ref:`--no-index <install_--no-index>` like so:
@@ -843,13 +843,13 @@ Then, to install from local only, you'll be using :ref:`--find-links
 
       .. code-block:: shell
 
-         $ python -m pip install --no-index --find-links=DIR -r requirements.txt
+         python -m pip install --no-index --find-links=DIR -r requirements.txt
 
    .. group-tab:: Windows
 
       .. code-block:: shell
 
-         C:\> -m pip install --no-index --find-links=DIR -r requirements.txt
+         py -m pip install --no-index --find-links=DIR -r requirements.txt
 
 
 "Only if needed" Recursive Upgrade
@@ -876,15 +876,15 @@ behaviour was:
 
       .. code-block:: shell
 
-         $ python -m pip install --upgrade --no-deps SomePackage
-         $ python -m pip install SomePackage
+         python -m pip install --upgrade --no-deps SomePackage
+         python -m pip install SomePackage
 
    .. group-tab:: Windows
 
       .. code-block:: shell
 
-         C:\> py -m pip install --upgrade --no-deps SomePackage
-         C:\> py -m pip install SomePackage
+         py -m pip install --upgrade --no-deps SomePackage
+         py -m pip install SomePackage
 
 
 A proposal for an ``upgrade-all`` command is being considered as a safer
@@ -916,15 +916,15 @@ To install "SomePackage" into an environment with site.USER_BASE customized to
 
       .. code-block:: shell
 
-         $ export PYTHONUSERBASE=/myappenv
-         $ python -m pip install --user SomePackage
+         export PYTHONUSERBASE=/myappenv
+         python -m pip install --user SomePackage
 
    .. group-tab:: Windows
 
       .. code-block:: shell
 
-         C:\> set PYTHONUSERBASE=c:/myappenv
-         C:\> py -m pip install --user SomePackage
+         set PYTHONUSERBASE=c:/myappenv
+         py -m pip install --user SomePackage
 
 ``pip install --user`` follows four rules:
 
@@ -1177,13 +1177,13 @@ like this:
 
       .. code-block:: shell
 
-         $ python -m pip install package_coffee==0.44.1 package_tea==4.3.0
+         python -m pip install package_coffee==0.44.1 package_tea==4.3.0
 
    .. group-tab:: Windows
 
       .. code-block:: shell
 
-         C:\> py -m pip install package_coffee==0.44.1 package_tea==4.3.0
+         py -m pip install package_coffee==0.44.1 package_tea==4.3.0
 
 ::
 
@@ -1295,13 +1295,13 @@ specifiers to *only* the more important package:
 
       .. code-block:: shell
 
-         $ python -m pip install package_coffee==0.44.1b0 package_tea
+         python -m pip install package_coffee==0.44.1b0 package_tea
 
    .. group-tab:: Windows
 
       .. code-block:: shell
 
-         C:\> py -m pip install package_coffee==0.44.1b0 package_tea
+         py -m pip install package_coffee==0.44.1b0 package_tea
 
 This will result in:
 

@@ -70,17 +70,17 @@ Examples
 
         .. code-block:: shell
 
-          $ python -m pip download SomePackage
-          $ python -m pip download -d . SomePackage  # equivalent to above
-          $ python -m pip download --no-index --find-links=/tmp/wheelhouse -d /tmp/otherwheelhouse SomePackage
+          python -m pip download SomePackage
+          python -m pip download -d . SomePackage  # equivalent to above
+          python -m pip download --no-index --find-links=/tmp/wheelhouse -d /tmp/otherwheelhouse SomePackage
 
       .. group-tab:: Windows
 
         .. code-block:: shell
 
-          C:\> py -m pip download SomePackage
-          C:\> py -m pip download -d . SomePackage  # equivalent to above
-          C:\> py -m pip download --no-index --find-links=/tmp/wheelhouse -d /tmp/otherwheelhouse SomePackage
+          py -m pip download SomePackage
+          py -m pip download -d . SomePackage  # equivalent to above
+          py -m pip download --no-index --find-links=/tmp/wheelhouse -d /tmp/otherwheelhouse SomePackage
 
 
 #. Download a package and all of its dependencies with OSX specific interpreter constraints.
@@ -96,23 +96,23 @@ Examples
 
         .. code-block:: shell
 
-          $ python -m pip download \
-              --only-binary=:all: \
-              --platform macosx-10_10_x86_64 \
-              --python-version 27 \
-              --implementation cp \
-              SomePackage
+          python -m pip download \
+          --only-binary=:all: \
+          --platform macosx-10_10_x86_64 \
+          --python-version 27 \
+          --implementation cp \
+          SomePackage
 
       .. group-tab:: Windows
 
         .. code-block:: shell
 
-          C:\> py -m pip download ^
-              --only-binary=:all: ^
-              --platform macosx-10_10_x86_64 ^
-              --python-version 27 ^
-              --implementation cp ^
-              SomePackage
+          py -m pip download ^
+          --only-binary=:all: ^
+          --platform macosx-10_10_x86_64 ^
+          --python-version 27 ^
+          --implementation cp ^
+          SomePackage
 
 #. Download a package and its dependencies with linux specific constraints.
     Force the interpreter to be any minor version of py3k, and only accept
@@ -124,25 +124,25 @@ Examples
 
         .. code-block:: shell
 
-          $ python -m pip download \
-              --only-binary=:all: \
-              --platform linux_x86_64 \
-              --python-version 3 \
-              --implementation cp \
-              --abi cp34m \
-              SomePackage
+          python -m pip download \
+          --only-binary=:all: \
+          --platform linux_x86_64 \
+          --python-version 3 \
+          --implementation cp \
+          --abi cp34m \
+          SomePackage
 
       .. group-tab:: Windows
 
         .. code-block:: shell
 
-          C:\> py -m pip download ^
-              --only-binary=:all: ^
-              --platform linux_x86_64 ^
-              --python-version 3 ^
-              --implementation cp ^
-              --abi cp34m ^
-              SomePackage
+          py -m pip download ^
+          --only-binary=:all: ^
+          --platform linux_x86_64 ^
+          --python-version 3 ^
+          --implementation cp ^
+          --abi cp34m ^
+          SomePackage
 
 #. Force platform, implementation, and abi agnostic deps.
 
@@ -152,25 +152,25 @@ Examples
 
         .. code-block:: shell
 
-          $ python -m pip download \
-              --only-binary=:all: \
-              --platform any \
-              --python-version 3 \
-              --implementation py \
-              --abi none \
-              SomePackage
+          python -m pip download \
+          --only-binary=:all: \
+          --platform any \
+          --python-version 3 \
+          --implementation py \
+          --abi none \
+          SomePackage
 
       .. group-tab:: Windows
 
         .. code-block:: shell
 
-          C:\> py -m pip download ^
-              --only-binary=:all: ^
-              --platform any ^
-              --python-version 3 ^
-              --implementation py ^
-              --abi none ^
-              SomePackage
+          py -m pip download ^
+          --only-binary=:all: ^
+          --platform any ^
+          --python-version 3 ^
+          --implementation py ^
+          --abi none ^
+          SomePackage
 
 #. Even when overconstrained, this will still correctly fetch the pip universal wheel.
 
