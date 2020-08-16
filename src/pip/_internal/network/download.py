@@ -19,7 +19,7 @@ from pip._internal.utils.parallel import map_multithread
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Iterable, Optional, Tuple
+    from typing import Iterable, List, Optional, Tuple
 
     from pip._vendor.requests.models import Response
 
@@ -186,6 +186,7 @@ class _FileToDownload(object):
 
         self.type = response.headers.get('Content-Type', '')
         self.size = _get_http_response_size(response)
+        self.is_cached = is_from_cache(response)
 
         filename = _get_http_response_filename(response, link)
         self.path = os.path.join(location, filename)
@@ -197,6 +198,15 @@ class _FileToDownload(object):
             _http_get_download(self._session, self._link),
             CONTENT_CHUNK_SIZE,
         )
+
+
+def _write_from_cache(file):
+    # type: (_FileToDownload) -> Tuple[str, Tuple[str, str]]
+    assert file.is_cached
+    with open(file.path, 'wb') as content_file:
+        for chunk in file.chunks:
+            content_file.write(chunk)
+    return file.url, (file.path, file.type)
 
 
 class BatchDownloader(object):
@@ -216,6 +226,7 @@ class BatchDownloader(object):
 
     def _download_one(self, file):
         # type: (_FileToDownload) -> Tuple[str, Tuple[str, str]]
+        assert not file.is_cached
         with open(file.path, 'wb') as content_file:
             for chunk in file.chunks:
                 content_file.write(chunk)
@@ -224,5 +235,14 @@ class BatchDownloader(object):
     def __call__(self, links, location):
         # type: (Iterable[Link], str) -> Iterable[Tuple[str, Tuple[str, str]]]
         """Download the files given by links into location."""
-        files = self._files_to_download(links, location)
-        return map_multithread(self._download_one, files)
+        files = []  # type: List[_FileToDownload]
+        cached_files = []  # type: List[_FileToDownload]
+        for file in self._files_to_download(links, location):
+            (cached_files if file.is_cached else files).append(file)
+
+        # Cached files need no progress bar.
+        for result in map_multithread(_write_from_cache, cached_files):
+            yield result
+
+        for result in map_multithread(self._download_one, files):
+            yield result
