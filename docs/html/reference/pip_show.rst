@@ -42,7 +42,7 @@ Examples
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: shell
+        .. code-block:: console
 
           $ python -m pip show sphinx
           Name: Sphinx
@@ -57,7 +57,7 @@ Examples
 
       .. group-tab:: Windows
 
-        .. code-block:: shell
+        .. code-block:: console
 
           C:\> py -m pip show sphinx
           Name: Sphinx
@@ -76,7 +76,7 @@ Examples
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: shell
+        .. code-block:: console
 
           $ python -m pip show --verbose sphinx
           Name: Sphinx
@@ -119,7 +119,7 @@ Examples
 
       .. group-tab:: Windows
 
-        .. code-block:: shell
+        .. code-block:: console
 
           C:\> py -m pip show --verbose sphinx
           Name: Sphinx

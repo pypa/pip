@@ -414,7 +414,7 @@ To list installed packages:
 
    .. group-tab:: Unix/macOS
 
-      .. code-block:: shell
+      .. code-block:: console
 
          $ python -m pip list
          docutils (0.9.1)
@@ -424,7 +424,7 @@ To list installed packages:
 
    .. group-tab:: Windows
 
-      .. code-block:: shell
+      .. code-block:: console
 
          C:\> py -m pip list
          docutils (0.9.1)
@@ -439,7 +439,7 @@ To list outdated packages, and show the latest version available:
 
    .. group-tab:: Unix/macOS
 
-      .. code-block:: shell
+      .. code-block:: console
 
          $ python -m pip list --outdated
          docutils (Current: 0.9.1 Latest: 0.10)
@@ -447,7 +447,7 @@ To list outdated packages, and show the latest version available:
 
    .. group-tab:: Windows
 
-      .. code-block:: shell
+      .. code-block:: console
 
          C:\> py -m pip list --outdated
          docutils (Current: 0.9.1 Latest: 0.10)
@@ -459,7 +459,7 @@ To show details about an installed package:
 
    .. group-tab:: Unix/macOS
 
-      .. code-block:: shell
+      .. code-block:: console
 
          $ python -m pip show sphinx
          ---
@@ -470,7 +470,7 @@ To show details about an installed package:
 
    .. group-tab:: Windows
 
-      .. code-block:: shell
+      .. code-block:: console
 
          C:\> py -m pip show sphinx
          ---
@@ -953,14 +953,14 @@ From within a ``--no-site-packages`` virtualenv (i.e. the default kind):
 
    .. group-tab:: Unix/macOS
 
-      .. code-block:: shell
+      .. code-block:: console
 
          $ python -m pip install --user SomePackage
          Can not perform a '--user' install. User site-packages are not visible in this virtualenv.
 
    .. group-tab:: Windows
 
-      .. code-block:: shell
+      .. code-block:: console
 
          C:\> py -m pip install --user SomePackage
          Can not perform a '--user' install. User site-packages are not visible in this virtualenv.
@@ -973,14 +973,14 @@ is already installed in the virtualenv:
 
    .. group-tab:: Unix/macOS
 
-      .. code-block:: shell
+      .. code-block:: console
 
          $ python -m pip install --user SomePackage==0.4
          Will not install to the user site because it will lack sys.path precedence
 
    .. group-tab:: Windows
 
-      .. code-block:: shell
+      .. code-block:: console
 
          C:\> py -m pip install --user SomePackage==0.4
          Will not install to the user site because it will lack sys.path precedence
@@ -991,7 +991,7 @@ From within a real python, where ``SomePackage`` is *not* installed globally:
 
    .. group-tab:: Unix/macOS
 
-      .. code-block:: shell
+      .. code-block:: console
 
          $ python -m pip install --user SomePackage
          [...]
@@ -999,7 +999,7 @@ From within a real python, where ``SomePackage`` is *not* installed globally:
 
    .. group-tab:: Windows
 
-      .. code-block:: shell
+      .. code-block:: console
 
          C:\> py -m pip install --user SomePackage
          [...]
@@ -1012,7 +1012,7 @@ is *not* the latest version:
 
    .. group-tab:: Unix/macOS
 
-      .. code-block:: shell
+      .. code-block:: console
 
          $ python -m pip install --user SomePackage
          [...]
@@ -1023,7 +1023,7 @@ is *not* the latest version:
 
    .. group-tab:: Windows
 
-      .. code-block:: shell
+      .. code-block:: console
 
          C:\> py -m pip install --user SomePackage
          [...]
@@ -1039,7 +1039,7 @@ is the latest version:
 
    .. group-tab:: Unix/macOS
 
-      .. code-block:: shell
+      .. code-block:: console
 
          $ python -m pip install --user SomePackage
          [...]
@@ -1054,7 +1054,7 @@ is the latest version:
 
    .. group-tab:: Windows
 
-      .. code-block:: shell
+      .. code-block:: console
 
          C:\> py -m pip install --user SomePackage
          [...]

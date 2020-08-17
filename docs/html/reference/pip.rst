@@ -13,13 +13,13 @@ Usage
 
       .. code-block:: shell
 
-         $ python -m pip <command> [options]
+         python -m pip <command> [options]
 
    .. group-tab:: Windows
 
       .. code-block:: shell
 
-         C:\> py -m pip <command> [options]
+         py -m pip <command> [options]
 
 Description
 ***********

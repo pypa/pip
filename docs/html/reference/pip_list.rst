@@ -44,7 +44,7 @@ Examples
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: shell
+        .. code-block:: console
 
             $ python -m pip list
             docutils (0.10)
@@ -55,7 +55,7 @@ Examples
 
       .. group-tab:: Windows
 
-        .. code-block:: shell
+        .. code-block:: console
 
             C:\> py -m pip list
             docutils (0.10)
@@ -70,7 +70,7 @@ Examples
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: shell
+        .. code-block:: console
 
             $ python -m pip list --outdated
             docutils (Current: 0.10 Latest: 0.11)
@@ -78,7 +78,7 @@ Examples
 
       .. group-tab:: Windows
 
-        .. code-block:: shell
+        .. code-block:: console
 
             C:\> py -m pip list --outdated
             docutils (Current: 0.10 Latest: 0.11)
@@ -91,7 +91,7 @@ Examples
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: shell
+        .. code-block:: console
 
             $ python -m pip list --format columns
             Package Version
@@ -102,7 +102,7 @@ Examples
 
       .. group-tab:: Windows
 
-        .. code-block:: shell
+        .. code-block:: console
 
             C:\> py -m pip list --format columns
             Package Version
@@ -117,7 +117,7 @@ Examples
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: shell
+        .. code-block:: console
 
             $ python -m pip list -o --format columns
             Package    Version Latest Type
@@ -127,7 +127,7 @@ Examples
 
       .. group-tab:: Windows
 
-        .. code-block:: shell
+        .. code-block:: console
 
             C:\> py -m pip list -o --format columns
             Package    Version Latest Type
@@ -142,14 +142,14 @@ Examples
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: shell
+        .. code-block:: console
 
             $ python -m pip list --outdated --not-required
             docutils (Current: 0.10 Latest: 0.11)
 
       .. group-tab:: Windows
 
-        .. code-block:: shell
+        .. code-block:: console
 
             C:\> py -m pip list --outdated --not-required
             docutils (Current: 0.10 Latest: 0.11)
@@ -160,7 +160,7 @@ Examples
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: shell
+        .. code-block:: console
 
             $ python -m pip list --format=legacy
             colorama (0.3.7)
@@ -170,7 +170,7 @@ Examples
 
       .. group-tab:: Windows
 
-        .. code-block:: shell
+        .. code-block:: console
 
             C:\> py -m pip list --format=legacy
             colorama (0.3.7)
@@ -184,14 +184,14 @@ Examples
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: shell
+        .. code-block:: console
 
             $ python -m pip list --format=json
             [{'name': 'colorama', 'version': '0.3.7'}, {'name': 'docopt', 'version': '0.6.2'}, ...
 
       .. group-tab:: Windows
 
-        .. code-block:: shell
+        .. code-block:: console
 
             C:\> py -m pip list --format=json
             [{'name': 'colorama', 'version': '0.3.7'}, {'name': 'docopt', 'version': '0.6.2'}, ...
@@ -202,7 +202,7 @@ Examples
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: shell
+        .. code-block:: console
 
             $ python -m pip list --format=freeze
             colorama==0.3.7
@@ -212,7 +212,7 @@ Examples
 
       .. group-tab:: Windows
 
-        .. code-block:: shell
+        .. code-block:: console
 
             C:\> py -m pip list --format=freeze
             colorama==0.3.7

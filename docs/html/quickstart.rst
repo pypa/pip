@@ -10,7 +10,7 @@ Install a package from `PyPI`_:
 
    .. group-tab:: Unix/macOS
 
-      .. code-block:: shell
+      .. code-block:: console
 
          $ python -m pip install SomePackage
          [...]
@@ -18,7 +18,7 @@ Install a package from `PyPI`_:
 
    .. group-tab:: Windows
 
-      .. code-block:: shell
+      .. code-block:: console
 
          C:\> py -m pip install SomePackage
          [...]
@@ -26,14 +26,14 @@ Install a package from `PyPI`_:
 
 
 Install a package that's already been downloaded from `PyPI`_ or
-obtained from elsewhere. This is useful if the target macOShine does not have a
+obtained from elsewhere. This is useful if the target machine does not have a
 network connection:
 
 .. tabs::
 
    .. group-tab:: Unix/macOS
 
-      .. code-block:: shell
+      .. code-block:: console
 
          $ python -m pip install SomePackage-1.0-py2.py3-none-any.whl
          [...]
@@ -41,7 +41,7 @@ network connection:
 
    .. group-tab:: Windows
 
-      .. code-block:: shell
+      .. code-block:: console
 
          C:\> py -m pip install SomePackage-1.0-py2.py3-none-any.whl
          [...]
@@ -54,7 +54,7 @@ Show what files were installed:
 
    .. group-tab:: Unix/macOS
 
-      .. code-block:: shell
+      .. code-block:: console
 
          $ python -m pip show --files SomePackage
          Name: SomePackage
@@ -66,7 +66,7 @@ Show what files were installed:
 
    .. group-tab:: Windows
 
-      .. code-block:: shell
+      .. code-block:: console
 
          C:\> py -m pip show --files SomePackage
          Name: SomePackage
@@ -82,14 +82,14 @@ List what packages are outdated:
 
    .. group-tab:: Unix/macOS
 
-      .. code-block:: shell
+      .. code-block:: console
 
          $ python -m pip list --outdated
          SomePackage (Current: 1.0 Latest: 2.0)
 
    .. group-tab:: Windows
 
-      .. code-block:: shell
+      .. code-block:: console
 
          C:\> py -m pip list --outdated
          SomePackage (Current: 1.0 Latest: 2.0)
@@ -100,7 +100,7 @@ Upgrade a package:
 
    .. group-tab:: Unix/macOS
 
-      .. code-block:: shell
+      .. code-block:: console
 
          $ python -m pip install --upgrade SomePackage
          [...]
@@ -112,7 +112,7 @@ Upgrade a package:
 
    .. group-tab:: Windows
 
-      .. code-block:: shell
+      .. code-block:: console
 
          C:\> py -m pip install --upgrade SomePackage
          [...]
@@ -128,7 +128,7 @@ Uninstall a package:
 
    .. group-tab:: Unix/macOS
 
-      .. code-block:: shell
+      .. code-block:: console
 
          $ python -m pip uninstall SomePackage
          Uninstalling SomePackage:
@@ -138,7 +138,7 @@ Uninstall a package:
 
    .. group-tab:: Windows
 
-      .. code-block:: shell
+      .. code-block:: console
 
          C:\> py -m pip uninstall SomePackage
          Uninstalling SomePackage:

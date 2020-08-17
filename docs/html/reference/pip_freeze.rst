@@ -43,7 +43,7 @@ Examples
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: shell
+        .. code-block:: console
 
             $ python -m pip freeze
             docutils==0.11
@@ -54,7 +54,7 @@ Examples
 
       .. group-tab:: Windows
 
-        .. code-block:: shell
+        .. code-block:: console
 
             C:\> py -m pip freeze
             docutils==0.11

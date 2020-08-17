@@ -42,7 +42,7 @@ Examples
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: shell
+        .. code-block:: console
 
           $ python -m pip uninstall simplejson
           Uninstalling simplejson:
@@ -53,7 +53,7 @@ Examples
 
       .. group-tab:: Windows
 
-        .. code-block:: shell
+        .. code-block:: console
 
           C:\> py -m pip uninstall simplejson
           Uninstalling simplejson:

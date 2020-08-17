@@ -53,7 +53,7 @@ Compute the hash of a downloaded archive:
 
   .. group-tab:: Unix/macOS
 
-    .. code-block:: shell
+    .. code-block:: console
 
       $ python -m pip download SomePackage
           Collecting SomePackage
@@ -66,7 +66,7 @@ Compute the hash of a downloaded archive:
 
   .. group-tab:: Windows
 
-    .. code-block:: shell
+    .. code-block:: console
 
       C:\> py -m pip download SomePackage
           Collecting SomePackage

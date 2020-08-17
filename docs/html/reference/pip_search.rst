@@ -42,7 +42,7 @@ Examples
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: shell
+        .. code-block:: console
 
             $ python -m pip search peppercorn
             pepperedform    - Helpers for using peppercorn with formprocess.
@@ -50,7 +50,7 @@ Examples
 
       .. group-tab:: Windows
 
-        .. code-block:: shell
+        .. code-block:: console
 
             C:\> py -m pip search peppercorn
             pepperedform    - Helpers for using peppercorn with formprocess.

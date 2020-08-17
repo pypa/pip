@@ -178,7 +178,7 @@ Examples
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: shell
+        .. code-block:: console
 
           $ python -m pip download \
             --only-binary=:all: \
@@ -193,7 +193,7 @@ Examples
 
       .. group-tab:: Windows
 
-        .. code-block:: shell
+        .. code-block:: console
 
           C:\> py -m pip download ^
             --only-binary=:all: ^

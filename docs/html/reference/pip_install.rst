@@ -104,7 +104,7 @@ which depends on foo:
 
    .. group-tab:: Unix/macOS
 
-      .. code-block:: shell
+      .. code-block:: console
 
         $ python -m pip install quux
         ...
@@ -116,7 +116,7 @@ which depends on foo:
 
    .. group-tab:: Windows
 
-      .. code-block:: shell
+      .. code-block:: console
 
         C:\> py -m pip install quux
         ...
@@ -681,7 +681,7 @@ option:
 
    .. group-tab:: Unix/macOS
 
-      .. code-block:: shell
+      .. code-block:: console
 
           $ python -m pip install --require-hashes -r requirements.txt
               ...
@@ -695,7 +695,7 @@ option:
 
    .. group-tab:: Windows
 
-      .. code-block:: shell
+      .. code-block:: console
 
           C:\> py -m pip install --require-hashes -r requirements.txt
               ...
