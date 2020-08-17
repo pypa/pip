@@ -1,0 +1,3 @@
+List downloaded distributions before exiting ``pip download``
+when using the new resolver to make the behavior the same as
+that on the legacy resolver.

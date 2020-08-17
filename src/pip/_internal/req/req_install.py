@@ -179,15 +179,6 @@ class InstallRequirement(object):
         # e.g. dependencies, extras or constraints.
         self.user_supplied = user_supplied
 
-        # Set by the legacy resolver when the requirement has been downloaded
-        # TODO: This introduces a strong coupling between the resolver and the
-        #       requirement (the coupling was previously between the resolver
-        #       and the requirement set). This should be refactored to allow
-        #       the requirement to decide for itself when it has been
-        #       successfully downloaded - but that is more tricky to get right,
-        #       se we are making the change in stages.
-        self.successfully_downloaded = False
-
         self.isolated = isolated
         self.build_env = NoOpBuildEnvironment()  # type: BuildEnvironment
 

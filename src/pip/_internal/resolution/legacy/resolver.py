@@ -444,12 +444,6 @@ class Resolver(BaseResolver):
                 for subreq in dist.requires(available_requested):
                     add_req(subreq, extras_requested=available_requested)
 
-            if not req_to_install.editable and not req_to_install.satisfied_by:
-                # XXX: --no-install leads this to report 'Successfully
-                # downloaded' for only non-editable reqs, even though we took
-                # action on them.
-                req_to_install.successfully_downloaded = True
-
         return more_reqs
 
     def get_installation_order(self, req_set):
