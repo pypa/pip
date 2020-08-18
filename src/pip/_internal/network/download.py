@@ -129,10 +129,13 @@ def _get_http_response_filename(resp, link):
     return filename
 
 
-def _http_get_download(session, link):
-    # type: (PipSession, Link) -> Response
+def _http_get_download(session, link, head=False):
+    # type: (PipSession, Link, bool) -> Response
     target_url = link.url.split('#', 1)[0]
-    resp = session.get(target_url, headers=HEADERS, stream=True)
+    if head:
+        resp = session.head(target_url, headers=HEADERS)
+    else:
+        resp = session.get(target_url, headers=HEADERS, stream=True)
     try:
         raise_for_status(resp)
     except NetworkConnectionError as e:
@@ -175,15 +178,25 @@ class _FileToDownload(object):
 
     def __init__(self, location, session, link):
         # type: (str, PipSession, Link) -> None
+        self._session = session
+        self._link = link
+
         self.url = link.url
-        response = _http_get_download(session, link)
+        response = _http_get_download(session, link, head=True)
 
         self.type = response.headers.get('Content-Type', '')
         self.size = _get_http_response_size(response)
-        self.chunks = _prepare_download(response, link)
 
         filename = _get_http_response_filename(response, link)
         self.path = os.path.join(location, filename)
+
+    @property
+    def chunks(self):
+        # type: () -> Iterable[bytes]
+        return response_chunks(
+            _http_get_download(self._session, self._link),
+            CONTENT_CHUNK_SIZE,
+        )
 
 
 class BatchDownloader(object):
