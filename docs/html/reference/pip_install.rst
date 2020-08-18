@@ -550,11 +550,6 @@ response telling pip to simply use the cached item (and refresh the expiration
 timer) or it will return a whole new response which pip can then store in the
 cache.
 
-When storing items in the cache, pip will respect the ``CacheControl`` header
-if it exists, or it will fall back to the ``Expires`` header if that exists.
-This allows pip to function as a browser would, and allows the index server
-to communicate to pip how long it is reasonable to cache any particular item.
-
 While this cache attempts to minimize network activity, it does not prevent
 network access altogether. If you want a local install solution that
 circumvents accessing PyPI, see :ref:`Installing from local packages`.
