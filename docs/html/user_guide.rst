@@ -788,8 +788,6 @@ archives are built with identical packages.
     to use such a package, see :ref:`Controlling
     setup_requires<controlling-setup-requires>`.
 
-.. _`Using pip from your program`:
-
 Fixing conflicting dependencies
 ===============================
 
@@ -970,6 +968,8 @@ issue tracker`_ if you believe that your problem has exposed a bug in pip.
 .. _Stack Overflow: https://stackoverflow.com/questions/tagged/python
 .. _"How do I ask a good question?": https://stackoverflow.com/help/how-to-ask
 .. _pip issue tracker: https://github.com/pypa/pip/issues
+
+.. _`Using pip from your program`:
 
 Using pip from your program
 ===========================
