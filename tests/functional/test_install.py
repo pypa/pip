@@ -758,6 +758,7 @@ def test_install_using_install_option_and_editable(script, tmpdir):
     result.did_create(script_file)
 
 
+@pytest.mark.xfail
 @pytest.mark.network
 @need_mercurial
 @windows_workaround_7667
