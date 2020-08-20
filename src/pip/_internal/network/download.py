@@ -203,15 +203,6 @@ class _FileToDownload(object):
         )
 
 
-def _write_from_cache(file):
-    # type: (_FileToDownload) -> Tuple[str, Tuple[str, str]]
-    assert file.is_cached
-    with open(file.path, 'wb') as content_file:
-        for chunk in file.chunks:
-            content_file.write(chunk)
-    return file.url, (file.path, file.type)
-
-
 class BatchDownloader(object):
 
     def __init__(
@@ -229,8 +220,9 @@ class BatchDownloader(object):
         self._lock = Lock()
 
     def _files_to_download(self, links, location):
-        # type: (Iterable[Link], str) -> Iterable[_FileToDownload]
-        return map(partial(_FileToDownload, location, self._session), links)
+        # type: (Iterable[Link], str) -> List[_FileToDownload]
+        file_to_download = partial(_FileToDownload, location, self._session)
+        return list(map(file_to_download, links))
 
     @property
     def _is_downloading(self):
@@ -260,13 +252,16 @@ class BatchDownloader(object):
         Its __enter__() returns a routine to update such progress,
         which is to be used as the first argument of self._download_one.
         """
-        total_size = sum(file.size for file in files if file.size is not None)
-        if _should_hide_progress(total_size):
+        # Is invalid/lacking Content-Length common enough
+        # to be handled specially?
+        size = sum(file.size for file in files if file.size is not None)
+        logger.info('Downloading %d files (%s)', len(files), format_size(size))
+        if _should_hide_progress(size):
             yield lambda chunk: None
         else:
             assert not self._is_downloading
             self._count = Semaphore(len(files))
-            progress = DownloadProgressProvider(self._progress_bar, total_size)
+            progress = DownloadProgressProvider(self._progress_bar, size)
             self._chunks = progress(self._iter_chunks())
             yield self._update_progress
 
@@ -292,15 +287,7 @@ class BatchDownloader(object):
     def __call__(self, links, location):
         # type: (Iterable[Link], str) -> Iterable[Tuple[str, Tuple[str, str]]]
         """Download the files given by links into location."""
-        files = []  # type: List[_FileToDownload]
-        cached_files = []  # type: List[_FileToDownload]
-        for file in self._files_to_download(links, location):
-            (cached_files if file.is_cached else files).append(file)
-
-        # Cached files need no progress bar.
-        for result in map_multithread(_write_from_cache, cached_files):
-            yield result
-
+        files = self._files_to_download(links, location)
         with self._progress(files) as update:
             download_one = partial(self._download_one, update)
             for result in map_multithread(download_one, files):
