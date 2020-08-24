@@ -827,27 +827,37 @@ commonly understood comparison operators to specify the required version
 However, Python packaging also supports some more complex ways for
 specifying package versions (e.g. ``~=`` or ``*``):
 
-.. csv-table::
-  :header: "Operator", "Description", "Example"
-
-  ``>``, "Any version greater than the specified version", "``>3.1``: any
-  version greater than 3.1"
-  ``<``, "Any version less than the specified version", "``<3.1``: any version
-  less than ``3.1``"
-  ``<=``, "Any version less than or equal to the specified version", "``<=3.1``:
-  any version less than or equal to ``3.1``"
-  ``>=``, "Any version greater than or equal to the specified
-  version", "``>=3.1``: version ``3.1`` and greater"
-  ``==``, "Exactly the specified version", ``==3.1``: only version ``3.1``
-  ``!=``, "Any version not equal to the specified version", "``!=3.1``: any
-  version other than ``3.1``"
-  ``~=``, "Any compatible release. Compatible releases are releases that are
-  within the same major or minor version, assuming the package author is using
-  semantic versioning.", "``~=3.1``: version ``3.1`` or later, but not version
-  ``4.0`` or later. ``~=3.1.2``: version ``3.1.2`` or later, but not
-  version ``3.2.0`` or later."
-  ``*``,Can be used at the end of a version number to represent "all", "``== 3.
-  1.*``: any version that starts with ``3.1``. Equivalent to ``~=3.1.0``."
++----------+---------------------------------+--------------------------------+
+| Operator | Description                     | Example                        |
++==========+=================================+================================+
+|  ``>``   | Any version greater than        | ``>3.1``: any version          |
+|          | the specified version.          | greater than ``3.1``.          |
++----------+---------------------------------+--------------------------------+
+|  ``<``   | Any version less than           | ``<3.1``: any version          |
+|          | the specified version.          | less than ``3.1``.             |
++----------+---------------------------------+--------------------------------+
+|  ``<=``  | Any version less than or        | ``<=3.1``: any version         |
+|          | equal to the specified version. | less than or equal to ``3.1``. |
++----------+---------------------------------+--------------------------------+
+|  ``>=``  | Any version greater than or     | ``>=3.1``:                     |
+|          | equal to the specified version. | version ``3.1`` and greater.   |
++----------+---------------------------------+--------------------------------+
+|  ``==``  | Exactly the specified version.  | ``==3.1``: only ``3.1``.       |
++----------+---------------------------------+--------------------------------+
+|  ``!=``  | Any version not equal           | ``!=3.1``: any version         |
+|          | to the specified version.       | other than ``3.1``.            |
++----------+---------------------------------+--------------------------------+
+|  ``~=``  | Any compatible release.         | ``~=3.1``: version ``3.1``     |
+|          | Compatible releases are         | or later, but not              |
+|          | releases that are within the    | version ``4.0`` or later.      |
+|          | same major or minor version,    | ``~=3.1.2``: version ``3.1.2`` |
+|          | assuming the package author     | or later, but not              |
+|          | is using semantic versioning.   | version ``3.2.0`` or later.    |
++----------+---------------------------------+--------------------------------+
+|  ``*``   | Can be used at the end of       | ``==3.1.*``: any version       |
+|          | a version number to represent   | that starts with ``3.1``.      |
+|          | *all*,                          | Equivalent to ``~=3.1.0``.     |
++----------+---------------------------------+--------------------------------+
 
 The detailed specification of supported comparison operators can be
 found in :pep:`440`.
