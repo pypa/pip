@@ -690,6 +690,7 @@ def decide_user_install(
         logger.debug("Non-user install by explicit request")
         return False
 
+    # If we have been asked for a user install explicitly, check compatibility.
     if use_user_site:
         if prefix_path:
             raise CommandError(
@@ -700,6 +701,13 @@ def decide_user_install(
             raise InstallationError(
                 "Can not perform a '--user' install. User site-packages "
                 "are not visible in this virtualenv."
+            )
+        # Catch all remaining cases which honour the site.ENABLE_USER_SITE
+        # value, such as a plain Python installation (e.g. no virtualenv).
+        if not site.ENABLE_USER_SITE:
+            raise InstallationError(
+                "Can not perform a '--user' install. User site-packages "
+                "are disabled for this Python."
             )
         logger.debug("User install by explicit request")
         return True
