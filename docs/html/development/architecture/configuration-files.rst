@@ -109,6 +109,7 @@ manipulated. In addition to the methods discussed in the previous section,
 the methods used would be:
 
 .. py:class:: Configuration
+  :noindex:
 
   .. py:method:: get_file_to_edit()
 
