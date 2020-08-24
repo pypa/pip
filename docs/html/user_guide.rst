@@ -36,9 +36,7 @@ directly from distribution files.
 
 
 The most common scenario is to install from `PyPI`_ using :ref:`Requirement
-Specifiers`
-
-  ::
+Specifiers` ::
 
   $ pip install SomePackage            # latest version
   $ pip install SomePackage==1.0.4     # specific version
@@ -119,9 +117,7 @@ Requirements Files
 ==================
 
 "Requirements files" are files containing a list of items to be
-installed using :ref:`pip install` like so:
-
- ::
+installed using :ref:`pip install` like so::
 
    pip install -r requirements.txt
 
@@ -207,9 +203,7 @@ contents is nearly identical to :ref:`Requirements Files`. There is one key
 difference: Including a package in a constraints file does not trigger
 installation of the package.
 
-Use a constraints file like so:
-
- ::
+Use a constraints file like so::
 
    pip install -c constraints.txt
 
@@ -807,16 +801,14 @@ Understanding your error message
 When you get a ``ResolutionImpossible`` error, you might see something
 like this:
 
-::
+.. code-block:: console
 
-    pip install package_coffee==0.44.1 package_tea==4.3.0
-
-::
-
-    Due to conflicting dependencies pip cannot install package_coffee and
-    package_tea:
-    - package_coffee depends on package_water<3.0.0,>=2.4.2
-    - package_tea depends on package_water==2.3.1
+   $ pip install package_coffee==0.44.1 package_tea==4.3.0
+   ...
+   Due to conflicting dependencies pip cannot install
+   package_coffee and package_tea:
+   - package_coffee depends on package_water<3.0.0,>=2.4.2
+   - package_tea depends on package_water==2.3.1
 
 In this example, pip cannot install the packages you have requested,
 because they each depend on different versions of the same package
@@ -1138,11 +1130,11 @@ How to test
    -  If you use pip to install your software, try out the new resolver
       and let us know if it works for you with ``pip install``. Try:
 
-        - installing several packages simultaneously
-        - re-creating an environment using a ``requirements.txt`` file
-        - using ``pip install --force-reinstall`` to check whether
-          it does what you think it should
-        - using constraints files
+      - installing several packages simultaneously
+      - re-creating an environment using a ``requirements.txt`` file
+      - using ``pip install --force-reinstall`` to check whether
+        it does what you think it should
+      - using constraints files
 
    -  If you have a build pipeline that depends on pip installing your
       dependencies for you, check that the new resolver does what you
