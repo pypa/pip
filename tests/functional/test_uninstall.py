@@ -307,6 +307,7 @@ def test_uninstall_easy_installed_console_scripts(script):
     )
 
 
+@pytest.mark.xfail
 @pytest.mark.network
 @need_svn
 def test_uninstall_editable_from_svn(script, tmpdir):
@@ -372,6 +373,7 @@ def _test_uninstall_editable_with_source_outside_venv(
     )
 
 
+@pytest.mark.xfail
 @pytest.mark.network
 @need_svn
 def test_uninstall_from_reqs_file(script, tmpdir):

@@ -45,6 +45,7 @@ class Tests_UserSite:
         project_name = result.stdout.strip()
         assert 'INITools' == project_name, project_name
 
+    @pytest.mark.xfail
     @pytest.mark.network
     @need_svn
     @pytest.mark.incompatible_with_test_venv
