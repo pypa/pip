@@ -22,9 +22,8 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING, cast
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
 if MYPY_CHECK_RUNNING:
-    from typing import Dict, List, Optional, Union
-
     from distutils.cmd import Command as DistutilsCommand
+    from typing import Dict, List, Optional, Union
 
 
 # Application Directories

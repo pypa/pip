@@ -12,8 +12,8 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 logger = logging.getLogger(__name__)
 
 if MYPY_CHECK_RUNNING:
-    from typing import List, Any
     from optparse import Values
+    from typing import Any, List
 
 
 class CheckCommand(Command):

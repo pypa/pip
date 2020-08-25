@@ -30,8 +30,9 @@ from pip._internal.utils.hashes import STRONG_HASHES
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Callable, Dict, Optional, Tuple
     from optparse import OptionParser, Values
+    from typing import Any, Callable, Dict, Optional, Tuple
+
     from pip._internal.cli.parser import ConfigOptionParser
 
 

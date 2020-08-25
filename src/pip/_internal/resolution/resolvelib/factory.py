@@ -37,8 +37,8 @@ from .requirements import (
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        FrozenSet,
         Dict,
+        FrozenSet,
         Iterable,
         List,
         Optional,

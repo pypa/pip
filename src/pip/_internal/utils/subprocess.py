@@ -15,7 +15,14 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Any, Callable, Iterable, List, Mapping, Optional, Text, Union,
+        Any,
+        Callable,
+        Iterable,
+        List,
+        Mapping,
+        Optional,
+        Text,
+        Union,
     )
 
     CommandArgs = List[Union[str, HiddenText]]

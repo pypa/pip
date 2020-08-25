@@ -16,6 +16,7 @@ from pip._internal.utils.urls import path_to_url, url_to_path
 
 if MYPY_CHECK_RUNNING:
     from typing import Optional, Text, Tuple, Union
+
     from pip._internal.index.collector import HTMLPage
     from pip._internal.utils.hashes import Hashes
 

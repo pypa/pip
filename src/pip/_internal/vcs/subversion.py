@@ -26,8 +26,9 @@ _svn_info_xml_url_re = re.compile(r'<url>(.*)</url>')
 
 if MYPY_CHECK_RUNNING:
     from typing import Optional, Tuple
-    from pip._internal.utils.subprocess import CommandArgs
+
     from pip._internal.utils.misc import HiddenText
+    from pip._internal.utils.subprocess import CommandArgs
     from pip._internal.vcs.versioncontrol import AuthInfo, RevOptions
 
 

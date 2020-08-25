@@ -15,7 +15,7 @@ from pip._internal.utils.misc import get_pip_version, get_prog
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Tuple, List
+    from typing import List, Tuple
 
 
 __all__ = ["create_main_parser", "parse_command"]
