@@ -17,7 +17,7 @@ repos:
     exclude: .patch
 
 - repo: https://gitlab.com/pycqa/flake8
-  rev: 3.8.1
+  rev: 3.8.3
   hooks:
   - id: flake8
     additional_dependencies: [
