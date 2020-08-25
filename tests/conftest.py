@@ -58,29 +58,32 @@ def pytest_addoption(parser):
 
 def pytest_collection_modifyitems(config, items):
     for item in items:
-        if not hasattr(item, 'module'):  # e.g.: DoctestTextfile
+        if not hasattr(item, "module"):  # e.g.: DoctestTextfile
             continue
 
         # Mark network tests as flaky
-        if (item.get_closest_marker('network') is not None and
-                "CI" in os.environ):
+        if item.get_closest_marker("network") is not None and "CI" in os.environ:
             item.add_marker(pytest.mark.flaky(reruns=3))
 
-        if (item.get_closest_marker('fails_on_new_resolver') and
-                config.getoption("--new-resolver") and
-                not config.getoption("--new-resolver-runtests")):
-            item.add_marker(pytest.mark.skip(
-                'This test does not work with the new resolver'))
+        if (
+            item.get_closest_marker("fails_on_new_resolver")
+            and config.getoption("--new-resolver")
+            and not config.getoption("--new-resolver-runtests")
+        ):
+            item.add_marker(
+                pytest.mark.skip("This test does not work with the new resolver")
+            )
 
         if six.PY3:
-            if (item.get_closest_marker('incompatible_with_test_venv') and
-                    config.getoption("--use-venv")):
-                item.add_marker(pytest.mark.skip(
-                    'Incompatible with test venv'))
-            if (item.get_closest_marker('incompatible_with_venv') and
-                    sys.prefix != sys.base_prefix):
-                item.add_marker(pytest.mark.skip(
-                    'Incompatible with venv'))
+            if item.get_closest_marker(
+                "incompatible_with_test_venv"
+            ) and config.getoption("--use-venv"):
+                item.add_marker(pytest.mark.skip("Incompatible with test venv"))
+            if (
+                item.get_closest_marker("incompatible_with_venv")
+                and sys.prefix != sys.base_prefix
+            ):
+                item.add_marker(pytest.mark.skip("Incompatible with venv"))
 
         module_path = os.path.relpath(
             item.module.__file__,
@@ -88,16 +91,16 @@ def pytest_collection_modifyitems(config, items):
         )
 
         module_root_dir = module_path.split(os.pathsep)[0]
-        if (module_root_dir.startswith("functional") or
-                module_root_dir.startswith("integration") or
-                module_root_dir.startswith("lib")):
+        if (
+            module_root_dir.startswith("functional")
+            or module_root_dir.startswith("integration")
+            or module_root_dir.startswith("lib")
+        ):
             item.add_marker(pytest.mark.integration)
         elif module_root_dir.startswith("unit"):
             item.add_marker(pytest.mark.unit)
         else:
-            raise RuntimeError(
-                "Unknown test type (filename = {})".format(module_path)
-            )
+            raise RuntimeError("Unknown test type (filename = {})".format(module_path))
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -112,7 +115,7 @@ def use_new_resolver(request):
     yield new_resolver
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def tmpdir_factory(request, tmpdir_factory):
     """ Modified `tmpdir_factory` session fixture
     that will automatically cleanup after itself.
@@ -123,8 +126,7 @@ def tmpdir_factory(request, tmpdir_factory):
         # handle non-ASCII file names. This works around the problem by
         # passing a unicode object to rmtree().
         shutil.rmtree(
-            six.text_type(tmpdir_factory.getbasetemp()),
-            ignore_errors=True,
+            six.text_type(tmpdir_factory.getbasetemp()), ignore_errors=True,
         )
 
 
@@ -172,19 +174,17 @@ def isolate(tmpdir):
     fake_root = os.path.join(str(tmpdir), "fake-root")
     os.makedirs(fake_root)
 
-    if sys.platform == 'win32':
+    if sys.platform == "win32":
         # Note: this will only take effect in subprocesses...
         home_drive, home_path = os.path.splitdrive(home_dir)
-        os.environ.update({
-            'USERPROFILE': home_dir,
-            'HOMEDRIVE': home_drive,
-            'HOMEPATH': home_path,
-        })
+        os.environ.update(
+            {"USERPROFILE": home_dir, "HOMEDRIVE": home_drive, "HOMEPATH": home_path,}
+        )
         for env_var, sub_path in (
-            ('APPDATA', 'AppData/Roaming'),
-            ('LOCALAPPDATA', 'AppData/Local'),
+            ("APPDATA", "AppData/Roaming"),
+            ("LOCALAPPDATA", "AppData/Local"),
         ):
-            path = os.path.join(home_dir, *sub_path.split('/'))
+            path = os.path.join(home_dir, *sub_path.split("/"))
             os.environ[env_var] = path
             os.makedirs(path)
     else:
@@ -197,10 +197,12 @@ def isolate(tmpdir):
         os.environ["XDG_CONFIG_HOME"] = os.path.join(home_dir, ".config")
         os.environ["XDG_CACHE_HOME"] = os.path.join(home_dir, ".cache")
         os.environ["XDG_RUNTIME_DIR"] = os.path.join(home_dir, ".runtime")
-        os.environ["XDG_DATA_DIRS"] = ":".join([
-            os.path.join(fake_root, "usr", "local", "share"),
-            os.path.join(fake_root, "usr", "share"),
-        ])
+        os.environ["XDG_DATA_DIRS"] = ":".join(
+            [
+                os.path.join(fake_root, "usr", "local", "share"),
+                os.path.join(fake_root, "usr", "share"),
+            ]
+        )
         os.environ["XDG_CONFIG_DIRS"] = os.path.join(fake_root, "etc", "xdg")
 
     # Configure git, because without an author name/email git will complain
@@ -213,14 +215,12 @@ def isolate(tmpdir):
     os.environ["PIP_DISABLE_PIP_VERSION_CHECK"] = "true"
 
     # Make sure tests don't share a requirements tracker.
-    os.environ.pop('PIP_REQ_TRACKER', None)
+    os.environ.pop("PIP_REQ_TRACKER", None)
 
     # FIXME: Windows...
     os.makedirs(os.path.join(home_dir, ".config", "git"))
     with open(os.path.join(home_dir, ".config", "git", "config"), "wb") as fp:
-        fp.write(
-            b"[user]\n\tname = pip\n\temail = distutils-sig@python.org\n"
-        )
+        fp.write(b"[user]\n\tname = pip\n\temail = distutils-sig@python.org\n")
 
 
 @pytest.fixture(autouse=True)
@@ -239,7 +239,7 @@ def scoped_global_tempdir_manager(request):
         yield
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def pip_src(tmpdir_factory):
     def not_code_files_and_folders(path, names):
         # In the root directory...
@@ -259,94 +259,86 @@ def pip_src(tmpdir_factory):
             ignored.update(fnmatch.filter(names, pattern))
         return ignored
 
-    pip_src = Path(str(tmpdir_factory.mktemp('pip_src'))).joinpath('pip_src')
+    pip_src = Path(str(tmpdir_factory.mktemp("pip_src"))).joinpath("pip_src")
     # Copy over our source tree so that each use is self contained
     shutil.copytree(
-        SRC_DIR,
-        pip_src.resolve(),
-        ignore=not_code_files_and_folders,
+        SRC_DIR, pip_src.resolve(), ignore=not_code_files_and_folders,
     )
     return pip_src
 
 
 def _common_wheel_editable_install(tmpdir_factory, common_wheels, package):
-    wheel_candidates = list(
-        common_wheels.glob('{package}-*.whl'.format(**locals())))
+    wheel_candidates = list(common_wheels.glob("{package}-*.whl".format(**locals())))
     assert len(wheel_candidates) == 1, wheel_candidates
-    install_dir = Path(str(tmpdir_factory.mktemp(package))) / 'install'
+    install_dir = Path(str(tmpdir_factory.mktemp(package))) / "install"
     Wheel(wheel_candidates[0]).install_as_egg(install_dir)
-    (install_dir / 'EGG-INFO').rename(
-        install_dir / '{package}.egg-info'.format(**locals()))
+    (install_dir / "EGG-INFO").rename(
+        install_dir / "{package}.egg-info".format(**locals())
+    )
     assert compileall.compile_dir(str(install_dir), quiet=1)
     return install_dir
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def setuptools_install(tmpdir_factory, common_wheels):
-    return _common_wheel_editable_install(tmpdir_factory,
-                                          common_wheels,
-                                          'setuptools')
+    return _common_wheel_editable_install(tmpdir_factory, common_wheels, "setuptools")
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def wheel_install(tmpdir_factory, common_wheels):
-    return _common_wheel_editable_install(tmpdir_factory,
-                                          common_wheels,
-                                          'wheel')
+    return _common_wheel_editable_install(tmpdir_factory, common_wheels, "wheel")
 
 
-@pytest.fixture(scope='session')
+@pytest.fixture(scope="session")
 def coverage_install(tmpdir_factory, common_wheels):
-    return _common_wheel_editable_install(tmpdir_factory,
-                                          common_wheels,
-                                          'coverage')
+    return _common_wheel_editable_install(tmpdir_factory, common_wheels, "coverage")
 
 
 def install_egg_link(venv, project_name, egg_info_dir):
-    with open(venv.site / 'easy-install.pth', 'a') as fp:
-        fp.write(str(egg_info_dir.resolve()) + '\n')
-    with open(venv.site / (project_name + '.egg-link'), 'w') as fp:
-        fp.write(str(egg_info_dir) + '\n.')
+    with open(venv.site / "easy-install.pth", "a") as fp:
+        fp.write(str(egg_info_dir.resolve()) + "\n")
+    with open(venv.site / (project_name + ".egg-link"), "w") as fp:
+        fp.write(str(egg_info_dir) + "\n.")
 
 
-@pytest.fixture(scope='session')
-def virtualenv_template(request, tmpdir_factory, pip_src,
-                        setuptools_install, coverage_install):
+@pytest.fixture(scope="session")
+def virtualenv_template(
+    request, tmpdir_factory, pip_src, setuptools_install, coverage_install
+):
 
-    if six.PY3 and request.config.getoption('--use-venv'):
-        venv_type = 'venv'
+    if six.PY3 and request.config.getoption("--use-venv"):
+        venv_type = "venv"
     else:
-        venv_type = 'virtualenv'
+        venv_type = "virtualenv"
 
     # Create the virtual environment
-    tmpdir = Path(str(tmpdir_factory.mktemp('virtualenv')))
-    venv = VirtualEnvironment(
-        tmpdir.joinpath("venv_orig"), venv_type=venv_type
-    )
+    tmpdir = Path(str(tmpdir_factory.mktemp("virtualenv")))
+    venv = VirtualEnvironment(tmpdir.joinpath("venv_orig"), venv_type=venv_type)
 
     # Install setuptools and pip.
-    install_egg_link(venv, 'setuptools', setuptools_install)
-    pip_editable = Path(str(tmpdir_factory.mktemp('pip'))) / 'pip'
+    install_egg_link(venv, "setuptools", setuptools_install)
+    pip_editable = Path(str(tmpdir_factory.mktemp("pip"))) / "pip"
     shutil.copytree(pip_src, pip_editable, symlinks=True)
     # noxfile.py is Python 3 only
     assert compileall.compile_dir(
         str(pip_editable), quiet=1, rx=re.compile("noxfile.py$"),
     )
-    subprocess.check_call([venv.bin / 'python', 'setup.py', '-q', 'develop'],
-                          cwd=pip_editable)
+    subprocess.check_call(
+        [venv.bin / "python", "setup.py", "-q", "develop"], cwd=pip_editable
+    )
 
     # Install coverage and pth file for executing it in any spawned processes
     # in this virtual environment.
-    install_egg_link(venv, 'coverage', coverage_install)
+    install_egg_link(venv, "coverage", coverage_install)
     # zz prefix ensures the file is after easy-install.pth.
-    with open(venv.site / 'zz-coverage-helper.pth', 'a') as f:
-        f.write('import coverage; coverage.process_startup()')
+    with open(venv.site / "zz-coverage-helper.pth", "a") as f:
+        f.write("import coverage; coverage.process_startup()")
 
     # Drop (non-relocatable) launchers.
     for exe in os.listdir(venv.bin):
         if not (
-            exe.startswith('python') or
-            exe.startswith('libpy')  # Don't remove libpypy-c.so...
+            exe.startswith("python")
+            or exe.startswith("libpy")  # Don't remove libpypy-c.so...
         ):
             (venv.bin / exe).unlink()
 
@@ -381,7 +373,7 @@ def virtualenv(virtualenv_factory, tmpdir):
 
 @pytest.fixture
 def with_wheel(virtualenv, wheel_install):
-    install_egg_link(virtualenv, 'wheel', wheel_install)
+    install_egg_link(virtualenv, "wheel", wheel_install)
 
 
 @pytest.fixture(scope="session")
@@ -392,21 +384,16 @@ def script_factory(virtualenv_factory, deprecated_python):
         return PipTestEnvironment(
             # The base location for our test environment
             tmpdir,
-
             # Tell the Test Environment where our virtualenv is located
             virtualenv=virtualenv,
-
             # Do not ignore hidden files, they need to be checked as well
             ignore_hidden=False,
-
             # We are starting with an already empty directory
             start_clear=False,
-
             # We want to ensure no temporary files are left behind, so the
             # PipTestEnvironment needs to capture and assert against temp
             capture_temp=True,
             assert_no_temp=True,
-
             # Deprecated python versions produce an extra deprecation warning
             pip_expect_warning=deprecated_python,
         )
@@ -428,7 +415,7 @@ def script(tmpdir, virtualenv, script_factory):
 @pytest.fixture(scope="session")
 def common_wheels():
     """Provide a directory with latest setuptools and wheel wheels"""
-    return DATA_DIR.joinpath('common_wheels')
+    return DATA_DIR.joinpath("common_wheels")
 
 
 @pytest.fixture(scope="session")
@@ -537,9 +524,7 @@ class MockServer(object):
         """Get environ for each received request.
         """
         assert not self._running, "cannot get mock from running server"
-        return [
-            call.args[0] for call in self._server.mock.call_args_list
-        ]
+        return [call.args[0] for call in self._server.mock.call_args_list]
 
 
 @pytest.fixture

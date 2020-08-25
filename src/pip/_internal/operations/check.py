@@ -7,9 +7,7 @@ from collections import namedtuple
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.pkg_resources import RequirementParseError
 
-from pip._internal.distributions import (
-    make_distribution_for_install_requirement,
-)
+from pip._internal.distributions import make_distribution_for_install_requirement
 from pip._internal.utils.misc import get_installed_distributions
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -21,7 +19,7 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.req.req_install import InstallRequirement
 
     # Shorthands
-    PackageSet = Dict[str, 'PackageDetails']
+    PackageSet = Dict[str, "PackageDetails"]
     Missing = Tuple[str, Any]
     Conflicting = Tuple[str, str, Any]
 
@@ -30,7 +28,7 @@ if MYPY_CHECK_RUNNING:
     CheckResult = Tuple[MissingDict, ConflictingDict]
     ConflictDetails = Tuple[PackageSet, CheckResult]
 
-PackageDetails = namedtuple('PackageDetails', ['version', 'requires'])
+PackageDetails = namedtuple("PackageDetails", ["version", "requires"])
 
 
 def create_package_set_from_installed(**kwargs):
@@ -115,7 +113,7 @@ def check_install_conflicts(to_install):
         package_set,
         check_package_set(
             package_set, should_ignore=lambda name: name not in whitelist
-        )
+        ),
     )
 
 

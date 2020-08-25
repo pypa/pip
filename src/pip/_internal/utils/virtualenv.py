@@ -34,7 +34,7 @@ def _running_under_regular_virtualenv():
     This handles virtual environments created with pypa's virtualenv.
     """
     # pypa/virtualenv case
-    return hasattr(sys, 'real_prefix')
+    return hasattr(sys, "real_prefix")
 
 
 def running_under_virtualenv():
@@ -50,11 +50,11 @@ def _get_pyvenv_cfg_lines():
 
     Returns None, if it could not read/access the file.
     """
-    pyvenv_cfg_file = os.path.join(sys.prefix, 'pyvenv.cfg')
+    pyvenv_cfg_file = os.path.join(sys.prefix, "pyvenv.cfg")
     try:
         # Although PEP 405 does not specify, the built-in venv module always
         # writes with UTF-8. (pypa/pip#8717)
-        with io.open(pyvenv_cfg_file, encoding='utf-8') as f:
+        with io.open(pyvenv_cfg_file, encoding="utf-8") as f:
             return f.read().splitlines()  # avoids trailing newlines
     except IOError:
         return None
@@ -85,7 +85,7 @@ def _no_global_under_venv():
 
     for line in cfg_lines:
         match = _INCLUDE_SYSTEM_SITE_PACKAGES_REGEX.match(line)
-        if match is not None and match.group('value') == 'false':
+        if match is not None and match.group("value") == "false":
             return True
     return False
 
@@ -99,7 +99,7 @@ def _no_global_under_regular_virtualenv():
     """
     site_mod_dir = os.path.dirname(os.path.abspath(site.__file__))
     no_global_site_packages_file = os.path.join(
-        site_mod_dir, 'no-global-site-packages.txt',
+        site_mod_dir, "no-global-site-packages.txt",
     )
     return os.path.exists(no_global_site_packages_file)
 

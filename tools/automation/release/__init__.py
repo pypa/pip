@@ -29,7 +29,7 @@ def get_version_from_arguments(session: Session) -> Optional[str]:
     cmd = [
         os.path.join(session.bin, "python"),
         "tools/automation/release/check_version.py",
-        version
+        version,
     ]
     not_ok = subprocess.run(cmd).returncode
     if not_ok:
@@ -41,8 +41,7 @@ def get_version_from_arguments(session: Session) -> Optional[str]:
 
 def modified_files_in_git(*args: str) -> int:
     return subprocess.run(
-        ["git", "diff", "--no-patch", "--exit-code", *args],
-        capture_output=True,
+        ["git", "diff", "--no-patch", "--exit-code", *args], capture_output=True,
     ).returncode
 
 
@@ -76,8 +75,8 @@ def generate_authors(filename: str) -> None:
 
     # Write our authors to the AUTHORS file
     with io.open(filename, "w", encoding="utf-8") as fp:
-        fp.write(u"\n".join(authors))
-        fp.write(u"\n")
+        fp.write("\n".join(authors))
+        fp.write("\n")
 
 
 def commit_file(session: Session, filename: str, *, message: str) -> None:
@@ -103,8 +102,7 @@ def update_version_file(version: str, filepath: str) -> None:
             else:
                 f.write(line)
 
-    assert file_modified, \
-        "Version file {} did not get modified".format(filepath)
+    assert file_modified, "Version file {} did not get modified".format(filepath)
 
 
 def create_git_tag(session: Session, tag_name: str, *, message: str) -> None:
@@ -147,10 +145,7 @@ def have_files_in_folder(folder_name: str) -> bool:
 
 
 @contextlib.contextmanager
-def workdir(
-        nox_session: Session,
-        dir_path: pathlib.Path,
-) -> Iterator[pathlib.Path]:
+def workdir(nox_session: Session, dir_path: pathlib.Path,) -> Iterator[pathlib.Path]:
     """Temporarily chdir when entering CM and chdir back on exit."""
     orig_dir = pathlib.Path.cwd()
 
@@ -163,35 +158,48 @@ def workdir(
 
 @contextlib.contextmanager
 def isolated_temporary_checkout(
-        nox_session: Session,
-        target_ref: str,
+    nox_session: Session, target_ref: str,
 ) -> Iterator[pathlib.Path]:
     """Make a clean checkout of a given version in tmp dir."""
     with tempfile.TemporaryDirectory() as tmp_dir_path:
         tmp_dir = pathlib.Path(tmp_dir_path)
-        git_checkout_dir = tmp_dir / f'pip-build-{target_ref}'
+        git_checkout_dir = tmp_dir / f"pip-build-{target_ref}"
         nox_session.run(
-            'git', 'worktree', 'add', '--force', '--checkout',
-            str(git_checkout_dir), str(target_ref),
-            external=True, silent=True,
+            "git",
+            "worktree",
+            "add",
+            "--force",
+            "--checkout",
+            str(git_checkout_dir),
+            str(target_ref),
+            external=True,
+            silent=True,
         )
 
         try:
             yield git_checkout_dir
         finally:
             nox_session.run(
-                'git', 'worktree', 'remove', '--force',
+                "git",
+                "worktree",
+                "remove",
+                "--force",
                 str(git_checkout_dir),
-                external=True, silent=True,
+                external=True,
+                silent=True,
             )
 
 
 def get_git_untracked_files() -> Iterator[str]:
     """List all local file paths that aren't tracked by Git."""
     git_ls_files_cmd = (
-        "git", "ls-files",
-        "--ignored", "--exclude-standard",
-        "--others", "--", ".",
+        "git",
+        "ls-files",
+        "--ignored",
+        "--exclude-standard",
+        "--others",
+        "--",
+        ".",
     )
     # session.run doesn't seem to return any output:
     ls_files_out = subprocess.check_output(git_ls_files_cmd, text=True)

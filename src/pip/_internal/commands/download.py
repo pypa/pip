@@ -58,19 +58,19 @@ class DownloadCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.no_use_pep517())
 
         self.cmd_opts.add_option(
-            '-d', '--dest', '--destination-dir', '--destination-directory',
-            dest='download_dir',
-            metavar='dir',
+            "-d",
+            "--dest",
+            "--destination-dir",
+            "--destination-directory",
+            dest="download_dir",
+            metavar="dir",
             default=os.curdir,
             help=("Download packages into <dir>."),
         )
 
         cmdoptions.add_target_python_options(self.cmd_opts)
 
-        index_opts = cmdoptions.make_option_group(
-            cmdoptions.index_group,
-            self.parser,
-        )
+        index_opts = cmdoptions.make_option_group(cmdoptions.index_group, self.parser,)
 
         self.parser.insert_option_group(0, index_opts)
         self.parser.insert_option_group(0, self.cmd_opts)
@@ -94,11 +94,9 @@ class DownloadCommand(RequirementCommand):
 
         target_python = make_target_python(options)
         finder = self._build_package_finder(
-            options=options,
-            session=session,
-            target_python=target_python,
+            options=options, session=session, target_python=target_python,
         )
-        build_delete = (not (options.no_clean or options.build_dir))
+        build_delete = not (options.no_clean or options.build_dir)
 
         req_tracker = self.enter_context(get_requirement_tracker())
 
@@ -130,9 +128,7 @@ class DownloadCommand(RequirementCommand):
 
         self.trace_basic_info(finder)
 
-        requirement_set = resolver.resolve(
-            reqs, check_supported_wheels=True
-        )
+        requirement_set = resolver.resolve(reqs, check_supported_wheels=True)
 
         downloaded = []  # type: List[str]
         for req in requirement_set.requirements.values():
@@ -140,6 +136,6 @@ class DownloadCommand(RequirementCommand):
                 assert req.name is not None
                 downloaded.append(req.name)
         if downloaded:
-            write_output('Successfully downloaded %s', ' '.join(downloaded))
+            write_output("Successfully downloaded %s", " ".join(downloaded))
 
         return SUCCESS

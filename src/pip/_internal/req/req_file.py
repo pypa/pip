@@ -13,10 +13,7 @@ import sys
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 from pip._internal.cli import cmdoptions
-from pip._internal.exceptions import (
-    InstallationError,
-    RequirementsFileParseError,
-)
+from pip._internal.exceptions import InstallationError, RequirementsFileParseError
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.network.utils import raise_for_status
 from pip._internal.utils.encoding import auto_decode
@@ -45,16 +42,16 @@ if MYPY_CHECK_RUNNING:
     LineParser = Callable[[Text], Tuple[str, Values]]
 
 
-__all__ = ['parse_requirements']
+__all__ = ["parse_requirements"]
 
-SCHEME_RE = re.compile(r'^(http|https|file):', re.I)
-COMMENT_RE = re.compile(r'(^|\s+)#.*$')
+SCHEME_RE = re.compile(r"^(http|https|file):", re.I)
+COMMENT_RE = re.compile(r"(^|\s+)#.*$")
 
 # Matches environment variable-style values in '${MY_VARIABLE_1}' with the
 # variable name consisting of only uppercase letters, digits or the '_'
 # (underscore). This follows the POSIX standard defined in IEEE Std 1003.1,
 # 2013 Edition.
-ENV_VAR_RE = re.compile(r'(?P<var>\$\{(?P<name>[A-Z0-9_]+)\})')
+ENV_VAR_RE = re.compile(r"(?P<var>\$\{(?P<name>[A-Z0-9_]+)\})")
 
 SUPPORTED_OPTIONS = [
     cmdoptions.index_url,
@@ -157,10 +154,7 @@ def parse_requirements(
 
     for parsed_line in parser.parse(filename, constraint):
         parsed_req = handle_line(
-            parsed_line,
-            options=options,
-            finder=finder,
-            session=session
+            parsed_line, options=options, finder=finder, session=session
         )
         if parsed_req is not None:
             yield parsed_req
@@ -186,8 +180,8 @@ def handle_requirement_line(
     # type: (...) -> ParsedRequirement
 
     # preserve for the nested code path
-    line_comes_from = '{} {} (line {})'.format(
-        '-c' if line.constraint else '-r', line.filename, line.lineno,
+    line_comes_from = "{} {} (line {})".format(
+        "-c" if line.constraint else "-r", line.filename, line.lineno,
     )
 
     assert line.is_requirement
@@ -212,7 +206,7 @@ def handle_requirement_line(
             if dest in line.opts.__dict__ and line.opts.__dict__[dest]:
                 req_options[dest] = line.opts.__dict__[dest]
 
-        line_source = 'line {} of {}'.format(line.lineno, line.filename)
+        line_source = "line {} of {}".format(line.lineno, line.filename)
         return ParsedRequirement(
             requirement=line.requirement,
             is_editable=line.is_editable,
@@ -239,8 +233,7 @@ def handle_option_line(
             options.require_hashes = opts.require_hashes
         if opts.features_enabled:
             options.features_enabled.extend(
-                f for f in opts.features_enabled
-                if f not in options.features_enabled
+                f for f in opts.features_enabled if f not in options.features_enabled
             )
 
     # set finder options
@@ -268,10 +261,7 @@ def handle_option_line(
             # We need to update the auth urls in session
             session.update_index_urls(index_urls)
 
-        search_scope = SearchScope(
-            find_links=find_links,
-            index_urls=index_urls,
-        )
+        search_scope = SearchScope(find_links=find_links, index_urls=index_urls,)
         finder.search_scope = search_scope
 
         if opts.pre:
@@ -282,7 +272,7 @@ def handle_option_line(
 
         if session:
             for host in opts.trusted_hosts or []:
-                source = 'line {} of {}'.format(lineno, filename)
+                source = "line {} of {}".format(lineno, filename)
                 session.add_trusted_host(host, source=source)
 
 
@@ -321,12 +311,7 @@ def handle_line(
         return parsed_req
     else:
         handle_option_line(
-            line.opts,
-            line.filename,
-            line.lineno,
-            finder,
-            options,
-            session,
+            line.opts, line.filename, line.lineno, finder, options, session,
         )
         return None
 
@@ -353,9 +338,8 @@ class RequirementsFileParser(object):
     def _parse_and_recurse(self, filename, constraint):
         # type: (str, bool) -> Iterator[ParsedLine]
         for line in self._parse_file(filename, constraint):
-            if (
-                not line.is_requirement and
-                (line.opts.requirements or line.opts.constraints)
+            if not line.is_requirement and (
+                line.opts.requirements or line.opts.constraints
             ):
                 # parse a nested requirements file
                 if line.opts.requirements:
@@ -372,13 +356,9 @@ class RequirementsFileParser(object):
                 # original file and nested file are paths
                 elif not SCHEME_RE.search(req_path):
                     # do a join so relative paths work
-                    req_path = os.path.join(
-                        os.path.dirname(filename), req_path,
-                    )
+                    req_path = os.path.join(os.path.dirname(filename), req_path,)
 
-                for inner_line in self._parse_and_recurse(
-                    req_path, nested_constraint,
-                ):
+                for inner_line in self._parse_and_recurse(req_path, nested_constraint,):
                     yield inner_line
             else:
                 yield line
@@ -396,16 +376,11 @@ class RequirementsFileParser(object):
                 args_str, opts = self._line_parser(line)
             except OptionParsingError as e:
                 # add offending line
-                msg = 'Invalid requirement: {}\n{}'.format(line, e.msg)
+                msg = "Invalid requirement: {}\n{}".format(line, e.msg)
                 raise RequirementsFileParseError(msg)
 
             yield ParsedLine(
-                filename,
-                line_number,
-                self._comes_from,
-                args_str,
-                opts,
-                constraint,
+                filename, line_number, self._comes_from, args_str, opts, constraint,
             )
 
 
@@ -425,11 +400,10 @@ def get_line_parser(finder):
         # Prior to 2.7.3, shlex cannot deal with unicode entries
         if sys.version_info < (2, 7, 3):
             # https://github.com/python/mypy/issues/1174
-            options_str = options_str.encode('utf8')  # type: ignore
+            options_str = options_str.encode("utf8")  # type: ignore
 
         # https://github.com/python/mypy/issues/1174
-        opts, _ = parser.parse_args(
-            shlex.split(options_str), defaults)  # type: ignore
+        opts, _ = parser.parse_args(shlex.split(options_str), defaults)  # type: ignore
 
         return args_str, opts
 
@@ -442,16 +416,16 @@ def break_args_options(line):
     (and then optparse) the options, not the args.  args can contain markers
     which are corrupted by shlex.
     """
-    tokens = line.split(' ')
+    tokens = line.split(" ")
     args = []
     options = tokens[:]
     for token in tokens:
-        if token.startswith('-') or token.startswith('--'):
+        if token.startswith("-") or token.startswith("--"):
             break
         else:
             args.append(token)
             options.pop(0)
-    return ' '.join(args), ' '.join(options)  # type: ignore
+    return " ".join(args), " ".join(options)  # type: ignore
 
 
 class OptionParsingError(Exception):
@@ -477,6 +451,7 @@ def build_parser():
     def parser_exit(self, msg):
         # type: (Any, str) -> NoReturn
         raise OptionParsingError(msg)
+
     # NOTE: mypy disallows assigning to a method
     #       https://github.com/python/mypy/issues/2427
     parser.exit = parser_exit  # type: ignore
@@ -492,26 +467,26 @@ def join_lines(lines_enum):
     primary_line_number = None
     new_line = []  # type: List[Text]
     for line_number, line in lines_enum:
-        if not line.endswith('\\') or COMMENT_RE.match(line):
+        if not line.endswith("\\") or COMMENT_RE.match(line):
             if COMMENT_RE.match(line):
                 # this ensures comments are always matched later
-                line = ' ' + line
+                line = " " + line
             if new_line:
                 new_line.append(line)
                 assert primary_line_number is not None
-                yield primary_line_number, ''.join(new_line)
+                yield primary_line_number, "".join(new_line)
                 new_line = []
             else:
                 yield line_number, line
         else:
             if not new_line:
                 primary_line_number = line_number
-            new_line.append(line.strip('\\'))
+            new_line.append(line.strip("\\"))
 
     # last line contains \
     if new_line:
         assert primary_line_number is not None
-        yield primary_line_number, ''.join(new_line)
+        yield primary_line_number, "".join(new_line)
 
     # TODO: handle space after '\'.
 
@@ -522,7 +497,7 @@ def ignore_comments(lines_enum):
     Strips comments and filter empty lines.
     """
     for line_number, line in lines_enum:
-        line = COMMENT_RE.sub('', line)
+        line = COMMENT_RE.sub("", line)
         line = line.strip()
         if line:
             yield line_number, line
@@ -568,37 +543,35 @@ def get_file_content(url, session, comes_from=None):
     """
     scheme = get_url_scheme(url)
 
-    if scheme in ['http', 'https']:
+    if scheme in ["http", "https"]:
         # FIXME: catch some errors
         resp = session.get(url)
         raise_for_status(resp)
         return resp.url, resp.text
 
-    elif scheme == 'file':
-        if comes_from and comes_from.startswith('http'):
+    elif scheme == "file":
+        if comes_from and comes_from.startswith("http"):
             raise InstallationError(
-                'Requirements file {} references URL {}, '
-                'which is local'.format(comes_from, url)
+                "Requirements file {} references URL {}, "
+                "which is local".format(comes_from, url)
             )
 
-        path = url.split(':', 1)[1]
-        path = path.replace('\\', '/')
+        path = url.split(":", 1)[1]
+        path = path.replace("\\", "/")
         match = _url_slash_drive_re.match(path)
         if match:
-            path = match.group(1) + ':' + path.split('|', 1)[1]
+            path = match.group(1) + ":" + path.split("|", 1)[1]
         path = urllib_parse.unquote(path)
-        if path.startswith('/'):
-            path = '/' + path.lstrip('/')
+        if path.startswith("/"):
+            path = "/" + path.lstrip("/")
         url = path
 
     try:
-        with open(url, 'rb') as f:
+        with open(url, "rb") as f:
             content = auto_decode(f.read())
     except IOError as exc:
-        raise InstallationError(
-            'Could not open requirements file: {}'.format(exc)
-        )
+        raise InstallationError("Could not open requirements file: {}".format(exc))
     return url, content
 
 
-_url_slash_drive_re = re.compile(r'/*([a-z])\|', re.I)
+_url_slash_drive_re = re.compile(r"/*([a-z])\|", re.I)

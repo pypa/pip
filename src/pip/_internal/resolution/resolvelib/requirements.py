@@ -20,8 +20,7 @@ class ExplicitRequirement(Requirement):
     def __repr__(self):
         # type: () -> str
         return "{class_name}({candidate!r})".format(
-            class_name=self.__class__.__name__,
-            candidate=self.candidate,
+            class_name=self.__class__.__name__, candidate=self.candidate,
         )
 
     @property
@@ -57,8 +56,7 @@ class SpecifierRequirement(Requirement):
     def __repr__(self):
         # type: () -> str
         return "{class_name}({requirement!r})".format(
-            class_name=self.__class__.__name__,
-            requirement=str(self._ireq.req),
+            class_name=self.__class__.__name__, requirement=str(self._ireq.req),
         )
 
     @property
@@ -88,9 +86,10 @@ class SpecifierRequirement(Requirement):
 
     def is_satisfied_by(self, candidate):
         # type: (Candidate) -> bool
-        assert candidate.name == self.name, \
-            "Internal issue: Candidate is not for this requirement " \
+        assert candidate.name == self.name, (
+            "Internal issue: Candidate is not for this requirement "
             " {} vs {}".format(candidate.name, self.name)
+        )
         # We can safely always allow prereleases here since PackageFinder
         # already implements the prerelease logic, and would have filtered out
         # prerelease candidates if the user does not expect them.
@@ -101,6 +100,7 @@ class SpecifierRequirement(Requirement):
 class RequiresPythonRequirement(Requirement):
     """A requirement representing Requires-Python metadata.
     """
+
     def __init__(self, specifier, match):
         # type: (SpecifierSet, Candidate) -> None
         self.specifier = specifier
@@ -109,8 +109,7 @@ class RequiresPythonRequirement(Requirement):
     def __repr__(self):
         # type: () -> str
         return "{class_name}({specifier!r})".format(
-            class_name=self.__class__.__name__,
-            specifier=str(self.specifier),
+            class_name=self.__class__.__name__, specifier=str(self.specifier),
         )
 
     @property

@@ -4,8 +4,8 @@ from pprint import pprint
 
 import yaml
 
-sys.path.insert(0, '../../src')
-sys.path.insert(0, '../..')
+sys.path.insert(0, "../../src")
+sys.path.insert(0, "../..")
 
 
 def check_dict(d, required=None, optional=None):
@@ -21,8 +21,9 @@ def check_dict(d, required=None, optional=None):
     allowed_keys.update(optional)
     for key in d.keys():
         if key not in allowed_keys:
-            sys.exit("key %r is not allowed.  Allowed keys are: %r" %
-                     (key, allowed_keys))
+            sys.exit(
+                "key %r is not allowed.  Allowed keys are: %r" % (key, allowed_keys)
+            )
 
 
 def lint_case(case, verbose=False):
@@ -32,7 +33,7 @@ def lint_case(case, verbose=False):
         print("--- linting case ---")
         pprint(case)
 
-    check_dict(case, optional=['available', 'request', 'response', 'skip'])
+    check_dict(case, optional=["available", "request", "response", "skip"])
     available = case.get("available", [])
     requests = case.get("request", [])
     responses = case.get("response", [])
@@ -46,21 +47,21 @@ def lint_case(case, verbose=False):
             package = convert_to_dict(package)
         if verbose:
             pprint(package)
-        check_dict(package,
-                   required=['name', 'version'],
-                   optional=['depends', 'extras'])
-        version = package['version']
+        check_dict(
+            package, required=["name", "version"], optional=["depends", "extras"]
+        )
+        version = package["version"]
         assert isinstance(version, str), repr(version)
 
     for request, response in zip(requests, responses):
-        check_dict(request, optional=['install', 'uninstall', 'options'])
-        check_dict(response, optional=['state', 'error'])
+        check_dict(request, optional=["install", "uninstall", "options"])
+        check_dict(response, optional=["state", "error"])
         assert len(response) >= 1
-        assert isinstance(response.get('state') or [], list)
-        error = response.get('error')
+        assert isinstance(response.get("state") or [], list)
+        error = response.get("error")
         if error:
-            check_dict(error, optional=['code', 'stderr'])
-            stderr = error.get('stderr')
+            check_dict(error, optional=["code", "stderr"])
+            stderr = error.get("stderr")
             if stderr:
                 if isinstance(stderr, str):
                     patters = [stderr]
@@ -81,7 +82,7 @@ def lint_yml(yml_file, verbose=False):
     if verbose:
         pprint(data)
 
-    check_dict(data, required=['cases'], optional=['base'])
+    check_dict(data, required=["cases"], optional=["base"])
     base = data.get("base", {})
     cases = data["cases"]
     for _, case_template in enumerate(cases):
@@ -90,19 +91,20 @@ def lint_yml(yml_file, verbose=False):
         lint_case(case, verbose)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     from optparse import OptionParser
 
-    p = OptionParser(usage="usage: %prog [options] FILE ...",
-                     description="linter for pip's yaml test FILE(s)")
+    p = OptionParser(
+        usage="usage: %prog [options] FILE ...",
+        description="linter for pip's yaml test FILE(s)",
+    )
 
-    p.add_option('-v', '--verbose',
-                 action="store_true")
+    p.add_option("-v", "--verbose", action="store_true")
 
     opts, args = p.parse_args()
 
     if len(args) < 1:
-        p.error('at least one argument required, try -h')
+        p.error("at least one argument required, try -h")
 
     for yml_file in args:
         lint_yml(yml_file, opts.verbose)

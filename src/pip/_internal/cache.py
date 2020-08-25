@@ -120,17 +120,11 @@ class Cache(object):
 
     def _get_candidates(self, link, canonical_package_name):
         # type: (Link, str) -> List[Any]
-        can_not_cache = (
-            not self.cache_dir or
-            not canonical_package_name or
-            not link
-        )
+        can_not_cache = not self.cache_dir or not canonical_package_name or not link
         if can_not_cache:
             return []
 
-        formats = self.format_control.get_allowed_formats(
-            canonical_package_name
-        )
+        formats = self.format_control.get_allowed_formats(canonical_package_name)
         if not self.allowed_formats.intersection(formats):
             return []
 
@@ -158,8 +152,8 @@ class Cache(object):
 
     def get(
         self,
-        link,            # type: Link
-        package_name,    # type: Optional[str]
+        link,  # type: Link
+        package_name,  # type: Optional[str]
         supported_tags,  # type: List[Tag]
     ):
         # type: (...) -> Link
@@ -175,9 +169,7 @@ class SimpleWheelCache(Cache):
 
     def __init__(self, cache_dir, format_control):
         # type: (str, FormatControl) -> None
-        super(SimpleWheelCache, self).__init__(
-            cache_dir, format_control, {"binary"}
-        )
+        super(SimpleWheelCache, self).__init__(cache_dir, format_control, {"binary"})
 
     def get_path_for_link_legacy(self, link):
         # type: (Link) -> str
@@ -208,8 +200,8 @@ class SimpleWheelCache(Cache):
 
     def get(
         self,
-        link,            # type: Link
-        package_name,    # type: Optional[str]
+        link,  # type: Link
+        package_name,  # type: Optional[str]
         supported_tags,  # type: List[Tag]
     ):
         # type: (...) -> Link
@@ -219,9 +211,7 @@ class SimpleWheelCache(Cache):
             return link
 
         canonical_package_name = canonicalize_name(package_name)
-        for wheel_name, wheel_dir in self._get_candidates(
-            link, canonical_package_name
-        ):
+        for wheel_name, wheel_dir in self._get_candidates(link, canonical_package_name):
             try:
                 wheel = Wheel(wheel_name)
             except InvalidWheelFilename:
@@ -230,18 +220,16 @@ class SimpleWheelCache(Cache):
                 logger.debug(
                     "Ignoring cached wheel %s for %s as it "
                     "does not match the expected distribution name %s.",
-                    wheel_name, link, package_name,
+                    wheel_name,
+                    link,
+                    package_name,
                 )
                 continue
             if not wheel.supported(supported_tags):
                 # Built for a different python/arch/etc
                 continue
             candidates.append(
-                (
-                    wheel.support_index_min(supported_tags),
-                    wheel_name,
-                    wheel_dir,
-                )
+                (wheel.support_index_min(supported_tags), wheel_name, wheel_dir,)
             )
 
         if not candidates:
@@ -258,13 +246,10 @@ class EphemWheelCache(SimpleWheelCache):
     def __init__(self, format_control):
         # type: (FormatControl) -> None
         self._temp_dir = TempDirectory(
-            kind=tempdir_kinds.EPHEM_WHEEL_CACHE,
-            globally_managed=True,
+            kind=tempdir_kinds.EPHEM_WHEEL_CACHE, globally_managed=True,
         )
 
-        super(EphemWheelCache, self).__init__(
-            self._temp_dir.path, format_control
-        )
+        super(EphemWheelCache, self).__init__(self._temp_dir.path, format_control)
 
 
 class CacheEntry(object):
@@ -286,9 +271,7 @@ class WheelCache(Cache):
 
     def __init__(self, cache_dir, format_control):
         # type: (str, FormatControl) -> None
-        super(WheelCache, self).__init__(
-            cache_dir, format_control, {'binary'}
-        )
+        super(WheelCache, self).__init__(cache_dir, format_control, {"binary"})
         self._wheel_cache = SimpleWheelCache(cache_dir, format_control)
         self._ephem_cache = EphemWheelCache(format_control)
 
@@ -306,8 +289,8 @@ class WheelCache(Cache):
 
     def get(
         self,
-        link,            # type: Link
-        package_name,    # type: Optional[str]
+        link,  # type: Link
+        package_name,  # type: Optional[str]
         supported_tags,  # type: List[Tag]
     ):
         # type: (...) -> Link
@@ -318,8 +301,8 @@ class WheelCache(Cache):
 
     def get_cache_entry(
         self,
-        link,            # type: Link
-        package_name,    # type: Optional[str]
+        link,  # type: Link
+        package_name,  # type: Optional[str]
         supported_tags,  # type: List[Tag]
     ):
         # type: (...) -> Optional[CacheEntry]
@@ -328,17 +311,13 @@ class WheelCache(Cache):
         or ephemeral cache.
         """
         retval = self._wheel_cache.get(
-            link=link,
-            package_name=package_name,
-            supported_tags=supported_tags,
+            link=link, package_name=package_name, supported_tags=supported_tags,
         )
         if retval is not link:
             return CacheEntry(retval, persistent=True)
 
         retval = self._ephem_cache.get(
-            link=link,
-            package_name=package_name,
-            supported_tags=supported_tags,
+            link=link, package_name=package_name, supported_tags=supported_tags,
         )
         if retval is not link:
             return CacheEntry(retval, persistent=False)

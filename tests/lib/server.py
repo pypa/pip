@@ -41,12 +41,14 @@ if MYPY_CHECK_RUNNING:
     class MockServer(BaseWSGIServer):
         mock = Mock()  # type: Mock
 
+
 # Applies on Python 2 and Windows.
 if not hasattr(signal, "pthread_sigmask"):
     # We're not relying on this behavior anywhere currently, it's just best
     # practice.
     blocked_signals = nullcontext
 else:
+
     @contextmanager
     def blocked_signals():
         """Block all signals for e.g. starting a worker thread.
@@ -77,9 +79,7 @@ class _RequestHandler(WSGIRequestHandler):
             peer_cert = self.connection.getpeercert(binary_form=True)
             if peer_cert is not None:
                 # Nginx and Apache use PEM format.
-                environ["SSL_CLIENT_CERT"] = ssl.DER_cert_to_PEM_cert(
-                    peer_cert,
-                )
+                environ["SSL_CLIENT_CERT"] = ssl.DER_cert_to_PEM_cert(peer_cert,)
         except ValueError:
             # SSL handshake hasn't finished.
             self.server.log("error", "Cannot fetch SSL peer certificate info")
@@ -95,6 +95,7 @@ def _mock_wsgi_adapter(mock):
     """Uses a mock to record function arguments and provide
     the actual function that should respond.
     """
+
     def adapter(environ, start_response):
         # type: (Environ, StartResponse) -> Body
         responder = mock(environ, start_response)
@@ -166,45 +167,45 @@ def text_html_response(text):
     # type: (Text) -> Responder
     def responder(environ, start_response):
         # type: (Environ, StartResponse) -> Body
-        start_response("200 OK", [
-            ("Content-Type", "text/html; charset=UTF-8"),
-        ])
-        return [text.encode('utf-8')]
+        start_response("200 OK", [("Content-Type", "text/html; charset=UTF-8"),])
+        return [text.encode("utf-8")]
 
     return responder
 
 
 def html5_page(text):
     # type: (Union[Text, str]) -> Text
-    return dedent(u"""
+    return (
+        dedent(
+            u"""
     <!DOCTYPE html>
     <html>
       <body>
         {}
       </body>
     </html>
-    """).strip().format(text)
+    """
+        )
+        .strip()
+        .format(text)
+    )
 
 
 def index_page(spec):
     # type: (Dict[str, str]) -> Responder
     def link(name, value):
-        return '<a href="{}">{}</a>'.format(
-            value, name
-        )
+        return '<a href="{}">{}</a>'.format(value, name)
 
-    links = ''.join(link(*kv) for kv in spec.items())
+    links = "".join(link(*kv) for kv in spec.items())
     return text_html_response(html5_page(links))
 
 
 def package_page(spec):
     # type: (Dict[str, str]) -> Responder
     def link(name, value):
-        return '<a href="{}">{}</a>'.format(
-            value, name
-        )
+        return '<a href="{}">{}</a>'.format(value, name)
 
-    links = ''.join(link(*kv) for kv in spec.items())
+    links = "".join(link(*kv) for kv in spec.items())
     return text_html_response(html5_page(links))
 
 
@@ -214,13 +215,14 @@ def file_response(path):
         # type: (Environ, StartResponse) -> Body
         size = os.stat(path).st_size
         start_response(
-            "200 OK", [
+            "200 OK",
+            [
                 ("Content-Type", "application/octet-stream"),
                 ("Content-Length", str(size)),
             ],
         )
 
-        with open(path, 'rb') as f:
+        with open(path, "rb") as f:
             return [f.read()]
 
     return responder
@@ -231,12 +233,10 @@ def authorization_response(path):
         # type: (Environ, StartResponse) -> Body
 
         start_response(
-            "401 Unauthorized", [
-                ("WWW-Authenticate", "Basic"),
-            ],
+            "401 Unauthorized", [("WWW-Authenticate", "Basic"),],
         )
 
-        with open(path, 'rb') as f:
+        with open(path, "rb") as f:
             return [f.read()]
 
     return responder

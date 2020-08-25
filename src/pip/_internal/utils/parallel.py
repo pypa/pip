@@ -16,7 +16,7 @@ These helpers work like Python 3's map, with two differences:
   than using the default value of 1.
 """
 
-__all__ = ['map_multiprocess', 'map_multithread']
+__all__ = ["map_multiprocess", "map_multithread"]
 
 from contextlib import contextmanager
 from multiprocessing import Pool as ProcessPool
@@ -33,8 +33,8 @@ if MYPY_CHECK_RUNNING:
     from typing import Callable, Iterable, Iterator, TypeVar, Union
 
     Pool = Union[pool.Pool, pool.ThreadPool]
-    S = TypeVar('S')
-    T = TypeVar('T')
+    S = TypeVar("S")
+    T = TypeVar("T")
 
 # On platforms without sem_open, multiprocessing[.dummy] Pool
 # cannot be created.

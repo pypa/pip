@@ -11,8 +11,7 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.req.req_install import InstallRequirement
 
     CandidateLookup = Tuple[
-        Optional["Candidate"],
-        Optional[InstallRequirement],
+        Optional["Candidate"], Optional[InstallRequirement],
     ]
 
 

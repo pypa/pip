@@ -67,9 +67,7 @@ def test_get_path_for_link_legacy(tmpdir):
     ensure_dir(legacy_path)
     with open(os.path.join(legacy_path, "test-1.0.0-pyx-none-any.whl"), "w"):
         pass
-    expected_candidates = {
-        "test-1.0.0-pyx-none-any.whl", "test-1.0.0-pyz-none-any.whl"
-    }
+    expected_candidates = {"test-1.0.0-pyx-none-any.whl", "test-1.0.0-pyz-none-any.whl"}
     candidates = {c[0] for c in wc._get_candidates(link, "test")}
     assert candidates == expected_candidates
 
@@ -86,9 +84,8 @@ def test_get_with_legacy_entry_only(tmpdir):
     with open(os.path.join(legacy_path, "test-1.0.0-py3-none-any.whl"), "w"):
         pass
     cached_link = wc.get(link, "test", [Tag("py3", "none", "any")])
-    assert (
-        os.path.normcase(os.path.dirname(cached_link.file_path)) ==
-        os.path.normcase(legacy_path)
+    assert os.path.normcase(os.path.dirname(cached_link.file_path)) == os.path.normcase(
+        legacy_path
     )
 
 
@@ -106,10 +103,6 @@ def test_get_cache_entry(tmpdir):
         pass
     other_link = Link("https://g.c/o/r/other")
     supported_tags = [Tag("py3", "none", "any")]
-    assert (
-        wc.get_cache_entry(persi_link, "persi", supported_tags).persistent
-    )
-    assert (
-        not wc.get_cache_entry(ephem_link, "ephem", supported_tags).persistent
-    )
+    assert wc.get_cache_entry(persi_link, "persi", supported_tags).persistent
+    assert not wc.get_cache_entry(ephem_link, "ephem", supported_tags).persistent
     assert wc.get_cache_entry(other_link, "other", supported_tags) is None

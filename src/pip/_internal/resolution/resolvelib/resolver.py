@@ -147,14 +147,14 @@ class Resolver(BaseResolver):
                 # The reason can contain non-ASCII characters, Unicode
                 # is required for Python 2.
                 msg = (
-                    u'The candidate selected for download or install is a '
-                    u'yanked version: {name!r} candidate (version {version} '
-                    u'at {link})\nReason for being yanked: {reason}'
+                    u"The candidate selected for download or install is a "
+                    u"yanked version: {name!r} candidate (version {version} "
+                    u"at {link})\nReason for being yanked: {reason}"
                 ).format(
                     name=candidate.name,
                     version=candidate.version,
                     link=link,
-                    reason=link.yanked_reason or u'<none given>',
+                    reason=link.yanked_reason or u"<none given>",
                 )
                 logger.warning(msg)
 
@@ -237,7 +237,7 @@ def get_topological_weights(graph):
 
 
 def _req_set_item_sorter(
-    item,     # type: Tuple[str, InstallRequirement]
+    item,  # type: Tuple[str, InstallRequirement]
     weights,  # type: Dict[Optional[str], int]
 ):
     # type: (...) -> Tuple[int, str]

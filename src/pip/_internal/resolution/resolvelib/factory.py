@@ -188,15 +188,11 @@ class Factory(object):
             installed_version = installed_dist.parsed_version
             if specifier.contains(installed_version, prereleases=True):
                 installed_candidate = self._make_candidate_from_dist(
-                    dist=installed_dist,
-                    extras=extras,
-                    template=template,
+                    dist=installed_dist, extras=extras, template=template,
                 )
 
         found = self._finder.find_best_candidate(
-            project_name=name,
-            specifier=specifier,
-            hashes=hashes,
+            project_name=name, specifier=specifier, hashes=hashes,
         )
         for ican in found.iter_applicable():
             if ican.version == installed_version and installed_candidate:
@@ -241,7 +237,8 @@ class Factory(object):
             )
 
         return (
-            c for c in explicit_candidates
+            c
+            for c in explicit_candidates
             if all(req.is_satisfied_by(c) for req in requirements)
         )
 
@@ -250,7 +247,8 @@ class Factory(object):
         if not ireq.match_markers(requested_extras):
             logger.info(
                 "Ignoring %s: markers '%s' don't match your environment",
-                ireq.name, ireq.markers,
+                ireq.name,
+                ireq.markers,
             )
             return None
         if not ireq.link:
@@ -304,9 +302,7 @@ class Factory(object):
         if self._wheel_cache is None or self.preparer.require_hashes:
             return None
         return self._wheel_cache.get_cache_entry(
-            link=link,
-            package_name=name,
-            supported_tags=get_supported(),
+            link=link, package_name=name, supported_tags=get_supported(),
         )
 
     def get_dist_to_uninstall(self, candidate):
@@ -366,8 +362,7 @@ class Factory(object):
         for cause in e.causes:
             if isinstance(cause.requirement, RequiresPythonRequirement):
                 return self._report_requires_python_error(
-                    cause.requirement,
-                    cause.parent,
+                    cause.requirement, cause.parent,
                 )
 
         # Otherwise, we have a set of causes which can't all be satisfied
@@ -380,13 +375,12 @@ class Factory(object):
             if parent is None:
                 req_disp = str(req)
             else:
-                req_disp = '{} (from {})'.format(req, parent.name)
+                req_disp = "{} (from {})".format(req, parent.name)
             logger.critical(
-                "Could not find a version that satisfies the requirement %s",
-                req_disp,
+                "Could not find a version that satisfies the requirement %s", req_disp,
             )
             return DistributionNotFound(
-                'No matching distribution found for {}'.format(req)
+                "No matching distribution found for {}".format(req)
             )
 
         # OK, we now have a list of requirements that can't all be
@@ -427,26 +421,28 @@ class Factory(object):
         else:
             info = "the requested packages"
 
-        msg = "Cannot install {} because these package versions " \
+        msg = (
+            "Cannot install {} because these package versions "
             "have conflicting dependencies.".format(info)
+        )
         logger.critical(msg)
         msg = "\nThe conflict is caused by:"
         for req, parent in e.causes:
             msg = msg + "\n    "
             if parent:
-                msg = msg + "{} {} depends on ".format(
-                    parent.name,
-                    parent.version
-                )
+                msg = msg + "{} {} depends on ".format(parent.name, parent.version)
             else:
                 msg = msg + "The user requested "
             msg = msg + req.format_for_error()
 
-        msg = msg + "\n\n" + \
-            "To fix this you could try to:\n" + \
-            "1. loosen the range of package versions you've specified\n" + \
-            "2. remove package versions to allow pip attempt to solve " + \
-            "the dependency conflict\n"
+        msg = (
+            msg
+            + "\n\n"
+            + "To fix this you could try to:\n"
+            + "1. loosen the range of package versions you've specified\n"
+            + "2. remove package versions to allow pip attempt to solve "
+            + "the dependency conflict\n"
+        )
 
         logger.info(msg)
 

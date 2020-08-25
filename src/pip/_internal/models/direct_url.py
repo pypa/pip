@@ -120,8 +120,7 @@ class ArchiveInfo(object):
     name = "archive_info"
 
     def __init__(
-        self,
-        hash=None,  # type: Optional[str]
+        self, hash=None,  # type: Optional[str]
     ):
         self.hash = hash
 
@@ -141,8 +140,7 @@ class DirInfo(object):
     name = "dir_info"
 
     def __init__(
-        self,
-        editable=False,  # type: bool
+        self, editable=False,  # type: bool
     ):
         self.editable = editable
 
@@ -151,9 +149,7 @@ class DirInfo(object):
         # type: (Optional[Dict[str, Any]]) -> Optional[DirInfo]
         if d is None:
             return None
-        return cls(
-            editable=_get_required(d, bool, "editable", default=False)
-        )
+        return cls(editable=_get_required(d, bool, "editable", default=False))
 
     def _to_dict(self):
         # type: () -> Dict[str, Any]
@@ -165,7 +161,6 @@ if MYPY_CHECK_RUNNING:
 
 
 class DirectUrl(object):
-
     def __init__(
         self,
         url,  # type: str
@@ -182,9 +177,9 @@ class DirectUrl(object):
             return netloc
         user_pass, netloc_no_user_pass = netloc.split("@", 1)
         if (
-            isinstance(self.info, VcsInfo) and
-            self.info.vcs == "git" and
-            user_pass == "git"
+            isinstance(self.info, VcsInfo)
+            and self.info.vcs == "git"
+            and user_pass == "git"
         ):
             return netloc
         if ENV_VAR_RE.match(user_pass):
@@ -226,10 +221,7 @@ class DirectUrl(object):
 
     def to_dict(self):
         # type: () -> Dict[str, Any]
-        res = _filter_none(
-            url=self.redacted_url,
-            subdirectory=self.subdirectory,
-        )
+        res = _filter_none(url=self.redacted_url, subdirectory=self.subdirectory,)
         res[self.info.name] = self.info._to_dict()
         return res
 

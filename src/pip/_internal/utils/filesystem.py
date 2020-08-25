@@ -76,7 +76,8 @@ def copy2_fixed(src, dest):
             else:
                 if is_socket_file:
                     raise shutil.SpecialFileError(
-                        "`{f}` is a socket".format(**locals()))
+                        "`{f}` is a socket".format(**locals())
+                    )
 
         raise
 
@@ -101,10 +102,10 @@ def adjacent_tmp_file(path, **kwargs):
         delete=False,
         dir=os.path.dirname(path),
         prefix=os.path.basename(path),
-        suffix='.tmp',
+        suffix=".tmp",
         **kwargs
     ) as f:
-        result = cast('NamedTemporaryFileResult', f)
+        result = cast("NamedTemporaryFileResult", f)
         try:
             yield result
         finally:
@@ -115,6 +116,7 @@ def adjacent_tmp_file(path, **kwargs):
 _replace_retry = retry(stop_max_delay=1000, wait_fixed=250)
 
 if PY2:
+
     @_replace_retry
     def replace(src, dest):
         # type: (str, str) -> None
@@ -123,6 +125,7 @@ if PY2:
         except OSError:
             os.remove(dest)
             os.rename(src, dest)
+
 
 else:
     replace = _replace_retry(os.replace)
@@ -143,7 +146,7 @@ def test_writable_dir(path):
             break  # Should never get here, but infinite loops are bad
         path = parent
 
-    if os.name == 'posix':
+    if os.name == "posix":
         return os.access(path, os.W_OK)
 
     return _test_writable_dir_win(path)
@@ -153,10 +156,10 @@ def _test_writable_dir_win(path):
     # type: (str) -> bool
     # os.access doesn't work on Windows: http://bugs.python.org/issue2528
     # and we can't use tempfile: http://bugs.python.org/issue22107
-    basename = 'accesstest_deleteme_fishfingers_custard_'
-    alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789'
+    basename = "accesstest_deleteme_fishfingers_custard_"
+    alphabet = "abcdefghijklmnopqrstuvwxyz0123456789"
     for _ in range(10):
-        name = basename + ''.join(random.choice(alphabet) for _ in range(6))
+        name = basename + "".join(random.choice(alphabet) for _ in range(6))
         file = os.path.join(path, name)
         try:
             fd = os.open(file, os.O_RDWR | os.O_CREAT | os.O_EXCL)
@@ -180,9 +183,7 @@ def _test_writable_dir_win(path):
             return True
 
     # This should never be reached
-    raise EnvironmentError(
-        'Unexpected condition testing for writable directory'
-    )
+    raise EnvironmentError("Unexpected condition testing for writable directory")
 
 
 def find_files(path, pattern):

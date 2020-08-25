@@ -25,6 +25,7 @@ from pip._vendor.urllib3.exceptions import InsecureRequestWarning
 from pip import __version__
 from pip._internal.network.auth import MultiDomainBasicAuth
 from pip._internal.network.cache import SafeFileCache
+
 # Import ssl from compat so the initial import occurs in only one place.
 from pip._internal.utils.compat import has_tls, ipaddress
 from pip._internal.utils.glibc import libc_ver
@@ -73,13 +74,13 @@ SECURE_ORIGINS = [
 # For more background, see: https://github.com/pypa/pip/issues/5499
 CI_ENVIRONMENT_VARIABLES = (
     # Azure Pipelines
-    'BUILD_BUILDID',
+    "BUILD_BUILDID",
     # Jenkins
-    'BUILD_ID',
+    "BUILD_ID",
     # AppVeyor, CircleCI, Codeship, Gitlab CI, Shippable, Travis CI
-    'CI',
+    "CI",
     # Explicit environment variable.
-    'PIP_IS_CI',
+    "PIP_IS_CI",
 )
 
 
@@ -101,38 +102,36 @@ def user_agent():
     data = {
         "installer": {"name": "pip", "version": __version__},
         "python": platform.python_version(),
-        "implementation": {
-            "name": platform.python_implementation(),
-        },
+        "implementation": {"name": platform.python_implementation(),},
     }
 
-    if data["implementation"]["name"] == 'CPython':
+    if data["implementation"]["name"] == "CPython":
         data["implementation"]["version"] = platform.python_version()
-    elif data["implementation"]["name"] == 'PyPy':
-        if sys.pypy_version_info.releaselevel == 'final':
+    elif data["implementation"]["name"] == "PyPy":
+        if sys.pypy_version_info.releaselevel == "final":
             pypy_version_info = sys.pypy_version_info[:3]
         else:
             pypy_version_info = sys.pypy_version_info
         data["implementation"]["version"] = ".".join(
             [str(x) for x in pypy_version_info]
         )
-    elif data["implementation"]["name"] == 'Jython':
+    elif data["implementation"]["name"] == "Jython":
         # Complete Guess
         data["implementation"]["version"] = platform.python_version()
-    elif data["implementation"]["name"] == 'IronPython':
+    elif data["implementation"]["name"] == "IronPython":
         # Complete Guess
         data["implementation"]["version"] = platform.python_version()
 
     if sys.platform.startswith("linux"):
         from pip._vendor import distro
-        distro_infos = dict(filter(
-            lambda x: x[1],
-            zip(["name", "version", "id"], distro.linux_distribution()),
-        ))
-        libc = dict(filter(
-            lambda x: x[1],
-            zip(["lib", "version"], libc_ver()),
-        ))
+
+        distro_infos = dict(
+            filter(
+                lambda x: x[1],
+                zip(["name", "version", "id"], distro.linux_distribution()),
+            )
+        )
+        libc = dict(filter(lambda x: x[1], zip(["lib", "version"], libc_ver()),))
         if libc:
             distro_infos["libc"] = libc
         if distro_infos:
@@ -152,6 +151,7 @@ def user_agent():
 
     if has_tls():
         import _ssl as ssl
+
         data["openssl_version"] = ssl.OPENSSL_VERSION
 
     setuptools_version = get_installed_version("setuptools")
@@ -169,15 +169,14 @@ def user_agent():
         data["user_data"] = user_data
 
     return "{data[installer][name]}/{data[installer][version]} {json}".format(
-        data=data,
-        json=json.dumps(data, separators=(",", ":"), sort_keys=True),
+        data=data, json=json.dumps(data, separators=(",", ":"), sort_keys=True),
     )
 
 
 class LocalFSAdapter(BaseAdapter):
-
-    def send(self, request, stream=None, timeout=None, verify=None, cert=None,
-             proxies=None):
+    def send(
+        self, request, stream=None, timeout=None, verify=None, cert=None, proxies=None
+    ):
         pathname = url_to_path(request.url)
 
         resp = Response()
@@ -192,11 +191,13 @@ class LocalFSAdapter(BaseAdapter):
         else:
             modified = email.utils.formatdate(stats.st_mtime, usegmt=True)
             content_type = mimetypes.guess_type(pathname)[0] or "text/plain"
-            resp.headers = CaseInsensitiveDict({
-                "Content-Type": content_type,
-                "Content-Length": stats.st_size,
-                "Last-Modified": modified,
-            })
+            resp.headers = CaseInsensitiveDict(
+                {
+                    "Content-Type": content_type,
+                    "Content-Length": stats.st_size,
+                    "Last-Modified": modified,
+                }
+            )
 
             resp.raw = open(pathname, "rb")
             resp.close = resp.raw.close
@@ -208,7 +209,6 @@ class LocalFSAdapter(BaseAdapter):
 
 
 class InsecureHTTPAdapter(HTTPAdapter):
-
     def cert_verify(self, conn, url, verify, cert):
         super(InsecureHTTPAdapter, self).cert_verify(
             conn=conn, url=url, verify=False, cert=cert
@@ -216,7 +216,6 @@ class InsecureHTTPAdapter(HTTPAdapter):
 
 
 class InsecureCacheControlAdapter(CacheControlAdapter):
-
     def cert_verify(self, conn, url, verify, cert):
         super(InsecureCacheControlAdapter, self).cert_verify(
             conn=conn, url=url, verify=False, cert=cert
@@ -255,7 +254,6 @@ class PipSession(requests.Session):
             # Set the total number of retries that a particular request can
             # have.
             total=retries,
-
             # A 503 error from PyPI typically means that the Fastly -> Origin
             # connection got interrupted in some way. A 503 error in general
             # is typically considered a transient error so we'll go ahead and
@@ -263,7 +261,6 @@ class PipSession(requests.Session):
             # A 500 may indicate transient error in Amazon S3
             # A 520 or 527 - may indicate transient error in CloudFlare
             status_forcelist=[500, 503, 520, 527],
-
             # Add a small amount of back off between failed requests in
             # order to prevent hammering the service.
             backoff_factor=0.25,
@@ -283,12 +280,10 @@ class PipSession(requests.Session):
         # require manual eviction from the cache to fix it.
         if cache:
             secure_adapter = CacheControlAdapter(
-                cache=SafeFileCache(cache),
-                max_retries=retries,
+                cache=SafeFileCache(cache), max_retries=retries,
             )
             self._trusted_host_adapter = InsecureCacheControlAdapter(
-                cache=SafeFileCache(cache),
-                max_retries=retries,
+                cache=SafeFileCache(cache), max_retries=retries,
             )
         else:
             secure_adapter = HTTPAdapter(max_retries=retries)
@@ -320,46 +315,42 @@ class PipSession(requests.Session):
             string came from.
         """
         if not suppress_logging:
-            msg = 'adding trusted host: {!r}'.format(host)
+            msg = "adding trusted host: {!r}".format(host)
             if source is not None:
-                msg += ' (from {})'.format(source)
+                msg += " (from {})".format(source)
             logger.info(msg)
 
         host_port = parse_netloc(host)
         if host_port not in self.pip_trusted_origins:
             self.pip_trusted_origins.append(host_port)
 
-        self.mount(
-            build_url_from_netloc(host) + '/',
-            self._trusted_host_adapter
-        )
+        self.mount(build_url_from_netloc(host) + "/", self._trusted_host_adapter)
         if not host_port[1]:
             # Mount wildcard ports for the same host.
-            self.mount(
-                build_url_from_netloc(host) + ':',
-                self._trusted_host_adapter
-            )
+            self.mount(build_url_from_netloc(host) + ":", self._trusted_host_adapter)
 
     def iter_secure_origins(self):
         # type: () -> Iterator[SecureOrigin]
         for secure_origin in SECURE_ORIGINS:
             yield secure_origin
         for host, port in self.pip_trusted_origins:
-            yield ('*', host, '*' if port is None else port)
+            yield ("*", host, "*" if port is None else port)
 
     def is_secure_origin(self, location):
         # type: (Link) -> bool
         # Determine if this url used a secure transport mechanism
         parsed = urllib_parse.urlparse(str(location))
         origin_protocol, origin_host, origin_port = (
-            parsed.scheme, parsed.hostname, parsed.port,
+            parsed.scheme,
+            parsed.hostname,
+            parsed.port,
         )
 
         # The protocol to use to see if the protocol matches.
         # Don't count the repository type as part of the protocol: in
         # cases such as "git+ssh", only use "ssh". (I.e., Only verify against
         # the last scheme.)
-        origin_protocol = origin_protocol.rsplit('+', 1)[-1]
+        origin_protocol = origin_protocol.rsplit("+", 1)[-1]
 
         # Determine if our origin is a secure origin by looking through our
         # hardcoded list of secure origins, as well as any additional ones
@@ -371,20 +362,16 @@ class PipSession(requests.Session):
 
             try:
                 addr = ipaddress.ip_address(
-                    None
-                    if origin_host is None
-                    else six.ensure_text(origin_host)
+                    None if origin_host is None else six.ensure_text(origin_host)
                 )
-                network = ipaddress.ip_network(
-                    six.ensure_text(secure_host)
-                )
+                network = ipaddress.ip_network(six.ensure_text(secure_host))
             except ValueError:
                 # We don't have both a valid address or a valid network, so
                 # we'll check this origin against hostnames.
                 if (
-                    origin_host and
-                    origin_host.lower() != secure_host.lower() and
-                    secure_host != "*"
+                    origin_host
+                    and origin_host.lower() != secure_host.lower()
+                    and secure_host != "*"
                 ):
                     continue
             else:
@@ -395,9 +382,9 @@ class PipSession(requests.Session):
 
             # Check to see if the port matches.
             if (
-                origin_port != secure_port and
-                secure_port != "*" and
-                secure_port is not None
+                origin_port != secure_port
+                and secure_port != "*"
+                and secure_port is not None
             ):
                 continue
 

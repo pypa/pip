@@ -17,15 +17,14 @@ if MYPY_CHECK_RUNNING:
 
 def _is_list_of_str(obj):
     # type: (Any) -> bool
-    return (
-        isinstance(obj, list) and
-        all(isinstance(item, six.string_types) for item in obj)
+    return isinstance(obj, list) and all(
+        isinstance(item, six.string_types) for item in obj
     )
 
 
 def make_pyproject_path(unpacked_source_directory):
     # type: (str) -> str
-    path = os.path.join(unpacked_source_directory, 'pyproject.toml')
+    path = os.path.join(unpacked_source_directory, "pyproject.toml")
 
     # Python2 __file__ should not be unicode
     if six.PY2 and isinstance(path, six.text_type):
@@ -34,16 +33,16 @@ def make_pyproject_path(unpacked_source_directory):
     return path
 
 
-BuildSystemDetails = namedtuple('BuildSystemDetails', [
-    'requires', 'backend', 'check', 'backend_path'
-])
+BuildSystemDetails = namedtuple(
+    "BuildSystemDetails", ["requires", "backend", "check", "backend_path"]
+)
 
 
 def load_pyproject_toml(
     use_pep517,  # type: Optional[bool]
     pyproject_toml,  # type: str
     setup_py,  # type: str
-    req_name  # type: str
+    req_name,  # type: str
 ):
     # type: (...) -> Optional[BuildSystemDetails]
     """Load the pyproject.toml file.
@@ -95,9 +94,7 @@ def load_pyproject_toml(
             raise InstallationError(
                 "Disabling PEP 517 processing is invalid: "
                 "project specifies a build backend of {} "
-                "in pyproject.toml".format(
-                    build_system["build-backend"]
-                )
+                "in pyproject.toml".format(build_system["build-backend"])
             )
         use_pep517 = True
 
@@ -145,19 +142,24 @@ def load_pyproject_toml(
     # Specifying the build-system table but not the requires key is invalid
     if "requires" not in build_system:
         raise InstallationError(
-            error_template.format(package=req_name, reason=(
-                "it has a 'build-system' table but not "
-                "'build-system.requires' which is mandatory in the table"
-            ))
+            error_template.format(
+                package=req_name,
+                reason=(
+                    "it has a 'build-system' table but not "
+                    "'build-system.requires' which is mandatory in the table"
+                ),
+            )
         )
 
     # Error out if requires is not a list of strings
     requires = build_system["requires"]
     if not _is_list_of_str(requires):
-        raise InstallationError(error_template.format(
-            package=req_name,
-            reason="'build-system.requires' is not a list of strings.",
-        ))
+        raise InstallationError(
+            error_template.format(
+                package=req_name,
+                reason="'build-system.requires' is not a list of strings.",
+            )
+        )
 
     # Each requirement must be valid as per PEP 508
     for requirement in requires:

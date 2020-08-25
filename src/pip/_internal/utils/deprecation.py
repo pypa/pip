@@ -88,10 +88,13 @@ def deprecated(reason, replacement, gone_in, issue=None):
         (reason, DEPRECATION_MSG_PREFIX + "{}"),
         (gone_in, "pip {} will remove support for this functionality."),
         (replacement, "A possible replacement is {}."),
-        (issue, (
-            "You can find discussion regarding this at "
-            "https://github.com/pypa/pip/issues/{}."
-        )),
+        (
+            issue,
+            (
+                "You can find discussion regarding this at "
+                "https://github.com/pypa/pip/issues/{}."
+            ),
+        ),
     ]
     message = " ".join(
         template.format(val) for val, template in sentences if val is not None

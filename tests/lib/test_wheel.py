@@ -166,19 +166,20 @@ def test_make_wheel_default_record():
         record_bytes = z.read("simple-0.1.0.dist-info/RECORD")
         record_text = ensure_text(record_bytes)
         record_rows = list(csv.reader(record_text.splitlines()))
-        records = {
-            row[0]: row[1:] for row in record_rows
-        }
+        records = {row[0]: row[1:] for row in record_rows}
 
         expected = {
             "simple/__init__.py": [
-                "sha256=ypeBEsobvcr6wjGzmiPcTaeG7_gUfE5yuYB3ha_uSLs", "1"
+                "sha256=ypeBEsobvcr6wjGzmiPcTaeG7_gUfE5yuYB3ha_uSLs",
+                "1",
             ],
             "simple-0.1.0.data/purelib/info.txt": [
-                "sha256=Ln0sA6lQeuJl7PW1NWiFpTOTogKdJBOUmXJloaJa78Y", "1"
+                "sha256=Ln0sA6lQeuJl7PW1NWiFpTOTogKdJBOUmXJloaJa78Y",
+                "1",
             ],
             "simple-0.1.0.dist-info/LICENSE": [
-                "sha256=PiPoFgA5WUoziU9lZOGxNIu9egCI1CxKy3PurtWcAJ0", "1"
+                "sha256=PiPoFgA5WUoziU9lZOGxNIu9egCI1CxKy3PurtWcAJ0",
+                "1",
             ],
             "simple-0.1.0.dist-info/RECORD": ["", ""],
         }
@@ -221,22 +222,14 @@ def test_make_wheel_extra_files():
 
 def test_make_wheel_no_files():
     with make_wheel(
-        name="simple",
-        version="0.1.0",
-        wheel_metadata=None,
-        metadata=None,
-        record=None,
+        name="simple", version="0.1.0", wheel_metadata=None, metadata=None, record=None,
     ).as_zipfile() as z:
         assert not z.namelist()
 
 
 def test_make_wheel_custom_files():
     with make_wheel(
-        name="simple",
-        version="0.1.0",
-        wheel_metadata=b"a",
-        metadata=b"b",
-        record=b"c",
+        name="simple", version="0.1.0", wheel_metadata=b"a", metadata=b"b", record=b"c",
     ).as_zipfile() as z:
         assert z.read("simple-0.1.0.dist-info/WHEEL") == b"a"
         assert z.read("simple-0.1.0.dist-info/METADATA") == b"b"

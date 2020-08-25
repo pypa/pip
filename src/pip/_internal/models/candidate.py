@@ -23,7 +23,7 @@ class InstallationCandidate(KeyBasedCompareMixin):
 
         super(InstallationCandidate, self).__init__(
             key=(self.name, self.version, self.link),
-            defining_class=InstallationCandidate
+            defining_class=InstallationCandidate,
         )
 
     def __repr__(self):
@@ -34,6 +34,6 @@ class InstallationCandidate(KeyBasedCompareMixin):
 
     def __str__(self):
         # type: () -> str
-        return '{!r} candidate (version {} at {})'.format(
+        return "{!r} candidate (version {} at {})".format(
             self.name, self.version, self.link,
         )

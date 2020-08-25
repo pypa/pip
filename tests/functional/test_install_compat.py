@@ -22,26 +22,22 @@ def test_debian_egg_name_workaround(script):
     https://bitbucket.org/ianb/pip/issue/104/pip-uninstall-on-ubuntu-linux
 
     """
-    result = script.pip('install', 'INITools==0.2')
+    result = script.pip("install", "INITools==0.2")
 
     egg_info = os.path.join(
-        script.site_packages,
-        "INITools-0.2-py{pyversion}.egg-info".format(**globals()))
+        script.site_packages, "INITools-0.2-py{pyversion}.egg-info".format(**globals())
+    )
 
     # Debian only removes pyversion for global installs, not inside a venv
     # so even if this test runs on a Debian/Ubuntu system with broken
     # setuptools, since our test runs inside a venv we'll still have the normal
     # .egg-info
-    result.did_create(
-        egg_info,
-        message="Couldn't find {egg_info}".format(**locals())
-    )
+    result.did_create(egg_info, message="Couldn't find {egg_info}".format(**locals()))
 
     # The Debian no-pyversion version of the .egg-info
     mangled = os.path.join(script.site_packages, "INITools-0.2.egg-info")
     result.did_not_create(
-        mangled,
-        message="Found unexpected {mangled}".format(**locals())
+        mangled, message="Found unexpected {mangled}".format(**locals())
     )
 
     # Simulate a Debian install by copying the .egg-info to their name for it
@@ -53,7 +49,7 @@ def test_debian_egg_name_workaround(script):
 
     # Try the uninstall and verify that everything is removed.
     result2 = script.pip("uninstall", "INITools", "-y")
-    assert_all_changes(result, result2, [script.venv / 'build', 'cache'])
+    assert_all_changes(result, result2, [script.venv / "build", "cache"])
 
 
 def test_setup_py_with_dos_line_endings(script, data):
@@ -63,4 +59,4 @@ def test_setup_py_with_dos_line_endings(script, data):
     Refs https://github.com/pypa/pip/issues/237
     """
     to_install = data.packages.joinpath("LineEndings")
-    script.pip('install', to_install)
+    script.pip("install", to_install)

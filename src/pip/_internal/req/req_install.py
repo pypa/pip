@@ -22,10 +22,12 @@ from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_scheme
 from pip._internal.models.link import Link
 from pip._internal.operations.build.metadata import generate_metadata
-from pip._internal.operations.build.metadata_legacy import \
-    generate_metadata as generate_metadata_legacy
-from pip._internal.operations.install.editable_legacy import \
-    install_editable as install_editable_legacy
+from pip._internal.operations.build.metadata_legacy import (
+    generate_metadata as generate_metadata_legacy,
+)
+from pip._internal.operations.install.editable_legacy import (
+    install_editable as install_editable_legacy,
+)
 from pip._internal.operations.install.legacy import LegacyInstallFailure
 from pip._internal.operations.install.legacy import install as install_legacy
 from pip._internal.operations.install.wheel import install_wheel
@@ -85,11 +87,7 @@ def _get_dist(metadata_directory):
         dist_cls = pkg_resources.DistInfoDistribution
         dist_name = os.path.splitext(dist_dir_name)[0].split("-")[0]
 
-    return dist_cls(
-        base_dir,
-        project_name=dist_name,
-        metadata=metadata,
-    )
+    return dist_cls(base_dir, project_name=dist_name, metadata=metadata,)
 
 
 class InstallRequirement(object):
@@ -131,9 +129,7 @@ class InstallRequirement(object):
         if self.editable:
             assert link
             if link.is_file:
-                self.source_dir = os.path.normpath(
-                    os.path.abspath(link.file_path)
-                )
+                self.source_dir = os.path.normpath(os.path.abspath(link.file_path))
 
         if link is None and req and req.url:
             # PEP 508 URL requirement
@@ -149,9 +145,7 @@ class InstallRequirement(object):
         if extras:
             self.extras = extras
         elif req:
-            self.extras = {
-                pkg_resources.safe_extra(extra) for extra in req.extras
-            }
+            self.extras = {pkg_resources.safe_extra(extra) for extra in req.extras}
         else:
             self.extras = set()
         if markers is None and req:
@@ -212,26 +206,27 @@ class InstallRequirement(object):
         if self.req:
             s = str(self.req)
             if self.link:
-                s += ' from {}'.format(redact_auth_from_url(self.link.url))
+                s += " from {}".format(redact_auth_from_url(self.link.url))
         elif self.link:
             s = redact_auth_from_url(self.link.url)
         else:
-            s = '<InstallRequirement>'
+            s = "<InstallRequirement>"
         if self.satisfied_by is not None:
-            s += ' in {}'.format(display_path(self.satisfied_by.location))
+            s += " in {}".format(display_path(self.satisfied_by.location))
         if self.comes_from:
             if isinstance(self.comes_from, six.string_types):
                 comes_from = self.comes_from  # type: Optional[str]
             else:
                 comes_from = self.comes_from.from_path()
             if comes_from:
-                s += ' (from {})'.format(comes_from)
+                s += " (from {})".format(comes_from)
         return s
 
     def __repr__(self):
         # type: () -> str
-        return '<{} object: {} editable={!r}>'.format(
-            self.__class__.__name__, str(self), self.editable)
+        return "<{} object: {} editable={!r}>".format(
+            self.__class__.__name__, str(self), self.editable
+        )
 
     def format_debug(self):
         # type: () -> str
@@ -240,12 +235,9 @@ class InstallRequirement(object):
         attributes = vars(self)
         names = sorted(attributes)
 
-        state = (
-            "{}={!r}".format(attr, attributes[attr]) for attr in sorted(names)
-        )
-        return '<{name} object: {{{state}}}>'.format(
-            name=self.__class__.__name__,
-            state=", ".join(state),
+        state = ("{}={!r}".format(attr, attributes[attr]) for attr in sorted(names))
+        return "<{name} object: {{{state}}}>".format(
+            name=self.__class__.__name__, state=", ".join(state),
         )
 
     # Things that are valid for all kinds of requirements?
@@ -269,8 +261,7 @@ class InstallRequirement(object):
         For example, some-package==1.2 is pinned; some-package>1.2 is not.
         """
         specifiers = self.specifier
-        return (len(specifiers) == 1 and
-                next(iter(specifiers)).operator in {'==', '==='})
+        return len(specifiers) == 1 and next(iter(specifiers)).operator in {"==", "==="}
 
     @property
     def installed_version(self):
@@ -282,11 +273,11 @@ class InstallRequirement(object):
         if not extras_requested:
             # Provide an extra to safely evaluate the markers
             # without matching any extra
-            extras_requested = ('',)
+            extras_requested = ("",)
         if self.markers is not None:
             return any(
-                self.markers.evaluate({'extra': extra})
-                for extra in extras_requested)
+                self.markers.evaluate({"extra": extra}) for extra in extras_requested
+            )
         else:
             return True
 
@@ -336,7 +327,7 @@ class InstallRequirement(object):
             else:
                 comes_from = self.comes_from.from_path()
             if comes_from:
-                s += '->' + comes_from
+                s += "->" + comes_from
         return s
 
     def ensure_build_location(self, build_dir, autodelete, parallel_builds):
@@ -364,7 +355,7 @@ class InstallRequirement(object):
         # FIXME: Is there a better place to create the build_dir? (hg and bzr
         # need this)
         if not os.path.exists(build_dir):
-            logger.debug('Creating directory %s', build_dir)
+            logger.debug("Creating directory %s", build_dir)
             os.makedirs(build_dir)
         actual_build_dir = os.path.join(build_dir, dir_name)
         # `None` indicates that we respect the globally-configured deletion
@@ -392,11 +383,7 @@ class InstallRequirement(object):
             op = "==="
 
         self.req = Requirement(
-            "".join([
-                self.metadata["Name"],
-                op,
-                self.metadata["Version"],
-            ])
+            "".join([self.metadata["Name"], op, self.metadata["Version"],])
         )
 
     def warn_on_mismatching_name(self):
@@ -408,10 +395,12 @@ class InstallRequirement(object):
 
         # If we're here, there's a mismatch. Log a warning about it.
         logger.warning(
-            'Generating metadata for package %s '
-            'produced metadata for project name %s. Fix your '
-            '#egg=%s fragments.',
-            self.name, metadata_name, self.name
+            "Generating metadata for package %s "
+            "produced metadata for project name %s. Fix your "
+            "#egg=%s fragments.",
+            self.name,
+            metadata_name,
+            self.name,
         )
         self.req = Requirement(metadata_name)
 
@@ -433,12 +422,14 @@ class InstallRequirement(object):
             if use_user_site:
                 if dist_in_usersite(existing_dist):
                     self.should_reinstall = True
-                elif (running_under_virtualenv() and
-                        dist_in_site_packages(existing_dist)):
+                elif running_under_virtualenv() and dist_in_site_packages(
+                    existing_dist
+                ):
                     raise InstallationError(
                         "Will not install to the user site because it will "
                         "lack sys.path precedence to {} in {}".format(
-                            existing_dist.project_name, existing_dist.location)
+                            existing_dist.project_name, existing_dist.location
+                        )
                     )
             else:
                 self.should_reinstall = True
@@ -464,14 +455,14 @@ class InstallRequirement(object):
     def unpacked_source_directory(self):
         # type: () -> str
         return os.path.join(
-            self.source_dir,
-            self.link and self.link.subdirectory_fragment or '')
+            self.source_dir, self.link and self.link.subdirectory_fragment or ""
+        )
 
     @property
     def setup_py_path(self):
         # type: () -> str
         assert self.source_dir, "No source dir for {}".format(self)
-        setup_py = os.path.join(self.unpacked_source_directory, 'setup.py')
+        setup_py = os.path.join(self.unpacked_source_directory, "setup.py")
 
         # Python2 __file__ should not be unicode
         if six.PY2 and isinstance(setup_py, six.text_type):
@@ -495,10 +486,7 @@ class InstallRequirement(object):
         follow the PEP 517 or legacy (setup.py) code path.
         """
         pyproject_toml_data = load_pyproject_toml(
-            self.use_pep517,
-            self.pyproject_toml_path,
-            self.setup_py_path,
-            str(self)
+            self.use_pep517, self.pyproject_toml_path, self.setup_py_path, str(self)
         )
 
         if pyproject_toml_data is None:
@@ -525,15 +513,12 @@ class InstallRequirement(object):
                 setup_py_path=self.setup_py_path,
                 source_dir=self.unpacked_source_directory,
                 isolated=self.isolated,
-                details=self.name or "from {}".format(self.link)
+                details=self.name or "from {}".format(self.link),
             )
 
         assert self.pep517_backend is not None
 
-        return generate_metadata(
-            build_env=self.build_env,
-            backend=self.pep517_backend,
-        )
+        return generate_metadata(build_env=self.build_env, backend=self.pep517_backend,)
 
     def prepare_metadata(self):
         # type: () -> None
@@ -558,7 +543,7 @@ class InstallRequirement(object):
     @property
     def metadata(self):
         # type: () -> Any
-        if not hasattr(self, '_metadata'):
+        if not hasattr(self, "_metadata"):
             self._metadata = get_metadata(self.get_dist())
 
         return self._metadata
@@ -570,16 +555,14 @@ class InstallRequirement(object):
     def assert_source_matches_version(self):
         # type: () -> None
         assert self.source_dir
-        version = self.metadata['version']
+        version = self.metadata["version"]
         if self.req.specifier and version not in self.req.specifier:
             logger.warning(
-                'Requested %s, but installing version %s',
-                self,
-                version,
+                "Requested %s, but installing version %s", self, version,
             )
         else:
             logger.debug(
-                'Source in %s has version %s, which satisfies requirement %s',
+                "Source in %s has version %s, which satisfies requirement %s",
                 display_path(self.source_dir),
                 version,
                 self,
@@ -587,10 +570,7 @@ class InstallRequirement(object):
 
     # For both source distributions and editables
     def ensure_has_source_dir(
-        self,
-        parent_dir,
-        autodelete=False,
-        parallel_builds=False,
+        self, parent_dir, autodelete=False, parallel_builds=False,
     ):
         # type: (str, bool, bool) -> None
         """Ensure that a source_dir is set.
@@ -604,9 +584,7 @@ class InstallRequirement(object):
         """
         if self.source_dir is None:
             self.source_dir = self.ensure_build_location(
-                parent_dir,
-                autodelete=autodelete,
-                parallel_builds=parallel_builds,
+                parent_dir, autodelete=autodelete, parallel_builds=parallel_builds,
             )
 
     # For editable installations
@@ -614,27 +592,23 @@ class InstallRequirement(object):
         # type: (bool) -> None
         if not self.link:
             logger.debug(
-                "Cannot update repository at %s; repository location is "
-                "unknown",
+                "Cannot update repository at %s; repository location is " "unknown",
                 self.source_dir,
             )
             return
         assert self.editable
         assert self.source_dir
-        if self.link.scheme == 'file':
+        if self.link.scheme == "file":
             # Static paths don't get updated
             return
-        assert '+' in self.link.url, \
-            "bad url: {self.link.url!r}".format(**locals())
-        vc_type, url = self.link.url.split('+', 1)
+        assert "+" in self.link.url, "bad url: {self.link.url!r}".format(**locals())
+        vc_type, url = self.link.url.split("+", 1)
         vcs_backend = vcs.get_backend(vc_type)
         if vcs_backend:
             if not self.link.is_vcs:
                 reason = (
                     "This form of VCS requirement is being deprecated: {}."
-                ).format(
-                    self.link.url
-                )
+                ).format(self.link.url)
                 replacement = None
                 if self.link.url.startswith("git+git@"):
                     replacement = (
@@ -649,9 +623,9 @@ class InstallRequirement(object):
             else:
                 vcs_backend.export(self.source_dir, url=hidden_url)
         else:
-            assert 0, (
-                'Unexpected version control type (in {}): {}'.format(
-                    self.link, vc_type))
+            assert 0, "Unexpected version control type (in {}): {}".format(
+                self.link, vc_type
+            )
 
     # Top-level Actions
     def uninstall(self, auto_confirm=False, verbose=False):
@@ -673,7 +647,7 @@ class InstallRequirement(object):
         if not dist:
             logger.warning("Skipping %s as it is not installed.", self.name)
             return None
-        logger.info('Found existing installation: %s', dist)
+        logger.info("Found existing installation: %s", dist)
 
         uninstalled_pathset = UninstallPathSet.from_dist(dist)
         uninstalled_pathset.remove(auto_confirm, verbose)
@@ -684,17 +658,16 @@ class InstallRequirement(object):
 
         def _clean_zip_name(name, prefix):
             # type: (str, str) -> str
-            assert name.startswith(prefix + os.path.sep), (
-                "name {name!r} doesn't start with prefix {prefix!r}"
-                .format(**locals())
-            )
-            name = name[len(prefix) + 1:]
-            name = name.replace(os.path.sep, '/')
+            assert name.startswith(
+                prefix + os.path.sep
+            ), "name {name!r} doesn't start with prefix {prefix!r}".format(**locals())
+            name = name[len(prefix) + 1 :]
+            name = name.replace(os.path.sep, "/")
             return name
 
         path = os.path.join(parentdir, path)
         name = _clean_zip_name(path, rootdir)
-        return self.name + '/' + name
+        return self.name + "/" + name
 
     def archive(self, build_dir):
         # type: (str) -> None
@@ -705,49 +678,47 @@ class InstallRequirement(object):
         assert self.source_dir
 
         create_archive = True
-        archive_name = '{}-{}.zip'.format(self.name, self.metadata["version"])
+        archive_name = "{}-{}.zip".format(self.name, self.metadata["version"])
         archive_path = os.path.join(build_dir, archive_name)
 
         if os.path.exists(archive_path):
             response = ask_path_exists(
-                'The file {} exists. (i)gnore, (w)ipe, '
-                '(b)ackup, (a)bort '.format(
-                    display_path(archive_path)),
-                ('i', 'w', 'b', 'a'))
-            if response == 'i':
+                "The file {} exists. (i)gnore, (w)ipe, "
+                "(b)ackup, (a)bort ".format(display_path(archive_path)),
+                ("i", "w", "b", "a"),
+            )
+            if response == "i":
                 create_archive = False
-            elif response == 'w':
-                logger.warning('Deleting %s', display_path(archive_path))
+            elif response == "w":
+                logger.warning("Deleting %s", display_path(archive_path))
                 os.remove(archive_path)
-            elif response == 'b':
+            elif response == "b":
                 dest_file = backup_dir(archive_path)
                 logger.warning(
-                    'Backing up %s to %s',
+                    "Backing up %s to %s",
                     display_path(archive_path),
                     display_path(dest_file),
                 )
                 shutil.move(archive_path, dest_file)
-            elif response == 'a':
+            elif response == "a":
                 sys.exit(-1)
 
         if not create_archive:
             return
 
         zip_output = zipfile.ZipFile(
-            archive_path, 'w', zipfile.ZIP_DEFLATED, allowZip64=True,
+            archive_path, "w", zipfile.ZIP_DEFLATED, allowZip64=True,
         )
         with zip_output:
-            dir = os.path.normcase(
-                os.path.abspath(self.unpacked_source_directory)
-            )
+            dir = os.path.normcase(os.path.abspath(self.unpacked_source_directory))
             for dirpath, dirnames, filenames in os.walk(dir):
                 for dirname in dirnames:
                     dir_arcname = self._get_archive_name(
                         dirname, parentdir=dirpath, rootdir=dir,
                     )
-                    zipdir = zipfile.ZipInfo(dir_arcname + '/')
+                    zipdir = zipfile.ZipInfo(dir_arcname + "/")
                     zipdir.external_attr = 0x1ED << 16  # 0o755
-                    zip_output.writestr(zipdir, '')
+                    zip_output.writestr(zipdir, "")
                 for filename in filenames:
                     file_arcname = self._get_archive_name(
                         filename, parentdir=dirpath, rootdir=dir,
@@ -755,7 +726,7 @@ class InstallRequirement(object):
                     filename = os.path.join(dirpath, filename)
                     zip_output.write(filename, file_arcname)
 
-        logger.info('Saved %s', display_path(archive_path))
+        logger.info("Saved %s", display_path(archive_path))
 
     def install(
         self,
@@ -766,7 +737,7 @@ class InstallRequirement(object):
         prefix=None,  # type: Optional[str]
         warn_script_location=True,  # type: bool
         use_user_site=False,  # type: bool
-        pycompile=True  # type: bool
+        pycompile=True,  # type: bool
     ):
         # type: (...) -> None
         scheme = get_scheme(
@@ -875,12 +846,10 @@ def check_invalid_constraint_type(req):
                 "undocumented. The new implementation of the resolver no "
                 "longer supports these forms."
             ),
-            replacement=(
-                "replacing the constraint with a requirement."
-            ),
+            replacement=("replacing the constraint with a requirement."),
             # No plan yet for when the new resolver becomes default
             gone_in=None,
-            issue=8210
+            issue=8210,
         )
 
     return problem

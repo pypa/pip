@@ -1,9 +1,6 @@
 import sys
 
-from pip._internal.utils.compatibility_tags import (
-    get_supported,
-    version_info_to_nodot,
-)
+from pip._internal.utils.compatibility_tags import get_supported, version_info_to_nodot
 from pip._internal.utils.misc import normalize_version_info
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -60,7 +57,7 @@ class TargetPython(object):
         else:
             py_version_info = normalize_version_info(py_version_info)
 
-        py_version = '.'.join(map(str, py_version_info[:2]))
+        py_version = ".".join(map(str, py_version_info[:2]))
 
         self.abi = abi
         self.implementation = implementation
@@ -78,18 +75,19 @@ class TargetPython(object):
         """
         display_version = None
         if self._given_py_version_info is not None:
-            display_version = '.'.join(
+            display_version = ".".join(
                 str(part) for part in self._given_py_version_info
             )
 
         key_values = [
-            ('platform', self.platform),
-            ('version_info', display_version),
-            ('abi', self.abi),
-            ('implementation', self.implementation),
+            ("platform", self.platform),
+            ("version_info", display_version),
+            ("abi", self.abi),
+            ("implementation", self.implementation),
         ]
-        return ' '.join(
-            '{}={!r}'.format(key, value) for key, value in key_values
+        return " ".join(
+            "{}={!r}".format(key, value)
+            for key, value in key_values
             if value is not None
         )
 

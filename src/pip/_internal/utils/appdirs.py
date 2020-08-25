@@ -27,7 +27,7 @@ def user_config_dir(appname, roaming=True):
     # type: (str, bool) -> str
     path = _appdirs.user_config_dir(appname, appauthor=False, roaming=roaming)
     if _appdirs.system == "darwin" and not os.path.isdir(path):
-        path = os.path.expanduser('~/.config/')
+        path = os.path.expanduser("~/.config/")
         if appname:
             path = os.path.join(path, appname)
     return path
@@ -40,5 +40,5 @@ def site_config_dirs(appname):
     dirval = _appdirs.site_config_dir(appname, appauthor=False, multipath=True)
     if _appdirs.system not in ["win32", "darwin"]:
         # always look in /etc directly as well
-        return dirval.split(os.pathsep) + ['/etc']
+        return dirval.split(os.pathsep) + ["/etc"]
     return [dirval]

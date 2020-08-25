@@ -15,13 +15,9 @@ if MYPY_CHECK_RUNNING:
 def make_tls_cert(hostname):
     # type: (Text) -> Tuple[x509.Certificate, rsa.RSAPrivateKey]
     key = rsa.generate_private_key(
-        public_exponent=65537,
-        key_size=2048,
-        backend=default_backend()
+        public_exponent=65537, key_size=2048, backend=default_backend()
     )
-    subject = issuer = x509.Name([
-        x509.NameAttribute(NameOID.COMMON_NAME, hostname),
-    ])
+    subject = issuer = x509.Name([x509.NameAttribute(NameOID.COMMON_NAME, hostname),])
     cert = (
         x509.CertificateBuilder()
         .subject_name(subject)
@@ -31,8 +27,7 @@ def make_tls_cert(hostname):
         .not_valid_before(datetime.utcnow())
         .not_valid_after(datetime.utcnow() + timedelta(days=10))
         .add_extension(
-            x509.SubjectAlternativeName([x509.DNSName(hostname)]),
-            critical=False,
+            x509.SubjectAlternativeName([x509.DNSName(hostname)]), critical=False,
         )
         .sign(key, hashes.SHA256(), default_backend())
     )

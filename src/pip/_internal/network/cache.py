@@ -58,7 +58,7 @@ class SafeFileCache(BaseCache):
         # type: (str) -> Optional[bytes]
         path = self._get_cache_path(key)
         with suppressed_cache_errors():
-            with open(path, 'rb') as f:
+            with open(path, "rb") as f:
                 return f.read()
 
     def set(self, key, value):

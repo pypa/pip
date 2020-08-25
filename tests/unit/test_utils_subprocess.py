@@ -17,30 +17,35 @@ from pip._internal.utils.subprocess import (
 )
 
 
-@pytest.mark.parametrize('args, expected', [
-    (['pip', 'list'], 'pip list'),
-    (['foo', 'space space', 'new\nline', 'double"quote', "single'quote"],
-     """foo 'space space' 'new\nline' 'double"quote' 'single'"'"'quote'"""),
-    # Test HiddenText arguments.
-    (make_command(hide_value('secret1'), 'foo', hide_value('secret2')),
-        "'****' foo '****'"),
-])
+@pytest.mark.parametrize(
+    "args, expected",
+    [
+        (["pip", "list"], "pip list"),
+        (
+            ["foo", "space space", "new\nline", 'double"quote', "single'quote"],
+            """foo 'space space' 'new\nline' 'double"quote' 'single'"'"'quote'""",
+        ),
+        # Test HiddenText arguments.
+        (
+            make_command(hide_value("secret1"), "foo", hide_value("secret2")),
+            "'****' foo '****'",
+        ),
+    ],
+)
 def test_format_command_args(args, expected):
     actual = format_command_args(args)
     assert actual == expected
 
 
 def test_make_subprocess_output_error():
-    cmd_args = ['test', 'has space']
-    cwd = '/path/to/cwd'
-    lines = ['line1\n', 'line2\n', 'line3\n']
+    cmd_args = ["test", "has space"]
+    cwd = "/path/to/cwd"
+    lines = ["line1\n", "line2\n", "line3\n"]
     actual = make_subprocess_output_error(
-        cmd_args=cmd_args,
-        cwd=cwd,
-        lines=lines,
-        exit_status=3,
+        cmd_args=cmd_args, cwd=cwd, lines=lines, exit_status=3,
     )
-    expected = dedent("""\
+    expected = dedent(
+        """\
     Command errored out with exit status 3:
      command: test 'has space'
          cwd: /path/to/cwd
@@ -48,36 +53,36 @@ def test_make_subprocess_output_error():
     line1
     line2
     line3
-    ----------------------------------------""")
-    assert actual == expected, 'actual: {}'.format(actual)
+    ----------------------------------------"""
+    )
+    assert actual == expected, "actual: {}".format(actual)
 
 
 def test_make_subprocess_output_error__non_ascii_command_arg(monkeypatch):
     """
     Test a command argument with a non-ascii character.
     """
-    cmd_args = ['foo', 'déf']
+    cmd_args = ["foo", "déf"]
     if sys.version_info[0] == 2:
         # Check in Python 2 that the str (bytes object) with the non-ascii
         # character has the encoding we expect. (This comes from the source
         # code encoding at the top of the file.)
-        assert cmd_args[1].decode('utf-8') == u'déf'
+        assert cmd_args[1].decode("utf-8") == u"déf"
 
     # We need to monkeypatch so the encoding will be correct on Windows.
-    monkeypatch.setattr(locale, 'getpreferredencoding', lambda: 'utf-8')
+    monkeypatch.setattr(locale, "getpreferredencoding", lambda: "utf-8")
     actual = make_subprocess_output_error(
-        cmd_args=cmd_args,
-        cwd='/path/to/cwd',
-        lines=[],
-        exit_status=1,
+        cmd_args=cmd_args, cwd="/path/to/cwd", lines=[], exit_status=1,
     )
-    expected = dedent(u"""\
+    expected = dedent(
+        u"""\
     Command errored out with exit status 1:
      command: foo 'déf'
          cwd: /path/to/cwd
     Complete output (0 lines):
-    ----------------------------------------""")
-    assert actual == expected, u'actual: {}'.format(actual)
+    ----------------------------------------"""
+    )
+    assert actual == expected, u"actual: {}".format(actual)
 
 
 @pytest.mark.skipif("sys.version_info < (3,)")
@@ -85,28 +90,30 @@ def test_make_subprocess_output_error__non_ascii_cwd_python_3(monkeypatch):
     """
     Test a str (text) cwd with a non-ascii character in Python 3.
     """
-    cmd_args = ['test']
-    cwd = '/path/to/cwd/déf'
+    cmd_args = ["test"]
+    cwd = "/path/to/cwd/déf"
     actual = make_subprocess_output_error(
-        cmd_args=cmd_args,
-        cwd=cwd,
-        lines=[],
-        exit_status=1,
+        cmd_args=cmd_args, cwd=cwd, lines=[], exit_status=1,
     )
-    expected = dedent("""\
+    expected = dedent(
+        """\
     Command errored out with exit status 1:
      command: test
          cwd: /path/to/cwd/déf
     Complete output (0 lines):
-    ----------------------------------------""")
-    assert actual == expected, 'actual: {}'.format(actual)
+    ----------------------------------------"""
+    )
+    assert actual == expected, "actual: {}".format(actual)
 
 
-@pytest.mark.parametrize('encoding', [
-    'utf-8',
-    # Test a Windows encoding.
-    'cp1252',
-])
+@pytest.mark.parametrize(
+    "encoding",
+    [
+        "utf-8",
+        # Test a Windows encoding.
+        "cp1252",
+    ],
+)
 @pytest.mark.skipif("sys.version_info >= (3,)")
 def test_make_subprocess_output_error__non_ascii_cwd_python_2(
     monkeypatch, encoding,
@@ -114,22 +121,21 @@ def test_make_subprocess_output_error__non_ascii_cwd_python_2(
     """
     Test a str (bytes object) cwd with a non-ascii character in Python 2.
     """
-    cmd_args = ['test']
-    cwd = u'/path/to/cwd/déf'.encode(encoding)
-    monkeypatch.setattr(sys, 'getfilesystemencoding', lambda: encoding)
+    cmd_args = ["test"]
+    cwd = u"/path/to/cwd/déf".encode(encoding)
+    monkeypatch.setattr(sys, "getfilesystemencoding", lambda: encoding)
     actual = make_subprocess_output_error(
-        cmd_args=cmd_args,
-        cwd=cwd,
-        lines=[],
-        exit_status=1,
+        cmd_args=cmd_args, cwd=cwd, lines=[], exit_status=1,
     )
-    expected = dedent(u"""\
+    expected = dedent(
+        u"""\
     Command errored out with exit status 1:
      command: test
          cwd: /path/to/cwd/déf
     Complete output (0 lines):
-    ----------------------------------------""")
-    assert actual == expected, u'actual: {}'.format(actual)
+    ----------------------------------------"""
+    )
+    assert actual == expected, u"actual: {}".format(actual)
 
 
 # This test is mainly important for checking unicode in Python 2.
@@ -137,25 +143,23 @@ def test_make_subprocess_output_error__non_ascii_line():
     """
     Test a line with a non-ascii character.
     """
-    lines = [u'curly-quote: \u2018\n']
+    lines = [u"curly-quote: \u2018\n"]
     actual = make_subprocess_output_error(
-        cmd_args=['test'],
-        cwd='/path/to/cwd',
-        lines=lines,
-        exit_status=1,
+        cmd_args=["test"], cwd="/path/to/cwd", lines=lines, exit_status=1,
     )
-    expected = dedent(u"""\
+    expected = dedent(
+        u"""\
     Command errored out with exit status 1:
      command: test
          cwd: /path/to/cwd
     Complete output (1 lines):
     curly-quote: \u2018
-    ----------------------------------------""")
-    assert actual == expected, u'actual: {}'.format(actual)
+    ----------------------------------------"""
+    )
+    assert actual == expected, u"actual: {}".format(actual)
 
 
 class FakeSpinner(SpinnerInterface):
-
     def __init__(self):
         self.spin_count = 0
         self.final_status = None
@@ -174,8 +178,7 @@ class TestCallSubprocess(object):
     """
 
     def check_result(
-        self, capfd, caplog, log_level, spinner, result, expected,
-        expected_spinner,
+        self, capfd, caplog, log_level, spinner, result, expected, expected_spinner,
     ):
         """
         Check the result of calling call_subprocess().
@@ -202,11 +205,11 @@ class TestCallSubprocess(object):
 
         # Confirm that stdout and stderr haven't been written to.
         captured = capfd.readouterr()
-        assert (captured.out, captured.err) == ('', '')
+        assert (captured.out, captured.err) == ("", "")
 
         records = caplog.record_tuples
         if len(records) != len(expected_records):
-            raise RuntimeError('{} != {}'.format(records, expected_records))
+            raise RuntimeError("{} != {}".format(records, expected_records))
 
         for record, expected_record in zip(records, expected_records):
             # Check the logger_name and log level parts exactly.
@@ -227,7 +230,7 @@ class TestCallSubprocess(object):
 
         caplog.set_level(log_level)
         spinner = FakeSpinner()
-        args = [sys.executable, '-c', command]
+        args = [sys.executable, "-c", command]
 
         return (args, spinner)
 
@@ -239,15 +242,23 @@ class TestCallSubprocess(object):
         args, spinner = self.prepare_call(caplog, log_level)
         result = call_subprocess(args, spinner=spinner)
 
-        expected = (['Hello', 'world'], [
-            ('pip.subprocessor', DEBUG, 'Running command '),
-            ('pip.subprocessor', DEBUG, 'Hello'),
-            ('pip.subprocessor', DEBUG, 'world'),
-        ])
+        expected = (
+            ["Hello", "world"],
+            [
+                ("pip.subprocessor", DEBUG, "Running command "),
+                ("pip.subprocessor", DEBUG, "Hello"),
+                ("pip.subprocessor", DEBUG, "world"),
+            ],
+        )
         # The spinner shouldn't spin in this case since the subprocess
         # output is already being logged to the console.
         self.check_result(
-            capfd, caplog, log_level, spinner, result, expected,
+            capfd,
+            caplog,
+            log_level,
+            spinner,
+            result,
+            expected,
             expected_spinner=(0, None),
         )
 
@@ -259,12 +270,17 @@ class TestCallSubprocess(object):
         args, spinner = self.prepare_call(caplog, log_level)
         result = call_subprocess(args, spinner=spinner)
 
-        expected = (['Hello', 'world'], [])
+        expected = (["Hello", "world"], [])
         # The spinner should spin twice in this case since the subprocess
         # output isn't being written to the console.
         self.check_result(
-            capfd, caplog, log_level, spinner, result, expected,
-            expected_spinner=(2, 'done'),
+            capfd,
+            caplog,
+            log_level,
+            spinner,
+            result,
+            expected,
+            expected_spinner=(2, "done"),
         )
 
     def test_info_logging__subprocess_error(self, capfd, caplog):
@@ -280,19 +296,23 @@ class TestCallSubprocess(object):
             call_subprocess(args, spinner=spinner)
         result = None
         exc_message = str(exc.value)
-        assert exc_message.startswith(
-            'Command errored out with exit status 1: '
-        )
-        assert exc_message.endswith('Check the logs for full command output.')
+        assert exc_message.startswith("Command errored out with exit status 1: ")
+        assert exc_message.endswith("Check the logs for full command output.")
 
-        expected = (None, [
-            ('pip.subprocessor', ERROR, 'Complete output (3 lines):\n'),
-        ])
+        expected = (
+            None,
+            [("pip.subprocessor", ERROR, "Complete output (3 lines):\n"),],
+        )
         # The spinner should spin three times in this case since the
         # subprocess output isn't being written to the console.
         self.check_result(
-            capfd, caplog, log_level, spinner, result, expected,
-            expected_spinner=(3, 'error'),
+            capfd,
+            caplog,
+            log_level,
+            spinner,
+            result,
+            expected,
+            expected_spinner=(3, "error"),
         )
 
         # Do some further checking on the captured log records to confirm
@@ -310,16 +330,18 @@ class TestCallSubprocess(object):
         # exact match.
         command_line = actual.pop(1)
         assert actual == [
-            '     cwd: None',
-            '----------------------------------------',
-            'Command errored out with exit status 1:',
-            'Complete output (3 lines):',
-            'Hello',
-            'fail',
-            'world',
-        ], 'lines: {}'.format(actual)  # Show the full output on failure.
+            "     cwd: None",
+            "----------------------------------------",
+            "Command errored out with exit status 1:",
+            "Complete output (3 lines):",
+            "Hello",
+            "fail",
+            "world",
+        ], "lines: {}".format(
+            actual
+        )  # Show the full output on failure.
 
-        assert command_line.startswith(' command: ')
+        assert command_line.startswith(" command: ")
         assert command_line.endswith('print("world"); exit("fail")\'')
 
     def test_info_logging_with_show_stdout_true(self, capfd, caplog):
@@ -330,26 +352,33 @@ class TestCallSubprocess(object):
         args, spinner = self.prepare_call(caplog, log_level)
         result = call_subprocess(args, spinner=spinner, show_stdout=True)
 
-        expected = (['Hello', 'world'], [
-            ('pip.subprocessor', INFO, 'Running command '),
-            ('pip.subprocessor', INFO, 'Hello'),
-            ('pip.subprocessor', INFO, 'world'),
-        ])
+        expected = (
+            ["Hello", "world"],
+            [
+                ("pip.subprocessor", INFO, "Running command "),
+                ("pip.subprocessor", INFO, "Hello"),
+                ("pip.subprocessor", INFO, "world"),
+            ],
+        )
         # The spinner shouldn't spin in this case since the subprocess
         # output is already being written to the console.
         self.check_result(
-            capfd, caplog, log_level, spinner, result, expected,
+            capfd,
+            caplog,
+            log_level,
+            spinner,
+            result,
+            expected,
             expected_spinner=(0, None),
         )
 
-    @pytest.mark.parametrize((
-        'exit_status', 'show_stdout', 'extra_ok_returncodes', 'log_level',
-        'expected'),
+    @pytest.mark.parametrize(
+        ("exit_status", "show_stdout", "extra_ok_returncodes", "log_level", "expected"),
         [
             # The spinner should show here because show_stdout=False means
             # the subprocess should get logged at DEBUG level, but the passed
             # log level is only INFO.
-            (0, False, None, INFO, (None, 'done', 2)),
+            (0, False, None, INFO, (None, "done", 2)),
             # Test some cases where the spinner should not be shown.
             (0, False, None, DEBUG, (None, None, 0)),
             # Test show_stdout=True.
@@ -358,15 +387,21 @@ class TestCallSubprocess(object):
             # The spinner should show here because show_stdout=True means
             # the subprocess should get logged at INFO level, but the passed
             # log level is only WARNING.
-            (0, True, None, WARNING, (None, 'done', 2)),
+            (0, True, None, WARNING, (None, "done", 2)),
             # Test a non-zero exit status.
-            (3, False, None, INFO, (InstallationError, 'error', 2)),
+            (3, False, None, INFO, (InstallationError, "error", 2)),
             # Test a non-zero exit status also in extra_ok_returncodes.
-            (3, False, (3, ), INFO, (None, 'done', 2)),
-    ])
+            (3, False, (3,), INFO, (None, "done", 2)),
+        ],
+    )
     def test_spinner_finish(
-        self, exit_status, show_stdout, extra_ok_returncodes, log_level,
-        caplog, expected,
+        self,
+        exit_status,
+        show_stdout,
+        extra_ok_returncodes,
+        log_level,
+        caplog,
+        expected,
     ):
         """
         Test that the spinner finishes correctly.
@@ -375,9 +410,7 @@ class TestCallSubprocess(object):
         expected_final_status = expected[1]
         expected_spin_count = expected[2]
 
-        command = (
-            'print("Hello"); print("world"); exit({})'.format(exit_status)
-        )
+        command = 'print("Hello"); print("world"); exit({})'.format(exit_status)
         args, spinner = self.prepare_call(caplog, log_level, command=command)
         try:
             call_subprocess(
@@ -398,6 +431,5 @@ class TestCallSubprocess(object):
     def test_closes_stdin(self):
         with pytest.raises(InstallationError):
             call_subprocess(
-                [sys.executable, '-c', 'input()'],
-                show_stdout=True,
+                [sys.executable, "-c", "input()"], show_stdout=True,
             )

@@ -10,6 +10,7 @@ if MYPY_CHECK_RUNNING:
 class DictMetadata(object):
     """IMetadataProvider that reads metadata files from a dictionary.
     """
+
     def __init__(self, metadata):
         # type: (Dict[str, bytes]) -> None
         self._metadata = metadata

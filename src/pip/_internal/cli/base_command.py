@@ -12,10 +12,7 @@ import traceback
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.command_context import CommandContextMixIn
-from pip._internal.cli.parser import (
-    ConfigOptionParser,
-    UpdatingDefaultsHelpFormatter,
-)
+from pip._internal.cli.parser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip._internal.cli.status_codes import (
     ERROR,
     PREVIOUS_BUILD_DIR_ERROR,
@@ -35,10 +32,7 @@ from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.logging import BrokenStdoutLoggingError, setup_logging
 from pip._internal.utils.misc import get_prog, normalize_path
-from pip._internal.utils.temp_dir import (
-    global_tempdir_manager,
-    tempdir_registry,
-)
+from pip._internal.utils.temp_dir import global_tempdir_manager, tempdir_registry
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
@@ -46,10 +40,11 @@ if MYPY_CHECK_RUNNING:
     from optparse import Values
     from typing import Any, List, Optional, Tuple
 
-    from pip._internal.utils.temp_dir import \
-        TempDirectoryTypeRegistry as TempDirRegistry
+    from pip._internal.utils.temp_dir import (
+        TempDirectoryTypeRegistry as TempDirRegistry,
+    )
 
-__all__ = ['Command']
+__all__ = ["Command"]
 
 logger = logging.getLogger(__name__)
 
@@ -62,13 +57,13 @@ class Command(CommandContextMixIn):
         # type: (str, str, bool) -> None
         super(Command, self).__init__()
         parser_kw = {
-            'usage': self.usage,
-            'prog': '{} {}'.format(get_prog(), name),
-            'formatter': UpdatingDefaultsHelpFormatter(),
-            'add_help_option': False,
-            'name': name,
-            'description': self.__doc__,
-            'isolated': isolated,
+            "usage": self.usage,
+            "prog": "{} {}".format(get_prog(), name),
+            "formatter": UpdatingDefaultsHelpFormatter(),
+            "add_help_option": False,
+            "name": name,
+            "description": self.__doc__,
+            "isolated": isolated,
         }
 
         self.name = name
@@ -78,14 +73,11 @@ class Command(CommandContextMixIn):
         self.tempdir_registry = None  # type: Optional[TempDirRegistry]
 
         # Commands should add options to this option group
-        optgroup_name = '{} Options'.format(self.name.capitalize())
+        optgroup_name = "{} Options".format(self.name.capitalize())
         self.cmd_opts = optparse.OptionGroup(self.parser, optgroup_name)
 
         # Add the general options
-        gen_opts = cmdoptions.make_option_group(
-            cmdoptions.general_group,
-            self.parser,
-        )
+        gen_opts = cmdoptions.make_option_group(cmdoptions.general_group, self.parser,)
         self.parser.add_option_group(gen_opts)
 
         self.add_options()
@@ -102,7 +94,7 @@ class Command(CommandContextMixIn):
         """
         # Make sure we do the pip version check if the index_group options
         # are present.
-        assert not hasattr(options, 'no_index')
+        assert not hasattr(options, "no_index")
 
     def run(self, options, args):
         # type: (Values, List[Any]) -> int
@@ -142,10 +134,7 @@ class Command(CommandContextMixIn):
             user_log_file=options.log,
         )
 
-        if (
-            sys.version_info[:2] == (2, 7) and
-            not options.no_python_version_warning
-        ):
+        if sys.version_info[:2] == (2, 7) and not options.no_python_version_warning:
             message = (
                 "pip 21.0 will drop support for Python 2.7 in January 2021. "
                 "More details about Python 2 support in pip can be found at "
@@ -164,17 +153,15 @@ class Command(CommandContextMixIn):
         #       This also affects isolated builds and it should.
 
         if options.no_input:
-            os.environ['PIP_NO_INPUT'] = '1'
+            os.environ["PIP_NO_INPUT"] = "1"
 
         if options.exists_action:
-            os.environ['PIP_EXISTS_ACTION'] = ' '.join(options.exists_action)
+            os.environ["PIP_EXISTS_ACTION"] = " ".join(options.exists_action)
 
         if options.require_venv and not self.ignore_require_venv:
             # If a venv is required check if it can really be found
             if not running_under_virtualenv():
-                logger.critical(
-                    'Could not find an activated virtualenv (required).'
-                )
+                logger.critical("Could not find an activated virtualenv (required).")
                 sys.exit(VIRTUALENV_NOT_FOUND)
 
         if options.cache_dir:
@@ -204,7 +191,7 @@ class Command(CommandContextMixIn):
                 issue=8333,
             )
 
-        if 'resolver' in options.unstable_features:
+        if "resolver" in options.unstable_features:
             logger.critical(
                 "--unstable-feature=resolver is no longer supported, and "
                 "has been replaced with --use-feature=2020-resolver instead."
@@ -217,35 +204,40 @@ class Command(CommandContextMixIn):
             return status
         except PreviousBuildDirError as exc:
             logger.critical(str(exc))
-            logger.debug('Exception information:', exc_info=True)
+            logger.debug("Exception information:", exc_info=True)
 
             return PREVIOUS_BUILD_DIR_ERROR
-        except (InstallationError, UninstallationError, BadCommand,
-                SubProcessError, NetworkConnectionError) as exc:
+        except (
+            InstallationError,
+            UninstallationError,
+            BadCommand,
+            SubProcessError,
+            NetworkConnectionError,
+        ) as exc:
             logger.critical(str(exc))
-            logger.debug('Exception information:', exc_info=True)
+            logger.debug("Exception information:", exc_info=True)
 
             return ERROR
         except CommandError as exc:
-            logger.critical('%s', exc)
-            logger.debug('Exception information:', exc_info=True)
+            logger.critical("%s", exc)
+            logger.debug("Exception information:", exc_info=True)
 
             return ERROR
         except BrokenStdoutLoggingError:
             # Bypass our logger and write any remaining messages to stderr
             # because stdout no longer works.
-            print('ERROR: Pipe to stdout was broken', file=sys.stderr)
+            print("ERROR: Pipe to stdout was broken", file=sys.stderr)
             if level_number <= logging.DEBUG:
                 traceback.print_exc(file=sys.stderr)
 
             return ERROR
         except KeyboardInterrupt:
-            logger.critical('Operation cancelled by user')
-            logger.debug('Exception information:', exc_info=True)
+            logger.critical("Operation cancelled by user")
+            logger.debug("Exception information:", exc_info=True)
 
             return ERROR
         except BaseException:
-            logger.critical('Exception:', exc_info=True)
+            logger.critical("Exception:", exc_info=True)
 
             return UNKNOWN_ERROR
         finally:

@@ -41,8 +41,8 @@ def _normalize_name(name):
     # type: (str) -> str
     """Make a name consistent regardless of source (environment or file)
     """
-    name = name.lower().replace('_', '-')
-    if name.startswith('--'):
+    name = name.lower().replace("_", "-")
+    if name.startswith("--"):
         name = name[2:]  # only prefer long opts
     return name
 
@@ -60,33 +60,28 @@ def _disassemble_key(name):
 
 # The kinds of configurations there are.
 kinds = enum(
-    USER="user",        # User Specific
-    GLOBAL="global",    # System Wide
-    SITE="site",        # [Virtual] Environment Specific
-    ENV="env",          # from PIP_CONFIG_FILE
+    USER="user",  # User Specific
+    GLOBAL="global",  # System Wide
+    SITE="site",  # [Virtual] Environment Specific
+    ENV="env",  # from PIP_CONFIG_FILE
     ENV_VAR="env-var",  # from Environment Variables
 )
 
 
-CONFIG_BASENAME = 'pip.ini' if WINDOWS else 'pip.conf'
+CONFIG_BASENAME = "pip.ini" if WINDOWS else "pip.conf"
 
 
 def get_configuration_files():
     # type: () -> Dict[Kind, List[str]]
     global_config_files = [
-        os.path.join(path, CONFIG_BASENAME)
-        for path in appdirs.site_config_dirs('pip')
+        os.path.join(path, CONFIG_BASENAME) for path in appdirs.site_config_dirs("pip")
     ]
 
     site_config_file = os.path.join(sys.prefix, CONFIG_BASENAME)
     legacy_config_file = os.path.join(
-        expanduser('~'),
-        'pip' if WINDOWS else '.pip',
-        CONFIG_BASENAME,
+        expanduser("~"), "pip" if WINDOWS else ".pip", CONFIG_BASENAME,
     )
-    new_config_file = os.path.join(
-        appdirs.user_config_dir("pip"), CONFIG_BASENAME
-    )
+    new_config_file = os.path.join(appdirs.user_config_dir("pip"), CONFIG_BASENAME)
     return {
         kinds.GLOBAL: global_config_files,
         kinds.SITE: [site_config_file],
@@ -124,7 +119,11 @@ class Configuration(object):
 
         # The order here determines the override order.
         self._override_order = [
-            kinds.GLOBAL, kinds.USER, kinds.SITE, kinds.ENV, kinds.ENV_VAR
+            kinds.GLOBAL,
+            kinds.USER,
+            kinds.SITE,
+            kinds.ENV,
+            kinds.ENV_VAR,
         ]
 
         self._ignore_env_names = ["version", "help"]
@@ -150,8 +149,7 @@ class Configuration(object):
         # type: () -> Optional[str]
         """Returns the file with highest priority in configuration
         """
-        assert self.load_only is not None, \
-            "Need to be specified a file to be editing"
+        assert self.load_only is not None, "Need to be specified a file to be editing"
 
         try:
             return self._get_parser_to_modify()[0]
@@ -207,8 +205,9 @@ class Configuration(object):
 
         if parser is not None:
             section, name = _disassemble_key(key)
-            if not (parser.has_section(section)
-                    and parser.remove_option(section, name)):
+            if not (
+                parser.has_section(section) and parser.remove_option(section, name)
+            ):
                 # The option was not removed.
                 raise ConfigurationError(
                     "Fatal Internal error [id=1]. Please report as a bug."
@@ -277,9 +276,7 @@ class Configuration(object):
                 # If there's specific variant set in `load_only`, load only
                 # that variant, not the others.
                 if self.load_only is not None and variant != self.load_only:
-                    logger.debug(
-                        "Skipping file '%s' (variant: %s)", fname, variant
-                    )
+                    logger.debug("Skipping file '%s' (variant: %s)", fname, variant)
                     continue
 
                 parser = self._load_file(variant, fname)
@@ -347,8 +344,7 @@ class Configuration(object):
         """Returns a generator with all environmental vars with prefix PIP_"""
         for key, val in os.environ.items():
             should_be_yielded = (
-                key.startswith("PIP_") and
-                key[4:].lower() not in self._ignore_env_names
+                key.startswith("PIP_") and key[4:].lower() not in self._ignore_env_names
             )
             if should_be_yielded:
                 yield key[4:].lower(), val
@@ -363,7 +359,7 @@ class Configuration(object):
         # SMELL: Move the conditions out of this function
 
         # environment variables have the lowest priority
-        config_file = os.environ.get('PIP_CONFIG_FILE', None)
+        config_file = os.environ.get("PIP_CONFIG_FILE", None)
         if config_file is not None:
             yield kinds.ENV, [config_file]
         else:

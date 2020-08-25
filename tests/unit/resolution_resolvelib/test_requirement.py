@@ -78,4 +78,4 @@ def test_new_resolver_full_resolve(factory, provider):
     req = factory.make_requirement_from_spec("simplewheel", comes_from=None)
     r = Resolver(provider, BaseReporter())
     result = r.resolve([req])
-    assert set(result.mapping.keys()) == {'simplewheel'}
+    assert set(result.mapping.keys()) == {"simplewheel"}

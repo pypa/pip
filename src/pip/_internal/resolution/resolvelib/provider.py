@@ -4,16 +4,7 @@ from pip._vendor.resolvelib.providers import AbstractProvider
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import (
-        Any,
-        Dict,
-        Iterable,
-        Optional,
-        Sequence,
-        Set,
-        Tuple,
-        Union,
-    )
+    from typing import Any, Dict, Iterable, Optional, Sequence, Set, Tuple, Union
 
     from .base import Candidate, Requirement
     from .factory import Factory
@@ -92,7 +83,7 @@ class PipProvider(AbstractProvider):
             if self._upgrade_strategy == "eager":
                 return True
             elif self._upgrade_strategy == "only-if-needed":
-                return (name in self.user_requested)
+                return name in self.user_requested
             return False
 
         def sort_key(c):
@@ -123,7 +114,7 @@ class PipProvider(AbstractProvider):
         self,
         resolution,  # type: Optional[Candidate]
         candidates,  # type: Sequence[Candidate]
-        information  # type: Sequence[Tuple[Requirement, Candidate]]
+        information,  # type: Sequence[Tuple[Requirement, Candidate]]
     ):
         # type: (...) -> Any
         # Use the "usual" value for now
@@ -133,9 +124,7 @@ class PipProvider(AbstractProvider):
         # type: (Sequence[Requirement]) -> Iterable[Candidate]
         if not requirements:
             return []
-        constraint = self._constraints.get(
-            requirements[0].name, SpecifierSet(),
-        )
+        constraint = self._constraints.get(requirements[0].name, SpecifierSet(),)
         candidates = self._factory.find_candidates(requirements, constraint)
         return reversed(self._sort_matches(candidates))
 
@@ -146,8 +135,4 @@ class PipProvider(AbstractProvider):
     def get_dependencies(self, candidate):
         # type: (Candidate) -> Sequence[Requirement]
         with_requires = not self._ignore_dependencies
-        return [
-            r
-            for r in candidate.iter_dependencies(with_requires)
-            if r is not None
-        ]
+        return [r for r in candidate.iter_dependencies(with_requires) if r is not None]

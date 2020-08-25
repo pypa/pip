@@ -53,15 +53,15 @@ class CacheCommand(Command):
         }
 
         if not options.cache_dir:
-            logger.error("pip cache commands can not "
-                         "function since cache is disabled.")
+            logger.error(
+                "pip cache commands can not " "function since cache is disabled."
+            )
             return ERROR
 
         # Determine action
         if not args or args[0] not in handlers:
             logger.error(
-                "Need an action (%s) to perform.",
-                ", ".join(sorted(handlers)),
+                "Need an action (%s) to perform.", ", ".join(sorted(handlers)),
             )
             return ERROR
 
@@ -79,83 +79,87 @@ class CacheCommand(Command):
     def get_cache_dir(self, options, args):
         # type: (Values, List[Any]) -> None
         if args:
-            raise CommandError('Too many arguments')
+            raise CommandError("Too many arguments")
 
         logger.info(options.cache_dir)
 
     def get_cache_info(self, options, args):
         # type: (Values, List[Any]) -> None
         if args:
-            raise CommandError('Too many arguments')
+            raise CommandError("Too many arguments")
 
-        num_packages = len(self._find_wheels(options, '*'))
+        num_packages = len(self._find_wheels(options, "*"))
 
         cache_location = self._wheels_cache_dir(options)
         cache_size = filesystem.format_directory_size(cache_location)
 
-        message = textwrap.dedent("""
+        message = (
+            textwrap.dedent(
+                """
             Location: {location}
             Size: {size}
             Number of wheels: {package_count}
-        """).format(
-            location=cache_location,
-            package_count=num_packages,
-            size=cache_size,
-        ).strip()
+        """
+            )
+            .format(
+                location=cache_location, package_count=num_packages, size=cache_size,
+            )
+            .strip()
+        )
 
         logger.info(message)
 
     def list_cache_items(self, options, args):
         # type: (Values, List[Any]) -> None
         if len(args) > 1:
-            raise CommandError('Too many arguments')
+            raise CommandError("Too many arguments")
 
         if args:
             pattern = args[0]
         else:
-            pattern = '*'
+            pattern = "*"
 
         files = self._find_wheels(options, pattern)
 
         if not files:
-            logger.info('Nothing cached.')
+            logger.info("Nothing cached.")
             return
 
         results = []
         for filename in files:
             wheel = os.path.basename(filename)
             size = filesystem.format_file_size(filename)
-            results.append(' - {} ({})'.format(wheel, size))
-        logger.info('Cache contents:\n')
-        logger.info('\n'.join(sorted(results)))
+            results.append(" - {} ({})".format(wheel, size))
+        logger.info("Cache contents:\n")
+        logger.info("\n".join(sorted(results)))
 
     def remove_cache_items(self, options, args):
         # type: (Values, List[Any]) -> None
         if len(args) > 1:
-            raise CommandError('Too many arguments')
+            raise CommandError("Too many arguments")
 
         if not args:
-            raise CommandError('Please provide a pattern')
+            raise CommandError("Please provide a pattern")
 
         files = self._find_wheels(options, args[0])
         if not files:
-            raise CommandError('No matching packages')
+            raise CommandError("No matching packages")
 
         for filename in files:
             os.unlink(filename)
-            logger.debug('Removed %s', filename)
-        logger.info('Files removed: %s', len(files))
+            logger.debug("Removed %s", filename)
+        logger.info("Files removed: %s", len(files))
 
     def purge_cache(self, options, args):
         # type: (Values, List[Any]) -> None
         if args:
-            raise CommandError('Too many arguments')
+            raise CommandError("Too many arguments")
 
-        return self.remove_cache_items(options, ['*'])
+        return self.remove_cache_items(options, ["*"])
 
     def _wheels_cache_dir(self, options):
         # type: (Values) -> str
-        return os.path.join(options.cache_dir, 'wheels')
+        return os.path.join(options.cache_dir, "wheels")
 
     def _find_wheels(self, options, pattern):
         # type: (Values, str) -> List[str]

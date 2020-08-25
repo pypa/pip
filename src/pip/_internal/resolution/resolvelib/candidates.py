@@ -30,9 +30,7 @@ if MYPY_CHECK_RUNNING:
     from .factory import Factory
 
     BaseCandidate = Union[
-        "AlreadyInstalledCandidate",
-        "EditableCandidate",
-        "LinkCandidate",
+        "AlreadyInstalledCandidate", "EditableCandidate", "LinkCandidate",
     ]
 
 
@@ -56,7 +54,7 @@ def make_install_req_from_link(link, template):
         options=dict(
             install_options=template.install_options,
             global_options=template.global_options,
-            hashes=template.hash_options
+            hashes=template.hash_options,
         ),
     )
     ireq.original_link = template.original_link
@@ -77,7 +75,7 @@ def make_install_req_from_editable(link, template):
         options=dict(
             install_options=template.install_options,
             global_options=template.global_options,
-            hashes=template.hash_options
+            hashes=template.hash_options,
         ),
     )
 
@@ -101,7 +99,7 @@ def make_install_req_from_dist(dist, template):
         options=dict(
             install_options=template.install_options,
             global_options=template.global_options,
-            hashes=template.hash_options
+            hashes=template.hash_options,
         ),
     )
     ireq.satisfied_by = dist
@@ -123,15 +121,16 @@ class _InstallRequirementBackedCandidate(Candidate):
         ``link`` would point to the wheel cache, while this points to the
         found remote link (e.g. from pypi.org).
     """
+
     is_installed = False
 
     def __init__(
         self,
-        link,          # type: Link
-        source_link,   # type: Link
-        ireq,          # type: InstallRequirement
-        factory,       # type: Factory
-        name=None,     # type: Optional[str]
+        link,  # type: Link
+        source_link,  # type: Link
+        ireq,  # type: InstallRequirement
+        factory,  # type: Factory
+        name=None,  # type: Optional[str]
         version=None,  # type: Optional[_BaseVersion]
     ):
         # type: (...) -> None
@@ -146,8 +145,7 @@ class _InstallRequirementBackedCandidate(Candidate):
     def __repr__(self):
         # type: () -> str
         return "{class_name}({link!r})".format(
-            class_name=self.__class__.__name__,
-            link=str(self._link),
+            class_name=self.__class__.__name__, link=str(self._link),
         )
 
     def __hash__(self):
@@ -190,7 +188,7 @@ class _InstallRequirementBackedCandidate(Candidate):
         return "{} {} (from {})".format(
             self.name,
             self.version,
-            self._link.file_path if self._link.is_file else self._link
+            self._link.file_path if self._link.is_file else self._link,
         )
 
     def _prepare_distribution(self):
@@ -267,10 +265,10 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
 
     def __init__(
         self,
-        link,          # type: Link
-        template,        # type: InstallRequirement
-        factory,       # type: Factory
-        name=None,     # type: Optional[str]
+        link,  # type: Link
+        template,  # type: InstallRequirement
+        factory,  # type: Factory
+        name=None,  # type: Optional[str]
         version=None,  # type: Optional[_BaseVersion]
     ):
         # type: (...) -> None
@@ -284,20 +282,18 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
         if ireq.link.is_wheel and not ireq.link.is_file:
             wheel = Wheel(ireq.link.filename)
             wheel_name = canonicalize_name(wheel.name)
-            assert name == wheel_name, (
-               "{!r} != {!r} for wheel".format(name, wheel_name)
-            )
+            assert name == wheel_name, "{!r} != {!r} for wheel".format(name, wheel_name)
             # Version may not be present for PEP 508 direct URLs
             if version is not None:
-                assert str(version) == wheel.version, (
-                    "{!r} != {!r} for wheel {}".format(
-                        version, wheel.version, name
-                    )
-                )
+                assert (
+                    str(version) == wheel.version
+                ), "{!r} != {!r} for wheel {}".format(version, wheel.version, name)
 
-        if (cache_entry is not None and
-                cache_entry.persistent and
-                template.link is template.original_link):
+        if (
+            cache_entry is not None
+            and cache_entry.persistent
+            and template.link is template.original_link
+        ):
             ireq.original_link_is_in_wheel_cache = True
 
         super(LinkCandidate, self).__init__(
@@ -321,10 +317,10 @@ class EditableCandidate(_InstallRequirementBackedCandidate):
 
     def __init__(
         self,
-        link,          # type: Link
-        template,        # type: InstallRequirement
-        factory,       # type: Factory
-        name=None,     # type: Optional[str]
+        link,  # type: Link
+        template,  # type: InstallRequirement
+        factory,  # type: Factory
+        name=None,  # type: Optional[str]
         version=None,  # type: Optional[_BaseVersion]
     ):
         # type: (...) -> None
@@ -367,8 +363,7 @@ class AlreadyInstalledCandidate(Candidate):
     def __repr__(self):
         # type: () -> str
         return "{class_name}({distribution!r})".format(
-            class_name=self.__class__.__name__,
-            distribution=self.dist,
+            class_name=self.__class__.__name__, distribution=self.dist,
         )
 
     def __hash__(self):
@@ -441,6 +436,7 @@ class ExtrasCandidate(Candidate):
     version 2.0. Having those candidates depend on foo=1.0 and foo=2.0
     respectively forces the resolver to recognise that this is a conflict.
     """
+
     def __init__(
         self,
         base,  # type: BaseCandidate
@@ -453,9 +449,7 @@ class ExtrasCandidate(Candidate):
     def __repr__(self):
         # type: () -> str
         return "{class_name}(base={base!r}, extras={extras!r})".format(
-            class_name=self.__class__.__name__,
-            base=self.base,
-            extras=self.extras,
+            class_name=self.__class__.__name__, base=self.base, extras=self.extras,
         )
 
     def __hash__(self):
@@ -487,8 +481,7 @@ class ExtrasCandidate(Candidate):
     def format_for_error(self):
         # type: () -> str
         return "{} [{}]".format(
-            self.base.format_for_error(),
-            ", ".join(sorted(self.extras))
+            self.base.format_for_error(), ", ".join(sorted(self.extras))
         )
 
     @property
@@ -525,7 +518,7 @@ class ExtrasCandidate(Candidate):
                 "%s %s does not provide the extra '%s'",
                 self.base.name,
                 self.version,
-                extra
+                extra,
             )
 
         for r in self.base.dist.requires(valid_extras):

@@ -34,16 +34,7 @@ from pip._internal.utils.unpacking import SUPPORTED_EXTENSIONS
 from pip._internal.utils.urls import url_to_path
 
 if MYPY_CHECK_RUNNING:
-    from typing import (
-        FrozenSet,
-        Iterable,
-        List,
-        Optional,
-        Set,
-        Text,
-        Tuple,
-        Union,
-    )
+    from typing import FrozenSet, Iterable, List, Optional, Set, Text, Tuple, Union
 
     from pip._vendor.packaging.tags import Tag
     from pip._vendor.packaging.version import _BaseVersion
@@ -54,12 +45,10 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.utils.hashes import Hashes
 
     BuildTag = Union[Tuple[()], Tuple[int, str]]
-    CandidateSortingKey = (
-        Tuple[int, int, int, _BaseVersion, BuildTag, Optional[int]]
-    )
+    CandidateSortingKey = Tuple[int, int, int, _BaseVersion, BuildTag, Optional[int]]
 
 
-__all__ = ['FormatControl', 'BestCandidateResult', 'PackageFinder']
+__all__ = ["FormatControl", "BestCandidateResult", "PackageFinder"]
 
 
 logger = logging.getLogger(__name__)
@@ -87,22 +76,26 @@ def _check_link_requires_python(
     except specifiers.InvalidSpecifier:
         logger.debug(
             "Ignoring invalid Requires-Python (%r) for link: %s",
-            link.requires_python, link,
+            link.requires_python,
+            link,
         )
     else:
         if not is_compatible:
-            version = '.'.join(map(str, version_info))
+            version = ".".join(map(str, version_info))
             if not ignore_requires_python:
                 logger.debug(
-                    'Link requires a different Python (%s not in: %r): %s',
-                    version, link.requires_python, link,
+                    "Link requires a different Python (%s not in: %r): %s",
+                    version,
+                    link.requires_python,
+                    link,
                 )
                 return False
 
             logger.debug(
-                'Ignoring failed Requires-Python check (%s not in: %r) '
-                'for link: %s',
-                version, link.requires_python, link,
+                "Ignoring failed Requires-Python check (%s not in: %r) " "for link: %s",
+                version,
+                link.requires_python,
+                link,
             )
 
     return True
@@ -114,7 +107,7 @@ class LinkEvaluator(object):
     Responsible for evaluating links for a particular project.
     """
 
-    _py_version_re = re.compile(r'-py([123]\.?[0-9]?)$')
+    _py_version_re = re.compile(r"-py([123]\.?[0-9]?)$")
 
     # Don't include an allow_yanked default value to make sure each call
     # site considers whether yanked releases are allowed. This also causes
@@ -122,11 +115,11 @@ class LinkEvaluator(object):
     # people when reading the code.
     def __init__(
         self,
-        project_name,    # type: str
+        project_name,  # type: str
         canonical_name,  # type: str
-        formats,         # type: FrozenSet[str]
-        target_python,   # type: TargetPython
-        allow_yanked,    # type: bool
+        formats,  # type: FrozenSet[str]
+        target_python,  # type: TargetPython
+        allow_yanked,  # type: bool
         ignore_requires_python=None,  # type: Optional[bool]
     ):
         # type: (...) -> None
@@ -170,11 +163,11 @@ class LinkEvaluator(object):
         """
         version = None
         if link.is_yanked and not self._allow_yanked:
-            reason = link.yanked_reason or '<none given>'
+            reason = link.yanked_reason or "<none given>"
             # Mark this as a unicode string to prevent "UnicodeEncodeError:
             # 'ascii' codec can't encode character" in Python 2 when
             # the reason contains non-ascii characters.
-            return (False, u'yanked for reason: {}'.format(reason))
+            return (False, u"yanked for reason: {}".format(reason))
 
         if link.egg_fragment:
             egg_info = link.egg_fragment
@@ -182,23 +175,21 @@ class LinkEvaluator(object):
         else:
             egg_info, ext = link.splitext()
             if not ext:
-                return (False, 'not a file')
+                return (False, "not a file")
             if ext not in SUPPORTED_EXTENSIONS:
-                return (False, 'unsupported archive format: {}'.format(ext))
+                return (False, "unsupported archive format: {}".format(ext))
             if "binary" not in self._formats and ext == WHEEL_EXTENSION:
-                reason = 'No binaries permitted for {}'.format(
-                    self.project_name)
+                reason = "No binaries permitted for {}".format(self.project_name)
                 return (False, reason)
-            if "macosx10" in link.path and ext == '.zip':
-                return (False, 'macosx10 one')
+            if "macosx10" in link.path and ext == ".zip":
+                return (False, "macosx10 one")
             if ext == WHEEL_EXTENSION:
                 try:
                     wheel = Wheel(link.filename)
                 except InvalidWheelFilename:
-                    return (False, 'invalid wheel filename')
+                    return (False, "invalid wheel filename")
                 if canonicalize_name(wheel.name) != self._canonical_name:
-                    reason = 'wrong project name (not {})'.format(
-                        self.project_name)
+                    reason = "wrong project name (not {})".format(self.project_name)
                     return (False, reason)
 
                 supported_tags = self._target_python.get_tags()
@@ -206,10 +197,8 @@ class LinkEvaluator(object):
                     # Include the wheel's tags in the reason string to
                     # simplify troubleshooting compatibility issues.
                     file_tags = wheel.get_formatted_file_tags()
-                    reason = (
-                        "none of the wheel's tags match: {}".format(
-                            ', '.join(file_tags)
-                        )
+                    reason = "none of the wheel's tags match: {}".format(
+                        ", ".join(file_tags)
                     )
                     return (False, reason)
 
@@ -217,26 +206,25 @@ class LinkEvaluator(object):
 
         # This should be up by the self.ok_binary check, but see issue 2700.
         if "source" not in self._formats and ext != WHEEL_EXTENSION:
-            reason = 'No sources permitted for {}'.format(self.project_name)
+            reason = "No sources permitted for {}".format(self.project_name)
             return (False, reason)
 
         if not version:
-            version = _extract_version_from_fragment(
-                egg_info, self._canonical_name,
-            )
+            version = _extract_version_from_fragment(egg_info, self._canonical_name,)
         if not version:
-            reason = 'Missing project version for {}'.format(self.project_name)
+            reason = "Missing project version for {}".format(self.project_name)
             return (False, reason)
 
         match = self._py_version_re.search(version)
         if match:
-            version = version[:match.start()]
+            version = version[: match.start()]
             py_version = match.group(1)
             if py_version != self._target_python.py_version:
-                return (False, 'Python version is incorrect')
+                return (False, "Python version is incorrect")
 
         supports_python = _check_link_requires_python(
-            link, version_info=self._target_python.py_version_info,
+            link,
+            version_info=self._target_python.py_version_info,
             ignore_requires_python=self._ignore_requires_python,
         )
         if not supports_python:
@@ -244,14 +232,14 @@ class LinkEvaluator(object):
             # _log_skipped_link().
             return (False, None)
 
-        logger.debug('Found link %s, version: %s', link, version)
+        logger.debug("Found link %s, version: %s", link, version)
 
         return (True, version)
 
 
 def filter_unallowed_hashes(
-    candidates,    # type: List[InstallationCandidate]
-    hashes,        # type: Hashes
+    candidates,  # type: List[InstallationCandidate]
+    hashes,  # type: Hashes
     project_name,  # type: str
 ):
     # type: (...) -> List[InstallationCandidate]
@@ -272,8 +260,8 @@ def filter_unallowed_hashes(
     """
     if not hashes:
         logger.debug(
-            'Given no hashes to check %s links for project %r: '
-            'discarding no candidates',
+            "Given no hashes to check %s links for project %r: "
+            "discarding no candidates",
             len(candidates),
             project_name,
         )
@@ -303,22 +291,22 @@ def filter_unallowed_hashes(
         filtered = list(candidates)
 
     if len(filtered) == len(candidates):
-        discard_message = 'discarding no candidates'
+        discard_message = "discarding no candidates"
     else:
-        discard_message = 'discarding {} non-matches:\n  {}'.format(
+        discard_message = "discarding {} non-matches:\n  {}".format(
             len(non_matches),
-            '\n  '.join(str(candidate.link) for candidate in non_matches)
+            "\n  ".join(str(candidate.link) for candidate in non_matches),
         )
 
     logger.debug(
-        'Checked %s links for project %r against %s hashes '
-        '(%s matches, %s no digest): %s',
+        "Checked %s links for project %r against %s hashes "
+        "(%s matches, %s no digest): %s",
         len(candidates),
         project_name,
         hashes.digest_count,
         match_count,
         len(matches_or_no_digest) - match_count,
-        discard_message
+        discard_message,
     )
 
     return filtered
@@ -353,9 +341,9 @@ class BestCandidateResult(object):
 
     def __init__(
         self,
-        candidates,             # type: List[InstallationCandidate]
+        candidates,  # type: List[InstallationCandidate]
         applicable_candidates,  # type: List[InstallationCandidate]
-        best_candidate,         # type: Optional[InstallationCandidate]
+        best_candidate,  # type: Optional[InstallationCandidate]
     ):
         # type: (...) -> None
         """
@@ -399,12 +387,12 @@ class CandidateEvaluator(object):
     @classmethod
     def create(
         cls,
-        project_name,         # type: str
-        target_python=None,   # type: Optional[TargetPython]
+        project_name,  # type: str
+        target_python=None,  # type: Optional[TargetPython]
         prefer_binary=False,  # type: bool
         allow_all_prereleases=False,  # type: bool
-        specifier=None,       # type: Optional[specifiers.BaseSpecifier]
-        hashes=None,          # type: Optional[Hashes]
+        specifier=None,  # type: Optional[specifiers.BaseSpecifier]
+        hashes=None,  # type: Optional[Hashes]
     ):
         # type: (...) -> CandidateEvaluator
         """Create a CandidateEvaluator object.
@@ -435,12 +423,12 @@ class CandidateEvaluator(object):
 
     def __init__(
         self,
-        project_name,         # type: str
-        supported_tags,       # type: List[Tag]
-        specifier,            # type: specifiers.BaseSpecifier
+        project_name,  # type: str
+        supported_tags,  # type: List[Tag]
+        specifier,  # type: specifiers.BaseSpecifier
         prefer_binary=False,  # type: bool
         allow_all_prereleases=False,  # type: bool
-        hashes=None,                  # type: Optional[Hashes]
+        hashes=None,  # type: Optional[Hashes]
     ):
         # type: (...) -> None
         """
@@ -455,8 +443,7 @@ class CandidateEvaluator(object):
         self._supported_tags = supported_tags
 
     def get_applicable_candidates(
-        self,
-        candidates,  # type: List[InstallationCandidate]
+        self, candidates,  # type: List[InstallationCandidate]
     ):
         # type: (...) -> List[InstallationCandidate]
         """
@@ -466,7 +453,8 @@ class CandidateEvaluator(object):
         allow_prereleases = self._allow_all_prereleases or None
         specifier = self._specifier
         versions = {
-            str(v) for v in specifier.filter(
+            str(v)
+            for v in specifier.filter(
                 # We turn the version object into a str here because otherwise
                 # when we're debundled but setuptools isn't, Python will see
                 # packaging.version.Version and
@@ -480,9 +468,7 @@ class CandidateEvaluator(object):
         }
 
         # Again, converting version to str to deal with debundling.
-        applicable_candidates = [
-            c for c in candidates if str(c.version) in versions
-        ]
+        applicable_candidates = [c for c in candidates if str(c.version) in versions]
 
         filtered_applicable_candidates = filter_unallowed_hashes(
             candidates=applicable_candidates,
@@ -540,7 +526,7 @@ class CandidateEvaluator(object):
                 binary_preference = 1
             pri = -(wheel.support_index_min(valid_tags))
             if wheel.build_tag is not None:
-                match = re.match(r'^(\d+)(.*)$', wheel.build_tag)
+                match = re.match(r"^(\d+)(.*)$", wheel.build_tag)
                 build_tag_groups = match.groups()
                 build_tag = (int(build_tag_groups[0]), build_tag_groups[1])
         else:  # sdist
@@ -548,13 +534,16 @@ class CandidateEvaluator(object):
         has_allowed_hash = int(link.is_hash_allowed(self._hashes))
         yank_value = -1 * int(link.is_yanked)  # -1 for yanked.
         return (
-            has_allowed_hash, yank_value, binary_preference, candidate.version,
-            build_tag, pri,
+            has_allowed_hash,
+            yank_value,
+            binary_preference,
+            candidate.version,
+            build_tag,
+            pri,
         )
 
     def sort_best_candidate(
-        self,
-        candidates,    # type: List[InstallationCandidate]
+        self, candidates,  # type: List[InstallationCandidate]
     ):
         # type: (...) -> Optional[InstallationCandidate]
         """
@@ -567,8 +556,7 @@ class CandidateEvaluator(object):
         return best_candidate
 
     def compute_best_candidate(
-        self,
-        candidates,      # type: List[InstallationCandidate]
+        self, candidates,  # type: List[InstallationCandidate]
     ):
         # type: (...) -> BestCandidateResult
         """
@@ -594,11 +582,11 @@ class PackageFinder(object):
 
     def __init__(
         self,
-        link_collector,       # type: LinkCollector
-        target_python,        # type: TargetPython
-        allow_yanked,         # type: bool
+        link_collector,  # type: LinkCollector
+        target_python,  # type: TargetPython
+        allow_yanked,  # type: bool
         format_control=None,  # type: Optional[FormatControl]
-        candidate_prefs=None,         # type: CandidatePreferences
+        candidate_prefs=None,  # type: CandidatePreferences
         ignore_requires_python=None,  # type: Optional[bool]
     ):
         # type: (...) -> None
@@ -635,8 +623,8 @@ class PackageFinder(object):
     @classmethod
     def create(
         cls,
-        link_collector,      # type: LinkCollector
-        selection_prefs,     # type: SelectionPreferences
+        link_collector,  # type: LinkCollector
+        selection_prefs,  # type: SelectionPreferences
         target_python=None,  # type: Optional[TargetPython]
     ):
         # type: (...) -> PackageFinder
@@ -753,7 +741,7 @@ class PackageFinder(object):
             # the reason contains non-ascii characters.
             #   Also, put the link at the end so the reason is more visible
             # and because the link string is usually very long.
-            logger.debug(u'Skipping link: %s: %s', reason, link)
+            logger.debug(u"Skipping link: %s: %s", reason, link)
             self._logged_links.add(link)
 
     def get_install_candidate(self, link_evaluator, link):
@@ -792,7 +780,7 @@ class PackageFinder(object):
     def process_project_url(self, project_url, link_evaluator):
         # type: (Link, LinkEvaluator) -> List[InstallationCandidate]
         logger.debug(
-            'Fetching project page and analyzing links: %s', project_url,
+            "Fetching project page and analyzing links: %s", project_url,
         )
         html_page = self._link_collector.fetch_page(project_url)
         if html_page is None:
@@ -801,10 +789,7 @@ class PackageFinder(object):
         page_links = list(parse_links(html_page))
 
         with indent_log():
-            package_links = self.evaluate_links(
-                link_evaluator,
-                links=page_links,
-            )
+            package_links = self.evaluate_links(link_evaluator, links=page_links,)
 
         return package_links
 
@@ -823,8 +808,7 @@ class PackageFinder(object):
         link_evaluator = self.make_link_evaluator(project_name)
 
         find_links_versions = self.evaluate_links(
-            link_evaluator,
-            links=collected_links.find_links,
+            link_evaluator, links=collected_links.find_links,
         )
 
         page_versions = []
@@ -835,17 +819,15 @@ class PackageFinder(object):
             page_versions.extend(package_links)
 
         file_versions = self.evaluate_links(
-            link_evaluator,
-            links=collected_links.files,
+            link_evaluator, links=collected_links.files,
         )
         if file_versions:
             file_versions.sort(reverse=True)
             logger.debug(
-                'Local files found: %s',
-                ', '.join([
-                    url_to_path(candidate.link.url)
-                    for candidate in file_versions
-                ])
+                "Local files found: %s",
+                ", ".join(
+                    [url_to_path(candidate.link.url) for candidate in file_versions]
+                ),
             )
 
         # This is an intentional priority ordering
@@ -853,9 +835,9 @@ class PackageFinder(object):
 
     def make_candidate_evaluator(
         self,
-        project_name,    # type: str
+        project_name,  # type: str
         specifier=None,  # type: Optional[specifiers.BaseSpecifier]
-        hashes=None,     # type: Optional[Hashes]
+        hashes=None,  # type: Optional[Hashes]
     ):
         # type: (...) -> CandidateEvaluator
         """Create a CandidateEvaluator object to use.
@@ -872,9 +854,9 @@ class PackageFinder(object):
 
     def find_best_candidate(
         self,
-        project_name,       # type: str
-        specifier=None,     # type: Optional[specifiers.BaseSpecifier]
-        hashes=None,        # type: Optional[Hashes]
+        project_name,  # type: str
+        specifier=None,  # type: Optional[specifiers.BaseSpecifier]
+        hashes=None,  # type: Optional[Hashes]
     ):
         # type: (...) -> BestCandidateResult
         """Find matches for the given project and specifier.
@@ -887,9 +869,7 @@ class PackageFinder(object):
         """
         candidates = self.find_all_candidates(project_name)
         candidate_evaluator = self.make_candidate_evaluator(
-            project_name=project_name,
-            specifier=specifier,
-            hashes=hashes,
+            project_name=project_name, specifier=specifier, hashes=hashes,
         )
         return candidate_evaluator.compute_best_candidate(candidates)
 
@@ -907,7 +887,7 @@ class PackageFinder(object):
         )
         best_candidate = best_candidate_result.best_candidate
 
-        installed_version = None    # type: Optional[_BaseVersion]
+        installed_version = None  # type: Optional[_BaseVersion]
         if req.satisfied_by is not None:
             installed_version = parse_version(req.satisfied_by.version)
 
@@ -917,41 +897,42 @@ class PackageFinder(object):
             # handle different vendoring sources from pip and pkg_resources.
             # If we stop using the pkg_resources provided specifier and start
             # using our own, we can drop the cast to str().
-            return ", ".join(sorted(
-                {str(c.version) for c in cand_iter},
-                key=parse_version,
-            )) or "none"
+            return (
+                ", ".join(
+                    sorted({str(c.version) for c in cand_iter}, key=parse_version,)
+                )
+                or "none"
+            )
 
         if installed_version is None and best_candidate is None:
             logger.critical(
-                'Could not find a version that satisfies the requirement %s '
-                '(from versions: %s)',
+                "Could not find a version that satisfies the requirement %s "
+                "(from versions: %s)",
                 req,
                 _format_versions(best_candidate_result.iter_all()),
             )
 
             raise DistributionNotFound(
-                'No matching distribution found for {}'.format(
-                    req)
+                "No matching distribution found for {}".format(req)
             )
 
         best_installed = False
         if installed_version and (
-                best_candidate is None or
-                best_candidate.version <= installed_version):
+            best_candidate is None or best_candidate.version <= installed_version
+        ):
             best_installed = True
 
         if not upgrade and installed_version is not None:
             if best_installed:
                 logger.debug(
-                    'Existing installed version (%s) is most up-to-date and '
-                    'satisfies requirement',
+                    "Existing installed version (%s) is most up-to-date and "
+                    "satisfies requirement",
                     installed_version,
                 )
             else:
                 logger.debug(
-                    'Existing installed version (%s) satisfies requirement '
-                    '(most up-to-date version is %s)',
+                    "Existing installed version (%s) satisfies requirement "
+                    "(most up-to-date version is %s)",
                     installed_version,
                     best_candidate.version,
                 )
@@ -960,15 +941,14 @@ class PackageFinder(object):
         if best_installed:
             # We have an existing version, and its the best version
             logger.debug(
-                'Installed version (%s) is most up-to-date (past versions: '
-                '%s)',
+                "Installed version (%s) is most up-to-date (past versions: " "%s)",
                 installed_version,
                 _format_versions(best_candidate_result.iter_applicable()),
             )
             raise BestVersionAlreadyInstalled
 
         logger.debug(
-            'Using version %s (newest of versions: %s)',
+            "Using version %s (newest of versions: %s)",
             best_candidate.version,
             _format_versions(best_candidate_result.iter_applicable()),
         )
