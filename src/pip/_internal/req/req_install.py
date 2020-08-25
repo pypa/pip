@@ -121,6 +121,7 @@ class InstallRequirement(object):
         self.comes_from = comes_from
         self.constraint = constraint
         self.editable = editable
+        self.legacy_install_reason = None  # type: Optional[int]
 
         # source_dir is the local directory where the linked requirement is
         # located, or unpacked. In case unpacking is needed, creating and
@@ -858,6 +859,18 @@ class InstallRequirement(object):
             raise
 
         self.install_succeeded = success
+
+        if success and self.legacy_install_reason == 8368:
+            deprecated(
+                reason=(
+                    "{} was installed using the legacy 'setup.py install' "
+                    "method, because a wheel could not be built for it.".
+                    format(self.name)
+                ),
+                replacement="to fix the wheel build issue reported above",
+                gone_in="21.0",
+                issue=8368,
+            )
 
 
 def check_invalid_constraint_type(req):
