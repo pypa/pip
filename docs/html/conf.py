@@ -34,7 +34,7 @@ extensions = [
     'sphinx.ext.extlinks',
     'pip_sphinxext',
     'sphinx.ext.intersphinx',
-    'sphinx_tabs.tabs'
+    'sphinx_tabs.tabs',
 ]
 
 # intersphinx

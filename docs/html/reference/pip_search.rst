@@ -38,11 +38,11 @@ Examples
 
 #. Search for "peppercorn"
 
-    .. tabs::
+   .. tabs::
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: console
+         .. code-block:: console
 
             $ python -m pip search peppercorn
             pepperedform    - Helpers for using peppercorn with formprocess.
@@ -50,7 +50,7 @@ Examples
 
       .. group-tab:: Windows
 
-        .. code-block:: console
+         .. code-block:: console
 
             C:\> py -m pip search peppercorn
             pepperedform    - Helpers for using peppercorn with formprocess.

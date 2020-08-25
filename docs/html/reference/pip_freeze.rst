@@ -39,11 +39,11 @@ Examples
 
 #. Generate output suitable for a requirements file.
 
-    .. tabs::
+   .. tabs::
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: console
+         .. code-block:: console
 
             $ python -m pip freeze
             docutils==0.11
@@ -54,7 +54,7 @@ Examples
 
       .. group-tab:: Windows
 
-        .. code-block:: console
+         .. code-block:: console
 
             C:\> py -m pip freeze
             docutils==0.11
@@ -66,18 +66,18 @@ Examples
 
 #. Generate a requirements file and then install from it in another environment.
 
-    .. tabs::
+   .. tabs::
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: shell
+         .. code-block:: shell
 
             env1/bin/python -m pip freeze > requirements.txt
             env2/bin/python -m pip install -r requirements.txt
 
       .. group-tab:: Windows
 
-        .. code-block:: shell
+         .. code-block:: shell
 
             env1\bin\python -m pip freeze > requirements.txt
             env2\bin\python -m pip install -r requirements.txt

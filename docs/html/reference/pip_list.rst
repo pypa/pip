@@ -40,11 +40,11 @@ Examples
 
 #. List installed packages.
 
-    .. tabs::
+   .. tabs::
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: console
+         .. code-block:: console
 
             $ python -m pip list
             docutils (0.10)
@@ -55,7 +55,7 @@ Examples
 
       .. group-tab:: Windows
 
-        .. code-block:: console
+         .. code-block:: console
 
             C:\> py -m pip list
             docutils (0.10)
@@ -66,11 +66,11 @@ Examples
 
 #. List outdated packages (excluding editables), and the latest version available.
 
-    .. tabs::
+   .. tabs::
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: console
+         .. code-block:: console
 
             $ python -m pip list --outdated
             docutils (Current: 0.10 Latest: 0.11)
@@ -78,7 +78,7 @@ Examples
 
       .. group-tab:: Windows
 
-        .. code-block:: console
+         .. code-block:: console
 
             C:\> py -m pip list --outdated
             docutils (Current: 0.10 Latest: 0.11)
@@ -87,11 +87,11 @@ Examples
 
 #. List installed packages with column formatting.
 
-    .. tabs::
+   .. tabs::
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: console
+         .. code-block:: console
 
             $ python -m pip list --format columns
             Package Version
@@ -102,7 +102,7 @@ Examples
 
       .. group-tab:: Windows
 
-        .. code-block:: console
+         .. code-block:: console
 
             C:\> py -m pip list --format columns
             Package Version
@@ -113,11 +113,11 @@ Examples
 
 #. List outdated packages with column formatting.
 
-    .. tabs::
+   .. tabs::
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: console
+         .. code-block:: console
 
             $ python -m pip list -o --format columns
             Package    Version Latest Type
@@ -127,7 +127,7 @@ Examples
 
       .. group-tab:: Windows
 
-        .. code-block:: console
+         .. code-block:: console
 
             C:\> py -m pip list -o --format columns
             Package    Version Latest Type
@@ -138,29 +138,29 @@ Examples
 #. List packages that are not dependencies of other packages. Can be combined with
    other options.
 
-    .. tabs::
+   .. tabs::
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: console
+         .. code-block:: console
 
             $ python -m pip list --outdated --not-required
             docutils (Current: 0.10 Latest: 0.11)
 
       .. group-tab:: Windows
 
-        .. code-block:: console
+         .. code-block:: console
 
             C:\> py -m pip list --outdated --not-required
             docutils (Current: 0.10 Latest: 0.11)
 
 #. Use legacy formatting
 
-    .. tabs::
+   .. tabs::
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: console
+         .. code-block:: console
 
             $ python -m pip list --format=legacy
             colorama (0.3.7)
@@ -170,7 +170,7 @@ Examples
 
       .. group-tab:: Windows
 
-        .. code-block:: console
+         .. code-block:: console
 
             C:\> py -m pip list --format=legacy
             colorama (0.3.7)
@@ -180,29 +180,29 @@ Examples
 
 #. Use json formatting
 
-    .. tabs::
+   .. tabs::
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: console
+         .. code-block:: console
 
             $ python -m pip list --format=json
             [{'name': 'colorama', 'version': '0.3.7'}, {'name': 'docopt', 'version': '0.6.2'}, ...
 
       .. group-tab:: Windows
 
-        .. code-block:: console
+         .. code-block:: console
 
             C:\> py -m pip list --format=json
             [{'name': 'colorama', 'version': '0.3.7'}, {'name': 'docopt', 'version': '0.6.2'}, ...
 
 #. Use freeze formatting
 
-    .. tabs::
+   .. tabs::
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: console
+         .. code-block:: console
 
             $ python -m pip list --format=freeze
             colorama==0.3.7
@@ -212,7 +212,7 @@ Examples
 
       .. group-tab:: Windows
 
-        .. code-block:: console
+         .. code-block:: console
 
             C:\> py -m pip list --format=freeze
             colorama==0.3.7

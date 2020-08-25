@@ -64,144 +64,148 @@ Examples
 
 #. Download a package and all of its dependencies
 
-    .. tabs::
+   .. tabs::
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-          python -m pip download SomePackage
-          python -m pip download -d . SomePackage  # equivalent to above
-          python -m pip download --no-index --find-links=/tmp/wheelhouse -d /tmp/otherwheelhouse SomePackage
+            python -m pip download SomePackage
+            python -m pip download -d . SomePackage  # equivalent to above
+            python -m pip download --no-index --find-links=/tmp/wheelhouse -d /tmp/otherwheelhouse SomePackage
 
       .. group-tab:: Windows
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-          py -m pip download SomePackage
-          py -m pip download -d . SomePackage  # equivalent to above
-          py -m pip download --no-index --find-links=/tmp/wheelhouse -d /tmp/otherwheelhouse SomePackage
+            py -m pip download SomePackage
+            py -m pip download -d . SomePackage  # equivalent to above
+            py -m pip download --no-index --find-links=/tmp/wheelhouse -d /tmp/otherwheelhouse SomePackage
 
 
 #. Download a package and all of its dependencies with OSX specific interpreter constraints.
-    This forces OSX 10.10 or lower compatibility. Since OSX deps are forward compatible,
-    this will also match ``macosx-10_9_x86_64``, ``macosx-10_8_x86_64``, ``macosx-10_8_intel``,
-    etc.
-    It will also match deps with platform ``any``. Also force the interpreter version to ``27``
-    (or more generic, i.e. ``2``) and implementation to ``cp`` (or more generic, i.e. ``py``).
+   This forces OSX 10.10 or lower compatibility. Since OSX deps are forward compatible,
+   this will also match ``macosx-10_9_x86_64``, ``macosx-10_8_x86_64``, ``macosx-10_8_intel``,
+   etc.
+   It will also match deps with platform ``any``. Also force the interpreter version to ``27``
+   (or more generic, i.e. ``2``) and implementation to ``cp`` (or more generic, i.e. ``py``).
 
-    .. tabs::
+   .. tabs::
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-          python -m pip download \
-          --only-binary=:all: \
-          --platform macosx-10_10_x86_64 \
-          --python-version 27 \
-          --implementation cp \
-          SomePackage
+            python -m pip download \
+              --only-binary=:all: \
+              --platform macosx-10_10_x86_64 \
+              --python-version 27 \
+              --implementation cp \
+              SomePackage
 
       .. group-tab:: Windows
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-          py -m pip download ^
-          --only-binary=:all: ^
-          --platform macosx-10_10_x86_64 ^
-          --python-version 27 ^
-          --implementation cp ^
-          SomePackage
+            py -m pip download ^
+              --only-binary=:all: ^
+              --platform macosx-10_10_x86_64 ^
+              --python-version 27 ^
+              --implementation cp ^
+              SomePackage
 
 #. Download a package and its dependencies with linux specific constraints.
-    Force the interpreter to be any minor version of py3k, and only accept
-    ``cp34m`` or ``none`` as the abi.
+   Force the interpreter to be any minor version of py3k, and only accept
+   ``cp34m`` or ``none`` as the abi.
 
-    .. tabs::
+   .. tabs::
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-          python -m pip download \
-          --only-binary=:all: \
-          --platform linux_x86_64 \
-          --python-version 3 \
-          --implementation cp \
-          --abi cp34m \
-          SomePackage
+            python -m pip download \
+              --only-binary=:all: \
+              --platform linux_x86_64 \
+              --python-version 3 \
+              --implementation cp \
+              --abi cp34m \
+              SomePackage
 
       .. group-tab:: Windows
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-          py -m pip download ^
-          --only-binary=:all: ^
-          --platform linux_x86_64 ^
-          --python-version 3 ^
-          --implementation cp ^
-          --abi cp34m ^
-          SomePackage
+            py -m pip download ^
+              --only-binary=:all: ^
+              --platform linux_x86_64 ^
+              --python-version 3 ^
+              --implementation cp ^
+              --abi cp34m ^
+              SomePackage
 
 #. Force platform, implementation, and abi agnostic deps.
 
-    .. tabs::
+   .. tabs::
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-          python -m pip download \
-          --only-binary=:all: \
-          --platform any \
-          --python-version 3 \
-          --implementation py \
-          --abi none \
-          SomePackage
+            python -m pip download \
+              --only-binary=:all: \
+              --platform any \
+              --python-version 3 \
+              --implementation py \
+              --abi none \
+              SomePackage
 
       .. group-tab:: Windows
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-          py -m pip download ^
-          --only-binary=:all: ^
-          --platform any ^
-          --python-version 3 ^
-          --implementation py ^
-          --abi none ^
-          SomePackage
+            py -m pip download ^
+              --only-binary=:all: ^
+              --platform any ^
+              --python-version 3 ^
+              --implementation py ^
+              --abi none ^
+              SomePackage
 
 #. Even when overconstrained, this will still correctly fetch the pip universal wheel.
 
-    .. tabs::
+   .. tabs::
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: console
+         .. code-block:: console
 
-          $ python -m pip download \
-            --only-binary=:all: \
-            --platform linux_x86_64 \
-            --python-version 33 \
-            --implementation cp \
-            --abi cp34m \
-            pip>=8
+            $ python -m pip download \
+              --only-binary=:all: \
+              --platform linux_x86_64 \
+              --python-version 33 \
+              --implementation cp \
+              --abi cp34m \
+              pip>=8
 
-          $ ls pip-8.1.1-py2.py3-none-any.whl
-          pip-8.1.1-py2.py3-none-any.whl
+         .. code-block:: console
+
+            $ ls pip-8.1.1-py2.py3-none-any.whl
+            pip-8.1.1-py2.py3-none-any.whl
 
       .. group-tab:: Windows
 
-        .. code-block:: console
+         .. code-block:: console
 
-          C:\> py -m pip download ^
-            --only-binary=:all: ^
-            --platform linux_x86_64 ^
-            --python-version 33 ^
-            --implementation cp ^
-            --abi cp34m ^
-            pip>=8
+            C:\> py -m pip download ^
+              --only-binary=:all: ^
+              --platform linux_x86_64 ^
+              --python-version 33 ^
+              --implementation cp ^
+              --abi cp34m ^
+              pip>=8
 
-          C:\> dir pip-8.1.1-py2.py3-none-any.whl
-          pip-8.1.1-py2.py3-none-any.whl
+         .. code-block:: console
+
+            C:\> dir pip-8.1.1-py2.py3-none-any.whl
+            pip-8.1.1-py2.py3-none-any.whl

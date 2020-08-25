@@ -38,26 +38,26 @@ Examples
 
 #. Uninstall a package.
 
-  .. tabs::
+   .. tabs::
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: console
+         .. code-block:: console
 
-          $ python -m pip uninstall simplejson
-          Uninstalling simplejson:
-            /home/me/env/lib/python2.7/site-packages/simplejson
-            /home/me/env/lib/python2.7/site-packages/simplejson-2.2.1-py2.7.egg-info
-          Proceed (y/n)? y
-            Successfully uninstalled simplejson
+            $ python -m pip uninstall simplejson
+            Uninstalling simplejson:
+              /home/me/env/lib/python2.7/site-packages/simplejson
+              /home/me/env/lib/python2.7/site-packages/simplejson-2.2.1-py2.7.egg-info
+            Proceed (y/n)? y
+              Successfully uninstalled simplejson
 
       .. group-tab:: Windows
 
-        .. code-block:: console
+         .. code-block:: console
 
-          C:\> py -m pip uninstall simplejson
-          Uninstalling simplejson:
-            /home/me/env/lib/python2.7/site-packages/simplejson
-            /home/me/env/lib/python2.7/site-packages/simplejson-2.2.1-py2.7.egg-info
-          Proceed (y/n)? y
-            Successfully uninstalled simplejson
+            C:\> py -m pip uninstall simplejson
+            Uninstalling simplejson:
+              /home/me/env/lib/python2.7/site-packages/simplejson
+              /home/me/env/lib/python2.7/site-packages/simplejson-2.2.1-py2.7.egg-info
+            Proceed (y/n)? y
+              Successfully uninstalled simplejson

@@ -106,25 +106,25 @@ which depends on foo:
 
       .. code-block:: console
 
-        $ python -m pip install quux
-        ...
-        Installing collected packages baz, bar, foo, quux
+         $ python -m pip install quux
+         ...
+         Installing collected packages baz, bar, foo, quux
 
-        $ python -m pip install bar
-        ...
-        Installing collected packages foo, baz, bar
+         $ python -m pip install bar
+         ...
+         Installing collected packages foo, baz, bar
 
    .. group-tab:: Windows
 
       .. code-block:: console
 
-        C:\> py -m pip install quux
-        ...
-        Installing collected packages baz, bar, foo, quux
+         C:\> py -m pip install quux
+         ...
+         Installing collected packages baz, bar, foo, quux
 
-        C:\> py -m pip install bar
-        ...
-        Installing collected packages foo, baz, bar
+         C:\> py -m pip install bar
+         ...
+         Installing collected packages foo, baz, bar
 
 
 Prior to v6.1.0, pip made no commitments about install order.
@@ -422,13 +422,13 @@ Then, to install from this repository, the syntax would be:
 
       .. code-block:: shell
 
-          python -m pip install -e "vcs+protocol://repo_url/#egg=pkg&subdirectory=pkg_dir"
+         python -m pip install -e "vcs+protocol://repo_url/#egg=pkg&subdirectory=pkg_dir"
 
    .. group-tab:: Windows
 
       .. code-block:: shell
 
-          py -m pip install -e "vcs+protocol://repo_url/#egg=pkg&subdirectory=pkg_dir"
+         py -m pip install -e "vcs+protocol://repo_url/#egg=pkg&subdirectory=pkg_dir"
 
 
 Git
@@ -683,29 +683,29 @@ option:
 
       .. code-block:: console
 
-          $ python -m pip install --require-hashes -r requirements.txt
-              ...
-              Hashes are required in --require-hashes mode (implicitly on when a hash is
-              specified for any package). These requirements were missing hashes,
-              leaving them open to tampering. These are the hashes the downloaded
-              archives actually had. You can add lines like these to your requirements
-              files to prevent tampering.
-                  pyelasticsearch==1.0 --hash=sha256:44ddfb1225054d7d6b1d02e9338e7d4809be94edbe9929a2ec0807d38df993fa
-                  more-itertools==2.2 --hash=sha256:93e62e05c7ad3da1a233def6731e8285156701e3419a5fe279017c429ec67ce0
+         $ python -m pip install --require-hashes -r requirements.txt
+         ...
+         Hashes are required in --require-hashes mode (implicitly on when a hash is
+         specified for any package). These requirements were missing hashes,
+         leaving them open to tampering. These are the hashes the downloaded
+         archives actually had. You can add lines like these to your requirements
+         files to prevent tampering.
+           pyelasticsearch==1.0 --hash=sha256:44ddfb1225054d7d6b1d02e9338e7d4809be94edbe9929a2ec0807d38df993fa
+           more-itertools==2.2 --hash=sha256:93e62e05c7ad3da1a233def6731e8285156701e3419a5fe279017c429ec67ce0
 
    .. group-tab:: Windows
 
       .. code-block:: console
 
-          C:\> py -m pip install --require-hashes -r requirements.txt
-              ...
-              Hashes are required in --require-hashes mode (implicitly on when a hash is
-              specified for any package). These requirements were missing hashes,
-              leaving them open to tampering. These are the hashes the downloaded
-              archives actually had. You can add lines like these to your requirements
-              files to prevent tampering.
-                  pyelasticsearch==1.0 --hash=sha256:44ddfb1225054d7d6b1d02e9338e7d4809be94edbe9929a2ec0807d38df993fa
-                  more-itertools==2.2 --hash=sha256:93e62e05c7ad3da1a233def6731e8285156701e3419a5fe279017c429ec67ce0
+         C:\> py -m pip install --require-hashes -r requirements.txt
+         ...
+         Hashes are required in --require-hashes mode (implicitly on when a hash is
+         specified for any package). These requirements were missing hashes,
+         leaving them open to tampering. These are the hashes the downloaded
+         archives actually had. You can add lines like these to your requirements
+         files to prevent tampering.
+           pyelasticsearch==1.0 --hash=sha256:44ddfb1225054d7d6b1d02e9338e7d4809be94edbe9929a2ec0807d38df993fa
+           more-itertools==2.2 --hash=sha256:93e62e05c7ad3da1a233def6731e8285156701e3419a5fe279017c429ec67ce0
 
 
 This can be useful in deploy scripts, to ensure that the author of the
@@ -756,34 +756,34 @@ Hash-checking mode also works with :ref:`pip download` and :ref:`pip wheel`. A
 
     .. tabs::
 
-      .. group-tab:: Unix/macOS
+       .. group-tab:: Unix/macOS
 
-        .. code-block:: shell
+          .. code-block:: shell
 
-           python -m pip install --no-deps -e .
+             python -m pip install --no-deps -e .
 
-      .. group-tab:: Windows
+       .. group-tab:: Windows
 
-        .. code-block:: shell
+          .. code-block:: shell
 
-           py -m pip install --no-deps -e .
+             py -m pip install --no-deps -e .
 
 
     Instead of ``python setup.py install``, use...
 
-    .. tabs::
+   .. tabs::
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-           python -m pip install --no-deps .
+            python -m pip install --no-deps .
 
       .. group-tab:: Windows
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-           py -m pip install --no-deps .
+            py -m pip install --no-deps .
 
 Hashes from PyPI
 ^^^^^^^^^^^^^^^^
@@ -841,15 +841,15 @@ You can install local projects or VCS projects in "editable" mode:
 
       .. code-block:: shell
 
-        python -m pip install -e path/to/SomeProject
-        python -m pip install -e git+http://repo/my_project.git#egg=SomeProject
+         python -m pip install -e path/to/SomeProject
+         python -m pip install -e git+http://repo/my_project.git#egg=SomeProject
 
    .. group-tab:: Windows
 
       .. code-block:: shell
 
-        py -m pip install -e path/to/SomeProject
-        py -m pip install -e git+http://repo/my_project.git#egg=SomeProject
+         py -m pip install -e path/to/SomeProject
+         py -m pip install -e git+http://repo/my_project.git#egg=SomeProject
 
 
 (See the :ref:`VCS Support` section above for more information on VCS-related syntax.)
@@ -957,292 +957,292 @@ Examples
 
 #. Install ``SomePackage`` and its dependencies from `PyPI`_ using :ref:`Requirement Specifiers`
 
-    .. tabs::
+   .. tabs::
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-          python -m pip install SomePackage            # latest version
-          python -m pip install SomePackage==1.0.4     # specific version
-          python -m pip install 'SomePackage>=1.0.4'     # minimum version
+            python -m pip install SomePackage            # latest version
+            python -m pip install SomePackage==1.0.4     # specific version
+            python -m pip install 'SomePackage>=1.0.4'   # minimum version
 
       .. group-tab:: Windows
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-          py -m pip install SomePackage            # latest version
-          py -m pip install SomePackage==1.0.4     # specific version
-          py -m pip install 'SomePackage>=1.0.4'     # minimum version
+            py -m pip install SomePackage            # latest version
+            py -m pip install SomePackage==1.0.4     # specific version
+            py -m pip install 'SomePackage>=1.0.4'   # minimum version
 
 
 #. Install a list of requirements specified in a file.  See the :ref:`Requirements files <Requirements Files>`.
 
-    .. tabs::
+   .. tabs::
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-          python -m pip install -r requirements.txt
+            python -m pip install -r requirements.txt
 
       .. group-tab:: Windows
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-          py -m pip install -r requirements.txt
+            py -m pip install -r requirements.txt
 
 
 #. Upgrade an already installed ``SomePackage`` to the latest from PyPI.
 
-    .. tabs::
+   .. tabs::
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-          python -m pip install --upgrade SomePackage
+            python -m pip install --upgrade SomePackage
 
       .. group-tab:: Windows
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-          py -m pip install --upgrade SomePackage
+            py -m pip install --upgrade SomePackage
 
 
 #. Install a local project in "editable" mode. See the section on :ref:`Editable Installs <editable-installs>`.
 
-    .. tabs::
+   .. tabs::
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-          python -m pip install -e .                # project in current directory
-          python -m pip install -e path/to/project  # project in another directory
+            python -m pip install -e .                # project in current directory
+            python -m pip install -e path/to/project  # project in another directory
 
       .. group-tab:: Windows
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-          py -m pip install -e .                 # project in current directory
-          py -m pip install -e path/to/project   # project in another directory
+            py -m pip install -e .                 # project in current directory
+            py -m pip install -e path/to/project   # project in another directory
 
 
 #. Install a project from VCS
 
-    .. tabs::
+   .. tabs::
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-          python -m pip install SomeProject@git+https://git.repo/some_pkg.git@1.3.1
+            python -m pip install SomeProject@git+https://git.repo/some_pkg.git@1.3.1
 
       .. group-tab:: Windows
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-          py -m pip install SomeProject@git+https://git.repo/some_pkg.git@1.3.1
+            py -m pip install SomeProject@git+https://git.repo/some_pkg.git@1.3.1
 
 
 #. Install a project from VCS in "editable" mode. See the sections on :ref:`VCS Support <VCS Support>` and :ref:`Editable Installs <editable-installs>`.
 
-    .. tabs::
+   .. tabs::
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-          python -m pip install -e git+https://git.repo/some_pkg.git#egg=SomePackage          # from git
-          python -m pip install -e hg+https://hg.repo/some_pkg.git#egg=SomePackage            # from mercurial
-          python -m python -m pip install -e svn+svn://svn.repo/some_pkg/trunk/#egg=SomePackage         # from svn
-          python -m pip install -e git+https://git.repo/some_pkg.git@feature#egg=SomePackage  # from 'feature' branch
-          python -m pip install -e "git+https://git.repo/some_repo.git#egg=subdir&subdirectory=subdir_path" # install a python package from a repo subdirectory
+            python -m pip install -e git+https://git.repo/some_pkg.git#egg=SomePackage          # from git
+            python -m pip install -e hg+https://hg.repo/some_pkg.git#egg=SomePackage            # from mercurial
+            python -m python -m pip install -e svn+svn://svn.repo/some_pkg/trunk/#egg=SomePackage         # from svn
+            python -m pip install -e git+https://git.repo/some_pkg.git@feature#egg=SomePackage  # from 'feature' branch
+            python -m pip install -e "git+https://git.repo/some_repo.git#egg=subdir&subdirectory=subdir_path" # install a python package from a repo subdirectory
 
       .. group-tab:: Windows
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-          py -m pip install -e git+https://git.repo/some_pkg.git#egg=SomePackage          # from git
-          py -m pip install -e hg+https://hg.repo/some_pkg.git#egg=SomePackage            # from mercurial
-          py -m pip install -e svn+svn://svn.repo/some_pkg/trunk/#egg=SomePackage         # from svn
-          py -m pip install -e git+https://git.repo/some_pkg.git@feature#egg=SomePackage  # from 'feature' branch
-          py -m pip install -e "git+https://git.repo/some_repo.git#egg=subdir&subdirectory=subdir_path" # install a python package from a repo subdirectory
+            py -m pip install -e git+https://git.repo/some_pkg.git#egg=SomePackage          # from git
+            py -m pip install -e hg+https://hg.repo/some_pkg.git#egg=SomePackage            # from mercurial
+            py -m pip install -e svn+svn://svn.repo/some_pkg/trunk/#egg=SomePackage         # from svn
+            py -m pip install -e git+https://git.repo/some_pkg.git@feature#egg=SomePackage  # from 'feature' branch
+            py -m pip install -e "git+https://git.repo/some_repo.git#egg=subdir&subdirectory=subdir_path" # install a python package from a repo subdirectory
 
 
 #. Install a package with `setuptools extras`_.
 
-    .. tabs::
+   .. tabs::
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-          python -m pip install SomePackage[PDF]
-          python -m pip install "SomePackage[PDF] @ git+https://git.repo/SomePackage@master#subdirectory=subdir_path"
-          python -m pip install .[PDF]  # project in current directory
-          python -m pip install SomePackage[PDF]==3.0
-          python -m pip install SomePackage[PDF,EPUB]  # multiple extras
+            python -m pip install SomePackage[PDF]
+            python -m pip install "SomePackage[PDF] @ git+https://git.repo/SomePackage@master#subdirectory=subdir_path"
+            python -m pip install .[PDF]  # project in current directory
+            python -m pip install SomePackage[PDF]==3.0
+            python -m pip install SomePackage[PDF,EPUB]  # multiple extras
 
       .. group-tab:: Windows
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-          py -m pip install SomePackage[PDF]
-          py -m pip install "SomePackage[PDF] @ git+https://git.repo/SomePackage@master#subdirectory=subdir_path"
-          py -m pip install .[PDF]  # project in current directory
-          py -m pip install SomePackage[PDF]==3.0
-          py -m pip install SomePackage[PDF,EPUB]  # multiple extras
+            py -m pip install SomePackage[PDF]
+            py -m pip install "SomePackage[PDF] @ git+https://git.repo/SomePackage@master#subdirectory=subdir_path"
+            py -m pip install .[PDF]  # project in current directory
+            py -m pip install SomePackage[PDF]==3.0
+            py -m pip install SomePackage[PDF,EPUB]  # multiple extras
 
 
 #. Install a particular source archive file.
 
-    .. tabs::
+   .. tabs::
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-          python -m pip install ./downloads/SomePackage-1.0.4.tar.gz
-          python -m pip install http://my.package.repo/SomePackage-1.0.4.zip
+            python -m pip install ./downloads/SomePackage-1.0.4.tar.gz
+            python -m pip install http://my.package.repo/SomePackage-1.0.4.zip
 
       .. group-tab:: Windows
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-          py -m pip install ./downloads/SomePackage-1.0.4.tar.gz
-          py -m pip install http://my.package.repo/SomePackage-1.0.4.zip
+            py -m pip install ./downloads/SomePackage-1.0.4.tar.gz
+            py -m pip install http://my.package.repo/SomePackage-1.0.4.zip
 
 
 #. Install a particular source archive file following :pep:`440` direct references.
 
-    .. tabs::
+   .. tabs::
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-          python -m pip install SomeProject@http://my.package.repo/SomeProject-1.2.3-py33-none-any.whl
-          python -m pip install "SomeProject @ http://my.package.repo/SomeProject-1.2.3-py33-none-any.whl"
-          python -m pip install SomeProject@http://my.package.repo/1.2.3.tar.gz
+            python -m pip install SomeProject@http://my.package.repo/SomeProject-1.2.3-py33-none-any.whl
+            python -m pip install "SomeProject @ http://my.package.repo/SomeProject-1.2.3-py33-none-any.whl"
+            python -m pip install SomeProject@http://my.package.repo/1.2.3.tar.gz
 
       .. group-tab:: Windows
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-          py -m pip install SomeProject@http://my.package.repo/SomeProject-1.2.3-py33-none-any.whl
-          py -m pip install "SomeProject @ http://my.package.repo/SomeProject-1.2.3-py33-none-any.whl"
-          py -m pip install SomeProject@http://my.package.repo/1.2.3.tar.gz
+            py -m pip install SomeProject@http://my.package.repo/SomeProject-1.2.3-py33-none-any.whl
+            py -m pip install "SomeProject @ http://my.package.repo/SomeProject-1.2.3-py33-none-any.whl"
+            py -m pip install SomeProject@http://my.package.repo/1.2.3.tar.gz
 
 
 #. Install from alternative package repositories.
 
    Install from a different index, and not `PyPI`_
 
-    .. tabs::
+   .. tabs::
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-          python -m pip install --index-url http://my.package.repo/simple/ SomePackage
+            python -m pip install --index-url http://my.package.repo/simple/ SomePackage
 
       .. group-tab:: Windows
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-          py -m pip install --index-url http://my.package.repo/simple/ SomePackage
+            py -m pip install --index-url http://my.package.repo/simple/ SomePackage
 
 
    Search an additional index during install, in addition to `PyPI`_
 
-    .. tabs::
+   .. tabs::
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-          python -m pip install --extra-index-url http://my.package.repo/simple SomePackage
+            python -m pip install --extra-index-url http://my.package.repo/simple SomePackage
 
       .. group-tab:: Windows
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-          py -m pip install --extra-index-url http://my.package.repo/simple SomePackage
+            py -m pip install --extra-index-url http://my.package.repo/simple SomePackage
 
 
    Install from a local flat directory containing archives (and don't scan indexes):
 
-    .. tabs::
+   .. tabs::
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-          python -m pip install --no-index --find-links=file:///local/dir/ SomePackage
-          python -m pip install --no-index --find-links=/local/dir/ SomePackage
-          python -m pip install --no-index --find-links=relative/dir/ SomePackage
+            python -m pip install --no-index --find-links=file:///local/dir/ SomePackage
+            python -m pip install --no-index --find-links=/local/dir/ SomePackage
+            python -m pip install --no-index --find-links=relative/dir/ SomePackage
 
       .. group-tab:: Windows
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-          py -m pip install --no-index --find-links=file:///local/dir/ SomePackage
-          py -m pip install --no-index --find-links=/local/dir/ SomePackage
-          py -m pip install --no-index --find-links=relative/dir/ SomePackage
+            py -m pip install --no-index --find-links=file:///local/dir/ SomePackage
+            py -m pip install --no-index --find-links=/local/dir/ SomePackage
+            py -m pip install --no-index --find-links=relative/dir/ SomePackage
 
 
 #. Find pre-release and development versions, in addition to stable versions.  By default, pip only finds stable versions.
 
-    .. tabs::
+   .. tabs::
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-          python -m pip install --pre SomePackage
+            python -m pip install --pre SomePackage
 
       .. group-tab:: Windows
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-          py -m pip install --pre SomePackage
+            py -m pip install --pre SomePackage
 
 
 #. Install packages from source.
 
    Do not use any binary packages
 
-    .. tabs::
+   .. tabs::
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-          python -m pip install SomePackage1 SomePackage2 --no-binary :all:
+            python -m pip install SomePackage1 SomePackage2 --no-binary :all:
 
       .. group-tab:: Windows
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-          py -m pip install SomePackage1 SomePackage2 --no-binary :all:
+            py -m pip install SomePackage1 SomePackage2 --no-binary :all:
 
    Specify ``SomePackage1`` to be installed from source:
 
-    .. tabs::
+   .. tabs::
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-          python -m pip install SomePackage1 SomePackage2 --no-binary SomePackage1
+            python -m pip install SomePackage1 SomePackage2 --no-binary SomePackage1
 
       .. group-tab:: Windows
 
-        .. code-block:: shell
+         .. code-block:: shell
 
-          py -m pip install SomePackage1 SomePackage2 --no-binary SomePackage1
+            py -m pip install SomePackage1 SomePackage2 --no-binary SomePackage1
 
 ----
 

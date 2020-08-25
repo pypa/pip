@@ -32,11 +32,11 @@ Examples
 
 #. If all dependencies are compatible:
 
-    .. tabs::
+   .. tabs::
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: console
+         .. code-block:: console
 
             $ python -m pip check
             No broken requirements found.
@@ -45,7 +45,7 @@ Examples
 
       .. group-tab:: Windows
 
-        .. code-block:: console
+         .. code-block:: console
 
             C:\> py -m pip check
             No broken requirements found.
@@ -54,11 +54,11 @@ Examples
 
 #. If a package is missing:
 
-    .. tabs::
+   .. tabs::
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: console
+         .. code-block:: console
 
             $ python -m pip check
             pyramid 1.5.2 requires WebOb, which is not installed.
@@ -67,7 +67,7 @@ Examples
 
       .. group-tab:: Windows
 
-        .. code-block:: console
+         .. code-block:: console
 
             C:\> py -m pip check
             pyramid 1.5.2 requires WebOb, which is not installed.
@@ -76,11 +76,11 @@ Examples
 
 #. If a package has the wrong version:
 
-    .. tabs::
+   .. tabs::
 
       .. group-tab:: Unix/macOS
 
-        .. code-block:: console
+         .. code-block:: console
 
             $ python -m pip check
             pyramid 1.5.2 has requirement WebOb>=1.3.1, but you have WebOb 0.8.
@@ -89,7 +89,7 @@ Examples
 
       .. group-tab:: Windows
 
-        .. code-block:: console
+         .. code-block:: console
 
             C:\> py -m pip check
             pyramid 1.5.2 has requirement WebOb>=1.3.1, but you have WebOb 0.8.

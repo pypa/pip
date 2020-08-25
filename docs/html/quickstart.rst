@@ -142,7 +142,7 @@ Uninstall a package:
 
          C:\> py -m pip uninstall SomePackage
          Uninstalling SomePackage:
-         /my/env/lib/pythonx.x/site-packages/somepackage
+           /my/env/lib/pythonx.x/site-packages/somepackage
          Proceed (y/n)? y
          Successfully uninstalled SomePackage
 
