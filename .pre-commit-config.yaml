@@ -20,6 +20,7 @@ repos:
   rev: 19.10b0
   hooks:
   - id: black
+    exclude: src/pip/_vendor
 
 - repo: https://gitlab.com/pycqa/flake8
   rev: 3.8.3
