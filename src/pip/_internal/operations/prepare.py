@@ -486,26 +486,27 @@ class RequirementPreparer(object):
         link = req.link
         self._log_preparing_link(req)
         with indent_log():
-            wheel_dist = self._fetch_metadata_using_lazy_wheel(link)
-            if wheel_dist is not None:
-                req.needs_more_preparation = True
-                return wheel_dist
+            download_dir = self._get_download_dir(req.link)
+            if download_dir is not None and link.is_wheel:
+                hashes = self._get_linked_req_hashes(req)
+                file_path = _check_download_dir(req.link, download_dir, hashes)
+                if file_path is not None:
+                    self._downloaded[req.link.url] = file_path, None
+            else:
+                file_path = None
+
+            if file_path is None:
+                wheel_dist = self._fetch_metadata_using_lazy_wheel(link)
+                if wheel_dist is not None:
+                    req.needs_more_preparation = True
+                    return wheel_dist
             return self._prepare_linked_requirement(req, parallel_builds)
 
     def prepare_linked_requirements_more(self, reqs, parallel_builds=False):
         # type: (Iterable[InstallRequirement], bool) -> None
         """Prepare a linked requirement more, if needed."""
         reqs = [req for req in reqs if req.needs_more_preparation]
-        links = []  # type: List[Link]
-        for req in reqs:
-            download_dir = self._get_download_dir(req.link)
-            if download_dir is not None:
-                hashes = self._get_linked_req_hashes(req)
-                file_path = _check_download_dir(req.link, download_dir, hashes)
-            if download_dir is None or file_path is None:
-                links.append(req.link)
-            else:
-                self._downloaded[req.link.url] = file_path, None
+        links = [req.link for req in reqs]
 
         # Let's download to a temporary directory.
         tmpdir = TempDirectory(kind="unpack", globally_managed=True).path
