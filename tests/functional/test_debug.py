@@ -45,7 +45,7 @@ def test_debug__library_versions(script):
         assert "{}=={}".format(name, value) in result.stdout
 
 
-@pytest.mark.parametrize("args", [[], ["--verbose"],])
+@pytest.mark.parametrize("args", [[], ["--verbose"]])
 def test_debug__tags(script, args):
     """
     Check the compatible tag output.
@@ -65,7 +65,7 @@ def test_debug__tags(script, args):
 
 
 @pytest.mark.parametrize(
-    "args, expected", [(["--python-version", "3.7"], "(target: version_info='3.7')"),]
+    "args, expected", [(["--python-version", "3.7"], "(target: version_info='3.7')")]
 )
 def test_debug__target_options(script, args, expected):
     """

@@ -6,7 +6,7 @@ from tests.lib.requests_mocks import MockResponse
 
 
 @pytest.mark.parametrize(
-    ("status_code", "error_type"), [(401, "Client Error"), (501, "Server Error"),]
+    ("status_code", "error_type"), [(401, "Client Error"), (501, "Server Error")]
 )
 def test_raise_for_status_raises_exception(status_code, error_type):
     contents = b"downloaded"

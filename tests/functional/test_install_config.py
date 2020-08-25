@@ -249,7 +249,7 @@ def test_prompt_for_authentication(script, data, cert_factory):
 
     server = make_mock_server(ssl_context=ctx)
     server.mock.side_effect = [
-        package_page({"simple-3.0.tar.gz": "/files/simple-3.0.tar.gz",}),
+        package_page({"simple-3.0.tar.gz": "/files/simple-3.0.tar.gz"}),
         authorization_response(str(data.packages / "simple-3.0.tar.gz")),
     ]
 
@@ -286,7 +286,7 @@ def test_do_not_prompt_for_authentication(script, data, cert_factory):
     server = make_mock_server(ssl_context=ctx)
 
     server.mock.side_effect = [
-        package_page({"simple-3.0.tar.gz": "/files/simple-3.0.tar.gz",}),
+        package_page({"simple-3.0.tar.gz": "/files/simple-3.0.tar.gz"}),
         authorization_response(str(data.packages / "simple-3.0.tar.gz")),
     ]
 

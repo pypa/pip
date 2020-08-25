@@ -34,7 +34,7 @@ from tests.lib import make_test_link_collector, skip_if_python2
 
 
 @pytest.mark.parametrize(
-    "url", ["ftp://python.org/python-3.7.1.zip", "file:///opt/data/pip-18.0.tar.gz",],
+    "url", ["ftp://python.org/python-3.7.1.zip", "file:///opt/data/pip-18.0.tar.gz"],
 )
 def test_get_html_response_archive_to_naive_scheme(url):
     """
@@ -62,22 +62,20 @@ def test_get_html_response_archive_to_http_scheme(
     """
     session = mock.Mock(PipSession)
     session.head.return_value = mock.Mock(
-        **{"request.method": "HEAD", "headers": {"Content-Type": content_type},}
+        **{"request.method": "HEAD", "headers": {"Content-Type": content_type}}
     )
 
     with pytest.raises(_NotHTML) as ctx:
         _get_html_response(url, session=session)
 
-    session.assert_has_calls(
-        [mock.call.head(url, allow_redirects=True),]
-    )
+    session.assert_has_calls([mock.call.head(url, allow_redirects=True)])
     mock_raise_for_status.assert_called_once_with(session.head.return_value)
     assert ctx.value.args == (content_type, "HEAD")
 
 
 @pytest.mark.parametrize(
     "url",
-    [("ftp://python.org/python-3.7.1.zip"), ("file:///opt/data/pip-18.0.tar.gz"),],
+    [("ftp://python.org/python-3.7.1.zip"), ("file:///opt/data/pip-18.0.tar.gz")],
 )
 def test_get_html_page_invalid_content_type_archive(caplog, url):
     """`_get_html_page()` should warn if an archive URL is not HTML
@@ -98,7 +96,7 @@ def test_get_html_page_invalid_content_type_archive(caplog, url):
 
 
 @pytest.mark.parametrize(
-    "url", ["http://python.org/python-3.7.1.zip", "https://pypi.org/pip-18.0.tar.gz",],
+    "url", ["http://python.org/python-3.7.1.zip", "https://pypi.org/pip-18.0.tar.gz"],
 )
 @mock.patch("pip._internal.index.collector.raise_for_status")
 def test_get_html_response_archive_to_http_scheme_is_html(mock_raise_for_status, url):
@@ -108,7 +106,7 @@ def test_get_html_response_archive_to_http_scheme_is_html(mock_raise_for_status,
     """
     session = mock.Mock(PipSession)
     session.head.return_value = mock.Mock(
-        **{"request.method": "HEAD", "headers": {"Content-Type": "text/html"},}
+        **{"request.method": "HEAD", "headers": {"Content-Type": "text/html"}}
     )
     session.get.return_value = mock.Mock(headers={"Content-Type": "text/html"})
 
@@ -118,7 +116,7 @@ def test_get_html_response_archive_to_http_scheme_is_html(mock_raise_for_status,
     assert session.mock_calls == [
         mock.call.head(url, allow_redirects=True),
         mock.call.get(
-            url, headers={"Accept": "text/html", "Cache-Control": "max-age=0",}
+            url, headers={"Accept": "text/html", "Cache-Control": "max-age=0"}
         ),
     ]
     assert mock_raise_for_status.mock_calls == [
@@ -145,7 +143,7 @@ def test_get_html_response_no_head(mock_raise_for_status, url):
 
     # Mock the headers dict to ensure it is accessed.
     session.get.return_value = mock.Mock(
-        headers=mock.Mock(**{"get.return_value": "text/html",})
+        headers=mock.Mock(**{"get.return_value": "text/html"})
     )
 
     resp = _get_html_response(url, session=session)
@@ -153,7 +151,7 @@ def test_get_html_response_no_head(mock_raise_for_status, url):
     assert resp is not None
     assert session.head.call_count == 0
     assert session.get.mock_calls == [
-        mock.call(url, headers={"Accept": "text/html", "Cache-Control": "max-age=0",}),
+        mock.call(url, headers={"Accept": "text/html", "Cache-Control": "max-age=0"}),
         mock.call().headers.get("Content-Type", ""),
     ]
     mock_raise_for_status.assert_called_once_with(resp)
@@ -169,7 +167,7 @@ def test_get_html_response_dont_log_clear_text_password(mock_raise_for_status, c
 
     # Mock the headers dict to ensure it is accessed.
     session.get.return_value = mock.Mock(
-        headers=mock.Mock(**{"get.return_value": "text/html",})
+        headers=mock.Mock(**{"get.return_value": "text/html"})
     )
 
     caplog.set_level(logging.DEBUG)
@@ -509,7 +507,7 @@ def test_get_html_page_invalid_scheme(caplog, url, vcs_scheme):
 
 
 @pytest.mark.parametrize(
-    "content_type", ["application/xhtml+xml", "application/json",],
+    "content_type", ["application/xhtml+xml", "application/json"],
 )
 @mock.patch("pip._internal.index.collector.raise_for_status")
 def test_get_html_page_invalid_content_type(
@@ -524,7 +522,7 @@ def test_get_html_page_invalid_content_type(
 
     session = mock.Mock(PipSession)
     session.get.return_value = mock.Mock(
-        **{"request.method": "GET", "headers": {"Content-Type": content_type},}
+        **{"request.method": "GET", "headers": {"Content-Type": content_type}}
     )
     assert _get_html_page(link, session=session) is None
     mock_raise_for_status.assert_called_once_with(session.get.return_value)

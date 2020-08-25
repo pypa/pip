@@ -236,7 +236,7 @@ class TestStashedUninstallPathSet(object):
     def test_compress_for_rename(self, monkeypatch):
         paths = [
             os.path.sep.join(p.split("/"))
-            for p in ["A/B/b.py", "A/B/D/c.py", "A/C/d.py", "A/E/f.py", "A/G/g.py",]
+            for p in ["A/B/b.py", "A/B/D/c.py", "A/C/d.py", "A/E/f.py", "A/G/g.py"]
         ]
 
         expected_paths = [
@@ -275,7 +275,7 @@ class TestStashedUninstallPathSet(object):
 
     def test_stash(self, tmpdir):
         pathset, stashed_paths = self.make_stash(
-            tmpdir, ["A/B/", "A/C/d.py", "A/E/", "A/G/g.py",]
+            tmpdir, ["A/B/", "A/C/d.py", "A/E/", "A/G/g.py"]
         )
 
         for old_path, new_path in stashed_paths:
@@ -286,7 +286,7 @@ class TestStashedUninstallPathSet(object):
 
     def test_commit(self, tmpdir):
         pathset, stashed_paths = self.make_stash(
-            tmpdir, ["A/B/", "A/C/d.py", "A/E/", "A/G/g.py",]
+            tmpdir, ["A/B/", "A/C/d.py", "A/E/", "A/G/g.py"]
         )
 
         pathset.commit()
@@ -297,7 +297,7 @@ class TestStashedUninstallPathSet(object):
 
     def test_rollback(self, tmpdir):
         pathset, stashed_paths = self.make_stash(
-            tmpdir, ["A/B/", "A/C/d.py", "A/E/", "A/G/g.py",]
+            tmpdir, ["A/B/", "A/C/d.py", "A/E/", "A/G/g.py"]
         )
 
         pathset.rollback()

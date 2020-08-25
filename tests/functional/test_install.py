@@ -1896,7 +1896,7 @@ def test_install_yanked_file_and_print_warning(script, data):
     assert "Successfully installed simple-3.0\n" in result.stdout, str(result)
 
 
-@pytest.mark.parametrize("install_args", [(), ("--trusted-host", "localhost"),])
+@pytest.mark.parametrize("install_args", [(), ("--trusted-host", "localhost")])
 def test_install_sends_client_cert(install_args, script, cert_factory, data):
     cert_path = cert_factory()
     ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
@@ -1906,7 +1906,7 @@ def test_install_sends_client_cert(install_args, script, cert_factory, data):
 
     server = make_mock_server(ssl_context=ctx)
     server.mock.side_effect = [
-        package_page({"simple-3.0.tar.gz": "/files/simple-3.0.tar.gz",}),
+        package_page({"simple-3.0.tar.gz": "/files/simple-3.0.tar.gz"}),
         file_response(str(data.packages / "simple-3.0.tar.gz")),
     ]
 

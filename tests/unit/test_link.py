@@ -77,7 +77,7 @@ class TestLink:
 
     @pytest.mark.parametrize(
         "yanked_reason, expected",
-        [(None, False), ("", True), ("there was a mistake", True),],
+        [(None, False), ("", True), ("there was a mistake", True)],
     )
     def test_is_yanked(self, yanked_reason, expected):
         link = Link("https://example.com/wheel.whl", yanked_reason=yanked_reason,)

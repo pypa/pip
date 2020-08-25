@@ -196,7 +196,7 @@ def test_new_resolver_ignore_dependencies(script):
 
 
 @pytest.mark.parametrize(
-    "root_dep", ["base[add]", "base[add] >= 0.1.0",],
+    "root_dep", ["base[add]", "base[add] >= 0.1.0"],
 )
 def test_new_resolver_installs_extras(tmpdir, script, root_dep):
     req_file = tmpdir.joinpath("requirements.txt")
@@ -901,7 +901,7 @@ class TestExtraMerge(object):
         return name
 
     @pytest.mark.parametrize(
-        "pkg_builder", [_local_with_setup, _direct_wheel, _wheel_from_index,],
+        "pkg_builder", [_local_with_setup, _direct_wheel, _wheel_from_index],
     )
     def test_new_resolver_extra_merge_in_package(
         self, monkeypatch, script, pkg_builder,

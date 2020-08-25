@@ -89,7 +89,7 @@ def test_create_and_cleanup_work():
 
 
 @pytest.mark.parametrize(
-    "name", ["ABC", "ABC.dist-info", "_+-", "_package", "A......B", "AB", "A", "2",]
+    "name", ["ABC", "ABC.dist-info", "_+-", "_package", "A......B", "AB", "A", "2"]
 )
 def test_adjacent_directory_names(name):
     def names():
@@ -142,7 +142,7 @@ def test_adjacent_directory_names(name):
             assert all(x.endswith(name) for x in some_names)
 
 
-@pytest.mark.parametrize("name", ["A", "ABC", "ABC.dist-info", "_+-", "_package",])
+@pytest.mark.parametrize("name", ["A", "ABC", "ABC.dist-info", "_+-", "_package"])
 def test_adjacent_directory_exists(name, tmpdir):
     block_name, expect_name = itertools.islice(
         AdjacentTempDirectory._generate_names(name), 2

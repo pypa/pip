@@ -383,7 +383,7 @@ class InstallRequirement(object):
             op = "==="
 
         self.req = Requirement(
-            "".join([self.metadata["Name"], op, self.metadata["Version"],])
+            "".join([self.metadata["Name"], op, self.metadata["Version"]])
         )
 
     def warn_on_mismatching_name(self):

@@ -723,9 +723,7 @@ def create_env_error_message(error, show_traceback, using_user_site):
         permissions_part = "Check the permissions"
 
         if not using_user_site:
-            parts.extend(
-                [user_option_part, " or ", permissions_part.lower(),]
-            )
+            parts.extend([user_option_part, " or ", permissions_part.lower()])
         else:
             parts.append(permissions_part)
         parts.append(".\n")

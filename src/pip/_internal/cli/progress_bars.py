@@ -243,7 +243,7 @@ class DownloadProgressSpinner(
         phase = self.next_phase()
         suffix = self.suffix % self
         line = "".join(
-            [message, " " if message else "", phase, " " if suffix else "", suffix,]
+            [message, " " if message else "", phase, " " if suffix else "", suffix]
         )
 
         self.writeln(line)

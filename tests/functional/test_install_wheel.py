@@ -115,7 +115,7 @@ def test_basic_install_from_unicode_wheel(script, data):
     make_wheel(
         "unicode_package",
         "1.0",
-        extra_files={"வணக்கம்/__init__.py": b"", "வணக்கம்/નમસ્તે.py": b"",},
+        extra_files={"வணக்கம்/__init__.py": b"", "வணக்கம்/નમસ્તે.py": b""},
     ).save_to_dir(script.scratch_path)
 
     result = script.pip(
@@ -287,7 +287,7 @@ def test_wheel_record_lines_in_deterministic_order(script, data):
 
 def test_wheel_record_lines_have_hash_for_data_files(script):
     package = make_wheel(
-        "simple", "0.1.0", extra_data_files={"purelib/info.txt": "c",},
+        "simple", "0.1.0", extra_data_files={"purelib/info.txt": "c"},
     ).save_to_dir(script.scratch_path)
     script.pip("install", package)
     record_file = script.site_packages_path / "simple-0.1.0.dist-info" / "RECORD"

@@ -167,7 +167,7 @@ def text_html_response(text):
     # type: (Text) -> Responder
     def responder(environ, start_response):
         # type: (Environ, StartResponse) -> Body
-        start_response("200 OK", [("Content-Type", "text/html; charset=UTF-8"),])
+        start_response("200 OK", [("Content-Type", "text/html; charset=UTF-8")])
         return [text.encode("utf-8")]
 
     return responder
@@ -233,7 +233,7 @@ def authorization_response(path):
         # type: (Environ, StartResponse) -> Body
 
         start_response(
-            "401 Unauthorized", [("WWW-Authenticate", "Basic"),],
+            "401 Unauthorized", [("WWW-Authenticate", "Basic")],
         )
 
         with open(path, "rb") as f:

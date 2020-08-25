@@ -69,5 +69,5 @@ class Tests_UninstallUserSite:
         assert_all_changes(
             result1,
             result2,
-            [script.venv / "build", "cache", script.user_site / "easy-install.pth",],
+            [script.venv / "build", "cache", script.user_site / "easy-install.pth"],
         )

@@ -29,8 +29,8 @@ def test_pypi_xml_transformation():
 
     """
     pypi_hits = [
-        {"name": "foo", "summary": "foo summary", "version": "1.0",},
-        {"name": "foo", "summary": "foo summary v2", "version": "2.0",},
+        {"name": "foo", "summary": "foo summary", "version": "1.0"},
+        {"name": "foo", "summary": "foo summary v2", "version": "2.0"},
         {
             "_pypi_ordering": 50,
             "name": "bar",
@@ -39,8 +39,8 @@ def test_pypi_xml_transformation():
         },
     ]
     expected = [
-        {"versions": ["1.0", "2.0"], "name": "foo", "summary": "foo summary v2",},
-        {"versions": ["1.0"], "name": "bar", "summary": "bar summary",},
+        {"versions": ["1.0", "2.0"], "name": "foo", "summary": "foo summary v2"},
+        {"versions": ["1.0"], "name": "bar", "summary": "bar summary"},
     ]
     assert transform_hits(pypi_hits) == expected
 

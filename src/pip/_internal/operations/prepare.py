@@ -54,7 +54,7 @@ if MYPY_CHECK_RUNNING:
     if PY2:
         CopytreeKwargs = TypedDict(
             "CopytreeKwargs",
-            {"ignore": Callable[[str, List[str]], List[str]], "symlinks": bool,},
+            {"ignore": Callable[[str, List[str]], List[str]], "symlinks": bool},
             total=False,
         )
     else:

@@ -98,7 +98,7 @@ def check_dist_restriction(options, check_target=False):
     :param check_target: Whether or not to check if --target is being used.
     """
     dist_restriction_set = any(
-        [options.python_version, options.platform, options.abi, options.implementation,]
+        [options.python_version, options.platform, options.abi, options.implementation]
     )
 
     binary_only = FormatControl(set(), {":all:"})
@@ -996,5 +996,5 @@ general_group = {
 
 index_group = {
     "name": "Package Index Options",
-    "options": [index_url, extra_index_url, no_index, find_links,],
+    "options": [index_url, extra_index_url, no_index, find_links],
 }  # type: Dict[str, Any]

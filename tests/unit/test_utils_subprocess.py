@@ -301,7 +301,7 @@ class TestCallSubprocess(object):
 
         expected = (
             None,
-            [("pip.subprocessor", ERROR, "Complete output (3 lines):\n"),],
+            [("pip.subprocessor", ERROR, "Complete output (3 lines):\n")],
         )
         # The spinner should spin three times in this case since the
         # subprocess output isn't being written to the console.

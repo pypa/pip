@@ -139,7 +139,7 @@ class TestJoinLines(object):
         assert expect == list(join_lines(lines))
 
     def test_last_line_with_escape(self):
-        lines = enumerate(["line 1", "line 2 \\",], start=1)
+        lines = enumerate(["line 1", "line 2 \\"], start=1)
         expect = [
             (1, "line 1"),
             (2, "line 2 "),
@@ -572,7 +572,7 @@ class TestParseRequirements(object):
             return "${{{name}}}".format(**locals())
 
         env_vars = collections.OrderedDict(
-            [("GITHUB_TOKEN", "notarealtoken"), ("DO_12_FACTOR", "awwyeah"),]
+            [("GITHUB_TOKEN", "notarealtoken"), ("DO_12_FACTOR", "awwyeah")]
         )
 
         with open(tmpdir.joinpath("req1.txt"), "w") as fp:

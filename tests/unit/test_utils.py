@@ -615,7 +615,7 @@ class TestGlibc(object):
 
     @pytest.mark.parametrize(
         "failure",
-        [lambda x: raises(ValueError), lambda x: raises(OSError), lambda x: "XXX",],
+        [lambda x: raises(ValueError), lambda x: raises(OSError), lambda x: "XXX"],
     )
     def test_glibc_version_string_confstr_fail(self, monkeypatch, failure):
         monkeypatch.setattr(os, "confstr", failure, raising=False)

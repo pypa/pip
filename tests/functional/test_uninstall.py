@@ -93,7 +93,7 @@ def test_uninstall_easy_install_after_import(script):
     assert_all_changes(
         result,
         result2,
-        [script.venv / "build", "cache", script.site_packages / "easy-install.pth",],
+        [script.venv / "build", "cache", script.site_packages / "easy-install.pth"],
     )
 
 
@@ -198,7 +198,7 @@ def test_uninstall_entry_point_colon_in_name(script, console_scripts):
         name=pkg_name,
         version="0.1",
         entry_points={
-            "console_scripts": [console_scripts,],
+            "console_scripts": [console_scripts],
             "pip_test.ep": [
                 "ep:name1 = distutils_install",
                 "ep:name2 = distutils_install",
@@ -227,7 +227,7 @@ def test_uninstall_gui_scripts(script):
         script,
         name=pkg_name,
         version="0.1",
-        entry_points={"gui_scripts": ["test_ = distutils_install",],},
+        entry_points={"gui_scripts": ["test_ = distutils_install"]},
     )
     script_name = script.bin_path.joinpath("test_")
     if sys.platform == "win32":
@@ -263,7 +263,7 @@ def test_uninstall_console_scripts_uppercase_name(script):
         script,
         name="ep_install",
         version="0.1",
-        entry_points={"console_scripts": ["Test = distutils_install",],},
+        entry_points={"console_scripts": ["Test = distutils_install"]},
     )
     script_name = script.bin_path.joinpath("Test" + script.exe)
 
@@ -287,7 +287,7 @@ def test_uninstall_easy_installed_console_scripts(script):
     assert_all_changes(
         result,
         result2,
-        [script.venv / "build", "cache", script.site_packages / "easy-install.pth",],
+        [script.venv / "build", "cache", script.site_packages / "easy-install.pth"],
     )
 
 

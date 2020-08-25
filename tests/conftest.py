@@ -178,7 +178,7 @@ def isolate(tmpdir):
         # Note: this will only take effect in subprocesses...
         home_drive, home_path = os.path.splitdrive(home_dir)
         os.environ.update(
-            {"USERPROFILE": home_dir, "HOMEDRIVE": home_drive, "HOMEPATH": home_path,}
+            {"USERPROFILE": home_dir, "HOMEDRIVE": home_drive, "HOMEPATH": home_path}
         )
         for env_var, sub_path in (
             ("APPDATA", "AppData/Roaming"),

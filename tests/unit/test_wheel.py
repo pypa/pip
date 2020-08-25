@@ -96,9 +96,7 @@ def test_get_entrypoints(console_scripts):
     )
 
     wheel_zip = make_wheel(
-        "simple",
-        "0.1.0",
-        extra_metadata_files={"entry_points.txt": entry_points_text,},
+        "simple", "0.1.0", extra_metadata_files={"entry_points.txt": entry_points_text},
     ).as_zipfile()
     distribution = pkg_resources_distribution_for_wheel(
         wheel_zip, "simple", "<in memory>"
@@ -124,7 +122,7 @@ def test_get_entrypoints_no_entrypoints():
 @pytest.mark.parametrize(
     "outrows, expected",
     [
-        ([(u"", "", "a"), (u"", "", ""),], [("", "", ""), ("", "", "a"),]),
+        ([(u"", "", "a"), (u"", "", "")], [("", "", ""), ("", "", "a")]),
         (
             [
                 # Include an int to check avoiding the following error:
@@ -132,7 +130,7 @@ def test_get_entrypoints_no_entrypoints():
                 (u"", "", 1),
                 (u"", "", ""),
             ],
-            [("", "", ""), ("", "", "1"),],
+            [("", "", ""), ("", "", "1")],
         ),
         (
             [
@@ -140,7 +138,7 @@ def test_get_entrypoints_no_entrypoints():
                 (u"😉", "", 1),
                 (u"", "", ""),
             ],
-            [("", "", ""), ("😉", "", "1"),],
+            [("", "", ""), ("😉", "", "1")],
         ),
     ],
 )
@@ -260,7 +258,7 @@ class TestInstallUnpackedWheel(object):
                 ...
                 """
             ),
-            metadata_updates={"Requires-Dist": ["peppercorn"],},
+            metadata_updates={"Requires-Dist": ["peppercorn"]},
             extra_files={
                 "sample/__init__.py": textwrap.dedent(
                     '''
@@ -285,7 +283,7 @@ class TestInstallUnpackedWheel(object):
                 "top_level.txt": "sample\n",
                 "empty_dir/empty_dir/": "",
             },
-            extra_data_files={"data/my_data/data_file": "some data",},
+            extra_data_files={"data/my_data/data_file": "some data"},
             entry_points={
                 "console_scripts": ["sample = sample:main"],
                 "gui_scripts": ["sample2 = sample:main"],

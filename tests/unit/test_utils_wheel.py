@@ -104,7 +104,7 @@ def test_wheel_version_fails_on_no_wheel_version():
     assert "missing Wheel-Version" in str(e.value)
 
 
-@pytest.mark.parametrize("version", [("",), ("1.b",), ("1.",),])
+@pytest.mark.parametrize("version", [("",), ("1.b",), ("1.",)])
 def test_wheel_version_fails_on_bad_wheel_version(version):
     with pytest.raises(UnsupportedWheel) as e:
         wheel.wheel_version(message_from_string("Wheel-Version: {}".format(version)))

@@ -108,7 +108,7 @@ def test_sanitize_content_filename__platform_dependent(
 
 @pytest.mark.parametrize(
     "content_disposition, default_filename, expected",
-    [('attachment;filename="../file"', "df", "file"),],
+    [('attachment;filename="../file"', "df", "file")],
 )
 def test_parse_content_disposition(content_disposition, default_filename, expected):
     actual = parse_content_disposition(content_disposition, default_filename)

@@ -98,7 +98,7 @@ def make_metadata_file(
         return File(path, ensure_binary(value))
 
     metadata = CaseInsensitiveDict(
-        {"Metadata-Version": "2.1", "Name": name, "Version": version,}
+        {"Metadata-Version": "2.1", "Name": name, "Version": version}
     )
     if updates is not _default:
         metadata.update(updates)
@@ -244,7 +244,7 @@ def record_file_maker_wrapper(
 def wheel_name(name, version, pythons, abis, platforms):
     # type: (str, str, str, str, str) -> str
     stem = "-".join(
-        [name, version, ".".join(pythons), ".".join(abis), ".".join(platforms),]
+        [name, version, ".".join(pythons), ".".join(abis), ".".join(platforms)]
     )
     return "{}.whl".format(stem)
 

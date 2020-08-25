@@ -295,7 +295,7 @@ def test_filter_unallowed_hashes__log_message_with_no_match(caplog):
 class TestCandidateEvaluator:
     @pytest.mark.parametrize(
         "allow_all_prereleases, prefer_binary",
-        [(False, False), (False, True), (True, False), (True, True),],
+        [(False, False), (False, True), (True, False), (True, True)],
     )
     def test_create(self, allow_all_prereleases, prefer_binary):
         target_python = TargetPython()
@@ -486,7 +486,7 @@ class TestCandidateEvaluator:
 class TestPackageFinder:
     @pytest.mark.parametrize(
         "allow_all_prereleases, prefer_binary",
-        [(False, False), (False, True), (True, False), (True, True),],
+        [(False, False), (False, True), (True, False), (True, True)],
     )
     def test_create__candidate_prefs(
         self, allow_all_prereleases, prefer_binary,
@@ -658,7 +658,7 @@ class TestPackageFinder:
 
     @pytest.mark.parametrize(
         "allow_all_prereleases, prefer_binary",
-        [(False, False), (False, True), (True, False), (True, True),],
+        [(False, False), (False, True), (True, False), (True, True)],
     )
     def test_make_candidate_evaluator(
         self, allow_all_prereleases, prefer_binary,

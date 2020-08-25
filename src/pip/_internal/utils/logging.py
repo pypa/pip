@@ -343,7 +343,7 @@ def setup_logging(verbosity, no_color, user_log_file):
                 },
             },
             "formatters": {
-                "indent": {"()": IndentingFormatter, "format": "%(message)s",},
+                "indent": {"()": IndentingFormatter, "format": "%(message)s"},
                 "indent_with_timestamp": {
                     "()": IndentingFormatter,
                     "format": "%(message)s",
@@ -385,7 +385,7 @@ def setup_logging(verbosity, no_color, user_log_file):
                     "formatter": "indent_with_timestamp",
                 },
             },
-            "root": {"level": root_level, "handlers": handlers,},
+            "root": {"level": root_level, "handlers": handlers},
             "loggers": {"pip._vendor": {"level": vendored_log_level}},
         }
     )

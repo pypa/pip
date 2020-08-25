@@ -102,7 +102,7 @@ def user_agent():
     data = {
         "installer": {"name": "pip", "version": __version__},
         "python": platform.python_version(),
-        "implementation": {"name": platform.python_implementation(),},
+        "implementation": {"name": platform.python_implementation()},
     }
 
     if data["implementation"]["name"] == "CPython":

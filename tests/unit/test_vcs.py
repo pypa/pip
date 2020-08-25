@@ -430,7 +430,7 @@ def test_subversion__get_url_rev_and_auth(url, expected):
 # Git as a representative.
 @pytest.mark.parametrize(
     "username, password, expected",
-    [(None, None, []), ("user", None, []), ("user", hide_value("pass"), []),],
+    [(None, None, []), ("user", None, []), ("user", hide_value("pass"), [])],
 )
 def test_git__make_rev_args(username, password, expected):
     """
@@ -560,7 +560,7 @@ def test_subversion__call_vcs_version_svn_not_installed(mock_run_command):
         Subversion().call_vcs_version()
 
 
-@pytest.mark.parametrize("version", [(), (1,), (1, 8), (1, 8, 0),])
+@pytest.mark.parametrize("version", [(), (1,), (1, 8), (1, 8, 0)])
 def test_subversion__get_vcs_version_cached(version):
     """
     Test Subversion.get_vcs_version() with previously cached result.
@@ -570,7 +570,7 @@ def test_subversion__get_vcs_version_cached(version):
     assert svn.get_vcs_version() == version
 
 
-@pytest.mark.parametrize("vcs_version", [(), (1, 7), (1, 8, 0),])
+@pytest.mark.parametrize("vcs_version", [(), (1, 7), (1, 8, 0)])
 @patch("pip._internal.vcs.subversion.Subversion.call_vcs_version")
 def test_subversion__get_vcs_version_call_vcs(mock_call_vcs, vcs_version):
     """
@@ -700,6 +700,4 @@ class TestSubversionArgs(TestCase):
 
     def test_update(self):
         self.svn.update(self.dest, hide_url(self.url), self.rev_options)
-        self.assert_call_args(
-            ["svn", "update", "--non-interactive", "/tmp/test",]
-        )
+        self.assert_call_args(["svn", "update", "--non-interactive", "/tmp/test"])
