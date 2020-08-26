@@ -115,8 +115,38 @@ def use_new_resolver(request):
         yield new_resolver
 
 
+@pytest.fixture(scope='session', autouse=True)
+def simulate_logname_backslash_issue():
+    """Force `getpass.getuser()` result to contain a backslash.
+
+    `getpass.getuser()` is used by `tmpdir` and `tmpdir_factory` fixtures to
+    generate temporary filenames.
+
+    Some parts of the code are interpreting a backslash in `tmpdir(_factory)` as
+    a folder separator.
+
+    Other parts treat it as regular, filesystem-safe character.
+
+    Other parts still treat it as an attempt to escape the following character.
+
+    This is causing test failures on posix machines connected to AD domains
+    where the username is of the form `DOMAINNAME\loginname`.
+    """
+    bs = '\\'
+    if os.sep == bs:
+        # Simluate this on posix enviornments only
+        return
+    for env_name in ('LOGNAME', 'USER', 'LNAME', 'USERNAME'):
+        login_name = os.environ.get(env_name)
+        if login_name is not None:
+            # LOGNAME is the first env var that getpass.getuser() checks. Let's
+            # set it to `DOMAIN\login` to surface errors due to backslash
+            # mishandling:
+            os.environ['LOGNAME'] = 'DOMAIN' + bs + login_name
+
+
 @pytest.fixture(scope='session')
-def tmpdir_factory(request, tmpdir_factory):
+def tmpdir_factory(simulate_logname_backslash_issue, request, tmpdir_factory):
     """ Modified `tmpdir_factory` session fixture
     that will automatically cleanup after itself.
     """
@@ -132,7 +162,7 @@ def tmpdir_factory(request, tmpdir_factory):
 
 
 @pytest.fixture
-def tmpdir(request, tmpdir):
+def tmpdir(simulate_logname_backslash_issue, request, tmpdir):
     """
     Return a temporary directory path object which is unique to each test
     function invocation, created as a sub directory of the base temporary
