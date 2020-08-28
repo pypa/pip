@@ -45,16 +45,16 @@ class TestTargetPython:
         ({}, ''),
         (dict(py_version_info=(3, 6)), "version_info='3.6'"),
         (
-            dict(platform='darwin', py_version_info=(3, 6)),
-            "platform='darwin' version_info='3.6'",
+            dict(platforms=['darwin'], py_version_info=(3, 6)),
+            "platforms=['darwin'] version_info='3.6'",
         ),
         (
             dict(
-                platform='darwin', py_version_info=(3, 6), abi='cp36m',
+                platforms=['darwin'], py_version_info=(3, 6), abis=['cp36m'],
                 implementation='cp'
             ),
             (
-                "platform='darwin' version_info='3.6' abi='cp36m' "
+                "platforms=['darwin'] version_info='3.6' abis=['cp36m'] "
                 "implementation='cp'"
             ),
         ),

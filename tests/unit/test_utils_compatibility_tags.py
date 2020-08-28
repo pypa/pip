@@ -63,7 +63,7 @@ class TestManylinux2010Tags(object):
         Specifying manylinux2010 implies manylinux1.
         """
         groups = {}
-        supported = compatibility_tags.get_supported(platform=manylinux2010)
+        supported = compatibility_tags.get_supported(platforms=[manylinux2010])
         for tag in supported:
             groups.setdefault(
                 (tag.interpreter, tag.abi), []
@@ -87,7 +87,7 @@ class TestManylinux2014Tags(object):
         Specifying manylinux2014 implies manylinux2010/manylinux1.
         """
         groups = {}
-        supported = compatibility_tags.get_supported(platform=manylinuxA)
+        supported = compatibility_tags.get_supported(platforms=[manylinuxA])
         for tag in supported:
             groups.setdefault(
                 (tag.interpreter, tag.abi), []

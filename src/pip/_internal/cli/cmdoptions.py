@@ -31,7 +31,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from optparse import OptionParser, Values
-    from typing import Any, Callable, Dict, Optional, Tuple
+    from typing import Any, Callable, Dict, List, Optional, Tuple
 
     from pip._internal.cli.parser import ConfigOptionParser
 
@@ -588,7 +588,7 @@ abi = partial(
     metavar='abi',
     default=None,
     help=("Only use wheels compatible with Python "
-          "abi <abi>, e.g. 'pypy_41'.  If not specified, then the "
+          "abi <abi>, e.g. 'pypy_41,none'.  If not specified, then the "
           "current interpreter abi tag is used.  Generally "
           "you will need to specify --implementation, "
           "--platform, and --python-version when using "
@@ -606,10 +606,21 @@ def add_target_python_options(cmd_opts):
 
 def make_target_python(options):
     # type: (Values) -> TargetPython
+
+    # abi can be a comma-separated list of values.
+    abis = options.abi  # type: Optional[List[str]]
+    if options.abi:
+        abis = options.abi.split(',')
+
+    # platform can also be a comma-separated list of values.
+    platforms = options.platform  # type: Optional[List[str]]
+    if options.platform:
+        platforms = options.platform.split(',')
+
     target_python = TargetPython(
-        platform=options.platform,
+        platforms=platforms,
         py_version_info=options.python_version,
-        abi=options.abi,
+        abis=abis,
         implementation=options.implementation,
     )
 
