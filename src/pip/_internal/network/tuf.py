@@ -37,7 +37,7 @@ class Updater:
                 'url_prefix': base_url,
                 'metadata_path': 'tuf/',
                 'targets_path': targets_path,
-                'confined_target_dirs': ['']
+                'confined_target_dirs': [targets_path]
             }
         }
         self._updater = tuf.client.updater.Updater(dir_name, mirrors)
@@ -60,6 +60,9 @@ class Updater:
         # the distribution mirror is only known after the index
         # files are read: make sure it's configured
 
+        # TODO: split mirror_url into prefix and targets_path ?
+        # This would allow using confined_target_dirs to prevent
+        # index file requests being made to this mirror
         if mirror_url not in self._updater.mirrors:
             self._updater.mirrors[mirror_url] = {
                 'url_prefix': mirror_url,
