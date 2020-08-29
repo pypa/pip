@@ -495,9 +495,11 @@ platform = partial(
     '--platform',
     dest='platform',
     metavar='platform',
+    action='append',
     default=None,
-    help=("Only use wheels compatible with <platform>. "
-          "Defaults to the platform of the running system."),
+    help=("Only use wheels compatible with <platform>. Defaults to the "
+          "platform of the running system. Use multiple options to specify "
+          "multiple platforms supported by the target interpreter."),
 )  # type: Callable[..., Option]
 
 
@@ -586,13 +588,14 @@ abi = partial(
     '--abi',
     dest='abi',
     metavar='abi',
+    action='append',
     default=None,
-    help=("Only use wheels compatible with Python "
-          "abi <abi>, e.g. 'pypy_41,none'.  If not specified, then the "
-          "current interpreter abi tag is used.  Generally "
-          "you will need to specify --implementation, "
-          "--platform, and --python-version when using "
-          "this option."),
+    help=("Only use wheels compatible with Python abi <abi>, e.g. 'pypy_41'. "
+          "If not specified, then the current interpreter abi tag is used. "
+          "Use multiple options to specify multiple abis supported by the "
+          "target interpreter. Generally you will need to specify "
+          "--implementation, --platform, and --python-version when using this "
+          "option."),
 )  # type: Callable[..., Option]
 
 
@@ -606,21 +609,10 @@ def add_target_python_options(cmd_opts):
 
 def make_target_python(options):
     # type: (Values) -> TargetPython
-
-    # abi can be a comma-separated list of values.
-    abis = options.abi  # type: Optional[List[str]]
-    if options.abi:
-        abis = options.abi.split(',')
-
-    # platform can also be a comma-separated list of values.
-    platforms = options.platform  # type: Optional[List[str]]
-    if options.platform:
-        platforms = options.platform.split(',')
-
     target_python = TargetPython(
-        platforms=platforms,
+        platforms=options.platform,
         py_version_info=options.python_version,
-        abis=abis,
+        abis=options.abi,
         implementation=options.implementation,
     )
 
