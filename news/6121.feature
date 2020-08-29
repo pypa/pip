@@ -1,1 +1,1 @@
-Allow comma-separated values for --abi and --platform.
+Allow multiple values for --abi and --platform.
