@@ -258,22 +258,27 @@ def test_resolve_commit_not_on_branch(script, tmp_path):
     clone_path = repo_path / "clone"
     repo_path.mkdir()
     script.run("git", "init", cwd=str(repo_path))
+
     repo_file.write_text(u".")
     script.run("git", "add", "file.txt", cwd=str(repo_path))
     script.run("git", "commit", "-m", "initial commit", cwd=str(repo_path))
     script.run("git", "checkout", "-b", "abranch", cwd=str(repo_path))
+
     # create a commit
     repo_file.write_text(u"..")
     script.run("git", "commit", "-a", "-m", "commit 1", cwd=str(repo_path))
     commit = script.run(
         "git", "rev-parse", "HEAD", cwd=str(repo_path)
     ).stdout.strip()
+
     # make sure our commit is not on a branch
     script.run("git", "checkout", "master", cwd=str(repo_path))
     script.run("git", "branch", "-D", "abranch", cwd=str(repo_path))
+
     # create a ref that points to our commit
     (repo_path / ".git" / "refs" / "myrefs").mkdir(parents=True)
     (repo_path / ".git" / "refs" / "myrefs" / "myref").write_text(commit)
+
     # check we can fetch our commit
     rev_options = Git.make_rev_options(commit)
     Git().fetch_new(str(clone_path), repo_path.as_uri(), rev_options)
