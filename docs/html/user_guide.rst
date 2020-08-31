@@ -101,7 +101,7 @@ An example .netrc for the host example.com with a user named 'daniel', using the
    password qwerty
 
 As mentioned in the `standard library docs <https://docs.python.org/3/library/netrc.html>`_,
-whitespace and non-printable characters are not allowed in passwords.
+only ASCII characters are allowed. Whitespace and non-printable characters are not allowed in passwords.
 
 
 Keyring Support
