@@ -79,6 +79,31 @@ as the "username" and do not provide a password, for example -
 ``https://0123456789abcdef@pypi.company.com``
 
 
+netrc Support
+-------------
+
+If no credentials are part of the URL, pip will attempt to get authentication credentials
+for the URL’s hostname from the user’s .netrc file. This behaviour comes from the underlying
+use of `requests`_ which in turn delegates it to the `Python standard library`_.
+
+The .netrc file contains login and initialization information used by the auto-login process.
+It resides in the user's home directory. The .netrc file format is simple. You specify lines
+with a machine name and follow that with lines for the login and password that are
+associated with that machine. Machine name is the hostname in your URL.
+
+An example .netrc for the host example.com with a user named 'daniel', using the password
+'qwerty' would look like:
+
+.. code-block:: shell
+
+   machine example.com
+   login daniel
+   password qwerty
+
+As mentioned in the `standard library docs <https://docs.python.org/3/library/netrc.html>`_,
+whitespace and non-printable characters are not allowed in passwords.
+
+
 Keyring Support
 ---------------
 
@@ -1296,3 +1321,5 @@ announcements on the `low-traffic packaging announcements list`_ and
 .. _low-traffic packaging announcements list: https://mail.python.org/mailman3/lists/pypi-announce.python.org/
 .. _our survey on upgrades that create conflicts: https://docs.google.com/forms/d/e/1FAIpQLSeBkbhuIlSofXqCyhi3kGkLmtrpPOEBwr6iJA6SzHdxWKfqdA/viewform
 .. _the official Python blog: https://blog.python.org/
+.. _requests: https://requests.readthedocs.io/en/master/user/authentication/#netrc-authentication
+.. _Python standard library: https://docs.python.org/3/library/netrc.html
