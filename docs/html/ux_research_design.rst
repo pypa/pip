@@ -18,10 +18,14 @@ our work.
 How to contribute
 -----------------
 
+Participate in UX research
+==========================
+
 It is important that we hear from pip users so that we can:
 
 - Understand how pip is currently used by the Python community
-- Understand how pip users would *like* pip to behave
+- Understand how pip users *need* pip to behave
+- Understand how pip users *would like* pip to behave
 - Understand pip's strengths and shortcomings
 - Make useful design recommendations for improving pip
 
@@ -34,15 +38,25 @@ We are also looking for users to:
 - `Give us feedback about pip's new resolver`_
 - `Tell us how pip should handle conflicts with already installed packages when updating other packages`_
 
+Report UX issues
+================
 
-Other ways to contribute
-========================
+If you believe that you have found a user experience bug in pip, or you have
+ideas for how pip could be made better for all users, you please file an issue
+on the `pip issue tracker`_.
 
-You can also help by:
+Work on UX issues
+=================
 
-- Reporting UX issues (or suggesting ideas for improvement) on the `pip issue tracker`_
-- `Working on UX issues`_
-- Testing new features. Currently, we are looking for users to `test pip's new dependency resolver`_.
+You can help improve pip's user experience by `working on UX issues`_.
+Issues that are ideal for new contributors are marked with "good first issue".
+
+Test new features
+=================
+
+You can help the team by testing new features as they are released to the
+community. Currently, we are looking for users to
+`test pip's new dependency resolver`_.
 
 Next steps
 ----------
@@ -63,5 +77,5 @@ In the coming months we will extend this documentation to include:
 .. _Give us feedback about pip's new resolver: https://tools.simplysecure.org/survey/index.php?r=survey/index&sid=989272&lang=en
 .. _Tell us how pip should handle conflicts with already installed packages when updating other packages: https://docs.google.com/forms/d/1KtejgZnK-6NPTmAJ-7aWox4iktcezQauW-Mh3gbnydQ/edit
 .. _pip issue tracker: https://github.com/pypa/pip/issues/new
-.. _Working on UX issues: https://github.com/pypa/pip/issues?q=is%3Aissue+is%3Aopen+label%3A%22K%3A+UX%22
+.. _working on UX issues: https://github.com/pypa/pip/issues?q=is%3Aissue+is%3Aopen+label%3A%22K%3A+UX%22
 .. _test pip's new dependency resolver: https://pip.pypa.io/en/latest/user_guide/#changes-to-the-pip-dependency-resolver-in-20-2-2020
