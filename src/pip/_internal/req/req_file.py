@@ -21,7 +21,7 @@ from pip._internal.models.search_scope import SearchScope
 from pip._internal.network.utils import raise_for_status
 from pip._internal.utils.encoding import auto_decode
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from pip._internal.utils.urls import get_url_scheme
+from pip._internal.utils.urls import get_url_scheme, url_to_path
 
 if MYPY_CHECK_RUNNING:
     from optparse import Values
@@ -572,16 +572,7 @@ def get_file_content(url, session, comes_from=None):
                 'Requirements file {} references URL {}, '
                 'which is local'.format(comes_from, url)
             )
-
-        path = url.split(':', 1)[1]
-        path = path.replace('\\', '/')
-        match = _url_slash_drive_re.match(path)
-        if match:
-            path = match.group(1) + ':' + path.split('|', 1)[1]
-        path = urllib_parse.unquote(path)
-        if path.startswith('/'):
-            path = '/' + path.lstrip('/')
-        url = path
+        url = url_to_path(url)
 
     try:
         with open(url, 'rb') as f:
@@ -591,6 +582,3 @@ def get_file_content(url, session, comes_from=None):
             'Could not open requirements file: {}'.format(exc)
         )
     return url, content
-
-
-_url_slash_drive_re = re.compile(r'/*([a-z])\|', re.I)
