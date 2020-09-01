@@ -1,0 +1,11 @@
+Put pip version warning up top with the other warnings, so that people can clearly see the result of their pip command.
+Here is what it looks like:
+
+```
+C:\site> pip3 install -U requests
+WARNING: You are using pip version 20.1; however, version 20.1.1 is available.
+You should consider upgrading via the 'c:\tracking\ve-track\scripts\python.exe -m pip install --upgrade pip' command.
+Collecting requests
+[...]
+Successfully installed requests-2.24.0
+```
