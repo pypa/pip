@@ -4,7 +4,6 @@ import io
 import logging
 import os
 import re
-import site
 import sys
 
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -90,30 +89,8 @@ def _no_global_under_venv():
     return False
 
 
-def _no_global_under_regular_virtualenv():
-    # type: () -> bool
-    """Check if "no-global-site-packages.txt" exists beside site.py
-
-    This mirrors logic in pypa/virtualenv for determining whether system
-    site-packages are visible in the virtual environment.
-    """
-    site_mod_dir = os.path.dirname(os.path.abspath(site.__file__))
-    no_global_site_packages_file = os.path.join(
-        site_mod_dir, 'no-global-site-packages.txt',
-    )
-    return os.path.exists(no_global_site_packages_file)
-
-
 def virtualenv_no_global():
     # type: () -> bool
     """Returns a boolean, whether running in venv with no system site-packages.
     """
-    # PEP 405 compliance needs to be checked first since virtualenv >=20 would
-    # return True for both checks, but is only able to use the PEP 405 config.
-    if _running_under_venv():
-        return _no_global_under_venv()
-
-    if _running_under_regular_virtualenv():
-        return _no_global_under_regular_virtualenv()
-
-    return False
+    return _no_global_under_venv()
