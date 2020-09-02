@@ -1,7 +1,6 @@
 """ TUF (TheUpdateFramework) integration
 """
 
-from collections import namedtuple
 import hashlib
 import logging
 import os.path
@@ -42,7 +41,11 @@ class Updater:
         }
         self._updater = tuf.client.updater.Updater(dir_name, mirrors)
         self._refreshed = False
-        self.index_cache_dir = os.path.join(cache_dir, 'tuf','index')
+
+        # TODO think cache issue through:
+        #  * do we need a cache, is it actually useful?
+        #  * what if cache_dir is None?
+        self._cache_dir = cache_dir
 
 
     # Make sure we have refreshed metadata exactly once (we
@@ -94,11 +97,11 @@ class Updater:
         self._ensure_fresh_metadata()
 
         target = self._updater.get_one_valid_targetinfo(project_name)
-        if self._updater.updated_targets([target], self.index_cache_dir):
-            self._updater.download_target(target, self.index_cache_dir)
+        if self._updater.updated_targets([target], self._cache_dir):
+            self._updater.download_target(target, self._cache_dir)
 
         # TODO possibly we want to return contents of the file instead?
-        return os.path.join(self.index_cache_dir, project_name)
+        return os.path.join(self._cache_dir, project_name)
 
 
     # Download a distribution file
@@ -106,7 +109,7 @@ class Updater:
     #   url is e.g. https://files.pythonhosted.org/packages/8f/1f/74aa91b56dea5847b62e11ce6737db82c6446561bddc20ca80fa5df025cc/Django-1.1.3.tar.gz#sha256=0e5034cf8046ba77c62e95a45d776d2c59998b26f181ceaf5cec516115e3f85a
     #   comes_from is e.g. "https://pypi.org/simple/django"
     # Raises NoWorkingMirrorError, ?
-    def download_distribution(self, link, dl_dir):
+    def download_distribution(self, link):
         # TODO double check that comes_from matches our index_url
 
         self._ensure_fresh_metadata()
@@ -117,16 +120,19 @@ class Updater:
         target = self._updater.get_one_valid_targetinfo(target_name)
         
         # TODO decide cache dir strategy. Currently the whole
-        # directory structure is created in dl_dir: that is wrong.
-        if self._updater.updated_targets([target], dl_dir):
-            # TODO: should use prefix_filename_with_hash=False once TUF issue #1080 is fixed
-            self._updater.download_target(target, dl_dir, prefix_filename_with_hash=False)
+        # directory structure is created in dl_dir: that is super wrong.
+        # on the other hand e.g. 'pip download' expects us to not download
+        # things if dl_dir already contains the file...
+        if self._updater.updated_targets([target], self._cache_dir):
+            self._updater.download_target(target, self._cache_dir, prefix_filename_with_hash=False)
+        return os.path.join(self._cache_dir, target_name)
 
 
 
 # Return a dictionary of index_url:Updater
 # The dict will contain updaters for every index_url
 # that we have local metadata for
+# TODO This should maybe be a TUFSession object?
 def initialize_updaters(index_urls, metadata_dir, cache_dir):
     if not os.path.isdir(metadata_dir):
         # TODO should create this path or no?
