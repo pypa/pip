@@ -28,6 +28,7 @@ if MYPY_CHECK_RUNNING:
 
 # Application Directories
 USER_CACHE_DIR = appdirs.user_cache_dir("pip")
+USER_DATA_DIR = appdirs.user_data_dir("pip")
 
 
 def get_major_minor_version():
