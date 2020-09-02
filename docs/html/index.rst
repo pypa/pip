@@ -14,6 +14,7 @@ Please take a look at our documentation for how to install and use pip:
    user_guide
    reference/index
    development/index
+   ux_research_design
    news
 
 In 2020, we're working on improvements to the heart of pip. Please `learn more and take our survey`_ to help us do it right.
