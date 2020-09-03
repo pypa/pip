@@ -458,6 +458,15 @@ and ``--no-cache-dir``, falsy values have to be used:
     no-compile = no
     no-warn-script-location = false
 
+For options which can be repeated like ``--verbose`` and ``--quiet``,
+a non-negative integer can be used to represent the level to be specified:
+
+.. code-block:: ini
+
+    [global]
+    quiet = 0
+    verbose = 2
+
 It is possible to append values to a section within a configuration file such as the pip.ini file.
 This is applicable to appending options like ``--find-links`` or ``--trusted-host``,
 which can be written on multiple lines:
@@ -503,6 +512,15 @@ multiple values. For example::
 is the same as calling::
 
     pip install --find-links=http://mirror1.example.com --find-links=http://mirror2.example.com
+
+Options that do not take a value, but can be repeated (such as ``--verbose``)
+can be specified using the number of repetitions, so::
+
+    export PIP_VERBOSE=3
+
+is the same as calling::
+
+    pip install -vvv
 
 .. note::
 
