@@ -85,3 +85,41 @@ def test_new_resolver_hash_intersect(script, requirements_template, message):
     )
 
     assert message in result.stdout, str(result)
+
+
+def test_new_resolver_hash_intersect_from_constraint(script):
+    find_links = _create_find_links(script)
+
+    constraints_txt = script.scratch_path / "constraints.txt"
+    constraints_txt.write_text(
+        "base==0.1.0 --hash=sha256:{sdist_hash}".format(
+            sdist_hash=find_links.sdist_hash,
+        ),
+    )
+    requirements_txt = script.scratch_path / "requirements.txt"
+    requirements_txt.write_text(
+        """
+        base==0.1.0 --hash=sha256:{sdist_hash} --hash=sha256:{wheel_hash}
+        """.format(
+            sdist_hash=find_links.sdist_hash,
+            wheel_hash=find_links.wheel_hash,
+        ),
+    )
+
+    result = script.pip(
+        "install",
+        "--use-feature=2020-resolver",
+        "--no-cache-dir",
+        "--no-deps",
+        "--no-index",
+        "--find-links", find_links.index_html,
+        "--verbose",
+        "--constraint", constraints_txt,
+        "--requirement", requirements_txt,
+    )
+
+    message = (
+        "Checked 2 links for project 'base' against 1 hashes "
+        "(1 matches, 0 no digest): discarding 1 non-matches"
+    )
+    assert message in result.stdout, str(result)
