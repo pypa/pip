@@ -47,7 +47,7 @@ def _create_find_links(script):
             base==0.1.0 --hash=sha256:{sdist_hash} --hash=sha256:{wheel_hash}
             base==0.1.0 --hash=sha256:{sdist_hash} --hash=sha256:{wheel_hash}
             """,
-            "Checked 2 links for project 'base' against 2 hashes "
+            "Checked 2 links for project {name!r} against 2 hashes "
             "(2 matches, 0 no digest): discarding no candidates",
         ),
         (
@@ -56,7 +56,7 @@ def _create_find_links(script):
             base==0.1.0 --hash=sha256:{sdist_hash} --hash=sha256:{wheel_hash}
             base==0.1.0 --hash=sha256:{sdist_hash}
             """,
-            "Checked 2 links for project 'base' against 1 hashes "
+            "Checked 2 links for project {name!r} against 1 hashes "
             "(1 matches, 0 no digest): discarding 1 non-matches",
         ),
     ],
@@ -84,7 +84,7 @@ def test_new_resolver_hash_intersect(script, requirements_template, message):
         "--requirement", requirements_txt,
     )
 
-    assert message in result.stdout, str(result)
+    assert message.format(name=u"base") in result.stdout, str(result)
 
 
 def test_new_resolver_hash_intersect_from_constraint(script):
@@ -119,7 +119,7 @@ def test_new_resolver_hash_intersect_from_constraint(script):
     )
 
     message = (
-        "Checked 2 links for project 'base' against 1 hashes "
+        "Checked 2 links for project {name!r} against 1 hashes "
         "(1 matches, 0 no digest): discarding 1 non-matches"
-    )
+    ).format(name=u"base")
     assert message in result.stdout, str(result)
