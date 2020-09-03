@@ -168,7 +168,7 @@ class Factory(object):
         extras = frozenset()  # type: FrozenSet[str]
         for ireq in ireqs:
             specifier &= ireq.req.specifier
-            hashes |= ireq.hashes(trust_internet=False)
+            hashes &= ireq.hashes(trust_internet=False)
             extras |= frozenset(ireq.extras)
 
         # We use this to ensure that we only yield a single candidate for
