@@ -353,20 +353,6 @@ class RequirementPreparer(object):
         # Previous "header" printed for a link-based InstallRequirement
         self._previous_requirement_header = ("", "")
 
-    @property
-    def _download_should_save(self):
-        # type: () -> bool
-        if not self.download_dir:
-            return False
-
-        if os.path.exists(self.download_dir):
-            return True
-
-        logger.critical('Could not find download directory')
-        raise InstallationError(
-            "Could not find or access download directory '{}'"
-            .format(self.download_dir))
-
     def _log_preparing_link(self, req):
         # type: (InstallRequirement) -> None
         """Provide context for the requirement being prepared."""
@@ -568,9 +554,9 @@ class RequirementPreparer(object):
                     download_path = display_path(download_location)
                     logger.info('Saved %s', download_path)
 
-        if self._download_should_save:
+        if link.is_vcs:
             # Make a .zip of the source_dir we already created.
-            if link.is_vcs:
+            if self.download_dir is not None:
                 req.archive(self.download_dir)
         return dist
 
