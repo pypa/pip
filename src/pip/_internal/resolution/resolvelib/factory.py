@@ -400,10 +400,6 @@ class Factory(object):
 
             return ", ".join(parts[:-1]) + " and " + parts[-1]
 
-        def readable_form(cand):
-            # type: (Candidate) -> str
-            return "{} {}".format(cand.name, cand.version)
-
         def describe_trigger(parent):
             # type: (Candidate) -> str
             ireq = parent.get_install_requirement()

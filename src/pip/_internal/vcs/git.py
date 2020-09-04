@@ -386,7 +386,6 @@ class Git(VersionControl):
                 urllib_request.url2pathname(path)
                 .replace('\\', '/').lstrip('/')
             )
-            url = urlunsplit((scheme, netloc, newpath, query, fragment))
             after_plus = scheme.find('+') + 1
             url = scheme[:after_plus] + urlunsplit(
                 (scheme[after_plus:], netloc, newpath, query, fragment),
