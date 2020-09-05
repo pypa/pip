@@ -31,10 +31,14 @@ sys.path.insert(0, docs_dir)
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 # extensions = ['sphinx.ext.autodoc']
 extensions = [
+    # native:
     'sphinx.ext.extlinks',
-    'pip_sphinxext',
     'sphinx.ext.intersphinx',
+    # third-party:
     'sphinx_tabs.tabs',
+    # in-tree:
+    'docs_feedback_sphinxext',
+    'pip_sphinxext',
 ]
 
 # intersphinx
@@ -308,3 +312,19 @@ for fname in raw_subcommands:
     )
 
     man_pages.append((fname_base, outname, description, u'pip developers', 1))
+
+# -- Options for docs_feedback_sphinxext --------------------------------------
+
+# NOTE: Must be one of 'attention', 'caution', 'danger', 'error', 'hint',
+# NOTE: 'important', 'note', 'tip', 'warning' or 'admonition'.
+docs_feedback_admonition_type = 'important'
+docs_feedback_big_doc_lines = 50  # bigger docs will have a banner on top
+docs_feedback_email = 'Docs UX Team <docs-feedback+ux/pip.pypa.io@pypa.io>'
+docs_feedback_excluded_documents = {  # these won't have any banners
+    'news',
+}
+docs_feedback_questions_list = (
+    'What problem were you trying to solve when you came to this page?',
+    'What content was useful?',
+    'What content was not useful?',
+)
