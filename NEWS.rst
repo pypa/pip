@@ -9,6 +9,22 @@
 
 .. towncrier release notes start
 
+20.2.3 (2020-09-08)
+===================
+
+Deprecations and Removals
+-------------------------
+
+- Deprecate support for Python 3.5 (`#8181 <https://github.com/pypa/pip/issues/8181>`_)
+
+Features
+--------
+
+- Make the ``setup.py install`` deprecation warning less noisy. We warn only
+  when ``setup.py install`` succeeded and ``setup.py bdist_wheel`` failed, as
+  situations where both fails are most probably irrelevant to this deprecation. (`#8752 <https://github.com/pypa/pip/issues/8752>`_)
+
+
 20.2.2 (2020-08-11)
 ===================
 
