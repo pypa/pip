@@ -116,13 +116,11 @@ class Updater:
 
         base_url, target_name = self._split_distribution_url(link)
         self._ensure_mirror_config(base_url)
-
+        logger.debug("Getting TUF target_info for " + target_name)
         target = self._updater.get_one_valid_targetinfo(target_name)
         
         # TODO decide cache dir strategy. Currently the whole
-        # directory structure is created in dl_dir: that is super wrong.
-        # on the other hand e.g. 'pip download' expects us to not download
-        # things if dl_dir already contains the file...
+        # directory structure is created in _cache_dir. Also 'None' cache dir breaks everything
         if self._updater.updated_targets([target], self._cache_dir):
             self._updater.download_target(target, self._cache_dir, prefix_filename_with_hash=False)
         return os.path.join(self._cache_dir, target_name)
@@ -130,13 +128,14 @@ class Updater:
 
 
 # Return a dictionary of index_url:Updater
-# The dict will contain updaters for every index_url
-# that we have local metadata for
-# TODO This should maybe be a TUFSession object?
+# The dict will contain updaters for every index_url that we have local metadata for
+# TODO return value should maybe be a "TUFSession" object -- it could provide some extra
+# functionality like updater lookup based on distribution download Link (currently
+# implemented in prepare.py:get_http_url() )
 def initialize_updaters(index_urls, metadata_dir, cache_dir):
     if not os.path.isdir(metadata_dir):
         # TODO should create this path or no?
-        raise NotADirectoryError # TODO not in py2
+        raise NotADirectoryError(metadata_dir) # TODO not in py2
 
     # global TUF settings
     tuf.settings.repositories_directory = metadata_dir

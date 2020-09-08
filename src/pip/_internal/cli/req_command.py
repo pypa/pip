@@ -122,9 +122,11 @@ class SessionCommandMixin(CommandContextMixIn):
 
         return session
 
+    #TODO SessionCommandMixin is not a great place: research needed
     def get_tuf_updaters(self, options):
         if self._updaters == None:
             self._updaters = self._initialize_tuf_updaters(options)
+        logger.debug("TUF Updaters" + str(self._updaters))
         return self._updaters
 
     def _initialize_tuf_updaters(self, options):
@@ -134,6 +136,7 @@ class SessionCommandMixin(CommandContextMixIn):
         if options.cache_dir:
             cache_dir = os.path.join(options.cache_dir, "tuf")
         else:
+            # TODO: this breaks everything currently: not sure what to do without cache -- use a temp dir?
             cache_dir = None
         return initialize_updaters(index_urls, metadata_dir, cache_dir)
 
@@ -220,6 +223,7 @@ class RequirementCommand(IndexGroupCommand):
         options,                  # type: Values
         req_tracker,              # type: RequirementTracker
         session,                  # type: PipSession
+        updaters,
         finder,                   # type: PackageFinder
         use_user_site,            # type: bool
         download_dir=None,        # type: str
@@ -252,6 +256,7 @@ class RequirementCommand(IndexGroupCommand):
             req_tracker=req_tracker,
             session=session,
             progress_bar=options.progress_bar,
+            updaters=updaters,
             finder=finder,
             require_hashes=options.require_hashes,
             use_user_site=use_user_site,

@@ -301,6 +301,7 @@ class InstallCommand(RequirementCommand):
                 options=options,
                 req_tracker=req_tracker,
                 session=session,
+                updaters=self.get_tuf_updaters(options),
                 finder=finder,
                 use_user_site=options.use_user_site,
             )

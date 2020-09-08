@@ -10,6 +10,7 @@ import os
 import shutil
 
 from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six import PY2
 
 from pip._internal.distributions import make_distribution_for_install_requirement
@@ -110,6 +111,7 @@ class File(object):
 def get_http_url(
     link,  # type: Link
     download,  # type: Downloader
+    updaters,
     download_dir=None,  # type: Optional[str]
     hashes=None,  # type: Optional[Hashes]
 ):
@@ -118,6 +120,7 @@ def get_http_url(
     # If a download dir is specified, is the file already downloaded there?
     already_downloaded_path = None
     if download_dir:
+        # TODO review this for safety: should be fine if hashes are present and come from index file that was verified?
         already_downloaded_path = _check_download_dir(
             link, download_dir, hashes
         )
@@ -126,8 +129,21 @@ def get_http_url(
         from_path = already_downloaded_path
         content_type = None
     else:
-        # let's download to a tmp dir
-        from_path, content_type = download(link, temp_dir.path)
+        # check if TUF should be used
+        try:
+            # project index urls are always right below simple index url
+            # TODO: handle urls not ending in '/'?
+            index_url = urllib_parse.urljoin(link.comes_from, "..")
+            updater = updaters[index_url]
+            logger.debug("TUF Updater found: " + str(updater))
+            from_path = updater.download_distribution(link)
+            content_type = mimetypes.guess_type(from_path)[0]
+        except KeyError:
+            logger.debug("TUF Updater not found for index_url " + index_url)
+            # link is from a repo that does not use TUF
+            # let's download to a tmp dir
+            from_path, content_type = download(link, temp_dir.path)
+
         if hashes:
             hashes.check_against_path(from_path)
 
@@ -221,6 +237,7 @@ def unpack_url(
     link,  # type: Link
     location,  # type: str
     download,  # type: Downloader
+    updaters,
     download_dir=None,  # type: Optional[str]
     hashes=None,  # type: Optional[Hashes]
 ):
@@ -253,6 +270,7 @@ def unpack_url(
         file = get_http_url(
             link,
             download,
+            updaters,
             download_dir,
             hashes=hashes,
         )
@@ -304,6 +322,7 @@ class RequirementPreparer(object):
         req_tracker,  # type: RequirementTracker
         session,  # type: PipSession
         progress_bar,  # type: str
+        updaters,
         finder,  # type: PackageFinder
         require_hashes,  # type: bool
         use_user_site,  # type: bool
@@ -318,6 +337,7 @@ class RequirementPreparer(object):
         self._session = session
         self._download = Downloader(session, progress_bar)
         self._batch_download = BatchDownloader(session, progress_bar)
+        self._updaters = updaters
         self.finder = finder
 
         # Where still-packed archives should be written to. If None, they are
@@ -501,8 +521,8 @@ class RequirementPreparer(object):
         if link.url not in self._downloaded:
             try:
                 local_file = unpack_url(
-                    link, req.source_dir, self._download,
-                    self.download_dir, hashes,
+                    link, req.source_dir, self._download, self._updaters,
+                    self.download_dir, hashes
                 )
             except NetworkConnectionError as exc:
                 raise InstallationError(
