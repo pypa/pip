@@ -256,6 +256,10 @@ def handle_option_line(
                 value = relative_to_reqs_file
             find_links.append(value)
 
+        if session:
+            # We need to update the auth urls in session
+            session.update_index_urls(index_urls)
+
         search_scope = SearchScope(
             find_links=find_links,
             index_urls=index_urls,

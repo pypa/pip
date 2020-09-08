@@ -134,10 +134,12 @@ class DownloadCommand(RequirementCommand):
             reqs, check_supported_wheels=True
         )
 
-        downloaded = ' '.join([req.name  # type: ignore
-                               for req in requirement_set.requirements.values()
-                               if req.successfully_downloaded])
+        downloaded = []  # type: List[str]
+        for req in requirement_set.requirements.values():
+            if not req.editable and req.satisfied_by is None:
+                assert req.name is not None
+                downloaded.append(req.name)
         if downloaded:
-            write_output('Successfully downloaded %s', downloaded)
+            write_output('Successfully downloaded %s', ' '.join(downloaded))
 
         return SUCCESS

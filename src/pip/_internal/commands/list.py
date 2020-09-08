@@ -201,7 +201,6 @@ class ListCommand(IndexGroupCommand):
 
             def latest_info(dist):
                 # type: (Distribution) -> Distribution
-                typ = 'unknown'
                 all_candidates = finder.find_all_candidates(dist.key)
                 if not options.pre:
                     # Remove prereleases

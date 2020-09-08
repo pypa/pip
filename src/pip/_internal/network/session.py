@@ -305,6 +305,14 @@ class PipSession(requests.Session):
         for host in trusted_hosts:
             self.add_trusted_host(host, suppress_logging=True)
 
+    def update_index_urls(self, new_index_urls):
+        # type: (List[str]) -> None
+        """
+        :param new_index_urls: New index urls to update the authentication
+            handler with.
+        """
+        self.auth.index_urls = new_index_urls
+
     def add_trusted_host(self, host, source=None, suppress_logging=False):
         # type: (str, Optional[str], bool) -> None
         """

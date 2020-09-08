@@ -16,7 +16,6 @@ from pip._internal.exceptions import CommandError, PreviousBuildDirError
 from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.models.selection_prefs import SelectionPreferences
-from pip._internal.network.download import Downloader
 from pip._internal.network.session import PipSession
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req.constructors import (
@@ -213,10 +212,21 @@ class RequirementCommand(IndexGroupCommand):
         """
         Create a RequirementPreparer instance for the given parameters.
         """
-        downloader = Downloader(session, progress_bar=options.progress_bar)
-
         temp_build_dir_path = temp_build_dir.path
         assert temp_build_dir_path is not None
+
+        if '2020-resolver' in options.features_enabled:
+            lazy_wheel = 'fast-deps' in options.features_enabled
+            if lazy_wheel:
+                logger.warning(
+                    'pip is using lazily downloaded wheels using HTTP '
+                    'range requests to obtain dependency information. '
+                    'This experimental feature is enabled through '
+                    '--use-feature=fast-deps and it is not ready for '
+                    'production.'
+                )
+        else:
+            lazy_wheel = False
 
         return RequirementPreparer(
             build_dir=temp_build_dir_path,
@@ -225,10 +235,12 @@ class RequirementCommand(IndexGroupCommand):
             wheel_download_dir=wheel_download_dir,
             build_isolation=options.build_isolation,
             req_tracker=req_tracker,
-            downloader=downloader,
+            session=session,
+            progress_bar=options.progress_bar,
             finder=finder,
             require_hashes=options.require_hashes,
             use_user_site=use_user_site,
+            lazy_wheel=lazy_wheel,
         )
 
     @staticmethod
@@ -259,6 +271,7 @@ class RequirementCommand(IndexGroupCommand):
         # "Resolver" class being redefined.
         if '2020-resolver' in options.features_enabled:
             import pip._internal.resolution.resolvelib.resolver
+
             return pip._internal.resolution.resolvelib.resolver.Resolver(
                 preparer=preparer,
                 finder=finder,
@@ -271,7 +284,6 @@ class RequirementCommand(IndexGroupCommand):
                 force_reinstall=force_reinstall,
                 upgrade_strategy=upgrade_strategy,
                 py_version_info=py_version_info,
-                lazy_wheel='fast-deps' in options.features_enabled,
             )
         import pip._internal.resolution.legacy.resolver
         return pip._internal.resolution.legacy.resolver.Resolver(

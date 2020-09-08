@@ -1,22 +1,17 @@
 import logging
 import sys
 
-from pip._vendor.contextlib2 import suppress
 from pip._vendor.packaging.specifiers import InvalidSpecifier, SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
 
 from pip._internal.exceptions import HashError, MetadataInconsistent
-from pip._internal.network.lazy_wheel import (
-    HTTPRangeRequestUnsupported,
-    dist_from_wheel_url,
-)
+from pip._internal.models.wheel import Wheel
 from pip._internal.req.constructors import (
     install_req_from_editable,
     install_req_from_line,
 )
 from pip._internal.req.req_install import InstallRequirement
-from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import dist_is_editable, normalize_version_info
 from pip._internal.utils.packaging import get_requires_python
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -29,7 +24,6 @@ if MYPY_CHECK_RUNNING:
     from pip._vendor.packaging.version import _BaseVersion
     from pip._vendor.pkg_resources import Distribution
 
-    from pip._internal.distributions import AbstractDistribution
     from pip._internal.models.link import Link
 
     from .base import Requirement
@@ -148,7 +142,6 @@ class _InstallRequirementBackedCandidate(Candidate):
         self._name = name
         self._version = version
         self._dist = None  # type: Optional[Distribution]
-        self._prepared = False
 
     def __repr__(self):
         # type: () -> str
@@ -200,16 +193,15 @@ class _InstallRequirementBackedCandidate(Candidate):
             self._link.file_path if self._link.is_file else self._link
         )
 
-    def _prepare_abstract_distribution(self):
-        # type: () -> AbstractDistribution
+    def _prepare_distribution(self):
+        # type: () -> Distribution
         raise NotImplementedError("Override in subclass")
 
-    def _check_metadata_consistency(self):
-        # type: () -> None
+    def _check_metadata_consistency(self, dist):
+        # type: (Distribution) -> None
         """Check for consistency of project name and version of dist."""
         # TODO: (Longer term) Rather than abort, reject this candidate
         #       and backtrack. This would need resolvelib support.
-        dist = self._dist  # type: Distribution
         name = canonicalize_name(dist.project_name)
         if self._name is not None and self._name != name:
             raise MetadataInconsistent(self._ireq, "name", dist.project_name)
@@ -219,73 +211,44 @@ class _InstallRequirementBackedCandidate(Candidate):
 
     def _prepare(self):
         # type: () -> None
-        if self._prepared:
+        if self._dist is not None:
             return
         try:
-            abstract_dist = self._prepare_abstract_distribution()
+            dist = self._prepare_distribution()
         except HashError as e:
             e.req = self._ireq
             raise
 
-        self._dist = abstract_dist.get_pkg_resources_distribution()
-        assert self._dist is not None, "Distribution already installed"
-        self._check_metadata_consistency()
-        self._prepared = True
-
-    def _fetch_metadata(self):
-        # type: () -> None
-        """Fetch metadata, using lazy wheel if possible."""
-        preparer = self._factory.preparer
-        use_lazy_wheel = self._factory.use_lazy_wheel
-        remote_wheel = self._link.is_wheel and not self._link.is_file
-        if use_lazy_wheel and remote_wheel and not preparer.require_hashes:
-            assert self._name is not None
-            logger.info('Collecting %s', self._ireq.req or self._ireq)
-            # If HTTPRangeRequestUnsupported is raised, fallback silently.
-            with indent_log(), suppress(HTTPRangeRequestUnsupported):
-                logger.info(
-                    'Obtaining dependency information from %s %s',
-                    self._name, self._version,
-                )
-                url = self._link.url.split('#', 1)[0]
-                session = preparer.downloader._session
-                self._dist = dist_from_wheel_url(self._name, url, session)
-                self._check_metadata_consistency()
-        if self._dist is None:
-            self._prepare()
+        assert dist is not None, "Distribution already installed"
+        self._check_metadata_consistency(dist)
+        self._dist = dist
 
     @property
     def dist(self):
         # type: () -> Distribution
         if self._dist is None:
-            self._fetch_metadata()
+            self._prepare()
         return self._dist
 
-    def _get_requires_python_specifier(self):
-        # type: () -> Optional[SpecifierSet]
+    def _get_requires_python_dependency(self):
+        # type: () -> Optional[Requirement]
         requires_python = get_requires_python(self.dist)
         if requires_python is None:
             return None
         try:
             spec = SpecifierSet(requires_python)
         except InvalidSpecifier as e:
-            logger.warning(
-                "Package %r has an invalid Requires-Python: %s", self.name, e,
-            )
+            message = "Package %r has an invalid Requires-Python: %s"
+            logger.warning(message, self.name, e)
             return None
-        return spec
+        return self._factory.make_requires_python_requirement(spec)
 
     def iter_dependencies(self, with_requires):
         # type: (bool) -> Iterable[Optional[Requirement]]
-        if not with_requires:
-            return
-        for r in self.dist.requires():
+        requires = self.dist.requires() if with_requires else ()
+        for r in requires:
             yield self._factory.make_requirement_from_spec(str(r), self._ireq)
-        python_dep = self._factory.make_requires_python_requirement(
-            self._get_requires_python_specifier(),
-        )
-        if python_dep:
-            yield python_dep
+        yield self._get_requires_python_dependency()
 
     def get_install_requirement(self):
         # type: () -> Optional[InstallRequirement]
@@ -311,6 +274,20 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
             logger.debug("Using cached wheel link: %s", cache_entry.link)
             link = cache_entry.link
         ireq = make_install_req_from_link(link, template)
+        assert ireq.link == link
+        if ireq.link.is_wheel and not ireq.link.is_file:
+            wheel = Wheel(ireq.link.filename)
+            wheel_name = canonicalize_name(wheel.name)
+            assert name == wheel_name, (
+                "{!r} != {!r} for wheel".format(name, wheel_name)
+            )
+            # Version may not be present for PEP 508 direct URLs
+            if version is not None:
+                assert str(version) == wheel.version, (
+                    "{!r} != {!r} for wheel {}".format(
+                        version, wheel.version, name
+                    )
+                )
 
         if (cache_entry is not None and
                 cache_entry.persistent and
@@ -326,8 +303,8 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
             version=version,
         )
 
-    def _prepare_abstract_distribution(self):
-        # type: () -> AbstractDistribution
+    def _prepare_distribution(self):
+        # type: () -> Distribution
         return self._factory.preparer.prepare_linked_requirement(
             self._ireq, parallel_builds=True,
         )
@@ -354,8 +331,8 @@ class EditableCandidate(_InstallRequirementBackedCandidate):
             version=version,
         )
 
-    def _prepare_abstract_distribution(self):
-        # type: () -> AbstractDistribution
+    def _prepare_distribution(self):
+        # type: () -> Distribution
         return self._factory.preparer.prepare_editable_requirement(self._ireq)
 
 

@@ -1,8 +1,9 @@
 from tests.lib import create_test_package_with_setup
 
 
-def contains_expected_lines(string, expected_lines):
-    return set(expected_lines) <= set(string.splitlines())
+def assert_contains_expected_lines(string, expected_lines):
+    for expected_line in expected_lines:
+        assert (expected_line + '\n') in string
 
 
 def test_check_install_canonicalization(script):
@@ -38,7 +39,7 @@ def test_check_install_canonicalization(script):
         "pkga 1.0 requires SPECIAL.missing, which is not installed.",
     ]
     # Deprecated python versions produce an extra warning on stderr
-    assert contains_expected_lines(result.stderr, expected_lines)
+    assert_contains_expected_lines(result.stderr, expected_lines)
     assert result.returncode == 0
 
     # Install the second missing package and expect that there is no warning
@@ -55,7 +56,7 @@ def test_check_install_canonicalization(script):
     expected_lines = [
         "No broken requirements found.",
     ]
-    assert contains_expected_lines(result.stdout, expected_lines)
+    assert_contains_expected_lines(result.stdout, expected_lines)
     assert result.returncode == 0
 
 
@@ -85,12 +86,10 @@ def test_check_install_does_not_warn_for_out_of_graph_issues(script):
     result = script.pip(
         'install', '--no-index', pkg_conflict_path, allow_stderr_error=True,
     )
-    assert contains_expected_lines(result.stderr, [
+    assert_contains_expected_lines(result.stderr, [
         "broken 1.0 requires missing, which is not installed.",
-        (
-            "broken 1.0 requires conflict<1.0, but "
-            "you'll have conflict 1.0 which is incompatible."
-        ),
+        "broken 1.0 requires conflict<1.0, "
+        "but you'll have conflict 1.0 which is incompatible."
     ])
 
     # Install unrelated package
@@ -105,4 +104,4 @@ def test_check_install_does_not_warn_for_out_of_graph_issues(script):
         "broken 1.0 requires missing, which is not installed.",
         "broken 1.0 has requirement conflict<1.0, but you have conflict 1.0.",
     ]
-    assert contains_expected_lines(result.stdout, expected_lines)
+    assert_contains_expected_lines(result.stdout, expected_lines)

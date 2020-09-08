@@ -159,6 +159,7 @@ def test_relative_requirements_file(
             result.did_create(egg_link_file)
 
 
+@pytest.mark.xfail
 @pytest.mark.network
 @need_svn
 def test_multiple_requirements_files(script, tmpdir, with_wheel):

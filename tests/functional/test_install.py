@@ -9,6 +9,7 @@ import textwrap
 from os.path import curdir, join, pardir
 
 import pytest
+from pip._vendor.six import PY2
 
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.models.index import PyPI, TestPyPI
@@ -757,6 +758,7 @@ def test_install_using_install_option_and_editable(script, tmpdir):
     result.did_create(script_file)
 
 
+@pytest.mark.xfail
 @pytest.mark.network
 @need_mercurial
 @windows_workaround_7667
@@ -1565,7 +1567,9 @@ def test_install_incompatible_python_requires_wheel(script, with_wheel):
               version='0.1')
     """))
     script.run(
-        'python', 'setup.py', 'bdist_wheel', '--universal', cwd=pkga_path)
+        'python', 'setup.py', 'bdist_wheel', '--universal',
+        cwd=pkga_path, allow_stderr_warning=PY2,
+    )
     result = script.pip('install', './pkga/dist/pkga-0.1-py2.py3-none-any.whl',
                         expect_error=True)
     assert _get_expected_error_text() in result.stderr, str(result)

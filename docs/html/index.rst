@@ -14,6 +14,7 @@ Please take a look at our documentation for how to install and use pip:
    user_guide
    reference/index
    development/index
+   ux_research_design
    news
 
 In 2020, we're working on improvements to the heart of pip. Please `learn more and take our survey`_ to help us do it right.
@@ -35,7 +36,7 @@ Code of Conduct
 ===============
 
 Everyone interacting in the pip project's codebases, issue trackers, chat
-rooms, and mailing lists is expected to follow the `PyPA Code of Conduct`_.
+rooms, and mailing lists is expected to follow the `PSF Code of Conduct`_.
 
 .. _package installer: https://packaging.python.org/guides/tool-recommendations/
 .. _Python Package Index: https://pypi.org
@@ -49,4 +50,4 @@ rooms, and mailing lists is expected to follow the `PyPA Code of Conduct`_.
 .. _Development mailing list: https://mail.python.org/mailman3/lists/distutils-sig.python.org/
 .. _User IRC: https://webchat.freenode.net/?channels=%23pypa
 .. _Development IRC: https://webchat.freenode.net/?channels=%23pypa-dev
-.. _PyPA Code of Conduct: https://www.pypa.io/en/latest/code-of-conduct/
+.. _PSF Code of Conduct: https://github.com/pypa/.github/blob/main/CODE_OF_CONDUCT.md

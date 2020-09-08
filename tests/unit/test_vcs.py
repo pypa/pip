@@ -173,8 +173,9 @@ def test_git_resolve_revision_not_found_warning(get_sha_mock, caplog):
     sha = 40 * 'a'
     rev_options = Git.make_rev_options(sha)
 
-    new_options = Git.resolve_revision('.', url, rev_options)
-    assert new_options.rev == sha
+    # resolve_revision with a full sha would fail here because
+    # it attempts a git fetch. This case is now covered by
+    # test_resolve_commit_not_on_branch.
 
     rev_options = Git.make_rev_options(sha[:6])
     new_options = Git.resolve_revision('.', url, rev_options)

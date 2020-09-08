@@ -79,6 +79,47 @@ as the "username" and do not provide a password, for example -
 ``https://0123456789abcdef@pypi.company.com``
 
 
+netrc Support
+-------------
+
+If no credentials are part of the URL, pip will attempt to get authentication credentials
+for the URL’s hostname from the user’s .netrc file. This behaviour comes from the underlying
+use of `requests`_ which in turn delegates it to the `Python standard library`_.
+
+The .netrc file contains login and initialization information used by the auto-login process.
+It resides in the user's home directory. The .netrc file format is simple. You specify lines
+with a machine name and follow that with lines for the login and password that are
+associated with that machine. Machine name is the hostname in your URL.
+
+An example .netrc for the host example.com with a user named 'daniel', using the password
+'qwerty' would look like:
+
+.. code-block:: shell
+
+   machine example.com
+   login daniel
+   password qwerty
+
+As mentioned in the `standard library docs <https://docs.python.org/3/library/netrc.html>`_,
+only ASCII characters are allowed. Whitespace and non-printable characters are not allowed in passwords.
+
+
+Keyring Support
+---------------
+
+pip also supports credentials stored in your keyring using the `keyring`_
+library. Note that ``keyring`` will need to be installed separately, as pip
+does not come with it included.
+
+.. code-block:: shell
+
+   pip install keyring
+   echo your-password | keyring set pypi.company.com your-username
+   pip install your-package --extra-index-url https://pypi.company.com/
+
+.. _keyring: https://pypi.org/project/keyring/
+
+
 Using a Proxy Server
 ====================
 
@@ -442,6 +483,15 @@ and ``--no-cache-dir``, falsy values have to be used:
     no-compile = no
     no-warn-script-location = false
 
+For options which can be repeated like ``--verbose`` and ``--quiet``,
+a non-negative integer can be used to represent the level to be specified:
+
+.. code-block:: ini
+
+    [global]
+    quiet = 0
+    verbose = 2
+
 It is possible to append values to a section within a configuration file such as the pip.ini file.
 This is applicable to appending options like ``--find-links`` or ``--trusted-host``,
 which can be written on multiple lines:
@@ -487,6 +537,15 @@ multiple values. For example::
 is the same as calling::
 
     pip install --find-links=http://mirror1.example.com --find-links=http://mirror2.example.com
+
+Options that do not take a value, but can be repeated (such as ``--verbose``)
+can be specified using the number of repetitions, so::
+
+    export PIP_VERBOSE=3
+
+is the same as calling::
+
+    pip install -vvv
 
 .. note::
 
@@ -772,8 +831,6 @@ archives are built with identical packages.
     to use such a package, see :ref:`Controlling
     setup_requires<controlling-setup-requires>`.
 
-.. _`Using pip from your program`:
-
 Fixing conflicting dependencies
 ===============================
 
@@ -954,6 +1011,8 @@ issue tracker`_ if you believe that your problem has exposed a bug in pip.
 .. _Stack Overflow: https://stackoverflow.com/questions/tagged/python
 .. _"How do I ask a good question?": https://stackoverflow.com/help/how-to-ask
 .. _pip issue tracker: https://github.com/pypa/pip/issues
+
+.. _`Using pip from your program`:
 
 Using pip from your program
 ===========================
@@ -1262,3 +1321,5 @@ announcements on the `low-traffic packaging announcements list`_ and
 .. _low-traffic packaging announcements list: https://mail.python.org/mailman3/lists/pypi-announce.python.org/
 .. _our survey on upgrades that create conflicts: https://docs.google.com/forms/d/e/1FAIpQLSeBkbhuIlSofXqCyhi3kGkLmtrpPOEBwr6iJA6SzHdxWKfqdA/viewform
 .. _the official Python blog: https://blog.python.org/
+.. _requests: https://requests.readthedocs.io/en/master/user/authentication/#netrc-authentication
+.. _Python standard library: https://docs.python.org/3/library/netrc.html

@@ -988,3 +988,35 @@ def test_new_resolver_local_and_req(script):
         source_dir, "pkg!=0.1.0",
         expect_error=True,
     )
+
+
+def test_new_resolver_no_deps_checks_requires_python(script):
+    create_basic_wheel_for_package(
+        script,
+        "base",
+        "0.1.0",
+        depends=["dep"],
+        requires_python="<2",  # Something that always fails.
+    )
+    create_basic_wheel_for_package(
+        script,
+        "dep",
+        "0.2.0",
+    )
+
+    result = script.pip(
+        "install",
+        "--use-feature=2020-resolver",
+        "--no-cache-dir",
+        "--no-index",
+        "--no-deps",
+        "--find-links", script.scratch_path,
+        "base",
+        expect_error=True,
+    )
+
+    message = (
+        "Package 'base' requires a different Python: "
+        "{}.{}.{} not in '<2'".format(*sys.version_info[:3])
+    )
+    assert message in result.stderr
