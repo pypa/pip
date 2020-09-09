@@ -31,7 +31,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from optparse import OptionParser, Values
-    from typing import Any, Callable, Dict, List, Optional, Tuple
+    from typing import Any, Callable, Dict, Optional, Tuple
 
     from pip._internal.cli.parser import ConfigOptionParser
 
@@ -498,8 +498,8 @@ platform = partial(
     action='append',
     default=None,
     help=("Only use wheels compatible with <platform>. Defaults to the "
-          "platform of the running system. Use multiple options to specify "
-          "multiple platforms supported by the target interpreter."),
+          "platform of the running system. Use this option multiple times to "
+          "specify multiple platforms supported by the target interpreter."),
 )  # type: Callable[..., Option]
 
 
@@ -592,8 +592,8 @@ abi = partial(
     default=None,
     help=("Only use wheels compatible with Python abi <abi>, e.g. 'pypy_41'. "
           "If not specified, then the current interpreter abi tag is used. "
-          "Use multiple options to specify multiple abis supported by the "
-          "target interpreter. Generally you will need to specify "
+          "Use this option multiple times to specify multiple abis supported "
+          "by the target interpreter. Generally you will need to specify "
           "--implementation, --platform, and --python-version when using this "
           "option."),
 )  # type: Callable[..., Option]
