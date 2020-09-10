@@ -358,7 +358,7 @@ class RequirementPreparer(object):
         self._downloaded = {}  # type: Dict[str, Tuple[str, str]]
 
         # Previous "header" printed for a link-based InstallRequirement
-        self._previous_requirement_header = None
+        self._previous_requirement_header = ("", "")
 
     @property
     def _download_should_save(self):
