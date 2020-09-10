@@ -373,12 +373,15 @@ class RequirementPreparer(object):
 
     def _log_preparing_link(self, req):
         # type: (InstallRequirement) -> None
-        """Log the way the link prepared."""
+        """Provide context for the requirement being prepared."""
         if req.link.is_file:
-            path = req.link.file_path
-            logger.info('Processing %s', display_path(path))
+            message = "Processing %s"
+            information = str(display_path(req.link.file_path))
         else:
-            logger.info('Collecting %s', req.req or req)
+            message = "Collecting %s"
+            information = str(req.req or req)
+
+        logger.info(message, information)
 
     def _get_download_dir(self, link):
         # type: (Link) -> Optional[str]
