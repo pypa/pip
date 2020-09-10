@@ -357,6 +357,9 @@ class RequirementPreparer(object):
         # Memoized downloaded files, as mapping of url: (path, mime type)
         self._downloaded = {}  # type: Dict[str, Tuple[str, str]]
 
+        # Previous "header" printed for a link-based InstallRequirement
+        self._previous_requirement_header = None
+
     @property
     def _download_should_save(self):
         # type: () -> bool
@@ -381,7 +384,9 @@ class RequirementPreparer(object):
             message = "Collecting %s"
             information = str(req.req or req)
 
-        logger.info(message, information)
+        if (message, information) != self._previous_requirement_header:
+            self._previous_requirement_header = (message, information)
+            logger.info(message, information)
 
         if req.original_link_is_in_wheel_cache:
             with indent_log():
