@@ -36,7 +36,7 @@ class Updater:
                 'url_prefix': base_url,
                 'metadata_path': 'tuf/',
                 'targets_path': targets_path,
-                'confined_target_dirs': [targets_path]
+                'confined_target_dirs': ['']
             }
         }
         self._updater = tuf.client.updater.Updater(dir_name, mirrors)
@@ -92,16 +92,16 @@ class Updater:
     # "https://pypi.org/simple/django"
     # Raises NoWorkingMirrorError, ?
     def download_index(self, project_name):
-        # TODO double check that this seems like an index file URL? e.g. make sure it starts with index_url
-
         self._ensure_fresh_metadata()
 
-        target = self._updater.get_one_valid_targetinfo(project_name)
+        # TODO warehouse setup for hashed index files is still undecided: this assumes /simple/{PROJECT}/{HASH}.index.html
+        target_name = project_name + "/index.html"
+        target = self._updater.get_one_valid_targetinfo(target_name)
         if self._updater.updated_targets([target], self._cache_dir):
             self._updater.download_target(target, self._cache_dir)
 
         # TODO possibly we want to return contents of the file instead?
-        return os.path.join(self._cache_dir, project_name)
+        return os.path.join(self._cache_dir, target_name)
 
 
     # Download a distribution file
@@ -131,7 +131,7 @@ class Updater:
 # The dict will contain updaters for every index_url that we have local metadata for
 # TODO return value should maybe be a "TUFSession" object -- it could provide some extra
 # functionality like updater lookup based on distribution download Link (currently
-# implemented in prepare.py:get_http_url() )
+# implemented in prepare.py:get_http_url()) or lookup that at least canonicalizes the URL
 def initialize_updaters(index_urls, metadata_dir, cache_dir):
     if not os.path.isdir(metadata_dir):
         # TODO should create this path or no?

@@ -583,14 +583,16 @@ class LinkCollector(object):
     def __init__(
         self,
         session,       # type: PipSession
+        updaters,
         search_scope,  # type: SearchScope
     ):
         # type: (...) -> None
         self.search_scope = search_scope
         self.session = session
+        self.updaters = updaters
 
     @classmethod
-    def create(cls, session, options, suppress_no_index=False):
+    def create(cls, session, updaters, options, suppress_no_index=False):
         # type: (PipSession, Values, bool) -> LinkCollector
         """
         :param session: The Session to use to make requests.
@@ -612,7 +614,7 @@ class LinkCollector(object):
             find_links=find_links, index_urls=index_urls,
         )
         link_collector = LinkCollector(
-            session=session, search_scope=search_scope,
+            session=session, updaters=updaters, search_scope=search_scope,
         )
         return link_collector
 
@@ -626,7 +628,22 @@ class LinkCollector(object):
         """
         Fetch an HTML page containing package links.
         """
-        return _get_html_page(location, session=self.session)
+        # TODO: TUF should only be used for project index files -- is this used for other things?
+        try:
+            index_url, _, project = location.url.rstrip('/').rpartition('/')
+            assert(len(project) > 0)
+            updater = self.updaters[index_url + '/']
+            logger.debug('TUF Updater found: ' + str(updater))
+            index_file = updater.download_index(project)
+            with open(index_file, "rb") as f:
+                return HTMLPage(
+                    content=f.read(),
+                    encoding=None,
+                    url=location.url, #TODO should this be the real hashed url?
+                    cache_link_parsing=False)
+        except KeyError:
+            logger.debug('TUF Updater not found for index_url ' + index_url)
+            return _get_html_page(location, session=self.session)
 
     def collect_links(self, project_name):
         # type: (str) -> CollectedLinks

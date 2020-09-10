@@ -408,6 +408,7 @@ class RequirementCommand(IndexGroupCommand):
         self,
         options,               # type: Values
         session,               # type: PipSession
+        updaters,
         target_python=None,    # type: Optional[TargetPython]
         ignore_requires_python=None,  # type: Optional[bool]
     ):
@@ -418,7 +419,7 @@ class RequirementCommand(IndexGroupCommand):
         :param ignore_requires_python: Whether to ignore incompatible
             "Requires-Python" values in links. Defaults to False.
         """
-        link_collector = LinkCollector.create(session, options=options)
+        link_collector = LinkCollector.create(session, updaters, options=options)
         selection_prefs = SelectionPreferences(
             allow_yanked=True,
             format_control=options.format_control,
