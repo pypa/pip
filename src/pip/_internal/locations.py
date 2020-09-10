@@ -77,7 +77,7 @@ except AttributeError:
 
 
 def _get_bin_user():
-    # type: (...) -> str
+    # type: () -> str
     scheme = "{}_user".format(os.name)
     if scheme not in sysconfig.get_scheme_names():
         scheme = "posix_user"  # Default to POSIX for unknown platforms.
