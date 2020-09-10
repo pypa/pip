@@ -374,7 +374,7 @@ class RequirementPreparer(object):
     def _log_preparing_link(self, req):
         # type: (InstallRequirement) -> None
         """Provide context for the requirement being prepared."""
-        if req.link.is_file:
+        if req.link.is_file and not req.original_link_is_in_wheel_cache:
             message = "Processing %s"
             information = str(display_path(req.link.file_path))
         else:
@@ -382,6 +382,10 @@ class RequirementPreparer(object):
             information = str(req.req or req)
 
         logger.info(message, information)
+
+        if req.original_link_is_in_wheel_cache:
+            with indent_log():
+                logger.info("Using cached %s", req.link.filename)
 
     def _get_download_dir(self, link):
         # type: (Link) -> Optional[str]
