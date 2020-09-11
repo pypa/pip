@@ -123,3 +123,91 @@ def test_new_resolver_hash_intersect_from_constraint(script):
         "(1 matches, 0 no digest): discarding 1 non-matches"
     ).format(name=u"base")
     assert message in result.stdout, str(result)
+
+
+@pytest.mark.parametrize(
+    "requirements_template, constraints_template",
+    [
+        (
+            """
+            base==0.1.0 --hash=sha256:{sdist_hash}
+            base==0.1.0 --hash=sha256:{wheel_hash}
+            """,
+            "",
+        ),
+        (
+            "base==0.1.0 --hash=sha256:{sdist_hash}",
+            "base==0.1.0 --hash=sha256:{wheel_hash}",
+        ),
+    ],
+    ids=["both-requirements", "one-each"],
+)
+def test_new_resolver_hash_intersect_empty(
+    script, requirements_template, constraints_template,
+):
+    find_links = _create_find_links(script)
+
+    constraints_txt = script.scratch_path / "constraints.txt"
+    constraints_txt.write_text(
+        constraints_template.format(
+            sdist_hash=find_links.sdist_hash,
+            wheel_hash=find_links.wheel_hash,
+        ),
+    )
+
+    requirements_txt = script.scratch_path / "requirements.txt"
+    requirements_txt.write_text(
+        requirements_template.format(
+            sdist_hash=find_links.sdist_hash,
+            wheel_hash=find_links.wheel_hash,
+        ),
+    )
+
+    result = script.pip(
+        "install",
+        "--use-feature=2020-resolver",
+        "--no-cache-dir",
+        "--no-deps",
+        "--no-index",
+        "--find-links", find_links.index_html,
+        "--constraint", constraints_txt,
+        "--requirement", requirements_txt,
+        expect_error=True,
+    )
+
+    assert (
+        "THESE PACKAGES DO NOT MATCH THE HASHES FROM THE REQUIREMENTS FILE."
+    ) in result.stderr, str(result)
+
+
+def test_new_resolver_hash_intersect_empty_from_constraint(script):
+    find_links = _create_find_links(script)
+
+    constraints_txt = script.scratch_path / "constraints.txt"
+    constraints_txt.write_text(
+        """
+        base==0.1.0 --hash=sha256:{sdist_hash}
+        base==0.1.0 --hash=sha256:{wheel_hash}
+        """.format(
+            sdist_hash=find_links.sdist_hash,
+            wheel_hash=find_links.wheel_hash,
+        ),
+    )
+
+    result = script.pip(
+        "install",
+        "--use-feature=2020-resolver",
+        "--no-cache-dir",
+        "--no-deps",
+        "--no-index",
+        "--find-links", find_links.index_html,
+        "--constraint", constraints_txt,
+        "base==0.1.0",
+        expect_error=True,
+    )
+
+    message = (
+        "Hashes are required in --require-hashes mode, but they are missing "
+        "from some requirements."
+    )
+    assert message in result.stderr, str(result)
