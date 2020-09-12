@@ -137,7 +137,7 @@ class WheelCommand(RequirementCommand):
             req_tracker=req_tracker,
             session=session,
             finder=finder,
-            wheel_download_dir=options.wheel_dir,
+            download_dir=options.wheel_dir,
             use_user_site=False,
         )
 
