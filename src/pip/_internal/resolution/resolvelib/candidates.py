@@ -5,24 +5,25 @@ from pip._vendor.packaging.specifiers import InvalidSpecifier, SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
 
+from pip._internal.exceptions import HashError, MetadataInconsistent
+from pip._internal.models.wheel import Wheel
 from pip._internal.req.constructors import (
     install_req_from_editable,
     install_req_from_line,
 )
 from pip._internal.req.req_install import InstallRequirement
-from pip._internal.utils.misc import normalize_version_info
+from pip._internal.utils.misc import dist_is_editable, normalize_version_info
 from pip._internal.utils.packaging import get_requires_python
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 from .base import Candidate, format_name
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Optional, Sequence, Set, Tuple, Union
+    from typing import Any, FrozenSet, Iterable, Optional, Tuple, Union
 
     from pip._vendor.packaging.version import _BaseVersion
     from pip._vendor.pkg_resources import Distribution
 
-    from pip._internal.distributions import AbstractDistribution
     from pip._internal.models.link import Link
 
     from .base import Requirement
@@ -38,55 +39,69 @@ if MYPY_CHECK_RUNNING:
 logger = logging.getLogger(__name__)
 
 
-def make_install_req_from_link(link, parent):
+def make_install_req_from_link(link, template):
     # type: (Link, InstallRequirement) -> InstallRequirement
-    assert not parent.editable, "parent is editable"
-    return install_req_from_line(
-        link.url,
-        comes_from=parent.comes_from,
-        use_pep517=parent.use_pep517,
-        isolated=parent.isolated,
-        constraint=parent.constraint,
+    assert not template.editable, "template is editable"
+    if template.req:
+        line = str(template.req)
+    else:
+        line = link.url
+    ireq = install_req_from_line(
+        line,
+        user_supplied=template.user_supplied,
+        comes_from=template.comes_from,
+        use_pep517=template.use_pep517,
+        isolated=template.isolated,
+        constraint=template.constraint,
         options=dict(
-            install_options=parent.install_options,
-            global_options=parent.global_options,
-            hashes=parent.hash_options
+            install_options=template.install_options,
+            global_options=template.global_options,
+            hashes=template.hash_options
         ),
     )
+    ireq.original_link = template.original_link
+    ireq.link = link
+    return ireq
 
 
-def make_install_req_from_editable(link, parent):
+def make_install_req_from_editable(link, template):
     # type: (Link, InstallRequirement) -> InstallRequirement
-    assert parent.editable, "parent not editable"
+    assert template.editable, "template not editable"
     return install_req_from_editable(
         link.url,
-        comes_from=parent.comes_from,
-        use_pep517=parent.use_pep517,
-        isolated=parent.isolated,
-        constraint=parent.constraint,
+        user_supplied=template.user_supplied,
+        comes_from=template.comes_from,
+        use_pep517=template.use_pep517,
+        isolated=template.isolated,
+        constraint=template.constraint,
         options=dict(
-            install_options=parent.install_options,
-            global_options=parent.global_options,
-            hashes=parent.hash_options
+            install_options=template.install_options,
+            global_options=template.global_options,
+            hashes=template.hash_options
         ),
     )
 
 
-def make_install_req_from_dist(dist, parent):
+def make_install_req_from_dist(dist, template):
     # type: (Distribution, InstallRequirement) -> InstallRequirement
+    project_name = canonicalize_name(dist.project_name)
+    if template.req:
+        line = str(template.req)
+    elif template.link:
+        line = "{} @ {}".format(project_name, template.link.url)
+    else:
+        line = "{}=={}".format(project_name, dist.parsed_version)
     ireq = install_req_from_line(
-        "{}=={}".format(
-            canonicalize_name(dist.project_name),
-            dist.parsed_version,
-        ),
-        comes_from=parent.comes_from,
-        use_pep517=parent.use_pep517,
-        isolated=parent.isolated,
-        constraint=parent.constraint,
+        line,
+        user_supplied=template.user_supplied,
+        comes_from=template.comes_from,
+        use_pep517=template.use_pep517,
+        isolated=template.isolated,
+        constraint=template.constraint,
         options=dict(
-            install_options=parent.install_options,
-            global_options=parent.global_options,
-            hashes=parent.hash_options
+            install_options=template.install_options,
+            global_options=template.global_options,
+            hashes=template.hash_options
         ),
     )
     ireq.satisfied_by = dist
@@ -94,16 +109,34 @@ def make_install_req_from_dist(dist, parent):
 
 
 class _InstallRequirementBackedCandidate(Candidate):
+    """A candidate backed by an ``InstallRequirement``.
+
+    This represents a package request with the target not being already
+    in the environment, and needs to be fetched and installed. The backing
+    ``InstallRequirement`` is responsible for most of the leg work; this
+    class exposes appropriate information to the resolver.
+
+    :param link: The link passed to the ``InstallRequirement``. The backing
+        ``InstallRequirement`` will use this link to fetch the distribution.
+    :param source_link: The link this candidate "originates" from. This is
+        different from ``link`` when the link is found in the wheel cache.
+        ``link`` would point to the wheel cache, while this points to the
+        found remote link (e.g. from pypi.org).
+    """
+    is_installed = False
+
     def __init__(
         self,
         link,          # type: Link
+        source_link,   # type: Link
         ireq,          # type: InstallRequirement
         factory,       # type: Factory
         name=None,     # type: Optional[str]
         version=None,  # type: Optional[_BaseVersion]
     ):
         # type: (...) -> None
-        self.link = link
+        self._link = link
+        self._source_link = source_link
         self._factory = factory
         self._ireq = ireq
         self._name = name
@@ -114,19 +147,28 @@ class _InstallRequirementBackedCandidate(Candidate):
         # type: () -> str
         return "{class_name}({link!r})".format(
             class_name=self.__class__.__name__,
-            link=str(self.link),
+            link=str(self._link),
         )
+
+    def __hash__(self):
+        # type: () -> int
+        return hash((self.__class__, self._link))
 
     def __eq__(self, other):
         # type: (Any) -> bool
         if isinstance(other, self.__class__):
-            return self.link == other.link
+            return self._link == other._link
         return False
 
     # Needed for Python 2, which does not implement this by default
     def __ne__(self, other):
         # type: (Any) -> bool
         return not self.__eq__(other)
+
+    @property
+    def source_link(self):
+        # type: () -> Optional[Link]
+        return self._source_link
 
     @property
     def name(self):
@@ -143,72 +185,70 @@ class _InstallRequirementBackedCandidate(Candidate):
             self._version = self.dist.parsed_version
         return self._version
 
-    def _prepare_abstract_distribution(self):
-        # type: () -> AbstractDistribution
+    def format_for_error(self):
+        # type: () -> str
+        return "{} {} (from {})".format(
+            self.name,
+            self.version,
+            self._link.file_path if self._link.is_file else self._link
+        )
+
+    def _prepare_distribution(self):
+        # type: () -> Distribution
         raise NotImplementedError("Override in subclass")
+
+    def _check_metadata_consistency(self, dist):
+        # type: (Distribution) -> None
+        """Check for consistency of project name and version of dist."""
+        # TODO: (Longer term) Rather than abort, reject this candidate
+        #       and backtrack. This would need resolvelib support.
+        name = canonicalize_name(dist.project_name)
+        if self._name is not None and self._name != name:
+            raise MetadataInconsistent(self._ireq, "name", dist.project_name)
+        version = dist.parsed_version
+        if self._version is not None and self._version != version:
+            raise MetadataInconsistent(self._ireq, "version", dist.version)
 
     def _prepare(self):
         # type: () -> None
         if self._dist is not None:
             return
+        try:
+            dist = self._prepare_distribution()
+        except HashError as e:
+            e.req = self._ireq
+            raise
 
-        abstract_dist = self._prepare_abstract_distribution()
-        self._dist = abstract_dist.get_pkg_resources_distribution()
-        assert self._dist is not None, "Distribution already installed"
-
-        # TODO: Abort cleanly here, as the resolution has been
-        #       based on the wrong name/version until now, and
-        #       so is wrong.
-        # TODO: (Longer term) Rather than abort, reject this candidate
-        #       and backtrack. This would need resolvelib support.
-        # These should be "proper" errors, not just asserts, as they
-        # can result from user errors like a requirement "foo @ URL"
-        # when the project at URL has a name of "bar" in its metadata.
-        assert (
-            self._name is None or
-            self._name == canonicalize_name(self._dist.project_name)
-        ), "Name mismatch: {!r} vs {!r}".format(
-            self._name, canonicalize_name(self._dist.project_name),
-        )
-        assert (
-            self._version is None or
-            self._version == self._dist.parsed_version
-        ), "Version mismatch: {!r} vs {!r}".format(
-            self._version, self._dist.parsed_version,
-        )
+        assert dist is not None, "Distribution already installed"
+        self._check_metadata_consistency(dist)
+        self._dist = dist
 
     @property
     def dist(self):
         # type: () -> Distribution
-        self._prepare()
+        if self._dist is None:
+            self._prepare()
         return self._dist
 
-    def _get_requires_python_specifier(self):
-        # type: () -> Optional[SpecifierSet]
+    def _get_requires_python_dependency(self):
+        # type: () -> Optional[Requirement]
         requires_python = get_requires_python(self.dist)
         if requires_python is None:
             return None
         try:
             spec = SpecifierSet(requires_python)
         except InvalidSpecifier as e:
-            logger.warning(
-                "Package %r has an invalid Requires-Python: %s", self.name, e,
-            )
+            message = "Package %r has an invalid Requires-Python: %s"
+            logger.warning(message, self.name, e)
             return None
-        return spec
+        return self._factory.make_requires_python_requirement(spec)
 
-    def get_dependencies(self):
-        # type: () -> Sequence[Requirement]
-        deps = [
-            self._factory.make_requirement_from_spec(str(r), self._ireq)
-            for r in self.dist.requires()
-        ]
-        python_dep = self._factory.make_requires_python_requirement(
-            self._get_requires_python_specifier(),
-        )
-        if python_dep:
-            deps.append(python_dep)
-        return deps
+    def iter_dependencies(self, with_requires):
+        # type: (bool) -> Iterable[Optional[Requirement]]
+        requires = self.dist.requires() if with_requires else ()
+        for r in requires:
+            yield self._factory.make_requirement_from_spec(str(r), self._ireq)
+        yield self._get_requires_python_dependency()
 
     def get_install_requirement(self):
         # type: () -> Optional[InstallRequirement]
@@ -217,33 +257,66 @@ class _InstallRequirementBackedCandidate(Candidate):
 
 
 class LinkCandidate(_InstallRequirementBackedCandidate):
+    is_editable = False
+
     def __init__(
         self,
         link,          # type: Link
-        parent,        # type: InstallRequirement
+        template,        # type: InstallRequirement
         factory,       # type: Factory
         name=None,     # type: Optional[str]
         version=None,  # type: Optional[_BaseVersion]
     ):
         # type: (...) -> None
+        source_link = link
+        cache_entry = factory.get_wheel_cache_entry(link, name)
+        if cache_entry is not None:
+            logger.debug("Using cached wheel link: %s", cache_entry.link)
+            link = cache_entry.link
+        ireq = make_install_req_from_link(link, template)
+        assert ireq.link == link
+        if ireq.link.is_wheel and not ireq.link.is_file:
+            wheel = Wheel(ireq.link.filename)
+            wheel_name = canonicalize_name(wheel.name)
+            assert name == wheel_name, (
+                "{!r} != {!r} for wheel".format(name, wheel_name)
+            )
+            # Version may not be present for PEP 508 direct URLs
+            if version is not None:
+                assert str(version) == wheel.version, (
+                    "{!r} != {!r} for wheel {}".format(
+                        version, wheel.version, name
+                    )
+                )
+
+        if (cache_entry is not None and
+                cache_entry.persistent and
+                template.link is template.original_link):
+            ireq.original_link_is_in_wheel_cache = True
+
         super(LinkCandidate, self).__init__(
             link=link,
-            ireq=make_install_req_from_link(link, parent),
+            source_link=source_link,
+            ireq=ireq,
             factory=factory,
             name=name,
             version=version,
         )
 
-    def _prepare_abstract_distribution(self):
-        # type: () -> AbstractDistribution
-        return self._factory.preparer.prepare_linked_requirement(self._ireq)
+    def _prepare_distribution(self):
+        # type: () -> Distribution
+        return self._factory.preparer.prepare_linked_requirement(
+            self._ireq, parallel_builds=True,
+        )
 
 
 class EditableCandidate(_InstallRequirementBackedCandidate):
+    is_editable = True
+
     def __init__(
         self,
         link,          # type: Link
-        parent,        # type: InstallRequirement
+        template,        # type: InstallRequirement
         factory,       # type: Factory
         name=None,     # type: Optional[str]
         version=None,  # type: Optional[_BaseVersion]
@@ -251,27 +324,31 @@ class EditableCandidate(_InstallRequirementBackedCandidate):
         # type: (...) -> None
         super(EditableCandidate, self).__init__(
             link=link,
-            ireq=make_install_req_from_editable(link, parent),
+            source_link=link,
+            ireq=make_install_req_from_editable(link, template),
             factory=factory,
             name=name,
             version=version,
         )
 
-    def _prepare_abstract_distribution(self):
-        # type: () -> AbstractDistribution
+    def _prepare_distribution(self):
+        # type: () -> Distribution
         return self._factory.preparer.prepare_editable_requirement(self._ireq)
 
 
 class AlreadyInstalledCandidate(Candidate):
+    is_installed = True
+    source_link = None
+
     def __init__(
         self,
         dist,  # type: Distribution
-        parent,  # type: InstallRequirement
+        template,  # type: InstallRequirement
         factory,  # type: Factory
     ):
         # type: (...) -> None
         self.dist = dist
-        self._ireq = make_install_req_from_dist(dist, parent)
+        self._ireq = make_install_req_from_dist(dist, template)
         self._factory = factory
 
         # This is just logging some messages, so we can do it eagerly.
@@ -287,6 +364,10 @@ class AlreadyInstalledCandidate(Candidate):
             class_name=self.__class__.__name__,
             distribution=self.dist,
         )
+
+    def __hash__(self):
+        # type: () -> int
+        return hash((self.__class__, self.name, self.version))
 
     def __eq__(self, other):
         # type: (Any) -> bool
@@ -309,12 +390,21 @@ class AlreadyInstalledCandidate(Candidate):
         # type: () -> _BaseVersion
         return self.dist.parsed_version
 
-    def get_dependencies(self):
-        # type: () -> Sequence[Requirement]
-        return [
-            self._factory.make_requirement_from_spec(str(r), self._ireq)
-            for r in self.dist.requires()
-        ]
+    @property
+    def is_editable(self):
+        # type: () -> bool
+        return dist_is_editable(self.dist)
+
+    def format_for_error(self):
+        # type: () -> str
+        return "{} {} (Installed)".format(self.name, self.version)
+
+    def iter_dependencies(self, with_requires):
+        # type: (bool) -> Iterable[Optional[Requirement]]
+        if not with_requires:
+            return
+        for r in self.dist.requires():
+            yield self._factory.make_requirement_from_spec(str(r), self._ireq)
 
     def get_install_requirement(self):
         # type: () -> Optional[InstallRequirement]
@@ -335,8 +425,8 @@ class ExtrasCandidate(Candidate):
        to treat it as a separate node in the dependency graph.
     2. When we're getting the candidate's dependencies,
        a) We specify that we want the extra dependencies as well.
-       b) We add a dependency on the base candidate (matching the name and
-          version).  See below for why this is needed.
+       b) We add a dependency on the base candidate.
+          See below for why this is needed.
     3. We return None for the underlying InstallRequirement, as the base
        candidate will provide it, and we don't want to end up with duplicates.
 
@@ -348,7 +438,7 @@ class ExtrasCandidate(Candidate):
     def __init__(
         self,
         base,  # type: BaseCandidate
-        extras,  # type: Set[str]
+        extras,  # type: FrozenSet[str]
     ):
         # type: (...) -> None
         self.base = base
@@ -361,6 +451,10 @@ class ExtrasCandidate(Candidate):
             base=self.base,
             extras=self.extras,
         )
+
+    def __hash__(self):
+        # type: () -> int
+        return hash((self.base, self.extras))
 
     def __eq__(self, other):
         # type: (Any) -> bool
@@ -384,30 +478,56 @@ class ExtrasCandidate(Candidate):
         # type: () -> _BaseVersion
         return self.base.version
 
-    def get_dependencies(self):
-        # type: () -> Sequence[Requirement]
+    def format_for_error(self):
+        # type: () -> str
+        return "{} [{}]".format(
+            self.base.format_for_error(),
+            ", ".join(sorted(self.extras))
+        )
+
+    @property
+    def is_installed(self):
+        # type: () -> bool
+        return self.base.is_installed
+
+    @property
+    def is_editable(self):
+        # type: () -> bool
+        return self.base.is_editable
+
+    @property
+    def source_link(self):
+        # type: () -> Optional[Link]
+        return self.base.source_link
+
+    def iter_dependencies(self, with_requires):
+        # type: (bool) -> Iterable[Optional[Requirement]]
         factory = self.base._factory
+
+        # Add a dependency on the exact base
+        # (See note 2b in the class docstring)
+        yield factory.make_requirement_from_candidate(self.base)
+        if not with_requires:
+            return
 
         # The user may have specified extras that the candidate doesn't
         # support. We ignore any unsupported extras here.
         valid_extras = self.extras.intersection(self.base.dist.extras)
         invalid_extras = self.extras.difference(self.base.dist.extras)
-        if invalid_extras:
+        for extra in sorted(invalid_extras):
             logger.warning(
-                "Invalid extras specified in %s: %s",
-                self.name,
-                ','.join(sorted(invalid_extras))
+                "%s %s does not provide the extra '%s'",
+                self.base.name,
+                self.version,
+                extra
             )
 
-        deps = [
-            factory.make_requirement_from_spec(str(r), self.base._ireq)
-            for r in self.base.dist.requires(valid_extras)
-        ]
-        # Add a dependency on the exact base.
-        # (See note 2b in the class docstring)
-        spec = "{}=={}".format(self.base.name, self.base.version)
-        deps.append(factory.make_requirement_from_spec(spec, self.base._ireq))
-        return deps
+        for r in self.base.dist.requires(valid_extras):
+            requirement = factory.make_requirement_from_spec(
+                str(r), self.base._ireq, valid_extras,
+            )
+            if requirement:
+                yield requirement
 
     def get_install_requirement(self):
         # type: () -> Optional[InstallRequirement]
@@ -418,6 +538,9 @@ class ExtrasCandidate(Candidate):
 
 
 class RequiresPythonCandidate(Candidate):
+    is_installed = False
+    source_link = None
+
     def __init__(self, py_version_info):
         # type: (Optional[Tuple[int, ...]]) -> None
         if py_version_info is not None:
@@ -434,16 +557,20 @@ class RequiresPythonCandidate(Candidate):
     def name(self):
         # type: () -> str
         # Avoid conflicting with the PyPI package "Python".
-        return "<Python fom Requires-Python>"
+        return "<Python from Requires-Python>"
 
     @property
     def version(self):
         # type: () -> _BaseVersion
         return self._version
 
-    def get_dependencies(self):
-        # type: () -> Sequence[Requirement]
-        return []
+    def format_for_error(self):
+        # type: () -> str
+        return "Python {}".format(self.version)
+
+    def iter_dependencies(self, with_requires):
+        # type: (bool) -> Iterable[Optional[Requirement]]
+        return ()
 
     def get_install_requirement(self):
         # type: () -> Optional[InstallRequirement]

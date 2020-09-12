@@ -64,6 +64,7 @@ Ashley Manton
 Ashwin Ramaswami
 atse
 Atsushi Odagiri
+Avinash Karhana
 Avner Cohen
 Baptiste Mispelon
 Barney Gale
@@ -132,6 +133,8 @@ Cory Benfield
 Cory Wright
 Craig Kerstiens
 Cristian Sorinel
+Cristina
+Cristina Muñoz
 Curtis Doty
 cytolentino
 Damian Quiroga
@@ -183,6 +186,7 @@ Eli Schwartz
 Ellen Marie Dash
 Emil Burzo
 Emil Styrke
+Emmanuel Arias
 Endoh Takanao
 enoch
 Erdinc Mutlu
@@ -219,6 +223,7 @@ gkdoc
 Gopinath M
 GOTO Hayato
 gpiks
+Greg Ward
 Guilherme Espada
 gutsytechster
 Guy Rozendorn
@@ -288,6 +293,7 @@ Juanjo Bazán
 Julian Berman
 Julian Gethmann
 Julien Demoor
+Jussi Kukkonen
 jwg4
 Jyrki Pulliainen
 Kai Chen
@@ -380,9 +386,11 @@ Nick Coghlan
 Nick Stenning
 Nick Timkovich
 Nicolas Bock
+Nicole Harris
 Nikhil Benesch
 Nikolay Korolev
 Nitesh Sharma
+Noah
 Noah Gorny
 Nowell Strite
 NtaleGrey
@@ -419,6 +427,7 @@ Peter Lisák
 Peter Waller
 petr-tik
 Phaneendra Chiruvella
+Phil Elson
 Phil Freo
 Phil Pennock
 Phil Whelan
@@ -464,6 +473,7 @@ Ronny Pfannschmidt
 Rory McCann
 Ross Brattain
 Roy Wellington Ⅳ
+Ruairidh MacLeod
 Ryan Wooden
 ryneeverett
 Sachi King
@@ -487,8 +497,10 @@ Simon Pichugin
 sinoroc
 sinscary
 Sorin Sbarnea
+Srinivas Nyayapati
 Stavros Korokithakis
 Stefan Scherfke
+Stefano Rivera
 Stephan Erb
 stepshal
 Steve (Gadget) Barnes
@@ -501,6 +513,7 @@ Stéphane Bidoul
 Stéphane Bidoul (ACSONE)
 Stéphane Klein
 Sumana Harihareswara
+Surbhi Sharma
 Sviatoslav Sydorenko
 Swat009
 Takayuki SHIMIZUKAWA
@@ -534,6 +547,7 @@ Tzu-ping Chung
 Valentin Haenel
 Victor Stinner
 victorvpaulo
+Vikram - Google
 Viktor Szépe
 Ville Skyttä
 Vinay Sajip

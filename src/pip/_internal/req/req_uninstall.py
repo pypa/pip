@@ -612,8 +612,7 @@ class UninstallPthEntries(object):
         # If the file doesn't exist, log a warning and return
         if not os.path.isfile(self.file):
             logger.warning(
-                "Cannot remove entries from nonexistent file {}".format(
-                    self.file)
+                "Cannot remove entries from nonexistent file %s", self.file
             )
             return
         with open(self.file, 'rb') as fh:

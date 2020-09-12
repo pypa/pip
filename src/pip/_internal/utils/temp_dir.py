@@ -8,6 +8,7 @@ import tempfile
 from contextlib import contextmanager
 
 from pip._vendor.contextlib2 import ExitStack
+from pip._vendor.six import ensure_text
 
 from pip._internal.utils.misc import enum, rmtree
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -184,7 +185,7 @@ class TempDirectory(object):
         path = os.path.realpath(
             tempfile.mkdtemp(prefix="pip-{}-".format(kind))
         )
-        logger.debug("Created temporary directory: {}".format(path))
+        logger.debug("Created temporary directory: %s", path)
         return path
 
     def cleanup(self):
@@ -193,7 +194,9 @@ class TempDirectory(object):
         """
         self._deleted = True
         if os.path.exists(self._path):
-            rmtree(self._path)
+            # Make sure to pass unicode on Python 2 to make the contents also
+            # use unicode, ensuring non-ASCII names and can be represented.
+            rmtree(ensure_text(self._path))
 
 
 class AdjacentTempDirectory(TempDirectory):
@@ -267,5 +270,5 @@ class AdjacentTempDirectory(TempDirectory):
                 tempfile.mkdtemp(prefix="pip-{}-".format(kind))
             )
 
-        logger.debug("Created temporary directory: {}".format(path))
+        logger.debug("Created temporary directory: %s", path)
         return path

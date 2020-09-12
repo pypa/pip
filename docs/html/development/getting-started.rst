@@ -34,12 +34,16 @@ For developing pip, you need to install :pypi:`tox`. Often, you can run
 Running pip From Source Tree
 ============================
 
-To run the pip executable from your source tree during development, run pip
-from the ``src`` directory:
+To run the pip executable from your source tree during development, install pip
+locally using editable installation (inside a virtualenv).
+You can then invoke your local source tree pip normally.
 
 .. code-block:: console
 
-    $ python src/pip --version
+    $ virtualenv venv # You can also use "python -m venv venv" from python3.3+
+    $ source venv/bin/activate
+    $ python -m pip install -e .
+    $ python -m pip --version
 
 
 Running Tests
@@ -125,6 +129,13 @@ To build it locally, run:
 
 The built documentation can be found in the ``docs/build`` folder.
 
+For each Pull Request made the documentation is deployed following this link:
+
+.. code-block:: none
+
+    https://pip--<PR-NUMBER>.org.readthedocs.build/en/<PR-NUMBER>
+
+
 What Next?
 ==========
 
@@ -134,6 +145,11 @@ in order to start contributing.
 * Some `good first issues`_ on GitHub for new contributors
 * A deep dive into `pip's architecture`_
 * A guide on `triaging issues`_ for issue tracker
+* Getting started with Git
+
+   - `Hello World for Git`_
+   - `Understanding the GitHub flow`_
+   - `Start using Git on the command line`_
 
 
 .. _`open an issue`: https://github.com/pypa/pip/issues/new?title=Trouble+with+pip+development+environment
@@ -144,3 +160,6 @@ in order to start contributing.
 .. _`good first issues`: https://github.com/pypa/pip/labels/good%20first%20issue
 .. _`pip's architecture`: https://pip.pypa.io/en/latest/development/architecture/
 .. _`triaging issues`: https://pip.pypa.io/en/latest/development/issue-triage/
+.. _`Hello World for Git`: https://guides.github.com/activities/hello-world/
+.. _`Understanding the GitHub flow`: https://guides.github.com/introduction/flow/
+.. _`Start using Git on the command line`: https://docs.gitlab.com/ee/gitlab-basics/start-using-git.html

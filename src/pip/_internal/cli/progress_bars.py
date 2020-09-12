@@ -78,6 +78,7 @@ class InterruptibleMixin(object):
         """
         Save the original SIGINT handler for later.
         """
+        # https://github.com/python/mypy/issues/5887
         super(InterruptibleMixin, self).__init__(  # type: ignore
             *args,
             **kwargs
@@ -134,6 +135,7 @@ class DownloadProgressMixin(object):
 
     def __init__(self, *args, **kwargs):
         # type: (List[Any], Dict[Any, Any]) -> None
+        # https://github.com/python/mypy/issues/5887
         super(DownloadProgressMixin, self).__init__(  # type: ignore
             *args,
             **kwargs
@@ -165,7 +167,9 @@ class DownloadProgressMixin(object):
     def iter(self, it):  # type: ignore
         for x in it:
             yield x
-            self.next(len(x))
+            # B305 is incorrectly raised here
+            # https://github.com/PyCQA/flake8-bugbear/issues/59
+            self.next(len(x))  # noqa: B305
         self.finish()
 
 
@@ -183,6 +187,7 @@ class WindowsMixin(object):
         if WINDOWS and self.hide_cursor:  # type: ignore
             self.hide_cursor = False
 
+        # https://github.com/python/mypy/issues/5887
         super(WindowsMixin, self).__init__(*args, **kwargs)  # type: ignore
 
         # Check if we are running on Windows and we have the colorama module,
@@ -206,30 +211,27 @@ class BaseDownloadProgressBar(WindowsMixin, InterruptibleMixin,
     message = "%(percent)d%%"
     suffix = "%(downloaded)s %(download_speed)s %(pretty_eta)s"
 
-# NOTE: The "type: ignore" comments on the following classes are there to
-#       work around https://github.com/python/typing/issues/241
-
 
 class DefaultDownloadProgressBar(BaseDownloadProgressBar,
                                  _BaseBar):
     pass
 
 
-class DownloadSilentBar(BaseDownloadProgressBar, SilentBar):  # type: ignore
+class DownloadSilentBar(BaseDownloadProgressBar, SilentBar):
     pass
 
 
-class DownloadBar(BaseDownloadProgressBar,  # type: ignore
+class DownloadBar(BaseDownloadProgressBar,
                   Bar):
     pass
 
 
-class DownloadFillingCirclesBar(BaseDownloadProgressBar,  # type: ignore
+class DownloadFillingCirclesBar(BaseDownloadProgressBar,
                                 FillingCirclesBar):
     pass
 
 
-class DownloadBlueEmojiProgressBar(BaseDownloadProgressBar,  # type: ignore
+class DownloadBlueEmojiProgressBar(BaseDownloadProgressBar,
                                    BlueEmojiBar):
     pass
 
@@ -240,7 +242,8 @@ class DownloadProgressSpinner(WindowsMixin, InterruptibleMixin,
     file = sys.stdout
     suffix = "%(downloaded)s %(download_speed)s"
 
-    def next_phase(self):  # type: ignore
+    def next_phase(self):
+        # type: () -> str
         if not hasattr(self, "_phaser"):
             self._phaser = itertools.cycle(self.phases)
         return next(self._phaser)

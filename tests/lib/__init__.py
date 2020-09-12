@@ -264,9 +264,11 @@ class TestPipResult(object):
         def __str__(self):
             return str(self._impl)
 
-    def assert_installed(self, pkg_name, editable=True, with_files=[],
-                         without_files=[], without_egg_link=False,
+    def assert_installed(self, pkg_name, editable=True, with_files=None,
+                         without_files=None, without_egg_link=False,
                          use_user_site=False, sub_dir=False):
+        with_files = with_files or []
+        without_files = without_files or []
         e = self.test_env
 
         if editable:
@@ -352,6 +354,27 @@ class TestPipResult(object):
                     'Package directory {pkg_dir!r} has unexpected content {f}'
                     .format(**locals())
                 )
+
+    def did_create(self, path, message=None):
+        assert str(path) in self.files_created, _one_or_both(message, self)
+
+    def did_not_create(self, path, message=None):
+        assert str(path) not in self.files_created, _one_or_both(message, self)
+
+    def did_update(self, path, message=None):
+        assert str(path) in self.files_updated, _one_or_both(message, self)
+
+    def did_not_update(self, path, message=None):
+        assert str(path) not in self.files_updated, _one_or_both(message, self)
+
+
+def _one_or_both(a, b):
+    """Returns f"{a}\n{b}" if a is truthy, else returns str(b).
+    """
+    if not a:
+        return str(b)
+
+    return "{a}\n{b}".format(a=a, b=b)
 
 
 def make_check_stderr_message(stderr, line, reason):
@@ -469,10 +492,7 @@ class PipTestEnvironment(TestFileEnvironment):
         kwargs.setdefault("cwd", self.scratch_path)
 
         # Setup our environment
-        environ = kwargs.get("environ")
-        if environ is None:
-            environ = os.environ.copy()
-
+        environ = kwargs.setdefault("environ", os.environ.copy())
         environ["PATH"] = Path.pathsep.join(
             [self.bin_path] + [environ.get("PATH", [])],
         )
@@ -481,7 +501,6 @@ class PipTestEnvironment(TestFileEnvironment):
         environ["PYTHONDONTWRITEBYTECODE"] = "1"
         # Make sure we get UTF-8 on output, even on Windows...
         environ["PYTHONIOENCODING"] = "UTF-8"
-        kwargs["environ"] = environ
 
         # Whether all pip invocations should expect stderr
         # (useful for Python version deprecation)
@@ -533,6 +552,10 @@ class PipTestEnvironment(TestFileEnvironment):
             `allow_stderr_warning` since warnings are weaker than errors.
         :param allow_stderr_warning: whether a logged warning (or
             deprecation message) is allowed in stderr.
+        :param allow_error: if True (default is False) does not raise
+            exception when the command exit value is non-zero.  Implies
+            expect_error, but in contrast to expect_error will not assert
+            that the exit value is zero.
         :param expect_error: if False (the default), asserts that the command
             exits with 0.  Otherwise, asserts that the command exits with a
             non-zero exit code.  Passing True also implies allow_stderr_error
@@ -553,10 +576,14 @@ class PipTestEnvironment(TestFileEnvironment):
             # Partial fix for ScriptTest.run using `shell=True` on Windows.
             args = [str(a).replace('^', '^^').replace('&', '^&') for a in args]
 
-        # Remove `allow_stderr_error` and `allow_stderr_warning` before
-        # calling run() because PipTestEnvironment doesn't support them.
+        # Remove `allow_stderr_error`, `allow_stderr_warning` and
+        # `allow_error` before calling run() because PipTestEnvironment
+        # doesn't support them.
         allow_stderr_error = kw.pop('allow_stderr_error', None)
         allow_stderr_warning = kw.pop('allow_stderr_warning', None)
+        allow_error = kw.pop('allow_error', None)
+        if allow_error:
+            kw['expect_error'] = True
 
         # Propagate default values.
         expect_error = kw.get('expect_error')
@@ -596,7 +623,7 @@ class PipTestEnvironment(TestFileEnvironment):
         kw['expect_stderr'] = True
         result = super(PipTestEnvironment, self).run(cwd=cwd, *args, **kw)
 
-        if expect_error:
+        if expect_error and not allow_error:
             if result.returncode == 0:
                 __tracebackhide__ = True
                 raise AssertionError("Script passed unexpectedly.")
@@ -753,7 +780,7 @@ def _git_commit(
         args.append("--all")
 
     new_args = [
-        'git', 'commit', '-q', '--author', 'pip <pypa-dev@googlegroups.com>',
+        'git', 'commit', '-q', '--author', 'pip <distutils-sig@python.org>',
     ]
     new_args.extend(args)
     new_args.extend(['-m', message])
@@ -770,7 +797,7 @@ def _vcs_add(script, version_pkg_path, vcs='git'):
         script.run('hg', 'add', '.', cwd=version_pkg_path)
         script.run(
             'hg', 'commit', '-q',
-            '--user', 'pip <pypa-dev@googlegroups.com>',
+            '--user', 'pip <distutils-sig@python.org>',
             '-m', 'initial version', cwd=version_pkg_path,
         )
     elif vcs == 'svn':
@@ -789,11 +816,11 @@ def _vcs_add(script, version_pkg_path, vcs='git'):
         script.run('bzr', 'init', cwd=version_pkg_path)
         script.run('bzr', 'add', '.', cwd=version_pkg_path)
         script.run(
-            'bzr', 'whoami', 'pip <pypa-dev@googlegroups.com>',
+            'bzr', 'whoami', 'pip <distutils-sig@python.org>',
             cwd=version_pkg_path)
         script.run(
             'bzr', 'commit', '-q',
-            '--author', 'pip <pypa-dev@googlegroups.com>',
+            '--author', 'pip <distutils-sig@python.org>',
             '-m', 'initial version', cwd=version_pkg_path,
         )
     else:
@@ -994,6 +1021,9 @@ def create_basic_wheel_for_package(
     if extra_files is None:
         extra_files = {}
 
+    # Fix wheel distribution name by replacing runs of non-alphanumeric
+    # characters with an underscore _ as per PEP 491
+    name = re.sub(r"[^\w\d.]+", "_", name, re.UNICODE)
     archive_name = "{}-{}-py2.py3-none-any.whl".format(name, version)
     archive_path = script.scratch_path / archive_name
 

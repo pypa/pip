@@ -5,14 +5,11 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from .base import Requirement, format_name
 
 if MYPY_CHECK_RUNNING:
-    from typing import Sequence
-
     from pip._vendor.packaging.specifiers import SpecifierSet
 
     from pip._internal.req.req_install import InstallRequirement
 
-    from .base import Candidate
-    from .factory import Factory
+    from .base import Candidate, CandidateLookup
 
 
 class ExplicitRequirement(Requirement):
@@ -33,9 +30,13 @@ class ExplicitRequirement(Requirement):
         # No need to canonicalise - the candidate did this
         return self.candidate.name
 
-    def find_matches(self):
-        # type: () -> Sequence[Candidate]
-        return [self.candidate]
+    def format_for_error(self):
+        # type: () -> str
+        return self.candidate.format_for_error()
+
+    def get_candidate_lookup(self):
+        # type: () -> CandidateLookup
+        return self.candidate, None
 
     def is_satisfied_by(self, candidate):
         # type: (Candidate) -> bool
@@ -43,12 +44,11 @@ class ExplicitRequirement(Requirement):
 
 
 class SpecifierRequirement(Requirement):
-    def __init__(self, ireq, factory):
-        # type: (InstallRequirement, Factory) -> None
+    def __init__(self, ireq):
+        # type: (InstallRequirement) -> None
         assert ireq.link is None, "This is a link, not a specifier"
         self._ireq = ireq
-        self._factory = factory
-        self.extras = ireq.req.extras
+        self._extras = frozenset(ireq.extras)
 
     def __str__(self):
         # type: () -> str
@@ -65,12 +65,26 @@ class SpecifierRequirement(Requirement):
     def name(self):
         # type: () -> str
         canonical_name = canonicalize_name(self._ireq.req.name)
-        return format_name(canonical_name, self.extras)
+        return format_name(canonical_name, self._extras)
 
-    def find_matches(self):
-        # type: () -> Sequence[Candidate]
-        it = self._factory.iter_found_candidates(self._ireq, self.extras)
-        return list(it)
+    def format_for_error(self):
+        # type: () -> str
+
+        # Convert comma-separated specifiers into "A, B, ..., F and G"
+        # This makes the specifier a bit more "human readable", without
+        # risking a change in meaning. (Hopefully! Not all edge cases have
+        # been checked)
+        parts = [s.strip() for s in str(self).split(",")]
+        if len(parts) == 0:
+            return ""
+        elif len(parts) == 1:
+            return parts[0]
+
+        return ", ".join(parts[:-1]) + " and " + parts[-1]
+
+    def get_candidate_lookup(self):
+        # type: () -> CandidateLookup
+        return None, self._ireq
 
     def is_satisfied_by(self, candidate):
         # type: (Candidate) -> bool
@@ -104,11 +118,15 @@ class RequiresPythonRequirement(Requirement):
         # type: () -> str
         return self._candidate.name
 
-    def find_matches(self):
-        # type: () -> Sequence[Candidate]
-        if self._candidate.version in self.specifier:
-            return [self._candidate]
-        return []
+    def format_for_error(self):
+        # type: () -> str
+        return "Python " + str(self.specifier)
+
+    def get_candidate_lookup(self):
+        # type: () -> CandidateLookup
+        if self.specifier.contains(self._candidate.version, prereleases=True):
+            return self._candidate, None
+        return None, None
 
     def is_satisfied_by(self, candidate):
         # type: (Candidate) -> bool

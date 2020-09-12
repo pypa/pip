@@ -6,10 +6,12 @@ import re
 import shutil
 import subprocess
 import sys
+import time
 from contextlib import contextmanager
 
 import pytest
 import six
+from mock import patch
 from pip._vendor.contextlib2 import ExitStack, nullcontext
 from setuptools.wheel import Wheel
 
@@ -30,11 +32,29 @@ if MYPY_CHECK_RUNNING:
 
 def pytest_addoption(parser):
     parser.addoption(
-        "--keep-tmpdir", action="store_true",
-        default=False, help="keep temporary test directories"
+        "--keep-tmpdir",
+        action="store_true",
+        default=False,
+        help="keep temporary test directories",
     )
-    parser.addoption("--use-venv", action="store_true",
-                     help="use venv for virtual environment creation")
+    parser.addoption(
+        "--new-resolver",
+        action="store_true",
+        default=False,
+        help="use new resolver in tests",
+    )
+    parser.addoption(
+        "--new-resolver-runtests",
+        action="store_true",
+        default=False,
+        help="run the skipped tests for the new resolver",
+    )
+    parser.addoption(
+        "--use-venv",
+        action="store_true",
+        default=False,
+        help="use venv for virtual environment creation",
+    )
 
 
 def pytest_collection_modifyitems(config, items):
@@ -46,6 +66,12 @@ def pytest_collection_modifyitems(config, items):
         if (item.get_closest_marker('network') is not None and
                 "CI" in os.environ):
             item.add_marker(pytest.mark.flaky(reruns=3))
+
+        if (item.get_closest_marker('fails_on_new_resolver') and
+                config.getoption("--new-resolver") and
+                not config.getoption("--new-resolver-runtests")):
+            item.add_marker(pytest.mark.skip(
+                'This test does not work with the new resolver'))
 
         if six.PY3:
             if (item.get_closest_marker('incompatible_with_test_venv') and
@@ -73,6 +99,20 @@ def pytest_collection_modifyitems(config, items):
             raise RuntimeError(
                 "Unknown test type (filename = {})".format(module_path)
             )
+
+
+@pytest.fixture(scope="session", autouse=True)
+def use_new_resolver(request):
+    """Set environment variable to make pip default to the new resolver.
+    """
+    new_resolver = request.config.getoption("--new-resolver")
+    features = set(os.environ.get("PIP_USE_FEATURE", "").split())
+    if new_resolver:
+        features.add("2020-resolver")
+    else:
+        features.discard("2020-resolver")
+    with patch.dict(os.environ, {"PIP_USE_FEATURE": " ".join(features)}):
+        yield new_resolver
 
 
 @pytest.fixture(scope='session')
@@ -115,7 +155,7 @@ def tmpdir(request, tmpdir):
 
 
 @pytest.fixture(autouse=True)
-def isolate(tmpdir):
+def isolate(tmpdir, monkeypatch):
     """
     Isolate our tests so that things like global configuration files and the
     like do not affect our test results.
@@ -138,51 +178,57 @@ def isolate(tmpdir):
     if sys.platform == 'win32':
         # Note: this will only take effect in subprocesses...
         home_drive, home_path = os.path.splitdrive(home_dir)
-        os.environ.update({
-            'USERPROFILE': home_dir,
-            'HOMEDRIVE': home_drive,
-            'HOMEPATH': home_path,
-        })
+        monkeypatch.setenv('USERPROFILE', home_dir)
+        monkeypatch.setenv('HOMEDRIVE', home_drive)
+        monkeypatch.setenv('HOMEPATH', home_path)
         for env_var, sub_path in (
             ('APPDATA', 'AppData/Roaming'),
             ('LOCALAPPDATA', 'AppData/Local'),
         ):
             path = os.path.join(home_dir, *sub_path.split('/'))
-            os.environ[env_var] = path
+            monkeypatch.setenv(env_var, path)
             os.makedirs(path)
     else:
         # Set our home directory to our temporary directory, this should force
         # all of our relative configuration files to be read from here instead
         # of the user's actual $HOME directory.
-        os.environ["HOME"] = home_dir
+        monkeypatch.setenv("HOME", home_dir)
         # Isolate ourselves from XDG directories
-        os.environ["XDG_DATA_HOME"] = os.path.join(home_dir, ".local", "share")
-        os.environ["XDG_CONFIG_HOME"] = os.path.join(home_dir, ".config")
-        os.environ["XDG_CACHE_HOME"] = os.path.join(home_dir, ".cache")
-        os.environ["XDG_RUNTIME_DIR"] = os.path.join(home_dir, ".runtime")
-        os.environ["XDG_DATA_DIRS"] = ":".join([
+        monkeypatch.setenv("XDG_DATA_HOME", os.path.join(
+            home_dir, ".local", "share",
+        ))
+        monkeypatch.setenv("XDG_CONFIG_HOME", os.path.join(
+            home_dir, ".config",
+        ))
+        monkeypatch.setenv("XDG_CACHE_HOME", os.path.join(home_dir, ".cache"))
+        monkeypatch.setenv("XDG_RUNTIME_DIR", os.path.join(
+            home_dir, ".runtime",
+        ))
+        monkeypatch.setenv("XDG_DATA_DIRS", os.pathsep.join([
             os.path.join(fake_root, "usr", "local", "share"),
             os.path.join(fake_root, "usr", "share"),
-        ])
-        os.environ["XDG_CONFIG_DIRS"] = os.path.join(fake_root, "etc", "xdg")
+        ]))
+        monkeypatch.setenv("XDG_CONFIG_DIRS", os.path.join(
+            fake_root, "etc", "xdg",
+        ))
 
     # Configure git, because without an author name/email git will complain
     # and cause test failures.
-    os.environ["GIT_CONFIG_NOSYSTEM"] = "1"
-    os.environ["GIT_AUTHOR_NAME"] = "pip"
-    os.environ["GIT_AUTHOR_EMAIL"] = "pypa-dev@googlegroups.com"
+    monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
+    monkeypatch.setenv("GIT_AUTHOR_NAME", "pip")
+    monkeypatch.setenv("GIT_AUTHOR_EMAIL", "distutils-sig@python.org")
 
     # We want to disable the version check from running in the tests
-    os.environ["PIP_DISABLE_PIP_VERSION_CHECK"] = "true"
+    monkeypatch.setenv("PIP_DISABLE_PIP_VERSION_CHECK", "true")
 
     # Make sure tests don't share a requirements tracker.
-    os.environ.pop('PIP_REQ_TRACKER', None)
+    monkeypatch.delenv("PIP_REQ_TRACKER", False)
 
     # FIXME: Windows...
     os.makedirs(os.path.join(home_dir, ".config", "git"))
     with open(os.path.join(home_dir, ".config", "git", "config"), "wb") as fp:
         fp.write(
-            b"[user]\n\tname = pip\n\temail = pypa-dev@googlegroups.com\n"
+            b"[user]\n\tname = pip\n\temail = distutils-sig@python.org\n"
         )
 
 
@@ -258,6 +304,13 @@ def wheel_install(tmpdir_factory, common_wheels):
                                           'wheel')
 
 
+@pytest.fixture(scope='session')
+def coverage_install(tmpdir_factory, common_wheels):
+    return _common_wheel_editable_install(tmpdir_factory,
+                                          common_wheels,
+                                          'coverage')
+
+
 def install_egg_link(venv, project_name, egg_info_dir):
     with open(venv.site / 'easy-install.pth', 'a') as fp:
         fp.write(str(egg_info_dir.resolve()) + '\n')
@@ -267,7 +320,7 @@ def install_egg_link(venv, project_name, egg_info_dir):
 
 @pytest.fixture(scope='session')
 def virtualenv_template(request, tmpdir_factory, pip_src,
-                        setuptools_install, common_wheels):
+                        setuptools_install, coverage_install):
 
     if six.PY3 and request.config.getoption('--use-venv'):
         venv_type = 'venv'
@@ -290,6 +343,13 @@ def virtualenv_template(request, tmpdir_factory, pip_src,
     )
     subprocess.check_call([venv.bin / 'python', 'setup.py', '-q', 'develop'],
                           cwd=pip_editable)
+
+    # Install coverage and pth file for executing it in any spawned processes
+    # in this virtual environment.
+    install_egg_link(venv, 'coverage', coverage_install)
+    # zz prefix ensures the file is after easy-install.pth.
+    with open(venv.site / 'zz-coverage-helper.pth', 'a') as f:
+        f.write('import coverage; coverage.process_startup()')
 
     # Drop (non-relocatable) launchers.
     for exe in os.listdir(venv.bin):
@@ -420,8 +480,8 @@ def in_memory_pip():
 
 @pytest.fixture(scope="session")
 def deprecated_python():
-    """Used to indicate whether pip deprecated this python version"""
-    return sys.version_info[:2] in [(2, 7)]
+    """Used to indicate whether pip deprecated this Python version"""
+    return sys.version_info[:2] in [(2, 7), (3, 5)]
 
 
 @pytest.fixture(scope="session")
@@ -497,3 +557,13 @@ def mock_server():
     test_server = MockServer(server)
     with test_server.context:
         yield test_server
+
+
+@pytest.fixture
+def utc():
+    # time.tzset() is not implemented on some platforms, e.g. Windows.
+    tzset = getattr(time, 'tzset', lambda: None)
+    with patch.dict(os.environ, {'TZ': 'UTC'}):
+        tzset()
+        yield
+    tzset()

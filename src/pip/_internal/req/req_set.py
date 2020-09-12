@@ -1,6 +1,3 @@
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-
 from __future__ import absolute_import
 
 import logging
@@ -110,9 +107,8 @@ class RequirementSet(object):
                 )
 
         # This next bit is really a sanity check.
-        assert install_req.is_direct == (parent_req_name is None), (
-            "a direct req shouldn't have a parent and also, "
-            "a non direct req should have a parent"
+        assert not install_req.user_supplied or parent_req_name is None, (
+            "a user supplied req shouldn't have a parent"
         )
 
         # Unnamed requirements are scanned again and the requirement won't be
@@ -122,7 +118,8 @@ class RequirementSet(object):
             return [install_req], None
 
         try:
-            existing_req = self.get_requirement(install_req.name)
+            existing_req = self.get_requirement(
+                install_req.name)  # type: Optional[InstallRequirement]
         except KeyError:
             existing_req = None
 
@@ -167,6 +164,10 @@ class RequirementSet(object):
         # If we're now installing a constraint, mark the existing
         # object for real installation.
         existing_req.constraint = False
+        # If we're now installing a user supplied requirement,
+        # mark the existing object as such.
+        if install_req.user_supplied:
+            existing_req.user_supplied = True
         existing_req.extras = tuple(sorted(
             set(existing_req.extras) | set(install_req.extras)
         ))

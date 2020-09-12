@@ -13,11 +13,14 @@ from collections import OrderedDict
 
 from pip._vendor import html5lib, requests
 from pip._vendor.distlib.compat import unescape
-from pip._vendor.requests.exceptions import HTTPError, RetryError, SSLError
+from pip._vendor.requests.exceptions import RetryError, SSLError
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 
+from pip._internal.exceptions import NetworkConnectionError
 from pip._internal.models.link import Link
+from pip._internal.models.search_scope import SearchScope
+from pip._internal.network.utils import raise_for_status
 from pip._internal.utils.filetypes import ARCHIVE_EXTENSIONS
 from pip._internal.utils.misc import pairwise, redact_auth_from_url
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -25,6 +28,7 @@ from pip._internal.utils.urls import path_to_url, url_to_path
 from pip._internal.vcs import is_url, vcs
 
 if MYPY_CHECK_RUNNING:
+    from optparse import Values
     from typing import (
         Callable, Iterable, List, MutableMapping, Optional,
         Protocol, Sequence, Tuple, TypeVar, Union,
@@ -33,7 +37,6 @@ if MYPY_CHECK_RUNNING:
 
     from pip._vendor.requests import Response
 
-    from pip._internal.models.search_scope import SearchScope
     from pip._internal.network.session import PipSession
 
     HTMLElement = xml.etree.ElementTree.Element
@@ -122,7 +125,7 @@ def _ensure_html_response(url, session):
         raise _NotHTTP()
 
     resp = session.head(url, allow_redirects=True)
-    resp.raise_for_status()
+    raise_for_status(resp)
 
     _ensure_html_header(resp)
 
@@ -166,7 +169,7 @@ def _get_html_response(url, session):
             "Cache-Control": "max-age=0",
         },
     )
-    resp.raise_for_status()
+    raise_for_status(resp)
 
     # The check for archives above only works if the url ends with
     # something that looks like an archive. However that is not a
@@ -434,7 +437,8 @@ def _get_html_page(link, session=None):
     # Check for VCS schemes that do not support lookup as web pages.
     vcs_scheme = _match_vcs_scheme(url)
     if vcs_scheme:
-        logger.debug('Cannot look at %s URL %s', vcs_scheme, link)
+        logger.warning('Cannot look at %s URL %s because it does not support '
+                       'lookup as web pages.', vcs_scheme, link)
         return None
 
     # Tack index.html onto file:// URLs that point to directories
@@ -450,16 +454,17 @@ def _get_html_page(link, session=None):
     try:
         resp = _get_html_response(url, session=session)
     except _NotHTTP:
-        logger.debug(
+        logger.warning(
             'Skipping page %s because it looks like an archive, and cannot '
-            'be checked by HEAD.', link,
+            'be checked by a HTTP HEAD request.', link,
         )
     except _NotHTML as exc:
-        logger.debug(
-            'Skipping page %s because the %s request got Content-Type: %s',
+        logger.warning(
+            'Skipping page %s because the %s request got Content-Type: %s.'
+            'The only supported Content-Type is text/html',
             link, exc.request_desc, exc.content_type,
         )
-    except HTTPError as exc:
+    except NetworkConnectionError as exc:
         _handle_get_page_fail(link, exc)
     except RetryError as exc:
         _handle_get_page_fail(link, exc)
@@ -524,8 +529,7 @@ def group_locations(locations, expand_dir=False):
                     urls.append(url)
                 else:
                     logger.warning(
-                        "Path '{0}' is ignored: "
-                        "it is a directory.".format(path),
+                        "Path '%s' is ignored: it is a directory.", path,
                     )
             elif os.path.isfile(path):
                 sort_path(path)
@@ -598,6 +602,33 @@ class LinkCollector(object):
         # type: (...) -> None
         self.search_scope = search_scope
         self.session = session
+
+    @classmethod
+    def create(cls, session, options, suppress_no_index=False):
+        # type: (PipSession, Values, bool) -> LinkCollector
+        """
+        :param session: The Session to use to make requests.
+        :param suppress_no_index: Whether to ignore the --no-index option
+            when constructing the SearchScope object.
+        """
+        index_urls = [options.index_url] + options.extra_index_urls
+        if options.no_index and not suppress_no_index:
+            logger.debug(
+                'Ignoring indexes: %s',
+                ','.join(redact_auth_from_url(url) for url in index_urls),
+            )
+            index_urls = []
+
+        # Make sure find_links is a list before passing to create().
+        find_links = options.find_links or []
+
+        search_scope = SearchScope.create(
+            find_links=find_links, index_urls=index_urls,
+        )
+        link_collector = LinkCollector(
+            session=session, search_scope=search_scope,
+        )
+        return link_collector
 
     @property
     def find_links(self):

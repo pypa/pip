@@ -1,10 +1,17 @@
 import os
+import ssl
 import tempfile
 import textwrap
 
 import pytest
 
-from tests.lib.server import file_response, package_page
+from tests.lib.server import (
+    authorization_response,
+    file_response,
+    make_mock_server,
+    package_page,
+    server_running,
+)
 
 
 def test_options_from_env_vars(script):
@@ -15,10 +22,9 @@ def test_options_from_env_vars(script):
     script.environ['PIP_NO_INDEX'] = '1'
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
     assert "Ignoring indexes:" in result.stdout, str(result)
-    assert (
-        "DistributionNotFound: No matching distribution found for INITools"
-        in result.stdout
-    )
+    msg = "DistributionNotFound: No matching distribution found for INITools"
+    # Case insensitive as the new resolver canonicalises the project name
+    assert msg.lower() in result.stdout.lower(), str(result)
 
 
 def test_command_line_options_override_env_vars(script, virtualenv):
@@ -59,10 +65,9 @@ def test_env_vars_override_config_file(script, virtualenv):
         no-index = 1
         """))
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
-    assert (
-        "DistributionNotFound: No matching distribution found for INITools"
-        in result.stdout
-    )
+    msg = "DistributionNotFound: No matching distribution found for INITools"
+    # Case insensitive as the new resolver canonicalises the project name
+    assert msg.lower() in result.stdout.lower(), str(result)
     script.environ['PIP_NO_INDEX'] = '0'
     virtualenv.clear()
     result = script.pip('install', '-vvv', 'INITools')
@@ -186,10 +191,9 @@ def test_options_from_venv_config(script, virtualenv):
         f.write(conf)
     result = script.pip('install', '-vvv', 'INITools', expect_error=True)
     assert "Ignoring indexes:" in result.stdout, str(result)
-    assert (
-        "DistributionNotFound: No matching distribution found for INITools"
-        in result.stdout
-    )
+    msg = "DistributionNotFound: No matching distribution found for INITools"
+    # Case insensitive as the new resolver canonicalises the project name
+    assert msg.lower() in result.stdout.lower(), str(result)
 
 
 def test_install_no_binary_via_config_disables_cached_wheels(
@@ -212,3 +216,61 @@ def test_install_no_binary_via_config_disables_cached_wheels(
     assert "Building wheel for upper" not in str(res), str(res)
     # Must have used source, not a cached wheel to install upper.
     assert "Running setup.py install for upper" in str(res), str(res)
+
+
+def test_prompt_for_authentication(script, data, cert_factory):
+    """Test behaviour while installing from a index url
+    requiring authentication
+    """
+    cert_path = cert_factory()
+    ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+    ctx.load_cert_chain(cert_path, cert_path)
+    ctx.load_verify_locations(cafile=cert_path)
+    ctx.verify_mode = ssl.CERT_REQUIRED
+
+    server = make_mock_server(ssl_context=ctx)
+    server.mock.side_effect = [
+        package_page({
+            "simple-3.0.tar.gz": "/files/simple-3.0.tar.gz",
+        }),
+        authorization_response(str(data.packages / "simple-3.0.tar.gz")),
+    ]
+
+    url = "https://{}:{}/simple".format(server.host, server.port)
+
+    with server_running(server):
+        result = script.pip('install', "--index-url", url,
+                            "--cert", cert_path, "--client-cert", cert_path,
+                            'simple', expect_error=True)
+
+    assert 'User for {}:{}'.format(server.host, server.port) in \
+           result.stdout, str(result)
+
+
+def test_do_not_prompt_for_authentication(script, data, cert_factory):
+    """Test behaviour if --no-input option is given while installing
+    from a index url requiring authentication
+    """
+    cert_path = cert_factory()
+    ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+    ctx.load_cert_chain(cert_path, cert_path)
+    ctx.load_verify_locations(cafile=cert_path)
+    ctx.verify_mode = ssl.CERT_REQUIRED
+
+    server = make_mock_server(ssl_context=ctx)
+
+    server.mock.side_effect = [
+        package_page({
+            "simple-3.0.tar.gz": "/files/simple-3.0.tar.gz",
+        }),
+        authorization_response(str(data.packages / "simple-3.0.tar.gz")),
+    ]
+
+    url = "https://{}:{}/simple".format(server.host, server.port)
+
+    with server_running(server):
+        result = script.pip('install', "--index-url", url,
+                            "--cert", cert_path, "--client-cert", cert_path,
+                            '--no-input', 'simple', expect_error=True)
+
+    assert "ERROR: HTTP error 401" in result.stderr

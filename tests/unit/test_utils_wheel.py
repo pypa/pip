@@ -21,7 +21,7 @@ def zip_dir():
         # type: (Path) -> ZipFile
         buf = BytesIO()
         with ZipFile(buf, "w", allowZip64=True) as z:
-            for dirpath, dirnames, filenames in os.walk(path):
+            for dirpath, _, filenames in os.walk(path):
                 for filename in filenames:
                     file_path = os.path.join(path, dirpath, filename)
                     # Zip files must always have / as path separator

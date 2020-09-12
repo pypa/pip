@@ -1,10 +1,6 @@
 """Utilities related archives.
 """
 
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-# mypy: disallow-untyped-defs=False
-
 from __future__ import absolute_import
 
 import logging
@@ -26,6 +22,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import Iterable, List, Optional, Text, Union
+    from zipfile import ZipInfo
 
 
 logger = logging.getLogger(__name__)
@@ -48,6 +45,7 @@ except ImportError:
 
 
 def current_umask():
+    # type: () -> int
     """Get the current umask which involves having to set it temporarily."""
     mask = os.umask(0)
     os.umask(mask)
@@ -98,6 +96,23 @@ def is_within_directory(directory, target):
     return prefix == abs_directory
 
 
+def set_extracted_file_to_default_mode_plus_executable(path):
+    # type: (Union[str, Text]) -> None
+    """
+    Make file present at path have execute for user/group/world
+    (chmod +x) is no-op on windows per python docs
+    """
+    os.chmod(path, (0o777 & ~current_umask() | 0o111))
+
+
+def zip_item_is_executable(info):
+    # type: (ZipInfo) -> bool
+    mode = info.external_attr >> 16
+    # if mode and regular file and any execute permissions for
+    # user/group/world?
+    return bool(mode and stat.S_ISREG(mode) and mode & 0o111)
+
+
 def unzip_file(filename, location, flatten=True):
     # type: (str, str, bool) -> None
     """
@@ -139,13 +154,8 @@ def unzip_file(filename, location, flatten=True):
                         shutil.copyfileobj(fp, destfp)
                 finally:
                     fp.close()
-                    mode = info.external_attr >> 16
-                    # if mode and regular file and any execute permissions for
-                    # user/group/world?
-                    if mode and stat.S_ISREG(mode) and mode & 0o111:
-                        # make dest file have execute for user/group/world
-                        # (chmod +x) no-op on windows per python docs
-                        os.chmod(fn, (0o777 - current_umask() | 0o111))
+                    if zip_item_is_executable(info):
+                        set_extracted_file_to_default_mode_plus_executable(fn)
     finally:
         zipfp.close()
 
@@ -219,6 +229,7 @@ def untar_file(filename, location):
                     )
                     continue
                 ensure_dir(os.path.dirname(path))
+                assert fp is not None
                 with open(path, 'wb') as destfp:
                     shutil.copyfileobj(fp, destfp)
                 fp.close()
@@ -227,9 +238,7 @@ def untar_file(filename, location):
                 tar.utime(member, path)  # type: ignore
                 # member have any execute permissions for user/group/world?
                 if member.mode & 0o111:
-                    # make dest file have execute for user/group/world
-                    # no-op on windows per python docs
-                    os.chmod(path, (0o777 - current_umask() | 0o111))
+                    set_extracted_file_to_default_mode_plus_executable(path)
     finally:
         tar.close()
 

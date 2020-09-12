@@ -66,9 +66,9 @@ Services
 pip test suite and checks are distributed on three different platforms that
 provides free executors for open source packages:
 
-  - `Travis CI`_ (Used for Linux)
-  - `Azure DevOps CI`_ (Linux, MacOS & Windows tests)
-  - `GitHub Actions`_ (Linux, MacOS & Windows tests)
+  - `GitHub Actions`_ (Used for code quality and development tasks)
+  - `Azure DevOps CI`_ (Used for tests)
+  - `Travis CI`_ (Used for PyPy tests)
 
 .. _`Travis CI`: https://travis-ci.org/
 .. _`Azure DevOps CI`: https://azure.microsoft.com/en-us/services/devops/
@@ -81,13 +81,13 @@ Current run tests
 Developer tasks
 ---------------
 
-======== =============== ================ ================== ============
-   OS          docs            lint           vendoring        packages
-======== =============== ================ ================== ============
-Linux     Travis, Github  Travis, Github    Travis, Github      Azure
-Windows                                                         Azure
-MacOS                                                           Azure
-======== =============== ================ ================== ============
+======== =============== ================ ================== =============
+   OS          docs            lint           vendoring        packaging
+======== =============== ================ ================== =============
+Linux     Travis, Github  Travis, Github    Travis, Github       Azure
+Windows       Github           Github           Github           Azure
+MacOS         Github           Github           Github           Azure
+======== =============== ================ ================== =============
 
 Actual testing
 --------------
@@ -113,9 +113,9 @@ Actual testing
 |           |          +-------+---------------+-----------------+
 |           |          | CP3.5 |   Azure       |   Azure         |
 |           |          +-------+---------------+-----------------+
-|           |          | CP3.6 |   Azure       |   Azure         |
+|           |          | CP3.6 |   Azure       |                 |
 |           |          +-------+---------------+-----------------+
-|           |   x64    | CP3.7 |   Azure       |   Azure         |
+|           |   x64    | CP3.7 |   Azure       |                 |
 |           |          +-------+---------------+-----------------+
 |           |          | CP3.8 |   Azure       |   Azure         |
 |           |          +-------+---------------+-----------------+
@@ -137,15 +137,15 @@ Actual testing
 |           |          +-------+---------------+-----------------+
 |           |          | PyPy3 |               |                 |
 |   Linux   +----------+-------+---------------+-----------------+
-|           |          | CP2.7 | Travis,Azure  |  Travis,Azure   |
+|           |          | CP2.7 |   Azure       |   Azure         |
 |           |          +-------+---------------+-----------------+
-|           |          | CP3.5 | Travis,Azure  |  Travis,Azure   |
+|           |          | CP3.5 |   Azure       |   Azure         |
 |           |          +-------+---------------+-----------------+
-|           |          | CP3.6 | Travis,Azure  |  Travis,Azure   |
+|           |          | CP3.6 |   Azure       |   Azure         |
 |           |          +-------+---------------+-----------------+
-|           |   x64    | CP3.7 | Travis,Azure  |  Travis,Azure   |
+|           |   x64    | CP3.7 |   Azure       |   Azure         |
 |           |          +-------+---------------+-----------------+
-|           |          | CP3.8 |   Travis      |   Travis        |
+|           |          | CP3.8 |   Azure       |   Azure         |
 |           |          +-------+---------------+-----------------+
 |           |          | PyPy  |   Travis      |   Travis        |
 |           |          +-------+---------------+-----------------+
@@ -173,7 +173,7 @@ Actual testing
 |           |          +-------+---------------+-----------------+
 |           |   x64    | CP3.7 |   Azure       |   Azure         |
 |           |          +-------+---------------+-----------------+
-|           |          | CP3.8 |               |                 |
+|           |          | CP3.8 |   Azure       |   Azure         |
 |           |          +-------+---------------+-----------------+
 |           |          | PyPy  |               |                 |
 |           |          +-------+---------------+-----------------+

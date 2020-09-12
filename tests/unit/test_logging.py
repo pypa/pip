@@ -1,8 +1,6 @@
 import errno
 import logging
-import os
 import sys
-import time
 from threading import Thread
 
 import pretend
@@ -36,24 +34,7 @@ def _make_broken_pipe_error():
 
 
 class TestIndentingFormatter(object):
-    """
-    Test `pip._internal.utils.logging.IndentingFormatter`.
-    """
-
-    def setup(self):
-        self.old_tz = os.environ.get('TZ')
-        os.environ['TZ'] = 'UTC'
-        # time.tzset() is not implemented on some platforms (notably, Windows).
-        if hasattr(time, 'tzset'):
-            time.tzset()
-
-    def teardown(self):
-        if self.old_tz:
-            os.environ['TZ'] = self.old_tz
-        else:
-            del os.environ['TZ']
-        if 'tzset' in dir(time):
-            time.tzset()
+    """Test ``pip._internal.utils.logging.IndentingFormatter``."""
 
     def make_record(self, msg, level_name):
         level_number = getattr(logging, level_name)
@@ -75,7 +56,7 @@ class TestIndentingFormatter(object):
         ('ERROR', 'ERROR: hello\nworld'),
         ('CRITICAL', 'ERROR: hello\nworld'),
     ])
-    def test_format(self, level_name, expected):
+    def test_format(self, level_name, expected, utc):
         """
         Args:
           level_name: a logging level name (e.g. "WARNING").
@@ -92,7 +73,7 @@ class TestIndentingFormatter(object):
          '2019-01-17T06:00:37,040 WARNING: hello\n'
          '2019-01-17T06:00:37,040 world'),
     ])
-    def test_format_with_timestamp(self, level_name, expected):
+    def test_format_with_timestamp(self, level_name, expected, utc):
         record = self.make_record('hello\nworld', level_name=level_name)
         f = IndentingFormatter(fmt="%(message)s", add_timestamp=True)
         assert f.format(record) == expected
@@ -102,7 +83,7 @@ class TestIndentingFormatter(object):
         ('ERROR', 'DEPRECATION: hello\nworld'),
         ('CRITICAL', 'DEPRECATION: hello\nworld'),
     ])
-    def test_format_deprecated(self, level_name, expected):
+    def test_format_deprecated(self, level_name, expected, utc):
         """
         Test that logged deprecation warnings coming from deprecated()
         don't get another prefix.
@@ -113,7 +94,7 @@ class TestIndentingFormatter(object):
         f = IndentingFormatter(fmt="%(message)s")
         assert f.format(record) == expected
 
-    def test_thread_safety_base(self):
+    def test_thread_safety_base(self, utc):
         record = self.make_record(
             'DEPRECATION: hello\nworld', level_name='WARNING',
         )
@@ -129,7 +110,7 @@ class TestIndentingFormatter(object):
         thread.join()
         assert results[0] == results[1]
 
-    def test_thread_safety_indent_log(self):
+    def test_thread_safety_indent_log(self, utc):
         record = self.make_record(
             'DEPRECATION: hello\nworld', level_name='WARNING',
         )

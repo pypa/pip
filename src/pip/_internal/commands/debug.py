@@ -1,6 +1,3 @@
-# The following comment should be removed at some point in the future.
-# mypy: disallow-untyped-defs=False
-
 from __future__ import absolute_import
 
 import locale
@@ -23,15 +20,16 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from types import ModuleType
-    from typing import Any, List, Optional, Dict
+    from typing import List, Optional, Dict
     from optparse import Values
+    from pip._internal.configuration import Configuration
 
 logger = logging.getLogger(__name__)
 
 
 def show_value(name, value):
     # type: (str, Optional[str]) -> None
-    logger.info('{}: {}'.format(name, value))
+    logger.info('%s: %s', name, value)
 
 
 def show_sys_implementation():
@@ -67,7 +65,6 @@ def create_vendor_txt_map():
 
 def get_module_from_module_name(module_name):
     # type: (str) -> ModuleType
-
     # Module name can be uppercase in vendor.txt for some reason...
     module_name = module_name.lower()
     # PATCH: setuptools is actually only pkg_resources.
@@ -84,15 +81,18 @@ def get_module_from_module_name(module_name):
 
 
 def get_vendor_version_from_module(module_name):
-    # type: (str) -> str
-
+    # type: (str) -> Optional[str]
     module = get_module_from_module_name(module_name)
     version = getattr(module, '__version__', None)
 
     if not version:
         # Try to find version in debundled module info
+        # The type for module.__file__ is Optional[str] in
+        # Python 2, and str in Python 3. The type: ignore is
+        # added to account for Python 2, instead of a cast
+        # and should be removed once we drop Python 2 support
         pkg_set = pkg_resources.WorkingSet(
-            [os.path.dirname(getattr(module, '__file__'))]
+            [os.path.dirname(module.__file__)]  # type: ignore
         )
         package = pkg_set.find(pkg_resources.Requirement.parse(module_name))
         version = getattr(package, 'version', None)
@@ -102,9 +102,9 @@ def get_vendor_version_from_module(module_name):
 
 def show_actual_vendor_versions(vendor_txt_versions):
     # type: (Dict[str, str]) -> None
-    # Logs the actual version and print extra info
-    # if there is a conflict or if the actual version could not be imported.
-
+    """Log the actual version and print extra info if there is
+    a conflict or if the actual version could not be imported.
+    """
     for module_name, expected_version in vendor_txt_versions.items():
         extra_message = ''
         actual_version = get_vendor_version_from_module(module_name)
@@ -115,14 +115,7 @@ def show_actual_vendor_versions(vendor_txt_versions):
         elif actual_version != expected_version:
             extra_message = ' (CONFLICT: vendor.txt suggests version should'\
                             ' be {})'.format(expected_version)
-
-        logger.info(
-            '{name}=={actual}{extra}'.format(
-                name=module_name,
-                actual=actual_version,
-                extra=extra_message
-            )
-        )
+        logger.info('%s==%s%s', module_name, actual_version, extra_message)
 
 
 def show_vendor_versions():
@@ -169,8 +162,9 @@ def show_tags(options):
 
 
 def ca_bundle_info(config):
+    # type: (Configuration) -> str
     levels = set()
-    for key, value in config.items():
+    for key, _ in config.items():
         levels.add(key.split('.')[0])
 
     if not levels:
@@ -197,16 +191,14 @@ class DebugCommand(Command):
       %prog <options>"""
     ignore_require_venv = True
 
-    def __init__(self, *args, **kw):
-        super(DebugCommand, self).__init__(*args, **kw)
-
-        cmd_opts = self.cmd_opts
-        cmdoptions.add_target_python_options(cmd_opts)
-        self.parser.insert_option_group(0, cmd_opts)
+    def add_options(self):
+        # type: () -> None
+        cmdoptions.add_target_python_options(self.cmd_opts)
+        self.parser.insert_option_group(0, self.cmd_opts)
         self.parser.config.load()
 
     def run(self, options, args):
-        # type: (Values, List[Any]) -> int
+        # type: (Values, List[str]) -> int
         logger.warning(
             "This command is only meant for debugging. "
             "Do not use this with automation for parsing and getting these "

@@ -1,10 +1,3 @@
-# The following comment should be removed at some point in the future.
-# It's included for now because without it InstallCommand.run() has a
-# couple errors where we have to know req.name is str rather than
-# Optional[str] for the InstallRequirement req.
-# mypy: strict-optional=False
-# mypy: disallow-untyped-defs=False
-
 from __future__ import absolute_import
 
 import errno
@@ -28,12 +21,12 @@ from pip._internal.locations import distutils_scheme
 from pip._internal.operations.check import check_install_conflicts
 from pip._internal.req import install_given_reqs
 from pip._internal.req.req_tracker import get_requirement_tracker
-from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.distutils_args import parse_distutils_args
 from pip._internal.utils.filesystem import test_writable_dir
 from pip._internal.utils.misc import (
     ensure_dir,
     get_installed_version,
+    get_pip_version,
     protect_pip_from_modification_on_windows,
     write_output,
 )
@@ -44,9 +37,10 @@ from pip._internal.wheel_builder import build, should_build_for_install_command
 
 if MYPY_CHECK_RUNNING:
     from optparse import Values
-    from typing import Any, Iterable, List, Optional
+    from typing import Iterable, List, Optional
 
     from pip._internal.models.format_control import FormatControl
+    from pip._internal.operations.check import ConflictDetails
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.wheel_builder import BinaryAllowedPredicate
 
@@ -87,18 +81,15 @@ class InstallCommand(RequirementCommand):
       %prog [options] [-e] <local project path> ...
       %prog [options] <archive url/path> ..."""
 
-    def __init__(self, *args, **kw):
-        super(InstallCommand, self).__init__(*args, **kw)
+    def add_options(self):
+        # type: () -> None
+        self.cmd_opts.add_option(cmdoptions.requirements())
+        self.cmd_opts.add_option(cmdoptions.constraints())
+        self.cmd_opts.add_option(cmdoptions.no_deps())
+        self.cmd_opts.add_option(cmdoptions.pre())
 
-        cmd_opts = self.cmd_opts
-
-        cmd_opts.add_option(cmdoptions.requirements())
-        cmd_opts.add_option(cmdoptions.constraints())
-        cmd_opts.add_option(cmdoptions.no_deps())
-        cmd_opts.add_option(cmdoptions.pre())
-
-        cmd_opts.add_option(cmdoptions.editable())
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(cmdoptions.editable())
+        self.cmd_opts.add_option(
             '-t', '--target',
             dest='target_dir',
             metavar='dir',
@@ -108,9 +99,9 @@ class InstallCommand(RequirementCommand):
                  '<dir>. Use --upgrade to replace existing packages in <dir> '
                  'with new versions.'
         )
-        cmdoptions.add_target_python_options(cmd_opts)
+        cmdoptions.add_target_python_options(self.cmd_opts)
 
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '--user',
             dest='use_user_site',
             action='store_true',
@@ -118,19 +109,19 @@ class InstallCommand(RequirementCommand):
                  "platform. Typically ~/.local/, or %APPDATA%\\Python on "
                  "Windows. (See the Python documentation for site.USER_BASE "
                  "for full details.)")
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '--no-user',
             dest='use_user_site',
             action='store_false',
             help=SUPPRESS_HELP)
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '--root',
             dest='root_path',
             metavar='dir',
             default=None,
             help="Install everything relative to this alternate root "
                  "directory.")
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '--prefix',
             dest='prefix_path',
             metavar='dir',
@@ -138,11 +129,11 @@ class InstallCommand(RequirementCommand):
             help="Installation prefix where lib, bin and other top-level "
                  "folders are placed")
 
-        cmd_opts.add_option(cmdoptions.build_dir())
+        self.cmd_opts.add_option(cmdoptions.build_dir())
 
-        cmd_opts.add_option(cmdoptions.src())
+        self.cmd_opts.add_option(cmdoptions.src())
 
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '-U', '--upgrade',
             dest='upgrade',
             action='store_true',
@@ -151,7 +142,7 @@ class InstallCommand(RequirementCommand):
                  'upgrade-strategy used.'
         )
 
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '--upgrade-strategy',
             dest='upgrade_strategy',
             default='only-if-needed',
@@ -165,14 +156,14 @@ class InstallCommand(RequirementCommand):
                  'satisfy the requirements of the upgraded package(s).'
         )
 
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '--force-reinstall',
             dest='force_reinstall',
             action='store_true',
             help='Reinstall all packages even if they are already '
                  'up-to-date.')
 
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '-I', '--ignore-installed',
             dest='ignore_installed',
             action='store_true',
@@ -182,15 +173,15 @@ class InstallCommand(RequirementCommand):
                  'with a different package manager!'
         )
 
-        cmd_opts.add_option(cmdoptions.ignore_requires_python())
-        cmd_opts.add_option(cmdoptions.no_build_isolation())
-        cmd_opts.add_option(cmdoptions.use_pep517())
-        cmd_opts.add_option(cmdoptions.no_use_pep517())
+        self.cmd_opts.add_option(cmdoptions.ignore_requires_python())
+        self.cmd_opts.add_option(cmdoptions.no_build_isolation())
+        self.cmd_opts.add_option(cmdoptions.use_pep517())
+        self.cmd_opts.add_option(cmdoptions.no_use_pep517())
 
-        cmd_opts.add_option(cmdoptions.install_options())
-        cmd_opts.add_option(cmdoptions.global_options())
+        self.cmd_opts.add_option(cmdoptions.install_options())
+        self.cmd_opts.add_option(cmdoptions.global_options())
 
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             "--compile",
             action="store_true",
             dest="compile",
@@ -198,21 +189,21 @@ class InstallCommand(RequirementCommand):
             help="Compile Python source files to bytecode",
         )
 
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             "--no-compile",
             action="store_false",
             dest="compile",
             help="Do not compile Python source files to bytecode",
         )
 
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             "--no-warn-script-location",
             action="store_false",
             dest="warn_script_location",
             default=True,
             help="Do not warn when installing scripts outside PATH",
         )
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             "--no-warn-conflicts",
             action="store_false",
             dest="warn_about_conflicts",
@@ -220,11 +211,11 @@ class InstallCommand(RequirementCommand):
             help="Do not warn about broken dependencies",
         )
 
-        cmd_opts.add_option(cmdoptions.no_binary())
-        cmd_opts.add_option(cmdoptions.only_binary())
-        cmd_opts.add_option(cmdoptions.prefer_binary())
-        cmd_opts.add_option(cmdoptions.require_hashes())
-        cmd_opts.add_option(cmdoptions.progress_bar())
+        self.cmd_opts.add_option(cmdoptions.no_binary())
+        self.cmd_opts.add_option(cmdoptions.only_binary())
+        self.cmd_opts.add_option(cmdoptions.prefer_binary())
+        self.cmd_opts.add_option(cmdoptions.require_hashes())
+        self.cmd_opts.add_option(cmdoptions.progress_bar())
 
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,
@@ -232,11 +223,11 @@ class InstallCommand(RequirementCommand):
         )
 
         self.parser.insert_option_group(0, index_opts)
-        self.parser.insert_option_group(0, cmd_opts)
+        self.parser.insert_option_group(0, self.cmd_opts)
 
     @with_cleanup
     def run(self, options, args):
-        # type: (Values, List[Any]) -> int
+        # type: (Values, List[str]) -> int
         if options.use_user_site and options.target_dir is not None:
             raise CommandError("Can not combine '--user' and '--target'")
 
@@ -249,6 +240,7 @@ class InstallCommand(RequirementCommand):
 
         install_options = options.install_options or []
 
+        logger.debug("Using %s", get_pip_version())
         options.use_user_site = decide_user_install(
             options.use_user_site,
             prefix_path=options.prefix_path,
@@ -272,6 +264,7 @@ class InstallCommand(RequirementCommand):
             # Create a target directory for using with the target option
             target_temp_dir = TempDirectory(kind="target")
             target_temp_dir_path = target_temp_dir.path
+            self.enter_context(target_temp_dir)
 
         global_options = options.global_options or []
 
@@ -297,12 +290,9 @@ class InstallCommand(RequirementCommand):
         )
 
         try:
-            reqs = self.get_requirements(
-                args, options, finder, session,
-                check_supported_wheels=not options.target_dir,
-            )
+            reqs = self.get_requirements(args, options, finder, session)
 
-            warn_deprecated_install_options(
+            reject_location_related_install_options(
                 reqs, options.install_options
             )
 
@@ -336,7 +326,7 @@ class InstallCommand(RequirementCommand):
             try:
                 pip_req = requirement_set.get_requirement("pip")
             except KeyError:
-                modifying_pip = None
+                modifying_pip = False
             else:
                 # If we're not replacing an already installed pip,
                 # we're not modifying it.
@@ -365,29 +355,37 @@ class InstallCommand(RequirementCommand):
 
             # If we're using PEP 517, we cannot do a direct install
             # so we fail here.
-            # We don't care about failures building legacy
-            # requirements, as we'll fall through to a direct
-            # install for those.
-            pep517_build_failures = [
-                r for r in build_failures if r.use_pep517
-            ]
-            if pep517_build_failures:
+            pep517_build_failure_names = [
+                r.name   # type: ignore
+                for r in build_failures if r.use_pep517
+            ]  # type: List[str]
+            if pep517_build_failure_names:
                 raise InstallationError(
                     "Could not build wheels for {} which use"
                     " PEP 517 and cannot be installed directly".format(
-                        ", ".join(r.name for r in pep517_build_failures)))
+                        ", ".join(pep517_build_failure_names)
+                    )
+                )
+
+            # For now, we just warn about failures building legacy
+            # requirements, as we'll fall through to a direct
+            # install for those.
+            for r in build_failures:
+                if not r.use_pep517:
+                    r.legacy_install_reason = 8368
 
             to_install = resolver.get_installation_order(
                 requirement_set
             )
 
-            # Consistency Checking of the package set we're installing.
+            # Check for conflicts in the package set we're installing.
+            conflicts = None  # type: Optional[ConflictDetails]
             should_warn_about_conflicts = (
                 not options.ignore_dependencies and
                 options.warn_about_conflicts
             )
             if should_warn_about_conflicts:
-                self._warn_about_conflicts(to_install)
+                conflicts = self._determine_conflicts(to_install)
 
             # Don't warn about script install locations if
             # --target has been specified
@@ -402,9 +400,9 @@ class InstallCommand(RequirementCommand):
                 root=options.root_path,
                 home=target_temp_dir_path,
                 prefix=options.prefix_path,
-                pycompile=options.compile,
                 warn_script_location=warn_script_location,
                 use_user_site=options.use_user_site,
+                pycompile=options.compile,
             )
 
             lib_locations = get_lib_location_guesses(
@@ -429,6 +427,13 @@ class InstallCommand(RequirementCommand):
                 except Exception:
                     pass
                 items.append(item)
+
+            if conflicts is not None:
+                self._warn_about_conflicts(
+                    conflicts,
+                    new_resolver='2020-resolver' in options.features_enabled,
+                )
+
             installed_desc = ' '.join(items)
             if installed_desc:
                 write_output(
@@ -440,11 +445,12 @@ class InstallCommand(RequirementCommand):
             message = create_env_error_message(
                 error, show_traceback, options.use_user_site,
             )
-            logger.error(message, exc_info=show_traceback)
+            logger.error(message, exc_info=show_traceback)  # noqa
 
             return ERROR
 
         if options.target_dir:
+            assert target_temp_dir
             self._handle_target_dir(
                 options.target_dir, target_temp_dir, options.upgrade
             )
@@ -452,96 +458,141 @@ class InstallCommand(RequirementCommand):
         return SUCCESS
 
     def _handle_target_dir(self, target_dir, target_temp_dir, upgrade):
+        # type: (str, TempDirectory, bool) -> None
         ensure_dir(target_dir)
 
         # Checking both purelib and platlib directories for installed
         # packages to be moved to target directory
         lib_dir_list = []
 
-        with target_temp_dir:
-            # Checking both purelib and platlib directories for installed
-            # packages to be moved to target directory
-            scheme = distutils_scheme('', home=target_temp_dir.path)
-            purelib_dir = scheme['purelib']
-            platlib_dir = scheme['platlib']
-            data_dir = scheme['data']
+        # Checking both purelib and platlib directories for installed
+        # packages to be moved to target directory
+        scheme = distutils_scheme('', home=target_temp_dir.path)
+        purelib_dir = scheme['purelib']
+        platlib_dir = scheme['platlib']
+        data_dir = scheme['data']
 
-            if os.path.exists(purelib_dir):
-                lib_dir_list.append(purelib_dir)
-            if os.path.exists(platlib_dir) and platlib_dir != purelib_dir:
-                lib_dir_list.append(platlib_dir)
-            if os.path.exists(data_dir):
-                lib_dir_list.append(data_dir)
+        if os.path.exists(purelib_dir):
+            lib_dir_list.append(purelib_dir)
+        if os.path.exists(platlib_dir) and platlib_dir != purelib_dir:
+            lib_dir_list.append(platlib_dir)
+        if os.path.exists(data_dir):
+            lib_dir_list.append(data_dir)
 
-            for lib_dir in lib_dir_list:
-                for item in os.listdir(lib_dir):
-                    if lib_dir == data_dir:
-                        ddir = os.path.join(data_dir, item)
-                        if any(s.startswith(ddir) for s in lib_dir_list[:-1]):
-                            continue
-                    target_item_dir = os.path.join(target_dir, item)
-                    if os.path.exists(target_item_dir):
-                        if not upgrade:
-                            logger.warning(
-                                'Target directory %s already exists. Specify '
-                                '--upgrade to force replacement.',
-                                target_item_dir
-                            )
-                            continue
-                        if os.path.islink(target_item_dir):
-                            logger.warning(
-                                'Target directory %s already exists and is '
-                                'a link. pip will not automatically replace '
-                                'links, please remove if replacement is '
-                                'desired.',
-                                target_item_dir
-                            )
-                            continue
-                        if os.path.isdir(target_item_dir):
-                            shutil.rmtree(target_item_dir)
-                        else:
-                            os.remove(target_item_dir)
+        for lib_dir in lib_dir_list:
+            for item in os.listdir(lib_dir):
+                if lib_dir == data_dir:
+                    ddir = os.path.join(data_dir, item)
+                    if any(s.startswith(ddir) for s in lib_dir_list[:-1]):
+                        continue
+                target_item_dir = os.path.join(target_dir, item)
+                if os.path.exists(target_item_dir):
+                    if not upgrade:
+                        logger.warning(
+                            'Target directory %s already exists. Specify '
+                            '--upgrade to force replacement.',
+                            target_item_dir
+                        )
+                        continue
+                    if os.path.islink(target_item_dir):
+                        logger.warning(
+                            'Target directory %s already exists and is '
+                            'a link. pip will not automatically replace '
+                            'links, please remove if replacement is '
+                            'desired.',
+                            target_item_dir
+                        )
+                        continue
+                    if os.path.isdir(target_item_dir):
+                        shutil.rmtree(target_item_dir)
+                    else:
+                        os.remove(target_item_dir)
 
-                    shutil.move(
-                        os.path.join(lib_dir, item),
-                        target_item_dir
-                    )
+                shutil.move(
+                    os.path.join(lib_dir, item),
+                    target_item_dir
+                )
 
-    def _warn_about_conflicts(self, to_install):
+    def _determine_conflicts(self, to_install):
+        # type: (List[InstallRequirement]) -> Optional[ConflictDetails]
         try:
-            package_set, _dep_info = check_install_conflicts(to_install)
+            return check_install_conflicts(to_install)
         except Exception:
-            logger.error("Error checking for conflicts.", exc_info=True)
-            return
-        missing, conflicting = _dep_info
+            logger.exception(
+                "Error while checking for conflicts. Please file an issue on "
+                "pip's issue tracker: https://github.com/pypa/pip/issues/new"
+            )
+            return None
 
-        # NOTE: There is some duplication here from pip check
+    def _warn_about_conflicts(self, conflict_details, new_resolver):
+        # type: (ConflictDetails, bool) -> None
+        package_set, (missing, conflicting) = conflict_details
+        if not missing and not conflicting:
+            return
+
+        parts = []  # type: List[str]
+        if not new_resolver:
+            parts.append(
+                "After October 2020 you may experience errors when installing "
+                "or updating packages. This is because pip will change the "
+                "way that it resolves dependency conflicts.\n"
+            )
+            parts.append(
+                "We recommend you use --use-feature=2020-resolver to test "
+                "your packages with the new resolver before it becomes the "
+                "default.\n"
+            )
+
+        # NOTE: There is some duplication here, with commands/check.py
         for project_name in missing:
             version = package_set[project_name][0]
             for dependency in missing[project_name]:
-                logger.critical(
-                    "%s %s requires %s, which is not installed.",
-                    project_name, version, dependency[1],
+                message = (
+                    "{name} {version} requires {requirement}, "
+                    "which is not installed."
+                ).format(
+                    name=project_name,
+                    version=version,
+                    requirement=dependency[1],
                 )
+                parts.append(message)
 
         for project_name in conflicting:
             version = package_set[project_name][0]
             for dep_name, dep_version, req in conflicting[project_name]:
-                logger.critical(
-                    "%s %s has requirement %s, but you'll have %s %s which is "
-                    "incompatible.",
-                    project_name, version, req, dep_name, dep_version,
+                message = (
+                    "{name} {version} requires {requirement}, but you'll have "
+                    "{dep_name} {dep_version} which is incompatible."
+                ).format(
+                    name=project_name,
+                    version=version,
+                    requirement=req,
+                    dep_name=dep_name,
+                    dep_version=dep_version,
                 )
+                parts.append(message)
+
+        logger.critical("\n".join(parts))
 
 
-def get_lib_location_guesses(*args, **kwargs):
-    scheme = distutils_scheme('', *args, **kwargs)
+def get_lib_location_guesses(
+        user=False,  # type: bool
+        home=None,  # type: Optional[str]
+        root=None,  # type: Optional[str]
+        isolated=False,  # type: bool
+        prefix=None  # type: Optional[str]
+):
+    # type:(...) -> List[str]
+    scheme = distutils_scheme('', user=user, home=home, root=root,
+                              isolated=isolated, prefix=prefix)
     return [scheme['purelib'], scheme['platlib']]
 
 
-def site_packages_writable(**kwargs):
+def site_packages_writable(root, isolated):
+    # type: (Optional[str], bool) -> bool
     return all(
-        test_writable_dir(d) for d in set(get_lib_location_guesses(**kwargs))
+        test_writable_dir(d) for d in set(
+            get_lib_location_guesses(root=root, isolated=isolated))
     )
 
 
@@ -605,7 +656,7 @@ def decide_user_install(
     return True
 
 
-def warn_deprecated_install_options(requirements, options):
+def reject_location_related_install_options(requirements, options):
     # type: (List[InstallRequirement], Optional[List[str]]) -> None
     """If any location-changing --install-option arguments were passed for
     requirements or on the command-line, then show a deprecation warning.
@@ -638,24 +689,17 @@ def warn_deprecated_install_options(requirements, options):
     if not offenders:
         return
 
-    deprecated(
-        reason=(
-            "Location-changing options found in --install-option: {}. "
-            "This configuration may cause unexpected behavior and is "
-            "unsupported.".format(
-                "; ".join(offenders)
-            )
-        ),
-        replacement=(
-            "using pip-level options like --user, --prefix, --root, and "
-            "--target"
-        ),
-        gone_in="20.2",
-        issue=7309,
+    raise CommandError(
+        "Location-changing options found in --install-option: {}."
+        " This is unsupported, use pip-level options like --user,"
+        " --prefix, --root, and --target instead.".format(
+            "; ".join(offenders)
+        )
     )
 
 
 def create_env_error_message(error, show_traceback, using_user_site):
+    # type: (EnvironmentError, bool, bool) -> str
     """Format an error message for an EnvironmentError
 
     It may occur anytime during the execution of the install command.

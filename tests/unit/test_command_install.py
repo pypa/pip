@@ -7,8 +7,9 @@ from pip._vendor.packaging.requirements import Requirement
 from pip._internal.commands.install import (
     create_env_error_message,
     decide_user_install,
-    warn_deprecated_install_options,
+    reject_location_related_install_options,
 )
+from pip._internal.exceptions import CommandError
 from pip._internal.req.req_install import InstallRequirement
 
 
@@ -44,16 +45,15 @@ class TestDecideUserInstall:
         assert decide_user_install(use_user_site=None) is result
 
 
-def test_deprecation_notice_for_pip_install_options(recwarn):
+def test_rejection_for_pip_install_options():
     install_options = ["--prefix=/hello"]
-    warn_deprecated_install_options([], install_options)
+    with pytest.raises(CommandError) as e:
+        reject_location_related_install_options([], install_options)
 
-    assert len(recwarn) == 1
-    message = recwarn[0].message.args[0]
-    assert "['--prefix'] from command line" in message
+    assert "['--prefix'] from command line" in str(e.value)
 
 
-def test_deprecation_notice_for_requirement_options(recwarn):
+def test_rejection_for_location_requirement_options():
     install_options = []
 
     bad_named_req_options = ["--home=/wow"]
@@ -67,18 +67,16 @@ def test_deprecation_notice_for_requirement_options(recwarn):
         None, "requirements2.txt", install_options=bad_unnamed_req_options
     )
 
-    warn_deprecated_install_options(
-        [bad_named_req, bad_unnamed_req], install_options
-    )
-
-    assert len(recwarn) == 1
-    message = recwarn[0].message.args[0]
+    with pytest.raises(CommandError) as e:
+        reject_location_related_install_options(
+            [bad_named_req, bad_unnamed_req], install_options
+        )
 
     assert (
         "['--install-lib'] from <InstallRequirement> (from requirements2.txt)"
-        in message
+        in str(e.value)
     )
-    assert "['--home'] from hello (from requirements.txt)" in message
+    assert "['--home'] from hello (from requirements.txt)" in str(e.value)
 
 
 @pytest.mark.parametrize('error, show_traceback, using_user_site, expected', [

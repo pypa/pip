@@ -79,6 +79,47 @@ as the "username" and do not provide a password, for example -
 ``https://0123456789abcdef@pypi.company.com``
 
 
+netrc Support
+-------------
+
+If no credentials are part of the URL, pip will attempt to get authentication credentials
+for the URL’s hostname from the user’s .netrc file. This behaviour comes from the underlying
+use of `requests`_ which in turn delegates it to the `Python standard library`_.
+
+The .netrc file contains login and initialization information used by the auto-login process.
+It resides in the user's home directory. The .netrc file format is simple. You specify lines
+with a machine name and follow that with lines for the login and password that are
+associated with that machine. Machine name is the hostname in your URL.
+
+An example .netrc for the host example.com with a user named 'daniel', using the password
+'qwerty' would look like:
+
+.. code-block:: shell
+
+   machine example.com
+   login daniel
+   password qwerty
+
+As mentioned in the `standard library docs <https://docs.python.org/3/library/netrc.html>`_,
+only ASCII characters are allowed. Whitespace and non-printable characters are not allowed in passwords.
+
+
+Keyring Support
+---------------
+
+pip also supports credentials stored in your keyring using the `keyring`_
+library. Note that ``keyring`` will need to be installed separately, as pip
+does not come with it included.
+
+.. code-block:: shell
+
+   pip install keyring
+   echo your-password | keyring set pypi.company.com your-username
+   pip install your-package --extra-index-url https://pypi.company.com/
+
+.. _keyring: https://pypi.org/project/keyring/
+
+
 Using a Proxy Server
 ====================
 
@@ -342,7 +383,7 @@ pip allows you to set all command line option defaults in a standard ini
 style config file.
 
 The names and locations of the configuration files vary slightly across
-platforms. You may have per-user, per-virtualenv or site-wide (shared amongst
+platforms. You may have per-user, per-virtualenv or global (shared amongst
 all users) configuration:
 
 **Per-user**:
@@ -369,7 +410,7 @@ variable ``PIP_CONFIG_FILE``.
 * On Unix and macOS the file is :file:`$VIRTUAL_ENV/pip.conf`
 * On Windows the file is: :file:`%VIRTUAL_ENV%\\pip.ini`
 
-**Site-wide**:
+**Global**:
 
 * On Unix the file may be located in :file:`/etc/pip.conf`. Alternatively
   it may be in a "pip" subdirectory of any of the paths set in the
@@ -380,17 +421,19 @@ variable ``PIP_CONFIG_FILE``.
   :file:`C:\\Documents and Settings\\All Users\\Application Data\\pip\\pip.ini`
 * On Windows 7 and later the file is hidden, but writeable at
   :file:`C:\\ProgramData\\pip\\pip.ini`
-* Site-wide configuration is not supported on Windows Vista
+* Global configuration is not supported on Windows Vista.
+
+The global configuration file is shared by all Python installations.
 
 If multiple configuration files are found by pip then they are combined in
 the following order:
 
-1. The site-wide file is read
+1. The global file is read
 2. The per-user file is read
 3. The virtualenv-specific file is read
 
 Each file read overrides any values read from previous files, so if the
-global timeout is specified in both the site-wide file and the per-user file
+global timeout is specified in both the global file and the per-user file
 then the latter value will be used.
 
 The names of the settings are derived from the long command line option, e.g.
@@ -440,6 +483,15 @@ and ``--no-cache-dir``, falsy values have to be used:
     no-compile = no
     no-warn-script-location = false
 
+For options which can be repeated like ``--verbose`` and ``--quiet``,
+a non-negative integer can be used to represent the level to be specified:
+
+.. code-block:: ini
+
+    [global]
+    quiet = 0
+    verbose = 2
+
 It is possible to append values to a section within a configuration file such as the pip.ini file.
 This is applicable to appending options like ``--find-links`` or ``--trusted-host``,
 which can be written on multiple lines:
@@ -455,7 +507,6 @@ which can be written on multiple lines:
         http://mirror1.example.com
         http://mirror2.example.com
 
-    [install]
     trusted-host =
         http://mirror1.example.com
         http://mirror2.example.com
@@ -486,6 +537,15 @@ multiple values. For example::
 is the same as calling::
 
     pip install --find-links=http://mirror1.example.com --find-links=http://mirror2.example.com
+
+Options that do not take a value, but can be repeated (such as ``--verbose``)
+can be specified using the number of repetitions, so::
+
+    export PIP_VERBOSE=3
+
+is the same as calling::
+
+    pip install -vvv
 
 .. note::
 
@@ -771,8 +831,188 @@ archives are built with identical packages.
     to use such a package, see :ref:`Controlling
     setup_requires<controlling-setup-requires>`.
 
-.. _`Using pip from your program`:
+Fixing conflicting dependencies
+===============================
 
+The purpose of this section of documentation is to provide practical suggestions to
+pip users who encounter an error where pip cannot install their
+specified packages due to conflicting dependencies (a
+``ResolutionImpossible`` error).
+
+This documentation is specific to the new resolver, which you can use
+with the flag ``--use-feature=2020-resolver``.
+
+Understanding your error message
+--------------------------------
+
+When you get a ``ResolutionImpossible`` error, you might see something
+like this:
+
+::
+
+    pip install package_coffee==0.44.1 package_tea==4.3.0
+
+::
+
+    Due to conflicting dependencies pip cannot install package_coffee and
+    package_tea:
+    - package_coffee depends on package_water<3.0.0,>=2.4.2
+    - package_tea depends on package_water==2.3.1
+
+In this example, pip cannot install the packages you have requested,
+because they each depend on different versions of the same package
+(``package_water``):
+
+- ``package_coffee`` version ``0.44.1`` depends on a version of
+  ``package_water`` that is less than ``3.0.0`` but greater than or equal to
+  ``2.4.2``
+- ``package_tea`` version ``4.3.0`` depends on version ``2.3.1`` of
+  ``package_water``
+
+Sometimes these messages are straightforward to read, because they use
+commonly understood comparison operators to specify the required version
+(e.g. ``<`` or ``>``).
+
+However, Python packaging also supports some more complex ways for
+specifying package versions (e.g. ``~=`` or ``*``):
+
+.. csv-table::
+  :header: "Operator", "Description", "Example"
+
+  ``>``, "Any version greater than the specified version", "``>3.1``: any
+  version greater than 3.1"
+  ``<``, "Any version less than the specified version", "``<3.1``: any version
+  less than ``3.1``"
+  ``<=``, "Any version less than or equal to the specified version", "``<=3.1``:
+  any version less than or equal to ``3.1``"
+  ``>=``, "Any version greater than or equal to the specified
+  version", "``>=3.1``: version ``3.1`` and greater"
+  ``==``, "Exactly the specified version", ``==3.1``: only version ``3.1``
+  ``!=``, "Any version not equal to the specified version", "``!=3.1``: any
+  version other than ``3.1``"
+  ``~=``, "Any compatible release. Compatible releases are releases that are
+  within the same major or minor version, assuming the package author is using
+  semantic versioning.", "``~=3.1``: version ``3.1`` or later, but not version
+  ``4.0`` or later. ``~=3.1.2``: version ``3.1.2`` or later, but not
+  version ``3.2.0`` or later."
+  ``*``,Can be used at the end of a version number to represent "all", "``== 3.
+  1.*``: any version that starts with ``3.1``. Equivalent to ``~=3.1.0``."
+
+The detailed specification of supported comparison operators can be
+found in :pep:`440`.
+
+Possible solutions
+------------------
+
+The solution to your error will depend on your individual use case. Here
+are some things to try:
+
+1. Audit your top level requirements
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+As a first step it is useful to audit your project and remove any
+unnecessary or out of date requirements (e.g. from your ``setup.py`` or
+``requirements.txt`` files). Removing these can significantly reduce the
+complexity of your dependency tree, thereby reducing opportunities for
+conflicts to occur.
+
+2. Loosen your top level requirements
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Sometimes the packages that you have asked pip to install are
+incompatible because you have been too strict when you specified the
+package version.
+
+In our first example both ``package_coffee`` and ``package_tea`` have been
+*pinned* to use specific versions
+(``package_coffee==0.44.1b0 package_tea==4.3.0``).
+
+To find a version of both ``package_coffee`` and ``package_tea`` that depend on
+the same version of ``package_water``, you might consider:
+
+-  Loosening the range of packages that you are prepared to install
+   (e.g. ``pip install "package_coffee>0.44.*" "package_tea>4.0.0"``)
+-  Asking pip to install *any* version of ``package_coffee`` and ``package_tea``
+   by removing the version specifiers altogether (e.g.
+   ``pip install package_coffee package_tea``)
+
+In the second case, pip will automatically find a version of both
+``package_coffee`` and ``package_tea`` that depend on the same version of
+``package_water``, installing:
+
+-  ``package_coffee 0.46.0b0``, which depends on ``package_water 2.6.1``
+-  ``package_tea 4.3.0`` which *also* depends on ``package_water 2.6.1``
+
+If you want to prioritize one package over another, you can add version
+specifiers to *only* the more important package::
+
+    pip install package_coffee==0.44.1b0 package_tea
+
+This will result in:
+
+- ``package_coffee 0.44.1b0``, which depends on ``package_water 2.6.1``
+- ``package_tea 4.1.3`` which also depends on ``package_water 2.6.1``
+
+Now that you have resolved the issue, you can repin the compatible
+package versions as required.
+
+3. Loosen the requirements of your dependencies
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Assuming that you cannot resolve the conflict by loosening the version
+of the package you require (as above), you can try to fix the issue on
+your *dependency* by:
+
+-  Requesting that the package maintainers loosen *their* dependencies
+-  Forking the package and loosening the dependencies yourself
+
+.. warning::
+
+   If you choose to fork the package yourself, you are *opting out* of
+   any support provided by the package maintainers. Proceed at your own risk!
+
+4. All requirements are loose, but a solution does not exist
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Sometimes it's simply impossible to find a combination of package
+versions that do not conflict. Welcome to `dependency hell`_.
+
+In this situation, you could consider:
+
+-  Using an alternative package, if that is acceptable for your project.
+   See `Awesome Python`_ for similar packages.
+-  Refactoring your project to reduce the number of dependencies (for
+   example, by breaking up a monolithic code base into smaller pieces)
+
+Getting help
+------------
+
+If none of the suggestions above work for you, we recommend that you ask
+for help on:
+
+-  `Python user Discourse`_
+-  `Python user forums`_
+-  `Python developers Slack channel`_
+-  `Python IRC`_
+-  `Stack Overflow`_
+
+See `"How do I ask a good question?"`_ for tips on asking for help.
+
+Unfortunately, **the pip team cannot provide support for individual
+dependency conflict errors**. Please *only* open a ticket on the `pip
+issue tracker`_ if you believe that your problem has exposed a bug in pip.
+
+.. _dependency hell: https://en.wikipedia.org/wiki/Dependency_hell
+.. _Awesome Python: https://python.libhunt.com/
+.. _Python user Discourse: https://discuss.python.org/c/users/7
+.. _Python user forums: https://www.python.org/community/forums/
+.. _Python developers Slack channel: https://pythondev.slack.com/
+.. _Python IRC: https://www.python.org/community/irc/
+.. _Stack Overflow: https://stackoverflow.com/questions/tagged/python
+.. _"How do I ask a good question?": https://stackoverflow.com/help/how-to-ask
+.. _pip issue tracker: https://github.com/pypa/pip/issues
+
+.. _`Using pip from your program`:
 
 Using pip from your program
 ===========================
@@ -842,4 +1082,244 @@ of ability. Some examples that you could consider include:
 * ``distlib`` - Packaging and distribution utilities (including functions for
   interacting with PyPI).
 
+.. _`Resolver changes 2020`:
+
+Changes to the pip dependency resolver in 20.2 (2020)
+=====================================================
+
+pip 20.1 included an alpha version of the new resolver (hidden behind
+an optional ``--unstable-feature=resolver`` flag). pip 20.2 removes
+that flag, and includes a robust beta of the new resolver (hidden
+behind an optional ``--use-feature=2020-resolver`` flag) that we
+encourage you to test. We will continue to improve the pip dependency
+resolver in response to testers' feedback. Please give us feedback
+through the `resolver testing survey`_. This will help us prepare to
+release pip 20.3, with the new resolver on by default, in October.
+
+Watch out for
+-------------
+
+The big change in this release is to the pip dependency resolver
+within pip.
+
+Computers need to know the right order to install pieces of software
+("to install `x`, you need to install `y` first"). So, when Python
+programmers share software as packages, they have to precisely describe
+those installation prerequisites, and pip needs to navigate tricky
+situations where it's getting conflicting instructions. This new
+dependency resolver will make pip better at handling that tricky
+logic, and make pip easier for you to use and troubleshoot.
+
+The most significant changes to the resolver are:
+
+* It will **reduce inconsistency**: it will *no longer install a
+  combination of packages that is mutually inconsistent*. In older
+  versions of pip, it is possible for pip to install a package which
+  does not satisfy the declared requirements of another installed
+  package. For example, in pip 20.0, ``pip install "six<1.12"
+  "virtualenv==20.0.2"`` does the wrong thing, “successfully” installing
+  ``six==1.11``, even though ``virtualenv==20.0.2`` requires
+  ``six>=1.12.0,<2`` (`defined here
+  <https://github.com/pypa/virtualenv/blob/20.0.2/setup.cfg#L42-L50>`__).
+  The new resolver, instead, outright rejects installing anything if it
+  gets that input.
+
+* It will be **stricter** - if you ask pip to install two packages with
+  incompatible requirements, it will refuse (rather than installing a
+  broken combination, like it did in previous versions).
+
+So, if you have been using workarounds to force pip to deal with
+incompatible or inconsistent requirements combinations, now's a good
+time to fix the underlying problem in the packages, because pip will
+be stricter from here on out.
+
+This also means that, when you run a ``pip install`` command, pip only
+considers the packages you are installing in that command, and may
+break already-installed packages. It will not guarantee that your
+environment will be consistent all the time. If you ``pip install x``
+and then ``pip install y``, it's possible that the version of ``y``
+you get will be different than it would be if you had run ``pip
+install x y`` in a single command. We would like your thoughts on what
+pip's behavior should be; please answer `our survey on upgrades that
+create conflicts`_.
+
+We are also changing our support for :ref:`Constraints Files`:
+
+* Unnamed requirements are not allowed as constraints (see :issue:`6628` and :issue:`8210`)
+* Links are not allowed as constraints (see :issue:`8253`)
+* Constraints cannot have extras (see :issue:`6628`)
+
+
+How to test
+-----------
+
+1. **Install pip 20.2** with ``python -m pip install --upgrade pip``.
+
+2. **Validate your current environment** by running ``pip check``. This
+   will report if you have any inconsistencies in your set of installed
+   packages. Having a clean installation will make it much less likely
+   that you will hit issues when the new resolver is released (and may
+   address hidden problems in your current environment!). If you run
+   ``pip check`` and run into stuff you can’t figure out, please `ask
+   for help in our issue tracker or chat <https://pip.pypa.io/>`__.
+
+3. **Test the new version of pip** (see below). To test the new
+   resolver, use the ``--use-feature=2020-resolver`` flag, as in:
+
+   ``pip install example --use-feature=2020-resolver``
+
+   The more feedback we can get, the more we can make sure that the
+   final release is solid. (Only try the new resolver **in a
+   non-production environment**, though - it isn't ready for you to
+   rely on in production!)
+
+   While we have tried to make sure that pip’s test suite covers as
+   many cases as we can, we are very aware that there are people using
+   pip with many different workflows and build processes, and we will
+   not be able to cover all of those without your help.
+
+   -  If you use pip to install your software, try out the new resolver
+      and let us know if it works for you with ``pip install``. Try:
+
+        - installing several packages simultaneously
+        - re-creating an environment using a ``requirements.txt`` file
+        - using ``pip install --force-reinstall`` to check whether
+          it does what you think it should
+        - using constraints files
+
+   -  If you have a build pipeline that depends on pip installing your
+      dependencies for you, check that the new resolver does what you
+      need.
+   -  Run your project’s CI (test suite, build process, etc.) using the
+      new resolver, and let us know of any issues.
+   -  If you have encountered resolver issues with pip in the past,
+      check whether the new resolver fixes them. Also, let us know if
+      the new resolver has issues with any workarounds you put in to
+      address the current resolver’s limitations. We’ll need to ensure
+      that people can transition off such workarounds smoothly.
+   -  If you develop or support a tool that wraps pip or uses it to
+      deliver part of your functionality, please test your integration
+      with pip 20.2.
+
+4. **Please report bugs** through the `resolver testing survey`_.
+
+Setups we might need more testing on
+------------------------------------
+
+*    Windows, including Windows Subsystem for Linux (WSL)
+
+*    Macintosh
+
+*    Debian, Fedora, Red Hat, CentOS, Mint, Arch, Raspbian, Gentoo
+
+*    non-Latin localized filesystems and OSes, such as Japanese, Chinese, and Korean, and right-to-left such as Hebrew, Urdu, and Arabic
+
+*    Multi-user installations
+
+*    Requirements files with 100+ packages
+
+*    An installation workflow that involves multiple requirements files
+
+*    Requirements files that include hashes (:ref:`hash-checking mode`)
+     or pinned dependencies (perhaps as output from ``pip-compile`` within
+     ``pip-tools``)
+
+*    Using :ref:`Constraints Files`
+
+*    Continuous integration/continuous deployment setups
+
+*    Installing from any kind of version control systems (i.e., Git, Subversion, Mercurial, or CVS), per :ref:`VCS Support`
+
+*    Installing from source code held in local directories
+
+*    Using the most recent versions of Python 3.6, 3.7, 3.8, and 3.9
+
+*    PyPy
+
+*    Customized terminals (where you have modified how error messages and standard output display)
+
+Examples to try
+^^^^^^^^^^^^^^^
+
+Install:
+
+* `tensorflow`_
+* ``hacking``
+* ``pycodestyle``
+* ``pandas``
+* ``tablib``
+* ``elasticsearch`` and ``requests`` together
+* ``six`` and ``cherrypy`` together
+* ``pip install flake8-import-order==0.17.1 flake8==3.5.0 --use-feature=2020-resolver``
+* ``pip install tornado==5.0 sprockets.http==1.5.0 --use-feature=2020-resolver``
+
+Try:
+
+* ``pip install``
+* ``pip uninstall``
+* ``pip check``
+* ``pip cache``
+
+
+Tell us about
+-------------
+
+Specific things we'd love to get feedback on:
+
+*    Cases where the new resolver produces the wrong result,
+     obviously. We hope there won't be too many of these, but we'd like
+     to trap such bugs now.
+
+*    Cases where the resolver produced an error when you believe it
+     should have been able to work out what to do.
+
+*    Cases where the resolver gives an error because there's a problem
+     with your requirements, but you need better information to work out
+     what's wrong.
+
+*    If you have workarounds to address issues with the current resolver,
+     does the new resolver let you remove those workarounds? Tell us!
+
+Please let us know through the `resolver testing survey`_.
+
+Deprecation timeline
+--------------------
+
+We plan for the resolver changeover to proceed as follows, using
+:ref:`Feature Flags` and following our :ref:`Release Cadence`:
+
+*    pip 20.2: a beta of the new resolver is available, opt-in, using
+     the flag ``--use-feature=2020-resolver``. pip defaults to
+     legacy behavior.
+
+*    pip 20.3: pip defaults to the new resolver, but a user can opt-out
+     and choose the old resolver behavior, using the flag
+     ``--use-deprecated=legacy-resolver``.
+
+*    pip 21.0: pip uses new resolver, and the old resolver is no longer
+     available.
+
+Since this work will not change user-visible behavior described in the
+pip documentation, this change is not covered by the :ref:`Deprecation
+Policy`.
+
+Context and followup
+--------------------
+
+As discussed in `our announcement on the PSF blog`_, the pip team are
+in the process of developing a new "dependency resolver" (the part of
+pip that works out what to install based on your requirements).
+
+We're tracking our rollout in :issue:`6536` and you can watch for
+announcements on the `low-traffic packaging announcements list`_ and
+`the official Python blog`_.
+
 .. _freeze: https://pip.pypa.io/en/latest/reference/pip_freeze/
+.. _resolver testing survey: https://tools.simplysecure.org/survey/index.php?r=survey/index&sid=989272&lang=en
+.. _our announcement on the PSF blog: http://pyfound.blogspot.com/2020/03/new-pip-resolver-to-roll-out-this-year.html
+.. _tensorflow: https://pypi.org/project/tensorflow/
+.. _low-traffic packaging announcements list: https://mail.python.org/mailman3/lists/pypi-announce.python.org/
+.. _our survey on upgrades that create conflicts: https://docs.google.com/forms/d/e/1FAIpQLSeBkbhuIlSofXqCyhi3kGkLmtrpPOEBwr6iJA6SzHdxWKfqdA/viewform
+.. _the official Python blog: https://blog.python.org/
+.. _requests: https://requests.readthedocs.io/en/master/user/authentication/#netrc-authentication
+.. _Python standard library: https://docs.python.org/3/library/netrc.html

@@ -1,5 +1,6 @@
 import logging
 
+import mock
 import pytest
 from pip._vendor import pkg_resources
 
@@ -7,10 +8,14 @@ from pip._internal.exceptions import (
     NoneMetadataError,
     UnsupportedPythonVersion,
 )
+from pip._internal.req.constructors import install_req_from_line
 from pip._internal.resolution.legacy.resolver import (
+    Resolver,
     _check_dist_requires_python,
 )
 from pip._internal.utils.packaging import get_requires_python
+from tests.lib import make_test_finder
+from tests.lib.index import make_mock_candidate
 
 
 # We need to inherit from DistInfoDistribution for the `isinstance()`
@@ -169,3 +174,105 @@ class TestCheckDistRequiresPython(object):
             "None {} metadata found for distribution: "
             "<distribution 'my-project'>".format(metadata_name)
         )
+
+
+class TestYankedWarning(object):
+    """
+    Test _populate_link() emits warning if one or more candidates are yanked.
+    """
+    def _make_test_resolver(self, monkeypatch, mock_candidates):
+        def _find_candidates(project_name):
+            return mock_candidates
+
+        finder = make_test_finder()
+        monkeypatch.setattr(finder, "find_all_candidates", _find_candidates)
+
+        return Resolver(
+            finder=finder,
+            preparer=mock.Mock(),  # Not used.
+            make_install_req=install_req_from_line,
+            wheel_cache=None,
+            use_user_site=False,
+            force_reinstall=False,
+            ignore_dependencies=False,
+            ignore_installed=False,
+            ignore_requires_python=False,
+            upgrade_strategy="to-satisfy-only",
+        )
+
+    def test_sort_best_candidate__has_non_yanked(self, caplog, monkeypatch):
+        """
+        Test unyanked candidate preferred over yanked.
+        """
+        candidates = [
+            make_mock_candidate('1.0'),
+            make_mock_candidate('2.0', yanked_reason='bad metadata #2'),
+        ]
+        ireq = install_req_from_line("pkg")
+
+        resolver = self._make_test_resolver(monkeypatch, candidates)
+        resolver._populate_link(ireq)
+
+        assert ireq.link == candidates[0].link
+        assert len(caplog.records) == 0
+
+    def test_sort_best_candidate__all_yanked(self, caplog, monkeypatch):
+        """
+        Test all candidates yanked.
+        """
+        candidates = [
+            make_mock_candidate('1.0', yanked_reason='bad metadata #1'),
+            # Put the best candidate in the middle, to test sorting.
+            make_mock_candidate('3.0', yanked_reason='bad metadata #3'),
+            make_mock_candidate('2.0', yanked_reason='bad metadata #2'),
+        ]
+        ireq = install_req_from_line("pkg")
+
+        resolver = self._make_test_resolver(monkeypatch, candidates)
+        resolver._populate_link(ireq)
+
+        assert ireq.link == candidates[1].link
+
+        # Check the log messages.
+        assert len(caplog.records) == 1
+        record = caplog.records[0]
+        assert record.levelname == 'WARNING'
+        assert record.message == (
+            'The candidate selected for download or install is a yanked '
+            "version: 'mypackage' candidate "
+            '(version 3.0 at https://example.com/pkg-3.0.tar.gz)\n'
+            'Reason for being yanked: bad metadata #3'
+        )
+
+    @pytest.mark.parametrize('yanked_reason, expected_reason', [
+        # Test no reason given.
+        ('', '<none given>'),
+        # Test a unicode string with a non-ascii character.
+        (u'curly quote: \u2018', u'curly quote: \u2018'),
+    ])
+    def test_sort_best_candidate__yanked_reason(
+        self, caplog, monkeypatch, yanked_reason, expected_reason,
+    ):
+        """
+        Test the log message with various reason strings.
+        """
+        candidates = [
+            make_mock_candidate('1.0', yanked_reason=yanked_reason),
+        ]
+        ireq = install_req_from_line("pkg")
+
+        resolver = self._make_test_resolver(monkeypatch, candidates)
+        resolver._populate_link(ireq)
+
+        assert ireq.link == candidates[0].link
+
+        assert len(caplog.records) == 1
+        record = caplog.records[0]
+        assert record.levelname == 'WARNING'
+        expected_message = (
+            'The candidate selected for download or install is a yanked '
+            "version: 'mypackage' candidate "
+            '(version 1.0 at https://example.com/pkg-1.0.tar.gz)\n'
+            'Reason for being yanked: '
+        ) + expected_reason
+        assert record.message == expected_message

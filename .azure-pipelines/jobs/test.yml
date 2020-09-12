@@ -12,8 +12,8 @@ jobs:
       "2.7":
         python.version: '2.7'
         python.architecture: x64
-      "3.6":
-        python.version: '3.6'
+      "3.8":
+        python.version: '3.8'
         python.architecture: x64
     maxParallel: 2
 
@@ -32,11 +32,11 @@ jobs:
       "3.5":
         python.version: '3.5'
         python.architecture: x64
+      "3.6":
+        python.version: '3.6'
+        python.architecture: x64
       "3.7":
         python.version: '3.7'
-        python.architecture: x64
-      "3.8":
-        python.version: '3.8'
         python.architecture: x64
     maxParallel: 4
 

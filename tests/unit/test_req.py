@@ -18,7 +18,6 @@ from pip._internal.exceptions import (
     InvalidWheelFilename,
     PreviousBuildDirError,
 )
-from pip._internal.network.download import Downloader
 from pip._internal.network.session import PipSession
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import InstallRequirement, RequirementSet
@@ -56,7 +55,7 @@ def get_processed_req_from_line(line, fname='file', lineno=1):
     parsed_req = handle_requirement_line(parsed_line)
     assert parsed_req is not None
     req = install_req_from_parsed_requirement(parsed_req)
-    req.is_direct = True
+    req.user_supplied = True
     return req
 
 
@@ -76,6 +75,7 @@ class TestRequirementSet(object):
             isolated=False,
             use_pep517=None,
         )
+        session = PipSession()
 
         with get_requirement_tracker() as tracker:
             preparer = RequirementPreparer(
@@ -85,10 +85,12 @@ class TestRequirementSet(object):
                 wheel_download_dir=None,
                 build_isolation=True,
                 req_tracker=tracker,
-                downloader=Downloader(PipSession(), progress_bar="on"),
+                session=session,
+                progress_bar='on',
                 finder=finder,
                 require_hashes=require_hashes,
                 use_user_site=False,
+                lazy_wheel=False,
             )
             yield Resolver(
                 preparer=preparer,
@@ -109,7 +111,7 @@ class TestRequirementSet(object):
             pass
         reqset = RequirementSet()
         req = install_req_from_line('simple')
-        req.is_direct = True
+        req.user_supplied = True
         reqset.add_requirement(req)
         finder = make_test_finder(find_links=[data.find_links])
         with self._basic_resolver(finder) as resolver:
@@ -133,7 +135,7 @@ class TestRequirementSet(object):
         req = install_req_from_editable(
             data.packages.joinpath("LocalEnvironMarker")
         )
-        req.is_direct = True
+        req.user_supplied = True
         reqset.add_requirement(req)
         finder = make_test_finder(find_links=[data.find_links])
         with self._basic_resolver(finder) as resolver:
@@ -583,10 +585,10 @@ def test_parse_editable_local(
     exists_mock.return_value = isdir_mock.return_value = True
     # mocks needed to support path operations on windows tests
     abspath_mock.return_value = "/some/path"
-    assert parse_editable('.') == (None, 'file:///some/path', None)
+    assert parse_editable('.') == (None, 'file:///some/path', set())
     abspath_mock.return_value = "/some/path/foo"
     assert parse_editable('foo') == (
-        None, 'file:///some/path/foo', None,
+        None, 'file:///some/path/foo', set(),
     )
 
 
@@ -594,7 +596,7 @@ def test_parse_editable_explicit_vcs():
     assert parse_editable('svn+https://foo#egg=foo') == (
         'foo',
         'svn+https://foo#egg=foo',
-        None,
+        set(),
     )
 
 
@@ -602,7 +604,7 @@ def test_parse_editable_vcs_extras():
     assert parse_editable('svn+https://foo#egg=foo[extras]') == (
         'foo[extras]',
         'svn+https://foo#egg=foo[extras]',
-        None,
+        set(),
     )
 
 
@@ -626,10 +628,10 @@ def test_exclusive_environment_markers():
     """Make sure RequirementSet accepts several excluding env markers"""
     eq36 = install_req_from_line(
         "Django>=1.6.10,<1.7 ; python_version == '3.6'")
-    eq36.is_direct = True
+    eq36.user_supplied = True
     ne36 = install_req_from_line(
         "Django>=1.6.10,<1.8 ; python_version != '3.6'")
-    ne36.is_direct = True
+    ne36.user_supplied = True
 
     req_set = RequirementSet()
     req_set.add_requirement(eq36)

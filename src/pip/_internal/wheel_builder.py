@@ -1,9 +1,6 @@
 """Orchestrator for building wheels from InstallRequirements.
 """
 
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-
 import logging
 import os.path
 import re
@@ -23,7 +20,7 @@ from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Any, Callable, Iterable, List, Optional, Pattern, Tuple,
+        Any, Callable, Iterable, List, Optional, Tuple,
     )
 
     from pip._internal.cache import WheelCache
@@ -34,10 +31,11 @@ if MYPY_CHECK_RUNNING:
 
 logger = logging.getLogger(__name__)
 
+_egg_info_re = re.compile(r'([a-z0-9_.]+)-([a-z0-9_.!+-]+)', re.IGNORECASE)
 
-def _contains_egg_info(
-        s, _egg_info_re=re.compile(r'([a-z0-9_.]+)-([a-z0-9_.!+-]+)', re.I)):
-    # type: (str, Pattern[str]) -> bool
+
+def _contains_egg_info(s):
+    # type: (str) -> bool
     """Determine whether the string looks like an egg_info.
 
     :param s: The string to parse. E.g. foo-2.1
@@ -69,14 +67,6 @@ def _should_build(
     # From this point, this concerns the pip install command only
     # (need_wheel=False).
 
-    if not req.use_pep517 and not is_wheel_installed():
-        # we don't build legacy requirements if wheel is not installed
-        logger.info(
-            "Could not build wheels for %s, "
-            "since package 'wheel' is not installed.", req.name,
-        )
-        return False
-
     if req.editable or not req.source_dir:
         return False
 
@@ -84,6 +74,14 @@ def _should_build(
         logger.info(
             "Skipping wheel build for %s, due to binaries "
             "being disabled for it.", req.name,
+        )
+        return False
+
+    if not req.use_pep517 and not is_wheel_installed():
+        # we don't build legacy requirements if wheel is not installed
+        logger.info(
+            "Using legacy 'setup.py install' for %s, "
+            "since package 'wheel' is not installed.", req.name,
         )
         return False
 
@@ -118,11 +116,8 @@ def _should_cache(
     wheel cache, assuming the wheel cache is available, and _should_build()
     has determined a wheel needs to be built.
     """
-    if not should_build_for_install_command(
-        req, check_binary_allowed=_always_true
-    ):
-        # never cache if pip install would not have built
-        # (editable mode, etc)
+    if req.editable or not req.source_dir:
+        # never cache editable requirements
         return False
 
     if req.link and req.link.is_vcs:
@@ -136,6 +131,7 @@ def _should_cache(
             return True
         return False
 
+    assert req.link
     base, ext = req.link.splitext()
     if _contains_egg_info(base):
         return True
@@ -153,6 +149,7 @@ def _get_cache_dir(
     wheel need to be stored.
     """
     cache_available = bool(wheel_cache.cache_dir)
+    assert req.link
     if cache_available and _should_cache(req):
         cache_dir = wheel_cache.get_path_for_link(req.link)
     else:
@@ -200,7 +197,9 @@ def _build_one_inside_env(
 ):
     # type: (...) -> Optional[str]
     with TempDirectory(kind="wheel") as temp_dir:
+        assert req.name
         if req.use_pep517:
+            assert req.metadata_directory
             wheel_path = build_wheel_pep517(
                 name=req.name,
                 backend=req.pep517_backend,
@@ -275,7 +274,7 @@ def build(
     # Build the wheels.
     logger.info(
         'Building wheels for collected packages: %s',
-        ', '.join(req.name for req in requirements),
+        ', '.join(req.name for req in requirements),  # type: ignore
     )
 
     with indent_log():
@@ -298,12 +297,12 @@ def build(
     if build_successes:
         logger.info(
             'Successfully built %s',
-            ' '.join([req.name for req in build_successes]),
+            ' '.join([req.name for req in build_successes]),  # type: ignore
         )
     if build_failures:
         logger.info(
             'Failed to build %s',
-            ' '.join([req.name for req in build_failures]),
+            ' '.join([req.name for req in build_failures]),  # type: ignore
         )
     # Return a list of requirements that failed to build
     return build_successes, build_failures

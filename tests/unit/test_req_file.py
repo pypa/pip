@@ -47,6 +47,7 @@ def options(session):
         isolated_mode=False,
         index_url='default_url',
         format_control=FormatControl(set(), set()),
+        features_enabled=[],
     )
 
 
@@ -340,17 +341,22 @@ class TestProcessLine(object):
         line_processor("--no-index", "file", 1, finder=finder)
         assert finder.index_urls == []
 
-    def test_set_finder_index_url(self, line_processor, finder):
-        line_processor("--index-url=url", "file", 1, finder=finder)
+    def test_set_finder_index_url(self, line_processor, finder, session):
+        line_processor(
+            "--index-url=url", "file", 1, finder=finder, session=session)
         assert finder.index_urls == ['url']
+        assert session.auth.index_urls == ['url']
 
     def test_set_finder_find_links(self, line_processor, finder):
         line_processor("--find-links=url", "file", 1, finder=finder)
         assert finder.find_links == ['url']
 
-    def test_set_finder_extra_index_urls(self, line_processor, finder):
-        line_processor("--extra-index-url=url", "file", 1, finder=finder)
+    def test_set_finder_extra_index_urls(
+            self, line_processor, finder, session):
+        line_processor(
+            "--extra-index-url=url", "file", 1, finder=finder, session=session)
         assert finder.index_urls == ['url']
+        assert session.auth.index_urls == ['url']
 
     def test_set_finder_trusted_host(
         self, line_processor, caplog, session, finder
@@ -378,13 +384,16 @@ class TestProcessLine(object):
         )
         assert expected in actual
 
-    def test_noop_always_unzip(self, line_processor, finder):
-        # noop, but confirm it can be set
-        line_processor("--always-unzip", "file", 1, finder=finder)
-
     def test_set_finder_allow_all_prereleases(self, line_processor, finder):
         line_processor("--pre", "file", 1, finder=finder)
         assert finder.allow_all_prereleases
+
+    def test_use_feature(self, line_processor, options):
+        """--use-feature can be set in requirements files."""
+        line_processor(
+            "--use-feature=2020-resolver", "filename", 1, options=options
+        )
+        assert "2020-resolver" in options.features_enabled
 
     def test_relative_local_find_links(
         self, line_processor, finder, monkeypatch, tmpdir
@@ -561,7 +570,7 @@ class TestParseRequirements(object):
         """
         # this requirements file just contains a comment previously this has
         # failed in py3: https://github.com/pypa/pip/issues/760
-        for req in parse_reqfile(
+        for _ in parse_reqfile(
                 'https://raw.githubusercontent.com/pypa/'
                 'pip-test-package/master/'
                 'tests/req_just_comment.txt', session=PipSession()):

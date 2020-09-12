@@ -11,11 +11,11 @@ from pip._vendor.pyparsing import ZeroOrMore, Word, Optional, Regex, Combine
 from pip._vendor.pyparsing import Literal as L  # noqa
 from pip._vendor.six.moves.urllib import parse as urlparse
 
-from ._typing import MYPY_CHECK_RUNNING
+from ._typing import TYPE_CHECKING
 from .markers import MARKER_EXPR, Marker
 from .specifiers import LegacySpecifier, Specifier, SpecifierSet
 
-if MYPY_CHECK_RUNNING:  # pragma: no cover
+if TYPE_CHECKING:  # pragma: no cover
     from typing import List
 
 

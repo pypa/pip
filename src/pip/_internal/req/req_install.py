@@ -7,6 +7,7 @@ import logging
 import os
 import shutil
 import sys
+import uuid
 import zipfile
 
 from pip._vendor import pkg_resources, six
@@ -40,6 +41,7 @@ from pip._internal.utils.misc import (
     display_path,
     dist_in_site_packages,
     dist_in_usersite,
+    get_distribution,
     get_installed_version,
     hide_url,
     redact_auth_from_url,
@@ -110,7 +112,8 @@ class InstallRequirement(object):
         global_options=None,  # type: Optional[List[str]]
         hash_options=None,  # type: Optional[Dict[str, List[str]]]
         constraint=False,  # type: bool
-        extras=()  # type: Iterable[str]
+        extras=(),  # type: Iterable[str]
+        user_supplied=False,  # type: bool
     ):
         # type: (...) -> None
         assert req is None or isinstance(req, Requirement), req
@@ -118,6 +121,7 @@ class InstallRequirement(object):
         self.comes_from = comes_from
         self.constraint = constraint
         self.editable = editable
+        self.legacy_install_reason = None  # type: Optional[int]
 
         # source_dir is the local directory where the linked requirement is
         # located, or unpacked. In case unpacking is needed, creating and
@@ -171,16 +175,10 @@ class InstallRequirement(object):
         self.hash_options = hash_options if hash_options else {}
         # Set to True after successful preparation of this requirement
         self.prepared = False
-        self.is_direct = False
-
-        # Set by the legacy resolver when the requirement has been downloaded
-        # TODO: This introduces a strong coupling between the resolver and the
-        #       requirement (the coupling was previously between the resolver
-        #       and the requirement set). This should be refactored to allow
-        #       the requirement to decide for itself when it has been
-        #       successfully downloaded - but that is more tricky to get right,
-        #       se we are making the change in stages.
-        self.successfully_downloaded = False
+        # User supplied requirement are explicitly requested for installation
+        # by the user via CLI arguments or requirements files, as opposed to,
+        # e.g. dependencies, extras or constraints.
+        self.user_supplied = user_supplied
 
         self.isolated = isolated
         self.build_env = NoOpBuildEnvironment()  # type: BuildEnvironment
@@ -206,6 +204,9 @@ class InstallRequirement(object):
         # Setting an explicit value before loading pyproject.toml is supported,
         # but after loading this flag should be treated as read only.
         self.use_pep517 = use_pep517
+
+        # This requirement needs more preparation before it can be built
+        self.needs_more_preparation = False
 
     def __str__(self):
         # type: () -> str
@@ -339,8 +340,8 @@ class InstallRequirement(object):
                 s += '->' + comes_from
         return s
 
-    def ensure_build_location(self, build_dir, autodelete):
-        # type: (str, bool) -> str
+    def ensure_build_location(self, build_dir, autodelete, parallel_builds):
+        # type: (str, bool, bool) -> str
         assert build_dir is not None
         if self._temp_build_dir is not None:
             assert self._temp_build_dir.path
@@ -354,16 +355,19 @@ class InstallRequirement(object):
             )
 
             return self._temp_build_dir.path
-        if self.editable:
-            name = self.name.lower()
-        else:
-            name = self.name
+
+        # When parallel builds are enabled, add a UUID to the build directory
+        # name so multiple builds do not interfere with each other.
+        dir_name = canonicalize_name(self.name)
+        if parallel_builds:
+            dir_name = "{}_{}".format(dir_name, uuid.uuid4().hex)
+
         # FIXME: Is there a better place to create the build_dir? (hg and bzr
         # need this)
         if not os.path.exists(build_dir):
             logger.debug('Creating directory %s', build_dir)
             os.makedirs(build_dir)
-        actual_build_dir = os.path.join(build_dir, name)
+        actual_build_dir = os.path.join(build_dir, dir_name)
         # `None` indicates that we respect the globally-configured deletion
         # settings, which is what we actually want when auto-deleting.
         delete_arg = None if autodelete else False
@@ -420,20 +424,13 @@ class InstallRequirement(object):
         """
         if self.req is None:
             return
-        # get_distribution() will resolve the entire list of requirements
-        # anyway, and we've already determined that we need the requirement
-        # in question, so strip the marker so that we don't try to
-        # evaluate it.
-        no_marker = Requirement(str(self.req))
-        no_marker.marker = None
-        try:
-            self.satisfied_by = pkg_resources.get_distribution(str(no_marker))
-        except pkg_resources.DistributionNotFound:
+        existing_dist = get_distribution(self.req.name)
+        if not existing_dist:
             return
-        except pkg_resources.VersionConflict:
-            existing_dist = pkg_resources.get_distribution(
-                self.req.name
-            )
+
+        existing_version = existing_dist.parsed_version
+        if not self.req.specifier.contains(existing_version, prereleases=True):
+            self.satisfied_by = None
             if use_user_site:
                 if dist_in_usersite(existing_dist):
                     self.should_reinstall = True
@@ -447,11 +444,13 @@ class InstallRequirement(object):
             else:
                 self.should_reinstall = True
         else:
-            if self.editable and self.satisfied_by:
+            if self.editable:
                 self.should_reinstall = True
                 # when installing editables, nothing pre-existing should ever
                 # satisfy
                 self.satisfied_by = None
+            else:
+                self.satisfied_by = existing_dist
 
     # Things valid for wheels
     @property
@@ -588,8 +587,13 @@ class InstallRequirement(object):
             )
 
     # For both source distributions and editables
-    def ensure_has_source_dir(self, parent_dir, autodelete=False):
-        # type: (str, bool) -> None
+    def ensure_has_source_dir(
+        self,
+        parent_dir,
+        autodelete=False,
+        parallel_builds=False,
+    ):
+        # type: (str, bool, bool) -> None
         """Ensure that a source_dir is set.
 
         This will create a temporary build dir if the name of the requirement
@@ -601,7 +605,9 @@ class InstallRequirement(object):
         """
         if self.source_dir is None:
             self.source_dir = self.ensure_build_location(
-                parent_dir, autodelete
+                parent_dir,
+                autodelete=autodelete,
+                parallel_builds=parallel_builds,
             )
 
     # For editable installations
@@ -664,13 +670,11 @@ class InstallRequirement(object):
 
         """
         assert self.req
-        try:
-            dist = pkg_resources.get_distribution(self.req.name)
-        except pkg_resources.DistributionNotFound:
+        dist = get_distribution(self.req.name)
+        if not dist:
             logger.warning("Skipping %s as it is not installed.", self.name)
             return None
-        else:
-            logger.info('Found existing installation: %s', dist)
+        logger.info('Found existing installation: %s', dist)
 
         uninstalled_pathset = UninstallPathSet.from_dist(dist)
         uninstalled_pathset.remove(auto_confirm, verbose)
@@ -809,6 +813,7 @@ class InstallRequirement(object):
                 pycompile=pycompile,
                 warn_script_location=warn_script_location,
                 direct_url=direct_url,
+                requested=self.user_supplied,
             )
             self.install_succeeded = True
             return
@@ -848,3 +853,47 @@ class InstallRequirement(object):
             raise
 
         self.install_succeeded = success
+
+        if success and self.legacy_install_reason == 8368:
+            deprecated(
+                reason=(
+                    "{} was installed using the legacy 'setup.py install' "
+                    "method, because a wheel could not be built for it.".
+                    format(self.name)
+                ),
+                replacement="to fix the wheel build issue reported above",
+                gone_in="21.0",
+                issue=8368,
+            )
+
+
+def check_invalid_constraint_type(req):
+    # type: (InstallRequirement) -> str
+
+    # Check for unsupported forms
+    problem = ""
+    if not req.name:
+        problem = "Unnamed requirements are not allowed as constraints"
+    elif req.link:
+        problem = "Links are not allowed as constraints"
+    elif req.extras:
+        problem = "Constraints cannot have extras"
+
+    if problem:
+        deprecated(
+            reason=(
+                "Constraints are only allowed to take the form of a package "
+                "name and a version specifier. Other forms were originally "
+                "permitted as an accident of the implementation, but were "
+                "undocumented. The new implementation of the resolver no "
+                "longer supports these forms."
+            ),
+            replacement=(
+                "replacing the constraint with a requirement."
+            ),
+            # No plan yet for when the new resolver becomes default
+            gone_in=None,
+            issue=8210
+        )
+
+    return problem

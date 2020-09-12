@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
 
-# The following comment should be removed at some point in the future.
-# mypy: disallow-untyped-defs=False
-
 from __future__ import absolute_import
 
 import logging
@@ -12,6 +9,7 @@ import shutil
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.req_command import RequirementCommand, with_cleanup
+from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.exceptions import CommandError
 from pip._internal.req.req_tracker import get_requirement_tracker
 from pip._internal.utils.misc import ensure_dir, normalize_path
@@ -21,7 +19,7 @@ from pip._internal.wheel_builder import build, should_build_for_wheel_command
 
 if MYPY_CHECK_RUNNING:
     from optparse import Values
-    from typing import Any, List
+    from typing import List
 
 
 logger = logging.getLogger(__name__)
@@ -49,12 +47,10 @@ class WheelCommand(RequirementCommand):
       %prog [options] [-e] <local project path> ...
       %prog [options] <archive url/path> ..."""
 
-    def __init__(self, *args, **kw):
-        super(WheelCommand, self).__init__(*args, **kw)
+    def add_options(self):
+        # type: () -> None
 
-        cmd_opts = self.cmd_opts
-
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '-w', '--wheel-dir',
             dest='wheel_dir',
             metavar='dir',
@@ -62,29 +58,29 @@ class WheelCommand(RequirementCommand):
             help=("Build wheels into <dir>, where the default is the "
                   "current working directory."),
         )
-        cmd_opts.add_option(cmdoptions.no_binary())
-        cmd_opts.add_option(cmdoptions.only_binary())
-        cmd_opts.add_option(cmdoptions.prefer_binary())
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(cmdoptions.no_binary())
+        self.cmd_opts.add_option(cmdoptions.only_binary())
+        self.cmd_opts.add_option(cmdoptions.prefer_binary())
+        self.cmd_opts.add_option(
             '--build-option',
             dest='build_options',
             metavar='options',
             action='append',
             help="Extra arguments to be supplied to 'setup.py bdist_wheel'.",
         )
-        cmd_opts.add_option(cmdoptions.no_build_isolation())
-        cmd_opts.add_option(cmdoptions.use_pep517())
-        cmd_opts.add_option(cmdoptions.no_use_pep517())
-        cmd_opts.add_option(cmdoptions.constraints())
-        cmd_opts.add_option(cmdoptions.editable())
-        cmd_opts.add_option(cmdoptions.requirements())
-        cmd_opts.add_option(cmdoptions.src())
-        cmd_opts.add_option(cmdoptions.ignore_requires_python())
-        cmd_opts.add_option(cmdoptions.no_deps())
-        cmd_opts.add_option(cmdoptions.build_dir())
-        cmd_opts.add_option(cmdoptions.progress_bar())
+        self.cmd_opts.add_option(cmdoptions.no_build_isolation())
+        self.cmd_opts.add_option(cmdoptions.use_pep517())
+        self.cmd_opts.add_option(cmdoptions.no_use_pep517())
+        self.cmd_opts.add_option(cmdoptions.constraints())
+        self.cmd_opts.add_option(cmdoptions.editable())
+        self.cmd_opts.add_option(cmdoptions.requirements())
+        self.cmd_opts.add_option(cmdoptions.src())
+        self.cmd_opts.add_option(cmdoptions.ignore_requires_python())
+        self.cmd_opts.add_option(cmdoptions.no_deps())
+        self.cmd_opts.add_option(cmdoptions.build_dir())
+        self.cmd_opts.add_option(cmdoptions.progress_bar())
 
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '--global-option',
             dest='global_options',
             action='append',
@@ -92,7 +88,7 @@ class WheelCommand(RequirementCommand):
             help="Extra global options to be supplied to the setup.py "
             "call before the 'bdist_wheel' command.")
 
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '--pre',
             action='store_true',
             default=False,
@@ -100,7 +96,7 @@ class WheelCommand(RequirementCommand):
                   "pip only finds stable versions."),
         )
 
-        cmd_opts.add_option(cmdoptions.require_hashes())
+        self.cmd_opts.add_option(cmdoptions.require_hashes())
 
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,
@@ -108,11 +104,11 @@ class WheelCommand(RequirementCommand):
         )
 
         self.parser.insert_option_group(0, index_opts)
-        self.parser.insert_option_group(0, cmd_opts)
+        self.parser.insert_option_group(0, self.cmd_opts)
 
     @with_cleanup
     def run(self, options, args):
-        # type: (Values, List[Any]) -> None
+        # type: (Values, List[str]) -> int
         cmdoptions.check_install_build_global(options)
 
         session = self.get_default_session(options)
@@ -188,3 +184,5 @@ class WheelCommand(RequirementCommand):
             raise CommandError(
                 "Failed to build one or more wheels"
             )
+
+        return SUCCESS

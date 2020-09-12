@@ -42,9 +42,14 @@ else:
     def blocked_signals():
         """Block all signals for e.g. starting a worker thread.
         """
-        old_mask = signal.pthread_sigmask(
-            signal.SIG_SETMASK, range(1, signal.NSIG)
-        )
+        # valid_signals() was added in Python 3.8 (and not using it results
+        # in a warning on pthread_sigmask() call)
+        try:
+            mask = signal.valid_signals()
+        except AttributeError:
+            mask = set(range(1, signal.NSIG))
+
+        old_mask = signal.pthread_sigmask(signal.SIG_SETMASK, mask)
         try:
             yield
         finally:
@@ -203,6 +208,22 @@ def file_response(path):
             "200 OK", [
                 ("Content-Type", "application/octet-stream"),
                 ("Content-Length", str(size)),
+            ],
+        )
+
+        with open(path, 'rb') as f:
+            return [f.read()]
+
+    return responder
+
+
+def authorization_response(path):
+    def responder(environ, start_response):
+        # type: (Environ, StartResponse) -> Body
+
+        start_response(
+            "401 Unauthorized", [
+                ("WWW-Authenticate", "Basic"),
             ],
         )
 

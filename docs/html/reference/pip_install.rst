@@ -149,31 +149,25 @@ treated as a comment.
 A line ending in an unescaped ``\`` is treated as a line continuation
 and the newline following it is effectively ignored.
 
-Comments are stripped *before* line continuations are processed.
+Comments are stripped *after* line continuations are processed.
 
 To interpret the requirements file in UTF-8 format add a comment
 ``# -*- coding: utf-8 -*-`` to the first or second line of the file.
 
 The following options are supported:
 
-  *  :ref:`-i, --index-url <install_--index-url>`
-  *  :ref:`--extra-index-url <install_--extra-index-url>`
-  *  :ref:`--no-index <install_--no-index>`
-  *  :ref:`-c, --constraint <install_--constraint>`
-  *  :ref:`-r, --requirement <install_--requirement>`
-  *  :ref:`-e, --editable <install_--editable>`
-  *  :ref:`-f, --find-links <install_--find-links>`
-  *  :ref:`--no-binary <install_--no-binary>`
-  *  :ref:`--only-binary <install_--only-binary>`
-  *  :ref:`--require-hashes <install_--require-hashes>`
-  *  :ref:`--pre <install_--pre>`
-  *  :ref:`--trusted-host <--trusted-host>`
+.. pip-requirements-file-options-ref-list::
 
-For example, to specify :ref:`--no-index <install_--no-index>` and two
+Please note that the above options are global options, and should be specified on their individual lines.
+The options which can be applied to individual requirements are
+:ref:`--install-option <install_--install-option>`, :ref:`--global-option <install_--global-option>` and ``--hash``.
+
+For example, to specify :ref:`--pre <install_--pre>`, :ref:`--no-index <install_--no-index>` and two
 :ref:`--find-links <install_--find-links>` locations:
 
 ::
 
+--pre
 --no-index
 --find-links /my/local/archives
 --find-links http://some.archives.com/archives
@@ -565,7 +559,7 @@ While this cache attempts to minimize network activity, it does not prevent
 network access altogether. If you want a local install solution that
 circumvents accessing PyPI, see :ref:`Installing from local packages`.
 
-The default location for the cache directory depends on the Operating System:
+The default location for the cache directory depends on the operating system:
 
 Unix
   :file:`~/.cache/pip` and it respects the ``XDG_CACHE_HOME`` directory.
@@ -573,6 +567,9 @@ macOS
   :file:`~/Library/Caches/pip`.
 Windows
   :file:`<CSIDL_LOCAL_APPDATA>\\pip\\Cache`
+
+Run ``pip cache dir`` to show the cache directory and see :ref:`pip cache` to
+inspect and manage pip’s cache.
 
 
 .. _`Wheel cache`:
@@ -729,18 +726,11 @@ You can install local projects by specifying the project path to pip::
 
 $ pip install path/to/SomeProject
 
-pip treats this directory like an unpacked source archive, and directly
-attempts installation.
+During regular installation, pip will copy the entire project directory to a
+temporary location and install from there. The exception is that pip will
+exclude .tox and .nox directories present in the top level of the project from
+being copied.
 
-Prior to pip 20.1, pip copied the entire project directory to a temporary
-location and attempted installation from that directory. This approach was the
-cause of several performance issues, as well as various issues arising when the
-project directory depends on its parent directory (such as the presence of a
-VCS directory). The main user visible effect of this change is that secondary
-build artifacts, if any, would be created in the local directory, whereas
-earlier they were created in a temporary copy of the directory and then
-deleted. This notably includes the ``build`` and ``.egg-info`` directories in
-the case of the setuptools backend.
 
 .. _`editable-installs`:
 
@@ -890,6 +880,13 @@ Examples
       $ pip install -e path/to/project       # project in another directory
 
 
+#. Install a project from VCS
+
+    ::
+
+      $ pip install SomeProject@git+https://git.repo/some_pkg.git@1.3.1
+
+
 #. Install a project from VCS in "editable" mode. See the sections on :ref:`VCS Support <VCS Support>` and :ref:`Editable Installs <editable-installs>`.
 
     ::
@@ -905,7 +902,7 @@ Examples
     ::
 
       $ pip install SomePackage[PDF]
-      $ pip install git+https://git.repo/some_pkg.git#egg=SomePackage[PDF]
+      $ pip install "SomePackage[PDF] @ git+https://git.repo/SomePackage@master#subdirectory=subdir_path"
       $ pip install .[PDF]  # project in current directory
       $ pip install SomePackage[PDF]==3.0
       $ pip install SomePackage[PDF,EPUB]  # multiple extras
@@ -923,8 +920,9 @@ Examples
 
     ::
 
-      $ pip install SomeProject==1.0.4@http://my.package.repo//SomeProject-1.2.3-py33-none-any.whl
-      $ pip install "SomeProject==1.0.4 @ http://my.package.repo//SomeProject-1.2.3-py33-none-any.whl"
+      $ pip install SomeProject@http://my.package.repo/SomeProject-1.2.3-py33-none-any.whl
+      $ pip install "SomeProject @ http://my.package.repo/SomeProject-1.2.3-py33-none-any.whl"
+      $ pip install SomeProject@http://my.package.repo/1.2.3.tar.gz
 
 
 #. Install from alternative package repositories.

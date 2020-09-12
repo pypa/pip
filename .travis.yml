@@ -19,13 +19,6 @@ jobs:
       env: TOXENV=docs
     - env: TOXENV=lint
     - env: TOXENV=vendoring
-    # Latest CPython
-    - env: GROUP=1
-      python: 2.7
-    - env: GROUP=2
-      python: 2.7
-    - env: GROUP=1
-    - env: GROUP=2
 
     # Complete checking for ensuring compatibility
     # PyPy
@@ -38,33 +31,25 @@ jobs:
       python: pypy2.7-7.1.1
     - env: GROUP=2
       python: pypy2.7-7.1.1
-    # Other Supported CPython
-    - env: GROUP=1
-      python: 3.7
-    - env: GROUP=2
-      python: 3.7
-    - env: GROUP=1
-      python: 3.6
-    - env: GROUP=2
-      python: 3.6
-    - env: GROUP=1
-      python: 3.5
-    - env: GROUP=2
-      python: 3.5
 
     # Test experimental stuff that are not part of the standard pip usage.
     # Helpful for developers working on them to see how they're doing.
     - stage: experimental
       env:
       - GROUP=1
-      - PIP_UNSTABLE_FEATURE=resolver
+      - NEW_RESOLVER=1
     - env:
       - GROUP=2
-      - PIP_UNSTABLE_FEATURE=resolver
+      - NEW_RESOLVER=1
+    - env:
+      - GROUP=3
+      - NEW_RESOLVER=1
 
   fast_finish: true
   allow_failures:
-    - stage: experimental
+    - env:
+      - GROUP=3
+      - NEW_RESOLVER=1
 
 before_install: tools/travis/setup.sh
 install: travis_retry tools/travis/install.sh

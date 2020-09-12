@@ -1,10 +1,6 @@
 """Validation of dependencies of packages
 """
 
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-# mypy: disallow-untyped-defs=False
-
 import logging
 from collections import namedtuple
 
@@ -33,6 +29,7 @@ if MYPY_CHECK_RUNNING:
     MissingDict = Dict[str, List[Missing]]
     ConflictingDict = Dict[str, List[Conflicting]]
     CheckResult = Tuple[MissingDict, ConflictingDict]
+    ConflictDetails = Tuple[PackageSet, CheckResult]
 
 PackageDetails = namedtuple('PackageDetails', ['version', 'requires'])
 
@@ -65,9 +62,6 @@ def check_package_set(package_set, should_ignore=None):
     If should_ignore is passed, it should be a callable that takes a
     package name and returns a boolean.
     """
-    if should_ignore is None:
-        def should_ignore(name):
-            return False
 
     missing = {}
     conflicting = {}
@@ -77,7 +71,7 @@ def check_package_set(package_set, should_ignore=None):
         missing_deps = set()  # type: Set[Missing]
         conflicting_deps = set()  # type: Set[Conflicting]
 
-        if should_ignore(package_name):
+        if should_ignore and should_ignore(package_name):
             continue
 
         for req in package_set[package_name].requires:
@@ -106,7 +100,7 @@ def check_package_set(package_set, should_ignore=None):
 
 
 def check_install_conflicts(to_install):
-    # type: (List[InstallRequirement]) -> Tuple[PackageSet, CheckResult]
+    # type: (List[InstallRequirement]) -> ConflictDetails
     """For checking if the dependency graph would be consistent after \
     installing given requirements
     """
@@ -139,6 +133,7 @@ def _simulate_installation_of(to_install, package_set):
         abstract_dist = make_distribution_for_install_requirement(inst_req)
         dist = abstract_dist.get_pkg_resources_distribution()
 
+        assert dist is not None
         name = canonicalize_name(dist.key)
         package_set[name] = PackageDetails(dist.version, dist.requires())
 

@@ -143,7 +143,9 @@ html_theme_options = {
     'collapsiblesidebar': True,
     'externalrefs': True,
     'navigation_depth': 3,
-    'issues_url': 'https://github.com/pypa/pip/issues'
+    'issues_url': 'https://github.com/pypa/pip/issues',
+    'codebgcolor': '#eeffcc',
+    'codetextcolor': '#333333',
 }
 
 # Add any paths that contain custom themes here, relative to this directory.

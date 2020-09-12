@@ -43,6 +43,7 @@ class Tests_UninstallUserSite:
         assert_all_changes(result2, result3, [script.venv / 'build', 'cache'])
 
         # site still has 0.2 (can't look in result1; have to check)
+        # keep checking for egg-info because no-binary implies setup.py install
         egg_info_folder = (
             script.base_path / script.site_packages /
             'pip_test_package-0.1-py{pyversion}.egg-info'.format(**globals())
@@ -61,7 +62,7 @@ class Tests_UninstallUserSite:
             'install', '--user', '-e', to_install
         )
         egg_link = script.user_site / 'FSPkg.egg-link'
-        assert egg_link in result1.files_created, str(result1.stdout)
+        result1.did_create(egg_link)
 
         # uninstall
         result2 = script.pip('uninstall', '-y', 'FSPkg')

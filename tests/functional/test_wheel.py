@@ -58,7 +58,7 @@ def test_pip_wheel_success(script, data):
         .format(filename=re.escape(wheel_file_name)), result.stdout)
     assert re.search(
         r"^\s+Stored in directory: ", result.stdout, re.M)
-    assert wheel_file_path in result.files_created, result.stdout
+    result.did_create(wheel_file_path)
     assert "Successfully built simple" in result.stdout, result.stdout
 
 
@@ -73,7 +73,7 @@ def test_pip_wheel_build_cache(script, data):
     wheel_file_name = 'simple-3.0-py{pyversion[0]}-none-any.whl' \
         .format(**globals())
     wheel_file_path = script.scratch / wheel_file_name
-    assert wheel_file_path in result.files_created, result.stdout
+    result.did_create(wheel_file_path)
     assert "Successfully built simple" in result.stdout, result.stdout
     # remove target file
     (script.scratch_path / wheel_file_name).unlink()
@@ -83,7 +83,7 @@ def test_pip_wheel_build_cache(script, data):
         'wheel', '--no-index', '-f', data.find_links,
         'simple==3.0',
     )
-    assert wheel_file_path in result.files_created, result.stdout
+    result.did_create(wheel_file_path)
     assert "Successfully built simple" not in result.stdout, result.stdout
 
 
@@ -96,7 +96,7 @@ def test_basic_pip_wheel_downloads_wheels(script, data):
     )
     wheel_file_name = 'simple.dist-0.1-py2.py3-none-any.whl'
     wheel_file_path = script.scratch / wheel_file_name
-    assert wheel_file_path in result.files_created, result.stdout
+    result.did_create(wheel_file_path)
     assert "Saved" in result.stdout, result.stdout
 
 
@@ -151,7 +151,7 @@ def test_pip_wheel_builds_editable_deps(script, data):
     wheel_file_name = 'simple-1.0-py{pyversion[0]}-none-any.whl' \
         .format(**globals())
     wheel_file_path = script.scratch / wheel_file_name
-    assert wheel_file_path in result.files_created, result.stdout
+    result.did_create(wheel_file_path)
 
 
 def test_pip_wheel_builds_editable(script, data):
@@ -166,7 +166,7 @@ def test_pip_wheel_builds_editable(script, data):
     wheel_file_name = 'simplewheel-1.0-py{pyversion[0]}-none-any.whl' \
         .format(**globals())
     wheel_file_path = script.scratch / wheel_file_name
-    assert wheel_file_path in result.files_created, result.stdout
+    result.did_create(wheel_file_path)
 
 
 def test_pip_wheel_fail(script, data):
@@ -181,16 +181,17 @@ def test_pip_wheel_fail(script, data):
     wheel_file_name = 'wheelbroken-0.1-py{pyversion[0]}-none-any.whl' \
         .format(**globals())
     wheel_file_path = script.scratch / wheel_file_name
-    assert wheel_file_path not in result.files_created, (
-        wheel_file_path,
-        result.files_created,
-    )
+    result.did_not_create(wheel_file_path)
     assert "FakeError" in result.stderr, result.stderr
     assert "Failed to build wheelbroken" in result.stdout, result.stdout
     assert result.returncode != 0
 
 
-def test_no_clean_option_blocks_cleaning_after_wheel(script, data):
+def test_no_clean_option_blocks_cleaning_after_wheel(
+    script,
+    data,
+    use_new_resolver,
+):
     """
     Test --no-clean option blocks cleaning after wheel build
     """
@@ -200,10 +201,15 @@ def test_no_clean_option_blocks_cleaning_after_wheel(script, data):
         '--find-links={data.find_links}'.format(**locals()),
         'simple',
         expect_temp=True,
+        # TODO: allow_stderr_warning is used for the --build deprecation,
+        #       remove it when removing support for --build
+        allow_stderr_warning=True,
     )
-    build = build / 'simple'
-    assert exists(build), \
-        "build/simple should still exist {result}".format(**locals())
+
+    if not use_new_resolver:
+        build = build / 'simple'
+        message = "build/simple should still exist {}".format(result)
+        assert exists(build), message
 
 
 def test_pip_wheel_source_deps(script, data):
@@ -219,11 +225,15 @@ def test_pip_wheel_source_deps(script, data):
     wheel_file_name = 'source-1.0-py{pyversion[0]}-none-any.whl' \
         .format(**globals())
     wheel_file_path = script.scratch / wheel_file_name
-    assert wheel_file_path in result.files_created, result.stdout
+    result.did_create(wheel_file_path)
     assert "Successfully built source" in result.stdout, result.stdout
 
 
-def test_pip_wheel_fail_cause_of_previous_build_dir(script, data):
+def test_pip_wheel_fail_cause_of_previous_build_dir(
+    script,
+    data,
+    use_new_resolver,
+):
     """
     Test when 'pip wheel' tries to install a package that has a previous build
     directory
@@ -239,11 +249,20 @@ def test_pip_wheel_fail_cause_of_previous_build_dir(script, data):
         'wheel', '--no-index',
         '--find-links={data.find_links}'.format(**locals()),
         '--build', script.venv_path / 'build',
-        'simple==3.0', expect_error=True, expect_temp=True,
+        'simple==3.0',
+        expect_error=(not use_new_resolver),
+        expect_temp=(not use_new_resolver),
+        expect_stderr=True,
     )
 
+    assert (
+        "The -b/--build/--build-dir/--build-directory "
+        "option is deprecated."
+    ) in result.stderr
+
     # Then I see that the error code is the right one
-    assert result.returncode == PREVIOUS_BUILD_DIR_ERROR, result
+    if not use_new_resolver:
+        assert result.returncode == PREVIOUS_BUILD_DIR_ERROR, result
 
 
 def test_wheel_package_with_latin1_setup(script, data):
@@ -260,7 +279,7 @@ def test_pip_wheel_with_pep518_build_reqs(script, data, common_wheels):
     wheel_file_name = 'pep518-3.0-py{pyversion[0]}-none-any.whl' \
         .format(**globals())
     wheel_file_path = script.scratch / wheel_file_name
-    assert wheel_file_path in result.files_created, result.stdout
+    result.did_create(wheel_file_path)
     assert "Successfully built pep518" in result.stdout, result.stdout
     assert "Installing build dependencies" in result.stdout, result.stdout
 
@@ -274,7 +293,7 @@ def test_pip_wheel_with_pep518_build_reqs_no_isolation(script, data):
     wheel_file_name = 'pep518-3.0-py{pyversion[0]}-none-any.whl' \
         .format(**globals())
     wheel_file_path = script.scratch / wheel_file_name
-    assert wheel_file_path in result.files_created, result.stdout
+    result.did_create(wheel_file_path)
     assert "Successfully built pep518" in result.stdout, result.stdout
     assert "Installing build dependencies" not in result.stdout, result.stdout
 
@@ -321,7 +340,7 @@ def test_pep517_wheels_are_not_confused_with_other_files(script, tmpdir, data):
     wheel_file_name = 'withpyproject-0.0.1-py{pyversion[0]}-none-any.whl' \
         .format(**globals())
     wheel_file_path = script.scratch / wheel_file_name
-    assert wheel_file_path in result.files_created, result.stdout
+    result.did_create(wheel_file_path)
 
 
 def test_legacy_wheels_are_not_confused_with_other_files(script, tmpdir, data):
@@ -336,4 +355,4 @@ def test_legacy_wheels_are_not_confused_with_other_files(script, tmpdir, data):
     wheel_file_name = 'simplewheel-1.0-py{pyversion[0]}-none-any.whl' \
         .format(**globals())
     wheel_file_path = script.scratch / wheel_file_name
-    assert wheel_file_path in result.files_created, result.stdout
+    result.did_create(wheel_file_path)

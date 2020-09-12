@@ -191,7 +191,12 @@ def test_freeze_svn(script, tmpdir):
 
 
 @pytest.mark.git
-@pytest.mark.xfail
+@pytest.mark.xfail(
+    condition=True,
+    reason="xfail means editable is not in output",
+    run=True,
+    strict=True,
+)
 def test_freeze_exclude_editable(script, tmpdir):
     """
     Test excluding editable from freezing list.
@@ -535,8 +540,6 @@ _freeze_req_opts = textwrap.dedent("""\
     # Unchanged requirements below this line
     -r ignore.txt
     --requirement ignore.txt
-    -Z ignore
-    --always-unzip ignore
     -f http://ignore
     -i http://ignore
     --pre
@@ -545,6 +548,7 @@ _freeze_req_opts = textwrap.dedent("""\
     --extra-index-url http://ignore
     --find-links http://ignore
     --index-url http://ignore
+    --use-feature 2020-resolver
 """)
 
 

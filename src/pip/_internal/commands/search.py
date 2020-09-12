@@ -1,6 +1,3 @@
-# The following comment should be removed at some point in the future.
-# mypy: disallow-untyped-defs=False
-
 from __future__ import absolute_import
 
 import logging
@@ -22,7 +19,17 @@ from pip._internal.models.index import PyPI
 from pip._internal.network.xmlrpc import PipXmlrpcTransport
 from pip._internal.utils.compat import get_terminal_size
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.misc import write_output
+from pip._internal.utils.misc import get_distribution, write_output
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from optparse import Values
+    from typing import List, Dict, Optional
+    from typing_extensions import TypedDict
+    TransformedHit = TypedDict(
+        'TransformedHit',
+        {'name': str, 'summary': str, 'versions': List[str]},
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +41,8 @@ class SearchCommand(Command, SessionCommandMixin):
       %prog [options] <query>"""
     ignore_require_venv = True
 
-    def __init__(self, *args, **kw):
-        super(SearchCommand, self).__init__(*args, **kw)
+    def add_options(self):
+        # type: () -> None
         self.cmd_opts.add_option(
             '-i', '--index',
             dest='index',
@@ -46,6 +53,7 @@ class SearchCommand(Command, SessionCommandMixin):
         self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
+        # type: (Values, List[str]) -> int
         if not args:
             raise CommandError('Missing required argument (search query).')
         query = args
@@ -62,6 +70,7 @@ class SearchCommand(Command, SessionCommandMixin):
         return NO_MATCHES_FOUND
 
     def search(self, query, options):
+        # type: (List[str], Values) -> List[Dict[str, str]]
         index_url = options.index
 
         session = self.get_default_session(options)
@@ -73,12 +82,13 @@ class SearchCommand(Command, SessionCommandMixin):
 
 
 def transform_hits(hits):
+    # type: (List[Dict[str, str]]) -> List[TransformedHit]
     """
     The list from pypi is really a list of versions. We want a list of
     packages with the list of versions stored inline. This converts the
     list from pypi into one we can use.
     """
-    packages = OrderedDict()
+    packages = OrderedDict()  # type: OrderedDict[str, TransformedHit]
     for hit in hits:
         name = hit['name']
         summary = hit['summary']
@@ -101,6 +111,7 @@ def transform_hits(hits):
 
 
 def print_results(hits, name_column_width=None, terminal_width=None):
+    # type: (List[TransformedHit], Optional[int], Optional[int]) -> None
     if not hits:
         return
     if name_column_width is None:
@@ -118,8 +129,9 @@ def print_results(hits, name_column_width=None, terminal_width=None):
             target_width = terminal_width - name_column_width - 5
             if target_width > 10:
                 # wrap and indent summary to fit terminal
-                summary = textwrap.wrap(summary, target_width)
-                summary = ('\n' + ' ' * (name_column_width + 3)).join(summary)
+                summary_lines = textwrap.wrap(summary, target_width)
+                summary = ('\n' + ' ' * (name_column_width + 3)).join(
+                    summary_lines)
 
         line = '{name_latest:{name_column_width}} - {summary}'.format(
             name_latest='{name} ({latest})'.format(**locals()),
@@ -127,7 +139,8 @@ def print_results(hits, name_column_width=None, terminal_width=None):
         try:
             write_output(line)
             if name in installed_packages:
-                dist = pkg_resources.get_distribution(name)
+                dist = get_distribution(name)
+                assert dist is not None
                 with indent_log():
                     if dist.version == latest:
                         write_output('INSTALLED: %s (latest)', dist.version)
@@ -143,4 +156,5 @@ def print_results(hits, name_column_width=None, terminal_width=None):
 
 
 def highest_version(versions):
+    # type: (List[str]) -> str
     return max(versions, key=parse_version)

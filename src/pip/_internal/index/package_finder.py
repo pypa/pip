@@ -556,23 +556,7 @@ class CandidateEvaluator(object):
         """
         if not candidates:
             return None
-
         best_candidate = max(candidates, key=self._sort_key)
-
-        # Log a warning per PEP 592 if necessary before returning.
-        link = best_candidate.link
-        if link.is_yanked:
-            reason = link.yanked_reason or '<none given>'
-            msg = (
-                # Mark this as a unicode string to prevent
-                # "UnicodeEncodeError: 'ascii' codec can't encode character"
-                # in Python 2 when the reason contains non-ascii characters.
-                u'The candidate selected for download or install is a '
-                'yanked version: {candidate}\n'
-                'Reason for being yanked: {reason}'
-            ).format(candidate=best_candidate, reason=reason)
-            logger.warning(msg)
-
         return best_candidate
 
     def compute_best_candidate(
@@ -675,6 +659,11 @@ class PackageFinder(object):
         )
 
     @property
+    def target_python(self):
+        # type: () -> TargetPython
+        return self._target_python
+
+    @property
     def search_scope(self):
         # type: () -> SearchScope
         return self._link_collector.search_scope
@@ -708,6 +697,15 @@ class PackageFinder(object):
     def set_allow_all_prereleases(self):
         # type: () -> None
         self._candidate_prefs.allow_all_prereleases = True
+
+    @property
+    def prefer_binary(self):
+        # type: () -> bool
+        return self._candidate_prefs.prefer_binary
+
+    def set_prefer_binary(self):
+        # type: () -> None
+        self._candidate_prefs.prefer_binary = True
 
     def make_link_evaluator(self, project_name):
         # type: (str) -> LinkEvaluator
@@ -889,11 +887,11 @@ class PackageFinder(object):
         return candidate_evaluator.compute_best_candidate(candidates)
 
     def find_requirement(self, req, upgrade):
-        # type: (InstallRequirement, bool) -> Optional[Link]
+        # type: (InstallRequirement, bool) -> Optional[InstallationCandidate]
         """Try to find a Link matching req
 
         Expects req, an InstallRequirement and upgrade, a boolean
-        Returns a Link if found,
+        Returns a InstallationCandidate if found,
         Raises DistributionNotFound or BestVersionAlreadyInstalled otherwise
         """
         hashes = req.hashes(trust_internet=False)
@@ -967,7 +965,7 @@ class PackageFinder(object):
             best_candidate.version,
             _format_versions(best_candidate_result.iter_applicable()),
         )
-        return best_candidate.link
+        return best_candidate
 
 
 def _find_name_version_sep(fragment, canonical_name):

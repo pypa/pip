@@ -37,16 +37,28 @@ if [[ -z "$TOXENV" ]]; then
 fi
 echo "TOXENV=${TOXENV}"
 
+if [[ -z "$NEW_RESOLVER" ]]; then
+    RESOLVER_SWITCH=''
+else
+    RESOLVER_SWITCH='--new-resolver'
+fi
+
 # Print the commands run for this test.
 set -x
 if [[ "$GROUP" == "1" ]]; then
     # Unit tests
     tox -- --use-venv -m unit -n auto
     # Integration tests (not the ones for 'pip install')
-    tox -- --use-venv -m integration -n auto --duration=5 -k "not test_install"
+    tox -- -m integration -n auto --durations=5 -k "not test_install" \
+        --use-venv $RESOLVER_SWITCH
 elif [[ "$GROUP" == "2" ]]; then
     # Separate Job for running integration tests for 'pip install'
-    tox -- --use-venv -m integration -n auto --duration=5 -k "test_install"
+    tox -- -m integration -n auto --durations=5 -k "test_install" \
+        --use-venv $RESOLVER_SWITCH
+elif [[ "$GROUP" == "3" ]]; then
+    # Separate Job for tests that fail with the new resolver
+    tox -- -m fails_on_new_resolver -n auto --durations=5 \
+        --use-venv $RESOLVER_SWITCH --new-resolver-runtests
 else
     # Non-Testing Jobs should run once
     tox

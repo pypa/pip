@@ -2,6 +2,7 @@
 
 import locale
 import os
+import sys
 
 import pytest
 
@@ -91,8 +92,13 @@ def test_str_to_display__decode_error(monkeypatch, caplog):
     # Encode with an incompatible encoding.
     data = u'ab'.encode('utf-16')
     actual = str_to_display(data)
+    # Keep the expected value endian safe
+    if sys.byteorder == "little":
+        expected = "\\xff\\xfea\x00b\x00"
+    elif sys.byteorder == "big":
+        expected = "\\xfe\\xff\x00a\x00b"
 
-    assert actual == u'\\xff\\xfea\x00b\x00', (
+    assert actual == expected, (
         # Show the encoding for easier troubleshooting.
         'encoding: {!r}'.format(locale.getpreferredencoding())
     )
@@ -119,8 +125,8 @@ def test_console_to_str_warning(monkeypatch):
     some_bytes = b"a\xE9b"
 
     def check_warning(msg, *args, **kwargs):
-        assert msg.startswith(
-            "Subprocess output does not appear to be encoded as")
+        assert 'does not appear to be encoded as' in msg
+        assert args[0] == 'Subprocess output'
 
     monkeypatch.setattr(locale, 'getpreferredencoding', lambda: 'utf-8')
     monkeypatch.setattr(pip_compat.logger, 'warning', check_warning)

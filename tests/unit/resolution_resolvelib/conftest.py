@@ -52,6 +52,8 @@ def factory(finder, preparer):
         finder=finder,
         preparer=preparer,
         make_install_req=install_req_from_line,
+        wheel_cache=None,
+        use_user_site=False,
         force_reinstall=False,
         ignore_installed=False,
         ignore_requires_python=False,
@@ -63,5 +65,8 @@ def factory(finder, preparer):
 def provider(factory):
     yield PipProvider(
         factory=factory,
+        constraints={},
         ignore_dependencies=False,
+        upgrade_strategy="to-satisfy-only",
+        user_requested=set(),
     )

@@ -12,7 +12,6 @@ pass on state. To be consistent, all options will follow this design.
 
 from __future__ import absolute_import
 
-import logging
 import os
 import textwrap
 import warnings
@@ -35,8 +34,6 @@ if MYPY_CHECK_RUNNING:
     from typing import Any, Callable, Dict, Optional, Tuple
     from optparse import OptionParser, Values
     from pip._internal.cli.parser import ConfigOptionParser
-
-logger = logging.getLogger(__name__)
 
 
 def raise_option_error(parser, option, msg):
@@ -257,7 +254,7 @@ no_input = partial(
     dest='no_input',
     action='store_true',
     default=False,
-    help=SUPPRESS_HELP
+    help="Disable prompting for input."
 )  # type: Callable[..., Option]
 
 proxy = partial(
@@ -716,7 +713,8 @@ build_dir = partial(
     metavar='dir',
     action='callback',
     callback=_handle_build_dir,
-    help='Directory to unpack packages into and build in. Note that '
+    help='(DEPRECATED) '
+         'Directory to unpack packages into and build in. Note that '
          'an initial build still takes place in a temporary directory. '
          'The location of temporary directories can be controlled by setting '
          'the TMPDIR environment variable (TEMP on Windows) appropriately. '
@@ -838,16 +836,6 @@ disable_pip_version_check = partial(
 )  # type: Callable[..., Option]
 
 
-# Deprecated, Remove later
-always_unzip = partial(
-    Option,
-    '-Z', '--always-unzip',
-    dest='always_unzip',
-    action='store_true',
-    help=SUPPRESS_HELP,
-)  # type: Callable[..., Option]
-
-
 def _handle_merge_hash(option, opt_str, value, parser):
     # type: (Option, str, str, OptionParser) -> None
     """Given a value spelled "algo:digest", append the digest to a list
@@ -857,11 +845,11 @@ def _handle_merge_hash(option, opt_str, value, parser):
     try:
         algo, digest = value.split(':', 1)
     except ValueError:
-        parser.error('Arguments to {} must be a hash name '
+        parser.error('Arguments to {} must be a hash name '  # noqa
                      'followed by a value, like --hash=sha256:'
                      'abcde...'.format(opt_str))
     if algo not in STRONG_HASHES:
-        parser.error('Allowed hash algorithms for {} are {}.'.format(
+        parser.error('Allowed hash algorithms for {} are {}.'.format(  # noqa
                      opt_str, ', '.join(STRONG_HASHES)))
     parser.values.hashes.setdefault(algo, []).append(digest)
 
@@ -929,8 +917,31 @@ unstable_feature = partial(
     action='append',
     default=[],
     choices=['resolver'],
-    help=SUPPRESS_HELP,  # TODO: Enable this when the resolver actually works.
-    # help='Enable unstable feature(s) that may be backward incompatible.',
+    help=SUPPRESS_HELP,  # TODO: drop this in pip 20.3
+)  # type: Callable[..., Option]
+
+use_new_feature = partial(
+    Option,
+    '--use-feature',
+    dest='features_enabled',
+    metavar='feature',
+    action='append',
+    default=[],
+    choices=['2020-resolver', 'fast-deps'],
+    help='Enable new functionality, that may be backward incompatible.',
+)  # type: Callable[..., Option]
+
+use_deprecated_feature = partial(
+    Option,
+    '--use-deprecated',
+    dest='deprecated_features_enabled',
+    metavar='feature',
+    action='append',
+    default=[],
+    choices=[],
+    help=(
+        'Enable deprecated functionality, that will be removed in the future.'
+    ),
 )  # type: Callable[..., Option]
 
 
@@ -963,6 +974,8 @@ general_group = {
         no_color,
         no_python_version_warning,
         unstable_feature,
+        use_new_feature,
+        use_deprecated_feature,
     ]
 }  # type: Dict[str, Any]
 

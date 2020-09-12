@@ -1,6 +1,5 @@
 import logging
 import os
-import time
 
 import pytest
 from mock import Mock, patch
@@ -10,6 +9,12 @@ from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.utils import temp_dir
 from pip._internal.utils.logging import BrokenStdoutLoggingError
 from pip._internal.utils.temp_dir import TempDirectory
+
+
+@pytest.fixture
+def fixed_time(utc):
+    with patch('time.time', lambda: 1547704837.040001):
+        yield
 
 
 class FakeCommand(Command):
@@ -30,8 +35,11 @@ class FakeCommand(Command):
 
     def run(self, options, args):
         logging.getLogger("pip.tests").info("fake")
+        # Return SUCCESS from run if run_func is not provided
         if self.run_func:
             return self.run_func()
+        else:
+            return SUCCESS
 
 
 class FakeCommandWithUnicode(FakeCommand):
@@ -88,67 +96,40 @@ def test_handle_pip_version_check_called(mock_handle_version_check):
     mock_handle_version_check.assert_called_once()
 
 
-class Test_base_command_logging(object):
+def test_log_command_success(fixed_time, tmpdir):
+    """Test the --log option logs when command succeeds."""
+    cmd = FakeCommand()
+    log_path = tmpdir.joinpath('log')
+    cmd.main(['fake', '--log', log_path])
+    with open(log_path) as f:
+        assert f.read().rstrip() == '2019-01-17T06:00:37,040 fake'
+
+
+def test_log_command_error(fixed_time, tmpdir):
+    """Test the --log option logs when command fails."""
+    cmd = FakeCommand(error=True)
+    log_path = tmpdir.joinpath('log')
+    cmd.main(['fake', '--log', log_path])
+    with open(log_path) as f:
+        assert f.read().startswith('2019-01-17T06:00:37,040 fake')
+
+
+def test_log_file_command_error(fixed_time, tmpdir):
+    """Test the --log-file option logs (when there's an error)."""
+    cmd = FakeCommand(error=True)
+    log_file_path = tmpdir.joinpath('log_file')
+    cmd.main(['fake', '--log-file', log_file_path])
+    with open(log_file_path) as f:
+        assert f.read().startswith('2019-01-17T06:00:37,040 fake')
+
+
+def test_log_unicode_messages(fixed_time, tmpdir):
+    """Tests that logging bytestrings and unicode objects
+    don't break logging.
     """
-    Test `pip.base_command.Command` setting up logging consumers based on
-    options
-    """
-
-    def setup(self):
-        self.old_time = time.time
-        time.time = lambda: 1547704837.040001
-        self.old_tz = os.environ.get('TZ')
-        os.environ['TZ'] = 'UTC'
-        # time.tzset() is not implemented on some platforms (notably, Windows).
-        if hasattr(time, 'tzset'):
-            time.tzset()
-
-    def teardown(self):
-        if self.old_tz:
-            os.environ['TZ'] = self.old_tz
-        else:
-            del os.environ['TZ']
-        if 'tzset' in dir(time):
-            time.tzset()
-        time.time = self.old_time
-
-    def test_log_command_success(self, tmpdir):
-        """
-        Test the --log option logs when command succeeds
-        """
-        cmd = FakeCommand()
-        log_path = tmpdir.joinpath('log')
-        cmd.main(['fake', '--log', log_path])
-        with open(log_path) as f:
-            assert f.read().rstrip() == '2019-01-17T06:00:37,040 fake'
-
-    def test_log_command_error(self, tmpdir):
-        """
-        Test the --log option logs when command fails
-        """
-        cmd = FakeCommand(error=True)
-        log_path = tmpdir.joinpath('log')
-        cmd.main(['fake', '--log', log_path])
-        with open(log_path) as f:
-            assert f.read().startswith('2019-01-17T06:00:37,040 fake')
-
-    def test_log_file_command_error(self, tmpdir):
-        """
-        Test the --log-file option logs (when there's an error).
-        """
-        cmd = FakeCommand(error=True)
-        log_file_path = tmpdir.joinpath('log_file')
-        cmd.main(['fake', '--log-file', log_file_path])
-        with open(log_file_path) as f:
-            assert f.read().startswith('2019-01-17T06:00:37,040 fake')
-
-    def test_unicode_messages(self, tmpdir):
-        """
-        Tests that logging bytestrings and unicode objects don't break logging
-        """
-        cmd = FakeCommandWithUnicode()
-        log_path = tmpdir.joinpath('log')
-        cmd.main(['fake_unicode', '--log', log_path])
+    cmd = FakeCommandWithUnicode()
+    log_path = tmpdir.joinpath('log')
+    cmd.main(['fake_unicode', '--log', log_path])
 
 
 @pytest.mark.no_auto_tempdir_manager
@@ -159,6 +140,7 @@ def test_base_command_provides_tempdir_helpers():
     def assert_helpers_set(options, args):
         assert temp_dir._tempdir_manager is not None
         assert temp_dir._tempdir_registry is not None
+        return SUCCESS
 
     c = Command("fake", "fake")
     c.run = Mock(side_effect=assert_helpers_set)
@@ -183,6 +165,7 @@ def test_base_command_global_tempdir_cleanup(kind, exists):
     def create_temp_dirs(options, args):
         c.tempdir_registry.set_delete(not_deleted, False)
         Holder.value = TempDirectory(kind=kind, globally_managed=True).path
+        return SUCCESS
 
     c = Command("fake", "fake")
     c.run = Mock(side_effect=create_temp_dirs)
@@ -206,6 +189,7 @@ def test_base_command_local_tempdir_cleanup(kind, exists):
             path = d.path
             assert os.path.exists(path)
         assert os.path.exists(path) == exists
+        return SUCCESS
 
     c = Command("fake", "fake")
     c.run = Mock(side_effect=create_temp_dirs)

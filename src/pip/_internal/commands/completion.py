@@ -1,13 +1,16 @@
-# The following comment should be removed at some point in the future.
-# mypy: disallow-untyped-defs=False
-
 from __future__ import absolute_import
 
 import sys
 import textwrap
 
 from pip._internal.cli.base_command import Command
+from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.utils.misc import get_prog
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from typing import List
+    from optparse import Values
 
 BASE_COMPLETION = """
 # pip {shell} completion start{script}# pip {shell} completion end
@@ -53,33 +56,31 @@ class CompletionCommand(Command):
 
     ignore_require_venv = True
 
-    def __init__(self, *args, **kw):
-        super(CompletionCommand, self).__init__(*args, **kw)
-
-        cmd_opts = self.cmd_opts
-
-        cmd_opts.add_option(
+    def add_options(self):
+        # type: () -> None
+        self.cmd_opts.add_option(
             '--bash', '-b',
             action='store_const',
             const='bash',
             dest='shell',
             help='Emit completion code for bash')
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '--zsh', '-z',
             action='store_const',
             const='zsh',
             dest='shell',
             help='Emit completion code for zsh')
-        cmd_opts.add_option(
+        self.cmd_opts.add_option(
             '--fish', '-f',
             action='store_const',
             const='fish',
             dest='shell',
             help='Emit completion code for fish')
 
-        self.parser.insert_option_group(0, cmd_opts)
+        self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
+        #  type: (Values, List[str]) -> int
         """Prints the completion code of the given shell"""
         shells = COMPLETION_SCRIPTS.keys()
         shell_options = ['--' + shell for shell in sorted(shells)]
@@ -89,7 +90,9 @@ class CompletionCommand(Command):
                     prog=get_prog())
             )
             print(BASE_COMPLETION.format(script=script, shell=options.shell))
+            return SUCCESS
         else:
             sys.stderr.write(
                 'ERROR: You must pass {}\n' .format(' or '.join(shell_options))
             )
+            return SUCCESS

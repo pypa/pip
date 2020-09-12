@@ -2,9 +2,6 @@
 Requirements file parsing
 """
 
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-
 from __future__ import absolute_import
 
 import optparse
@@ -21,9 +18,10 @@ from pip._internal.exceptions import (
     RequirementsFileParseError,
 )
 from pip._internal.models.search_scope import SearchScope
+from pip._internal.network.utils import raise_for_status
 from pip._internal.utils.encoding import auto_decode
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from pip._internal.utils.urls import get_url_scheme
+from pip._internal.utils.urls import get_url_scheme, url_to_path
 
 if MYPY_CHECK_RUNNING:
     from optparse import Values
@@ -60,10 +58,11 @@ SUPPORTED_OPTIONS = [
     cmdoptions.find_links,
     cmdoptions.no_binary,
     cmdoptions.only_binary,
+    cmdoptions.prefer_binary,
     cmdoptions.require_hashes,
     cmdoptions.pre,
     cmdoptions.trusted_host,
-    cmdoptions.always_unzip,  # Deprecated
+    cmdoptions.use_new_feature,
 ]  # type: List[Callable[..., optparse.Option]]
 
 # options to be passed to requirements
@@ -101,7 +100,7 @@ class ParsedLine(object):
         self,
         filename,  # type: str
         lineno,  # type: int
-        comes_from,  # type: str
+        comes_from,  # type: Optional[str]
         args,  # type: str
         opts,  # type: Values
         constraint,  # type: bool
@@ -135,7 +134,7 @@ def parse_requirements(
     constraint=False,  # type: bool
 ):
     # type: (...) -> Iterator[ParsedRequirement]
-    """Parse a requirements file and yield InstallRequirement instances.
+    """Parse a requirements file and yield ParsedRequirement instances.
 
     :param filename:    Path or url of requirements file.
     :param session:     PipSession instance.
@@ -226,12 +225,18 @@ def handle_option_line(
 ):
     # type:  (...) -> None
 
-    # percolate hash-checking option upward
-    if opts.require_hashes:
-        options.require_hashes = opts.require_hashes
+    if options:
+        # percolate options upward
+        if opts.require_hashes:
+            options.require_hashes = opts.require_hashes
+        if opts.features_enabled:
+            options.features_enabled.extend(
+                f for f in opts.features_enabled
+                if f not in options.features_enabled
+            )
 
     # set finder options
-    elif finder:
+    if finder:
         find_links = finder.find_links
         index_urls = finder.index_urls
         if opts.index_url:
@@ -251,6 +256,10 @@ def handle_option_line(
                 value = relative_to_reqs_file
             find_links.append(value)
 
+        if session:
+            # We need to update the auth urls in session
+            session.update_index_urls(index_urls)
+
         search_scope = SearchScope(
             find_links=find_links,
             index_urls=index_urls,
@@ -259,6 +268,9 @@ def handle_option_line(
 
         if opts.pre:
             finder.set_allow_all_prereleases()
+
+        if opts.prefer_binary:
+            finder.set_prefer_binary()
 
         if session:
             for host in opts.trusted_hosts or []:
@@ -316,7 +328,7 @@ class RequirementsFileParser(object):
         self,
         session,  # type: PipSession
         line_parser,  # type: LineParser
-        comes_from,  # type: str
+        comes_from,  # type: Optional[str]
     ):
         # type: (...) -> None
         self._session = session
@@ -478,6 +490,7 @@ def join_lines(lines_enum):
                 line = ' ' + line
             if new_line:
                 new_line.append(line)
+                assert primary_line_number is not None
                 yield primary_line_number, ''.join(new_line)
                 new_line = []
             else:
@@ -489,6 +502,7 @@ def join_lines(lines_enum):
 
     # last line contains \
     if new_line:
+        assert primary_line_number is not None
         yield primary_line_number, ''.join(new_line)
 
     # TODO: handle space after '\'.
@@ -549,7 +563,7 @@ def get_file_content(url, session, comes_from=None):
     if scheme in ['http', 'https']:
         # FIXME: catch some errors
         resp = session.get(url)
-        resp.raise_for_status()
+        raise_for_status(resp)
         return resp.url, resp.text
 
     elif scheme == 'file':
@@ -558,16 +572,7 @@ def get_file_content(url, session, comes_from=None):
                 'Requirements file {} references URL {}, '
                 'which is local'.format(comes_from, url)
             )
-
-        path = url.split(':', 1)[1]
-        path = path.replace('\\', '/')
-        match = _url_slash_drive_re.match(path)
-        if match:
-            path = match.group(1) + ':' + path.split('|', 1)[1]
-        path = urllib_parse.unquote(path)
-        if path.startswith('/'):
-            path = '/' + path.lstrip('/')
-        url = path
+        url = url_to_path(url)
 
     try:
         with open(url, 'rb') as f:
@@ -577,6 +582,3 @@ def get_file_content(url, session, comes_from=None):
             'Could not open requirements file: {}'.format(exc)
         )
     return url, content
-
-
-_url_slash_drive_re = re.compile(r'/*([a-z])\|', re.I)

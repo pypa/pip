@@ -19,7 +19,6 @@ from pip._internal.cli.parser import (
 from pip._internal.cli.status_codes import (
     ERROR,
     PREVIOUS_BUILD_DIR_ERROR,
-    SUCCESS,
     UNKNOWN_ERROR,
     VIRTUALENV_NOT_FOUND,
 )
@@ -27,7 +26,9 @@ from pip._internal.exceptions import (
     BadCommand,
     CommandError,
     InstallationError,
+    NetworkConnectionError,
     PreviousBuildDirError,
+    SubProcessError,
     UninstallationError,
 )
 from pip._internal.utils.deprecation import deprecated
@@ -88,6 +89,12 @@ class Command(CommandContextMixIn):
         )
         self.parser.add_option_group(gen_opts)
 
+        self.add_options()
+
+    def add_options(self):
+        # type: () -> None
+        pass
+
     def handle_pip_version_check(self, options):
         # type: (Values) -> None
         """
@@ -99,7 +106,7 @@ class Command(CommandContextMixIn):
         assert not hasattr(options, 'no_index')
 
     def run(self, options, args):
-        # type: (Values, List[Any]) -> Any
+        # type: (Values, List[Any]) -> int
         raise NotImplementedError
 
     def parse_args(self, args):
@@ -142,7 +149,7 @@ class Command(CommandContextMixIn):
         ):
             message = (
                 "pip 21.0 will drop support for Python 2.7 in January 2021. "
-                "More details about Python 2 support in pip, can be found at "
+                "More details about Python 2 support in pip can be found at "
                 "https://pip.pypa.io/en/latest/development/release-process/#python-2-support"  # noqa
             )
             if platform.python_implementation() == "CPython":
@@ -151,7 +158,19 @@ class Command(CommandContextMixIn):
                     "1st, 2020. Please upgrade your Python as Python 2.7 "
                     "is no longer maintained. "
                 ) + message
-            deprecated(message, replacement=None, gone_in=None)
+            deprecated(message, replacement=None, gone_in="21.0")
+
+        if (
+            sys.version_info[:2] == (3, 5) and
+            not options.no_python_version_warning
+        ):
+            message = (
+                "Python 3.5 reached the end of its life on September "
+                "13th, 2020. Please upgrade your Python as Python 3.5 "
+                "is no longer maintained. pip 21.0 will drop support "
+                "for Python 3.5 in January 2021."
+            )
+            deprecated(message, replacement=None, gone_in="21.0")
 
         # TODO: Try to get these passing down from the command?
         #       without resorting to os.environ to hold these.
@@ -184,18 +203,38 @@ class Command(CommandContextMixIn):
                 )
                 options.cache_dir = None
 
+        if getattr(options, "build_dir", None):
+            deprecated(
+                reason=(
+                    "The -b/--build/--build-dir/--build-directory "
+                    "option is deprecated."
+                ),
+                replacement=(
+                    "use the TMPDIR/TEMP/TMP environment variable, "
+                    "possibly combined with --no-clean"
+                ),
+                gone_in="20.3",
+                issue=8333,
+            )
+
+        if 'resolver' in options.unstable_features:
+            logger.critical(
+                "--unstable-feature=resolver is no longer supported, and "
+                "has been replaced with --use-feature=2020-resolver instead."
+            )
+            sys.exit(ERROR)
+
         try:
             status = self.run(options, args)
-            # FIXME: all commands should return an exit status
-            # and when it is done, isinstance is not needed anymore
-            if isinstance(status, int):
-                return status
+            assert isinstance(status, int)
+            return status
         except PreviousBuildDirError as exc:
             logger.critical(str(exc))
             logger.debug('Exception information:', exc_info=True)
 
             return PREVIOUS_BUILD_DIR_ERROR
-        except (InstallationError, UninstallationError, BadCommand) as exc:
+        except (InstallationError, UninstallationError, BadCommand,
+                SubProcessError, NetworkConnectionError) as exc:
             logger.critical(str(exc))
             logger.debug('Exception information:', exc_info=True)
 
@@ -224,5 +263,3 @@ class Command(CommandContextMixIn):
             return UNKNOWN_ERROR
         finally:
             self.handle_pip_version_check(options)
-
-        return SUCCESS

@@ -95,6 +95,22 @@ def remove_matches_wheel(wheel_cache_dir):
     return _remove_matches_wheel
 
 
+def test_cache_dir(script, cache_dir):
+    result = script.pip('cache', 'dir')
+
+    assert os.path.normcase(cache_dir) == result.stdout.strip()
+
+
+def test_cache_dir_too_many_args(script, cache_dir):
+    result = script.pip('cache', 'dir', 'aaa', expect_error=True)
+
+    assert result.stdout == ''
+
+    # This would be `result.stderr == ...`, but pip prints deprecation
+    # warnings on Python 2.7, so we check if the _line_ is in stderr.
+    assert 'ERROR: Too many arguments' in result.stderr.splitlines()
+
+
 @pytest.mark.usefixtures("populate_wheel_cache")
 def test_cache_info(script, wheel_cache_dir, wheel_cache_files):
     result = script.pip('cache', 'info')
@@ -154,7 +170,7 @@ def test_cache_list_name_and_version_match(script):
     assert not list_matches_wheel('zzz-7.8.9', result)
 
 
-@pytest.mark.usefixture("populate_wheel_cache")
+@pytest.mark.usefixtures("populate_wheel_cache")
 def test_cache_remove_no_arguments(script):
     """Running `pip cache remove` with no arguments should cause an error."""
     script.pip('cache', 'remove', expect_error=True)
@@ -209,7 +225,7 @@ def test_cache_purge_too_many_args(script, wheel_cache_files):
                         expect_error=True)
     assert result.stdout == ''
 
-    # This would be `result.stderr == ...`, but Pip prints deprecation
+    # This would be `result.stderr == ...`, but pip prints deprecation
     # warnings on Python 2.7, so we check if the _line_ is in stderr.
     assert 'ERROR: Too many arguments' in result.stderr.splitlines()
 

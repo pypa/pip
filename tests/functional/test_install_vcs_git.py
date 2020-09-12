@@ -160,7 +160,7 @@ def test_install_editable_from_git_with_https(script, tmpdir):
 
 
 @pytest.mark.network
-def test_install_noneditable_git(script, tmpdir):
+def test_install_noneditable_git(script, tmpdir, with_wheel):
     """
     Test installing from a non-editable git URL with a given tag.
     """
@@ -169,14 +169,14 @@ def test_install_noneditable_git(script, tmpdir):
         'git+https://github.com/pypa/pip-test-package.git'
         '@0.1.1#egg=pip-test-package'
     )
-    egg_info_folder = (
+    dist_info_folder = (
         script.site_packages /
-        'pip_test_package-0.1.1-py{pyversion}.egg-info'.format(**globals())
+        'pip_test_package-0.1.1.dist-info'
     )
     result.assert_installed('piptestpackage',
                             without_egg_link=True,
                             editable=False)
-    assert egg_info_folder in result.files_created, str(result)
+    result.did_create(dist_info_folder)
 
 
 def test_git_with_sha1_revisions(script):
@@ -341,7 +341,7 @@ def test_git_with_non_editable_where_egg_contains_dev_string(script, tmpdir):
     )
     result = script.pip('install', local_url)
     devserver_folder = script.site_packages / 'devserver'
-    assert devserver_folder in result.files_created, str(result)
+    result.did_create(devserver_folder)
 
 
 def test_git_with_ambiguous_revs(script):
@@ -456,9 +456,8 @@ def test_check_submodule_addition(script):
     install_result = script.pip(
         'install', '-e', 'git+' + module_path + '#egg=version_pkg'
     )
-    assert (
+    install_result.did_create(
         script.venv / 'src/version-pkg/testpkg/static/testfile'
-        in install_result.files_created
     )
 
     _change_test_package_submodule(script, submodule_path)
@@ -472,9 +471,8 @@ def test_check_submodule_addition(script):
         '--upgrade',
     )
 
-    assert (
+    update_result.did_create(
         script.venv / 'src/version-pkg/testpkg/static/testfile2'
-        in update_result.files_created
     )
 
 

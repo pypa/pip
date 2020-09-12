@@ -1,6 +1,3 @@
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-
 from __future__ import absolute_import
 
 import contextlib
@@ -98,6 +95,7 @@ class RequirementTracker(object):
         """Add an InstallRequirement to build tracking.
         """
 
+        assert req.link
         # Get the file to write information about this requirement.
         entry_path = self._entry_path(req.link)
 
@@ -130,6 +128,7 @@ class RequirementTracker(object):
         """Remove an InstallRequirement from build tracking.
         """
 
+        assert req.link
         # Delete the created file and the corresponding entries.
         os.unlink(self._entry_path(req.link))
         self._entries.remove(req)

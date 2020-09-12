@@ -1,9 +1,6 @@
 """Cache Management
 """
 
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-
 import hashlib
 import json
 import logging
@@ -122,7 +119,7 @@ class Cache(object):
         return parts
 
     def _get_candidates(self, link, canonical_package_name):
-        # type: (Link, Optional[str]) -> List[Any]
+        # type: (Link, str) -> List[Any]
         can_not_cache = (
             not self.cache_dir or
             not canonical_package_name or
@@ -185,6 +182,7 @@ class SimpleWheelCache(Cache):
     def get_path_for_link_legacy(self, link):
         # type: (Link) -> str
         parts = self._get_cache_path_parts_legacy(link)
+        assert self.cache_dir
         return os.path.join(self.cache_dir, "wheels", *parts)
 
     def get_path_for_link(self, link):
@@ -204,7 +202,7 @@ class SimpleWheelCache(Cache):
         :param link: The link of the sdist for which this will cache wheels.
         """
         parts = self._get_cache_path_parts(link)
-
+        assert self.cache_dir
         # Store wheels within the root cache_dir
         return os.path.join(self.cache_dir, "wheels", *parts)
 
@@ -230,10 +228,9 @@ class SimpleWheelCache(Cache):
                 continue
             if canonicalize_name(wheel.name) != canonical_package_name:
                 logger.debug(
-                    "Ignoring cached wheel {} for {} as it "
-                    "does not match the expected distribution name {}.".format(
-                        wheel_name, link, package_name
-                    )
+                    "Ignoring cached wheel %s for %s as it "
+                    "does not match the expected distribution name %s.",
+                    wheel_name, link, package_name,
                 )
                 continue
             if not wheel.supported(supported_tags):

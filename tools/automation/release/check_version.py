@@ -20,7 +20,7 @@ def is_this_a_good_version_number(string: str) -> Optional[str]:
     if v.dev:
         return "No development releases on PyPI. What are you even thinking?"
 
-    if v.is_prerelease and v.pre[0] != "b":
+    if v.pre and v.pre[0] != "b":
         return "Only beta releases are allowed. No alphas."
 
     release = v.release

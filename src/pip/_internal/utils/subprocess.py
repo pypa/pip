@@ -1,6 +1,3 @@
-# The following comment should be removed at some point in the future.
-# mypy: strict-optional=False
-
 from __future__ import absolute_import
 
 import logging
@@ -188,6 +185,8 @@ def call_subprocess(
             stderr=subprocess.STDOUT, stdin=subprocess.PIPE,
             stdout=subprocess.PIPE, cwd=cwd, env=env,
         )
+        assert proc.stdin
+        assert proc.stdout
         proc.stdin.close()
     except Exception as exc:
         if log_failed_cmd:
@@ -208,6 +207,7 @@ def call_subprocess(
         log_subprocess(line)
         # Update the spinner.
         if use_spinner:
+            assert spinner
             spinner.spin()
     try:
         proc.wait()
@@ -218,6 +218,7 @@ def call_subprocess(
         proc.returncode and proc.returncode not in extra_ok_returncodes
     )
     if use_spinner:
+        assert spinner
         if proc_had_error:
             spinner.finish("error")
         else:
@@ -241,8 +242,10 @@ def call_subprocess(
             raise InstallationError(exc_msg)
         elif on_returncode == 'warn':
             subprocess_logger.warning(
-                'Command "{}" had error code {} in {}'.format(
-                    command_desc, proc.returncode, cwd)
+                'Command "%s" had error code %s in %s',
+                command_desc,
+                proc.returncode,
+                cwd,
             )
         elif on_returncode == 'ignore':
             pass

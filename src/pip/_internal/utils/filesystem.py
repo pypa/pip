@@ -3,6 +3,8 @@ import fnmatch
 import os
 import os.path
 import random
+import shutil
+import stat
 import sys
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
@@ -52,6 +54,36 @@ def check_path_owner(path):
         else:
             previous, path = path, os.path.dirname(path)
     return False  # assume we don't own the path
+
+
+def copy2_fixed(src, dest):
+    # type: (str, str) -> None
+    """Wrap shutil.copy2() but map errors copying socket files to
+    SpecialFileError as expected.
+
+    See also https://bugs.python.org/issue37700.
+    """
+    try:
+        shutil.copy2(src, dest)
+    except (OSError, IOError):
+        for f in [src, dest]:
+            try:
+                is_socket_file = is_socket(f)
+            except OSError:
+                # An error has already occurred. Another error here is not
+                # a problem and we can ignore it.
+                pass
+            else:
+                if is_socket_file:
+                    raise shutil.SpecialFileError(
+                        "`{f}` is a socket".format(**locals()))
+
+        raise
+
+
+def is_socket(path):
+    # type: (str) -> bool
+    return stat.S_ISSOCK(os.lstat(path).st_mode)
 
 
 @contextmanager
@@ -123,7 +155,7 @@ def _test_writable_dir_win(path):
     # and we can't use tempfile: http://bugs.python.org/issue22107
     basename = 'accesstest_deleteme_fishfingers_custard_'
     alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789'
-    for i in range(10):
+    for _ in range(10):
         name = basename + ''.join(random.choice(alphabet) for _ in range(6))
         file = os.path.join(path, name)
         try:
@@ -138,6 +170,8 @@ def _test_writable_dir_win(path):
                 # This could be because there's a directory with the same name.
                 # But it's highly unlikely there's a directory called that,
                 # so we'll assume it's because the parent dir is not writable.
+                # This could as well be because the parent dir is not readable,
+                # due to non-privileged user access.
                 return False
             raise
         else:
@@ -156,7 +190,7 @@ def find_files(path, pattern):
     """Returns a list of absolute paths of files beneath path, recursively,
     with filenames which match the UNIX-style shell glob pattern."""
     result = []  # type: List[str]
-    for root, dirs, files in os.walk(path):
+    for root, _, files in os.walk(path):
         matches = fnmatch.filter(files, pattern)
         result.extend(os.path.join(root, f) for f in matches)
     return result
