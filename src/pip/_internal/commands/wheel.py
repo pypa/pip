@@ -21,6 +21,7 @@ if MYPY_CHECK_RUNNING:
     from optparse import Values
     from typing import List
 
+    from pip._internal.req.req_install import InstallRequirement
 
 logger = logging.getLogger(__name__)
 
@@ -156,10 +157,12 @@ class WheelCommand(RequirementCommand):
             reqs, check_supported_wheels=True
         )
 
-        reqs_to_build = [
-            r for r in requirement_set.requirements.values()
-            if should_build_for_wheel_command(r)
-        ]
+        reqs_to_build = []  # type: List[InstallRequirement]
+        for req in requirement_set.requirements.values():
+            if req.is_wheel:
+                preparer.save_linked_requirement(req)
+            elif should_build_for_wheel_command(req):
+                reqs_to_build.append(req)
 
         # build wheels
         build_successes, build_failures = build(

@@ -523,23 +523,33 @@ class RequirementPreparer(object):
         dist = _get_prepared_distribution(
             req, self.req_tracker, self.finder, self.build_isolation,
         )
+        return dist
 
-        if self.download_dir is not None:
-            if link.is_existing_dir():
-                logger.info('Link is a directory, ignoring download_dir')
-            elif local_file:
-                download_location = os.path.join(
-                    self.download_dir, link.filename
-                )
-                if not os.path.exists(download_location):
-                    shutil.copy(local_file.path, download_location)
-                    download_path = display_path(download_location)
-                    logger.info('Saved %s', download_path)
-
+    def save_linked_requirement(self, req):
+        # type: (InstallRequirement) -> None
+        assert self.download_dir is not None
+        assert req.link is not None
+        link = req.link
         if link.is_vcs:
             # Make a .zip of the source_dir we already created.
             req.archive(self.download_dir)
-        return dist
+            return
+
+        if link.is_existing_dir():
+            logger.debug(
+                'Not copying link to destination directory '
+                'since it is a directory: %s', link,
+            )
+            return
+        if req.local_file_path is None:
+            # No distribution was downloaded for this requirement.
+            return
+
+        download_location = os.path.join(self.download_dir, link.filename)
+        if not os.path.exists(download_location):
+            shutil.copy(req.local_file_path, download_location)
+            download_path = display_path(download_location)
+            logger.info('Saved %s', download_path)
 
     def prepare_editable_requirement(
         self,
