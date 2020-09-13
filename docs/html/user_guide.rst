@@ -36,9 +36,7 @@ directly from distribution files.
 
 
 The most common scenario is to install from `PyPI`_ using :ref:`Requirement
-Specifiers`
-
-  ::
+Specifiers` ::
 
   $ pip install SomePackage            # latest version
   $ pip install SomePackage==1.0.4     # specific version
@@ -103,9 +101,7 @@ Requirements Files
 ==================
 
 "Requirements files" are files containing a list of items to be
-installed using :ref:`pip install` like so:
-
- ::
+installed using :ref:`pip install` like so::
 
    pip install -r requirements.txt
 
@@ -191,9 +187,7 @@ contents is nearly identical to :ref:`Requirements Files`. There is one key
 difference: Including a package in a constraints file does not trigger
 installation of the package.
 
-Use a constraints file like so:
-
- ::
+Use a constraints file like so::
 
    pip install -c constraints.txt
 
@@ -791,16 +785,14 @@ Understanding your error message
 When you get a ``ResolutionImpossible`` error, you might see something
 like this:
 
-::
+.. code-block:: console
 
-    pip install package_coffee==0.44.1 package_tea==4.3.0
-
-::
-
-    Due to conflicting dependencies pip cannot install package_coffee and
-    package_tea:
-    - package_coffee depends on package_water<3.0.0,>=2.4.2
-    - package_tea depends on package_water==2.3.1
+   $ pip install package_coffee==0.44.1 package_tea==4.3.0
+   ...
+   Due to conflicting dependencies pip cannot install
+   package_coffee and package_tea:
+   - package_coffee depends on package_water<3.0.0,>=2.4.2
+   - package_tea depends on package_water==2.3.1
 
 In this example, pip cannot install the packages you have requested,
 because they each depend on different versions of the same package
@@ -819,27 +811,37 @@ commonly understood comparison operators to specify the required version
 However, Python packaging also supports some more complex ways for
 specifying package versions (e.g. ``~=`` or ``*``):
 
-.. csv-table::
-  :header: "Operator", "Description", "Example"
-
-  ``>``, "Any version greater than the specified version", "``>3.1``: any
-  version greater than 3.1"
-  ``<``, "Any version less than the specified version", "``<3.1``: any version
-  less than ``3.1``"
-  ``<=``, "Any version less than or equal to the specified version", "``<=3.1``:
-  any version less than or equal to ``3.1``"
-  ``>=``, "Any version greater than or equal to the specified
-  version", "``>=3.1``: version ``3.1`` and greater"
-  ``==``, "Exactly the specified version", ``==3.1``: only version ``3.1``
-  ``!=``, "Any version not equal to the specified version", "``!=3.1``: any
-  version other than ``3.1``"
-  ``~=``, "Any compatible release. Compatible releases are releases that are
-  within the same major or minor version, assuming the package author is using
-  semantic versioning.", "``~=3.1``: version ``3.1`` or later, but not version
-  ``4.0`` or later. ``~=3.1.2``: version ``3.1.2`` or later, but not
-  version ``3.2.0`` or later."
-  ``*``,Can be used at the end of a version number to represent "all", "``== 3.
-  1.*``: any version that starts with ``3.1``. Equivalent to ``~=3.1.0``."
++----------+---------------------------------+--------------------------------+
+| Operator | Description                     | Example                        |
++==========+=================================+================================+
+|  ``>``   | Any version greater than        | ``>3.1``: any version          |
+|          | the specified version.          | greater than ``3.1``.          |
++----------+---------------------------------+--------------------------------+
+|  ``<``   | Any version less than           | ``<3.1``: any version          |
+|          | the specified version.          | less than ``3.1``.             |
++----------+---------------------------------+--------------------------------+
+|  ``<=``  | Any version less than or        | ``<=3.1``: any version         |
+|          | equal to the specified version. | less than or equal to ``3.1``. |
++----------+---------------------------------+--------------------------------+
+|  ``>=``  | Any version greater than or     | ``>=3.1``:                     |
+|          | equal to the specified version. | version ``3.1`` and greater.   |
++----------+---------------------------------+--------------------------------+
+|  ``==``  | Exactly the specified version.  | ``==3.1``: only ``3.1``.       |
++----------+---------------------------------+--------------------------------+
+|  ``!=``  | Any version not equal           | ``!=3.1``: any version         |
+|          | to the specified version.       | other than ``3.1``.            |
++----------+---------------------------------+--------------------------------+
+|  ``~=``  | Any compatible release.         | ``~=3.1``: version ``3.1``     |
+|          | Compatible releases are         | or later, but not              |
+|          | releases that are within the    | version ``4.0`` or later.      |
+|          | same major or minor version,    | ``~=3.1.2``: version ``3.1.2`` |
+|          | assuming the package author     | or later, but not              |
+|          | is using semantic versioning.   | version ``3.2.0`` or later.    |
++----------+---------------------------------+--------------------------------+
+|  ``*``   | Can be used at the end of       | ``==3.1.*``: any version       |
+|          | a version number to represent   | that starts with ``3.1``.      |
+|          | *all*,                          | Equivalent to ``~=3.1.0``.     |
++----------+---------------------------------+--------------------------------+
 
 The detailed specification of supported comparison operators can be
 found in :pep:`440`.
@@ -1122,11 +1124,11 @@ How to test
    -  If you use pip to install your software, try out the new resolver
       and let us know if it works for you with ``pip install``. Try:
 
-        - installing several packages simultaneously
-        - re-creating an environment using a ``requirements.txt`` file
-        - using ``pip install --force-reinstall`` to check whether
-          it does what you think it should
-        - using constraints files
+      - installing several packages simultaneously
+      - re-creating an environment using a ``requirements.txt`` file
+      - using ``pip install --force-reinstall`` to check whether
+        it does what you think it should
+      - using constraints files
 
    -  If you have a build pipeline that depends on pip installing your
       dependencies for you, check that the new resolver does what you
