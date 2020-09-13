@@ -44,11 +44,11 @@ Certain changes may be fast tracked and have a deprecation period of 3 months.
 This requires at least two members of the pip team to be in favor of doing so,
 and no pip maintainers opposing.
 
-Deprecation will take the form of a warning
-being issued by pip when the feature is used. Longer deprecation periods, or
-deprecation warnings for behavior changes that would not normally be covered by
-this policy, are also possible depending on circumstances, but this is at the
-discretion of the pip maintainers.
+Deprecation will take the form of a warning being issued by pip when the
+feature is used. Longer deprecation periods, or deprecation warnings for
+behavior changes that would not normally be covered by this policy, are also
+possible depending on circumstances, but this is at the discretion of the pip
+maintainers.
 
 Note that the documentation is the sole reference for what counts as agreed
 behavior. If something isn't explicitly mentioned in the documentation, it can
