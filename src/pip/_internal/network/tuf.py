@@ -48,6 +48,10 @@ class Updater:
         self._cache_dir = cache_dir
 
 
+    def __str__(self):
+        return str(self._updater)
+
+
     # Make sure we have refreshed metadata exactly once (we
     # want all downloads to be done from a consistent repository)
     # Raises NoWorkingMirrorError, ?
