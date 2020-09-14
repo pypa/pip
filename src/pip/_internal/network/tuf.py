@@ -30,8 +30,10 @@ class Updater:
         split_url = urllib_parse.urlsplit(index_url)
         base_url = urllib_parse.urlunsplit([split_url.scheme, split_url.netloc, '', '', ''])
         targets_path = split_url.path.lstrip('/')
+
+        # Store two separate mirror configs to workaround https://github.com/theupdateframework/tuf/issues/1143
         # TODO: metadata_path should not be hard coded but solution is not decided yet
-        mirrors = {
+        self._index_mirrors = {
             base_url: {
                 'url_prefix': base_url,
                 'metadata_path': 'tuf/',
@@ -39,7 +41,16 @@ class Updater:
                 'confined_target_dirs': ['']
             }
         }
-        self._updater = tuf.client.updater.Updater(dir_name, mirrors)
+        self._distribution_mirrors = {
+            base_url: {
+                'url_prefix': base_url,
+                'metadata_path': 'tuf/',
+                'targets_path': 'None', # TODO: Actual None does not work with current tuf 
+                'confined_target_dirs': []
+            }
+        }
+
+        self._updater = tuf.client.updater.Updater(dir_name, self._index_mirrors)
         self._refreshed = False
 
         # TODO think cache issue through:
@@ -62,7 +73,7 @@ class Updater:
 
 
     # Ensure give mirror is in updater mirror config
-    def _ensure_mirror_config(self, mirror_url):
+    def _ensure_distribution_mirror_config(self, mirror_url):
         # metadata/index mirror config is known from the start, but 
         # the distribution mirror is only known after the index
         # files are read: make sure it's configured
@@ -70,8 +81,8 @@ class Updater:
         # TODO: split mirror_url into prefix and targets_path ?
         # This would allow using confined_target_dirs to prevent
         # index file requests being made to this mirror
-        if mirror_url not in self._updater.mirrors:
-            self._updater.mirrors[mirror_url] = {
+        if mirror_url not in self._distribution_mirrors:
+            self._distribution_mirrors[mirror_url] = {
                 'url_prefix': mirror_url,
                 'metadata_path': 'None', # TODO: Actual None does not work with current tuf 
                 'targets_path': '',
@@ -98,6 +109,8 @@ class Updater:
     def download_index(self, project_name):
         self._ensure_fresh_metadata()
 
+        self._updater.mirrors = self._index_mirrors
+
         # TODO warehouse setup for hashed index files is still undecided: this assumes /simple/{PROJECT}/{HASH}.index.html
         target_name = project_name + "/index.html"
         target = self._updater.get_one_valid_targetinfo(target_name)
@@ -119,7 +132,9 @@ class Updater:
         self._ensure_fresh_metadata()
 
         base_url, target_name = self._split_distribution_url(link)
-        self._ensure_mirror_config(base_url)
+        self._ensure_distribution_mirror_config(base_url)
+        self._updater.mirrors = self._distribution_mirrors
+
         logger.debug("Getting TUF target_info for " + target_name)
         target = self._updater.get_one_valid_targetinfo(target_name)
         
