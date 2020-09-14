@@ -169,7 +169,7 @@ html_theme_options = {
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = []
+html_static_path = ['custom.css']
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
@@ -300,3 +300,7 @@ for fname in raw_subcommands:
     )
 
     man_pages.append((fname_base, outname, description, u'pip developers', 1))
+
+
+def setup(app):
+    app.add_css_file('custom.css')

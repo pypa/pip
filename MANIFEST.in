@@ -10,6 +10,7 @@ recursive-include  src/pip/_vendor *LICENSE*
 recursive-include  src/pip/_vendor *COPYING*
 
 include docs/docutils.conf
+include docs/html/custom.css
 
 exclude .coveragerc
 exclude .mailmap
