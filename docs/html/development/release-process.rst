@@ -16,7 +16,7 @@ with version numbers.
 Our release months are January, April, July, October. The release date within
 that month will be up to the release manager for that release. If there are
 no changes, then that release month is skipped and the next release will be
-3 month later.
+3 months later.
 
 The release manager may, at their discretion, choose whether or not there
 will be a pre-release period for a release, and if there is may extend that
