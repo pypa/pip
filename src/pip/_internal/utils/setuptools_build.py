@@ -1,5 +1,6 @@
 import sys
 
+from pip._internal.models.scheme import Scheme
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -140,11 +141,11 @@ def make_setuptools_install_args(
     record_filename,  # type: str
     root,  # type: Optional[str]
     prefix,  # type: Optional[str]
-    header_dir,  # type: Optional[str]
     home,  # type: Optional[str]
     use_user_site,  # type: bool
     no_user_config,  # type: bool
-    pycompile  # type: bool
+    pycompile,  # type: bool
+    scheme,  # type: Scheme
 ):
     # type: (...) -> List[str]
     assert not (use_user_site and prefix)
@@ -159,8 +160,12 @@ def make_setuptools_install_args(
     args += ["install", "--record", record_filename]
     args += ["--single-version-externally-managed"]
 
-    if root is not None:
-        args += ["--root", root]
+    args += ["--install-purelib", scheme.purelib,
+             "--install-platlib", scheme.platlib,
+             "--install-headers", scheme.headers,
+             "--install-scripts", scheme.scripts,
+             "--install-data", scheme.data]
+
     if prefix is not None:
         args += ["--prefix", prefix]
     if home is not None:
@@ -172,9 +177,6 @@ def make_setuptools_install_args(
         args += ["--compile"]
     else:
         args += ["--no-compile"]
-
-    if header_dir:
-        args += ["--install-headers", header_dir]
 
     args += install_options
 

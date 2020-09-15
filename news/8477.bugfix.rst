@@ -1,0 +1,2 @@
+Install libs, headers and data files in the correct location when
+``--root`` is specified.

@@ -48,8 +48,6 @@ def install(
 ):
     # type: (...) -> bool
 
-    header_dir = scheme.headers
-
     with TempDirectory(kind="record") as temp_dir:
         try:
             record_filename = os.path.join(temp_dir.path, 'install-record.txt')
@@ -60,11 +58,11 @@ def install(
                 record_filename=record_filename,
                 root=root,
                 prefix=prefix,
-                header_dir=header_dir,
                 home=home,
                 use_user_site=use_user_site,
                 no_user_config=isolated,
                 pycompile=pycompile,
+                scheme=scheme,
             )
 
             runner = runner_with_spinner_message(
@@ -103,7 +101,7 @@ def install(
     for line in record_lines:
         directory = os.path.dirname(line)
         if directory.endswith('.egg-info'):
-            egg_info_dir = prepend_root(directory)
+            egg_info_dir = directory
             break
     else:
         message = (

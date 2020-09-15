@@ -1,4 +1,5 @@
 import distutils
+import fnmatch
 import glob
 import os
 import re
@@ -14,6 +15,7 @@ from pip._vendor.six import PY2
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.utils.misc import rmtree
+from pip._internal.utils.temp_dir import TempDirectory
 from tests.lib import (
     _create_svn_repo,
     _create_test_package,
@@ -1025,6 +1027,58 @@ def test_install_package_with_root(script, data, with_wheel):
     # Should show find-links location in output
     assert "Looking in indexes: " not in result.stdout
     assert "Looking in links: " in result.stdout
+
+
+def test_install_package_with_root_check_dirs(script):
+    """
+    Test that specifying --root works correctly and headers, scripts
+    and data files are installed in the correct location.
+    """
+
+    def find_in_path(path, pattern):
+        for root, dirnames, filenames in os.walk(path):
+            for dirname in fnmatch.filter(dirnames, pattern):
+                return os.path.join(root, dirname)
+            for filename in fnmatch.filter(filenames, pattern):
+                return os.path.join(root, filename)
+
+        return None
+
+    header_path = script.scratch_path / "header.h"
+    header_path.write_text('/* hello world */\n')
+    data_path = script.scratch_path / "data_file"
+    data_path.write_text("bletch")
+    pkga_path = script.scratch_path / "pkga"
+    pkga_path.mkdir()
+    setup_py = textwrap.dedent("""
+            from setuptools import setup
+            setup(name='pkga',
+                  version='0.1',
+                  py_modules=["pkga"],
+                  entry_points={{
+                      'console_scripts': ['pkga_script=pkga:main']
+                  }},
+                  headers=[{header_path!r}],
+                  data_files=[('data_files', [{data_path!r}])]
+            )
+        """).format(header_path=str(header_path), data_path=str(data_path))
+
+    pkga_path.joinpath("setup.py").write_text(setup_py)
+    pkga_path.joinpath("pkga.py").write_text(textwrap.dedent("""
+            def main(): pass
+        """))
+    with TempDirectory() as temp_dir:
+        script.pip('install', '--root', temp_dir.path, pkga_path)
+        # Find the installation prefix. If we are running in a virtual
+        # environment, we will find the entire path leading up to the
+        # venv replicated under the root, so we might not find the
+        # root installation where we expect.
+        venv_base = find_in_path(temp_dir.path, "venv")
+        assert find_in_path(venv_base, "header.h")
+        assert find_in_path(venv_base, "pkga-0.1*.egg-info")
+        assert (find_in_path(venv_base, "pkga_script") or
+                find_in_path(venv_base, "pkga_script.exe"))
+        assert find_in_path(venv_base, "data_file")
 
 
 def test_install_package_with_prefix(script, data):
