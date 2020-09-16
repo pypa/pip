@@ -487,10 +487,10 @@ class RequirementPreparer(object):
         self._log_preparing_link(req)
         with indent_log():
             wheel_dist = self._fetch_metadata_using_lazy_wheel(link)
-        if wheel_dist is not None:
-            req.needs_more_preparation = True
-            return wheel_dist
-        return self._prepare_linked_requirement(req, parallel_builds)
+            if wheel_dist is not None:
+                req.needs_more_preparation = True
+                return wheel_dist
+            return self._prepare_linked_requirement(req, parallel_builds)
 
     def prepare_linked_requirements_more(self, reqs, parallel_builds=False):
         # type: (Iterable[InstallRequirement], bool) -> None
@@ -519,51 +519,48 @@ class RequirementPreparer(object):
         link = req.link
         download_dir = self._get_download_dir(link)
 
-        with indent_log():
-            self._ensure_link_req_src_dir(req, download_dir, parallel_builds)
-            hashes = self._get_linked_req_hashes(req)
-            if link.url not in self._downloaded:
-                try:
-                    local_file = unpack_url(
-                        link, req.source_dir, self._download,
-                        download_dir, hashes,
-                    )
-                except NetworkConnectionError as exc:
-                    raise InstallationError(
-                        'Could not install requirement {} because of HTTP '
-                        'error {} for URL {}'.format(req, exc, link)
-                    )
-            else:
-                file_path, content_type = self._downloaded[link.url]
-                if hashes:
-                    hashes.check_against_path(file_path)
-                local_file = File(file_path, content_type)
+        self._ensure_link_req_src_dir(req, download_dir, parallel_builds)
+        hashes = self._get_linked_req_hashes(req)
+        if link.url not in self._downloaded:
+            try:
+                local_file = unpack_url(
+                    link, req.source_dir, self._download,
+                    download_dir, hashes,
+                )
+            except NetworkConnectionError as exc:
+                raise InstallationError(
+                    'Could not install requirement {} because of HTTP '
+                    'error {} for URL {}'.format(req, exc, link)
+                )
+        else:
+            file_path, content_type = self._downloaded[link.url]
+            if hashes:
+                hashes.check_against_path(file_path)
+            local_file = File(file_path, content_type)
 
-            # For use in later processing, preserve the file path on the
-            # requirement.
-            if local_file:
-                req.local_file_path = local_file.path
+        # For use in later processing,
+        # preserve the file path on the requirement.
+        if local_file:
+            req.local_file_path = local_file.path
 
-            dist = _get_prepared_distribution(
-                req, self.req_tracker, self.finder, self.build_isolation,
-            )
+        dist = _get_prepared_distribution(
+            req, self.req_tracker, self.finder, self.build_isolation,
+        )
 
-            if download_dir:
-                if link.is_existing_dir():
-                    logger.info('Link is a directory, ignoring download_dir')
-                elif local_file:
-                    download_location = os.path.join(
-                        download_dir, link.filename
-                    )
-                    if not os.path.exists(download_location):
-                        shutil.copy(local_file.path, download_location)
-                        download_path = display_path(download_location)
-                        logger.info('Saved %s', download_path)
+        if download_dir:
+            if link.is_existing_dir():
+                logger.info('Link is a directory, ignoring download_dir')
+            elif local_file:
+                download_location = os.path.join(download_dir, link.filename)
+                if not os.path.exists(download_location):
+                    shutil.copy(local_file.path, download_location)
+                    download_path = display_path(download_location)
+                    logger.info('Saved %s', download_path)
 
-            if self._download_should_save:
-                # Make a .zip of the source_dir we already created.
-                if link.is_vcs:
-                    req.archive(self.download_dir)
+        if self._download_should_save:
+            # Make a .zip of the source_dir we already created.
+            if link.is_vcs:
+                req.archive(self.download_dir)
         return dist
 
     def prepare_editable_requirement(
