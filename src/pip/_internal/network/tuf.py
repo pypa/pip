@@ -158,7 +158,7 @@ def initialize_updaters(index_urls, metadata_dir, cache_dir):
 
     # global TUF settings
     tuf.settings.repositories_directory = metadata_dir
-    tuf.log.set_log_level(logging.INFO)
+    tuf.log.set_log_level(logging.ERROR)
 
     # Initialize updaters for index_urls with local metadata
     updaters = {}
