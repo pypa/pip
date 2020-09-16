@@ -37,10 +37,24 @@ class CacheCommand(Command):
     usage = """
         %prog dir
         %prog info
-        %prog list [<pattern>]
+        %prog list [<pattern>] [--format=[human, abspath]]
         %prog remove <pattern>
         %prog purge
     """
+
+    def add_options(self):
+        # type: () -> None
+
+        self.cmd_opts.add_option(
+            '--format',
+            action='store',
+            dest='list_format',
+            default="human",
+            choices=('human', 'abspath'),
+            help="Select the output format among: human (default) or abspath"
+        )
+
+        self.parser.insert_option_group(0, self.cmd_opts)
 
     def run(self, options, args):
         # type: (Values, List[Any]) -> int
@@ -116,7 +130,13 @@ class CacheCommand(Command):
             pattern = '*'
 
         files = self._find_wheels(options, pattern)
+        if options.list_format == 'human':
+            self.format_for_human(files)
+        else:
+            self.format_for_abspath(files)
 
+    def format_for_human(self, files):
+        # type: (List[str]) -> None
         if not files:
             logger.info('Nothing cached.')
             return
@@ -127,6 +147,17 @@ class CacheCommand(Command):
             size = filesystem.format_file_size(filename)
             results.append(' - {} ({})'.format(wheel, size))
         logger.info('Cache contents:\n')
+        logger.info('\n'.join(sorted(results)))
+
+    def format_for_abspath(self, files):
+        # type: (List[str]) -> None
+        if not files:
+            return
+
+        results = []
+        for filename in files:
+            results.append(filename)
+
         logger.info('\n'.join(sorted(results)))
 
     def remove_cache_items(self, options, args):
