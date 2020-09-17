@@ -14,12 +14,12 @@ from pip._internal.resolution.resolvelib.provider import PipProvider
 from pip._internal.utils.misc import dist_is_editable
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
+from .base import Constraint
 from .factory import Factory
 
 if MYPY_CHECK_RUNNING:
     from typing import Dict, List, Optional, Set, Tuple
 
-    from pip._vendor.packaging.specifiers import SpecifierSet
     from pip._vendor.resolvelib.resolvers import Result
     from pip._vendor.resolvelib.structs import Graph
 
@@ -81,7 +81,7 @@ class Resolver(BaseResolver):
     def resolve(self, root_reqs, check_supported_wheels):
         # type: (List[InstallRequirement], bool) -> RequirementSet
 
-        constraints = {}  # type: Dict[str, SpecifierSet]
+        constraints = {}  # type: Dict[str, Constraint]
         user_requested = set()  # type: Set[str]
         requirements = []
         for req in root_reqs:
@@ -94,9 +94,9 @@ class Resolver(BaseResolver):
                     continue
                 name = canonicalize_name(req.name)
                 if name in constraints:
-                    constraints[name] = constraints[name] & req.specifier
+                    constraints[name] &= req
                 else:
-                    constraints[name] = req.specifier
+                    constraints[name] = Constraint.from_ireq(req)
             else:
                 if req.user_supplied and req.name:
                     user_requested.add(canonicalize_name(req.name))

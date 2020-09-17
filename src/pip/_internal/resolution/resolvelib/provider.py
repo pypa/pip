@@ -1,7 +1,8 @@
-from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.resolvelib.providers import AbstractProvider
 
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+from .base import Constraint
 
 if MYPY_CHECK_RUNNING:
     from typing import (
@@ -41,7 +42,7 @@ class PipProvider(AbstractProvider):
     def __init__(
         self,
         factory,  # type: Factory
-        constraints,  # type: Dict[str, SpecifierSet]
+        constraints,  # type: Dict[str, Constraint]
         ignore_dependencies,  # type: bool
         upgrade_strategy,  # type: str
         user_requested,  # type: Set[str]
@@ -134,7 +135,7 @@ class PipProvider(AbstractProvider):
         if not requirements:
             return []
         constraint = self._constraints.get(
-            requirements[0].name, SpecifierSet(),
+            requirements[0].name, Constraint.empty(),
         )
         candidates = self._factory.find_candidates(requirements, constraint)
         return reversed(self._sort_matches(candidates))

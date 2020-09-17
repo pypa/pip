@@ -1,5 +1,8 @@
+from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
 
+from pip._internal.req.req_install import InstallRequirement
+from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -8,7 +11,6 @@ if MYPY_CHECK_RUNNING:
     from pip._vendor.packaging.version import _BaseVersion
 
     from pip._internal.models.link import Link
-    from pip._internal.req.req_install import InstallRequirement
 
     CandidateLookup = Tuple[
         Optional["Candidate"],
@@ -22,6 +24,39 @@ def format_name(project, extras):
         return project
     canonical_extras = sorted(canonicalize_name(e) for e in extras)
     return "{}[{}]".format(project, ",".join(canonical_extras))
+
+
+class Constraint(object):
+    def __init__(self, specifier, hashes):
+        # type: (SpecifierSet, Hashes) -> None
+        self.specifier = specifier
+        self.hashes = hashes
+
+    @classmethod
+    def empty(cls):
+        # type: () -> Constraint
+        return Constraint(SpecifierSet(), Hashes())
+
+    @classmethod
+    def from_ireq(cls, ireq):
+        # type: (InstallRequirement) -> Constraint
+        return Constraint(ireq.specifier, ireq.hashes(trust_internet=False))
+
+    def __nonzero__(self):
+        # type: () -> bool
+        return bool(self.specifier) or bool(self.hashes)
+
+    def __bool__(self):
+        # type: () -> bool
+        return self.__nonzero__()
+
+    def __and__(self, other):
+        # type: (InstallRequirement) -> Constraint
+        if not isinstance(other, InstallRequirement):
+            return NotImplemented
+        specifier = self.specifier & other.specifier
+        hashes = self.hashes & other.hashes(trust_internet=False)
+        return Constraint(specifier, hashes)
 
 
 class Requirement(object):

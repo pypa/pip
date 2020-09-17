@@ -22,6 +22,7 @@ from pip._internal.utils.misc import (
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
+from .base import Constraint
 from .candidates import (
     AlreadyInstalledCandidate,
     EditableCandidate,
@@ -154,6 +155,7 @@ class Factory(object):
         self,
         ireqs,  # type: Sequence[InstallRequirement]
         specifier,  # type: SpecifierSet
+        hashes,  # type: Hashes
     ):
         # type: (...) -> Iterable[Candidate]
         if not ireqs:
@@ -166,11 +168,10 @@ class Factory(object):
         template = ireqs[0]
         name = canonicalize_name(template.req.name)
 
-        hashes = Hashes()
         extras = frozenset()  # type: FrozenSet[str]
         for ireq in ireqs:
             specifier &= ireq.req.specifier
-            hashes |= ireq.hashes(trust_internet=False)
+            hashes &= ireq.hashes(trust_internet=False)
             extras |= frozenset(ireq.extras)
 
         # We use this to ensure that we only yield a single candidate for
@@ -220,7 +221,7 @@ class Factory(object):
         return six.itervalues(candidates)
 
     def find_candidates(self, requirements, constraint):
-        # type: (Sequence[Requirement], SpecifierSet) -> Iterable[Candidate]
+        # type: (Sequence[Requirement], Constraint) -> Iterable[Candidate]
         explicit_candidates = set()  # type: Set[Candidate]
         ireqs = []  # type: List[InstallRequirement]
         for req in requirements:
@@ -233,7 +234,11 @@ class Factory(object):
         # If none of the requirements want an explicit candidate, we can ask
         # the finder for candidates.
         if not explicit_candidates:
-            return self._iter_found_candidates(ireqs, constraint)
+            return self._iter_found_candidates(
+                ireqs,
+                constraint.specifier,
+                constraint.hashes,
+            )
 
         if constraint:
             name = explicit_candidates.pop().name

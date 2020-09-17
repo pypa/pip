@@ -46,16 +46,24 @@ class Hashes(object):
         """
         self._allowed = {} if hashes is None else hashes
 
-    def __or__(self, other):
+    def __and__(self, other):
         # type: (Hashes) -> Hashes
         if not isinstance(other, Hashes):
             return NotImplemented
-        new = self._allowed.copy()
+
+        # If either of the Hashes object is entirely empty (i.e. no hash
+        # specified at all), all hashes from the other object are allowed.
+        if not other:
+            return self
+        if not self:
+            return other
+
+        # Otherwise only hashes that present in both objects are allowed.
+        new = {}
         for alg, values in iteritems(other._allowed):
-            try:
-                new[alg] += values
-            except KeyError:
-                new[alg] = values
+            if alg not in self._allowed:
+                continue
+            new[alg] = [v for v in values if v in self._allowed[alg]]
         return Hashes(new)
 
     @property
