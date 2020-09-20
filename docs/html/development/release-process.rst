@@ -16,7 +16,7 @@ with version numbers.
 Our release months are January, April, July, October. The release date within
 that month will be up to the release manager for that release. If there are
 no changes, then that release month is skipped and the next release will be
-3 month later.
+3 months later.
 
 The release manager may, at their discretion, choose whether or not there
 will be a pre-release period for a release, and if there is may extend that
@@ -38,11 +38,17 @@ Deprecation Policy
 
 Any change to pip that removes or significantly alters user-visible behavior
 that is described in the pip documentation will be deprecated for a minimum of
-6 months before the change occurs. Deprecation will take the form of a warning
-being issued by pip when the feature is used. Longer deprecation periods, or
-deprecation warnings for behavior changes that would not normally be covered by
-this policy, are also possible depending on circumstances, but this is at the
-discretion of the pip developers.
+6 months before the change occurs.
+
+Certain changes may be fast tracked and have a deprecation period of 3 months.
+This requires at least two members of the pip team to be in favor of doing so,
+and no pip maintainers opposing.
+
+Deprecation will take the form of a warning being issued by pip when the
+feature is used. Longer deprecation periods, or deprecation warnings for
+behavior changes that would not normally be covered by this policy, are also
+possible depending on circumstances, but this is at the discretion of the pip
+maintainers.
 
 Note that the documentation is the sole reference for what counts as agreed
 behavior. If something isn't explicitly mentioned in the documentation, it can
