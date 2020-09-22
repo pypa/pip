@@ -452,6 +452,39 @@ class RequirementPreparer(object):
             logger.debug('%s does not support range requests', url)
             return None
 
+    def _complete_partial_requirements(
+        self,
+        partially_downloaded_reqs,  # type: Iterable[InstallRequirement]
+        parallel_builds=False,      # type: bool
+    ):
+        # type: (...) -> None
+        """Download any requirements which were only fetched by metadata."""
+        # Download to a temporary directory. These will be copied over as
+        # needed for downstream 'download', 'wheel', and 'install' commands.
+        temp_dir = TempDirectory(kind="unpack", globally_managed=True).path
+
+        # Map each link to the requirement that owns it. This allows us to set
+        # `req.local_file_path` on the appropriate requirement after passing
+        # all the links at once into BatchDownloader.
+        links_to_fully_download = {}  # type: Dict[Link, InstallRequirement]
+        for req in partially_downloaded_reqs:
+            assert req.link
+            links_to_fully_download[req.link] = req
+
+        batch_download = self._batch_download(
+            links_to_fully_download.keys(),
+            temp_dir,
+        )
+        for link, (filepath, _) in batch_download:
+            logger.debug("Downloading link %s to %s", link, filepath)
+            req = links_to_fully_download[link]
+            req.local_file_path = filepath
+
+        # This step is necessary to ensure all lazy wheels are processed
+        # successfully by the 'download', 'wheel', and 'install' commands.
+        for req in partially_downloaded_reqs:
+            self._prepare_linked_requirement(req, parallel_builds)
+
     def prepare_linked_requirement(self, req, parallel_builds=False):
         # type: (InstallRequirement, bool) -> Distribution
         """Prepare a requirement to be obtained from req.link."""
@@ -481,15 +514,32 @@ class RequirementPreparer(object):
 
     def prepare_linked_requirements_more(self, reqs, parallel_builds=False):
         # type: (Iterable[InstallRequirement], bool) -> None
-        """Prepare a linked requirement more, if needed."""
+        """Prepare linked requirements more, if needed."""
         reqs = [req for req in reqs if req.needs_more_preparation]
-        links = [req.link for req in reqs]
-
-        # Let's download to a temporary directory.
-        tmpdir = TempDirectory(kind="unpack", globally_managed=True).path
-        self._downloaded.update(self._batch_download(links, tmpdir))
         for req in reqs:
-            self._prepare_linked_requirement(req, parallel_builds)
+            # Determine if any of these requirements were already downloaded.
+            download_dir = self._get_download_dir(req.link)
+            if download_dir is not None:
+                hashes = self._get_linked_req_hashes(req)
+                file_path = _check_download_dir(req.link, download_dir, hashes)
+                if file_path is not None:
+                    self._downloaded[req.link.url] = file_path, None
+                    req.needs_more_preparation = False
+
+        # Prepare requirements we found were already downloaded for some
+        # reason. The other downloads will be completed separately.
+        partially_downloaded_reqs = []  # type: List[InstallRequirement]
+        for req in reqs:
+            if req.needs_more_preparation:
+                partially_downloaded_reqs.append(req)
+            else:
+                self._prepare_linked_requirement(req, parallel_builds)
+
+        # TODO: separate this part out from RequirementPreparer when the v1
+        # resolver can be removed!
+        self._complete_partial_requirements(
+            partially_downloaded_reqs, parallel_builds=parallel_builds,
+        )
 
     def _prepare_linked_requirement(self, req, parallel_builds):
         # type: (InstallRequirement, bool) -> Distribution
