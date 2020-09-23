@@ -15,8 +15,8 @@ from pip._internal.utils.misc import get_prog, write_output
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import List, Any, Optional
     from optparse import Values
+    from typing import Any, List, Optional
 
     from pip._internal.configuration import Kind
 

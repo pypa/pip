@@ -54,9 +54,20 @@ else:
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Any, AnyStr, Callable, Container, Iterable, Iterator, List, Optional,
-        Text, Tuple, TypeVar, Union,
+        Any,
+        AnyStr,
+        Callable,
+        Container,
+        Iterable,
+        Iterator,
+        List,
+        Optional,
+        Text,
+        Tuple,
+        TypeVar,
+        Union,
     )
+
     from pip._vendor.pkg_resources import Distribution
 
     VersionInfo = Tuple[int, int, int]

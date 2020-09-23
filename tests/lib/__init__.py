@@ -31,6 +31,7 @@ from tests.lib.wheel import make_wheel
 
 if MYPY_CHECK_RUNNING:
     from typing import List, Optional
+
     from pip._internal.models.target_python import TargetPython
 
 

@@ -16,7 +16,7 @@ if MYPY_CHECK_RUNNING:
         Union,
     )
 
-    from .base import Requirement, Candidate
+    from .base import Candidate, Requirement
     from .factory import Factory
 
 # Notes on the relationship between the provider, the factory, and the

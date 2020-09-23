@@ -31,9 +31,8 @@ from pip._internal.utils.urls import path_to_url
 from pip._internal.vcs import is_url, vcs
 
 if MYPY_CHECK_RUNNING:
-    from typing import (
-        Any, Dict, Optional, Set, Tuple, Union,
-    )
+    from typing import Any, Dict, Optional, Set, Tuple, Union
+
     from pip._internal.req.req_file import ParsedRequirement
 
 

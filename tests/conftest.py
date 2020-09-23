@@ -27,7 +27,8 @@ from tests.lib.venv import VirtualEnvironment
 if MYPY_CHECK_RUNNING:
     from typing import Dict, Iterable
 
-    from tests.lib.server import MockServer as _MockServer, Responder
+    from tests.lib.server import MockServer as _MockServer
+    from tests.lib.server import Responder
 
 
 def pytest_addoption(parser):

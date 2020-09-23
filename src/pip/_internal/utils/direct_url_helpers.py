@@ -20,9 +20,9 @@ except ImportError:
 if MYPY_CHECK_RUNNING:
     from typing import Optional
 
-    from pip._internal.models.link import Link
-
     from pip._vendor.pkg_resources import Distribution
+
+    from pip._internal.models.link import Link
 
 logger = logging.getLogger(__name__)
 

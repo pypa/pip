@@ -4,7 +4,7 @@ from pip._internal.exceptions import CommandError
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional, Set, FrozenSet
+    from typing import FrozenSet, Optional, Set
 
 
 class FormatControl(object):

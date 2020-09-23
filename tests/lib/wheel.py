@@ -20,8 +20,16 @@ from tests.lib.path import Path
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        AnyStr, Callable, Dict, List, Iterable, Optional, Tuple, Sequence,
-        TypeVar, Union,
+        AnyStr,
+        Callable,
+        Dict,
+        Iterable,
+        List,
+        Optional,
+        Sequence,
+        Tuple,
+        TypeVar,
+        Union,
     )
 
     # path, digest, size

@@ -62,10 +62,10 @@ if not MYPY_CHECK_RUNNING:
 else:
     from email.message import Message
     from typing import (
+        IO,
         Any,
         Callable,
         Dict,
-        IO,
         Iterable,
         Iterator,
         List,
