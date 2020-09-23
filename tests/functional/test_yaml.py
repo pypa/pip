@@ -22,12 +22,12 @@ def generate_yaml_tests(directory):
 
         # Strip the parts of the directory to only get a name without
         # extension and resolver directory
-        base_name = str(yml_file)[len(str(directory)) + 1:-4]
+        base_name = str(yml_file)[len(str(directory)) + 1 : -4]
 
         base = data.get("base", {})
         cases = data["cases"]
 
-        for resolver in 'old', 'new':
+        for resolver in "old", "new":
             for i, case_template in enumerate(cases):
                 case = base.copy()
                 case.update(case_template)
@@ -39,7 +39,7 @@ def generate_yaml_tests(directory):
                 case[":resolver:"] = resolver
 
                 skip = case.pop("skip", False)
-                assert skip in [False, True, 'old', 'new']
+                assert skip in [False, True, "old", "new"]
                 if skip is True or skip == resolver:
                     case = pytest.param(case, marks=pytest.mark.xfail)
 
@@ -60,7 +60,6 @@ def id_func(param):
 
 
 def convert_to_dict(string):
-
     def stripping_split(my_str, splitwith, count=None):
         if count is None:
             return [x.strip() for x in my_str.strip().split(splitwith)]
@@ -85,14 +84,13 @@ def convert_to_dict(string):
 
 
 def handle_request(script, action, requirement, options, new_resolver=False):
-    if action == 'install':
-        args = ['install']
+    if action == "install":
+        args = ["install"]
         if new_resolver:
             args.append("--use-feature=2020-resolver")
-        args.extend(["--no-index", "--find-links",
-                     path_to_url(script.scratch_path)])
-    elif action == 'uninstall':
-        args = ['uninstall', '--yes']
+        args.extend(["--no-index", "--find-links", path_to_url(script.scratch_path)])
+    elif action == "uninstall":
+        args = ["uninstall", "--yes"]
     else:
         raise "Did not excpet action: {!r}".format(action)
 
@@ -106,18 +104,17 @@ def handle_request(script, action, requirement, options, new_resolver=False):
     args.extend(options)
     args.append("--verbose")
 
-    result = script.pip(*args,
-                        allow_stderr_error=True,
-                        allow_stderr_warning=True,
-                        allow_error=True)
+    result = script.pip(
+        *args, allow_stderr_error=True, allow_stderr_warning=True, allow_error=True
+    )
 
     # Check which packages got installed
     state = []
     for path in os.listdir(script.site_packages_path):
         if path.endswith(".dist-info"):
-            name, version = (
-                os.path.basename(path)[:-len(".dist-info")]
-            ).rsplit("-", 1)
+            name, version = (os.path.basename(path)[: -len(".dist-info")]).rsplit(
+                "-", 1
+            )
             # TODO: information about extras.
             state.append(" ".join((name, version)))
 
@@ -125,11 +122,11 @@ def handle_request(script, action, requirement, options, new_resolver=False):
 
 
 def check_error(error, result):
-    return_code = error.get('code')
+    return_code = error.get("code")
     if return_code:
         assert result.returncode == return_code
 
-    stderr = error.get('stderr')
+    stderr = error.get("stderr")
     if not stderr:
         return
 
@@ -142,8 +139,7 @@ def check_error(error, result):
 
     for patter in patters:
         match = re.search(patter, result.stderr, re.I)
-        assert match, 'regex %r not found in stderr: %r' % (
-            stderr, result.stderr)
+        assert match, "regex %r not found in stderr: %r" % (stderr, result.stderr)
 
 
 @pytest.mark.yaml
@@ -155,9 +151,9 @@ def test_yaml_based(script, case):
     requests = case.get("request", [])
     responses = case.get("response", [])
 
-    assert len(requests) == len(responses), (
-        "Expected requests and responses counts to be same"
-    )
+    assert len(requests) == len(
+        responses
+    ), "Expected requests and responses counts to be same"
 
     # Create a custom index of all the packages that are supposed to be
     # available
@@ -173,30 +169,34 @@ def test_yaml_based(script, case):
     # use scratch path for index
     for request, response in zip(requests, responses):
 
-        for action in 'install', 'uninstall':
+        for action in "install", "uninstall":
             if action in request:
                 break
         else:
             raise "Unsupported request {!r}".format(request)
 
         # Perform the requested action
-        effect = handle_request(script, action,
-                                request[action],
-                                request.get('options', '').split(),
-                                case[':resolver:'] == 'new')
-        result = effect['result']
+        effect = handle_request(
+            script,
+            action,
+            request[action],
+            request.get("options", "").split(),
+            case[":resolver:"] == "new",
+        )
+        result = effect["result"]
 
         if 0:  # for analyzing output easier
-            with open(DATA_DIR.parent / "yaml" /
-                      case[':name:'].replace('*', '-'), 'w') as fo:
+            with open(
+                DATA_DIR.parent / "yaml" / case[":name:"].replace("*", "-"), "w"
+            ) as fo:
                 fo.write("=== RETURNCODE = %d\n" % result.returncode)
                 fo.write("=== STDERR ===:\n%s\n" % result.stderr)
 
-        if 'state' in response:
-            assert effect['state'] == (response['state'] or []), str(result)
+        if "state" in response:
+            assert effect["state"] == (response["state"] or []), str(result)
 
-        error = response.get('error')
-        if error and case[":resolver:"] == 'new' and sys.platform != 'win32':
+        error = response.get("error")
+        if error and case[":resolver:"] == "new" and sys.platform != "win32":
             # Note: we currently skip running these tests on Windows, as they
             # were failing due to different error codes.  There should not
             # be a reason for not running these this check on Windows.
