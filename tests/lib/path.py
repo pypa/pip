@@ -15,7 +15,6 @@ except ImportError:
     supports_fd = set()
 
 
-
 _base = six.text_type if os.path.supports_unicode_filenames else str
 
 
@@ -170,7 +169,7 @@ class Path(_base):
 
     # TODO: Remove after removing inheritance from str.
     def join(self, *parts):
-        raise RuntimeError('Path.join is invalid, use joinpath instead.')
+        raise RuntimeError("Path.join is invalid, use joinpath instead.")
 
     def read_bytes(self):
         # type: () -> bytes
@@ -200,5 +199,6 @@ class Path(_base):
 
     def stat(self):
         return os.stat(self)
+
 
 curdir = Path(os.path.curdir)
