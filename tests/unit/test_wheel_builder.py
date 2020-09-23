@@ -14,11 +14,9 @@ from tests.lib import _create_test_package
     [
         # Trivial.
         ("pip-18.0", True),
-
         # Ambiguous.
         ("foo-2-2", True),
         ("im-valid", True),
-
         # Invalid.
         ("invalid", False),
         ("im_invalid", False),
@@ -30,7 +28,6 @@ def test_contains_egg_info(s, expected):
 
 
 class ReqMock:
-
     def __init__(
         self,
         name="pendulum",
@@ -128,9 +125,7 @@ def test_should_cache(req, expected):
 
 def test_should_cache_git_sha(script, tmpdir):
     repo_path = _create_test_package(script, name="mypkg")
-    commit = script.run(
-        "git", "rev-parse", "HEAD", cwd=repo_path
-    ).stdout.strip()
+    commit = script.run("git", "rev-parse", "HEAD", cwd=repo_path).stdout.strip()
 
     # a link referencing a sha should be cached
     url = "git+https://g.c/o/r@" + commit + "#egg=mypkg"
@@ -147,44 +142,47 @@ def test_format_command_result__INFO(caplog):
     caplog.set_level(logging.INFO)
     actual = format_command_result(
         # Include an argument with a space to test argument quoting.
-        command_args=['arg1', 'second arg'],
-        command_output='output line 1\noutput line 2\n',
+        command_args=["arg1", "second arg"],
+        command_output="output line 1\noutput line 2\n",
     )
     assert actual.splitlines() == [
         "Command arguments: arg1 'second arg'",
-        'Command output: [use --verbose to show]',
+        "Command output: [use --verbose to show]",
     ]
 
 
-@pytest.mark.parametrize('command_output', [
-    # Test trailing newline.
-    'output line 1\noutput line 2\n',
-    # Test no trailing newline.
-    'output line 1\noutput line 2',
-])
+@pytest.mark.parametrize(
+    "command_output",
+    [
+        # Test trailing newline.
+        "output line 1\noutput line 2\n",
+        # Test no trailing newline.
+        "output line 1\noutput line 2",
+    ],
+)
 def test_format_command_result__DEBUG(caplog, command_output):
     caplog.set_level(logging.DEBUG)
     actual = format_command_result(
-        command_args=['arg1', 'arg2'],
+        command_args=["arg1", "arg2"],
         command_output=command_output,
     )
     assert actual.splitlines() == [
         "Command arguments: arg1 arg2",
-        'Command output:',
-        'output line 1',
-        'output line 2',
-        '----------------------------------------',
+        "Command output:",
+        "output line 1",
+        "output line 2",
+        "----------------------------------------",
     ]
 
 
-@pytest.mark.parametrize('log_level', ['DEBUG', 'INFO'])
+@pytest.mark.parametrize("log_level", ["DEBUG", "INFO"])
 def test_format_command_result__empty_output(caplog, log_level):
     caplog.set_level(log_level)
     actual = format_command_result(
-        command_args=['arg1', 'arg2'],
-        command_output='',
+        command_args=["arg1", "arg2"],
+        command_output="",
     )
     assert actual.splitlines() == [
         "Command arguments: arg1 arg2",
-        'Command output: None',
+        "Command output: None",
     ]
