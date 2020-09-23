@@ -1105,7 +1105,7 @@ The big change in this release is to the pip dependency resolver
 within pip.
 
 Computers need to know the right order to install pieces of software
-("to install `x`, you need to install `y` first"). So, when Python
+("to install ``x``, you need to install ``y`` first"). So, when Python
 programmers share software as packages, they have to precisely describe
 those installation prerequisites, and pip needs to navigate tricky
 situations where it's getting conflicting instructions. This new
