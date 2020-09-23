@@ -53,7 +53,7 @@ if MYPY_CHECK_RUNNING:
     AuthInfo = Tuple[Optional[str], Optional[str]]
 
 
-__all__ = ['vcs']
+__all__ = ["vcs"]
 
 
 logger = logging.getLogger(__name__)
@@ -67,7 +67,7 @@ def is_url(name):
     scheme = get_url_scheme(name)
     if scheme is None:
         return False
-    return scheme in ['http', 'https', 'file', 'ftp'] + vcs.all_schemes
+    return scheme in ["http", "https", "file", "ftp"] + vcs.all_schemes
 
 
 def make_vcs_requirement_url(repo_url, rev, project_name, subdir=None):
@@ -80,9 +80,9 @@ def make_vcs_requirement_url(repo_url, rev, project_name, subdir=None):
       project_name: the (unescaped) project name.
     """
     egg_project_name = pkg_resources.to_filename(project_name)
-    req = '{}@{}#egg={}'.format(repo_url, rev, egg_project_name)
+    req = "{}@{}#egg={}".format(repo_url, rev, egg_project_name)
     if subdir:
-        req += '&subdirectory={}'.format(subdir)
+        req += "&subdirectory={}".format(subdir)
 
     return req
 
@@ -92,7 +92,7 @@ def call_subprocess(
     cwd=None,  # type: Optional[str]
     extra_environ=None,  # type: Optional[Mapping[str, Any]]
     extra_ok_returncodes=None,  # type: Optional[Iterable[int]]
-    log_failed_cmd=True  # type: Optional[bool]
+    log_failed_cmd=True,  # type: Optional[bool]
 ):
     # type: (...) -> Text
     """
@@ -122,14 +122,16 @@ def call_subprocess(
             reveal_command_args(cmd),
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            cwd=cwd
+            cwd=cwd,
         )
         if proc.stdin:
             proc.stdin.close()
     except Exception as exc:
         if log_failed_cmd:
             subprocess_logger.critical(
-                "Error %s while executing command %s", exc, command_desc,
+                "Error %s while executing command %s",
+                exc,
+                command_desc,
             )
         raise
     all_output = []
@@ -141,7 +143,7 @@ def call_subprocess(
         if not line:
             break
         line = line.rstrip()
-        all_output.append(line + '\n')
+        all_output.append(line + "\n")
 
         # Show the line immediately.
         log_subprocess(line)
@@ -151,9 +153,7 @@ def call_subprocess(
         if proc.stdout:
             proc.stdout.close()
 
-    proc_had_error = (
-        proc.returncode and proc.returncode not in extra_ok_returncodes
-    )
+    proc_had_error = proc.returncode and proc.returncode not in extra_ok_returncodes
     if proc_had_error:
         if not showing_subprocess and log_failed_cmd:
             # Then the subprocess streams haven't been logged to the
@@ -166,11 +166,11 @@ def call_subprocess(
             )
             subprocess_logger.error(msg)
         exc_msg = (
-            'Command errored out with exit status {}: {} '
-            'Check the logs for full command output.'
+            "Command errored out with exit status {}: {} "
+            "Check the logs for full command output."
         ).format(proc.returncode, command_desc)
         raise SubProcessError(exc_msg)
-    return ''.join(all_output)
+    return "".join(all_output)
 
 
 def find_path_to_setup_from_repo_root(location, repo_root):
@@ -182,7 +182,7 @@ def find_path_to_setup_from_repo_root(location, repo_root):
     """
     # find setup.py
     orig_location = location
-    while not os.path.exists(os.path.join(location, 'setup.py')):
+    while not os.path.exists(os.path.join(location, "setup.py")):
         last_location = location
         location = os.path.dirname(location)
         if location == last_location:
@@ -237,7 +237,7 @@ class RevOptions(object):
 
     def __repr__(self):
         # type: () -> str
-        return '<RevOptions {}: rev={!r}>'.format(self.vc_class.name, self.rev)
+        return "<RevOptions {}: rev={!r}>".format(self.vc_class.name, self.rev)
 
     @property
     def arg_rev(self):
@@ -263,9 +263,9 @@ class RevOptions(object):
     def to_display(self):
         # type: () -> str
         if not self.rev:
-            return ''
+            return ""
 
-        return ' (to revision {})'.format(self.rev)
+        return " (to revision {})".format(self.rev)
 
     def make_new(self, rev):
         # type: (str) -> RevOptions
@@ -280,7 +280,7 @@ class RevOptions(object):
 
 class VcsSupport(object):
     _registry = {}  # type: Dict[str, VersionControl]
-    schemes = ['ssh', 'git', 'hg', 'bzr', 'sftp', 'svn']
+    schemes = ["ssh", "git", "hg", "bzr", "sftp", "svn"]
 
     def __init__(self):
         # type: () -> None
@@ -288,7 +288,7 @@ class VcsSupport(object):
         # systems
         urllib_parse.uses_netloc.extend(self.schemes)
         # Python >= 2.7.4, 3.3 doesn't have uses_fragment
-        if getattr(urllib_parse, 'uses_fragment', None):
+        if getattr(urllib_parse, "uses_fragment", None):
             urllib_parse.uses_fragment.extend(self.schemes)
         super(VcsSupport, self).__init__()
 
@@ -316,12 +316,12 @@ class VcsSupport(object):
 
     def register(self, cls):
         # type: (Type[VersionControl]) -> None
-        if not hasattr(cls, 'name'):
-            logger.warning('Cannot register VCS %s', cls.__name__)
+        if not hasattr(cls, "name"):
+            logger.warning("Cannot register VCS %s", cls.__name__)
             return
         if cls.name not in self._registry:
             self._registry[cls.name] = cls()
-            logger.debug('Registered VCS backend: %s', cls.name)
+            logger.debug("Registered VCS backend: %s", cls.name)
 
     def unregister(self, name):
         # type: (str) -> None
@@ -339,8 +339,7 @@ class VcsSupport(object):
             repo_path = vcs_backend.get_repository_root(location)
             if not repo_path:
                 continue
-            logger.debug('Determine that %s uses VCS: %s',
-                         location, vcs_backend.name)
+            logger.debug("Determine that %s uses VCS: %s", location, vcs_backend.name)
             vcs_backends[repo_path] = vcs_backend
 
         if not vcs_backends:
@@ -376,9 +375,9 @@ vcs = VcsSupport()
 
 
 class VersionControl(object):
-    name = ''
-    dirname = ''
-    repo_name = ''
+    name = ""
+    dirname = ""
+    repo_name = ""
     # List of supported schemes for this Version Control
     schemes = ()  # type: Tuple[str, ...]
     # Iterable of environment variable names to pass to call_subprocess().
@@ -392,7 +391,7 @@ class VersionControl(object):
         Return whether the vcs prefix (e.g. "git+") should be added to a
         repository's remote url when used in a requirement.
         """
-        return not remote_url.lower().startswith('{}:'.format(cls.name))
+        return not remote_url.lower().startswith("{}:".format(cls.name))
 
     @classmethod
     def get_subdirectory(cls, location):
@@ -430,12 +429,11 @@ class VersionControl(object):
             return None
 
         if cls.should_add_vcs_url_prefix(repo_url):
-            repo_url = '{}+{}'.format(cls.name, repo_url)
+            repo_url = "{}+{}".format(cls.name, repo_url)
 
         revision = cls.get_requirement_revision(repo_dir)
         subdir = cls.get_subdirectory(repo_dir)
-        req = make_vcs_requirement_url(repo_url, revision, project_name,
-                                       subdir=subdir)
+        req = make_vcs_requirement_url(repo_url, revision, project_name, subdir=subdir)
 
         return req
 
@@ -480,8 +478,8 @@ class VersionControl(object):
     def _is_local_repository(cls, repo):
         # type: (str) -> bool
         """
-           posix absolute paths start with os.path.sep,
-           win32 ones start with drive (like c:\\folder)
+        posix absolute paths start with os.path.sep,
+        win32 ones start with drive (like c:\\folder)
         """
         drive, tail = os.path.splitdrive(repo)
         return repo.startswith(os.path.sep) or bool(drive)
@@ -526,25 +524,25 @@ class VersionControl(object):
         Returns: (url, rev, (username, password)).
         """
         scheme, netloc, path, query, frag = urllib_parse.urlsplit(url)
-        if '+' not in scheme:
+        if "+" not in scheme:
             raise ValueError(
                 "Sorry, {!r} is a malformed VCS url. "
                 "The format is <vcs>+<protocol>://<url>, "
                 "e.g. svn+http://myrepo/svn/MyApp#egg=MyApp".format(url)
             )
         # Remove the vcs prefix.
-        scheme = scheme.split('+', 1)[1]
+        scheme = scheme.split("+", 1)[1]
         netloc, user_pass = cls.get_netloc_and_auth(netloc, scheme)
         rev = None
-        if '@' in path:
-            path, rev = path.rsplit('@', 1)
+        if "@" in path:
+            path, rev = path.rsplit("@", 1)
             if not rev:
                 raise InstallationError(
                     "The URL {!r} has an empty revision (after @) "
                     "which is not supported. Include a revision after @ "
                     "or remove @ from the URL.".format(url)
                 )
-        url = urllib_parse.urlunsplit((scheme, netloc, path, query, ''))
+        url = urllib_parse.urlunsplit((scheme, netloc, path, query, ""))
         return url, rev, user_pass
 
     @staticmethod
@@ -578,7 +576,7 @@ class VersionControl(object):
         Normalize a URL for comparison by unquoting it and removing any
         trailing slash.
         """
-        return urllib_parse.unquote(url).rstrip('/')
+        return urllib_parse.unquote(url).rstrip("/")
 
     @classmethod
     def compare_urls(cls, url1, url2):
@@ -586,7 +584,7 @@ class VersionControl(object):
         """
         Compare two repo URLs for identity, ignoring incidental differences.
         """
-        return (cls.normalize_url(url1) == cls.normalize_url(url2))
+        return cls.normalize_url(url1) == cls.normalize_url(url2)
 
     def fetch_new(self, dest, url, rev_options):
         # type: (str, HiddenText, RevOptions) -> None
@@ -652,73 +650,72 @@ class VersionControl(object):
             existing_url = self.get_remote_url(dest)
             if self.compare_urls(existing_url, url.secret):
                 logger.debug(
-                    '%s in %s exists, and has correct URL (%s)',
+                    "%s in %s exists, and has correct URL (%s)",
                     self.repo_name.title(),
                     display_path(dest),
                     url,
                 )
                 if not self.is_commit_id_equal(dest, rev_options.rev):
                     logger.info(
-                        'Updating %s %s%s',
+                        "Updating %s %s%s",
                         display_path(dest),
                         self.repo_name,
                         rev_display,
                     )
                     self.update(dest, url, rev_options)
                 else:
-                    logger.info('Skipping because already up-to-date.')
+                    logger.info("Skipping because already up-to-date.")
                 return
 
             logger.warning(
-                '%s %s in %s exists with URL %s',
+                "%s %s in %s exists with URL %s",
                 self.name,
                 self.repo_name,
                 display_path(dest),
                 existing_url,
             )
-            prompt = ('(s)witch, (i)gnore, (w)ipe, (b)ackup ',
-                      ('s', 'i', 'w', 'b'))
+            prompt = ("(s)witch, (i)gnore, (w)ipe, (b)ackup ", ("s", "i", "w", "b"))
         else:
             logger.warning(
-                'Directory %s already exists, and is not a %s %s.',
+                "Directory %s already exists, and is not a %s %s.",
                 dest,
                 self.name,
                 self.repo_name,
             )
             # https://github.com/python/mypy/issues/1174
-            prompt = ('(i)gnore, (w)ipe, (b)ackup ',  # type: ignore
-                      ('i', 'w', 'b'))
+            prompt = ("(i)gnore, (w)ipe, (b)ackup ", ("i", "w", "b"))  # type: ignore
 
         logger.warning(
-            'The plan is to install the %s repository %s',
+            "The plan is to install the %s repository %s",
             self.name,
             url,
         )
-        response = ask_path_exists('What to do?  {}'.format(
-            prompt[0]), prompt[1])
+        response = ask_path_exists("What to do?  {}".format(prompt[0]), prompt[1])
 
-        if response == 'a':
+        if response == "a":
             sys.exit(-1)
 
-        if response == 'w':
-            logger.warning('Deleting %s', display_path(dest))
+        if response == "w":
+            logger.warning("Deleting %s", display_path(dest))
             rmtree(dest)
             self.fetch_new(dest, url, rev_options)
             return
 
-        if response == 'b':
+        if response == "b":
             dest_dir = backup_dir(dest)
             logger.warning(
-                'Backing up %s to %s', display_path(dest), dest_dir,
+                "Backing up %s to %s",
+                display_path(dest),
+                dest_dir,
             )
             shutil.move(dest, dest_dir)
             self.fetch_new(dest, url, rev_options)
             return
 
         # Do nothing if the response is "i".
-        if response == 's':
+        if response == "s":
             logger.info(
-                'Switching %s %s to %s%s',
+                "Switching %s %s to %s%s",
                 self.repo_name,
                 display_path(dest),
                 url,
@@ -764,7 +761,7 @@ class VersionControl(object):
         cwd=None,  # type: Optional[str]
         extra_environ=None,  # type: Optional[Mapping[str, Any]]
         extra_ok_returncodes=None,  # type: Optional[Iterable[int]]
-        log_failed_cmd=True  # type: bool
+        log_failed_cmd=True,  # type: bool
     ):
         # type: (...) -> Text
         """
@@ -774,18 +771,22 @@ class VersionControl(object):
         """
         cmd = make_command(cls.name, *cmd)
         try:
-            return call_subprocess(cmd, cwd,
-                                   extra_environ=extra_environ,
-                                   extra_ok_returncodes=extra_ok_returncodes,
-                                   log_failed_cmd=log_failed_cmd)
+            return call_subprocess(
+                cmd,
+                cwd,
+                extra_environ=extra_environ,
+                extra_ok_returncodes=extra_ok_returncodes,
+                log_failed_cmd=log_failed_cmd,
+            )
         except OSError as e:
             # errno.ENOENT = no such file or directory
             # In other words, the VCS executable isn't available
             if e.errno == errno.ENOENT:
                 raise BadCommand(
-                    'Cannot find command {cls.name!r} - do you have '
-                    '{cls.name!r} installed and in your '
-                    'PATH?'.format(**locals()))
+                    "Cannot find command {cls.name!r} - do you have "
+                    "{cls.name!r} installed and in your "
+                    "PATH?".format(**locals())
+                )
             else:
                 raise  # re-raise exception if a different error occurred
 
@@ -795,8 +796,7 @@ class VersionControl(object):
         """
         Return whether a directory path is a repository directory.
         """
-        logger.debug('Checking in %s for %s (%s)...',
-                     path, cls.dirname, cls.name)
+        logger.debug("Checking in %s for %s (%s)...", path, cls.dirname, cls.name)
         return os.path.exists(os.path.join(path, cls.dirname))
 
     @classmethod
