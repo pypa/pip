@@ -52,13 +52,14 @@ else:
 
 
 _log_state = threading.local()
-subprocess_logger = getLogger('pip.subprocessor')
+subprocess_logger = getLogger("pip.subprocessor")
 
 
 class BrokenStdoutLoggingError(Exception):
     """
     Raised if BrokenPipeError occurs for the stdout stream while logging.
     """
+
     pass
 
 
@@ -69,21 +70,27 @@ if WINDOWS:
     # https://bugs.python.org/issue19612
     # https://bugs.python.org/issue30418
     if PY2:
+
         def _is_broken_pipe_error(exc_class, exc):
             """See the docstring for non-Windows Python 3 below."""
-            return (exc_class is IOError and
-                    exc.errno in (errno.EINVAL, errno.EPIPE))
+            return exc_class is IOError and exc.errno in (errno.EINVAL, errno.EPIPE)
+
     else:
         # In Windows, a broken pipe IOError became OSError in Python 3.
         def _is_broken_pipe_error(exc_class, exc):
             """See the docstring for non-Windows Python 3 below."""
-            return ((exc_class is BrokenPipeError) or  # noqa: F821
-                    (exc_class is OSError and
-                     exc.errno in (errno.EINVAL, errno.EPIPE)))
+            return (exc_class is BrokenPipeError) or (  # noqa: F821
+                exc_class is OSError and exc.errno in (errno.EINVAL, errno.EPIPE)
+            )
+
+
 elif PY2:
+
     def _is_broken_pipe_error(exc_class, exc):
         """See the docstring for non-Windows Python 3 below."""
-        return (exc_class is IOError and exc.errno == errno.EPIPE)
+        return exc_class is IOError and exc.errno == errno.EPIPE
+
+
 else:
     # Then we are in the non-Windows Python 3 case.
     def _is_broken_pipe_error(exc_class, exc):
@@ -94,7 +101,7 @@ else:
           exc_class: an exception class.
           exc: an exception instance.
         """
-        return (exc_class is BrokenPipeError)  # noqa: F821
+        return exc_class is BrokenPipeError  # noqa: F821
 
 
 @contextlib.contextmanager
@@ -113,11 +120,10 @@ def indent_log(num=2):
 
 
 def get_indentation():
-    return getattr(_log_state, 'indentation', 0)
+    return getattr(_log_state, "indentation", 0)
 
 
 class IndentingFormatter(logging.Formatter):
-
     def __init__(self, *args, **kwargs):
         """
         A logging.Formatter that obeys the indent_log() context manager.
@@ -134,15 +140,15 @@ class IndentingFormatter(logging.Formatter):
         prefix to add to each line).
         """
         if levelno < logging.WARNING:
-            return ''
+            return ""
         if formatted.startswith(DEPRECATION_MSG_PREFIX):
             # Then the message already has a prefix.  We don't want it to
             # look like "WARNING: DEPRECATION: ...."
-            return ''
+            return ""
         if levelno < logging.ERROR:
-            return 'WARNING: '
+            return "WARNING: "
 
-        return 'ERROR: '
+        return "ERROR: "
 
     def format(self, record):
         """
@@ -153,22 +159,20 @@ class IndentingFormatter(logging.Formatter):
         message_start = self.get_message_start(formatted, record.levelno)
         formatted = message_start + formatted
 
-        prefix = ''
+        prefix = ""
         if self.add_timestamp:
             # TODO: Use Formatter.default_time_format after dropping PY2.
             t = self.formatTime(record, "%Y-%m-%dT%H:%M:%S")
-            prefix = '{t},{record.msecs:03.0f} '.format(**locals())
+            prefix = "{t},{record.msecs:03.0f} ".format(**locals())
         prefix += " " * get_indentation()
-        formatted = "".join([
-            prefix + line
-            for line in formatted.splitlines(True)
-        ])
+        formatted = "".join([prefix + line for line in formatted.splitlines(True)])
         return formatted
 
 
 def _color_wrap(*colors):
     def wrapped(inp):
         return "".join(list(colors) + [inp, colorama.Style.RESET_ALL])
+
     return wrapped
 
 
@@ -207,7 +211,8 @@ class ColorizedStreamHandler(logging.StreamHandler):
             return False
 
         real_stream = (
-            self.stream if not isinstance(self.stream, colorama.AnsiToWin32)
+            self.stream
+            if not isinstance(self.stream, colorama.AnsiToWin32)
             else self.stream.wrapped
         )
 
@@ -240,22 +245,19 @@ class ColorizedStreamHandler(logging.StreamHandler):
         # stdout stream in logging's Handler.emit(), then raise our special
         # exception so we can handle it in main() instead of logging the
         # broken pipe error and continuing.
-        if (exc_class and self._using_stdout() and
-                _is_broken_pipe_error(exc_class, exc)):
+        if exc_class and self._using_stdout() and _is_broken_pipe_error(exc_class, exc):
             raise BrokenStdoutLoggingError()
 
         return super(ColorizedStreamHandler, self).handleError(record)
 
 
 class BetterRotatingFileHandler(logging.handlers.RotatingFileHandler):
-
     def _open(self):
         ensure_dir(os.path.dirname(self.baseFilename))
         return logging.handlers.RotatingFileHandler._open(self)
 
 
 class MaxLevelFilter(Filter):
-
     def __init__(self, level):
         self.level = level
 
@@ -322,78 +324,76 @@ def setup_logging(verbosity, no_color, user_log_file):
         ["user_log"] if include_user_log else []
     )
 
-    logging.config.dictConfig({
-        "version": 1,
-        "disable_existing_loggers": False,
-        "filters": {
-            "exclude_warnings": {
-                "()": "pip._internal.utils.logging.MaxLevelFilter",
-                "level": logging.WARNING,
+    logging.config.dictConfig(
+        {
+            "version": 1,
+            "disable_existing_loggers": False,
+            "filters": {
+                "exclude_warnings": {
+                    "()": "pip._internal.utils.logging.MaxLevelFilter",
+                    "level": logging.WARNING,
+                },
+                "restrict_to_subprocess": {
+                    "()": "logging.Filter",
+                    "name": subprocess_logger.name,
+                },
+                "exclude_subprocess": {
+                    "()": "pip._internal.utils.logging.ExcludeLoggerFilter",
+                    "name": subprocess_logger.name,
+                },
             },
-            "restrict_to_subprocess": {
-                "()": "logging.Filter",
-                "name": subprocess_logger.name,
+            "formatters": {
+                "indent": {
+                    "()": IndentingFormatter,
+                    "format": "%(message)s",
+                },
+                "indent_with_timestamp": {
+                    "()": IndentingFormatter,
+                    "format": "%(message)s",
+                    "add_timestamp": True,
+                },
             },
-            "exclude_subprocess": {
-                "()": "pip._internal.utils.logging.ExcludeLoggerFilter",
-                "name": subprocess_logger.name,
+            "handlers": {
+                "console": {
+                    "level": level,
+                    "class": handler_classes["stream"],
+                    "no_color": no_color,
+                    "stream": log_streams["stdout"],
+                    "filters": ["exclude_subprocess", "exclude_warnings"],
+                    "formatter": "indent",
+                },
+                "console_errors": {
+                    "level": "WARNING",
+                    "class": handler_classes["stream"],
+                    "no_color": no_color,
+                    "stream": log_streams["stderr"],
+                    "filters": ["exclude_subprocess"],
+                    "formatter": "indent",
+                },
+                # A handler responsible for logging to the console messages
+                # from the "subprocessor" logger.
+                "console_subprocess": {
+                    "level": level,
+                    "class": handler_classes["stream"],
+                    "no_color": no_color,
+                    "stream": log_streams["stderr"],
+                    "filters": ["restrict_to_subprocess"],
+                    "formatter": "indent",
+                },
+                "user_log": {
+                    "level": "DEBUG",
+                    "class": handler_classes["file"],
+                    "filename": additional_log_file,
+                    "delay": True,
+                    "formatter": "indent_with_timestamp",
+                },
             },
-        },
-        "formatters": {
-            "indent": {
-                "()": IndentingFormatter,
-                "format": "%(message)s",
+            "root": {
+                "level": root_level,
+                "handlers": handlers,
             },
-            "indent_with_timestamp": {
-                "()": IndentingFormatter,
-                "format": "%(message)s",
-                "add_timestamp": True,
-            },
-        },
-        "handlers": {
-            "console": {
-                "level": level,
-                "class": handler_classes["stream"],
-                "no_color": no_color,
-                "stream": log_streams["stdout"],
-                "filters": ["exclude_subprocess", "exclude_warnings"],
-                "formatter": "indent",
-            },
-            "console_errors": {
-                "level": "WARNING",
-                "class": handler_classes["stream"],
-                "no_color": no_color,
-                "stream": log_streams["stderr"],
-                "filters": ["exclude_subprocess"],
-                "formatter": "indent",
-            },
-            # A handler responsible for logging to the console messages
-            # from the "subprocessor" logger.
-            "console_subprocess": {
-                "level": level,
-                "class": handler_classes["stream"],
-                "no_color": no_color,
-                "stream": log_streams["stderr"],
-                "filters": ["restrict_to_subprocess"],
-                "formatter": "indent",
-            },
-            "user_log": {
-                "level": "DEBUG",
-                "class": handler_classes["file"],
-                "filename": additional_log_file,
-                "delay": True,
-                "formatter": "indent_with_timestamp",
-            },
-        },
-        "root": {
-            "level": root_level,
-            "handlers": handlers,
-        },
-        "loggers": {
-            "pip._vendor": {
-                "level": vendored_log_level
-            }
-        },
-    })
+            "loggers": {"pip._vendor": {"level": vendored_log_level}},
+        }
+    )
 
     return level_number
