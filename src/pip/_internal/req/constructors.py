@@ -159,7 +159,7 @@ def deduce_helpful_msg(req):
     """
     msg = ""
     if os.path.exists(req):
-        msg = " It does exist."
+        msg = " The path does exist. "
         # Try to parse and check if it is a requirements file.
         try:
             with open(req, 'r') as fp:
