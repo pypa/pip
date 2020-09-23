@@ -29,11 +29,16 @@ logger = logging.getLogger(__name__)
 
 
 class Mercurial(VersionControl):
-    name = 'hg'
-    dirname = '.hg'
-    repo_name = 'clone'
+    name = "hg"
+    dirname = ".hg"
+    repo_name = "clone"
     schemes = (
-        'hg', 'hg+file', 'hg+http', 'hg+https', 'hg+ssh', 'hg+static-http',
+        "hg",
+        "hg+file",
+        "hg+http",
+        "hg+https",
+        "hg+ssh",
+        "hg+static-http",
     )
 
     @staticmethod
@@ -46,53 +51,51 @@ class Mercurial(VersionControl):
         with TempDirectory(kind="export") as temp_dir:
             self.unpack(temp_dir.path, url=url)
 
-            self.run_command(
-                ['archive', location], cwd=temp_dir.path
-            )
+            self.run_command(["archive", location], cwd=temp_dir.path)
 
     def fetch_new(self, dest, url, rev_options):
         # type: (str, HiddenText, RevOptions) -> None
         rev_display = rev_options.to_display()
         logger.info(
-            'Cloning hg %s%s to %s',
+            "Cloning hg %s%s to %s",
             url,
             rev_display,
             display_path(dest),
         )
-        self.run_command(make_command('clone', '--noupdate', '-q', url, dest))
+        self.run_command(make_command("clone", "--noupdate", "-q", url, dest))
         self.run_command(
-            make_command('update', '-q', rev_options.to_args()),
+            make_command("update", "-q", rev_options.to_args()),
             cwd=dest,
         )
 
     def switch(self, dest, url, rev_options):
         # type: (str, HiddenText, RevOptions) -> None
-        repo_config = os.path.join(dest, self.dirname, 'hgrc')
+        repo_config = os.path.join(dest, self.dirname, "hgrc")
         config = configparser.RawConfigParser()
         try:
             config.read(repo_config)
-            config.set('paths', 'default', url.secret)
-            with open(repo_config, 'w') as config_file:
+            config.set("paths", "default", url.secret)
+            with open(repo_config, "w") as config_file:
                 config.write(config_file)
         except (OSError, configparser.NoSectionError) as exc:
             logger.warning(
-                'Could not switch Mercurial repository to %s: %s', url, exc,
+                "Could not switch Mercurial repository to %s: %s",
+                url,
+                exc,
             )
         else:
-            cmd_args = make_command('update', '-q', rev_options.to_args())
+            cmd_args = make_command("update", "-q", rev_options.to_args())
             self.run_command(cmd_args, cwd=dest)
 
     def update(self, dest, url, rev_options):
         # type: (str, HiddenText, RevOptions) -> None
-        self.run_command(['pull', '-q'], cwd=dest)
-        cmd_args = make_command('update', '-q', rev_options.to_args())
+        self.run_command(["pull", "-q"], cwd=dest)
+        cmd_args = make_command("update", "-q", rev_options.to_args())
         self.run_command(cmd_args, cwd=dest)
 
     @classmethod
     def get_remote_url(cls, location):
-        url = cls.run_command(
-            ['showconfig', 'paths.default'],
-            cwd=location).strip()
+        url = cls.run_command(["showconfig", "paths.default"], cwd=location).strip()
         if cls._is_local_repository(url):
             url = path_to_url(url)
         return url.strip()
@@ -103,7 +106,8 @@ class Mercurial(VersionControl):
         Return the repository-local changeset revision number, as an integer.
         """
         current_revision = cls.run_command(
-            ['parents', '--template={rev}'], cwd=location).strip()
+            ["parents", "--template={rev}"], cwd=location
+        ).strip()
         return current_revision
 
     @classmethod
@@ -113,8 +117,8 @@ class Mercurial(VersionControl):
         hexadecimal string
         """
         current_rev_hash = cls.run_command(
-            ['parents', '--template={node}'],
-            cwd=location).strip()
+            ["parents", "--template={node}"], cwd=location
+        ).strip()
         return current_rev_hash
 
     @classmethod
@@ -129,8 +133,7 @@ class Mercurial(VersionControl):
         Return None if setup.py is in the repo root.
         """
         # find the repo root
-        repo_root = cls.run_command(
-            ['root'], cwd=location).strip()
+        repo_root = cls.run_command(["root"], cwd=location).strip()
         if not os.path.isabs(repo_root):
             repo_root = os.path.abspath(os.path.join(location, repo_root))
         return find_path_to_setup_from_repo_root(location, repo_root)
@@ -142,17 +145,20 @@ class Mercurial(VersionControl):
             return loc
         try:
             r = cls.run_command(
-                ['root'],
+                ["root"],
                 cwd=location,
                 log_failed_cmd=False,
             )
         except BadCommand:
-            logger.debug("could not determine if %s is under hg control "
-                         "because hg is not available", location)
+            logger.debug(
+                "could not determine if %s is under hg control "
+                "because hg is not available",
+                location,
+            )
             return None
         except SubProcessError:
             return None
-        return os.path.normpath(r.rstrip('\r\n'))
+        return os.path.normpath(r.rstrip("\r\n"))
 
 
 vcs.register(Mercurial)
