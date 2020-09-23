@@ -8,8 +8,7 @@ if MYPY_CHECK_RUNNING:
 
 
 class FormatControl(object):
-    """Helper for managing formats from which a package can be installed.
-    """
+    """Helper for managing formats from which a package can be installed."""
 
     __slots__ = ["no_binary", "only_binary"]
 
@@ -31,10 +30,7 @@ class FormatControl(object):
         if self.__slots__ != other.__slots__:
             return False
 
-        return all(
-            getattr(self, k) == getattr(other, k)
-            for k in self.__slots__
-        )
+        return all(getattr(self, k) == getattr(other, k) for k in self.__slots__)
 
     def __ne__(self, other):
         # type: (object) -> bool
@@ -43,29 +39,27 @@ class FormatControl(object):
     def __repr__(self):
         # type: () -> str
         return "{}({}, {})".format(
-            self.__class__.__name__,
-            self.no_binary,
-            self.only_binary
+            self.__class__.__name__, self.no_binary, self.only_binary
         )
 
     @staticmethod
     def handle_mutual_excludes(value, target, other):
         # type: (str, Set[str], Set[str]) -> None
-        if value.startswith('-'):
+        if value.startswith("-"):
             raise CommandError(
                 "--no-binary / --only-binary option requires 1 argument."
             )
-        new = value.split(',')
-        while ':all:' in new:
+        new = value.split(",")
+        while ":all:" in new:
             other.clear()
             target.clear()
-            target.add(':all:')
-            del new[:new.index(':all:') + 1]
+            target.add(":all:")
+            del new[: new.index(":all:") + 1]
             # Without a none, we want to discard everything as :all: covers it
-            if ':none:' not in new:
+            if ":none:" not in new:
                 return
         for name in new:
-            if name == ':none:':
+            if name == ":none:":
                 target.clear()
                 continue
             name = canonicalize_name(name)
@@ -76,17 +70,19 @@ class FormatControl(object):
         # type: (str) -> FrozenSet[str]
         result = {"binary", "source"}
         if canonical_name in self.only_binary:
-            result.discard('source')
+            result.discard("source")
         elif canonical_name in self.no_binary:
-            result.discard('binary')
-        elif ':all:' in self.only_binary:
-            result.discard('source')
-        elif ':all:' in self.no_binary:
-            result.discard('binary')
+            result.discard("binary")
+        elif ":all:" in self.only_binary:
+            result.discard("source")
+        elif ":all:" in self.no_binary:
+            result.discard("binary")
         return frozenset(result)
 
     def disallow_binaries(self):
         # type: () -> None
         self.handle_mutual_excludes(
-            ':all:', self.no_binary, self.only_binary,
+            ":all:",
+            self.no_binary,
+            self.only_binary,
         )
