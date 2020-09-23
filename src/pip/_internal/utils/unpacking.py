@@ -32,16 +32,18 @@ SUPPORTED_EXTENSIONS = ZIP_EXTENSIONS + TAR_EXTENSIONS
 
 try:
     import bz2  # noqa
+
     SUPPORTED_EXTENSIONS += BZ2_EXTENSIONS
 except ImportError:
-    logger.debug('bz2 module is not available')
+    logger.debug("bz2 module is not available")
 
 try:
     # Only for Python 3.3+
     import lzma  # noqa
+
     SUPPORTED_EXTENSIONS += XZ_EXTENSIONS
 except ImportError:
-    logger.debug('lzma module is not available')
+    logger.debug("lzma module is not available")
 
 
 def current_umask():
@@ -54,18 +56,15 @@ def current_umask():
 
 def split_leading_dir(path):
     # type: (Union[str, Text]) -> List[Union[str, Text]]
-    path = path.lstrip('/').lstrip('\\')
-    if (
-        '/' in path and (
-            ('\\' in path and path.find('/') < path.find('\\')) or
-            '\\' not in path
-        )
+    path = path.lstrip("/").lstrip("\\")
+    if "/" in path and (
+        ("\\" in path and path.find("/") < path.find("\\")) or "\\" not in path
     ):
-        return path.split('/', 1)
-    elif '\\' in path:
-        return path.split('\\', 1)
+        return path.split("/", 1)
+    elif "\\" in path:
+        return path.split("\\", 1)
     else:
-        return [path, '']
+        return [path, ""]
 
 
 def has_leading_dir(paths):
@@ -124,7 +123,7 @@ def unzip_file(filename, location, flatten=True):
     no-ops per the python docs.
     """
     ensure_dir(location)
-    zipfp = open(filename, 'rb')
+    zipfp = open(filename, "rb")
     try:
         zip = zipfile.ZipFile(zipfp, allowZip64=True)
         leading = has_leading_dir(zip.namelist()) and flatten
@@ -137,11 +136,11 @@ def unzip_file(filename, location, flatten=True):
             dir = os.path.dirname(fn)
             if not is_within_directory(location, fn):
                 message = (
-                    'The zip file ({}) has a file ({}) trying to install '
-                    'outside target directory ({})'
+                    "The zip file ({}) has a file ({}) trying to install "
+                    "outside target directory ({})"
                 )
                 raise InstallationError(message.format(filename, fn, location))
-            if fn.endswith('/') or fn.endswith('\\'):
+            if fn.endswith("/") or fn.endswith("\\"):
                 # A directory
                 ensure_dir(fn)
             else:
@@ -150,7 +149,7 @@ def unzip_file(filename, location, flatten=True):
                 # chunk of memory for the file's content
                 fp = zip.open(name)
                 try:
-                    with open(fn, 'wb') as destfp:
+                    with open(fn, "wb") as destfp:
                         shutil.copyfileobj(fp, destfp)
                 finally:
                     fp.close()
@@ -171,24 +170,23 @@ def untar_file(filename, location):
     no-ops per the python docs.
     """
     ensure_dir(location)
-    if filename.lower().endswith('.gz') or filename.lower().endswith('.tgz'):
-        mode = 'r:gz'
+    if filename.lower().endswith(".gz") or filename.lower().endswith(".tgz"):
+        mode = "r:gz"
     elif filename.lower().endswith(BZ2_EXTENSIONS):
-        mode = 'r:bz2'
+        mode = "r:bz2"
     elif filename.lower().endswith(XZ_EXTENSIONS):
-        mode = 'r:xz'
-    elif filename.lower().endswith('.tar'):
-        mode = 'r'
+        mode = "r:xz"
+    elif filename.lower().endswith(".tar"):
+        mode = "r"
     else:
         logger.warning(
-            'Cannot determine compression type for file %s', filename,
+            "Cannot determine compression type for file %s",
+            filename,
         )
-        mode = 'r:*'
+        mode = "r:*"
     tar = tarfile.open(filename, mode)
     try:
-        leading = has_leading_dir([
-            member.name for member in tar.getmembers()
-        ])
+        leading = has_leading_dir([member.name for member in tar.getmembers()])
         for member in tar.getmembers():
             fn = member.name
             if leading:
@@ -197,12 +195,10 @@ def untar_file(filename, location):
             path = os.path.join(location, fn)
             if not is_within_directory(location, path):
                 message = (
-                    'The tar file ({}) has a file ({}) trying to install '
-                    'outside target directory ({})'
+                    "The tar file ({}) has a file ({}) trying to install "
+                    "outside target directory ({})"
                 )
-                raise InstallationError(
-                    message.format(filename, path, location)
-                )
+                raise InstallationError(message.format(filename, path, location))
             if member.isdir():
                 ensure_dir(path)
             elif member.issym():
@@ -213,8 +209,10 @@ def untar_file(filename, location):
                     # Some corrupt tar files seem to produce this
                     # (specifically bad symlinks)
                     logger.warning(
-                        'In the tar file %s the member %s is invalid: %s',
-                        filename, member.name, exc,
+                        "In the tar file %s the member %s is invalid: %s",
+                        filename,
+                        member.name,
+                        exc,
                     )
                     continue
             else:
@@ -224,13 +222,15 @@ def untar_file(filename, location):
                     # Some corrupt tar files seem to produce this
                     # (specifically bad symlinks)
                     logger.warning(
-                        'In the tar file %s the member %s is invalid: %s',
-                        filename, member.name, exc,
+                        "In the tar file %s the member %s is invalid: %s",
+                        filename,
+                        member.name,
+                        exc,
                     )
                     continue
                 ensure_dir(os.path.dirname(path))
                 assert fp is not None
-                with open(path, 'wb') as destfp:
+                with open(path, "wb") as destfp:
                     shutil.copyfileobj(fp, destfp)
                 fp.close()
                 # Update the timestamp (useful for cython compiled files)
@@ -244,38 +244,34 @@ def untar_file(filename, location):
 
 
 def unpack_file(
-        filename,  # type: str
-        location,  # type: str
-        content_type=None,  # type: Optional[str]
+    filename,  # type: str
+    location,  # type: str
+    content_type=None,  # type: Optional[str]
 ):
     # type: (...) -> None
     filename = os.path.realpath(filename)
     if (
-        content_type == 'application/zip' or
-        filename.lower().endswith(ZIP_EXTENSIONS) or
-        zipfile.is_zipfile(filename)
+        content_type == "application/zip"
+        or filename.lower().endswith(ZIP_EXTENSIONS)
+        or zipfile.is_zipfile(filename)
     ):
-        unzip_file(
-            filename,
-            location,
-            flatten=not filename.endswith('.whl')
-        )
+        unzip_file(filename, location, flatten=not filename.endswith(".whl"))
     elif (
-        content_type == 'application/x-gzip' or
-        tarfile.is_tarfile(filename) or
-        filename.lower().endswith(
-            TAR_EXTENSIONS + BZ2_EXTENSIONS + XZ_EXTENSIONS
-        )
+        content_type == "application/x-gzip"
+        or tarfile.is_tarfile(filename)
+        or filename.lower().endswith(TAR_EXTENSIONS + BZ2_EXTENSIONS + XZ_EXTENSIONS)
     ):
         untar_file(filename, location)
     else:
         # FIXME: handle?
         # FIXME: magic signatures?
         logger.critical(
-            'Cannot unpack file %s (downloaded from %s, content-type: %s); '
-            'cannot detect archive format',
-            filename, location, content_type,
+            "Cannot unpack file %s (downloaded from %s, content-type: %s); "
+            "cannot detect archive format",
+            filename,
+            location,
+            content_type,
         )
         raise InstallationError(
-            'Cannot determine archive format of {}'.format(location)
+            "Cannot determine archive format of {}".format(location)
         )
