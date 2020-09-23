@@ -7,10 +7,7 @@ import textwrap
 import pytest
 
 from pip._internal.cli.status_codes import ERROR
-from pip._internal.configuration import (
-    CONFIG_BASENAME,
-    get_configuration_files,
-)
+from pip._internal.configuration import CONFIG_BASENAME, get_configuration_files
 from tests.lib.configuration_helpers import ConfigurationMixin, kinds
 
 

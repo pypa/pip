@@ -19,9 +19,7 @@ from pip._internal.models.direct_url import (
     DirectUrl,
 )
 from pip._internal.models.scheme import Scheme
-from pip._internal.operations.build.wheel_legacy import (
-    get_legacy_build_wheel_path,
-)
+from pip._internal.operations.build.wheel_legacy import get_legacy_build_wheel_path
 from pip._internal.operations.install import wheel
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import hash_file

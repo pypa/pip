@@ -8,10 +8,7 @@ from pip._vendor.packaging.tags import Tag
 from pkg_resources import parse_version
 
 import pip._internal.utils.compatibility_tags
-from pip._internal.exceptions import (
-    BestVersionAlreadyInstalled,
-    DistributionNotFound,
-)
+from pip._internal.exceptions import BestVersionAlreadyInstalled, DistributionNotFound
 from pip._internal.index.package_finder import (
     CandidateEvaluator,
     InstallationCandidate,

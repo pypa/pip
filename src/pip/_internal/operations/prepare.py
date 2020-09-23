@@ -12,9 +12,7 @@ import shutil
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.six import PY2
 
-from pip._internal.distributions import (
-    make_distribution_for_install_requirement,
-)
+from pip._internal.distributions import make_distribution_for_install_requirement
 from pip._internal.distributions.installed import InstalledDistribution
 from pip._internal.exceptions import (
     DirectoryUrlHashUnsupported,
@@ -34,12 +32,7 @@ from pip._internal.network.lazy_wheel import (
 from pip._internal.utils.filesystem import copy2_fixed
 from pip._internal.utils.hashes import MissingHashes
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.misc import (
-    display_path,
-    hide_url,
-    path_to_display,
-    rmtree,
-)
+from pip._internal.utils.misc import display_path, hide_url, path_to_display, rmtree
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.unpacking import unpack_file

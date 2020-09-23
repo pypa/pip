@@ -20,6 +20,7 @@ from itertools import tee
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.utils import canonicalize_name
+
 # NOTE: retrying is not annotated in typeshed as on 2017-07-17, which is
 #       why we ignore the type on this import.
 from pip._vendor.retrying import retry  # type: ignore
@@ -30,17 +31,8 @@ from pip._vendor.six.moves.urllib.parse import unquote as urllib_unquote
 
 from pip import __version__
 from pip._internal.exceptions import CommandError
-from pip._internal.locations import (
-    get_major_minor_version,
-    site_packages,
-    user_site,
-)
-from pip._internal.utils.compat import (
-    WINDOWS,
-    expanduser,
-    stdlib_pkgs,
-    str_to_display,
-)
+from pip._internal.locations import get_major_minor_version, site_packages, user_site
+from pip._internal.utils.compat import WINDOWS, expanduser, stdlib_pkgs, str_to_display
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING, cast
 from pip._internal.utils.virtualenv import (
     running_under_virtualenv,

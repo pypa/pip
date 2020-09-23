@@ -13,11 +13,7 @@ from pip._internal.network.session import PipSession
 from pip._internal.operations.prepare import _copy_source_tree, unpack_url
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.urls import path_to_url
-from tests.lib.filesystem import (
-    get_filelist,
-    make_socket_file,
-    make_unreadable_file,
-)
+from tests.lib.filesystem import get_filelist, make_socket_file, make_unreadable_file
 from tests.lib.path import Path
 from tests.lib.requests_mocks import MockResponse
 
