@@ -136,13 +136,21 @@ class Factory(object):
         if template.editable:
             if link not in self._editable_candidate_cache:
                 self._editable_candidate_cache[link] = EditableCandidate(
-                    link, template, factory=self, name=name, version=version,
+                    link,
+                    template,
+                    factory=self,
+                    name=name,
+                    version=version,
                 )
             base = self._editable_candidate_cache[link]  # type: BaseCandidate
         else:
             if link not in self._link_candidate_cache:
                 self._link_candidate_cache[link] = LinkCandidate(
-                    link, template, factory=self, name=name, version=version,
+                    link,
+                    template,
+                    factory=self,
+                    name=name,
+                    version=version,
                 )
             base = self._link_candidate_cache[link]
         if extras:
@@ -246,7 +254,8 @@ class Factory(object):
             )
 
         return (
-            c for c in explicit_candidates
+            c
+            for c in explicit_candidates
             if all(req.is_satisfied_by(c) for req in requirements)
         )
 
@@ -255,7 +264,8 @@ class Factory(object):
         if not ireq.match_markers(requested_extras):
             logger.info(
                 "Ignoring %s: markers '%s' don't match your environment",
-                ireq.name, ireq.markers,
+                ireq.name,
+                ireq.markers,
             )
             return None
         if not ireq.link:
@@ -339,7 +349,8 @@ class Factory(object):
             raise InstallationError(
                 "Will not install to the user site because it will "
                 "lack sys.path precedence to {} in {}".format(
-                    dist.project_name, dist.location,
+                    dist.project_name,
+                    dist.location,
                 )
             )
         return None
@@ -385,13 +396,13 @@ class Factory(object):
             if parent is None:
                 req_disp = str(req)
             else:
-                req_disp = '{} (from {})'.format(req, parent.name)
+                req_disp = "{} (from {})".format(req, parent.name)
             logger.critical(
                 "Could not find a version that satisfies the requirement %s",
                 req_disp,
             )
             return DistributionNotFound(
-                'No matching distribution found for {}'.format(req)
+                "No matching distribution found for {}".format(req)
             )
 
         # OK, we now have a list of requirements that can't all be
@@ -428,26 +439,28 @@ class Factory(object):
         else:
             info = "the requested packages"
 
-        msg = "Cannot install {} because these package versions " \
+        msg = (
+            "Cannot install {} because these package versions "
             "have conflicting dependencies.".format(info)
+        )
         logger.critical(msg)
         msg = "\nThe conflict is caused by:"
         for req, parent in e.causes:
             msg = msg + "\n    "
             if parent:
-                msg = msg + "{} {} depends on ".format(
-                    parent.name,
-                    parent.version
-                )
+                msg = msg + "{} {} depends on ".format(parent.name, parent.version)
             else:
                 msg = msg + "The user requested "
             msg = msg + req.format_for_error()
 
-        msg = msg + "\n\n" + \
-            "To fix this you could try to:\n" + \
-            "1. loosen the range of package versions you've specified\n" + \
-            "2. remove package versions to allow pip attempt to solve " + \
-            "the dependency conflict\n"
+        msg = (
+            msg
+            + "\n\n"
+            + "To fix this you could try to:\n"
+            + "1. loosen the range of package versions you've specified\n"
+            + "2. remove package versions to allow pip attempt to solve "
+            + "the dependency conflict\n"
+        )
 
         logger.info(msg)
 
