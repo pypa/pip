@@ -12,6 +12,7 @@ if MYPY_CHECK_RUNNING:
     from typing import BinaryIO, Dict, Iterator, List, NoReturn
 
     from pip._vendor.six import PY3
+
     if PY3:
         from hashlib import _Hash
     else:
@@ -20,12 +21,12 @@ if MYPY_CHECK_RUNNING:
 
 # The recommended hash algo of the moment. Change this whenever the state of
 # the art changes; it won't hurt backward compatibility.
-FAVORITE_HASH = 'sha256'
+FAVORITE_HASH = "sha256"
 
 
 # Names of hashlib algorithms allowed by the --hash option and ``pip hash``
 # Currently, those are the ones at least as collision-resistant as sha256.
-STRONG_HASHES = ['sha256', 'sha384', 'sha512']
+STRONG_HASHES = ["sha256", "sha384", "sha512"]
 
 
 class Hashes(object):
@@ -33,6 +34,7 @@ class Hashes(object):
     known-good values
 
     """
+
     def __init__(self, hashes=None):
         # type: (Dict[str, List[str]]) -> None
         """
@@ -68,7 +70,7 @@ class Hashes(object):
 
     def is_hash_allowed(
         self,
-        hash_name,   # type: str
+        hash_name,  # type: str
         hex_digest,  # type: str
     ):
         # type: (...) -> bool
@@ -88,9 +90,7 @@ class Hashes(object):
             try:
                 gots[hash_name] = hashlib.new(hash_name)
             except (ValueError, TypeError):
-                raise InstallationError(
-                    'Unknown hash name: {}'.format(hash_name)
-                )
+                raise InstallationError("Unknown hash name: {}".format(hash_name))
 
         for chunk in chunks:
             for hash in itervalues(gots):
@@ -116,7 +116,7 @@ class Hashes(object):
 
     def check_against_path(self, path):
         # type: (str) -> None
-        with open(path, 'rb') as file:
+        with open(path, "rb") as file:
             return self.check_against_file(file)
 
     def __nonzero__(self):
@@ -136,6 +136,7 @@ class MissingHashes(Hashes):
     exception showing it to the user.
 
     """
+
     def __init__(self):
         # type: () -> None
         """Don't offer the ``hashes`` kwarg."""
