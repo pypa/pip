@@ -19,7 +19,7 @@ class Wheel(object):
         r"""^(?P<namever>(?P<name>.+?)-(?P<ver>.*?))
         ((-(?P<build>\d[^-]*?))?-(?P<pyver>.+?)-(?P<abi>.+?)-(?P<plat>.+?)
         \.whl|\.dist-info)$""",
-        re.VERBOSE
+        re.VERBOSE,
     )
 
     def __init__(self, filename):
@@ -33,19 +33,18 @@ class Wheel(object):
                 "{} is not a valid wheel filename.".format(filename)
             )
         self.filename = filename
-        self.name = wheel_info.group('name').replace('_', '-')
+        self.name = wheel_info.group("name").replace("_", "-")
         # we'll assume "_" means "-" due to wheel naming scheme
         # (https://github.com/pypa/pip/issues/1150)
-        self.version = wheel_info.group('ver').replace('_', '-')
-        self.build_tag = wheel_info.group('build')
-        self.pyversions = wheel_info.group('pyver').split('.')
-        self.abis = wheel_info.group('abi').split('.')
-        self.plats = wheel_info.group('plat').split('.')
+        self.version = wheel_info.group("ver").replace("_", "-")
+        self.build_tag = wheel_info.group("build")
+        self.pyversions = wheel_info.group("pyver").split(".")
+        self.abis = wheel_info.group("abi").split(".")
+        self.plats = wheel_info.group("plat").split(".")
 
         # All the tag combinations from this file
         self.file_tags = {
-            Tag(x, y, z) for x in self.pyversions
-            for y in self.abis for z in self.plats
+            Tag(x, y, z) for x in self.pyversions for y in self.abis for z in self.plats
         }
 
     def get_formatted_file_tags(self):
