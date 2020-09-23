@@ -7,7 +7,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 if MYPY_CHECK_RUNNING:
     from typing import ContextManager, Iterator, TypeVar
 
-    _T = TypeVar('_T', covariant=True)
+    _T = TypeVar("_T", covariant=True)
 
 
 class CommandContextMixIn(object):
