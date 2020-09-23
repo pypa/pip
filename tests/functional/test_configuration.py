@@ -12,12 +12,11 @@ from tests.lib.configuration_helpers import ConfigurationMixin, kinds
 
 
 def test_no_options_passed_should_error(script):
-    result = script.pip('config', expect_error=True)
+    result = script.pip("config", expect_error=True)
     assert result.returncode == ERROR
 
 
 class TestBasicLoading(ConfigurationMixin):
-
     @pytest.mark.skip("Can't modify underlying file for any mode")
     def test_reads_file_appropriately(self, script):
         contents = """
@@ -47,10 +46,9 @@ class TestBasicLoading(ConfigurationMixin):
 
         result = script.pip("config", "list")
 
-        lines = list(filter(
-            lambda x: x.startswith("test.listing-"),
-            result.stdout.splitlines()
-        ))
+        lines = list(
+            filter(lambda x: x.startswith("test.listing-"), result.stdout.splitlines())
+        )
 
         expected = """
             test.listing-alpha='1'
@@ -61,8 +59,7 @@ class TestBasicLoading(ConfigurationMixin):
         assert lines == textwrap.dedent(expected).strip().splitlines()
 
     def test_forget_section(self, script):
-        result = script.pip("config", "set", "isolated", "true",
-                            expect_error=True)
+        result = script.pip("config", "set", "isolated", "true", expect_error=True)
         assert "global.isolated" in result.stderr
 
     def test_env_var_values(self, script):
@@ -72,7 +69,7 @@ class TestBasicLoading(ConfigurationMixin):
 
         env_vars = {
             "PIP_DEFAULT_TIMEOUT": "60",
-            "PIP_FIND_LINKS": "http://mirror.example.com"
+            "PIP_FIND_LINKS": "http://mirror.example.com",
         }
         script.environ.update(env_vars)
 
@@ -88,14 +85,18 @@ class TestBasicLoading(ConfigurationMixin):
         """
 
         config_file = script.scratch_path / "test-pip.cfg"
-        script.environ['PIP_CONFIG_FILE'] = str(config_file)
-        config_file.write_text(textwrap.dedent("""\
+        script.environ["PIP_CONFIG_FILE"] = str(config_file)
+        config_file.write_text(
+            textwrap.dedent(
+                """\
             [global]
             timeout = 60
 
             [freeze]
             timeout = 10
-            """))
+            """
+            )
+        )
 
         result = script.pip("config", "debug")
         assert "{}, exists: True".format(config_file) in result.stdout
@@ -103,7 +104,10 @@ class TestBasicLoading(ConfigurationMixin):
         assert "freeze.timeout: 10" in result.stdout
         assert re.search(r"env:\n(  .+\n)+", result.stdout)
 
-    def test_user_values(self, script,):
+    def test_user_values(
+        self,
+        script,
+    ):
         """Test that the user pip configuration set using --user
         is correctly displayed under "user".  This configuration takes place
         of custom path location using the environment variable PIP_CONFIG_FILE
