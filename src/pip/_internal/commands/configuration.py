@@ -52,38 +52,38 @@ class ConfigurationCommand(Command):
     def add_options(self):
         # type: () -> None
         self.cmd_opts.add_option(
-            '--editor',
-            dest='editor',
-            action='store',
+            "--editor",
+            dest="editor",
+            action="store",
             default=None,
             help=(
-                'Editor to use to edit the file. Uses VISUAL or EDITOR '
-                'environment variables if not provided.'
-            )
+                "Editor to use to edit the file. Uses VISUAL or EDITOR "
+                "environment variables if not provided."
+            ),
         )
 
         self.cmd_opts.add_option(
-            '--global',
-            dest='global_file',
-            action='store_true',
+            "--global",
+            dest="global_file",
+            action="store_true",
             default=False,
-            help='Use the system-wide configuration file only'
+            help="Use the system-wide configuration file only",
         )
 
         self.cmd_opts.add_option(
-            '--user',
-            dest='user_file',
-            action='store_true',
+            "--user",
+            dest="user_file",
+            action="store_true",
             default=False,
-            help='Use the user configuration file only'
+            help="Use the user configuration file only",
         )
 
         self.cmd_opts.add_option(
-            '--site',
-            dest='site_file',
-            action='store_true',
+            "--site",
+            dest="site_file",
+            action="store_true",
             default=False,
-            help='Use the current environment configuration file only'
+            help="Use the current environment configuration file only",
         )
 
         self.parser.insert_option_group(0, self.cmd_opts)
@@ -136,11 +136,15 @@ class ConfigurationCommand(Command):
 
     def _determine_file(self, options, need_value):
         # type: (Values, bool) -> Optional[Kind]
-        file_options = [key for key, value in (
-            (kinds.USER, options.user_file),
-            (kinds.GLOBAL, options.global_file),
-            (kinds.SITE, options.site_file),
-        ) if value]
+        file_options = [
+            key
+            for key, value in (
+                (kinds.USER, options.user_file),
+                (kinds.GLOBAL, options.global_file),
+                (kinds.SITE, options.site_file),
+            )
+            if value
+        ]
 
         if not file_options:
             if not need_value:
@@ -202,26 +206,24 @@ class ConfigurationCommand(Command):
             for fname in files:
                 with indent_log():
                     file_exists = os.path.exists(fname)
-                    write_output("%s, exists: %r",
-                                 fname, file_exists)
+                    write_output("%s, exists: %r", fname, file_exists)
                     if file_exists:
                         self.print_config_file_values(variant)
 
     def print_config_file_values(self, variant):
         # type: (Kind) -> None
         """Get key-value pairs from the file of a variant"""
-        for name, value in self.configuration.\
-                get_values_in_config(variant).items():
+        for name, value in self.configuration.get_values_in_config(variant).items():
             with indent_log():
                 write_output("%s: %s", name, value)
 
     def print_env_var_values(self):
         # type: () -> None
         """Get key-values pairs present as environment variables"""
-        write_output("%s:", 'env_var')
+        write_output("%s:", "env_var")
         with indent_log():
             for key, value in sorted(self.configuration.get_environ_vars()):
-                env_var = 'PIP_{}'.format(key.upper())
+                env_var = "PIP_{}".format(key.upper())
                 write_output("%s=%r", env_var, value)
 
     def open_in_editor(self, options, args):
@@ -236,17 +238,15 @@ class ConfigurationCommand(Command):
             subprocess.check_call([editor, fname])
         except subprocess.CalledProcessError as e:
             raise PipError(
-                "Editor Subprocess exited with exit code {}"
-                .format(e.returncode)
+                "Editor Subprocess exited with exit code {}".format(e.returncode)
             )
 
     def _get_n_args(self, args, example, n):
         # type: (List[str], str, int) -> Any
-        """Helper to make sure the command got the right number of arguments
-        """
+        """Helper to make sure the command got the right number of arguments"""
         if len(args) != n:
             msg = (
-                'Got unexpected number of arguments, expected {}. '
+                "Got unexpected number of arguments, expected {}. "
                 '(example: "{} config {}")'
             ).format(n, get_prog(), example)
             raise PipError(msg)
