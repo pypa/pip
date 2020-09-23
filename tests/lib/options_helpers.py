@@ -7,7 +7,6 @@ from pip._internal.commands import CommandInfo, commands_dict
 
 
 class FakeCommand(Command):
-
     def main(self, args):
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,
@@ -18,11 +17,12 @@ class FakeCommand(Command):
 
 
 class AddFakeCommandMixin(object):
-
     def setup(self):
-        commands_dict['fake'] = CommandInfo(
-            'tests.lib.options_helpers', 'FakeCommand', 'fake summary',
+        commands_dict["fake"] = CommandInfo(
+            "tests.lib.options_helpers",
+            "FakeCommand",
+            "fake summary",
         )
 
     def teardown(self):
-        commands_dict.pop('fake')
+        commands_dict.pop("fake")
