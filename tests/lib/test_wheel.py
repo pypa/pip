@@ -166,19 +166,20 @@ def test_make_wheel_default_record():
         record_bytes = z.read("simple-0.1.0.dist-info/RECORD")
         record_text = ensure_text(record_bytes)
         record_rows = list(csv.reader(record_text.splitlines()))
-        records = {
-            row[0]: row[1:] for row in record_rows
-        }
+        records = {row[0]: row[1:] for row in record_rows}
 
         expected = {
             "simple/__init__.py": [
-                "sha256=ypeBEsobvcr6wjGzmiPcTaeG7_gUfE5yuYB3ha_uSLs", "1"
+                "sha256=ypeBEsobvcr6wjGzmiPcTaeG7_gUfE5yuYB3ha_uSLs",
+                "1",
             ],
             "simple-0.1.0.data/purelib/info.txt": [
-                "sha256=Ln0sA6lQeuJl7PW1NWiFpTOTogKdJBOUmXJloaJa78Y", "1"
+                "sha256=Ln0sA6lQeuJl7PW1NWiFpTOTogKdJBOUmXJloaJa78Y",
+                "1",
             ],
             "simple-0.1.0.dist-info/LICENSE": [
-                "sha256=PiPoFgA5WUoziU9lZOGxNIu9egCI1CxKy3PurtWcAJ0", "1"
+                "sha256=PiPoFgA5WUoziU9lZOGxNIu9egCI1CxKy3PurtWcAJ0",
+                "1",
             ],
             "simple-0.1.0.dist-info/RECORD": ["", ""],
         }
