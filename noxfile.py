@@ -13,6 +13,7 @@ import nox
 
 sys.path.append(".")
 from tools.automation import release  # isort:skip  # noqa
+
 sys.path.pop()
 
 nox.options.reuse_existing_virtualenvs = True
@@ -76,13 +77,14 @@ def test(session):
         run_with_protected_pip(
             session,
             "wheel",
-            "-w", LOCATIONS["common-wheels"],
-            "-r", REQUIREMENTS["common-wheels"],
+            "-w",
+            LOCATIONS["common-wheels"],
+            "-r",
+            REQUIREMENTS["common-wheels"],
         )
     else:
-        msg = (
-            "Re-using existing common-wheels at {}."
-            .format(LOCATIONS["common-wheels"])
+        msg = "Re-using existing common-wheels at {}.".format(
+            LOCATIONS["common-wheels"]
         )
         session.log(msg)
 
@@ -91,8 +93,12 @@ def test(session):
     if os.path.exists(sdist_dir):
         shutil.rmtree(sdist_dir, ignore_errors=True)
     session.run(
-        "python", "setup.py", "sdist",
-        "--formats=zip", "--dist-dir", sdist_dir,
+        "python",
+        "setup.py",
+        "sdist",
+        "--formats=zip",
+        "--dist-dir",
+        sdist_dir,
         silent=True,
     )
     generated_files = os.listdir(sdist_dir)
@@ -127,9 +133,12 @@ def docs(session):
         return [
             "sphinx-build",
             "-W",
-            "-c", "docs/html",  # see note above
-            "-d", "docs/build/doctrees/" + kind,
-            "-b", kind,
+            "-c",
+            "docs/html",  # see note above
+            "-d",
+            "docs/build/doctrees/" + kind,
+            "-b",
+            kind,
             "docs/" + kind,
             "docs/build/" + kind,
         ]
@@ -174,7 +183,9 @@ def prepare_release(session):
     release.generate_authors(AUTHORS_FILE)
     if release.modified_files_in_git():
         release.commit_file(
-            session, AUTHORS_FILE, message=f"Update {AUTHORS_FILE}",
+            session,
+            AUTHORS_FILE,
+            message=f"Update {AUTHORS_FILE}",
         )
     else:
         session.log(f"# No changes to {AUTHORS_FILE}")
@@ -221,7 +232,7 @@ def build_release(session):
 
         tmp_dist_paths = (build_dir / p for p in tmp_dists)
         session.log(f"# Copying dists from {build_dir}")
-        os.makedirs('dist', exist_ok=True)
+        os.makedirs("dist", exist_ok=True)
         for dist, final in zip(tmp_dist_paths, tmp_dists):
             session.log(f"# Copying {dist} to {final}")
             shutil.copy(dist, final)
@@ -235,7 +246,7 @@ def build_dists(session):
 
     has_forbidden_git_untracked_files = any(
         # Don't report the environment this session is running in
-        not untracked_file.startswith('.nox/build-release/')
+        not untracked_file.startswith(".nox/build-release/")
         for untracked_file in release.get_git_untracked_files()
     )
     if has_forbidden_git_untracked_files:
@@ -280,9 +291,7 @@ def upload_release(session):
         f"pip-{version}.tar.gz",
     ]
     if sorted(distfile_names) != sorted(expected_distribution_files):
-        session.error(
-            f"Distribution files do not seem to be for {version} release."
-        )
+        session.error(f"Distribution files do not seem to be for {version} release.")
 
     session.log("# Upload distributions")
     session.run("twine", "upload", *distribution_files)
