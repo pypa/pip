@@ -9,8 +9,7 @@ if MYPY_CHECK_RUNNING:
 
 def make_distribution_for_install_requirement(install_req):
     # type: (InstallRequirement) -> AbstractDistribution
-    """Returns a Distribution for the given InstallRequirement
-    """
+    """Returns a Distribution for the given InstallRequirement"""
     # Editable requirements will always be source distributions. They use the
     # legacy logic until we create a modern standard for them.
     if install_req.editable:
