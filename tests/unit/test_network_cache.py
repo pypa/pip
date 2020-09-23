@@ -56,7 +56,5 @@ class TestSafeFileCache:
     def test_cache_hashes_are_same(self, cache_tmpdir):
         cache = SafeFileCache(cache_tmpdir)
         key = "test key"
-        fake_cache = Mock(
-            FileCache, directory=cache.directory, encode=FileCache.encode
-        )
+        fake_cache = Mock(FileCache, directory=cache.directory, encode=FileCache.encode)
         assert cache._get_cache_path(key) == FileCache._fn(fake_cache, key)
