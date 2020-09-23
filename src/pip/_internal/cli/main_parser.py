@@ -20,15 +20,14 @@ __all__ = ["create_main_parser", "parse_command"]
 
 def create_main_parser():
     # type: () -> ConfigOptionParser
-    """Creates and returns the main parser for pip's CLI
-    """
+    """Creates and returns the main parser for pip's CLI"""
 
     parser_kw = {
-        'usage': '\n%prog <command> [options]',
-        'add_help_option': False,
-        'formatter': UpdatingDefaultsHelpFormatter(),
-        'name': 'global',
-        'prog': get_prog(),
+        "usage": "\n%prog <command> [options]",
+        "add_help_option": False,
+        "formatter": UpdatingDefaultsHelpFormatter(),
+        "name": "global",
+        "prog": get_prog(),
     }
 
     parser = ConfigOptionParser(**parser_kw)
@@ -44,11 +43,11 @@ def create_main_parser():
     parser.main = True  # type: ignore
 
     # create command listing for description
-    description = [''] + [
-        '{name:27} {command_info.summary}'.format(**locals())
+    description = [""] + [
+        "{name:27} {command_info.summary}".format(**locals())
         for name, command_info in commands_dict.items()
     ]
-    parser.description = '\n'.join(description)
+    parser.description = "\n".join(description)
 
     return parser
 
@@ -73,7 +72,7 @@ def parse_command(args):
         sys.exit()
 
     # pip || pip help -> print_help()
-    if not args_else or (args_else[0] == 'help' and len(args_else) == 1):
+    if not args_else or (args_else[0] == "help" and len(args_else) == 1):
         parser.print_help()
         sys.exit()
 
@@ -87,7 +86,7 @@ def parse_command(args):
         if guess:
             msg.append('maybe you meant "{}"'.format(guess))
 
-        raise CommandError(' - '.join(msg))
+        raise CommandError(" - ".join(msg))
 
     # all the args without the subcommand
     cmd_args = args[:]
