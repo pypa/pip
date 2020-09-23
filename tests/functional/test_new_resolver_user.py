@@ -10,9 +10,12 @@ from tests.lib import create_basic_wheel_for_package
 def test_new_resolver_install_user(script):
     create_basic_wheel_for_package(script, "base", "0.1.0")
     result = script.pip(
-        "install", "--use-feature=2020-resolver",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
+        "install",
+        "--use-feature=2020-resolver",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
         "--user",
         "base",
     )
@@ -28,15 +31,21 @@ def test_new_resolver_install_user_satisfied_by_global_site(script):
     create_basic_wheel_for_package(script, "base", "1.0.0")
 
     script.pip(
-        "install", "--use-feature=2020-resolver",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
+        "install",
+        "--use-feature=2020-resolver",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
         "base==1.0.0",
     )
     result = script.pip(
-        "install", "--use-feature=2020-resolver",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
+        "install",
+        "--use-feature=2020-resolver",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
         "--user",
         "base==1.0.0",
     )
@@ -54,17 +63,23 @@ def test_new_resolver_install_user_conflict_in_user_site(script):
     create_basic_wheel_for_package(script, "base", "2.0.0")
 
     script.pip(
-        "install", "--use-feature=2020-resolver",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
+        "install",
+        "--use-feature=2020-resolver",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
         "--user",
         "base==2.0.0",
     )
 
     result = script.pip(
-        "install", "--use-feature=2020-resolver",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
+        "install",
+        "--use-feature=2020-resolver",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
         "--user",
         "base==1.0.0",
     )
@@ -82,15 +97,21 @@ def test_new_resolver_install_user_in_virtualenv_with_conflict_fails(script):
     create_basic_wheel_for_package(script, "base", "2.0.0")
 
     script.pip(
-        "install", "--use-feature=2020-resolver",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
+        "install",
+        "--use-feature=2020-resolver",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
         "base==2.0.0",
     )
     result = script.pip(
-        "install", "--use-feature=2020-resolver",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
+        "install",
+        "--use-feature=2020-resolver",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
         "--user",
         "base==1.0.0",
         expect_error=True,
@@ -109,13 +130,15 @@ def patch_dist_in_site_packages(virtualenv):
     # install to the usersite because it will lack sys.path precedence..."
     # error: Monkey patch `dist_in_site_packages` in the resolver module so
     # it's possible to install a conflicting distribution in the user site.
-    virtualenv.sitecustomize = textwrap.dedent("""
+    virtualenv.sitecustomize = textwrap.dedent(
+        """
         def dist_in_site_packages(dist):
             return False
 
         from pip._internal.resolution.resolvelib import factory
         factory.dist_in_site_packages = dist_in_site_packages
-    """)
+    """
+    )
 
 
 @pytest.mark.incompatible_with_test_venv
@@ -128,15 +151,21 @@ def test_new_resolver_install_user_reinstall_global_site(script):
     create_basic_wheel_for_package(script, "base", "1.0.0")
 
     script.pip(
-        "install", "--use-feature=2020-resolver",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
+        "install",
+        "--use-feature=2020-resolver",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
         "base==1.0.0",
     )
     result = script.pip(
-        "install", "--use-feature=2020-resolver",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
+        "install",
+        "--use-feature=2020-resolver",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
         "--user",
         "--force-reinstall",
         "base==1.0.0",
@@ -159,16 +188,22 @@ def test_new_resolver_install_user_conflict_in_global_site(script):
     create_basic_wheel_for_package(script, "base", "2.0.0")
 
     script.pip(
-        "install", "--use-feature=2020-resolver",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
+        "install",
+        "--use-feature=2020-resolver",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
         "base==1.0.0",
     )
 
     result = script.pip(
-        "install", "--use-feature=2020-resolver",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
+        "install",
+        "--use-feature=2020-resolver",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
         "--user",
         "base==2.0.0",
     )
@@ -191,24 +226,33 @@ def test_new_resolver_install_user_conflict_in_global_and_user_sites(script):
     create_basic_wheel_for_package(script, "base", "2.0.0")
 
     script.pip(
-        "install", "--use-feature=2020-resolver",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
+        "install",
+        "--use-feature=2020-resolver",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
         "base==2.0.0",
     )
     script.pip(
-        "install", "--use-feature=2020-resolver",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
+        "install",
+        "--use-feature=2020-resolver",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
         "--user",
         "--force-reinstall",
         "base==2.0.0",
     )
 
     result = script.pip(
-        "install", "--use-feature=2020-resolver",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
+        "install",
+        "--use-feature=2020-resolver",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
         "--user",
         "base==1.0.0",
     )
