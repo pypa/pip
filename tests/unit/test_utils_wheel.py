@@ -73,9 +73,7 @@ def test_wheel_dist_info_dir_wrong_name(tmpdir, zip_dir):
 
 
 def test_wheel_version_ok(tmpdir, data):
-    assert wheel.wheel_version(
-        message_from_string("Wheel-Version: 1.9")
-    ) == (1, 9)
+    assert wheel.wheel_version(message_from_string("Wheel-Version: 1.9")) == (1, 9)
 
 
 def test_wheel_metadata_fails_missing_wheel(tmpdir, zip_dir):
@@ -106,21 +104,22 @@ def test_wheel_version_fails_on_no_wheel_version():
     assert "missing Wheel-Version" in str(e.value)
 
 
-@pytest.mark.parametrize("version", [
-    ("",),
-    ("1.b",),
-    ("1.",),
-])
+@pytest.mark.parametrize(
+    "version",
+    [
+        ("",),
+        ("1.b",),
+        ("1.",),
+    ],
+)
 def test_wheel_version_fails_on_bad_wheel_version(version):
     with pytest.raises(UnsupportedWheel) as e:
-        wheel.wheel_version(
-            message_from_string("Wheel-Version: {}".format(version))
-        )
+        wheel.wheel_version(message_from_string("Wheel-Version: {}".format(version)))
     assert "invalid Wheel-Version" in str(e.value)
 
 
 def test_check_compatibility():
-    name = 'test'
+    name = "test"
     vc = wheel.VERSION_COMPATIBLE
 
     # Major version is higher - should be incompatible
@@ -129,7 +128,7 @@ def test_check_compatibility():
     # test raises with correct error
     with pytest.raises(UnsupportedWheel) as e:
         wheel.check_compatibility(higher_v, name)
-    assert 'is not compatible' in str(e)
+    assert "is not compatible" in str(e)
 
     # Should only log.warning - minor version is greater
     higher_v = (vc[0], vc[1] + 1)
