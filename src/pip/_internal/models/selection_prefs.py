@@ -12,8 +12,13 @@ class SelectionPreferences(object):
     and installing files.
     """
 
-    __slots__ = ['allow_yanked', 'allow_all_prereleases', 'format_control',
-                 'prefer_binary', 'ignore_requires_python']
+    __slots__ = [
+        "allow_yanked",
+        "allow_all_prereleases",
+        "format_control",
+        "prefer_binary",
+        "ignore_requires_python",
+    ]
 
     # Don't include an allow_yanked default value to make sure each call
     # site considers whether yanked releases are allowed. This also causes
@@ -23,8 +28,8 @@ class SelectionPreferences(object):
         self,
         allow_yanked,  # type: bool
         allow_all_prereleases=False,  # type: bool
-        format_control=None,          # type: Optional[FormatControl]
-        prefer_binary=False,          # type: bool
+        format_control=None,  # type: Optional[FormatControl]
+        prefer_binary=False,  # type: bool
         ignore_requires_python=None,  # type: Optional[bool]
     ):
         # type: (...) -> None
