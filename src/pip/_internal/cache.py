@@ -37,11 +37,11 @@ class Cache(object):
     """An abstract class - provides cache directories for data from links
 
 
-        :param cache_dir: The root of the cache.
-        :param format_control: An object of FormatControl class to limit
-            binaries being read from the cache.
-        :param allowed_formats: which formats of files the cache should store.
-            ('binary' and 'source' are the only allowed values)
+    :param cache_dir: The root of the cache.
+    :param format_control: An object of FormatControl class to limit
+        binaries being read from the cache.
+    :param allowed_formats: which formats of files the cache should store.
+        ('binary' and 'source' are the only allowed values)
     """
 
     def __init__(self, cache_dir, format_control, allowed_formats):
@@ -85,8 +85,7 @@ class Cache(object):
 
     def _get_cache_path_parts(self, link):
         # type: (Link) -> List[str]
-        """Get parts of part that must be os.path.joined with cache_dir
-        """
+        """Get parts of part that must be os.path.joined with cache_dir"""
 
         # We want to generate an url to use as our cache key, we don't want to
         # just re-use the URL because it might have other items in the fragment
@@ -120,17 +119,11 @@ class Cache(object):
 
     def _get_candidates(self, link, canonical_package_name):
         # type: (Link, str) -> List[Any]
-        can_not_cache = (
-            not self.cache_dir or
-            not canonical_package_name or
-            not link
-        )
+        can_not_cache = not self.cache_dir or not canonical_package_name or not link
         if can_not_cache:
             return []
 
-        formats = self.format_control.get_allowed_formats(
-            canonical_package_name
-        )
+        formats = self.format_control.get_allowed_formats(canonical_package_name)
         if not self.allowed_formats.intersection(formats):
             return []
 
@@ -152,14 +145,13 @@ class Cache(object):
 
     def get_path_for_link(self, link):
         # type: (Link) -> str
-        """Return a directory to store cached items in for link.
-        """
+        """Return a directory to store cached items in for link."""
         raise NotImplementedError()
 
     def get(
         self,
-        link,            # type: Link
-        package_name,    # type: Optional[str]
+        link,  # type: Link
+        package_name,  # type: Optional[str]
         supported_tags,  # type: List[Tag]
     ):
         # type: (...) -> Link
@@ -170,14 +162,11 @@ class Cache(object):
 
 
 class SimpleWheelCache(Cache):
-    """A cache of wheels for future installs.
-    """
+    """A cache of wheels for future installs."""
 
     def __init__(self, cache_dir, format_control):
         # type: (str, FormatControl) -> None
-        super(SimpleWheelCache, self).__init__(
-            cache_dir, format_control, {"binary"}
-        )
+        super(SimpleWheelCache, self).__init__(cache_dir, format_control, {"binary"})
 
     def get_path_for_link_legacy(self, link):
         # type: (Link) -> str
@@ -208,8 +197,8 @@ class SimpleWheelCache(Cache):
 
     def get(
         self,
-        link,            # type: Link
-        package_name,    # type: Optional[str]
+        link,  # type: Link
+        package_name,  # type: Optional[str]
         supported_tags,  # type: List[Tag]
     ):
         # type: (...) -> Link
@@ -219,9 +208,7 @@ class SimpleWheelCache(Cache):
             return link
 
         canonical_package_name = canonicalize_name(package_name)
-        for wheel_name, wheel_dir in self._get_candidates(
-            link, canonical_package_name
-        ):
+        for wheel_name, wheel_dir in self._get_candidates(link, canonical_package_name):
             try:
                 wheel = Wheel(wheel_name)
             except InvalidWheelFilename:
@@ -230,7 +217,9 @@ class SimpleWheelCache(Cache):
                 logger.debug(
                     "Ignoring cached wheel %s for %s as it "
                     "does not match the expected distribution name %s.",
-                    wheel_name, link, package_name,
+                    wheel_name,
+                    link,
+                    package_name,
                 )
                 continue
             if not wheel.supported(supported_tags):
@@ -252,8 +241,7 @@ class SimpleWheelCache(Cache):
 
 
 class EphemWheelCache(SimpleWheelCache):
-    """A SimpleWheelCache that creates it's own temporary cache directory
-    """
+    """A SimpleWheelCache that creates it's own temporary cache directory"""
 
     def __init__(self, format_control):
         # type: (FormatControl) -> None
@@ -262,9 +250,7 @@ class EphemWheelCache(SimpleWheelCache):
             globally_managed=True,
         )
 
-        super(EphemWheelCache, self).__init__(
-            self._temp_dir.path, format_control
-        )
+        super(EphemWheelCache, self).__init__(self._temp_dir.path, format_control)
 
 
 class CacheEntry(object):
@@ -286,9 +272,7 @@ class WheelCache(Cache):
 
     def __init__(self, cache_dir, format_control):
         # type: (str, FormatControl) -> None
-        super(WheelCache, self).__init__(
-            cache_dir, format_control, {'binary'}
-        )
+        super(WheelCache, self).__init__(cache_dir, format_control, {"binary"})
         self._wheel_cache = SimpleWheelCache(cache_dir, format_control)
         self._ephem_cache = EphemWheelCache(format_control)
 
@@ -306,8 +290,8 @@ class WheelCache(Cache):
 
     def get(
         self,
-        link,            # type: Link
-        package_name,    # type: Optional[str]
+        link,  # type: Link
+        package_name,  # type: Optional[str]
         supported_tags,  # type: List[Tag]
     ):
         # type: (...) -> Link
@@ -318,8 +302,8 @@ class WheelCache(Cache):
 
     def get_cache_entry(
         self,
-        link,            # type: Link
-        package_name,    # type: Optional[str]
+        link,  # type: Link
+        package_name,  # type: Optional[str]
         supported_tags,  # type: List[Tag]
     ):
         # type: (...) -> Optional[CacheEntry]
