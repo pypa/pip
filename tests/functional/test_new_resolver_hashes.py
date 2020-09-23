@@ -7,7 +7,8 @@ from pip._internal.utils.urls import path_to_url
 from tests.lib import create_basic_sdist_for_package, create_basic_wheel_for_package
 
 _FindLinks = collections.namedtuple(
-    "_FindLinks", "index_html sdist_hash wheel_hash",
+    "_FindLinks",
+    "index_html sdist_hash wheel_hash",
 )
 
 
@@ -76,9 +77,11 @@ def test_new_resolver_hash_intersect(script, requirements_template, message):
         "--no-cache-dir",
         "--no-deps",
         "--no-index",
-        "--find-links", find_links.index_html,
+        "--find-links",
+        find_links.index_html,
         "--verbose",
-        "--requirement", requirements_txt,
+        "--requirement",
+        requirements_txt,
     )
 
     assert message.format(name=u"base") in result.stdout, str(result)
@@ -109,10 +112,13 @@ def test_new_resolver_hash_intersect_from_constraint(script):
         "--no-cache-dir",
         "--no-deps",
         "--no-index",
-        "--find-links", find_links.index_html,
+        "--find-links",
+        find_links.index_html,
         "--verbose",
-        "--constraint", constraints_txt,
-        "--requirement", requirements_txt,
+        "--constraint",
+        constraints_txt,
+        "--requirement",
+        requirements_txt,
     )
 
     message = (
@@ -140,7 +146,9 @@ def test_new_resolver_hash_intersect_from_constraint(script):
     ids=["both-requirements", "one-each"],
 )
 def test_new_resolver_hash_intersect_empty(
-    script, requirements_template, constraints_template,
+    script,
+    requirements_template,
+    constraints_template,
 ):
     find_links = _create_find_links(script)
 
@@ -166,9 +174,12 @@ def test_new_resolver_hash_intersect_empty(
         "--no-cache-dir",
         "--no-deps",
         "--no-index",
-        "--find-links", find_links.index_html,
-        "--constraint", constraints_txt,
-        "--requirement", requirements_txt,
+        "--find-links",
+        find_links.index_html,
+        "--constraint",
+        constraints_txt,
+        "--requirement",
+        requirements_txt,
         expect_error=True,
     )
 
@@ -197,8 +208,10 @@ def test_new_resolver_hash_intersect_empty_from_constraint(script):
         "--no-cache-dir",
         "--no-deps",
         "--no-index",
-        "--find-links", find_links.index_html,
-        "--constraint", constraints_txt,
+        "--find-links",
+        find_links.index_html,
+        "--constraint",
+        constraints_txt,
         "base==0.1.0",
         expect_error=True,
     )
