@@ -187,7 +187,7 @@ no_color = partial(
     dest='no_color',
     action='store_true',
     default=False,
-    help="Suppress colored output",
+    help="Suppress colored output.",
 )  # type: Callable[..., Option]
 
 version = partial(
