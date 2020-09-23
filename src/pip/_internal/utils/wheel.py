@@ -37,6 +37,7 @@ class WheelMetadata(DictMetadata):
     """Metadata provider that maps metadata decoding exceptions to our
     internal exception type.
     """
+
     def __init__(self, metadata, wheel_name):
         # type: (Dict[str, bytes], str) -> None
         super(WheelMetadata, self).__init__(metadata)
@@ -49,9 +50,7 @@ class WheelMetadata(DictMetadata):
         except UnicodeDecodeError as e:
             # Augment the default error with the origin of the file.
             raise UnsupportedWheel(
-                "Error decoding metadata for {}: {}".format(
-                    self._wheel_name, e
-                )
+                "Error decoding metadata for {}: {}".format(self._wheel_name, e)
             )
 
 
@@ -81,15 +80,11 @@ def pkg_resources_distribution_for_wheel(wheel_zip, name, location):
                 wheel_zip, full_path
             )
         except UnsupportedWheel as e:
-            raise UnsupportedWheel(
-                "{} has an invalid wheel, {}".format(name, str(e))
-            )
+            raise UnsupportedWheel("{} has an invalid wheel, {}".format(name, str(e)))
 
     metadata = WheelMetadata(metadata_text, location)
 
-    return DistInfoDistribution(
-        location=location, metadata=metadata, project_name=name
-    )
+    return DistInfoDistribution(location=location, metadata=metadata, project_name=name)
 
 
 def parse_wheel(wheel_zip, name):
@@ -104,9 +99,7 @@ def parse_wheel(wheel_zip, name):
         metadata = wheel_metadata(wheel_zip, info_dir)
         version = wheel_version(metadata)
     except UnsupportedWheel as e:
-        raise UnsupportedWheel(
-            "{} has an invalid wheel, {}".format(name, str(e))
-        )
+        raise UnsupportedWheel("{} has an invalid wheel, {}".format(name, str(e)))
 
     check_compatibility(version, name)
 
@@ -123,16 +116,14 @@ def wheel_dist_info_dir(source, name):
     # Zip file path separators must be /
     subdirs = set(p.split("/", 1)[0] for p in source.namelist())
 
-    info_dirs = [s for s in subdirs if s.endswith('.dist-info')]
+    info_dirs = [s for s in subdirs if s.endswith(".dist-info")]
 
     if not info_dirs:
         raise UnsupportedWheel(".dist-info directory not found")
 
     if len(info_dirs) > 1:
         raise UnsupportedWheel(
-            "multiple .dist-info directories found: {}".format(
-                ", ".join(info_dirs)
-            )
+            "multiple .dist-info directories found: {}".format(", ".join(info_dirs))
         )
 
     info_dir = info_dirs[0]
@@ -158,9 +149,7 @@ def read_wheel_metadata_file(source, path):
         # BadZipFile for general corruption, KeyError for missing entry,
         # and RuntimeError for password-protected files
     except (BadZipFile, KeyError, RuntimeError) as e:
-        raise UnsupportedWheel(
-            "could not read {!r} file: {!r}".format(path, e)
-        )
+        raise UnsupportedWheel("could not read {!r} file: {!r}".format(path, e))
 
 
 def wheel_metadata(source, dist_info_dir):
@@ -195,7 +184,7 @@ def wheel_version(wheel_data):
     version = version_text.strip()
 
     try:
-        return tuple(map(int, version.split('.')))
+        return tuple(map(int, version.split(".")))
     except ValueError:
         raise UnsupportedWheel("invalid Wheel-Version: {!r}".format(version))
 
@@ -216,10 +205,10 @@ def check_compatibility(version, name):
     if version[0] > VERSION_COMPATIBLE[0]:
         raise UnsupportedWheel(
             "{}'s Wheel-Version ({}) is not compatible with this version "
-            "of pip".format(name, '.'.join(map(str, version)))
+            "of pip".format(name, ".".join(map(str, version)))
         )
     elif version > VERSION_COMPATIBLE:
         logger.warning(
-            'Installing from a newer Wheel-Version (%s)',
-            '.'.join(map(str, version)),
+            "Installing from a newer Wheel-Version (%s)",
+            ".".join(map(str, version)),
         )
