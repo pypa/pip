@@ -11,9 +11,11 @@ def test_simple_extras_install_from_pypi(script):
     Test installing a package from PyPI using extras dependency Paste[openid].
     """
     result = script.pip(
-        'install', 'Paste[openid]==1.7.5.1', expect_stderr=True,
+        "install",
+        "Paste[openid]==1.7.5.1",
+        expect_stderr=True,
     )
-    initools_folder = script.site_packages / 'openid'
+    initools_folder = script.site_packages / "openid"
     result.did_create(initools_folder)
 
 
@@ -21,17 +23,25 @@ def test_extras_after_wheel(script, data):
     """
     Test installing a package with extras after installing from a wheel.
     """
-    simple = script.site_packages / 'simple'
+    simple = script.site_packages / "simple"
 
     no_extra = script.pip(
-        'install', '--no-index', '-f', data.find_links,
-        'requires_simple_extra', expect_stderr=True,
+        "install",
+        "--no-index",
+        "-f",
+        data.find_links,
+        "requires_simple_extra",
+        expect_stderr=True,
     )
     no_extra.did_not_create(simple)
 
     extra = script.pip(
-        'install', '--no-index', '-f', data.find_links,
-        'requires_simple_extra[extra]', expect_stderr=True,
+        "install",
+        "--no-index",
+        "-f",
+        data.find_links,
+        "requires_simple_extra[extra]",
+        expect_stderr=True,
     )
     extra.did_create(simple)
 
@@ -42,13 +52,15 @@ def test_no_extras_uninstall(script):
     No extras dependency gets uninstalled when the root package is uninstalled
     """
     result = script.pip(
-        'install', 'Paste[openid]==1.7.5.1', expect_stderr=True,
+        "install",
+        "Paste[openid]==1.7.5.1",
+        expect_stderr=True,
     )
-    result.did_create(join(script.site_packages, 'paste'))
-    result.did_create(join(script.site_packages, 'openid'))
-    result2 = script.pip('uninstall', 'Paste', '-y')
+    result.did_create(join(script.site_packages, "paste"))
+    result.did_create(join(script.site_packages, "openid"))
+    result2 = script.pip("uninstall", "Paste", "-y")
     # openid should not be uninstalled
-    initools_folder = script.site_packages / 'openid'
+    initools_folder = script.site_packages / "openid"
     assert initools_folder not in result2.files_deleted, result.files_deleted
 
 
@@ -60,14 +72,16 @@ def test_nonexistent_extra_warns_user_no_wheel(script, data):
     This exercises source installs.
     """
     result = script.pip(
-        'install', '--no-binary=:all:', '--no-index',
-        '--find-links=' + data.find_links,
-        'simple[nonexistent]', expect_stderr=True,
+        "install",
+        "--no-binary=:all:",
+        "--no-index",
+        "--find-links=" + data.find_links,
+        "simple[nonexistent]",
+        expect_stderr=True,
     )
-    assert (
-        "simple 3.0 does not provide the extra 'nonexistent'"
-        in result.stderr
-    ), str(result)
+    assert "simple 3.0 does not provide the extra 'nonexistent'" in result.stderr, str(
+        result
+    )
 
 
 def test_nonexistent_extra_warns_user_with_wheel(script, data):
@@ -78,14 +92,13 @@ def test_nonexistent_extra_warns_user_with_wheel(script, data):
     This exercises wheel installs.
     """
     result = script.pip(
-        'install', '--no-index',
-        '--find-links=' + data.find_links,
-        'simplewheel[nonexistent]', expect_stderr=True,
+        "install",
+        "--no-index",
+        "--find-links=" + data.find_links,
+        "simplewheel[nonexistent]",
+        expect_stderr=True,
     )
-    assert (
-        "simplewheel 2.0 does not provide the extra 'nonexistent'"
-        in result.stderr
-    )
+    assert "simplewheel 2.0 does not provide the extra 'nonexistent'" in result.stderr
 
 
 def test_nonexistent_options_listed_in_order(script, data):
@@ -93,15 +106,16 @@ def test_nonexistent_options_listed_in_order(script, data):
     Warn the user for each extra that doesn't exist.
     """
     result = script.pip(
-        'install', '--no-index',
-        '--find-links=' + data.find_links,
-        'simplewheel[nonexistent, nope]', expect_stderr=True,
+        "install",
+        "--no-index",
+        "--find-links=" + data.find_links,
+        "simplewheel[nonexistent, nope]",
+        expect_stderr=True,
     )
     matches = re.findall(
-        "WARNING: simplewheel 2.0 does not provide the extra '([a-z]*)'",
-        result.stderr
+        "WARNING: simplewheel 2.0 does not provide the extra '([a-z]*)'", result.stderr
     )
-    assert matches == ['nonexistent', 'nope']
+    assert matches == ["nonexistent", "nope"]
 
 
 def test_install_deprecated_extra(script, data):
@@ -114,50 +128,65 @@ def test_install_deprecated_extra(script, data):
     script.scratch_path.joinpath("requirements.txt").write_text(
         "requires_simple_extra>=0.1[extra]"
     )
-    simple = script.site_packages / 'simple'
+    simple = script.site_packages / "simple"
 
     result = script.pip(
-        'install', '--no-index', '--find-links=' + data.find_links,
-        '-r', script.scratch_path / 'requirements.txt', expect_stderr=True,
+        "install",
+        "--no-index",
+        "--find-links=" + data.find_links,
+        "-r",
+        script.scratch_path / "requirements.txt",
+        expect_stderr=True,
     )
 
     result.did_create(simple)
-    assert ("DEPRECATION: Extras after version" in result.stderr)
+    assert "DEPRECATION: Extras after version" in result.stderr
 
 
 def test_install_special_extra(script):
     # Check that uppercase letters and '-' are dealt with
     # make a dummy project
-    pkga_path = script.scratch_path / 'pkga'
+    pkga_path = script.scratch_path / "pkga"
     pkga_path.mkdir()
-    pkga_path.joinpath("setup.py").write_text(textwrap.dedent("""
+    pkga_path.joinpath("setup.py").write_text(
+        textwrap.dedent(
+            """
         from setuptools import setup
         setup(name='pkga',
               version='0.1',
               extras_require={'Hop_hOp-hoP': ['missing_pkg']},
         )
-    """))
+    """
+        )
+    )
 
     result = script.pip(
-        'install', '--no-index', '{pkga_path}[Hop_hOp-hoP]'.format(**locals()),
-        expect_error=True)
+        "install",
+        "--no-index",
+        "{pkga_path}[Hop_hOp-hoP]".format(**locals()),
+        expect_error=True,
+    )
     assert (
         "Could not find a version that satisfies the requirement missing_pkg"
     ) in result.stderr, str(result)
 
 
 @pytest.mark.parametrize(
-    "extra_to_install, simple_version", [
-        ['', '3.0'],
-        pytest.param('[extra1]', '2.0', marks=pytest.mark.xfail),
-        pytest.param('[extra2]', '1.0', marks=pytest.mark.xfail),
-        pytest.param('[extra1,extra2]', '1.0', marks=pytest.mark.xfail),
-    ])
+    "extra_to_install, simple_version",
+    [
+        ["", "3.0"],
+        pytest.param("[extra1]", "2.0", marks=pytest.mark.xfail),
+        pytest.param("[extra2]", "1.0", marks=pytest.mark.xfail),
+        pytest.param("[extra1,extra2]", "1.0", marks=pytest.mark.xfail),
+    ],
+)
 def test_install_extra_merging(script, data, extra_to_install, simple_version):
     # Check that extra specifications in the extras section are honoured.
-    pkga_path = script.scratch_path / 'pkga'
+    pkga_path = script.scratch_path / "pkga"
     pkga_path.mkdir()
-    pkga_path.joinpath("setup.py").write_text(textwrap.dedent("""
+    pkga_path.joinpath("setup.py").write_text(
+        textwrap.dedent(
+            """
         from setuptools import setup
         setup(name='pkga',
               version='0.1',
@@ -165,11 +194,14 @@ def test_install_extra_merging(script, data, extra_to_install, simple_version):
               extras_require={'extra1': ['simple<3'],
                               'extra2': ['simple==1.*']},
         )
-    """))
-
-    result = script.pip_install_local(
-        '{pkga_path}{extra_to_install}'.format(**locals()),
+    """
+        )
     )
 
-    assert ('Successfully installed pkga-0.1 simple-{}'.format(simple_version)
-            ) in result.stdout
+    result = script.pip_install_local(
+        "{pkga_path}{extra_to_install}".format(**locals()),
+    )
+
+    assert (
+        "Successfully installed pkga-0.1 simple-{}".format(simple_version)
+    ) in result.stdout
