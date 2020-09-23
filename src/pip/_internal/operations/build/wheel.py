@@ -27,14 +27,16 @@ def build_wheel_pep517(
     assert metadata_directory is not None
     if build_options:
         # PEP 517 does not support --build-options
-        logger.error('Cannot build wheel for %s using PEP 517 when '
-                     '--build-option is present', name)
+        logger.error(
+            "Cannot build wheel for %s using PEP 517 when " "--build-option is present",
+            name,
+        )
         return None
     try:
-        logger.debug('Destination directory: %s', tempd)
+        logger.debug("Destination directory: %s", tempd)
 
         runner = runner_with_spinner_message(
-            'Building wheel for {} (PEP 517)'.format(name)
+            "Building wheel for {} (PEP 517)".format(name)
         )
         with backend.subprocess_runner(runner):
             wheel_name = backend.build_wheel(
@@ -42,6 +44,6 @@ def build_wheel_pep517(
                 metadata_directory=metadata_directory,
             )
     except Exception:
-        logger.error('Failed building wheel for %s', name)
+        logger.error("Failed building wheel for %s", name)
         return None
     return os.path.join(tempd, wheel_name)
