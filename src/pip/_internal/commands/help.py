@@ -38,7 +38,7 @@ class HelpCommand(Command):
             if guess:
                 msg.append('maybe you meant "{}"'.format(guess))
 
-            raise CommandError(' - '.join(msg))
+            raise CommandError(" - ".join(msg))
 
         command = create_command(cmd_name)
         command.parser.print_help()
