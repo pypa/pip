@@ -5,20 +5,30 @@ def test_new_resolver_conflict_requirements_file(tmpdir, script):
     create_basic_wheel_for_package(script, "base", "1.0")
     create_basic_wheel_for_package(script, "base", "2.0")
     create_basic_wheel_for_package(
-        script, "pkga", "1.0", depends=["base==1.0"],
+        script,
+        "pkga",
+        "1.0",
+        depends=["base==1.0"],
     )
     create_basic_wheel_for_package(
-        script, "pkgb", "1.0", depends=["base==2.0"],
+        script,
+        "pkgb",
+        "1.0",
+        depends=["base==2.0"],
     )
 
     req_file = tmpdir.joinpath("requirements.txt")
     req_file.write_text("pkga\npkgb")
 
     result = script.pip(
-        "install", "--use-feature=2020-resolver",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
-        "-r", req_file,
+        "install",
+        "--use-feature=2020-resolver",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "-r",
+        req_file,
         expect_error=True,
     )
 
