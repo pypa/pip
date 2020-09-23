@@ -133,14 +133,11 @@ def docs(session):
         return [
             "sphinx-build",
             "-W",
-            "-c",
-            "docs/html",  # see note above
-            "-d",
-            "docs/build/doctrees/" + kind,
-            "-b",
-            kind,
-            "docs/" + kind,
-            "docs/build/" + kind,
+            "-c=docs/html",  # see note above
+            f"-d=docs/build/doctrees/{kind}",
+            f"-b={kind}",
+            f"docs/{kind}",
+            f"docs/build/{kind}",
         ]
 
     session.run(*get_sphinx_build_command("html"))
