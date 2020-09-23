@@ -15,7 +15,16 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 if MYPY_CHECK_RUNNING:
     from types import TracebackType
     from typing import (
-        Any, Callable, Dict, Iterable, List, Optional, Text, Tuple, Type, Union
+        Any,
+        Callable,
+        Dict,
+        Iterable,
+        List,
+        Optional,
+        Text,
+        Tuple,
+        Type,
+        Union,
     )
 
     from werkzeug.serving import BaseWSGIServer

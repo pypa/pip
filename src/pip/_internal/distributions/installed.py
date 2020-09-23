@@ -5,6 +5,7 @@ if MYPY_CHECK_RUNNING:
     from typing import Optional
 
     from pip._vendor.pkg_resources import Distribution
+
     from pip._internal.index.package_finder import PackageFinder
 
 

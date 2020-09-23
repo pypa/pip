@@ -53,13 +53,13 @@ from pip._internal.utils.virtualenv import running_under_virtualenv
 from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
-    from typing import (
-        Any, Dict, Iterable, List, Optional, Sequence, Union,
-    )
-    from pip._internal.build_env import BuildEnvironment
-    from pip._vendor.pkg_resources import Distribution
-    from pip._vendor.packaging.specifiers import SpecifierSet
+    from typing import Any, Dict, Iterable, List, Optional, Sequence, Union
+
     from pip._vendor.packaging.markers import Marker
+    from pip._vendor.packaging.specifiers import SpecifierSet
+    from pip._vendor.pkg_resources import Distribution
+
+    from pip._internal.build_env import BuildEnvironment
 
 
 logger = logging.getLogger(__name__)

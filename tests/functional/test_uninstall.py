@@ -422,8 +422,9 @@ def test_uninstallpathset_no_paths(caplog):
     Test UninstallPathSet logs notification when there are no paths to
     uninstall
     """
-    from pip._internal.req.req_uninstall import UninstallPathSet
     from pkg_resources import get_distribution
+
+    from pip._internal.req.req_uninstall import UninstallPathSet
 
     caplog.set_level(logging.INFO)
 

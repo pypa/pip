@@ -26,12 +26,20 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Iterator, Optional, List, Container, Set, Dict, Tuple, Iterable, Union
+        Container,
+        Dict,
+        Iterable,
+        Iterator,
+        List,
+        Optional,
+        Set,
+        Tuple,
+        Union,
     )
+
+    from pip._vendor.pkg_resources import Distribution, Requirement
+
     from pip._internal.cache import WheelCache
-    from pip._vendor.pkg_resources import (
-        Distribution, Requirement
-    )
 
     RequirementInfo = Tuple[Optional[Union[str, Requirement]], bool, List[str]]
 
@@ -183,7 +191,7 @@ def get_requirement_info(dist):
 
     location = os.path.normcase(os.path.abspath(dist.location))
 
-    from pip._internal.vcs import vcs, RemoteNotFoundError
+    from pip._internal.vcs import RemoteNotFoundError, vcs
     vcs_backend = vcs.get_backend_for_dir(location)
 
     if vcs_backend is None:

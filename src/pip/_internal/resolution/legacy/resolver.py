@@ -42,6 +42,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import DefaultDict, List, Optional, Set, Tuple
+
     from pip._vendor.pkg_resources import Distribution
 
     from pip._internal.cache import WheelCache

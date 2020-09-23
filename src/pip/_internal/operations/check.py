@@ -16,10 +16,9 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 logger = logging.getLogger(__name__)
 
 if MYPY_CHECK_RUNNING:
+    from typing import Any, Callable, Dict, List, Optional, Set, Tuple
+
     from pip._internal.req.req_install import InstallRequirement
-    from typing import (
-        Any, Callable, Dict, Optional, Set, Tuple, List
-    )
 
     # Shorthands
     PackageSet = Dict[str, 'PackageDetails']

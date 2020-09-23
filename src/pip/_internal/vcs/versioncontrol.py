@@ -38,9 +38,19 @@ from pip._internal.utils.urls import get_url_scheme
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Dict, Iterable, Iterator, List, Optional, Text, Tuple,
-        Type, Union, Mapping, Any
+        Any,
+        Dict,
+        Iterable,
+        Iterator,
+        List,
+        Mapping,
+        Optional,
+        Text,
+        Tuple,
+        Type,
+        Union,
     )
+
     from pip._internal.utils.misc import HiddenText
     from pip._internal.utils.subprocess import CommandArgs
 

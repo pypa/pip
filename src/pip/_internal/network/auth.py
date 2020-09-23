@@ -20,11 +20,11 @@ from pip._internal.utils.misc import (
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Dict, Optional, Tuple, List, Any
+    from typing import Any, Dict, List, Optional, Tuple
+
+    from pip._vendor.requests.models import Request, Response
 
     from pip._internal.vcs.versioncontrol import AuthInfo
-
-    from pip._vendor.requests.models import Response, Request
 
     Credentials = Tuple[str, str, str]
 

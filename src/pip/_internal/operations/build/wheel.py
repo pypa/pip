@@ -6,6 +6,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import List, Optional
+
     from pip._vendor.pep517.wrappers import Pep517HookCaller
 
 logger = logging.getLogger(__name__)

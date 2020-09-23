@@ -37,9 +37,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import url_to_path
 
 if MYPY_CHECK_RUNNING:
-    from typing import (
-        Iterator, List, Optional, Tuple, Union,
-    )
+    from typing import Iterator, List, Optional, Tuple, Union
 
     from pip._internal.models.link import Link
 

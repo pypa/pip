@@ -26,7 +26,15 @@ from pip._internal.utils.urls import get_url_scheme, url_to_path
 if MYPY_CHECK_RUNNING:
     from optparse import Values
     from typing import (
-        Any, Callable, Dict, Iterator, List, NoReturn, Optional, Text, Tuple,
+        Any,
+        Callable,
+        Dict,
+        Iterator,
+        List,
+        NoReturn,
+        Optional,
+        Text,
+        Tuple,
     )
 
     from pip._internal.index.package_finder import PackageFinder

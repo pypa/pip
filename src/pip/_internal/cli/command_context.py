@@ -5,7 +5,7 @@ from pip._vendor.contextlib2 import ExitStack
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Iterator, ContextManager, TypeVar
+    from typing import ContextManager, Iterator, TypeVar
 
     _T = TypeVar('_T', covariant=True)
 

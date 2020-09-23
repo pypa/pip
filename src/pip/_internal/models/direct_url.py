@@ -8,9 +8,7 @@ from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import (
-        Any, Dict, Iterable, Optional, Type, TypeVar, Union
-    )
+    from typing import Any, Dict, Iterable, Optional, Type, TypeVar, Union
 
     T = TypeVar("T")
 

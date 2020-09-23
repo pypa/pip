@@ -18,6 +18,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import Any
+
     from pip._internal.cli.base_command import Command
 
 

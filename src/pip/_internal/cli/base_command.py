@@ -43,12 +43,11 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
 if MYPY_CHECK_RUNNING:
-    from typing import List, Optional, Tuple, Any
     from optparse import Values
+    from typing import Any, List, Optional, Tuple
 
-    from pip._internal.utils.temp_dir import (
+    from pip._internal.utils.temp_dir import \
         TempDirectoryTypeRegistry as TempDirRegistry
-    )
 
 __all__ = ['Command']
 
