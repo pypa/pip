@@ -36,22 +36,20 @@ def get_major_minor_version():
     Return the major-minor version of the current Python as a string, e.g.
     "3.7" or "3.10".
     """
-    return '{}.{}'.format(*sys.version_info)
+    return "{}.{}".format(*sys.version_info)
 
 
 def get_src_prefix():
     # type: () -> str
     if running_under_virtualenv():
-        src_prefix = os.path.join(sys.prefix, 'src')
+        src_prefix = os.path.join(sys.prefix, "src")
     else:
         # FIXME: keep src in cwd for now (it is not a temporary folder)
         try:
-            src_prefix = os.path.join(os.getcwd(), 'src')
+            src_prefix = os.path.join(os.getcwd(), "src")
         except OSError:
             # In case the current working directory has been renamed or deleted
-            sys.exit(
-                "The folder you are executing pip from can no longer be found."
-            )
+            sys.exit("The folder you are executing pip from can no longer be found.")
 
     # under macOS + virtualenv sys.prefix is not properly resolved
     # it is something like /path/to/python/bin/..
@@ -75,20 +73,20 @@ except AttributeError:
     user_site = site.USER_SITE
 
 if WINDOWS:
-    bin_py = os.path.join(sys.prefix, 'Scripts')
-    bin_user = os.path.join(user_site, 'Scripts')
+    bin_py = os.path.join(sys.prefix, "Scripts")
+    bin_user = os.path.join(user_site, "Scripts")
     # buildout uses 'bin' on Windows too?
     if not os.path.exists(bin_py):
-        bin_py = os.path.join(sys.prefix, 'bin')
-        bin_user = os.path.join(user_site, 'bin')
+        bin_py = os.path.join(sys.prefix, "bin")
+        bin_user = os.path.join(user_site, "bin")
 else:
-    bin_py = os.path.join(sys.prefix, 'bin')
-    bin_user = os.path.join(user_site, 'bin')
+    bin_py = os.path.join(sys.prefix, "bin")
+    bin_user = os.path.join(user_site, "bin")
 
     # Forcing to use /usr/local/bin for standard macOS framework installs
     # Also log to ~/Library/Logs/ for use with the Console.app log viewer
-    if sys.platform[:6] == 'darwin' and sys.prefix[:16] == '/System/Library/':
-        bin_py = '/usr/local/bin'
+    if sys.platform[:6] == "darwin" and sys.prefix[:16] == "/System/Library/":
+        bin_py = "/usr/local/bin"
 
 
 def distutils_scheme(
@@ -100,14 +98,14 @@ def distutils_scheme(
     """
     from distutils.dist import Distribution
 
-    dist_args = {'name': dist_name}  # type: Dict[str, Union[str, List[str]]]
+    dist_args = {"name": dist_name}  # type: Dict[str, Union[str, List[str]]]
     if isolated:
         dist_args["script_args"] = ["--no-user-cfg"]
 
     d = Distribution(dist_args)
     d.parse_config_files()
     obj = None  # type: Optional[DistutilsCommand]
-    obj = d.get_command_obj('install', create=True)
+    obj = d.get_command_obj("install", create=True)
     assert obj is not None
     i = cast(distutils_install_command, obj)
     # NOTE: setting user or home has the side-effect of creating the home dir
@@ -125,28 +123,27 @@ def distutils_scheme(
 
     scheme = {}
     for key in SCHEME_KEYS:
-        scheme[key] = getattr(i, 'install_' + key)
+        scheme[key] = getattr(i, "install_" + key)
 
     # install_lib specified in setup.cfg should install *everything*
     # into there (i.e. it takes precedence over both purelib and
     # platlib).  Note, i.install_lib is *always* set after
     # finalize_options(); we only want to override here if the user
     # has explicitly requested it hence going back to the config
-    if 'install_lib' in d.get_option_dict('install'):
+    if "install_lib" in d.get_option_dict("install"):
         scheme.update(dict(purelib=i.install_lib, platlib=i.install_lib))
 
     if running_under_virtualenv():
-        scheme['headers'] = os.path.join(
+        scheme["headers"] = os.path.join(
             i.prefix,
-            'include',
-            'site',
-            'python{}'.format(get_major_minor_version()),
+            "include",
+            "site",
+            "python{}".format(get_major_minor_version()),
             dist_name,
         )
 
         if root is not None:
-            path_no_drive = os.path.splitdrive(
-                os.path.abspath(scheme["headers"]))[1]
+            path_no_drive = os.path.splitdrive(os.path.abspath(scheme["headers"]))[1]
             scheme["headers"] = os.path.join(
                 root,
                 path_no_drive[1:],
@@ -181,9 +178,7 @@ def get_scheme(
     :param prefix: indicates to use the "prefix" scheme and provides the
         base directory for the same
     """
-    scheme = distutils_scheme(
-        dist_name, user, home, root, isolated, prefix
-    )
+    scheme = distutils_scheme(dist_name, user, home, root, isolated, prefix)
     return Scheme(
         platlib=scheme["platlib"],
         purelib=scheme["purelib"],
