@@ -84,7 +84,7 @@ class PipProvider(AbstractProvider):
             if self._upgrade_strategy == "eager":
                 return True
             elif self._upgrade_strategy == "only-if-needed":
-                return (name in self.user_requested)
+                return name in self.user_requested
             return False
 
         def sort_key(c):
@@ -115,7 +115,7 @@ class PipProvider(AbstractProvider):
         self,
         resolution,  # type: Optional[Candidate]
         candidates,  # type: Sequence[Candidate]
-        information  # type: Sequence[Tuple[Requirement, Candidate]]
+        information,  # type: Sequence[Tuple[Requirement, Candidate]]
     ):
         # type: (...) -> Any
         # Use the "usual" value for now
@@ -126,7 +126,8 @@ class PipProvider(AbstractProvider):
         if not requirements:
             return []
         constraint = self._constraints.get(
-            requirements[0].name, Constraint.empty(),
+            requirements[0].name,
+            Constraint.empty(),
         )
         candidates = self._factory.find_candidates(requirements, constraint)
         return reversed(self._sort_matches(candidates))
@@ -138,8 +139,4 @@ class PipProvider(AbstractProvider):
     def get_dependencies(self, candidate):
         # type: (Candidate) -> Sequence[Requirement]
         with_requires = not self._ignore_dependencies
-        return [
-            r
-            for r in candidate.iter_dependencies(with_requires)
-            if r is not None
-        ]
+        return [r for r in candidate.iter_dependencies(with_requires) if r is not None]
