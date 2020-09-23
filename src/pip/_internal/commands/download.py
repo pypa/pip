@@ -58,9 +58,12 @@ class DownloadCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.no_use_pep517())
 
         self.cmd_opts.add_option(
-            '-d', '--dest', '--destination-dir', '--destination-directory',
-            dest='download_dir',
-            metavar='dir',
+            "-d",
+            "--dest",
+            "--destination-dir",
+            "--destination-directory",
+            dest="download_dir",
+            metavar="dir",
             default=os.curdir,
             help=("Download packages into <dir>."),
         )
@@ -98,7 +101,7 @@ class DownloadCommand(RequirementCommand):
             session=session,
             target_python=target_python,
         )
-        build_delete = (not (options.no_clean or options.build_dir))
+        build_delete = not (options.no_clean or options.build_dir)
 
         req_tracker = self.enter_context(get_requirement_tracker())
 
@@ -130,9 +133,7 @@ class DownloadCommand(RequirementCommand):
 
         self.trace_basic_info(finder)
 
-        requirement_set = resolver.resolve(
-            reqs, check_supported_wheels=True
-        )
+        requirement_set = resolver.resolve(reqs, check_supported_wheels=True)
 
         downloaded = []  # type: List[str]
         for req in requirement_set.requirements.values():
@@ -140,6 +141,6 @@ class DownloadCommand(RequirementCommand):
                 assert req.name is not None
                 downloaded.append(req.name)
         if downloaded:
-            write_output('Successfully downloaded %s', ' '.join(downloaded))
+            write_output("Successfully downloaded %s", " ".join(downloaded))
 
         return SUCCESS
