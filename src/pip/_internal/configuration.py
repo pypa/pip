@@ -33,15 +33,15 @@ if MYPY_CHECK_RUNNING:
     RawConfigParser = configparser.RawConfigParser  # Shorthand
     Kind = NewType("Kind", str)
 
-CONFIG_BASENAME = 'pip.ini' if WINDOWS else 'pip.conf'
+CONFIG_BASENAME = "pip.ini" if WINDOWS else "pip.conf"
 ENV_NAMES_IGNORED = "version", "help"
 
 # The kinds of configurations there are.
 kinds = enum(
-    USER="user",        # User Specific
-    GLOBAL="global",    # System Wide
-    SITE="site",        # [Virtual] Environment Specific
-    ENV="env",          # from PIP_CONFIG_FILE
+    USER="user",  # User Specific
+    GLOBAL="global",  # System Wide
+    SITE="site",  # [Virtual] Environment Specific
+    ENV="env",  # from PIP_CONFIG_FILE
     ENV_VAR="env-var",  # from Environment Variables
 )
 OVERRIDE_ORDER = kinds.GLOBAL, kinds.USER, kinds.SITE, kinds.ENV, kinds.ENV_VAR
@@ -53,10 +53,9 @@ logger = logging.getLogger(__name__)
 # NOTE: Maybe use the optionx attribute to normalize keynames.
 def _normalize_name(name):
     # type: (str) -> str
-    """Make a name consistent regardless of source (environment or file)
-    """
-    name = name.lower().replace('_', '-')
-    if name.startswith('--'):
+    """Make a name consistent regardless of source (environment or file)"""
+    name = name.lower().replace("_", "-")
+    if name.startswith("--"):
         name = name[2:]  # only prefer long opts
     return name
 
@@ -75,19 +74,16 @@ def _disassemble_key(name):
 def get_configuration_files():
     # type: () -> Dict[Kind, List[str]]
     global_config_files = [
-        os.path.join(path, CONFIG_BASENAME)
-        for path in appdirs.site_config_dirs('pip')
+        os.path.join(path, CONFIG_BASENAME) for path in appdirs.site_config_dirs("pip")
     ]
 
     site_config_file = os.path.join(sys.prefix, CONFIG_BASENAME)
     legacy_config_file = os.path.join(
-        expanduser('~'),
-        'pip' if WINDOWS else '.pip',
+        expanduser("~"),
+        "pip" if WINDOWS else ".pip",
         CONFIG_BASENAME,
     )
-    new_config_file = os.path.join(
-        appdirs.user_config_dir("pip"), CONFIG_BASENAME
-    )
+    new_config_file = os.path.join(appdirs.user_config_dir("pip"), CONFIG_BASENAME)
     return {
         kinds.GLOBAL: global_config_files,
         kinds.SITE: [site_config_file],
@@ -133,18 +129,15 @@ class Configuration(object):
 
     def load(self):
         # type: () -> None
-        """Loads configuration from configuration files and environment
-        """
+        """Loads configuration from configuration files and environment"""
         self._load_config_files()
         if not self.isolated:
             self._load_environment_vars()
 
     def get_file_to_edit(self):
         # type: () -> Optional[str]
-        """Returns the file with highest priority in configuration
-        """
-        assert self.load_only is not None, \
-            "Need to be specified a file to be editing"
+        """Returns the file with highest priority in configuration"""
+        assert self.load_only is not None, "Need to be specified a file to be editing"
 
         try:
             return self._get_parser_to_modify()[0]
@@ -160,8 +153,7 @@ class Configuration(object):
 
     def get_value(self, key):
         # type: (str) -> Any
-        """Get a value from the configuration.
-        """
+        """Get a value from the configuration."""
         try:
             return self._dictionary[key]
         except KeyError:
@@ -169,8 +161,7 @@ class Configuration(object):
 
     def set_value(self, key, value):
         # type: (str, Any) -> None
-        """Modify a value in the configuration.
-        """
+        """Modify a value in the configuration."""
         self._ensure_have_load_only()
 
         assert self.load_only
@@ -200,8 +191,9 @@ class Configuration(object):
 
         if parser is not None:
             section, name = _disassemble_key(key)
-            if not (parser.has_section(section)
-                    and parser.remove_option(section, name)):
+            if not (
+                parser.has_section(section) and parser.remove_option(section, name)
+            ):
                 # The option was not removed.
                 raise ConfigurationError(
                     "Fatal Internal error [id=1]. Please report as a bug."
@@ -216,8 +208,7 @@ class Configuration(object):
 
     def save(self):
         # type: () -> None
-        """Save the current in-memory state.
-        """
+        """Save the current in-memory state."""
         self._ensure_have_load_only()
 
         for fname, parser in self._modified_parsers:
@@ -242,8 +233,7 @@ class Configuration(object):
     @property
     def _dictionary(self):
         # type: () -> Dict[str, Any]
-        """A dictionary representing the loaded configuration.
-        """
+        """A dictionary representing the loaded configuration."""
         # NOTE: Dictionaries are not populated if not loaded. So, conditionals
         #       are not needed here.
         retval = {}
@@ -255,8 +245,7 @@ class Configuration(object):
 
     def _load_config_files(self):
         # type: () -> None
-        """Loads configuration from configuration files
-        """
+        """Loads configuration from configuration files"""
         config_files = dict(self.iter_config_files())
         if config_files[kinds.ENV][0:1] == [os.devnull]:
             logger.debug(
@@ -270,9 +259,7 @@ class Configuration(object):
                 # If there's specific variant set in `load_only`, load only
                 # that variant, not the others.
                 if self.load_only is not None and variant != self.load_only:
-                    logger.debug(
-                        "Skipping file '%s' (variant: %s)", fname, variant
-                    )
+                    logger.debug("Skipping file '%s' (variant: %s)", fname, variant)
                     continue
 
                 parser = self._load_file(variant, fname)
@@ -316,8 +303,7 @@ class Configuration(object):
 
     def _load_environment_vars(self):
         # type: () -> None
-        """Loads configuration from environment variables
-        """
+        """Loads configuration from environment variables"""
         self._config[kinds.ENV_VAR].update(
             self._normalized_keys(":env:", self.get_environ_vars())
         )
@@ -354,7 +340,7 @@ class Configuration(object):
         # SMELL: Move the conditions out of this function
 
         # environment variables have the lowest priority
-        config_file = os.environ.get('PIP_CONFIG_FILE', None)
+        config_file = os.environ.get("PIP_CONFIG_FILE", None)
         if config_file is not None:
             yield kinds.ENV, [config_file]
         else:
