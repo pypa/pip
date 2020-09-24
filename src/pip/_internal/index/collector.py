@@ -630,8 +630,7 @@ class LinkCollector(object):
         """
         Fetch an HTML page containing package links.
         """
-        # TODO: TUF should only be used for project index files -- can location be something else?
-        # TODO: better parsing of index_url?
+        # TODO: TUF should only be used for project index files -- is this used for other things?
         index_url, _, project = location.url.rstrip('/').rpartition('/')
         if not project:
             raise ValueError('Failed to parse {} as project index URL')
@@ -640,14 +639,17 @@ class LinkCollector(object):
         if downloader:
             logger.debug('SecureDownloader found: ' + str(downloader))
             index_file = downloader.download_index(project)
-            with open(index_file, "rb") as f:
-                return HTMLPage(
-                    content=f.read(),
-                    encoding=None,
-                    url=location.url, #TODO should this be the real hashed url?
-                    cache_link_parsing=False)
+            if index_file is None:
+                return None
+            else:
+                with open(index_file, "rb") as f:
+                    return HTMLPage(
+                        content=f.read(),
+                        encoding=None,
+                        url=location.url, #TODO should this be the real url that tuf fetched?
+                        cache_link_parsing=False)
         else:
-            logger.debug('TUF Downloader not found for index_url ' + index_url)
+            logger.debug('SecureDownloader not found for ' + index_url)
             return _get_html_page(location, session=self.session)
 
     def collect_links(self, project_name):

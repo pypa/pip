@@ -14,6 +14,7 @@ from pip._vendor.six.moves.urllib import parse as urllib_parse
 import tuf.client.updater
 from tuf.exceptions import (
     RepositoryError,
+    NoWorkingMirrorError,
 )
 import tuf.settings
 
@@ -122,19 +123,22 @@ class SecureDownloader:
     # "https://pypi.org/simple/django"
     # Raises NoWorkingMirrorError, ?
     def download_index(self, project_name):
-        # type: (str) -> str
-        self._ensure_fresh_metadata()
+        try:
+            self._ensure_fresh_metadata()
 
-        self._updater.mirrors = self._index_mirrors
+            self._updater.mirrors = self._index_mirrors
 
-        # TODO warehouse setup for hashed index files is still undecided: this assumes /simple/{PROJECT}/{HASH}.index.html
-        target_name = project_name + "/index.html"
-        target = self._updater.get_one_valid_targetinfo(target_name)
-        if self._updater.updated_targets([target], self._cache_dir):
-            self._updater.download_target(target, self._cache_dir)
+            # TODO warehouse setup for hashed index files is still undecided: this assumes /simple/{PROJECT}/{HASH}.index.html
+            target_name = project_name + "/index.html"
+            # fetch the targetinfo. If we don't have the correct target version already download it too
+            target = self._updater.get_one_valid_targetinfo(target_name)
+            if self._updater.updated_targets([target], self._cache_dir):
+                self._updater.download_target(target, self._cache_dir)
 
-        # TODO possibly we want to return contents of the file instead?
-        return os.path.join(self._cache_dir, target_name)
+            return os.path.join(self._cache_dir, target_name)
+        except NoWorkingMirrorError as e:
+            logger.warning("Failed to download index for %s: %s", project_name, e)
+            return None
 
 
     # Download a distribution file
