@@ -3,7 +3,7 @@ import logging
 
 from pip._vendor import six
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.resolvelib import BaseReporter, ResolutionImpossible
+from pip._vendor.resolvelib import ResolutionImpossible
 from pip._vendor.resolvelib import Resolver as RLResolver
 
 from pip._internal.exceptions import InstallationError
@@ -11,6 +11,7 @@ from pip._internal.req.req_install import check_invalid_constraint_type
 from pip._internal.req.req_set import RequirementSet
 from pip._internal.resolution.base import BaseResolver
 from pip._internal.resolution.resolvelib.provider import PipProvider
+from pip._internal.resolution.resolvelib.reporter import PipDebuggingReporter
 from pip._internal.utils.misc import dist_is_editable
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -103,7 +104,7 @@ class Resolver(BaseResolver):
             upgrade_strategy=self.upgrade_strategy,
             user_requested=user_requested,
         )
-        reporter = BaseReporter()
+        reporter = PipDebuggingReporter()
         resolver = RLResolver(provider, reporter)
 
         try:
