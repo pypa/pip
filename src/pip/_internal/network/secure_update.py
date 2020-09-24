@@ -7,6 +7,7 @@ import os.path
 import os
 import shutil
 
+from pip._internal.exceptions import NetworkConnectionError
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
@@ -144,27 +145,28 @@ class SecureDownloader:
     # Download a distribution file
     # Requires a link with url
     #   url is e.g. https://files.pythonhosted.org/packages/8f/1f/74aa91b56dea5847b62e11ce6737db82c6446561bddc20ca80fa5df025cc/Django-1.1.3.tar.gz#sha256=0e5034cf8046ba77c62e95a45d776d2c59998b26f181ceaf5cec516115e3f85a
-    # Raises NoWorkingMirrorError, ?
+    # Raises NetworkConnectionError, ?
     def download_distribution(self, link):
-        # type: (Link) -> str
+        # TODO maybe double check that comes_from matches our index_url
+        try:
+            self._ensure_fresh_metadata()
 
-        # TODO maybe double check that comes_from matches our index_url?
+            base_url, target_name = self._split_distribution_url(link)
+            self._ensure_distribution_mirror_config(base_url)
+            self._updater.mirrors = self._distribution_mirrors
 
-        self._ensure_fresh_metadata()
+            logger.debug("Getting TUF target_info for " + target_name)
+            target = self._updater.get_one_valid_targetinfo(target_name)
 
-        base_url, target_name = self._split_distribution_url(link)
-        self._ensure_distribution_mirror_config(base_url)
-        self._updater.mirrors = self._distribution_mirrors
-
-        logger.debug("Getting TUF target_info for " + target_name)
-        target = self._updater.get_one_valid_targetinfo(target_name)
-        
-        # TODO decide cache dir strategy. Currently the whole
-        # directory structure is created in _cache_dir. Also 'None' cache dir breaks everything
-        if self._updater.updated_targets([target], self._cache_dir):
-            self._updater.download_target(target, self._cache_dir, prefix_filename_with_hash=False)
-        return os.path.join(self._cache_dir, target_name)
-
+            # TODO decide cache dir strategy. Currently the whole
+            # directory structure is created in _cache_dir. Also 'None' cache dir breaks everything
+            if self._updater.updated_targets([target], self._cache_dir):
+                self._updater.download_target(target, self._cache_dir, prefix_filename_with_hash=False)
+            return os.path.join(self._cache_dir, target_name)
+        except NoWorkingMirrorError as e:
+            # This is close but not strictly speaking always true: there might
+            # be other reasons for NoWorkingMirror than Network issues
+            raise NetworkConnectionError(e)
 
 
 # TODO could provide some extra
