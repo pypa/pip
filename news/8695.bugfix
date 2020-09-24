@@ -1,3 +1,0 @@
-Fix regression that distributions in system site-packages are not correctly
-found when a virtual environment is configured with ``system-site-packages``
-on.
