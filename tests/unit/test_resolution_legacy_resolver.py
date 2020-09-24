@@ -4,10 +4,7 @@ import mock
 import pytest
 from pip._vendor import pkg_resources
 
-from pip._internal.exceptions import (
-    NoneMetadataError,
-    UnsupportedPythonVersion,
-)
+from pip._internal.exceptions import NoneMetadataError, UnsupportedPythonVersion
 from pip._internal.req.constructors import install_req_from_line
 from pip._internal.resolution.legacy.resolver import (
     Resolver,

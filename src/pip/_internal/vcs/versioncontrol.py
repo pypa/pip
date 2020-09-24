@@ -12,11 +12,7 @@ import sys
 from pip._vendor import pkg_resources
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
-from pip._internal.exceptions import (
-    BadCommand,
-    InstallationError,
-    SubProcessError,
-)
+from pip._internal.exceptions import BadCommand, InstallationError, SubProcessError
 from pip._internal.utils.compat import console_to_str, samefile
 from pip._internal.utils.logging import subprocess_logger
 from pip._internal.utils.misc import (

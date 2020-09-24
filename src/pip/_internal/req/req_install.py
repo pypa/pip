@@ -22,10 +22,12 @@ from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_scheme
 from pip._internal.models.link import Link
 from pip._internal.operations.build.metadata import generate_metadata
-from pip._internal.operations.build.metadata_legacy import \
-    generate_metadata as generate_metadata_legacy
-from pip._internal.operations.install.editable_legacy import \
-    install_editable as install_editable_legacy
+from pip._internal.operations.build.metadata_legacy import (
+    generate_metadata as generate_metadata_legacy,
+)
+from pip._internal.operations.install.editable_legacy import (
+    install_editable as install_editable_legacy,
+)
 from pip._internal.operations.install.legacy import LegacyInstallFailure
 from pip._internal.operations.install.legacy import install as install_legacy
 from pip._internal.operations.install.wheel import install_wheel
