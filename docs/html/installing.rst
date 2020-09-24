@@ -26,9 +26,21 @@ this link: `get-pip.py
  curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
 
 Then run the following command in the folder where you
-have downloaded ``get-pip.py``::
+have downloaded ``get-pip.py``:
 
- python get-pip.py
+.. tabs::
+
+   .. group-tab:: Unix/macOS
+
+      .. code-block:: shell
+
+         python get-pip.py
+
+   .. group-tab:: Windows
+
+      .. code-block:: shell
+
+         py get-pip.py
 
 
 .. warning::
@@ -67,23 +79,70 @@ get-pip.py options
 install Options>` and the :ref:`general options <General Options>`. Below are
 some examples:
 
-Install from local copies of pip and setuptools::
+Install from local copies of pip and setuptools:
 
-  python get-pip.py --no-index --find-links=/local/copies
+.. tabs::
 
-Install to the user site [3]_::
+   .. group-tab:: Unix/macOS
 
-  python get-pip.py --user
+      .. code-block:: shell
 
-Install behind a proxy::
+         python get-pip.py --no-index --find-links=/local/copies
 
-  python get-pip.py --proxy="http://[user:passwd@]proxy.server:port"
+   .. group-tab:: Windows
+
+      .. code-block:: shell
+
+         py get-pip.py --no-index --find-links=/local/copies
+
+Install to the user site [3]_:
+
+.. tabs::
+
+   .. group-tab:: Unix/macOS
+
+      .. code-block:: shell
+
+         python get-pip.py --user
+
+   .. group-tab:: Windows
+
+      .. code-block:: shell
+
+         py get-pip.py --user
+
+Install behind a proxy:
+
+.. tabs::
+
+   .. group-tab:: Unix/macOS
+
+      .. code-block:: shell
+
+         python get-pip.py --proxy="http://[user:passwd@]proxy.server:port"
+
+   .. group-tab:: Windows
+
+      .. code-block:: shell
+
+         py get-pip.py --proxy="http://[user:passwd@]proxy.server:port"
 
 ``get-pip.py`` can also be used to install a specified combination of ``pip``,
-``setuptools``, and ``wheel`` using the same requirements syntax as pip::
+``setuptools``, and ``wheel`` using the same requirements syntax as pip:
 
-  python get-pip.py pip==9.0.2 wheel==0.30.0 setuptools==28.8.0
+.. tabs::
 
+   .. group-tab:: Unix/macOS
+
+      .. code-block:: shell
+
+         python get-pip.py pip==9.0.2 wheel==0.30.0 setuptools==28.8.0
+
+   .. group-tab:: Windows
+
+      .. code-block:: shell
+
+         py get-pip.py pip==9.0.2 wheel==0.30.0 setuptools==28.8.0
 
 Using Linux Package Managers
 ============================
@@ -97,14 +156,19 @@ the `Python Packaging User Guide
 Upgrading pip
 =============
 
-On Linux or macOS::
+.. tabs::
 
- pip install -U pip
+   .. group-tab:: Unix/macOS
 
+      .. code-block:: shell
 
-On Windows [4]_::
+         python -m pip install -U pip
 
- python -m pip install -U pip
+   .. group-tab:: Windows
+
+      .. code-block:: shell
+
+         py -m pip install -U pip
 
 
 .. _compatibility-requirements:
@@ -134,5 +198,3 @@ pip works on Unix/Linux, macOS, and Windows.
        ``--user`` installs for pip itself, should not be considered to be fully
        tested or endorsed. For discussion, see `Issue 1668
        <https://github.com/pypa/pip/issues/1668>`_.
-
-.. [4] https://github.com/pypa/pip/issues/1299

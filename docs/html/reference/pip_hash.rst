@@ -10,7 +10,15 @@ pip hash
 Usage
 =====
 
-.. pip-command-usage:: hash
+.. tabs::
+
+   .. group-tab:: Unix/macOS
+
+      .. pip-command-usage:: hash "python -m pip"
+
+   .. group-tab:: Windows
+
+      .. pip-command-usage:: hash "py -m pip"
 
 
 Description
@@ -39,13 +47,32 @@ Options
 Example
 =======
 
-Compute the hash of a downloaded archive::
+Compute the hash of a downloaded archive:
 
-    $ pip download SomePackage
-        Collecting SomePackage
-          Downloading SomePackage-2.2.tar.gz
-          Saved ./pip_downloads/SomePackage-2.2.tar.gz
-        Successfully downloaded SomePackage
-    $ pip hash ./pip_downloads/SomePackage-2.2.tar.gz
-        ./pip_downloads/SomePackage-2.2.tar.gz:
-        --hash=sha256:93e62e05c7ad3da1a233def6731e8285156701e3419a5fe279017c429ec67ce0
+.. tabs::
+
+   .. group-tab:: Unix/macOS
+
+      .. code-block:: console
+
+         $ python -m pip download SomePackage
+         Collecting SomePackage
+           Downloading SomePackage-2.2.tar.gz
+           Saved ./pip_downloads/SomePackage-2.2.tar.gz
+         Successfully downloaded SomePackage
+         $ python -m pip hash ./pip_downloads/SomePackage-2.2.tar.gz
+         ./pip_downloads/SomePackage-2.2.tar.gz:
+         --hash=sha256:93e62e05c7ad3da1a233def6731e8285156701e3419a5fe279017c429ec67ce0
+
+   .. group-tab:: Windows
+
+      .. code-block:: console
+
+         C:\> py -m pip download SomePackage
+         Collecting SomePackage
+           Downloading SomePackage-2.2.tar.gz
+           Saved ./pip_downloads/SomePackage-2.2.tar.gz
+         Successfully downloaded SomePackage
+         C:\> py -m pip hash ./pip_downloads/SomePackage-2.2.tar.gz
+         ./pip_downloads/SomePackage-2.2.tar.gz:
+         --hash=sha256:93e62e05c7ad3da1a233def6731e8285156701e3419a5fe279017c429ec67ce0

@@ -9,7 +9,15 @@ pip cache
 Usage
 *****
 
-.. pip-command-usage:: cache
+.. tabs::
+
+   .. group-tab:: Unix/macOS
+
+      .. pip-command-usage:: cache "python -m pip"
+
+   .. group-tab:: Windows
+
+      .. pip-command-usage:: cache "py -m pip"
 
 Description
 ***********

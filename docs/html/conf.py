@@ -30,7 +30,12 @@ sys.path.insert(0, docs_dir)
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 # extensions = ['sphinx.ext.autodoc']
-extensions = ['sphinx.ext.extlinks', 'pip_sphinxext', 'sphinx.ext.intersphinx']
+extensions = [
+    'sphinx.ext.extlinks',
+    'pip_sphinxext',
+    'sphinx.ext.intersphinx',
+    'sphinx_tabs.tabs',
+]
 
 # intersphinx
 intersphinx_cache_limit = 0
@@ -129,6 +134,9 @@ extlinks = {
     'pull': ('https://github.com/pypa/pip/pull/%s', 'PR #'),
     'pypi': ('https://pypi.org/project/%s/', ''),
 }
+
+# Turn off sphinx build warnings because of sphinx tabs during man pages build
+sphinx_tabs_nowarn = True
 
 # -- Options for HTML output --------------------------------------------------
 

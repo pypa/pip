@@ -38,13 +38,25 @@ To run the pip executable from your source tree during development, install pip
 locally using editable installation (inside a virtualenv).
 You can then invoke your local source tree pip normally.
 
-.. code-block:: console
+.. tabs::
 
-    $ virtualenv venv # You can also use "python -m venv venv" from python3.3+
-    $ source venv/bin/activate
-    $ python -m pip install -e .
-    $ python -m pip --version
+   .. group-tab:: Unix/macOS
 
+      .. code-block:: shell
+
+         virtualenv venv # You can also use "python -m venv venv" from python3.3+
+         source venv/bin/activate
+         python -m pip install -e .
+         python -m pip --version
+
+   .. group-tab:: Windows
+
+      .. code-block:: shell
+
+         virtualenv venv # You can also use "py -m venv venv" from python3.3+
+         venv\Scripts\activate
+         py -m pip install -e .
+         py -m pip --version
 
 Running Tests
 =============
