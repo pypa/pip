@@ -113,8 +113,9 @@ class WheelCommand(RequirementCommand):
         cmdoptions.check_install_build_global(options)
 
         session = self.get_default_session(options)
+        secure_update_session = self.get_secure_update_session(options)
 
-        finder = self._build_package_finder(options, session)
+        finder = self._build_package_finder(options, session, secure_update_session)
         build_delete = (not (options.no_clean or options.build_dir))
         wheel_cache = WheelCache(options.cache_dir, options.format_control)
 
@@ -137,6 +138,7 @@ class WheelCommand(RequirementCommand):
             options=options,
             req_tracker=req_tracker,
             session=session,
+            secure_update_session=secure_update_session,
             finder=finder,
             download_dir=options.wheel_dir,
             use_user_site=False,
