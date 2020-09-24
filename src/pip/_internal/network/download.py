@@ -11,16 +11,8 @@ from pip._internal.cli.progress_bars import DownloadProgressProvider
 from pip._internal.exceptions import NetworkConnectionError
 from pip._internal.models.index import PyPI
 from pip._internal.network.cache import is_from_cache
-from pip._internal.network.utils import (
-    HEADERS,
-    raise_for_status,
-    response_chunks,
-)
-from pip._internal.utils.misc import (
-    format_size,
-    redact_auth_from_url,
-    splitext,
-)
+from pip._internal.network.utils import HEADERS, raise_for_status, response_chunks
+from pip._internal.utils.misc import format_size, redact_auth_from_url, splitext
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:

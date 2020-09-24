@@ -5,16 +5,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from .base import Constraint
 
 if MYPY_CHECK_RUNNING:
-    from typing import (
-        Any,
-        Dict,
-        Iterable,
-        Optional,
-        Sequence,
-        Set,
-        Tuple,
-        Union,
-    )
+    from typing import Any, Dict, Iterable, Optional, Sequence, Set, Tuple, Union
 
     from .base import Candidate, Requirement
     from .factory import Factory

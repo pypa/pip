@@ -18,10 +18,7 @@ from pip._internal.utils.direct_url_helpers import (
     direct_url_as_pep440_direct_reference,
     dist_get_direct_url,
 )
-from pip._internal.utils.misc import (
-    dist_is_editable,
-    get_installed_distributions,
-)
+from pip._internal.utils.misc import dist_is_editable, get_installed_distributions
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:

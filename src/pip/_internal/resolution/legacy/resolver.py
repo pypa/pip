@@ -34,10 +34,7 @@ from pip._internal.resolution.base import BaseResolver
 from pip._internal.utils.compatibility_tags import get_supported
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import dist_in_usersite, normalize_version_info
-from pip._internal.utils.packaging import (
-    check_requires_python,
-    get_requires_python,
-)
+from pip._internal.utils.packaging import check_requires_python, get_requires_python
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:

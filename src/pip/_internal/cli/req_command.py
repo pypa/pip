@@ -38,10 +38,7 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.req.req_tracker import RequirementTracker
     from pip._internal.resolution.base import BaseResolver
-    from pip._internal.utils.temp_dir import (
-        TempDirectory,
-        TempDirectoryTypeRegistry,
-    )
+    from pip._internal.utils.temp_dir import TempDirectory, TempDirectoryTypeRegistry
 
 
 logger = logging.getLogger(__name__)
