@@ -115,11 +115,18 @@ class PipProvider(AbstractProvider):
         self,
         resolution,  # type: Optional[Candidate]
         candidates,  # type: Sequence[Candidate]
-        information  # type: Sequence[Tuple[Requirement, Candidate]]
+        information  # type: Sequence[Tuple[Requirement, Optional[Candidate]]]
     ):
         # type: (...) -> Any
-        # Use the "usual" value for now
-        return len(candidates)
+        """Return a sort key to determine what dependency to look next.
+
+        A smaller value makes a dependency higher priority. We put direct
+        (user-requested) dependencies first since they may contain useful
+        user-specified version ranges. Users tend to expect us to catch
+        problems in them early as well.
+        """
+        transitive = all(parent is not None for _, parent in information)
+        return (transitive, len(candidates))
 
     def find_matches(self, requirements):
         # type: (Sequence[Requirement]) -> Iterable[Candidate]
