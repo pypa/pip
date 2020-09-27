@@ -25,6 +25,7 @@ from pip._internal.models.link import Link
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.models.wheel import Wheel
+from pip._internal.utils.compat import lru_cache
 from pip._internal.utils.filetypes import WHEEL_EXTENSION
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import build_netloc
@@ -801,6 +802,7 @@ class PackageFinder(object):
 
         return package_links
 
+    @lru_cache(maxsize=None)
     def find_all_candidates(self, project_name):
         # type: (str) -> List[InstallationCandidate]
         """Find all available InstallationCandidate for project_name

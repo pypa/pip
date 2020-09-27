@@ -21,6 +21,7 @@ from pip._internal.exceptions import NetworkConnectionError
 from pip._internal.models.link import Link
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.network.utils import raise_for_status
+from pip._internal.utils.compat import lru_cache
 from pip._internal.utils.filetypes import ARCHIVE_EXTENSIONS
 from pip._internal.utils.misc import pairwise, redact_auth_from_url
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -30,8 +31,14 @@ from pip._internal.vcs import is_url, vcs
 if MYPY_CHECK_RUNNING:
     from optparse import Values
     from typing import (
-        Callable, Iterable, List, MutableMapping, Optional,
-        Protocol, Sequence, Tuple, TypeVar, Union,
+        Callable,
+        Iterable,
+        List,
+        MutableMapping,
+        Optional,
+        Sequence,
+        Tuple,
+        Union,
     )
     import xml.etree.ElementTree
 
@@ -42,29 +49,8 @@ if MYPY_CHECK_RUNNING:
     HTMLElement = xml.etree.ElementTree.Element
     ResponseHeaders = MutableMapping[str, str]
 
-    # Used in the @lru_cache polyfill.
-    F = TypeVar('F')
-
-    class LruCache(Protocol):
-        def __call__(self, maxsize=None):
-            # type: (Optional[int]) -> Callable[[F], F]
-            raise NotImplementedError
-
 
 logger = logging.getLogger(__name__)
-
-
-# Fallback to noop_lru_cache in Python 2
-# TODO: this can be removed when python 2 support is dropped!
-def noop_lru_cache(maxsize=None):
-    # type: (Optional[int]) -> Callable[[F], F]
-    def _wrapper(f):
-        # type: (F) -> F
-        return f
-    return _wrapper
-
-
-_lru_cache = getattr(functools, "lru_cache", noop_lru_cache)  # type: LruCache
 
 
 def _match_vcs_scheme(url):
@@ -336,7 +322,7 @@ def with_cached_html_pages(
     `page` has `page.cache_link_parsing == False`.
     """
 
-    @_lru_cache(maxsize=None)
+    @lru_cache(maxsize=None)
     def wrapper(cacheable_page):
         # type: (CacheablePageContent) -> List[Link]
         return list(fn(cacheable_page.page))
