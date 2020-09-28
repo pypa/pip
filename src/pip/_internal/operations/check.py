@@ -48,8 +48,8 @@ def create_package_set_from_installed(**kwargs):
         name = canonicalize_name(dist.project_name)
         try:
             package_set[name] = PackageDetails(dist.version, dist.requires())
-        except RequirementParseError as e:
-            # Don't crash on broken metadata
+        except (OSError, RequirementParseError) as e:
+            # Don't crash on unreadable or broken metadata
             logger.warning("Error parsing requirements for %s: %s", name, e)
             problems = True
     return package_set, problems
