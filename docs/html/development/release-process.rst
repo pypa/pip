@@ -65,7 +65,7 @@ their merits.
   ``pip._internal.utils.deprecation.deprecated``. The function is not a part of
   pip's public API.
 
-Python 2 support
+Python 2 Support
 ----------------
 
 pip will continue to ensure that it runs on Python 2.7 after the CPython 2.7
@@ -78,6 +78,12 @@ be addressed directly by pip's maintainers. Pull Requests to fix Python 2.7
 only bugs will be considered, and merged (subject to normal review processes).
 Note that there may be delays due to the lack of developer resources for
 reviewing such pull requests.
+
+Python Support Policy
+---------------------
+
+In general, a given Python version is supported until its usage on PyPI falls below 5%.
+This is at the maintainers' discretion, in case extraordinary circumstances arise.
 
 .. _`Feature Flags`:
 
