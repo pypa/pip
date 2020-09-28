@@ -20,7 +20,7 @@ nox.options.sessions = ["lint"]
 
 LOCATIONS = {
     "common-wheels": "tests/data/common_wheels",
-    "protected-pip": "tools/tox_pip.py",
+    "protected-adacpip": "tools/tox_adacpip.py",
 }
 REQUIREMENTS = {
     "docs": "tools/requirements/docs.txt",
@@ -29,19 +29,19 @@ REQUIREMENTS = {
 }
 
 AUTHORS_FILE = "AUTHORS.txt"
-VERSION_FILE = "src/pip/__init__.py"
+VERSION_FILE = "src/adacpip/__init__.py"
 
 
-def run_with_protected_pip(session, *arguments):
-    """Do a session.run("pip", *arguments), using a "protected" pip.
+def run_with_protected_adacpip(session, *arguments):
+    """Do a session.run("adacpip", *arguments), using a "protected" adacpip.
 
     This invokes a wrapper script, that forwards calls to original virtualenv
-    (stable) version, and not the code being tested. This ensures pip being
+    (stable) version, and not the code being tested. This ensures adacpip being
     used is not the code being tested.
     """
     env = {"VIRTUAL_ENV": session.virtualenv.location}
 
-    command = ("python", LOCATIONS["protected-pip"]) + arguments
+    command = ("python", LOCATIONS["protected-adacpip"]) + arguments
     kwargs = {"env": env, "silent": True}
     session.run(*command, **kwargs)
 
@@ -73,7 +73,7 @@ def should_update_common_wheels():
 def test(session):
     # Get the common wheels.
     if should_update_common_wheels():
-        run_with_protected_pip(
+        run_with_protected_adacpip(
             session,
             "wheel",
             "-w", LOCATIONS["common-wheels"],
@@ -100,10 +100,10 @@ def test(session):
     generated_sdist = os.path.join(sdist_dir, generated_files[0])
 
     # Install source distribution
-    run_with_protected_pip(session, "install", generated_sdist)
+    run_with_protected_adacpip(session, "install", generated_sdist)
 
     # Install test dependencies
-    run_with_protected_pip(session, "install", "-r", REQUIREMENTS["tests"])
+    run_with_protected_adacpip(session, "install", "-r", REQUIREMENTS["tests"])
 
     # Parallelize tests as much as possible, by default.
     arguments = session.posargs or ["-n", "auto"]
@@ -276,8 +276,8 @@ def upload_release(session):
     # Sanity check: Make sure the files are correctly named.
     distfile_names = map(os.path.basename, distribution_files)
     expected_distribution_files = [
-        f"pip-{version}-py2.py3-none-any.whl",
-        f"pip-{version}.tar.gz",
+        f"adacpip-{version}-py2.py3-none-any.whl",
+        f"adacpip-{version}.tar.gz",
     ]
     if sorted(distfile_names) != sorted(expected_distribution_files):
         session.error(

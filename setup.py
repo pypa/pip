@@ -28,9 +28,9 @@ def get_version(rel_path):
 long_description = read('README.rst')
 
 setup(
-    name="pip",
-    version=get_version("src/pip/__init__.py"),
-    description="The PyPA recommended tool for installing Python packages.",
+    name="adacpip",
+    version=get_version("src/adacpip/__init__.py"),
+    description="The PyPA recommended tool for installing Python packages.  Modified for use in the ADAC Metrology Lab",
     long_description=long_description,
 
     license='MIT',
@@ -67,17 +67,17 @@ setup(
         exclude=["contrib", "docs", "tests*", "tasks"],
     ),
     package_data={
-        "pip._vendor": ["vendor.txt"],
-        "pip._vendor.certifi": ["*.pem"],
-        "pip._vendor.requests": ["*.pem"],
-        "pip._vendor.distlib._backport": ["sysconfig.cfg"],
-        "pip._vendor.distlib": ["t32.exe", "t64.exe", "w32.exe", "w64.exe"],
+        "adacpip._vendor": ["vendor.txt"],
+        "adacpip._vendor.certifi": ["*.pem"],
+        "adacpip._vendor.requests": ["*.pem"],
+        "adacpip._vendor.distlib._backport": ["sysconfig.cfg"],
+        "adacpip._vendor.distlib": ["t32.exe", "t64.exe", "w32.exe", "w64.exe"],
     },
     entry_points={
         "console_scripts": [
-            "pip=pip._internal.cli.main:main",
-            "pip{}=pip._internal.cli.main:main".format(sys.version_info[0]),
-            "pip{}.{}=pip._internal.cli.main:main".format(
+            "adacpip=adacpip._internal.cli.main:main",
+            "adacpip{}=adacpip._internal.cli.main:main".format(sys.version_info[0]),
+            "adacpip{}.{}=adacpip._internal.cli.main:main".format(
                 *sys.version_info[:2]
             ),
         ],

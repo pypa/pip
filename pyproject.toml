@@ -3,7 +3,7 @@ requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.towncrier]
-package = "pip"
+package = "adacpip"
 package_dir = "src"
 filename = "NEWS.rst"
 directory = "news/"
@@ -21,9 +21,9 @@ type = [
 ]
 
 [tool.vendoring]
-destination = "src/pip/_vendor/"
-requirements = "src/pip/_vendor/vendor.txt"
-namespace = "pip._vendor"
+destination = "src/adacpip/_vendor/"
+requirements = "src/adacpip/_vendor/vendor.txt"
+namespace = "adacpip._vendor"
 
 protected-files = ["__init__.py", "README.rst", "vendor.txt"]
 patches-dir = "tools/automation/vendoring/patches"
