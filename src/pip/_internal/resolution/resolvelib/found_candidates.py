@@ -1,4 +1,4 @@
-from pip._vendor.six.moves import collections_abc
+from pip._vendor.six.moves import collections_abc  # type: ignore
 
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
