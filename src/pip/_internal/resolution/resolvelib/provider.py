@@ -52,7 +52,7 @@ class PipProvider(AbstractProvider):
         self._constraints = constraints
         self._ignore_dependencies = ignore_dependencies
         self._upgrade_strategy = upgrade_strategy
-        self.user_requested = user_requested
+        self._user_requested = user_requested
 
     def _sort_matches(self, matches):
         # type: (Iterable[Candidate]) -> Sequence[Candidate]
@@ -93,7 +93,7 @@ class PipProvider(AbstractProvider):
             if self._upgrade_strategy == "eager":
                 return True
             elif self._upgrade_strategy == "only-if-needed":
-                return (name in self.user_requested)
+                return (name in self._user_requested)
             return False
 
         def sort_key(c):
@@ -124,11 +124,18 @@ class PipProvider(AbstractProvider):
         self,
         resolution,  # type: Optional[Candidate]
         candidates,  # type: Sequence[Candidate]
-        information  # type: Sequence[Tuple[Requirement, Candidate]]
+        information  # type: Sequence[Tuple[Requirement, Optional[Candidate]]]
     ):
         # type: (...) -> Any
-        # Use the "usual" value for now
-        return len(candidates)
+        """Return a sort key to determine what dependency to look next.
+
+        A smaller value makes a dependency higher priority. We put direct
+        (user-requested) dependencies first since they may contain useful
+        user-specified version ranges. Users tend to expect us to catch
+        problems in them early as well.
+        """
+        transitive = all(parent is not None for _, parent in information)
+        return (transitive, len(candidates))
 
     def find_matches(self, requirements):
         # type: (Sequence[Requirement]) -> Iterable[Candidate]
