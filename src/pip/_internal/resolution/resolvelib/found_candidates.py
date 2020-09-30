@@ -66,10 +66,19 @@ class _InstalledReplacesCandidatesIterator(collections_abc.Iterator):
         # type: () -> Candidate
         if self._others is None:
             self._others = self._get_others()
-        cand = next(self._others)
-        while cand.version in self._returned:
+        try:
             cand = next(self._others)
-        if self._installed and cand.version == self._installed.version:
+            while cand.version in self._returned:
+                cand = next(self._others)
+            if self._installed and cand.version == self._installed.version:
+                cand = self._installed
+        except StopIteration:
+            # Return the already-installed candidate as the last item if its
+            # version does not exist on the index.
+            if not self._installed:
+                raise
+            if self._installed.version in self._returned:
+                raise
             cand = self._installed
         self._returned.add(cand.version)
         return cand
