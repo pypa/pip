@@ -269,13 +269,13 @@ class InstallCommand(RequirementCommand):
         global_options = options.global_options or []
 
         session = self.get_default_session(options)
-        updaters = self.get_tuf_updaters(options)
+        secure_update_session = self.get_secure_update_session(options)
 
         target_python = make_target_python(options)
         finder = self._build_package_finder(
             options=options,
             session=session,
-            updaters=updaters,
+            secure_update_session=secure_update_session,
             target_python=target_python,
             ignore_requires_python=options.ignore_requires_python,
         )
@@ -303,7 +303,7 @@ class InstallCommand(RequirementCommand):
                 options=options,
                 req_tracker=req_tracker,
                 session=session,
-                updaters=updaters,
+                secure_update_session=secure_update_session,
                 finder=finder,
                 use_user_site=options.use_user_site,
             )

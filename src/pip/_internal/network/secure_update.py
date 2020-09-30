@@ -19,9 +19,10 @@ logger = logging.getLogger(__name__)
 
 
 # TUF Updater abstraction for a specific Warehouse instance (index URL)
-class Updater:
+class SecureDownloader:
     # throws RepositoryError, ?
     def __init__(self, index_url, metadata_dir, cache_dir):
+        # type: (str, str, Optional[str]) -> SecureDownloader
         # Construct unique directory name based on the url
         # TODO make sure this is robust
         dir_name = hashlib.sha224(index_url.encode('utf-8')).hexdigest()
@@ -42,10 +43,12 @@ class Updater:
             }
         }
         self._distribution_mirrors = {
+            # TODO: should remove targets_path when possible:
+            # https://github.com/theupdateframework/tuf/issues/1079
             base_url: {
                 'url_prefix': base_url,
                 'metadata_path': 'tuf/',
-                'targets_path': 'None', # TODO: Actual None does not work with current tuf 
+                'targets_path': 'None', 
                 'confined_target_dirs': []
             }
         }
@@ -107,6 +110,7 @@ class Updater:
     # "https://pypi.org/simple/django"
     # Raises NoWorkingMirrorError, ?
     def download_index(self, project_name):
+        # type: (str) -> str
         self._ensure_fresh_metadata()
 
         self._updater.mirrors = self._index_mirrors
@@ -127,7 +131,9 @@ class Updater:
     #   comes_from is e.g. "https://pypi.org/simple/django"
     # Raises NoWorkingMirrorError, ?
     def download_distribution(self, link):
-        # TODO double check that comes_from matches our index_url
+        # type: (Link) -> str
+
+        # TODO double check that comes_from matches our index_url?
 
         self._ensure_fresh_metadata()
 
@@ -146,31 +152,38 @@ class Updater:
 
 
 
-# Return a dictionary of index_url:Updater
-# The dict will contain updaters for every index_url that we have local metadata for
-# TODO return value should maybe be a "TUFSession" object -- it could provide some extra
-# functionality like updater lookup based on distribution download Link (currently
+# TODO could provide some extra
+# functionality like downloader lookup based on distribution download Link (currently
 # implemented in prepare.py:get_http_url()) or lookup that at least canonicalizes the URL
-def initialize_updaters(index_urls, metadata_dir, cache_dir):
-    if not os.path.isdir(metadata_dir):
-        # TODO should create this path or no?
-        raise NotADirectoryError(metadata_dir) # TODO not in py2
+class SecureUpdateSession:
+    def __init__(self, index_urls, metadata_dir, cache_dir):
+        # type: (List[str], str, Optional[str]) -> SecureUpdateSession
+        self._downloaders = {} # dictionary of index_uri:SecureDownloader
 
-    # global TUF settings
-    tuf.settings.repositories_directory = metadata_dir
-    tuf.log.set_log_level(logging.ERROR)
+        # TODO: add the pypi.org metadata bootstrap (root.json installed with pip, copy to metadatadir)
 
-    # Initialize updaters for index_urls with local metadata
-    updaters = {}
-    for index_url in index_urls:
-        # TODO: should canonicalize index_url: at least the last slash
-        try:
-            updaters[index_url] = Updater(index_url, metadata_dir, cache_dir)
-        except RepositoryError as e:
-            # No TUF Metadata was found for this index_url
-            # TODO: must check for actual metadata file existence
-            # otherwise RepositoryError means "no local metadata"
-            # and "something is wrong"
-            logger.info("Failed to find TUF repo for '%s': %s", index_url, e)
+        # global tuf settings
+        # TODO: review settings: do we need to change anything else
+        tuf.settings.repositories_directory = metadata_dir
+        tuf.log.set_log_level(logging.ERROR)
     
-    return updaters
+        for index_url in index_urls:
+            index_url = self._canonicalize_url(index_url)
+            try:
+                downloader = SecureDownloader(index_url, metadata_dir, cache_dir)
+                self._downloaders[index_url] = downloader
+            except RepositoryError as e:
+                # No TUF Metadata was found for this index_url
+                # TODO: check for actual metadata file existence:
+                # https://github.com/theupdateframework/tuf/issues/1063
+                logger.info('Failed to find TUF repo for "%s": %s', index_url, e)
+
+    # TODO: better canonicalization
+    @staticmethod
+    def _canonicalize_url(url):
+        return urllib_parse.urljoin(url + '/', '.')
+
+    def get_downloader(self, index_url):
+        # type: (str) -> Optional[SecureDownloader]
+        index_url = self._canonicalize_url(index_url)
+        return self._downloaders.get(index_url)

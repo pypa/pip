@@ -18,7 +18,7 @@ from pip._internal.index.package_finder import PackageFinder
 from pip._internal.locations import USER_DATA_DIR
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.network.session import PipSession
-from pip._internal.network.tuf import initialize_updaters
+from pip._internal.network.secure_update import SecureUpdateSession
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req.constructors import (
     install_req_from_editable,
@@ -55,7 +55,7 @@ class SessionCommandMixin(CommandContextMixIn):
         # type: () -> None
         super(SessionCommandMixin, self).__init__()
         self._session = None  # Optional[PipSession]
-        self._updaters = None
+        self._secure_update_session = None # Optional[SecureUpdateSession]
 
     @classmethod
     def _get_index_urls(cls, options):
@@ -122,23 +122,27 @@ class SessionCommandMixin(CommandContextMixIn):
 
         return session
 
-    #TODO SessionCommandMixin is not a great place: research needed
-    def get_tuf_updaters(self, options):
-        if self._updaters == None:
-            self._updaters = self._initialize_tuf_updaters(options)
-        logger.debug("TUF Updaters" + str(self._updaters))
-        return self._updaters
+    # TODO SessionCommandMixin is not a correct place for this:
+    # It's needed by install, download, wheel: Maybe a Mixin of its own?
+    def get_secure_update_session(self, options):
+        # type: (Values) -> SecureUpdateSession
+        if self._secure_update_session == None:
+            self._secure_update_session = self._init_secure_update_session(options)
+            logger.debug("Initialized secure update session (TUF):" + 
+                         str(self._secure_update_session))
+        return self._secure_update_session
 
-    def _initialize_tuf_updaters(self, options):
+    def _init_secure_update_session(self, options):
+        # type: (Values) -> SecureUpdateSession
         index_urls = self._get_index_urls(options)
-        # TODO does user_data_dir need to be a config option as well?
+        # TODO does metadata_dir or user_data_dir need to a be an option?
         metadata_dir = os.path.join(USER_DATA_DIR, 'tuf')
         if options.cache_dir:
             cache_dir = os.path.join(options.cache_dir, "tuf")
         else:
             # TODO: this breaks everything currently: not sure what to do without cache -- use a temp dir?
             cache_dir = None
-        return initialize_updaters(index_urls, metadata_dir, cache_dir)
+        return SecureUpdateSession(index_urls, metadata_dir, cache_dir)
 
 
 
@@ -223,7 +227,7 @@ class RequirementCommand(IndexGroupCommand):
         options,                  # type: Values
         req_tracker,              # type: RequirementTracker
         session,                  # type: PipSession
-        updaters,
+        secure_update_session,    # type: SecureUpdateSession
         finder,                   # type: PackageFinder
         use_user_site,            # type: bool
         download_dir=None,        # type: str
@@ -256,7 +260,7 @@ class RequirementCommand(IndexGroupCommand):
             req_tracker=req_tracker,
             session=session,
             progress_bar=options.progress_bar,
-            updaters=updaters,
+            secure_update_session=secure_update_session,
             finder=finder,
             require_hashes=options.require_hashes,
             use_user_site=use_user_site,
@@ -408,7 +412,7 @@ class RequirementCommand(IndexGroupCommand):
         self,
         options,               # type: Values
         session,               # type: PipSession
-        updaters,
+        secure_update_session, # type: SecureUpdateSession
         target_python=None,    # type: Optional[TargetPython]
         ignore_requires_python=None,  # type: Optional[bool]
     ):
@@ -419,7 +423,10 @@ class RequirementCommand(IndexGroupCommand):
         :param ignore_requires_python: Whether to ignore incompatible
             "Requires-Python" values in links. Defaults to False.
         """
-        link_collector = LinkCollector.create(session, updaters, options=options)
+        link_collector = LinkCollector.create(
+            session=session,
+            secure_update_session=secure_update_session,
+            options=options)
         selection_prefs = SelectionPreferences(
             allow_yanked=True,
             format_control=options.format_control,
