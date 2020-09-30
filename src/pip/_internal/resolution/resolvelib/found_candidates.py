@@ -1,5 +1,6 @@
 from pip._vendor.six.moves import collections_abc  # type: ignore
 
+from pip._internal.utils.compat import lru_cache
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -96,10 +97,10 @@ class FoundCandidates(collections_abc.Sequence):
 
     def __getitem__(self, index):
         # type: (int) -> Candidate
-        for i, value in enumerate(self):
-            if index == i:
-                return value
-        raise IndexError(index)
+        # Implemented to satisfy the ABC check, This is not needed by the
+        # resolver, and should not be used by the provider either (for
+        # performance reasons).
+        raise NotImplementedError("don't do this")
 
     def __iter__(self):
         # type: () -> Iterator[Candidate]
@@ -109,10 +110,12 @@ class FoundCandidates(collections_abc.Sequence):
             klass = _InstalledReplacesCandidatesIterator
         return klass(self._get_others, self._installed)
 
+    @lru_cache(maxsize=1)
     def __len__(self):
         # type: () -> int
         return sum(1 for _ in self)
 
+    @lru_cache(maxsize=1)
     def __bool__(self):
         # type: () -> bool
         if self._prefers_installed and self._installed:
