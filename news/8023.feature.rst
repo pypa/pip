@@ -1,0 +1,2 @@
+New resolver: Avoid accessing indexes when the installed candidate is preferred
+and considered good enough.
