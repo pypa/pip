@@ -486,20 +486,25 @@ class RequirementPreparer(object):
         link = req.link
         self._log_preparing_link(req)
         with indent_log():
+            # Check if the relevant file is already available
+            # in the download directory
+            file_path = None
             download_dir = self._get_download_dir(req.link)
             if download_dir is not None and link.is_wheel:
                 hashes = self._get_linked_req_hashes(req)
                 file_path = _check_download_dir(req.link, download_dir, hashes)
-                if file_path is not None:
-                    self._downloaded[req.link.url] = file_path, None
-            else:
-                file_path = None
 
-            if file_path is None:
+            if file_path is not None:
+                # The file is already available, so mark it as downloaded
+                self._downloaded[req.link.url] = file_path, None
+            else:
+                # The file is not available, attempt to fetch only metadata
                 wheel_dist = self._fetch_metadata_using_lazy_wheel(link)
                 if wheel_dist is not None:
                     req.needs_more_preparation = True
                     return wheel_dist
+
+            # None of the optimizations worked, fully prepare the requirement
             return self._prepare_linked_requirement(req, parallel_builds)
 
     def prepare_linked_requirements_more(self, reqs, parallel_builds=False):
