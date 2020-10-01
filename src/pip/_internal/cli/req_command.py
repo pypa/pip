@@ -174,8 +174,9 @@ class IndexGroupCommand(Command, SessionCommandMixin):
             retries=0,
             timeout=min(5, options.timeout)
         )
+        secure_update_session = self.get_secure_update_session(options)
         with session:
-            pip_self_version_check(session, options)
+            pip_self_version_check(session, secure_update_session, options)
 
 
 KEEPABLE_TEMPDIR_TYPES = [

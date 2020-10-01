@@ -111,8 +111,8 @@ def was_installed_by_pip(pkg):
     return "pip" == get_installer(dist)
 
 
-def pip_self_version_check(session, options):
-    # type: (PipSession, optparse.Values) -> None
+def pip_self_version_check(session, secure_update_session, options):
+    # type: (PipSession, SecureUpdateSession, optparse.Values) -> None
     """Check for an update for pip.
 
     Limit the frequency of checks to once per week. State is stored either in
@@ -143,7 +143,8 @@ def pip_self_version_check(session, options):
         if pypi_version is None:
             # Lets use PackageFinder to see what the latest pip version is
             link_collector = LinkCollector.create(
-                session,
+                session=session,
+                secure_update_session=secure_update_session,
                 options=options,
                 suppress_no_index=True,
             )
