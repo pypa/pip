@@ -98,11 +98,15 @@ class SecureDownloader:
     #    ->
     # ("https://files.pythonhosted.org/packages/", "8f/1f/74aa91b56dea5847b62e11ce6737db82c6446561bddc20ca80fa5df025cc/Django-1.1.3.tar.gz")
     def _split_distribution_url(self, link):
-        # TODO replace the hack with a proper split based on
-        # knowledge of the hash
-        base_url = urllib_parse.urlunsplit([link.scheme, link.netloc, "/packages/", "", ""])
-        target = link.path[len("/packages/"):]
-        return base_url, target
+        # type: (Link) -> (str, str)
+        split_path = link.path.split('/')
+
+        # NOTE: knowledge of path structure is required to do the split here
+        # target name is filename plus three directory levels to form full blake hash
+        target_name = '/'.join(split_path[-4:])
+        base_path = '/'.join(split_path[:-4])
+        base_url = urllib_parse.urlunsplit([link.scheme, link.netloc, base_path, "", ""])
+        return base_url, target_name
 
 
     # Download project index file, return file name
@@ -126,14 +130,13 @@ class SecureDownloader:
 
 
     # Download a distribution file
-    # Requires a link with url and comes_from
+    # Requires a link with url
     #   url is e.g. https://files.pythonhosted.org/packages/8f/1f/74aa91b56dea5847b62e11ce6737db82c6446561bddc20ca80fa5df025cc/Django-1.1.3.tar.gz#sha256=0e5034cf8046ba77c62e95a45d776d2c59998b26f181ceaf5cec516115e3f85a
-    #   comes_from is e.g. "https://pypi.org/simple/django"
     # Raises NoWorkingMirrorError, ?
     def download_distribution(self, link):
         # type: (Link) -> str
 
-        # TODO double check that comes_from matches our index_url?
+        # TODO maybe double check that comes_from matches our index_url?
 
         self._ensure_fresh_metadata()
 
