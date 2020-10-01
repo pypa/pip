@@ -4,6 +4,8 @@
 import hashlib
 import logging
 import os.path
+import os
+import shutil
 
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._vendor.six.moves.urllib import parse as urllib_parse
@@ -164,7 +166,7 @@ class SecureUpdateSession:
         # type: (List[str], str, Optional[str]) -> SecureUpdateSession
         self._downloaders = {} # dictionary of index_uri:SecureDownloader
 
-        # TODO: add the pypi.org metadata bootstrap (root.json installed with pip, copy to metadatadir)
+        self._bootstrap_metadata(metadata_dir)
 
         # global tuf settings
         # TODO: review settings: do we need to change anything else
@@ -186,10 +188,38 @@ class SecureUpdateSession:
                 # https://github.com/theupdateframework/tuf/issues/1063
                 logger.info('Failed to find TUF repo for "%s": %s', index_url, e)
 
+
     # TODO: better canonicalization
     @staticmethod
     def _canonicalize_url(url):
         return urllib_parse.urljoin(url + '/', '.')
+
+    # Bootstrap the TUF metadata with metadata we ship with the code
+    # (only if that TUF metadata does not exist yet).
+    # Raises OSErrors like FileExistsError etc
+    # TODO: handle failures better: e.g. if bootstrap fails somehow, remove the directory
+    def _bootstrap_metadata(self, metadata_dir):
+        # type: (str) -> None
+        bootstrapdir = os.path.join(
+            os.path.dirname(__file__),
+            "secure_update_bootstrap"
+        )
+
+        for bootstrap in os.listdir(bootstrapdir):
+            # check if metadata matching this name already exists
+            dirname = os.path.join(metadata_dir, bootstrap)
+            if os.path.exists(dirname):
+                continue
+
+            # create the structure TUF expects
+            logger.debug("Bootstrapping TUF metadata for {}".format(bootstrap))
+            os.makedirs(os.path.join(dirname, "metadata", "current"))
+            os.mkdir(os.path.join(dirname, "metadata", "previous"))
+            shutil.copyfile(
+                os.path.join(bootstrapdir, bootstrap, "root.json"),
+                os.path.join(dirname, "metadata", "current", "root.json")
+            )
+
 
     def get_downloader(self, index_url):
         # type: (str) -> Optional[SecureDownloader]

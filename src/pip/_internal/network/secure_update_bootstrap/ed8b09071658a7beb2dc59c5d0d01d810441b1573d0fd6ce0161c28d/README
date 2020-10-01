@@ -1,0 +1,8 @@
+TUF metadata bootstrap for index url
+  http://localhost:8000/simple/
+
+This is a placeholder for pypi.org metadata bootstrap which can be
+added once pypi.org actually serves TUF metadata.
+
+Directory name was generated with
+  echo -n "http://localhost:8000/simple/" | sha224sum

@@ -68,6 +68,7 @@ setup(
         exclude=["contrib", "docs", "tests*", "tasks"],
     ),
     package_data={
+        "pip._internal.network": ["secure_update_bootstrap/ed8b09071658a7beb2dc59c5d0d01d810441b1573d0fd6ce0161c28d/root.json"],
         "pip._vendor": ["vendor.txt"],
         "pip._vendor.certifi": ["*.pem"],
         "pip._vendor.requests": ["*.pem"],
