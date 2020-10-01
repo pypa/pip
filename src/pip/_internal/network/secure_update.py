@@ -5,6 +5,7 @@ import hashlib
 import logging
 import os.path
 
+from pip._internal.utils.temp_dir import TempDirectory
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 # TODO vendor tuf
@@ -170,6 +171,10 @@ class SecureUpdateSession:
         tuf.settings.repositories_directory = metadata_dir
         tuf.log.set_log_level(logging.ERROR)
     
+        # Use a temporary directory if cache is not available
+        if cache_dir is None:
+            cache_dir = TempDirectory(globally_managed=True).path
+
         for index_url in index_urls:
             index_url = self._canonicalize_url(index_url)
             try:
