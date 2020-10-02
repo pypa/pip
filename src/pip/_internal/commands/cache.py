@@ -113,8 +113,8 @@ class CacheCommand(Command):
         )
 
         message = textwrap.dedent("""
-            HTTP files location: {http_cache_location}
-            HTTP files size: {http_cache_size}
+            Package index page cache location: {http_cache_location}
+            Package index page cache size: {http_cache_size}
             Number of HTTP files: {num_http_files}
             Wheels location: {wheels_cache_location}
             Wheels size: {wheels_cache_size}

@@ -190,7 +190,10 @@ def test_cache_info(
 ):
     result = script.pip('cache', 'info')
 
-    assert 'HTTP files location: {}'.format(http_cache_dir) in result.stdout
+    assert (
+        'Package index page cache location: {}'.format(http_cache_dir)
+        in result.stdout
+    )
     assert 'Wheels location: {}'.format(wheel_cache_dir) in result.stdout
     num_wheels = len(wheel_cache_files)
     assert 'Number of wheels: {}'.format(num_wheels) in result.stdout
