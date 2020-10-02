@@ -102,19 +102,30 @@ class CacheCommand(Command):
         if args:
             raise CommandError('Too many arguments')
 
+        num_http_files = len(self._find_http_files(options))
         num_packages = len(self._find_wheels(options, '*'))
 
-        cache_location = self._wheels_cache_dir(options)
-        cache_size = filesystem.format_directory_size(cache_location)
+        http_cache_location = self._cache_dir(options, 'http')
+        wheels_cache_location = self._cache_dir(options, 'wheels')
+        http_cache_size = filesystem.format_directory_size(http_cache_location)
+        wheels_cache_size = filesystem.format_directory_size(
+            wheels_cache_location
+        )
 
         message = textwrap.dedent("""
-            Location: {location}
-            Size: {size}
+            Package index page cache location: {http_cache_location}
+            Package index page cache size: {http_cache_size}
+            Number of HTTP files: {num_http_files}
+            Wheels location: {wheels_cache_location}
+            Wheels size: {wheels_cache_size}
             Number of wheels: {package_count}
         """).format(
-            location=cache_location,
+            http_cache_location=http_cache_location,
+            http_cache_size=http_cache_size,
+            num_http_files=num_http_files,
+            wheels_cache_location=wheels_cache_location,
             package_count=num_packages,
-            size=cache_size,
+            wheels_cache_size=wheels_cache_size,
         ).strip()
 
         logger.info(message)
@@ -169,6 +180,11 @@ class CacheCommand(Command):
             raise CommandError('Please provide a pattern')
 
         files = self._find_wheels(options, args[0])
+
+        # Only fetch http files if no specific pattern given
+        if args[0] == '*':
+            files += self._find_http_files(options)
+
         if not files:
             raise CommandError('No matching packages')
 
@@ -184,13 +200,18 @@ class CacheCommand(Command):
 
         return self.remove_cache_items(options, ['*'])
 
-    def _wheels_cache_dir(self, options):
-        # type: (Values) -> str
-        return os.path.join(options.cache_dir, 'wheels')
+    def _cache_dir(self, options, subdir):
+        # type: (Values, str) -> str
+        return os.path.join(options.cache_dir, subdir)
+
+    def _find_http_files(self, options):
+        # type: (Values) -> List[str]
+        http_dir = self._cache_dir(options, 'http')
+        return filesystem.find_files(http_dir, '*')
 
     def _find_wheels(self, options, pattern):
         # type: (Values, str) -> List[str]
-        wheel_dir = self._wheels_cache_dir(options)
+        wheel_dir = self._cache_dir(options, 'wheels')
 
         # The wheel filename format, as specified in PEP 427, is:
         #     {distribution}-{version}(-{build})?-{python}-{abi}-{platform}.whl
