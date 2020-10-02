@@ -7,7 +7,10 @@ import os.path
 import os
 import shutil
 
-from pip._internal.exceptions import NetworkConnectionError
+from pip._internal.exceptions import (
+    ConfigurationError,
+    NetworkConnectionError,
+)
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
@@ -20,6 +23,13 @@ from tuf.exceptions import (
 )
 import tuf.settings
 
+# URLS from these indexes should always end up being downloaded with
+# SecureDownloader: it should be an error to do otherwise
+# TODO: this should contain "https://pypi.org/simple/" once pypi supports TUF
+KNOWN_SECURE_INDEXES = [
+#    "https://pypi.org/simple/",
+    "http://localhost:8000/simple/",
+]
 
 logger = logging.getLogger(__name__)
 
@@ -240,4 +250,12 @@ class SecureUpdateSession:
     def get_downloader(self, index_url):
         # type: (str) -> Optional[SecureDownloader]
         index_url = self._canonicalize_url(index_url)
-        return self._downloaders.get(index_url)
+        downloader = self._downloaders.get(index_url)
+
+        # Double check: Did we find secure downloaders for the urls we should have?
+        if downloader is None and index_url in KNOWN_SECURE_INDEXES:
+            # TODO: probably need to support some override for this (and tuf use in general)?
+            # TODO: is this really a configuration error?
+            raise ConfigurationError("Expected to find secure downloader for '{}'".format(index_url))
+
+        return downloader
