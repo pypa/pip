@@ -14,8 +14,9 @@ from pip._vendor.six.moves.urllib import parse as urllib_parse
 # TODO vendor tuf
 import tuf.client.updater
 from tuf.exceptions import (
-    RepositoryError,
     NoWorkingMirrorError,
+    RepositoryError,
+    UnknownTargetError,
 )
 import tuf.settings
 
@@ -122,7 +123,6 @@ class SecureDownloader:
     # Download project index file, return file name
     # project name is e.g. 'django'. From pypi this will download
     # "https://pypi.org/simple/django"
-    # Raises NoWorkingMirrorError, ?
     def download_index(self, project_name):
         try:
             self._ensure_fresh_metadata()
@@ -137,6 +137,9 @@ class SecureDownloader:
                 self._updater.download_target(target, self._cache_dir)
 
             return os.path.join(self._cache_dir, target_name)
+        except UnknownTargetError as e:
+            logger.debug("Unknown %s", target_name)
+            return None
         except NoWorkingMirrorError as e:
             logger.warning("Failed to download index for %s: %s", project_name, e)
             return None
