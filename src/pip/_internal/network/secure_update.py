@@ -104,7 +104,7 @@ class SecureDownloader:
         # type: (Link) -> (str, str)
         split_path = link.path.split('/')
 
-        # sanity check: does target name contain directory names that form the hash
+        # sanity check: does path contain directory names that form blake2b hash
         blake2b = ''.join(split_path[-4:-1])
         if len(blake2b) != 64:
             raise ValueError('Expected structure not found in link "{}"'.format(link))
@@ -191,7 +191,7 @@ class SecureUpdateSession:
                 # No TUF Metadata was found for this index_url
                 # TODO: check for actual metadata file existence:
                 # https://github.com/theupdateframework/tuf/issues/1063
-                logger.info('Failed to find TUF repo for "%s": %s', index_url, e)
+                logger.debug('Failed to find secure update metadata for "%s": %s', index_url, e)
 
 
     # TODO: better canonicalization
