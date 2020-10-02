@@ -62,9 +62,6 @@ class SecureDownloader:
         self._updater = tuf.client.updater.Updater(dir_name, self._index_mirrors)
         self._refreshed = False
 
-        # TODO think cache issue through:
-        #  * do we need a cache, is it actually useful?
-        #  * what if cache_dir is None?
         self._cache_dir = cache_dir
 
 
@@ -158,14 +155,19 @@ class SecureDownloader:
             self._ensure_distribution_mirror_config(base_url)
             self._updater.mirrors = self._distribution_mirrors
 
+            # fetch the targetinfo. If we don't have the correct target version already download it too
             logger.debug("Getting TUF target_info for " + target_name)
+            logname = target_name.split('/')[-1]
             target = self._updater.get_one_valid_targetinfo(target_name)
 
-            # TODO decide cache dir strategy. Currently the whole
-            # directory structure is created in _cache_dir. Also 'None' cache dir breaks everything
             if self._updater.updated_targets([target], self._cache_dir):
+                logger.info("Downloading %s", logname)
                 self._updater.download_target(target, self._cache_dir, prefix_filename_with_hash=False)
+            else:
+                logger.info("Using cached %s", logname)
+
             return os.path.join(self._cache_dir, target_name)
+
         except NoWorkingMirrorError as e:
             # This is close but not strictly speaking always true: there might
             # be other reasons for NoWorkingMirror than Network issues
