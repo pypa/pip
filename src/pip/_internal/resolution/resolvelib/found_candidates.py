@@ -1,5 +1,5 @@
-import functools
 import itertools
+import operator
 
 from pip._vendor.six.moves import collections_abc  # type: ignore
 
@@ -7,7 +7,7 @@ from pip._internal.utils.compat import lru_cache
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Callable, Iterator, Optional, Set
+    from typing import Callable, Iterator, Optional, Set
 
     from pip._vendor.packaging.version import _BaseVersion
 
@@ -24,11 +24,6 @@ def _deduplicated_by_version(candidates):
         yield candidate
 
 
-def _replaces_sort_key(installed, candidate):
-    # type: (Candidate, Candidate) -> Any
-    return (candidate.version, candidate is installed)
-
-
 def _insert_installed(installed, others):
     # type: (Candidate, Iterator[Candidate]) -> Iterator[Candidate]
     """Iterator for ``FoundCandidates``.
@@ -37,12 +32,15 @@ def _insert_installed(installed, others):
     already-installed package. Candidates from index are returned in their
     normal ordering, except replaced when the version is already installed.
 
-    The sort key prefers the installed candidate over candidates of the same
-    version from the index, so it is chosen on de-duplication.
+    Since candidates from index are already sorted by reverse version order,
+    `sorted()` here would keep the ordering mostly intact, only shuffling the
+    already-installed candidate into the correct position. We put the already-
+    installed candidate in front of those from the index, so it's put in front
+    after sorting due to Python sorting's stableness guarentee.
     """
     candidates = sorted(
-        itertools.chain(others, [installed]),
-        key=functools.partial(_replaces_sort_key, installed),
+        itertools.chain([installed], others),
+        key=operator.attrgetter("version"),
         reverse=True,
     )
     return iter(candidates)
