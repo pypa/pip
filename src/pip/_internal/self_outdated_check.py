@@ -22,6 +22,7 @@ if MYPY_CHECK_RUNNING:
     import optparse
     from typing import Any, Dict, Text, Union
 
+    from pip._internal.network.secure_update import SecureUpdateSession
     from pip._internal.network.session import PipSession
 
 

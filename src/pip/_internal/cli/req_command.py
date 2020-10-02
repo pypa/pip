@@ -17,8 +17,8 @@ from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.locations import USER_DATA_DIR
 from pip._internal.models.selection_prefs import SelectionPreferences
-from pip._internal.network.session import PipSession
 from pip._internal.network.secure_update import SecureUpdateSession
+from pip._internal.network.session import PipSession
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req.constructors import (
     install_req_from_editable,
@@ -55,7 +55,7 @@ class SessionCommandMixin(CommandContextMixIn):
         # type: () -> None
         super(SessionCommandMixin, self).__init__()
         self._session = None  # Optional[PipSession]
-        self._secure_update_session = None # Optional[SecureUpdateSession]
+        self._secure_update_session = None  # type: Optional[SecureUpdateSession]
 
     @classmethod
     def _get_index_urls(cls, options):
@@ -122,29 +122,20 @@ class SessionCommandMixin(CommandContextMixIn):
 
         return session
 
-    # TODO SessionCommandMixin is not a correct place for this:
-    # It's needed by install, download, wheel: Maybe a Mixin of its own?
+    # TODO SessionCommandMixin may not be a correct place for this:
+    # It's needed by same comamnds though
     def get_secure_update_session(self, options):
         # type: (Values) -> SecureUpdateSession
-        if self._secure_update_session == None:
-            self._secure_update_session = self._init_secure_update_session(options)
-            logger.debug("Initialized secure update session (TUF):" + 
+
+        if self._secure_update_session is None:
+            index_urls = self._get_index_urls(options)
+            self._secure_update_session = SecureUpdateSession(
+                index_urls, USER_DATA_DIR, options.cache_dir
+            )
+            logger.debug("Initialized secure update session (TUF): %s",
                          str(self._secure_update_session))
+
         return self._secure_update_session
-
-    def _init_secure_update_session(self, options):
-        # type: (Values) -> SecureUpdateSession
-        index_urls = self._get_index_urls(options)
-        # TODO does metadata_dir or user_data_dir need to a be an option?
-        metadata_dir = os.path.join(USER_DATA_DIR, 'tuf')
-        if options.cache_dir:
-            cache_dir = os.path.join(options.cache_dir, "tuf")
-        else:
-            # TODO: this breaks everything currently: not sure what to do without cache -- use a temp dir?
-            cache_dir = None
-        return SecureUpdateSession(index_urls, metadata_dir, cache_dir)
-
-
 
 
 class IndexGroupCommand(Command, SessionCommandMixin):
@@ -413,7 +404,7 @@ class RequirementCommand(IndexGroupCommand):
         self,
         options,               # type: Values
         session,               # type: PipSession
-        secure_update_session, # type: SecureUpdateSession
+        secure_update_session,  # type: SecureUpdateSession
         target_python=None,    # type: Optional[TargetPython]
         ignore_requires_python=None,  # type: Optional[bool]
     ):

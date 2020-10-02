@@ -10,8 +10,8 @@ import os
 import shutil
 
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six import PY2
+from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 from pip._internal.distributions import make_distribution_for_install_requirement
 from pip._internal.distributions.installed import InstalledDistribution
@@ -47,6 +47,7 @@ if MYPY_CHECK_RUNNING:
 
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.models.link import Link
+    from pip._internal.network.secure_update import SecureUpdateSession
     from pip._internal.network.session import PipSession
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.req.req_tracker import RequirementTracker
@@ -111,7 +112,7 @@ class File(object):
 def get_http_url(
     link,  # type: Link
     download,  # type: Downloader
-    secure_update_session,
+    secure_update_session,  # type: SecureUpdateSession
     download_dir=None,  # type: Optional[str]
     hashes=None,  # type: Optional[Hashes]
 ):
@@ -120,7 +121,7 @@ def get_http_url(
     # If a download dir is specified, is the file already downloaded there?
     already_downloaded_path = None
     if download_dir:
-        # TODO review this for safety: should be fine if hashes are present and come from index file that was verified?
+        # TODO review for safety: do hashes come from verified source?
         already_downloaded_path = _check_download_dir(
             link, download_dir, hashes
         )
@@ -136,13 +137,13 @@ def get_http_url(
         index_url = urllib_parse.urljoin(link.comes_from, "..")
         secure_downloader = secure_update_session.get_downloader(index_url)
         if secure_downloader:
-            logger.debug("TUF downloader found: " + str(secure_downloader))
+            logger.debug("SecureDownloader found: %s", str(secure_downloader))
             from_path = secure_downloader.download_distribution(link)
             content_type = mimetypes.guess_type(from_path)[0]
         else:
-            logger.debug("TUF downloader not found for index_url " + index_url)
-            # link is from a repo that does not use TUF
-            # let's download to a tmp dir
+            logger.debug("SecureDownloader not found for %s", index_url)
+            # link is from a repo that does not use TUF:
+            # download to a tmp dir without TUF
             from_path, content_type = download(link, temp_dir.path)
 
         if hashes:
@@ -238,7 +239,7 @@ def unpack_url(
     link,  # type: Link
     location,  # type: str
     download,  # type: Downloader
-    secure_update_session, # type: SecureUpdateSession
+    secure_update_session,  # type: SecureUpdateSession
     download_dir=None,  # type: Optional[str]
     hashes=None,  # type: Optional[Hashes]
 ):
@@ -323,7 +324,7 @@ class RequirementPreparer(object):
         req_tracker,  # type: RequirementTracker
         session,  # type: PipSession
         progress_bar,  # type: str
-        secure_update_session,
+        secure_update_session,  # type: SecureUpdateSession
         finder,  # type: PackageFinder
         require_hashes,  # type: bool
         use_user_site,  # type: bool

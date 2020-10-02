@@ -44,6 +44,7 @@ if MYPY_CHECK_RUNNING:
 
     from pip._vendor.requests import Response
 
+    from pip._internal.network.secure_update import SecureUpdateSession
     from pip._internal.network.session import PipSession
 
     HTMLElement = xml.etree.ElementTree.Element
@@ -582,9 +583,9 @@ class LinkCollector(object):
 
     def __init__(
         self,
-        session,               # type: PipSession
-        secure_update_session, # type: SecureUpdateSession
-        search_scope,          # type: SearchScope
+        session,                # type: PipSession
+        secure_update_session,  # type: SecureUpdateSession
+        search_scope,           # type: SearchScope
     ):
         # type: (...) -> None
         self.search_scope = search_scope
@@ -630,14 +631,14 @@ class LinkCollector(object):
         """
         Fetch an HTML page containing package links.
         """
-        # TODO: TUF should only be used for project index files -- is this used for other things?
+        # TODO: This assumes fetch_page() is only used on project index files?
         index_url, _, project = location.url.rstrip('/').rpartition('/')
         if not project:
             raise ValueError('Failed to parse {} as project index URL')
 
         downloader = self.secure_update_session.get_downloader(index_url)
         if downloader:
-            logger.debug('SecureDownloader found: ' + str(downloader))
+            logger.debug('SecureDownloader found: %s', str(downloader))
             index_file = downloader.download_index(project)
             if index_file is None:
                 return None
@@ -646,10 +647,10 @@ class LinkCollector(object):
                     return HTMLPage(
                         content=f.read(),
                         encoding=None,
-                        url=location.url, #TODO should this be the real url that tuf fetched?
+                        url=location.url,  # TODO should this be the real URL?
                         cache_link_parsing=False)
         else:
-            logger.debug('SecureDownloader not found for ' + index_url)
+            logger.debug('SecureDownloader not found for %s', index_url)
             return _get_html_page(location, session=self.session)
 
     def collect_links(self, project_name):
