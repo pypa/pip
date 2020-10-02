@@ -83,13 +83,12 @@ class FoundCandidates(collections_abc.Sequence):
             candidates = _insert_installed(self._installed, self._get_others())
         return _deduplicated_by_version(candidates)
 
-    @lru_cache(maxsize=1)
     def __len__(self):
         # type: () -> int
-        # Implement to satisfy the ABC check and used in tests. This is not
-        # needed by the resolver, and should not be used by the provider either
-        # (for performance reasons).
-        return sum(1 for _ in self)
+        # Implemented to satisfy the ABC check. This is not needed by the
+        # resolver, and should not be used by the provider either (for
+        # performance reasons).
+        raise NotImplementedError("don't do this")
 
     @lru_cache(maxsize=1)
     def __bool__(self):

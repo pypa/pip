@@ -61,7 +61,7 @@ def test_new_resolver_correct_number_of_matches(test_cases, factory):
         matches = factory.find_candidates(
             [req], Constraint.empty(), prefers_installed=False,
         )
-        assert len(list(matches)) == match_count
+        assert sum(1 for _ in matches) == match_count
 
 
 def test_new_resolver_candidates_match_requirement(test_cases, factory):
