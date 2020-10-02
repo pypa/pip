@@ -104,11 +104,16 @@ class SecureDownloader:
         # type: (Link) -> (str, str)
         split_path = link.path.split('/')
 
+        # sanity check: does target name contain directory names that form the hash
+        blake2b = ''.join(split_path[-4:-1])
+        if len(blake2b) != 64:
+            raise ValueError('Expected structure not found in link "{}"'.format(link))
+
         # NOTE: knowledge of path structure is required to do the split here
         # target name is filename plus three directory levels to form full blake hash
         target_name = '/'.join(split_path[-4:])
         base_path = '/'.join(split_path[:-4])
-        base_url = urllib_parse.urlunsplit([link.scheme, link.netloc, base_path, "", ""])
+        base_url = urllib_parse.urlunsplit([link.scheme, link.netloc, base_path, '', ''])
         return base_url, target_name
 
 
