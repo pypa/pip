@@ -127,10 +127,12 @@ class SecureDownloader:
         return base_url, target_name
 
 
-    # Download project index file, return file name
-    # project name is e.g. 'django'. From pypi this will download
-    # "https://pypi.org/simple/django"
+    # Securely download project index file into cache if it is not found in cache
+    # Returns path to file in cache
+    # project name is e.g. 'django'. This will download e.g.
+    # "https://pypi.org/simple/django/<hash>.index.html"
     def download_index(self, project_name):
+        # type: (str) -> str
         try:
             self._ensure_fresh_metadata()
 
@@ -145,18 +147,21 @@ class SecureDownloader:
 
             return os.path.join(self._cache_dir, target_name)
         except UnknownTargetError as e:
-            logger.debug("Unknown %s", target_name)
+            # This happens if e.g. project does not exist
+            logger.debug("Unknown target %s", target_name)
             return None
         except NoWorkingMirrorError as e:
             logger.warning("Failed to download index for %s: %s", project_name, e)
             return None
 
 
-    # Download a distribution file
+    # Securely download a distribution file into cache if it is not found in cache
+    # Returns path to file in cache
     # Requires a link with url
     #   url is e.g. https://files.pythonhosted.org/packages/8f/1f/74aa91b56dea5847b62e11ce6737db82c6446561bddc20ca80fa5df025cc/Django-1.1.3.tar.gz#sha256=0e5034cf8046ba77c62e95a45d776d2c59998b26f181ceaf5cec516115e3f85a
     # Raises NetworkConnectionError, ?
     def download_distribution(self, link):
+        # type: (Link) -> str
         # TODO maybe double check that comes_from matches our index_url
         try:
             self._ensure_fresh_metadata()
