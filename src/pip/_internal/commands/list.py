@@ -126,7 +126,12 @@ class ListCommand(IndexGroupCommand):
         """
         Create a package finder appropriate to this list command.
         """
-        link_collector = LinkCollector.create(session, options=options)
+        secure_update_session = self.get_secure_update_session(options)
+        link_collector = LinkCollector.create(
+            session=session,
+            secure_update_session=secure_update_session,
+            options=options
+        )
 
         # Pass allow_yanked=False to ignore yanked versions.
         selection_prefs = SelectionPreferences(
@@ -225,7 +230,15 @@ class ListCommand(IndexGroupCommand):
                 dist.latest_filetype = typ
                 return dist
 
-            for dist in map_multithread(latest_info, packages):
+            # NOTE: TUF is not currently threadsafe: do not run multithreaded
+            # if we have any SecureUpdaters
+            secure_update_session = self.get_secure_update_session(options)
+            if secure_update_session.downloaders:
+                map_func = map
+            else:
+                map_func = map_multithread  # type: ignore
+
+            for dist in map_func(latest_info, packages):
                 if dist is not None:
                     yield dist
 

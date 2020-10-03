@@ -18,7 +18,7 @@ from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import List, Optional, Tuple
+    from typing import Dict, List, Optional, Tuple
 
     from pip._internal.models.link import Link
 
@@ -198,7 +198,7 @@ class SecureDownloader:
 class SecureUpdateSession:
     def __init__(self, index_urls, data_dir, cache_dir):
         # type: (Optional[List[str]], str, Optional[str]) -> None
-        self._downloaders = {}  # type Dict[str:SecureDownloader]
+        self._downloaders = {}  # type: Dict[str, SecureDownloader]
 
         # Use a temporary directory if pip cache is not available
         if cache_dir is None:
@@ -228,6 +228,11 @@ class SecureUpdateSession:
                 # TODO: check for actual metadata file existence:
                 # https://github.com/theupdateframework/tuf/issues/1063
                 logger.debug('No secure update metadata for "%s": %s', index_url, e)
+
+    @property
+    def downloaders(self):
+        # type: () -> Dict[str, SecureDownloader]
+        return self._downloaders
 
     # TODO: better canonicalization
     @staticmethod
