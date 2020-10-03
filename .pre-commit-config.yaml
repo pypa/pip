@@ -85,11 +85,18 @@ repos:
   - id: python-no-log-warn
   - id: python-no-eval
   - id: rst-backticks
-    # Validate existing ReST files and NEWS fragments.
-    files: .*\.rst$|^news/.*
+    files: .*\.rst$
     types: [file]
-    # The errors flagged in NEWS.rst are old.
-    exclude: NEWS.rst
+    exclude: NEWS.rst  # The errors flagged in NEWS.rst are old.
+
+- repo: local
+  hooks:
+  - id: news-fragment-filenames
+    name: NEWS fragment
+    language: fail
+    entry: NEWS fragment files must be named *.(process|removal|feature|bugfix|vendor|doc|trivial).rst
+    exclude: ^news/(.gitignore|.*\.(process|removal|feature|bugfix|vendor|doc|trivial).rst)
+    files: ^news/
 
 - repo: https://github.com/mgedmin/check-manifest
   rev: '0.43'
