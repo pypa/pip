@@ -1,4 +1,6 @@
-""" TUF (TheUpdateFramework) integration
+"""
+TUF (TheUpdateFramework) integration: Download index files and distribution files
+securely and verify that everything is signed.
 """
 
 import hashlib
@@ -7,10 +9,11 @@ import os
 import os.path
 import shutil
 
-# TODO vendor tuf
-import tuf.client.updater
 import tuf.settings
 from pip._vendor.six.moves.urllib import parse as urllib_parse
+
+# TODO vendor tuf: https://github.com/jku/pip/issues/12
+from tuf.client.updater import Updater
 from tuf.exceptions import NoWorkingMirrorError, RepositoryError, UnknownTargetError
 
 from pip._internal.exceptions import ConfigurationError, NetworkConnectionError
@@ -35,11 +38,13 @@ logger = logging.getLogger(__name__)
 
 # TUF Updater abstraction for a specific Warehouse instance (index URL)
 class SecureDownloader:
+    """Securely downloads index and distribution files from a repository."""
+
     # throws RepositoryError, ?
     def __init__(self, index_url, metadata_dir, cache_dir):
         # type: (str, str, str) -> None
+
         # Construct unique directory name based on the url
-        # TODO make sure this is robust
         dir_name = hashlib.sha224(index_url.encode('utf-8')).hexdigest()
 
         split_url = urllib_parse.urlsplit(index_url)
@@ -62,7 +67,7 @@ class SecureDownloader:
         }
         self._distribution_mirrors = {
             # TODO: should remove targets_path when possible:
-            # https://github.com/theupdateframework/tuf/issues/1079
+            # https://github.com/jku/pip/issues/8
             base_url: {
                 'url_prefix': base_url,
                 'metadata_path': 'tuf/',
@@ -71,7 +76,7 @@ class SecureDownloader:
             }
         }
 
-        self._updater = tuf.client.updater.Updater(dir_name, self._index_mirrors)
+        self._updater = Updater(dir_name, self._index_mirrors)
         self._refreshed = False
 
         self._cache_dir = cache_dir
@@ -80,27 +85,21 @@ class SecureDownloader:
         # type: () -> str
         return str(self._updater)
 
-    # Make sure we have refreshed metadata exactly once (we
-    # want all downloads to be done from a consistent repository)
-    # Raises NoWorkingMirrorError, ?
     def _ensure_fresh_metadata(self):
         # type: () -> None
+        """Ensure the metadata is refreshed exactly once"""
+
+        # Raises NoWorkingMirrorError, ?
         if not self._refreshed:
             self._updater.refresh()
             self._refreshed = True
 
-    # Ensure give mirror is in updater mirror config
     def _ensure_distribution_mirror_config(self, mirror_url):
         # type: (str) -> None
-        # metadata/index mirror config is known from the start, but
-        # the distribution mirror is only known after the index
-        # files are read: make sure it's configured
+        """Ensure the given url is included in the distribution mirror configuration"""
 
-        # TODO: split mirror_url into prefix and targets_path ?
-        # This would allow using confined_target_dirs to prevent
-        # index file requests being made to this mirror
         # TODO: should remove metadata_path when possible:
-        # https://github.com/theupdateframework/tuf/issues/1079
+        # https://github.com/jku/pip/issues/8
         if mirror_url not in self._distribution_mirrors:
             self._distribution_mirrors[mirror_url] = {
                 'url_prefix': mirror_url,
@@ -109,22 +108,24 @@ class SecureDownloader:
                 'confined_target_dirs': ['']
             }
 
-    # split a distribution url into base path and target name:
-    # "https://files.pythonhosted.org/packages/8f/1f/74aa91b56dea5847b62e11ce6737db82c6446561bddc20ca80fa5df025cc/Django-1.1.3.tar.gz#sha256=..."
-    #    ->
-    # ("https://files.pythonhosted.org/packages/",
-    #  "8f/1f/74aa91b56dea5847b62e11ce6737db82c6446561bddc20ca80fa5df025cc/Django-1.1.3.tar.gz")
     def _split_distribution_url(self, link):
         # type: (Link) -> Tuple[str, str]
+        """Split link url into base path and target name"""
+
+        # "https://files.pythonhosted.org/packages/8f/1f/74aa91b56dea5847b62e11ce6737db82c6446561bddc20ca80fa5df025cc/Django-1.1.3.tar.gz#sha256=..."
+        #    ->
+        # ("https://files.pythonhosted.org/packages/",
+        #  "8f/1f/74aa91b56dea5847b62e11ce6737db82c6446561bddc20ca80fa5df025cc/Django-1.1.3.tar.gz")
+
         split_path = link.path.split('/')
 
-        # sanity check: does path contain directory names that form blake2b hash
+        # NOTE: knowledge of path structure is required to do the split here
+        # target name is filename plus three directory levels to form full blake hash.
+        # Sanity check: does path contain directory names that form blake2b hash
         blake2b = ''.join(split_path[-4:-1])
         if len(blake2b) != 64:
             raise ValueError('Expected structure not found in link "{}"'.format(link))
 
-        # NOTE: knowledge of path structure is required to do the split here
-        # target name is filename plus three directory levels to form full blake hash
         target_name = '/'.join(split_path[-4:])
         base_path = '/'.join(split_path[:-4])
         base_url = urllib_parse.urlunsplit(
@@ -132,18 +133,19 @@ class SecureDownloader:
         )
         return base_url, target_name
 
-    # Securely download project index file into cache if it is not found in cache
-    # Returns path to file in cache
-    # project name is e.g. 'django'. This will download e.g.
-    # "https://pypi.org/simple/django/<hash>.index.html"
     def download_index(self, project_name):
         # type: (str) -> Optional[str]
+        """Securely download project index file into cache if it is not found in cache.
+
+        Return path to downloaded file in cache."""
+
         try:
             self._ensure_fresh_metadata()
 
             self._updater.mirrors = self._index_mirrors
 
             # TODO warehouse setup for hashed index files is still undecided:
+            # https://github.com/jku/pip/issues/14
             # https://github.com/pypa/warehouse/issues/8487
             # this code currently assumes /simple/{PROJECT}/{HASH}.index.html
             target_name = project_name + "/index.html"
@@ -161,11 +163,13 @@ class SecureDownloader:
             logger.warning("Failed to download index for %s: %s", project_name, e)
             return None
 
-    # Securely download a distribution file into cache if it is not found in cache
-    # Returns path to file in cache
-    # Raises NetworkConnectionError, ?
     def download_distribution(self, link):
         # type: (Link) -> str
+        """Securely download distribution file into cache if it is not found in cache.
+
+        Return path to downloaded file in cache."""
+
+        # Raises NetworkConnectionError, ?
         # TODO maybe double check that comes_from matches our index_url
         try:
             self._ensure_fresh_metadata()
@@ -196,6 +200,8 @@ class SecureDownloader:
 
 
 class SecureUpdateSession:
+    """Session object to keep track of all SecureDownloaders currently in use"""
+
     def __init__(self, index_urls, data_dir, cache_dir):
         # type: (Optional[List[str]], str, Optional[str]) -> None
         self._downloaders = {}  # type: Dict[str, SecureDownloader]
@@ -211,7 +217,6 @@ class SecureUpdateSession:
         self._bootstrap_metadata(metadata_dir)
 
         # global tuf settings
-        # TODO: review settings: do we need to change anything else
         tuf.settings.repositories_directory = metadata_dir
         tuf.log.set_log_level(logging.ERROR)
 
@@ -234,19 +239,20 @@ class SecureUpdateSession:
         # type: () -> Dict[str, SecureDownloader]
         return self._downloaders
 
-    # TODO: better canonicalization
     @staticmethod
     def _canonicalize_url(url):
         # type: (str) -> str
+
+        # This should handle at least things like possibly trailing '/' and
+        # optional port ":80"
         return urllib_parse.urljoin(url + '/', '.')
 
-    # Bootstrap the TUF metadata with metadata we ship with the code
-    # (only if that TUF metadata does not exist yet).
-    # Raises OSErrors like FileExistsError etc
-    # TODO: handle failures better: e.g. if bootstrap fails somehow,
-    # remove the directory
     def _bootstrap_metadata(self, metadata_dir):
         # type: (str) -> None
+        """Bootstraps the metadata directory with metadata shipped with pip"""
+
+        # Raises OSErrors like FileExistsError etc
+
         bootstrapdir = os.path.join(
             os.path.dirname(__file__),
             "secure_update_bootstrap"
@@ -269,12 +275,12 @@ class SecureUpdateSession:
 
     def get_downloader(self, index_url):
         # type: (str) -> Optional[SecureDownloader]
+        """Return SecureDownloader for repository index url, or None"""
         index_url = self._canonicalize_url(index_url)
         downloader = self._downloaders.get(index_url)
 
         # Double check: Did we find secure downloaders for well known index urls?
         if downloader is None and index_url in KNOWN_SECURE_INDEXES:
-            # TODO: option to override secure download is probably needed
             # TODO: is this really a configuration error?
             raise ConfigurationError('Expected to find secure downloader for %s',
                                      index_url)
