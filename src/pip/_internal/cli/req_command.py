@@ -49,7 +49,9 @@ logger = logging.getLogger(__name__)
 class SessionCommandMixin(CommandContextMixIn):
 
     """
-    A class mixin for command classes needing _build_session().
+    A class mixin for command classes needing a PipSession and/or
+    a SecureUpdateSession: these are commands that need to connect to
+    a repository.
     """
     def __init__(self):
         # type: () -> None
@@ -122,10 +124,9 @@ class SessionCommandMixin(CommandContextMixIn):
 
         return session
 
-    # TODO SessionCommandMixin may not be a correct place for this:
-    # It's needed by same comamnds though
     def get_secure_update_session(self, options):
         # type: (Values) -> SecureUpdateSession
+        """Get a SecureUpdateSession singleton."""
 
         if self._secure_update_session is None:
             index_urls = self._get_index_urls(options)
