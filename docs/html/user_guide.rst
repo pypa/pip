@@ -1133,6 +1133,12 @@ How to test
    -  If you have a build pipeline that depends on pip installing your
       dependencies for you, check that the new resolver does what you
       need.
+
+   -  If you'd like pip to default to using the new resolver, run ``pip
+      config set global.use-feature 2020-resolver`` (for more on that
+      and the alternate ``PIP_USE_FEATURE`` environment variable
+      option, see `issue 8661`_).
+
    -  Run your project’s CI (test suite, build process, etc.) using the
       new resolver, and let us know of any issues.
    -  If you have encountered resolver issues with pip in the past,
@@ -1259,6 +1265,7 @@ announcements on the `low-traffic packaging announcements list`_ and
 
 .. _freeze: https://pip.pypa.io/en/latest/reference/pip_freeze/
 .. _resolver testing survey: https://tools.simplysecure.org/survey/index.php?r=survey/index&sid=989272&lang=en
+.. _issue 8661: https://github.com/pypa/pip/issues/8661
 .. _our announcement on the PSF blog: http://pyfound.blogspot.com/2020/03/new-pip-resolver-to-roll-out-this-year.html
 .. _tensorflow: https://pypi.org/project/tensorflow/
 .. _low-traffic packaging announcements list: https://mail.python.org/mailman3/lists/pypi-announce.python.org/
