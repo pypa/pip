@@ -92,8 +92,8 @@ class CacheControlAdapter(HTTPAdapter):
 
                 response = cached_response
 
-            # We always cache the 301 responses
-            elif response.status == 301:
+            # We always cache the 301 and 302 responses
+            elif response.status in (301, 302):
                 self.controller.cache_response(request, response)
             else:
                 # Wrap the response file with a wrapper that will cache the

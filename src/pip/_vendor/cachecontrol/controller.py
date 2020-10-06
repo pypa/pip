@@ -37,7 +37,7 @@ class CacheController(object):
         self.cache = DictCache() if cache is None else cache
         self.cache_etags = cache_etags
         self.serializer = serializer or Serializer()
-        self.cacheable_status_codes = status_codes or (200, 203, 300, 301)
+        self.cacheable_status_codes = status_codes or (200, 203, 300, 301, 302)
 
     @classmethod
     def _urlnorm(cls, uri):
