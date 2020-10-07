@@ -17,8 +17,11 @@ _pip_completion()
                    PIP_AUTO_COMPLETE=1 $1 2>/dev/null | \\
                    cut -d'{delimiter}' -f1) )
 }}
-complete -o default -F _pip_completion pip"""),
-    ('fish', """\
+complete -o default -F _pip_completion pip""",
+    ),
+    (
+        "fish",
+        """\
 function __fish_complete_pip
     set -lx COMP_WORDS (commandline -o) ""
     set -lx COMP_CWORD ( \\
@@ -27,8 +30,11 @@ function __fish_complete_pip
     set -lx PIP_AUTO_COMPLETE 1
     string replace '{delimiter}' \\t -- (eval $COMP_WORDS[1])
 end
-complete -fa "(__fish_complete_pip)" -c pip"""),
-    ('zsh', """\
+complete -fa "(__fish_complete_pip)" -c pip""",
+    ),
+    (
+        "zsh",
+        """\
 function _pip_completion {{
   local words cword
   read -Ac words
@@ -38,7 +44,8 @@ function _pip_completion {{
              PIP_AUTO_COMPLETE=1 $words[1] 2>/dev/null | \\
              cut -d'{delimiter}' -f1))
 }}
-compctl -K _pip_completion pip"""),
+compctl -K _pip_completion pip""",
+    ),
 )
 
 
@@ -60,9 +67,7 @@ def test_completion_for_supported_shells(script_with_launchers, shell, completio
     """
     Test getting completion for bash shell
     """
-    result = script_with_launchers.pip(
-        'completion', '--' + shell, use_module=False
-    )
+    result = script_with_launchers.pip("completion", "--" + shell, use_module=False)
     assert completion.format(delimiter=DELIMITER) in result.stdout, str(result.stdout)
 
 
@@ -95,7 +100,10 @@ def autocomplete(autocomplete_script, monkeypatch):
 
 
 def options(autocomplete_output):
-    return [line.partition(DELIMITER)[0] for line in autocomplete_output.splitlines()]
+    return {
+        line.partition(DELIMITER)[0]: line.partition(DELIMITER)[2]
+        for line in autocomplete_output.splitlines()
+    }
 
 
 def test_completion_for_unknown_shell(autocomplete_script):
@@ -122,8 +130,9 @@ def test_completion_for_un_snippet(autocomplete):
     Test getting completion for ``un`` should return uninstall
     """
 
-    res, env = autocomplete('pip un', '1')
-    assert options(res.stdout) == ['uninstall'], res.stdout
+    res, env = autocomplete("pip un", "1")
+    assert list(options(res.stdout)) == ["uninstall"], res.stdout
+    assert options(res.stdout)["uninstall"] == "Uninstall packages."
 
 
 def test_completion_for_default_parameters(autocomplete):
@@ -132,7 +141,12 @@ def test_completion_for_default_parameters(autocomplete):
     """
 
     res, env = autocomplete("pip --", "1")
-    assert "--help" in res.stdout, "autocomplete function could not complete ``--``"
+    assert "--help" in options(
+        res.stdout
+    ), "autocomplete function could not complete ``--``"
+    assert (
+        options(res.stdout)["--help"] == "Show help."
+    ), "autocomplete function could not show option description"
 
 
 def test_completion_option_for_command(autocomplete):
@@ -142,6 +156,9 @@ def test_completion_option_for_command(autocomplete):
 
     res, env = autocomplete("pip search --", "2")
     assert "--help" in res.stdout, "autocomplete function could not complete ``--``"
+    assert (
+        options(res.stdout)["--help"] == "Show help."
+    ), "autocomplete function could not show long option description"
 
 
 def test_completion_short_option(autocomplete):
@@ -151,8 +168,12 @@ def test_completion_short_option(autocomplete):
 
     res, env = autocomplete("pip -", "1")
 
-    assert '-h' in options(res.stdout),\
-           "autocomplete function could not complete short options after ``-``"
+    assert "-h" in options(
+        res.stdout
+    ), "autocomplete function could not complete short options after ``-``"
+    assert (
+        options(res.stdout)["-h"] == "Show help."
+    ), "autocomplete function could not show short option description"
 
 
 def test_completion_short_option_for_command(autocomplete):
@@ -163,8 +184,9 @@ def test_completion_short_option_for_command(autocomplete):
 
     res, env = autocomplete("pip search -", "2")
 
-    assert '-h' in options(res.stdout),\
-           "autocomplete function could not complete short options after ``-``"
+    assert "-h" in options(
+        res.stdout
+    ), "autocomplete function could not complete short options after ``-``"
 
 
 def test_completion_files_after_option(autocomplete, data):
