@@ -5,7 +5,7 @@ import optparse
 import os
 import sys
 from itertools import chain
-from typing import Any, Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional
 
 from pip._internal.cli.main_parser import create_main_parser
 from pip._internal.commands import commands_dict, create_command
@@ -27,9 +27,9 @@ def autocomplete() -> None:
         current = ""
 
     parser = create_main_parser()
-    subcommands = {
+    subcommands: Dict[str,str] = {
         name: command.summary for name, command in commands_dict.items()
-    }  # type: Dict[str, str]
+    }
     options = []
 
     # subcommand
@@ -117,9 +117,10 @@ def autocomplete() -> None:
     sys.exit(1)
 
 
-def output_completion_with_description(name:str, description="") -> None:
-    # type: (str, Optional[str]) -> None
+def output_completion_with_description(name: str, description: str="") -> None:
     """Prints the string for completion with its description in a consistent way."""
+    # Make descriptions oneliners so they're grouped as one.
+    description = " ".join(description.splitlines())
     print(
         "{name}{delimiter}{description}".format(
             name=name, delimiter=DELIMITER, description=description
