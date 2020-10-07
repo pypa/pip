@@ -1,0 +1,1 @@
+Add command and flag descriptions to shell completions.
