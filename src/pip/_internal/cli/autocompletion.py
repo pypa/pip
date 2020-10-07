@@ -121,11 +121,7 @@ def output_completion_with_description(name: str, description: str="") -> None:
     """Prints the string for completion with its description in a consistent way."""
     # Make descriptions oneliners so they're grouped as one.
     description = " ".join(description.splitlines())
-    print(
-        "{name}{delimiter}{description}".format(
-            name=name, delimiter=DELIMITER, description=description
-        )
-    )
+    print(name + DELIMITER + description)
 
 def get_path_completion_type(
     cwords: List[str], cword: int, opts: Iterable[Any]
