@@ -39,7 +39,7 @@ COMPLETION_SCRIPTS = {
                 math (contains -i -- (commandline -t) $COMP_WORDS)-1 \\
             )
             set -lx PIP_AUTO_COMPLETE 1
-            string replace --all ':' \t (eval $COMP_WORDS[1])
+            string replace ':' \\t -- (eval $COMP_WORDS[1])
         end
         complete -fa "(__fish_complete_pip)" -c {prog}
     """,
