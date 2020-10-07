@@ -25,7 +25,9 @@ def autocomplete() -> None:
         current = ""
 
     parser = create_main_parser()
-    subcommands = list(commands_dict)
+    subcommands = {
+        name: command.summary for name, command in commands_dict.items()
+    }  # type: Dict[str, str]
     options = []
 
     # subcommand
@@ -97,14 +99,26 @@ def autocomplete() -> None:
         if current.startswith("-"):
             for opt in flattened_opts:
                 if opt.help != optparse.SUPPRESS_HELP:
-                    subcommands += opt._long_opts + opt._short_opts
+                    subcommands.update({name: opt.help for name in opt._long_opts})
+                    subcommands.update({name: opt.help for name in opt._short_opts})
         else:
             # get completion type given cwords and all available options
             completion_type = get_path_completion_type(cwords, cword, flattened_opts)
             if completion_type:
-                subcommands = list(auto_complete_paths(current, completion_type))
+                subcommands = {
+                    command: ""
+                    for command in auto_complete_paths(current, completion_type)
+                }
 
-        print(" ".join([x for x in subcommands if x.startswith(current)]))
+        print(
+            os.linesep.join(
+                "{command_name}\t{description}".format(
+                    command_name=name, description=description
+                )
+                for name, description in subcommands.items()
+                if name.startswith(current)
+            )
+        )
     sys.exit(1)
 
 
