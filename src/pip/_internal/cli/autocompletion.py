@@ -12,6 +12,8 @@ from pip._internal.commands import commands_dict, create_command
 from pip._internal.metadata import get_default_environment
 
 
+DELIMITER = "*"
+
 def autocomplete() -> None:
     """Entry Point for completion of main and subcommand options."""
     # Don't complete if user hasn't sourced bash_completion file.
@@ -115,9 +117,14 @@ def autocomplete() -> None:
     sys.exit(1)
 
 
-def output_completion_with_description(name:str , description="") -> None:
-    """Prints the string for completion with its description, delimited by :"""
-    print("{name}:{description}".format(name=name, description=description))
+def output_completion_with_description(name:str, description="") -> None:
+    # type: (str, Optional[str]) -> None
+    """Prints the string for completion with its description in a consistent way."""
+    print(
+        "{name}{delimiter}{description}".format(
+            name=name, delimiter=DELIMITER, description=description
+        )
+    )
 
 def get_path_completion_type(
     cwords: List[str], cword: int, opts: Iterable[Any]
