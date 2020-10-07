@@ -203,7 +203,6 @@ class RequirementCommand(IndexGroupCommand):
         finder,                   # type: PackageFinder
         use_user_site,            # type: bool
         download_dir=None,        # type: str
-        wheel_download_dir=None,  # type: str
     ):
         # type: (...) -> RequirementPreparer
         """
@@ -229,7 +228,6 @@ class RequirementCommand(IndexGroupCommand):
             build_dir=temp_build_dir_path,
             src_dir=options.src_dir,
             download_dir=download_dir,
-            wheel_download_dir=wheel_download_dir,
             build_isolation=options.build_isolation,
             req_tracker=req_tracker,
             session=session,

@@ -300,7 +300,6 @@ class RequirementPreparer(object):
         build_dir,  # type: str
         download_dir,  # type: Optional[str]
         src_dir,  # type: str
-        wheel_download_dir,  # type: Optional[str]
         build_isolation,  # type: bool
         req_tracker,  # type: RequirementTracker
         session,  # type: PipSession
@@ -325,16 +324,6 @@ class RequirementPreparer(object):
         # not saved, and are deleted immediately after unpacking.
         self.download_dir = download_dir
 
-        # Where still-packed .whl files should be written to. If None, they are
-        # written to the download_dir parameter. Separate to download_dir to
-        # permit only keeping wheel archives for pip wheel.
-        self.wheel_download_dir = wheel_download_dir
-
-        # NOTE
-        # download_dir and wheel_download_dir overlap semantically and may
-        # be combined if we're willing to have non-wheel archives present in
-        # the wheelhouse output by 'pip wheel'.
-
         # Is build isolation allowed?
         self.build_isolation = build_isolation
 
@@ -352,20 +341,6 @@ class RequirementPreparer(object):
 
         # Previous "header" printed for a link-based InstallRequirement
         self._previous_requirement_header = ("", "")
-
-    @property
-    def _download_should_save(self):
-        # type: () -> bool
-        if not self.download_dir:
-            return False
-
-        if os.path.exists(self.download_dir):
-            return True
-
-        logger.critical('Could not find download directory')
-        raise InstallationError(
-            "Could not find or access download directory '{}'"
-            .format(self.download_dir))
 
     def _log_preparing_link(self, req):
         # type: (InstallRequirement) -> None
@@ -385,15 +360,8 @@ class RequirementPreparer(object):
             with indent_log():
                 logger.info("Using cached %s", req.link.filename)
 
-    def _get_download_dir(self, link):
-        # type: (Link) -> Optional[str]
-        if link.is_wheel and self.wheel_download_dir:
-            # Download wheels to a dedicated dir when doing `pip wheel`.
-            return self.wheel_download_dir
-        return self.download_dir
-
-    def _ensure_link_req_src_dir(self, req, download_dir, parallel_builds):
-        # type: (InstallRequirement, Optional[str], bool) -> None
+    def _ensure_link_req_src_dir(self, req, parallel_builds):
+        # type: (InstallRequirement, bool) -> None
         """Ensure source_dir of a linked InstallRequirement."""
         # Since source_dir is only set for editable requirements.
         if req.link.is_wheel:
@@ -494,10 +462,9 @@ class RequirementPreparer(object):
             # Check if the relevant file is already available
             # in the download directory
             file_path = None
-            download_dir = self._get_download_dir(req.link)
-            if download_dir is not None and link.is_wheel:
+            if self.download_dir is not None and link.is_wheel:
                 hashes = self._get_linked_req_hashes(req)
-                file_path = _check_download_dir(req.link, download_dir, hashes)
+                file_path = _check_download_dir(req.link, self.download_dir, hashes)
 
             if file_path is not None:
                 # The file is already available, so mark it as downloaded
@@ -528,15 +495,14 @@ class RequirementPreparer(object):
         # type: (InstallRequirement, bool) -> Distribution
         assert req.link
         link = req.link
-        download_dir = self._get_download_dir(link)
 
-        self._ensure_link_req_src_dir(req, download_dir, parallel_builds)
+        self._ensure_link_req_src_dir(req, parallel_builds)
         hashes = self._get_linked_req_hashes(req)
         if link.url not in self._downloaded:
             try:
                 local_file = unpack_url(
                     link, req.source_dir, self._download,
-                    download_dir, hashes,
+                    self.download_dir, hashes,
                 )
             except NetworkConnectionError as exc:
                 raise InstallationError(
@@ -557,22 +523,33 @@ class RequirementPreparer(object):
         dist = _get_prepared_distribution(
             req, self.req_tracker, self.finder, self.build_isolation,
         )
-
-        if download_dir:
-            if link.is_existing_dir():
-                logger.info('Link is a directory, ignoring download_dir')
-            elif local_file:
-                download_location = os.path.join(download_dir, link.filename)
-                if not os.path.exists(download_location):
-                    shutil.copy(local_file.path, download_location)
-                    download_path = display_path(download_location)
-                    logger.info('Saved %s', download_path)
-
-        if self._download_should_save:
-            # Make a .zip of the source_dir we already created.
-            if link.is_vcs:
-                req.archive(self.download_dir)
         return dist
+
+    def save_linked_requirement(self, req):
+        # type: (InstallRequirement) -> None
+        assert self.download_dir is not None
+        assert req.link is not None
+        link = req.link
+        if link.is_vcs:
+            # Make a .zip of the source_dir we already created.
+            req.archive(self.download_dir)
+            return
+
+        if link.is_existing_dir():
+            logger.debug(
+                'Not copying link to destination directory '
+                'since it is a directory: %s', link,
+            )
+            return
+        if req.local_file_path is None:
+            # No distribution was downloaded for this requirement.
+            return
+
+        download_location = os.path.join(self.download_dir, link.filename)
+        if not os.path.exists(download_location):
+            shutil.copy(req.local_file_path, download_location)
+            download_path = display_path(download_location)
+            logger.info('Saved %s', download_path)
 
     def prepare_editable_requirement(
         self,
@@ -593,14 +570,13 @@ class RequirementPreparer(object):
                     'hash.'.format(req)
                 )
             req.ensure_has_source_dir(self.src_dir)
-            req.update_editable(not self._download_should_save)
+            req.update_editable(self.download_dir is None)
 
             dist = _get_prepared_distribution(
                 req, self.req_tracker, self.finder, self.build_isolation,
             )
 
-            if self._download_should_save:
-                req.archive(self.download_dir)
+            req.archive(self.download_dir)
             req.check_if_exists(self.use_user_site)
 
         return dist

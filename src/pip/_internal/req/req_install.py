@@ -700,12 +700,14 @@ class InstallRequirement(object):
         return self.name + '/' + name
 
     def archive(self, build_dir):
-        # type: (str) -> None
+        # type: (Optional[str]) -> None
         """Saves archive to provided build_dir.
 
         Used for saving downloaded VCS requirements as part of `pip download`.
         """
         assert self.source_dir
+        if build_dir is None:
+            return
 
         create_archive = True
         archive_name = '{}-{}.zip'.format(self.name, self.metadata["version"])
