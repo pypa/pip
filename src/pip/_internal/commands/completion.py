@@ -17,7 +17,7 @@ COMPLETION_SCRIPTS = {
         {{
             COMPREPLY=( $( COMP_WORDS="${{COMP_WORDS[*]}}" \\
                            COMP_CWORD=$COMP_CWORD \\
-                           PIP_AUTO_COMPLETE=1 $1 2>/dev/null ) )
+                           PIP_AUTO_COMPLETE=1 $1 2>/dev/null | cut -d':' -f1) )
         }}
         complete -o default -F _pip_completion {prog}
     """,
@@ -28,7 +28,7 @@ COMPLETION_SCRIPTS = {
           read -cn cword
           reply=( $( COMP_WORDS="$words[*]" \\
                      COMP_CWORD=$(( cword-1 )) \\
-                     PIP_AUTO_COMPLETE=1 $words[1] 2>/dev/null ))
+                     PIP_AUTO_COMPLETE=1 $words[1] 2>/dev/null |cut -d':' -f1))
         }}
         compctl -K _pip_completion {prog}
     """,
@@ -39,7 +39,7 @@ COMPLETION_SCRIPTS = {
                 math (contains -i -- (commandline -t) $COMP_WORDS)-1 \\
             )
             set -lx PIP_AUTO_COMPLETE 1
-            eval $COMP_WORDS[1]
+            string replace --all ':' \t (eval $COMP_WORDS[1])
         end
         complete -fa "(__fish_complete_pip)" -c {prog}
     """,

@@ -58,7 +58,7 @@ def autocomplete() -> None:
             # if there are no dists installed, fall back to option completion
             if installed:
                 for dist, version in installed:
-                    print("{dist}\t{version}".format(dist=dist, version=version))
+                    output_completion_with_description(name=dist, description=version)
                 sys.exit(1)
 
         subcommand = create_command(subcommand_name)
@@ -88,7 +88,7 @@ def autocomplete() -> None:
             # append '=' to options which require args
             if nargs and label.startswith("--"):
                 label += "="
-            print("{name}\t{help}".format(name=label, help=description))
+            output_completion_with_description(label, description)
     else:
         # show main parser options only when necessary
 
@@ -109,17 +109,15 @@ def autocomplete() -> None:
                     for command in auto_complete_paths(current, completion_type)
                 }
 
-        print(
-            os.linesep.join(
-                "{command_name}\t{description}".format(
-                    command_name=name, description=description.strip(".")
-                )
-                for name, description in subcommands.items()
-                if name.startswith(current)
-            )
-        )
+        for name, description in subcommands.items():
+            if name.startswith(current):
+                output_completion_with_description(name, description)
     sys.exit(1)
 
+
+def output_completion_with_description(name:str , description="") -> None:
+    """Prints the string for completion with its description, delimited by :"""
+    print("{name}:{description}".format(name=name, description=description))
 
 def get_path_completion_type(
     cwords: List[str], cword: int, opts: Iterable[Any]
