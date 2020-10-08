@@ -37,9 +37,7 @@ def test_new_resolver_target_checks_compatibility_failure(
 ):
     fake_wheel_tag = "fakepy1-fakeabi-fakeplat"
     args = [
-        "install", "--use-feature=2020-resolver",
         "--only-binary=:all:",
-        "--no-cache-dir", "--no-index",
         "--target", str(script.scratch_path.joinpath("target")),
         make_fake_wheel(fake_wheel_tag),
     ]
@@ -60,7 +58,10 @@ def test_new_resolver_target_checks_compatibility_failure(
     )
     wheel_tag_matches = (args_tag == fake_wheel_tag)
 
-    result = script.pip(*args, expect_error=(not wheel_tag_matches))
+    result = script.pip_install_new_resolver(
+        *args,
+        expect_error=(not wheel_tag_matches),
+    )
 
     dist_info = Path("scratch", "target", "fake-1.0.dist-info")
     if wheel_tag_matches:

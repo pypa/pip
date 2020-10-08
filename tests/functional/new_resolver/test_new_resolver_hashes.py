@@ -70,12 +70,7 @@ def test_new_resolver_hash_intersect(script, requirements_template, message):
         ),
     )
 
-    result = script.pip(
-        "install",
-        "--use-feature=2020-resolver",
-        "--no-cache-dir",
-        "--no-deps",
-        "--no-index",
+    result = script.pip_install_new_resolver(
         "--find-links", find_links.index_html,
         "--verbose",
         "--requirement", requirements_txt,
@@ -103,12 +98,8 @@ def test_new_resolver_hash_intersect_from_constraint(script):
         ),
     )
 
-    result = script.pip(
-        "install",
-        "--use-feature=2020-resolver",
-        "--no-cache-dir",
+    result = script.pip_install_new_resolver(
         "--no-deps",
-        "--no-index",
         "--find-links", find_links.index_html,
         "--verbose",
         "--constraint", constraints_txt,
@@ -160,12 +151,8 @@ def test_new_resolver_hash_intersect_empty(
         ),
     )
 
-    result = script.pip(
-        "install",
-        "--use-feature=2020-resolver",
-        "--no-cache-dir",
+    result = script.pip_install_new_resolver(
         "--no-deps",
-        "--no-index",
         "--find-links", find_links.index_html,
         "--constraint", constraints_txt,
         "--requirement", requirements_txt,
@@ -191,12 +178,8 @@ def test_new_resolver_hash_intersect_empty_from_constraint(script):
         ),
     )
 
-    result = script.pip(
-        "install",
-        "--use-feature=2020-resolver",
-        "--no-cache-dir",
+    result = script.pip_install_new_resolver(
         "--no-deps",
-        "--no-index",
         "--find-links", find_links.index_html,
         "--constraint", constraints_txt,
         "base==0.1.0",

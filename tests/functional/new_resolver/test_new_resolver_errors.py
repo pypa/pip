@@ -14,9 +14,7 @@ def test_new_resolver_conflict_requirements_file(tmpdir, script):
     req_file = tmpdir.joinpath("requirements.txt")
     req_file.write_text("pkga\npkgb")
 
-    result = script.pip(
-        "install", "--use-feature=2020-resolver",
-        "--no-cache-dir", "--no-index",
+    result = script.pip_install_new_resolver(
         "--find-links", script.scratch_path,
         "-r", req_file,
         expect_error=True,
