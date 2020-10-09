@@ -518,10 +518,9 @@ class RequirementPreparer(object):
         reqs = [req for req in reqs if req.needs_more_preparation]
         for req in reqs:
             # Determine if any of these requirements were already downloaded.
-            download_dir = self._get_download_dir(req.link)
-            if download_dir is not None:
+            if self.download_dir is not None and req.link.is_wheel:
                 hashes = self._get_linked_req_hashes(req)
-                file_path = _check_download_dir(req.link, download_dir, hashes)
+                file_path = _check_download_dir(req.link, self.download_dir, hashes)
                 if file_path is not None:
                     self._downloaded[req.link.url] = file_path, None
                     req.needs_more_preparation = False
