@@ -98,9 +98,15 @@ class Factory(object):
         self._editable_candidate_cache = {}  # type: Cache[EditableCandidate]
 
         if not ignore_installed:
+            packages = get_installed_distributions(
+                local_only=False,
+                include_editables=True,
+                editables_only=False,
+                user_only=False,
+                paths=None,
+            )
             self._installed_dists = {
-                canonicalize_name(dist.project_name): dist
-                for dist in get_installed_distributions()
+                canonicalize_name(p.key): p for p in packages
             }
         else:
             self._installed_dists = {}
