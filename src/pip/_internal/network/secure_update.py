@@ -243,9 +243,12 @@ class SecureUpdateSession:
     def _canonicalize_url(url):
         # type: (str) -> str
 
-        # This should handle at least things like possibly trailing '/' and
-        # optional port ":80"
-        return urllib_parse.urljoin(url + '/', '.')
+        # TODO: Should we canonicalize anything else?
+        # This is most relevant for making sure that we find the repo metadata directory
+        # using the index url given on the command line or pip.conf
+        if url[-1] != '/':
+          url = url + '/'
+        return url
 
     def _bootstrap_metadata(self, metadata_dir):
         # type: (str) -> None
