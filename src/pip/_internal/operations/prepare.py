@@ -130,11 +130,14 @@ def get_http_url(
         from_path = already_downloaded_path
         content_type = None
     else:
-        # check if secure update (TUF) should be used
+        # check if secure update (TUF) should be used: find the index url we used to
+        # find this link, then see if we have a secure updater for the index url
+        index_url, _, project = link.comes_from.rstrip('/').rpartition('/')
+        if not project:
+            raise ValueError(
+                'Failed to parse {} as project index URL'.format(link.comes_from)
+            )
 
-        # project index urls are always right below simple index url
-        # TODO: is this safe? assumes a '/' in the end at least
-        index_url = urllib_parse.urljoin(link.comes_from, "..")
         secure_downloader = secure_update_session.get_downloader(index_url)
         if secure_downloader:
             logger.debug("SecureDownloader found: %s", str(secure_downloader))

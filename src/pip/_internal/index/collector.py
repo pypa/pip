@@ -631,10 +631,13 @@ class LinkCollector(object):
         """
         Fetch an HTML page containing package links.
         """
-        # TODO: This assumes fetch_page() is only used on project index files?
+        # check if secure update (TUF) should be used: parse url to find the 
+        # index url, then see if we have a secure updater for the index url
         index_url, _, project = location.url.rstrip('/').rpartition('/')
         if not project:
-            raise ValueError('Failed to parse {} as project index URL')
+            raise ValueError(
+                'Failed to parse {} as project index URL'.format(location.url)
+            )
 
         downloader = self.secure_update_session.get_downloader(index_url)
         if downloader:
