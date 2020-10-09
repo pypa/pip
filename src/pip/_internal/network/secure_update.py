@@ -260,18 +260,28 @@ class SecureUpdateSession:
 
         for bootstrap in os.listdir(bootstrapdir):
             # check if metadata matching this name already exists
+            # NOTE: would be good to 'boostrap every time' as documented in
+            # https://github.com/theupdateframework/tuf/issues/1168
             dirname = os.path.join(metadata_dir, bootstrap)
             if os.path.exists(dirname):
                 continue
 
             # create the structure TUF expects
-            logger.debug("Bootstrapping TUF metadata in %s", dirname)
-            os.makedirs(os.path.join(dirname, "metadata", "current"))
-            os.mkdir(os.path.join(dirname, "metadata", "previous"))
-            shutil.copyfile(
-                os.path.join(bootstrapdir, bootstrap, "root.json"),
-                os.path.join(dirname, "metadata", "current", "root.json")
-            )
+            logger.debug("Bootstrapping secure update metadata in %s", dirname)
+            try:
+                os.makedirs(os.path.join(dirname, "metadata", "current"))
+                os.mkdir(os.path.join(dirname, "metadata", "previous"))
+                shutil.copyfile(
+                    os.path.join(bootstrapdir, bootstrap, "root.json"),
+                    os.path.join(dirname, "metadata", "current", "root.json")
+                )
+            except OSError as e:
+                # try to clean up after a failed bootstrap
+                # dirname did not exist before we just created it so rmtree is safe
+                shutil.rmtree(dirname, ignore_errors=True)
+                logger.error("Failed to bootstrap secure update metadata")
+                raise e
+
 
     def get_downloader(self, index_url):
         # type: (str) -> Optional[SecureDownloader]
