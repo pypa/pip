@@ -786,7 +786,7 @@ class PackageFinder(object):
         logger.debug(
             'Fetching project page and analyzing links: %s', project_url,
         )
-        html_page = self._link_collector.fetch_page(project_url)
+        html_page = self._link_collector.fetch_project_page(project_url)
         if html_page is None:
             return []
 

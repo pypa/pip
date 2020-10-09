@@ -626,7 +626,7 @@ class LinkCollector(object):
         # type: () -> List[str]
         return self.search_scope.find_links
 
-    def fetch_page(self, location):
+    def fetch_project_page(self, location):
         # type: (Link) -> Optional[HTMLPage]
         """
         Fetch an HTML page containing package links.

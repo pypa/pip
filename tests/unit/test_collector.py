@@ -644,7 +644,7 @@ def check_links_include(links, names):
 class TestLinkCollector(object):
 
     @patch('pip._internal.index.collector._get_html_response')
-    def test_fetch_page(self, mock_get_html_response):
+    def test_fetch_project_page(self, mock_get_html_response):
         url = 'https://pypi.org/simple/twine/'
 
         fake_response = make_fake_html_response(url)
@@ -652,7 +652,7 @@ class TestLinkCollector(object):
 
         location = Link(url, cache_link_parsing=False)
         link_collector = make_test_link_collector()
-        actual = link_collector.fetch_page(location)
+        actual = link_collector.fetch_project_page(location)
 
         assert actual.content == fake_response.content
         assert actual.encoding is None

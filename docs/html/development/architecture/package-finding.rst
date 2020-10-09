@@ -135,7 +135,7 @@ class's main method is the ``collect_links()`` method. The :ref:`PackageFinder
 <package-finder-class>` class invokes this method as the first step of its
 ``find_all_candidates()`` method.
 
-``LinkCollector`` also has a ``fetch_page()`` method to fetch the HTML from a
+``LinkCollector`` also has a ``fetch_project_page()`` method to fetch the HTML from a
 project page URL. This method is "unintelligent" in that it doesn't parse the
 HTML.
 
