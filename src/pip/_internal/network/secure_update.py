@@ -14,8 +14,12 @@ from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 # TODO vendor tuf: https://github.com/jku/pip/issues/12
 from tuf.client.updater import Updater
-from tuf.exceptions import NoWorkingMirrorError, RepositoryError, UnknownTargetError
-
+from tuf.exceptions import (
+    MissingLocalRepositoryError,
+    NoWorkingMirrorError,
+    RepositoryError,
+    UnknownTargetError
+)
 from pip._internal.exceptions import ConfigurationError, NetworkConnectionError
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -231,11 +235,15 @@ class SecureUpdateSession:
             try:
                 downloader = SecureDownloader(index_url, metadata_dir, cache_dir)
                 self._downloaders[index_url] = downloader
+            except MissingLocalRepositoryError:
+                logger.debug('No secure update metadata for %s', index_url)
+                if index_url in KNOWN_SECURE_INDEXES:
+                    raise ConfigurationError(
+                        'Expected to find secure downloader for {}'.format(index_url)
+                    )
             except RepositoryError as e:
-                # No TUF Metadata was found for this index_url
-                # TODO: check for actual metadata file existence:
-                # https://github.com/theupdateframework/tuf/issues/1063
-                logger.debug('No secure update metadata for "%s": %s', index_url, e)
+                # Something is wrong with the local metadata
+                raise ConfigurationError('Failed to load secure update configuration')
 
     @property
     def downloaders(self):
