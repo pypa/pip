@@ -6,12 +6,6 @@ import pytest
 from pip._internal.cli.status_codes import NO_MATCHES_FOUND, SUCCESS
 from pip._internal.commands import create_command
 from pip._internal.commands.search import highest_version, print_results, transform_hits
-from tests.lib import pyversion
-
-if pyversion >= '3':
-    VERBOSE_FALSE = False
-else:
-    VERBOSE_FALSE = 0
 
 
 def test_version_compare():
