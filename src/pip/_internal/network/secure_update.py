@@ -9,17 +9,17 @@ import os
 import os.path
 import shutil
 
-import tuf.settings
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
-# TODO vendor tuf: https://github.com/jku/pip/issues/12
-from tuf.client.updater import Updater
-from tuf.exceptions import (
+from pip._vendor.tuf import settings as tuf_settings
+from pip._vendor.tuf.client.updater import Updater
+from pip._vendor.tuf.exceptions import (
     MissingLocalRepositoryError,
     NoWorkingMirrorError,
     RepositoryError,
     UnknownTargetError
 )
+
 from pip._internal.exceptions import ConfigurationError, NetworkConnectionError
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -221,7 +221,7 @@ class SecureUpdateSession:
         self._bootstrap_metadata(metadata_dir)
 
         # global tuf settings
-        tuf.settings.repositories_directory = metadata_dir
+        tuf_settings.repositories_directory = metadata_dir
 
         if index_urls is None:
             return

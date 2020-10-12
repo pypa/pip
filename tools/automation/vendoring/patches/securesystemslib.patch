@@ -1,0 +1,316 @@
+From 28920f093e90e042154e717d077557805f9b7b39 Mon Sep 17 00:00:00 2001
+From: Jussi Kukkonen <jkukkonen@vmware.com>
+Date: Wed, 21 Oct 2020 19:07:31 +0300
+Subject: [PATCH] Workaround vendoring imports limitation
+
+Imports of style
+  import package.module
+are not compatible with vendoring tool.
+
+Workaround this by creating dummy objects: the real fix probably
+requires lots of changes...
+---
+ .../_vendor/securesystemslib/ecdsa_keys.py    |  9 +++++--
+ .../_vendor/securesystemslib/ed25519_keys.py  | 14 +++++++----
+ src/pip/_vendor/securesystemslib/formats.py   | 10 +++++---
+ src/pip/_vendor/securesystemslib/hash.py      | 12 ++++++---
+ src/pip/_vendor/securesystemslib/interface.py | 18 +++++++++----
+ src/pip/_vendor/securesystemslib/keys.py      | 25 ++++++++++++++-----
+ src/pip/_vendor/securesystemslib/process.py   |  9 +++++--
+ src/pip/_vendor/securesystemslib/rsa_keys.py  | 18 +++++++++----
+ src/pip/_vendor/securesystemslib/schema.py    |  6 ++++-
+ src/pip/_vendor/securesystemslib/storage.py   |  6 ++++-
+ src/pip/_vendor/securesystemslib/util.py      | 18 +++++++++----
+ 11 files changed, 107 insertions(+), 38 deletions(-)
+
+diff --git a/src/pip/_vendor/securesystemslib/ecdsa_keys.py b/src/pip/_vendor/securesystemslib/ecdsa_keys.py
+index aae23641a..2ddaafffc 100644
+--- a/src/pip/_vendor/securesystemslib/ecdsa_keys.py
++++ b/src/pip/_vendor/securesystemslib/ecdsa_keys.py
+@@ -67,8 +67,13 @@ except ImportError:
+   CRYPTO = False
+ 
+ # Perform object format-checking and add ability to handle/raise exceptions.
+-import securesystemslib.formats
+-import securesystemslib.exceptions
++class _Dummy(object):
++  pass
++securesystemslib = _Dummy()
++from pip._vendor.securesystemslib import formats as _securesystemslib_formats
++securesystemslib.formats = _securesystemslib_formats
++from pip._vendor.securesystemslib import exceptions as _securesystemslib_exceptions
++securesystemslib.exceptions = _securesystemslib_exceptions
+ 
+ _SUPPORTED_ECDSA_SCHEMES = ['ecdsa-sha2-nistp256']
+ 
+diff --git a/src/pip/_vendor/securesystemslib/ed25519_keys.py b/src/pip/_vendor/securesystemslib/ed25519_keys.py
+index 28d200593..8b77d4a6b 100644
+--- a/src/pip/_vendor/securesystemslib/ed25519_keys.py
++++ b/src/pip/_vendor/securesystemslib/ed25519_keys.py
+@@ -92,10 +92,15 @@ except ImportError:
+ # The optimized pure Python implementation of Ed25519.  If
+ # PyNaCl cannot be imported and an attempt to use is made in this module, a
+ # 'securesystemslib.exceptions.UnsupportedLibraryError' exception is raised.
+-import securesystemslib._vendor.ed25519.ed25519
++from pip._vendor.securesystemslib._vendor.ed25519 import ed25519
+ 
+-import securesystemslib.formats
+-import securesystemslib.exceptions
++class _Dummy(object):
++  pass
++securesystemslib = _Dummy()
++from pip._vendor.securesystemslib import formats as _securesystemslib_formats
++securesystemslib.formats = _securesystemslib_formats
++from pip._vendor.securesystemslib import exceptions as _securesystemslib_exceptions
++securesystemslib.exceptions = _securesystemslib_exceptions
+ 
+ # Supported ed25519 signing schemes: 'ed25519'.  The pure Python implementation
+ # (i.e., ed25519') and PyNaCl (i.e., 'nacl', libsodium + Python bindings)
+@@ -353,8 +358,7 @@ def verify_signature(public_key, scheme, signature, data):
+     # Verify 'ed25519' signature with the pure Python implementation.
+     else:
+       try:
+-        securesystemslib._vendor.ed25519.ed25519.checkvalid(signature,
+-            data, public)
++        ed25519.checkvalid(signature, data, public)
+         valid_signature = True
+ 
+       # The pure Python implementation raises 'Exception' if 'signature' is
+diff --git a/src/pip/_vendor/securesystemslib/formats.py b/src/pip/_vendor/securesystemslib/formats.py
+index fb8ae9225..2c8632583 100644
+--- a/src/pip/_vendor/securesystemslib/formats.py
++++ b/src/pip/_vendor/securesystemslib/formats.py
+@@ -79,8 +79,12 @@ import datetime
+ import time
+ from pip._vendor import six
+ 
+-import securesystemslib.schema as SCHEMA
+-import securesystemslib.exceptions
++class _Dummy(object):
++  pass
++securesystemslib = _Dummy()
++from pip._vendor.securesystemslib import schema as SCHEMA
++from pip._vendor.securesystemslib import exceptions as _securesystemslib_exceptions
++securesystemslib.exceptions = _securesystemslib_exceptions
+ 
+ # Note that in the schema definitions below, the 'SCHEMA.Object' types allow
+ # additional keys which are not defined. Thus, any additions to them will be
+@@ -411,7 +415,7 @@ KEYDICT_SCHEMA = SCHEMA.DictOf(
+   key_schema = KEYID_SCHEMA,
+   value_schema = KEY_SCHEMA)
+ 
+-ANY_SIGNATURE_SCHEMA = securesystemslib.schema.OneOf([SIGNATURE_SCHEMA,
++ANY_SIGNATURE_SCHEMA = SCHEMA.OneOf([SIGNATURE_SCHEMA,
+     GPG_SIGNATURE_SCHEMA])
+ 
+ # List of ANY_SIGNATURE_SCHEMA.
+diff --git a/src/pip/_vendor/securesystemslib/hash.py b/src/pip/_vendor/securesystemslib/hash.py
+index 353e2a961..22ba19315 100644
+--- a/src/pip/_vendor/securesystemslib/hash.py
++++ b/src/pip/_vendor/securesystemslib/hash.py
+@@ -34,9 +34,15 @@ import hashlib
+ 
+ from pip._vendor import six
+ 
+-import securesystemslib.exceptions
+-import securesystemslib.formats
+-import securesystemslib.storage
++class _Dummy(object):
++  pass
++securesystemslib = _Dummy()
++from pip._vendor.securesystemslib import exceptions as _securesystemslib_exceptions
++securesystemslib.exceptions = _securesystemslib_exceptions
++from pip._vendor.securesystemslib import formats as _securesystemslib_formats
++securesystemslib.formats = _securesystemslib_formats
++from pip._vendor.securesystemslib import storage as _securesystemslib_storage
++securesystemslib.storage = _securesystemslib_storage
+ 
+ 
+ DEFAULT_CHUNK_SIZE = 4096
+diff --git a/src/pip/_vendor/securesystemslib/interface.py b/src/pip/_vendor/securesystemslib/interface.py
+index 0fbe65bbd..ad4f4c179 100644
+--- a/src/pip/_vendor/securesystemslib/interface.py
++++ b/src/pip/_vendor/securesystemslib/interface.py
+@@ -41,11 +41,19 @@ import json
+ import gzip
+ import random
+ 
+-import securesystemslib.formats
+-import securesystemslib.settings
+-import securesystemslib.storage
+-import securesystemslib.util
+-import securesystemslib.keys
++class _Dummy(object):
++  pass
++securesystemslib = _Dummy()
++from pip._vendor.securesystemslib import formats as _securesystemslib_formats
++securesystemslib.formats = _securesystemslib_formats
++from pip._vendor.securesystemslib import settings as _securesystemslib_settings
++securesystemslib.settings = _securesystemslib_settings
++from pip._vendor.securesystemslib import storage as _securesystemslib_storage
++securesystemslib.storage = _securesystemslib_storage
++from pip._vendor.securesystemslib import util as _securesystemslib_util
++securesystemslib.util = _securesystemslib_util
++from pip._vendor.securesystemslib import keys as _securesystemslib_keys
++securesystemslib.keys = _securesystemslib_keys
+ 
+ from pip._vendor.securesystemslib import KEY_TYPE_RSA, KEY_TYPE_ED25519, KEY_TYPE_ECDSA
+ 
+diff --git a/src/pip/_vendor/securesystemslib/keys.py b/src/pip/_vendor/securesystemslib/keys.py
+index b5c5ca024..099b43332 100644
+--- a/src/pip/_vendor/securesystemslib/keys.py
++++ b/src/pip/_vendor/securesystemslib/keys.py
+@@ -65,17 +65,30 @@ import binascii
+ import warnings
+ import logging
+ 
+-import securesystemslib.rsa_keys
+-import securesystemslib.ed25519_keys
+-import securesystemslib.ecdsa_keys
++class _Dummy(object):
++  pass
++securesystemslib = _Dummy()
+ 
+-import securesystemslib.exceptions
++from pip._vendor.securesystemslib import rsa_keys as _securesystemslib_rsa_keys
++securesystemslib.rsa_keys = _securesystemslib_rsa_keys
++from pip._vendor.securesystemslib import ed25519_keys as _securesystemslib_ed25519_keys
++securesystemslib.ed25519_keys = _securesystemslib_ed25519_keys
++from pip._vendor.securesystemslib import ecdsa_keys as _securesystemslib_ecdsa_keys
++securesystemslib.ecdsa_keys = _securesystemslib_ecdsa_keys
++
++from pip._vendor.securesystemslib import exceptions as _securesystemslib_exceptions
++securesystemslib.exceptions = _securesystemslib_exceptions
+ 
+ # Digest objects needed to generate hashes.
+-import securesystemslib.hash
++from pip._vendor.securesystemslib import hash as _securesystemslib_hash
++securesystemslib.hash = _securesystemslib_hash
+ 
+ # Perform format checks of argument objects.
+-import securesystemslib.formats
++from pip._vendor.securesystemslib import formats as _securesystemslib_formats
++securesystemslib.formats = _securesystemslib_formats
++
++from pip._vendor.securesystemslib import settings as _securesystemslib_settings
++securesystemslib.settings = _securesystemslib_settings
+ 
+ # The hash algorithm to use in the generation of keyids.
+ _KEY_ID_HASH_ALGORITHM = 'sha256'
+diff --git a/src/pip/_vendor/securesystemslib/process.py b/src/pip/_vendor/securesystemslib/process.py
+index 5e5a1a7d0..262edb0e4 100644
+--- a/src/pip/_vendor/securesystemslib/process.py
++++ b/src/pip/_vendor/securesystemslib/process.py
+@@ -36,8 +36,13 @@ if six.PY2:
+ else: # pragma: no cover
+   import subprocess
+ 
+-import securesystemslib.formats
+-import securesystemslib.settings
++class _Dummy(object):
++  pass
++securesystemslib = _Dummy()
++from pip._vendor.securesystemslib import formats as _securesystemslib_formats
++securesystemslib.formats = _securesystemslib_formats
++from pip._vendor.securesystemslib import settings as _securesystemslib_settings
++securesystemslib.settings = _securesystemslib_settings
+ 
+ DEVNULL = subprocess.DEVNULL
+ PIPE = subprocess.PIPE
+diff --git a/src/pip/_vendor/securesystemslib/rsa_keys.py b/src/pip/_vendor/securesystemslib/rsa_keys.py
+index 397847e5c..9a82a4948 100644
+--- a/src/pip/_vendor/securesystemslib/rsa_keys.py
++++ b/src/pip/_vendor/securesystemslib/rsa_keys.py
+@@ -121,13 +121,21 @@ try:
+ except ImportError:
+   CRYPTO = False
+ 
+-import securesystemslib.exceptions
+-import securesystemslib.formats
+-import securesystemslib.hash
+-import securesystemslib.util
++class _Dummy(object):
++  pass
++securesystemslib = _Dummy()
++from pip._vendor.securesystemslib import exceptions as _securesystemslib_exceptions
++securesystemslib.exceptions = _securesystemslib_exceptions
++from pip._vendor.securesystemslib import formats as _securesystemslib_formats
++securesystemslib.formats = _securesystemslib_formats
++from pip._vendor.securesystemslib import hash as _securesystemslib_hash
++securesystemslib.hash = _securesystemslib_hash
++from pip._vendor.securesystemslib import util as _securesystemslib_util
++securesystemslib.util = _securesystemslib_util
+ 
+ # Extract/reference the cryptography library settings.
+-import securesystemslib.settings
++from pip._vendor.securesystemslib import settings as _securesystemslib_settings
++securesystemslib.settings = _securesystemslib_settings
+ 
+ # Recommended RSA key sizes:
+ # http://www.emc.com/emc-plus/rsa-labs/historical/twirl-and-rsa-key-size.htm#table1
+diff --git a/src/pip/_vendor/securesystemslib/schema.py b/src/pip/_vendor/securesystemslib/schema.py
+index 3a7d9de0e..353a21e48 100644
+--- a/src/pip/_vendor/securesystemslib/schema.py
++++ b/src/pip/_vendor/securesystemslib/schema.py
+@@ -55,7 +55,11 @@ import sys
+ 
+ from pip._vendor import six
+ 
+-import securesystemslib.exceptions
++class _Dummy(object):
++  pass
++securesystemslib = _Dummy()
++from pip._vendor.securesystemslib import exceptions as _securesystemslib_exceptions
++securesystemslib.exceptions = _securesystemslib_exceptions
+ 
+ 
+ class Schema:
+diff --git a/src/pip/_vendor/securesystemslib/storage.py b/src/pip/_vendor/securesystemslib/storage.py
+index c814e435e..b119a453f 100644
+--- a/src/pip/_vendor/securesystemslib/storage.py
++++ b/src/pip/_vendor/securesystemslib/storage.py
+@@ -26,7 +26,11 @@ import shutil
+ 
+ from pip._vendor import six
+ 
+-import securesystemslib.exceptions
++class _Dummy(object):
++  pass
++securesystemslib = _Dummy()
++from pip._vendor.securesystemslib import exceptions as _securesystemslib_exceptions
++securesystemslib.exceptions = _securesystemslib_exceptions
+ 
+ logger = logging.getLogger(__name__)
+ 
+diff --git a/src/pip/_vendor/securesystemslib/util.py b/src/pip/_vendor/securesystemslib/util.py
+index d56e3f511..a86758664 100644
+--- a/src/pip/_vendor/securesystemslib/util.py
++++ b/src/pip/_vendor/securesystemslib/util.py
+@@ -31,11 +31,19 @@ import logging
+ import tempfile
+ import warnings
+ 
+-import securesystemslib.exceptions
+-import securesystemslib.settings
+-import securesystemslib.hash
+-import securesystemslib.formats
+-import securesystemslib.storage
++class _Dummy(object):
++  pass
++securesystemslib = _Dummy()
++from pip._vendor.securesystemslib import exceptions as _securesystemslib_exceptions
++securesystemslib.exceptions = _securesystemslib_exceptions
++from pip._vendor.securesystemslib import settings as _securesystemslib_settings
++securesystemslib.settings = _securesystemslib_settings
++from pip._vendor.securesystemslib import hash as _securesystemslib_hash
++securesystemslib.hash = _securesystemslib_hash
++from pip._vendor.securesystemslib import formats as _securesystemslib_formats
++securesystemslib.formats = _securesystemslib_formats
++from pip._vendor.securesystemslib import storage as _securesystemslib_storage
++securesystemslib.storage = _securesystemslib_storage
+ 
+ from pip._vendor import six
+ 
+-- 
+2.28.0
+

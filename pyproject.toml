@@ -44,6 +44,14 @@ drop = [
   "setuptools",
   "pkg_resources/_vendor/",
   "pkg_resources/extern/",
+  # tuf parts that are not needed by updater client
+  "tuf/scripts/*",
+  "tuf/developer_tool.py",
+  "tuf/repository_tool.py",
+  "tuf/repository_lib.py",
+  "tuf/unittest_toolbox.py",
+  # No need for gpg support in securesystemslib
+  "securesystemslib/gpg/*",
 ]
 
 [tool.vendoring.typing-stubs]

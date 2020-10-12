@@ -1,0 +1,339 @@
+From cfafb0f47551a2a2a3c2fdabff74fde465aa239f Mon Sep 17 00:00:00 2001
+From: Jussi Kukkonen <jkukkonen@vmware.com>
+Date: Fri, 23 Oct 2020 16:39:43 +0300
+Subject: [PATCH] tuf: workaround vendoring issues
+
+This is a temporary solution until upstream has a better one.
+---
+ src/pip/_vendor/tuf/client/updater.py | 58 ++++++++++++++++++---------
+ src/pip/_vendor/tuf/download.py       | 26 +++++++++---
+ src/pip/_vendor/tuf/formats.py        | 11 ++++-
+ src/pip/_vendor/tuf/keydb.py          | 17 +++++++-
+ src/pip/_vendor/tuf/log.py            | 17 ++++++--
+ src/pip/_vendor/tuf/mirrors.py        | 15 ++++++-
+ src/pip/_vendor/tuf/roledb.py         | 18 ++++++---
+ src/pip/_vendor/tuf/sig.py            | 21 ++++++++--
+ 8 files changed, 142 insertions(+), 41 deletions(-)
+
+diff --git a/src/pip/_vendor/tuf/client/updater.py b/src/pip/_vendor/tuf/client/updater.py
+index 86a29aac7..412ab8bc3 100644
+--- a/src/pip/_vendor/tuf/client/updater.py
++++ b/src/pip/_vendor/tuf/client/updater.py
+@@ -120,6 +120,7 @@ from __future__ import absolute_import
+ from __future__ import division
+ from __future__ import unicode_literals
+ 
++from datetime import datetime
+ import errno
+ import logging
+ import os
+@@ -130,22 +131,43 @@ import copy
+ import warnings
+ 
+ from pip._vendor import tuf
+-import tuf.download
+-import tuf.formats
+-import tuf.settings
+-import tuf.keydb
+-import tuf.log
+-import tuf.mirrors
+-import tuf.roledb
+-import tuf.sig
+-import tuf.exceptions
+-
+-import securesystemslib.exceptions
+-import securesystemslib.hash
+-import securesystemslib.keys
+-import securesystemslib.util
++class _Dummy(object):
++  pass
++tuf = _Dummy()
++
++from pip._vendor.tuf import download as _tuf_download
++tuf.download = _tuf_download
++from pip._vendor.tuf import formats as _tuf_formats
++tuf.formats = _tuf_formats
++from pip._vendor.tuf import settings as _tuf_settings
++tuf.settings = _tuf_settings
++from pip._vendor.tuf import keydb as _tuf_keydb
++tuf.keydb = _tuf_keydb
++from pip._vendor.tuf import mirrors as _tuf_mirrors
++tuf.mirrors = _tuf_mirrors
++from pip._vendor.tuf import roledb as _tuf_roledb
++tuf.roledb = _tuf_roledb
++from pip._vendor.tuf import sig as _tuf_sig
++tuf.sig = _tuf_sig
++from pip._vendor.tuf import exceptions as _tuf_exceptions
++tuf.exceptions = _tuf_exceptions
++from pip._vendor.tuf import SPECIFICATION_VERSION
++
++securesystemslib = _Dummy()
++from pip._vendor.securesystemslib import exceptions as _securesystemslib_exceptions
++securesystemslib.exceptions = _securesystemslib_exceptions
++from pip._vendor.securesystemslib import hash as _securesystemslib_hash
++securesystemslib.hash = _securesystemslib_hash
++from pip._vendor.securesystemslib import keys as _securesystemslib_keys
++securesystemslib.keys = _securesystemslib_keys
++from pip._vendor.securesystemslib import util as _securesystemslib_util
++securesystemslib.util = _securesystemslib_util
++from pip._vendor.securesystemslib import formats as _securesystemslib_formats
++securesystemslib.formats = _securesystemslib_formats
++
+ from pip._vendor import six
+-import requests.exceptions
++
++from pip._vendor.requests.exceptions import HTTPError
+ 
+ # The Timestamp role does not have signed metadata about it; otherwise we
+ # would need an infinite regress of metadata. Therefore, we use some
+@@ -1113,7 +1135,7 @@ class Updater(object):
+     """
+ 
+     def neither_403_nor_404(mirror_error):
+-      if isinstance(mirror_error, requests.exceptions.HTTPError):
++      if isinstance(mirror_error, HTTPError):
+         if mirror_error.response.status_code in {403, 404}:
+           return False
+       return True
+@@ -1570,7 +1592,7 @@ class Updater(object):
+           metadata_spec_major_version = int(metadata_spec_version_split[0])
+           metadata_spec_minor_version = int(metadata_spec_version_split[1])
+ 
+-          code_spec_version_split = tuf.SPECIFICATION_VERSION.split('.')
++          code_spec_version_split = SPECIFICATION_VERSION.split('.')
+           code_spec_major_version = int(code_spec_version_split[0])
+           code_spec_minor_version = int(code_spec_version_split[1])
+ 
+@@ -1585,7 +1607,7 @@ class Updater(object):
+           if metadata_spec_minor_version != code_spec_minor_version:
+             logger.info("Downloaded metadata that specifies a different minor " +
+                 "spec_version. This code has version " +
+-                str(tuf.SPECIFICATION_VERSION) +
++                str(SPECIFICATION_VERSION) +
+                 " and the metadata lists version number " +
+                 str(metadata_spec_version) +
+                 ". The update will continue as the major versions match.")
+diff --git a/src/pip/_vendor/tuf/download.py b/src/pip/_vendor/tuf/download.py
+index fe6de01e8..d16074523 100644
+--- a/src/pip/_vendor/tuf/download.py
++++ b/src/pip/_vendor/tuf/download.py
+@@ -36,17 +36,31 @@ import time
+ import timeit
+ import tempfile
+ 
+-from pip._vendor import tuf
+ from pip._vendor import requests
+ 
+ from pip._vendor import securesystemslib
+-import securesystemslib.util
++class _Dummy(object):
++  pass
++securesystemslib = _Dummy()
++from pip._vendor.securesystemslib import exceptions as _securesystemslib_exceptions
++securesystemslib.exceptions = _securesystemslib_exceptions
++from pip._vendor.securesystemslib import formats as _securesystemslib_formats
++securesystemslib.formats = _securesystemslib_formats
+ from pip._vendor import six
+ 
+-import tuf.exceptions
+-import tuf.formats
++class _Dummy(object):
++  pass
++tuf = _Dummy()
++from pip._vendor.tuf import exceptions as _tuf_exceptions
++tuf.exceptions = _tuf_exceptions
++from pip._vendor.tuf import formats as _tuf_formats
++tuf.formats = _tuf_formats
++from pip._vendor.tuf import settings as _tuf_settings
++tuf.settings = _tuf_settings
++from pip._vendor.tuf import __version__ as _tuf_version
++tuf.__version__ = _tuf_version
+ 
+-import urllib3.exceptions
++from pip._vendor.urllib3.exceptions import ReadTimeoutError
+ 
+ # See 'log.py' to learn how logging is handled in TUF.
+ logger = logging.getLogger(__name__)
+@@ -374,7 +388,7 @@ def _download_fixed_amount_of_data(response, temp_file, required_length):
+         # Finally, we signal that the download is complete.
+         break
+ 
+-  except urllib3.exceptions.ReadTimeoutError as e:
++  except ReadTimeoutError as e:
+     raise tuf.exceptions.SlowRetrievalError(str(e))
+ 
+   return number_of_bytes_received, average_download_speed
+diff --git a/src/pip/_vendor/tuf/formats.py b/src/pip/_vendor/tuf/formats.py
+index 57f8736f6..50a26d5f7 100644
+--- a/src/pip/_vendor/tuf/formats.py
++++ b/src/pip/_vendor/tuf/formats.py
+@@ -69,8 +69,15 @@ import datetime
+ import time
+ import copy
+ 
+-import securesystemslib.formats
+-import securesystemslib.schema as SCHEMA
++class _Dummy(object):
++  pass
++securesystemslib = _Dummy()
++from pip._vendor.securesystemslib import exceptions as _securesystemslib_exceptions
++securesystemslib.exceptions = _securesystemslib_exceptions
++from pip._vendor.securesystemslib import formats as _securesystemslib_formats
++securesystemslib.formats = _securesystemslib_formats
++
++from pip._vendor.securesystemslib import schema as SCHEMA
+ 
+ from pip._vendor import tuf
+ 
+diff --git a/src/pip/_vendor/tuf/keydb.py b/src/pip/_vendor/tuf/keydb.py
+index 388bf4480..778f59fd7 100644
+--- a/src/pip/_vendor/tuf/keydb.py
++++ b/src/pip/_vendor/tuf/keydb.py
+@@ -44,10 +44,23 @@ from __future__ import unicode_literals
+ import logging
+ import copy
+ 
+-import tuf.formats
++class _Dummy(object):
++  pass
++tuf = _Dummy()
++from pip._vendor.tuf import exceptions as _tuf_exceptions
++tuf.exceptions = _tuf_exceptions
++from pip._vendor.tuf import formats as _tuf_formats
++tuf.formats = _tuf_formats
+ 
+ from pip._vendor import six
+-from pip._vendor import securesystemslib
++
++securesystemslib = _Dummy()
++from pip._vendor.securesystemslib import formats as _securesystemslib_formats
++securesystemslib.formats = _securesystemslib_formats
++from pip._vendor.securesystemslib import exceptions as _securesystemslib_exceptions
++securesystemslib.exceptions = _securesystemslib_exceptions
++from pip._vendor.securesystemslib import keys as _securesystemslib_keys
++securesystemslib.keys = _securesystemslib_keys
+ 
+ # List of strings representing the key types supported by TUF.
+ _SUPPORTED_KEY_TYPES = ['rsa', 'ed25519', 'ecdsa-sha2-nistp256']
+diff --git a/src/pip/_vendor/tuf/log.py b/src/pip/_vendor/tuf/log.py
+index 08c8a8569..28eb8886f 100644
+--- a/src/pip/_vendor/tuf/log.py
++++ b/src/pip/_vendor/tuf/log.py
+@@ -73,10 +73,21 @@ import logging
+ import time
+ 
+ from pip._vendor import tuf
+-import tuf.settings
+-import tuf.exceptions
++class _Dummy(object):
++  pass
++tuf = _Dummy()
++from pip._vendor.tuf import settings as _tuf_settings
++tuf.settings = _tuf_settings
++from pip._vendor.tuf import exceptions as _tuf_exceptions
++tuf.exceptions = _tuf_exceptions
+ 
+-import securesystemslib.formats
++class _Dummy(object):
++  pass
++securesystemslib = _Dummy()
++from pip._vendor.securesystemslib import exceptions as _securesystemslib_exceptions
++securesystemslib.exceptions = _securesystemslib_exceptions
++from pip._vendor.securesystemslib import formats as _securesystemslib_formats
++securesystemslib.formats = _securesystemslib_formats
+ 
+ # Setting a handler's log level filters only logging messages of that level
+ # (and above).  For example, setting the built-in StreamHandler's log level to
+diff --git a/src/pip/_vendor/tuf/mirrors.py b/src/pip/_vendor/tuf/mirrors.py
+index 73e6d4976..7772a7d00 100644
+--- a/src/pip/_vendor/tuf/mirrors.py
++++ b/src/pip/_vendor/tuf/mirrors.py
+@@ -33,9 +33,20 @@ from __future__ import unicode_literals
+ import os
+ 
+ from pip._vendor import tuf
+-import tuf.formats
++class _Dummy(object):
++  pass
++tuf = _Dummy()
++from pip._vendor.tuf import formats as _tuf_formats
++tuf.formats = _tuf_formats
++
++securesystemslib = _Dummy()
++from pip._vendor.securesystemslib import util as _securesystemslib_util
++securesystemslib.util = _securesystemslib_util
++from pip._vendor.securesystemslib import formats as _securesystemslib_formats
++securesystemslib.formats = _securesystemslib_formats
++from pip._vendor.securesystemslib import exceptions as _securesystemslib_exceptions
++securesystemslib.exceptions = _securesystemslib_exceptions
+ 
+-from pip._vendor import securesystemslib
+ from pip._vendor import six
+ 
+ # The type of file to be downloaded from a repository.  The
+diff --git a/src/pip/_vendor/tuf/roledb.py b/src/pip/_vendor/tuf/roledb.py
+index d2ec6814a..de0294238 100644
+--- a/src/pip/_vendor/tuf/roledb.py
++++ b/src/pip/_vendor/tuf/roledb.py
+@@ -52,11 +52,19 @@ from __future__ import unicode_literals
+ import logging
+ import copy
+ 
+-from pip._vendor import tuf
+-import tuf.log
+-import tuf.formats
+-
+-from pip._vendor import securesystemslib
++class _Dummy(object):
++  pass
++tuf = _Dummy()
++from pip._vendor.tuf import exceptions as _tuf_exceptions
++tuf.exceptions = _tuf_exceptions
++from pip._vendor.tuf import formats as _tuf_formats
++tuf.formats = _tuf_formats
++
++securesystemslib = _Dummy()
++from pip._vendor.securesystemslib import formats as _securesystemslib_formats
++securesystemslib.formats = _securesystemslib_formats
++from pip._vendor.securesystemslib import exceptions as _securesystemslib_exceptions
++securesystemslib.exceptions = _securesystemslib_exceptions
+ from pip._vendor import six
+ 
+ # See 'tuf.log' to learn how logging is handled in TUF.
+diff --git a/src/pip/_vendor/tuf/sig.py b/src/pip/_vendor/tuf/sig.py
+index 6c3e65fb1..188e1d395 100644
+--- a/src/pip/_vendor/tuf/sig.py
++++ b/src/pip/_vendor/tuf/sig.py
+@@ -51,11 +51,26 @@ from __future__ import unicode_literals
+ import logging
+ 
+ from pip._vendor import tuf
+-import tuf.keydb
+-import tuf.roledb
+-import tuf.formats
++class _Dummy(object):
++  pass
++tuf = _Dummy()
++from pip._vendor.tuf import exceptions as _tuf_exceptions
++tuf.exceptions = _tuf_exceptions
++from pip._vendor.tuf import keydb as _tuf_keydb
++tuf.keydb = _tuf_keydb
++from pip._vendor.tuf import roledb as _tuf_roledb
++tuf.roledb = _tuf_roledb
++from pip._vendor.tuf import formats as _tuf_formats
++tuf.formats = _tuf_formats
+ 
+ from pip._vendor import securesystemslib
++securesystemslib = _Dummy()
++from pip._vendor.securesystemslib import exceptions as _securesystemslib_exceptions
++securesystemslib.exceptions = _securesystemslib_exceptions
++from pip._vendor.securesystemslib import formats as _securesystemslib_formats
++securesystemslib.formats = _securesystemslib_formats
++from pip._vendor.securesystemslib import keys as _securesystemslib_keys
++securesystemslib.keys = _securesystemslib_keys
+ 
+ # See 'log.py' to learn how logging is handled in TUF.
+ logger = logging.getLogger(__name__)
+-- 
+2.28.0
+
