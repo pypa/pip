@@ -1,7 +1,5 @@
-import collections
 import logging
 
-from pip._vendor import six
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.exceptions import (
@@ -30,6 +28,7 @@ from .candidates import (
     LinkCandidate,
     RequiresPythonCandidate,
 )
+from .found_candidates import FoundCandidates
 from .requirements import (
     ExplicitRequirement,
     RequiresPythonRequirement,
@@ -41,6 +40,7 @@ if MYPY_CHECK_RUNNING:
         FrozenSet,
         Dict,
         Iterable,
+        Iterator,
         List,
         Optional,
         Sequence,
@@ -102,7 +102,7 @@ class Factory(object):
         if not ignore_installed:
             self._installed_dists = {
                 canonicalize_name(dist.project_name): dist
-                for dist in get_installed_distributions()
+                for dist in get_installed_distributions(local_only=False)
             }
         else:
             self._installed_dists = {}
@@ -156,6 +156,7 @@ class Factory(object):
         ireqs,  # type: Sequence[InstallRequirement]
         specifier,  # type: SpecifierSet
         hashes,  # type: Hashes
+        prefers_installed,  # type: bool
     ):
         # type: (...) -> Iterable[Candidate]
         if not ireqs:
@@ -174,54 +175,49 @@ class Factory(object):
             hashes &= ireq.hashes(trust_internet=False)
             extras |= frozenset(ireq.extras)
 
-        # We use this to ensure that we only yield a single candidate for
-        # each version (the finder's preferred one for that version). The
-        # requirement needs to return only one candidate per version, so we
-        # implement that logic here so that requirements using this helper
-        # don't all have to do the same thing later.
-        candidates = collections.OrderedDict()  # type: VersionCandidates
-
         # Get the installed version, if it matches, unless the user
         # specified `--force-reinstall`, when we want the version from
         # the index instead.
-        installed_version = None
         installed_candidate = None
         if not self._force_reinstall and name in self._installed_dists:
             installed_dist = self._installed_dists[name]
-            installed_version = installed_dist.parsed_version
-            if specifier.contains(installed_version, prereleases=True):
+            if specifier.contains(installed_dist.version, prereleases=True):
                 installed_candidate = self._make_candidate_from_dist(
                     dist=installed_dist,
                     extras=extras,
                     template=template,
                 )
 
-        found = self._finder.find_best_candidate(
-            project_name=name,
-            specifier=specifier,
-            hashes=hashes,
-        )
-        for ican in found.iter_applicable():
-            if ican.version == installed_version and installed_candidate:
-                candidate = installed_candidate
-            else:
-                candidate = self._make_candidate_from_link(
+        def iter_index_candidates():
+            # type: () -> Iterator[Candidate]
+            result = self._finder.find_best_candidate(
+                project_name=name,
+                specifier=specifier,
+                hashes=hashes,
+            )
+            # PackageFinder returns earlier versions first, so we reverse.
+            for ican in reversed(list(result.iter_applicable())):
+                yield self._make_candidate_from_link(
                     link=ican.link,
                     extras=extras,
                     template=template,
                     name=name,
                     version=ican.version,
                 )
-            candidates[ican.version] = candidate
 
-        # Yield the installed version even if it is not found on the index.
-        if installed_version and installed_candidate:
-            candidates[installed_version] = installed_candidate
+        return FoundCandidates(
+            iter_index_candidates,
+            installed_candidate,
+            prefers_installed,
+        )
 
-        return six.itervalues(candidates)
-
-    def find_candidates(self, requirements, constraint):
-        # type: (Sequence[Requirement], Constraint) -> Iterable[Candidate]
+    def find_candidates(
+        self,
+        requirements,  # type: Sequence[Requirement]
+        constraint,  # type: Constraint
+        prefers_installed,  # type: bool
+    ):
+        # type: (...) -> Iterable[Candidate]
         explicit_candidates = set()  # type: Set[Candidate]
         ireqs = []  # type: List[InstallRequirement]
         for req in requirements:
@@ -238,6 +234,7 @@ class Factory(object):
                 ireqs,
                 constraint.specifier,
                 constraint.hashes,
+                prefers_installed,
             )
 
         if constraint:
