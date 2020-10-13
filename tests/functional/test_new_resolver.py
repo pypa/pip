@@ -1020,3 +1020,29 @@ def test_new_resolver_no_deps_checks_requires_python(script):
         "{}.{}.{} not in '<2'".format(*sys.version_info[:3])
     )
     assert message in result.stderr
+
+
+def test_new_resolver_prefers_installed_in_upgrade_if_latest(script):
+    create_basic_wheel_for_package(script, "pkg", "1")
+    local_pkg = create_test_package_with_setup(script, name="pkg", version="2")
+
+    # Install the version that's not on the index.
+    script.pip(
+        "install",
+        "--use-feature=2020-resolver",
+        "--no-cache-dir",
+        "--no-index",
+        local_pkg,
+    )
+
+    # Now --upgrade should still pick the local version because it's "better".
+    script.pip(
+        "install",
+        "--use-feature=2020-resolver",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links", script.scratch_path,
+        "--upgrade",
+        "pkg",
+    )
+    assert_installed(script, pkg="2")
