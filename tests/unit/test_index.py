@@ -19,6 +19,7 @@ from pip._internal.models.link import Link
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
+from pip._internal.network.secure_update import SecureUpdateSession
 from pip._internal.network.session import PipSession
 from pip._internal.utils.compatibility_tags import get_supported
 from pip._internal.utils.hashes import Hashes
@@ -498,6 +499,7 @@ class TestPackageFinder:
         """
         link_collector = LinkCollector(
             session=PipSession(),
+            secure_update_session=SecureUpdateSession([], None, None),
             search_scope=SearchScope([], []),
         )
         selection_prefs = SelectionPreferences(
@@ -519,6 +521,7 @@ class TestPackageFinder:
         """
         link_collector = LinkCollector(
             session=PipSession(),
+            secure_update_session=SecureUpdateSession([], None, None),
             search_scope=SearchScope([], []),
         )
         finder = PackageFinder.create(
@@ -534,6 +537,7 @@ class TestPackageFinder:
         """
         link_collector = LinkCollector(
             session=PipSession(),
+            secure_update_session=SecureUpdateSession([], None, None),
             search_scope=SearchScope([], []),
         )
         target_python = TargetPython(py_version_info=(3, 7, 3))
@@ -554,6 +558,7 @@ class TestPackageFinder:
         """
         link_collector = LinkCollector(
             session=PipSession(),
+            secure_update_session=SecureUpdateSession([], None, None),
             search_scope=SearchScope([], []),
         )
         finder = PackageFinder.create(
@@ -573,6 +578,7 @@ class TestPackageFinder:
         """
         link_collector = LinkCollector(
             session=PipSession(),
+            secure_update_session=SecureUpdateSession([], None, None),
             search_scope=SearchScope([], []),
         )
         selection_prefs = SelectionPreferences(allow_yanked=allow_yanked)
@@ -589,6 +595,7 @@ class TestPackageFinder:
         """
         link_collector = LinkCollector(
             session=PipSession(),
+            secure_update_session=SecureUpdateSession([], None, None),
             search_scope=SearchScope([], []),
         )
         selection_prefs = SelectionPreferences(
@@ -607,6 +614,7 @@ class TestPackageFinder:
         """
         link_collector = LinkCollector(
             session=PipSession(),
+            secure_update_session=SecureUpdateSession([], None, None),
             search_scope=SearchScope([], []),
         )
         format_control = FormatControl(set(), {':all:'})
@@ -645,6 +653,7 @@ class TestPackageFinder:
 
         link_collector = LinkCollector(
             session=PipSession(),
+            secure_update_session=SecureUpdateSession([], None, None),
             search_scope=SearchScope([], []),
         )
 
@@ -690,6 +699,7 @@ class TestPackageFinder:
         )
         link_collector = LinkCollector(
             session=PipSession(),
+            secure_update_session=SecureUpdateSession([], None, None),
             search_scope=SearchScope([], []),
         )
         finder = PackageFinder(

@@ -9,6 +9,7 @@ from mock import Mock, patch
 from pip._internal.exceptions import HashMismatch
 from pip._internal.models.link import Link
 from pip._internal.network.download import Downloader
+from pip._internal.network.secure_update import SecureUpdateSession
 from pip._internal.network.session import PipSession
 from pip._internal.operations.prepare import _copy_source_tree, unpack_url
 from pip._internal.utils.hashes import Hashes
@@ -41,6 +42,7 @@ def test_unpack_url_with_urllib_response_without_content_type(data):
             link,
             temp_dir,
             download=download,
+            secure_update_session=SecureUpdateSession([], None, None),
             download_dir=None,
         )
         assert set(os.listdir(temp_dir)) == {
@@ -175,10 +177,16 @@ class Test_unpack_url(object):
         self.dist_url = Link(path_to_url(self.dist_path))
         self.dist_url2 = Link(path_to_url(self.dist_path2))
         self.no_download = Mock(side_effect=AssertionError)
+        self.secure_update_session = SecureUpdateSession([], None, None)
 
     def test_unpack_url_no_download(self, tmpdir, data):
         self.prep(tmpdir, data)
-        unpack_url(self.dist_url, self.build_dir, self.no_download)
+        unpack_url(
+            self.dist_url,
+            self.build_dir,
+            self.no_download,
+            self.secure_update_session,
+        )
         assert os.path.isdir(os.path.join(self.build_dir, 'simple'))
         assert not os.path.isfile(
             os.path.join(self.download_dir, self.dist_file))
@@ -195,6 +203,7 @@ class Test_unpack_url(object):
             unpack_url(dist_url,
                        self.build_dir,
                        download=self.no_download,
+                       secure_update_session=self.secure_update_session,
                        hashes=Hashes({'md5': ['bogus']}))
 
     def test_unpack_url_thats_a_dir(self, tmpdir, data):
@@ -203,7 +212,8 @@ class Test_unpack_url(object):
         dist_url = Link(path_to_url(dist_path))
         unpack_url(dist_url, self.build_dir,
                    download=self.no_download,
-                   download_dir=self.download_dir)
+                   download_dir=self.download_dir,
+                   secure_update_session=self.secure_update_session)
         assert os.path.isdir(os.path.join(self.build_dir, 'fspkg'))
 
 
@@ -235,7 +245,8 @@ def test_unpack_url_excludes_expected_dirs(tmpdir, exclude_dir):
         src_link,
         dst_dir,
         Mock(side_effect=AssertionError),
-        download_dir=None
+        download_dir=None,
+        secure_update_session=SecureUpdateSession([], None, None),
     )
     assert not os.path.isdir(dst_excluded_dir)
     assert not os.path.isfile(dst_excluded_file)

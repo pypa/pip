@@ -18,6 +18,7 @@ from pip._internal.exceptions import (
     InvalidWheelFilename,
     PreviousBuildDirError,
 )
+from pip._internal.network.secure_update import SecureUpdateSession
 from pip._internal.network.session import PipSession
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import InstallRequirement, RequirementSet
@@ -77,6 +78,8 @@ class TestRequirementSet(object):
         )
         session = PipSession()
 
+        secure_update_session = SecureUpdateSession([], None, None)
+
         with get_requirement_tracker() as tracker:
             preparer = RequirementPreparer(
                 build_dir=os.path.join(self.tempdir, 'build'),
@@ -85,6 +88,7 @@ class TestRequirementSet(object):
                 build_isolation=True,
                 req_tracker=tracker,
                 session=session,
+                secure_update_session=secure_update_session,
                 progress_bar='on',
                 finder=finder,
                 require_hashes=require_hashes,

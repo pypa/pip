@@ -8,6 +8,7 @@ from pip._internal.index.package_finder import PackageFinder
 # from pip._internal.models.index import PyPI
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
+from pip._internal.network.secure_update import SecureUpdateSession
 from pip._internal.network.session import PipSession
 from pip._internal.req.constructors import install_req_from_line
 from pip._internal.req.req_tracker import get_requirement_tracker
@@ -19,8 +20,13 @@ from pip._internal.utils.temp_dir import TempDirectory, global_tempdir_manager
 @pytest.fixture
 def finder(data):
     session = PipSession()
+    secure_update_session = SecureUpdateSession(
+        index_urls=[],
+        data_dir=None,
+        cache_dir=None
+    )
     scope = SearchScope([str(data.packages)], [])
-    collector = LinkCollector(session, scope)
+    collector = LinkCollector(session, secure_update_session, scope)
     prefs = SelectionPreferences(allow_yanked=False)
     finder = PackageFinder.create(collector, prefs)
     yield finder
@@ -29,6 +35,11 @@ def finder(data):
 @pytest.fixture
 def preparer(finder):
     session = PipSession()
+    secure_update_session = SecureUpdateSession(
+        index_urls=[],
+        data_dir=None,
+        cache_dir=None
+    )
     rc = InstallCommand("x", "y")
     o = rc.parse_args([])
 
@@ -40,6 +51,7 @@ def preparer(finder):
                     options=o[0],
                     req_tracker=tracker,
                     session=session,
+                    secure_update_session=secure_update_session,
                     finder=finder,
                     use_user_site=False
                 )

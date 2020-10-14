@@ -29,6 +29,7 @@ from pip._internal.index.collector import (
 )
 from pip._internal.models.index import PyPI
 from pip._internal.models.link import Link
+from pip._internal.network.secure_update import SecureUpdateSession
 from pip._internal.network.session import PipSession
 from tests.lib import make_test_link_collector, skip_if_python2
 
@@ -666,14 +667,13 @@ class TestLinkCollector(object):
         )
 
     def test_collect_links(self, caplog, data):
-        caplog.set_level(logging.DEBUG)
-
         link_collector = make_test_link_collector(
             find_links=[data.find_links],
             # Include two copies of the URL to check that the second one
             # is skipped.
             index_urls=[PyPI.simple_url, PyPI.simple_url],
         )
+        caplog.set_level(logging.DEBUG)
         actual = link_collector.collect_links('twine')
 
         # Spot-check the CollectedLinks return value.
@@ -710,13 +710,20 @@ class TestLinkCollector(object):
     ],
 )
 def test_link_collector_create(
-    find_links, no_index, suppress_no_index, expected,
+    find_links, no_index, suppress_no_index, expected, tmpdir
 ):
     """
     :param expected: the expected (find_links, index_urls) values.
     """
     expected_find_links, expected_index_urls = expected
     session = PipSession()
+
+    secure_update_session = SecureUpdateSession(
+        index_urls=[],
+        data_dir=None,
+        cache_dir=None
+    )
+
     options = pretend.stub(
         find_links=find_links,
         index_url='default_url',
@@ -724,7 +731,8 @@ def test_link_collector_create(
         no_index=no_index,
     )
     link_collector = LinkCollector.create(
-        session, options=options, suppress_no_index=suppress_no_index,
+        session, secure_update_session,
+        options=options, suppress_no_index=suppress_no_index,
     )
 
     assert link_collector.session is session
@@ -750,6 +758,13 @@ def test_link_collector_create_find_links_expansion(
     mock_expanduser.side_effect = expand_path
 
     session = PipSession()
+
+    secure_update_session = SecureUpdateSession(
+        index_urls=[],
+        data_dir=None,
+        cache_dir=None
+    )
+
     options = pretend.stub(
         find_links=['~/temp1', '~/temp2'],
         index_url='default_url',
@@ -761,7 +776,7 @@ def test_link_collector_create_find_links_expansion(
     temp2_dir = os.path.join(tmpdir, 'temp2')
     os.mkdir(temp2_dir)
 
-    link_collector = LinkCollector.create(session, options=options)
+    link_collector = LinkCollector.create(session, secure_update_session, options=options)
 
     search_scope = link_collector.search_scope
     # Only ~/temp2 gets expanded. Also, the path is normalized when expanded.

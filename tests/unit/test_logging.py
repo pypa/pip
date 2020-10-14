@@ -151,7 +151,6 @@ class TestColorizedStreamHandler(object):
                 handler.emit(record)
 
             err_text = stderr.getvalue()
-
         assert err_text.startswith('my error')
         # Check that the logging framework tried to log the exception.
         if PY2:

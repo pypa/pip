@@ -116,7 +116,7 @@ def test_pip_self_version_check(monkeypatch, stored_time, installed_ver,
             "pip._vendor.requests.packages.urllib3.packages.six.moves",
         ]
     ):
-        latest_pypi_version = pip_self_version_check(None, _options())
+        latest_pypi_version = pip_self_version_check(None, None, _options())
 
     # See we return None if not installed_version
     if not installed_ver:

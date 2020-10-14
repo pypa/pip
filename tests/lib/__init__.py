@@ -24,7 +24,9 @@ from pip._internal.locations import get_major_minor_version
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.network.session import PipSession
+from pip._internal.network.secure_update import SecureUpdateSession
 from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
+from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from tests.lib.path import Path, curdir
 from tests.lib.wheel import make_wheel
@@ -104,6 +106,7 @@ def make_test_link_collector(
     find_links=None,  # type: Optional[List[str]]
     index_urls=None,  # type: Optional[List[str]]
     session=None,     # type: Optional[PipSession]
+    secure_update_session=None,  # type: Optional[SecureUpdateSession]
 ):
     # type: (...) -> LinkCollector
     """
@@ -112,12 +115,19 @@ def make_test_link_collector(
     if session is None:
         session = PipSession()
 
+    if secure_update_session is None:
+        secure_update_session = SecureUpdateSession(index_urls, None, None)
+
     search_scope = make_test_search_scope(
         find_links=find_links,
         index_urls=index_urls,
     )
 
-    return LinkCollector(session=session, search_scope=search_scope)
+    return LinkCollector(
+        session=session,
+        secure_update_session=secure_update_session,
+        search_scope=search_scope
+    )
 
 
 def make_test_finder(
