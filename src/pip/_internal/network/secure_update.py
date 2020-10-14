@@ -203,8 +203,12 @@ class SecureUpdateSession:
     """Session object to keep track of all SecureDownloaders currently in use"""
 
     def __init__(self, index_urls, data_dir, cache_dir):
-        # type: (Optional[List[str]], str, Optional[str]) -> None
+        # type: (Optional[List[str]], Optional[str], Optional[str]) -> None
         self._downloaders = {}  # type: Dict[str, SecureDownloader]
+
+        # data_dir=None is useful for testing
+        if data_dir is None:
+            data_dir = TempDirectory(globally_managed=True).path
 
         # Use a temporary directory if pip cache is not available
         if cache_dir is None:
