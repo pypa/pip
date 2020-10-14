@@ -222,7 +222,6 @@ class SecureUpdateSession:
 
         # global tuf settings
         tuf.settings.repositories_directory = metadata_dir
-        tuf.log.set_log_level(logging.ERROR)
 
         if index_urls is None:
             return
