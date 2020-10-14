@@ -130,21 +130,26 @@ def get_http_url(
         from_path = already_downloaded_path
         content_type = None
     else:
+        secure_downloader = None
         # check if secure update (TUF) should be used: find the index url we used to
-        # find this link, then see if we have a secure updater for the index url
-        index_url, _, project = link.comes_from.rstrip('/').rpartition('/')
-        if not project:
-            raise ValueError(
-                'Failed to parse {} as project index URL'.format(link.comes_from)
-            )
+        # find this link, then see if we have a secure updater for the index url.
+        # link.comes_from can be None when requirements file contains a direct url
+        # TODO: can we be sure link.comes_from is not None in other cases?
+        if link.comes_from is not None:
+            index_url, _, project = link.comes_from.rstrip('/').rpartition('/')
+            if not project:
+                raise ValueError(
+                    'Failed to parse {} as project index URL'.format(link.comes_from)
+                )
 
-        secure_downloader = secure_update_session.get_downloader(index_url)
+            secure_downloader = secure_update_session.get_downloader(index_url)
+
         if secure_downloader:
             logger.debug("SecureDownloader found: %s", str(secure_downloader))
             from_path = secure_downloader.download_distribution(link)
             content_type = mimetypes.guess_type(from_path)[0]
         else:
-            logger.debug("SecureDownloader not found for %s", index_url)
+            logger.debug("SecureDownloader not found for %s", str(link))
             # link is from a repo that does not use TUF:
             # download to a tmp dir without TUF
             from_path, content_type = download(link, temp_dir.path)
