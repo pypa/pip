@@ -130,8 +130,9 @@ class SessionCommandMixin(CommandContextMixIn):
 
         if self._secure_update_session is None:
             index_urls = self._get_index_urls(options)
+            cache_dir = options.cache_dir if options.cache_dir else None
             self._secure_update_session = SecureUpdateSession(
-                index_urls, USER_DATA_DIR, options.cache_dir
+                index_urls, USER_DATA_DIR, cache_dir
             )
             logger.debug("Initialized secure update session (TUF): %s",
                          str(self._secure_update_session))
