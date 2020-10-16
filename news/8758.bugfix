@@ -1,2 +1,0 @@
-New resolver: Correctly respect ``Requires-Python`` metadata to reject
-incompatible packages in ``--no-deps`` mode.

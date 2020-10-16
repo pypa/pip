@@ -1,2 +1,0 @@
-New resolver: Pick up hash declarations in constraints files and use them to
-filter available distributions.
