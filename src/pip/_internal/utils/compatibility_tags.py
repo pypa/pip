@@ -87,6 +87,10 @@ def _get_custom_platforms(arch):
 
 
 def _expand_allowed_platforms(platforms):
+    # type: (Optional[List[str]]) -> Optional[List[str]]
+    if not platforms:
+        return None
+
     seen = set()
     result = []
 
