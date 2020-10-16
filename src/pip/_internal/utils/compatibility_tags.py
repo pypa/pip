@@ -86,6 +86,20 @@ def _get_custom_platforms(arch):
     return arches
 
 
+def _expand_allowed_platforms(platforms):
+    seen = set()
+    result = []
+
+    for p in platforms:
+        if p in seen:
+            continue
+        additions = [c for c in _get_custom_platforms(p) if c not in seen]
+        seen.update(additions)
+        result.extend(additions)
+
+    return result
+
+
 def _get_python_version(version):
     # type: (str) -> PythonVersion
     if len(version) > 1:
@@ -130,10 +144,7 @@ def get_supported(
 
     interpreter = _get_custom_interpreter(impl, version)
 
-    if platforms and len(platforms) == 1:
-        # Only expand list of platforms if a single platform was provided.
-        # Otherwise, assume that the list provided is comprehensive.
-        platforms = _get_custom_platforms(platforms[0])
+    platforms = _expand_allowed_platforms(platforms)
 
     is_cpython = (impl or interpreter_name()) == "cp"
     if is_cpython:
