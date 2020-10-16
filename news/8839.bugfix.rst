@@ -1,0 +1,3 @@
+New resolver: If a package appears multiple times in user specification with
+different ``--hash`` options, only hashes that present in all specifications
+should be allowed.

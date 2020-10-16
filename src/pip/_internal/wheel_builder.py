@@ -19,9 +19,7 @@ from pip._internal.utils.urls import path_to_url
 from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
-    from typing import (
-        Any, Callable, Iterable, List, Optional, Tuple,
-    )
+    from typing import Any, Callable, Iterable, List, Optional, Tuple
 
     from pip._internal.cache import WheelCache
     from pip._internal.req.req_install import InstallRequirement

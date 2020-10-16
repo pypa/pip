@@ -4,18 +4,13 @@ import hashlib
 
 from pip._vendor.six import iteritems, iterkeys, itervalues
 
-from pip._internal.exceptions import (
-    HashMismatch,
-    HashMissing,
-    InstallationError,
-)
+from pip._internal.exceptions import HashMismatch, HashMissing, InstallationError
 from pip._internal.utils.misc import read_chunks
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import (
-        Dict, List, BinaryIO, NoReturn, Iterator
-    )
+    from typing import BinaryIO, Dict, Iterator, List, NoReturn
+
     from pip._vendor.six import PY3
     if PY3:
         from hashlib import _Hash

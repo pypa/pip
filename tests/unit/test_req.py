@@ -18,7 +18,6 @@ from pip._internal.exceptions import (
     InvalidWheelFilename,
     PreviousBuildDirError,
 )
-from pip._internal.network.download import Downloader
 from pip._internal.network.session import PipSession
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import InstallRequirement, RequirementSet
@@ -76,19 +75,21 @@ class TestRequirementSet(object):
             isolated=False,
             use_pep517=None,
         )
+        session = PipSession()
 
         with get_requirement_tracker() as tracker:
             preparer = RequirementPreparer(
                 build_dir=os.path.join(self.tempdir, 'build'),
                 src_dir=os.path.join(self.tempdir, 'src'),
                 download_dir=None,
-                wheel_download_dir=None,
                 build_isolation=True,
                 req_tracker=tracker,
-                downloader=Downloader(PipSession(), progress_bar="on"),
+                session=session,
+                progress_bar='on',
                 finder=finder,
                 require_hashes=require_hashes,
                 use_user_site=False,
+                lazy_wheel=False,
             )
             yield Resolver(
                 preparer=preparer,
@@ -570,7 +571,7 @@ class TestInstallRequirement(object):
             install_req_from_line(req_file_path)
         err_msg = e.value.args[0]
         assert "Invalid requirement" in err_msg
-        assert "It looks like a path. It does exist." in err_msg
+        assert "It looks like a path. The path does exist." in err_msg
         assert "appears to be a requirements file." in err_msg
         assert "If that is the case, use the '-r' flag to install" in err_msg
 

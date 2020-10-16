@@ -19,9 +19,10 @@ from pip._internal.utils.misc import get_pip_version
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from types import ModuleType
-    from typing import List, Optional, Dict
     from optparse import Values
+    from types import ModuleType
+    from typing import Dict, List, Optional
+
     from pip._internal.configuration import Configuration
 
 logger = logging.getLogger(__name__)

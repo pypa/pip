@@ -11,6 +11,7 @@ import sys
 import textwrap
 from distutils.util import strtobool
 
+from pip._vendor.contextlib2 import suppress
 from pip._vendor.six import string_types
 
 from pip._internal.cli.status_codes import UNKNOWN_ERROR
@@ -197,15 +198,27 @@ class ConfigOptionParser(CustomOptionParser):
             if option is None:
                 continue
 
-            if option.action in ('store_true', 'store_false', 'count'):
+            if option.action in ('store_true', 'store_false'):
                 try:
                     val = strtobool(val)
                 except ValueError:
-                    error_msg = invalid_config_error_message(
-                        option.action, key, val
+                    self.error(
+                        '{} is not a valid value for {} option, '  # noqa
+                        'please specify a boolean value like yes/no, '
+                        'true/false or 1/0 instead.'.format(val, key)
                     )
-                    self.error(error_msg)
-
+            elif option.action == 'count':
+                with suppress(ValueError):
+                    val = strtobool(val)
+                with suppress(ValueError):
+                    val = int(val)
+                if not isinstance(val, int) or val < 0:
+                    self.error(
+                        '{} is not a valid value for {} option, '  # noqa
+                        'please instead specify either a non-negative integer '
+                        'or a boolean value like yes/no or false/true '
+                        'which is equivalent to 1/0.'.format(val, key)
+                    )
             elif option.action == 'append':
                 val = val.split()
                 val = [self.check_default(option, key, v) for v in val]
@@ -251,16 +264,3 @@ class ConfigOptionParser(CustomOptionParser):
     def error(self, msg):
         self.print_usage(sys.stderr)
         self.exit(UNKNOWN_ERROR, "{}\n".format(msg))
-
-
-def invalid_config_error_message(action, key, val):
-    """Returns a better error message when invalid configuration option
-    is provided."""
-    if action in ('store_true', 'store_false'):
-        return ("{0} is not a valid value for {1} option, "
-                "please specify a boolean value like yes/no, "
-                "true/false or 1/0 instead.").format(val, key)
-
-    return ("{0} is not a valid value for {1} option, "
-            "please specify a numerical value like 1/0 "
-            "instead.").format(val, key)

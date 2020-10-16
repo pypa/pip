@@ -37,8 +37,8 @@ from .requirements import (
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        FrozenSet,
         Dict,
+        FrozenSet,
         Iterable,
         Iterator,
         List,
@@ -83,7 +83,6 @@ class Factory(object):
         ignore_installed,  # type: bool
         ignore_requires_python,  # type: bool
         py_version_info=None,  # type: Optional[Tuple[int, ...]]
-        lazy_wheel=False,  # type: bool
     ):
         # type: (...) -> None
         self._finder = finder
@@ -94,7 +93,6 @@ class Factory(object):
         self._use_user_site = use_user_site
         self._force_reinstall = force_reinstall
         self._ignore_requires_python = ignore_requires_python
-        self.use_lazy_wheel = lazy_wheel
 
         self._link_candidate_cache = {}  # type: Cache[LinkCandidate]
         self._editable_candidate_cache = {}  # type: Cache[EditableCandidate]
@@ -403,10 +401,6 @@ class Factory(object):
                 return parts[0]
 
             return ", ".join(parts[:-1]) + " and " + parts[-1]
-
-        def readable_form(cand):
-            # type: (Candidate) -> str
-            return "{} {}".format(cand.name, cand.version)
 
         def describe_trigger(parent):
             # type: (Candidate) -> str

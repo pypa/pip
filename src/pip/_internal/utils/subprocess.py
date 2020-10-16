@@ -14,9 +14,7 @@ from pip._internal.utils.misc import HiddenText, path_to_display
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import (
-        Any, Callable, Iterable, List, Mapping, Optional, Text, Union,
-    )
+    from typing import Any, Callable, Iterable, List, Mapping, Optional, Text, Union
 
     CommandArgs = List[Union[str, HiddenText]]
 

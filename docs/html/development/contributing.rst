@@ -70,15 +70,17 @@ such, but it is preferred to have a dedicated issue (for example, in case the
 PR ends up rejected due to code quality reasons).
 
 Once you have an issue or pull request, you take the number and you create a
-file inside of the ``news/`` directory named after that issue number with an
-extension of ``removal``, ``feature``, ``bugfix``, or ``doc``. Thus if your
-issue or PR number is ``1234`` and this change is fixing a bug, then you would
-create a file ``news/1234.bugfix``. PRs can span multiple categories by creating
-multiple files (for instance, if you added a feature and deprecated/removed the
-old feature at the same time, you would create ``news/NNNN.feature`` and
-``news/NNNN.removal``). Likewise if a PR touches multiple issues/PRs you may
-create a file for each of them with the exact same contents and Towncrier will
-deduplicate them.
+file inside of the ``news/`` directory, named after that issue number with a
+"type" of ``removal``, ``feature``, ``bugfix``, or ``doc`` associated with it.
+
+If your issue or PR number is ``1234`` and this change is fixing a bug,
+then you would create a file ``news/1234.bugfix.rst``. PRs can span multiple
+categories by creating multiple files (for instance, if you added a feature and
+deprecated/removed the old feature at the same time, you would create
+``news/NNNN.feature.rst`` and ``news/NNNN.removal.rst``).
+
+If a PR touches multiple issues/PRs, you may create a file for each of them
+with the exact same contents and Towncrier will deduplicate them.
 
 Contents of a NEWS entry
 ------------------------

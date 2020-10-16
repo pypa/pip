@@ -21,14 +21,7 @@ from zipfile import ZipFile
 from pip._vendor import pkg_resources
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor.distlib.util import get_export_entry
-from pip._vendor.six import (
-    PY2,
-    ensure_str,
-    ensure_text,
-    itervalues,
-    reraise,
-    text_type,
-)
+from pip._vendor.six import PY2, ensure_str, ensure_text, itervalues, reraise, text_type
 from pip._vendor.six.moves import filterfalse, map
 
 from pip._internal.exceptions import InstallationError
@@ -36,12 +29,7 @@ from pip._internal.locations import get_major_minor_version
 from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
 from pip._internal.models.scheme import SCHEME_KEYS
 from pip._internal.utils.filesystem import adjacent_tmp_file, replace
-from pip._internal.utils.misc import (
-    captured_stdout,
-    ensure_dir,
-    hash_file,
-    partition,
-)
+from pip._internal.utils.misc import captured_stdout, ensure_dir, hash_file, partition
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.unpacking import (
     current_umask,
@@ -49,10 +37,7 @@ from pip._internal.utils.unpacking import (
     set_extracted_file_to_default_mode_plus_executable,
     zip_item_is_executable,
 )
-from pip._internal.utils.wheel import (
-    parse_wheel,
-    pkg_resources_distribution_for_wheel,
-)
+from pip._internal.utils.wheel import parse_wheel, pkg_resources_distribution_for_wheel
 
 # Use the custom cast function at runtime to make cast work,
 # and import typing.cast when performing pre-commit and type
@@ -62,10 +47,10 @@ if not MYPY_CHECK_RUNNING:
 else:
     from email.message import Message
     from typing import (
+        IO,
         Any,
         Callable,
         Dict,
-        IO,
         Iterable,
         Iterator,
         List,

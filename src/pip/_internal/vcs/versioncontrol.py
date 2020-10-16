@@ -12,11 +12,7 @@ import sys
 from pip._vendor import pkg_resources
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 
-from pip._internal.exceptions import (
-    BadCommand,
-    InstallationError,
-    SubProcessError,
-)
+from pip._internal.exceptions import BadCommand, InstallationError, SubProcessError
 from pip._internal.utils.compat import console_to_str, samefile
 from pip._internal.utils.logging import subprocess_logger
 from pip._internal.utils.misc import (
@@ -38,9 +34,19 @@ from pip._internal.utils.urls import get_url_scheme
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Dict, Iterable, Iterator, List, Optional, Text, Tuple,
-        Type, Union, Mapping, Any
+        Any,
+        Dict,
+        Iterable,
+        Iterator,
+        List,
+        Mapping,
+        Optional,
+        Text,
+        Tuple,
+        Type,
+        Union,
     )
+
     from pip._internal.utils.misc import HiddenText
     from pip._internal.utils.subprocess import CommandArgs
 

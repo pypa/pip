@@ -22,10 +22,12 @@ from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_scheme
 from pip._internal.models.link import Link
 from pip._internal.operations.build.metadata import generate_metadata
-from pip._internal.operations.build.metadata_legacy import \
-    generate_metadata as generate_metadata_legacy
-from pip._internal.operations.install.editable_legacy import \
-    install_editable as install_editable_legacy
+from pip._internal.operations.build.metadata_legacy import (
+    generate_metadata as generate_metadata_legacy,
+)
+from pip._internal.operations.install.editable_legacy import (
+    install_editable as install_editable_legacy,
+)
 from pip._internal.operations.install.legacy import LegacyInstallFailure
 from pip._internal.operations.install.legacy import install as install_legacy
 from pip._internal.operations.install.wheel import install_wheel
@@ -53,13 +55,13 @@ from pip._internal.utils.virtualenv import running_under_virtualenv
 from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
-    from typing import (
-        Any, Dict, Iterable, List, Optional, Sequence, Union,
-    )
-    from pip._internal.build_env import BuildEnvironment
-    from pip._vendor.pkg_resources import Distribution
-    from pip._vendor.packaging.specifiers import SpecifierSet
+    from typing import Any, Dict, Iterable, List, Optional, Sequence, Union
+
     from pip._vendor.packaging.markers import Marker
+    from pip._vendor.packaging.specifiers import SpecifierSet
+    from pip._vendor.pkg_resources import Distribution
+
+    from pip._internal.build_env import BuildEnvironment
 
 
 logger = logging.getLogger(__name__)
@@ -180,15 +182,6 @@ class InstallRequirement(object):
         # e.g. dependencies, extras or constraints.
         self.user_supplied = user_supplied
 
-        # Set by the legacy resolver when the requirement has been downloaded
-        # TODO: This introduces a strong coupling between the resolver and the
-        #       requirement (the coupling was previously between the resolver
-        #       and the requirement set). This should be refactored to allow
-        #       the requirement to decide for itself when it has been
-        #       successfully downloaded - but that is more tricky to get right,
-        #       se we are making the change in stages.
-        self.successfully_downloaded = False
-
         self.isolated = isolated
         self.build_env = NoOpBuildEnvironment()  # type: BuildEnvironment
 
@@ -213,6 +206,9 @@ class InstallRequirement(object):
         # Setting an explicit value before loading pyproject.toml is supported,
         # but after loading this flag should be treated as read only.
         self.use_pep517 = use_pep517
+
+        # This requirement needs more preparation before it can be built
+        self.needs_more_preparation = False
 
     def __str__(self):
         # type: () -> str
@@ -704,12 +700,14 @@ class InstallRequirement(object):
         return self.name + '/' + name
 
     def archive(self, build_dir):
-        # type: (str) -> None
+        # type: (Optional[str]) -> None
         """Saves archive to provided build_dir.
 
         Used for saving downloaded VCS requirements as part of `pip download`.
         """
         assert self.source_dir
+        if build_dir is None:
+            return
 
         create_archive = True
         archive_name = '{}-{}.zip'.format(self.name, self.metadata["version"])

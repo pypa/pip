@@ -30,8 +30,9 @@ from pip._internal.utils.hashes import STRONG_HASHES
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Callable, Dict, Optional, Tuple
     from optparse import OptionParser, Values
+    from typing import Any, Callable, Dict, Optional, Tuple
+
     from pip._internal.cli.parser import ConfigOptionParser
 
 
@@ -187,7 +188,7 @@ no_color = partial(
     dest='no_color',
     action='store_true',
     default=False,
-    help="Suppress colored output",
+    help="Suppress colored output.",
 )  # type: Callable[..., Option]
 
 version = partial(

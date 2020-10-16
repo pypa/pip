@@ -35,9 +35,7 @@ from pip._internal.utils.unpacking import SUPPORTED_EXTENSIONS
 from pip._internal.utils.urls import url_to_path
 
 if MYPY_CHECK_RUNNING:
-    from typing import (
-        FrozenSet, Iterable, List, Optional, Set, Text, Tuple, Union,
-    )
+    from typing import FrozenSet, Iterable, List, Optional, Set, Text, Tuple, Union
 
     from pip._vendor.packaging.tags import Tag
     from pip._vendor.packaging.version import _BaseVersion

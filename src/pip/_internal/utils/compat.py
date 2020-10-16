@@ -255,8 +255,8 @@ else:
         def ioctl_GWINSZ(fd):
             try:
                 import fcntl
-                import termios
                 import struct
+                import termios
                 cr = struct.unpack_from(
                     'hh',
                     fcntl.ioctl(fd, termios.TIOCGWINSZ, '12345678')

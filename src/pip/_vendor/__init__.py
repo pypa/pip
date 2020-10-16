@@ -32,11 +32,15 @@ def vendored(modulename):
     try:
         __import__(modulename, globals(), locals(), level=0)
     except ImportError:
-        # This error used to be silenced in earlier variants of this file, to instead
-        # raise the error when pip actually tries to use the missing module. 
-        # Based on inputs in #5354, this was changed to explicitly raise the error.
-        # Re-raising the exception without modifying it is an intentional choice. 
-        raise
+        # We can just silently allow import failures to pass here. If we
+        # got to this point it means that ``import pip._vendor.whatever``
+        # failed and so did ``import whatever``. Since we're importing this
+        # upfront in an attempt to alias imports, not erroring here will
+        # just mean we get a regular import error whenever pip *actually*
+        # tries to import one of these modules to use it, which actually
+        # gives us a better error message than we would have otherwise
+        # gotten.
+        pass
     else:
         sys.modules[vendored_name] = sys.modules[modulename]
         base, head = vendored_name.rsplit(".", 1)

@@ -29,6 +29,7 @@ from pip._internal.utils.urls import path_to_url, url_to_path
 from pip._internal.vcs import is_url, vcs
 
 if MYPY_CHECK_RUNNING:
+    import xml.etree.ElementTree
     from optparse import Values
     from typing import (
         Callable,
@@ -40,7 +41,6 @@ if MYPY_CHECK_RUNNING:
         Tuple,
         Union,
     )
-    import xml.etree.ElementTree
 
     from pip._vendor.requests import Response
 

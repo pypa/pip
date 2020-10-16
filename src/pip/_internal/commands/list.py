@@ -24,10 +24,11 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from optparse import Values
-    from typing import List, Set, Tuple, Iterator
+    from typing import Iterator, List, Set, Tuple
+
+    from pip._vendor.pkg_resources import Distribution
 
     from pip._internal.network.session import PipSession
-    from pip._vendor.pkg_resources import Distribution
 
 logger = logging.getLogger(__name__)
 
@@ -201,7 +202,6 @@ class ListCommand(IndexGroupCommand):
 
             def latest_info(dist):
                 # type: (Distribution) -> Distribution
-                typ = 'unknown'
                 all_candidates = finder.find_all_candidates(dist.key)
                 if not options.pre:
                     # Remove prereleases

@@ -6,7 +6,7 @@ import sys
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import List, Tuple, Text
+    from typing import List, Text, Tuple
 
 BOMS = [
     (codecs.BOM_UTF8, 'utf-8'),

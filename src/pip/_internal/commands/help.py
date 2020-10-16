@@ -6,8 +6,8 @@ from pip._internal.exceptions import CommandError
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import List
     from optparse import Values
+    from typing import List
 
 
 class HelpCommand(Command):
@@ -20,7 +20,9 @@ class HelpCommand(Command):
     def run(self, options, args):
         # type: (Values, List[str]) -> int
         from pip._internal.commands import (
-            commands_dict, create_command, get_similar_commands,
+            commands_dict,
+            create_command,
+            get_similar_commands,
         )
 
         try:

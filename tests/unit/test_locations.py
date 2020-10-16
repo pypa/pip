@@ -100,6 +100,7 @@ class TestDistutilsScheme:
         f.parent.mkdir()
         f.write_text("[install]\ninstall-scripts=" + install_scripts)
         from distutils.dist import Distribution
+
         # patch the function that returns what config files are present
         monkeypatch.setattr(
             Distribution,
@@ -121,6 +122,7 @@ class TestDistutilsScheme:
         f.parent.mkdir()
         f.write_text("[install]\ninstall-lib=" + install_lib)
         from distutils.dist import Distribution
+
         # patch the function that returns what config files are present
         monkeypatch.setattr(
             Distribution,

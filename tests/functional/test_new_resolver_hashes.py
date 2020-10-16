@@ -4,10 +4,7 @@ import hashlib
 import pytest
 
 from pip._internal.utils.urls import path_to_url
-from tests.lib import (
-    create_basic_sdist_for_package,
-    create_basic_wheel_for_package,
-)
+from tests.lib import create_basic_sdist_for_package, create_basic_wheel_for_package
 
 _FindLinks = collections.namedtuple(
     "_FindLinks", "index_html sdist_hash wheel_hash",

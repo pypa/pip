@@ -2,9 +2,7 @@ import logging
 import os.path
 
 from pip._internal.cli.spinners import open_spinner
-from pip._internal.utils.setuptools_build import (
-    make_setuptools_bdist_wheel_args,
-)
+from pip._internal.utils.setuptools_build import make_setuptools_bdist_wheel_args
 from pip._internal.utils.subprocess import (
     LOG_DIVIDER,
     call_subprocess,
