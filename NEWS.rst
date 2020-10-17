@@ -9,6 +9,45 @@
 
 .. towncrier release notes start
 
+20.2.4 (2020-10-16)
+===================
+
+Deprecations and Removals
+-------------------------
+
+- Document that certain removals can be fast tracked. (`#8417 <https://github.com/pypa/pip/issues/8417>`_)
+- Document that Python versions are generally supported until PyPI usage falls below 5%. (`#8927 <https://github.com/pypa/pip/issues/8927>`_)
+
+Features
+--------
+
+- New resolver: Avoid accessing indexes when the installed candidate is preferred
+  and considered good enough. (`#8023 <https://github.com/pypa/pip/issues/8023>`_)
+- Improve error message friendliness when an environment has packages with
+  corrupted metadata. (`#8676 <https://github.com/pypa/pip/issues/8676>`_)
+- Cache package listings on index packages so they are guarenteed to stay stable
+  during a pip command session. This also improves performance when a index page
+  is accessed multiple times during the command session. (`#8905 <https://github.com/pypa/pip/issues/8905>`_)
+- New resolver: Tweak resolution logic to improve user experience when
+  user-supplied requirements conflict. (`#8924 <https://github.com/pypa/pip/issues/8924>`_)
+
+Bug Fixes
+---------
+
+- New resolver: Correctly respect ``Requires-Python`` metadata to reject
+  incompatible packages in ``--no-deps`` mode. (`#8758 <https://github.com/pypa/pip/issues/8758>`_)
+- New resolver: Pick up hash declarations in constraints files and use them to
+  filter available distributions. (`#8792 <https://github.com/pypa/pip/issues/8792>`_)
+- New resolver: If a package appears multiple times in user specification with
+  different ``--hash`` options, only hashes that present in all specifications
+  should be allowed. (`#8839 <https://github.com/pypa/pip/issues/8839>`_)
+
+Improved Documentation
+----------------------
+
+- Add ux documentation (`#8807 <https://github.com/pypa/pip/issues/8807>`_)
+
+
 20.2.3 (2020-09-08)
 ===================
 
