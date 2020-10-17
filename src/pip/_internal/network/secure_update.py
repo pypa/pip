@@ -57,8 +57,8 @@ class SecureDownloader:
         )
         targets_path = split_url.path.lstrip('/')
 
-        # Store two separate mirror configs to workaround:
-        # https://github.com/theupdateframework/tuf/issues/1143
+        # Store two separate mirror configs. First one is used when downloading index
+        # files: in this case both metadata_path and target_path are set.
         # TODO: metadata_path resolution is still open:
         # https://github.com/jku/pip/issues/5
         self._index_mirrors = {
@@ -66,17 +66,15 @@ class SecureDownloader:
                 'url_prefix': base_url,
                 'metadata_path': 'tuf/',
                 'targets_path': targets_path,
-                'confined_target_dirs': ['']
             }
         }
+        # This mirror configuration is used when downloading distributions:
+        # in this case only metadata_path is set. Before downloading the distribution
+        # mirror will be added to this configuration.
         self._distribution_mirrors = {
-            # TODO: should remove targets_path when possible:
-            # https://github.com/jku/pip/issues/8
             base_url: {
                 'url_prefix': base_url,
                 'metadata_path': 'tuf/',
-                'targets_path': 'None',
-                'confined_target_dirs': []
             }
         }
 
@@ -102,14 +100,12 @@ class SecureDownloader:
         # type: (str) -> None
         """Ensure the given url is included in the distribution mirror configuration"""
 
-        # TODO: should remove metadata_path when possible:
-        # https://github.com/jku/pip/issues/8
         if mirror_url not in self._distribution_mirrors:
+            # A distribution mirror only serves targets (index files): do not
+            # set metadata_path.
             self._distribution_mirrors[mirror_url] = {
                 'url_prefix': mirror_url,
-                'metadata_path': 'None',
                 'targets_path': '',
-                'confined_target_dirs': ['']
             }
 
     def _split_distribution_url(self, link):
