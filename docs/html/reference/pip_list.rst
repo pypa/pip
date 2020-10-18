@@ -10,15 +10,13 @@ pip list
 Usage
 =====
 
-.. tabs::
+.. tab:: Unix/macOS
 
-   .. group-tab:: Unix/macOS
+   .. pip-command-usage:: list "python -m pip"
 
-      .. pip-command-usage:: list "python -m pip"
+.. tab:: Windows
 
-   .. group-tab:: Windows
-
-      .. pip-command-usage:: list "py -m pip"
+   .. pip-command-usage:: list "py -m pip"
 
 
 Description
@@ -40,182 +38,165 @@ Examples
 
 #. List installed packages.
 
-   .. tabs::
+   .. tab:: Unix/macOS
 
-      .. group-tab:: Unix/macOS
+      .. code-block:: console
 
-         .. code-block:: console
+         $ python -m pip list
+         docutils (0.10)
+         Jinja2 (2.7.2)
+         MarkupSafe (0.18)
+         Pygments (1.6)
+         Sphinx (1.2.1)
 
-            $ python -m pip list
-            docutils (0.10)
-            Jinja2 (2.7.2)
-            MarkupSafe (0.18)
-            Pygments (1.6)
-            Sphinx (1.2.1)
+   .. tab:: Windows
 
-      .. group-tab:: Windows
+      .. code-block:: console
 
-         .. code-block:: console
-
-            C:\> py -m pip list
-            docutils (0.10)
-            Jinja2 (2.7.2)
-            MarkupSafe (0.18)
-            Pygments (1.6)
-            Sphinx (1.2.1)
+         C:\> py -m pip list
+         docutils (0.10)
+         Jinja2 (2.7.2)
+         MarkupSafe (0.18)
+         Pygments (1.6)
+         Sphinx (1.2.1)
 
 #. List outdated packages (excluding editables), and the latest version available.
 
-   .. tabs::
+   .. tab:: Unix/macOS
 
-      .. group-tab:: Unix/macOS
+      .. code-block:: console
 
-         .. code-block:: console
+         $ python -m pip list --outdated
+         docutils (Current: 0.10 Latest: 0.11)
+         Sphinx (Current: 1.2.1 Latest: 1.2.2)
 
-            $ python -m pip list --outdated
-            docutils (Current: 0.10 Latest: 0.11)
-            Sphinx (Current: 1.2.1 Latest: 1.2.2)
+   .. tab:: Windows
 
-      .. group-tab:: Windows
+      .. code-block:: console
 
-         .. code-block:: console
-
-            C:\> py -m pip list --outdated
-            docutils (Current: 0.10 Latest: 0.11)
-            Sphinx (Current: 1.2.1 Latest: 1.2.2)
-
+         C:\> py -m pip list --outdated
+         docutils (Current: 0.10 Latest: 0.11)
+         Sphinx (Current: 1.2.1 Latest: 1.2.2)
 
 #. List installed packages with column formatting.
 
-   .. tabs::
+   .. tab:: Unix/macOS
 
-      .. group-tab:: Unix/macOS
+      .. code-block:: console
 
-         .. code-block:: console
+         $ python -m pip list --format columns
+         Package Version
+         ------- -------
+         docopt  0.6.2
+         idlex   1.13
+         jedi    0.9.0
 
-            $ python -m pip list --format columns
-            Package Version
-            ------- -------
-            docopt  0.6.2
-            idlex   1.13
-            jedi    0.9.0
+   .. tab:: Windows
 
-      .. group-tab:: Windows
+      .. code-block:: console
 
-         .. code-block:: console
-
-            C:\> py -m pip list --format columns
-            Package Version
-            ------- -------
-            docopt  0.6.2
-            idlex   1.13
-            jedi    0.9.0
+         C:\> py -m pip list --format columns
+         Package Version
+         ------- -------
+         docopt  0.6.2
+         idlex   1.13
+         jedi    0.9.0
 
 #. List outdated packages with column formatting.
 
-   .. tabs::
+   .. tab:: Unix/macOS
 
-      .. group-tab:: Unix/macOS
+      .. code-block:: console
 
-         .. code-block:: console
+         $ python -m pip list -o --format columns
+         Package    Version Latest Type
+         ---------- ------- ------ -----
+         retry      0.8.1   0.9.1  wheel
+         setuptools 20.6.7  21.0.0 wheel
 
-            $ python -m pip list -o --format columns
-            Package    Version Latest Type
-            ---------- ------- ------ -----
-            retry      0.8.1   0.9.1  wheel
-            setuptools 20.6.7  21.0.0 wheel
+   .. tab:: Windows
 
-      .. group-tab:: Windows
+      .. code-block:: console
 
-         .. code-block:: console
-
-            C:\> py -m pip list -o --format columns
-            Package    Version Latest Type
-            ---------- ------- ------ -----
-            retry      0.8.1   0.9.1  wheel
-            setuptools 20.6.7  21.0.0 wheel
+         C:\> py -m pip list -o --format columns
+         Package    Version Latest Type
+         ---------- ------- ------ -----
+         retry      0.8.1   0.9.1  wheel
+         setuptools 20.6.7  21.0.0 wheel
 
 #. List packages that are not dependencies of other packages. Can be combined with
    other options.
 
-   .. tabs::
+   .. tab:: Unix/macOS
 
-      .. group-tab:: Unix/macOS
+      .. code-block:: console
 
-         .. code-block:: console
+         $ python -m pip list --outdated --not-required
+         docutils (Current: 0.10 Latest: 0.11)
 
-            $ python -m pip list --outdated --not-required
-            docutils (Current: 0.10 Latest: 0.11)
+   .. tab:: Windows
 
-      .. group-tab:: Windows
+      .. code-block:: console
 
-         .. code-block:: console
-
-            C:\> py -m pip list --outdated --not-required
-            docutils (Current: 0.10 Latest: 0.11)
+         C:\> py -m pip list --outdated --not-required
+         docutils (Current: 0.10 Latest: 0.11)
 
 #. Use legacy formatting
 
-   .. tabs::
+   .. tab:: Unix/macOS
 
-      .. group-tab:: Unix/macOS
+      .. code-block:: console
 
-         .. code-block:: console
+         $ python -m pip list --format=legacy
+         colorama (0.3.7)
+         docopt (0.6.2)
+         idlex (1.13)
+         jedi (0.9.0)
 
-            $ python -m pip list --format=legacy
-            colorama (0.3.7)
-            docopt (0.6.2)
-            idlex (1.13)
-            jedi (0.9.0)
+   .. tab:: Windows
 
-      .. group-tab:: Windows
+      .. code-block:: console
 
-         .. code-block:: console
-
-            C:\> py -m pip list --format=legacy
-            colorama (0.3.7)
-            docopt (0.6.2)
-            idlex (1.13)
-            jedi (0.9.0)
+         C:\> py -m pip list --format=legacy
+         colorama (0.3.7)
+         docopt (0.6.2)
+         idlex (1.13)
+         jedi (0.9.0)
 
 #. Use json formatting
 
-   .. tabs::
+   .. tab:: Unix/macOS
 
-      .. group-tab:: Unix/macOS
+      .. code-block:: console
 
-         .. code-block:: console
+         $ python -m pip list --format=json
+         [{'name': 'colorama', 'version': '0.3.7'}, {'name': 'docopt', 'version': '0.6.2'}, ...
 
-            $ python -m pip list --format=json
-            [{'name': 'colorama', 'version': '0.3.7'}, {'name': 'docopt', 'version': '0.6.2'}, ...
+   .. tab:: Windows
 
-      .. group-tab:: Windows
+      .. code-block:: console
 
-         .. code-block:: console
-
-            C:\> py -m pip list --format=json
-            [{'name': 'colorama', 'version': '0.3.7'}, {'name': 'docopt', 'version': '0.6.2'}, ...
+         C:\> py -m pip list --format=json
+         [{'name': 'colorama', 'version': '0.3.7'}, {'name': 'docopt', 'version': '0.6.2'}, ...
 
 #. Use freeze formatting
 
-   .. tabs::
+   .. tab:: Unix/macOS
 
-      .. group-tab:: Unix/macOS
+      .. code-block:: console
 
-         .. code-block:: console
+         $ python -m pip list --format=freeze
+         colorama==0.3.7
+         docopt==0.6.2
+         idlex==1.13
+         jedi==0.9.0
 
-            $ python -m pip list --format=freeze
-            colorama==0.3.7
-            docopt==0.6.2
-            idlex==1.13
-            jedi==0.9.0
+   .. tab:: Windows
 
-      .. group-tab:: Windows
+      .. code-block:: console
 
-         .. code-block:: console
-
-            C:\> py -m pip list --format=freeze
-            colorama==0.3.7
-            docopt==0.6.2
-            idlex==1.13
-            jedi==0.9.0
+         C:\> py -m pip list --format=freeze
+         colorama==0.3.7
+         docopt==0.6.2
+         idlex==1.13
+         jedi==0.9.0

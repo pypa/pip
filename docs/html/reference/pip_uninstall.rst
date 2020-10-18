@@ -10,15 +10,13 @@ pip uninstall
 Usage
 =====
 
-.. tabs::
+.. tab:: Unix/macOS
 
-   .. group-tab:: Unix/macOS
+   .. pip-command-usage:: uninstall "python -m pip"
 
-      .. pip-command-usage:: uninstall "python -m pip"
+.. tab:: Windows
 
-   .. group-tab:: Windows
-
-      .. pip-command-usage:: uninstall "py -m pip"
+   .. pip-command-usage:: uninstall "py -m pip"
 
 
 Description
@@ -38,26 +36,24 @@ Examples
 
 #. Uninstall a package.
 
-   .. tabs::
+   .. tab:: Unix/macOS
 
-      .. group-tab:: Unix/macOS
+      .. code-block:: console
 
-         .. code-block:: console
+         $ python -m pip uninstall simplejson
+         Uninstalling simplejson:
+            /home/me/env/lib/python2.7/site-packages/simplejson
+            /home/me/env/lib/python2.7/site-packages/simplejson-2.2.1-py2.7.egg-info
+         Proceed (y/n)? y
+            Successfully uninstalled simplejson
 
-            $ python -m pip uninstall simplejson
-            Uninstalling simplejson:
-              /home/me/env/lib/python2.7/site-packages/simplejson
-              /home/me/env/lib/python2.7/site-packages/simplejson-2.2.1-py2.7.egg-info
-            Proceed (y/n)? y
-              Successfully uninstalled simplejson
+   .. tab:: Windows
 
-      .. group-tab:: Windows
+      .. code-block:: console
 
-         .. code-block:: console
-
-            C:\> py -m pip uninstall simplejson
-            Uninstalling simplejson:
-              /home/me/env/lib/python2.7/site-packages/simplejson
-              /home/me/env/lib/python2.7/site-packages/simplejson-2.2.1-py2.7.egg-info
-            Proceed (y/n)? y
-              Successfully uninstalled simplejson
+         C:\> py -m pip uninstall simplejson
+         Uninstalling simplejson:
+            /home/me/env/lib/python2.7/site-packages/simplejson
+            /home/me/env/lib/python2.7/site-packages/simplejson-2.2.1-py2.7.egg-info
+         Proceed (y/n)? y
+            Successfully uninstalled simplejson

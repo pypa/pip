@@ -35,7 +35,7 @@ extensions = [
     'sphinx.ext.extlinks',
     'sphinx.ext.intersphinx',
     # third-party:
-    'sphinx_tabs.tabs',
+    'sphinx_inline_tabs',
     # in-tree:
     'docs_feedback_sphinxext',
     'pip_sphinxext',
