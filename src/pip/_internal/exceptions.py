@@ -200,7 +200,7 @@ class HashError(InstallationError):
     """
     req = None  # type: Optional[InstallRequirement]
     head = ''
-    order = None  # type: Optional[int]
+    order = -1  # type: int
 
     def body(self):
         # type: () -> str
