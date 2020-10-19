@@ -10,15 +10,13 @@ pip search
 Usage
 =====
 
-.. tabs::
+.. tab:: Unix/macOS
 
-   .. group-tab:: Unix/macOS
+   .. pip-command-usage:: search "python -m pip"
 
-      .. pip-command-usage:: search "python -m pip"
+.. tab:: Windows
 
-   .. group-tab:: Windows
-
-      .. pip-command-usage:: search "py -m pip"
+   .. pip-command-usage:: search "py -m pip"
 
 
 Description
@@ -38,20 +36,18 @@ Examples
 
 #. Search for "peppercorn"
 
-   .. tabs::
+   .. tab:: Unix/macOS
 
-      .. group-tab:: Unix/macOS
+      .. code-block:: console
 
-         .. code-block:: console
+         $ python -m pip search peppercorn
+         pepperedform    - Helpers for using peppercorn with formprocess.
+         peppercorn      - A library for converting a token stream into [...]
 
-            $ python -m pip search peppercorn
-            pepperedform    - Helpers for using peppercorn with formprocess.
-            peppercorn      - A library for converting a token stream into [...]
+   .. tab:: Windows
 
-      .. group-tab:: Windows
+      .. code-block:: console
 
-         .. code-block:: console
-
-            C:\> py -m pip search peppercorn
-            pepperedform    - Helpers for using peppercorn with formprocess.
-            peppercorn      - A library for converting a token stream into [...]
+         C:\> py -m pip search peppercorn
+         pepperedform    - Helpers for using peppercorn with formprocess.
+         peppercorn      - A library for converting a token stream into [...]

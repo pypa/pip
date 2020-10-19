@@ -11,26 +11,24 @@ Running pip
 pip is a command line program. When you install pip, a ``pip`` command is added
 to your system, which can be run from the command prompt as follows:
 
-.. tabs::
+.. tab:: Unix/macOS
 
-   .. group-tab:: Unix/macOS
+   .. code-block:: shell
 
-      .. code-block:: shell
+      python -m pip <pip arguments>
 
-         python -m pip <pip arguments>
+   ``python -m pip`` executes pip using the Python interpreter you
+   specified as python. So ``/usr/bin/python3.7 -m pip`` means
+   you are executing pip for your interpreter located at /usr/bin/python3.7.
 
-      ``python -m pip`` executes pip using the Python interpreter you
-      specified as python. So ``/usr/bin/python3.7 -m pip`` means
-      you are executing pip for your interpreter located at /usr/bin/python3.7.
+.. tab:: Windows
 
-   .. group-tab:: Windows
+   .. code-block:: shell
 
-      .. code-block:: shell
+      py -m pip <pip arguments>
 
-         py -m pip <pip arguments>
-
-      ``py -m pip`` executes pip using the latest Python interpreter you
-      have installed. For more details, read the `Python Windows launcher`_ docs.
+   ``py -m pip`` executes pip using the latest Python interpreter you
+   have installed. For more details, read the `Python Windows launcher`_ docs.
 
 
 Installing Packages
@@ -43,23 +41,21 @@ directly from distribution files.
 The most common scenario is to install from `PyPI`_ using :ref:`Requirement
 Specifiers`
 
-.. tabs::
+.. tab:: Unix/macOS
 
-   .. group-tab:: Unix/macOS
+   .. code-block:: shell
 
-      .. code-block:: shell
+      python -m pip install SomePackage            # latest version
+      python -m pip install SomePackage==1.0.4     # specific version
+      python -m pip install 'SomePackage>=1.0.4'     # minimum version
 
-         python -m pip install SomePackage            # latest version
-         python -m pip install SomePackage==1.0.4     # specific version
-         python -m pip install 'SomePackage>=1.0.4'     # minimum version
+.. tab:: Windows
 
-   .. group-tab:: Windows
+   .. code-block:: shell
 
-      .. code-block:: shell
-
-         py -m pip install SomePackage            # latest version
-         py -m pip install SomePackage==1.0.4     # specific version
-         py -m pip install 'SomePackage>=1.0.4'     # minimum version
+      py -m pip install SomePackage            # latest version
+      py -m pip install SomePackage==1.0.4     # specific version
+      py -m pip install 'SomePackage>=1.0.4'     # minimum version
 
 For more information and examples, see the :ref:`pip install` reference.
 
@@ -162,19 +158,17 @@ Requirements Files
 "Requirements files" are files containing a list of items to be
 installed using :ref:`pip install` like so:
 
-.. tabs::
+.. tab:: Unix/macOS
 
-   .. group-tab:: Unix/macOS
+   .. code-block:: shell
 
-      .. code-block:: shell
+      python -m pip install -r requirements.txt
 
-         python -m pip install -r requirements.txt
+.. tab:: Windows
 
-   .. group-tab:: Windows
+   .. code-block:: shell
 
-      .. code-block:: shell
-
-         py -m pip install -r requirements.txt
+      py -m pip install -r requirements.txt
 
 Details on the format of the files are here: :ref:`Requirements File Format`.
 
@@ -189,16 +183,14 @@ In practice, there are 4 common uses of Requirements files:
    this case, your requirement file contains a pinned version of everything that
    was installed when ``pip freeze`` was run.
 
-.. tabs::
-
-   .. group-tab:: Unix/macOS
+   .. tab:: Unix/macOS
 
       .. code-block:: shell
 
          python -m pip freeze > requirements.txt
          python -m pip install -r requirements.txt
 
-   .. group-tab:: Windows
+   .. tab:: Windows
 
       .. code-block:: shell
 
@@ -270,19 +262,17 @@ installation of the package.
 
 Use a constraints file like so:
 
-.. tabs::
+.. tab:: Unix/macOS
 
-   .. group-tab:: Unix/macOS
+   .. code-block:: shell
 
-      .. code-block:: shell
+      python -m pip install -c constraints.txt
 
-         python -m pip install -c constraints.txt
+.. tab:: Windows
 
-   .. group-tab:: Windows
+   .. code-block:: shell
 
-      .. code-block:: shell
-
-         py -m pip install -c constraints.txt
+      py -m pip install -c constraints.txt
 
 Constraints files are used for exactly the same reason as requirements files
 when you don't know exactly what things you want to install. For instance, say
@@ -320,19 +310,17 @@ archives.
 
 To install directly from a wheel archive:
 
-.. tabs::
+.. tab:: Unix/macOS
 
-   .. group-tab:: Unix/macOS
+   .. code-block:: shell
 
-      .. code-block:: shell
+      python -m pip install SomePackage-1.0-py2.py3-none-any.whl
 
-         python -m pip install SomePackage-1.0-py2.py3-none-any.whl
+.. tab:: Windows
 
-   .. group-tab:: Windows
+   .. code-block:: shell
 
-      .. code-block:: shell
-
-         py -m pip install SomePackage-1.0-py2.py3-none-any.whl
+      py -m pip install SomePackage-1.0-py2.py3-none-any.whl
 
 
 For the cases where wheels are not available, pip offers :ref:`pip wheel` as a
@@ -345,38 +333,34 @@ convenience, to build wheels for all your requirements and dependencies.
 To build wheels for your requirements and all their dependencies to a local
 directory:
 
-.. tabs::
+.. tab:: Unix/macOS
 
-   .. group-tab:: Unix/macOS
+   .. code-block:: shell
 
-      .. code-block:: shell
+      python -m pip install wheel
+      python -m pip wheel --wheel-dir=/local/wheels -r requirements.txt
 
-         python -m pip install wheel
-         python -m pip wheel --wheel-dir=/local/wheels -r requirements.txt
+.. tab:: Windows
 
-   .. group-tab:: Windows
+   .. code-block:: shell
 
-      .. code-block:: shell
-
-         py -m pip install wheel
-         py -m pip wheel --wheel-dir=/local/wheels -r requirements.txt
+      py -m pip install wheel
+      py -m pip wheel --wheel-dir=/local/wheels -r requirements.txt
 
 And *then* to install those requirements just using your local directory of
 wheels (and not from PyPI):
 
-.. tabs::
+.. tab:: Unix/macOS
 
-   .. group-tab:: Unix/macOS
+   .. code-block:: shell
 
-      .. code-block:: shell
+      python -m pip install --no-index --find-links=/local/wheels -r requirements.txt
 
-         python -m pip install --no-index --find-links=/local/wheels -r requirements.txt
+.. tab:: Windows
 
-   .. group-tab:: Windows
+   .. code-block:: shell
 
-      .. code-block:: shell
-
-         py -m pip install --no-index --find-links=/local/wheels -r requirements.txt
+      py -m pip install --no-index --find-links=/local/wheels -r requirements.txt
 
 
 Uninstalling Packages
@@ -384,19 +368,17 @@ Uninstalling Packages
 
 pip is able to uninstall most packages like so:
 
-.. tabs::
+.. tab:: Unix/macOS
 
-   .. group-tab:: Unix/macOS
+   .. code-block:: shell
 
-      .. code-block:: shell
+      python -m pip uninstall SomePackage
 
-         python -m pip uninstall SomePackage
+.. tab:: Windows
 
-   .. group-tab:: Windows
+   .. code-block:: shell
 
-      .. code-block:: shell
-
-         py -m pip uninstall SomePackage
+      py -m pip uninstall SomePackage
 
 
 pip also performs an automatic uninstall of an old version of a package
@@ -410,75 +392,68 @@ Listing Packages
 
 To list installed packages:
 
-.. tabs::
+.. tab:: Unix/macOS
 
-   .. group-tab:: Unix/macOS
+   .. code-block:: console
 
-      .. code-block:: console
+      $ python -m pip list
+      docutils (0.9.1)
+      Jinja2 (2.6)
+      Pygments (1.5)
+      Sphinx (1.1.2)
 
-         $ python -m pip list
-         docutils (0.9.1)
-         Jinja2 (2.6)
-         Pygments (1.5)
-         Sphinx (1.1.2)
+.. tab:: Windows
 
-   .. group-tab:: Windows
+   .. code-block:: console
 
-      .. code-block:: console
-
-         C:\> py -m pip list
-         docutils (0.9.1)
-         Jinja2 (2.6)
-         Pygments (1.5)
-         Sphinx (1.1.2)
+      C:\> py -m pip list
+      docutils (0.9.1)
+      Jinja2 (2.6)
+      Pygments (1.5)
+      Sphinx (1.1.2)
 
 
 To list outdated packages, and show the latest version available:
 
-.. tabs::
+.. tab:: Unix/macOS
 
-   .. group-tab:: Unix/macOS
+   .. code-block:: console
 
-      .. code-block:: console
+      $ python -m pip list --outdated
+      docutils (Current: 0.9.1 Latest: 0.10)
+      Sphinx (Current: 1.1.2 Latest: 1.1.3)
 
-         $ python -m pip list --outdated
-         docutils (Current: 0.9.1 Latest: 0.10)
-         Sphinx (Current: 1.1.2 Latest: 1.1.3)
+.. tab:: Windows
 
-   .. group-tab:: Windows
+   .. code-block:: console
 
-      .. code-block:: console
-
-         C:\> py -m pip list --outdated
-         docutils (Current: 0.9.1 Latest: 0.10)
-         Sphinx (Current: 1.1.2 Latest: 1.1.3)
+      C:\> py -m pip list --outdated
+      docutils (Current: 0.9.1 Latest: 0.10)
+      Sphinx (Current: 1.1.2 Latest: 1.1.3)
 
 To show details about an installed package:
 
-.. tabs::
+.. tab:: Unix/macOS
 
-   .. group-tab:: Unix/macOS
+   .. code-block:: console
 
-      .. code-block:: console
+      $ python -m pip show sphinx
+      ---
+      Name: Sphinx
+      Version: 1.1.3
+      Location: /my/env/lib/pythonx.x/site-packages
+      Requires: Pygments, Jinja2, docutils
 
-         $ python -m pip show sphinx
-         ---
-         Name: Sphinx
-         Version: 1.1.3
-         Location: /my/env/lib/pythonx.x/site-packages
-         Requires: Pygments, Jinja2, docutils
+.. tab:: Windows
 
-   .. group-tab:: Windows
+   .. code-block:: console
 
-      .. code-block:: console
-
-         C:\> py -m pip show sphinx
-         ---
-         Name: Sphinx
-         Version: 1.1.3
-         Location: /my/env/lib/pythonx.x/site-packages
-         Requires: Pygments, Jinja2, docutils
-
+      C:\> py -m pip show sphinx
+      ---
+      Name: Sphinx
+      Version: 1.1.3
+      Location: /my/env/lib/pythonx.x/site-packages
+      Requires: Pygments, Jinja2, docutils
 
 For more information and examples, see the :ref:`pip list` and :ref:`pip show`
 reference pages.
@@ -490,19 +465,17 @@ Searching for Packages
 pip can search `PyPI`_ for packages using the ``pip search``
 command:
 
-.. tabs::
+.. tab:: Unix/macOS
 
-   .. group-tab:: Unix/macOS
+   .. code-block:: shell
 
-      .. code-block:: shell
+      python -m pip search "query"
 
-         python -m pip search "query"
+.. tab:: Windows
 
-   .. group-tab:: Windows
+   .. code-block:: shell
 
-      .. code-block:: shell
-
-         py -m pip search "query"
+      py -m pip search "query"
 
 The query will be used to search the names and summaries of all
 packages.
@@ -664,70 +637,60 @@ underscores (``_``).
 
 For example, to set the default timeout:
 
-.. tabs::
+.. tab:: Unix/macOS
 
-   .. group-tab:: Unix/macOS
+   .. code-block:: shell
 
-      .. code-block:: shell
+      export PIP_DEFAULT_TIMEOUT=60
 
-         export PIP_DEFAULT_TIMEOUT=60
+.. tab:: Windows
 
-   .. group-tab:: Windows
+   .. code-block:: shell
 
-      .. code-block:: shell
-
-         set PIP_DEFAULT_TIMEOUT=60
+      set PIP_DEFAULT_TIMEOUT=60
 
 This is the same as passing the option to pip directly:
 
-.. tabs::
+.. tab:: Unix/macOS
 
-   .. group-tab:: Unix/macOS
+   .. code-block:: shell
 
-      .. code-block:: shell
+      python -m pip --default-timeout=60 [...]
 
-         python -m pip --default-timeout=60 [...]
+.. tab:: Windows
 
-   .. group-tab:: Windows
+   .. code-block:: shell
 
-      .. code-block:: shell
-
-         py -m pip --default-timeout=60 [...]
+      py -m pip --default-timeout=60 [...]
 
 For command line options which can be repeated, use a space to separate
 multiple values. For example:
 
-.. tabs::
+.. tab:: Unix/macOS
 
-   .. group-tab:: Unix/macOS
+   .. code-block:: shell
 
-      .. code-block:: shell
+      export PIP_FIND_LINKS="http://mirror1.example.com http://mirror2.example.com"
 
-         export PIP_FIND_LINKS="http://mirror1.example.com http://mirror2.example.com"
+.. tab:: Windows
 
-   .. group-tab:: Windows
+   .. code-block:: shell
 
-      .. code-block:: shell
-
-         set PIP_FIND_LINKS="http://mirror1.example.com http://mirror2.example.com"
-
+      set PIP_FIND_LINKS="http://mirror1.example.com http://mirror2.example.com"
 
 is the same as calling:
 
-.. tabs::
+.. tab:: Unix/macOS
 
-   .. group-tab:: Unix/macOS
+   .. code-block:: shell
 
-      .. code-block:: shell
+      python -m pip install --find-links=http://mirror1.example.com --find-links=http://mirror2.example.com
 
-         python -m pip install --find-links=http://mirror1.example.com --find-links=http://mirror2.example.com
+.. tab:: Windows
 
-   .. group-tab:: Windows
+   .. code-block:: shell
 
-      .. code-block:: shell
-
-         py -m pip install --find-links=http://mirror1.example.com --find-links=http://mirror2.example.com
-
+      py -m pip install --find-links=http://mirror1.example.com --find-links=http://mirror2.example.com
 
 Options that do not take a value, but can be repeated (such as ``--verbose``)
 can be specified using the number of repetitions, so::
@@ -799,20 +762,17 @@ to PyPI.
 
 First, download the archives that fulfill your requirements:
 
-.. tabs::
+.. tab:: Unix/macOS
 
-   .. group-tab:: Unix/macOS
+   .. code-block:: shell
 
-      .. code-block:: shell
+      python -m pip download --destination-directory DIR -r requirements.txt
 
-         python -m pip download --destination-directory DIR -r requirements.txt
+.. tab:: Windows
 
-   .. group-tab:: Windows
+   .. code-block:: shell
 
-      .. code-block:: shell
-
-         py -m pip download --destination-directory DIR -r requirements.txt
-
+      py -m pip download --destination-directory DIR -r requirements.txt
 
 Note that ``pip download`` will look in your wheel cache first, before
 trying to download from PyPI.  If you've never installed your requirements
@@ -820,36 +780,32 @@ before, you won't have a wheel cache for those items.  In that case, if some of
 your requirements don't come as wheels from PyPI, and you want wheels, then run
 this instead:
 
-.. tabs::
+.. tab:: Unix/macOS
 
-   .. group-tab:: Unix/macOS
+   .. code-block:: shell
 
-      .. code-block:: shell
+      python -m pip wheel --wheel-dir DIR -r requirements.txt
 
-         python -m pip wheel --wheel-dir DIR -r requirements.txt
+.. tab:: Windows
 
-   .. group-tab:: Windows
+   .. code-block:: shell
 
-      .. code-block:: shell
-
-         py -m pip wheel --wheel-dir DIR -r requirements.txt
+      py -m pip wheel --wheel-dir DIR -r requirements.txt
 
 Then, to install from local only, you'll be using :ref:`--find-links
 <install_--find-links>` and :ref:`--no-index <install_--no-index>` like so:
 
-.. tabs::
+.. tab:: Unix/macOS
 
-   .. group-tab:: Unix/macOS
+   .. code-block:: shell
 
-      .. code-block:: shell
+      python -m pip install --no-index --find-links=DIR -r requirements.txt
 
-         python -m pip install --no-index --find-links=DIR -r requirements.txt
+.. tab:: Windows
 
-   .. group-tab:: Windows
+   .. code-block:: shell
 
-      .. code-block:: shell
-
-         py -m pip install --no-index --find-links=DIR -r requirements.txt
+      py -m pip install --no-index --find-links=DIR -r requirements.txt
 
 
 "Only if needed" Recursive Upgrade
@@ -870,21 +826,19 @@ the breaking nature of ``eager`` when upgrading conflicting dependencies.
 As an historic note, an earlier "fix" for getting the ``only-if-needed``
 behaviour was:
 
-.. tabs::
+.. tab:: Unix/macOS
 
-   .. group-tab:: Unix/macOS
+   .. code-block:: shell
 
-      .. code-block:: shell
+      python -m pip install --upgrade --no-deps SomePackage
+      python -m pip install SomePackage
 
-         python -m pip install --upgrade --no-deps SomePackage
-         python -m pip install SomePackage
+.. tab:: Windows
 
-   .. group-tab:: Windows
+   .. code-block:: shell
 
-      .. code-block:: shell
-
-         py -m pip install --upgrade --no-deps SomePackage
-         py -m pip install SomePackage
+      py -m pip install --upgrade --no-deps SomePackage
+      py -m pip install SomePackage
 
 
 A proposal for an ``upgrade-all`` command is being considered as a safer
@@ -910,21 +864,19 @@ Moreover, the "user scheme" can be customized by setting the
 To install "SomePackage" into an environment with site.USER_BASE customized to
 '/myappenv', do the following:
 
-.. tabs::
+.. tab:: Unix/macOS
 
-   .. group-tab:: Unix/macOS
+   .. code-block:: shell
 
-      .. code-block:: shell
+      export PYTHONUSERBASE=/myappenv
+      python -m pip install --user SomePackage
 
-         export PYTHONUSERBASE=/myappenv
-         python -m pip install --user SomePackage
+.. tab:: Windows
 
-   .. group-tab:: Windows
+   .. code-block:: shell
 
-      .. code-block:: shell
-
-         set PYTHONUSERBASE=c:/myappenv
-         py -m pip install --user SomePackage
+      set PYTHONUSERBASE=c:/myappenv
+      py -m pip install --user SomePackage
 
 ``pip install --user`` follows four rules:
 
@@ -946,126 +898,115 @@ To install "SomePackage" into an environment with site.USER_BASE customized to
 
 To make the rules clearer, here are some examples:
 
-
 From within a ``--no-site-packages`` virtualenv (i.e. the default kind):
 
-.. tabs::
+.. tab:: Unix/macOS
 
-   .. group-tab:: Unix/macOS
+   .. code-block:: console
 
-      .. code-block:: console
+      $ python -m pip install --user SomePackage
+      Can not perform a '--user' install. User site-packages are not visible in this virtualenv.
 
-         $ python -m pip install --user SomePackage
-         Can not perform a '--user' install. User site-packages are not visible in this virtualenv.
+.. tab:: Windows
 
-   .. group-tab:: Windows
+   .. code-block:: console
 
-      .. code-block:: console
-
-         C:\> py -m pip install --user SomePackage
-         Can not perform a '--user' install. User site-packages are not visible in this virtualenv.
+      C:\> py -m pip install --user SomePackage
+      Can not perform a '--user' install. User site-packages are not visible in this virtualenv.
 
 
 From within a ``--system-site-packages`` virtualenv where ``SomePackage==0.3``
 is already installed in the virtualenv:
 
-.. tabs::
+.. tab:: Unix/macOS
 
-   .. group-tab:: Unix/macOS
+   .. code-block:: console
 
-      .. code-block:: console
+      $ python -m pip install --user SomePackage==0.4
+      Will not install to the user site because it will lack sys.path precedence
 
-         $ python -m pip install --user SomePackage==0.4
-         Will not install to the user site because it will lack sys.path precedence
+.. tab:: Windows
 
-   .. group-tab:: Windows
+   .. code-block:: console
 
-      .. code-block:: console
-
-         C:\> py -m pip install --user SomePackage==0.4
-         Will not install to the user site because it will lack sys.path precedence
+      C:\> py -m pip install --user SomePackage==0.4
+      Will not install to the user site because it will lack sys.path precedence
 
 From within a real python, where ``SomePackage`` is *not* installed globally:
 
-.. tabs::
+.. tab:: Unix/macOS
 
-   .. group-tab:: Unix/macOS
+   .. code-block:: console
 
-      .. code-block:: console
+      $ python -m pip install --user SomePackage
+      [...]
+      Successfully installed SomePackage
 
-         $ python -m pip install --user SomePackage
-         [...]
-         Successfully installed SomePackage
+.. tab:: Windows
 
-   .. group-tab:: Windows
+   .. code-block:: console
 
-      .. code-block:: console
-
-         C:\> py -m pip install --user SomePackage
-         [...]
-         Successfully installed SomePackage
+      C:\> py -m pip install --user SomePackage
+      [...]
+      Successfully installed SomePackage
 
 From within a real python, where ``SomePackage`` *is* installed globally, but
 is *not* the latest version:
 
-.. tabs::
+.. tab:: Unix/macOS
 
-   .. group-tab:: Unix/macOS
+   .. code-block:: console
 
-      .. code-block:: console
+      $ python -m pip install --user SomePackage
+      [...]
+      Requirement already satisfied (use --upgrade to upgrade)
+      $ python -m pip install --user --upgrade SomePackage
+      [...]
+      Successfully installed SomePackage
 
-         $ python -m pip install --user SomePackage
-         [...]
-         Requirement already satisfied (use --upgrade to upgrade)
-         $ python -m pip install --user --upgrade SomePackage
-         [...]
-         Successfully installed SomePackage
+.. tab:: Windows
 
-   .. group-tab:: Windows
+   .. code-block:: console
 
-      .. code-block:: console
-
-         C:\> py -m pip install --user SomePackage
-         [...]
-         Requirement already satisfied (use --upgrade to upgrade)
-         C:\> py -m pip install --user --upgrade SomePackage
-         [...]
-         Successfully installed SomePackage
+      C:\> py -m pip install --user SomePackage
+      [...]
+      Requirement already satisfied (use --upgrade to upgrade)
+      C:\> py -m pip install --user --upgrade SomePackage
+      [...]
+      Successfully installed SomePackage
 
 From within a real python, where ``SomePackage`` *is* installed globally, and
 is the latest version:
 
-.. tabs::
+.. tab:: Unix/macOS
 
-   .. group-tab:: Unix/macOS
+   .. code-block:: console
 
-      .. code-block:: console
+      $ python -m pip install --user SomePackage
+      [...]
+      Requirement already satisfied (use --upgrade to upgrade)
+      $ python -m pip install --user --upgrade SomePackage
+      [...]
+      Requirement already up-to-date: SomePackage
+      # force the install
+      $ python -m pip install --user --ignore-installed SomePackage
+      [...]
+      Successfully installed SomePackage
 
-         $ python -m pip install --user SomePackage
-         [...]
-         Requirement already satisfied (use --upgrade to upgrade)
-         $ python -m pip install --user --upgrade SomePackage
-         [...]
-         Requirement already up-to-date: SomePackage
-         # force the install
-         $ python -m pip install --user --ignore-installed SomePackage
-         [...]
-         Successfully installed SomePackage
+.. tab:: Windows
 
-   .. group-tab:: Windows
+   .. code-block:: console
 
-      .. code-block:: console
-
-         C:\> py -m pip install --user SomePackage
-         [...]
-         Requirement already satisfied (use --upgrade to upgrade)
-         C:\> py -m pip install --user --upgrade SomePackage
-         [...]
-         Requirement already up-to-date: SomePackage
-         # force the install
-         C:\> py -m pip install --user --ignore-installed SomePackage
-         [...]
-         Successfully installed SomePackage
+      C:\> py -m pip install --user SomePackage
+      [...]
+      Requirement already satisfied (use --upgrade to upgrade)
+      C:\> py -m pip install --user --upgrade SomePackage
+      [...]
+      Requirement already up-to-date: SomePackage
+      # force the install
+      C:\> py -m pip install --user --ignore-installed SomePackage
+      [...]
+      Successfully installed SomePackage
 
 .. _`Repeatability`:
 
@@ -1171,19 +1112,17 @@ Understanding your error message
 When you get a ``ResolutionImpossible`` error, you might see something
 like this:
 
-.. tabs::
+.. tab:: Unix/macOS
 
-   .. group-tab:: Unix/macOS
+   .. code-block:: shell
 
-      .. code-block:: shell
+      python -m pip install package_coffee==0.44.1 package_tea==4.3.0
 
-         python -m pip install package_coffee==0.44.1 package_tea==4.3.0
+.. tab:: Windows
 
-   .. group-tab:: Windows
+   .. code-block:: shell
 
-      .. code-block:: shell
-
-         py -m pip install package_coffee==0.44.1 package_tea==4.3.0
+      py -m pip install package_coffee==0.44.1 package_tea==4.3.0
 
 ::
 
@@ -1289,19 +1228,17 @@ In the second case, pip will automatically find a version of both
 If you want to prioritize one package over another, you can add version
 specifiers to *only* the more important package:
 
-.. tabs::
+.. tab:: Unix/macOS
 
-   .. group-tab:: Unix/macOS
+   .. code-block:: shell
 
-      .. code-block:: shell
+      python -m pip install package_coffee==0.44.1b0 package_tea
 
-         python -m pip install package_coffee==0.44.1b0 package_tea
+.. tab:: Windows
 
-   .. group-tab:: Windows
+   .. code-block:: shell
 
-      .. code-block:: shell
-
-         py -m pip install package_coffee==0.44.1b0 package_tea
+      py -m pip install package_coffee==0.44.1b0 package_tea
 
 This will result in:
 

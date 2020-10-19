@@ -11,15 +11,13 @@ pip config
 Usage
 =====
 
-.. tabs::
+.. tab:: Unix/macOS
 
-   .. group-tab:: Unix/macOS
+   .. pip-command-usage:: config "python -m pip"
 
-      .. pip-command-usage:: config "python -m pip"
+.. tab:: Windows
 
-   .. group-tab:: Windows
-
-      .. pip-command-usage:: config "py -m pip"
+   .. pip-command-usage:: config "py -m pip"
 
 
 Description

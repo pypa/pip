@@ -10,15 +10,13 @@ pip check
 Usage
 =====
 
-.. tabs::
+.. tab:: Unix/macOS
 
-   .. group-tab:: Unix/macOS
+   .. pip-command-usage:: check "python -m pip"
 
-      .. pip-command-usage:: check "python -m pip"
+.. tab:: Windows
 
-   .. group-tab:: Windows
-
-      .. pip-command-usage:: check "py -m pip"
+   .. pip-command-usage:: check "py -m pip"
 
 
 Description
@@ -32,66 +30,60 @@ Examples
 
 #. If all dependencies are compatible:
 
-   .. tabs::
+   .. tab:: Unix/macOS
 
-      .. group-tab:: Unix/macOS
+      .. code-block:: console
 
-         .. code-block:: console
+         $ python -m pip check
+         No broken requirements found.
+         $ echo $?
+         0
 
-            $ python -m pip check
-            No broken requirements found.
-            $ echo $?
-            0
+   .. tab:: Windows
 
-      .. group-tab:: Windows
+      .. code-block:: console
 
-         .. code-block:: console
-
-            C:\> py -m pip check
-            No broken requirements found.
-            C:\> echo %errorlevel%
-            0
+         C:\> py -m pip check
+         No broken requirements found.
+         C:\> echo %errorlevel%
+         0
 
 #. If a package is missing:
 
-   .. tabs::
+   .. tab:: Unix/macOS
 
-      .. group-tab:: Unix/macOS
+      .. code-block:: console
 
-         .. code-block:: console
+         $ python -m pip check
+         pyramid 1.5.2 requires WebOb, which is not installed.
+         $ echo $?
+         1
 
-            $ python -m pip check
-            pyramid 1.5.2 requires WebOb, which is not installed.
-            $ echo $?
-            1
+   .. tab:: Windows
 
-      .. group-tab:: Windows
+      .. code-block:: console
 
-         .. code-block:: console
-
-            C:\> py -m pip check
-            pyramid 1.5.2 requires WebOb, which is not installed.
-            C:\> echo %errorlevel%
-            1
+         C:\> py -m pip check
+         pyramid 1.5.2 requires WebOb, which is not installed.
+         C:\> echo %errorlevel%
+         1
 
 #. If a package has the wrong version:
 
-   .. tabs::
+   .. tab:: Unix/macOS
 
-      .. group-tab:: Unix/macOS
+      .. code-block:: console
 
-         .. code-block:: console
+         $ python -m pip check
+         pyramid 1.5.2 has requirement WebOb>=1.3.1, but you have WebOb 0.8.
+         $ echo $?
+         1
 
-            $ python -m pip check
-            pyramid 1.5.2 has requirement WebOb>=1.3.1, but you have WebOb 0.8.
-            $ echo $?
-            1
+   .. tab:: Windows
 
-      .. group-tab:: Windows
+      .. code-block:: console
 
-         .. code-block:: console
-
-            C:\> py -m pip check
-            pyramid 1.5.2 has requirement WebOb>=1.3.1, but you have WebOb 0.8.
-            C:\> echo %errorlevel%
-            1
+         C:\> py -m pip check
+         pyramid 1.5.2 has requirement WebOb>=1.3.1, but you have WebOb 0.8.
+         C:\> echo %errorlevel%
+         1

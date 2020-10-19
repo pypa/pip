@@ -7,19 +7,17 @@ pip
 Usage
 *****
 
-.. tabs::
+.. tab:: Unix/macOS
 
-   .. group-tab:: Unix/macOS
+    .. code-block:: shell
 
-      .. code-block:: shell
+        python -m pip <command> [options]
 
-         python -m pip <command> [options]
+.. tab:: Windows
 
-   .. group-tab:: Windows
+    .. code-block:: shell
 
-      .. code-block:: shell
-
-         py -m pip <command> [options]
+        py -m pip <command> [options]
 
 Description
 ***********
@@ -232,19 +230,17 @@ and ``pip wheel`` inject additional arguments into the ``setup.py`` command
 (``--build-option`` is only available in ``pip wheel``).  These arguments are
 included in the command as follows:
 
-.. tabs::
+.. tab:: Unix/macOS
 
-   .. group-tab:: Unix/macOS
+    .. code-block:: console
 
-      .. code-block:: console
+        python setup.py <global_options> BUILD COMMAND <build_options>
 
-         python setup.py <global_options> BUILD COMMAND <build_options>
+.. tab:: Windows
 
-   .. group-tab:: Windows
+    .. code-block:: shell
 
-      .. code-block:: shell
-
-         py setup.py <global_options> BUILD COMMAND <build_options>
+        py setup.py <global_options> BUILD COMMAND <build_options>
 
 The options are passed unmodified, and presently offer direct access to the
 distutils command line. Use of ``--global-option`` and ``--build-option``
