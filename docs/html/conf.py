@@ -128,9 +128,6 @@ exclude_patterns = ['build/']
 # output. They are ignored by default.
 # show_authors = False
 
-# The name of the Pygments (syntax highlighting) style to use.
-pygments_style = 'sphinx'
-
 # A list of ignored prefixes for module index sorting.
 # modindex_common_prefix = []
 
@@ -147,25 +144,18 @@ sphinx_tabs_nowarn = True
 
 # The theme to use for HTML and HTML Help pages.  Major themes that come with
 # Sphinx are currently 'default' and 'sphinxdoc'.
-html_theme = "pypa_theme"
+html_theme = "furo"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
 # documentation.
-html_theme_options = {
-    'collapsiblesidebar': True,
-    'externalrefs': True,
-    'navigation_depth': 3,
-    'issues_url': 'https://github.com/pypa/pip/issues',
-    'codebgcolor': '#eeffcc',
-    'codetextcolor': '#333333',
-}
+html_theme_options = {}
 
 # Add any paths that contain custom themes here, relative to this directory.
 
 # The name for this set of Sphinx documents.  If None, it defaults to
 # "<project> v<release> documentation".
-# html_title = None
+html_title = f"{project} documentation v{release}"
 
 # A shorter title for the navigation bar.  Default is the same as html_title.
 # html_short_title = None
@@ -182,7 +172,7 @@ html_theme_options = {
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = ['_static']
+html_static_path = []
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
@@ -205,10 +195,7 @@ smartquotes = True
 smartquotes_action = "qe"
 
 # Custom sidebar templates, maps document names to template names.
-html_sidebars = {
-    '**': ['localtoc.html', 'relations.html'],
-    'index': ['localtoc.html']
-}
+html_sidebars = {}
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.
@@ -322,7 +309,7 @@ docs_feedback_admonition_type = 'important'
 docs_feedback_big_doc_lines = 50  # bigger docs will have a banner on top
 docs_feedback_email = 'Docs UX Team <docs-feedback+ux/pip.pypa.io@pypa.io>'
 docs_feedback_excluded_documents = {  # these won't have any banners
-    'news',
+    'news', 'reference/index',
 }
 docs_feedback_questions_list = (
     'What problem were you trying to solve when you came to this page?',
