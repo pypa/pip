@@ -18,8 +18,8 @@ jobs:
       "3.5":  # lowest Py3 version
         python.version: '3.5'
         python.architecture: x64
-      "3.8":  # current
-        python.version: '3.8'
+      "3.9":  # current
+        python.version: '3.9'
         python.architecture: x64
     maxParallel: 6
 
@@ -44,6 +44,9 @@ jobs:
       "3.7":
         python.version: '3.7'
         python.architecture: x64
+      "3.8":
+        python.version: '3.8'
+        python.architecture: x64
       # This is for Windows, so test x86 builds
       "3.5-x86":
         python.version: '3.5'
@@ -56,6 +59,9 @@ jobs:
         python.architecture: x86
       "3.8-x86":
         python.version: '3.8'
+        python.architecture: x86
+      "3.9-x86":
+        python.version: '3.9'
         python.architecture: x86
     maxParallel: 6
 
