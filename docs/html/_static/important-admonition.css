@@ -1,8 +1,0 @@
-.admonition.important {
-  background-color: rgb(219, 250, 244);
-  border: 1px solid rgb(26, 188, 156);
-}
-
-.admonition.important>.admonition-title {
-  color: rgb(26, 188, 156);
-}
