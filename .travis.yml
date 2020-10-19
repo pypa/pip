@@ -1,7 +1,7 @@
 language: python
 cache: pip
 dist: xenial
-python: 3.8
+python: 3.9
 addons:
   apt:
     packages:
