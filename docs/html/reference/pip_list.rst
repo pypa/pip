@@ -4,7 +4,6 @@
 pip list
 ========
 
-.. contents::
 
 
 Usage

@@ -2,7 +2,6 @@
 pip
 ===
 
-.. contents::
 
 Usage
 *****

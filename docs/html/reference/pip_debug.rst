@@ -4,8 +4,6 @@
 pip debug
 =========
 
-.. contents::
-
 
 Usage
 =====

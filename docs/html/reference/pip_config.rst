@@ -5,8 +5,6 @@
 pip config
 ==========
 
-.. contents::
-
 
 Usage
 =====

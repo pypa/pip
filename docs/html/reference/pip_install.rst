@@ -4,7 +4,6 @@
 pip install
 ===========
 
-.. contents::
 
 
 Usage

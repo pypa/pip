@@ -4,8 +4,6 @@
 pip hash
 ========
 
-.. contents::
-
 
 Usage
 =====

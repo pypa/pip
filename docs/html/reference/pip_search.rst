@@ -4,7 +4,6 @@
 pip search
 ==========
 
-.. contents::
 
 
 Usage

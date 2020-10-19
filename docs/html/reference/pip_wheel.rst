@@ -5,7 +5,6 @@
 pip wheel
 =========
 
-.. contents::
 
 
 Usage
