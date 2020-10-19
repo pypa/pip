@@ -132,13 +132,8 @@ def _get_http_response_filename(resp, link):
     return filename
 
 
-def _http_get_download(session, link, head=False):
-    # type: (PipSession, Link, bool) -> Response
-    target_url = link.url.split('#', 1)[0]
-    if head:
-        resp = session.head(target_url, headers=HEADERS)
-    else:
-        resp = session.get(target_url, headers=HEADERS, stream=True)
+def _handle_http_error(resp, link):
+    # type: (Response, Link) -> None
     try:
         raise_for_status(resp)
     except NetworkConnectionError as e:
@@ -148,8 +143,6 @@ def _http_get_download(session, link, head=False):
             e.response.status_code, link,
         )
         raise
-    else:
-        return resp
 
 
 class Downloader(object):
@@ -165,7 +158,9 @@ class Downloader(object):
     def __call__(self, link, location):
         # type: (Link, str) -> Tuple[str, str]
         """Download the file given by link into location."""
-        resp = _http_get_download(self._session, link)
+        defraged_url = link.url.split('#', 1)[0]
+        resp = self._session.get(defraged_url, headers=HEADERS, stream=True)
+        _handle_http_error(resp, link)
         filename = _get_http_response_filename(resp, link)
         filepath = os.path.join(location, filename)
 
@@ -185,7 +180,9 @@ class _FileToDownload(object):
         self._link = link
 
         self.url = link.url
-        response = _http_get_download(session, link, head=True)
+        self._defraged_url = self.url.split('#', 1)[0]
+        response = self._session.head(self._defraged_url, headers=HEADERS)
+        _handle_http_error(response, link)
 
         self.type = response.headers.get('Content-Type', '')
         self.size = _get_http_response_size(response)
@@ -197,10 +194,9 @@ class _FileToDownload(object):
     @property
     def chunks(self):
         # type: () -> Iterable[bytes]
-        return response_chunks(
-            _http_get_download(self._session, self._link),
-            CONTENT_CHUNK_SIZE,
-        )
+        resp = self._session.get(self._defraged_url, headers=HEADERS, stream=True)
+        _handle_http_error(resp, self._link)
+        return response_chunks(resp, CONTENT_CHUNK_SIZE)
 
 
 class BatchDownloader(object):
