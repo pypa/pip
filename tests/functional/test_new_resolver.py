@@ -1046,3 +1046,48 @@ def test_new_resolver_prefers_installed_in_upgrade_if_latest(script):
         "pkg",
     )
     assert_installed(script, pkg="2")
+
+
+@pytest.mark.parametrize("N", [10, 20])
+def test_new_resolver_presents_messages_when_backtracking_a_lot(script, N):
+    # Generate a set of wheels that will definitely cause backtracking.
+    for index in range(1, N+1):
+        A_version = "{index}.0.0".format(index=index)
+        B_version = "{index}.0.0".format(index=index)
+        C_version = "{index_minus_one}.0.0".format(index_minus_one=index - 1)
+
+        depends = ["B == " + B_version]
+        if index != 1:
+            depends.append("C == " + C_version)
+
+        print("A", A_version, "B", B_version, "C", C_version)
+        create_basic_wheel_for_package(script, "A", A_version, depends=depends)
+
+    for index in range(1, N+1):
+        B_version = "{index}.0.0".format(index=index)
+        C_version = "{index}.0.0".format(index=index)
+        depends = ["C == " + C_version]
+
+        print("B", B_version, "C", C_version)
+        create_basic_wheel_for_package(script, "B", B_version, depends=depends)
+
+    for index in range(1, N+1):
+        C_version = "{index}.0.0".format(index=index)
+        print("C", C_version)
+        create_basic_wheel_for_package(script, "C", C_version)
+
+    # Install A
+    result = script.pip(
+        "install",
+        "--use-feature=2020-resolver",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links", script.scratch_path,
+        "A"
+    )
+
+    assert_installed(script, A="1.0.0", B="1.0.0", C="1.0.0")
+    if N >= 8:  # this number is hard-coded in the code too.
+        assert "This could take a while." in result.stdout
+    if N >= 13:  # this number is hard-coded in the code too.
+        assert "press Ctrl + C" in result.stdout
