@@ -3,13 +3,22 @@ from logging import getLogger
 
 from pip._vendor.resolvelib.reporters import BaseReporter
 
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from typing import DefaultDict
+
+    from .base import Candidate
+
+
 logger = getLogger(__name__)
 
 
 class PipReporter(BaseReporter):
 
     def __init__(self):
-        self.backtracks_by_package = defaultdict(int)
+        # type: () -> None
+        self.backtracks_by_package = defaultdict(int)  # type: DefaultDict[str, int]
 
         self._messages_at_backtrack = {
             8: (
@@ -25,6 +34,7 @@ class PipReporter(BaseReporter):
         }
 
     def backtracking(self, candidate):
+        # type: (Candidate) -> None
         self.backtracks_by_package[candidate.name] += 1
 
         count = self.backtracks_by_package[candidate.name]
