@@ -43,6 +43,30 @@ function _pip_completion {
 }
 compctl -K _pip_completion pip""",
     ),
+    (
+        "posh",
+        """\
+if ((Test-Path Function:\\TabExpansion) -and -not `
+    (Test-Path Function:\\_pip_completeBackup)) {{
+    Rename-Item Function:\\TabExpansion _pip_completeBackup
+}}
+function TabExpansion($line, $lastWord) {{
+    $lastBlock = [regex]::Split($line, '[|;]')[-1].TrimStart()
+    if ($lastBlock.StartsWith("{prog} ")) {{
+        $Env:COMP_WORDS=$lastBlock
+        $Env:COMP_CWORD=$lastBlock.Split().Length - 1
+        $Env:PIP_AUTO_COMPLETE=1
+        (& {prog}).Split()
+        Remove-Item Env:COMP_WORDS
+        Remove-Item Env:COMP_CWORD
+        Remove-Item Env:PIP_AUTO_COMPLETE
+    }}
+    elseif (Test-Path Function:\\_pip_completeBackup) {{
+        # Fall back on existing tab expansion
+        _pip_completeBackup $line $lastWord
+    }}
+}}""",
+    ),
 )
 
 
@@ -110,9 +134,9 @@ def test_completion_alone(autocomplete_script):
     Test getting completion for none shell, just pip completion
     """
     result = autocomplete_script.pip("completion", allow_stderr_error=True)
-    assert "ERROR: You must pass --bash or --fish or --zsh" in result.stderr, (
-        "completion alone failed -- " + result.stderr
-    )
+    assert (
+        "ERROR: You must pass --bash or --fish or --zsh or --posh" in result.stderr
+    ), ("completion alone failed -- " + result.stderr)
 
 
 def test_completion_for_un_snippet(autocomplete):
@@ -301,7 +325,7 @@ def test_completion_path_after_option(autocomplete, data):
     )
 
 
-@pytest.mark.parametrize("flag", ["--bash", "--zsh", "--fish"])
+@pytest.mark.parametrize("flag", ["--bash", "--zsh", "--fish", "--posh"])
 def test_completion_uses_same_executable_name(
     autocomplete_script, flag, deprecated_python
 ):
