@@ -44,7 +44,7 @@ function _pip_completion {
 compctl -K _pip_completion pip""",
     ),
     (
-        "posh",
+        "powershell",
         """\
 if ((Test-Path Function:\\TabExpansion) -and -not `
     (Test-Path Function:\\_pip_completeBackup)) {
@@ -135,7 +135,8 @@ def test_completion_alone(autocomplete_script):
     """
     result = autocomplete_script.pip("completion", allow_stderr_error=True)
     assert (
-        "ERROR: You must pass --bash or --fish or --posh or --zsh" in result.stderr
+        "ERROR: You must pass --bash or --fish or --powershell or --zsh"
+        in result.stderr
     ), ("completion alone failed -- " + result.stderr)
 
 
@@ -325,7 +326,7 @@ def test_completion_path_after_option(autocomplete, data):
     )
 
 
-@pytest.mark.parametrize("flag", ["--bash", "--zsh", "--fish", "--posh"])
+@pytest.mark.parametrize("flag", ["--bash", "--zsh", "--fish", "--powershell"])
 def test_completion_uses_same_executable_name(
     autocomplete_script, flag, deprecated_python
 ):

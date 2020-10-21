@@ -498,7 +498,7 @@ To setup for fish::
 
 To setup for powershell::
 
-   python -m pip completion --posh | Out-File -Encoding default -Append $PROFILE
+   python -m pip completion --powershell | Out-File -Encoding default -Append $PROFILE
 
 Alternatively, you can use the result of the ``completion`` command directly
 with the eval function of your shell, e.g. by adding the following to your
