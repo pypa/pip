@@ -135,7 +135,7 @@ def test_completion_alone(autocomplete_script):
     """
     result = autocomplete_script.pip("completion", allow_stderr_error=True)
     assert (
-        "ERROR: You must pass --bash or --fish or --zsh or --posh" in result.stderr
+        "ERROR: You must pass --bash or --fish or --posh or --zsh" in result.stderr
     ), ("completion alone failed -- " + result.stderr)
 
 
