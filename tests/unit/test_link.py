@@ -54,7 +54,7 @@ class TestLink:
         assert '.whl' == Link('http://yo/wheel.whl#frag').ext
 
     def test_ext_query(self):
-        assert '.whl' == Link('http://yo/wheel.whl?a=b').ext
+        assert '.whl' == Link('http://yo/wheel.whl?y=n').ext
 
     def test_is_wheel(self):
         assert Link('http://yo/wheel.whl').is_wheel
