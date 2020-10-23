@@ -1484,9 +1484,9 @@ constrain the number of package versions it tries.
 A first good candidate for this constraining is the package(s) it is
 backtracking on (e.g. in the above example - ``cup``).
 
-You coud try:
+You could try:
 
-==\ ``pip install tea cup > 3.13`` please check this syntax==
+``pip install tea cup > 3.13``
 
 This will reduce the number of versions of ``cup`` it tries, and
 possibly reduce the time pip takes to install.
