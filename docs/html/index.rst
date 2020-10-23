@@ -17,7 +17,7 @@ Please take a look at our documentation for how to install and use pip:
    ux_research_design
    news
 
-In 2020, we're working on improvements to the heart of pip: :ref:`Resolver changes 2020`. Please `learn more and take our survey`_ to help us do it right, and `join our user experience surveys pool`_.
+In pip 20.3, we're making a big improvement to the heart of pip: :ref:`Resolver changes 2020`. Please `learn more and take our survey`_ to help us do it right, and `join our user experience surveys pool`_.
 
 If you find bugs, need help, or want to talk to the developers, please use our mailing lists or chat rooms:
 

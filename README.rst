@@ -19,7 +19,7 @@ We release updates regularly, with a new version every 3 months. Find more detai
 * `Release notes`_
 * `Release process`_
 
-In 2020, we're working on improvements to the heart of pip. Please `learn more and take our survey`_ to help us do it right.
+In pip 20.3, we're making a big improvement to the heart of pip. Please `learn more`_ and `take our survey`_ to help us do it right.
 
 If you find bugs, need help, or want to talk to the developers, please use our mailing lists or chat rooms:
 
@@ -48,7 +48,8 @@ rooms, and mailing lists is expected to follow the `PSF Code of Conduct`_.
 .. _Release process: https://pip.pypa.io/en/latest/development/release-process/
 .. _GitHub page: https://github.com/pypa/pip
 .. _Development documentation: https://pip.pypa.io/en/latest/development
-.. _learn more and take our survey: https://pyfound.blogspot.com/2020/03/new-pip-resolver-to-roll-out-this-year.html
+.. _learn more: https://pip.pypa.io/en/latest/user_guide/#changes-to-the-pip-dependency-resolver-in-20-3-2020
+.. _take our survey: https://pyfound.blogspot.com/2020/03/new-pip-resolver-to-roll-out-this-year.html
 .. _Issue tracking: https://github.com/pypa/pip/issues
 .. _Discourse channel: https://discuss.python.org/c/packaging
 .. _Development mailing list: https://mail.python.org/mailman3/lists/distutils-sig.python.org/

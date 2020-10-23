@@ -197,16 +197,18 @@ In practice, there are 4 common uses of Requirements files:
          py -m pip freeze > requirements.txt
          py -m pip install -r requirements.txt
 
-2. Requirements files are used to force pip to properly resolve dependencies.
-   As it is now, pip `doesn't have true dependency resolution
-   <https://github.com/pypa/pip/issues/988>`_, but instead simply uses the first
-   specification it finds for a project. E.g. if ``pkg1`` requires
-   ``pkg3>=1.0`` and ``pkg2`` requires ``pkg3>=1.0,<=2.0``, and if ``pkg1`` is
-   resolved first, pip will only use ``pkg3>=1.0``, and could easily end up
-   installing a version of ``pkg3`` that conflicts with the needs of ``pkg2``.
-   To solve this problem, you can place ``pkg3>=1.0,<=2.0`` (i.e. the correct
-   specification) into your requirements file directly along with the other top
-   level requirements. Like so::
+2. Requirements files are used to force pip to properly resolve
+   dependencies.  In versions of pip prior to 20.3, pip `doesn't have
+   true dependency resolution
+   <https://github.com/pypa/pip/issues/988>`_, but instead simply uses
+   the first specification it finds for a project. E.g. if ``pkg1``
+   requires ``pkg3>=1.0`` and ``pkg2`` requires ``pkg3>=1.0,<=2.0``,
+   and if ``pkg1`` is resolved first, pip will only use ``pkg3>=1.0``,
+   and could easily end up installing a version of ``pkg3`` that
+   conflicts with the needs of ``pkg2``.  To solve this problem for
+   pip 20.2 and previous, you can place ``pkg3>=1.0,<=2.0`` (i.e. the
+   correct specification) into your requirements file directly along
+   with the other top level requirements. Like so::
 
      pkg1
      pkg2
@@ -1095,6 +1097,8 @@ archives are built with identical packages.
     to use such a package, see :ref:`Controlling
     setup_requires<controlling-setup-requires>`.
 
+.. _`Fixing conflicting dependencies`:
+
 Fixing conflicting dependencies
 ===============================
 
@@ -1103,8 +1107,10 @@ pip users who encounter an error where pip cannot install their
 specified packages due to conflicting dependencies (a
 ``ResolutionImpossible`` error).
 
-This documentation is specific to the new resolver, which you can use
-with the flag ``--use-feature=2020-resolver``.
+This documentation is specific to the new resolver, which is the
+default behavior in pip 20.3 and later. If you are using pip 20.2, you
+can invoke the new resolver by using the flag
+``--use-feature=2020-resolver``.
 
 Understanding your error message
 --------------------------------
@@ -1376,17 +1382,20 @@ of ability. Some examples that you could consider include:
 
 .. _`Resolver changes 2020`:
 
-Changes to the pip dependency resolver in 20.2 (2020)
+Changes to the pip dependency resolver in 20.3 (2020)
 =====================================================
 
-pip 20.1 included an alpha version of the new resolver (hidden behind
-an optional ``--unstable-feature=resolver`` flag). pip 20.2 removes
-that flag, and includes a robust beta of the new resolver (hidden
-behind an optional ``--use-feature=2020-resolver`` flag) that we
-encourage you to test. We will continue to improve the pip dependency
-resolver in response to testers' feedback. Please give us feedback
-through the `resolver testing survey`_. This will help us prepare to
-release pip 20.3, with the new resolver on by default, in October.
+pip 20.3 has a new dependency resolver, on by default. (pip 20.1 and
+20.2 included pre-release versions of the new dependency resolver,
+hidden behind optional user flags.) Read below for a migration guide,
+how to invoke the legacy resolver, and the deprecation timeline. We
+also made a `two-minute video explanation`_ you can watch.
+
+We will continue to improve the pip dependency resolver in response to
+testers' feedback. Please give us feedback through the `resolver
+testing survey`_.
+
+.. _`Migration guide for 2020 resolver changes`:
 
 Watch out for
 -------------
@@ -1442,28 +1451,20 @@ We are also changing our support for :ref:`Constraints Files`:
 * Constraints cannot have extras (see :issue:`6628`)
 
 
-How to test
------------
+How to upgrade and migrate
+--------------------------
 
-1. **Install pip 20.2** with ``python -m pip install --upgrade pip``.
+1. **Install pip 20.3** with ``python -m pip install --upgrade pip``.
 
 2. **Validate your current environment** by running ``pip check``. This
    will report if you have any inconsistencies in your set of installed
    packages. Having a clean installation will make it much less likely
-   that you will hit issues when the new resolver is released (and may
+   that you will hit issues with the new resolver (and may
    address hidden problems in your current environment!). If you run
    ``pip check`` and run into stuff you can’t figure out, please `ask
    for help in our issue tracker or chat <https://pip.pypa.io/>`__.
 
-3. **Test the new version of pip** (see below). To test the new
-   resolver, use the ``--use-feature=2020-resolver`` flag, as in:
-
-   ``pip install example --use-feature=2020-resolver``
-
-   The more feedback we can get, the more we can make sure that the
-   final release is solid. (Only try the new resolver **in a
-   non-production environment**, though - it isn't ready for you to
-   rely on in production!)
+3. **Test the new version of pip**.
 
    While we have tried to make sure that pip’s test suite covers as
    many cases as we can, we are very aware that there are people using
@@ -1478,45 +1479,45 @@ How to test
       - using ``pip install --force-reinstall`` to check whether
         it does what you think it should
       - using constraints files
+      - the "Setups to test with special attention" and "Examples to try" below
 
    -  If you have a build pipeline that depends on pip installing your
       dependencies for you, check that the new resolver does what you
       need.
 
-   -  If you'd like pip to default to using the new resolver, run ``pip
-      config set global.use-feature 2020-resolver`` (for more on that
-      and the alternate ``PIP_USE_FEATURE`` environment variable
-      option, see `issue 8661`_).
-
    -  Run your project’s CI (test suite, build process, etc.) using the
       new resolver, and let us know of any issues.
    -  If you have encountered resolver issues with pip in the past,
-      check whether the new resolver fixes them. Also, let us know if
-      the new resolver has issues with any workarounds you put in to
-      address the current resolver’s limitations. We’ll need to ensure
-      that people can transition off such workarounds smoothly.
+      check whether the new resolver fixes them, and read :ref:`Fixing
+      conflicting dependencies`. Also, let us know if the new resolver
+      has issues with any workarounds you put in to address the
+      current resolver’s limitations. We’ll need to ensure that people
+      can transition off such workarounds smoothly.
    -  If you develop or support a tool that wraps pip or uses it to
       deliver part of your functionality, please test your integration
-      with pip 20.2.
+      with pip 20.3.
 
-4. **Please report bugs** through the `resolver testing survey`_.
+4.    **Temporarily use the old resolver when necessary.** If you run
+      into resolution errors and need a workaround while you're fixing
+      their root causes, you can choose the old resolver behavior
+      using the flag ``--use-deprecated=legacy-resolver``.
 
-Setups we might need more testing on
-------------------------------------
+      Per our :ref:`Python 2 Support` policy, pip 20.3 users who are
+      using Python 2 and who have trouble with the new resolver can
+      choose to switch to the old resolver behavior using the flag
+      ``--use-deprecated=legacy-resolver``. Python 2 users should
+      upgrade to Python 3 as soon as possible, since in pip 21.0 in
+      January 2021, pip will drop support for Python 2 altogether.
 
-*    Windows, including Windows Subsystem for Linux (WSL)
+5. **Please report bugs** through the `resolver testing survey`_.
 
-*    Macintosh
 
-*    Debian, Fedora, Red Hat, CentOS, Mint, Arch, Raspbian, Gentoo
-
-*    non-Latin localized filesystems and OSes, such as Japanese, Chinese, and Korean, and right-to-left such as Hebrew, Urdu, and Arabic
-
-*    Multi-user installations
+Setups to test with special attention
+-------------------------------------
 
 *    Requirements files with 100+ packages
 
-*    An installation workflow that involves multiple requirements files
+*    Installation workflows that involve multiple requirements files
 
 *    Requirements files that include hashes (:ref:`hash-checking mode`)
      or pinned dependencies (perhaps as output from ``pip-compile`` within
@@ -1529,12 +1530,6 @@ Setups we might need more testing on
 *    Installing from any kind of version control systems (i.e., Git, Subversion, Mercurial, or CVS), per :ref:`VCS Support`
 
 *    Installing from source code held in local directories
-
-*    Using the most recent versions of Python 3.6, 3.7, 3.8, and 3.9
-
-*    PyPy
-
-*    Customized terminals (where you have modified how error messages and standard output display)
 
 Examples to try
 ^^^^^^^^^^^^^^^
@@ -1580,15 +1575,26 @@ Specific things we'd love to get feedback on:
 
 Please let us know through the `resolver testing survey`_.
 
+.. _`Deprecation timeline for 2020 resolver changes`:
+
 Deprecation timeline
 --------------------
 
 We plan for the resolver changeover to proceed as follows, using
 :ref:`Feature Flags` and following our :ref:`Release Cadence`:
 
-*    pip 20.2: a beta of the new resolver is available, opt-in, using
-     the flag ``--use-feature=2020-resolver``. pip defaults to
-     legacy behavior.
+*    pip 20.1: an alpha version of the new resolver was available,
+     opt-in, using the optional flag
+     ``--unstable-feature=resolver``. pip defaulted to legacy
+     behavior.
+
+*    pip 20.2: a beta of the new resolver was available, opt-in, using
+     the flag ``--use-feature=2020-resolver``. pip defaulted to legacy
+     behavior. Users of pip 20.2 who want pip to default to using the
+     new resolver can run ``pip config set global.use-feature
+     2020-resolver`` (for more on that and the alternate
+     ``PIP_USE_FEATURE`` environment variable option, see `issue
+     8661`_).
 
 *    pip 20.3: pip defaults to the new resolver, but a user can opt-out
      and choose the old resolver behavior, using the flag
@@ -1616,6 +1622,7 @@ announcements on the `low-traffic packaging announcements list`_ and
 .. _resolver testing survey: https://tools.simplysecure.org/survey/index.php?r=survey/index&sid=989272&lang=en
 .. _issue 8661: https://github.com/pypa/pip/issues/8661
 .. _our announcement on the PSF blog: http://pyfound.blogspot.com/2020/03/new-pip-resolver-to-roll-out-this-year.html
+.. _two-minute video explanation: https://www.youtube.com/watch?v=B4GQCBBsuNU
 .. _tensorflow: https://pypi.org/project/tensorflow/
 .. _low-traffic packaging announcements list: https://mail.python.org/mailman3/lists/pypi-announce.python.org/
 .. _our survey on upgrades that create conflicts: https://docs.google.com/forms/d/e/1FAIpQLSeBkbhuIlSofXqCyhi3kGkLmtrpPOEBwr6iJA6SzHdxWKfqdA/viewform

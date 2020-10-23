@@ -6,6 +6,10 @@ When installing packages, pip chooses a distribution file, and installs it in
 the user's environment. There are many choices involved in deciding which file
 to install, and these are controlled by a variety of options.
 
+.. note::
+
+    This section of the documentation needs to be updated per
+    :ref:`Resolver changes 2020`.
 
 Controlling what gets installed
 ===============================
