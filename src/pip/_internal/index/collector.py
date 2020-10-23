@@ -631,7 +631,7 @@ class LinkCollector(object):
         """
         Fetch an HTML page containing package links.
         """
-        # check if secure update (TUF) should be used: parse url to find the 
+        # check if secure update (TUF) should be used: parse url to find the
         # index url, then see if we have a secure updater for the index url
         index_url, _, project = location.url.rstrip('/').rpartition('/')
         if not project:

@@ -11,7 +11,6 @@ import shutil
 
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.six import PY2
-from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 from pip._internal.distributions import make_distribution_for_install_requirement
 from pip._internal.distributions.installed import InstalledDistribution
@@ -136,7 +135,8 @@ def get_http_url(
         # link.comes_from can be None when requirements file contains a direct url
         # TODO: can we be sure link.comes_from is not None in other cases?
         if link.comes_from is not None:
-            index_url, _, project = link.comes_from.rstrip('/').rpartition('/')
+            # TODO handle new HTMLPage form of comes_from
+            index_url, _, project = str(link.comes_from).rstrip('/').rpartition('/')
             if not project:
                 raise ValueError(
                     'Failed to parse {} as project index URL'.format(link.comes_from)

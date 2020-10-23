@@ -776,7 +776,11 @@ def test_link_collector_create_find_links_expansion(
     temp2_dir = os.path.join(tmpdir, 'temp2')
     os.mkdir(temp2_dir)
 
-    link_collector = LinkCollector.create(session, secure_update_session, options=options)
+    link_collector = LinkCollector.create(
+        session,
+        secure_update_session,
+        options=options
+    )
 
     search_scope = link_collector.search_scope
     # Only ~/temp2 gets expanded. Also, the path is normalized when expanded.
