@@ -45,6 +45,7 @@ drop = [
   "pkg_resources/_vendor/",
   "pkg_resources/extern/",
   # tuf parts that are not needed by updater client
+  "tuf/api/*",
   "tuf/scripts/*",
   "tuf/developer_tool.py",
   "tuf/repository_tool.py",
