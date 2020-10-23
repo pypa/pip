@@ -10,7 +10,6 @@ import os.path
 import shutil
 
 from pip._vendor.six.moves.urllib import parse as urllib_parse
-
 from pip._vendor.tuf import settings as tuf_settings
 from pip._vendor.tuf.client.updater import Updater
 from pip._vendor.tuf.exceptions import (
