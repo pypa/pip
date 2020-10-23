@@ -28,22 +28,24 @@ def run_with_build_env(script, setup_script_contents,
             from pip._internal.models.selection_prefs import (
                 SelectionPreferences
             )
+            from pip._internal.network.secure_update import SecureUpdateSession
             from pip._internal.network.session import PipSession
             from pip._internal.utils.temp_dir import global_tempdir_manager
 
-            link_collector = LinkCollector(
-                session=PipSession(),
-                search_scope=SearchScope.create([{scratch!r}], []),
-            )
-            selection_prefs = SelectionPreferences(
-                allow_yanked=True,
-            )
-            finder = PackageFinder.create(
-                link_collector=link_collector,
-                selection_prefs=selection_prefs,
-            )
-
             with global_tempdir_manager():
+                link_collector = LinkCollector(
+                    session=PipSession(),
+                    secure_update_session=SecureUpdateSession([], None, None),
+                    search_scope=SearchScope.create([{scratch!r}], []),
+                )
+                selection_prefs = SelectionPreferences(
+                    allow_yanked=True,
+                )
+                finder = PackageFinder.create(
+                    link_collector=link_collector,
+                    selection_prefs=selection_prefs,
+                )
+
                 build_env = BuildEnvironment()
             '''.format(scratch=str(script.scratch_path))) +
         indent(dedent(setup_script_contents), '    ') +
