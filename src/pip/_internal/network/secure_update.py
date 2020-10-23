@@ -17,7 +17,7 @@ from pip._vendor.tuf.exceptions import (
     MissingLocalRepositoryError,
     NoWorkingMirrorError,
     RepositoryError,
-    UnknownTargetError
+    UnknownTargetError,
 )
 
 from pip._internal.exceptions import ConfigurationError, NetworkConnectionError
@@ -237,7 +237,7 @@ class SecureUpdateSession:
                     raise ConfigurationError(
                         'Expected to find secure downloader for {}'.format(index_url)
                     )
-            except RepositoryError as e:
+            except RepositoryError:
                 # Something is wrong with the local metadata
                 raise ConfigurationError('Failed to load secure update configuration')
 
@@ -254,7 +254,7 @@ class SecureUpdateSession:
         # This is most relevant for making sure that we find the repo metadata directory
         # using the index url given on the command line or pip.conf
         if url[-1] != '/':
-          url = url + '/'
+            url = url + '/'
         return url
 
     def _bootstrap_metadata(self, metadata_dir):
@@ -291,7 +291,6 @@ class SecureUpdateSession:
                 shutil.rmtree(dirname, ignore_errors=True)
                 logger.error("Failed to bootstrap secure update metadata")
                 raise e
-
 
     def get_downloader(self, index_url):
         # type: (str) -> Optional[SecureDownloader]
