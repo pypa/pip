@@ -1,1 +1,1 @@
-adding a section to pip user guide to cover pip backtracking.
+adding a section to pip user guide to cover pip backtracking, connected to #8975.
