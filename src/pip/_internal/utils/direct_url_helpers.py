@@ -43,10 +43,6 @@ def direct_url_as_pep440_direct_reference(direct_url, name):
             fragments.append(direct_url.info.hash)
     else:
         assert isinstance(direct_url.info, DirInfo)
-        # pip should never reach this point for editables, since
-        # pip freeze inspects the editable project location to produce
-        # the requirement string
-        assert not direct_url.info.editable
         requirement += direct_url.url
     if direct_url.subdirectory:
         fragments.append("subdirectory=" + direct_url.subdirectory)
