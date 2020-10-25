@@ -1,5 +1,7 @@
 from __future__ import absolute_import
 
+import logging
+
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.cli.base_command import Command
@@ -17,6 +19,8 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 if MYPY_CHECK_RUNNING:
     from optparse import Values
     from typing import List
+
+logger = logging.getLogger(__name__)
 
 
 class UninstallCommand(Command, SessionCommandMixin):
@@ -64,6 +68,12 @@ class UninstallCommand(Command, SessionCommandMixin):
             )
             if req.name:
                 reqs_to_uninstall[canonicalize_name(req.name)] = req
+            else:
+                logger.warning(
+                    "Invalid requirement: '%s' ignored -"
+                    " the uninstall command expects named"
+                    " requirements/requirements file.", name
+                )
         for filename in options.requirements:
             for parsed_req in parse_requirements(
                     filename,
