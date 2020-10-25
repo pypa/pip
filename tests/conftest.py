@@ -66,7 +66,7 @@ def pytest_collection_modifyitems(config, items):
         if "CI" in os.environ:
             # Mark network tests as flaky
             if item.get_closest_marker('network') is not None:
-                item.add_marker(pytest.mark.flaky(reruns=3))
+                item.add_marker(pytest.mark.flaky(reruns=3, reruns_delay=2))
 
         if (item.get_closest_marker('fails_on_new_resolver') and
                 config.getoption("--new-resolver") and
