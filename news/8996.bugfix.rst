@@ -1,0 +1,3 @@
+Do not fail in pip freeze when encountering a ``direct_url.jso`` metadata file
+with editable=True. Render it as a non-editable ``file://`` URL until modern
+editable installs are standardized and supported.
