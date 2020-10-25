@@ -6,7 +6,7 @@ from os.path import exists
 
 import pytest
 
-from pip._internal.cli.status_codes import ERROR, PREVIOUS_BUILD_DIR_ERROR
+from pip._internal.cli.status_codes import ERROR
 from tests.lib import pyversion  # noqa: F401
 
 
@@ -227,42 +227,6 @@ def test_pip_wheel_source_deps(script, data):
     wheel_file_path = script.scratch / wheel_file_name
     result.did_create(wheel_file_path)
     assert "Successfully built source" in result.stdout, result.stdout
-
-
-def test_pip_wheel_fail_cause_of_previous_build_dir(
-    script,
-    data,
-    use_new_resolver,
-):
-    """
-    Test when 'pip wheel' tries to install a package that has a previous build
-    directory
-    """
-
-    # Given that I have a previous build dir of the `simple` package
-    build = script.venv_path / 'build' / 'simple'
-    os.makedirs(build)
-    build.joinpath('setup.py').write_text('#')
-
-    # When I call pip trying to install things again
-    result = script.pip(
-        'wheel', '--no-index',
-        '--find-links={data.find_links}'.format(**locals()),
-        '--build', script.venv_path / 'build',
-        'simple==3.0',
-        expect_error=(not use_new_resolver),
-        expect_temp=(not use_new_resolver),
-        expect_stderr=True,
-    )
-
-    assert (
-        "The -b/--build/--build-dir/--build-directory "
-        "option is deprecated."
-    ) in result.stderr
-
-    # Then I see that the error code is the right one
-    if not use_new_resolver:
-        assert result.returncode == PREVIOUS_BUILD_DIR_ERROR, result
 
 
 def test_wheel_package_with_latin1_setup(script, data):
