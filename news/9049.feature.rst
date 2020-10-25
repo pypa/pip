@@ -1,0 +1,1 @@
+Remove the ``--build-dir`` option, as per the deprecation.
