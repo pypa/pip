@@ -685,29 +685,6 @@ no_deps = partial(
 )  # type: Callable[..., Option]
 
 
-def _handle_build_dir(option, opt, value, parser):
-    # type: (Option, str, str, OptionParser) -> None
-    if value:
-        value = os.path.abspath(value)
-    setattr(parser.values, option.dest, value)
-
-
-build_dir = partial(
-    PipOption,
-    '-b', '--build', '--build-dir', '--build-directory',
-    dest='build_dir',
-    type='path',
-    metavar='dir',
-    action='callback',
-    callback=_handle_build_dir,
-    help='(DEPRECATED) '
-         'Directory to unpack packages into and build in. Note that '
-         'an initial build still takes place in a temporary directory. '
-         'The location of temporary directories can be controlled by setting '
-         'the TMPDIR environment variable (TEMP on Windows) appropriately. '
-         'When passed, build directories are not cleaned in case of failures.'
-)  # type: Callable[..., Option]
-
 ignore_requires_python = partial(
     Option,
     '--ignore-requires-python',

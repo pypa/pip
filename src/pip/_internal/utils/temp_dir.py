@@ -134,6 +134,8 @@ class TempDirectory(object):
                 # tempdir_registry says.
                 delete = None
 
+        # The only time we specify path is in for editables where it
+        # is the value of the --src option.
         if path is None:
             path = self._create(kind)
 
