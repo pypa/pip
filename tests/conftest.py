@@ -63,10 +63,10 @@ def pytest_collection_modifyitems(config, items):
         if not hasattr(item, 'module'):  # e.g.: DoctestTextfile
             continue
 
-        # Mark network tests as flaky
-        if (item.get_closest_marker('network') is not None and
-                "CI" in os.environ):
-            item.add_marker(pytest.mark.flaky(reruns=3))
+        if "CI" in os.environ:
+            # Mark network tests as flaky
+            if item.get_closest_marker('network') is not None:
+                item.add_marker(pytest.mark.flaky(reruns=3))
 
         if (item.get_closest_marker('fails_on_new_resolver') and
                 config.getoption("--new-resolver") and
