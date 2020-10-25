@@ -7,6 +7,9 @@ from pip._internal.cli.status_codes import PREVIOUS_BUILD_DIR_ERROR
 
 
 @pytest.mark.network
+@pytest.mark.xfail(
+    reason="The --build option was removed"
+)
 def test_no_clean_option_blocks_cleaning_after_install(script, data):
     """
     Test --no-clean option blocks cleaning after install

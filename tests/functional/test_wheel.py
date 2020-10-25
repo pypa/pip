@@ -187,6 +187,9 @@ def test_pip_wheel_fail(script, data):
     assert result.returncode != 0
 
 
+@pytest.mark.xfail(
+    reason="The --build option was removed"
+)
 def test_no_clean_option_blocks_cleaning_after_wheel(
     script,
     data,
