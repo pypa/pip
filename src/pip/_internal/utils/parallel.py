@@ -43,7 +43,14 @@ try:
 except ImportError:
     LACK_SEM_OPEN = True
 else:
-    LACK_SEM_OPEN = False
+    try:
+        p = ProcessPool()
+        p.terminate()
+        del p
+    except OSError:
+        LACK_SEM_OPEN = True
+    else:
+        LACK_SEM_OPEN = False
 
 # Incredibly large timeout to work around bpo-8296 on Python 2.
 TIMEOUT = 2000000

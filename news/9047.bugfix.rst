@@ -1,0 +1,1 @@
+Check for operativeness of multiprocessing. This takes care of systems where multiprocessing seems available but really is not.
