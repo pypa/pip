@@ -408,6 +408,7 @@ def script_factory(virtualenv_factory, deprecated_python):
 
             # Do not ignore hidden files, they need to be checked as well
             ignore_hidden=False,
+            ignore_temp_paths=["com.apple.dyld"],
 
             # We are starting with an already empty directory
             start_clear=False,
