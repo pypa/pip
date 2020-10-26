@@ -1,3 +1,6 @@
+variables:
+  CI: true
+
 jobs:
 - template: jobs/test.yml
   parameters:
