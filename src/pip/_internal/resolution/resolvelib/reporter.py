@@ -21,6 +21,11 @@ class PipReporter(BaseReporter):
         self.backtracks_by_package = defaultdict(int)  # type: DefaultDict[str, int]
 
         self._messages_at_backtrack = {
+            1: (
+                "pip is looking at multiple versions of this package to determine "
+                "which version is compatible with other requirements. "
+                "This could take a while."
+            ),
             8: (
                 "pip is looking at multiple versions of this package to determine "
                 "which version is compatible with other requirements. "
