@@ -1306,26 +1306,6 @@ issue tracker`_ if you believe that your problem has exposed a bug in pip.
 
 .. _`Using pip from your program`:
 
-Backtracking user guide information
-===================================
-
-Related to `GH issue 8713 <https://github.com/pypa/pip/issues/8713>`__.
-
-Objective
----------
-
-The purpose of this content is to provide documentation of 1) why this
-occurs, and 2) how the user can possible solve it.
-
-Location
---------
-
-The end location of this content will be on\ `the pip user
-guide <https://pip.pypa.io/en/latest/user_guide/#id35>`__, somewhere
-near the Resolution Impossible section.
-
---------------
-
 Dependency resolution backtracking
 ==================================
 
@@ -1344,49 +1324,70 @@ Backtracking is not a bug, or an unexpected behaviour. It is part of the
 way pip's dependency resolution process works.
 
 During a pip install (e.g. ``pip install tea``), pip needs to work out
-the packages dependencies (e.g. ``spoon``, ``hot-water``, ``cup`` etc),
+the package's dependencies (e.g. ``spoon``, ``hot-water``, ``cup`` etc),
 and the versions of each of these packages it needs to install.
 
 For each of these dependent packages, it needs to work out which version
 of a package is a good candidate to install.
 
-If everythig goes well, this will result in pip computing a set of
+A good candidate is a version of each package that is compatible with all the
+other packages versions being installing in the same command, and works with
+other requirements or constraints the user has specified.
+
+If everything goes well, this will result in pip computing a set of
 compatible versions of all these packages.
 
 In the case where a package has a lot of versions, arriving at a good
 candidate can take a lot of time. (The amount of time depends on the
-package size, the number of versions pip must try, among other things)
+package size, the number of versions pip must try, and other concerns.)
 
 How does backtracking work?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-pip does this by trying one version, if it finds out it isn’t compatible
-it needs to “go back” (backtrack) and download an older version.
+When doing a pip install, it needs to start by making assumptions about the
+packages it needs to install. During this install process it needs check this
+assumptions as it goes along.
 
-It then tries that version, if it is successful it will continue onto
-the next package - if not it will continue to backtrack until it finds a
+When it finds that an assumption is incorrect, it has to try another approach
+(backtrack), which means discarding some of the work that has already been done,
+and going back to choose another path.
+
+For example; The user requests `pip install tea`.
+`tea` has dependencies of `cup`, `hot-water`, amongst others.
+
+pip starts by installing a version of cup. If it finds out it isn’t compatible
+(with the other package versions) it needs to “go back” (backtrack) and
+download an older version.
+
+It then tries to install that version. If it is successful, it will continue
+onto the next package. If not it will continue to backtrack until it finds a
 compatible version.
 
-At the end of this process, pip will have the set of compatible
-packages, which it then installs.
-
 This backtrack behaviour can end in 2 ways - either 1) it will
-successfully find a set packages it can install (good news!), or 2) it
-will eventually display `resolution
-impossible <https://pip.pypa.io/en/latest/user_guide/#id35>`__ error
+successfully find a set packages it can install (good news!), or 2) it will
+eventually display `resolution impossible <https://pip.pypa.io/en/latest/user_guide/#id35>`__ error
 message (not so good).
 
 If pip starts backtracking during dependency resolution, it does not
 know how long it will backtrack, and how much computation would be
-needed.
+needed, which for the user, means it can possibly take a long time to complete.
 
 Why does backtracking occur?
 ----------------------------
 
-With the release of the new resolver (resolver 2020), pip is now more
-strict in the package versions it installs, when a users does a
-``pip install`` command. This new behaviour means that pip works harder
-to find out which version of a package is a good candidate to install.
+With the release of the new resolver (:ref:`Resolver changes 2020`), pip is now
+more strict in the package versions it installs when a users runs a
+``pip install`` command.
+
+This new behaviour means that pip works harder to find out which version of a
+package is a good candidate to install. It reduces the risk that installing a
+new package will accidentally break an existing installed package, and so
+reducing the risk of your environment gets messed up.
+
+Pip needs to backtrack because initially, it doesn't have all the information it
+needs to work out the correct set of packages. This is because package indexes
+don't provide full package dependency information before you have downloaded
+the package.
 
 What does this behaviour look like?
 -----------------------------------
@@ -1440,20 +1441,20 @@ Right now backtracking looks like this:
    If you want to abort this run, you can press Ctrl + C to do so.
    Downloading cup-3.13.0-py2.py3-none-any.whl (374 kB)
 
-In the above sample output, pip must downloaded multiple versions of
+In the above sample output, pip had to download multiple versions of
 package cup - cup-3.22.0 to cup-3.13.0 - to find a version that will be
 compatible with the other packages - ``spoon``, ``hot-water``, ``cup``
 etc.
 
 These multiple ``Downloading cup-version`` lines shows pip backtracking.
 
-Possible ways to reduce backtracking occuring
+Possible ways to reduce backtracking occurring
 ---------------------------------------------
 
 It's important to mention backtracking behaviour is expected during a
 ``pip install`` process. What pip is trying to do is complicated - it is
 working through potentially millions of package versions to identify the
-comptible versions.
+compatible versions.
 
 There is no guaranteed solution to backtracking but you can reduce it -
 here are a number of ways.
@@ -1486,12 +1487,12 @@ backtracking on (e.g. in the above example - ``cup``).
 
 You could try:
 
-``pip install tea cup > 3.13``
+``pip install tea "cup > 3.13"``
 
 This will reduce the number of versions of ``cup`` it tries, and
 possibly reduce the time pip takes to install.
 
-There is a possibility that if you're wrong (in this case a newer
+There is a possibility that if you're wrong (in this case an older
 version would have worked) then you missed the chance to use it. This
 can be trial and error.
 
@@ -1507,8 +1508,8 @@ to inspect:
 -  the package release frequency and compatibility policies
 -  their release notes and changelogs from past versions
 
-During deployment creating a lockfile stating the exact package and
-version number for for each dependency of that package. You can do this
+During deployment, you can create a lockfile stating the exact package and
+version number for for each dependency of that package. You can create this
 with `pip-tools <https://github.com/jazzband/pip-tools/>`__.
 
 This means the "work" is done once during development process, and so
@@ -1525,10 +1526,6 @@ suitable constraints file.
 For package maintainers during the development, give pip some help by
 creating constraint files for the dependency tree. This will reduce the
 number of versions it will try.
-
-If you (as the user installing a package) see the package has specific
-version dependencies, you could contact the maintainer and ask them to
-be more strict with the packages requirements.
 
 Getting help
 ------------
