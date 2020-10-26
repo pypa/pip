@@ -1,1 +1,1 @@
-adding a section to pip user guide to cover pip backtracking, connected to #8975.
+Add a section to the User Guide to cover backtracking during dependency resolution.
