@@ -2,9 +2,10 @@
 Options that control the installation process
 =============================================
 
-When installing packages, pip chooses a distribution file, and installs it in
-the user's environment. There are many choices involved in deciding which file
-to install, and these are controlled by a variety of options.
+When installing packages, pip chooses a distribution file, and
+installs it in the user's environment. There are many choices (which
+are `still evolving`_) involved in deciding which file to install, and
+these are controlled by a variety of options.
 
 .. note::
 
@@ -122,3 +123,6 @@ necessarily resolution or what gets installed.
 ``--constraint``
 
 ``--editable <LOCATION>``
+
+
+.. _still evolving: https://github.com/pypa/pip/issues/8115

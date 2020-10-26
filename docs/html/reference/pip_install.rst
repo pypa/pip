@@ -36,6 +36,9 @@ pip install has several stages:
 3. Build wheels. All the dependencies that can be are built into wheels.
 4. Install the packages (and uninstall anything being upgraded/replaced).
 
+Note that ``pip install`` prefers to leave the installed version as-is
+unless ``--upgrade`` is specified.
+
 Argument Handling
 -----------------
 
