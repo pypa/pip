@@ -622,8 +622,8 @@ which can be written on multiple lines:
         http://mirror2.example.com
 
     trusted-host =
-        http://mirror1.example.com
-        http://mirror2.example.com
+        mirror1.example.com
+        mirror2.example.com
 
 This enables users to add additional values in the order of entry for such command line arguments.
 
