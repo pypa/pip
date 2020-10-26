@@ -1304,7 +1304,7 @@ issue tracker`_ if you believe that your problem has exposed a bug in pip.
 .. _"How do I ask a good question?": https://stackoverflow.com/help/how-to-ask
 .. _pip issue tracker: https://github.com/pypa/pip/issues
 
-.. _`Using pip from your program`:
+.. _`Dependency resolution backtracking`:
 
 Dependency resolution backtracking
 ==================================
@@ -1314,8 +1314,7 @@ the same package over and over again during an install?"*.
 
 The purpose of this section is to provide explanation of why
 backtracking happens, and practical suggestions to pip users who
-encounter dependency resolution backtracking during a ``pip install``
-command.
+encounter it during a ``pip install``.
 
 What is backtracking?
 ---------------------
@@ -1324,18 +1323,12 @@ Backtracking is not a bug, or an unexpected behaviour. It is part of the
 way pip's dependency resolution process works.
 
 During a pip install (e.g. ``pip install tea``), pip needs to work out
-the package's dependencies (e.g. ``spoon``, ``hot-water``, ``cup`` etc),
-and the versions of each of these packages it needs to install.
+the package's dependencies (e.g. ``spoon``, ``hot-water``, ``cup`` etc), the
+versions of each of these packages it needs to install. For each of these
+it needs to decide which version is a good candidate to install.
 
-For each of these dependent packages, it needs to work out which version
-of a package is a good candidate to install.
-
-A good candidate is a version of each package that is compatible with all the
-other packages versions being installing in the same command, and works with
-other requirements or constraints the user has specified.
-
-If everything goes well, this will result in pip computing a set of
-compatible versions of all these packages.
+A "good candidate" means a version of each package that is compatible with all
+the other package versions being installed at the same time.
 
 In the case where a package has a lot of versions, arriving at a good
 candidate can take a lot of time. (The amount of time depends on the
@@ -1345,19 +1338,19 @@ How does backtracking work?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 When doing a pip install, it needs to start by making assumptions about the
-packages it needs to install. During this install process it needs check this
+packages it needs to install. During the install process it needs check this
 assumptions as it goes along.
 
 When it finds that an assumption is incorrect, it has to try another approach
 (backtrack), which means discarding some of the work that has already been done,
 and going back to choose another path.
 
-For example; The user requests `pip install tea`.
-`tea` has dependencies of `cup`, `hot-water`, amongst others.
+For example; The user requests ``pip install tea``. ```tea`` has dependencies of
+``cup``, ``hot-water``, ``spoon`` amongst others.
 
-pip starts by installing a version of cup. If it finds out it isn’t compatible
-(with the other package versions) it needs to “go back” (backtrack) and
-download an older version.
+pip starts by installing a version of ``cup``. If it finds out it isn’t
+compatible (with the other package versions) it needs to “go back”
+(backtrack) and download an older version.
 
 It then tries to install that version. If it is successful, it will continue
 onto the next package. If not it will continue to backtrack until it finds a
@@ -1370,7 +1363,7 @@ message (not so good).
 
 If pip starts backtracking during dependency resolution, it does not
 know how long it will backtrack, and how much computation would be
-needed, which for the user, means it can possibly take a long time to complete.
+needed. For the user this means it can take a long time to complete.
 
 Why does backtracking occur?
 ----------------------------
@@ -1379,20 +1372,20 @@ With the release of the new resolver (:ref:`Resolver changes 2020`), pip is now
 more strict in the package versions it installs when a users runs a
 ``pip install`` command.
 
-This new behaviour means that pip works harder to find out which version of a
-package is a good candidate to install. It reduces the risk that installing a
-new package will accidentally break an existing installed package, and so
-reducing the risk of your environment gets messed up.
-
 Pip needs to backtrack because initially, it doesn't have all the information it
 needs to work out the correct set of packages. This is because package indexes
 don't provide full package dependency information before you have downloaded
 the package.
 
+This new resolver behaviour means that pip works harder to find out which
+version of a package is a good candidate to install. It reduces the risk that
+installing a new package will accidentally break an existing installed package,
+and so reducing the risk of your environment gets messed up.
+
 What does this behaviour look like?
 -----------------------------------
 
-Right now backtracking looks like this:
+Right now backtracking behaviour looks like this:
 
 ::
 
@@ -1534,6 +1527,7 @@ If none of the suggestions above work for you, we recommend that you ask
 for help and you've got `a number of
 options <https://pip.pypa.io/en/latest/user_guide/#getting-help>`__.
 
+.. _`Using pip from your program`:
 
 Using pip from your program
 ===========================
