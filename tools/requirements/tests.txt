@@ -11,7 +11,7 @@ pytest-rerunfailures
 pytest-timeout
 pytest-xdist
 pyyaml
-scripttest
+https://github.com/pypa/scripttest/archive/master.zip
 setuptools>=39.2.0  # Needed for `setuptools.wheel.Wheel` support.
 https://github.com/pypa/virtualenv/archive/legacy.zip#egg=virtualenv
 werkzeug==0.16.0
