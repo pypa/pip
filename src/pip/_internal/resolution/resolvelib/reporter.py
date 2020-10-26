@@ -47,4 +47,4 @@ class PipReporter(BaseReporter):
             return
 
         message = self._messages_at_backtrack[count]
-        logger.info(message)
+        logger.info("INFO: %s", message)
