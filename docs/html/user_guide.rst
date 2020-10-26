@@ -1380,6 +1380,8 @@ of ability. Some examples that you could consider include:
 * ``distlib`` - Packaging and distribution utilities (including functions for
   interacting with PyPI).
 
+.. _changes-to-the-pip-dependency-resolver-in-20-2-2020:
+
 .. _`Resolver changes 2020`:
 
 Changes to the pip dependency resolver in 20.3 (2020)
