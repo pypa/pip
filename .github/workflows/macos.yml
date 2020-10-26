@@ -135,4 +135,4 @@ jobs:
         -m integration
         --verbose
         --numprocesses auto
-        --duration=5
+        --durations=5
