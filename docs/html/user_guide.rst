@@ -1452,6 +1452,11 @@ We are also changing our support for :ref:`Constraints Files`:
 * Links are not allowed as constraints (see :issue:`8253`)
 * Constraints cannot have extras (see :issue:`6628`)
 
+Per our :ref:`Python 2 Support` policy, pip 20.3 users who are using
+Python 2 will use the legacy resolver by default. Python 2 users
+should upgrade to Python 3 as soon as possible, since in pip 21.0 in
+January 2021, pip will drop support for Python 2 altogether.
+
 
 How to upgrade and migrate
 --------------------------
@@ -1503,13 +1508,6 @@ How to upgrade and migrate
       into resolution errors and need a workaround while you're fixing
       their root causes, you can choose the old resolver behavior
       using the flag ``--use-deprecated=legacy-resolver``.
-
-      Per our :ref:`Python 2 Support` policy, pip 20.3 users who are
-      using Python 2 and who have trouble with the new resolver can
-      choose to switch to the old resolver behavior using the flag
-      ``--use-deprecated=legacy-resolver``. Python 2 users should
-      upgrade to Python 3 as soon as possible, since in pip 21.0 in
-      January 2021, pip will drop support for Python 2 altogether.
 
 5. **Please report bugs** through the `resolver testing survey`_.
 
