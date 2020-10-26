@@ -1,1 +1,1 @@
-Implemented error handling when passing a URL or archive to ``pip uninstall``.
+Implemented error handling when passing an invalid requirement ``pip uninstall``.
