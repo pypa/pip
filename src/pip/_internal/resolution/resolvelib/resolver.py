@@ -180,7 +180,10 @@ class Resolver(BaseResolver):
         assert self._result is not None, "must call resolve() first"
 
         graph = self._result.graph
-        weights = get_topological_weights(graph)
+        weights = get_topological_weights(
+            graph,
+            expected_node_count=len(self._result.mapping) + 1,
+        )
 
         sorted_items = sorted(
             req_set.requirements.items(),
@@ -190,8 +193,8 @@ class Resolver(BaseResolver):
         return [ireq for _, ireq in sorted_items]
 
 
-def get_topological_weights(graph):
-    # type: (Graph) -> Dict[Optional[str], int]
+def get_topological_weights(graph, expected_node_count):
+    # type: (Graph, int) -> Dict[Optional[str], int]
     """Assign weights to each node based on how "deep" they are.
 
     This implementation may change at any point in the future without prior
@@ -231,7 +234,7 @@ def get_topological_weights(graph):
 
     # Sanity checks
     assert weights[None] == 0
-    assert len(weights) == len(graph)
+    assert len(weights) == expected_node_count
 
     return weights
 

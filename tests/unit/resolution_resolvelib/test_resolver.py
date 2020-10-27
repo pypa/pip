@@ -232,5 +232,5 @@ def test_new_resolver_get_installation_order(resolver, edges, ordered_reqs):
 def test_new_resolver_topological_weights(name, edges, expected_weights):
     graph = _make_graph(edges)
 
-    weights = get_topological_weights(graph)
+    weights = get_topological_weights(graph, len(expected_weights))
     assert weights == expected_weights
