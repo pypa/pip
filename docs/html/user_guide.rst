@@ -292,9 +292,10 @@ organisation and use that everywhere. If the thing being installed requires
 file will be used.
 
 Constraints file support was added in pip 7.1. In :ref:`Resolver
-changes 2020` we did a fairly comprehensive overhaul and stripped
-constraints files down to being purely a way to specify global
-(version) limits for packages.
+changes 2020` we did a fairly comprehensive overhaul, removing several
+undocumented and unsupported quirks from the previous implementation,
+and stripped constraints files down to being purely a way to specify
+global (version) limits for packages.
 
 .. _`Installing from Wheels`:
 
