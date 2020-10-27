@@ -174,9 +174,8 @@ class Factory(object):
         # "template", so we try to "invent" one by aggregating available
         # information from all the ireqs. This feels very brittle, hopefully
         # the Project model can correct this mismatch in the future.
-        name = canonicalize_name(ireqs[0].req.name)
         template = InstallRequirement(
-            PackagingRequirement("{} {}".format(name, specifier)),
+            PackagingRequirement("{} {}".format(ireqs[0].req.name, specifier)),
             user_supplied=any(r.user_supplied for r in ireqs),
             comes_from=ireqs[0].comes_from,
             use_pep517=any(r.use_pep517 for r in ireqs),
@@ -193,12 +192,14 @@ class Factory(object):
             )),
         )
 
+        req_key = canonicalize_name(template.req.name)
+
         # Get the installed version, if it matches, unless the user
         # specified `--force-reinstall`, when we want the version from
         # the index instead.
         installed_candidate = None
-        if not self._force_reinstall and name in self._installed_dists:
-            installed_dist = self._installed_dists[name]
+        if not self._force_reinstall and req_key in self._installed_dists:
+            installed_dist = self._installed_dists[req_key]
             if specifier.contains(installed_dist.version, prereleases=True):
                 installed_candidate = self._make_candidate_from_dist(
                     dist=installed_dist,
@@ -209,7 +210,7 @@ class Factory(object):
         def iter_index_candidates():
             # type: () -> Iterator[Candidate]
             result = self._finder.find_best_candidate(
-                project_name=name,
+                project_name=req_key,
                 specifier=specifier,
                 hashes=hashes,
             )
@@ -219,7 +220,7 @@ class Factory(object):
                     link=ican.link,
                     extras=extras,
                     template=template,
-                    name=name,
+                    name=req_key,
                     version=ican.version,
                 )
 
