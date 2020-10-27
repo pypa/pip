@@ -271,9 +271,7 @@ class InstallRequirement(object):
 
         For example, some-package==1.2 is pinned; some-package>1.2 is not.
         """
-        specifiers = self.specifier
-        return (len(specifiers) == 1 and
-                next(iter(specifiers)).operator in {'==', '==='})
+        return any(spec.operator in ('==', '===') for spec in self.specifier)
 
     @property
     def installed_version(self):
