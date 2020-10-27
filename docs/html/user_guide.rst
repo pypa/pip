@@ -1449,22 +1449,27 @@ install x y`` in a single command. We would like your thoughts on what
 pip's behavior should be; please answer `our survey on upgrades that
 create conflicts`_.
 
-We are also changing our support for :ref:`Constraints Files` and
-related functionality. We did a fairly comprehensive overhaul and
-stripped constraints files down to being purely a way to specify
-global (version) limits for packages. Specifically:
+We are also changing our support for :ref:`Constraints Files`,
+editable installs, and related functionality. We did a fairly
+comprehensive overhaul and stripped constraints files down to being
+purely a way to specify global (version) limits for packages, and so
+some combinations that used to be allowed will now cause
+errors. Specifically:
 
 * Constraints don't override the existing requirements; they simply
   constrain what versions are visible as input to the resolver (see
   :issue:`9020`)
-
 * Providing an editable requirement (``-e .``) does not cause pip to
-  ignore version specifiers or constraints (see :issue:`8076`)
-
+  ignore version specifiers or constraints (see :issue:`8076`), and if
+  you have a conflict between a pinned requirement and a local
+  directory then pip will indicate that it cannot find a version
+  satisfying both (see :issue:`8307`)
 * Hash-checking mode requires that all requirements are specified as a
-  `==` match on a version and may not work well in combination with
+  ``==`` match on a version and may not work well in combination with
   constraints (see :issue:`9020` and :issue:`8792`)
-
+* If necessary to satisfy constraints, pip will happily reinstall
+  packages, upgrading or downgrading, without needing any additional
+  command-line options (see :issue:`8115` and :doc:`development/architecture/upgrade-options`)
 * Unnamed requirements are not allowed as constraints (see :issue:`6628` and :issue:`8210`)
 * Links are not allowed as constraints (see :issue:`8253`)
 * Constraints cannot have extras (see :issue:`6628`)
