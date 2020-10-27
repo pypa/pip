@@ -1,0 +1,1 @@
+Improve migration guide to reflect changes in new resolver behavior.
