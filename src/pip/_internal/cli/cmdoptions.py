@@ -97,8 +97,8 @@ def check_dist_restriction(options, check_target=False):
     """
     dist_restriction_set = any([
         options.python_version,
-        options.platform,
-        options.abi,
+        options.platforms,
+        options.abis,
         options.implementation,
     ])
 
@@ -490,10 +490,10 @@ def only_binary():
     )
 
 
-platform = partial(
+platforms = partial(
     Option,
     '--platform',
-    dest='platform',
+    dest='platforms',
     metavar='platform',
     action='append',
     default=None,
@@ -583,10 +583,10 @@ implementation = partial(
 )  # type: Callable[..., Option]
 
 
-abi = partial(
+abis = partial(
     Option,
     '--abi',
-    dest='abi',
+    dest='abis',
     metavar='abi',
     action='append',
     default=None,
@@ -601,18 +601,18 @@ abi = partial(
 
 def add_target_python_options(cmd_opts):
     # type: (OptionGroup) -> None
-    cmd_opts.add_option(platform())
+    cmd_opts.add_option(platforms())
     cmd_opts.add_option(python_version())
     cmd_opts.add_option(implementation())
-    cmd_opts.add_option(abi())
+    cmd_opts.add_option(abis())
 
 
 def make_target_python(options):
     # type: (Values) -> TargetPython
     target_python = TargetPython(
-        platforms=options.platform,
+        platforms=options.platforms,
         py_version_info=options.python_version,
-        abis=options.abi,
+        abis=options.abis,
         implementation=options.implementation,
     )
 
