@@ -1,7 +1,0 @@
-variables:
-  CI: true
-
-jobs:
-- template: jobs/package.yml
-  parameters:
-    vmImage: macos-10.14
