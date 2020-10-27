@@ -1,9 +1,7 @@
 import itertools
 import logging
 
-from pip._vendor.packaging.requirements import (
-    Requirement as PackagingRequirement,
-)
+from pip._vendor.packaging.requirements import Requirement as PackagingRequirement
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.exceptions import (
