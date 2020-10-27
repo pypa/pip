@@ -19,7 +19,6 @@ jobs:
         os:
         - Ubuntu
         - Windows
-        - MacOS
 
     steps:
     - uses: actions/checkout@v2
