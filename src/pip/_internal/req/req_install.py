@@ -358,6 +358,10 @@ class InstallRequirement(object):
 
             return self._temp_build_dir.path
 
+        # This is the only remaining place where we manually determine the path
+        # for the temporary directory. It is only needed for editables where
+        # it is the value of the --src option.
+
         # When parallel builds are enabled, add a UUID to the build directory
         # name so multiple builds do not interfere with each other.
         dir_name = canonicalize_name(self.name)

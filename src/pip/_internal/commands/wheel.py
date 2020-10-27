@@ -78,7 +78,6 @@ class WheelCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.src())
         self.cmd_opts.add_option(cmdoptions.ignore_requires_python())
         self.cmd_opts.add_option(cmdoptions.no_deps())
-        self.cmd_opts.add_option(cmdoptions.build_dir())
         self.cmd_opts.add_option(cmdoptions.progress_bar())
 
         self.cmd_opts.add_option(
@@ -115,7 +114,6 @@ class WheelCommand(RequirementCommand):
         session = self.get_default_session(options)
 
         finder = self._build_package_finder(options, session)
-        build_delete = (not (options.no_clean or options.build_dir))
         wheel_cache = WheelCache(options.cache_dir, options.format_control)
 
         options.wheel_dir = normalize_path(options.wheel_dir)
@@ -124,8 +122,7 @@ class WheelCommand(RequirementCommand):
         req_tracker = self.enter_context(get_requirement_tracker())
 
         directory = TempDirectory(
-            options.build_dir,
-            delete=build_delete,
+            delete=not options.no_clean,
             kind="wheel",
             globally_managed=True,
         )

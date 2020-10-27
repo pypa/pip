@@ -197,20 +197,6 @@ class Command(CommandContextMixIn):
                 )
                 options.cache_dir = None
 
-        if getattr(options, "build_dir", None):
-            deprecated(
-                reason=(
-                    "The -b/--build/--build-dir/--build-directory "
-                    "option is deprecated."
-                ),
-                replacement=(
-                    "use the TMPDIR/TEMP/TMP environment variable, "
-                    "possibly combined with --no-clean"
-                ),
-                gone_in="20.3",
-                issue=8333,
-            )
-
         if 'resolver' in options.unstable_features:
             logger.critical(
                 "--unstable-feature=resolver is no longer supported, and "

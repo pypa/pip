@@ -129,8 +129,6 @@ class InstallCommand(RequirementCommand):
             help="Installation prefix where lib, bin and other top-level "
                  "folders are placed")
 
-        self.cmd_opts.add_option(cmdoptions.build_dir())
-
         self.cmd_opts.add_option(cmdoptions.src())
 
         self.cmd_opts.add_option(
@@ -277,14 +275,12 @@ class InstallCommand(RequirementCommand):
             target_python=target_python,
             ignore_requires_python=options.ignore_requires_python,
         )
-        build_delete = (not (options.no_clean or options.build_dir))
         wheel_cache = WheelCache(options.cache_dir, options.format_control)
 
         req_tracker = self.enter_context(get_requirement_tracker())
 
         directory = TempDirectory(
-            options.build_dir,
-            delete=build_delete,
+            delete=not options.no_clean,
             kind="install",
             globally_managed=True,
         )
