@@ -291,7 +291,10 @@ organisation and use that everywhere. If the thing being installed requires
 "helloworld" to be installed, your fixed version specified in your constraints
 file will be used.
 
-Constraints file support was added in pip 7.1.
+Constraints file support was added in pip 7.1. In :ref:`Resolver
+changes 2020` we did a fairly comprehensive overhaul and stripped
+constraints files down to being purely a way to specify global
+(version) limits for packages.
 
 .. _`Installing from Wheels`:
 
@@ -1446,15 +1449,21 @@ install x y`` in a single command. We would like your thoughts on what
 pip's behavior should be; please answer `our survey on upgrades that
 create conflicts`_.
 
-We are also changing our support for :ref:`Constraints Files` and related functionality:
+We are also changing our support for :ref:`Constraints Files` and
+related functionality. We did a fairly comprehensive overhaul and
+stripped constraints files down to being purely a way to specify
+global (version) limits for packages. Specifically:
 
 * Constraints don't override the existing requirements; they simply
   constrain what versions are visible as input to the resolver (see
   :issue:`9020`)
 
+* Providing an editable requirement (``-e .``) does not cause pip to
+  ignore version specifiers or constraints (see :issue:`8076`)
+
 * Hash-checking mode requires that all requirements are specified as a
-`==` match on a version and may not work well in combination with
-constraints (see :issue:`9020`)
+  `==` match on a version and may not work well in combination with
+  constraints (see :issue:`9020` and :issue:`8792`)
 
 * Unnamed requirements are not allowed as constraints (see :issue:`6628` and :issue:`8210`)
 * Links are not allowed as constraints (see :issue:`8253`)
