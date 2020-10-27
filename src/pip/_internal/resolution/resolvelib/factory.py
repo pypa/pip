@@ -1,5 +1,9 @@
+import itertools
 import logging
 
+from pip._vendor.packaging.requirements import (
+    Requirement as PackagingRequirement,
+)
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.exceptions import (
@@ -160,18 +164,34 @@ class Factory(object):
         if not ireqs:
             return ()
 
-        # The InstallRequirement implementation requires us to give it a
-        # "template". Here we just choose the first requirement to represent
-        # all of them.
-        # Hopefully the Project model can correct this mismatch in the future.
-        template = ireqs[0]
-        name = canonicalize_name(template.req.name)
-
         extras = frozenset()  # type: FrozenSet[str]
         for ireq in ireqs:
             specifier &= ireq.req.specifier
             hashes &= ireq.hashes(trust_internet=False)
             extras |= frozenset(ireq.extras)
+
+        # HACK: The InstallRequirement implementation requires us to give it a
+        # "template", so we try to "invent" one by aggregating available
+        # information from all the ireqs. This feels very brittle, hopefully
+        # the Project model can correct this mismatch in the future.
+        name = canonicalize_name(ireqs[0].req.name)
+        template = InstallRequirement(
+            PackagingRequirement("{} {}".format(name, specifier)),
+            user_supplied=any(r.user_supplied for r in ireqs),
+            comes_from=ireqs[0].comes_from,
+            use_pep517=any(r.use_pep517 for r in ireqs),
+            isolated=any(r.isolated for r in ireqs),
+            constraint=all(r.constraint for r in ireqs),
+            install_options=list(itertools.chain.from_iterable(
+                r.install_options for r in ireqs
+            )),
+            global_options=list(itertools.chain.from_iterable(
+                r.global_options for r in ireqs
+            )),
+            hash_options=dict(itertools.chain.from_iterable(
+                r.hash_options.items() for r in ireqs
+            )),
+        )
 
         # Get the installed version, if it matches, unless the user
         # specified `--force-reinstall`, when we want the version from
