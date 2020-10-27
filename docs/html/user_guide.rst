@@ -1446,7 +1446,15 @@ install x y`` in a single command. We would like your thoughts on what
 pip's behavior should be; please answer `our survey on upgrades that
 create conflicts`_.
 
-We are also changing our support for :ref:`Constraints Files`:
+We are also changing our support for :ref:`Constraints Files` and related functionality:
+
+* Constraints don't override the existing requirements; they simply
+  constrain what versions are visible as input to the resolver (see
+  :issue:`9020`)
+
+* Hash-checking mode requires that all requirements are specified as a
+`==` match on a version and may not work well in combination with
+constraints (see :issue:`9020`)
 
 * Unnamed requirements are not allowed as constraints (see :issue:`6628` and :issue:`8210`)
 * Links are not allowed as constraints (see :issue:`8253`)
