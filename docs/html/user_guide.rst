@@ -1276,6 +1276,8 @@ In this situation, you could consider:
 -  Refactoring your project to reduce the number of dependencies (for
    example, by breaking up a monolithic code base into smaller pieces)
 
+.. _`Getting help`:
+
 Getting help
 ------------
 
@@ -1338,7 +1340,7 @@ How does backtracking work?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 When doing a pip install, it needs to start by making assumptions about the
-packages it needs to install. During the install process it needs check this
+packages it needs to install. During the install process it needs to check these
 assumptions as it goes along.
 
 When it finds that an assumption is incorrect, it has to try another approach
@@ -1357,7 +1359,7 @@ onto the next package. If not it will continue to backtrack until it finds a
 compatible version.
 
 This backtrack behaviour can end in 2 ways - either 1) it will
-successfully find a set packages it can install (good news!), or 2) it will
+successfully find a set of packages it can install (good news!), or 2) it will
 eventually display `resolution impossible <https://pip.pypa.io/en/latest/user_guide/#id35>`__ error
 message (not so good).
 
@@ -1369,7 +1371,7 @@ Why does backtracking occur?
 ----------------------------
 
 With the release of the new resolver (:ref:`Resolver changes 2020`), pip is now
-more strict in the package versions it installs when a users runs a
+more strict in the package versions it installs when a user runs a
 ``pip install`` command.
 
 Pip needs to backtrack because initially, it doesn't have all the information it
@@ -1380,7 +1382,7 @@ the package.
 This new resolver behaviour means that pip works harder to find out which
 version of a package is a good candidate to install. It reduces the risk that
 installing a new package will accidentally break an existing installed package,
-and so reducing the risk of your environment gets messed up.
+and so reducing the risk that your environment gets messed up.
 
 What does this behaviour look like?
 -----------------------------------
@@ -1391,55 +1393,55 @@ Right now backtracking behaviour looks like this:
 
    $ pip install tea==1.9.8
    Collecting tea==1.9.8
-   Downloading tea-1.9.8-py2.py3-none-any.whl (346 kB)
-   |████████████████████████████████| 346 kB 10.4 MB/s
+     Downloading tea-1.9.8-py2.py3-none-any.whl (346 kB)
+        |████████████████████████████████| 346 kB 10.4 MB/s
    Collecting spoon==2.27.0
-   Downloading spoon-2.27.0-py2.py3-none-any.whl (312 kB)
-   |████████████████████████████████| 312 kB 19.2 MB/s
+     Downloading spoon-2.27.0-py2.py3-none-any.whl (312 kB)
+        |████████████████████████████████| 312 kB 19.2 MB/s
    Collecting hot-water>=0.1.9
    Downloading hot-water-0.1.13-py3-none-any.whl (9.3 kB)
    Collecting cup>=1.6.0
-   Downloading cup-3.22.0-py2.py3-none-any.whl (397 kB)
-   |████████████████████████████████| 397 kB 28.2 MB/s
+     Downloading cup-3.22.0-py2.py3-none-any.whl (397 kB)
+        |████████████████████████████████| 397 kB 28.2 MB/s
    INFO: pip is looking at multiple versions of this package to determine
    which version is compatible with other requirements.
    This could take a while.
-   Downloading cup-3.21.0-py2.py3-none-any.whl (395 kB)
-   |████████████████████████████████| 395 kB 27.0 MB/s
-   Downloading cup-3.20.0-py2.py3-none-any.whl (394 kB)
-   |████████████████████████████████| 394 kB 24.4 MB/s
-   Downloading cup-3.19.1-py2.py3-none-any.whl (394 kB)
-   |████████████████████████████████| 394 kB 21.3 MB/s
-   Downloading cup-3.19.0-py2.py3-none-any.whl (394 kB)
-   |████████████████████████████████| 394 kB 26.2 MB/s
-   Downloading cup-3.18.0-py2.py3-none-any.whl (393 kB)
-   |████████████████████████████████| 393 kB 22.1 MB/s
-   Downloading cup-3.17.0-py2.py3-none-any.whl (382 kB)
-   |████████████████████████████████| 382 kB 23.8 MB/s
-   Downloading cup-3.16.0-py2.py3-none-any.whl (376 kB)
-   |████████████████████████████████| 376 kB 27.5 MB/s
-   Downloading cup-3.15.1-py2.py3-none-any.whl (385 kB)
-   |████████████████████████████████| 385 kB 30.4 MB/s
+     Downloading cup-3.21.0-py2.py3-none-any.whl (395 kB)
+        |████████████████████████████████| 395 kB 27.0 MB/s
+     Downloading cup-3.20.0-py2.py3-none-any.whl (394 kB)
+        |████████████████████████████████| 394 kB 24.4 MB/s
+     Downloading cup-3.19.1-py2.py3-none-any.whl (394 kB)
+        |████████████████████████████████| 394 kB 21.3 MB/s
+     Downloading cup-3.19.0-py2.py3-none-any.whl (394 kB)
+        |████████████████████████████████| 394 kB 26.2 MB/s
+     Downloading cup-3.18.0-py2.py3-none-any.whl (393 kB)
+        |████████████████████████████████| 393 kB 22.1 MB/s
+     Downloading cup-3.17.0-py2.py3-none-any.whl (382 kB)
+        |████████████████████████████████| 382 kB 23.8 MB/s
+     Downloading cup-3.16.0-py2.py3-none-any.whl (376 kB)
+        |████████████████████████████████| 376 kB 27.5 MB/s
+     Downloading cup-3.15.1-py2.py3-none-any.whl (385 kB)
+        |████████████████████████████████| 385 kB 30.4 MB/s
    INFO: pip is looking at multiple versions of this package to determine
    which version is compatible with other requirements.
    This could take a while.
-   Downloading cup-3.15.0-py2.py3-none-any.whl (378 kB)
-   |████████████████████████████████| 378 kB 21.4 MB/s
-   Downloading cup-3.14.0-py2.py3-none-any.whl (372 kB)
-   |████████████████████████████████| 372 kB 21.1 MB/s
-   Downloading cup-3.13.1-py2.py3-none-any.whl (381 kB)
-   |████████████████████████████████| 381 kB 21.8 MB/s
+     Downloading cup-3.15.0-py2.py3-none-any.whl (378 kB)
+        |████████████████████████████████| 378 kB 21.4 MB/s
+     Downloading cup-3.14.0-py2.py3-none-any.whl (372 kB)
+        |████████████████████████████████| 372 kB 21.1 MB/s
+     Downloading cup-3.13.1-py2.py3-none-any.whl (381 kB)
+        |████████████████████████████████| 381 kB 21.8 MB/s
    This is taking longer than usual. You might need to provide the
    dependency resolver with stricter constraints to reduce runtime.
    If you want to abort this run, you can press Ctrl + C to do so.
-   Downloading cup-3.13.0-py2.py3-none-any.whl (374 kB)
+     Downloading cup-3.13.0-py2.py3-none-any.whl (374 kB)
 
 In the above sample output, pip had to download multiple versions of
 package cup - cup-3.22.0 to cup-3.13.0 - to find a version that will be
 compatible with the other packages - ``spoon``, ``hot-water``, ``cup``
 etc.
 
-These multiple ``Downloading cup-version`` lines shows pip backtracking.
+These multiple ``Downloading cup-version`` lines show pip backtracking.
 
 Possible ways to reduce backtracking occurring
 ---------------------------------------------
@@ -1525,7 +1527,7 @@ Getting help
 
 If none of the suggestions above work for you, we recommend that you ask
 for help and you've got `a number of
-options <https://pip.pypa.io/en/latest/user_guide/#getting-help>`__.
+options :ref:`Getting help`.
 
 .. _`Using pip from your program`:
 
