@@ -35,7 +35,7 @@ class PipReporter(BaseReporter):
                 "This is taking longer than usual. You might need to provide the "
                 "dependency resolver with stricter constraints to reduce runtime."
                 "If you want to abort this run, you can press Ctrl + C to do so."
-                "To improve how pip performs, tell us that this happened here: "
+                "To improve how pip performs, tell us what happened here: "
                 "https://pip.pypa.io/surveys/backtracking"
             )
         }
