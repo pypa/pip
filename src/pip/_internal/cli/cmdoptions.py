@@ -97,8 +97,8 @@ def check_dist_restriction(options, check_target=False):
     """
     dist_restriction_set = any([
         options.python_version,
-        options.platform,
-        options.abi,
+        options.platforms,
+        options.abis,
         options.implementation,
     ])
 
@@ -490,14 +490,16 @@ def only_binary():
     )
 
 
-platform = partial(
+platforms = partial(
     Option,
     '--platform',
-    dest='platform',
+    dest='platforms',
     metavar='platform',
+    action='append',
     default=None,
-    help=("Only use wheels compatible with <platform>. "
-          "Defaults to the platform of the running system."),
+    help=("Only use wheels compatible with <platform>. Defaults to the "
+          "platform of the running system. Use this option multiple times to "
+          "specify multiple platforms supported by the target interpreter."),
 )  # type: Callable[..., Option]
 
 
@@ -581,35 +583,36 @@ implementation = partial(
 )  # type: Callable[..., Option]
 
 
-abi = partial(
+abis = partial(
     Option,
     '--abi',
-    dest='abi',
+    dest='abis',
     metavar='abi',
+    action='append',
     default=None,
-    help=("Only use wheels compatible with Python "
-          "abi <abi>, e.g. 'pypy_41'.  If not specified, then the "
-          "current interpreter abi tag is used.  Generally "
-          "you will need to specify --implementation, "
-          "--platform, and --python-version when using "
-          "this option."),
+    help=("Only use wheels compatible with Python abi <abi>, e.g. 'pypy_41'. "
+          "If not specified, then the current interpreter abi tag is used. "
+          "Use this option multiple times to specify multiple abis supported "
+          "by the target interpreter. Generally you will need to specify "
+          "--implementation, --platform, and --python-version when using this "
+          "option."),
 )  # type: Callable[..., Option]
 
 
 def add_target_python_options(cmd_opts):
     # type: (OptionGroup) -> None
-    cmd_opts.add_option(platform())
+    cmd_opts.add_option(platforms())
     cmd_opts.add_option(python_version())
     cmd_opts.add_option(implementation())
-    cmd_opts.add_option(abi())
+    cmd_opts.add_option(abis())
 
 
 def make_target_python(options):
     # type: (Values) -> TargetPython
     target_python = TargetPython(
-        platform=options.platform,
+        platforms=options.platforms,
         py_version_info=options.python_version,
-        abi=options.abi,
+        abis=options.abis,
         implementation=options.implementation,
     )
 

@@ -309,6 +309,21 @@ def test_download_specify_platform(script, data):
         Path('scratch') / 'fake-2.0-py2.py3-none-linux_x86_64.whl'
     )
 
+    # Test with multiple supported platforms specified.
+    data.reset()
+    fake_wheel(data, 'fake-3.0-py2.py3-none-linux_x86_64.whl')
+    result = script.pip(
+        'download', '--no-index', '--find-links', data.find_links,
+        '--only-binary=:all:',
+        '--dest', '.',
+        '--platform', 'manylinux1_x86_64', '--platform', 'linux_x86_64',
+        '--platform', 'any',
+        'fake==3'
+    )
+    result.did_create(
+        Path('scratch') / 'fake-3.0-py2.py3-none-linux_x86_64.whl'
+    )
+
 
 class TestDownloadPlatformManylinuxes(object):
     """
@@ -573,6 +588,22 @@ def test_download_specify_abi(script, data):
         '--abi', 'none',
         'fake',
         expect_error=True,
+    )
+
+    data.reset()
+    fake_wheel(data, 'fake-1.0-fk2-otherabi-fake_platform.whl')
+    result = script.pip(
+        'download', '--no-index', '--find-links', data.find_links,
+        '--only-binary=:all:',
+        '--dest', '.',
+        '--python-version', '2',
+        '--implementation', 'fk',
+        '--platform', 'fake_platform',
+        '--abi', 'fakeabi', '--abi', 'otherabi', '--abi', 'none',
+        'fake'
+    )
+    result.did_create(
+        Path('scratch') / 'fake-1.0-fk2-otherabi-fake_platform.whl'
     )
 
 
