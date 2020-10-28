@@ -6,9 +6,9 @@ from pip._vendor.resolvelib.reporters import BaseReporter
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import DefaultDict
+    from typing import Any, DefaultDict
 
-    from .base import Candidate
+    from .base import Candidate, Requirement
 
 
 logger = getLogger(__name__)
@@ -50,3 +50,35 @@ class PipReporter(BaseReporter):
 
         message = self._messages_at_backtrack[count]
         logger.info("INFO: %s", message)
+
+
+class PipDebuggingReporter(BaseReporter):
+    """A reporter that does an info log for every event it sees."""
+
+    def starting(self):
+        # type: () -> None
+        logger.info("Reporter.starting()")
+
+    def starting_round(self, index):
+        # type: (int) -> None
+        logger.info("Reporter.starting_round(%r)", index)
+
+    def ending_round(self, index, state):
+        # type: (int, Any) -> None
+        logger.info("Reporter.ending_round(%r, state)", index)
+
+    def ending(self, state):
+        # type: (Any) -> None
+        logger.info("Reporter.ending(%r)", state)
+
+    def adding_requirement(self, requirement, parent):
+        # type: (Requirement, Candidate) -> None
+        logger.info("Reporter.adding_requirement(%r, %r)", requirement, parent)
+
+    def backtracking(self, candidate):
+        # type: (Candidate) -> None
+        logger.info("Reporter.backtracking(%r)", candidate)
+
+    def pinning(self, candidate):
+        # type: (Candidate) -> None
+        logger.info("Reporter.pinning(%r)", candidate)
