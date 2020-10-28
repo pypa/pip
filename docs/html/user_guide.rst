@@ -1326,8 +1326,8 @@ way pip's dependency resolution process works.
 
 During a pip install (e.g. ``pip install tea``), pip needs to work out
 the package's dependencies (e.g. ``spoon``, ``hot-water``, ``cup`` etc), the
-versions of each of these packages it needs to install. For each of these
-it needs to decide which version is a good candidate to install.
+versions of each of these packages it needs to install. For each package
+pip needs to decide which version is a good candidate to install.
 
 A "good candidate" means a version of each package that is compatible with all
 the other package versions being installed at the same time.
@@ -1339,11 +1339,11 @@ package size, the number of versions pip must try, and other concerns.)
 How does backtracking work?
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-When doing a pip install, it needs to start by making assumptions about the
+When doing a pip install, pip starts by making assumptions about the
 packages it needs to install. During the install process it needs to check these
 assumptions as it goes along.
 
-When it finds that an assumption is incorrect, it has to try another approach
+When pip finds that an assumption is incorrect, it has to try another approach
 (backtrack), which means discarding some of the work that has already been done,
 and going back to choose another path.
 
@@ -1360,7 +1360,7 @@ compatible version.
 
 This backtrack behaviour can end in 2 ways - either 1) it will
 successfully find a set of packages it can install (good news!), or 2) it will
-eventually display `resolution impossible <https://pip.pypa.io/en/latest/user_guide/#id35>`__ error
+eventually display a `resolution impossible <https://pip.pypa.io/en/latest/user_guide/#id35>`__ error
 message (not so good).
 
 If pip starts backtracking during dependency resolution, it does not
@@ -1382,7 +1382,9 @@ the package.
 This new resolver behaviour means that pip works harder to find out which
 version of a package is a good candidate to install. It reduces the risk that
 installing a new package will accidentally break an existing installed package,
-and so reducing the risk that your environment gets messed up.
+and so reduces the risk that your environment gets messed up.
+
+Please address this.
 
 What does this behaviour look like?
 -----------------------------------
@@ -1499,7 +1501,7 @@ can be trial and error.
 This option is a progression of 2 above. It requires users to know how
 to inspect:
 
--  the packages they're are trying to install
+-  the packages they're trying to install
 -  the package release frequency and compatibility policies
 -  their release notes and changelogs from past versions
 
@@ -1526,8 +1528,7 @@ Getting help
 ------------
 
 If none of the suggestions above work for you, we recommend that you ask
-for help and you've got `a number of
-options :ref:`Getting help`.
+for help and you've got `a number of options :ref:`Getting help`.
 
 .. _`Using pip from your program`:
 
