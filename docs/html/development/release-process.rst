@@ -65,6 +65,8 @@ their merits.
   ``pip._internal.utils.deprecation.deprecated``. The function is not a part of
   pip's public API.
 
+.. _`Python 2 Support`:
+
 Python 2 Support
 ----------------
 

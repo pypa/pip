@@ -17,7 +17,7 @@ Please take a look at our documentation for how to install and use pip:
    ux_research_design
    news
 
-In 2020, we're working on improvements to the heart of pip: :ref:`Resolver changes 2020`. Please `learn more and take our survey`_ to help us do it right, and `join our user experience surveys pool`_.
+In pip 20.3, we're `making a big improvement to the heart of pip`_; :ref:`Resolver changes 2020`. We want your input, so `sign up for our user experience research studies`_ to help us do it right.
 
 If you find bugs, need help, or want to talk to the developers, please use our mailing lists or chat rooms:
 
@@ -40,8 +40,8 @@ rooms, and mailing lists is expected to follow the `PSF Code of Conduct`_.
 
 .. _package installer: https://packaging.python.org/guides/tool-recommendations/
 .. _Python Package Index: https://pypi.org
-.. _join our user experience surveys pool: ux_research_design
-.. _learn more and take our survey: https://pyfound.blogspot.com/2020/03/new-pip-resolver-to-roll-out-this-year.html
+.. _making a big improvement to the heart of pip: https://pyfound.blogspot.com/2020/03/new-pip-resolver-to-roll-out-this-year.html
+.. _sign up for our user experience research studies: https://pyfound.blogspot.com/2020/03/new-pip-resolver-to-roll-out-this-year.html
 .. _Installation: https://pip.pypa.io/en/stable/installing.html
 .. _Documentation: https://pip.pypa.io/en/stable/
 .. _Changelog: https://pip.pypa.io/en/stable/news.html
