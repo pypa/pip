@@ -197,18 +197,16 @@ In practice, there are 4 common uses of Requirements files:
          py -m pip freeze > requirements.txt
          py -m pip install -r requirements.txt
 
-2. Requirements files are used to force pip to properly resolve
-   dependencies.  In versions of pip prior to 20.3, pip `doesn't have
-   true dependency resolution
-   <https://github.com/pypa/pip/issues/988>`_, but instead simply uses
-   the first specification it finds for a project. E.g. if ``pkg1``
-   requires ``pkg3>=1.0`` and ``pkg2`` requires ``pkg3>=1.0,<=2.0``,
-   and if ``pkg1`` is resolved first, pip will only use ``pkg3>=1.0``,
-   and could easily end up installing a version of ``pkg3`` that
-   conflicts with the needs of ``pkg2``.  To solve this problem for
-   pip 20.2 and previous, you can place ``pkg3>=1.0,<=2.0`` (i.e. the
-   correct specification) into your requirements file directly along
-   with the other top level requirements. Like so::
+2. Requirements files are used to force pip to properly resolve dependencies.
+   pip 20.2 and earlier `doesn't have true dependency resolution
+   <https://github.com/pypa/pip/issues/988>`_, but instead simply uses the first
+   specification it finds for a project. E.g. if ``pkg1`` requires
+   ``pkg3>=1.0`` and ``pkg2`` requires ``pkg3>=1.0,<=2.0``, and if ``pkg1`` is
+   resolved first, pip will only use ``pkg3>=1.0``, and could easily end up
+   installing a version of ``pkg3`` that conflicts with the needs of ``pkg2``.
+   To solve this problem, you can place ``pkg3>=1.0,<=2.0`` (i.e. the correct
+   specification) into your requirements file directly along with the other top
+   level requirements. Like so::
 
      pkg1
      pkg2
@@ -1441,12 +1439,13 @@ time to fix the underlying problem in the packages, because pip will
 be stricter from here on out.
 
 This also means that, when you run a ``pip install`` command, pip only
-considers the packages you are installing in that command, and may
-break already-installed packages. It will not guarantee that your
+considers the packages you are installing in that command, and **may
+break already-installed packages**. It will not guarantee that your
 environment will be consistent all the time. If you ``pip install x``
 and then ``pip install y``, it's possible that the version of ``y``
 you get will be different than it would be if you had run ``pip
-install x y`` in a single command. We would like your thoughts on what
+install x y`` in a single command. We are considering changing this
+behavior (per :issue:`7744`) and would like your thoughts on what
 pip's behavior should be; please answer `our survey on upgrades that
 create conflicts`_.
 
