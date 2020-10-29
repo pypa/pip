@@ -197,18 +197,16 @@ In practice, there are 4 common uses of Requirements files:
          py -m pip freeze > requirements.txt
          py -m pip install -r requirements.txt
 
-2. Requirements files are used to force pip to properly resolve
-   dependencies.  In versions of pip prior to 20.3, pip `doesn't have
-   true dependency resolution
-   <https://github.com/pypa/pip/issues/988>`_, but instead simply uses
-   the first specification it finds for a project. E.g. if ``pkg1``
-   requires ``pkg3>=1.0`` and ``pkg2`` requires ``pkg3>=1.0,<=2.0``,
-   and if ``pkg1`` is resolved first, pip will only use ``pkg3>=1.0``,
-   and could easily end up installing a version of ``pkg3`` that
-   conflicts with the needs of ``pkg2``.  To solve this problem for
-   pip 20.2 and previous, you can place ``pkg3>=1.0,<=2.0`` (i.e. the
-   correct specification) into your requirements file directly along
-   with the other top level requirements. Like so::
+2. Requirements files are used to force pip to properly resolve dependencies.
+   pip 20.2 and earlier `doesn't have true dependency resolution
+   <https://github.com/pypa/pip/issues/988>`_, but instead simply uses the first
+   specification it finds for a project. E.g. if ``pkg1`` requires
+   ``pkg3>=1.0`` and ``pkg2`` requires ``pkg3>=1.0,<=2.0``, and if ``pkg1`` is
+   resolved first, pip will only use ``pkg3>=1.0``, and could easily end up
+   installing a version of ``pkg3`` that conflicts with the needs of ``pkg2``.
+   To solve this problem, you can place ``pkg3>=1.0,<=2.0`` (i.e. the correct
+   specification) into your requirements file directly along with the other top
+   level requirements. Like so::
 
      pkg1
      pkg2
@@ -291,7 +289,11 @@ organisation and use that everywhere. If the thing being installed requires
 "helloworld" to be installed, your fixed version specified in your constraints
 file will be used.
 
-Constraints file support was added in pip 7.1.
+Constraints file support was added in pip 7.1. In :ref:`Resolver
+changes 2020` we did a fairly comprehensive overhaul, removing several
+undocumented and unsupported quirks from the previous implementation,
+and stripped constraints files down to being purely a way to specify
+global (version) limits for packages.
 
 .. _`Installing from Wheels`:
 
@@ -1437,17 +1439,37 @@ time to fix the underlying problem in the packages, because pip will
 be stricter from here on out.
 
 This also means that, when you run a ``pip install`` command, pip only
-considers the packages you are installing in that command, and may
-break already-installed packages. It will not guarantee that your
+considers the packages you are installing in that command, and **may
+break already-installed packages**. It will not guarantee that your
 environment will be consistent all the time. If you ``pip install x``
 and then ``pip install y``, it's possible that the version of ``y``
 you get will be different than it would be if you had run ``pip
-install x y`` in a single command. We would like your thoughts on what
+install x y`` in a single command. We are considering changing this
+behavior (per :issue:`7744`) and would like your thoughts on what
 pip's behavior should be; please answer `our survey on upgrades that
 create conflicts`_.
 
-We are also changing our support for :ref:`Constraints Files`:
+We are also changing our support for :ref:`Constraints Files`,
+editable installs, and related functionality. We did a fairly
+comprehensive overhaul and stripped constraints files down to being
+purely a way to specify global (version) limits for packages, and so
+some combinations that used to be allowed will now cause
+errors. Specifically:
 
+* Constraints don't override the existing requirements; they simply
+  constrain what versions are visible as input to the resolver (see
+  :issue:`9020`)
+* Providing an editable requirement (``-e .``) does not cause pip to
+  ignore version specifiers or constraints (see :issue:`8076`), and if
+  you have a conflict between a pinned requirement and a local
+  directory then pip will indicate that it cannot find a version
+  satisfying both (see :issue:`8307`)
+* Hash-checking mode requires that all requirements are specified as a
+  ``==`` match on a version and may not work well in combination with
+  constraints (see :issue:`9020` and :issue:`8792`)
+* If necessary to satisfy constraints, pip will happily reinstall
+  packages, upgrading or downgrading, without needing any additional
+  command-line options (see :issue:`8115` and :doc:`development/architecture/upgrade-options`)
 * Unnamed requirements are not allowed as constraints (see :issue:`6628` and :issue:`8210`)
 * Links are not allowed as constraints (see :issue:`8253`)
 * Constraints cannot have extras (see :issue:`6628`)
