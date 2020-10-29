@@ -9,8 +9,6 @@ from pip._internal.operations.freeze import freeze
 from pip._internal.utils.compat import stdlib_pkgs
 from pip._internal.utils.deprecation import deprecated
 
-DEV_PKGS = {'pip', 'setuptools', 'distribute', 'wheel'}
-
 
 class FreezeCommand(Command):
     """
@@ -58,10 +56,9 @@ class FreezeCommand(Command):
         self.cmd_opts.add_option(cmdoptions.list_path())
         self.cmd_opts.add_option(
             '--all',
-            dest='freeze_all',
+            dest='freeze_all_used',
             action='store_true',
-            help='Do not skip these packages in the output:'
-                 ' {}'.format(', '.join(DEV_PKGS)))
+            help='Deprecated - Does nothing.')
         self.cmd_opts.add_option(
             '--exclude-editable',
             dest='exclude_editable',
@@ -74,8 +71,13 @@ class FreezeCommand(Command):
     def run(self, options, args):
         # type: (Values, List[str]) -> int
         skip = set(stdlib_pkgs)
-        if not options.freeze_all:
-            skip.update(DEV_PKGS)
+
+        if options.freeze_all_used:
+            deprecated(
+                "--all is now the default behavior and does nothing",
+                None,
+                gone_in="23.3",
+            )
 
         if options.excludes:
             skip.update(options.excludes)

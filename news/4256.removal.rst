@@ -1,0 +1,2 @@
+Stop filtering the ``pip``, ``setuptools``, ``distribute`` and ``wheel`` packages from ``pip freeze``.
+The equivalent option ``--all`` is now deprecated and does nothing.

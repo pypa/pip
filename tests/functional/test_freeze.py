@@ -79,7 +79,7 @@ def test_basic_freeze(script):
 
 def test_freeze_with_pip(script):
     """Test pip shows itself"""
-    result = script.pip('freeze', '--all')
+    result = script.pip('freeze')
     assert 'pip==' in result.stdout
 
 
@@ -93,13 +93,10 @@ def test_exclude_and_normalization(script, tmpdir):
     assert "Normalizable-Name" not in result.stdout
 
 
-def test_freeze_multiple_exclude_with_all(script, with_wheel):
-    result = script.pip('freeze', '--all')
-    assert 'pip==' in result.stdout
-    assert 'wheel==' in result.stdout
-    result = script.pip('freeze', '--all', '--exclude', 'pip', '--exclude', 'wheel')
-    assert 'pip==' not in result.stdout
-    assert 'wheel==' not in result.stdout
+def test_freeze_all_deprecated(script):
+    """Test that using --all option produces a warning"""
+    result = script.pip('freeze', '--all', expect_stderr=True)
+    assert '--all is now the default behavior and does nothing' in result.stderr
 
 
 def test_freeze_with_invalid_names(script):
