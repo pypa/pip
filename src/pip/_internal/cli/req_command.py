@@ -195,7 +195,18 @@ class RequirementCommand(IndexGroupCommand):
         self.cmd_opts.add_option(cmdoptions.no_clean())
 
     @staticmethod
+    def determine_resolver_variant(options):
+        # type: (Values) -> str
+        """Determines which resolver should be used, based on the given options."""
+        if '2020-resolver' in options.features_enabled:
+            resolver_variant = "2020-resolver"
+        else:
+            resolver_variant = "legacy"
+        return resolver_variant
+
+    @classmethod
     def make_requirement_preparer(
+        cls,
         temp_build_dir,           # type: TempDirectory
         options,                  # type: Values
         req_tracker,              # type: RequirementTracker
@@ -211,7 +222,8 @@ class RequirementCommand(IndexGroupCommand):
         temp_build_dir_path = temp_build_dir.path
         assert temp_build_dir_path is not None
 
-        if '2020-resolver' in options.features_enabled:
+        resolver_variant = cls.determine_resolver_variant(options)
+        if resolver_variant == "2020-resolver":
             lazy_wheel = 'fast-deps' in options.features_enabled
             if lazy_wheel:
                 logger.warning(
@@ -238,8 +250,9 @@ class RequirementCommand(IndexGroupCommand):
             lazy_wheel=lazy_wheel,
         )
 
-    @staticmethod
+    @classmethod
     def make_resolver(
+        cls,
         preparer,                            # type: RequirementPreparer
         finder,                              # type: PackageFinder
         options,                             # type: Values
@@ -250,7 +263,7 @@ class RequirementCommand(IndexGroupCommand):
         force_reinstall=False,               # type: bool
         upgrade_strategy="to-satisfy-only",  # type: str
         use_pep517=None,                     # type: Optional[bool]
-        py_version_info=None            # type: Optional[Tuple[int, ...]]
+        py_version_info=None,                # type: Optional[Tuple[int, ...]]
     ):
         # type: (...) -> BaseResolver
         """
@@ -261,10 +274,11 @@ class RequirementCommand(IndexGroupCommand):
             isolated=options.isolated_mode,
             use_pep517=use_pep517,
         )
+        resolver_variant = cls.determine_resolver_variant(options)
         # The long import name and duplicated invocation is needed to convince
         # Mypy into correctly typechecking. Otherwise it would complain the
         # "Resolver" class being redefined.
-        if '2020-resolver' in options.features_enabled:
+        if resolver_variant == "2020-resolver":
             import pip._internal.resolution.resolvelib.resolver
 
             return pip._internal.resolution.resolvelib.resolver.Resolver(
