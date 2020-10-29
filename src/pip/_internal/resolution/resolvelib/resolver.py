@@ -1,5 +1,6 @@
 import functools
 import logging
+import os
 
 from pip._vendor import six
 from pip._vendor.packaging.utils import canonicalize_name
@@ -11,7 +12,10 @@ from pip._internal.req.req_install import check_invalid_constraint_type
 from pip._internal.req.req_set import RequirementSet
 from pip._internal.resolution.base import BaseResolver
 from pip._internal.resolution.resolvelib.provider import PipProvider
-from pip._internal.resolution.resolvelib.reporter import PipReporter
+from pip._internal.resolution.resolvelib.reporter import (
+    PipDebuggingReporter,
+    PipReporter,
+)
 from pip._internal.utils.misc import dist_is_editable
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -104,7 +108,10 @@ class Resolver(BaseResolver):
             upgrade_strategy=self.upgrade_strategy,
             user_requested=user_requested,
         )
-        reporter = PipReporter()
+        if "PIP_RESOLVER_DEBUG" in os.environ:
+            reporter = PipDebuggingReporter()
+        else:
+            reporter = PipReporter()
         resolver = RLResolver(provider, reporter)
 
         try:
