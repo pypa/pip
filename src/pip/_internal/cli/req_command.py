@@ -9,6 +9,8 @@ import logging
 import os
 from functools import partial
 
+from pip._vendor.six import PY2
+
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.command_context import CommandContextMixIn
@@ -198,11 +200,26 @@ class RequirementCommand(IndexGroupCommand):
     def determine_resolver_variant(options):
         # type: (Values) -> str
         """Determines which resolver should be used, based on the given options."""
+        # We didn't want to change things for Python 2, since it's nearly done with
+        # and we're using performance improvements that only work on Python 3.
+        if PY2:
+            if '2020-resolver' in options.features_enabled:
+                return "2020-resolver"
+            else:
+                return "legacy"
+
+        # Warn about the options that are gonna be removed.
         if '2020-resolver' in options.features_enabled:
-            resolver_variant = "2020-resolver"
-        else:
-            resolver_variant = "legacy"
-        return resolver_variant
+            logger.warning(
+                "--use-feature=2020-resolver no longer has any effect, "
+                "since it is now the default dependency resolver in pip. "
+                "This will become an error in pip 21.0."
+            )
+
+        if "legacy-resolver" in options.deprecated_features_enabled:
+            return "legacy"
+
+        return "2020-resolver"
 
     @classmethod
     def make_requirement_preparer(
@@ -235,7 +252,7 @@ class RequirementCommand(IndexGroupCommand):
                 )
         else:
             lazy_wheel = False
-            if lazy_wheel:
+            if 'fast-deps' in options.features_enabled:
                 logger.warning(
                     'fast-deps has no effect when used with the legacy resolver.'
                 )
