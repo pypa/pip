@@ -905,7 +905,7 @@ use_deprecated_feature = partial(
     metavar='feature',
     action='append',
     default=[],
-    choices=[],
+    choices=['legacy-resolver'],
     help=(
         'Enable deprecated functionality, that will be removed in the future.'
     ),
