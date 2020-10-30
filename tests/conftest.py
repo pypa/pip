@@ -39,16 +39,11 @@ def pytest_addoption(parser):
         help="keep temporary test directories",
     )
     parser.addoption(
-        "--new-resolver",
-        action="store_true",
-        default=False,
-        help="use new resolver in tests",
-    )
-    parser.addoption(
-        "--new-resolver-runtests",
-        action="store_true",
-        default=False,
-        help="run the skipped tests for the new resolver",
+        "--resolver",
+        action="store",
+        default="2020-resolver",
+        choices=["2020-resolver", "legacy"],
+        help="use given resolver in tests",
     )
     parser.addoption(
         "--use-venv",
@@ -100,17 +95,17 @@ def pytest_collection_modifyitems(config, items):
 def resolver_variant(request):
     """Set environment variable to make pip default to the correct resolver.
     """
-    new_resolver = request.config.getoption("--new-resolver")
+    resolver = request.config.getoption("--resolver")
+
+    # Handle the environment variables for this test.
     features = set(os.environ.get("PIP_USE_FEATURE", "").split())
     if new_resolver:
-        retval = "2020-resolver"
         features.add("2020-resolver")
     else:
-        retval = "legacy"
         features.discard("2020-resolver")
 
     with patch.dict(os.environ, {"PIP_USE_FEATURE": " ".join(features)}):
-        yield retval
+        yield resolver
 
 
 @pytest.fixture(scope='session')
