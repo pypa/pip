@@ -193,7 +193,7 @@ def test_pip_wheel_fail(script, data):
 def test_no_clean_option_blocks_cleaning_after_wheel(
     script,
     data,
-    use_new_resolver,
+    resolver_variant,
 ):
     """
     Test --no-clean option blocks cleaning after wheel build
@@ -209,7 +209,7 @@ def test_no_clean_option_blocks_cleaning_after_wheel(
         allow_stderr_warning=True,
     )
 
-    if not use_new_resolver:
+    if resolver_variant == "legacy":
         build = build / 'simple'
         message = "build/simple should still exist {}".format(result)
         assert exists(build), message

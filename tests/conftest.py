@@ -39,16 +39,11 @@ def pytest_addoption(parser):
         help="keep temporary test directories",
     )
     parser.addoption(
-        "--new-resolver",
-        action="store_true",
-        default=False,
-        help="use new resolver in tests",
-    )
-    parser.addoption(
-        "--new-resolver-runtests",
-        action="store_true",
-        default=False,
-        help="run the skipped tests for the new resolver",
+        "--resolver",
+        action="store",
+        default="2020-resolver",
+        choices=["2020-resolver", "legacy"],
+        help="use given resolver in tests",
     )
     parser.addoption(
         "--use-venv",
@@ -67,12 +62,6 @@ def pytest_collection_modifyitems(config, items):
             # Mark network tests as flaky
             if item.get_closest_marker('network') is not None:
                 item.add_marker(pytest.mark.flaky(reruns=3, reruns_delay=2))
-
-        if (item.get_closest_marker('fails_on_new_resolver') and
-                config.getoption("--new-resolver") and
-                not config.getoption("--new-resolver-runtests")):
-            item.add_marker(pytest.mark.skip(
-                'This test does not work with the new resolver'))
 
         if six.PY3:
             if (item.get_closest_marker('incompatible_with_test_venv') and
@@ -103,17 +92,32 @@ def pytest_collection_modifyitems(config, items):
 
 
 @pytest.fixture(scope="session", autouse=True)
-def use_new_resolver(request):
-    """Set environment variable to make pip default to the new resolver.
+def resolver_variant(request):
+    """Set environment variable to make pip default to the correct resolver.
     """
-    new_resolver = request.config.getoption("--new-resolver")
+    resolver = request.config.getoption("--resolver")
+
+    # Handle the environment variables for this test.
     features = set(os.environ.get("PIP_USE_FEATURE", "").split())
-    if new_resolver:
-        features.add("2020-resolver")
+    deprecated_features = set(os.environ.get("PIP_USE_DEPRECATED", "").split())
+
+    if six.PY3:
+        if resolver == "legacy":
+            deprecated_features.add("legacy-resolver")
+        else:
+            deprecated_features.discard("legacy-resolver")
     else:
-        features.discard("2020-resolver")
-    with patch.dict(os.environ, {"PIP_USE_FEATURE": " ".join(features)}):
-        yield new_resolver
+        if resolver == "2020-resolver":
+            features.add("2020-resolver")
+        else:
+            features.discard("2020-resolver")
+
+    env = {
+        "PIP_USE_FEATURE": " ".join(features),
+        "PIP_USE_DEPRECATED": " ".join(deprecated_features),
+    }
+    with patch.dict(os.environ, env):
+        yield resolver
 
 
 @pytest.fixture(scope='session')

@@ -11,7 +11,7 @@ cases:
     - install: A
   response:
     - state: null
-  skip: old
+  skip: legacy
   # -- currently the error message is:
   # Could not find a version that satisfies the requirement C==2.0.0 (from a)
   # Could not find a version that satisfies the requirement C==1.0.0 (from b)

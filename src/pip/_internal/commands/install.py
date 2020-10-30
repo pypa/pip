@@ -427,7 +427,7 @@ class InstallCommand(RequirementCommand):
             if conflicts is not None:
                 self._warn_about_conflicts(
                     conflicts,
-                    new_resolver='2020-resolver' in options.features_enabled,
+                    resolver_variant=self.determine_resolver_variant(options),
                 )
 
             installed_desc = ' '.join(items)
@@ -520,14 +520,14 @@ class InstallCommand(RequirementCommand):
             )
             return None
 
-    def _warn_about_conflicts(self, conflict_details, new_resolver):
-        # type: (ConflictDetails, bool) -> None
+    def _warn_about_conflicts(self, conflict_details, resolver_variant):
+        # type: (ConflictDetails, str) -> None
         package_set, (missing, conflicting) = conflict_details
         if not missing and not conflicting:
             return
 
         parts = []  # type: List[str]
-        if not new_resolver:
+        if resolver_variant == "legacy":
             parts.append(
                 "After October 2020 you may experience errors when installing "
                 "or updating packages. This is because pip will change the "

@@ -15,4 +15,4 @@ cases:
     - error:
         code: 0
         stderr: ['c==1\.0\.0', 'incompatible']
-  skip: old
+  skip: legacy

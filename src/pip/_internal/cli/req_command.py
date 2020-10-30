@@ -9,6 +9,8 @@ import logging
 import os
 from functools import partial
 
+from pip._vendor.six import PY2
+
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.command_context import CommandContextMixIn
@@ -195,7 +197,33 @@ class RequirementCommand(IndexGroupCommand):
         self.cmd_opts.add_option(cmdoptions.no_clean())
 
     @staticmethod
+    def determine_resolver_variant(options):
+        # type: (Values) -> str
+        """Determines which resolver should be used, based on the given options."""
+        # We didn't want to change things for Python 2, since it's nearly done with
+        # and we're using performance improvements that only work on Python 3.
+        if PY2:
+            if '2020-resolver' in options.features_enabled:
+                return "2020-resolver"
+            else:
+                return "legacy"
+
+        # Warn about the options that are gonna be removed.
+        if '2020-resolver' in options.features_enabled:
+            logger.warning(
+                "--use-feature=2020-resolver no longer has any effect, "
+                "since it is now the default dependency resolver in pip. "
+                "This will become an error in pip 21.0."
+            )
+
+        if "legacy-resolver" in options.deprecated_features_enabled:
+            return "legacy"
+
+        return "2020-resolver"
+
+    @classmethod
     def make_requirement_preparer(
+        cls,
         temp_build_dir,           # type: TempDirectory
         options,                  # type: Values
         req_tracker,              # type: RequirementTracker
@@ -211,7 +239,8 @@ class RequirementCommand(IndexGroupCommand):
         temp_build_dir_path = temp_build_dir.path
         assert temp_build_dir_path is not None
 
-        if '2020-resolver' in options.features_enabled:
+        resolver_variant = cls.determine_resolver_variant(options)
+        if resolver_variant == "2020-resolver":
             lazy_wheel = 'fast-deps' in options.features_enabled
             if lazy_wheel:
                 logger.warning(
@@ -223,6 +252,10 @@ class RequirementCommand(IndexGroupCommand):
                 )
         else:
             lazy_wheel = False
+            if 'fast-deps' in options.features_enabled:
+                logger.warning(
+                    'fast-deps has no effect when used with the legacy resolver.'
+                )
 
         return RequirementPreparer(
             build_dir=temp_build_dir_path,
@@ -238,8 +271,9 @@ class RequirementCommand(IndexGroupCommand):
             lazy_wheel=lazy_wheel,
         )
 
-    @staticmethod
+    @classmethod
     def make_resolver(
+        cls,
         preparer,                            # type: RequirementPreparer
         finder,                              # type: PackageFinder
         options,                             # type: Values
@@ -250,7 +284,7 @@ class RequirementCommand(IndexGroupCommand):
         force_reinstall=False,               # type: bool
         upgrade_strategy="to-satisfy-only",  # type: str
         use_pep517=None,                     # type: Optional[bool]
-        py_version_info=None            # type: Optional[Tuple[int, ...]]
+        py_version_info=None,                # type: Optional[Tuple[int, ...]]
     ):
         # type: (...) -> BaseResolver
         """
@@ -261,10 +295,11 @@ class RequirementCommand(IndexGroupCommand):
             isolated=options.isolated_mode,
             use_pep517=use_pep517,
         )
+        resolver_variant = cls.determine_resolver_variant(options)
         # The long import name and duplicated invocation is needed to convince
         # Mypy into correctly typechecking. Otherwise it would complain the
         # "Resolver" class being redefined.
-        if '2020-resolver' in options.features_enabled:
+        if resolver_variant == "2020-resolver":
             import pip._internal.resolution.resolvelib.resolver
 
             return pip._internal.resolution.resolvelib.resolver.Resolver(
