@@ -941,7 +941,7 @@ def test_install_nonlocal_compatible_wheel(script, data):
 def test_install_nonlocal_compatible_wheel_path(
     script,
     data,
-    use_new_resolver
+    resolver_variant,
 ):
     target_dir = script.scratch_path / 'target'
 
@@ -952,9 +952,9 @@ def test_install_nonlocal_compatible_wheel_path(
         '--no-index',
         '--only-binary=:all:',
         Path(data.packages) / 'simplewheel-2.0-py3-fakeabi-fakeplat.whl',
-        expect_error=use_new_resolver
+        expect_error=(resolver_variant == "2020-resolver"),
     )
-    if use_new_resolver:
+    if resolver_variant == "2020-resolver":
         assert result.returncode == ERROR
     else:
         assert result.returncode == SUCCESS
@@ -1456,7 +1456,7 @@ def test_install_no_binary_disables_cached_wheels(script, data, with_wheel):
     assert "Running setup.py install for upper" in str(res), str(res)
 
 
-def test_install_editable_with_wrong_egg_name(script, use_new_resolver):
+def test_install_editable_with_wrong_egg_name(script, resolver_variant):
     script.scratch_path.joinpath("pkga").mkdir()
     pkga_path = script.scratch_path / 'pkga'
     pkga_path.joinpath("setup.py").write_text(textwrap.dedent("""
@@ -1467,12 +1467,12 @@ def test_install_editable_with_wrong_egg_name(script, use_new_resolver):
     result = script.pip(
         'install', '--editable',
         'file://{pkga_path}#egg=pkgb'.format(**locals()),
-        expect_error=use_new_resolver,
+        expect_error=(resolver_variant == "2020-resolver"),
     )
     assert ("Generating metadata for package pkgb produced metadata "
             "for project name pkga. Fix your #egg=pkgb "
             "fragments.") in result.stderr
-    if use_new_resolver:
+    if resolver_variant == "2020-resolver":
         assert "has different name in metadata" in result.stderr, str(result)
     else:
         assert "Successfully installed pkga" in str(result), str(result)
@@ -1505,7 +1505,7 @@ def test_double_install(script):
     assert msg not in result.stderr
 
 
-def test_double_install_fail(script, use_new_resolver):
+def test_double_install_fail(script, resolver_variant):
     """
     Test double install failing with two different version requirements
     """
@@ -1514,9 +1514,9 @@ def test_double_install_fail(script, use_new_resolver):
         'pip==7.*',
         'pip==7.1.2',
         # The new resolver is perfectly capable of handling this
-        expect_error=(not use_new_resolver)
+        expect_error=(resolver_variant == "legacy"),
     )
-    if not use_new_resolver:
+    if resolver_variant == "legacy":
         msg = ("Double requirement given: pip==7.1.2 (already in pip==7.*, "
                "name='pip')")
         assert msg in result.stderr
@@ -1770,11 +1770,11 @@ def test_user_config_accepted(script):
 )
 @pytest.mark.parametrize("use_module", [True, False])
 def test_install_pip_does_not_modify_pip_when_satisfied(
-        script, install_args, expected_message, use_module, use_new_resolver):
+        script, install_args, expected_message, use_module, resolver_variant):
     """
     Test it doesn't upgrade the pip if it already satisfies the requirement.
     """
-    variation = "satisfied" if use_new_resolver else "up-to-date"
+    variation = "satisfied" if resolver_variant else "up-to-date"
     expected_message = expected_message.format(variation)
     result = script.pip_install_local(
         'pip', *install_args, use_module=use_module

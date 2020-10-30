@@ -376,7 +376,7 @@ def test_constraints_local_install_causes_error(script, data):
 def test_constraints_constrain_to_local_editable(
     script,
     data,
-    use_new_resolver
+    resolver_variant,
 ):
     to_install = data.src.joinpath("singlemodule")
     script.scratch_path.joinpath("constraints.txt").write_text(
@@ -386,15 +386,15 @@ def test_constraints_constrain_to_local_editable(
         'install', '--no-index', '-f', data.find_links, '-c',
         script.scratch_path / 'constraints.txt', 'singlemodule',
         allow_stderr_warning=True,
-        expect_error=use_new_resolver
+        expect_error=(resolver_variant == "2020-resolver"),
     )
-    if use_new_resolver:
+    if resolver_variant == "2020-resolver":
         assert 'Links are not allowed as constraints' in result.stderr
     else:
         assert 'Running setup.py develop for singlemodule' in result.stdout
 
 
-def test_constraints_constrain_to_local(script, data, use_new_resolver):
+def test_constraints_constrain_to_local(script, data, resolver_variant):
     to_install = data.src.joinpath("singlemodule")
     script.scratch_path.joinpath("constraints.txt").write_text(
         "{url}#egg=singlemodule".format(url=path_to_url(to_install))
@@ -403,15 +403,15 @@ def test_constraints_constrain_to_local(script, data, use_new_resolver):
         'install', '--no-index', '-f', data.find_links, '-c',
         script.scratch_path / 'constraints.txt', 'singlemodule',
         allow_stderr_warning=True,
-        expect_error=use_new_resolver
+        expect_error=(resolver_variant == "2020-resolver"),
     )
-    if use_new_resolver:
+    if resolver_variant == "2020-resolver":
         assert 'Links are not allowed as constraints' in result.stderr
     else:
         assert 'Running setup.py install for singlemodule' in result.stdout
 
 
-def test_constrained_to_url_install_same_url(script, data, use_new_resolver):
+def test_constrained_to_url_install_same_url(script, data, resolver_variant):
     to_install = data.src.joinpath("singlemodule")
     constraints = path_to_url(to_install) + "#egg=singlemodule"
     script.scratch_path.joinpath("constraints.txt").write_text(constraints)
@@ -419,9 +419,9 @@ def test_constrained_to_url_install_same_url(script, data, use_new_resolver):
         'install', '--no-index', '-f', data.find_links, '-c',
         script.scratch_path / 'constraints.txt', to_install,
         allow_stderr_warning=True,
-        expect_error=use_new_resolver
+        expect_error=(resolver_variant == "2020-resolver"),
     )
-    if use_new_resolver:
+    if resolver_variant == "2020-resolver":
         assert 'Links are not allowed as constraints' in result.stderr
     else:
         assert ('Running setup.py install for singlemodule'
@@ -462,7 +462,7 @@ def test_double_install_spurious_hash_mismatch(
         assert 'Successfully installed simple-1.0' in str(result)
 
 
-def test_install_with_extras_from_constraints(script, data, use_new_resolver):
+def test_install_with_extras_from_constraints(script, data, resolver_variant):
     to_install = data.packages.joinpath("LocalExtras")
     script.scratch_path.joinpath("constraints.txt").write_text(
         "{url}#egg=LocalExtras[bar]".format(url=path_to_url(to_install))
@@ -470,9 +470,9 @@ def test_install_with_extras_from_constraints(script, data, use_new_resolver):
     result = script.pip_install_local(
         '-c', script.scratch_path / 'constraints.txt', 'LocalExtras',
         allow_stderr_warning=True,
-        expect_error=use_new_resolver
+        expect_error=(resolver_variant == "2020-resolver"),
     )
-    if use_new_resolver:
+    if resolver_variant == "2020-resolver":
         assert 'Links are not allowed as constraints' in result.stderr
     else:
         result.did_create(script.site_packages / 'simple')
@@ -494,7 +494,7 @@ def test_install_with_extras_from_install(script):
     result.did_create(script.site_packages / 'singlemodule.py')
 
 
-def test_install_with_extras_joined(script, data, use_new_resolver):
+def test_install_with_extras_joined(script, data, resolver_variant):
     to_install = data.packages.joinpath("LocalExtras")
     script.scratch_path.joinpath("constraints.txt").write_text(
         "{url}#egg=LocalExtras[bar]".format(url=path_to_url(to_install))
@@ -502,16 +502,16 @@ def test_install_with_extras_joined(script, data, use_new_resolver):
     result = script.pip_install_local(
         '-c', script.scratch_path / 'constraints.txt', 'LocalExtras[baz]',
         allow_stderr_warning=True,
-        expect_error=use_new_resolver
+        expect_error=(resolver_variant == "2020-resolver"),
     )
-    if use_new_resolver:
+    if resolver_variant == "2020-resolver":
         assert 'Links are not allowed as constraints' in result.stderr
     else:
         result.did_create(script.site_packages / 'simple')
         result.did_create(script.site_packages / 'singlemodule.py')
 
 
-def test_install_with_extras_editable_joined(script, data, use_new_resolver):
+def test_install_with_extras_editable_joined(script, data, resolver_variant):
     to_install = data.packages.joinpath("LocalExtras")
     script.scratch_path.joinpath("constraints.txt").write_text(
         "-e {url}#egg=LocalExtras[bar]".format(url=path_to_url(to_install))
@@ -519,9 +519,9 @@ def test_install_with_extras_editable_joined(script, data, use_new_resolver):
     result = script.pip_install_local(
         '-c', script.scratch_path / 'constraints.txt', 'LocalExtras[baz]',
         allow_stderr_warning=True,
-        expect_error=use_new_resolver
+        expect_error=(resolver_variant == "2020-resolver"),
     )
-    if use_new_resolver:
+    if resolver_variant == "2020-resolver":
         assert 'Links are not allowed as constraints' in result.stderr
     else:
         result.did_create(script.site_packages / 'simple')
@@ -550,7 +550,7 @@ def test_install_distribution_duplicate_extras(script, data):
 def test_install_distribution_union_with_constraints(
     script,
     data,
-    use_new_resolver
+    resolver_variant,
 ):
     to_install = data.packages.joinpath("LocalExtras")
     script.scratch_path.joinpath("constraints.txt").write_text(
@@ -558,9 +558,9 @@ def test_install_distribution_union_with_constraints(
     result = script.pip_install_local(
         '-c', script.scratch_path / 'constraints.txt', to_install + '[baz]',
         allow_stderr_warning=True,
-        expect_error=use_new_resolver
+        expect_error=(resolver_variant == "2020-resolver"),
     )
-    if use_new_resolver:
+    if resolver_variant == "2020-resolver":
         msg = 'Unnamed requirements are not allowed as constraints'
         assert msg in result.stderr
     else:
@@ -571,16 +571,16 @@ def test_install_distribution_union_with_constraints(
 def test_install_distribution_union_with_versions(
     script,
     data,
-    use_new_resolver,
+    resolver_variant,
 ):
     to_install_001 = data.packages.joinpath("LocalExtras")
     to_install_002 = data.packages.joinpath("LocalExtras-0.0.2")
     result = script.pip_install_local(
         to_install_001 + "[bar]",
         to_install_002 + "[baz]",
-        expect_error=use_new_resolver,
+        expect_error=(resolver_variant == "2020-resolver"),
     )
-    if use_new_resolver:
+    if resolver_variant == "2020-resolver":
         assert (
             "Cannot install localextras[bar] 0.0.1 and localextras[baz] 0.0.2 "
             "because these package versions have conflicting dependencies."

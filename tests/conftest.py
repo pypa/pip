@@ -103,17 +103,20 @@ def pytest_collection_modifyitems(config, items):
 
 
 @pytest.fixture(scope="session", autouse=True)
-def use_new_resolver(request):
-    """Set environment variable to make pip default to the new resolver.
+def resolver_variant(request):
+    """Set environment variable to make pip default to the correct resolver.
     """
     new_resolver = request.config.getoption("--new-resolver")
     features = set(os.environ.get("PIP_USE_FEATURE", "").split())
     if new_resolver:
+        retval = "2020-resolver"
         features.add("2020-resolver")
     else:
+        retval = "legacy"
         features.discard("2020-resolver")
+
     with patch.dict(os.environ, {"PIP_USE_FEATURE": " ".join(features)}):
-        yield new_resolver
+        yield retval
 
 
 @pytest.fixture(scope='session')
