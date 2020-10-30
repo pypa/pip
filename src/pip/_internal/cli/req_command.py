@@ -235,6 +235,10 @@ class RequirementCommand(IndexGroupCommand):
                 )
         else:
             lazy_wheel = False
+            if lazy_wheel:
+                logger.warning(
+                    'fast-deps has no effect when used with the legacy resolver.'
+                )
 
         return RequirementPreparer(
             build_dir=temp_build_dir_path,
