@@ -582,21 +582,20 @@ def test_install_distribution_union_with_versions(
         expect_error=(resolver_variant == "2020-resolver"),
     )
     if resolver_variant == "2020-resolver":
-        assert (
-            "Cannot install localextras[bar] 0.0.1 and localextras[baz] 0.0.2 "
-            "because these package versions have conflicting dependencies."
-        ) in result.stderr, str(result)
+        packages = ["localextras[bar] 0.0.1", "localextras[baz] 0.0.2"]
+
+        assert "Cannot install localextras[bar]" in result.stderr
         assert (
             "localextras[bar] 0.0.1 depends on localextras 0.0.1"
-        ) in result.stdout, str(result)
+        ) in result.stdout
         assert (
             "localextras[baz] 0.0.2 depends on localextras 0.0.2"
-        ) in result.stdout, str(result)
+        ) in result.stdout
     else:
         assert (
             "Successfully installed LocalExtras-0.0.1 simple-3.0 "
             "singlemodule-0.0.1"
-        ) in result.stdout, str(result)
+        ) in result.stdout
 
 
 @pytest.mark.xfail
