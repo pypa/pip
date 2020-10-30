@@ -1,0 +1,2 @@
+Fix devendoring instructions to explicitly state that ``vendor.txt`` should not be removed.
+It is mandatory for ``pip debug`` command.
