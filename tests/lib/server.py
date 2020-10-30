@@ -97,7 +97,10 @@ def _mock_wsgi_adapter(mock):
     """
     def adapter(environ, start_response):
         # type: (Environ, StartResponse) -> Body
-        responder = mock(environ, start_response)
+        try:
+            responder = mock(environ, start_response)
+        except StopIteration:
+            raise RuntimeError('Ran out of mocked responses.')
         return responder(environ, start_response)
 
     return adapter
