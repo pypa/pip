@@ -37,7 +37,7 @@ def test_new_resolver_target_checks_compatibility_failure(
 ):
     fake_wheel_tag = "fakepy1-fakeabi-fakeplat"
     args = [
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--only-binary=:all:",
         "--no-cache-dir", "--no-index",
         "--target", str(script.scratch_path.joinpath("target")),

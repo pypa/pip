@@ -407,7 +407,7 @@ def test_vcs_url_urlquote_normalization(script, tmpdir):
     )
 
 
-@pytest.mark.parametrize("resolver", ["", "--use-feature=2020-resolver"])
+@pytest.mark.parametrize("resolver", ["", "--use-deprecated=legacy-resolver"])
 def test_basic_install_from_local_directory(
     script, data, resolver, with_wheel
 ):

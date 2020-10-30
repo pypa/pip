@@ -99,12 +99,24 @@ def resolver_variant(request):
 
     # Handle the environment variables for this test.
     features = set(os.environ.get("PIP_USE_FEATURE", "").split())
-    if new_resolver:
-        features.add("2020-resolver")
-    else:
-        features.discard("2020-resolver")
+    deprecated_features = set(os.environ.get("PIP_USE_DEPRECATED", "").split())
 
-    with patch.dict(os.environ, {"PIP_USE_FEATURE": " ".join(features)}):
+    if six.PY3:
+        if resolver == "legacy":
+            deprecated_features.add("legacy-resolver")
+        else:
+            deprecated_features.discard("legacy-resolver")
+    else:
+        if resolver == "2020-resolver":
+            features.add("2020-resolver")
+        else:
+            features.discard("2020-resolver")
+
+    env = {
+        "PIP_USE_FEATURE": " ".join(features),
+        "PIP_USE_DEPRECATED": " ".join(deprecated_features),
+    }
+    with patch.dict(os.environ, env):
         yield resolver
 
 
