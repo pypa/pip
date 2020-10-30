@@ -39,7 +39,7 @@ cases:
       - D 1.0.0
       - E 1.0.0
       - F 1.0.0
-  skip: old
+  skip: legacy
 -
   request:
     - install: D[extra_1]
