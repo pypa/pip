@@ -68,12 +68,6 @@ def pytest_collection_modifyitems(config, items):
             if item.get_closest_marker('network') is not None:
                 item.add_marker(pytest.mark.flaky(reruns=3, reruns_delay=2))
 
-        if (item.get_closest_marker('fails_on_new_resolver') and
-                config.getoption("--new-resolver") and
-                not config.getoption("--new-resolver-runtests")):
-            item.add_marker(pytest.mark.skip(
-                'This test does not work with the new resolver'))
-
         if six.PY3:
             if (item.get_closest_marker('incompatible_with_test_venv') and
                     config.getoption("--use-venv")):
