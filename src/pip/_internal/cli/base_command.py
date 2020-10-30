@@ -10,6 +10,8 @@ import platform
 import sys
 import traceback
 
+from pip._vendor.six import PY2
+
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.command_context import CommandContextMixIn
 from pip._internal.cli.parser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
@@ -203,6 +205,13 @@ class Command(CommandContextMixIn):
                 "has been replaced with --use-feature=2020-resolver instead."
             )
             sys.exit(ERROR)
+
+        if '2020-resolver' in options.features_enabled and not PY2:
+            logger.warning(
+                "--use-feature=2020-resolver no longer has any effect, "
+                "since it is now the default dependency resolver in pip. "
+                "This will become an error in pip 21.0."
+            )
 
         try:
             status = self.run(options, args)
