@@ -1473,8 +1473,8 @@ If you'd prefer not to wait, you can interrupt pip (ctrl and c) and use
 
 .. _2-reduce-the-versions-of-the-backtracking-package:
 
-2. Reduce the versions of the backtracking package
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+2. Reduce the number of versions pip will try to backtrack through
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 If pip is backtracking more than you'd like, the next option is to
 constrain the number of package versions it tries.
