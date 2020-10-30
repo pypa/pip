@@ -585,18 +585,18 @@ def test_install_distribution_union_with_versions(
         assert (
             "Cannot install localextras[bar] 0.0.1 and localextras[baz] 0.0.2 "
             "because these package versions have conflicting dependencies."
-        ) in result.stderr
+        ) in result.stderr, str(result)
         assert (
             "localextras[bar] 0.0.1 depends on localextras 0.0.1"
-        ) in result.stdout
+        ) in result.stdout, str(result)
         assert (
             "localextras[baz] 0.0.2 depends on localextras 0.0.2"
-        ) in result.stdout
+        ) in result.stdout, str(result)
     else:
         assert (
             "Successfully installed LocalExtras-0.0.1 simple-3.0 "
             "singlemodule-0.0.1"
-        ) in result.stdout
+        ) in result.stdout, str(result)
 
 
 @pytest.mark.xfail
