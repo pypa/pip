@@ -1,0 +1,1 @@
+Deprecate ``--find-links`` option in ``pip freeze``

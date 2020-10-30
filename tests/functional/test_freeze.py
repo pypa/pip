@@ -358,7 +358,8 @@ def test_freeze_mercurial_clone_srcdir(script, tmpdir):
     _check_output(result.stdout, expected)
 
     result = script.pip(
-        'freeze', '-f', '{repo_dir}#egg=pip_test_package'.format(**locals())
+        'freeze', '-f', '{repo_dir}#egg=pip_test_package'.format(**locals()),
+        expect_stderr=True,
     )
     expected = textwrap.dedent(
         """
