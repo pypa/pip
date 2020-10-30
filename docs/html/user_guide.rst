@@ -1469,7 +1469,7 @@ However there is a possibility pip will not be able to find a set of
 compatible versions.
 
 If you'd prefer not to wait, you can interrupt pip (ctrl and c) and use
-constraints to reduce the number of package versions it tries.
+:ref:`Constraints Files`: to reduce the number of package versions it tries.
 
 .. _2-reduce-the-versions-of-the-backtracking-package:
 
