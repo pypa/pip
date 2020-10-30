@@ -1837,6 +1837,7 @@ def test_install_yanked_file_and_print_warning(script, data):
     assert 'Successfully installed simple-3.0\n' in result.stdout, str(result)
 
 
+@skip_if_python2
 @pytest.mark.parametrize("install_args", [
     (),
     ("--trusted-host", "localhost"),
