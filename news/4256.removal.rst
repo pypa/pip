@@ -1,2 +1,0 @@
-``pip freeze`` will stop filtering the ``pip``, ``setuptools``, ``distribute`` and ``wheel`` packages from ``pip freeze`` output in a future version.
-To keep the previous behavior, users should use the new ``--exclude`` option.

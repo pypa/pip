@@ -1,2 +1,0 @@
-Only converts Windows path to unicode on Python 2 to avoid regressions when a
-POSIX environment does not configure the file system encoding correctly.
