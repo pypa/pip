@@ -74,6 +74,7 @@ class FreezeCommand(Command):
             dest='exclude_editable',
             action='store_true',
             help='Exclude editable package from output.')
+        self.cmd_opts.add_option(cmdoptions.list_exclude())
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
@@ -84,6 +85,9 @@ class FreezeCommand(Command):
         skip = set(stdlib_pkgs)
         if not options.freeze_all:
             skip.update(DEV_PKGS)
+
+        if options.excludes:
+            skip.update(options.excludes)
 
         cmdoptions.check_list_path_option(options)
 

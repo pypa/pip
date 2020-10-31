@@ -20,6 +20,8 @@ from functools import partial
 from optparse import SUPPRESS_HELP, Option, OptionGroup
 from textwrap import dedent
 
+from pip._vendor.packaging.utils import canonicalize_name
+
 from pip._internal.cli.progress_bars import BAR_TYPES
 from pip._internal.exceptions import CommandError
 from pip._internal.locations import USER_CACHE_DIR, get_src_prefix
@@ -133,9 +135,15 @@ def _path_option_check(option, opt, value):
     return os.path.expanduser(value)
 
 
+def _package_name_option_check(option, opt, value):
+    # type: (Option, str, str) -> str
+    return canonicalize_name(value)
+
+
 class PipOption(Option):
-    TYPES = Option.TYPES + ("path",)
+    TYPES = Option.TYPES + ("path", "package_name")
     TYPE_CHECKER = Option.TYPE_CHECKER.copy()
+    TYPE_CHECKER["package_name"] = _package_name_option_check
     TYPE_CHECKER["path"] = _path_option_check
 
 
@@ -864,6 +872,17 @@ def check_list_path_option(options):
         raise CommandError(
             "Cannot combine '--path' with '--user' or '--local'"
         )
+
+
+list_exclude = partial(
+    PipOption,
+    '--exclude',
+    dest='excludes',
+    action='append',
+    metavar='package',
+    type='package_name',
+    help="Exclude specified package from the output",
+)  # type: Callable[..., Option]
 
 
 no_python_version_warning = partial(

@@ -3,7 +3,7 @@ import os
 
 import pytest
 
-from tests.lib import create_test_package_with_setup
+from tests.lib import create_test_package_with_setup, wheel
 from tests.lib.path import Path
 
 
@@ -92,6 +92,19 @@ def test_local_columns_flag(simple_script):
     assert 'Version' in result.stdout
     assert 'simple (1.0)' not in result.stdout
     assert 'simple     1.0' in result.stdout, str(result)
+
+
+def test_multiple_exclude_and_normalization(script, tmpdir):
+    req_path = wheel.make_wheel(
+        name="Normalizable_Name", version="1.0").save_to_dir(tmpdir)
+    script.pip("install", "--no-index", req_path)
+    result = script.pip("list")
+    print(result.stdout)
+    assert "Normalizable-Name" in result.stdout
+    assert "pip" in result.stdout
+    result = script.pip("list", "--exclude", "normalizablE-namE", "--exclude", "pIp")
+    assert "Normalizable-Name" not in result.stdout
+    assert "pip" not in result.stdout
 
 
 @pytest.mark.network

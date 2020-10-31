@@ -12,6 +12,7 @@ from pip._internal.exceptions import CommandError
 from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.models.selection_prefs import SelectionPreferences
+from pip._internal.utils.compat import stdlib_pkgs
 from pip._internal.utils.misc import (
     dist_is_editable,
     get_installed_distributions,
@@ -114,6 +115,7 @@ class ListCommand(IndexGroupCommand):
             help='Include editable package from output.',
             default=True,
         )
+        self.cmd_opts.add_option(cmdoptions.list_exclude())
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group, self.parser
         )
@@ -147,12 +149,17 @@ class ListCommand(IndexGroupCommand):
 
         cmdoptions.check_list_path_option(options)
 
+        skip = set(stdlib_pkgs)
+        if options.excludes:
+            skip.update(options.excludes)
+
         packages = get_installed_distributions(
             local_only=options.local,
             user_only=options.user,
             editables_only=options.editable,
             include_editables=options.include_editable,
             paths=options.path,
+            skip=skip,
         )
 
         # get_not_required must be called firstly in order to find and
