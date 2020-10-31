@@ -421,7 +421,7 @@ class Factory(object):
             triggers.append(trigger)
 
         if triggers:
-            info = text_join(triggers)
+            info = text_join(sorted(triggers))
         else:
             info = "the requested packages"
 
