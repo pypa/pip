@@ -1,2 +1,0 @@
-Correctly search for installed distributions in new resolver logic in order
-to not miss packages (virtualenv packages from system-wide-packages for example)

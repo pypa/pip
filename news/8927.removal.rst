@@ -1,1 +1,0 @@
-Document that Python versions are generally supported until PyPI usage falls below 5%.
