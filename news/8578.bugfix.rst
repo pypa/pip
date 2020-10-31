@@ -1,4 +1,0 @@
-Allow specifying verbosity and quiet level via configuration files
-and environment variables. Previously these options were treated as
-boolean values when read from there while through CLI the level can be
-specified.

@@ -1,2 +1,0 @@
-Avoid polluting the destination directory by resolution artifacts
-when the new resolver is used for ``pip download`` or ``pip wheel``.
