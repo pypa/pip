@@ -39,7 +39,12 @@ class Hashes(object):
         :param hashes: A dict of algorithm names pointing to lists of allowed
             hex digests
         """
-        self._allowed = {} if hashes is None else hashes
+        allowed = {}
+        if hashes is not None:
+            for alg, keys in hashes.items():
+                # Make sure values are always sorted (to ease equality checks)
+                allowed[alg] = sorted(keys)
+        self._allowed = allowed
 
     def __and__(self, other):
         # type: (Hashes) -> Hashes
@@ -127,6 +132,22 @@ class Hashes(object):
     def __bool__(self):
         # type: () -> bool
         return self.__nonzero__()
+
+    def __eq__(self, other):
+        # type: (object) -> bool
+        if not isinstance(other, Hashes):
+            return NotImplemented
+        return self._allowed == other._allowed
+
+    def __hash__(self):
+        # type: () -> int
+        return hash(
+            ",".join(sorted(
+                ":".join((alg, digest))
+                for alg, digest_list in self._allowed.items()
+                for digest in digest_list
+            ))
+        )
 
 
 class MissingHashes(Hashes):
