@@ -208,14 +208,6 @@ class RequirementCommand(IndexGroupCommand):
             else:
                 return "legacy"
 
-        # Warn about the options that are gonna be removed.
-        if '2020-resolver' in options.features_enabled:
-            logger.warning(
-                "--use-feature=2020-resolver no longer has any effect, "
-                "since it is now the default dependency resolver in pip. "
-                "This will become an error in pip 21.0."
-            )
-
         if "legacy-resolver" in options.deprecated_features_enabled:
             return "legacy"
 
