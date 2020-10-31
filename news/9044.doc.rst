@@ -1,1 +1,0 @@
-Update user docs to reflect new resolver as default in 20.3.
