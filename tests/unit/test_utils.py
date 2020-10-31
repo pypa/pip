@@ -541,6 +541,16 @@ class TestHashes(object):
         assert not Hashes()
         assert not Hashes({})
 
+    def test_equality(self):
+        assert Hashes() == Hashes()
+        assert Hashes({'sha256': ['abcd']}) == Hashes({'sha256': ['abcd']})
+        assert Hashes({'sha256': ['ab', 'cd']}) == Hashes({'sha256': ['cd', 'ab']})
+
+    def test_hash(self):
+        cache = {}
+        cache[Hashes({'sha256': ['ab', 'cd']})] = 42
+        assert cache[Hashes({'sha256': ['ab', 'cd']})] == 42
+
 
 class TestEncoding(object):
     """Tests for pip._internal.utils.encoding"""
