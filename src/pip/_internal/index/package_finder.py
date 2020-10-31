@@ -863,6 +863,7 @@ class PackageFinder(object):
             hashes=hashes,
         )
 
+    @lru_cache(maxsize=None)
     def find_best_candidate(
         self,
         project_name,       # type: str
