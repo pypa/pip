@@ -1,0 +1,3 @@
+New resolver: Check version equality with ``packaging.version`` to avoid edge
+cases if a wheel used different version normalization logic in its filename
+and metadata.
