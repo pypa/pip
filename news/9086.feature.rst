@@ -1,0 +1,1 @@
+When a revision is specified in a Git URL, use git's partial clone feature to speed up source retrieval.
