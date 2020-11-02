@@ -1,0 +1,108 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+    tags:
+      # Tags for all potential release numbers till 2030.
+      - "2[0-9].[0-3]"         # 20.0 -> 29.3
+      - "2[0-9].[0-3].[0-9]+"  # 20.0.0 -> 29.3.[0-9]+
+  pull_request:
+  schedule:
+    - cron: 0 0 * * MON  # Run every Monday at 00:00 UTC
+
+jobs:
+  pre-commit:
+    name: pre-commit / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}-latest
+
+    strategy:
+      matrix:
+        os: [Ubuntu, Windows, MacOS]
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+      - uses: pre-commit/action@v2.0.0
+
+  packaging:
+    name: Packaging / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}-latest
+
+    strategy:
+      matrix:
+        os: [Ubuntu, Windows, MacOS]
+
+    steps:
+      # Caches
+      - name: Get pip's cache directory
+        id: pip-cache
+        run: echo "::set-output name=dir::$(pip cache dir)"
+      - uses: actions/cache@v1
+        with:
+          path: ${{ steps.pip-cache.outputs.dir }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('tools/requirements/*') }}-${{ hashFiles('tox.ini') }}
+          restore-keys: ${{ runner.os }}-pip-
+
+      # Setup
+      - name: Set up git credentials
+        run: |
+          git config --global user.email "pypa-dev@googlegroups.com"
+          git config --global user.name "pip"
+
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+      - run: pip install tox nox
+
+      # Main check
+      - run: tox -e docs
+      - run: tox -e vendoring
+
+      - run: nox -s prepare-release -- 99.9
+      - run: nox -s build-release -- 99.9
+
+  tests:
+    name: Tests / ${{ matrix.python }} / ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}-latest
+
+    needs: [pre-commit, packaging]
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [Ubuntu, MacOS]
+        python: [2.7, 3.5, 3.6, 3.7, 3.8, 3.9]
+
+    steps:
+      # Caches
+      - name: Get pip's cache directory
+        id: pip-cache
+        run: echo "::set-output name=dir::$(pip cache dir)"
+      - uses: actions/cache@v1
+        with:
+          path: ${{ steps.pip-cache.outputs.dir }}
+          key: ${{ runner.os }}-pip-${{ hashFiles('tools/requirements/*') }}-${{ hashFiles('tox.ini') }}
+          restore-keys: ${{ runner.os }}-pip-
+
+      # Setup
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python }}
+
+      - run: pip install tox 'virtualenv<20'
+
+      # Main check
+      - name: Run unit tests
+        run: >-
+          tox -e py --
+          -m unit
+          --verbose
+          --numprocesses auto
+      - name: Run integration tests
+        run: >-
+          tox -e py --
+          -m integration
+          --verbose
+          --numprocesses auto
+          --duration=5
