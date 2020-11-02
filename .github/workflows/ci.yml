@@ -34,17 +34,6 @@ jobs:
         os: [Ubuntu, Windows, MacOS]
 
     steps:
-      # Caches
-      - name: Get pip's cache directory
-        id: pip-cache
-        run: echo "::set-output name=dir::$(pip cache dir)"
-      - uses: actions/cache@v1
-        with:
-          path: ${{ steps.pip-cache.outputs.dir }}
-          key: ${{ runner.os }}-pip-${{ hashFiles('tools/requirements/*') }}-${{ hashFiles('tox.ini') }}
-          restore-keys: ${{ runner.os }}-pip-
-
-      # Setup
       - name: Set up git credentials
         run: |
           git config --global user.email "pypa-dev@googlegroups.com"
@@ -74,17 +63,6 @@ jobs:
         python: [2.7, 3.5, 3.6, 3.7, 3.8, 3.9]
 
     steps:
-      # Caches
-      - name: Get pip's cache directory
-        id: pip-cache
-        run: echo "::set-output name=dir::$(pip cache dir)"
-      - uses: actions/cache@v1
-        with:
-          path: ${{ steps.pip-cache.outputs.dir }}
-          key: ${{ runner.os }}-pip-${{ hashFiles('tools/requirements/*') }}-${{ hashFiles('tox.ini') }}
-          restore-keys: ${{ runner.os }}-pip-
-
-      # Setup
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
