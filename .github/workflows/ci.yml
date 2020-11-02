@@ -13,12 +13,8 @@ on:
 
 jobs:
   pre-commit:
-    name: pre-commit / ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}-latest
-
-    strategy:
-      matrix:
-        os: [Ubuntu, Windows, MacOS]
+    name: pre-commit
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v2
@@ -26,12 +22,8 @@ jobs:
       - uses: pre-commit/action@v2.0.0
 
   packaging:
-    name: Packaging / ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}-latest
-
-    strategy:
-      matrix:
-        os: [Ubuntu, Windows, MacOS]
+    name: packaging
+    runs-on: ubuntu-latest
 
     steps:
       - name: Set up git credentials
@@ -51,7 +43,7 @@ jobs:
       - run: nox -s build-release -- 99.9
 
   tests:
-    name: Tests / ${{ matrix.python }} / ${{ matrix.os }}
+    name: tests / ${{ matrix.python }} / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}-latest
 
     needs: [pre-commit, packaging]
