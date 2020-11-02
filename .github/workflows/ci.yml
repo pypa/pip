@@ -69,7 +69,6 @@ jobs:
           -m unit
           --verbose
           --numprocesses auto
-          --collect-only
       - name: Run integration tests
         run: >-
           tox -e py --
@@ -77,4 +76,3 @@ jobs:
           --verbose
           --numprocesses auto
           --durations=5
-          --collect-only
