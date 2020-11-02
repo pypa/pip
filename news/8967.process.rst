@@ -1,0 +1,1 @@
+Add 3.9 to the versions tested in CI.
