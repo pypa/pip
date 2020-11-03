@@ -581,6 +581,28 @@ def test_install_from_local_directory_with_symlinks_to_directories(
     result.did_create(dist_info_folder)
 
 
+def test_install_from_local_directory_with_in_tree_build(
+    script, data, with_wheel
+):
+    """
+    Test installing from a local directory with --use-feature=in-tree-build.
+    """
+    to_install = data.packages.joinpath("FSPkg")
+    args = ["install", "--use-feature=in-tree-build", to_install]
+
+    in_tree_build_dir = to_install / "build"
+    assert not in_tree_build_dir.exists()
+    result = script.pip(*args)
+    fspkg_folder = script.site_packages / 'fspkg'
+    dist_info_folder = (
+        script.site_packages /
+        'FSPkg-0.1.dev0.dist-info'
+    )
+    result.did_create(fspkg_folder)
+    result.did_create(dist_info_folder)
+    assert in_tree_build_dir.exists()
+
+
 @pytest.mark.skipif("sys.platform == 'win32' or sys.version_info < (3,)")
 def test_install_from_local_directory_with_socket_file(
     script, data, tmpdir, with_wheel
