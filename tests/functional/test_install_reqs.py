@@ -341,7 +341,11 @@ def test_constraints_only_causes_error(script, data):
     assert 'installed requiresupper' not in result.stdout
 
 
-def test_constraints_local_editable_install_causes_error(script, data):
+def test_constraints_local_editable_install_causes_error(
+    script,
+    data,
+    resolver_variant,
+):
     script.scratch_path.joinpath("constraints.txt").write_text(
         "singlemodule==0.0.0"
     )
@@ -350,7 +354,11 @@ def test_constraints_local_editable_install_causes_error(script, data):
         'install', '--no-index', '-f', data.find_links, '-c',
         script.scratch_path / 'constraints.txt', '-e',
         to_install, expect_error=True)
-    assert 'Could not satisfy constraints for' in result.stderr
+    if resolver_variant == "legacy-resolver":
+        assert 'Could not satisfy constraints' in result.stderr, str(result)
+    else:
+        # Because singlemodule only has 0.0.1 available.
+        assert 'No matching distribution found' in result.stderr, str(result)
 
 
 @pytest.mark.network
@@ -362,7 +370,11 @@ def test_constraints_local_editable_install_pep518(script, data):
         'install', '--no-index', '-f', data.find_links, '-e', to_install)
 
 
-def test_constraints_local_install_causes_error(script, data):
+def test_constraints_local_install_causes_error(
+    script,
+    data,
+    resolver_variant,
+):
     script.scratch_path.joinpath("constraints.txt").write_text(
         "singlemodule==0.0.0"
     )
@@ -371,7 +383,11 @@ def test_constraints_local_install_causes_error(script, data):
         'install', '--no-index', '-f', data.find_links, '-c',
         script.scratch_path / 'constraints.txt',
         to_install, expect_error=True)
-    assert 'Could not satisfy constraints for' in result.stderr
+    if resolver_variant == "legacy-resolver":
+        assert 'Could not satisfy constraints' in result.stderr, str(result)
+    else:
+        # Because singlemodule only has 0.0.1 available.
+        assert 'No matching distribution found' in result.stderr, str(result)
 
 
 def test_constraints_constrain_to_local_editable(
