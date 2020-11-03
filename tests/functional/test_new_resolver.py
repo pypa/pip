@@ -11,6 +11,7 @@ from tests.lib import (
     create_basic_wheel_for_package,
     create_test_package_with_setup,
 )
+from tests.lib.wheel import make_wheel
 
 
 def assert_installed(script, **kwargs):
@@ -1089,3 +1090,45 @@ def test_new_resolver_presents_messages_when_backtracking_a_lot(script, N):
         assert result.stdout.count("This could take a while.") >= 2
     if N >= 13:
         assert "press Ctrl + C" in result.stdout
+
+
+@pytest.mark.parametrize(
+    "metadata_version",
+    [
+        "0.1.0+local.1",  # Normalized form.
+        "0.1.0+local_1",  # Non-normalized form containing an underscore.
+
+        # Non-normalized form containing a dash. This is allowed, installation
+        # works correctly, but assert_installed() fails because pkg_resources
+        # cannot handle it correctly. Nobody is complaining about it right now,
+        # we're probably dropping it for importlib.metadata soon(tm), so let's
+        # ignore it for the time being.
+        pytest.param("0.1.0+local-1", marks=pytest.mark.xfail),
+    ],
+    ids=["meta_dot", "meta_underscore", "meta_dash"],
+)
+@pytest.mark.parametrize(
+    "filename_version",
+    [
+        ("0.1.0+local.1"),  # Tools are encouraged to use this.
+        ("0.1.0+local_1"),  # But this is allowed (version not normalized).
+    ],
+    ids=["file_dot", "file_underscore"],
+)
+def test_new_resolver_check_wheel_version_normalized(
+    script,
+    metadata_version,
+    filename_version,
+):
+    filename = "simple-{}-py2.py3-none-any.whl".format(filename_version)
+
+    wheel_builder = make_wheel(name="simple", version=metadata_version)
+    wheel_builder.save_to(script.scratch_path / filename)
+
+    script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "simple"
+    )
+    assert_installed(script, simple="0.1.0+local.1")

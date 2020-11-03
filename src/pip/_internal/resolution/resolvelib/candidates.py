@@ -283,9 +283,10 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
             )
             # Version may not be present for PEP 508 direct URLs
             if version is not None:
-                assert str(version) == wheel.version, (
+                wheel_version = Version(wheel.version)
+                assert version == wheel_version, (
                     "{!r} != {!r} for wheel {}".format(
-                        version, wheel.version, name
+                        version, wheel_version, name
                     )
                 )
 
