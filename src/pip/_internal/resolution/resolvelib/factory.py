@@ -406,19 +406,19 @@ class Factory(object):
             # type: (Candidate) -> str
             ireq = parent.get_install_requirement()
             if not ireq or not ireq.comes_from:
-                return "{} {}".format(parent.name, parent.version)
+                return "{}=={}".format(parent.name, parent.version)
             if isinstance(ireq.comes_from, InstallRequirement):
                 return str(ireq.comes_from.name)
             return str(ireq.comes_from)
 
-        triggers = []
+        triggers = set()
         for req, parent in e.causes:
             if parent is None:
                 # This is a root requirement, so we can report it directly
                 trigger = req.format_for_error()
             else:
                 trigger = describe_trigger(parent)
-            triggers.append(trigger)
+            triggers.add(trigger)
 
         if triggers:
             info = text_join(sorted(triggers))

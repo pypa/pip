@@ -1,0 +1,1 @@
+New resolver: Show each requirement in the conflict error message only once to reduce cluttering.
