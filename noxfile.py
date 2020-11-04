@@ -170,6 +170,9 @@ def lint(session: nox.Session) -> None:
         args = ["--all-files", "--show-diff-on-failure"]
 
     session.run("pre-commit", "run", *args)
+    session.run(
+        "pre-commit", "run", "-c", ".pre-commit-config-slow.yaml", *args
+    )
 
 
 @nox.session
