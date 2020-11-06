@@ -1,0 +1,4 @@
+- project:
+    check:
+      jobs:
+        - pypa-pip-py38

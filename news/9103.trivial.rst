@@ -1,0 +1,1 @@
+Add CI configuration for `Opendev <https://opendev.org>`__ `Zuul <https://zuul-ci.org/>`__ testing

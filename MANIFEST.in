@@ -35,3 +35,6 @@ prune news
 prune tasks
 prune tests
 prune tools
+
+recursive-exclude .zuul.d *
+recursive-exclude .zuul.playbooks *

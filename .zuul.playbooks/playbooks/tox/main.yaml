@@ -1,0 +1,22 @@
+- hosts: all
+  tasks:
+
+    - name: Install tox
+      include_role:
+        name: ensure-tox
+
+    # TODO(ianw) : let's see if this is interferring
+    # with some of the pip tox runs
+    - name: Remove OpenDev mirror config
+      file:
+        path: /etc/pip.conf
+        state: absent
+      become: yes
+
+    - name: Run tox unit tests
+      include_role:
+        name: tox
+      vars:
+        tox_extra_args: "-- --verbose -n auto --use-venv"
+        tox_environment:
+          CI: true

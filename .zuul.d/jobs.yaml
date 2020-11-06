@@ -1,0 +1,12 @@
+- job:
+    name: pypa-pip-base
+    abstract: true
+    description: Run pypa/pip unit testing
+    run: .zuul.playbooks/playbooks/tox/main.yaml
+
+- job:
+    name: pypa-pip-py38
+    parent: pypa-pip-base
+    nodeset: ubuntu-focal
+    vars:
+      tox_envlist: py38
