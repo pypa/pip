@@ -3,6 +3,7 @@
     abstract: true
     description: Run pypa/pip unit testing
     run: .zuul.playbooks/playbooks/tox/main.yaml
+    post-run: .zuul.playbooks/playbooks/tox/post.yaml
 
 - job:
     name: pypa-pip-py38

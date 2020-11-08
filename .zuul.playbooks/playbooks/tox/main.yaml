@@ -17,6 +17,6 @@
       include_role:
         name: tox
       vars:
-        tox_extra_args: "-- --verbose -n auto --use-venv"
+        tox_extra_args: "-- --html={{ zuul_output_dir }}/logs/test-results.html --self-contained-html --verbose -n auto --use-venv"
         tox_environment:
           CI: true

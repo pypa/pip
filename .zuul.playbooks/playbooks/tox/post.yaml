@@ -1,0 +1,14 @@
+- hosts: all
+  tasks:
+
+    - name: Fetch tox output
+      include_role:
+        name: fetch-tox-output
+
+    - name: Return testinfra report HTML artifact
+      zuul_return:
+        data:
+          zuul:
+            artifacts:
+              - name: pytest results
+                url: 'test-results.html'
