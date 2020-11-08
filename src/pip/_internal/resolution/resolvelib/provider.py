@@ -57,7 +57,8 @@ class PipProvider(AbstractProvider):
     ):
         # type: (...) -> Any
         transitive = all(parent is not None for _, parent in information)
-        return (transitive, bool(candidates))
+        key = next(iter(candidates)).name if candidates else ""
+        return (transitive, key)
 
     def find_matches(self, requirements):
         # type: (Sequence[Requirement]) -> Iterable[Candidate]
