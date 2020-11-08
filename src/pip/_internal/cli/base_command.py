@@ -213,6 +213,8 @@ class Command(CommandContextMixIn):
                 "This will become an error in pip 21.0."
             )
 
+        self.handle_pip_version_check(options)            
+        
         try:
             status = self.run(options, args)
             assert isinstance(status, int)
@@ -250,5 +252,3 @@ class Command(CommandContextMixIn):
             logger.critical('Exception:', exc_info=True)
 
             return UNKNOWN_ERROR
-        finally:
-            self.handle_pip_version_check(options)
