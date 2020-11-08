@@ -1,0 +1,1 @@
+Put pip version warning up top with the other warnings, so that people can clearly see the result of their pip command.
