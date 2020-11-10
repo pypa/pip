@@ -13,7 +13,7 @@ from pip._internal.utils.logging import get_indentation
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Iterator, IO
+    from typing import IO, Iterator
 
 logger = logging.getLogger(__name__)
 

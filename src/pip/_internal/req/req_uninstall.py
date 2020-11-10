@@ -29,8 +29,17 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Any, Callable, Dict, Iterable, Iterator, List, Optional, Set, Tuple,
+        Any,
+        Callable,
+        Dict,
+        Iterable,
+        Iterator,
+        List,
+        Optional,
+        Set,
+        Tuple,
     )
+
     from pip._vendor.pkg_resources import Distribution
 
 logger = logging.getLogger(__name__)
@@ -612,8 +621,7 @@ class UninstallPthEntries(object):
         # If the file doesn't exist, log a warning and return
         if not os.path.isfile(self.file):
             logger.warning(
-                "Cannot remove entries from nonexistent file {}".format(
-                    self.file)
+                "Cannot remove entries from nonexistent file %s", self.file
             )
             return
         with open(self.file, 'rb') as fh:

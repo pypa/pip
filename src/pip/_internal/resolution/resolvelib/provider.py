@@ -1,21 +1,13 @@
-from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.resolvelib.providers import AbstractProvider
 
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-if MYPY_CHECK_RUNNING:
-    from typing import (
-        Any,
-        Dict,
-        Iterable,
-        Optional,
-        Sequence,
-        Set,
-        Tuple,
-        Union,
-    )
+from .base import Constraint
 
-    from .base import Requirement, Candidate
+if MYPY_CHECK_RUNNING:
+    from typing import Any, Dict, Iterable, Optional, Sequence, Set, Tuple, Union
+
+    from .base import Candidate, Requirement
     from .factory import Factory
 
 # Notes on the relationship between the provider, the factory, and the
@@ -41,7 +33,7 @@ class PipProvider(AbstractProvider):
     def __init__(
         self,
         factory,  # type: Factory
-        constraints,  # type: Dict[str, SpecifierSet]
+        constraints,  # type: Dict[str, Constraint]
         ignore_dependencies,  # type: bool
         upgrade_strategy,  # type: str
         user_requested,  # type: Set[str]
@@ -51,32 +43,29 @@ class PipProvider(AbstractProvider):
         self._constraints = constraints
         self._ignore_dependencies = ignore_dependencies
         self._upgrade_strategy = upgrade_strategy
-        self.user_requested = user_requested
+        self._user_requested = user_requested
 
-    def _sort_matches(self, matches):
-        # type: (Iterable[Candidate]) -> Sequence[Candidate]
+    def identify(self, dependency):
+        # type: (Union[Requirement, Candidate]) -> str
+        return dependency.name
 
-        # The requirement is responsible for returning a sequence of potential
-        # candidates, one per version. The provider handles the logic of
-        # deciding the order in which these candidates should be passed to
-        # the resolver.
+    def get_preference(
+        self,
+        resolution,  # type: Optional[Candidate]
+        candidates,  # type: Sequence[Candidate]
+        information  # type: Sequence[Tuple[Requirement, Candidate]]
+    ):
+        # type: (...) -> Any
+        transitive = all(parent is not None for _, parent in information)
+        key = next(iter(candidates)).name if candidates else ""
+        return (transitive, key)
 
-        # The `matches` argument is a sequence of candidates, one per version,
-        # which are potential options to be installed. The requirement will
-        # have already sorted out whether to give us an already-installed
-        # candidate or a version from PyPI (i.e., it will deal with options
-        # like --force-reinstall and --ignore-installed).
+    def find_matches(self, requirements):
+        # type: (Sequence[Requirement]) -> Iterable[Candidate]
+        if not requirements:
+            return []
+        name = requirements[0].name
 
-        # We now work out the correct order.
-        #
-        # 1. If no other considerations apply, later versions take priority.
-        # 2. An already installed distribution is preferred over any other,
-        #    unless the user has requested an upgrade.
-        #    Upgrades are allowed when:
-        #    * The --upgrade flag is set, and
-        #      - The project was specified on the command line, or
-        #      - The project is a dependency and the "eager" upgrade strategy
-        #        was requested.
         def _eligible_for_upgrade(name):
             # type: (str) -> bool
             """Are upgrades allowed for this project?
@@ -92,52 +81,14 @@ class PipProvider(AbstractProvider):
             if self._upgrade_strategy == "eager":
                 return True
             elif self._upgrade_strategy == "only-if-needed":
-                return (name in self.user_requested)
+                return (name in self._user_requested)
             return False
 
-        def sort_key(c):
-            # type: (Candidate) -> int
-            """Return a sort key for the matches.
-
-            The highest priority should be given to installed candidates that
-            are not eligible for upgrade. We use the integer value in the first
-            part of the key to sort these before other candidates.
-
-            We only pull the installed candidate to the bottom (i.e. most
-            preferred), but otherwise keep the ordering returned by the
-            requirement. The requirement is responsible for returning a list
-            otherwise sorted for the resolver, taking account for versions
-            and binary preferences as specified by the user.
-            """
-            if c.is_installed and not _eligible_for_upgrade(c.name):
-                return 1
-            return 0
-
-        return sorted(matches, key=sort_key)
-
-    def identify(self, dependency):
-        # type: (Union[Requirement, Candidate]) -> str
-        return dependency.name
-
-    def get_preference(
-        self,
-        resolution,  # type: Optional[Candidate]
-        candidates,  # type: Sequence[Candidate]
-        information  # type: Sequence[Tuple[Requirement, Candidate]]
-    ):
-        # type: (...) -> Any
-        # Use the "usual" value for now
-        return len(candidates)
-
-    def find_matches(self, requirements):
-        # type: (Sequence[Requirement]) -> Iterable[Candidate]
-        if not requirements:
-            return []
-        constraint = self._constraints.get(
-            requirements[0].name, SpecifierSet(),
+        return self._factory.find_candidates(
+            requirements,
+            constraint=self._constraints.get(name, Constraint.empty()),
+            prefers_installed=(not _eligible_for_upgrade(name)),
         )
-        candidates = self._factory.find_candidates(requirements, constraint)
-        return reversed(self._sort_matches(candidates))
 
     def is_satisfied_by(self, requirement, candidate):
         # type: (Requirement, Candidate) -> bool
@@ -145,6 +96,9 @@ class PipProvider(AbstractProvider):
 
     def get_dependencies(self, candidate):
         # type: (Candidate) -> Sequence[Requirement]
-        if self._ignore_dependencies:
-            return []
-        return [r for r in candidate.iter_dependencies() if r is not None]
+        with_requires = not self._ignore_dependencies
+        return [
+            r
+            for r in candidate.iter_dependencies(with_requires)
+            if r is not None
+        ]

@@ -30,7 +30,16 @@ sys.path.insert(0, docs_dir)
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 # extensions = ['sphinx.ext.autodoc']
-extensions = ['sphinx.ext.extlinks', 'pip_sphinxext', 'sphinx.ext.intersphinx']
+extensions = [
+    # native:
+    'sphinx.ext.extlinks',
+    'sphinx.ext.intersphinx',
+    # third-party:
+    'sphinx_inline_tabs',
+    # in-tree:
+    'docs_feedback_sphinxext',
+    'pip_sphinxext',
+]
 
 # intersphinx
 intersphinx_cache_limit = 0
@@ -130,6 +139,9 @@ extlinks = {
     'pypi': ('https://pypi.org/project/%s/', ''),
 }
 
+# Turn off sphinx build warnings because of sphinx tabs during man pages build
+sphinx_tabs_nowarn = True
+
 # -- Options for HTML output --------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  Major themes that come with
@@ -143,7 +155,9 @@ html_theme_options = {
     'collapsiblesidebar': True,
     'externalrefs': True,
     'navigation_depth': 3,
-    'issues_url': 'https://github.com/pypa/pip/issues'
+    'issues_url': 'https://github.com/pypa/pip/issues',
+    'codebgcolor': '#eeffcc',
+    'codetextcolor': '#333333',
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
@@ -167,7 +181,7 @@ html_theme_options = {
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
-html_static_path = []
+html_static_path = ['_static']
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
@@ -298,3 +312,19 @@ for fname in raw_subcommands:
     )
 
     man_pages.append((fname_base, outname, description, u'pip developers', 1))
+
+# -- Options for docs_feedback_sphinxext --------------------------------------
+
+# NOTE: Must be one of 'attention', 'caution', 'danger', 'error', 'hint',
+# NOTE: 'important', 'note', 'tip', 'warning' or 'admonition'.
+docs_feedback_admonition_type = 'important'
+docs_feedback_big_doc_lines = 50  # bigger docs will have a banner on top
+docs_feedback_email = 'Docs UX Team <docs-feedback+ux/pip.pypa.io@pypa.io>'
+docs_feedback_excluded_documents = {  # these won't have any banners
+    'news',
+}
+docs_feedback_questions_list = (
+    'What problem were you trying to solve when you came to this page?',
+    'What content was useful?',
+    'What content was not useful?',
+)

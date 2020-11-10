@@ -27,7 +27,7 @@ def generate_yaml_tests(directory):
         base = data.get("base", {})
         cases = data["cases"]
 
-        for resolver in 'old', 'new':
+        for resolver in 'legacy', '2020-resolver':
             for i, case_template in enumerate(cases):
                 case = base.copy()
                 case.update(case_template)
@@ -39,7 +39,7 @@ def generate_yaml_tests(directory):
                 case[":resolver:"] = resolver
 
                 skip = case.pop("skip", False)
-                assert skip in [False, True, 'old', 'new']
+                assert skip in [False, True, 'legacy', '2020-resolver']
                 if skip is True or skip == resolver:
                     case = pytest.param(case, marks=pytest.mark.xfail)
 
@@ -84,11 +84,11 @@ def convert_to_dict(string):
     return retval
 
 
-def handle_request(script, action, requirement, options, new_resolver=False):
+def handle_request(script, action, requirement, options, resolver_variant):
     if action == 'install':
         args = ['install']
-        if new_resolver:
-            args.append("--use-feature=2020-resolver")
+        if resolver_variant == "legacy":
+            args.append("--use-deprecated=legacy-resolver")
         args.extend(["--no-index", "--find-links",
                      path_to_url(script.scratch_path)])
     elif action == 'uninstall':
@@ -183,7 +183,7 @@ def test_yaml_based(script, case):
         effect = handle_request(script, action,
                                 request[action],
                                 request.get('options', '').split(),
-                                case[':resolver:'] == 'new')
+                                resolver_variant=case[':resolver:'])
         result = effect['result']
 
         if 0:  # for analyzing output easier

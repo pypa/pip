@@ -9,10 +9,10 @@ from pip._vendor.six import iteritems
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Optional, List, Dict, Text
+    from typing import Any, Dict, List, Optional, Text
 
     from pip._vendor.pkg_resources import Distribution
-    from pip._vendor.requests.models import Response, Request
+    from pip._vendor.requests.models import Request, Response
     from pip._vendor.six import PY3
     from pip._vendor.six.moves import configparser
 
@@ -200,7 +200,7 @@ class HashError(InstallationError):
     """
     req = None  # type: Optional[InstallRequirement]
     head = ''
-    order = None  # type: Optional[int]
+    order = -1  # type: int
 
     def body(self):
         # type: () -> str

@@ -22,10 +22,12 @@ from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_scheme
 from pip._internal.models.link import Link
 from pip._internal.operations.build.metadata import generate_metadata
-from pip._internal.operations.build.metadata_legacy import \
-    generate_metadata as generate_metadata_legacy
-from pip._internal.operations.install.editable_legacy import \
-    install_editable as install_editable_legacy
+from pip._internal.operations.build.metadata_legacy import (
+    generate_metadata as generate_metadata_legacy,
+)
+from pip._internal.operations.install.editable_legacy import (
+    install_editable as install_editable_legacy,
+)
 from pip._internal.operations.install.legacy import LegacyInstallFailure
 from pip._internal.operations.install.legacy import install as install_legacy
 from pip._internal.operations.install.wheel import install_wheel
@@ -53,13 +55,13 @@ from pip._internal.utils.virtualenv import running_under_virtualenv
 from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
-    from typing import (
-        Any, Dict, Iterable, List, Optional, Sequence, Union,
-    )
-    from pip._internal.build_env import BuildEnvironment
-    from pip._vendor.pkg_resources import Distribution
-    from pip._vendor.packaging.specifiers import SpecifierSet
+    from typing import Any, Dict, Iterable, List, Optional, Sequence, Union
+
     from pip._vendor.packaging.markers import Marker
+    from pip._vendor.packaging.specifiers import SpecifierSet
+    from pip._vendor.pkg_resources import Distribution
+
+    from pip._internal.build_env import BuildEnvironment
 
 
 logger = logging.getLogger(__name__)
@@ -121,6 +123,7 @@ class InstallRequirement(object):
         self.comes_from = comes_from
         self.constraint = constraint
         self.editable = editable
+        self.legacy_install_reason = None  # type: Optional[int]
 
         # source_dir is the local directory where the linked requirement is
         # located, or unpacked. In case unpacking is needed, creating and
@@ -179,15 +182,6 @@ class InstallRequirement(object):
         # e.g. dependencies, extras or constraints.
         self.user_supplied = user_supplied
 
-        # Set by the legacy resolver when the requirement has been downloaded
-        # TODO: This introduces a strong coupling between the resolver and the
-        #       requirement (the coupling was previously between the resolver
-        #       and the requirement set). This should be refactored to allow
-        #       the requirement to decide for itself when it has been
-        #       successfully downloaded - but that is more tricky to get right,
-        #       se we are making the change in stages.
-        self.successfully_downloaded = False
-
         self.isolated = isolated
         self.build_env = NoOpBuildEnvironment()  # type: BuildEnvironment
 
@@ -212,6 +206,9 @@ class InstallRequirement(object):
         # Setting an explicit value before loading pyproject.toml is supported,
         # but after loading this flag should be treated as read only.
         self.use_pep517 = use_pep517
+
+        # This requirement needs more preparation before it can be built
+        self.needs_more_preparation = False
 
     def __str__(self):
         # type: () -> str
@@ -361,6 +358,10 @@ class InstallRequirement(object):
 
             return self._temp_build_dir.path
 
+        # This is the only remaining place where we manually determine the path
+        # for the temporary directory. It is only needed for editables where
+        # it is the value of the --src option.
+
         # When parallel builds are enabled, add a UUID to the build directory
         # name so multiple builds do not interfere with each other.
         dir_name = canonicalize_name(self.name)
@@ -429,25 +430,13 @@ class InstallRequirement(object):
         """
         if self.req is None:
             return
-        # get_distribution() will resolve the entire list of requirements
-        # anyway, and we've already determined that we need the requirement
-        # in question, so strip the marker so that we don't try to
-        # evaluate it.
-        no_marker = Requirement(str(self.req))
-        no_marker.marker = None
-
-        # pkg_resources uses the canonical name to look up packages, but
-        # the name passed passed to get_distribution is not canonicalized
-        # so we have to explicitly convert it to a canonical name
-        no_marker.name = canonicalize_name(no_marker.name)
-        try:
-            self.satisfied_by = pkg_resources.get_distribution(str(no_marker))
-        except pkg_resources.DistributionNotFound:
+        existing_dist = get_distribution(self.req.name)
+        if not existing_dist:
             return
-        except pkg_resources.VersionConflict:
-            existing_dist = get_distribution(
-                self.req.name
-            )
+
+        existing_version = existing_dist.parsed_version
+        if not self.req.specifier.contains(existing_version, prereleases=True):
+            self.satisfied_by = None
             if use_user_site:
                 if dist_in_usersite(existing_dist):
                     self.should_reinstall = True
@@ -461,11 +450,13 @@ class InstallRequirement(object):
             else:
                 self.should_reinstall = True
         else:
-            if self.editable and self.satisfied_by:
+            if self.editable:
                 self.should_reinstall = True
                 # when installing editables, nothing pre-existing should ever
                 # satisfy
                 self.satisfied_by = None
+            else:
+                self.satisfied_by = existing_dist
 
     # Things valid for wheels
     @property
@@ -713,12 +704,14 @@ class InstallRequirement(object):
         return self.name + '/' + name
 
     def archive(self, build_dir):
-        # type: (str) -> None
+        # type: (Optional[str]) -> None
         """Saves archive to provided build_dir.
 
         Used for saving downloaded VCS requirements as part of `pip download`.
         """
         assert self.source_dir
+        if build_dir is None:
+            return
 
         create_archive = True
         archive_name = '{}-{}.zip'.format(self.name, self.metadata["version"])
@@ -868,6 +861,18 @@ class InstallRequirement(object):
             raise
 
         self.install_succeeded = success
+
+        if success and self.legacy_install_reason == 8368:
+            deprecated(
+                reason=(
+                    "{} was installed using the legacy 'setup.py install' "
+                    "method, because a wheel could not be built for it.".
+                    format(self.name)
+                ),
+                replacement="to fix the wheel build issue reported above",
+                gone_in="21.0",
+                issue=8368,
+            )
 
 
 def check_invalid_constraint_type(req):

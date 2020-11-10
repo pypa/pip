@@ -40,6 +40,7 @@ if MYPY_CHECK_RUNNING:
     from typing import Iterable, List, Optional
 
     from pip._internal.models.format_control import FormatControl
+    from pip._internal.operations.check import ConflictDetails
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.wheel_builder import BinaryAllowedPredicate
 
@@ -127,8 +128,6 @@ class InstallCommand(RequirementCommand):
             default=None,
             help="Installation prefix where lib, bin and other top-level "
                  "folders are placed")
-
-        self.cmd_opts.add_option(cmdoptions.build_dir())
 
         self.cmd_opts.add_option(cmdoptions.src())
 
@@ -239,7 +238,7 @@ class InstallCommand(RequirementCommand):
 
         install_options = options.install_options or []
 
-        logger.debug("Using {}".format(get_pip_version()))
+        logger.debug("Using %s", get_pip_version())
         options.use_user_site = decide_user_install(
             options.use_user_site,
             prefix_path=options.prefix_path,
@@ -276,14 +275,12 @@ class InstallCommand(RequirementCommand):
             target_python=target_python,
             ignore_requires_python=options.ignore_requires_python,
         )
-        build_delete = (not (options.no_clean or options.build_dir))
         wheel_cache = WheelCache(options.cache_dir, options.format_control)
 
         req_tracker = self.enter_context(get_requirement_tracker())
 
         directory = TempDirectory(
-            options.build_dir,
-            delete=build_delete,
+            delete=not options.no_clean,
             kind="install",
             globally_managed=True,
         )
@@ -354,30 +351,37 @@ class InstallCommand(RequirementCommand):
 
             # If we're using PEP 517, we cannot do a direct install
             # so we fail here.
-            # We don't care about failures building legacy
-            # requirements, as we'll fall through to a direct
-            # install for those.
-            pep517_build_failures = [
-                r for r in build_failures if r.use_pep517
-            ]
-            if pep517_build_failures:
+            pep517_build_failure_names = [
+                r.name   # type: ignore
+                for r in build_failures if r.use_pep517
+            ]  # type: List[str]
+            if pep517_build_failure_names:
                 raise InstallationError(
                     "Could not build wheels for {} which use"
                     " PEP 517 and cannot be installed directly".format(
-                        ", ".join(r.name  # type: ignore
-                                  for r in pep517_build_failures)))
+                        ", ".join(pep517_build_failure_names)
+                    )
+                )
+
+            # For now, we just warn about failures building legacy
+            # requirements, as we'll fall through to a direct
+            # install for those.
+            for r in build_failures:
+                if not r.use_pep517:
+                    r.legacy_install_reason = 8368
 
             to_install = resolver.get_installation_order(
                 requirement_set
             )
 
-            # Consistency Checking of the package set we're installing.
+            # Check for conflicts in the package set we're installing.
+            conflicts = None  # type: Optional[ConflictDetails]
             should_warn_about_conflicts = (
                 not options.ignore_dependencies and
                 options.warn_about_conflicts
             )
             if should_warn_about_conflicts:
-                self._warn_about_conflicts(to_install)
+                conflicts = self._determine_conflicts(to_install)
 
             # Don't warn about script install locations if
             # --target has been specified
@@ -419,6 +423,13 @@ class InstallCommand(RequirementCommand):
                 except Exception:
                     pass
                 items.append(item)
+
+            if conflicts is not None:
+                self._warn_about_conflicts(
+                    conflicts,
+                    resolver_variant=self.determine_resolver_variant(options),
+                )
+
             installed_desc = ' '.join(items)
             if installed_desc:
                 write_output(
@@ -430,7 +441,7 @@ class InstallCommand(RequirementCommand):
             message = create_env_error_message(
                 error, show_traceback, options.use_user_site,
             )
-            logger.error(message, exc_info=show_traceback)
+            logger.error(message, exc_info=show_traceback)  # noqa
 
             return ERROR
 
@@ -498,32 +509,66 @@ class InstallCommand(RequirementCommand):
                     target_item_dir
                 )
 
-    def _warn_about_conflicts(self, to_install):
-        # type: (List[InstallRequirement]) -> None
+    def _determine_conflicts(self, to_install):
+        # type: (List[InstallRequirement]) -> Optional[ConflictDetails]
         try:
-            package_set, _dep_info = check_install_conflicts(to_install)
+            return check_install_conflicts(to_install)
         except Exception:
-            logger.error("Error checking for conflicts.", exc_info=True)
-            return
-        missing, conflicting = _dep_info
+            logger.exception(
+                "Error while checking for conflicts. Please file an issue on "
+                "pip's issue tracker: https://github.com/pypa/pip/issues/new"
+            )
+            return None
 
-        # NOTE: There is some duplication here from pip check
+    def _warn_about_conflicts(self, conflict_details, resolver_variant):
+        # type: (ConflictDetails, str) -> None
+        package_set, (missing, conflicting) = conflict_details
+        if not missing and not conflicting:
+            return
+
+        parts = []  # type: List[str]
+        if resolver_variant == "legacy":
+            parts.append(
+                "After October 2020 you may experience errors when installing "
+                "or updating packages. This is because pip will change the "
+                "way that it resolves dependency conflicts.\n"
+            )
+            parts.append(
+                "We recommend you use --use-feature=2020-resolver to test "
+                "your packages with the new resolver before it becomes the "
+                "default.\n"
+            )
+
+        # NOTE: There is some duplication here, with commands/check.py
         for project_name in missing:
             version = package_set[project_name][0]
             for dependency in missing[project_name]:
-                logger.critical(
-                    "%s %s requires %s, which is not installed.",
-                    project_name, version, dependency[1],
+                message = (
+                    "{name} {version} requires {requirement}, "
+                    "which is not installed."
+                ).format(
+                    name=project_name,
+                    version=version,
+                    requirement=dependency[1],
                 )
+                parts.append(message)
 
         for project_name in conflicting:
             version = package_set[project_name][0]
             for dep_name, dep_version, req in conflicting[project_name]:
-                logger.critical(
-                    "%s %s has requirement %s, but you'll have %s %s which is "
-                    "incompatible.",
-                    project_name, version, req, dep_name, dep_version,
+                message = (
+                    "{name} {version} requires {requirement}, but you'll have "
+                    "{dep_name} {dep_version} which is incompatible."
+                ).format(
+                    name=project_name,
+                    version=version,
+                    requirement=req,
+                    dep_name=dep_name,
+                    dep_version=dep_version,
                 )
+                parts.append(message)
+
+        logger.critical("\n".join(parts))
 
 
 def get_lib_location_guesses(

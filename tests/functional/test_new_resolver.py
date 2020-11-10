@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+import textwrap
 
 import pytest
 from pip._vendor.packaging.utils import canonicalize_name
@@ -10,6 +11,7 @@ from tests.lib import (
     create_basic_wheel_for_package,
     create_test_package_with_setup,
 )
+from tests.lib.wheel import make_wheel
 
 
 def assert_installed(script, **kwargs):
@@ -52,7 +54,7 @@ def test_new_resolver_can_install(script):
         "0.1.0",
     )
     script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "simple"
@@ -67,7 +69,7 @@ def test_new_resolver_can_install_with_version(script):
         "0.1.0",
     )
     script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "simple==0.1.0"
@@ -87,7 +89,7 @@ def test_new_resolver_picks_latest_version(script):
         "0.2.0",
     )
     script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "simple"
@@ -107,7 +109,7 @@ def test_new_resolver_picks_installed_version(script):
         "0.2.0",
     )
     script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "simple==0.1.0"
@@ -115,7 +117,7 @@ def test_new_resolver_picks_installed_version(script):
     assert_installed(script, simple="0.1.0")
 
     result = script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "simple"
@@ -136,7 +138,7 @@ def test_new_resolver_picks_installed_version_if_no_match_found(script):
         "0.2.0",
     )
     script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "simple==0.1.0"
@@ -144,7 +146,7 @@ def test_new_resolver_picks_installed_version_if_no_match_found(script):
     assert_installed(script, simple="0.1.0")
 
     result = script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "simple"
     )
@@ -165,7 +167,7 @@ def test_new_resolver_installs_dependencies(script):
         "0.1.0",
     )
     script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "base"
@@ -186,7 +188,7 @@ def test_new_resolver_ignore_dependencies(script):
         "0.1.0",
     )
     script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index", "--no-deps",
         "--find-links", script.scratch_path,
         "base"
@@ -218,7 +220,7 @@ def test_new_resolver_installs_extras(tmpdir, script, root_dep):
         "0.1.0",
     )
     script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "-r", req_file,
@@ -242,7 +244,7 @@ def test_new_resolver_installs_extras_deprecated(tmpdir, script):
         "0.1.0",
     )
     result = script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "-r", req_file,
@@ -265,7 +267,7 @@ def test_new_resolver_installs_extras_warn_missing(script):
         "0.1.0",
     )
     result = script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "base[add,missing]",
@@ -279,7 +281,7 @@ def test_new_resolver_installs_extras_warn_missing(script):
 def test_new_resolver_installed_message(script):
     create_basic_wheel_for_package(script, "A", "1.0")
     result = script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "A",
@@ -291,7 +293,7 @@ def test_new_resolver_installed_message(script):
 def test_new_resolver_no_dist_message(script):
     create_basic_wheel_for_package(script, "A", "1.0")
     result = script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "B",
@@ -322,7 +324,7 @@ def test_new_resolver_installs_editable(script):
         version="0.1.0",
     )
     script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "base",
@@ -370,7 +372,6 @@ def test_new_resolver_requires_python(
 
     args = [
         "install",
-        "--use-feature=2020-resolver",
         "--no-cache-dir",
         "--no-index",
         "--find-links", script.scratch_path,
@@ -392,7 +393,7 @@ def test_new_resolver_requires_python_error(script):
         requires_python="<2",
     )
     result = script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "base",
@@ -420,7 +421,7 @@ def test_new_resolver_installed(script):
     )
 
     result = script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "base",
@@ -428,7 +429,7 @@ def test_new_resolver_installed(script):
     assert "Requirement already satisfied" not in result.stdout, str(result)
 
     result = script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "base~=0.1.0",
@@ -450,7 +451,7 @@ def test_new_resolver_ignore_installed(script):
     satisfied_output = "Requirement already satisfied"
 
     result = script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "base",
@@ -458,7 +459,7 @@ def test_new_resolver_ignore_installed(script):
     assert satisfied_output not in result.stdout, str(result)
 
     result = script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index", "--ignore-installed",
         "--find-links", script.scratch_path,
         "base",
@@ -491,7 +492,7 @@ def test_new_resolver_only_builds_sdists_when_needed(script):
     )
     # We only ever need to check dep 0.2.0 as it's the latest version
     script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "base"
@@ -500,7 +501,7 @@ def test_new_resolver_only_builds_sdists_when_needed(script):
 
     # We merge criteria here, as we have two "dep" requirements
     script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "base", "dep"
@@ -513,7 +514,7 @@ def test_new_resolver_install_different_version(script):
     create_basic_wheel_for_package(script, "base", "0.2.0")
 
     script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "base==0.1.0",
@@ -521,7 +522,7 @@ def test_new_resolver_install_different_version(script):
 
     # This should trigger an uninstallation of base.
     result = script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "base==0.2.0",
@@ -540,7 +541,7 @@ def test_new_resolver_force_reinstall(script):
     create_basic_wheel_for_package(script, "base", "0.1.0")
 
     script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "base==0.1.0",
@@ -549,7 +550,7 @@ def test_new_resolver_force_reinstall(script):
     # This should trigger an uninstallation of base due to --force-reinstall,
     # even though the installed version matches.
     result = script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "--force-reinstall",
@@ -588,7 +589,7 @@ def test_new_resolver_handles_prerelease(
     for version in available_versions:
         create_basic_wheel_for_package(script, "pkg", version)
     script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         *pip_args
@@ -610,7 +611,7 @@ def test_new_reolver_skips_marker(script, pkg_deps, root_deps):
     create_basic_wheel_for_package(script, "dep", "1.0")
 
     script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         *root_deps
@@ -635,7 +636,7 @@ def test_new_resolver_constraints(script, constraints):
     constraints_file = script.scratch_path / "constraints.txt"
     constraints_file.write_text("\n".join(constraints))
     script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "-c", constraints_file,
@@ -651,7 +652,7 @@ def test_new_resolver_constraint_no_specifier(script):
     constraints_file = script.scratch_path / "constraints.txt"
     constraints_file.write_text("pkg")
     script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "-c", constraints_file,
@@ -682,7 +683,7 @@ def test_new_resolver_constraint_reject_invalid(script, constraint, error):
     constraints_file = script.scratch_path / "constraints.txt"
     constraints_file.write_text(constraint)
     result = script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "-c", constraints_file,
@@ -701,7 +702,7 @@ def test_new_resolver_constraint_on_dependency(script):
     constraints_file = script.scratch_path / "constraints.txt"
     constraints_file.write_text("dep==2.0")
     script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "-c", constraints_file,
@@ -718,7 +719,7 @@ def test_new_resolver_constraint_on_path(script):
     constraints_txt = script.scratch_path / "constraints.txt"
     constraints_txt.write_text("foo==1.0")
     result = script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "-c", constraints_txt,
         str(script.scratch_path),
@@ -729,11 +730,35 @@ def test_new_resolver_constraint_on_path(script):
     assert msg in result.stderr, str(result)
 
 
+def test_new_resolver_constraint_only_marker_match(script):
+    create_basic_wheel_for_package(script, "pkg", "1.0")
+    create_basic_wheel_for_package(script, "pkg", "2.0")
+    create_basic_wheel_for_package(script, "pkg", "3.0")
+
+    constrants_content = textwrap.dedent(
+        """
+        pkg==1.0; python_version == "{ver[0]}.{ver[1]}"  # Always satisfies.
+        pkg==2.0; python_version < "0"  # Never satisfies.
+        """
+    ).format(ver=sys.version_info)
+    constraints_txt = script.scratch_path / "constraints.txt"
+    constraints_txt.write_text(constrants_content)
+
+    script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "-c", constraints_txt,
+        "--find-links", script.scratch_path,
+        "pkg",
+    )
+    assert_installed(script, pkg="1.0")
+
+
 def test_new_resolver_upgrade_needs_option(script):
     # Install pkg 1.0.0
     create_basic_wheel_for_package(script, "pkg", "1.0.0")
     script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "pkg",
@@ -744,7 +769,7 @@ def test_new_resolver_upgrade_needs_option(script):
 
     # This should not upgrade because we don't specify --upgrade
     result = script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "pkg",
@@ -755,7 +780,7 @@ def test_new_resolver_upgrade_needs_option(script):
 
     # This should upgrade
     result = script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "--upgrade",
@@ -775,7 +800,7 @@ def test_new_resolver_upgrade_strategy(script):
     create_basic_wheel_for_package(script, "base", "1.0.0", depends=["dep"])
     create_basic_wheel_for_package(script, "dep", "1.0.0")
     script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "base",
@@ -789,7 +814,7 @@ def test_new_resolver_upgrade_strategy(script):
     create_basic_wheel_for_package(script, "dep", "2.0.0")
 
     script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "--upgrade",
@@ -803,7 +828,7 @@ def test_new_resolver_upgrade_strategy(script):
 
     create_basic_wheel_for_package(script, "base", "3.0.0", depends=["dep"])
     script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "--upgrade", "--upgrade-strategy=eager",
@@ -882,7 +907,7 @@ class TestExtraMerge(object):
         )
 
         script.pip(
-            "install", "--use-feature=2020-resolver",
+            "install",
             "--no-cache-dir", "--no-index",
             "--find-links", script.scratch_path,
             requirement + "[dev]",
@@ -921,7 +946,7 @@ def test_new_resolver_build_directory_error_zazo_19(script):
     create_basic_sdist_for_package(script, "pkg_b", "1.0.0")
 
     script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "pkg-a", "pkg-b",
@@ -934,7 +959,7 @@ def test_new_resolver_upgrade_same_version(script):
     create_basic_wheel_for_package(script, "pkg", "1")
 
     script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "pkg",
@@ -942,7 +967,7 @@ def test_new_resolver_upgrade_same_version(script):
     assert_installed(script, pkg="2")
 
     script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "--upgrade",
@@ -958,8 +983,152 @@ def test_new_resolver_local_and_req(script):
         version="0.1.0",
     )
     script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         source_dir, "pkg!=0.1.0",
         expect_error=True,
     )
+
+
+def test_new_resolver_no_deps_checks_requires_python(script):
+    create_basic_wheel_for_package(
+        script,
+        "base",
+        "0.1.0",
+        depends=["dep"],
+        requires_python="<2",  # Something that always fails.
+    )
+    create_basic_wheel_for_package(
+        script,
+        "dep",
+        "0.2.0",
+    )
+
+    result = script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--no-deps",
+        "--find-links", script.scratch_path,
+        "base",
+        expect_error=True,
+    )
+
+    message = (
+        "Package 'base' requires a different Python: "
+        "{}.{}.{} not in '<2'".format(*sys.version_info[:3])
+    )
+    assert message in result.stderr
+
+
+def test_new_resolver_prefers_installed_in_upgrade_if_latest(script):
+    create_basic_wheel_for_package(script, "pkg", "1")
+    local_pkg = create_test_package_with_setup(script, name="pkg", version="2")
+
+    # Install the version that's not on the index.
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        local_pkg,
+    )
+
+    # Now --upgrade should still pick the local version because it's "better".
+    script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links", script.scratch_path,
+        "--upgrade",
+        "pkg",
+    )
+    assert_installed(script, pkg="2")
+
+
+@pytest.mark.parametrize("N", [2, 10, 20])
+def test_new_resolver_presents_messages_when_backtracking_a_lot(script, N):
+    # Generate a set of wheels that will definitely cause backtracking.
+    for index in range(1, N+1):
+        A_version = "{index}.0.0".format(index=index)
+        B_version = "{index}.0.0".format(index=index)
+        C_version = "{index_minus_one}.0.0".format(index_minus_one=index - 1)
+
+        depends = ["B == " + B_version]
+        if index != 1:
+            depends.append("C == " + C_version)
+
+        print("A", A_version, "B", B_version, "C", C_version)
+        create_basic_wheel_for_package(script, "A", A_version, depends=depends)
+
+    for index in range(1, N+1):
+        B_version = "{index}.0.0".format(index=index)
+        C_version = "{index}.0.0".format(index=index)
+        depends = ["C == " + C_version]
+
+        print("B", B_version, "C", C_version)
+        create_basic_wheel_for_package(script, "B", B_version, depends=depends)
+
+    for index in range(1, N+1):
+        C_version = "{index}.0.0".format(index=index)
+        print("C", C_version)
+        create_basic_wheel_for_package(script, "C", C_version)
+
+    # Install A
+    result = script.pip(
+        "install",
+        "--no-cache-dir",
+        "--no-index",
+        "--find-links", script.scratch_path,
+        "A"
+    )
+
+    assert_installed(script, A="1.0.0", B="1.0.0", C="1.0.0")
+    # These numbers are hard-coded in the code.
+    if N >= 1:
+        assert "This could take a while." in result.stdout
+    if N >= 8:
+        assert result.stdout.count("This could take a while.") >= 2
+    if N >= 13:
+        assert "press Ctrl + C" in result.stdout
+
+
+@pytest.mark.parametrize(
+    "metadata_version",
+    [
+        "0.1.0+local.1",  # Normalized form.
+        "0.1.0+local_1",  # Non-normalized form containing an underscore.
+
+        # Non-normalized form containing a dash. This is allowed, installation
+        # works correctly, but assert_installed() fails because pkg_resources
+        # cannot handle it correctly. Nobody is complaining about it right now,
+        # we're probably dropping it for importlib.metadata soon(tm), so let's
+        # ignore it for the time being.
+        pytest.param("0.1.0+local-1", marks=pytest.mark.xfail),
+    ],
+    ids=["meta_dot", "meta_underscore", "meta_dash"],
+)
+@pytest.mark.parametrize(
+    "filename_version",
+    [
+        ("0.1.0+local.1"),  # Tools are encouraged to use this.
+        ("0.1.0+local_1"),  # But this is allowed (version not normalized).
+    ],
+    ids=["file_dot", "file_underscore"],
+)
+def test_new_resolver_check_wheel_version_normalized(
+    script,
+    metadata_version,
+    filename_version,
+):
+    filename = "simple-{}-py2.py3-none-any.whl".format(filename_version)
+
+    wheel_builder = make_wheel(name="simple", version=metadata_version)
+    wheel_builder.save_to(script.scratch_path / filename)
+
+    script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "simple"
+    )
+    assert_installed(script, simple="0.1.0+local.1")

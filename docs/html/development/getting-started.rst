@@ -38,13 +38,23 @@ To run the pip executable from your source tree during development, install pip
 locally using editable installation (inside a virtualenv).
 You can then invoke your local source tree pip normally.
 
-.. code-block:: console
+.. tab:: Unix/macOS
 
-    $ virtualenv venv # You can also use "python -m venv venv" from python3.3+
-    $ source venv/bin/activate
-    $ python -m pip install -e .
-    $ python -m pip --version
+    .. code-block:: shell
 
+        virtualenv venv # You can also use "python -m venv venv" from python3.3+
+        source venv/bin/activate
+        python -m pip install -e .
+        python -m pip --version
+
+.. tab:: Windows
+
+    .. code-block:: shell
+
+        virtualenv venv # You can also use "py -m venv venv" from python3.3+
+        venv\Scripts\activate
+        py -m pip install -e .
+        py -m pip --version
 
 Running Tests
 =============
@@ -128,6 +138,13 @@ To build it locally, run:
     $ tox -e docs
 
 The built documentation can be found in the ``docs/build`` folder.
+
+For each Pull Request made the documentation is deployed following this link:
+
+.. code-block:: none
+
+    https://pip--<PR-NUMBER>.org.readthedocs.build/en/<PR-NUMBER>
+
 
 What Next?
 ==========

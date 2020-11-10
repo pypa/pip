@@ -10,12 +10,11 @@ import platform
 import sys
 import traceback
 
+from pip._vendor.six import PY2
+
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.command_context import CommandContextMixIn
-from pip._internal.cli.parser import (
-    ConfigOptionParser,
-    UpdatingDefaultsHelpFormatter,
-)
+from pip._internal.cli.parser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip._internal.cli.status_codes import (
     ERROR,
     PREVIOUS_BUILD_DIR_ERROR,
@@ -35,19 +34,16 @@ from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.logging import BrokenStdoutLoggingError, setup_logging
 from pip._internal.utils.misc import get_prog, normalize_path
-from pip._internal.utils.temp_dir import (
-    global_tempdir_manager,
-    tempdir_registry,
-)
+from pip._internal.utils.temp_dir import global_tempdir_manager, tempdir_registry
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
 if MYPY_CHECK_RUNNING:
-    from typing import List, Optional, Tuple, Any
     from optparse import Values
+    from typing import Any, List, Optional, Tuple
 
     from pip._internal.utils.temp_dir import (
-        TempDirectoryTypeRegistry as TempDirRegistry
+        TempDirectoryTypeRegistry as TempDirRegistry,
     )
 
 __all__ = ['Command']
@@ -158,7 +154,19 @@ class Command(CommandContextMixIn):
                     "1st, 2020. Please upgrade your Python as Python 2.7 "
                     "is no longer maintained. "
                 ) + message
-            deprecated(message, replacement=None, gone_in=None)
+            deprecated(message, replacement=None, gone_in="21.0")
+
+        if (
+            sys.version_info[:2] == (3, 5) and
+            not options.no_python_version_warning
+        ):
+            message = (
+                "Python 3.5 reached the end of its life on September "
+                "13th, 2020. Please upgrade your Python as Python 3.5 "
+                "is no longer maintained. pip 21.0 will drop support "
+                "for Python 3.5 in January 2021."
+            )
+            deprecated(message, replacement=None, gone_in="21.0")
 
         # TODO: Try to get these passing down from the command?
         #       without resorting to os.environ to hold these.
@@ -191,26 +199,19 @@ class Command(CommandContextMixIn):
                 )
                 options.cache_dir = None
 
-        if getattr(options, "build_dir", None):
-            deprecated(
-                reason=(
-                    "The -b/--build/--build-dir/--build-directory "
-                    "option is deprecated."
-                ),
-                replacement=(
-                    "use the TMPDIR/TEMP/TMP environment variable, "
-                    "possibly combined with --no-clean"
-                ),
-                gone_in="20.3",
-                issue=8333,
-            )
-
         if 'resolver' in options.unstable_features:
             logger.critical(
                 "--unstable-feature=resolver is no longer supported, and "
                 "has been replaced with --use-feature=2020-resolver instead."
             )
             sys.exit(ERROR)
+
+        if '2020-resolver' in options.features_enabled and not PY2:
+            logger.warning(
+                "--use-feature=2020-resolver no longer has any effect, "
+                "since it is now the default dependency resolver in pip. "
+                "This will become an error in pip 21.0."
+            )
 
         try:
             status = self.run(options, args)

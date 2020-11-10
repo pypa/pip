@@ -25,6 +25,7 @@ from pip._internal.vcs.versioncontrol import (
 
 if MYPY_CHECK_RUNNING:
     from typing import Optional, Tuple
+
     from pip._internal.utils.misc import HiddenText
     from pip._internal.vcs.versioncontrol import AuthInfo, RevOptions
 
@@ -164,6 +165,29 @@ class Git(VersionControl):
         return (sha, False)
 
     @classmethod
+    def _should_fetch(cls, dest, rev):
+        """
+        Return true if rev is a ref or is a commit that we don't have locally.
+
+        Branches and tags are not considered in this method because they are
+        assumed to be always available locally (which is a normal outcome of
+        ``git clone`` and ``git fetch --tags``).
+        """
+        if rev.startswith("refs/"):
+            # Always fetch remote refs.
+            return True
+
+        if not looks_like_hash(rev):
+            # Git fetch would fail with abbreviated commits.
+            return False
+
+        if cls.has_commit(dest, rev):
+            # Don't fetch if we have the commit locally.
+            return False
+
+        return True
+
+    @classmethod
     def resolve_revision(cls, dest, url, rev_options):
         # type: (str, HiddenText, RevOptions) -> RevOptions
         """
@@ -194,10 +218,10 @@ class Git(VersionControl):
                 rev,
             )
 
-        if not rev.startswith('refs/'):
+        if not cls._should_fetch(dest, rev):
             return rev_options
 
-        # If it looks like a ref, we have to fetch it explicitly.
+        # fetch the requested revision
         cls.run_command(
             make_command('fetch', '-q', url, rev_options.to_args()),
             cwd=dest,
@@ -307,6 +331,20 @@ class Git(VersionControl):
         return url.strip()
 
     @classmethod
+    def has_commit(cls, location, rev):
+        """
+        Check if rev is a commit that is available in the local repository.
+        """
+        try:
+            cls.run_command(
+                ['rev-parse', '-q', '--verify', "sha^" + rev], cwd=location
+            )
+        except SubProcessError:
+            return False
+        else:
+            return True
+
+    @classmethod
     def get_revision(cls, location, rev=None):
         if rev is None:
             rev = 'HEAD'
@@ -349,7 +387,6 @@ class Git(VersionControl):
                 urllib_request.url2pathname(path)
                 .replace('\\', '/').lstrip('/')
             )
-            url = urlunsplit((scheme, netloc, newpath, query, fragment))
             after_plus = scheme.find('+') + 1
             url = scheme[:after_plus] + urlunsplit(
                 (scheme[after_plus:], netloc, newpath, query, fragment),

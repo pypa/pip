@@ -12,7 +12,6 @@ pass on state. To be consistent, all options will follow this design.
 
 from __future__ import absolute_import
 
-import logging
 import os
 import textwrap
 import warnings
@@ -20,6 +19,8 @@ from distutils.util import strtobool
 from functools import partial
 from optparse import SUPPRESS_HELP, Option, OptionGroup
 from textwrap import dedent
+
+from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.cli.progress_bars import BAR_TYPES
 from pip._internal.exceptions import CommandError
@@ -31,11 +32,10 @@ from pip._internal.utils.hashes import STRONG_HASHES
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Callable, Dict, Optional, Tuple
     from optparse import OptionParser, Values
-    from pip._internal.cli.parser import ConfigOptionParser
+    from typing import Any, Callable, Dict, Optional, Tuple
 
-logger = logging.getLogger(__name__)
+    from pip._internal.cli.parser import ConfigOptionParser
 
 
 def raise_option_error(parser, option, msg):
@@ -99,8 +99,8 @@ def check_dist_restriction(options, check_target=False):
     """
     dist_restriction_set = any([
         options.python_version,
-        options.platform,
-        options.abi,
+        options.platforms,
+        options.abis,
         options.implementation,
     ])
 
@@ -135,9 +135,15 @@ def _path_option_check(option, opt, value):
     return os.path.expanduser(value)
 
 
+def _package_name_option_check(option, opt, value):
+    # type: (Option, str, str) -> str
+    return canonicalize_name(value)
+
+
 class PipOption(Option):
-    TYPES = Option.TYPES + ("path",)
+    TYPES = Option.TYPES + ("path", "package_name")
     TYPE_CHECKER = Option.TYPE_CHECKER.copy()
+    TYPE_CHECKER["package_name"] = _package_name_option_check
     TYPE_CHECKER["path"] = _path_option_check
 
 
@@ -190,7 +196,7 @@ no_color = partial(
     dest='no_color',
     action='store_true',
     default=False,
-    help="Suppress colored output",
+    help="Suppress colored output.",
 )  # type: Callable[..., Option]
 
 version = partial(
@@ -505,14 +511,16 @@ def only_binary():
     )
 
 
-platform = partial(
+platforms = partial(
     Option,
     '--platform',
-    dest='platform',
+    dest='platforms',
     metavar='platform',
+    action='append',
     default=None,
-    help=("Only use wheels compatible with <platform>. "
-          "Defaults to the platform of the running system."),
+    help=("Only use wheels compatible with <platform>. Defaults to the "
+          "platform of the running system. Use this option multiple times to "
+          "specify multiple platforms supported by the target interpreter."),
 )  # type: Callable[..., Option]
 
 
@@ -596,35 +604,36 @@ implementation = partial(
 )  # type: Callable[..., Option]
 
 
-abi = partial(
+abis = partial(
     Option,
     '--abi',
-    dest='abi',
+    dest='abis',
     metavar='abi',
+    action='append',
     default=None,
-    help=("Only use wheels compatible with Python "
-          "abi <abi>, e.g. 'pypy_41'.  If not specified, then the "
-          "current interpreter abi tag is used.  Generally "
-          "you will need to specify --implementation, "
-          "--platform, and --python-version when using "
-          "this option."),
+    help=("Only use wheels compatible with Python abi <abi>, e.g. 'pypy_41'. "
+          "If not specified, then the current interpreter abi tag is used. "
+          "Use this option multiple times to specify multiple abis supported "
+          "by the target interpreter. Generally you will need to specify "
+          "--implementation, --platform, and --python-version when using this "
+          "option."),
 )  # type: Callable[..., Option]
 
 
 def add_target_python_options(cmd_opts):
     # type: (OptionGroup) -> None
-    cmd_opts.add_option(platform())
+    cmd_opts.add_option(platforms())
     cmd_opts.add_option(python_version())
     cmd_opts.add_option(implementation())
-    cmd_opts.add_option(abi())
+    cmd_opts.add_option(abis())
 
 
 def make_target_python(options):
     # type: (Values) -> TargetPython
     target_python = TargetPython(
-        platform=options.platform,
+        platforms=options.platforms,
         py_version_info=options.python_version,
-        abi=options.abi,
+        abis=options.abis,
         implementation=options.implementation,
     )
 
@@ -699,29 +708,6 @@ no_deps = partial(
     help="Don't install package dependencies.",
 )  # type: Callable[..., Option]
 
-
-def _handle_build_dir(option, opt, value, parser):
-    # type: (Option, str, str, OptionParser) -> None
-    if value:
-        value = os.path.abspath(value)
-    setattr(parser.values, option.dest, value)
-
-
-build_dir = partial(
-    PipOption,
-    '-b', '--build', '--build-dir', '--build-directory',
-    dest='build_dir',
-    type='path',
-    metavar='dir',
-    action='callback',
-    callback=_handle_build_dir,
-    help='(DEPRECATED) '
-         'Directory to unpack packages into and build in. Note that '
-         'an initial build still takes place in a temporary directory. '
-         'The location of temporary directories can be controlled by setting '
-         'the TMPDIR environment variable (TEMP on Windows) appropriately. '
-         'When passed, build directories are not cleaned in case of failures.'
-)  # type: Callable[..., Option]
 
 ignore_requires_python = partial(
     Option,
@@ -847,11 +833,11 @@ def _handle_merge_hash(option, opt_str, value, parser):
     try:
         algo, digest = value.split(':', 1)
     except ValueError:
-        parser.error('Arguments to {} must be a hash name '
+        parser.error('Arguments to {} must be a hash name '  # noqa
                      'followed by a value, like --hash=sha256:'
                      'abcde...'.format(opt_str))
     if algo not in STRONG_HASHES:
-        parser.error('Allowed hash algorithms for {} are {}.'.format(
+        parser.error('Allowed hash algorithms for {} are {}.'.format(  # noqa
                      opt_str, ', '.join(STRONG_HASHES)))
     parser.values.hashes.setdefault(algo, []).append(digest)
 
@@ -901,6 +887,17 @@ def check_list_path_option(options):
         )
 
 
+list_exclude = partial(
+    PipOption,
+    '--exclude',
+    dest='excludes',
+    action='append',
+    metavar='package',
+    type='package_name',
+    help="Exclude specified package from the output",
+)  # type: Callable[..., Option]
+
+
 no_python_version_warning = partial(
     Option,
     '--no-python-version-warning',
@@ -929,7 +926,7 @@ use_new_feature = partial(
     metavar='feature',
     action='append',
     default=[],
-    choices=['2020-resolver'],
+    choices=['2020-resolver', 'fast-deps'],
     help='Enable new functionality, that may be backward incompatible.',
 )  # type: Callable[..., Option]
 
@@ -940,7 +937,7 @@ use_deprecated_feature = partial(
     metavar='feature',
     action='append',
     default=[],
-    choices=[],
+    choices=['legacy-resolver'],
     help=(
         'Enable deprecated functionality, that will be removed in the future.'
     ),

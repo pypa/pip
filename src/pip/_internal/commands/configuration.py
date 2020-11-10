@@ -4,19 +4,15 @@ import subprocess
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
-from pip._internal.configuration import (
-    Configuration,
-    get_configuration_files,
-    kinds,
-)
+from pip._internal.configuration import Configuration, get_configuration_files, kinds
 from pip._internal.exceptions import PipError
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import get_prog, write_output
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import List, Any, Optional
     from optparse import Values
+    from typing import Any, List, Optional
 
     from pip._internal.configuration import Kind
 
@@ -105,8 +101,9 @@ class ConfigurationCommand(Command):
 
         # Determine action
         if not args or args[0] not in handlers:
-            logger.error("Need an action ({}) to perform.".format(
-                ", ".join(sorted(handlers)))
+            logger.error(
+                "Need an action (%s) to perform.",
+                ", ".join(sorted(handlers)),
             )
             return ERROR
 
@@ -266,9 +263,8 @@ class ConfigurationCommand(Command):
         try:
             self.configuration.save()
         except Exception:
-            logger.error(
-                "Unable to save configuration. Please report this as a bug.",
-                exc_info=True
+            logger.exception(
+                "Unable to save configuration. Please report this as a bug."
             )
             raise PipError("Internal Error.")
 

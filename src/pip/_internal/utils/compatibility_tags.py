@@ -3,7 +3,6 @@
 
 from __future__ import absolute_import
 
-import logging
 import re
 
 from pip._vendor.packaging.tags import (
@@ -22,8 +21,6 @@ if MYPY_CHECK_RUNNING:
     from typing import List, Optional, Tuple
 
     from pip._vendor.packaging.tags import PythonVersion
-
-logger = logging.getLogger(__name__)
 
 _osx_arch_pat = re.compile(r'(.+)_(\d+)_(\d+)_(.+)')
 
@@ -89,6 +86,24 @@ def _get_custom_platforms(arch):
     return arches
 
 
+def _expand_allowed_platforms(platforms):
+    # type: (Optional[List[str]]) -> Optional[List[str]]
+    if not platforms:
+        return None
+
+    seen = set()
+    result = []
+
+    for p in platforms:
+        if p in seen:
+            continue
+        additions = [c for c in _get_custom_platforms(p) if c not in seen]
+        seen.update(additions)
+        result.extend(additions)
+
+    return result
+
+
 def _get_python_version(version):
     # type: (str) -> PythonVersion
     if len(version) > 1:
@@ -108,9 +123,9 @@ def _get_custom_interpreter(implementation=None, version=None):
 
 def get_supported(
     version=None,  # type: Optional[str]
-    platform=None,  # type: Optional[str]
+    platforms=None,  # type: Optional[List[str]]
     impl=None,  # type: Optional[str]
-    abi=None  # type: Optional[str]
+    abis=None  # type: Optional[List[str]]
 ):
     # type: (...) -> List[Tag]
     """Return a list of supported tags for each version specified in
@@ -118,11 +133,11 @@ def get_supported(
 
     :param version: a string version, of the form "33" or "32",
         or None. The version will be assumed to support our ABI.
-    :param platform: specify the exact platform you want valid
+    :param platform: specify a list of platforms you want valid
         tags for, or None. If None, use the local system platform.
     :param impl: specify the exact implementation you want valid
         tags for, or None. If None, use the local interpreter impl.
-    :param abi: specify the exact abi you want valid
+    :param abis: specify a list of abis you want valid
         tags for, or None. If None, use the local interpreter abi.
     """
     supported = []  # type: List[Tag]
@@ -133,13 +148,7 @@ def get_supported(
 
     interpreter = _get_custom_interpreter(impl, version)
 
-    abis = None  # type: Optional[List[str]]
-    if abi is not None:
-        abis = [abi]
-
-    platforms = None  # type: Optional[List[str]]
-    if platform is not None:
-        platforms = _get_custom_platforms(platform)
+    platforms = _expand_allowed_platforms(platforms)
 
     is_cpython = (impl or interpreter_name()) == "cp"
     if is_cpython:

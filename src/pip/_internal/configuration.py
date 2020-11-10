@@ -28,12 +28,24 @@ from pip._internal.utils.misc import ensure_dir, enum
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import (
-        Any, Dict, Iterable, List, NewType, Optional, Tuple
-    )
+    from typing import Any, Dict, Iterable, List, NewType, Optional, Tuple
 
     RawConfigParser = configparser.RawConfigParser  # Shorthand
     Kind = NewType("Kind", str)
+
+CONFIG_BASENAME = 'pip.ini' if WINDOWS else 'pip.conf'
+ENV_NAMES_IGNORED = "version", "help"
+
+# The kinds of configurations there are.
+kinds = enum(
+    USER="user",        # User Specific
+    GLOBAL="global",    # System Wide
+    SITE="site",        # [Virtual] Environment Specific
+    ENV="env",          # from PIP_CONFIG_FILE
+    ENV_VAR="env-var",  # from Environment Variables
+)
+OVERRIDE_ORDER = kinds.GLOBAL, kinds.USER, kinds.SITE, kinds.ENV, kinds.ENV_VAR
+VALID_LOAD_ONLY = kinds.USER, kinds.GLOBAL, kinds.SITE
 
 logger = logging.getLogger(__name__)
 
@@ -58,19 +70,6 @@ def _disassemble_key(name):
         ).format(name)
         raise ConfigurationError(error_message)
     return name.split(".", 1)
-
-
-# The kinds of configurations there are.
-kinds = enum(
-    USER="user",        # User Specific
-    GLOBAL="global",    # System Wide
-    SITE="site",        # [Virtual] Environment Specific
-    ENV="env",          # from PIP_CONFIG_FILE
-    ENV_VAR="env-var",  # from Environment Variables
-)
-
-
-CONFIG_BASENAME = 'pip.ini' if WINDOWS else 'pip.conf'
 
 
 def get_configuration_files():
@@ -114,29 +113,21 @@ class Configuration(object):
         # type: (bool, Optional[Kind]) -> None
         super(Configuration, self).__init__()
 
-        _valid_load_only = [kinds.USER, kinds.GLOBAL, kinds.SITE, None]
-        if load_only not in _valid_load_only:
+        if load_only is not None and load_only not in VALID_LOAD_ONLY:
             raise ConfigurationError(
                 "Got invalid value for load_only - should be one of {}".format(
-                    ", ".join(map(repr, _valid_load_only[:-1]))
+                    ", ".join(map(repr, VALID_LOAD_ONLY))
                 )
             )
         self.isolated = isolated
         self.load_only = load_only
 
-        # The order here determines the override order.
-        self._override_order = [
-            kinds.GLOBAL, kinds.USER, kinds.SITE, kinds.ENV, kinds.ENV_VAR
-        ]
-
-        self._ignore_env_names = ["version", "help"]
-
         # Because we keep track of where we got the data from
         self._parsers = {
-            variant: [] for variant in self._override_order
+            variant: [] for variant in OVERRIDE_ORDER
         }  # type: Dict[Kind, List[Tuple[str, RawConfigParser]]]
         self._config = {
-            variant: {} for variant in self._override_order
+            variant: {} for variant in OVERRIDE_ORDER
         }  # type: Dict[Kind, Dict[str, Any]]
         self._modified_parsers = []  # type: List[Tuple[str, RawConfigParser]]
 
@@ -257,7 +248,7 @@ class Configuration(object):
         #       are not needed here.
         retval = {}
 
-        for variant in self._override_order:
+        for variant in OVERRIDE_ORDER:
             retval.update(self._config[variant])
 
         return retval
@@ -348,12 +339,10 @@ class Configuration(object):
         # type: () -> Iterable[Tuple[str, str]]
         """Returns a generator with all environmental vars with prefix PIP_"""
         for key, val in os.environ.items():
-            should_be_yielded = (
-                key.startswith("PIP_") and
-                key[4:].lower() not in self._ignore_env_names
-            )
-            if should_be_yielded:
-                yield key[4:].lower(), val
+            if key.startswith("PIP_"):
+                name = key[4:].lower()
+                if name not in ENV_NAMES_IGNORED:
+                    yield name, val
 
     # XXX: This is patched in the tests.
     def iter_config_files(self):

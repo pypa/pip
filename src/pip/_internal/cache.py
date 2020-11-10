@@ -17,7 +17,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import path_to_url
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional, Set, List, Any, Dict
+    from typing import Any, Dict, List, Optional, Set
 
     from pip._vendor.packaging.tags import Tag
 
@@ -228,10 +228,9 @@ class SimpleWheelCache(Cache):
                 continue
             if canonicalize_name(wheel.name) != canonical_package_name:
                 logger.debug(
-                    "Ignoring cached wheel {} for {} as it "
-                    "does not match the expected distribution name {}.".format(
-                        wheel_name, link, package_name
-                    )
+                    "Ignoring cached wheel %s for %s as it "
+                    "does not match the expected distribution name %s.",
+                    wheel_name, link, package_name,
                 )
                 continue
             if not wheel.supported(supported_tags):

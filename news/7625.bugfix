@@ -1,1 +1,0 @@
-Fix normalizing path on Windows when installing package on another logical disk.

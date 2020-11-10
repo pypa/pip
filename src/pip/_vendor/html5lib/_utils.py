@@ -2,6 +2,11 @@ from __future__ import absolute_import, division, unicode_literals
 
 from types import ModuleType
 
+try:
+    from collections.abc import Mapping
+except ImportError:
+    from collections import Mapping
+
 from pip._vendor.six import text_type, PY3
 
 if PY3:
@@ -30,7 +35,7 @@ try:
         # We need this with u"" because of http://bugs.jython.org/issue2039
         _x = eval('u"\\uD800"')  # pylint:disable=eval-used
         assert isinstance(_x, text_type)
-except:  # pylint:disable=bare-except
+except Exception:
     supports_lone_surrogates = False
 else:
     supports_lone_surrogates = True
@@ -50,9 +55,6 @@ class MethodDispatcher(dict):
     """
 
     def __init__(self, items=()):
-        # Using _dictEntries instead of directly assigning to self is about
-        # twice as fast. Please do careful performance testing before changing
-        # anything here.
         _dictEntries = []
         for name, value in items:
             if isinstance(name, (list, tuple, frozenset, set)):
@@ -66,6 +68,36 @@ class MethodDispatcher(dict):
 
     def __getitem__(self, key):
         return dict.get(self, key, self.default)
+
+    def __get__(self, instance, owner=None):
+        return BoundMethodDispatcher(instance, self)
+
+
+class BoundMethodDispatcher(Mapping):
+    """Wraps a MethodDispatcher, binding its return values to `instance`"""
+    def __init__(self, instance, dispatcher):
+        self.instance = instance
+        self.dispatcher = dispatcher
+
+    def __getitem__(self, key):
+        # see https://docs.python.org/3/reference/datamodel.html#object.__get__
+        # on a function, __get__ is used to bind a function to an instance as a bound method
+        return self.dispatcher[key].__get__(self.instance)
+
+    def get(self, key, default):
+        if key in self.dispatcher:
+            return self[key]
+        else:
+            return default
+
+    def __iter__(self):
+        return iter(self.dispatcher)
+
+    def __len__(self):
+        return len(self.dispatcher)
+
+    def __contains__(self, key):
+        return key in self.dispatcher
 
 
 # Some utility functions to deal with weirdness around UCS2 vs UCS4

@@ -45,6 +45,7 @@ class Tests_UserSite:
         project_name = result.stdout.strip()
         assert 'INITools' == project_name, project_name
 
+    @pytest.mark.xfail
     @pytest.mark.network
     @need_svn
     @pytest.mark.incompatible_with_test_venv
@@ -115,6 +116,7 @@ class Tests_UserSite:
             'install', '--user', 'INITools==0.1', '--no-binary=:all:')
 
         # usersite has 0.1
+        # we still test for egg-info because no-binary implies setup.py install
         egg_info_folder = (
             script.user_site /
             'INITools-0.1-py{pyversion}.egg-info'.format(**globals())
@@ -142,6 +144,7 @@ class Tests_UserSite:
             'install', '--user', 'INITools==0.1', '--no-binary=:all:')
 
         # usersite has 0.1
+        # we still test for egg-info because no-binary implies setup.py install
         egg_info_folder = (
             script.user_site /
             'INITools-0.1-py{pyversion}.egg-info'.format(**globals())
@@ -173,6 +176,7 @@ class Tests_UserSite:
             'install', '--user', '--upgrade', 'INITools', '--no-binary=:all:')
 
         # usersite has 0.3.1
+        # we still test for egg-info because no-binary implies setup.py install
         egg_info_folder = (
             script.user_site /
             'INITools-0.3.1-py{pyversion}.egg-info'.format(**globals())
@@ -207,6 +211,7 @@ class Tests_UserSite:
             'install', '--user', 'INITools==0.1', '--no-binary=:all:')
 
         # usersite has 0.1
+        # we still test for egg-info because no-binary implies setup.py install
         egg_info_folder = (
             script.user_site /
             'INITools-0.1-py{pyversion}.egg-info'.format(**globals())

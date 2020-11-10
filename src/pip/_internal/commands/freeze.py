@@ -9,6 +9,7 @@ from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.models.format_control import FormatControl
 from pip._internal.operations.freeze import freeze
 from pip._internal.utils.compat import stdlib_pkgs
+from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 DEV_PKGS = {'pip', 'setuptools', 'distribute', 'wheel'}
@@ -73,6 +74,7 @@ class FreezeCommand(Command):
             dest='exclude_editable',
             action='store_true',
             help='Exclude editable package from output.')
+        self.cmd_opts.add_option(cmdoptions.list_exclude())
 
         self.parser.insert_option_group(0, self.cmd_opts)
 
@@ -84,7 +86,18 @@ class FreezeCommand(Command):
         if not options.freeze_all:
             skip.update(DEV_PKGS)
 
+        if options.excludes:
+            skip.update(options.excludes)
+
         cmdoptions.check_list_path_option(options)
+
+        if options.find_links:
+            deprecated(
+                "--find-links option in pip freeze is deprecated.",
+                replacement=None,
+                gone_in="21.2",
+                issue=9069,
+            )
 
         freeze_kwargs = dict(
             requirement=options.requirements,

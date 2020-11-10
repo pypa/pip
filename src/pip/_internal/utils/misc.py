@@ -20,6 +20,7 @@ from itertools import tee
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.utils import canonicalize_name
+
 # NOTE: retrying is not annotated in typeshed as on 2017-07-17, which is
 #       why we ignore the type on this import.
 from pip._vendor.retrying import retry  # type: ignore
@@ -30,17 +31,8 @@ from pip._vendor.six.moves.urllib.parse import unquote as urllib_unquote
 
 from pip import __version__
 from pip._internal.exceptions import CommandError
-from pip._internal.locations import (
-    get_major_minor_version,
-    site_packages,
-    user_site,
-)
-from pip._internal.utils.compat import (
-    WINDOWS,
-    expanduser,
-    stdlib_pkgs,
-    str_to_display,
-)
+from pip._internal.locations import get_major_minor_version, site_packages, user_site
+from pip._internal.utils.compat import WINDOWS, expanduser, stdlib_pkgs, str_to_display
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING, cast
 from pip._internal.utils.virtualenv import (
     running_under_virtualenv,
@@ -54,9 +46,20 @@ else:
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Any, AnyStr, Callable, Container, Iterable, Iterator, List, Optional,
-        Text, Tuple, TypeVar, Union,
+        Any,
+        AnyStr,
+        Callable,
+        Container,
+        Iterable,
+        Iterator,
+        List,
+        Optional,
+        Text,
+        Tuple,
+        TypeVar,
+        Union,
     )
+
     from pip._vendor.pkg_resources import Distribution
 
     VersionInfo = Tuple[int, int, int]
@@ -134,7 +137,7 @@ def get_prog():
 # Retry every half second for up to 3 seconds
 @retry(stop_max_delay=3000, wait_fixed=500)
 def rmtree(dir, ignore_errors=False):
-    # type: (Text, bool) -> None
+    # type: (AnyStr, bool) -> None
     shutil.rmtree(dir, ignore_errors=ignore_errors,
                   onerror=rmtree_errorhandler)
 
@@ -483,22 +486,39 @@ def get_installed_distributions(
             ]
 
 
-def search_distribution(req_name):
+def _search_distribution(req_name):
+    # type: (str) -> Optional[Distribution]
+    """Find a distribution matching the ``req_name`` in the environment.
 
+    This searches from *all* distributions available in the environment, to
+    match the behavior of ``pkg_resources.get_distribution()``.
+    """
     # Canonicalize the name before searching in the list of
     # installed distributions and also while creating the package
     # dictionary to get the Distribution object
     req_name = canonicalize_name(req_name)
-    packages = get_installed_distributions(skip=())
+    packages = get_installed_distributions(
+        local_only=False,
+        skip=(),
+        include_editables=True,
+        editables_only=False,
+        user_only=False,
+        paths=None,
+    )
     pkg_dict = {canonicalize_name(p.key): p for p in packages}
     return pkg_dict.get(req_name)
 
 
 def get_distribution(req_name):
-    """Given a requirement name, return the installed Distribution object"""
+    # type: (str) -> Optional[Distribution]
+    """Given a requirement name, return the installed Distribution object.
+
+    This searches from *all* distributions available in the environment, to
+    match the behavior of ``pkg_resources.get_distribution()``.
+    """
 
     # Search the distribution by looking through the working set
-    dist = search_distribution(req_name)
+    dist = _search_distribution(req_name)
 
     # If distribution could not be found, call working_set.require
     # to update the working set, and try to find the distribution
@@ -514,7 +534,7 @@ def get_distribution(req_name):
             pkg_resources.working_set.require(req_name)
         except pkg_resources.DistributionNotFound:
             return None
-    return search_distribution(req_name)
+    return _search_distribution(req_name)
 
 
 def egg_link_path(dist):

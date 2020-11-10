@@ -13,12 +13,7 @@ from pip._internal.vcs.git import Git, looks_like_hash
 from pip._internal.vcs.mercurial import Mercurial
 from pip._internal.vcs.subversion import Subversion
 from pip._internal.vcs.versioncontrol import RevOptions, VersionControl
-from tests.lib import is_svn_installed, need_svn, pyversion
-
-if pyversion >= '3':
-    VERBOSE_FALSE = False
-else:
-    VERBOSE_FALSE = 0
+from tests.lib import is_svn_installed, need_svn
 
 
 @pytest.mark.skipif(
@@ -173,8 +168,9 @@ def test_git_resolve_revision_not_found_warning(get_sha_mock, caplog):
     sha = 40 * 'a'
     rev_options = Git.make_rev_options(sha)
 
-    new_options = Git.resolve_revision('.', url, rev_options)
-    assert new_options.rev == sha
+    # resolve_revision with a full sha would fail here because
+    # it attempts a git fetch. This case is now covered by
+    # test_resolve_commit_not_on_branch.
 
     rev_options = Git.make_rev_options(sha[:6])
     new_options = Git.resolve_revision('.', url, rev_options)
@@ -443,6 +439,9 @@ def test_subversion__call_vcs_version():
     ('svn, version 1.10.3 (r1842928)\n'
      '   compiled Feb 25 2019, 14:20:39 on x86_64-apple-darwin17.0.0',
      (1, 10, 3)),
+    ('svn, version 1.12.0-SlikSvn (SlikSvn/1.12.0)\n'
+     '   compiled May 28 2019, 13:44:56 on x86_64-microsoft-windows6.2',
+     (1, 12, 0)),
     ('svn, version 1.9.7 (r1800392)', (1, 9, 7)),
     ('svn, version 1.9.7a1 (r1800392)', ()),
     ('svn, version 1.9 (r1800392)', (1, 9)),

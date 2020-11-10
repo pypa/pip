@@ -10,7 +10,7 @@ from tests.lib import create_basic_wheel_for_package
 def test_new_resolver_install_user(script):
     create_basic_wheel_for_package(script, "base", "0.1.0")
     result = script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "--user",
@@ -28,13 +28,13 @@ def test_new_resolver_install_user_satisfied_by_global_site(script):
     create_basic_wheel_for_package(script, "base", "1.0.0")
 
     script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "base==1.0.0",
     )
     result = script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "--user",
@@ -54,7 +54,7 @@ def test_new_resolver_install_user_conflict_in_user_site(script):
     create_basic_wheel_for_package(script, "base", "2.0.0")
 
     script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "--user",
@@ -62,7 +62,7 @@ def test_new_resolver_install_user_conflict_in_user_site(script):
     )
 
     result = script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "--user",
@@ -82,13 +82,13 @@ def test_new_resolver_install_user_in_virtualenv_with_conflict_fails(script):
     create_basic_wheel_for_package(script, "base", "2.0.0")
 
     script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "base==2.0.0",
     )
     result = script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "--user",
@@ -128,13 +128,13 @@ def test_new_resolver_install_user_reinstall_global_site(script):
     create_basic_wheel_for_package(script, "base", "1.0.0")
 
     script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "base==1.0.0",
     )
     result = script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "--user",
@@ -159,14 +159,14 @@ def test_new_resolver_install_user_conflict_in_global_site(script):
     create_basic_wheel_for_package(script, "base", "2.0.0")
 
     script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "base==1.0.0",
     )
 
     result = script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "--user",
@@ -191,13 +191,13 @@ def test_new_resolver_install_user_conflict_in_global_and_user_sites(script):
     create_basic_wheel_for_package(script, "base", "2.0.0")
 
     script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "base==2.0.0",
     )
     script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "--user",
@@ -206,7 +206,7 @@ def test_new_resolver_install_user_conflict_in_global_and_user_sites(script):
     )
 
     result = script.pip(
-        "install", "--use-feature=2020-resolver",
+        "install",
         "--no-cache-dir", "--no-index",
         "--find-links", script.scratch_path,
         "--user",

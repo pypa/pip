@@ -340,8 +340,8 @@ def test_install_user_wheel(script, shared_data, with_wheel, tmpdir):
         'install', 'has.script==1.0', '--user', '--no-index',
         '--find-links', tmpdir,
     )
-    egg_info_folder = script.user_site / 'has.script-1.0.dist-info'
-    result.did_create(egg_info_folder)
+    dist_info_folder = script.user_site / 'has.script-1.0.dist-info'
+    result.did_create(dist_info_folder)
     script_file = script.user_bin / 'script.py'
     result.did_create(script_file)
 
@@ -681,3 +681,36 @@ def test_correct_package_name_while_creating_wheel_bug(script, package_name):
     package = create_basic_wheel_for_package(script, package_name, '1.0')
     wheel_name = os.path.basename(package)
     assert wheel_name == 'simple_package-1.0-py2.py3-none-any.whl'
+
+
+@pytest.mark.parametrize("name", ["purelib", "abc"])
+def test_wheel_with_file_in_data_dir_has_reasonable_error(
+    script, tmpdir, name
+):
+    """Normally we expect entities in the .data directory to be in a
+    subdirectory, but if they are not then we should show a reasonable error
+    message that includes the path.
+    """
+    wheel_path = make_wheel(
+        "simple", "0.1.0", extra_data_files={name: "hello world"}
+    ).save_to_dir(tmpdir)
+
+    result = script.pip(
+        "install", "--no-index", str(wheel_path), expect_error=True
+    )
+    assert "simple-0.1.0.data/{}".format(name) in result.stderr
+
+
+def test_wheel_with_unknown_subdir_in_data_dir_has_reasonable_error(
+    script, tmpdir
+):
+    wheel_path = make_wheel(
+        "simple",
+        "0.1.0",
+        extra_data_files={"unknown/hello.txt": "hello world"}
+    ).save_to_dir(tmpdir)
+
+    result = script.pip(
+        "install", "--no-index", str(wheel_path), expect_error=True
+    )
+    assert "simple-0.1.0.data/unknown/hello.txt" in result.stderr

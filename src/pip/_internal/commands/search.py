@@ -7,6 +7,7 @@ from collections import OrderedDict
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.version import parse as parse_version
+
 # NOTE: XMLRPC Client is not annotated in typeshed as on 2017-07-17, which is
 #       why we ignore the type on this import
 from pip._vendor.six.moves import xmlrpc_client  # type: ignore
@@ -24,7 +25,8 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from optparse import Values
-    from typing import List, Dict, Optional
+    from typing import Dict, List, Optional
+
     from typing_extensions import TypedDict
     TransformedHit = TypedDict(
         'TransformedHit',
@@ -140,6 +142,7 @@ def print_results(hits, name_column_width=None, terminal_width=None):
             write_output(line)
             if name in installed_packages:
                 dist = get_distribution(name)
+                assert dist is not None
                 with indent_log():
                     if dist.version == latest:
                         write_output('INSTALLED: %s (latest)', dist.version)

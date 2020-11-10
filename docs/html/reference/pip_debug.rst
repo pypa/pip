@@ -10,7 +10,13 @@ pip debug
 Usage
 =====
 
-.. pip-command-usage:: debug
+.. tab:: Unix/macOS
+
+   .. pip-command-usage:: debug "python -m pip"
+
+.. tab:: Windows
+
+   .. pip-command-usage:: debug "py -m pip"
 
 
 .. warning::

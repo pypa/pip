@@ -1,7 +1,7 @@
 language: python
 cache: pip
 dist: xenial
-python: 3.8
+python: 3.9
 addons:
   apt:
     packages:
@@ -10,7 +10,6 @@ addons:
 stages:
 - primary
 - secondary
-- experimental
 
 jobs:
   include:
@@ -31,25 +30,6 @@ jobs:
       python: pypy2.7-7.1.1
     - env: GROUP=2
       python: pypy2.7-7.1.1
-
-    # Test experimental stuff that are not part of the standard pip usage.
-    # Helpful for developers working on them to see how they're doing.
-    - stage: experimental
-      env:
-      - GROUP=1
-      - NEW_RESOLVER=1
-    - env:
-      - GROUP=2
-      - NEW_RESOLVER=1
-    - env:
-      - GROUP=3
-      - NEW_RESOLVER=1
-
-  fast_finish: true
-  allow_failures:
-    - env:
-      - GROUP=3
-      - NEW_RESOLVER=1
 
 before_install: tools/travis/setup.sh
 install: travis_retry tools/travis/install.sh

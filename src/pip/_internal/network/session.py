@@ -25,6 +25,7 @@ from pip._vendor.urllib3.exceptions import InsecureRequestWarning
 from pip import __version__
 from pip._internal.network.auth import MultiDomainBasicAuth
 from pip._internal.network.cache import SafeFileCache
+
 # Import ssl from compat so the initial import occurs in only one place.
 from pip._internal.utils.compat import has_tls, ipaddress
 from pip._internal.utils.glibc import libc_ver
@@ -37,9 +38,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import url_to_path
 
 if MYPY_CHECK_RUNNING:
-    from typing import (
-        Dict, Iterator, List, Optional, Tuple, Union,
-    )
+    from typing import Dict, Iterator, List, Optional, Tuple, Union
 
     from pip._internal.models.link import Link
 
@@ -194,7 +193,9 @@ class LocalFSAdapter(BaseAdapter):
         else:
             modified = email.utils.formatdate(stats.st_mtime, usegmt=True)
             content_type = mimetypes.guess_type(pathname)[0] or "text/plain"
-            resp.headers = CaseInsensitiveDict({
+            resp.headers = CaseInsensitive
+            
+            ({
                 "Content-Type": content_type,
                 "Content-Length": stats.st_size,
                 "Last-Modified": modified,
@@ -309,6 +310,14 @@ class PipSession(requests.Session):
 
         for host in trusted_hosts:
             self.add_trusted_host(host, suppress_logging=True)
+
+    def update_index_urls(self, new_index_urls):
+        # type: (List[str]) -> None
+        """
+        :param new_index_urls: New index urls to update the authentication
+            handler with.
+        """
+        self.auth.index_urls = new_index_urls
 
     def add_trusted_host(self, host, source=None, suppress_logging=False):
         # type: (str, Optional[str], bool) -> None

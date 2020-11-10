@@ -12,6 +12,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from typing import Dict, Iterable, List, Optional, Tuple
+
     from pip._internal.req.req_install import InstallRequirement
 
 

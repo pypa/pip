@@ -25,6 +25,7 @@ from pip._internal.models.link import Link
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.models.wheel import Wheel
+from pip._internal.utils.compat import lru_cache
 from pip._internal.utils.filetypes import WHEEL_EXTENSION
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import build_netloc
@@ -34,9 +35,7 @@ from pip._internal.utils.unpacking import SUPPORTED_EXTENSIONS
 from pip._internal.utils.urls import url_to_path
 
 if MYPY_CHECK_RUNNING:
-    from typing import (
-        FrozenSet, Iterable, List, Optional, Set, Text, Tuple, Union,
-    )
+    from typing import FrozenSet, Iterable, List, Optional, Set, Text, Tuple, Union
 
     from pip._vendor.packaging.tags import Tag
     from pip._vendor.packaging.version import _BaseVersion
@@ -801,6 +800,7 @@ class PackageFinder(object):
 
         return package_links
 
+    @lru_cache(maxsize=None)
     def find_all_candidates(self, project_name):
         # type: (str) -> List[InstallationCandidate]
         """Find all available InstallationCandidate for project_name
@@ -863,6 +863,7 @@ class PackageFinder(object):
             hashes=hashes,
         )
 
+    @lru_cache(maxsize=None)
     def find_best_candidate(
         self,
         project_name,       # type: str

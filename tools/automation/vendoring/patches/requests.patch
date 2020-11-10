@@ -21,35 +21,22 @@ index 6336a07d..9582fa73 100644
  # Kinda cool, though, right?
 
 diff --git a/src/pip/_vendor/requests/__init__.py b/src/pip/_vendor/requests/__init__.py
-index 9c3b769..36a4ef40 100644
+index dc83261a8..517458b5a 100644
 --- a/src/pip/_vendor/requests/__init__.py
 +++ b/src/pip/_vendor/requests/__init__.py
-@@ -80,13 +80,15 @@ except (AssertionError, ValueError):
-                   RequestsDependencyWarning)
+@@ -94,6 +94,11 @@ except (AssertionError, ValueError):
+ # if the standard library doesn't support SNI or the
+ # 'ssl' library isn't available.
+ try:
++    # Note: This logic prevents upgrading cryptography on Windows, if imported
++    #       as part of pip.
++    from pip._internal.utils.compat import WINDOWS
++    if not WINDOWS:
++        raise ImportError("pip internals: don't import cryptography on Windows")
+     try:
+         import ssl
+     except ImportError:
 
- # Attempt to enable urllib3's SNI support, if possible
--try:
--    from pip._vendor.urllib3.contrib import pyopenssl
--    pyopenssl.inject_into_urllib3()
--
--    # Check cryptography version
--    from cryptography import __version__ as cryptography_version
--    _check_cryptography(cryptography_version)
--except ImportError:
--    pass
-+from pip._internal.utils.compat import WINDOWS
-+if not WINDOWS:
-+    try:
-+        from pip._vendor.urllib3.contrib import pyopenssl
-+        pyopenssl.inject_into_urllib3()
-+
-+        # Check cryptography version
-+        from cryptography import __version__ as cryptography_version
-+        _check_cryptography(cryptography_version)
-+    except ImportError:
-+        pass
-
- # urllib3's DependencyWarnings should be silenced.
 diff --git a/src/pip/_vendor/requests/compat.py b/src/pip/_vendor/requests/compat.py
 index eb6530d..353ec29 100644
 --- a/src/pip/_vendor/requests/compat.py

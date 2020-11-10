@@ -19,9 +19,10 @@ from pip._internal.utils.misc import get_pip_version
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from types import ModuleType
-    from typing import List, Optional, Dict
     from optparse import Values
+    from types import ModuleType
+    from typing import Dict, List, Optional
+
     from pip._internal.configuration import Configuration
 
 logger = logging.getLogger(__name__)
@@ -29,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 def show_value(name, value):
     # type: (str, Optional[str]) -> None
-    logger.info('{}: {}'.format(name, value))
+    logger.info('%s: %s', name, value)
 
 
 def show_sys_implementation():
@@ -102,9 +103,9 @@ def get_vendor_version_from_module(module_name):
 
 def show_actual_vendor_versions(vendor_txt_versions):
     # type: (Dict[str, str]) -> None
-    # Logs the actual version and print extra info
-    # if there is a conflict or if the actual version could not be imported.
-
+    """Log the actual version and print extra info if there is
+    a conflict or if the actual version could not be imported.
+    """
     for module_name, expected_version in vendor_txt_versions.items():
         extra_message = ''
         actual_version = get_vendor_version_from_module(module_name)
@@ -115,14 +116,7 @@ def show_actual_vendor_versions(vendor_txt_versions):
         elif actual_version != expected_version:
             extra_message = ' (CONFLICT: vendor.txt suggests version should'\
                             ' be {})'.format(expected_version)
-
-        logger.info(
-            '{name}=={actual}{extra}'.format(
-                name=module_name,
-                actual=actual_version,
-                extra=extra_message
-            )
-        )
+        logger.info('%s==%s%s', module_name, actual_version, extra_message)
 
 
 def show_vendor_versions():

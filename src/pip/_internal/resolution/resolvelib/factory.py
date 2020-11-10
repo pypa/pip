@@ -1,7 +1,5 @@
-import collections
 import logging
 
-from pip._vendor import six
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.exceptions import (
@@ -11,6 +9,7 @@ from pip._internal.exceptions import (
     UnsupportedWheel,
 )
 from pip._internal.models.wheel import Wheel
+from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.compatibility_tags import get_supported
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.misc import (
@@ -21,6 +20,7 @@ from pip._internal.utils.misc import (
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
+from .base import Constraint
 from .candidates import (
     AlreadyInstalledCandidate,
     EditableCandidate,
@@ -28,6 +28,7 @@ from .candidates import (
     LinkCandidate,
     RequiresPythonCandidate,
 )
+from .found_candidates import FoundCandidates
 from .requirements import (
     ExplicitRequirement,
     RequiresPythonRequirement,
@@ -36,9 +37,10 @@ from .requirements import (
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        FrozenSet,
         Dict,
+        FrozenSet,
         Iterable,
+        Iterator,
         List,
         Optional,
         Sequence,
@@ -56,7 +58,6 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.models.link import Link
     from pip._internal.operations.prepare import RequirementPreparer
-    from pip._internal.req.req_install import InstallRequirement
     from pip._internal.resolution.base import InstallRequirementProvider
 
     from .base import Candidate, Requirement
@@ -99,7 +100,7 @@ class Factory(object):
         if not ignore_installed:
             self._installed_dists = {
                 canonicalize_name(dist.project_name): dist
-                for dist in get_installed_distributions()
+                for dist in get_installed_distributions(local_only=False)
             }
         else:
             self._installed_dists = {}
@@ -152,6 +153,8 @@ class Factory(object):
         self,
         ireqs,  # type: Sequence[InstallRequirement]
         specifier,  # type: SpecifierSet
+        hashes,  # type: Hashes
+        prefers_installed,  # type: bool
     ):
         # type: (...) -> Iterable[Candidate]
         if not ireqs:
@@ -164,61 +167,55 @@ class Factory(object):
         template = ireqs[0]
         name = canonicalize_name(template.req.name)
 
-        hashes = Hashes()
         extras = frozenset()  # type: FrozenSet[str]
         for ireq in ireqs:
             specifier &= ireq.req.specifier
-            hashes |= ireq.hashes(trust_internet=False)
+            hashes &= ireq.hashes(trust_internet=False)
             extras |= frozenset(ireq.extras)
-
-        # We use this to ensure that we only yield a single candidate for
-        # each version (the finder's preferred one for that version). The
-        # requirement needs to return only one candidate per version, so we
-        # implement that logic here so that requirements using this helper
-        # don't all have to do the same thing later.
-        candidates = collections.OrderedDict()  # type: VersionCandidates
 
         # Get the installed version, if it matches, unless the user
         # specified `--force-reinstall`, when we want the version from
         # the index instead.
-        installed_version = None
         installed_candidate = None
         if not self._force_reinstall and name in self._installed_dists:
             installed_dist = self._installed_dists[name]
-            installed_version = installed_dist.parsed_version
-            if specifier.contains(installed_version, prereleases=True):
+            if specifier.contains(installed_dist.version, prereleases=True):
                 installed_candidate = self._make_candidate_from_dist(
                     dist=installed_dist,
                     extras=extras,
                     template=template,
                 )
 
-        found = self._finder.find_best_candidate(
-            project_name=name,
-            specifier=specifier,
-            hashes=hashes,
-        )
-        for ican in found.iter_applicable():
-            if ican.version == installed_version and installed_candidate:
-                candidate = installed_candidate
-            else:
-                candidate = self._make_candidate_from_link(
+        def iter_index_candidates():
+            # type: () -> Iterator[Candidate]
+            result = self._finder.find_best_candidate(
+                project_name=name,
+                specifier=specifier,
+                hashes=hashes,
+            )
+            # PackageFinder returns earlier versions first, so we reverse.
+            for ican in reversed(list(result.iter_applicable())):
+                yield self._make_candidate_from_link(
                     link=ican.link,
                     extras=extras,
                     template=template,
                     name=name,
                     version=ican.version,
                 )
-            candidates[ican.version] = candidate
 
-        # Yield the installed version even if it is not found on the index.
-        if installed_version and installed_candidate:
-            candidates[installed_version] = installed_candidate
+        return FoundCandidates(
+            iter_index_candidates,
+            installed_candidate,
+            prefers_installed,
+        )
 
-        return six.itervalues(candidates)
-
-    def find_candidates(self, requirements, constraint):
-        # type: (Sequence[Requirement], SpecifierSet) -> Iterable[Candidate]
+    def find_candidates(
+        self,
+        requirements,  # type: Sequence[Requirement]
+        constraint,  # type: Constraint
+        prefers_installed,  # type: bool
+    ):
+        # type: (...) -> Iterable[Candidate]
         explicit_candidates = set()  # type: Set[Candidate]
         ireqs = []  # type: List[InstallRequirement]
         for req in requirements:
@@ -231,7 +228,12 @@ class Factory(object):
         # If none of the requirements want an explicit candidate, we can ask
         # the finder for candidates.
         if not explicit_candidates:
-            return self._iter_found_candidates(ireqs, constraint)
+            return self._iter_found_candidates(
+                ireqs,
+                constraint.specifier,
+                constraint.hashes,
+                prefers_installed,
+            )
 
         if constraint:
             name = explicit_candidates.pop().name
@@ -377,13 +379,13 @@ class Factory(object):
         # satisfied. We just report that case.
         if len(e.causes) == 1:
             req, parent = e.causes[0]
+            if parent is None:
+                req_disp = str(req)
+            else:
+                req_disp = '{} (from {})'.format(req, parent.name)
             logger.critical(
-                "Could not find a version that satisfies " +
-                "the requirement " +
-                str(req) +
-                ("" if parent is None else " (from {})".format(
-                    parent.name
-                ))
+                "Could not find a version that satisfies the requirement %s",
+                req_disp,
             )
             return DistributionNotFound(
                 'No matching distribution found for {}'.format(req)
@@ -400,9 +402,14 @@ class Factory(object):
 
             return ", ".join(parts[:-1]) + " and " + parts[-1]
 
-        def readable_form(cand):
+        def describe_trigger(parent):
             # type: (Candidate) -> str
-            return "{} {}".format(cand.name, cand.version)
+            ireq = parent.get_install_requirement()
+            if not ireq or not ireq.comes_from:
+                return "{} {}".format(parent.name, parent.version)
+            if isinstance(ireq.comes_from, InstallRequirement):
+                return str(ireq.comes_from.name)
+            return str(ireq.comes_from)
 
         triggers = []
         for req, parent in e.causes:
@@ -410,20 +417,11 @@ class Factory(object):
                 # This is a root requirement, so we can report it directly
                 trigger = req.format_for_error()
             else:
-                ireq = parent.get_install_requirement()
-                if ireq and ireq.comes_from:
-                    trigger = "{}".format(
-                        ireq.comes_from.name
-                    )
-                else:
-                    trigger = "{} {}".format(
-                        parent.name,
-                        parent.version
-                    )
+                trigger = describe_trigger(parent)
             triggers.append(trigger)
 
         if triggers:
-            info = text_join(triggers)
+            info = text_join(sorted(triggers))
         else:
             info = "the requested packages"
 
@@ -451,7 +449,7 @@ class Factory(object):
         logger.info(msg)
 
         return DistributionNotFound(
-            "ResolutionImpossible For help visit: "
-            "https://pip.pypa.io/en/stable/user_guide/"
-            "#dependency-conflicts-resolution-impossible"
+            "ResolutionImpossible: for help visit "
+            "https://pip.pypa.io/en/latest/user_guide/"
+            "#fixing-conflicting-dependencies"
         )

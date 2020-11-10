@@ -21,14 +21,7 @@ from zipfile import ZipFile
 from pip._vendor import pkg_resources
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor.distlib.util import get_export_entry
-from pip._vendor.six import (
-    PY2,
-    ensure_str,
-    ensure_text,
-    itervalues,
-    reraise,
-    text_type,
-)
+from pip._vendor.six import PY2, ensure_str, ensure_text, itervalues, reraise, text_type
 from pip._vendor.six.moves import filterfalse, map
 
 from pip._internal.exceptions import InstallationError
@@ -36,12 +29,7 @@ from pip._internal.locations import get_major_minor_version
 from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
 from pip._internal.models.scheme import SCHEME_KEYS
 from pip._internal.utils.filesystem import adjacent_tmp_file, replace
-from pip._internal.utils.misc import (
-    captured_stdout,
-    ensure_dir,
-    hash_file,
-    partition,
-)
+from pip._internal.utils.misc import captured_stdout, ensure_dir, hash_file, partition
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.unpacking import (
     current_umask,
@@ -49,10 +37,7 @@ from pip._internal.utils.unpacking import (
     set_extracted_file_to_default_mode_plus_executable,
     zip_item_is_executable,
 )
-from pip._internal.utils.wheel import (
-    parse_wheel,
-    pkg_resources_distribution_for_wheel,
-)
+from pip._internal.utils.wheel import parse_wheel, pkg_resources_distribution_for_wheel
 
 # Use the custom cast function at runtime to make cast work,
 # and import typing.cast when performing pre-commit and type
@@ -62,10 +47,10 @@ if not MYPY_CHECK_RUNNING:
 else:
     from email.message import Message
     from typing import (
+        IO,
         Any,
         Callable,
         Dict,
-        IO,
         Iterable,
         Iterator,
         List,
@@ -78,6 +63,7 @@ else:
         Union,
         cast,
     )
+    from zipfile import ZipInfo
 
     from pip._vendor.pkg_resources import Distribution
 
@@ -308,9 +294,7 @@ def get_csv_rows_for_installed(
     installed_rows = []  # type: List[InstalledCSVRow]
     for row in old_csv_rows:
         if len(row) > 3:
-            logger.warning(
-                'RECORD line has more than three elements: {}'.format(row)
-            )
+            logger.warning('RECORD line has more than three elements: %s', row)
         old_record_path = _parse_record_path(row[0])
         new_record_path = installed.pop(old_record_path, old_record_path)
         if new_record_path in changed:
@@ -422,6 +406,15 @@ class ZipBackedFile(object):
         self._zip_file = zip_file
         self.changed = False
 
+    def _getinfo(self):
+        # type: () -> ZipInfo
+        if not PY2:
+            return self._zip_file.getinfo(self.src_record_path)
+        # Python 2 does not expose a way to detect a ZIP's encoding, but the
+        # wheel specification (PEP 427) explicitly mandates that paths should
+        # use UTF-8, so we assume it is true.
+        return self._zip_file.getinfo(self.src_record_path.encode("utf-8"))
+
     def save(self):
         # type: () -> None
         # directory creation is lazy and after file filtering
@@ -441,11 +434,12 @@ class ZipBackedFile(object):
         if os.path.exists(self.dest_path):
             os.unlink(self.dest_path)
 
-        with self._zip_file.open(self.src_record_path) as f:
+        zipinfo = self._getinfo()
+
+        with self._zip_file.open(zipinfo) as f:
             with open(self.dest_path, "wb") as dest:
                 shutil.copyfileobj(f, dest)
 
-        zipinfo = self._zip_file.getinfo(self.src_record_path)
         if zip_item_is_executable(zipinfo):
             set_extracted_file_to_default_mode_plus_executable(self.dest_path)
 
@@ -585,8 +579,28 @@ def _install_wheel(
         def make_data_scheme_file(record_path):
             # type: (RecordPath) -> File
             normed_path = os.path.normpath(record_path)
-            _, scheme_key, dest_subpath = normed_path.split(os.path.sep, 2)
-            scheme_path = scheme_paths[scheme_key]
+            try:
+                _, scheme_key, dest_subpath = normed_path.split(os.path.sep, 2)
+            except ValueError:
+                message = (
+                    "Unexpected file in {}: {!r}. .data directory contents"
+                    " should be named like: '<scheme key>/<path>'."
+                ).format(wheel_path, record_path)
+                raise InstallationError(message)
+
+            try:
+                scheme_path = scheme_paths[scheme_key]
+            except KeyError:
+                valid_scheme_keys = ", ".join(sorted(scheme_paths))
+                message = (
+                    "Unknown scheme key used in {}: {} (for file {!r}). .data"
+                    " directory contents should be in subdirectories named"
+                    " with a valid scheme key ({})"
+                ).format(
+                    wheel_path, scheme_key, record_path, valid_scheme_keys
+                )
+                raise InstallationError(message)
+
             dest_path = os.path.join(scheme_path, dest_subpath)
             assert_no_path_traversal(scheme_path, dest_path)
             return ZipBackedFile(record_path, dest_path, zip_file)

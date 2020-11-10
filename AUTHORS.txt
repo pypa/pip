@@ -64,6 +64,7 @@ Ashley Manton
 Ashwin Ramaswami
 atse
 Atsushi Odagiri
+Avinash Karhana
 Avner Cohen
 Baptiste Mispelon
 Barney Gale
@@ -132,6 +133,8 @@ Cory Benfield
 Cory Wright
 Craig Kerstiens
 Cristian Sorinel
+Cristina
+Cristina Muñoz
 Curtis Doty
 cytolentino
 Damian Quiroga
@@ -143,6 +146,7 @@ Daniel Collins
 Daniel Hahler
 Daniel Holth
 Daniel Jost
+Daniel Katz
 Daniel Shaulov
 Daniele Esposti
 Daniele Procida
@@ -157,6 +161,7 @@ David Bordeynik
 David Caro
 David Evans
 David Linke
+David Poggi
 David Pursehouse
 David Tucker
 David Wales
@@ -180,9 +185,11 @@ Eitan Adler
 ekristina
 elainechan
 Eli Schwartz
+Elisha Hollander
 Ellen Marie Dash
 Emil Burzo
 Emil Styrke
+Emmanuel Arias
 Endoh Takanao
 enoch
 Erdinc Mutlu
@@ -199,6 +206,7 @@ everdimension
 Felix Yan
 fiber-space
 Filip Kokosiński
+Filipe Laíns
 Florian Briand
 Florian Rathgeber
 Francesco
@@ -219,6 +227,7 @@ gkdoc
 Gopinath M
 GOTO Hayato
 gpiks
+Greg Ward
 Guilherme Espada
 gutsytechster
 Guy Rozendorn
@@ -288,6 +297,7 @@ Juanjo Bazán
 Julian Berman
 Julian Gethmann
 Julien Demoor
+Jussi Kukkonen
 jwg4
 Jyrki Pulliainen
 Kai Chen
@@ -312,6 +322,7 @@ Kyle Persohn
 lakshmanaram
 Laszlo Kiss-Kollar
 Laurent Bristiel
+Laurie O
 Laurie Opperman
 Leon Sasson
 Lev Givon
@@ -384,6 +395,7 @@ Nicole Harris
 Nikhil Benesch
 Nikolay Korolev
 Nitesh Sharma
+Noah
 Noah Gorny
 Nowell Strite
 NtaleGrey
@@ -391,6 +403,7 @@ nvdv
 Ofekmeister
 ofrinevo
 Oliver Jeeves
+Oliver Mannion
 Oliver Tonnhofer
 Olivier Girardot
 Olivier Grisel
@@ -466,6 +479,7 @@ Ronny Pfannschmidt
 Rory McCann
 Ross Brattain
 Roy Wellington Ⅳ
+Ruairidh MacLeod
 Ryan Wooden
 ryneeverett
 Sachi King
@@ -481,6 +495,7 @@ Segev Finer
 SeongSoo Cho
 Sergey Vasilyev
 Seth Woodworth
+shireenrao
 Shlomi Fish
 Shovan Maity
 Simeon Visser
@@ -489,6 +504,7 @@ Simon Pichugin
 sinoroc
 sinscary
 Sorin Sbarnea
+Srinivas Nyayapati
 Stavros Korokithakis
 Stefan Scherfke
 Stefano Rivera
@@ -504,6 +520,7 @@ Stéphane Bidoul
 Stéphane Bidoul (ACSONE)
 Stéphane Klein
 Sumana Harihareswara
+Surbhi Sharma
 Sviatoslav Sydorenko
 Swat009
 Takayuki SHIMIZUKAWA
@@ -537,11 +554,13 @@ Tzu-ping Chung
 Valentin Haenel
 Victor Stinner
 victorvpaulo
+Vikram - Google
 Viktor Szépe
 Ville Skyttä
 Vinay Sajip
 Vincent Philippon
 Vinicyus Macedo
+Vipul Kumar
 Vitaly Babiy
 Vladimir Rutsky
 W. Trevor King

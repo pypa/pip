@@ -20,11 +20,11 @@ from pip._internal.utils.misc import (
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Dict, Optional, Tuple, List, Any
+    from typing import Any, Dict, List, Optional, Tuple
+
+    from pip._vendor.requests.models import Request, Response
 
     from pip._internal.vcs.versioncontrol import AuthInfo
-
-    from pip._vendor.requests.models import Response, Request
 
     Credentials = Tuple[str, str, str]
 
@@ -44,6 +44,7 @@ except Exception as exc:
 def get_keyring_auth(url, username):
     # type: (str, str) -> Optional[AuthInfo]
     """Return the tuple auth for a given url from keyring."""
+    global keyring
     if not url or not keyring:
         return None
 
@@ -69,6 +70,7 @@ def get_keyring_auth(url, username):
         logger.warning(
             "Keyring is skipped due to an exception: %s", str(exc),
         )
+        keyring = None
     return None
 
 

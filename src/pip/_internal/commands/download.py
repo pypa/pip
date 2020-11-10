@@ -43,7 +43,6 @@ class DownloadCommand(RequirementCommand):
         # type: () -> None
         self.cmd_opts.add_option(cmdoptions.constraints())
         self.cmd_opts.add_option(cmdoptions.requirements())
-        self.cmd_opts.add_option(cmdoptions.build_dir())
         self.cmd_opts.add_option(cmdoptions.no_deps())
         self.cmd_opts.add_option(cmdoptions.global_options())
         self.cmd_opts.add_option(cmdoptions.no_binary())
@@ -87,7 +86,6 @@ class DownloadCommand(RequirementCommand):
         cmdoptions.check_dist_restriction(options)
 
         options.download_dir = normalize_path(options.download_dir)
-
         ensure_dir(options.download_dir)
 
         session = self.get_default_session(options)
@@ -98,13 +96,11 @@ class DownloadCommand(RequirementCommand):
             session=session,
             target_python=target_python,
         )
-        build_delete = (not (options.no_clean or options.build_dir))
 
         req_tracker = self.enter_context(get_requirement_tracker())
 
         directory = TempDirectory(
-            options.build_dir,
-            delete=build_delete,
+            delete=not options.no_clean,
             kind="download",
             globally_managed=True,
         )
@@ -134,10 +130,13 @@ class DownloadCommand(RequirementCommand):
             reqs, check_supported_wheels=True
         )
 
-        downloaded = ' '.join([req.name  # type: ignore
-                               for req in requirement_set.requirements.values()
-                               if req.successfully_downloaded])
+        downloaded = []  # type: List[str]
+        for req in requirement_set.requirements.values():
+            if not req.editable and req.satisfied_by is None:
+                assert req.name is not None
+                preparer.save_linked_requirement(req)
+                downloaded.append(req.name)
         if downloaded:
-            write_output('Successfully downloaded %s', downloaded)
+            write_output('Successfully downloaded %s', ' '.join(downloaded))
 
         return SUCCESS

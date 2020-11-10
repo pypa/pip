@@ -12,6 +12,7 @@ from pip._internal.exceptions import CommandError
 from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.models.selection_prefs import SelectionPreferences
+from pip._internal.utils.compat import stdlib_pkgs
 from pip._internal.utils.misc import (
     dist_is_editable,
     get_installed_distributions,
@@ -24,10 +25,11 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from optparse import Values
-    from typing import List, Set, Tuple, Iterator
+    from typing import Iterator, List, Set, Tuple
+
+    from pip._vendor.pkg_resources import Distribution
 
     from pip._internal.network.session import PipSession
-    from pip._vendor.pkg_resources import Distribution
 
 logger = logging.getLogger(__name__)
 
@@ -39,6 +41,7 @@ class ListCommand(IndexGroupCommand):
     Packages are listed in a case-insensitive sorted order.
     """
 
+    ignore_require_venv = True
     usage = """
       %prog [options]"""
 
@@ -112,6 +115,7 @@ class ListCommand(IndexGroupCommand):
             help='Include editable package from output.',
             default=True,
         )
+        self.cmd_opts.add_option(cmdoptions.list_exclude())
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group, self.parser
         )
@@ -145,12 +149,17 @@ class ListCommand(IndexGroupCommand):
 
         cmdoptions.check_list_path_option(options)
 
+        skip = set(stdlib_pkgs)
+        if options.excludes:
+            skip.update(options.excludes)
+
         packages = get_installed_distributions(
             local_only=options.local,
             user_only=options.user,
             editables_only=options.editable,
             include_editables=options.include_editable,
             paths=options.path,
+            skip=skip,
         )
 
         # get_not_required must be called firstly in order to find and
@@ -200,7 +209,6 @@ class ListCommand(IndexGroupCommand):
 
             def latest_info(dist):
                 # type: (Distribution) -> Distribution
-                typ = 'unknown'
                 all_candidates = finder.find_all_candidates(dist.key)
                 if not options.pre:
                     # Remove prereleases

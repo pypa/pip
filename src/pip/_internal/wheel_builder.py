@@ -19,9 +19,7 @@ from pip._internal.utils.urls import path_to_url
 from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
-    from typing import (
-        Any, Callable, Iterable, List, Optional, Tuple,
-    )
+    from typing import Any, Callable, Iterable, List, Optional, Tuple
 
     from pip._internal.cache import WheelCache
     from pip._internal.req.req_install import InstallRequirement
@@ -80,7 +78,7 @@ def _should_build(
     if not req.use_pep517 and not is_wheel_installed():
         # we don't build legacy requirements if wheel is not installed
         logger.info(
-            "Using legacy setup.py install for %s, "
+            "Using legacy 'setup.py install' for %s, "
             "since package 'wheel' is not installed.", req.name,
         )
         return False
