@@ -9,7 +9,7 @@
         state: absent
       become: yes
 
-    - name: Run tox unit tests
+    - name: Run tox testing
       include_role:
         name: tox
       vars:

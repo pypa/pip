@@ -1,7 +1,7 @@
 - job:
     name: pypa-pip-base
     abstract: true
-    description: Run pypa/pip unit testing
+    description: Run pypa/pip testing
     pre-run: .zuul.d/playbooks/tox/pre.yaml
     run: .zuul.d/playbooks/tox/main.yaml
     post-run: .zuul.d/playbooks/tox/post.yaml
