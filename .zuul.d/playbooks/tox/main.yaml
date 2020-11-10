@@ -1,10 +1,6 @@
 - hosts: all
   tasks:
 
-    - name: Install tox
-      include_role:
-        name: ensure-tox
-
     # TODO(ianw) : let's see if this is interferring
     # with some of the pip tox runs
     - name: Remove OpenDev mirror config

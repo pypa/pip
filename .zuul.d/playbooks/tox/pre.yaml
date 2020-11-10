@@ -1,0 +1,6 @@
+- hosts: all
+  tasks:
+
+    - name: Install tox
+      include_role:
+        name: ensure-tox
