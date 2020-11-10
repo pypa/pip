@@ -22,21 +22,21 @@ class PipReporter(BaseReporter):
 
         self._messages_at_backtrack = {
             1: (
-                "pip is looking at multiple versions of this package to determine "
-                "which version is compatible with other requirements. "
-                "This could take a while."
+                "pip is looking at multiple versions of this package to "
+                "determine which version is compatible with other "
+                "requirements. This could take a while."
             ),
             8: (
-                "pip is looking at multiple versions of this package to determine "
-                "which version is compatible with other requirements. "
-                "This could take a while."
+                "pip is looking at multiple versions of this package to "
+                "determine which version is compatible with other "
+                "requirements. This could take a while."
             ),
             13: (
-                "This is taking longer than usual. You might need to provide the "
-                "dependency resolver with stricter constraints to reduce runtime."
-                "If you want to abort this run, you can press Ctrl + C to do so."
-                "To improve how pip performs, tell us what happened here: "
-                "https://pip.pypa.io/surveys/backtracking"
+                "This is taking longer than usual. You might need to provide "
+                "the dependency resolver with stricter constraints to reduce "
+                "runtime. If you want to abort this run, you can press "
+                "Ctrl + C to do so. To improve how pip performs, tell us what "
+                "happened here: https://pip.pypa.io/surveys/backtracking"
             )
         }
 
