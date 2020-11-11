@@ -855,9 +855,9 @@ def test_download_editable(script, data, tmpdir):
     """
     Test 'pip download' of editables in requirement file.
     """
-    editable_path = os.path.join(data.src, 'simplewheel-1.0')
+    editable_path = str(data.src / 'simplewheel-1.0').replace(os.path.sep, "/")
     requirements_path = tmpdir / "requirements.txt"
-    requirements_path.write_text("-e " + str(editable_path.resolve()) + "\n")
+    requirements_path.write_text("-e " + editable_path + "\n")
     download_dir = tmpdir / "download_dir"
     script.pip(
         'download', '--no-deps', '-r', str(requirements_path), '-d', str(download_dir)
