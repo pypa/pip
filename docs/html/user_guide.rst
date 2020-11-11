@@ -1525,7 +1525,7 @@ Getting help
 ------------
 
 If none of the suggestions above work for you, we recommend that you ask
-for help and you've got `a number of options :ref:`Getting help`.
+for help. :ref:`Getting help`.
 
 .. _`Using pip from your program`:
 
