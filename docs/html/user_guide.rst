@@ -1337,7 +1337,7 @@ candidate can take a lot of time. (The amount of time depends on the
 package size, the number of versions pip must try, and other concerns.)
 
 How does backtracking work?
-~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 When doing a pip install, pip starts by making assumptions about the
 packages it needs to install. During the install process it needs to check these
@@ -1383,8 +1383,6 @@ This new resolver behaviour means that pip works harder to find out which
 version of a package is a good candidate to install. It reduces the risk that
 installing a new package will accidentally break an existing installed package,
 and so reduces the risk that your environment gets messed up.
-
-Please address this.
 
 What does this behaviour look like?
 -----------------------------------
@@ -1439,14 +1437,13 @@ Right now backtracking behaviour looks like this:
      Downloading cup-3.13.0-py2.py3-none-any.whl (374 kB)
 
 In the above sample output, pip had to download multiple versions of
-package cup - cup-3.22.0 to cup-3.13.0 - to find a version that will be
-compatible with the other packages - ``spoon``, ``hot-water``, ``cup``
-etc.
+package ``cup`` - cup-3.22.0 to cup-3.13.0 - to find a version that will be
+compatible with the other packages - ``spoon``, ``hot-water``, etc.
 
 These multiple ``Downloading cup-version`` lines show pip backtracking.
 
 Possible ways to reduce backtracking occurring
----------------------------------------------
+----------------------------------------------
 
 It's important to mention backtracking behaviour is expected during a
 ``pip install`` process. What pip is trying to do is complicated - it is
@@ -1459,7 +1456,7 @@ here are a number of ways.
 .. _1-allow-pip-to-complete-its-backtracking:
 
 1. Allow pip to complete its backtracking
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 In most cases, pip will complete the backtracking process successfully.
 It is possible this could take a very long time to complete - this may
@@ -1474,7 +1471,7 @@ If you'd prefer not to wait, you can interrupt pip (ctrl and c) and use
 .. _2-reduce-the-versions-of-the-backtracking-package:
 
 2. Reduce the number of versions pip will try to backtrack through
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 If pip is backtracking more than you'd like, the next option is to
 constrain the number of package versions it tries.
@@ -1496,7 +1493,7 @@ can be trial and error.
 .. _3-use-constraint-files-or-lockfiles:
 
 3. Use constraint files or lockfiles
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 This option is a progression of 2 above. It requires users to know how
 to inspect:
@@ -1518,7 +1515,7 @@ suitable constraints file.
 .. _4-be-more-strict-on-package-dependencies-during-development:
 
 4. Be more strict on package dependencies during development
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 For package maintainers during the development, give pip some help by
 creating constraint files for the dependency tree. This will reduce the
