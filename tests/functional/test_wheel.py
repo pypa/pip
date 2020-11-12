@@ -169,6 +169,22 @@ def test_pip_wheel_builds_editable(script, data):
     result.did_create(wheel_file_path)
 
 
+def test_pip_wheel_builds_editable_does_not_create_zip(script, data, tmpdir):
+    """
+    Test 'pip wheel' of editables does not create zip files
+    (regression test for issue #9122)
+    """
+    wheel_dir = tmpdir / "wheel_dir"
+    wheel_dir.mkdir()
+    editable_path = os.path.join(data.src, 'simplewheel-1.0')
+    script.pip(
+        'wheel', '--no-deps', '-e', editable_path, '-w', wheel_dir
+    )
+    wheels = os.listdir(wheel_dir)
+    assert len(wheels) == 1
+    assert wheels[0].endswith(".whl")
+
+
 def test_pip_wheel_fail(script, data):
     """
     Test 'pip wheel' failure.
