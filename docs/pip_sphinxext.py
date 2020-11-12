@@ -143,7 +143,7 @@ class PipReqFileOptionsReference(PipOptions):
                 prefix = '{}_'.format(self.determine_opt_prefix(opt_name))
 
             self.view_list.append(
-                '  *  :ref:`{short}{long}<{prefix}{opt_name}>`'.format(
+                '*  :ref:`{short}{long}<{prefix}{opt_name}>`'.format(
                     short=short_opt_name,
                     long=opt_name,
                     prefix=prefix,

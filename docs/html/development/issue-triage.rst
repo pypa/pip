@@ -276,16 +276,16 @@ An issue may be considered resolved and closed when:
 - for each possible improvement or problem represented in the issue
   discussion:
 
-   - Consensus has been reached on a specific action and the actions
-     appear to be external to the project, with no follow up needed
-     in the project afterwards.
+  - Consensus has been reached on a specific action and the actions
+    appear to be external to the project, with no follow up needed
+    in the project afterwards.
 
-      - PEP updates (with a corresponding issue in
-        `python/peps <https://github.com/python/peps>`__)
-      - already tracked by another issue
+    - PEP updates (with a corresponding issue in
+      `python/peps <https://github.com/python/peps>`__)
+    - already tracked by another issue
 
-   - A project-specific issue has been identified and the issue no
-     longer occurs as of the latest commit on the master branch.
+  - A project-specific issue has been identified and the issue no
+    longer occurs as of the latest commit on the master branch.
 
 - An enhancement or feature request no longer has a proponent and the maintainers
   don't think it's worth keeping open.
@@ -305,8 +305,8 @@ Common issues
    manager-managed pip/python installation (specifically with Debian/Ubuntu).
    These typically present themselves as:
 
-  #. Not being able to find installed packages
-  #. basic libraries not able to be found, fundamental OS components missing
-  #. In these situations you will want to make sure that we know how they got
-     their Python and pip. Knowing the relevant package manager commands can
-     help, e.g. ``dpkg -S``.
+   #. Not being able to find installed packages
+   #. basic libraries not able to be found, fundamental OS components missing
+   #. In these situations you will want to make sure that we know how they got
+      their Python and pip. Knowing the relevant package manager commands can
+      help, e.g. ``dpkg -S``.

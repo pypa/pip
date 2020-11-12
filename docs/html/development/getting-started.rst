@@ -157,9 +157,9 @@ in order to start contributing.
 * A guide on `triaging issues`_ for issue tracker
 * Getting started with Git
 
-   - `Hello World for Git`_
-   - `Understanding the GitHub flow`_
-   - `Start using Git on the command line`_
+  - `Hello World for Git`_
+  - `Understanding the GitHub flow`_
+  - `Start using Git on the command line`_
 
 
 .. _`open an issue`: https://github.com/pypa/pip/issues/new?title=Trouble+with+pip+development+environment

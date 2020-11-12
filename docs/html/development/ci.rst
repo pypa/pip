@@ -17,24 +17,24 @@ Supported interpreters
 
 pip support a variety of Python interpreters:
 
-  - CPython 2.7
-  - CPython 3.5
-  - CPython 3.6
-  - CPython 3.7
-  - CPython 3.8
-  - Latest PyPy
-  - Latest PyPy3
+- CPython 2.7
+- CPython 3.5
+- CPython 3.6
+- CPython 3.7
+- CPython 3.8
+- Latest PyPy
+- Latest PyPy3
 
 on different operating systems:
 
-  - Linux
-  - Windows
-  - MacOS
+- Linux
+- Windows
+- MacOS
 
 and on different architectures:
 
-  - x64
-  - x86
+- x64
+- x86
 
 so 42 hypothetical interpreters.
 
@@ -66,9 +66,9 @@ Services
 pip test suite and checks are distributed on three different platforms that
 provides free executors for open source packages:
 
-  - `GitHub Actions`_ (Used for code quality and development tasks)
-  - `Azure DevOps CI`_ (Used for tests)
-  - `Travis CI`_ (Used for PyPy tests)
+- `GitHub Actions`_ (Used for code quality and development tasks)
+- `Azure DevOps CI`_ (Used for tests)
+- `Travis CI`_ (Used for PyPy tests)
 
 .. _`Travis CI`: https://travis-ci.org/
 .. _`Azure DevOps CI`: https://azure.microsoft.com/en-us/services/devops/
