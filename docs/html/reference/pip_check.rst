@@ -4,8 +4,6 @@
 pip check
 =========
 
-.. contents::
-
 
 Usage
 =====

@@ -4,7 +4,6 @@
 pip uninstall
 =============
 
-.. contents::
 
 
 Usage

@@ -155,7 +155,6 @@ def setup(app: Sphinx) -> Dict[str, Union[bool, str]]:
         rebuild=rebuild_trigger,
     )
 
-    app.add_css_file('important-admonition.css')
     app.connect('source-read', _modify_rst_document_source_on_read)
 
     return {

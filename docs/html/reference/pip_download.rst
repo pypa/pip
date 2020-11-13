@@ -5,8 +5,6 @@
 pip download
 ============
 
-.. contents::
-
 
 Usage
 =====

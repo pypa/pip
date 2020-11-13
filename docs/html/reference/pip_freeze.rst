@@ -5,8 +5,6 @@
 pip freeze
 ==========
 
-.. contents::
-
 
 Usage
 =====

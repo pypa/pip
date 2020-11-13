@@ -4,7 +4,6 @@
 pip cache
 ---------
 
-.. contents::
 
 Usage
 *****
