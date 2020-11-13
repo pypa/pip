@@ -99,7 +99,8 @@ def autocomplete(autocomplete_script, monkeypatch):
     return do_autocomplete
 
 
-def options(autocomplete_output):
+def option_descriptions(autocomplete_output):
+    """Parse a dict of option_name: description from the autocomplete output"""
     return {
         line.partition(DELIMITER)[0]: line.partition(DELIMITER)[2]
         for line in autocomplete_output.splitlines()
@@ -131,8 +132,8 @@ def test_completion_for_un_snippet(autocomplete):
     """
 
     res, env = autocomplete("pip un", "1")
-    assert list(options(res.stdout)) == ["uninstall"], res.stdout
-    assert options(res.stdout)["uninstall"] == "Uninstall packages."
+    assert list(option_descriptions(res.stdout)) == ["uninstall"], res.stdout
+    assert option_descriptions(res.stdout)["uninstall"] == "Uninstall packages."
 
 
 def test_completion_for_default_parameters(autocomplete):
@@ -141,11 +142,11 @@ def test_completion_for_default_parameters(autocomplete):
     """
 
     res, env = autocomplete("pip --", "1")
-    assert "--help" in options(
+    assert "--help" in option_descriptions(
         res.stdout
     ), "autocomplete function could not complete ``--``"
     assert (
-        options(res.stdout)["--help"] == "Show help."
+        option_descriptions(res.stdout)["--help"] == "Show help."
     ), "autocomplete function could not show option description"
 
 
@@ -157,7 +158,7 @@ def test_completion_option_for_command(autocomplete):
     res, env = autocomplete("pip search --", "2")
     assert "--help" in res.stdout, "autocomplete function could not complete ``--``"
     assert (
-        options(res.stdout)["--help"] == "Show help."
+        option_descriptions(res.stdout)["--help"] == "Show help."
     ), "autocomplete function could not show long option description"
 
 
@@ -168,11 +169,11 @@ def test_completion_short_option(autocomplete):
 
     res, env = autocomplete("pip -", "1")
 
-    assert "-h" in options(
+    assert "-h" in option_descriptions(
         res.stdout
     ), "autocomplete function could not complete short options after ``-``"
     assert (
-        options(res.stdout)["-h"] == "Show help."
+        option_descriptions(res.stdout)["-h"] == "Show help."
     ), "autocomplete function could not show short option description"
 
 
@@ -184,7 +185,7 @@ def test_completion_short_option_for_command(autocomplete):
 
     res, env = autocomplete("pip search -", "2")
 
-    assert "-h" in options(
+    assert "-h" in option_descriptions(
         res.stdout
     ), "autocomplete function could not complete short options after ``-``"
 
