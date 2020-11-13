@@ -10,8 +10,58 @@ Do I need to install pip?
 pip is already installed if you are using Python 2 >=2.7.9 or Python 3 >=3.4
 downloaded from `python.org <https://www.python.org>`_ or if you are working
 in a :ref:`Virtual Environment <pypug:Creating and using Virtual Environments>`
-created by :ref:`pypug:virtualenv` or :ref:`pyvenv <pypug:venv>`.
-Just make sure to :ref:`upgrade pip <Upgrading pip>`.
+created by :ref:`pypug:virtualenv` or :ref:`venv <pypug:venv>`. Just make sure
+to :ref:`upgrade pip <Upgrading pip>`.
+
+Use the following command to check whether pip is installed:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: console
+
+      $ python -m pip --version
+      pip X.Y.Z from .../site-packages/pip (python X.Y)
+
+.. tab:: Windows
+
+   .. code-block:: console
+
+      C:\> py -m pip --version
+      pip X.Y.Z from ...\site-packages\pip (python X.Y)
+
+Using Linux Package Managers
+============================
+
+.. warning::
+
+   If you installed Python from a package manager on Linux, you should always
+   install pip for that Python installation using the same source.
+
+See `pypug:Installing pip/setuptools/wheel with Linux Package Managers <https://packaging.python.org/guides/installing-using-linux-tools/>`_
+in the Python Packaging User Guide.
+
+Here are ways to contact a few Linux package maintainers if you run into
+problems:
+
+* `Deadsnakes PPA <https://github.com/deadsnakes/issues>`_
+* `Debian Python Team <https://wiki.debian.org/Teams/PythonTeam>`_ (for general
+  issues related to ``apt``)
+* `Red Hat Bugzilla <https://bugzilla.redhat.com/>`_
+
+pip developers do not have control over how Linux distributions handle pip
+installations, and are unable to provide solutions to related issues in
+general.
+
+Using ensurepip
+===============
+
+Python >=3.4 can self-bootstrap pip with the built-in
+:ref:`ensurepip <pypug:ensurepip>` module. Refer to the standard library
+documentation for more details. Make sure to :ref:`upgrade pip <Upgrading pip>`
+after ``ensurepip`` installs pip.
+
+See the `Using Linux Package Managers`_ section if your Python reports
+``No module named ensurepip`` on Debian and derived systems (e.g. Ubuntu).
 
 
 .. _`get-pip`:
@@ -19,7 +69,13 @@ Just make sure to :ref:`upgrade pip <Upgrading pip>`.
 Installing with get-pip.py
 ==========================
 
-To install pip, securely [1]_ download ``get-pip.py`` by following
+.. warning::
+
+   Be cautious if you are using a Python install that is managed by your operating
+   system or another package manager. ``get-pip.py`` does not coordinate with
+   those tools, and may leave your system in an inconsistent state.
+
+To manually install pip, securely [1]_ download ``get-pip.py`` by following
 this link: `get-pip.py
 <https://bootstrap.pypa.io/get-pip.py>`_. Alternatively, use ``curl``::
 
@@ -39,13 +95,6 @@ have downloaded ``get-pip.py``:
    .. code-block:: shell
 
       py get-pip.py
-
-
-.. warning::
-
-   Be cautious if you are using a Python install that is managed by your operating
-   system or another package manager. ``get-pip.py`` does not coordinate with
-   those tools, and may leave your system in an inconsistent state.
 
 ``get-pip.py`` also installs :ref:`pypug:setuptools` [2]_ and :ref:`pypug:wheel`
 if they are not already. :ref:`pypug:setuptools` is required to install
@@ -133,13 +182,6 @@ Install behind a proxy:
    .. code-block:: shell
 
       py get-pip.py pip==9.0.2 wheel==0.30.0 setuptools==28.8.0
-
-Using Linux Package Managers
-============================
-
-See :ref:`pypug:Installing pip/setuptools/wheel with Linux Package Managers` in
-the `Python Packaging User Guide
-<https://packaging.python.org/guides/tool-recommendations/>`_.
 
 .. _`Upgrading pip`:
 
