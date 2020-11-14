@@ -1,0 +1,1 @@
+Write sitecustomize in an isolated environment in UTF-8.
