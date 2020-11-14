@@ -895,17 +895,6 @@ no_python_version_warning = partial(
 )  # type: Callable[..., Option]
 
 
-unstable_feature = partial(
-    Option,
-    '--unstable-feature',
-    dest='unstable_features',
-    metavar='feature',
-    action='append',
-    default=[],
-    choices=['resolver'],
-    help=SUPPRESS_HELP,  # TODO: drop this in pip 20.3
-)  # type: Callable[..., Option]
-
 use_new_feature = partial(
     Option,
     '--use-feature',
@@ -958,7 +947,6 @@ general_group = {
         disable_pip_version_check,
         no_color,
         no_python_version_warning,
-        unstable_feature,
         use_new_feature,
         use_deprecated_feature,
     ]

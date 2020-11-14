@@ -199,13 +199,6 @@ class Command(CommandContextMixIn):
                 )
                 options.cache_dir = None
 
-        if 'resolver' in options.unstable_features:
-            logger.critical(
-                "--unstable-feature=resolver is no longer supported, and "
-                "has been replaced with --use-feature=2020-resolver instead."
-            )
-            sys.exit(ERROR)
-
         if '2020-resolver' in options.features_enabled and not PY2:
             logger.warning(
                 "--use-feature=2020-resolver no longer has any effect, "
