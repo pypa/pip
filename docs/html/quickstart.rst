@@ -8,9 +8,9 @@ For a full tutorial on installing packages with pip, see the
 `Python Packaging User Guide`_
 
 For a more detailed exploration of pip's functionality see the pip
-:doc:`User Guide <user_guide>`.
+:doc:`user guide <user_guide>`.
 
-Quick Setup
+Quick setup
 ===========
 
 1. Check pip installation
@@ -21,7 +21,7 @@ Check if you already have pip installed by running:
 
   pip --version
 
-See :doc:`installing pip <installing>`for more information, or to troubleshoot
+See :doc:`installing pip <installing>` for more information, or to troubleshoot
 any problems.
 
 2. Check pip is up to date
@@ -118,6 +118,7 @@ listed in the file, run:
 
   pip install -r requirements.txt
 
+See requirements files for more information.
 
 Upgrade a package
 -----------------
@@ -169,8 +170,7 @@ Uninstall a package
       Proceed (y/n)? y
       Successfully uninstalled SomePackage
 
-
-For a full list of pip commands, see the pip reference guide.
+For a full list of pip commands, see the pip :doc:`reference guide <reference>`.
 
 .. _PyPI: https://pypi.org/
 .. _Python Packaging User Guide: https://packaging.python.org/tutorials/installing-packages
