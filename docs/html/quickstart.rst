@@ -17,9 +17,17 @@ Quick setup
 -------------------------
 Check if you already have pip installed by running:
 
-.. code-block:: console
+.. tab:: Unix/macOS
 
-  pip --version
+   .. code-block:: console
+
+      $ python -m pip --version
+
+.. tab:: Windows
+
+   .. code-block:: console
+
+      C:\> py -m pip --version
 
 See :doc:`installing pip <installing>` for more information, or to troubleshoot
 any problems.
@@ -80,9 +88,17 @@ GitHub.
 
 For example, to install a specific commit from the Django project, run:
 
-.. code-block:: console
+.. tab:: Unix/macOS
 
-  pip install git+https://github.com/django/django.git@45dfb3641aa4d9828a7c5448d11aa67c7cbd7966
+   .. code-block:: console
+
+      $ python -m pip install git+https://github.com/django/django.git@45dfb3641aa4d9828a7c5448d11aa67c7cbd7966
+
+.. tab:: Windows
+
+   .. code-block:: console
+
+      C:\> py -m pip install git+https://github.com/django/django.git@45dfb3641aa4d9828a7c5448d11aa67c7cbd7966
 
 See :ref:`VCS Support` for more information.
 
@@ -114,9 +130,17 @@ Many Python projects use a requirements.txt file to specify the list of packages
 that need to be installed for the project to run. To install the packages
 listed in the file, run:
 
-.. code-block:: console
+  .. tab:: Unix/macOS
 
-  pip install -r requirements.txt
+     .. code-block:: console
+
+        $ python -m pip install -r requirements.txt
+
+  .. tab:: Windows
+
+     .. code-block:: console
+
+        C:\> py -m pip install -r requirements.txt  
 
 See :ref:`requirements files <Requirements Files>` for more information.
 
