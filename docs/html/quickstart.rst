@@ -84,7 +84,7 @@ For example, to install a specific commit from the Django project, run:
 
   pip install git+https://github.com/django/django.git@45dfb3641aa4d9828a7c5448d11aa67c7cbd7966
 
-See VCS support for more information.
+See :ref:`VCS Support` for more information.
 
 Install a package you have already downloaded
 ---------------------------------------------
@@ -118,7 +118,7 @@ listed in the file, run:
 
   pip install -r requirements.txt
 
-See requirements files for more information.
+See :ref:`requirements files <Requirements Files>` for more information.
 
 Upgrade a package
 -----------------
@@ -170,7 +170,8 @@ Uninstall a package
       Proceed (y/n)? y
       Successfully uninstalled SomePackage
 
-For a full list of pip commands, see the pip :doc:`reference guide <reference>`.
+For a full list of pip commands, see the pip
+:doc:`reference guide <reference/index>`.
 
 .. _PyPI: https://pypi.org/
 .. _Python Packaging User Guide: https://packaging.python.org/tutorials/installing-packages
