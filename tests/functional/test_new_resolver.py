@@ -1233,3 +1233,29 @@ def test_new_resolver_does_reinstall_local_paths(script):
     )
     assert "Installing collected packages: pkg" in result.stdout, str(result)
     assert_installed(script, pkg="1.0")
+
+
+def test_new_resolver_does_not_reinstall_when_from_a_local_index(script):
+    create_basic_wheel_for_package(
+        script,
+        "simple",
+        "0.1.0",
+    )
+    script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "simple"
+    )
+    assert_installed(script, simple="0.1.0")
+
+    result = script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "simple"
+    )
+    # Should not reinstall!
+    assert "Installing collected packages: simple" not in result.stdout, str(result)
+    assert "Requirement already satisfied: simple" in result.stdout, str(result)
+    assert_installed(script, simple="0.1.0")
