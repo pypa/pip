@@ -132,15 +132,19 @@ class Resolver(BaseResolver):
 
             # Check if there is already an installation under the same name,
             # and set a flag for later stages to uninstall it, if needed.
-            # * There isn't, good -- no uninstalltion needed.
+            #
+            # * There is no existing installation. Nothing to uninstall.
+            # * The candidate is a local path/file. Always reinstall.
             # * The --force-reinstall flag is set. Always reinstall.
             # * The installation is different in version or editable-ness, so
             #   we need to uninstall it to install the new distribution.
             # * The installed version is the same as the pending distribution.
-            #   Skip this distrubiton altogether to save work.
+            #   Skip this distribution altogether to save work.
             installed_dist = self.factory.get_dist_to_uninstall(candidate)
             if installed_dist is None:
                 ireq.should_reinstall = False
+            elif candidate.source_link.is_file:
+                ireq.should_reinstall = True
             elif self.factory.force_reinstall:
                 ireq.should_reinstall = True
             elif installed_dist.parsed_version != candidate.version:

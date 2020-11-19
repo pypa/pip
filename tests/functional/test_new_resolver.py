@@ -1193,3 +1193,43 @@ def test_new_resolver_contraint_on_dep_with_extra(script):
         "simple",
     )
     assert_installed(script, simple="1", dep="1", depx="1")
+
+
+def test_new_resolver_does_reinstall_local_wheels(script):
+    archive_path = create_basic_wheel_for_package(
+        script,
+        "pkg",
+        "1.0",
+    )
+    script.pip(
+        "install", "--no-cache-dir", "--no-index",
+        archive_path,
+    )
+    assert_installed(script, pkg="1.0")
+
+    result = script.pip(
+        "install", "--no-cache-dir", "--no-index",
+        archive_path,
+    )
+    assert "Installing collected packages: pkg" in result.stdout, str(result)
+    assert_installed(script, pkg="1.0")
+
+
+def test_new_resolver_does_reinstall_local_paths(script):
+    pkg = create_test_package_with_setup(
+        script,
+        name="pkg",
+        version="1.0"
+    )
+    script.pip(
+        "install", "--no-cache-dir", "--no-index",
+        pkg,
+    )
+    assert_installed(script, pkg="1.0")
+
+    result = script.pip(
+        "install", "--no-cache-dir", "--no-index",
+        pkg,
+    )
+    assert "Installing collected packages: pkg" in result.stdout, str(result)
+    assert_installed(script, pkg="1.0")
