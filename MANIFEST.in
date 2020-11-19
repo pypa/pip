@@ -9,8 +9,6 @@ include src/pip/_vendor/vendor.txt
 recursive-include  src/pip/_vendor *LICENSE*
 recursive-include  src/pip/_vendor *COPYING*
 
-include docs/docutils.conf
-
 exclude .coveragerc
 exclude .mailmap
 exclude .appveyor.yml
@@ -22,7 +20,7 @@ exclude noxfile.py
 
 recursive-include src/pip/_vendor *.pem
 recursive-include src/pip/_vendor py.typed
-recursive-include docs *.css *.rst *.py
+recursive-include docs *.css *.rst *.py *.html
 
 exclude src/pip/_vendor/six
 exclude src/pip/_vendor/six/moves
