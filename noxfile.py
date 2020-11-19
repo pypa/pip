@@ -15,7 +15,6 @@ sys.path.append(".")
 from tools.automation import release  # isort:skip  # noqa
 sys.path.pop()
 
-nox.options.reuse_existing_virtualenvs = True
 nox.options.sessions = ["lint"]
 
 LOCATIONS = {
@@ -114,9 +113,8 @@ def test(session):
     session.run("pytest", *arguments, env={"LC_CTYPE": "en_US.UTF-8"})
 
 
-@nox.session
+@nox.session(reuse_venv=True)
 def docs(session):
-    session.install("-e", ".")
     session.install("-r", REQUIREMENTS["docs"])
 
     def get_sphinx_build_command(kind):
@@ -138,7 +136,7 @@ def docs(session):
     session.run(*get_sphinx_build_command("man"))
 
 
-@nox.session
+@nox.session(reuse_venv=True)
 def lint(session):
     session.install("pre-commit")
 
