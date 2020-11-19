@@ -1,8 +1,7 @@
 import collections
 
-from .compat import collections_abc
 from .providers import AbstractResolver
-from .structs import DirectedGraph
+from .structs import DirectedGraph, build_iter_view
 
 
 RequirementInformation = collections.namedtuple(
@@ -76,17 +75,11 @@ class Criterion(object):
 
     @classmethod
     def from_requirement(cls, provider, requirement, parent):
-        """Build an instance from a requirement.
-        """
-        candidates = provider.find_matches([requirement])
-        if not isinstance(candidates, collections_abc.Sequence):
-            candidates = list(candidates)
-        criterion = cls(
-            candidates=candidates,
-            information=[RequirementInformation(requirement, parent)],
-            incompatibilities=[],
-        )
-        if not candidates:
+        """Build an instance from a requirement."""
+        cands = build_iter_view(provider.find_matches([requirement]))
+        infos = [RequirementInformation(requirement, parent)]
+        criterion = cls(cands, infos, incompatibilities=[])
+        if not cands:
             raise RequirementsConflicted(criterion)
         return criterion
 
@@ -97,15 +90,12 @@ class Criterion(object):
         return (i.parent for i in self.information)
 
     def merged_with(self, provider, requirement, parent):
-        """Build a new instance from this and a new requirement.
-        """
+        """Build a new instance from this and a new requirement."""
         infos = list(self.information)
         infos.append(RequirementInformation(requirement, parent))
-        candidates = provider.find_matches([r for r, _ in infos])
-        if not isinstance(candidates, collections_abc.Sequence):
-            candidates = list(candidates)
-        criterion = type(self)(candidates, infos, list(self.incompatibilities))
-        if not candidates:
+        cands = build_iter_view(provider.find_matches([r for r, _ in infos]))
+        criterion = type(self)(cands, infos, list(self.incompatibilities))
+        if not cands:
             raise RequirementsConflicted(criterion)
         return criterion
 
@@ -114,13 +104,12 @@ class Criterion(object):
 
         Returns the new instance, or None if we still have no valid candidates.
         """
+        cands = self.candidates.excluding(candidate)
+        if not cands:
+            return None
         incompats = list(self.incompatibilities)
         incompats.append(candidate)
-        candidates = [c for c in self.candidates if c != candidate]
-        if not candidates:
-            return None
-        criterion = type(self)(candidates, list(self.information), incompats)
-        return criterion
+        return type(self)(cands, list(self.information), incompats)
 
 
 class ResolutionError(ResolverException):
@@ -175,7 +164,8 @@ class Resolution(object):
             state = State(mapping=collections.OrderedDict(), criteria={})
         else:
             state = State(
-                mapping=base.mapping.copy(), criteria=base.criteria.copy(),
+                mapping=base.mapping.copy(),
+                criteria=base.criteria.copy(),
             )
         self._states.append(state)
 
@@ -192,12 +182,10 @@ class Resolution(object):
 
     def _get_criterion_item_preference(self, item):
         name, criterion = item
-        try:
-            pinned = self.state.mapping[name]
-        except KeyError:
-            pinned = None
         return self._p.get_preference(
-            pinned, criterion.candidates, criterion.information,
+            self.state.mapping.get(name),
+            criterion.candidates.for_preference(),
+            criterion.information,
         )
 
     def _is_current_pin_satisfying(self, name, criterion):
@@ -390,8 +378,7 @@ def _build_result(state):
 
 
 class Resolver(AbstractResolver):
-    """The thing that performs the actual resolution work.
-    """
+    """The thing that performs the actual resolution work."""
 
     base_exception = ResolverException
 
