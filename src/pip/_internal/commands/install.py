@@ -529,14 +529,16 @@ class InstallCommand(RequirementCommand):
         parts = []  # type: List[str]
         if resolver_variant == "legacy":
             parts.append(
-                "After October 2020 you may experience errors when installing "
-                "or updating packages. This is because pip will change the "
-                "way that it resolves dependency conflicts.\n"
+                "pip's legacy dependency resolver does not consider dependency "
+                "conflicts when selecting packages. This behaviour is the "
+                "source of the following dependency conflicts."
             )
+        else:
+            assert resolver_variant == "2020-resolver"
             parts.append(
-                "We recommend you use --use-feature=2020-resolver to test "
-                "your packages with the new resolver before it becomes the "
-                "default.\n"
+                "pip's dependency resolver does not currently take into account "
+                "all the packages that are installed. This behaviour is the "
+                "source of the following dependency conflicts."
             )
 
         # NOTE: There is some duplication here, with commands/check.py
@@ -557,7 +559,7 @@ class InstallCommand(RequirementCommand):
             version = package_set[project_name][0]
             for dep_name, dep_version, req in conflicting[project_name]:
                 message = (
-                    "{name} {version} requires {requirement}, but you'll have "
+                    "{name} {version} requires {requirement}, but {you} have "
                     "{dep_name} {dep_version} which is incompatible."
                 ).format(
                     name=project_name,
@@ -565,6 +567,7 @@ class InstallCommand(RequirementCommand):
                     requirement=req,
                     dep_name=dep_name,
                     dep_version=dep_version,
+                    you=("you" if resolver_variant == "2020-resolver" else "you'll")
                 )
                 parts.append(message)
 

@@ -89,7 +89,7 @@ def test_check_install_does_not_warn_for_out_of_graph_issues(script):
     assert_contains_expected_lines(result.stderr, [
         "broken 1.0 requires missing, which is not installed.",
         "broken 1.0 requires conflict<1.0, "
-        "but you'll have conflict 1.0 which is incompatible."
+        "but you have conflict 1.0 which is incompatible."
     ])
 
     # Install unrelated package
