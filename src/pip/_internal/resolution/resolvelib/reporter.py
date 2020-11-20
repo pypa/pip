@@ -22,12 +22,12 @@ class PipReporter(BaseReporter):
 
         self._messages_at_backtrack = {
             1: (
-                "pip is looking at multiple versions of this package to "
+                "pip is looking at multiple versions of {package_name} to "
                 "determine which version is compatible with other "
                 "requirements. This could take a while."
             ),
             8: (
-                "pip is looking at multiple versions of this package to "
+                "pip is looking at multiple versions of {package_name} to "
                 "determine which version is compatible with other "
                 "requirements. This could take a while."
             ),
@@ -49,7 +49,7 @@ class PipReporter(BaseReporter):
             return
 
         message = self._messages_at_backtrack[count]
-        logger.info("INFO: %s", message)
+        logger.info("INFO: %s", message.format(package_name=candidate.name))
 
 
 class PipDebuggingReporter(BaseReporter):
