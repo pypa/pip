@@ -1,10 +1,8 @@
 class BaseReporter(object):
-    """Delegate class to provider progress reporting for the resolver.
-    """
+    """Delegate class to provider progress reporting for the resolver."""
 
     def starting(self):
-        """Called before the resolution actually starts.
-        """
+        """Called before the resolution actually starts."""
 
     def starting_round(self, index):
         """Called before each round of resolution starts.
@@ -20,8 +18,7 @@ class BaseReporter(object):
         """
 
     def ending(self, state):
-        """Called before the resolution ends successfully.
-        """
+        """Called before the resolution ends successfully."""
 
     def adding_requirement(self, requirement, parent):
         """Called when adding a new requirement into the resolve criteria.
@@ -34,9 +31,7 @@ class BaseReporter(object):
         """
 
     def backtracking(self, candidate):
-        """Called when rejecting a candidate during backtracking.
-        """
+        """Called when rejecting a candidate during backtracking."""
 
     def pinning(self, candidate):
-        """Called when adding a candidate to the potential solution.
-        """
+        """Called when adding a candidate to the potential solution."""
