@@ -139,7 +139,6 @@ class Resolver(BaseResolver):
             # * The --force-reinstall flag is set. Always reinstall.
             # * The installation is different in version or editable-ness, so
             #   we need to uninstall it to install the new distribution.
-            # * The installed version is different from the pending distribution.
             # * The candidate is a local wheel. Do nothing.
             # * The candidate is a local sdist. Print a deprecation warning.
             # * The candidate is a local path. Always reinstall.
