@@ -1152,26 +1152,6 @@ def test_new_resolver_check_wheel_version_normalized(
     assert_installed(script, simple="0.1.0+local.1")
 
 
-def test_new_resolver_does_not_reinstall_local_wheels(script):
-    archive_path = create_basic_wheel_for_package(
-        script,
-        "pkg",
-        "1.0",
-    )
-    script.pip(
-        "install", "--no-cache-dir", "--no-index",
-        archive_path,
-    )
-    assert_installed(script, pkg="1.0")
-
-    result = script.pip(
-        "install", "--no-cache-dir", "--no-index",
-        archive_path,
-    )
-    assert "Installing collected packages: pkg" not in result.stdout, str(result)
-    assert_installed(script, pkg="1.0")
-
-
 def test_new_resolver_does_reinstall_local_sdists(script):
     archive_path = create_basic_sdist_for_package(
         script,
