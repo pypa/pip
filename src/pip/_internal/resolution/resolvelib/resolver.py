@@ -161,7 +161,12 @@ class Resolver(BaseResolver):
                         ireq.name,
                     )
                     continue
-                if is_archive_file(candidate.source_link.file_path):
+
+                looks_like_sdist = (
+                    is_archive_file(candidate.source_link.file_path)
+                    and candidate.source_link.ext != ".zip"
+                )
+                if looks_like_sdist:
                     reason = (
                         "Source distribution is being reinstalled despite an "
                         "installed package having the same name and version as "
