@@ -16,6 +16,8 @@ from pip._internal.resolution.resolvelib.reporter import (
     PipDebuggingReporter,
     PipReporter,
 )
+from pip._internal.utils.deprecation import deprecated
+from pip._internal.utils.filetypes import is_archive_file
 from pip._internal.utils.misc import dist_is_editable
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -139,6 +141,7 @@ class Resolver(BaseResolver):
             #   we need to uninstall it to install the new distribution.
             # * The installed version is different from the pending distribution.
             # * The candidate is a local wheel. Do nothing.
+            # * The candidate is a local sdist. Print a deprecation warning.
             # * The candidate is a local path. Always reinstall.
             installed_dist = self.factory.get_dist_to_uninstall(candidate)
             if installed_dist is None:
@@ -158,6 +161,19 @@ class Resolver(BaseResolver):
                         ireq.name,
                     )
                     continue
+                if is_archive_file(candidate.source_link.file_path):
+                    reason = (
+                        "Source distribution is being reinstalled despite an "
+                        "installed package having the same name and version as "
+                        "the installed package."
+                    )
+                    replacement = "use --force-reinstall"
+                    deprecated(
+                        reason=reason,
+                        replacement=replacement,
+                        gone_in="21.1",
+                        issue=8711,
+                    )
                 ireq.should_reinstall = True
             else:
                 continue
