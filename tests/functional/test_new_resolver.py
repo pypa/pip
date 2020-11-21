@@ -712,22 +712,40 @@ def test_new_resolver_constraint_on_dependency(script):
     assert_installed(script, dep="2.0")
 
 
-def test_new_resolver_constraint_on_path(script):
+@pytest.mark.parametrize(
+    "constraint_version, expect_error, message",
+    [
+        ("1.0", True, "ERROR: No matching distribution found for foo 2.0"),
+        ("2.0", False, "Successfully installed foo-2.0"),
+    ],
+)
+def test_new_resolver_constraint_on_path_empty(
+    script,
+    constraint_version,
+    expect_error,
+    message,
+):
+    """A path requirement can be filtered by a constraint.
+    """
     setup_py = script.scratch_path / "setup.py"
     text = "from setuptools import setup\nsetup(name='foo', version='2.0')"
     setup_py.write_text(text)
+
     constraints_txt = script.scratch_path / "constraints.txt"
-    constraints_txt.write_text("foo==1.0")
+    constraints_txt.write_text("foo=={}".format(constraint_version))
+
     result = script.pip(
         "install",
         "--no-cache-dir", "--no-index",
         "-c", constraints_txt,
         str(script.scratch_path),
-        expect_error=True,
+        expect_error=expect_error,
     )
 
-    msg = "installation from path or url cannot be constrained to a version"
-    assert msg in result.stderr, str(result)
+    if expect_error:
+        assert message in result.stderr, str(result)
+    else:
+        assert message in result.stdout, str(result)
 
 
 def test_new_resolver_constraint_only_marker_match(script):
