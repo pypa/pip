@@ -150,6 +150,8 @@ def call_subprocess(
     finally:
         if proc.stdout:
             proc.stdout.close()
+        if proc.stderr:
+            proc.stderr.close()
 
     proc_had_error = (
         proc.returncode and proc.returncode not in extra_ok_returncodes
