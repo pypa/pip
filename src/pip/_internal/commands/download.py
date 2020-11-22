@@ -132,7 +132,7 @@ class DownloadCommand(RequirementCommand):
 
         downloaded = []  # type: List[str]
         for req in requirement_set.requirements.values():
-            if not req.editable and req.satisfied_by is None:
+            if req.satisfied_by is None:
                 assert req.name is not None
                 preparer.save_linked_requirement(req)
                 downloaded.append(req.name)

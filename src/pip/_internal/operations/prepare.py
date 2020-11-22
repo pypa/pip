@@ -530,7 +530,7 @@ class RequirementPreparer(object):
         assert self.download_dir is not None
         assert req.link is not None
         link = req.link
-        if link.is_vcs:
+        if link.is_vcs or (link.is_existing_dir() and req.editable):
             # Make a .zip of the source_dir we already created.
             req.archive(self.download_dir)
             return
@@ -576,7 +576,6 @@ class RequirementPreparer(object):
                 req, self.req_tracker, self.finder, self.build_isolation,
             )
 
-            req.archive(self.download_dir)
             req.check_if_exists(self.use_user_site)
 
         return dist

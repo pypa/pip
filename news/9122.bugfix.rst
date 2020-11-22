@@ -1,0 +1,2 @@
+Fix a regression that made ``pip wheel`` generate zip files of editable
+requirements in the wheel directory.

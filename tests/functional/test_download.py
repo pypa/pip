@@ -849,3 +849,19 @@ def test_download_http_url_bad_hash(
     assert len(requests) == 1
     assert requests[0]['PATH_INFO'] == '/simple-1.0.tar.gz'
     assert requests[0]['HTTP_ACCEPT_ENCODING'] == 'identity'
+
+
+def test_download_editable(script, data, tmpdir):
+    """
+    Test 'pip download' of editables in requirement file.
+    """
+    editable_path = str(data.src / 'simplewheel-1.0').replace(os.path.sep, "/")
+    requirements_path = tmpdir / "requirements.txt"
+    requirements_path.write_text("-e " + editable_path + "\n")
+    download_dir = tmpdir / "download_dir"
+    script.pip(
+        'download', '--no-deps', '-r', str(requirements_path), '-d', str(download_dir)
+    )
+    downloads = os.listdir(download_dir)
+    assert len(downloads) == 1
+    assert downloads[0].endswith(".zip")
