@@ -58,6 +58,13 @@ class Constraint(object):
         hashes = self.hashes & other.hashes(trust_internet=False)
         return Constraint(specifier, hashes)
 
+    def is_satisfied_by(self, candidate):
+        # type: (Candidate) -> bool
+        # We can safely always allow prereleases here since PackageFinder
+        # already implements the prerelease logic, and would have filtered out
+        # prerelease candidates if the user does not expect them.
+        return self.specifier.contains(candidate.version, prereleases=True)
+
 
 class Requirement(object):
     @property

@@ -235,16 +235,10 @@ class Factory(object):
                 prefers_installed,
             )
 
-        if constraint:
-            name = explicit_candidates.pop().name
-            raise InstallationError(
-                "Could not satisfy constraints for {!r}: installation from "
-                "path or url cannot be constrained to a version".format(name)
-            )
-
         return (
             c for c in explicit_candidates
-            if all(req.is_satisfied_by(c) for req in requirements)
+            if constraint.is_satisfied_by(c)
+            and all(req.is_satisfied_by(c) for req in requirements)
         )
 
     def make_requirement_from_install_req(self, ireq, requested_extras):

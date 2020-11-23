@@ -712,22 +712,40 @@ def test_new_resolver_constraint_on_dependency(script):
     assert_installed(script, dep="2.0")
 
 
-def test_new_resolver_constraint_on_path(script):
+@pytest.mark.parametrize(
+    "constraint_version, expect_error, message",
+    [
+        ("1.0", True, "ERROR: No matching distribution found for foo 2.0"),
+        ("2.0", False, "Successfully installed foo-2.0"),
+    ],
+)
+def test_new_resolver_constraint_on_path_empty(
+    script,
+    constraint_version,
+    expect_error,
+    message,
+):
+    """A path requirement can be filtered by a constraint.
+    """
     setup_py = script.scratch_path / "setup.py"
     text = "from setuptools import setup\nsetup(name='foo', version='2.0')"
     setup_py.write_text(text)
+
     constraints_txt = script.scratch_path / "constraints.txt"
-    constraints_txt.write_text("foo==1.0")
+    constraints_txt.write_text("foo=={}".format(constraint_version))
+
     result = script.pip(
         "install",
         "--no-cache-dir", "--no-index",
         "-c", constraints_txt,
         str(script.scratch_path),
-        expect_error=True,
+        expect_error=expect_error,
     )
 
-    msg = "installation from path or url cannot be constrained to a version"
-    assert msg in result.stderr, str(result)
+    if expect_error:
+        assert message in result.stderr, str(result)
+    else:
+        assert message in result.stdout, str(result)
 
 
 def test_new_resolver_constraint_only_marker_match(script):
@@ -1132,3 +1150,46 @@ def test_new_resolver_check_wheel_version_normalized(
         "simple"
     )
     assert_installed(script, simple="0.1.0+local.1")
+
+
+def test_new_resolver_contraint_on_dep_with_extra(script):
+    create_basic_wheel_for_package(
+        script,
+        name="simple",
+        version="1",
+        depends=["dep[x]"],
+    )
+    create_basic_wheel_for_package(
+        script,
+        name="dep",
+        version="1",
+        extras={"x": ["depx==1"]},
+    )
+    create_basic_wheel_for_package(
+        script,
+        name="dep",
+        version="2",
+        extras={"x": ["depx==2"]},
+    )
+    create_basic_wheel_for_package(
+        script,
+        name="depx",
+        version="1",
+    )
+    create_basic_wheel_for_package(
+        script,
+        name="depx",
+        version="2",
+    )
+
+    constraints_txt = script.scratch_path / "constraints.txt"
+    constraints_txt.write_text("dep==1")
+
+    script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "--constraint", constraints_txt,
+        "simple",
+    )
+    assert_installed(script, simple="1", dep="1", depx="1")

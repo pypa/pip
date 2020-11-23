@@ -17,6 +17,10 @@ class ExplicitRequirement(Requirement):
         # type: (Candidate) -> None
         self.candidate = candidate
 
+    def __str__(self):
+        # type: () -> str
+        return str(self.candidate)
+
     def __repr__(self):
         # type: () -> str
         return "{class_name}({candidate!r})".format(
@@ -106,6 +110,10 @@ class RequiresPythonRequirement(Requirement):
         self.specifier = specifier
         self._candidate = match
 
+    def __str__(self):
+        # type: () -> str
+        return "Python {}".format(self.specifier)
+
     def __repr__(self):
         # type: () -> str
         return "{class_name}({specifier!r})".format(
@@ -120,7 +128,7 @@ class RequiresPythonRequirement(Requirement):
 
     def format_for_error(self):
         # type: () -> str
-        return "Python " + str(self.specifier)
+        return str(self)
 
     def get_candidate_lookup(self):
         # type: () -> CandidateLookup

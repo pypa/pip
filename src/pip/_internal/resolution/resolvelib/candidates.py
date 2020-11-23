@@ -143,6 +143,10 @@ class _InstallRequirementBackedCandidate(Candidate):
         self._version = version
         self._dist = None  # type: Optional[Distribution]
 
+    def __str__(self):
+        # type: () -> str
+        return "{} {}".format(self.name, self.version)
+
     def __repr__(self):
         # type: () -> str
         return "{class_name}({link!r})".format(
@@ -359,6 +363,10 @@ class AlreadyInstalledCandidate(Candidate):
         skip_reason = "already satisfied"
         factory.preparer.prepare_installed_requirement(self._ireq, skip_reason)
 
+    def __str__(self):
+        # type: () -> str
+        return str(self.dist)
+
     def __repr__(self):
         # type: () -> str
         return "{class_name}({distribution!r})".format(
@@ -444,6 +452,11 @@ class ExtrasCandidate(Candidate):
         # type: (...) -> None
         self.base = base
         self.extras = extras
+
+    def __str__(self):
+        # type: () -> str
+        name, rest = str(self.base).split(" ", 1)
+        return "{}[{}] {}".format(name, ",".join(self.extras), rest)
 
     def __repr__(self):
         # type: () -> str
@@ -553,6 +566,10 @@ class RequiresPythonCandidate(Candidate):
     # We don't need to implement __eq__() and __ne__() since there is always
     # only one RequiresPythonCandidate in a resolution, i.e. the host Python.
     # The built-in object.__eq__() and object.__ne__() do exactly what we want.
+
+    def __str__(self):
+        # type: () -> str
+        return "Python {}".format(self._version)
 
     @property
     def name(self):
