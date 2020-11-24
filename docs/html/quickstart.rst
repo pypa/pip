@@ -123,8 +123,8 @@ This is useful if the target machine does not have a network connection:
       [...]
       Successfully installed SomePackage
 
-Install packages from a file
-----------------------------
+Install packages from requirements.txt
+--------------------------------------
 
 Many Python projects use a requirements.txt file to specify the list of packages
 that need to be installed for the project to run. To install the packages
@@ -140,7 +140,7 @@ listed in the file, run:
 
      .. code-block:: console
 
-        C:\> py -m pip install -r requirements.txt  
+        C:\> py -m pip install -r requirements.txt
 
 See :ref:`requirements files <Requirements Files>` for more information.
 
