@@ -17,6 +17,7 @@ from pip._vendor.six import string_types
 from pip._internal.cli.status_codes import UNKNOWN_ERROR
 from pip._internal.configuration import Configuration, ConfigurationError
 from pip._internal.utils.compat import get_terminal_size
+from pip._internal.utils.misc import redact_auth_from_url
 
 logger = logging.getLogger(__name__)
 
@@ -106,12 +107,22 @@ class UpdatingDefaultsHelpFormatter(PrettyHelpFormatter):
 
     This is updates the defaults before expanding them, allowing
     them to show up correctly in the help listing.
+
+    Also redact auth from url type options
     """
 
     def expand_default(self, option):
+        default_value = None
         if self.parser is not None:
             self.parser._update_defaults(self.parser.defaults)
-        return optparse.IndentedHelpFormatter.expand_default(self, option)
+            default_value = self.parser.defaults.get(option.dest)
+        help_text = optparse.IndentedHelpFormatter.expand_default(self, option)
+
+        if default_value and option.metavar == 'URL':
+            help_text = help_text.replace(
+                default_value, redact_auth_from_url(default_value))
+
+        return help_text
 
 
 class CustomOptionParser(optparse.OptionParser):
