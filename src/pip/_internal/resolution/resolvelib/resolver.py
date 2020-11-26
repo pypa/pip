@@ -16,6 +16,8 @@ from pip._internal.resolution.resolvelib.reporter import (
     PipDebuggingReporter,
     PipReporter,
 )
+from pip._internal.utils.deprecation import deprecated
+from pip._internal.utils.filetypes import is_archive_file
 from pip._internal.utils.misc import dist_is_editable
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -132,12 +134,14 @@ class Resolver(BaseResolver):
 
             # Check if there is already an installation under the same name,
             # and set a flag for later stages to uninstall it, if needed.
-            # * There isn't, good -- no uninstalltion needed.
+            #
+            # * There is no existing installation. Nothing to uninstall.
             # * The --force-reinstall flag is set. Always reinstall.
             # * The installation is different in version or editable-ness, so
             #   we need to uninstall it to install the new distribution.
-            # * The installed version is the same as the pending distribution.
-            #   Skip this distrubiton altogether to save work.
+            # * The candidate is a local wheel. Do nothing.
+            # * The candidate is a local sdist. Print a deprecation warning.
+            # * The candidate is a local path. Always reinstall.
             installed_dist = self.factory.get_dist_to_uninstall(candidate)
             if installed_dist is None:
                 ireq.should_reinstall = False
@@ -146,6 +150,34 @@ class Resolver(BaseResolver):
             elif installed_dist.parsed_version != candidate.version:
                 ireq.should_reinstall = True
             elif dist_is_editable(installed_dist) != candidate.is_editable:
+                ireq.should_reinstall = True
+            elif candidate.source_link.is_file:
+                if candidate.source_link.is_wheel:
+                    logger.info(
+                        "%s is already installed with the same version as the "
+                        "provided wheel. Use --force-reinstall to force an "
+                        "installation of the wheel.",
+                        ireq.name,
+                    )
+                    continue
+
+                looks_like_sdist = (
+                    is_archive_file(candidate.source_link.file_path)
+                    and candidate.source_link.ext != ".zip"
+                )
+                if looks_like_sdist:
+                    reason = (
+                        "Source distribution is being reinstalled despite an "
+                        "installed package having the same name and version as "
+                        "the installed package."
+                    )
+                    replacement = "use --force-reinstall"
+                    deprecated(
+                        reason=reason,
+                        replacement=replacement,
+                        gone_in="21.1",
+                        issue=8711,
+                    )
                 ireq.should_reinstall = True
             else:
                 continue

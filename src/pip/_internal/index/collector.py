@@ -22,7 +22,7 @@ from pip._internal.models.link import Link
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.network.utils import raise_for_status
 from pip._internal.utils.compat import lru_cache
-from pip._internal.utils.filetypes import ARCHIVE_EXTENSIONS
+from pip._internal.utils.filetypes import is_archive_file
 from pip._internal.utils.misc import pairwise, redact_auth_from_url
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import path_to_url, url_to_path
@@ -63,17 +63,6 @@ def _match_vcs_scheme(url):
         if url.lower().startswith(scheme) and url[len(scheme)] in '+:':
             return scheme
     return None
-
-
-def _is_url_like_archive(url):
-    # type: (str) -> bool
-    """Return whether the URL looks like an archive.
-    """
-    filename = Link(url).filename
-    for bad_ext in ARCHIVE_EXTENSIONS:
-        if filename.endswith(bad_ext):
-            return True
-    return False
 
 
 class _NotHTML(Exception):
@@ -130,7 +119,7 @@ def _get_html_response(url, session):
     3. Check the Content-Type header to make sure we got HTML, and raise
        `_NotHTML` otherwise.
     """
-    if _is_url_like_archive(url):
+    if is_archive_file(Link(url).filename):
         _ensure_html_response(url, session=session)
 
     logger.debug('Getting page %s', redact_auth_from_url(url))

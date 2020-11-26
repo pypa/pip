@@ -24,8 +24,8 @@ from pip._internal.models.wheel import Wheel
 from pip._internal.pyproject import make_pyproject_path
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.deprecation import deprecated
-from pip._internal.utils.filetypes import ARCHIVE_EXTENSIONS
-from pip._internal.utils.misc import is_installable_dir, splitext
+from pip._internal.utils.filetypes import is_archive_file
+from pip._internal.utils.misc import is_installable_dir
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import path_to_url
 from pip._internal.vcs import is_url, vcs
@@ -43,15 +43,6 @@ __all__ = [
 
 logger = logging.getLogger(__name__)
 operators = Specifier._operators.keys()
-
-
-def is_archive_file(name):
-    # type: (str) -> bool
-    """Return True if `name` is a considered as an archive file."""
-    ext = splitext(name)[1].lower()
-    if ext in ARCHIVE_EXTENSIONS:
-        return True
-    return False
 
 
 def _strip_extras(path):
