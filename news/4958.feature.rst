@@ -1,1 +1,1 @@
-Implemented error handling when passing an invalid requirement ``pip uninstall``.
+Add a warning when passing an invalid requirement to ``pip uninstall``.
