@@ -68,7 +68,7 @@ class UninstallCommand(Command, SessionCommandMixin):
                 logger.warning(
                     "Invalid requirement: '%s' ignored -"
                     " the uninstall command expects named"
-                    " requirements/requirements file.", name
+                    " requirements.", name
                 )
         for filename in options.requirements:
             for parsed_req in parse_requirements(
