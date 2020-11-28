@@ -79,6 +79,9 @@ class _FactoryIterableView(object):
     def __init__(self, factory):
         self._factory = factory
 
+    def __repr__(self):
+        return "{}({})".format(type(self).__name__, list(self._factory()))
+
     def __bool__(self):
         try:
             next(self._factory())
@@ -95,11 +98,11 @@ class _FactoryIterableView(object):
         """Provide an candidate iterable for `get_preference()`"""
         return self._factory()
 
-    def excluding(self, candidate):
-        """Create a new `Candidates` instance excluding `candidate`."""
+    def excluding(self, candidates):
+        """Create a new instance excluding specified candidates."""
 
         def factory():
-            return (c for c in self._factory() if c != candidate)
+            return (c for c in self._factory() if c not in candidates)
 
         return type(self)(factory)
 
@@ -113,6 +116,9 @@ class _SequenceIterableView(object):
 
     def __init__(self, sequence):
         self._sequence = sequence
+
+    def __repr__(self):
+        return "{}({})".format(type(self).__name__, self._sequence)
 
     def __bool__(self):
         return bool(self._sequence)
@@ -129,9 +135,9 @@ class _SequenceIterableView(object):
         """Provide an candidate iterable for `get_preference()`"""
         return self._sequence
 
-    def excluding(self, candidate):
-        """Create a new instance excluding `candidate`."""
-        return type(self)([c for c in self._sequence if c != candidate])
+    def excluding(self, candidates):
+        """Create a new instance excluding specified candidates."""
+        return type(self)([c for c in self._sequence if c not in candidates])
 
 
 def build_iter_view(matches):
