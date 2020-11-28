@@ -168,6 +168,9 @@ def vendoring(session):
 
     vendor_txt = Path("src/pip/_vendor/vendor.txt")
     for name, old_version in pinned_requirements(vendor_txt):
+        if name == "setuptools":
+            continue
+
         # update requirements.txt
         session.run("vendoring", "update", ".", name)
 
