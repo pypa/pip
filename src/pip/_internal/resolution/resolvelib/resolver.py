@@ -144,8 +144,9 @@ class Resolver(BaseResolver):
             elif installed_dist.parsed_version != candidate.version:
                 # The installation is different in version -- reinstall.
                 ireq.should_reinstall = True
-            elif dist_is_editable(installed_dist) != candidate.is_editable:
-                # The installation is different in editable-ness -- reinstall.
+            elif candidate.is_editable or dist_is_editable(installed_dist):
+                # The incoming distribution is editable, or different in
+                # editable-ness to installation -- reinstall.
                 ireq.should_reinstall = True
             elif candidate.source_link.is_file:
                 # The incoming distribution is under file://
