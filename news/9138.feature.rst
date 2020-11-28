@@ -1,0 +1,1 @@
+Add support for MacOS Big Sur compatibility tags.
