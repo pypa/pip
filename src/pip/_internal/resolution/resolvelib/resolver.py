@@ -134,25 +134,24 @@ class Resolver(BaseResolver):
 
             # Check if there is already an installation under the same name,
             # and set a flag for later stages to uninstall it, if needed.
-            #
-            # * There is no existing installation. Nothing to uninstall.
-            # * The --force-reinstall flag is set. Always reinstall.
-            # * The installation is different in version or editable-ness, so
-            #   we need to uninstall it to install the new distribution.
-            # * The candidate is a local wheel. Do nothing.
-            # * The candidate is a local sdist. Print a deprecation warning.
-            # * The candidate is a local path. Always reinstall.
             installed_dist = self.factory.get_dist_to_uninstall(candidate)
             if installed_dist is None:
+                # There is no existing installation -- nothing to uninstall.
                 ireq.should_reinstall = False
             elif self.factory.force_reinstall:
+                # The --force-reinstall flag is set -- reinstall.
                 ireq.should_reinstall = True
             elif installed_dist.parsed_version != candidate.version:
+                # The installation is different in version -- reinstall.
                 ireq.should_reinstall = True
-            elif dist_is_editable(installed_dist) != candidate.is_editable:
+            elif candidate.is_editable or dist_is_editable(installed_dist):
+                # The incoming distribution is editable, or different in
+                # editable-ness to installation -- reinstall.
                 ireq.should_reinstall = True
             elif candidate.source_link.is_file:
+                # The incoming distribution is under file://
                 if candidate.source_link.is_wheel:
+                    # is a local wheel -- do nothing.
                     logger.info(
                         "%s is already installed with the same version as the "
                         "provided wheel. Use --force-reinstall to force an "
@@ -166,6 +165,7 @@ class Resolver(BaseResolver):
                     and candidate.source_link.ext != ".zip"
                 )
                 if looks_like_sdist:
+                    # is a local sdist -- show a deprecation warning!
                     reason = (
                         "Source distribution is being reinstalled despite an "
                         "installed package having the same name and version as "
@@ -178,6 +178,8 @@ class Resolver(BaseResolver):
                         gone_in="21.1",
                         issue=8711,
                     )
+
+                # is a local sdist or path -- reinstall
                 ireq.should_reinstall = True
             else:
                 continue
