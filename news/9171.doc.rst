@@ -1,0 +1,3 @@
+Fixed moving the ``:orphan:`` to top of documents in the Sphinx
+extension for collecting the UX feedback from docs (initially
+introduced in PR #8848).
