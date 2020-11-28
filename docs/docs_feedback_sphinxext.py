@@ -111,7 +111,7 @@ def _modify_rst_document_source_on_read(
     orphan_mark = ':orphan:'
     is_orphan = orphan_mark in source[0]
     if is_orphan:
-        source[0].replace(orphan_mark, '')
+        source[0] = source[0].replace(orphan_mark, '')
     else:
         orphan_mark = ''
 
