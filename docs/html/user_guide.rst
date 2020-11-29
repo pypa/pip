@@ -1747,10 +1747,21 @@ How to upgrade and migrate
       deliver part of your functionality, please test your integration
       with pip 20.3.
 
-4.    **Temporarily use the old resolver when necessary.** If you run
-      into resolution errors and need a workaround while you're fixing
-      their root causes, you can choose the old resolver behavior
-      using the flag ``--use-deprecated=legacy-resolver``.
+4. **Troubleshoot and try these workarounds if necessary.**
+
+   -  If pip is taking longer to install packages, read
+      :ref:`Dependency resolution backtracking` for ways to reduce the
+      time pip spends backtracking due to dependency conflicts.
+   -  If you don't want pip to actually resolve dependencies, use the
+      ``--no-deps`` option. This is useful when you have a set of package
+      versions that work together in reality, even though their metadata says
+      that they conflict. For guidance on a long-term fix, read
+      :ref:`Fixing conflicting dependencies`.
+   -  If you run into resolution errors and need a workaround while you're
+      fixing their root causes, you can choose the old resolver behavior using
+      the flag ``--use-deprecated=legacy-resolver``. This will work until we
+      release pip 21.0 (see
+      :ref:`Deprecation timeline for 2020 resolver changes`).
 
 5. **Please report bugs** through the `resolver testing survey`_.
 
