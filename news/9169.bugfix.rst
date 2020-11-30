@@ -1,2 +1,0 @@
-New Resolver: editable installations are done, regardless of whether
-the already-installed distribution is editable.

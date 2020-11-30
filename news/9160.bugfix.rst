@@ -1,1 +1,0 @@
-Redact auth from URL in help message.
