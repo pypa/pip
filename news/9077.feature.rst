@@ -1,1 +1,0 @@
-Add support for :pep:`600`: Future 'manylinux' Platform Tags for Portable Linux Built Distributions.

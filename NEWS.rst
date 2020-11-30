@@ -9,6 +9,55 @@
 
 .. towncrier release notes start
 
+20.3 (2020-11-30)
+=================
+
+Deprecations and Removals
+-------------------------
+
+- Remove --unstable-feature flag as it has been deprecated. (`#9133 <https://github.com/pypa/pip/issues/9133>`_)
+
+Features
+--------
+
+- Add support for :pep:`600`: Future 'manylinux' Platform Tags for Portable Linux Built Distributions. (`#9077 <https://github.com/pypa/pip/issues/9077>`_)
+- The new resolver now resolves packages in a deterministic order. (`#9100 <https://github.com/pypa/pip/issues/9100>`_)
+- Add support for MacOS Big Sur compatibility tags. (`#9138 <https://github.com/pypa/pip/issues/9138>`_)
+
+Bug Fixes
+---------
+
+- New Resolver: Rework backtracking and state management, to avoid getting stuck in an infinite loop. (`#9011 <https://github.com/pypa/pip/issues/9011>`_)
+- New resolver: Check version equality with ``packaging.version`` to avoid edge
+  cases if a wheel used different version normalization logic in its filename
+  and metadata. (`#9083 <https://github.com/pypa/pip/issues/9083>`_)
+- New resolver: Show each requirement in the conflict error message only once to reduce cluttering. (`#9101 <https://github.com/pypa/pip/issues/9101>`_)
+- Fix a regression that made ``pip wheel`` generate zip files of editable
+  requirements in the wheel directory. (`#9122 <https://github.com/pypa/pip/issues/9122>`_)
+- Fix ResourceWarning in VCS subprocesses (`#9156 <https://github.com/pypa/pip/issues/9156>`_)
+- Redact auth from URL in help message. (`#9160 <https://github.com/pypa/pip/issues/9160>`_)
+- New Resolver: editable installations are done, regardless of whether
+  the already-installed distribution is editable. (`#9169 <https://github.com/pypa/pip/issues/9169>`_)
+
+Vendored Libraries
+------------------
+
+- Upgrade certifi to 2020.11.8
+- Upgrade colorama to 0.4.4
+- Upgrade packaging to 20.7
+- Upgrade pep517 to 0.9.1
+- Upgrade requests to 2.25.0
+- Upgrade resolvelib to 0.5.3
+- Upgrade toml to 0.10.2
+- Upgrade urllib3 to 1.26.2
+
+Improved Documentation
+----------------------
+
+- Add a section to the User Guide to cover backtracking during dependency resolution. (`#9039 <https://github.com/pypa/pip/issues/9039>`_)
+- Reorder and revise installation instructions to make them easier to follow. (`#9131 <https://github.com/pypa/pip/issues/9131>`_)
+
+
 20.3b1 (2020-10-31)
 ===================
 

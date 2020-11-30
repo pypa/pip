@@ -1,1 +1,0 @@
-New Resolver: Rework backtracking and state management, to avoid getting stuck in an infinite loop.
