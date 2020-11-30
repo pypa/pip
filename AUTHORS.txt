@@ -79,6 +79,8 @@ Benjamin Peterson
 Benjamin VanEvery
 Benoit Pierre
 Berker Peksag
+Bernard
+Bernard Tyers
 Bernardo B. Marques
 Bernhard M. Wiedemann
 Bertil Hatt
