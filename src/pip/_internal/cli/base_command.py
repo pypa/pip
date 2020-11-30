@@ -6,7 +6,6 @@ import logging
 import logging.config
 import optparse
 import os
-import platform
 import sys
 import traceback
 
@@ -138,35 +137,6 @@ class Command(CommandContextMixIn):
             no_color=options.no_color,
             user_log_file=options.log,
         )
-
-        if (
-            sys.version_info[:2] == (2, 7) and
-            not options.no_python_version_warning
-        ):
-            message = (
-                "pip 21.0 will drop support for Python 2.7 in January 2021. "
-                "More details about Python 2 support in pip can be found at "
-                "https://pip.pypa.io/en/latest/development/release-process/#python-2-support"  # noqa
-            )
-            if platform.python_implementation() == "CPython":
-                message = (
-                    "Python 2.7 reached the end of its life on January "
-                    "1st, 2020. Please upgrade your Python as Python 2.7 "
-                    "is no longer maintained. "
-                ) + message
-            deprecated(message, replacement=None, gone_in="21.0")
-
-        if (
-            sys.version_info[:2] == (3, 5) and
-            not options.no_python_version_warning
-        ):
-            message = (
-                "Python 3.5 reached the end of its life on September "
-                "13th, 2020. Please upgrade your Python as Python 3.5 "
-                "is no longer maintained. pip 21.0 will drop support "
-                "for Python 3.5 in January 2021."
-            )
-            deprecated(message, replacement=None, gone_in="21.0")
 
         # TODO: Try to get these passing down from the command?
         #       without resorting to os.environ to hold these.
