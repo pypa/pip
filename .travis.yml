@@ -26,10 +26,6 @@ jobs:
       python: pypy3.5-7.0.0
     - env: GROUP=2
       python: pypy3.5-7.0.0
-    - env: GROUP=1
-      python: pypy2.7-7.1.1
-    - env: GROUP=2
-      python: pypy2.7-7.1.1
 
 before_install: tools/travis/setup.sh
 install: travis_retry tools/travis/install.sh
