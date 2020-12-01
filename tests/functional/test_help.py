@@ -64,16 +64,6 @@ def test_help_command_should_exit_status_error_when_cmd_does_not_exist(script):
     assert result.returncode == ERROR
 
 
-def test_help_command_redact_auth_from_url(script):
-    """
-    Test `help` on various subcommands redact auth from url
-    """
-    script.environ['PIP_INDEX_URL'] = 'https://user:secret@example.com'
-    result = script.pip('install', '--help')
-    assert result.returncode == SUCCESS
-    assert 'secret' not in result.stdout
-
-
 def test_help_commands_equally_functional(in_memory_pip):
     """
     Test if `pip help` and 'pip --help' behave the same way.
