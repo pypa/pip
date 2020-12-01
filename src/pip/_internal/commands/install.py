@@ -129,6 +129,8 @@ class InstallCommand(RequirementCommand):
             help="Installation prefix where lib, bin and other top-level "
                  "folders are placed")
 
+        self.cmd_opts.add_option(cmdoptions.build_dir())
+
         self.cmd_opts.add_option(cmdoptions.src())
 
         self.cmd_opts.add_option(
