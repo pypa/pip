@@ -1,0 +1,1 @@
+Allow legacy versions when verifying wheel version from file name.
