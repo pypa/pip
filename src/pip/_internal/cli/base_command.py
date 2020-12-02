@@ -199,6 +199,20 @@ class Command(CommandContextMixIn):
                 )
                 options.cache_dir = None
 
+        if getattr(options, "build_dir", None):
+            deprecated(
+                reason=(
+                    "The -b/--build/--build-dir/--build-directory "
+                    "option is deprecated and has no effect anymore."
+                ),
+                replacement=(
+                    "use the TMPDIR/TEMP/TMP environment variable, "
+                    "possibly combined with --no-clean"
+                ),
+                gone_in="21.1",
+                issue=8333,
+            )
+
         if '2020-resolver' in options.features_enabled and not PY2:
             logger.warning(
                 "--use-feature=2020-resolver no longer has any effect, "
