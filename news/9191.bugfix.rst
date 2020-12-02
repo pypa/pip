@@ -1,0 +1,2 @@
+Handle case of list default values in UpdatingDefaultsHelpFormatter
+Happens because we pass a list from --extra-index-url
