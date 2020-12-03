@@ -1,2 +1,0 @@
-The --build-dir option has been restored as a no-op, to soften the transition
-for tools that still used it.
