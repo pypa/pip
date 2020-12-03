@@ -218,7 +218,6 @@ Gabriel Curio
 Gabriel de Perthuis
 Garry Polley
 gdanielson
-Geoffrey Lehée
 Geoffrey Sneddon
 George Song
 Georgi Valkov
@@ -551,6 +550,7 @@ Tony Zhaocheng Tan
 TonyBeswick
 toonarmycaptain
 Toshio Kuratomi
+toxinu
 Travis Swicegood
 Tzu-ping Chung
 Valentin Haenel
