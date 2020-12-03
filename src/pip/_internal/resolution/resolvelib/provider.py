@@ -64,7 +64,9 @@ class PipProvider(AbstractProvider):
         Currently pip considers the followings in order:
 
         * Prefer if any of the known requirements points to an explicit URL.
-        * If equal, prefer if any requirements contain `===` and `==`.
+        * If equal, prefer if any requirements contain ``===`` and ``==``.
+        * If equal, prefer if requirements include version constraints, e.g.
+          ``>=`` and ``<``.
         * If equal, prefer user-specified (non-transitive) requirements.
         * If equal, order alphabetically for consistency (helps debuggability).
         """
@@ -90,14 +92,17 @@ class PipProvider(AbstractProvider):
             if any(cand is not None for cand in cands):
                 return 0
             spec_sets = (ireq.specifier for ireq in ireqs if ireq)
-            operators = (
+            operators = [
                 specifier.operator
                 for spec_set in spec_sets
                 for specifier in spec_set
-            )
+            ]
             if any(op in ("==", "===") for op in operators):
                 return 1
-            return 2
+            if operators:
+                return 2
+            # A "bare" requirement without any version requirements.
+            return 3
 
         restrictive = _get_restrictive_rating(req for req, _ in information)
         transitive = all(parent is not None for _, parent in information)
