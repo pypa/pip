@@ -9,6 +9,16 @@
 
 .. towncrier release notes start
 
+20.3.1 (2020-12-03)
+===================
+
+Deprecations and Removals
+-------------------------
+
+- The --build-dir option has been restored as a no-op, to soften the transition
+  for tools that still used it. (`#9193 <https://github.com/pypa/pip/issues/9193>`_)
+
+
 20.3 (2020-11-30)
 =================
 
