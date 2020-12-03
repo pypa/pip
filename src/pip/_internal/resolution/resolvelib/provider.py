@@ -56,9 +56,53 @@ class PipProvider(AbstractProvider):
         information  # type: Sequence[Tuple[Requirement, Candidate]]
     ):
         # type: (...) -> Any
+        """Produce a sort key for given requirement based on preference.
+
+        The lower the return value is, the more preferred this group of
+        arguments is.
+
+        Currently pip considers the followings in order:
+
+        * Prefer if any of the known requirements points to an explicit URL.
+        * If equal, prefer if any requirements contain `===` and `==`.
+        * If equal, prefer user-specified (non-transitive) requirements.
+        * If equal, order alphabetically for consistency (helps debuggability).
+        """
+
+        def _get_restrictive_rating(requirements):
+            # type: (Iterable[Requirement]) -> int
+            """Rate how restrictive a set of requirements are.
+
+            ``Requirement.get_candidate_lookup()`` returns a 2-tuple for
+            lookup. The first element is ``Optional[Candidate]`` and the
+            second ``Optional[InstallRequirement]``.
+
+            * If the requirement is an explicit one, the explicitly-required
+              candidate is returned as the first element.
+            * If the requirement is based on a PEP 508 specifier, the backing
+              ``InstallRequirement`` is returned as the second element.
+
+            We use the first element to check whether there is an explicit
+            requirement, and the second for equality operator.
+            """
+            lookups = (r.get_candidate_lookup() for r in requirements)
+            cands, ireqs = zip(*lookups)
+            if any(cand is not None for cand in cands):
+                return 0
+            spec_sets = (ireq.specifier for ireq in ireqs if ireq)
+            operators = (
+                specifier.operator
+                for spec_set in spec_sets
+                for specifier in spec_set
+            )
+            if any(op in ("==", "===") for op in operators):
+                return 1
+            return 2
+
+        restrictive = _get_restrictive_rating(req for req, _ in information)
         transitive = all(parent is not None for _, parent in information)
         key = next(iter(candidates)).name if candidates else ""
-        return (transitive, key)
+        return (restrictive, transitive, key)
 
     def find_matches(self, requirements):
         # type: (Sequence[Requirement]) -> Iterable[Candidate]

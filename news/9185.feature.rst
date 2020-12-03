@@ -1,0 +1,2 @@
+New resolver: Resolve direct and pinned (``==`` or ``===``) requirements first
+to improve resolver performance.
