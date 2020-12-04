@@ -193,8 +193,17 @@ class Factory(object):
                 specifier=specifier,
                 hashes=hashes,
             )
+            icans = list(result.iter_applicable())
+
+            # PEP 592: Yanked releases must be ignored unless only yanked
+            # releases can satisfy the version range. So if this is false,
+            # all yanked icans need to be skipped.
+            all_yanked = all(ican.link.is_yanked for ican in icans)
+
             # PackageFinder returns earlier versions first, so we reverse.
-            for ican in reversed(list(result.iter_applicable())):
+            for ican in reversed(icans):
+                if not all_yanked and ican.link.is_yanked:
+                    continue
                 yield self._make_candidate_from_link(
                     link=ican.link,
                     extras=extras,

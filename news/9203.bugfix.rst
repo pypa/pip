@@ -1,0 +1,2 @@
+New resolver: Correctly implement PEP 592. Do not return yanked versions from
+an index, unless the version range can only be satisfied by yanked candidates.
