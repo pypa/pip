@@ -1,0 +1,1 @@
+Read stderr output before stdout on VCS install to avoid process freeze with Git
