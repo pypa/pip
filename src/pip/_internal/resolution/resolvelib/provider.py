@@ -30,6 +30,16 @@ if MYPY_CHECK_RUNNING:
 
 
 class PipProvider(AbstractProvider):
+    """Pip's provider implementation for resolvelib.
+
+    :params constraints: A mapping of constraints specified by the user. Keys
+        are canonicalized project names.
+    :params ignore_dependencies: Whether the user specified ``--no-deps``.
+    :params upgrade_strategy: The user-specified upgrade strategy.
+    :params user_requested: A set of canonicalized package names that the user
+        supplied for pip to install/upgrade.
+    """
+
     def __init__(
         self,
         factory,  # type: Factory
@@ -113,7 +123,7 @@ class PipProvider(AbstractProvider):
         # type: (Sequence[Requirement]) -> Iterable[Candidate]
         if not requirements:
             return []
-        name = requirements[0].name
+        name = requirements[0].project_name
 
         def _eligible_for_upgrade(name):
             # type: (str) -> bool
