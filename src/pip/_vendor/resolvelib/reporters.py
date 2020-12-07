@@ -33,5 +33,5 @@ class BaseReporter(object):
     def backtracking(self, candidate):
         """Called when rejecting a candidate during backtracking."""
 
-    def pinning(self, candidate):
+    def pinning(self, candidate, requirements):
         """Called when adding a candidate to the potential solution."""

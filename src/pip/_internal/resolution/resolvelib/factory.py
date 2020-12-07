@@ -1,5 +1,7 @@
+import functools
 import logging
 
+from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.exceptions import (
@@ -49,7 +51,6 @@ if MYPY_CHECK_RUNNING:
         TypeVar,
     )
 
-    from pip._vendor.packaging.specifiers import SpecifierSet
     from pip._vendor.packaging.version import _BaseVersion
     from pip._vendor.pkg_resources import Distribution
     from pip._vendor.resolvelib import ResolutionImpossible
@@ -93,6 +94,8 @@ class Factory(object):
         self._use_user_site = use_user_site
         self._force_reinstall = force_reinstall
         self._ignore_requires_python = ignore_requires_python
+        self._preferred_pins = {
+        }  # type: Dict[Tuple[str, SpecifierSet], Candidate]
 
         self._link_candidate_cache = {}  # type: Cache[LinkCandidate]
         self._editable_candidate_cache = {}  # type: Cache[EditableCandidate]
@@ -109,6 +112,18 @@ class Factory(object):
     def force_reinstall(self):
         # type: () -> bool
         return self._force_reinstall
+
+    def update_preferred_pin(self, candidate, requirements):
+        # type: (Candidate, Iterable[Requirement]) -> None
+        _, ireqs = zip(*(r.get_candidate_lookup() for r in requirements))
+        if any(ireq is None for ireq in ireqs):
+            return
+        spec = functools.reduce(
+            lambda spec, ireq: spec & ireq.specifier,
+            ireqs,
+            SpecifierSet(),
+        )
+        self._preferred_pins[(candidate.name, spec)] = candidate
 
     def _make_candidate_from_dist(
         self,
@@ -176,6 +191,7 @@ class Factory(object):
         # Get the installed version, if it matches, unless the user
         # specified `--force-reinstall`, when we want the version from
         # the index instead.
+        preferred_candidate = self._preferred_pins.get((name, specifier))
         installed_candidate = None
         if not self._force_reinstall and name in self._installed_dists:
             installed_dist = self._installed_dists[name]
@@ -193,15 +209,23 @@ class Factory(object):
                 specifier=specifier,
                 hashes=hashes,
             )
-            # PackageFinder returns earlier versions first, so we reverse.
-            for ican in reversed(list(result.iter_applicable())):
-                yield self._make_candidate_from_link(
+
+            candidates = []
+            for ican in result.iter_applicable():
+                candidate = self._make_candidate_from_link(
                     link=ican.link,
                     extras=extras,
                     template=template,
                     name=name,
                     version=ican.version,
                 )
+                if candidate == preferred_candidate:
+                    continue
+                candidates.append(candidate)
+            if preferred_candidate:
+                candidates.append(preferred_candidate)
+
+            return iter(reversed(candidates))
 
         return FoundCandidates(
             iter_index_candidates,

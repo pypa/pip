@@ -111,9 +111,9 @@ class Resolver(BaseResolver):
             user_requested=user_requested,
         )
         if "PIP_RESOLVER_DEBUG" in os.environ:
-            reporter = PipDebuggingReporter()
+            reporter = PipDebuggingReporter(factory=self.factory)
         else:
-            reporter = PipReporter()
+            reporter = PipReporter(factory=self.factory)
         resolver = RLResolver(provider, reporter)
 
         try:

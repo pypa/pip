@@ -6,19 +6,31 @@ from pip._vendor.resolvelib.reporters import BaseReporter
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, DefaultDict
+    from typing import Any, Dict, Iterable
 
     from .base import Candidate, Requirement
+    from .factory import Factory
 
 
 logger = getLogger(__name__)
 
 
-class PipReporter(BaseReporter):
+class _BasePipReporter(BaseReporter):
+    def __init__(self, factory):
+        # type: (Factory) -> None
+        self._factory = factory
 
-    def __init__(self):
-        # type: () -> None
-        self.backtracks_by_package = defaultdict(int)  # type: DefaultDict[str, int]
+    def pinning(self, candidate, requirements):
+        # type: (Candidate, Iterable[Requirement]) -> None
+        self._factory.update_preferred_pin(candidate, requirements)
+
+
+class PipReporter(_BasePipReporter):
+
+    def __init__(self, factory):
+        # type: (Factory) -> None
+        super(PipReporter, self).__init__(factory)
+        self.backtracks_by_package = defaultdict(int)  # type: Dict[str, int]
 
         self._messages_at_backtrack = {
             1: (
@@ -79,6 +91,7 @@ class PipDebuggingReporter(BaseReporter):
         # type: (Candidate) -> None
         logger.info("Reporter.backtracking(%r)", candidate)
 
-    def pinning(self, candidate):
+    def pinning(self, candidate, requirements):
         # type: (Candidate) -> None
+        super(PipDebuggingReporter, self).pinning(candidate, requirements)
         logger.info("Reporter.pinning(%r)", candidate)
