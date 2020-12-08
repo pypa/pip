@@ -1,2 +1,2 @@
-Handle case of list default values in UpdatingDefaultsHelpFormatter
-Happens because we pass a list from --extra-index-url
+Fix crash when logic for redacting authentication information from URLs
+in ``--help`` is given a list of strings, instead of a single string.
