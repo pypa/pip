@@ -74,6 +74,17 @@ def test_help_command_redact_auth_from_url(script):
     assert 'secret' not in result.stdout
 
 
+def test_help_command_redact_auth_from_url_with_extra_index_url(script):
+    """
+    Test `help` on various subcommands redact auth from url with extra index url
+    """
+    script.environ['PIP_INDEX_URL'] = 'https://user:secret@example.com'
+    script.environ['PIP_EXTRA_INDEX_URL'] = 'https://user:secret@example2.com'
+    result = script.pip('install', '--help')
+    assert result.returncode == SUCCESS
+    assert 'secret' not in result.stdout
+
+
 def test_help_commands_equally_functional(in_memory_pip):
     """
     Test if `pip help` and 'pip --help' behave the same way.

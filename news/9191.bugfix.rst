@@ -1,0 +1,2 @@
+Fix crash when logic for redacting authentication information from URLs
+in ``--help`` is given a list of strings, instead of a single string.
