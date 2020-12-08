@@ -121,7 +121,7 @@ def call_subprocess(
             # Convert HiddenText objects to the underlying str.
             reveal_command_args(cmd),
             stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
             cwd=cwd
         )
         if proc.stdin:
@@ -136,9 +136,8 @@ def call_subprocess(
     while True:
         # The "line" value is a unicode string in Python 2.
         line = None
-        if proc.stdout or proc.stderr:
-            line = console_to_str(proc.stderr.readline())
-            line = line or console_to_str(proc.stdout.readline())
+        if proc.stdout:
+            line = console_to_str(proc.stdout.readline())
         if not line:
             break
         line = line.rstrip()
