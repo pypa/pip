@@ -29,6 +29,12 @@ class ExplicitRequirement(Requirement):
         )
 
     @property
+    def project_name(self):
+        # type: () -> str
+        # No need to canonicalise - the candidate did this
+        return self.candidate.project_name
+
+    @property
     def name(self):
         # type: () -> str
         # No need to canonicalise - the candidate did this
@@ -66,10 +72,14 @@ class SpecifierRequirement(Requirement):
         )
 
     @property
+    def project_name(self):
+        # type: () -> str
+        return canonicalize_name(self._ireq.req.name)
+
+    @property
     def name(self):
         # type: () -> str
-        canonical_name = canonicalize_name(self._ireq.req.name)
-        return format_name(canonical_name, self._extras)
+        return format_name(self.project_name, self._extras)
 
     def format_for_error(self):
         # type: () -> str
@@ -120,6 +130,11 @@ class RequiresPythonRequirement(Requirement):
             class_name=self.__class__.__name__,
             specifier=str(self.specifier),
         )
+
+    @property
+    def project_name(self):
+        # type: () -> str
+        return self._candidate.project_name
 
     @property
     def name(self):

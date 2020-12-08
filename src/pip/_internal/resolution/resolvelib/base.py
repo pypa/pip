@@ -68,8 +68,24 @@ class Constraint(object):
 
 class Requirement(object):
     @property
+    def project_name(self):
+        # type: () -> str
+        """The "project name" of a requirement.
+
+        This is different from ``name`` if this requirement contains extras,
+        in which case ``name`` would contain the ``[...]`` part, while this
+        refers to the name of the project.
+        """
+        raise NotImplementedError("Subclass should override")
+
+    @property
     def name(self):
         # type: () -> str
+        """The name identifying this requirement in the resolver.
+
+        This is different from ``project_name`` if this requirement contains
+        extras, where ``project_name`` would not contain the ``[...]`` part.
+        """
         raise NotImplementedError("Subclass should override")
 
     def is_satisfied_by(self, candidate):
@@ -87,8 +103,24 @@ class Requirement(object):
 
 class Candidate(object):
     @property
+    def project_name(self):
+        # type: () -> str
+        """The "project name" of the candidate.
+
+        This is different from ``name`` if this candidate contains extras,
+        in which case ``name`` would contain the ``[...]`` part, while this
+        refers to the name of the project.
+        """
+        raise NotImplementedError("Override in subclass")
+
+    @property
     def name(self):
         # type: () -> str
+        """The name identifying this candidate in the resolver.
+
+        This is different from ``project_name`` if this candidate contains
+        extras, where ``project_name`` would not contain the ``[...]`` part.
+        """
         raise NotImplementedError("Override in subclass")
 
     @property

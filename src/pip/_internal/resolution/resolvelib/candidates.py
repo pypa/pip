@@ -175,12 +175,17 @@ class _InstallRequirementBackedCandidate(Candidate):
         return self._source_link
 
     @property
-    def name(self):
+    def project_name(self):
         # type: () -> str
         """The normalised name of the project the candidate refers to"""
         if self._name is None:
             self._name = canonicalize_name(self.dist.project_name)
         return self._name
+
+    @property
+    def name(self):
+        # type: () -> str
+        return self.project_name
 
     @property
     def version(self):
@@ -390,9 +395,14 @@ class AlreadyInstalledCandidate(Candidate):
         return not self.__eq__(other)
 
     @property
-    def name(self):
+    def project_name(self):
         # type: () -> str
         return canonicalize_name(self.dist.project_name)
+
+    @property
+    def name(self):
+        # type: () -> str
+        return self.project_name
 
     @property
     def version(self):
@@ -482,10 +492,15 @@ class ExtrasCandidate(Candidate):
         return not self.__eq__(other)
 
     @property
+    def project_name(self):
+        # type: () -> str
+        return self.base.project_name
+
+    @property
     def name(self):
         # type: () -> str
         """The normalised name of the project the candidate refers to"""
-        return format_name(self.base.name, self.extras)
+        return format_name(self.base.project_name, self.extras)
 
     @property
     def version(self):
@@ -572,10 +587,15 @@ class RequiresPythonCandidate(Candidate):
         return "Python {}".format(self._version)
 
     @property
-    def name(self):
+    def project_name(self):
         # type: () -> str
         # Avoid conflicting with the PyPI package "Python".
         return "<Python from Requires-Python>"
+
+    @property
+    def name(self):
+        # type: () -> str
+        return self.project_name
 
     @property
     def version(self):

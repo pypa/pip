@@ -1,0 +1,2 @@
+New resolver: Make constraints also apply to package variants with extras, so
+the resolver correctly avoids backtracking on them.
