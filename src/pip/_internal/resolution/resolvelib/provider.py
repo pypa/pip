@@ -117,7 +117,18 @@ class PipProvider(AbstractProvider):
         restrictive = _get_restrictive_rating(req for req, _ in information)
         transitive = all(parent is not None for _, parent in information)
         key = next(iter(candidates)).name if candidates else ""
-        return (restrictive, transitive, key)
+
+        # HACK: Setuptools have a very long and solid backward compatibility
+        # track record, and extremely few projects would request a narrow,
+        # non-recent version range of it since that would break a lot things.
+        # (Most projects specify it only to request for an installer feature,
+        # which does not work, but that's another topic.) Intentionally
+        # delaying Setuptools helps reduce branches the resolver has to check.
+        # This serves as a temporary fix for issues like "apache-airlfow[all]"
+        # while we work on "proper" branch pruning techniques.
+        delay_this = (key == "setuptools")
+
+        return (delay_this, restrictive, transitive, key)
 
     def find_matches(self, requirements):
         # type: (Sequence[Requirement]) -> Iterable[Candidate]
