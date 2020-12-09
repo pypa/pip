@@ -1,0 +1,1 @@
+Add a mechanism to delay resolving certain packages, and use it for setuptools.
