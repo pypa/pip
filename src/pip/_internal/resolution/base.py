@@ -12,8 +12,8 @@ if MYPY_CHECK_RUNNING:
 
 
 class BaseResolver(object):
-    def resolve(self, root_reqs, check_supported_wheels):
-        # type: (List[InstallRequirement], bool) -> RequirementSet
+    def resolve(self, root_reqs, check_supported_wheels, should_backtrack):
+        # type: (List[InstallRequirement], bool, bool) -> RequirementSet
         raise NotImplementedError()
 
     def get_installation_order(self, req_set):

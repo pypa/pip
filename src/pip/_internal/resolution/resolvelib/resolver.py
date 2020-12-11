@@ -75,8 +75,8 @@ class Resolver(BaseResolver):
         self.upgrade_strategy = upgrade_strategy
         self._result = None  # type: Optional[Result]
 
-    def resolve(self, root_reqs, check_supported_wheels):
-        # type: (List[InstallRequirement], bool) -> RequirementSet
+    def resolve(self, root_reqs, check_supported_wheels, should_backtrack):
+        # type: (List[InstallRequirement], bool, bool) -> RequirementSet
 
         constraints = {}  # type: Dict[str, Constraint]
         user_requested = set()  # type: Set[str]
@@ -120,6 +120,7 @@ class Resolver(BaseResolver):
             try_to_avoid_resolution_too_deep = 2000000
             self._result = resolver.resolve(
                 requirements, max_rounds=try_to_avoid_resolution_too_deep,
+                should_backtrack=should_backtrack,
             )
 
         except ResolutionImpossible as e:

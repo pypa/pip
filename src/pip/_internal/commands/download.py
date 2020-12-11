@@ -56,6 +56,7 @@ class DownloadCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.no_build_isolation())
         self.cmd_opts.add_option(cmdoptions.use_pep517())
         self.cmd_opts.add_option(cmdoptions.no_use_pep517())
+        self.cmd_opts.add_option(cmdoptions.disable_backtracking())
 
         self.cmd_opts.add_option(
             '-d', '--dest', '--destination-dir', '--destination-directory',
@@ -128,7 +129,8 @@ class DownloadCommand(RequirementCommand):
         self.trace_basic_info(finder)
 
         requirement_set = resolver.resolve(
-            reqs, check_supported_wheels=True
+            reqs, check_supported_wheels=True,
+            should_backtrack=not options.disable_backtracking
         )
 
         downloaded = []  # type: List[str]
