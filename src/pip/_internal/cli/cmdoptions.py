@@ -927,6 +927,17 @@ use_deprecated_feature = partial(
     ),
 )  # type: Callable[..., Option]
 
+disable_backtracking = partial(
+    Option,
+    '--no-backtracking',
+    dest='disable_backtracking',
+    action='store_true',
+    default=False,
+    help='Do not attempt to backtrack to resolve package conflicts. This will '
+         'cause conflicts which may be otherwise automatically solveable to '
+         'fail fast and require manual intervention!',
+)  # type: Callable[..., Option]
+
 
 ##########
 # groups #

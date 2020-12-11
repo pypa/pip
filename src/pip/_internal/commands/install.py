@@ -216,6 +216,7 @@ class InstallCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.prefer_binary())
         self.cmd_opts.add_option(cmdoptions.require_hashes())
         self.cmd_opts.add_option(cmdoptions.progress_bar())
+        self.cmd_opts.add_option(cmdoptions.disable_backtracking())
 
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,
@@ -318,7 +319,8 @@ class InstallCommand(RequirementCommand):
             self.trace_basic_info(finder)
 
             requirement_set = resolver.resolve(
-                reqs, check_supported_wheels=not options.target_dir
+                reqs, check_supported_wheels=not options.target_dir,
+                should_backtrack=not options.disable_backtracking
             )
 
             try:

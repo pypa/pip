@@ -297,7 +297,7 @@ class Resolution(object):
         # No way to backtrack anymore.
         return False
 
-    def resolve(self, requirements, max_rounds):
+    def resolve(self, requirements, max_rounds, should_backtrack):
         if self._states:
             raise RuntimeError("already resolved")
 
@@ -341,7 +341,7 @@ class Resolution(object):
             if failure_causes:
                 # Backtrack if pinning fails. The backtrack process puts us in
                 # an unpinned state, so we can work on it in the next round.
-                success = self._backtrack()
+                success = self._backtrack() if should_backtrack else False
 
                 # Dead ends everywhere. Give up.
                 if not success:
@@ -413,7 +413,7 @@ class Resolver(AbstractResolver):
 
     base_exception = ResolverException
 
-    def resolve(self, requirements, max_rounds=100):
+    def resolve(self, requirements, max_rounds=100, should_backtrack=True):
         """Take a collection of constraints, spit out the resolution result.
 
         The return value is a representation to the final resolution result. It
@@ -442,5 +442,9 @@ class Resolver(AbstractResolver):
             `max_rounds` argument.
         """
         resolution = Resolution(self.provider, self.reporter)
-        state = resolution.resolve(requirements, max_rounds=max_rounds)
+        state = resolution.resolve(
+            requirements,
+            max_rounds=max_rounds,
+            should_backtrack=should_backtrack,
+        )
         return _build_result(state)

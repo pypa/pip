@@ -1,0 +1,1 @@
+New resolver: Add ``--no-backtracking`` option to enable failfast debugging.

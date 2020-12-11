@@ -149,8 +149,9 @@ class Resolver(BaseResolver):
         self._discovered_dependencies = \
             defaultdict(list)  # type: DiscoveredDependencies
 
-    def resolve(self, root_reqs, check_supported_wheels):
-        # type: (List[InstallRequirement], bool) -> RequirementSet
+    def resolve(self, root_reqs, check_supported_wheels, should_backtrack):
+        # type: (List[InstallRequirement], bool, bool) -> RequirementSet
+        # pylint: disable=unused-argument
         """Resolve what operations need to be done
 
         As a side-effect of this method, the packages (and their dependencies)

@@ -121,6 +121,7 @@ class TestRequirementSet(object):
                 resolver.resolve,
                 reqset.all_requirements,
                 True,
+                True,
             )
 
     # TODO: Update test when Python 2.7 is dropped.
@@ -137,7 +138,7 @@ class TestRequirementSet(object):
         reqset.add_requirement(req)
         finder = make_test_finder(find_links=[data.find_links])
         with self._basic_resolver(finder) as resolver:
-            reqset = resolver.resolve(reqset.all_requirements, True)
+            reqset = resolver.resolve(reqset.all_requirements, True, True)
         # This is hacky but does test both case in py2 and py3
         if sys.version_info[:2] == (2, 7):
             assert reqset.has_requirement('simple')
@@ -164,6 +165,7 @@ class TestRequirementSet(object):
                 r'af95fb866d6ca016b42d2e6ce53619b653$',
                 resolver.resolve,
                 reqset.all_requirements,
+                True,
                 True,
             )
 
@@ -217,6 +219,7 @@ class TestRequirementSet(object):
                 resolver.resolve,
                 reqset.all_requirements,
                 True,
+                True,
             )
 
     def test_unpinned_hash_checking(self, data):
@@ -246,6 +249,7 @@ class TestRequirementSet(object):
                 resolver.resolve,
                 reqset.all_requirements,
                 True,
+                True,
             )
 
     def test_hash_mismatch(self, data):
@@ -267,6 +271,7 @@ class TestRequirementSet(object):
                 r'866d6ca016b42d2e6ce53619b653$',
                 resolver.resolve,
                 reqset.all_requirements,
+                True,
                 True,
             )
 
@@ -290,6 +295,7 @@ class TestRequirementSet(object):
                 r'    TopoRequires from .*$',
                 resolver.resolve,
                 reqset.all_requirements,
+                True,
                 True,
             )
 

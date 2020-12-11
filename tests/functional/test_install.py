@@ -1726,6 +1726,55 @@ def test_install_conflict_warning_can_be_suppressed(script, data):
     assert "Successfully installed pkgB-2.0" in result2.stdout, str(result2)
 
 
+def test_install_incompatiblity_can_failfast(script, data):
+    # Build the following package dependency graph, which is impossible to
+    # resolve:
+    #
+    #             /- pkgB == 1.0 -> pkgD == 1.0
+    #            / - pkgB == 1.1 -> pkgD == 1.0
+    # pkgA==1.0 -
+    #            \ - pkgC == 1.0 -> pkgD == 1.1
+    #             \- pkgC == 1.1 -> pkgD == 1.1
+    pkgA_path = create_basic_wheel_for_package(
+        script,
+        name='pkgA', version='1.0', depends=[
+            'pkgb > 1.0, < 2.0',
+            'pkgc > 1.0, < 2.0',
+        ],
+    )
+    for minor in {0, 1}:
+        create_basic_wheel_for_package(
+            script,
+            name='pkgB', version='1.%s' % minor,
+            depends=['pkgd == 1.0'],
+        )
+        create_basic_wheel_for_package(
+            script,
+            name='pkgC', version='1.%s' % minor,
+            depends=['pkgd == 1.1'],
+        )
+        create_basic_wheel_for_package(
+            script,
+            name='pkgD', version='1.%s' % minor,
+        )
+
+    # Installing normally should run backtracking...
+    result1 = script.pip(
+        'install', '--no-index', '--find-links', script.scratch_path,
+        pkgA_path, expect_error=True
+    )
+    assert 'pip is looking at multiple versions of pkg' in result1.stdout
+    assert 'ResolutionImpossible' in result1.stderr
+
+    # ...but the ``--no-backtracking`` flag will prevent this behaviour
+    result2 = script.pip(
+        'install', '--no-index', '--find-links', script.scratch_path,
+        '--no-backtracking', pkgA_path, expect_error=True
+    )
+    assert 'pip is looking at multiple versions of pkg' not in result2.stdout
+    assert 'ResolutionImpossible' in result2.stderr
+
+
 def test_target_install_ignores_distutils_config_install_prefix(script):
     prefix = script.scratch_path / 'prefix'
     distutils_config = Path(os.path.expanduser('~'),

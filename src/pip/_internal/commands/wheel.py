@@ -80,6 +80,7 @@ class WheelCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.no_deps())
         self.cmd_opts.add_option(cmdoptions.build_dir())
         self.cmd_opts.add_option(cmdoptions.progress_bar())
+        self.cmd_opts.add_option(cmdoptions.disable_backtracking())
 
         self.cmd_opts.add_option(
             '--global-option',
@@ -152,7 +153,8 @@ class WheelCommand(RequirementCommand):
         self.trace_basic_info(finder)
 
         requirement_set = resolver.resolve(
-            reqs, check_supported_wheels=True
+            reqs, check_supported_wheels=True,
+            should_backtrack=not options.disable_backtracking
         )
 
         reqs_to_build = []  # type: List[InstallRequirement]
