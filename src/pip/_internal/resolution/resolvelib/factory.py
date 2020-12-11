@@ -96,6 +96,8 @@ class Factory(object):
 
         self._link_candidate_cache = {}  # type: Cache[LinkCandidate]
         self._editable_candidate_cache = {}  # type: Cache[EditableCandidate]
+        self._installed_candidate_cache = {
+        }  # type: Dict[str, AlreadyInstalledCandidate]
 
         if not ignore_installed:
             self._installed_dists = {
@@ -117,7 +119,11 @@ class Factory(object):
         template,  # type: InstallRequirement
     ):
         # type: (...) -> Candidate
-        base = AlreadyInstalledCandidate(dist, template, factory=self)
+        try:
+            base = self._installed_candidate_cache[dist.key]
+        except KeyError:
+            base = AlreadyInstalledCandidate(dist, template, factory=self)
+            self._installed_candidate_cache[dist.key] = base
         if extras:
             return ExtrasCandidate(base, extras)
         return base
