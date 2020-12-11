@@ -5,6 +5,8 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._internal.exceptions import (
     DistributionNotFound,
     InstallationError,
+    InstallationSubprocessError,
+    MetadataInconsistent,
     UnsupportedPythonVersion,
     UnsupportedWheel,
 )
@@ -33,6 +35,7 @@ from .requirements import (
     ExplicitRequirement,
     RequiresPythonRequirement,
     SpecifierRequirement,
+    UnsatisfiableRequirement,
 )
 
 if MYPY_CHECK_RUNNING:
@@ -96,6 +99,7 @@ class Factory(object):
 
         self._link_candidate_cache = {}  # type: Cache[LinkCandidate]
         self._editable_candidate_cache = {}  # type: Cache[EditableCandidate]
+        self._build_failures = {}  # type: Cache[InstallationError]
 
         if not ignore_installed:
             self._installed_dists = {
@@ -130,20 +134,34 @@ class Factory(object):
         name,  # type: Optional[str]
         version,  # type: Optional[_BaseVersion]
     ):
-        # type: (...) -> Candidate
+        # type: (...) -> Optional[Candidate]
         # TODO: Check already installed candidate, and use it if the link and
         # editable flag match.
+        if link in self._build_failures:
+            return None
         if template.editable:
             if link not in self._editable_candidate_cache:
-                self._editable_candidate_cache[link] = EditableCandidate(
-                    link, template, factory=self, name=name, version=version,
-                )
+                try:
+                    self._editable_candidate_cache[link] = EditableCandidate(
+                        link, template, factory=self,
+                        name=name, version=version,
+                    )
+                except (InstallationSubprocessError, MetadataInconsistent) as e:
+                    logger.warning("Discarding %s. %s", link, e)
+                    self._build_failures[link] = e
+                    return None
             base = self._editable_candidate_cache[link]  # type: BaseCandidate
         else:
             if link not in self._link_candidate_cache:
-                self._link_candidate_cache[link] = LinkCandidate(
-                    link, template, factory=self, name=name, version=version,
-                )
+                try:
+                    self._link_candidate_cache[link] = LinkCandidate(
+                        link, template, factory=self,
+                        name=name, version=version,
+                    )
+                except (InstallationSubprocessError, MetadataInconsistent) as e:
+                    logger.warning("Discarding %s. %s", link, e)
+                    self._build_failures[link] = e
+                    return None
             base = self._link_candidate_cache[link]
         if extras:
             return ExtrasCandidate(base, extras)
@@ -204,13 +222,16 @@ class Factory(object):
             for ican in reversed(icans):
                 if not all_yanked and ican.link.is_yanked:
                     continue
-                yield self._make_candidate_from_link(
+                candidate = self._make_candidate_from_link(
                     link=ican.link,
                     extras=extras,
                     template=template,
                     name=name,
                     version=ican.version,
                 )
+                if candidate is None:
+                    continue
+                yield candidate
 
         return FoundCandidates(
             iter_index_candidates,
@@ -274,6 +295,10 @@ class Factory(object):
             name=canonicalize_name(ireq.name) if ireq.name else None,
             version=None,
         )
+        if cand is None:
+            if not ireq.name:
+                raise self._build_failures[ireq.link]
+            return UnsatisfiableRequirement(canonicalize_name(ireq.name))
         return self.make_requirement_from_candidate(cand)
 
     def make_requirement_from_candidate(self, candidate):

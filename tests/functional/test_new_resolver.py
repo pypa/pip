@@ -1218,3 +1218,22 @@ def test_new_resolver_does_not_reinstall_when_from_a_local_index(script):
     assert "Installing collected packages: simple" not in result.stdout, str(result)
     assert "Requirement already satisfied: simple" in result.stdout, str(result)
     assert_installed(script, simple="0.1.0")
+
+
+def test_new_resolver_skip_inconsistent_metadata(script):
+    create_basic_wheel_for_package(script, "A", "1")
+
+    a_2 = create_basic_wheel_for_package(script, "A", "2")
+    a_2.rename(a_2.parent.joinpath("a-3-py2.py3-none-any.whl"))
+
+    result = script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "--verbose",
+        "A",
+        allow_stderr_warning=True,
+    )
+
+    assert " different version in metadata: '2'" in result.stderr, str(result)
+    assert_installed(script, a="1")
