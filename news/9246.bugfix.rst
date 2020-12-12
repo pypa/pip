@@ -1,0 +1,2 @@
+New resolver: Discard a candidate if it fails to provide metadata from source,
+or if the provided metadata is inconsistent, instead of quitting outright.
