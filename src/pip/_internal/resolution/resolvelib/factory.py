@@ -137,8 +137,12 @@ class Factory(object):
         # type: (...) -> Optional[Candidate]
         # TODO: Check already installed candidate, and use it if the link and
         # editable flag match.
+
         if link in self._build_failures:
+            # We already tried this candidate before, and it does not build.
+            # Don't bother trying again.
             return None
+
         if template.editable:
             if link not in self._editable_candidate_cache:
                 try:
@@ -163,6 +167,7 @@ class Factory(object):
                     self._build_failures[link] = e
                     return None
             base = self._link_candidate_cache[link]
+
         if extras:
             return ExtrasCandidate(base, extras)
         return base
@@ -296,6 +301,12 @@ class Factory(object):
             version=None,
         )
         if cand is None:
+            # There's no way we can satisfy a URL requirement if the underlying
+            # candidate fails to build. An unnamed URL must be user-supplied, so
+            # we fail eagerly. If the URL is named, an unsatisfiable requirement
+            # can make the resolver do the right thing, either backtrack (and
+            # maybe find some other requirement that's buildable) or raise a
+            # ResolutionImpossible eventually.
             if not ireq.name:
                 raise self._build_failures[ireq.link]
             return UnsatisfiableRequirement(canonicalize_name(ireq.name))

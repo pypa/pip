@@ -221,6 +221,9 @@ class _InstallRequirementBackedCandidate(Candidate):
         try:
             dist = self._prepare_distribution()
         except HashError as e:
+            # Provide HashError the underlying ireq that caused it. This
+            # provides context for the resulting error message to show the
+            # offending line to the user.
             e.req = self._ireq
             raise
         self._check_metadata_consistency(dist)
