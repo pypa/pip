@@ -70,8 +70,8 @@ their merits.
 Python 2 Support
 ----------------
 
-pip will continue to ensure that it runs on Python 2.7 after the CPython 2.7
-EOL date. Support for Python 2.7 will be dropped, if bugs in Python 2.7 itself
+pip will continue to ensure that it runs on Python 2.7 after the `CPython 2.7
+EOL date`_. Support for Python 2.7 will be dropped, if bugs in Python 2.7 itself
 make this necessary (which is unlikely) or in pip 21.0 (Jan 2021), whichever is
 earlier.
 
@@ -180,3 +180,4 @@ order to create one of these the changes should already be merged into the
 .. _`get-pip repository`: https://github.com/pypa/get-pip
 .. _`psf-salt repository`: https://github.com/python/psf-salt
 .. _`CPython`: https://github.com/python/cpython
+.. _`CPython 2.7 EOL date`: https://www.python.org/doc/sunset-python-2/

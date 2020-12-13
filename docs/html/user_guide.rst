@@ -1610,11 +1610,12 @@ of ability. Some examples that you could consider include:
 Changes to the pip dependency resolver in 20.3 (2020)
 =====================================================
 
-pip 20.3 has a new dependency resolver, on by default. (pip 20.1 and
-20.2 included pre-release versions of the new dependency resolver,
-hidden behind optional user flags.) Read below for a migration guide,
-how to invoke the legacy resolver, and the deprecation timeline. We
-also made a `two-minute video explanation`_ you can watch.
+pip 20.3 has a new dependency resolver, on by default for Python 3
+users. (pip 20.1 and 20.2 included pre-release versions of the new
+dependency resolver, hidden behind optional user flags.) Read below
+for a migration guide, how to invoke the legacy resolver, and the
+deprecation timeline. We also made a `two-minute video explanation`_
+you can watch.
 
 We will continue to improve the pip dependency resolver in response to
 testers' feedback. Please give us feedback through the `resolver
@@ -1815,7 +1816,7 @@ Specific things we'd love to get feedback on:
 
 *    Cases where the new resolver produces the wrong result,
      obviously. We hope there won't be too many of these, but we'd like
-     to trap such bugs now.
+     to trap such bugs before we remove the legacy resolver.
 
 *    Cases where the resolver produced an error when you believe it
      should have been able to work out what to do.
@@ -1850,12 +1851,15 @@ We plan for the resolver changeover to proceed as follows, using
      ``PIP_USE_FEATURE`` environment variable option, see `issue
      8661`_).
 
-*    pip 20.3: pip defaults to the new resolver, but a user can opt-out
-     and choose the old resolver behavior, using the flag
-     ``--use-deprecated=legacy-resolver``.
+*    pip 20.3: pip defaults to the new resolver in Python 3 environments,
+     but a user can opt-out and choose the old resolver behavior,
+     using the flag ``--use-deprecated=legacy-resolver``. In Python 2
+     environments, pip defaults to the old resolver, and the new one ia
+     available using the flag ``--use-feature=2020-resolver``.
 
 *    pip 21.0: pip uses new resolver, and the old resolver is no longer
-     available.
+     available. Python 2 support is removed per our :ref:`Python 2
+     Support` policy.
 
 Since this work will not change user-visible behavior described in the
 pip documentation, this change is not covered by the :ref:`Deprecation
