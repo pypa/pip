@@ -1,0 +1,1 @@
+Update documentation to reflect that pip still uses legacy resolver by default in Python 2 environments.

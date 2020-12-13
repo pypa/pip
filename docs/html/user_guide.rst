@@ -512,8 +512,8 @@ all users) configuration:
   else :file:`$HOME/.config/pip/pip.conf`.
 * On Windows the configuration file is :file:`%APPDATA%\\pip\\pip.ini`.
 
-There are also a legacy per-user configuration file which is also respected,
-these are located at:
+There is also a legacy per-user configuration file which is also respected.
+To find its location:
 
 * On Unix and macOS the configuration file is: :file:`$HOME/.pip/pip.conf`
 * On Windows the configuration file is: :file:`%HOME%\\pip\\pip.ini`
@@ -1084,7 +1084,7 @@ You can then install from the archive like this::
     $ python -m pip install --force-reinstall --ignore-installed --upgrade --no-index --no-deps $tempdir/*
 
 Note that compiled packages are typically OS- and architecture-specific, so
-these archives are not necessarily portable across macOShines.
+these archives are not necessarily portable across machines.
 
 Hash-checking mode can be used along with this method to ensure that future
 archives are built with identical packages.
@@ -1331,7 +1331,7 @@ Backtracking is not a bug, or an unexpected behaviour. It is part of the
 way pip's dependency resolution process works.
 
 During a pip install (e.g. ``pip install tea``), pip needs to work out
-the package's dependencies (e.g. ``spoon``, ``hot-water``, ``cup`` etc), the
+the package's dependencies (e.g. ``spoon``, ``hot-water``, ``cup`` etc.), the
 versions of each of these packages it needs to install. For each package
 pip needs to decide which version is a good candidate to install.
 
@@ -1466,9 +1466,9 @@ here are a number of ways.
 
 In most cases, pip will complete the backtracking process successfully.
 It is possible this could take a very long time to complete - this may
-not be the preferred option.
+not be your preferred option.
 
-However there is a possibility pip will not be able to find a set of
+However, there is a possibility pip will not be able to find a set of
 compatible versions.
 
 If you'd prefer not to wait, you can interrupt pip (ctrl and c) and use
@@ -1523,7 +1523,7 @@ suitable constraints file.
 4. Be more strict on package dependencies during development
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-For package maintainers during the development, give pip some help by
+For package maintainers during software development, give pip some help by
 creating constraint files for the dependency tree. This will reduce the
 number of versions it will try.
 
