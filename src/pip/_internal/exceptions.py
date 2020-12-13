@@ -138,16 +138,25 @@ class MetadataInconsistent(InstallationError):
     that do not match the information previously obtained from sdist filename
     or user-supplied ``#egg=`` value.
     """
-    def __init__(self, ireq, field, built):
-        # type: (InstallRequirement, str, Any) -> None
+    def __init__(self, ireq, field, parsed, built):
+        # type: (InstallRequirement, str, Any, Any) -> None
         self.ireq = ireq
         self.field = field
+        self.parsed = parsed
         self.built = built
 
     def __str__(self):
         # type: () -> str
-        return "Requested {} has different {} in metadata: {!r}".format(
-            self.ireq, self.field, self.built,
+        return (
+            "Requested package has different {field} in metadata:\n"
+            "   requirement: {ireq}\n"
+            "   expected: {parsed!r}\n"
+            "   got     : {built!r}"
+        ).format(
+            ireq=self.ireq,
+            field=self.field,
+            parsed=self.parsed,
+            built=self.built,
         )
 
 

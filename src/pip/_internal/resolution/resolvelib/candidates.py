@@ -208,10 +208,20 @@ class _InstallRequirementBackedCandidate(Candidate):
         #       and backtrack. This would need resolvelib support.
         name = canonicalize_name(dist.project_name)
         if self._name is not None and self._name != name:
-            raise MetadataInconsistent(self._ireq, "name", dist.project_name)
+            raise MetadataInconsistent(
+                self._ireq,
+                "name",
+                self._name,
+                dist.project_name,
+            )
         version = dist.parsed_version
         if self._version is not None and self._version != version:
-            raise MetadataInconsistent(self._ireq, "version", dist.version)
+            raise MetadataInconsistent(
+                self._ireq,
+                "version",
+                self._version,
+                dist.version,
+            )
 
     def _prepare(self):
         # type: () -> None
