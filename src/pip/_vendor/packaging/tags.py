@@ -410,7 +410,7 @@ def _mac_binary_formats(version, cpu_arch):
     if cpu_arch in {"arm64", "x86_64"}:
         formats.append("universal2")
 
-    if cpu_arch in {"x86_64", "i386", "ppc64", "ppc"}:
+    if cpu_arch in {"x86_64", "i386", "ppc64", "ppc", "intel"}:
         formats.append("universal")
 
     return formats
@@ -827,11 +827,7 @@ def interpreter_version(**kwargs):
 
 def _version_nodot(version):
     # type: (PythonVersion) -> str
-    if any(v >= 10 for v in version):
-        sep = "_"
-    else:
-        sep = ""
-    return sep.join(map(str, version))
+    return "".join(map(str, version))
 
 
 def sys_tags(**kwargs):

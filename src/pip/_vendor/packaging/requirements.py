@@ -22,7 +22,7 @@ else:  # pragma: no cover
 
 
 if TYPE_CHECKING:  # pragma: no cover
-    from typing import List
+    from typing import List, Optional as TOptional, Set
 
 
 class InvalidRequirement(ValueError):
@@ -109,7 +109,7 @@ class Requirement(object):
                 )
             )
 
-        self.name = req.name
+        self.name = req.name  # type: str
         if req.url:
             parsed_url = urlparse.urlparse(req.url)
             if parsed_url.scheme == "file":
@@ -119,12 +119,12 @@ class Requirement(object):
                 not parsed_url.scheme and not parsed_url.netloc
             ):
                 raise InvalidRequirement("Invalid URL: {0}".format(req.url))
-            self.url = req.url
+            self.url = req.url  # type: TOptional[str]
         else:
             self.url = None
-        self.extras = set(req.extras.asList() if req.extras else [])
-        self.specifier = SpecifierSet(req.specifier)
-        self.marker = req.marker if req.marker else None
+        self.extras = set(req.extras.asList() if req.extras else [])  # type: Set[str]
+        self.specifier = SpecifierSet(req.specifier)  # type: SpecifierSet
+        self.marker = req.marker if req.marker else None  # type: TOptional[Marker]
 
     def __str__(self):
         # type: () -> str
