@@ -512,8 +512,8 @@ all users) configuration:
   else :file:`$HOME/.config/pip/pip.conf`.
 * On Windows the configuration file is :file:`%APPDATA%\\pip\\pip.ini`.
 
-There are also a legacy per-user configuration file which is also respected,
-these are located at:
+There is also a legacy per-user configuration file which is also respected.
+To find its location:
 
 * On Unix and macOS the configuration file is: :file:`$HOME/.pip/pip.conf`
 * On Windows the configuration file is: :file:`%HOME%\\pip\\pip.ini`
@@ -1084,7 +1084,7 @@ You can then install from the archive like this::
     $ python -m pip install --force-reinstall --ignore-installed --upgrade --no-index --no-deps $tempdir/*
 
 Note that compiled packages are typically OS- and architecture-specific, so
-these archives are not necessarily portable across macOShines.
+these archives are not necessarily portable across machines.
 
 Hash-checking mode can be used along with this method to ensure that future
 archives are built with identical packages.
@@ -1331,7 +1331,7 @@ Backtracking is not a bug, or an unexpected behaviour. It is part of the
 way pip's dependency resolution process works.
 
 During a pip install (e.g. ``pip install tea``), pip needs to work out
-the package's dependencies (e.g. ``spoon``, ``hot-water``, ``cup`` etc), the
+the package's dependencies (e.g. ``spoon``, ``hot-water``, ``cup`` etc.), the
 versions of each of these packages it needs to install. For each package
 pip needs to decide which version is a good candidate to install.
 
@@ -1466,9 +1466,9 @@ here are a number of ways.
 
 In most cases, pip will complete the backtracking process successfully.
 It is possible this could take a very long time to complete - this may
-not be the preferred option.
+not be your preferred option.
 
-However there is a possibility pip will not be able to find a set of
+However, there is a possibility pip will not be able to find a set of
 compatible versions.
 
 If you'd prefer not to wait, you can interrupt pip (ctrl and c) and use
@@ -1523,7 +1523,7 @@ suitable constraints file.
 4. Be more strict on package dependencies during development
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-For package maintainers during the development, give pip some help by
+For package maintainers during software development, give pip some help by
 creating constraint files for the dependency tree. This will reduce the
 number of versions it will try.
 
@@ -1610,11 +1610,12 @@ of ability. Some examples that you could consider include:
 Changes to the pip dependency resolver in 20.3 (2020)
 =====================================================
 
-pip 20.3 has a new dependency resolver, on by default. (pip 20.1 and
-20.2 included pre-release versions of the new dependency resolver,
-hidden behind optional user flags.) Read below for a migration guide,
-how to invoke the legacy resolver, and the deprecation timeline. We
-also made a `two-minute video explanation`_ you can watch.
+pip 20.3 has a new dependency resolver, on by default for Python 3
+users. (pip 20.1 and 20.2 included pre-release versions of the new
+dependency resolver, hidden behind optional user flags.) Read below
+for a migration guide, how to invoke the legacy resolver, and the
+deprecation timeline. We also made a `two-minute video explanation`_
+you can watch.
 
 We will continue to improve the pip dependency resolver in response to
 testers' feedback. Please give us feedback through the `resolver
@@ -1815,7 +1816,7 @@ Specific things we'd love to get feedback on:
 
 *    Cases where the new resolver produces the wrong result,
      obviously. We hope there won't be too many of these, but we'd like
-     to trap such bugs now.
+     to trap such bugs before we remove the legacy resolver.
 
 *    Cases where the resolver produced an error when you believe it
      should have been able to work out what to do.
@@ -1850,12 +1851,15 @@ We plan for the resolver changeover to proceed as follows, using
      ``PIP_USE_FEATURE`` environment variable option, see `issue
      8661`_).
 
-*    pip 20.3: pip defaults to the new resolver, but a user can opt-out
-     and choose the old resolver behavior, using the flag
-     ``--use-deprecated=legacy-resolver``.
+*    pip 20.3: pip defaults to the new resolver in Python 3 environments,
+     but a user can opt-out and choose the old resolver behavior,
+     using the flag ``--use-deprecated=legacy-resolver``. In Python 2
+     environments, pip defaults to the old resolver, and the new one is
+     available using the flag ``--use-feature=2020-resolver``.
 
 *    pip 21.0: pip uses new resolver, and the old resolver is no longer
-     available.
+     available. Python 2 support is removed per our :ref:`Python 2
+     Support` policy.
 
 Since this work will not change user-visible behavior described in the
 pip documentation, this change is not covered by the :ref:`Deprecation
