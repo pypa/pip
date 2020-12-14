@@ -68,6 +68,7 @@ setup(
         exclude=["contrib", "docs", "tests*", "tasks"],
     ),
     package_data={
+        "pip": ["py.typed"],
         "pip._vendor": ["vendor.txt"],
         "pip._vendor.certifi": ["*.pem"],
         "pip._vendor.requests": ["*.pem"],
