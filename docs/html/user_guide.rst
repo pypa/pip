@@ -1854,7 +1854,7 @@ We plan for the resolver changeover to proceed as follows, using
 *    pip 20.3: pip defaults to the new resolver in Python 3 environments,
      but a user can opt-out and choose the old resolver behavior,
      using the flag ``--use-deprecated=legacy-resolver``. In Python 2
-     environments, pip defaults to the old resolver, and the new one ia
+     environments, pip defaults to the old resolver, and the new one is
      available using the flag ``--use-feature=2020-resolver``.
 
 *    pip 21.0: pip uses new resolver, and the old resolver is no longer
