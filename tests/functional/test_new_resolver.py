@@ -687,7 +687,7 @@ def test_new_resolver_constraint_on_dependency(script):
 @pytest.mark.parametrize(
     "constraint_version, expect_error, message",
     [
-        ("1.0", True, "ERROR: No matching distribution found for foo 2.0"),
+        ("1.0", True, "Cannot install foo 2.0"),
         ("2.0", False, "Successfully installed foo-2.0"),
     ],
 )
