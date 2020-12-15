@@ -9,6 +9,41 @@
 
 .. towncrier release notes start
 
+20.3.2 (2020-12-15)
+===================
+
+Features
+--------
+
+- New resolver: Resolve direct and pinned (``==`` or ``===``) requirements first
+  to improve resolver performance. (`#9185 <https://github.com/pypa/pip/issues/9185>`_)
+- Add a mechanism to delay resolving certain packages, and use it for setuptools. (`#9249 <https://github.com/pypa/pip/issues/9249>`_)
+
+Bug Fixes
+---------
+
+- New resolver: The "Requirement already satisfied" log is not printed only once
+  for each package during resolution. (`#9117 <https://github.com/pypa/pip/issues/9117>`_)
+- Fix crash when logic for redacting authentication information from URLs
+  in ``--help`` is given a list of strings, instead of a single string. (`#9191 <https://github.com/pypa/pip/issues/9191>`_)
+- New resolver: Correctly implement PEP 592. Do not return yanked versions from
+  an index, unless the version range can only be satisfied by yanked candidates. (`#9203 <https://github.com/pypa/pip/issues/9203>`_)
+- New resolver: Make constraints also apply to package variants with extras, so
+  the resolver correctly avoids backtracking on them. (`#9232 <https://github.com/pypa/pip/issues/9232>`_)
+- New resolver: Discard a candidate if it fails to provide metadata from source,
+  or if the provided metadata is inconsistent, instead of quitting outright. (`#9246 <https://github.com/pypa/pip/issues/9246>`_)
+
+Vendored Libraries
+------------------
+
+- Update vendoring to 20.8
+
+Improved Documentation
+----------------------
+
+- Update documentation to reflect that pip still uses legacy resolver by default in Python 2 environments. (`#9269 <https://github.com/pypa/pip/issues/9269>`_)
+
+
 20.3.1 (2020-12-03)
 ===================
 
