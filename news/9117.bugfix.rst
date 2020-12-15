@@ -1,2 +1,0 @@
-New resolver: The "Requirement already satisfied" log is not printed only once
-for each package during resolution.
