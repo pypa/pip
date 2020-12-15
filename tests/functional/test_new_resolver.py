@@ -1235,3 +1235,45 @@ def test_new_resolver_skip_inconsistent_metadata(script):
 
     assert " different version in metadata: '2'" in result.stderr, str(result)
     assert_installed(script, a="1")
+
+
+@pytest.mark.parametrize(
+    "upgrade",
+    [True, False],
+    ids=["upgrade", "no-upgrade"],
+)
+def test_new_resolver_lazy_fetch_candidates(script, upgrade):
+    create_basic_wheel_for_package(script, "myuberpkg", "1")
+    create_basic_wheel_for_package(script, "myuberpkg", "2")
+    create_basic_wheel_for_package(script, "myuberpkg", "3")
+
+    # Install an old version first.
+    script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "myuberpkg==1",
+    )
+
+    # Now install the same package again, maybe with the upgrade flag.
+    if upgrade:
+        pip_upgrade_args = ["--upgrade"]
+    else:
+        pip_upgrade_args = []
+    result = script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "myuberpkg",
+        *pip_upgrade_args  # Trailing comma fails on Python 2.
+    )
+
+    # pip should install the version preferred by the strategy...
+    if upgrade:
+        assert_installed(script, myuberpkg="3")
+    else:
+        assert_installed(script, myuberpkg="1")
+
+    # But should reach there in the best route possible, without trying
+    # candidates it does not need to.
+    assert "myuberpkg-2" not in result.stdout, str(result)
