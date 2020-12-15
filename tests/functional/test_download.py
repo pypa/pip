@@ -60,6 +60,25 @@ def test_download_wheel(script, data):
     result.did_not_create(script.site_packages / 'piptestpackage')
 
 
+def test_download_wheel_constraints(script, data):
+    """
+    Test using "pip download" to download a *.whl with constraints.
+    """
+    script.scratch_path.joinpath("constraints.txt").write_text(textwrap.dedent("""
+        meta==1.0
+        parent==0.1
+        """))
+    result = script.pip(
+        'download',
+        '--no-index',
+        '-f', data.packages,
+        '-d', '.', 'meta',
+        '--constraint', script.scratch_path / 'constraints.txt',
+    )
+    result.did_create(Path('scratch') / 'meta-1.0-py2.py3-none-any.whl')
+    result.did_not_create(script.site_packages / 'piptestpackage')
+
+
 @pytest.mark.network
 def test_single_download_from_requirements_file(script):
     """
