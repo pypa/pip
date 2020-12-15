@@ -151,21 +151,6 @@ class MetadataInconsistent(InstallationError):
         )
 
 
-class InstallationSubprocessError(InstallationError):
-    """A subprocess call failed during installation."""
-    def __init__(self, returncode, description):
-        # type: (int, str) -> None
-        self.returncode = returncode
-        self.description = description
-
-    def __str__(self):
-        # type: () -> str
-        return (
-            "Command errored out with exit status {}: {} "
-            "Check the logs for full command output."
-        ).format(self.returncode, self.description)
-
-
 class HashErrors(InstallationError):
     """Multiple HashError instances rolled into one for reporting"""
 
