@@ -1,0 +1,4 @@
+New resolver: Discard a faulty distribution, instead of quitting outright.
+This implementation is taken from 20.2.2, with a fix that always makes the
+resolver iterate through candidates from indexes lazily, to avoid downloading
+candidates we do not need.
