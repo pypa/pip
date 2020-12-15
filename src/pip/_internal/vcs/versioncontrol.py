@@ -126,26 +126,14 @@ def call_subprocess(
                 "Error %s while executing command %s", exc, command_desc,
             )
         raise
-    all_output = []
-    while True:
-        # The "line" value is a unicode string in Python 2.
-        line = None
-        if proc.stdout:
-            line = console_to_str(proc.stdout.readline())
-        if not line:
-            break
-        line = line.rstrip()
-        all_output.append(line + '\n')
-
-        # Show the line immediately.
-        log_subprocess(line)
-    try:
-        proc.wait()
-    finally:
-        if proc.stdout:
-            proc.stdout.close()
-        if proc.stderr:
-            proc.stderr.close()
+    out_bytes, err_bytes = proc.communicate()
+    # log line by line to preserve pip log indenting
+    out = console_to_str(out_bytes)
+    for out_line in out.splitlines():
+        log_subprocess(out_line)
+    err = console_to_str(err_bytes)
+    for err_line in err.splitlines():
+        log_subprocess(err_line)
 
     proc_had_error = (
         proc.returncode and proc.returncode not in extra_ok_returncodes
@@ -156,7 +144,7 @@ def call_subprocess(
             'Check the logs for full command output.'
         ).format(proc.returncode, command_desc)
         raise SubProcessError(exc_msg)
-    return ''.join(all_output)
+    return out
 
 
 def find_path_to_setup_from_repo_root(location, repo_root):
