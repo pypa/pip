@@ -81,7 +81,6 @@ class Factory(object):
         use_user_site,  # type: bool
         force_reinstall,  # type: bool
         ignore_installed,  # type: bool
-        ignore_requires_python,  # type: bool
         py_version_info=None,  # type: Optional[Tuple[int, ...]]
     ):
         # type: (...) -> None
@@ -92,7 +91,6 @@ class Factory(object):
         self._make_install_req_from_spec = make_install_req
         self._use_user_site = use_user_site
         self._force_reinstall = force_reinstall
-        self._ignore_requires_python = ignore_requires_python
 
         self._link_candidate_cache = {}  # type: Cache[LinkCandidate]
         self._editable_candidate_cache = {}  # type: Cache[EditableCandidate]
@@ -298,7 +296,7 @@ class Factory(object):
 
     def make_requires_python_requirement(self, specifier):
         # type: (Optional[SpecifierSet]) -> Optional[Requirement]
-        if self._ignore_requires_python or specifier is None:
+        if specifier is None:
             return None
         return RequiresPythonRequirement(specifier, self._python_candidate)
 

@@ -57,7 +57,6 @@ def factory(finder, preparer):
         use_user_site=False,
         force_reinstall=False,
         ignore_installed=False,
-        ignore_requires_python=False,
         py_version_info=None,
     )
 
@@ -68,6 +67,7 @@ def provider(factory):
         factory=factory,
         constraints={},
         ignore_dependencies=False,
+        ignore_requires_python=False,
         upgrade_strategy="to-satisfy-only",
         user_requested=set(),
     )

@@ -45,6 +45,7 @@ class PipProvider(AbstractProvider):
         factory,  # type: Factory
         constraints,  # type: Dict[str, Constraint]
         ignore_dependencies,  # type: bool
+        ignore_requires_python,  # type: bool
         upgrade_strategy,  # type: str
         user_requested,  # type: Set[str]
     ):
@@ -52,6 +53,7 @@ class PipProvider(AbstractProvider):
         self._factory = factory
         self._constraints = constraints
         self._ignore_dependencies = ignore_dependencies
+        self._ignore_requires_python = ignore_requires_python
         self._upgrade_strategy = upgrade_strategy
         self._user_requested = user_requested
 
@@ -167,8 +169,9 @@ class PipProvider(AbstractProvider):
     def get_dependencies(self, candidate):
         # type: (Candidate) -> Sequence[Requirement]
         with_requires = not self._ignore_dependencies
+        ignore_requires_python = self._ignore_requires_python
         return [
             r
-            for r in candidate.iter_dependencies(with_requires)
+            for r in candidate.iter_dependencies(with_requires, ignore_requires_python)
             if r is not None
         ]

@@ -252,12 +252,13 @@ class _InstallRequirementBackedCandidate(Candidate):
             return None
         return self._factory.make_requires_python_requirement(spec)
 
-    def iter_dependencies(self, with_requires):
-        # type: (bool) -> Iterable[Optional[Requirement]]
+    def iter_dependencies(self, with_requires, ignore_requires_python):
+        # type: (bool, bool) -> Iterable[Optional[Requirement]]
         requires = self.dist.requires() if with_requires else ()
         for r in requires:
             yield self._factory.make_requirement_from_spec(str(r), self._ireq)
-        yield self._get_requires_python_dependency()
+        if not ignore_requires_python:
+            yield self._get_requires_python_dependency()
 
     def get_install_requirement(self):
         # type: () -> Optional[InstallRequirement]
@@ -418,8 +419,8 @@ class AlreadyInstalledCandidate(Candidate):
         # type: () -> str
         return "{} {} (Installed)".format(self.name, self.version)
 
-    def iter_dependencies(self, with_requires):
-        # type: (bool) -> Iterable[Optional[Requirement]]
+    def iter_dependencies(self, with_requires, ignore_requires_python):
+        # type: (bool, bool) -> Iterable[Optional[Requirement]]
         if not with_requires:
             return
         for r in self.dist.requires():
@@ -529,8 +530,8 @@ class ExtrasCandidate(Candidate):
         # type: () -> Optional[Link]
         return self.base.source_link
 
-    def iter_dependencies(self, with_requires):
-        # type: (bool) -> Iterable[Optional[Requirement]]
+    def iter_dependencies(self, with_requires, ignore_requires_python):
+        # type: (bool, bool) -> Iterable[Optional[Requirement]]
         factory = self.base._factory
 
         # Add a dependency on the exact base
@@ -606,8 +607,8 @@ class RequiresPythonCandidate(Candidate):
         # type: () -> str
         return "Python {}".format(self.version)
 
-    def iter_dependencies(self, with_requires):
-        # type: (bool) -> Iterable[Optional[Requirement]]
+    def iter_dependencies(self, with_requires, ignore_requires_python):
+        # type: (bool, bool) -> Iterable[Optional[Requirement]]
         return ()
 
     def get_install_requirement(self):

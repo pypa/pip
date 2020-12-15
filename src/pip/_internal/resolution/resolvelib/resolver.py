@@ -68,10 +68,10 @@ class Resolver(BaseResolver):
             use_user_site=use_user_site,
             force_reinstall=force_reinstall,
             ignore_installed=ignore_installed,
-            ignore_requires_python=ignore_requires_python,
             py_version_info=py_version_info,
         )
         self.ignore_dependencies = ignore_dependencies
+        self.ignore_requires_python = ignore_requires_python
         self.upgrade_strategy = upgrade_strategy
         self._result = None  # type: Optional[Result]
 
@@ -107,6 +107,7 @@ class Resolver(BaseResolver):
             factory=self.factory,
             constraints=constraints,
             ignore_dependencies=self.ignore_dependencies,
+            ignore_requires_python=self.ignore_requires_python,
             upgrade_strategy=self.upgrade_strategy,
             user_requested=user_requested,
         )
