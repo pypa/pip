@@ -51,12 +51,22 @@ def pytest_addoption(parser):
         default=False,
         help="use venv for virtual environment creation",
     )
+    parser.addoption(
+        "--run-search",
+        action="store_true",
+        default=False,
+        help="run 'pip search' tests",
+    )
 
 
 def pytest_collection_modifyitems(config, items):
     for item in items:
         if not hasattr(item, 'module'):  # e.g.: DoctestTextfile
             continue
+
+        if (item.get_closest_marker('search') and
+                not config.getoption('--run-search')):
+            item.add_marker(pytest.mark.skip('pip search test skipped'))
 
         if "CI" in os.environ:
             # Mark network tests as flaky
