@@ -7,7 +7,7 @@ import subprocess
 from pip._vendor.six.moves import shlex_quote
 
 from pip._internal.cli.spinners import SpinnerInterface, open_spinner
-from pip._internal.exceptions import InstallationSubprocessError
+from pip._internal.exceptions import InstallationError
 from pip._internal.utils.compat import console_to_str, str_to_display
 from pip._internal.utils.logging import subprocess_logger
 from pip._internal.utils.misc import HiddenText, path_to_display
@@ -233,7 +233,11 @@ def call_subprocess(
                     exit_status=proc.returncode,
                 )
                 subprocess_logger.error(msg)
-            raise InstallationSubprocessError(proc.returncode, command_desc)
+            exc_msg = (
+                'Command errored out with exit status {}: {} '
+                'Check the logs for full command output.'
+            ).format(proc.returncode, command_desc)
+            raise InstallationError(exc_msg)
         elif on_returncode == 'warn':
             subprocess_logger.warning(
                 'Command "%s" had error code %s in %s',
