@@ -530,6 +530,34 @@ def test_download__python_version_used_for_python_requires(
     script.pip(*args)  # no exception
 
 
+def test_download_ignore_requires_python_dont_fail_with_wrong_python(
+    script,
+    with_wheel,
+):
+    """
+    Test that --ignore-requires-python ignores Requires-Python check.
+    """
+    wheel_path = make_wheel_with_python_requires(
+        script,
+        "mypackage",
+        python_requires="==999",
+    )
+    wheel_dir = os.path.dirname(wheel_path)
+
+    result = script.pip(
+        "download",
+        "--ignore-requires-python",
+        "--no-index",
+        "--find-links",
+        wheel_dir,
+        "--only-binary=:all:",
+        "--dest",
+        ".",
+        "mypackage==1.0",
+    )
+    result.did_create(Path('scratch') / 'mypackage-1.0-py2.py3-none-any.whl')
+
+
 def test_download_specify_abi(script, data):
     """
     Test using "pip download --abi" to download a .whl archive
