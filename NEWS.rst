@@ -9,6 +9,15 @@
 
 .. towncrier release notes start
 
+20.3.3 (2020-12-15)
+===================
+
+Bug Fixes
+---------
+
+- Revert "Skip candidate not providing valid metadata", as that caused pip to be overeager about downloading from the package index. (`#9264 <https://github.com/pypa/pip/issues/9264>`_)
+
+
 20.3.2 (2020-12-15)
 ===================
 
