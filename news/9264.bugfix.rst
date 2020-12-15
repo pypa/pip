@@ -1,0 +1,1 @@
+Revert "Skip candidate not providing valid metadata", as that caused pip to be overeager about downloading from the package index.
