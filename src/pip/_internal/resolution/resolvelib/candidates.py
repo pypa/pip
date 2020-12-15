@@ -141,7 +141,7 @@ class _InstallRequirementBackedCandidate(Candidate):
         self._ireq = ireq
         self._name = name
         self._version = version
-        self._dist = None  # type: Optional[Distribution]
+        self.dist = self._prepare()
 
     def __str__(self):
         # type: () -> str
@@ -209,8 +209,6 @@ class _InstallRequirementBackedCandidate(Candidate):
     def _check_metadata_consistency(self, dist):
         # type: (Distribution) -> None
         """Check for consistency of project name and version of dist."""
-        # TODO: (Longer term) Rather than abort, reject this candidate
-        #       and backtrack. This would need resolvelib support.
         name = canonicalize_name(dist.project_name)
         if self._name is not None and self._name != name:
             raise MetadataInconsistent(self._ireq, "name", dist.project_name)
@@ -219,25 +217,17 @@ class _InstallRequirementBackedCandidate(Candidate):
             raise MetadataInconsistent(self._ireq, "version", dist.version)
 
     def _prepare(self):
-        # type: () -> None
-        if self._dist is not None:
-            return
+        # type: () -> Distribution
         try:
             dist = self._prepare_distribution()
         except HashError as e:
+            # Provide HashError the underlying ireq that caused it. This
+            # provides context for the resulting error message to show the
+            # offending line to the user.
             e.req = self._ireq
             raise
-
-        assert dist is not None, "Distribution already installed"
         self._check_metadata_consistency(dist)
-        self._dist = dist
-
-    @property
-    def dist(self):
-        # type: () -> Distribution
-        if self._dist is None:
-            self._prepare()
-        return self._dist
+        return dist
 
     def _get_requires_python_dependency(self):
         # type: () -> Optional[Requirement]
@@ -261,7 +251,6 @@ class _InstallRequirementBackedCandidate(Candidate):
 
     def get_install_requirement(self):
         # type: () -> Optional[InstallRequirement]
-        self._prepare()
         return self._ireq
 
 
