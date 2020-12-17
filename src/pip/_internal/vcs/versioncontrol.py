@@ -121,7 +121,6 @@ def call_subprocess(
             # Convert HiddenText objects to the underlying str.
             reveal_command_args(cmd),
             stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT,
             cwd=cwd
         )
         if proc.stdin:
