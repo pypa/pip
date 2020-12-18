@@ -124,8 +124,6 @@ def call_subprocess(
             stderr=subprocess.PIPE,
             cwd=cwd
         )
-        if proc.stdin:
-            proc.stdin.close()
     except Exception as exc:
         if log_failed_cmd:
             subprocess_logger.critical(
