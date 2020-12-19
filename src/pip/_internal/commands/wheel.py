@@ -82,6 +82,14 @@ class WheelCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.progress_bar())
 
         self.cmd_opts.add_option(
+            '--no-verify',
+            dest='no_verify',
+            action='store_true',
+            default=False,
+            help="Don't verify if built wheel is valid.",
+        )
+
+        self.cmd_opts.add_option(
             '--global-option',
             dest='global_options',
             action='append',
@@ -166,6 +174,7 @@ class WheelCommand(RequirementCommand):
         build_successes, build_failures = build(
             reqs_to_build,
             wheel_cache=wheel_cache,
+            verify=(not options.no_verify),
             build_options=options.build_options or [],
             global_options=options.global_options or [],
         )

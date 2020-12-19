@@ -5,8 +5,15 @@ import logging
 import os.path
 import re
 import shutil
+import zipfile
 
+from pip._vendor.packaging.utils import canonicalize_name, canonicalize_version
+from pip._vendor.packaging.version import InvalidVersion, Version
+from pip._vendor.pkg_resources import Distribution
+
+from pip._internal.exceptions import InvalidWheelFilename, UnsupportedWheel
 from pip._internal.models.link import Link
+from pip._internal.models.wheel import Wheel
 from pip._internal.operations.build.wheel import build_wheel_pep517
 from pip._internal.operations.build.wheel_legacy import build_wheel_legacy
 from pip._internal.utils.logging import indent_log
@@ -16,6 +23,7 @@ from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import path_to_url
+from pip._internal.utils.wheel import pkg_resources_distribution_for_wheel
 from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
@@ -160,9 +168,49 @@ def _always_true(_):
     return True
 
 
+def _get_metadata_version(dist):
+    # type: (Distribution) -> Optional[Version]
+    for line in dist.get_metadata_lines(dist.PKG_INFO):
+        if line.lower().startswith("metadata-version:"):
+            value = line.split(":", 1)[-1].strip()
+            try:
+                return Version(value)
+            except InvalidVersion:
+                msg = "Invalid Metadata-Version: {}".format(value)
+                raise UnsupportedWheel(msg)
+    raise UnsupportedWheel("Missing Metadata-Version")
+
+
+def _verify_one(req, wheel_path):
+    # type: (InstallRequirement, str) -> None
+    canonical_name = canonicalize_name(req.name)
+    w = Wheel(os.path.basename(wheel_path))
+    if canonicalize_name(w.name) != canonical_name:
+        raise InvalidWheelFilename(
+            "Wheel has unexpected file name: expected {!r}, "
+            "got {!r}".format(canonical_name, w.name),
+        )
+    with zipfile.ZipFile(wheel_path, allowZip64=True) as zf:
+        dist = pkg_resources_distribution_for_wheel(
+            zf, canonical_name, wheel_path,
+        )
+    if canonicalize_version(dist.version) != canonicalize_version(w.version):
+        raise InvalidWheelFilename(
+            "Wheel has unexpected file name: expected {!r}, "
+            "got {!r}".format(dist.version, w.version),
+        )
+    if (_get_metadata_version(dist) >= Version("1.2")
+            and not isinstance(dist.parsed_version, Version)):
+        raise UnsupportedWheel(
+            "Metadata 1.2 mandates PEP 440 version, "
+            "but {!r} is not".format(dist.version)
+        )
+
+
 def _build_one(
     req,  # type: InstallRequirement
     output_dir,  # type: str
+    verify,  # type: bool
     build_options,  # type: List[str]
     global_options,  # type: List[str]
 ):
@@ -182,9 +230,16 @@ def _build_one(
 
     # Install build deps into temporary directory (PEP 518)
     with req.build_env:
-        return _build_one_inside_env(
+        wheel_path = _build_one_inside_env(
             req, output_dir, build_options, global_options
         )
+    if wheel_path and verify:
+        try:
+            _verify_one(req, wheel_path)
+        except (InvalidWheelFilename, UnsupportedWheel) as e:
+            logger.warning("Built wheel for %s is invalid: %s", req.name, e)
+            return None
+    return wheel_path
 
 
 def _build_one_inside_env(
@@ -257,6 +312,7 @@ def _clean_one_legacy(req, global_options):
 def build(
     requirements,  # type: Iterable[InstallRequirement]
     wheel_cache,  # type: WheelCache
+    verify,  # type: bool
     build_options,  # type: List[str]
     global_options,  # type: List[str]
 ):
@@ -280,7 +336,7 @@ def build(
         for req in requirements:
             cache_dir = _get_cache_dir(req, wheel_cache)
             wheel_file = _build_one(
-                req, cache_dir, build_options, global_options
+                req, cache_dir, verify, build_options, global_options
             )
             if wheel_file:
                 # Update the link for this.

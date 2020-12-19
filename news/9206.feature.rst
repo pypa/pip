@@ -1,0 +1,3 @@
+``pip wheel`` now verifies the built wheel contains valid metadata, and can be
+installed by a subsequent ``pip install``. This can be disabled with
+``--no-verify``.
