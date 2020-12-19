@@ -166,11 +166,18 @@ class Factory(object):
         if not ireqs:
             return ()
 
-        # The InstallRequirement implementation requires us to give it a
-        # "template". Here we just choose the first requirement to represent
-        # all of them.
+        # HACK: The InstallRequirement implementation requires us to give it a
+        # "template", so we have to invent something.
+        # * Use an exact version specifier if possible. This is needed because
+        #   hash mode checks all requirements are pinned. (pypa/pip#9241)
+        # * Otherwise the first one is (arbitrarily) chosen.
         # Hopefully the Project model can correct this mismatch in the future.
         template = ireqs[0]
+        for ireq in ireqs:
+            if any(spec.operator in ("==", "===") for spec in ireq.specifier):
+                template = ireq
+                break
+
         name = canonicalize_name(template.req.name)
 
         extras = frozenset()  # type: FrozenSet[str]
