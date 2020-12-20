@@ -26,7 +26,6 @@ from pip._internal.utils.misc import (
 from pip._internal.utils.subprocess import (
     format_command_args,
     make_command,
-    make_subprocess_output_error,
     reveal_command_args,
 )
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -112,9 +111,6 @@ def call_subprocess(
     if extra_environ:
         env.update(extra_environ)
 
-    # Whether the subprocess will be visible in the console.
-    showing_subprocess = True
-
     command_desc = format_command_args(cmd)
     try:
         proc = subprocess.Popen(
@@ -155,16 +151,6 @@ def call_subprocess(
         proc.returncode and proc.returncode not in extra_ok_returncodes
     )
     if proc_had_error:
-        if not showing_subprocess and log_failed_cmd:
-            # Then the subprocess streams haven't been logged to the
-            # console yet.
-            msg = make_subprocess_output_error(
-                cmd_args=cmd,
-                cwd=cwd,
-                lines=all_output,
-                exit_status=proc.returncode,
-            )
-            subprocess_logger.error(msg)
         exc_msg = (
             'Command errored out with exit status {}: {} '
             'Check the logs for full command output.'
