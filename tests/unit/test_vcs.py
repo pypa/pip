@@ -1,4 +1,5 @@
 import os
+import sys
 from unittest import TestCase
 
 import pytest
@@ -12,7 +13,12 @@ from pip._internal.vcs.bazaar import Bazaar
 from pip._internal.vcs.git import Git, looks_like_hash
 from pip._internal.vcs.mercurial import Mercurial
 from pip._internal.vcs.subversion import Subversion
-from pip._internal.vcs.versioncontrol import RevOptions, VersionControl
+from pip._internal.vcs.versioncontrol import (
+    RevOptions,
+    VersionControl,
+    call_subprocess,
+    subprocess_logger,
+)
 from tests.lib import is_svn_installed, need_svn
 
 
@@ -587,3 +593,21 @@ class TestSubversionArgs(TestCase):
         self.assert_call_args([
             'svn', 'update', '--non-interactive', '/tmp/test',
         ])
+
+
+def test_call_subprocess(capfd, monkeypatch):
+    log = []
+    monkeypatch.setattr(subprocess_logger, "debug", lambda s: log.append(s))
+    out = call_subprocess(
+        [
+            sys.executable,
+            "-c",
+            "import sys; "
+            "sys.stdout.write('out\\n'); "
+            "sys.stderr.write('err\\n')"
+        ]
+    )
+    assert out in ("out\n", "out\r\n")
+    captured = capfd.readouterr()
+    assert captured.err == ""
+    assert log == ["out", "err"]
