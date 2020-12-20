@@ -62,7 +62,7 @@ repos:
     ]
     exclude: tests/data
 
-- repo: https://github.com/timothycrosley/isort
+- repo: https://github.com/PyCQA/isort
   rev: 5.5.3
   hooks:
   - id: isort
