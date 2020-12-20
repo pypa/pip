@@ -5,11 +5,11 @@ from __future__ import absolute_import
 
 import logging
 from email.parser import Parser
-from zipfile import ZipFile
+from zipfile import BadZipFile, ZipFile
 
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.pkg_resources import DistInfoDistribution
-from pip._vendor.six import PY2, ensure_str
+from pip._vendor.six import ensure_str
 
 from pip._internal.exceptions import UnsupportedWheel
 from pip._internal.utils.pkg_resources import DictMetadata
@@ -20,11 +20,6 @@ if MYPY_CHECK_RUNNING:
     from typing import Dict, Tuple
 
     from pip._vendor.pkg_resources import Distribution
-
-if PY2:
-    from zipfile import BadZipfile as BadZipFile
-else:
-    from zipfile import BadZipFile
 
 
 VERSION_COMPATIBLE = (1, 0)

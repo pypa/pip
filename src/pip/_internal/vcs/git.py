@@ -6,10 +6,10 @@ from __future__ import absolute_import
 import logging
 import os.path
 import re
+from urllib import parse as urllib_parse
+from urllib import request as urllib_request
 
 from pip._vendor.packaging.version import parse as parse_version
-from pip._vendor.six.moves.urllib import parse as urllib_parse
-from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip._internal.exceptions import BadCommand, SubProcessError
 from pip._internal.utils.misc import display_path, hide_url

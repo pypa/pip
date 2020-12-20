@@ -14,8 +14,6 @@ import os
 import shutil
 import sys
 
-from pip._vendor.six import PY2, text_type
-
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -41,46 +39,12 @@ except ImportError:
 
 
 __all__ = [
-    "ipaddress", "uses_pycache", "console_to_str",
-    "get_path_uid", "stdlib_pkgs", "WINDOWS", "samefile", "get_terminal_size",
+    "ipaddress", "console_to_str",
+    "get_path_uid", "stdlib_pkgs", "WINDOWS", "get_terminal_size",
 ]
 
 
 logger = logging.getLogger(__name__)
-
-if PY2:
-    import imp
-
-    try:
-        cache_from_source = imp.cache_from_source  # type: ignore
-    except AttributeError:
-        # does not use __pycache__
-        cache_from_source = None
-
-    uses_pycache = cache_from_source is not None
-else:
-    uses_pycache = True
-    from importlib.util import cache_from_source
-
-
-if PY2:
-    # In Python 2.7, backslashreplace exists
-    # but does not support use for decoding.
-    # We implement our own replace handler for this
-    # situation, so that we can consistently use
-    # backslash replacement for all versions.
-    def backslashreplace_decode_fn(err):
-        raw_bytes = (err.object[i] for i in range(err.start, err.end))
-        # Python 2 gave us characters - convert to numeric bytes
-        raw_bytes = (ord(b) for b in raw_bytes)
-        return u"".join(map(u"\\x{:x}".format, raw_bytes)), err.end
-    codecs.register_error(
-        "backslashreplace_decode",
-        backslashreplace_decode_fn,
-    )
-    backslashreplace_decode = "backslashreplace_decode"
-else:
-    backslashreplace_decode = "backslashreplace"
 
 
 def has_tls():
@@ -114,7 +78,7 @@ def str_to_display(data, desc=None):
     We also ensure that the output can be safely written to standard output
     without encoding errors.
     """
-    if isinstance(data, text_type):
+    if isinstance(data, str):
         return data
 
     # Otherwise, data is a bytes object (str in Python 2).
@@ -135,7 +99,7 @@ def str_to_display(data, desc=None):
             desc or 'Bytes object',
             encoding,
         )
-        decoded_data = data.decode(encoding, errors=backslashreplace_decode)
+        decoded_data = data.decode(encoding, errors="backslashreplace")
 
     # Make sure we can print the output, by encoding it to the output
     # encoding with replacement of unencodable characters, and then
@@ -224,17 +188,6 @@ stdlib_pkgs = {"python", "wsgiref", "argparse"}
 # windows detection, covers cpython and ironpython
 WINDOWS = (sys.platform.startswith("win") or
            (sys.platform == 'cli' and os.name == 'nt'))
-
-
-def samefile(file1, file2):
-    # type: (str, str) -> bool
-    """Provide an alternative for os.path.samefile on Windows/Python2"""
-    if hasattr(os.path, 'samefile'):
-        return os.path.samefile(file1, file2)
-    else:
-        path1 = os.path.normcase(os.path.abspath(file1))
-        path2 = os.path.normcase(os.path.abspath(file2))
-        return path1 == path2
 
 
 if hasattr(shutil, 'get_terminal_size'):

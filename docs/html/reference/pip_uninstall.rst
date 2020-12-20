@@ -41,8 +41,8 @@ Examples
 
          $ python -m pip uninstall simplejson
          Uninstalling simplejson:
-            /home/me/env/lib/python2.7/site-packages/simplejson
-            /home/me/env/lib/python2.7/site-packages/simplejson-2.2.1-py2.7.egg-info
+            /home/me/env/lib/python3.9/site-packages/simplejson
+            /home/me/env/lib/python3.9/site-packages/simplejson-2.2.1-py3.9.egg-info
          Proceed (y/n)? y
             Successfully uninstalled simplejson
 
@@ -52,7 +52,7 @@ Examples
 
          C:\> py -m pip uninstall simplejson
          Uninstalling simplejson:
-            /home/me/env/lib/python2.7/site-packages/simplejson
-            /home/me/env/lib/python2.7/site-packages/simplejson-2.2.1-py2.7.egg-info
+            /home/me/env/lib/python3.9/site-packages/simplejson
+            /home/me/env/lib/python3.9/site-packages/simplejson-2.2.1-py3.9.egg-info
          Proceed (y/n)? y
             Successfully uninstalled simplejson

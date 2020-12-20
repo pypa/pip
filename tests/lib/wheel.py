@@ -13,7 +13,7 @@ from zipfile import ZipFile
 
 import csv23
 from pip._vendor.requests.structures import CaseInsensitiveDict
-from pip._vendor.six import ensure_binary, ensure_text, iteritems
+from pip._vendor.six import ensure_binary, ensure_text
 
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from tests.lib.path import Path
@@ -68,7 +68,7 @@ def message_from_dict(headers):
     List values are converted into repeated headers in the result.
     """
     message = Message()
-    for name, value in iteritems(headers):
+    for name, value in headers.items():
         if isinstance(value, list):
             for v in value:
                 message[name] = v
@@ -161,7 +161,7 @@ def make_entry_points_file(
         entry_points_data["console_scripts"] = console_scripts
 
     lines = []
-    for section, values in iteritems(entry_points_data):
+    for section, values in entry_points_data.items():
         lines.append("[{}]".format(section))
         lines.extend(values)
 
@@ -175,7 +175,7 @@ def make_files(files):
     # type: (Dict[str, AnyStr]) -> List[File]
     return [
         File(name, ensure_binary(contents))
-        for name, contents in iteritems(files)
+        for name, contents in files.items()
     ]
 
 
@@ -184,7 +184,7 @@ def make_metadata_files(name, version, files):
     get_path = partial(dist_info_path, name, version)
     return [
         File(get_path(name), ensure_binary(contents))
-        for name, contents in iteritems(files)
+        for name, contents in files.items()
     ]
 
 
@@ -193,7 +193,7 @@ def make_data_files(name, version, files):
     data_dir = "{}-{}.data".format(name, version)
     return [
         File("{}/{}".format(data_dir, name), ensure_binary(contents))
-        for name, contents in iteritems(files)
+        for name, contents in files.items()
     ]
 
 

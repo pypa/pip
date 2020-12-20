@@ -15,7 +15,7 @@ from textwrap import dedent
 from zipfile import ZipFile
 
 import pytest
-from pip._vendor.six import PY2, ensure_binary, text_type
+from pip._vendor.six import ensure_binary
 from scripttest import FoundDir, TestFileEnvironment
 
 from pip._internal.index.collector import LinkCollector
@@ -1107,7 +1107,7 @@ def create_basic_sdist_for_package(
         retval,
         'gztar',
         root_dir=script.temp_path,
-        base_dir=text_type(os.curdir),
+        base_dir=str(os.curdir),
     )
     shutil.move(generated, retval)
 
@@ -1162,10 +1162,6 @@ def need_mercurial(fn):
     return pytest.mark.mercurial(need_executable(
         'Mercurial', ('hg', 'version')
     )(fn))
-
-
-skip_if_python2 = pytest.mark.skipif(PY2, reason="Non-Python 2 only")
-skip_if_not_python2 = pytest.mark.skipif(not PY2, reason="Python 2 only")
 
 
 # Workaround for test failures after new wheel release.

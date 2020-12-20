@@ -3,13 +3,13 @@ import os.path
 import re
 import uuid
 from textwrap import dedent
+from urllib import request as urllib_request
 
 import mock
 import pretend
 import pytest
 from mock import Mock, patch
 from pip._vendor import html5lib, requests
-from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip._internal.exceptions import NetworkConnectionError
 from pip._internal.index.collector import (
@@ -30,7 +30,7 @@ from pip._internal.index.collector import (
 from pip._internal.models.index import PyPI
 from pip._internal.models.link import Link
 from pip._internal.network.session import PipSession
-from tests.lib import make_test_link_collector, skip_if_python2
+from tests.lib import make_test_link_collector
 
 
 @pytest.mark.parametrize(
@@ -406,7 +406,6 @@ def test_parse_links__yanked_reason(anchor_html, expected):
     assert actual == expected
 
 
-@skip_if_python2
 def test_parse_links_caches_same_page_by_url():
     html = (
         '<html><head><meta charset="utf-8"><head>'

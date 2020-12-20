@@ -1,9 +1,7 @@
 """ PEP 610 """
 import json
 import re
-
-from pip._vendor import six
-from pip._vendor.six.moves.urllib import parse as urllib_parse
+from urllib import parse as urllib_parse
 
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -35,8 +33,6 @@ def _get(d, expected_type, key, default=None):
     if key not in d:
         return default
     value = d[key]
-    if six.PY2 and expected_type is str:
-        expected_type = six.string_types  # type: ignore
     if not isinstance(value, expected_type):
         raise DirectUrlValidationError(
             "{!r} has unexpected type for {} (expected {})".format(

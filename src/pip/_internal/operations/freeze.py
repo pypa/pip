@@ -4,7 +4,6 @@ import collections
 import logging
 import os
 
-from pip._vendor import six
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.pkg_resources import RequirementParseError
 
@@ -162,7 +161,7 @@ def freeze(
 
         # Warn about requirements that were included multiple times (in a
         # single requirements file or in different requirements files).
-        for name, files in six.iteritems(req_files):
+        for name, files in req_files.items():
             if len(files) > 1:
                 logger.warning("Requirement %s included multiple times [%s]",
                                name, ', '.join(sorted(set(files))))

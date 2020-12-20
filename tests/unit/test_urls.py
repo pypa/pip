@@ -1,8 +1,8 @@
 import os
 import sys
+from urllib import request as urllib_request
 
 import pytest
-from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip._internal.utils.urls import get_url_scheme, path_to_url, url_to_path
 

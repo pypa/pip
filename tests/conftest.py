@@ -10,7 +10,6 @@ import time
 from contextlib import contextmanager
 
 import pytest
-import six
 from mock import patch
 from pip._vendor.contextlib2 import ExitStack, nullcontext
 from setuptools.wheel import Wheel
@@ -73,15 +72,14 @@ def pytest_collection_modifyitems(config, items):
             if item.get_closest_marker('network') is not None:
                 item.add_marker(pytest.mark.flaky(reruns=3, reruns_delay=2))
 
-        if six.PY3:
-            if (item.get_closest_marker('incompatible_with_test_venv') and
-                    config.getoption("--use-venv")):
-                item.add_marker(pytest.mark.skip(
-                    'Incompatible with test venv'))
-            if (item.get_closest_marker('incompatible_with_venv') and
-                    sys.prefix != sys.base_prefix):
-                item.add_marker(pytest.mark.skip(
-                    'Incompatible with venv'))
+        if (item.get_closest_marker('incompatible_with_test_venv') and
+                config.getoption("--use-venv")):
+            item.add_marker(pytest.mark.skip(
+                'Incompatible with test venv'))
+        if (item.get_closest_marker('incompatible_with_venv') and
+                sys.prefix != sys.base_prefix):
+            item.add_marker(pytest.mark.skip(
+                'Incompatible with venv'))
 
         module_path = os.path.relpath(
             item.module.__file__,
@@ -111,16 +109,10 @@ def resolver_variant(request):
     features = set(os.environ.get("PIP_USE_FEATURE", "").split())
     deprecated_features = set(os.environ.get("PIP_USE_DEPRECATED", "").split())
 
-    if six.PY3:
-        if resolver == "legacy":
-            deprecated_features.add("legacy-resolver")
-        else:
-            deprecated_features.discard("legacy-resolver")
+    if resolver == "legacy":
+        deprecated_features.add("legacy-resolver")
     else:
-        if resolver == "2020-resolver":
-            features.add("2020-resolver")
-        else:
-            features.discard("2020-resolver")
+        deprecated_features.discard("legacy-resolver")
 
     env = {
         "PIP_USE_FEATURE": " ".join(features),
@@ -141,7 +133,7 @@ def tmpdir_factory(request, tmpdir_factory):
         # handle non-ASCII file names. This works around the problem by
         # passing a unicode object to rmtree().
         shutil.rmtree(
-            six.text_type(tmpdir_factory.getbasetemp()),
+            str(tmpdir_factory.getbasetemp()),
             ignore_errors=True,
         )
 
@@ -166,7 +158,7 @@ def tmpdir(request, tmpdir):
         # py.path.remove() uses str paths on Python 2 and cannot
         # handle non-ASCII file names. This works around the problem by
         # passing a unicode object to rmtree().
-        shutil.rmtree(six.text_type(tmpdir), ignore_errors=True)
+        shutil.rmtree(str(tmpdir), ignore_errors=True)
 
 
 @pytest.fixture(autouse=True)
@@ -337,7 +329,7 @@ def install_egg_link(venv, project_name, egg_info_dir):
 def virtualenv_template(request, tmpdir_factory, pip_src,
                         setuptools_install, coverage_install):
 
-    if six.PY3 and request.config.getoption('--use-venv'):
+    if request.config.getoption('--use-venv'):
         venv_type = 'venv'
     else:
         venv_type = 'virtualenv'
@@ -474,10 +466,7 @@ class InMemoryPipResult(object):
 class InMemoryPip(object):
     def pip(self, *args):
         orig_stdout = sys.stdout
-        if six.PY3:
-            stdout = io.StringIO()
-        else:
-            stdout = io.BytesIO()
+        stdout = io.StringIO()
         sys.stdout = stdout
         try:
             returncode = pip_entry_point(list(args))

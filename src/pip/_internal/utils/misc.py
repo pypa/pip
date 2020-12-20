@@ -16,7 +16,10 @@ import shutil
 import stat
 import sys
 from collections import deque
-from itertools import tee
+from io import StringIO
+from itertools import filterfalse, tee, zip_longest
+from urllib import parse as urllib_parse
+from urllib.parse import unquote as urllib_unquote
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.utils import canonicalize_name
@@ -24,25 +27,16 @@ from pip._vendor.packaging.utils import canonicalize_name
 # NOTE: retrying is not annotated in typeshed as on 2017-07-17, which is
 #       why we ignore the type on this import.
 from pip._vendor.retrying import retry  # type: ignore
-from pip._vendor.six import PY2, text_type
-from pip._vendor.six.moves import filter, filterfalse, input, map, zip_longest
-from pip._vendor.six.moves.urllib import parse as urllib_parse
-from pip._vendor.six.moves.urllib.parse import unquote as urllib_unquote
 
 from pip import __version__
 from pip._internal.exceptions import CommandError
 from pip._internal.locations import get_major_minor_version, site_packages, user_site
-from pip._internal.utils.compat import WINDOWS, expanduser, stdlib_pkgs, str_to_display
+from pip._internal.utils.compat import WINDOWS, expanduser, stdlib_pkgs
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING, cast
 from pip._internal.utils.virtualenv import (
     running_under_virtualenv,
     virtualenv_no_global,
 )
-
-if PY2:
-    from io import BytesIO as StringIO
-else:
-    from io import StringIO
 
 if MYPY_CHECK_RUNNING:
     from typing import (
@@ -173,7 +167,7 @@ def path_to_display(path):
     """
     if path is None:
         return None
-    if isinstance(path, text_type):
+    if isinstance(path, str):
         return path
     # Otherwise, path is a bytes object (str in Python 2).
     try:
@@ -181,17 +175,9 @@ def path_to_display(path):
     except UnicodeDecodeError:
         # Include the full bytes to make troubleshooting easier, even though
         # it may not be very human readable.
-        if PY2:
-            # Convert the bytes to a readable str representation using
-            # repr(), and then convert the str to unicode.
-            #   Also, we add the prefix "b" to the repr() return value both
-            # to make the Python 2 output look like the Python 3 output, and
-            # to signal to the user that this is a bytes representation.
-            display_path = str_to_display('b{!r}'.format(path))
-        else:
-            # Silence the "F821 undefined name 'ascii'" flake8 error since
-            # in Python 3 ascii() is a built-in.
-            display_path = ascii(path)  # noqa: F821
+        # Silence the "F821 undefined name 'ascii'" flake8 error since
+        # ascii() is a built-in.
+        display_path = ascii(path)  # noqa: F821
 
     return display_path
 
@@ -201,9 +187,6 @@ def display_path(path):
     """Gives the display value for a given path, making it relative to cwd
     if possible."""
     path = os.path.normcase(os.path.abspath(path))
-    if sys.version_info[0] == 2:
-        path = path.decode(sys.getfilesystemencoding(), 'replace')
-        path = path.encode(sys.getdefaultencoding(), 'replace')
     if path.startswith(os.getcwd() + os.path.sep):
         path = '.' + path[len(os.getcwd()):]
     return path
@@ -853,12 +836,6 @@ class HiddenText(object):
         # The string being used for redaction doesn't also have to match,
         # just the raw, original string.
         return (self.secret == other.secret)
-
-    # We need to provide an explicit __ne__ implementation for Python 2.
-    # TODO: remove this when we drop PY2 support.
-    def __ne__(self, other):
-        # type: (Any) -> bool
-        return not self == other
 
 
 def hide_value(value):

@@ -2,8 +2,7 @@ from __future__ import absolute_import
 
 import os
 import subprocess
-
-from pip._vendor.six.moves.urllib import request as urllib_request
+from urllib import request as urllib_request
 
 from pip._internal.utils.misc import hide_url
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING

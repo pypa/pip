@@ -173,4 +173,3 @@ order to create one of these the changes should already be merged into the
 .. _`get-pip repository`: https://github.com/pypa/get-pip
 .. _`psf-salt repository`: https://github.com/python/psf-salt
 .. _`CPython`: https://github.com/python/cpython
-.. _`CPython 2.7 EOL date`: https://www.python.org/doc/sunset-python-2/

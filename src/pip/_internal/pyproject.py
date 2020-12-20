@@ -2,7 +2,6 @@ from __future__ import absolute_import
 
 import io
 import os
-import sys
 from collections import namedtuple
 
 from pip._vendor import six, toml
@@ -26,10 +25,6 @@ def _is_list_of_str(obj):
 def make_pyproject_path(unpacked_source_directory):
     # type: (str) -> str
     path = os.path.join(unpacked_source_directory, 'pyproject.toml')
-
-    # Python2 __file__ should not be unicode
-    if six.PY2 and isinstance(path, six.text_type):
-        path = path.encode(sys.getfilesystemencoding())
 
     return path
 

@@ -4,7 +4,6 @@ import itertools
 import sys
 from signal import SIGINT, default_int_handler, signal
 
-from pip._vendor import six
 from pip._vendor.progress.bar import Bar, FillingCirclesBar, IncrementalBar
 from pip._vendor.progress.spinner import Spinner
 
@@ -36,8 +35,8 @@ def _select_progress_class(preferred, fallback):
     # Collect all of the possible characters we want to use with the preferred
     # bar.
     characters = [
-        getattr(preferred, "empty_fill", six.text_type()),
-        getattr(preferred, "fill", six.text_type()),
+        getattr(preferred, "empty_fill", str()),
+        getattr(preferred, "fill", str()),
     ]
     characters += list(getattr(preferred, "phases", []))
 
@@ -45,7 +44,7 @@ def _select_progress_class(preferred, fallback):
     # of the given file, if this works then we'll assume that we can use the
     # fancier bar and if not we'll fall back to the plaintext bar.
     try:
-        six.text_type().join(characters).encode(encoding)
+        str().join(characters).encode(encoding)
     except UnicodeEncodeError:
         return fallback
     else:

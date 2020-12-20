@@ -2,9 +2,9 @@ import itertools
 import logging
 import os
 import posixpath
+from urllib import parse as urllib_parse
 
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 from pip._internal.models.index import PyPI
 from pip._internal.utils.compat import has_tls

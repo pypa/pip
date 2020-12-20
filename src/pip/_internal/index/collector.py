@@ -10,12 +10,12 @@ import mimetypes
 import os
 import re
 from collections import OrderedDict
+from urllib import parse as urllib_parse
+from urllib import request as urllib_request
 
 from pip._vendor import html5lib, requests
 from pip._vendor.distlib.compat import unescape
 from pip._vendor.requests.exceptions import RetryError, SSLError
-from pip._vendor.six.moves.urllib import parse as urllib_parse
-from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip._internal.exceptions import NetworkConnectionError
 from pip._internal.models.link import Link

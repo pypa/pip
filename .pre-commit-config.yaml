@@ -74,10 +74,6 @@ repos:
   - id: mypy
     exclude: docs|tests
     args: ["--pretty"]
-  - id: mypy
-    name: mypy, for Python 2
-    exclude: noxfile.py|tools/automation/release|docs|tests
-    args: ["--pretty", "-2"]
 
 - repo: https://github.com/pre-commit/pygrep-hooks
   rev: v1.6.0

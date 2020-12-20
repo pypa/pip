@@ -1,8 +1,7 @@
 import os
 import sys
-
-from pip._vendor.six.moves.urllib import parse as urllib_parse
-from pip._vendor.six.moves.urllib import request as urllib_request
+from urllib import parse as urllib_parse
+from urllib import request as urllib_request
 
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 

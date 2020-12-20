@@ -3,10 +3,9 @@
 
 from __future__ import absolute_import
 
+import configparser
 import logging
 import os
-
-from pip._vendor.six.moves import configparser
 
 from pip._internal.exceptions import BadCommand, SubProcessError
 from pip._internal.utils.misc import display_path

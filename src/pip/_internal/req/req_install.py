@@ -480,10 +480,6 @@ class InstallRequirement(object):
         assert self.source_dir, "No source dir for {}".format(self)
         setup_py = os.path.join(self.unpacked_source_directory, 'setup.py')
 
-        # Python2 __file__ should not be unicode
-        if six.PY2 and isinstance(setup_py, six.text_type):
-            setup_py = setup_py.encode(sys.getfilesystemencoding())
-
         return setup_py
 
     @property

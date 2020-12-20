@@ -8,12 +8,12 @@ import os
 import shutil
 import subprocess
 import sys
+from urllib import parse as urllib_parse
 
 from pip._vendor import pkg_resources
-from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 from pip._internal.exceptions import BadCommand, InstallationError, SubProcessError
-from pip._internal.utils.compat import console_to_str, samefile
+from pip._internal.utils.compat import console_to_str
 from pip._internal.utils.logging import subprocess_logger
 from pip._internal.utils.misc import (
     ask_path_exists,
@@ -197,7 +197,7 @@ def find_path_to_setup_from_repo_root(location, repo_root):
             )
             return None
 
-    if samefile(repo_root, location):
+    if os.path.samefile(repo_root, location):
         return None
 
     return os.path.relpath(location, repo_root)
@@ -289,9 +289,7 @@ class VcsSupport(object):
         # Register more schemes with urlparse for various version control
         # systems
         urllib_parse.uses_netloc.extend(self.schemes)
-        # Python >= 2.7.4, 3.3 doesn't have uses_fragment
-        if getattr(urllib_parse, 'uses_fragment', None):
-            urllib_parse.uses_fragment.extend(self.schemes)
+        urllib_parse.uses_fragment.extend(self.schemes)
         super(VcsSupport, self).__init__()
 
     def __iter__(self):
