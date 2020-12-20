@@ -70,16 +70,9 @@ their merits.
 Python 2 Support
 ----------------
 
-pip will continue to ensure that it runs on Python 2.7 after the `CPython 2.7
-EOL date`_. Support for Python 2.7 will be dropped, if bugs in Python 2.7 itself
-make this necessary (which is unlikely) or in pip 21.0 (Jan 2021), whichever is
-earlier.
-
-However, bugs reported with pip which only occur on Python 2.7 would likely not
-be addressed directly by pip's maintainers. Pull Requests to fix Python 2.7
-only bugs will be considered, and merged (subject to normal review processes).
-Note that there may be delays due to the lack of developer resources for
-reviewing such pull requests.
+pip 20.3 was the last version of pip that supported Python 2. Bugs reported
+with pip which only occur on Python 2.7 will likely be closed as "won't fix"
+issues by pip's maintainers.
 
 Python Support Policy
 ---------------------

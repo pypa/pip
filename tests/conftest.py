@@ -496,7 +496,7 @@ def in_memory_pip():
 @pytest.fixture(scope="session")
 def deprecated_python():
     """Used to indicate whether pip deprecated this Python version"""
-    return sys.version_info[:2] in [(2, 7), (3, 5)]
+    return sys.version_info[:2] in []
 
 
 @pytest.fixture(scope="session")
