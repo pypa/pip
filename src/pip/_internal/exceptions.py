@@ -91,11 +91,6 @@ class CommandError(PipError):
     """Raised when there is an error in command-line arguments"""
 
 
-class SubProcessError(PipError):
-    """Raised when there is an error raised while executing a
-    command in subprocess"""
-
-
 class PreviousBuildDirError(PipError):
     """Raised when there's a previous conflicting build directory"""
 
