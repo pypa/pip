@@ -11,7 +11,7 @@ from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 
-from pip._internal.exceptions import BadCommand, SubProcessError
+from pip._internal.exceptions import BadCommand, InstallationError, SubProcessError
 from pip._internal.utils.misc import display_path, hide_url
 from pip._internal.utils.subprocess import make_command
 from pip._internal.utils.temp_dir import TempDirectory
@@ -79,7 +79,7 @@ class Git(VersionControl):
 
     def get_git_version(self):
         VERSION_PFX = 'git version '
-        version = self.run_command(['version'])
+        version = self.run_command(['version'], show_stdout=False)
         if version.startswith(VERSION_PFX):
             version = version[len(VERSION_PFX):].split()[0]
         else:
@@ -102,7 +102,7 @@ class Git(VersionControl):
         # and to suppress the message to stderr.
         args = ['symbolic-ref', '-q', 'HEAD']
         output = cls.run_command(
-            args, extra_ok_returncodes=(1, ), cwd=location,
+            args, extra_ok_returncodes=(1, ), show_stdout=False, cwd=location,
         )
         ref = output.strip()
 
@@ -121,7 +121,7 @@ class Git(VersionControl):
             self.unpack(temp_dir.path, url=url)
             self.run_command(
                 ['checkout-index', '-a', '-f', '--prefix', location],
-                cwd=temp_dir.path
+                show_stdout=False, cwd=temp_dir.path
             )
 
     @classmethod
@@ -136,7 +136,7 @@ class Git(VersionControl):
         """
         # Pass rev to pre-filter the list.
         output = cls.run_command(['show-ref', rev], cwd=dest,
-                                 on_returncode='ignore')
+                                 show_stdout=False, on_returncode='ignore')
         refs = {}
         for line in output.strip().splitlines():
             try:
@@ -310,7 +310,7 @@ class Git(VersionControl):
         # exits with return code 1 if there are no matching lines.
         stdout = cls.run_command(
             ['config', '--get-regexp', r'remote\..*\.url'],
-            extra_ok_returncodes=(1, ), cwd=location,
+            extra_ok_returncodes=(1, ), show_stdout=False, cwd=location,
         )
         remotes = stdout.splitlines()
         try:
@@ -344,7 +344,7 @@ class Git(VersionControl):
         if rev is None:
             rev = 'HEAD'
         current_rev = cls.run_command(
-            ['rev-parse', rev], cwd=location,
+            ['rev-parse', rev], show_stdout=False, cwd=location,
         )
         return current_rev.strip()
 
@@ -357,7 +357,7 @@ class Git(VersionControl):
         # find the repo root
         git_dir = cls.run_command(
             ['rev-parse', '--git-dir'],
-            cwd=location).strip()
+            show_stdout=False, cwd=location).strip()
         if not os.path.isabs(git_dir):
             git_dir = os.path.join(location, git_dir)
         repo_root = os.path.abspath(os.path.join(git_dir, '..'))
@@ -415,6 +415,7 @@ class Git(VersionControl):
             r = cls.run_command(
                 ['rev-parse', '--show-toplevel'],
                 cwd=location,
+                show_stdout=False,
                 on_returncode='raise',
                 log_failed_cmd=False,
             )
@@ -422,7 +423,7 @@ class Git(VersionControl):
             logger.debug("could not determine if %s is under git control "
                          "because git is not available", location)
             return None
-        except SubProcessError:
+        except InstallationError:
             return None
         return os.path.normpath(r.rstrip('\r\n'))
 

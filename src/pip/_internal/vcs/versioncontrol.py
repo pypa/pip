@@ -34,12 +34,10 @@ from pip._internal.utils.urls import get_url_scheme
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Any,
         Dict,
         Iterable,
         Iterator,
         List,
-        Mapping,
         Optional,
         Text,
         Tuple,
@@ -89,15 +87,17 @@ def make_vcs_requirement_url(repo_url, rev, project_name, subdir=None):
 
 def call_subprocess(
     cmd,  # type: Union[List[str], CommandArgs]
+    show_stdout=False,  # type: bool
     cwd=None,  # type: Optional[str]
     on_returncode='raise',  # type: str
-    extra_environ=None,  # type: Optional[Mapping[str, Any]]
     extra_ok_returncodes=None,  # type: Optional[Iterable[int]]
     log_failed_cmd=True  # type: Optional[bool]
 ):
     # type: (...) -> Text
     """
     Args:
+      show_stdout: if true, use INFO to log the subprocess's stderr and
+        stdout streams.  Otherwise, use DEBUG.  Defaults to False.
       extra_ok_returncodes: an iterable of integer return codes that are
         acceptable, in addition to 0. Defaults to None, which means [].
       log_failed_cmd: if false, failed commands are not logged,
@@ -105,16 +105,33 @@ def call_subprocess(
     """
     if extra_ok_returncodes is None:
         extra_ok_returncodes = []
-
-    # log the subprocess output at DEBUG level.
-    log_subprocess = subprocess_logger.debug
-
-    env = os.environ.copy()
-    if extra_environ:
-        env.update(extra_environ)
+    # Most places in pip use show_stdout=False.
+    # What this means is--
+    #
+    # - We log this output of stdout and stderr at DEBUG level
+    # as it is received.
+    # - If DEBUG logging isn't enabled (e.g. if --verbose logging wasn't
+    #   requested), then we show a spinner so the user can still see the
+    #   subprocess is in progress.
+    # - If the subprocess exits with an error, we log the output to stderr
+    #   at ERROR level if it hasn't already been displayed to the console
+    #   (e.g. if --verbose logging wasn't enabled).  This way we don't log
+    #   the output to the console twice.
+    #
+    # If show_stdout=True, then the above is still done, but with DEBUG
+    # replaced by INFO.
+    if show_stdout:
+        # Then log the subprocess output at INFO level.
+        log_subprocess = subprocess_logger.info
+        used_level = logging.INFO
+    else:
+        # Then log the subprocess output using DEBUG.  This also ensures
+        # it will be logged to the log file (aka user_log), if enabled.
+        log_subprocess = subprocess_logger.debug
+        used_level = logging.DEBUG
 
     # Whether the subprocess will be visible in the console.
-    showing_subprocess = True
+    showing_subprocess = subprocess_logger.getEffectiveLevel() <= used_level
 
     command_desc = format_command_args(cmd)
     try:
@@ -176,8 +193,10 @@ def call_subprocess(
             raise SubProcessError(exc_msg)
         elif on_returncode == 'warn':
             subprocess_logger.warning(
-                'Command "{}" had error code {} in {}'.format(
-                    command_desc, proc.returncode, cwd)
+                'Command "%s" had error code %s in %s',
+                command_desc,
+                proc.returncode,
+                cwd,
             )
         elif on_returncode == 'ignore':
             pass
@@ -775,9 +794,9 @@ class VersionControl(object):
     def run_command(
         cls,
         cmd,  # type: Union[List[str], CommandArgs]
+        show_stdout=True,  # type: bool
         cwd=None,  # type: Optional[str]
         on_returncode='raise',  # type: str
-        extra_environ=None,  # type: Optional[Mapping[str, Any]]
         extra_ok_returncodes=None,  # type: Optional[Iterable[int]]
         log_failed_cmd=True  # type: bool
     ):
@@ -789,9 +808,8 @@ class VersionControl(object):
         """
         cmd = make_command(cls.name, *cmd)
         try:
-            return call_subprocess(cmd, cwd,
+            return call_subprocess(cmd, show_stdout, cwd,
                                    on_returncode=on_returncode,
-                                   extra_environ=extra_environ,
                                    extra_ok_returncodes=extra_ok_returncodes,
                                    log_failed_cmd=log_failed_cmd)
         except OSError as e:
