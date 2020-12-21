@@ -167,6 +167,7 @@ class Subversion(VersionControl):
                 xml = cls.run_command(
                     ['info', '--xml', location],
                     show_stdout=False,
+                    stdout_only=True,
                 )
                 url = _svn_info_xml_url_re.search(xml).group(1)
                 revs = [
@@ -218,7 +219,9 @@ class Subversion(VersionControl):
         #   svn, version 1.12.0-SlikSvn (SlikSvn/1.12.0)
         #      compiled May 28 2019, 13:44:56 on x86_64-microsoft-windows6.2
         version_prefix = 'svn, version '
-        version = self.run_command(['--version'], show_stdout=False)
+        version = self.run_command(
+            ['--version'], show_stdout=False, stdout_only=True
+        )
         if not version.startswith(version_prefix):
             return ()
 

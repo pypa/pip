@@ -676,7 +676,8 @@ class VersionControl(object):
         command_desc=None,  # type: Optional[str]
         extra_environ=None,  # type: Optional[Mapping[str, Any]]
         spinner=None,  # type: Optional[SpinnerInterface]
-        log_failed_cmd=True  # type: bool
+        log_failed_cmd=True,  # type: bool
+        stdout_only=False,  # type: bool
     ):
         # type: (...) -> Text
         """
@@ -693,7 +694,8 @@ class VersionControl(object):
                                    extra_environ=extra_environ,
                                    unset_environ=cls.unset_environ,
                                    spinner=spinner,
-                                   log_failed_cmd=log_failed_cmd)
+                                   log_failed_cmd=log_failed_cmd,
+                                   stdout_only=stdout_only)
         except OSError as e:
             # errno.ENOENT = no such file or directory
             # In other words, the VCS executable isn't available
