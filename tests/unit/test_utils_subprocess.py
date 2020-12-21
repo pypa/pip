@@ -14,6 +14,7 @@ from pip._internal.utils.subprocess import (
     format_command_args,
     make_command,
     make_subprocess_output_error,
+    subprocess_logger,
 )
 
 
@@ -152,6 +153,35 @@ def test_make_subprocess_output_error__non_ascii_line():
     curly-quote: \u2018
     ----------------------------------------""")
     assert actual == expected, u'actual: {}'.format(actual)
+
+
+@pytest.mark.parametrize(
+    ('stdout_only', 'expected'),
+    [
+        (True, ("out\n", "out\r\n")),
+        (False, ("out\nerr\n", "out\r\nerr\r\n", "err\nout\n", "err\r\nout\r\n")),
+    ],
+)
+def test_call_subprocess_stdout_only(capfd, monkeypatch, stdout_only, expected):
+    log = []
+    monkeypatch.setattr(subprocess_logger, "debug", lambda *args: log.append(args[0]))
+    out = call_subprocess(
+        [
+            sys.executable,
+            "-c",
+            "import sys; "
+            "sys.stdout.write('out\\n'); "
+            "sys.stderr.write('err\\n')"
+        ],
+        stdout_only=stdout_only,
+    )
+    assert out in expected
+    captured = capfd.readouterr()
+    assert captured.err == ""
+    assert (
+        log == ["Running command %s", "out", "err"]
+        or log == ["Running command %s", "err", "out"]
+    )
 
 
 class FakeSpinner(SpinnerInterface):
