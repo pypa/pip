@@ -190,9 +190,6 @@ def call_subprocess(
             cwd=cwd,
             env=env,
         )
-        assert proc.stdin
-        assert proc.stdout
-        proc.stdin.close()
     except Exception as exc:
         if log_failed_cmd:
             subprocess_logger.critical(
@@ -201,7 +198,10 @@ def call_subprocess(
         raise
     all_output = []
     if not stdout_only:
-        # In this mode, stdout and stderr are in the same pip.
+        assert proc.stdout
+        assert proc.stdin
+        proc.stdin.close()
+        # In this mode, stdout and stderr are in the same pipe.
         while True:
             # The "line" value is a unicode string in Python 2.
             line = console_to_str(proc.stdout.readline())
@@ -224,7 +224,7 @@ def call_subprocess(
         output = ''.join(all_output)
     else:
         # In this mode, stdout and stderr are in different pipes.
-        # We must use the communicate which is the only safe way to read both.
+        # We must use communicate() which is the only safe way to read both.
         out_bytes, err_bytes = proc.communicate()
         # log line by line to preserve pip log indenting
         out = console_to_str(out_bytes)
