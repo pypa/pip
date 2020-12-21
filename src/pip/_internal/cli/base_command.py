@@ -27,7 +27,6 @@ from pip._internal.exceptions import (
     InstallationError,
     NetworkConnectionError,
     PreviousBuildDirError,
-    SubProcessError,
     UninstallationError,
 )
 from pip._internal.utils.deprecation import deprecated
@@ -230,7 +229,7 @@ class Command(CommandContextMixIn):
 
             return PREVIOUS_BUILD_DIR_ERROR
         except (InstallationError, UninstallationError, BadCommand,
-                SubProcessError, NetworkConnectionError) as exc:
+                NetworkConnectionError) as exc:
             logger.critical(str(exc))
             logger.debug('Exception information:', exc_info=True)
 
