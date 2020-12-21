@@ -11,7 +11,7 @@ from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.six.moves.urllib import request as urllib_request
 
-from pip._internal.exceptions import BadCommand, InstallationError, SubProcessError
+from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.utils.misc import display_path, hide_url
 from pip._internal.utils.subprocess import make_command
 from pip._internal.utils.temp_dir import TempDirectory
@@ -332,9 +332,11 @@ class Git(VersionControl):
         """
         try:
             cls.run_command(
-                ['rev-parse', '-q', '--verify', "sha^" + rev], cwd=location
+                ['rev-parse', '-q', '--verify', "sha^" + rev],
+                cwd=location,
+                log_failed_cmd=False,
             )
-        except SubProcessError:
+        except InstallationError:
             return False
         else:
             return True
