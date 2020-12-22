@@ -11,13 +11,12 @@ import functools
 import locale
 import logging
 import os
-import shutil
 import sys
 
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Callable, Optional, Protocol, Text, Tuple, TypeVar, Union
+    from typing import Callable, Optional, Protocol, Text, TypeVar, Union
 
     # Used in the @lru_cache polyfill.
     F = TypeVar('F')
@@ -40,7 +39,7 @@ except ImportError:
 
 __all__ = [
     "ipaddress", "console_to_str",
-    "get_path_uid", "stdlib_pkgs", "WINDOWS", "get_terminal_size",
+    "get_path_uid", "stdlib_pkgs", "WINDOWS",
 ]
 
 
@@ -188,15 +187,6 @@ stdlib_pkgs = {"python", "wsgiref", "argparse"}
 # windows detection, covers cpython and ironpython
 WINDOWS = (sys.platform.startswith("win") or
            (sys.platform == 'cli' and os.name == 'nt'))
-
-
-def get_terminal_size():
-    # type: () -> Tuple[int, int]
-    """
-    Returns a tuple (x, y) representing the width(x) and the height(y)
-    in characters of the terminal window.
-    """
-    return tuple(shutil.get_terminal_size())  # type: ignore
 
 
 # Fallback to noop_lru_cache in Python 2

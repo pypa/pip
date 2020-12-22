@@ -7,6 +7,7 @@ from __future__ import absolute_import
 
 import logging
 import optparse
+import shutil
 import sys
 import textwrap
 from distutils.util import strtobool
@@ -15,7 +16,6 @@ from pip._vendor.contextlib2 import suppress
 
 from pip._internal.cli.status_codes import UNKNOWN_ERROR
 from pip._internal.configuration import Configuration, ConfigurationError
-from pip._internal.utils.compat import get_terminal_size
 from pip._internal.utils.misc import redact_auth_from_url
 
 logger = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
         # help position must be aligned with __init__.parseopts.description
         kwargs['max_help_position'] = 30
         kwargs['indent_increment'] = 1
-        kwargs['width'] = get_terminal_size()[0] - 2
+        kwargs['width'] = shutil.get_terminal_size()[0] - 2
         optparse.IndentedHelpFormatter.__init__(self, *args, **kwargs)
 
     def format_option_strings(self, option):
