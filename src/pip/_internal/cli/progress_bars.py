@@ -35,8 +35,8 @@ def _select_progress_class(preferred, fallback):
     # Collect all of the possible characters we want to use with the preferred
     # bar.
     characters = [
-        getattr(preferred, "empty_fill", str()),
-        getattr(preferred, "fill", str()),
+        getattr(preferred, "empty_fill", ""),
+        getattr(preferred, "fill", ""),
     ]
     characters += list(getattr(preferred, "phases", []))
 
@@ -44,7 +44,7 @@ def _select_progress_class(preferred, fallback):
     # of the given file, if this works then we'll assume that we can use the
     # fancier bar and if not we'll fall back to the plaintext bar.
     try:
-        str().join(characters).encode(encoding)
+        "".join(characters).encode(encoding)
     except UnicodeEncodeError:
         return fallback
     else:
