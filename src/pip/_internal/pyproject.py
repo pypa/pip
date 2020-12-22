@@ -4,7 +4,7 @@ import io
 import os
 from collections import namedtuple
 
-from pip._vendor import six, toml
+from pip._vendor import toml
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 
 from pip._internal.exceptions import InstallationError
@@ -18,7 +18,7 @@ def _is_list_of_str(obj):
     # type: (Any) -> bool
     return (
         isinstance(obj, list) and
-        all(isinstance(item, six.string_types) for item in obj)
+        all(isinstance(item, str) for item in obj)
     )
 
 
