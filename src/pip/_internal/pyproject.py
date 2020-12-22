@@ -24,9 +24,7 @@ def _is_list_of_str(obj):
 
 def make_pyproject_path(unpacked_source_directory):
     # type: (str) -> str
-    path = os.path.join(unpacked_source_directory, 'pyproject.toml')
-
-    return path
+    return os.path.join(unpacked_source_directory, 'pyproject.toml')
 
 
 BuildSystemDetails = namedtuple('BuildSystemDetails', [

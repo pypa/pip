@@ -190,47 +190,13 @@ WINDOWS = (sys.platform.startswith("win") or
            (sys.platform == 'cli' and os.name == 'nt'))
 
 
-if hasattr(shutil, 'get_terminal_size'):
-    def get_terminal_size():
-        # type: () -> Tuple[int, int]
-        """
-        Returns a tuple (x, y) representing the width(x) and the height(y)
-        in characters of the terminal window.
-        """
-        return tuple(shutil.get_terminal_size())  # type: ignore
-else:
-    def get_terminal_size():
-        # type: () -> Tuple[int, int]
-        """
-        Returns a tuple (x, y) representing the width(x) and the height(y)
-        in characters of the terminal window.
-        """
-        def ioctl_GWINSZ(fd):
-            try:
-                import fcntl
-                import struct
-                import termios
-                cr = struct.unpack_from(
-                    'hh',
-                    fcntl.ioctl(fd, termios.TIOCGWINSZ, '12345678')
-                )
-            except Exception:
-                return None
-            if cr == (0, 0):
-                return None
-            return cr
-        cr = ioctl_GWINSZ(0) or ioctl_GWINSZ(1) or ioctl_GWINSZ(2)
-        if not cr:
-            if sys.platform != "win32":
-                try:
-                    fd = os.open(os.ctermid(), os.O_RDONLY)
-                    cr = ioctl_GWINSZ(fd)
-                    os.close(fd)
-                except Exception:
-                    pass
-        if not cr:
-            cr = (os.environ.get('LINES', 25), os.environ.get('COLUMNS', 80))
-        return int(cr[1]), int(cr[0])
+def get_terminal_size():
+    # type: () -> Tuple[int, int]
+    """
+    Returns a tuple (x, y) representing the width(x) and the height(y)
+    in characters of the terminal window.
+    """
+    return tuple(shutil.get_terminal_size())  # type: ignore
 
 
 # Fallback to noop_lru_cache in Python 2

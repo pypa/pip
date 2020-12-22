@@ -166,11 +166,13 @@ def _copy_source_tree(source, target):
             skipped += [target_basename]
         return skipped
 
-    kwargs = dict(ignore=ignore, symlinks=True)  # type: CopytreeKwargs
-
-    kwargs['copy_function'] = _copy2_ignoring_special_files
-
-    shutil.copytree(source, target, **kwargs)
+    shutil.copytree(
+        source,
+        target,
+        ignore=ignore,
+        symlinks=True,
+        copy_function=_copy2_ignoring_special_files,
+    )
 
 
 def get_file_url(
