@@ -489,7 +489,6 @@ def make_wheel_with_python_requires(script, package_name, python_requires):
     package_dir.joinpath('setup.py').write_text(text)
     script.run(
         'python', 'setup.py', 'bdist_wheel', '--universal', cwd=package_dir,
-        allow_stderr_warning=False,
     )
 
     file_name = '{}-1.0-py2.py3-none-any.whl'.format(package_name)
