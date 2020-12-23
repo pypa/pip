@@ -13,7 +13,7 @@ def get_user_agent():
 def test_user_agent():
     user_agent = get_user_agent()
 
-    assert user_agent.startswith("pip/{}".format(__version__))
+    assert user_agent.startswith(f"pip/{__version__}")
 
 
 @pytest.mark.parametrize('name, expected_like_ci', [
@@ -115,7 +115,7 @@ class TestPipSession:
         session.add_trusted_host('host3')
         assert session.pip_trusted_origins == [
             ('host1', None), ('host3', None), ('host2', None)
-        ], 'actual: {}'.format(session.pip_trusted_origins)
+        ], f'actual: {session.pip_trusted_origins}'
 
         session.add_trusted_host('host4:8080')
         prefix4 = 'https://host4:8080/'
@@ -199,7 +199,7 @@ class TestPipSession:
         ],
     )
     def test_is_secure_origin(self, caplog, location, trusted, expected):
-        class MockLogger(object):
+        class MockLogger:
             def __init__(self):
                 self.called = False
 

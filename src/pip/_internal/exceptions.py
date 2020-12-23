@@ -203,11 +203,11 @@ class HashError(InstallationError):
             its link already populated by the resolver's _populate_link().
 
         """
-        return '    {}'.format(self._requirement_name())
+        return f'    {self._requirement_name()}'
 
     def __str__(self):
         # type: () -> str
-        return '{}\n{}'.format(self.head, self.body())
+        return f'{self.head}\n{self.body()}'
 
     def _requirement_name(self):
         # type: () -> str
@@ -364,8 +364,8 @@ class ConfigurationFileCouldNotBeLoaded(ConfigurationError):
     def __str__(self):
         # type: () -> str
         if self.fname is not None:
-            message_part = " in {}.".format(self.fname)
+            message_part = f" in {self.fname}."
         else:
             assert self.error is not None
-            message_part = ".\n{}\n".format(self.error)
-        return "Configuration file {}{}".format(self.reason, message_part)
+            message_part = f".\n{self.error}\n"
+        return f"Configuration file {self.reason}{message_part}"

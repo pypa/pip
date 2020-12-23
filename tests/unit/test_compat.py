@@ -60,7 +60,7 @@ def test_str_to_display(data, expected):
     actual = str_to_display(data)
     assert actual == expected, (
         # Show the encoding for easier troubleshooting.
-        'encoding: {!r}'.format(locale.getpreferredencoding())
+        f'encoding: {locale.getpreferredencoding()!r}'
     )
 
 
@@ -68,18 +68,18 @@ def test_str_to_display(data, expected):
     # Test str input with non-ascii characters.
     ('déf', 'utf-8', 'déf'),
     # Test bytes input with non-ascii characters:
-    ('déf'.encode('utf-8'), 'utf-8', 'déf'),
+    ('déf'.encode(), 'utf-8', 'déf'),
     # Test a Windows encoding.
     ('déf'.encode('cp1252'), 'cp1252', 'déf'),
     # Test a Windows encoding with incompatibly encoded text.
-    ('déf'.encode('utf-8'), 'cp1252', 'dÃ©f'),
+    ('déf'.encode(), 'cp1252', 'dÃ©f'),
 ])
 def test_str_to_display__encoding(monkeypatch, data, encoding, expected):
     monkeypatch.setattr(locale, 'getpreferredencoding', lambda: encoding)
     actual = str_to_display(data)
     assert actual == expected, (
         # Show the encoding for easier troubleshooting.
-        'encoding: {!r}'.format(locale.getpreferredencoding())
+        f'encoding: {locale.getpreferredencoding()!r}'
     )
 
 
@@ -96,7 +96,7 @@ def test_str_to_display__decode_error(monkeypatch, caplog):
 
     assert actual == expected, (
         # Show the encoding for easier troubleshooting.
-        'encoding: {!r}'.format(locale.getpreferredencoding())
+        f'encoding: {locale.getpreferredencoding()!r}'
     )
     assert len(caplog.records) == 1
     record = caplog.records[0]

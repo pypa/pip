@@ -435,7 +435,7 @@ class InstallCommand(RequirementCommand):
                 write_output(
                     'Successfully installed %s', installed_desc,
                 )
-        except EnvironmentError as error:
+        except OSError as error:
             show_traceback = (self.verbosity >= 1)
 
             message = create_env_error_message(

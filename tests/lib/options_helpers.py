@@ -17,7 +17,7 @@ class FakeCommand(Command):
         return self.parse_args(args)
 
 
-class AddFakeCommandMixin(object):
+class AddFakeCommandMixin:
 
     def setup(self):
         commands_dict['fake'] = CommandInfo(

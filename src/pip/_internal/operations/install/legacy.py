@@ -68,7 +68,7 @@ def install(
             )
 
             runner = runner_with_spinner_message(
-                "Running setup.py install for {}".format(req_name)
+                f"Running setup.py install for {req_name}"
             )
             with indent_log(), build_env:
                 runner(

@@ -398,7 +398,7 @@ def test_parse_links__yanked_reason(anchor_html, expected):
         encoding=None,
         # parse_links() is cached by url, so we inject a random uuid to ensure
         # the page content isn't cached.
-        url='https://example.com/simple-{}/'.format(uuid.uuid4()),
+        url=f'https://example.com/simple-{uuid.uuid4()}/',
     )
     links = list(parse_links(page))
     link, = links
@@ -580,7 +580,7 @@ def test_get_html_page_directory_append_index(tmpdir):
         actual = _get_html_page(Link(dir_url), session=session)
         assert mock_func.mock_calls == [
             mock.call(expected_url, session=session),
-        ], 'actual calls: {}'.format(mock_func.mock_calls)
+        ], f'actual calls: {mock_func.mock_calls}'
 
         assert actual.content == fake_response.content
         assert actual.encoding is None
@@ -636,11 +636,11 @@ def check_links_include(links, names):
     """
     for name in names:
         assert any(link.url.endswith(name) for link in links), (
-            'name {!r} not among links: {}'.format(name, links)
+            f'name {name!r} not among links: {links}'
         )
 
 
-class TestLinkCollector(object):
+class TestLinkCollector:
 
     @patch('pip._internal.index.collector._get_html_response')
     def test_fetch_page(self, mock_get_html_response):

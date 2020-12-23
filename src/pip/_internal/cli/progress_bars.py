@@ -52,7 +52,7 @@ def _select_progress_class(preferred, fallback):
 _BaseBar = _select_progress_class(IncrementalBar, Bar)  # type: Any
 
 
-class InterruptibleMixin(object):
+class InterruptibleMixin:
     """
     Helper to ensure that self.finish() gets called on keyboard interrupt.
 
@@ -122,10 +122,10 @@ class BlueEmojiBar(IncrementalBar):
     suffix = "%(percent)d%%"
     bar_prefix = " "
     bar_suffix = " "
-    phases = ("\U0001F539", "\U0001F537", "\U0001F535")
+    phases = ("\U0001F539", "\U0001F537", "\U0001F535")  # type: Any
 
 
-class DownloadProgressMixin(object):
+class DownloadProgressMixin:
 
     def __init__(self, *args, **kwargs):
         # type: (List[Any], Dict[Any, Any]) -> None
@@ -152,7 +152,7 @@ class DownloadProgressMixin(object):
     def pretty_eta(self):
         # type: () -> str
         if self.eta:  # type: ignore
-            return "eta {}".format(self.eta_td)  # type: ignore
+            return f"eta {self.eta_td}"  # type: ignore
         return ""
 
     def iter(self, it):  # type: ignore
@@ -164,7 +164,7 @@ class DownloadProgressMixin(object):
         self.finish()
 
 
-class WindowsMixin(object):
+class WindowsMixin:
 
     def __init__(self, *args, **kwargs):
         # type: (List[Any], Dict[Any, Any]) -> None

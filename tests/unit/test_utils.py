@@ -63,11 +63,11 @@ class Tests_EgglinkPath:
         self.user_site = 'USER_SITE'
         self.user_site_egglink = os.path.join(
             self.user_site,
-            '{}.egg-link'.format(project)
+            f'{project}.egg-link'
         )
         self.site_packages_egglink = os.path.join(
             self.site_packages,
-            '{}.egg-link'.format(project),
+            f'{project}.egg-link',
         )
 
         # patches
@@ -188,7 +188,7 @@ class Tests_EgglinkPath:
 @patch('pip._internal.utils.misc.dist_in_usersite')
 @patch('pip._internal.utils.misc.dist_is_local')
 @patch('pip._internal.utils.misc.dist_is_editable')
-class TestsGetDistributions(object):
+class TestsGetDistributions:
     """Test get_installed_distributions() and get_distribution().
     """
     class MockWorkingSet(list):
@@ -432,18 +432,18 @@ elif sys.byteorder == "big":
     # Test passing a text (unicode) string.
     ('/path/déf', None, '/path/déf'),
     # Test a bytes object with a non-ascii character.
-    ('/path/déf'.encode('utf-8'), 'utf-8', '/path/déf'),
+    ('/path/déf'.encode(), 'utf-8', '/path/déf'),
     # Test a bytes object with a character that can't be decoded.
-    ('/path/déf'.encode('utf-8'), 'ascii', "b'/path/d\\xc3\\xa9f'"),
+    ('/path/déf'.encode(), 'ascii', "b'/path/d\\xc3\\xa9f'"),
     ('/path/déf'.encode('utf-16'), 'utf-8', expected_byte_string),
 ])
 def test_path_to_display(monkeypatch, path, fs_encoding, expected):
     monkeypatch.setattr(sys, 'getfilesystemencoding', lambda: fs_encoding)
     actual = path_to_display(path)
-    assert actual == expected, 'actual: {!r}'.format(actual)
+    assert actual == expected, f'actual: {actual!r}'
 
 
-class Test_normalize_path(object):
+class Test_normalize_path:
     # Technically, symlinks are possible on Windows, but you need a special
     # permission bit to create them, and Python 2 doesn't support it anyway, so
     # it's easiest just to skip this test on Windows altogether.
@@ -480,7 +480,7 @@ class Test_normalize_path(object):
             os.chdir(orig_working_dir)
 
 
-class TestHashes(object):
+class TestHashes:
     """Tests for pip._internal.utils.hashes"""
 
     @pytest.mark.parametrize('hash_name, hex_digest, expected', [
@@ -550,7 +550,7 @@ class TestHashes(object):
         assert cache[Hashes({'sha256': ['ab', 'cd']})] == 42
 
 
-class TestEncoding(object):
+class TestEncoding:
     """Tests for pip._internal.utils.encoding"""
 
     def test_auto_decode_utf_16_le(self):
@@ -596,7 +596,7 @@ def raises(error):
     raise error
 
 
-class TestGlibc(object):
+class TestGlibc:
     @pytest.mark.skipif("sys.platform == 'win32'")
     def test_glibc_version_string(self, monkeypatch):
         monkeypatch.setattr(
@@ -641,7 +641,7 @@ def test_normalize_version_info(version_info, expected):
     assert actual == expected
 
 
-class TestGetProg(object):
+class TestGetProg:
 
     @pytest.mark.parametrize(
         ("argv", "executable", "expected"),

@@ -6,7 +6,7 @@ import mock
 from pip._internal.operations import check
 
 
-class TestInstalledDistributionsCall(object):
+class TestInstalledDistributionsCall:
 
     def test_passes_correct_default_kwargs(self, monkeypatch):
         my_mock = mock.MagicMock(return_value=[])

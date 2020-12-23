@@ -6,7 +6,7 @@ from pip._internal.models.wheel import Wheel
 from pip._internal.utils import compatibility_tags
 
 
-class TestWheelFile(object):
+class TestWheelFile:
 
     def test_std_wheel_pattern(self):
         w = Wheel('simple-1.1.1-py2-none-any.whl')

@@ -77,7 +77,7 @@ SUPPORTED_OPTIONS_REQ = [
 SUPPORTED_OPTIONS_REQ_DEST = [str(o().dest) for o in SUPPORTED_OPTIONS_REQ]
 
 
-class ParsedRequirement(object):
+class ParsedRequirement:
     def __init__(
         self,
         requirement,  # type:str
@@ -96,7 +96,7 @@ class ParsedRequirement(object):
         self.line_source = line_source
 
 
-class ParsedLine(object):
+class ParsedLine:
     def __init__(
         self,
         filename,  # type: str
@@ -201,7 +201,7 @@ def handle_requirement_line(
             if dest in line.opts.__dict__ and line.opts.__dict__[dest]:
                 req_options[dest] = line.opts.__dict__[dest]
 
-        line_source = 'line {} of {}'.format(line.lineno, line.filename)
+        line_source = f'line {line.lineno} of {line.filename}'
         return ParsedRequirement(
             requirement=line.requirement,
             is_editable=line.is_editable,
@@ -271,7 +271,7 @@ def handle_option_line(
 
         if session:
             for host in opts.trusted_hosts or []:
-                source = 'line {} of {}'.format(lineno, filename)
+                source = f'line {lineno} of {filename}'
                 session.add_trusted_host(host, source=source)
 
 
@@ -320,7 +320,7 @@ def handle_line(
         return None
 
 
-class RequirementsFileParser(object):
+class RequirementsFileParser:
     def __init__(
         self,
         session,  # type: PipSession
@@ -334,8 +334,7 @@ class RequirementsFileParser(object):
         # type: (str, bool) -> Iterator[ParsedLine]
         """Parse a given file, yielding parsed lines.
         """
-        for line in self._parse_and_recurse(filename, constraint):
-            yield line
+        yield from self._parse_and_recurse(filename, constraint)
 
     def _parse_and_recurse(self, filename, constraint):
         # type: (str, bool) -> Iterator[ParsedLine]
@@ -363,10 +362,9 @@ class RequirementsFileParser(object):
                         os.path.dirname(filename), req_path,
                     )
 
-                for inner_line in self._parse_and_recurse(
+                yield from self._parse_and_recurse(
                     req_path, nested_constraint,
-                ):
-                    yield inner_line
+                )
             else:
                 yield line
 
@@ -381,7 +379,7 @@ class RequirementsFileParser(object):
                 args_str, opts = self._line_parser(line)
             except OptionParsingError as e:
                 # add offending line
-                msg = 'Invalid requirement: {}\n{}'.format(line, e.msg)
+                msg = f'Invalid requirement: {line}\n{e.msg}'
                 raise RequirementsFileParseError(msg)
 
             yield ParsedLine(
@@ -557,8 +555,8 @@ def get_file_content(url, session):
     try:
         with open(url, 'rb') as f:
             content = auto_decode(f.read())
-    except IOError as exc:
+    except OSError as exc:
         raise InstallationError(
-            'Could not open requirements file: {}'.format(exc)
+            f'Could not open requirements file: {exc}'
         )
     return url, content

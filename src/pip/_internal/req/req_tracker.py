@@ -62,7 +62,7 @@ def get_requirement_tracker():
             yield tracker
 
 
-class RequirementTracker(object):
+class RequirementTracker:
 
     def __init__(self, root):
         # type: (str) -> None
@@ -103,7 +103,7 @@ class RequirementTracker(object):
         try:
             with open(entry_path) as fp:
                 contents = fp.read()
-        except IOError as e:
+        except OSError as e:
             # if the error is anything other than "file does not exist", raise.
             if e.errno != errno.ENOENT:
                 raise

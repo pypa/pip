@@ -17,12 +17,12 @@ from pip._internal.self_outdated_check import (
 from tests.lib.path import Path
 
 
-class MockBestCandidateResult(object):
+class MockBestCandidateResult:
     def __init__(self, best):
         self.best_candidate = best
 
 
-class MockPackageFinder(object):
+class MockPackageFinder:
 
     BASE_URL = 'https://pypi.org/simple/pip-{0}.tar.gz'
     PIP_PROJECT_NAME = 'pip'
@@ -43,7 +43,7 @@ class MockPackageFinder(object):
         return MockBestCandidateResult(self.INSTALLATION_CANDIDATES[0])
 
 
-class MockDistribution(object):
+class MockDistribution:
     def __init__(self, installer):
         self.installer = installer
 

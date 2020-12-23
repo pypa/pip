@@ -19,7 +19,7 @@ def assert_error_startswith(exc_type, expected_start):
         yield
 
     assert str(err.value).startswith(expected_start), (
-        'full message: {}'.format(err.value)
+        f'full message: {err.value}'
     )
 
 
@@ -82,8 +82,8 @@ class TestPipTestEnvironment:
         """
         Call run() that prints stderr with the given prefix.
         """
-        text = '{}: hello, world\\n'.format(prefix)
-        command = 'import sys; sys.stderr.write("{}")'.format(text)
+        text = f'{prefix}: hello, world\\n'
+        command = f'import sys; sys.stderr.write("{text}")'
         args = [sys.executable, '-c', command]
         script.run(*args, **kwargs)
 

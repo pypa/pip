@@ -63,5 +63,5 @@ def test_export_rev(script, tmpdir):
     url = hide_url('bzr+' + _test_path_to_file_url(source_dir) + '@1')
     Bazaar().export(str(export_dir), url=url)
 
-    with open(export_dir / 'test_file', 'r') as f:
+    with open(export_dir / 'test_file') as f:
         assert f.read() == 'something initial'

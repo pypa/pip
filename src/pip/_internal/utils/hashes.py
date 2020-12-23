@@ -19,7 +19,7 @@ FAVORITE_HASH = 'sha256'
 STRONG_HASHES = ['sha256', 'sha384', 'sha512']
 
 
-class Hashes(object):
+class Hashes:
     """A wrapper that builds multiple hashes at once and checks them against
     known-good values
 
@@ -85,7 +85,7 @@ class Hashes(object):
                 gots[hash_name] = hashlib.new(hash_name)
             except (ValueError, TypeError):
                 raise InstallationError(
-                    'Unknown hash name: {}'.format(hash_name)
+                    f'Unknown hash name: {hash_name}'
                 )
 
         for chunk in chunks:

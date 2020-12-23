@@ -85,7 +85,7 @@ def unpack_vcs_link(link, location):
     vcs_backend.unpack(location, url=hide_url(link.url))
 
 
-class File(object):
+class File:
 
     def __init__(self, path, content_type):
         # type: (str, Optional[str]) -> None
@@ -279,7 +279,7 @@ def _check_download_dir(link, download_dir, hashes):
     return download_path
 
 
-class RequirementPreparer(object):
+class RequirementPreparer:
     """Prepares a Requirement
     """
 

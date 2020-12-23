@@ -360,7 +360,7 @@ def get_console_script_specs(console):
             )
 
         scripts_to_generate.append(
-            'pip{} = {}'.format(get_major_minor_version(), pip_script)
+            f'pip{get_major_minor_version()} = {pip_script}'
         )
         # Delete any other versioned pip entry points
         pip_ep = [k for k in console if re.match(r'pip(\d(\.\d)?)?$', k)]
@@ -391,7 +391,7 @@ def get_console_script_specs(console):
     return scripts_to_generate
 
 
-class ZipBackedFile(object):
+class ZipBackedFile:
     def __init__(self, src_record_path, dest_path, zip_file):
         # type: (RecordPath, str, ZipFile) -> None
         self.src_record_path = src_record_path
@@ -432,7 +432,7 @@ class ZipBackedFile(object):
             set_extracted_file_to_default_mode_plus_executable(self.dest_path)
 
 
-class ScriptFile(object):
+class ScriptFile:
     def __init__(self, file):
         # type: (File) -> None
         self._file = file

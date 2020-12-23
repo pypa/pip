@@ -36,7 +36,7 @@ def _get_statefile_name(key):
     return name
 
 
-class SelfCheckState(object):
+class SelfCheckState:
     def __init__(self, cache_dir):
         # type: (str) -> None
         self.state = {}  # type: Dict[str, Any]
@@ -50,7 +50,7 @@ class SelfCheckState(object):
             try:
                 with open(self.statefile_path) as statefile:
                     self.state = json.load(statefile)
-            except (IOError, ValueError, KeyError):
+            except (OSError, ValueError, KeyError):
                 # Explicitly suppressing exceptions, since we don't want to
                 # error out if the cache file is invalid.
                 pass
@@ -181,7 +181,7 @@ def pip_self_version_check(session, options):
         # command context, so be pragmatic here and suggest the command
         # that's always available. This does not accommodate spaces in
         # `sys.executable`.
-        pip_cmd = "{} -m pip".format(sys.executable)
+        pip_cmd = f"{sys.executable} -m pip"
         logger.warning(
             "You are using pip version %s; however, version %s is "
             "available.\nYou should consider upgrading via the "

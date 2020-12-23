@@ -77,7 +77,7 @@ def convert_to_dict(string):
 
     for part in parts[1:]:
         verb, args_str = stripping_split(part, " ", 1)
-        assert verb in ["depends"], "Unknown verb {!r}".format(verb)
+        assert verb in ["depends"], f"Unknown verb {verb!r}"
 
         retval[verb] = stripping_split(args_str, ",")
 
@@ -94,14 +94,14 @@ def handle_request(script, action, requirement, options, resolver_variant):
     elif action == 'uninstall':
         args = ['uninstall', '--yes']
     else:
-        raise "Did not excpet action: {!r}".format(action)
+        raise f"Did not excpet action: {action!r}"
 
     if isinstance(requirement, str):
         args.append(requirement)
     elif isinstance(requirement, list):
         args.extend(requirement)
     else:
-        raise "requirement neither str nor list {!r}".format(requirement)
+        raise f"requirement neither str nor list {requirement!r}"
 
     args.extend(options)
     args.append("--verbose")
@@ -177,7 +177,7 @@ def test_yaml_based(script, case):
             if action in request:
                 break
         else:
-            raise "Unsupported request {!r}".format(request)
+            raise f"Unsupported request {request!r}"
 
         # Perform the requested action
         effect = handle_request(script, action,

@@ -25,7 +25,7 @@ class PipCommandUsage(rst.Directive):
             cmd_prefix = cmd_prefix.strip('"')
             cmd_prefix = cmd_prefix.strip("'")
         usage = dedent(
-            cmd.usage.replace('%prog', '{} {}'.format(cmd_prefix, cmd.name))
+            cmd.usage.replace('%prog', f'{cmd_prefix} {cmd.name}')
         ).strip()
         node = nodes.literal_block(usage, usage)
         return [node]
@@ -63,7 +63,7 @@ class PipOptions(rst.Directive):
             line += option._long_opts[0]
         if option.takes_value():
             metavar = option.metavar or option.dest.lower()
-            line += " <{}>".format(metavar.lower())
+            line += f" <{metavar.lower()}>"
         # fix defaults
         opt_help = option.help.replace('%default', str(option.default))
         # fix paths with sys.prefix
@@ -123,7 +123,7 @@ class PipReqFileOptionsReference(PipOptions):
             if cmd.cmd_opts.has_option(opt_name):
                 return command
 
-        raise KeyError('Could not identify prefix of opt {}'.format(opt_name))
+        raise KeyError(f'Could not identify prefix of opt {opt_name}')
 
     def process_options(self):
         for option in SUPPORTED_OPTIONS:

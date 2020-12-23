@@ -227,7 +227,7 @@ def test_no_clean_option_blocks_cleaning_after_wheel(
 
     if resolver_variant == "legacy":
         build = build / 'simple'
-        message = "build/simple should still exist {}".format(result)
+        message = f"build/simple should still exist {result}"
         assert exists(build), message
 
 
@@ -301,7 +301,7 @@ def test_pip_wheel_ext_module_with_tmpdir_inside(script, data, common_wheels):
 
     # To avoid a test dependency on a C compiler, we set the env vars to "noop"
     # The .c source is empty anyway
-    script.environ['CC'] = script.environ['LDSHARED'] = str('true')
+    script.environ['CC'] = script.environ['LDSHARED'] = 'true'
 
     result = script.pip(
         'wheel', data.src / 'extension',

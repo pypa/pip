@@ -64,7 +64,7 @@ def copy2_fixed(src, dest):
     """
     try:
         shutil.copy2(src, dest)
-    except (OSError, IOError):
+    except OSError:
         for f in [src, dest]:
             try:
                 is_socket_file = is_socket(f)
@@ -168,7 +168,7 @@ def _test_writable_dir_win(path):
             return True
 
     # This should never be reached
-    raise EnvironmentError(
+    raise OSError(
         'Unexpected condition testing for writable directory'
     )
 

@@ -171,5 +171,5 @@ def test_install_extra_merging(script, data, extra_to_install, simple_version):
         '{pkga_path}{extra_to_install}'.format(**locals()),
     )
 
-    assert ('Successfully installed pkga-0.1 simple-{}'.format(simple_version)
+    assert (f'Successfully installed pkga-0.1 simple-{simple_version}'
             ) in result.stdout

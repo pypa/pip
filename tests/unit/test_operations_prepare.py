@@ -161,7 +161,7 @@ def test_copy_source_tree_with_unreadable_dir_fails(clean_project, tmpdir):
     assert expected_files == copied_files
 
 
-class Test_unpack_url(object):
+class Test_unpack_url:
 
     def prep(self, tmpdir, data):
         self.build_dir = tmpdir.joinpath('build')
@@ -189,7 +189,7 @@ class Test_unpack_url(object):
         Test when the file url hash fragment is wrong
         """
         self.prep(tmpdir, data)
-        url = '{}#md5=bogus'.format(self.dist_url.url)
+        url = f'{self.dist_url.url}#md5=bogus'
         dist_url = Link(url)
         with pytest.raises(HashMismatch):
             unpack_url(dist_url,

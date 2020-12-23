@@ -213,7 +213,7 @@ def compress_for_output_listing(paths):
     return will_remove, will_skip
 
 
-class StashedUninstallPathSet(object):
+class StashedUninstallPathSet:
     """A set of file rename operations to stash files while
     tentatively uninstalling them."""
     def __init__(self):
@@ -324,7 +324,7 @@ class StashedUninstallPathSet(object):
         return bool(self._moves)
 
 
-class UninstallPathSet(object):
+class UninstallPathSet:
     """A set of file paths to be removed in the uninstallation of a
     requirement."""
     def __init__(self, dist):
@@ -544,7 +544,7 @@ class UninstallPathSet(object):
 
         elif develop_egg_link:
             # develop egg
-            with open(develop_egg_link, 'r') as fh:
+            with open(develop_egg_link) as fh:
                 link_pointer = os.path.normcase(fh.readline().strip())
             assert (link_pointer == dist.location), (
                 'Egg-link {} does not match installed location of {} '
@@ -589,7 +589,7 @@ class UninstallPathSet(object):
         return paths_to_remove
 
 
-class UninstallPthEntries(object):
+class UninstallPthEntries:
     def __init__(self, pth_file):
         # type: (str) -> None
         self.file = pth_file

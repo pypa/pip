@@ -18,7 +18,7 @@ if MYPY_CHECK_RUNNING:
 logger = logging.getLogger(__name__)
 
 
-class SearchScope(object):
+class SearchScope:
 
     """
     Encapsulates the locations that pip is configured to search.

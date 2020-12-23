@@ -4,7 +4,6 @@ These are written according to the order they are called in.
 """
 
 import contextlib
-import io
 import os
 import pathlib
 import subprocess
@@ -75,7 +74,7 @@ def generate_authors(filename: str) -> None:
     authors = get_author_list()
 
     # Write our authors to the AUTHORS file
-    with io.open(filename, "w", encoding="utf-8") as fp:
+    with open(filename, "w", encoding="utf-8") as fp:
         fp.write("\n".join(authors))
         fp.write("\n")
 
@@ -98,13 +97,13 @@ def update_version_file(version: str, filepath: str) -> None:
     with open(filepath, "w", encoding="utf-8") as f:
         for line in content:
             if line.startswith("__version__ ="):
-                f.write('__version__ = "{}"\n'.format(version))
+                f.write(f'__version__ = "{version}"\n')
                 file_modified = True
             else:
                 f.write(line)
 
     assert file_modified, \
-        "Version file {} did not get modified".format(filepath)
+        f"Version file {filepath} did not get modified"
 
 
 def create_git_tag(session: Session, tag_name: str, *, message: str) -> None:

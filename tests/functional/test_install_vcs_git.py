@@ -38,7 +38,7 @@ def _get_branch_remote(script, package_name, branch):
     """
     repo_dir = _get_editable_repo_dir(script, package_name)
     result = script.run(
-        'git', 'config', 'branch.{}.remote'.format(branch), cwd=repo_dir
+        'git', 'config', f'branch.{branch}.remote', cwd=repo_dir
     )
     return result.stdout.strip()
 
@@ -57,12 +57,12 @@ def _github_checkout(url_path, temp_dir, rev=None, egg=None, scheme=None):
     """
     if scheme is None:
         scheme = 'https'
-    url = 'git+{}://github.com/{}'.format(scheme, url_path)
+    url = f'git+{scheme}://github.com/{url_path}'
     local_url = local_checkout(url, temp_dir)
     if rev is not None:
-        local_url += '@{}'.format(rev)
+        local_url += f'@{rev}'
     if egg is not None:
-        local_url += '#egg={}'.format(egg)
+        local_url += f'#egg={egg}'
 
     return local_url
 
@@ -77,8 +77,8 @@ def _make_version_pkg_url(path, rev=None, name="version_pkg"):
       rev: an optional revision to install like a branch name, tag, or SHA.
     """
     file_url = _test_path_to_file_url(path)
-    url_rev = '' if rev is None else '@{}'.format(rev)
-    url = 'git+{}{}#egg={}'.format(file_url, url_rev, name)
+    url_rev = '' if rev is None else f'@{rev}'
+    url = f'git+{file_url}{url_rev}#egg={name}'
 
     return url
 
@@ -278,11 +278,11 @@ def test_git_with_tag_name_and_update(script, tmpdir):
     url_path = 'pypa/pip-test-package.git'
     base_local_url = _github_checkout(url_path, tmpdir)
 
-    local_url = '{}#egg=pip-test-package'.format(base_local_url)
+    local_url = f'{base_local_url}#egg=pip-test-package'
     result = script.pip('install', '-e', local_url)
     result.assert_installed('pip-test-package', with_files=['.git'])
 
-    new_local_url = '{}@0.1.2#egg=pip-test-package'.format(base_local_url)
+    new_local_url = f'{base_local_url}@0.1.2#egg=pip-test-package'
     result = script.pip(
         'install', '--global-option=--version', '-e', new_local_url,
     )
@@ -484,12 +484,12 @@ def test_install_git_branch_not_cached(script, with_wheel):
     repo_dir = _create_test_package(script, name=PKG)
     url = _make_version_pkg_url(repo_dir, rev="master", name=PKG)
     result = script.pip("install", url, "--only-binary=:all:")
-    assert "Successfully built {}".format(PKG) in result.stdout, result.stdout
+    assert f"Successfully built {PKG}" in result.stdout, result.stdout
     script.pip("uninstall", "-y", PKG)
     # build occurs on the second install too because it is not cached
     result = script.pip("install", url)
     assert (
-        "Successfully built {}".format(PKG) in result.stdout
+        f"Successfully built {PKG}" in result.stdout
     ), result.stdout
 
 
@@ -504,10 +504,10 @@ def test_install_git_sha_cached(script, with_wheel):
     ).stdout.strip()
     url = _make_version_pkg_url(repo_dir, rev=commit, name=PKG)
     result = script.pip("install", url)
-    assert "Successfully built {}".format(PKG) in result.stdout, result.stdout
+    assert f"Successfully built {PKG}" in result.stdout, result.stdout
     script.pip("uninstall", "-y", PKG)
     # build does not occur on the second install because it is cached
     result = script.pip("install", url)
     assert (
-        "Successfully built {}".format(PKG) not in result.stdout
+        f"Successfully built {PKG}" not in result.stdout
     ), result.stdout

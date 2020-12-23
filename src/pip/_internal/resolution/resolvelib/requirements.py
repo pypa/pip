@@ -122,7 +122,7 @@ class RequiresPythonRequirement(Requirement):
 
     def __str__(self):
         # type: () -> str
-        return "Python {}".format(self.specifier)
+        return f"Python {self.specifier}"
 
     def __repr__(self):
         # type: () -> str

@@ -9,7 +9,7 @@ import virtualenv as _virtualenv
 from .path import Path
 
 
-class VirtualEnvironment(object):
+class VirtualEnvironment:
     """
     An abstraction around virtual environments, currently it only uses
     virtualenv but in the future it could use pyvenv.
@@ -38,7 +38,7 @@ class VirtualEnvironment(object):
             self.lib = Path(lib)
 
     def __repr__(self):
-        return "<VirtualEnvironment {}>".format(self.location)
+        return f"<VirtualEnvironment {self.location}>"
 
     def _create(self, clear=False):
         if clear:

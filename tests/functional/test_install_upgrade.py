@@ -396,7 +396,7 @@ def test_upgrade_vcs_req_with_dist_found(script):
     assert "pypi.org" not in result.stdout, result.stdout
 
 
-class TestUpgradeDistributeToSetuptools(object):
+class TestUpgradeDistributeToSetuptools:
     """
     From pip1.4 to pip6, pip supported a set of "hacks" (see Issue #1122) to
     allow distribute to conflict with setuptools, so that the following would
@@ -470,5 +470,5 @@ def test_install_find_existing_package_canonicalize(script, req1, req2):
     result = script.pip(
         "install", "--no-index", "--find-links", pkg_container, "pkg",
     )
-    satisfied_message = "Requirement already satisfied: {}".format(req2)
+    satisfied_message = f"Requirement already satisfied: {req2}"
     assert satisfied_message in result.stdout, str(result)

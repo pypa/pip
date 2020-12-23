@@ -285,7 +285,7 @@ def _create_link_from_element(
     return link
 
 
-class CacheablePageContent(object):
+class CacheablePageContent:
     def __init__(self, page):
         # type: (HTMLPage) -> None
         assert page.cache_link_parsing
@@ -351,7 +351,7 @@ def parse_links(page):
         yield link
 
 
-class HTMLPage(object):
+class HTMLPage:
     """Represents one page, along with its URL"""
 
     def __init__(
@@ -448,7 +448,7 @@ def _get_html_page(link, session=None):
         reason += str(exc)
         _handle_get_page_fail(link, reason, meth=logger.info)
     except requests.ConnectionError as exc:
-        _handle_get_page_fail(link, "connection error: {}".format(exc))
+        _handle_get_page_fail(link, f"connection error: {exc}")
     except requests.Timeout:
         _handle_get_page_fail(link, "timed out")
     else:
@@ -525,7 +525,7 @@ def group_locations(locations, expand_dir=False):
     return files, urls
 
 
-class CollectedLinks(object):
+class CollectedLinks:
 
     """
     Encapsulates the return value of a call to LinkCollector.collect_links().
@@ -560,7 +560,7 @@ class CollectedLinks(object):
         self.project_urls = project_urls
 
 
-class LinkCollector(object):
+class LinkCollector:
 
     """
     Responsible for collecting Link objects from all configured locations,
@@ -657,7 +657,7 @@ class LinkCollector(object):
             ),
         ]
         for link in url_locations:
-            lines.append('* {}'.format(link))
+            lines.append(f'* {link}')
         logger.debug('\n'.join(lines))
 
         return CollectedLinks(
