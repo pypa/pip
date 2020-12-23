@@ -103,7 +103,7 @@ def list_matches_wheel(wheel_name, result):
     E.g., If wheel_name is `foo-1.2.3` it searches for a line starting with
           `- foo-1.2.3-py3-none-any.whl `."""
     lines = result.stdout.splitlines()
-    expected = ' - {}-py3-none-any.whl '.format(wheel_name)
+    expected = f' - {wheel_name}-py3-none-any.whl '
     return any(map(lambda l: l.startswith(expected), lines))
 
 
@@ -115,7 +115,7 @@ def list_matches_wheel_abspath(wheel_name, result):
     E.g., If wheel_name is `foo-1.2.3` it searches for a line starting with
           `foo-1.2.3-py3-none-any.whl`."""
     lines = result.stdout.splitlines()
-    expected = '{}-py3-none-any.whl'.format(wheel_name)
+    expected = f'{wheel_name}-py3-none-any.whl'
     return any(map(lambda l: os.path.basename(l).startswith(expected)
                and os.path.exists(l), lines))
 
@@ -137,7 +137,7 @@ def remove_matches_http(http_cache_dir):
         path = os.path.join(
             http_cache_dir, 'arbitrary', 'pathname', http_filename,
         )
-        expected = 'Removed {}'.format(path)
+        expected = f'Removed {path}'
         return expected in lines
 
     return _remove_matches_http
@@ -155,14 +155,14 @@ def remove_matches_wheel(wheel_cache_dir):
     def _remove_matches_wheel(wheel_name, result):
         lines = result.stdout.splitlines()
 
-        wheel_filename = '{}-py3-none-any.whl'.format(wheel_name)
+        wheel_filename = f'{wheel_name}-py3-none-any.whl'
 
         # The "/arbitrary/pathname/" bit is an implementation detail of how
         # the `populate_wheel_cache` fixture is implemented.
         path = os.path.join(
             wheel_cache_dir, 'arbitrary', 'pathname', wheel_filename,
         )
-        expected = 'Removed {}'.format(path)
+        expected = f'Removed {path}'
         return expected in lines
 
     return _remove_matches_wheel
@@ -191,12 +191,12 @@ def test_cache_info(
     result = script.pip('cache', 'info')
 
     assert (
-        'Package index page cache location: {}'.format(http_cache_dir)
+        f'Package index page cache location: {http_cache_dir}'
         in result.stdout
     )
-    assert 'Wheels location: {}'.format(wheel_cache_dir) in result.stdout
+    assert f'Wheels location: {wheel_cache_dir}' in result.stdout
     num_wheels = len(wheel_cache_files)
-    assert 'Number of wheels: {}'.format(num_wheels) in result.stdout
+    assert f'Number of wheels: {num_wheels}' in result.stdout
 
 
 @pytest.mark.usefixtures("populate_wheel_cache")

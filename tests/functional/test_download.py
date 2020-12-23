@@ -364,7 +364,7 @@ class TestDownloadPlatformManylinuxes(object):
         """
         Earlier manylinuxes are compatible with later manylinuxes.
         """
-        wheel = 'fake-1.0-py2.py3-none-{}.whl'.format(wheel_abi)
+        wheel = f'fake-1.0-py2.py3-none-{wheel_abi}.whl'
         fake_wheel(data, wheel)
         result = script.pip(
             'download', '--no-index', '--find-links', data.find_links,
@@ -491,7 +491,7 @@ def make_wheel_with_python_requires(script, package_name, python_requires):
         'python', 'setup.py', 'bdist_wheel', '--universal', cwd=package_dir,
     )
 
-    file_name = '{}-1.0-py2.py3-none-any.whl'.format(package_name)
+    file_name = f'{package_name}-1.0-py2.py3-none-any.whl'
     return package_dir / 'dist' / file_name
 
 
@@ -521,7 +521,7 @@ def test_download__python_version_used_for_python_requires(
         "ERROR: Package 'mypackage' requires a different Python: "
         "3.3.0 not in '==3.2'"
     )
-    assert expected_err in result.stderr, 'stderr: {}'.format(result.stderr)
+    assert expected_err in result.stderr, f'stderr: {result.stderr}'
 
     # Now try with a --python-version that satisfies the Requires-Python.
     args = make_args('32')
@@ -863,8 +863,8 @@ def test_download_http_url_bad_hash(
         file_response(simple_pkg)
     ])
     mock_server.start()
-    base_address = 'http://{}:{}'.format(mock_server.host, mock_server.port)
-    url = "{}/simple-1.0.tar.gz#sha256={}".format(base_address, digest)
+    base_address = f'http://{mock_server.host}:{mock_server.port}'
+    url = f"{base_address}/simple-1.0.tar.gz#sha256={digest}"
 
     shared_script.pip('download', '-d', str(download_dir), url)
 

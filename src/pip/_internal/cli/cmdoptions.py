@@ -46,7 +46,7 @@ def raise_option_error(parser, option, msg):
       option: an Option instance.
       msg: the error text.
     """
-    msg = '{} error: {}'.format(option, msg)
+    msg = f'{option} error: {msg}'
     msg = textwrap.fill(' '.join(msg.split()))
     parser.error(msg)
 

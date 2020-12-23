@@ -40,7 +40,7 @@ def test_debug__library_versions(script):
 
     vendored_versions = create_vendor_txt_map()
     for name, value in vendored_versions.items():
-        assert '{}=={}'.format(name, value) in result.stdout
+        assert f'{name}=={value}' in result.stdout
 
 
 @pytest.mark.parametrize(

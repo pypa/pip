@@ -24,7 +24,7 @@ class DictMetadata(object):
             return ensure_str(self._metadata[name])
         except UnicodeDecodeError as e:
             # Mirrors handling done in pkg_resources.NullProvider.
-            e.reason += " in {} file".format(name)
+            e.reason += f" in {name} file"
             raise
 
     def get_metadata_lines(self, name):

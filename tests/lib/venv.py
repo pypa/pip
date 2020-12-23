@@ -38,7 +38,7 @@ class VirtualEnvironment(object):
             self.lib = Path(lib)
 
     def __repr__(self):
-        return "<VirtualEnvironment {}>".format(self.location)
+        return f"<VirtualEnvironment {self.location}>"
 
     def _create(self, clear=False):
         if clear:

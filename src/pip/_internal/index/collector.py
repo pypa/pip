@@ -448,7 +448,7 @@ def _get_html_page(link, session=None):
         reason += str(exc)
         _handle_get_page_fail(link, reason, meth=logger.info)
     except requests.ConnectionError as exc:
-        _handle_get_page_fail(link, "connection error: {}".format(exc))
+        _handle_get_page_fail(link, f"connection error: {exc}")
     except requests.Timeout:
         _handle_get_page_fail(link, "timed out")
     else:
@@ -657,7 +657,7 @@ class LinkCollector(object):
             ),
         ]
         for link in url_locations:
-            lines.append('* {}'.format(link))
+            lines.append(f'* {link}')
         logger.debug('\n'.join(lines))
 
         return CollectedLinks(

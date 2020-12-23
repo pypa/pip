@@ -14,7 +14,7 @@ from tests.lib.wheel import make_wheel
 # assert_installed expects a package subdirectory, so give it to them
 def make_wheel_with_file(name, version, **kwargs):
     extra_files = kwargs.setdefault("extra_files", {})
-    extra_files["{}/__init__.py".format(name)] = "# example"
+    extra_files[f"{name}/__init__.py"] = "# example"
     return make_wheel(name=name, version=version, **kwargs)
 
 
@@ -691,7 +691,7 @@ def test_wheel_with_file_in_data_dir_has_reasonable_error(
     result = script.pip(
         "install", "--no-index", str(wheel_path), expect_error=True
     )
-    assert "simple-0.1.0.data/{}".format(name) in result.stderr
+    assert f"simple-0.1.0.data/{name}" in result.stderr
 
 
 def test_wheel_with_unknown_subdir_in_data_dir_has_reasonable_error(

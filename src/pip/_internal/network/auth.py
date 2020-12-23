@@ -199,7 +199,7 @@ class MultiDomainBasicAuth(AuthBase):
             (username is not None and password is not None) or
             # Credentials were not found
             (username is None and password is None)
-        ), "Could not load credentials from url: {}".format(original_url)
+        ), f"Could not load credentials from url: {original_url}"
 
         return url, username, password
 
@@ -223,7 +223,7 @@ class MultiDomainBasicAuth(AuthBase):
     # Factored out to allow for easy patching in tests
     def _prompt_for_password(self, netloc):
         # type: (str) -> Tuple[Optional[str], Optional[str], bool]
-        username = ask_input("User for {}: ".format(netloc))
+        username = ask_input(f"User for {netloc}: ")
         if not username:
             return None, None, False
         auth = get_keyring_auth(netloc, username)

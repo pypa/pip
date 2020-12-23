@@ -93,7 +93,7 @@ def direct_url_from_link(link, source_dir=None, link_is_in_wheel_cache=False):
         hash = None
         hash_name = link.hash_name
         if hash_name:
-            hash = "{}={}".format(hash_name, link.hash)
+            hash = f"{hash_name}={link.hash}"
         return DirectUrl(
             url=link.url_without_fragment,
             info=ArchiveInfo(hash=hash),

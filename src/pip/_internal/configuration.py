@@ -164,7 +164,7 @@ class Configuration(object):
         try:
             return self._dictionary[key]
         except KeyError:
-            raise ConfigurationError("No such key - {}".format(key))
+            raise ConfigurationError(f"No such key - {key}")
 
     def set_value(self, key, value):
         # type: (str, Any) -> None
@@ -193,7 +193,7 @@ class Configuration(object):
 
         assert self.load_only
         if key not in self._config[self.load_only]:
-            raise ConfigurationError("No such key - {}".format(key))
+            raise ConfigurationError(f"No such key - {key}")
 
         fname, parser = self._get_parser_to_modify()
 
@@ -403,4 +403,4 @@ class Configuration(object):
 
     def __repr__(self):
         # type: () -> str
-        return "{}({!r})".format(self.__class__.__name__, self._dictionary)
+        return f"{self.__class__.__name__}({self._dictionary!r})"

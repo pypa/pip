@@ -95,7 +95,7 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(pytest.mark.unit)
         else:
             raise RuntimeError(
-                "Unknown test type (filename = {})".format(module_path)
+                f"Unknown test type (filename = {module_path})"
             )
 
 

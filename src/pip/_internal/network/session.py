@@ -317,9 +317,9 @@ class PipSession(requests.Session):
             string came from.
         """
         if not suppress_logging:
-            msg = 'adding trusted host: {!r}'.format(host)
+            msg = f'adding trusted host: {host!r}'
             if source is not None:
-                msg += ' (from {})'.format(source)
+                msg += f' (from {source})'
             logger.info(msg)
 
         host_port = parse_netloc(host)

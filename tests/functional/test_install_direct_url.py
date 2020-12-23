@@ -33,7 +33,7 @@ def test_install_vcs_editable_no_direct_url(script, with_wheel):
 def test_install_vcs_non_editable_direct_url(script, with_wheel):
     pkg_path = _create_test_package(script, name="testpkg")
     url = path_to_url(pkg_path)
-    args = ["install", "git+{}#egg=testpkg".format(url)]
+    args = ["install", f"git+{url}#egg=testpkg"]
     result = script.pip(*args)
     direct_url = _get_created_direct_url(result, "testpkg")
     assert direct_url

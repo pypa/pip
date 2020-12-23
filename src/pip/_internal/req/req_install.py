@@ -226,7 +226,7 @@ class InstallRequirement(object):
             else:
                 comes_from = self.comes_from.from_path()
             if comes_from:
-                s += ' (from {})'.format(comes_from)
+                s += f' (from {comes_from})'
         return s
 
     def __repr__(self):
@@ -364,7 +364,7 @@ class InstallRequirement(object):
         # name so multiple builds do not interfere with each other.
         dir_name = canonicalize_name(self.name)
         if parallel_builds:
-            dir_name = "{}_{}".format(dir_name, uuid.uuid4().hex)
+            dir_name = f"{dir_name}_{uuid.uuid4().hex}"
 
         # FIXME: Is there a better place to create the build_dir? (hg and bzr
         # need this)
@@ -475,7 +475,7 @@ class InstallRequirement(object):
     @property
     def setup_py_path(self):
         # type: () -> str
-        assert self.source_dir, "No source dir for {}".format(self)
+        assert self.source_dir, f"No source dir for {self}"
         setup_py = os.path.join(self.unpacked_source_directory, 'setup.py')
 
         return setup_py
@@ -483,7 +483,7 @@ class InstallRequirement(object):
     @property
     def pyproject_toml_path(self):
         # type: () -> str
-        assert self.source_dir, "No source dir for {}".format(self)
+        assert self.source_dir, f"No source dir for {self}"
         return make_pyproject_path(self.unpacked_source_directory)
 
     def load_pyproject_toml(self):
@@ -526,7 +526,7 @@ class InstallRequirement(object):
                 setup_py_path=self.setup_py_path,
                 source_dir=self.unpacked_source_directory,
                 isolated=self.isolated,
-                details=self.name or "from {}".format(self.link)
+                details=self.name or f"from {self.link}"
             )
 
         assert self.pep517_backend is not None

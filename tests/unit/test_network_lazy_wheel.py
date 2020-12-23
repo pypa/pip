@@ -33,7 +33,7 @@ def mypy_whl_no_range(mock_server, shared_data):
     mypy_whl = shared_data.packages / 'mypy-0.782-py3-none-any.whl'
     mock_server.set_responses([file_response(mypy_whl)])
     mock_server.start()
-    base_address = 'http://{}:{}'.format(mock_server.host, mock_server.port)
+    base_address = f'http://{mock_server.host}:{mock_server.port}'
     yield "{}/{}".format(base_address, 'mypy-0.782-py3-none-any.whl')
     mock_server.stop()
 

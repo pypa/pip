@@ -262,7 +262,7 @@ class TestOptionsInterspersed(AddFakeCommandMixin):
 @contextmanager
 def tmpconfig(option, value, section='global'):
     with NamedTemporaryFile(mode='w', delete=False) as f:
-        f.write('[{}]\n{}={}\n'.format(section, option, value))
+        f.write(f'[{section}]\n{option}={value}\n')
         name = f.name
     try:
         yield name
@@ -275,7 +275,7 @@ class TestCountOptions(AddFakeCommandMixin):
     @pytest.mark.parametrize('option', ('verbose', 'quiet'))
     @pytest.mark.parametrize('value', range(4))
     def test_cli_long(self, option, value):
-        flags = ['--{}'.format(option)] * value
+        flags = [f'--{option}'] * value
         opt1, args1 = main(flags+['fake'])
         opt2, args2 = main(['fake']+flags)
         assert getattr(opt1, option) == getattr(opt2, option) == value

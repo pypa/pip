@@ -227,7 +227,7 @@ def test_no_clean_option_blocks_cleaning_after_wheel(
 
     if resolver_variant == "legacy":
         build = build / 'simple'
-        message = "build/simple should still exist {}".format(result)
+        message = f"build/simple should still exist {result}"
         assert exists(build), message
 
 

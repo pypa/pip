@@ -85,7 +85,7 @@ class Hashes(object):
                 gots[hash_name] = hashlib.new(hash_name)
             except (ValueError, TypeError):
                 raise InstallationError(
-                    'Unknown hash name: {}'.format(hash_name)
+                    f'Unknown hash name: {hash_name}'
                 )
 
         for chunk in chunks:

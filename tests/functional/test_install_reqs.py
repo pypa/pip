@@ -55,7 +55,7 @@ def arg_recording_sdist_maker(script):
         sdist_path = create_basic_sdist_for_package(
             script, name, "0.1.0", extra_files
         )
-        args_path = output_dir / "{}.json".format(name)
+        args_path = output_dir / f"{name}.json"
         return ArgRecordingSdist(sdist_path, args_path)
 
     return _arg_recording_sdist_maker

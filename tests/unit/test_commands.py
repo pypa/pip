@@ -19,7 +19,7 @@ def check_commands(pred, expected):
     """
     commands = [create_command(name) for name in sorted(commands_dict)]
     actual = [command.name for command in commands if pred(command)]
-    assert actual == expected, 'actual: {}'.format(actual)
+    assert actual == expected, f'actual: {actual}'
 
 
 def test_commands_dict__order():

@@ -48,7 +48,7 @@ def test_make_subprocess_output_error():
     line2
     line3
     ----------------------------------------""")
-    assert actual == expected, 'actual: {}'.format(actual)
+    assert actual == expected, f'actual: {actual}'
 
 
 def test_make_subprocess_output_error__non_ascii_command_arg(monkeypatch):
@@ -76,7 +76,7 @@ def test_make_subprocess_output_error__non_ascii_command_arg(monkeypatch):
          cwd: /path/to/cwd
     Complete output (0 lines):
     ----------------------------------------""")
-    assert actual == expected, 'actual: {}'.format(actual)
+    assert actual == expected, f'actual: {actual}'
 
 
 @pytest.mark.skipif("sys.version_info < (3,)")
@@ -98,7 +98,7 @@ def test_make_subprocess_output_error__non_ascii_cwd_python_3(monkeypatch):
          cwd: /path/to/cwd/déf
     Complete output (0 lines):
     ----------------------------------------""")
-    assert actual == expected, 'actual: {}'.format(actual)
+    assert actual == expected, f'actual: {actual}'
 
 
 @pytest.mark.parametrize('encoding', [
@@ -128,7 +128,7 @@ def test_make_subprocess_output_error__non_ascii_cwd_python_2(
          cwd: /path/to/cwd/déf
     Complete output (0 lines):
     ----------------------------------------""")
-    assert actual == expected, 'actual: {}'.format(actual)
+    assert actual == expected, f'actual: {actual}'
 
 
 # This test is mainly important for checking unicode in Python 2.
@@ -150,7 +150,7 @@ def test_make_subprocess_output_error__non_ascii_line():
     Complete output (1 lines):
     curly-quote: \u2018
     ----------------------------------------""")
-    assert actual == expected, 'actual: {}'.format(actual)
+    assert actual == expected, f'actual: {actual}'
 
 
 class FakeSpinner(SpinnerInterface):
@@ -205,7 +205,7 @@ class TestCallSubprocess(object):
 
         records = caplog.record_tuples
         if len(records) != len(expected_records):
-            raise RuntimeError('{} != {}'.format(records, expected_records))
+            raise RuntimeError(f'{records} != {expected_records}')
 
         for record, expected_record in zip(records, expected_records):
             # Check the logger_name and log level parts exactly.
@@ -316,7 +316,7 @@ class TestCallSubprocess(object):
             'Hello',
             'fail',
             'world',
-        ], 'lines: {}'.format(actual)  # Show the full output on failure.
+        ], f'lines: {actual}'  # Show the full output on failure.
 
         assert command_line.startswith(' command: ')
         assert command_line.endswith('print("world"); exit("fail")\'')
@@ -375,7 +375,7 @@ class TestCallSubprocess(object):
         expected_spin_count = expected[2]
 
         command = (
-            'print("Hello"); print("world"); exit({})'.format(exit_status)
+            f'print("Hello"); print("world"); exit({exit_status})'
         )
         args, spinner = self.prepare_call(caplog, log_level, command=command)
         try:

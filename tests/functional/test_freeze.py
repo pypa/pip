@@ -495,7 +495,7 @@ def test_freeze_bazaar_clone(script, tmpdir):
     try:
         checkout_path = _create_test_package(script, vcs='bazaar')
     except OSError as e:
-        pytest.fail('Invoking `bzr` failed: {e}'.format(e=e))
+        pytest.fail(f'Invoking `bzr` failed: {e}')
 
     result = script.run(
         'bzr', 'checkout', checkout_path, 'bzr-package'
@@ -552,7 +552,7 @@ def test_freeze_nested_vcs(script, outer_vcs, inner_vcs):
     result = script.pip("freeze", expect_stderr=True)
     _check_output(
         result.stdout,
-        "...-e {}+...#egg=version_pkg\n...".format(inner_vcs),
+        f"...-e {inner_vcs}+...#egg=version_pkg\n...",
     )
 
 

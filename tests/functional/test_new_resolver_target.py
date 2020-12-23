@@ -16,7 +16,7 @@ def make_fake_wheel(script):
             version="1.0",
             wheel_metadata_updates={"Tag": []},
         )
-        wheel_path = wheel_house.joinpath("fake-1.0-{}.whl".format(wheel_tag))
+        wheel_path = wheel_house.joinpath(f"fake-1.0-{wheel_tag}.whl")
         wheel_builder.save_to(wheel_path)
         return wheel_path
 

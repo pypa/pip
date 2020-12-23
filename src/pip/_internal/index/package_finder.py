@@ -161,7 +161,7 @@ class LinkEvaluator(object):
         version = None
         if link.is_yanked and not self._allow_yanked:
             reason = link.yanked_reason or '<none given>'
-            return (False, 'yanked for reason: {}'.format(reason))
+            return (False, f'yanked for reason: {reason}')
 
         if link.egg_fragment:
             egg_info = link.egg_fragment
@@ -171,7 +171,7 @@ class LinkEvaluator(object):
             if not ext:
                 return (False, 'not a file')
             if ext not in SUPPORTED_EXTENSIONS:
-                return (False, 'unsupported archive format: {}'.format(ext))
+                return (False, f'unsupported archive format: {ext}')
             if "binary" not in self._formats and ext == WHEEL_EXTENSION:
                 reason = 'No binaries permitted for {}'.format(
                     self.project_name)
@@ -204,7 +204,7 @@ class LinkEvaluator(object):
 
         # This should be up by the self.ok_binary check, but see issue 2700.
         if "source" not in self._formats and ext != WHEEL_EXTENSION:
-            reason = 'No sources permitted for {}'.format(self.project_name)
+            reason = f'No sources permitted for {self.project_name}'
             return (False, reason)
 
         if not version:
@@ -212,7 +212,7 @@ class LinkEvaluator(object):
                 egg_info, self._canonical_name,
             )
         if not version:
-            reason = 'Missing project version for {}'.format(self.project_name)
+            reason = f'Missing project version for {self.project_name}'
             return (False, reason)
 
         match = self._py_version_re.search(version)
@@ -983,7 +983,7 @@ def _find_name_version_sep(fragment, canonical_name):
             continue
         if canonicalize_name(fragment[:i]) == canonical_name:
             return i
-    raise ValueError("{} does not match {}".format(fragment, canonical_name))
+    raise ValueError(f"{fragment} does not match {canonical_name}")
 
 
 def _extract_version_from_fragment(fragment, canonical_name):

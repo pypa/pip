@@ -111,8 +111,8 @@ def parse_editable(editable_req):
             return package_name, url_no_extras, set()
 
     for version_control in vcs:
-        if url.lower().startswith('{}:'.format(version_control)):
-            url = '{}+{}'.format(version_control, url)
+        if url.lower().startswith(f'{version_control}:'):
+            url = f'{version_control}+{url}'
             break
 
     if '+' not in url:
@@ -167,7 +167,7 @@ def deduce_helpful_msg(req):
                 "Cannot parse '%s' as requirements file", req, exc_info=True
             )
     else:
-        msg += " File '{}' does not exist.".format(req)
+        msg += f" File '{req}' does not exist."
     return msg
 
 
@@ -193,7 +193,7 @@ def parse_req_from_editable(editable_req):
         try:
             req = Requirement(name)
         except InvalidRequirement:
-            raise InstallationError("Invalid requirement: '{}'".format(name))
+            raise InstallationError(f"Invalid requirement: '{name}'")
     else:
         req = None
 
@@ -342,7 +342,7 @@ def parse_req_from_line(name, line_source):
         # type: (str) -> str
         if not line_source:
             return text
-        return '{} (from {})'.format(text, line_source)
+        return f'{text} (from {line_source})'
 
     if req_as_string is not None:
         try:
@@ -357,10 +357,10 @@ def parse_req_from_line(name, line_source):
             else:
                 add_msg = ''
             msg = with_source(
-                'Invalid requirement: {!r}'.format(req_as_string)
+                f'Invalid requirement: {req_as_string!r}'
             )
             if add_msg:
-                msg += '\nHint: {}'.format(add_msg)
+                msg += f'\nHint: {add_msg}'
             raise InstallationError(msg)
         else:
             # Deprecate extras after specifiers: "name>=1.0[extras]"
@@ -370,7 +370,7 @@ def parse_req_from_line(name, line_source):
             for spec in req.specifier:
                 spec_str = str(spec)
                 if spec_str.endswith(']'):
-                    msg = "Extras after version '{}'.".format(spec_str)
+                    msg = f"Extras after version '{spec_str}'."
                     replace = "moving the extras before version specifiers"
                     deprecated(msg, replacement=replace, gone_in="21.0")
     else:
@@ -421,7 +421,7 @@ def install_req_from_req_string(
     try:
         req = Requirement(req_string)
     except InvalidRequirement:
-        raise InstallationError("Invalid requirement: '{}'".format(req_string))
+        raise InstallationError(f"Invalid requirement: '{req_string}'")
 
     domains_not_allowed = [
         PyPI.file_storage_domain,

@@ -62,7 +62,7 @@ def test_have_sem_open(name, monkeypatch):
     """Test fallback when sem_open is available."""
     monkeypatch.setattr(DUNDER_IMPORT, have_sem_open)
     with tmp_import_parallel() as parallel:
-        assert getattr(parallel, name) is getattr(parallel, '_{}'.format(name))
+        assert getattr(parallel, name) is getattr(parallel, f'_{name}')
 
 
 @mark.parametrize('name', MAPS)

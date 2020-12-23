@@ -273,5 +273,5 @@ def unpack_file(
             filename, location, content_type,
         )
         raise InstallationError(
-            'Cannot determine archive format of {}'.format(location)
+            f'Cannot determine archive format of {location}'
         )

@@ -270,7 +270,7 @@ class TestProcessLine(object):
 
     def test_yield_editable_constraint(self, line_processor):
         url = 'git+https://url#egg=SomeProject'
-        line = '-e {}'.format(url)
+        line = f'-e {url}'
         filename = 'filename'
         comes_from = '-c {} (line {})'.format(filename, 1)
         req = install_req_from_editable(
@@ -432,7 +432,7 @@ class TestProcessLine(object):
                 return None, '-r reqs.txt'
             elif filename == 'http://me.com/me/reqs.txt':
                 return None, req_name
-            assert False, 'Unexpected file requested {}'.format(filename)
+            assert False, f'Unexpected file requested {filename}'
 
         monkeypatch.setattr(
             pip._internal.req.req_file, 'get_file_content', get_file_content
@@ -478,7 +478,7 @@ class TestProcessLine(object):
         # POSIX-ify the path, since Windows backslashes aren't supported.
         other_req_file_str = str(other_req_file).replace('\\', '/')
 
-        req_file.write_text('-r {}'.format(other_req_file_str))
+        req_file.write_text(f'-r {other_req_file_str}')
         other_req_file.write_text(req_name)
 
         reqs = list(parse_reqfile(str(req_file), session=session))
@@ -498,10 +498,10 @@ class TestProcessLine(object):
 
         def get_file_content(filename, *args, **kwargs):
             if filename == str(req_file):
-                return None, '-r {}'.format(nested_req_file)
+                return None, f'-r {nested_req_file}'
             elif filename == nested_req_file:
                 return None, req_name
-            assert False, 'Unexpected file requested {}'.format(filename)
+            assert False, f'Unexpected file requested {filename}'
 
         monkeypatch.setattr(
             pip._internal.req.req_file, 'get_file_content', get_file_content
