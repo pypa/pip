@@ -409,9 +409,7 @@ def get_line_parser(finder):
 
         args_str, options_str = break_args_options(line)
 
-        # https://github.com/python/mypy/issues/1174
-        opts, _ = parser.parse_args(
-            shlex.split(options_str), defaults)  # type: ignore
+        opts, _ = parser.parse_args(shlex.split(options_str), defaults)
 
         return args_str, opts
 
@@ -433,7 +431,7 @@ def break_args_options(line):
         else:
             args.append(token)
             options.pop(0)
-    return ' '.join(args), ' '.join(options)  # type: ignore
+    return ' '.join(args), ' '.join(options)
 
 
 class OptionParsingError(Exception):

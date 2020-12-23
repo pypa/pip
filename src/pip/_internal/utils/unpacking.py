@@ -192,8 +192,7 @@ def untar_file(filename, location):
         for member in tar.getmembers():
             fn = member.name
             if leading:
-                # https://github.com/python/mypy/issues/1174
-                fn = split_leading_dir(fn)[1]  # type: ignore
+                fn = split_leading_dir(fn)[1]
             path = os.path.join(location, fn)
             if not is_within_directory(location, path):
                 message = (
@@ -234,8 +233,7 @@ def untar_file(filename, location):
                     shutil.copyfileobj(fp, destfp)
                 fp.close()
                 # Update the timestamp (useful for cython compiled files)
-                # https://github.com/python/typeshed/issues/2673
-                tar.utime(member, path)  # type: ignore
+                tar.utime(member, path)
                 # member have any execute permissions for user/group/world?
                 if member.mode & 0o111:
                     set_extracted_file_to_default_mode_plus_executable(path)
