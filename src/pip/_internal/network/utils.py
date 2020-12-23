@@ -44,11 +44,11 @@ def raise_for_status(resp):
         reason = resp.reason
 
     if 400 <= resp.status_code < 500:
-        http_error_msg = '%s Client Error: %s for url: %s' % (
+        http_error_msg = '{} Client Error: {} for url: {}'.format(
             resp.status_code, reason, resp.url)
 
     elif 500 <= resp.status_code < 600:
-        http_error_msg = '%s Server Error: %s for url: %s' % (
+        http_error_msg = '{} Server Error: {} for url: {}'.format(
             resp.status_code, reason, resp.url)
 
     if http_error_msg:

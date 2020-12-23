@@ -56,10 +56,10 @@ class BuildEnvironment(object):
             kind=tempdir_kinds.BUILD_ENV, globally_managed=True
         )
 
-        self._prefixes = OrderedDict((
+        self._prefixes = OrderedDict(
             (name, _Prefix(os.path.join(temp_dir.path, name)))
             for name in ('normal', 'overlay')
-        ))
+        )
 
         self._bin_dirs = []  # type: List[str]
         self._lib_dirs = []  # type: List[str]

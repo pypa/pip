@@ -16,24 +16,24 @@ from tests.lib.wheel import make_wheel
 
 def assert_installed(script, **kwargs):
     ret = script.pip('list', '--format=json')
-    installed = set(
+    installed = {
         (canonicalize_name(val['name']), val['version'])
         for val in json.loads(ret.stdout)
-    )
-    expected = set((canonicalize_name(k), v) for k, v in kwargs.items())
+    }
+    expected = {(canonicalize_name(k), v) for k, v in kwargs.items()}
     assert expected <= installed, \
         "{!r} not all in {!r}".format(expected, installed)
 
 
 def assert_not_installed(script, *args):
     ret = script.pip("list", "--format=json")
-    installed = set(
+    installed = {
         canonicalize_name(val["name"])
         for val in json.loads(ret.stdout)
-    )
+    }
     # None of the given names should be listed as installed, i.e. their
     # intersection should be empty.
-    expected = set(canonicalize_name(k) for k in args)
+    expected = {canonicalize_name(k) for k in args}
     assert not (expected & installed), \
         "{!r} contained in {!r}".format(expected, installed)
 
@@ -42,7 +42,7 @@ def assert_editable(script, *args):
     # This simply checks whether all of the listed packages have a
     # corresponding .egg-link file installed.
     # TODO: Implement a more rigorous way to test for editable installations.
-    egg_links = set("{}.egg-link".format(arg) for arg in args)
+    egg_links = {"{}.egg-link".format(arg) for arg in args}
     assert egg_links <= set(os.listdir(script.site_packages_path)), \
         "{!r} not all found in {!r}".format(args, script.site_packages_path)
 
