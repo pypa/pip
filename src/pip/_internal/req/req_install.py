@@ -617,8 +617,8 @@ class InstallRequirement(object):
             )
 
     # For editable installations
-    def update_editable(self, obtain=True):
-        # type: (bool) -> None
+    def update_editable(self):
+        # type: () -> None
         if not self.link:
             logger.debug(
                 "Cannot update repository at %s; repository location is "
@@ -651,10 +651,7 @@ class InstallRequirement(object):
                     )
                 deprecated(reason, replacement, gone_in="21.0", issue=7554)
             hidden_url = hide_url(self.link.url)
-            if obtain:
-                vcs_backend.obtain(self.source_dir, url=hidden_url)
-            else:
-                vcs_backend.export(self.source_dir, url=hidden_url)
+            vcs_backend.obtain(self.source_dir, url=hidden_url)
         else:
             assert 0, (
                 'Unexpected version control type (in {}): {}'.format(

@@ -570,7 +570,7 @@ class RequirementPreparer(object):
                     'hash.'.format(req)
                 )
             req.ensure_has_source_dir(self.src_dir)
-            req.update_editable(self.download_dir is None)
+            req.update_editable()
 
             dist = _get_prepared_distribution(
                 req, self.req_tracker, self.finder, self.build_isolation,
