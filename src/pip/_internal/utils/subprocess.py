@@ -2,9 +2,8 @@ from __future__ import absolute_import
 
 import logging
 import os
+import shlex
 import subprocess
-
-from pip._vendor.six.moves import shlex_quote
 
 from pip._internal.cli.spinners import SpinnerInterface, open_spinner
 from pip._internal.exceptions import InstallationError
@@ -51,8 +50,8 @@ def format_command_args(args):
     # has type unicode and includes a non-ascii character.  (The type
     # checker doesn't ensure the annotations are correct in all cases.)
     return ' '.join(
-        shlex_quote(str(arg)) if isinstance(arg, HiddenText)
-        else shlex_quote(arg) for arg in args
+        shlex.quote(str(arg)) if isinstance(arg, HiddenText)
+        else shlex.quote(arg) for arg in args
     )
 
 

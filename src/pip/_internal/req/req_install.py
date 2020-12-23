@@ -223,7 +223,7 @@ class InstallRequirement(object):
         if self.satisfied_by is not None:
             s += ' in {}'.format(display_path(self.satisfied_by.location))
         if self.comes_from:
-            if isinstance(self.comes_from, six.string_types):
+            if isinstance(self.comes_from, str):
                 comes_from = self.comes_from  # type: Optional[str]
             else:
                 comes_from = self.comes_from.from_path()
@@ -334,7 +334,7 @@ class InstallRequirement(object):
             return None
         s = str(self.req)
         if self.comes_from:
-            if isinstance(self.comes_from, six.string_types):
+            if isinstance(self.comes_from, str):
                 comes_from = self.comes_from
             else:
                 comes_from = self.comes_from.from_path()
@@ -479,10 +479,6 @@ class InstallRequirement(object):
         # type: () -> str
         assert self.source_dir, "No source dir for {}".format(self)
         setup_py = os.path.join(self.unpacked_source_directory, 'setup.py')
-
-        # Python2 __file__ should not be unicode
-        if six.PY2 and isinstance(setup_py, six.text_type):
-            setup_py = setup_py.encode(sys.getfilesystemencoding())
 
         return setup_py
 

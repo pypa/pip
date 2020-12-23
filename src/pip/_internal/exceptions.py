@@ -4,24 +4,17 @@ from __future__ import absolute_import
 
 from itertools import chain, groupby, repeat
 
-from pip._vendor.six import iteritems
-
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
+    import configparser
+    from hashlib import _Hash
     from typing import Any, Dict, List, Optional, Text
 
     from pip._vendor.pkg_resources import Distribution
     from pip._vendor.requests.models import Request, Response
-    from pip._vendor.six import PY3
-    from pip._vendor.six.moves import configparser
 
     from pip._internal.req.req_install import InstallRequirement
-
-    if PY3:
-        from hashlib import _Hash
-    else:
-        from hashlib import _hash as _Hash
 
 
 class PipError(Exception):
@@ -346,7 +339,7 @@ class HashMismatch(HashError):
             return chain([hash_name], repeat('    or'))
 
         lines = []  # type: List[str]
-        for hash_name, expecteds in iteritems(self.allowed):
+        for hash_name, expecteds in self.allowed.items():
             prefix = hash_then_or(hash_name)
             lines.extend(('        Expected {} {}'.format(next(prefix), e))
                          for e in expecteds)

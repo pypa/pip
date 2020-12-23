@@ -15,14 +15,13 @@ import shutil
 import sys
 import warnings
 from base64 import urlsafe_b64encode
-from itertools import chain, starmap
+from itertools import chain, filterfalse, starmap
 from zipfile import ZipFile
 
 from pip._vendor import pkg_resources
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor.distlib.util import get_export_entry
-from pip._vendor.six import PY2, ensure_str, ensure_text, itervalues, reraise, text_type
-from pip._vendor.six.moves import filterfalse, map
+from pip._vendor.six import ensure_str, ensure_text, reraise
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_major_minor_version
@@ -70,12 +69,12 @@ else:
     from pip._internal.models.scheme import Scheme
     from pip._internal.utils.filesystem import NamedTemporaryFileResult
 
-    RecordPath = NewType('RecordPath', text_type)
+    RecordPath = NewType('RecordPath', str)
     InstalledCSVRow = Tuple[RecordPath, str, Union[int, str]]
 
     class File(Protocol):
         src_record_path = None  # type: RecordPath
-        dest_path = None  # type: text_type
+        dest_path = None  # type: str
         changed = None  # type: bool
 
         def save(self):
@@ -87,7 +86,7 @@ logger = logging.getLogger(__name__)
 
 
 def rehash(path, blocksize=1 << 20):
-    # type: (text_type, int) -> Tuple[str, str]
+    # type: (str, int) -> Tuple[str, str]
     """Return (encoded_digest, length) for path using hashlib.sha256()"""
     h, length = hash_file(path, blocksize)
     digest = 'sha256=' + urlsafe_b64encode(
@@ -102,14 +101,11 @@ def csv_io_kwargs(mode):
     """Return keyword arguments to properly open a CSV file
     in the given mode.
     """
-    if PY2:
-        return {'mode': '{}b'.format(mode)}
-    else:
-        return {'mode': mode, 'newline': '', 'encoding': 'utf-8'}
+    return {'mode': mode, 'newline': '', 'encoding': 'utf-8'}
 
 
 def fix_script(path):
-    # type: (text_type) -> bool
+    # type: (str) -> bool
     """Replace #!python with #!/path/to/python
     Return True if file was changed.
     """
@@ -257,12 +253,12 @@ def _normalized_outrows(outrows):
 
 
 def _record_to_fs_path(record_path):
-    # type: (RecordPath) -> text_type
+    # type: (RecordPath) -> str
     return record_path
 
 
 def _fs_to_record_path(path, relative_to=None):
-    # type: (text_type, Optional[text_type]) -> RecordPath
+    # type: (str, Optional[str]) -> RecordPath
     if relative_to is not None:
         # On Windows, do not handle relative paths if they belong to different
         # logical disks
@@ -307,7 +303,7 @@ def get_csv_rows_for_installed(
         path = _fs_to_record_path(f, lib_dir)
         digest, length = rehash(f)
         installed_rows.append((path, digest, length))
-    for installed_record_path in itervalues(installed):
+    for installed_record_path in installed.values():
         installed_rows.append((installed_record_path, '', ''))
     return installed_rows
 
@@ -400,7 +396,7 @@ def get_console_script_specs(console):
 
 class ZipBackedFile(object):
     def __init__(self, src_record_path, dest_path, zip_file):
-        # type: (RecordPath, text_type, ZipFile) -> None
+        # type: (RecordPath, str, ZipFile) -> None
         self.src_record_path = src_record_path
         self.dest_path = dest_path
         self._zip_file = zip_file
@@ -408,12 +404,7 @@ class ZipBackedFile(object):
 
     def _getinfo(self):
         # type: () -> ZipInfo
-        if not PY2:
-            return self._zip_file.getinfo(self.src_record_path)
-        # Python 2 does not expose a way to detect a ZIP's encoding, but the
-        # wheel specification (PEP 427) explicitly mandates that paths should
-        # use UTF-8, so we assume it is true.
-        return self._zip_file.getinfo(self.src_record_path.encode("utf-8"))
+        return self._zip_file.getinfo(self.src_record_path)
 
     def save(self):
         # type: () -> None
@@ -525,7 +516,7 @@ def _install_wheel(
     generated = []  # type: List[str]
 
     def record_installed(srcfile, destfile, modified=False):
-        # type: (RecordPath, text_type, bool) -> None
+        # type: (RecordPath, str, bool) -> None
         """Map archive RECORD paths to installation RECORD paths."""
         newpath = _fs_to_record_path(destfile, lib_dir)
         installed[srcfile] = newpath
@@ -546,7 +537,7 @@ def _install_wheel(
         return path.endswith("/")
 
     def assert_no_path_traversal(dest_dir_path, target_path):
-        # type: (text_type, text_type) -> None
+        # type: (str, str) -> None
         if not is_within_directory(dest_dir_path, target_path):
             message = (
                 "The wheel {!r} has a file {!r} trying to install"
@@ -557,7 +548,7 @@ def _install_wheel(
             )
 
     def root_scheme_file_maker(zip_file, dest):
-        # type: (ZipFile, text_type) -> Callable[[RecordPath], File]
+        # type: (ZipFile, str) -> Callable[[RecordPath], File]
         def make_root_scheme_file(record_path):
             # type: (RecordPath) -> File
             normed_path = os.path.normpath(record_path)
@@ -675,7 +666,7 @@ def _install_wheel(
         record_installed(file.src_record_path, file.dest_path, file.changed)
 
     def pyc_source_file_paths():
-        # type: () -> Iterator[text_type]
+        # type: () -> Iterator[str]
         # We de-duplicate installation paths, since there can be overlap (e.g.
         # file in .data maps to same location as file in wheel root).
         # Sorting installation paths makes it easier to reproduce and debug
@@ -689,16 +680,10 @@ def _install_wheel(
             yield full_installed_path
 
     def pyc_output_path(path):
-        # type: (text_type) -> text_type
+        # type: (str) -> str
         """Return the path the pyc file would have been written to.
         """
-        if PY2:
-            if sys.flags.optimize:
-                return path + 'o'
-            else:
-                return path + 'c'
-        else:
-            return importlib.util.cache_from_source(path)
+        return importlib.util.cache_from_source(path)
 
     # Compile all of the pyc files for the installed files
     if pycompile:

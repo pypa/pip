@@ -25,7 +25,7 @@ from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import hash_file
 from pip._internal.utils.unpacking import unpack_file
 from pip._internal.utils.wheel import pkg_resources_distribution_for_wheel
-from tests.lib import DATA_DIR, assert_paths_equal, skip_if_python2
+from tests.lib import DATA_DIR, assert_paths_equal
 from tests.lib.wheel import make_wheel
 
 
@@ -83,7 +83,7 @@ def test_get_legacy_build_wheel_path__multiple_names(caplog):
     [
         u"pip = pip._internal.main:pip",
         u"pip:pip = pip._internal.main:pip",
-        pytest.param(u"進入點 = 套件.模組:函式", marks=skip_if_python2),
+        u"進入點 = 套件.模組:函式",
     ],
 )
 def test_get_entrypoints(console_scripts):

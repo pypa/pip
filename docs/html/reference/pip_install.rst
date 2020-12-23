@@ -291,7 +291,7 @@ Since version 6.0, pip also supports specifiers containing `environment markers
 
  ::
 
-  SomeProject ==5.4 ; python_version < '2.7'
+  SomeProject ==5.4 ; python_version < '3.8'
   SomeProject; sys_platform == 'win32'
 
 Since version 19.1, pip also supports `direct references

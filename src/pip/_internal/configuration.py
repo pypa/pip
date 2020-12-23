@@ -11,12 +11,11 @@ Some terminology:
   A single word describing where the configuration key-value pair came from
 """
 
+import configparser
 import locale
 import logging
 import os
 import sys
-
-from pip._vendor.six.moves import configparser
 
 from pip._internal.exceptions import (
     ConfigurationError,

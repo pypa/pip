@@ -6,7 +6,6 @@ import textwrap
 
 import pytest
 from mock import patch
-from pip._vendor.six import PY2
 from pretend import stub
 
 import pip._internal.req.req_file  # this will be monkeypatched
@@ -220,12 +219,11 @@ class TestProcessLine(object):
                 line_number=3
             )
 
-        package_name = "u'my-package=1.0'" if PY2 else "'my-package=1.0'"
         expected = (
-            "Invalid requirement: {} "
+            "Invalid requirement: 'my-package=1.0' "
             '(from line 3 of path/requirements.txt)\n'
             'Hint: = is not a valid operator. Did you mean == ?'
-        ).format(package_name)
+        )
         assert str(exc.value) == expected
 
     def test_yield_line_requirement(self, line_processor):

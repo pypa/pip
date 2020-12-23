@@ -10,7 +10,6 @@ import os
 import shutil
 
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.six import PY2
 
 from pip._internal.distributions import make_distribution_for_install_requirement
 from pip._internal.distributions.installed import InstalledDistribution
@@ -51,26 +50,16 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.req.req_tracker import RequirementTracker
     from pip._internal.utils.hashes import Hashes
 
-    if PY2:
-        CopytreeKwargs = TypedDict(
-            'CopytreeKwargs',
-            {
-                'ignore': Callable[[str, List[str]], List[str]],
-                'symlinks': bool,
-            },
-            total=False,
-        )
-    else:
-        CopytreeKwargs = TypedDict(
-            'CopytreeKwargs',
-            {
-                'copy_function': Callable[[str, str], None],
-                'ignore': Callable[[str, List[str]], List[str]],
-                'ignore_dangling_symlinks': bool,
-                'symlinks': bool,
-            },
-            total=False,
-        )
+    CopytreeKwargs = TypedDict(
+        'CopytreeKwargs',
+        {
+            'copy_function': Callable[[str, str], None],
+            'ignore': Callable[[str, List[str]], List[str]],
+            'ignore_dangling_symlinks': bool,
+            'symlinks': bool,
+        },
+        total=False,
+    )
 
 logger = logging.getLogger(__name__)
 
@@ -177,14 +166,13 @@ def _copy_source_tree(source, target):
             skipped += [target_basename]
         return skipped
 
-    kwargs = dict(ignore=ignore, symlinks=True)  # type: CopytreeKwargs
-
-    if not PY2:
-        # Python 2 does not support copy_function, so we only ignore
-        # errors on special file copy in Python 3.
-        kwargs['copy_function'] = _copy2_ignoring_special_files
-
-    shutil.copytree(source, target, **kwargs)
+    shutil.copytree(
+        source,
+        target,
+        ignore=ignore,
+        symlinks=True,
+        copy_function=_copy2_ignoring_special_files,
+    )
 
 
 def get_file_url(

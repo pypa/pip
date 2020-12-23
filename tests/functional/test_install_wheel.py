@@ -8,7 +8,7 @@ import shutil
 
 import pytest
 
-from tests.lib import create_basic_wheel_for_package, skip_if_python2
+from tests.lib import create_basic_wheel_for_package
 from tests.lib.path import Path
 from tests.lib.wheel import make_wheel
 
@@ -118,7 +118,6 @@ def test_basic_install_from_wheel_file(script, data):
 
 # Installation seems to work, but scripttest fails to check.
 # I really don't care now since we're desupporting it soon anyway.
-@skip_if_python2
 def test_basic_install_from_unicode_wheel(script, data):
     """
     Test installing from a wheel (that has a script)
@@ -394,8 +393,6 @@ def test_install_from_wheel_gen_uppercase_entrypoint(
         assert bool(os.access(script.base_path / wrapper_file, os.X_OK))
 
 
-# pkg_resources.EntryPoint() does not parse unicode correctly on Python 2.
-@skip_if_python2
 def test_install_from_wheel_gen_unicode_entrypoint(script):
     make_wheel(
         "script_wheel_unicode",
@@ -651,8 +648,6 @@ def test_wheel_installs_ok_with_badly_encoded_irrelevant_dist_info_file(
     )
 
 
-# Metadata is not decoded on Python 2.
-@skip_if_python2
 def test_wheel_install_fails_with_badly_encoded_metadata(script):
     package = create_basic_wheel_for_package(
         script,

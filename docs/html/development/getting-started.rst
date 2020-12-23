@@ -79,7 +79,7 @@ To run tests without parallelization, run:
     $ tox -e py36
 
 The example above runs tests against Python 3.6. You can also use other
-versions like ``py27`` and ``pypy3``.
+versions like ``py39`` and ``pypy3``.
 
 ``tox`` has been configured to forward any additional arguments it is given to
 ``pytest``. This enables the use of pytest's `rich CLI`_. As an example, you

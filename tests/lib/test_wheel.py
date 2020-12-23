@@ -5,7 +5,7 @@ from email import message_from_string
 from functools import partial
 from zipfile import ZipFile
 
-from pip._vendor.six import ensure_text, iteritems
+from pip._vendor.six import ensure_text
 
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from tests.lib.wheel import (
@@ -182,7 +182,7 @@ def test_make_wheel_default_record():
             ],
             "simple-0.1.0.dist-info/RECORD": ["", ""],
         }
-        for name, values in iteritems(expected):
+        for name, values in expected.items():
             assert records[name] == values, name
 
         # WHEEL and METADATA aren't constructed in a stable way, so just spot
@@ -191,7 +191,7 @@ def test_make_wheel_default_record():
             "simple-0.1.0.dist-info/METADATA": "51",
             "simple-0.1.0.dist-info/WHEEL": "104",
         }
-        for name, length in iteritems(expected_variable):
+        for name, length in expected_variable.items():
             assert records[name][0].startswith("sha256="), name
             assert records[name][1] == length, name
 

@@ -7,16 +7,15 @@ from __future__ import absolute_import
 
 import logging
 import optparse
+import shutil
 import sys
 import textwrap
 from distutils.util import strtobool
 
 from pip._vendor.contextlib2 import suppress
-from pip._vendor.six import string_types
 
 from pip._internal.cli.status_codes import UNKNOWN_ERROR
 from pip._internal.configuration import Configuration, ConfigurationError
-from pip._internal.utils.compat import get_terminal_size
 from pip._internal.utils.misc import redact_auth_from_url
 
 logger = logging.getLogger(__name__)
@@ -29,7 +28,7 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
         # help position must be aligned with __init__.parseopts.description
         kwargs['max_help_position'] = 30
         kwargs['indent_increment'] = 1
-        kwargs['width'] = get_terminal_size()[0] - 2
+        kwargs['width'] = shutil.get_terminal_size()[0] - 2
         optparse.IndentedHelpFormatter.__init__(self, *args, **kwargs)
 
     def format_option_strings(self, option):
@@ -119,7 +118,7 @@ class UpdatingDefaultsHelpFormatter(PrettyHelpFormatter):
         help_text = optparse.IndentedHelpFormatter.expand_default(self, option)
 
         if default_values and option.metavar == 'URL':
-            if isinstance(default_values, string_types):
+            if isinstance(default_values, str):
                 default_values = [default_values]
 
             # If its not a list, we should abort and just return the help text
@@ -275,7 +274,7 @@ class ConfigOptionParser(CustomOptionParser):
         defaults = self._update_defaults(self.defaults.copy())  # ours
         for option in self._get_all_options():
             default = defaults.get(option.dest)
-            if isinstance(default, string_types):
+            if isinstance(default, str):
                 opt_str = option.get_opt_string()
                 defaults[option.dest] = option.check_value(opt_str, default)
         return optparse.Values(defaults)

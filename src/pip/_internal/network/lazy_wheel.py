@@ -8,7 +8,6 @@ from tempfile import NamedTemporaryFile
 from zipfile import BadZipfile, ZipFile
 
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE
-from pip._vendor.six.moves import range
 
 from pip._internal.network.utils import HEADERS, raise_for_status, response_chunks
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING

@@ -5,7 +5,6 @@ import textwrap
 
 import pytest
 
-from tests.lib import skip_if_python2
 from tests.lib.server import (
     authorization_response,
     file_response,
@@ -130,7 +129,6 @@ def test_command_line_appends_correctly(script, data):
     ), 'stdout: {}'.format(result.stdout)
 
 
-@skip_if_python2
 def test_config_file_override_stack(
     script, virtualenv, mock_server, shared_data
 ):
@@ -249,7 +247,6 @@ def test_prompt_for_authentication(script, data, cert_factory):
            result.stdout, str(result)
 
 
-@skip_if_python2
 def test_do_not_prompt_for_authentication(script, data, cert_factory):
     """Test behaviour if --no-input option is given while installing
     from a index url requiring authentication

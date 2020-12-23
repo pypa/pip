@@ -9,7 +9,6 @@ from pip._vendor.contextlib2 import ExitStack
 from pip._internal.exceptions import UnsupportedWheel
 from pip._internal.utils import wheel
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from tests.lib import skip_if_python2
 
 if MYPY_CHECK_RUNNING:
     from tests.lib.path import Path
@@ -88,7 +87,6 @@ def test_wheel_metadata_fails_missing_wheel(tmpdir, zip_dir):
     assert "could not read" in str(e.value)
 
 
-@skip_if_python2
 def test_wheel_metadata_fails_on_bad_encoding(tmpdir, zip_dir):
     dist_info_dir = tmpdir / "simple-0.1.0.dist-info"
     dist_info_dir.mkdir()

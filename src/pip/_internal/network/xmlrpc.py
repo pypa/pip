@@ -2,11 +2,11 @@
 """
 
 import logging
+from urllib import parse as urllib_parse
 
 # NOTE: XMLRPC Client is not annotated in typeshed as on 2017-07-17, which is
 #       why we ignore the type on this import
 from pip._vendor.six.moves import xmlrpc_client  # type: ignore
-from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 from pip._internal.exceptions import NetworkConnectionError
 from pip._internal.network.utils import raise_for_status

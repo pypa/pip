@@ -3,8 +3,6 @@ from __future__ import absolute_import
 import json
 import logging
 
-from pip._vendor import six
-
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.req_command import IndexGroupCommand
 from pip._internal.cli.status_codes import SUCCESS
@@ -315,13 +313,13 @@ def format_for_json(packages, options):
     for dist in packages:
         info = {
             'name': dist.project_name,
-            'version': six.text_type(dist.version),
+            'version': str(dist.version),
         }
         if options.verbose >= 1:
             info['location'] = dist.location
             info['installer'] = get_installer(dist)
         if options.outdated:
-            info['latest_version'] = six.text_type(dist.latest_version)
+            info['latest_version'] = str(dist.latest_version)
             info['latest_filetype'] = dist.latest_filetype
         data.append(info)
     return json.dumps(data)
