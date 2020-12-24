@@ -71,7 +71,7 @@ if MYPY_CHECK_RUNNING:
 logger = logging.getLogger(__name__)
 
 
-class Factory(object):
+class Factory:
     def __init__(
         self,
         finder,  # type: PackageFinder

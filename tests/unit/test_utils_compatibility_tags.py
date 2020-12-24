@@ -21,7 +21,7 @@ def test_version_info_to_nodot(version_info, expected):
     assert actual == expected
 
 
-class Testcompatibility_tags(object):
+class Testcompatibility_tags:
 
     def mock_get_config_var(self, **kwd):
         """
@@ -52,7 +52,7 @@ class Testcompatibility_tags(object):
             assert '-' not in tag.platform
 
 
-class TestManylinux2010Tags(object):
+class TestManylinux2010Tags:
 
     @pytest.mark.parametrize("manylinux2010,manylinux1", [
         ("manylinux2010_x86_64", "manylinux1_x86_64"),
@@ -75,7 +75,7 @@ class TestManylinux2010Tags(object):
             assert arches[:2] == [manylinux2010, manylinux1]
 
 
-class TestManylinux2014Tags(object):
+class TestManylinux2014Tags:
 
     @pytest.mark.parametrize("manylinuxA,manylinuxB", [
         ("manylinux2014_x86_64", ["manylinux2010_x86_64",

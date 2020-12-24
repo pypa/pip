@@ -94,7 +94,7 @@ def get_configuration_files():
     }
 
 
-class Configuration(object):
+class Configuration:
     """Handles management of configuration.
 
     Provides an interface to accessing and managing configuration files.

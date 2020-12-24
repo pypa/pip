@@ -45,7 +45,7 @@ def global_tempdir_manager():
             _tempdir_manager = old_tempdir_manager
 
 
-class TempDirectoryTypeRegistry(object):
+class TempDirectoryTypeRegistry:
     """Manages temp directory behavior
     """
 
@@ -86,14 +86,14 @@ def tempdir_registry():
         _tempdir_registry = old_tempdir_registry
 
 
-class _Default(object):
+class _Default:
     pass
 
 
 _default = _Default()
 
 
-class TempDirectory(object):
+class TempDirectory:
     """Helper class that owns and cleans up a temporary directory.
 
     This class can be used as a context manager or as an OO representation of a

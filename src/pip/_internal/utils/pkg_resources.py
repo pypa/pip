@@ -7,7 +7,7 @@ if MYPY_CHECK_RUNNING:
     from typing import Dict, Iterable, List
 
 
-class DictMetadata(object):
+class DictMetadata:
     """IMetadataProvider that reads metadata files from a dictionary.
     """
     def __init__(self, metadata):

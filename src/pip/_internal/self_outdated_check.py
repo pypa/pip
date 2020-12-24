@@ -36,7 +36,7 @@ def _get_statefile_name(key):
     return name
 
 
-class SelfCheckState(object):
+class SelfCheckState:
     def __init__(self, cache_dir):
         # type: (str) -> None
         self.state = {}  # type: Dict[str, Any]

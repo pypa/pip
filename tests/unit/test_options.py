@@ -160,7 +160,7 @@ class TestOptionPrecedence(AddFakeCommandMixin):
             main(['--no-cache-dir', 'fake'])
 
 
-class TestUsePEP517Options(object):
+class TestUsePEP517Options:
 
     """
     Test options related to using --use-pep517.
@@ -431,7 +431,7 @@ class TestGeneralOptions(AddFakeCommandMixin):
         assert options1.client_cert == options2.client_cert == 'path'
 
 
-class TestOptionsConfigFiles(object):
+class TestOptionsConfigFiles:
 
     def test_venv_config_file_found(self, monkeypatch):
         # strict limit on the global config files list

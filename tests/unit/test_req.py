@@ -58,7 +58,7 @@ def get_processed_req_from_line(line, fname='file', lineno=1):
     return req
 
 
-class TestRequirementSet(object):
+class TestRequirementSet:
     """RequirementSet tests"""
 
     def setup(self):
@@ -317,7 +317,7 @@ class TestRequirementSet(object):
         ))
 
 
-class TestInstallRequirement(object):
+class TestInstallRequirement:
     def setup(self):
         self.tempdir = tempfile.mkdtemp()
 

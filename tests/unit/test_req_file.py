@@ -67,7 +67,7 @@ def parse_reqfile(
         )
 
 
-class TestPreprocess(object):
+class TestPreprocess:
     """tests for `preprocess`"""
 
     def test_comments_and_joins_case1(self):
@@ -97,7 +97,7 @@ class TestPreprocess(object):
         assert list(result) == [(1, 'req1'), (3, 'req2')]
 
 
-class TestIgnoreComments(object):
+class TestIgnoreComments:
     """tests for `ignore_comment`"""
 
     def test_ignore_line(self):
@@ -116,7 +116,7 @@ class TestIgnoreComments(object):
         assert list(result) == [(1, 'req1'), (2, 'req'), (3, 'req2')]
 
 
-class TestJoinLines(object):
+class TestJoinLines:
     """tests for `join_lines`"""
 
     def test_join_lines(self):
@@ -183,7 +183,7 @@ def line_processor(
     return process_line
 
 
-class TestProcessLine(object):
+class TestProcessLine:
     """tests for `process_line`"""
 
     def test_parser_error(self, line_processor):
@@ -513,7 +513,7 @@ class TestProcessLine(object):
         assert not result[0].constraint
 
 
-class TestBreakOptionsArgs(object):
+class TestBreakOptionsArgs:
 
     def test_no_args(self):
         assert ('', '--option') == break_args_options('--option')
@@ -530,7 +530,7 @@ class TestBreakOptionsArgs(object):
         assert ('arg arg', '--long') == result
 
 
-class TestOptionVariants(object):
+class TestOptionVariants:
 
     # this suite is really just testing optparse, but added it anyway
 
@@ -555,7 +555,7 @@ class TestOptionVariants(object):
         assert finder.index_urls == ['url']
 
 
-class TestParseRequirements(object):
+class TestParseRequirements:
     """tests for `parse_reqfile`"""
 
     @pytest.mark.network

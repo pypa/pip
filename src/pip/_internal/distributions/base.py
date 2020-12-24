@@ -11,7 +11,7 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.req import InstallRequirement
 
 
-class AbstractDistribution(object, metaclass=abc.ABCMeta):
+class AbstractDistribution(metaclass=abc.ABCMeta):
     """A base class for handling installable artifacts.
 
     The requirements for anything installable are as follows:

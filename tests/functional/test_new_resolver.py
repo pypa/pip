@@ -858,7 +858,7 @@ def test_new_resolver_upgrade_strategy(script):
     assert_installed(script, dep="2.0.0")
 
 
-class TestExtraMerge(object):
+class TestExtraMerge:
     """
     Test installing a package that depends the same package with different
     extras, one listed as required and the other as in extra.

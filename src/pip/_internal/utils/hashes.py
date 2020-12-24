@@ -19,7 +19,7 @@ FAVORITE_HASH = 'sha256'
 STRONG_HASHES = ['sha256', 'sha384', 'sha512']
 
 
-class Hashes(object):
+class Hashes:
     """A wrapper that builds multiple hashes at once and checks them against
     known-good values
 

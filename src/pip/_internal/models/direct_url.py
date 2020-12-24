@@ -71,7 +71,7 @@ def _filter_none(**kwargs):
     return {k: v for k, v in kwargs.items() if v is not None}
 
 
-class VcsInfo(object):
+class VcsInfo:
     name = "vcs_info"
 
     def __init__(
@@ -112,7 +112,7 @@ class VcsInfo(object):
         )
 
 
-class ArchiveInfo(object):
+class ArchiveInfo:
     name = "archive_info"
 
     def __init__(
@@ -133,7 +133,7 @@ class ArchiveInfo(object):
         return _filter_none(hash=self.hash)
 
 
-class DirInfo(object):
+class DirInfo:
     name = "dir_info"
 
     def __init__(
@@ -160,7 +160,7 @@ if MYPY_CHECK_RUNNING:
     InfoType = Union[ArchiveInfo, DirInfo, VcsInfo]
 
 
-class DirectUrl(object):
+class DirectUrl:
 
     def __init__(
         self,

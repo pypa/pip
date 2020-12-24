@@ -15,7 +15,7 @@ from pip._internal.utils.misc import captured_stderr, captured_stdout
 logger = logging.getLogger(__name__)
 
 
-class TestIndentingFormatter(object):
+class TestIndentingFormatter:
     """Test ``pip._internal.utils.logging.IndentingFormatter``."""
 
     def make_record(self, msg, level_name):
@@ -110,7 +110,7 @@ class TestIndentingFormatter(object):
         assert results[0] == results[1]
 
 
-class TestColorizedStreamHandler(object):
+class TestColorizedStreamHandler:
 
     def _make_log_record(self):
         attrs = {

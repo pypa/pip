@@ -12,7 +12,7 @@ if MYPY_CHECK_RUNNING:
     from typing import List
 
 
-class Wheel(object):
+class Wheel:
     """A wheel file"""
 
     wheel_file_re = re.compile(

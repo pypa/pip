@@ -7,7 +7,7 @@ if MYPY_CHECK_RUNNING:
     from typing import FrozenSet, Optional, Set
 
 
-class FormatControl(object):
+class FormatControl:
     """Helper for managing formats from which a package can be installed.
     """
 

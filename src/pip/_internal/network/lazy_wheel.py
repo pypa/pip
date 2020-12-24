@@ -44,7 +44,7 @@ def dist_from_wheel_url(name, url, session):
         return pkg_resources_distribution_for_wheel(zip_file, name, wheel.name)
 
 
-class LazyZipOverHTTP(object):
+class LazyZipOverHTTP:
     """File-like object mapped to a ZIP file over HTTP.
 
     This uses HTTP range requests to lazily fetch the file's content,

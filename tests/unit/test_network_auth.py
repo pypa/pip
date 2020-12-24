@@ -71,7 +71,7 @@ def test_get_index_url_credentials():
     assert get("http://example.com/path3/path2") == (None, None)
 
 
-class KeyringModuleV1(object):
+class KeyringModuleV1:
     """Represents the supported API of keyring before get_credential
     was added.
     """
@@ -209,10 +209,10 @@ def test_keyring_set_password(monkeypatch, response_status, creds,
         assert keyring.saved_passwords == []
 
 
-class KeyringModuleV2(object):
+class KeyringModuleV2:
     """Represents the current supported API of keyring"""
 
-    class Credential(object):
+    class Credential:
         def __init__(self, username, password):
             self.username = username
             self.password = password
@@ -244,7 +244,7 @@ def test_keyring_get_credential(monkeypatch, url, expect):
     ) == expect
 
 
-class KeyringModuleBroken(object):
+class KeyringModuleBroken:
     """Represents the current supported API of keyring, but broken"""
 
     def __init__(self):

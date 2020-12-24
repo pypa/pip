@@ -166,7 +166,7 @@ class FakeSpinner(SpinnerInterface):
         self.final_status = final_status
 
 
-class TestCallSubprocess(object):
+class TestCallSubprocess:
 
     """
     Test call_subprocess().

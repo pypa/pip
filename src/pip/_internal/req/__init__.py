@@ -19,7 +19,7 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 
-class InstallationResult(object):
+class InstallationResult:
     def __init__(self, name):
         # type: (str) -> None
         self.name = name

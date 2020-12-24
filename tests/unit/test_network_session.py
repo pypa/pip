@@ -199,7 +199,7 @@ class TestPipSession:
         ],
     )
     def test_is_secure_origin(self, caplog, location, trusted, expected):
-        class MockLogger(object):
+        class MockLogger:
             def __init__(self):
                 self.called = False
 

@@ -214,7 +214,7 @@ def compress_for_output_listing(paths):
     return will_remove, will_skip
 
 
-class StashedUninstallPathSet(object):
+class StashedUninstallPathSet:
     """A set of file rename operations to stash files while
     tentatively uninstalling them."""
     def __init__(self):
@@ -325,7 +325,7 @@ class StashedUninstallPathSet(object):
         return bool(self._moves)
 
 
-class UninstallPathSet(object):
+class UninstallPathSet:
     """A set of file paths to be removed in the uninstallation of a
     requirement."""
     def __init__(self, dist):
@@ -590,7 +590,7 @@ class UninstallPathSet(object):
         return paths_to_remove
 
 
-class UninstallPthEntries(object):
+class UninstallPthEntries:
     def __init__(self, pth_file):
         # type: (str) -> None
         self.file = pth_file

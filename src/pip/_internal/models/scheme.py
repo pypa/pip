@@ -9,7 +9,7 @@ https://docs.python.org/3/install/index.html#alternate-installation.
 SCHEME_KEYS = ['platlib', 'purelib', 'headers', 'scripts', 'data']
 
 
-class Scheme(object):
+class Scheme:
     """A Scheme holds paths which are used as the base directories for
     artifacts associated with a Python package.
     """

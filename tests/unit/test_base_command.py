@@ -52,7 +52,7 @@ class FakeCommandWithUnicode(FakeCommand):
         )
 
 
-class TestCommand(object):
+class TestCommand:
 
     def call_main(self, capsys, args):
         """
@@ -159,7 +159,7 @@ def test_base_command_global_tempdir_cleanup(kind, exists):
     assert temp_dir._tempdir_manager is None
     assert temp_dir._tempdir_registry is None
 
-    class Holder(object):
+    class Holder:
         value = None
 
     def create_temp_dirs(options, args):

@@ -10,7 +10,7 @@ if MYPY_CHECK_RUNNING:
     _T = TypeVar('_T', covariant=True)
 
 
-class CommandContextMixIn(object):
+class CommandContextMixIn:
     def __init__(self):
         # type: () -> None
         super().__init__()

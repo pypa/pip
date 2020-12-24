@@ -62,7 +62,7 @@ def get_requirement_tracker():
             yield tracker
 
 
-class RequirementTracker(object):
+class RequirementTracker:
 
     def __init__(self, root):
         # type: (str) -> None

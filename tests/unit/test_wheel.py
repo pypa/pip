@@ -223,7 +223,7 @@ def test_wheel_root_is_purelib(text, expected):
     assert wheel.wheel_root_is_purelib(message_from_string(text)) == expected
 
 
-class TestWheelFile(object):
+class TestWheelFile:
 
     def test_unpack_wheel_no_flatten(self, tmpdir):
         filepath = os.path.join(DATA_DIR, 'packages',
@@ -232,7 +232,7 @@ class TestWheelFile(object):
         assert os.path.isdir(os.path.join(tmpdir, 'meta-1.0.dist-info'))
 
 
-class TestInstallUnpackedWheel(object):
+class TestInstallUnpackedWheel:
     """
     Tests for moving files from wheel src to scheme paths
     """
@@ -487,7 +487,7 @@ class TestInstallUnpackedWheel(object):
         assert entrypoint in exc_text
 
 
-class TestMessageAboutScriptsNotOnPATH(object):
+class TestMessageAboutScriptsNotOnPATH:
 
     tilde_warning_msg = (
         "NOTE: The current PATH contains path(s) starting with `~`, "
@@ -644,7 +644,7 @@ class TestMessageAboutScriptsNotOnPATH(object):
         assert self.tilde_warning_msg not in retval
 
 
-class TestWheelHashCalculators(object):
+class TestWheelHashCalculators:
 
     def prep(self, tmpdir):
         self.test_file = tmpdir.joinpath("hash.file")
