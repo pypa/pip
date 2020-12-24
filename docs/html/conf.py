@@ -307,7 +307,7 @@ for fname in raw_subcommands:
 # NOTE: 'important', 'note', 'tip', 'warning' or 'admonition'.
 docs_feedback_admonition_type = 'important'
 docs_feedback_big_doc_lines = 50  # bigger docs will have a banner on top
-docs_feedback_email = 'Docs UX Team <docs-feedback+ux/pip.pypa.io@pypa.io>'
+docs_feedback_email = 'Docs UX Team <docs-feedback@pypa.io>'
 docs_feedback_excluded_documents = {  # these won't have any banners
     'news', 'reference/index',
 }

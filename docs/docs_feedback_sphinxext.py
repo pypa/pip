@@ -141,7 +141,7 @@ def setup(app: Sphinx) -> Dict[str, Union[bool, str]]:
     )
     app.add_config_value(
         'docs_feedback_email',
-        default='Docs UX Team <docs-feedback+ux/pip.pypa.io@pypa.io>',
+        default='Docs UX Team <docs-feedback@pypa.io>',
         rebuild=rebuild_trigger,
     )
     app.add_config_value(
