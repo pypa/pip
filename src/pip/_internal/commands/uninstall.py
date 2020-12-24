@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.cli.base_command import Command

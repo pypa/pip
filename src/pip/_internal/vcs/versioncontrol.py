@@ -1,7 +1,5 @@
 """Handles all VCS (version control) support"""
 
-from __future__ import absolute_import
-
 import errno
 import logging
 import os

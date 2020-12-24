@@ -1,6 +1,4 @@
 """Test the test support."""
-from __future__ import absolute_import
-
 import filecmp
 import re
 import sys

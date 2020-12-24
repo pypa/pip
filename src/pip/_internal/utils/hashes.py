@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import hashlib
 
 from pip._internal.exceptions import HashMismatch, HashMissing, InstallationError
