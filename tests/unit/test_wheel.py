@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Tests for wheel binary packages and .dist-info."""
 import csv
 import logging

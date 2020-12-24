@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # pip documentation build configuration file, created by
 # sphinx-quickstart on Tue Apr 22 22:08:49 2008
 #

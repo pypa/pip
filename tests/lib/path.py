@@ -1,5 +1,4 @@
 # flake8: noqa
-# -*- coding: utf-8 -*-
 # Author: Aziz Köksal
 import glob
 import os

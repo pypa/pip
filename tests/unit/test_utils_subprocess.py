@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import locale
 import sys
 from logging import DEBUG, ERROR, INFO, WARNING
