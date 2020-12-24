@@ -80,7 +80,7 @@ def test_new_resolver_hash_intersect(script, requirements_template, message):
         "--requirement", requirements_txt,
     )
 
-    assert message.format(name=u"base") in result.stdout, str(result)
+    assert message.format(name="base") in result.stdout, str(result)
 
 
 def test_new_resolver_hash_intersect_from_constraint(script):
@@ -116,7 +116,7 @@ def test_new_resolver_hash_intersect_from_constraint(script):
     message = (
         "Checked 2 links for project {name!r} against 1 hashes "
         "(1 matches, 0 no digest): discarding 1 non-matches"
-    ).format(name=u"base")
+    ).format(name="base")
     assert message in result.stdout, str(result)
 
 

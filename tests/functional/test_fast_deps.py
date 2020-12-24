@@ -54,7 +54,7 @@ def test_build_wheel_with_deps(data, script):
 def test_require_hash(script, tmp_path):
     reqs = tmp_path / 'requirements.txt'
     reqs.write_text(
-        u'idna==2.10'
+        'idna==2.10'
         ' --hash=sha256:'
         'b97d804b1e9b523befed77c48dacec60e6dcb0b5391d57af6a65a312a90648c0'
         ' --hash=sha256:'
@@ -71,7 +71,7 @@ def test_require_hash(script, tmp_path):
 @mark.network
 def test_hash_mismatch(script, tmp_path):
     reqs = tmp_path / 'requirements.txt'
-    reqs.write_text(u'idna==2.10 --hash=sha256:irna')
+    reqs.write_text('idna==2.10 --hash=sha256:irna')
     result = script.pip(
         'download', '--use-feature=fast-deps', '-r', str(reqs),
         expect_error=True,

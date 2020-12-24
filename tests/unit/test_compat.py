@@ -54,11 +54,9 @@ def test_get_path_uid_symlink_without_NOFOLLOW(tmpdir, monkeypatch):
 
 
 @pytest.mark.parametrize('data, expected', [
-    ('abc', u'abc'),
-    # Test text (unicode in Python 2) input.
-    (u'abc', u'abc'),
+    ('abc', 'abc'),
     # Test text input with non-ascii characters.
-    (u'déf', u'déf'),
+    ('déf', 'déf'),
 ])
 def test_str_to_display(data, expected):
     actual = str_to_display(data)
@@ -70,13 +68,13 @@ def test_str_to_display(data, expected):
 
 @pytest.mark.parametrize('data, encoding, expected', [
     # Test str input with non-ascii characters.
-    ('déf', 'utf-8', u'déf'),
+    ('déf', 'utf-8', 'déf'),
     # Test bytes input with non-ascii characters:
-    (u'déf'.encode('utf-8'), 'utf-8', u'déf'),
+    ('déf'.encode('utf-8'), 'utf-8', 'déf'),
     # Test a Windows encoding.
-    (u'déf'.encode('cp1252'), 'cp1252', u'déf'),
+    ('déf'.encode('cp1252'), 'cp1252', 'déf'),
     # Test a Windows encoding with incompatibly encoded text.
-    (u'déf'.encode('utf-8'), 'cp1252', u'dÃ©f'),
+    ('déf'.encode('utf-8'), 'cp1252', 'dÃ©f'),
 ])
 def test_str_to_display__encoding(monkeypatch, data, encoding, expected):
     monkeypatch.setattr(locale, 'getpreferredencoding', lambda: encoding)
@@ -90,7 +88,7 @@ def test_str_to_display__encoding(monkeypatch, data, encoding, expected):
 def test_str_to_display__decode_error(monkeypatch, caplog):
     monkeypatch.setattr(locale, 'getpreferredencoding', lambda: 'utf-8')
     # Encode with an incompatible encoding.
-    data = u'ab'.encode('utf-16')
+    data = 'ab'.encode('utf-16')
     actual = str_to_display(data)
     # Keep the expected value endian safe
     if sys.byteorder == "little":

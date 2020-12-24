@@ -72,7 +72,7 @@ class Path(str):
         return Path(path + str(self))
 
     def __repr__(self):
-        return u"Path({inner})".format(inner=str.__repr__(self))
+        return "Path({inner})".format(inner=str.__repr__(self))
 
     def __hash__(self):
         return str.__hash__(self)

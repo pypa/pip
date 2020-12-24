@@ -496,7 +496,7 @@ def cert_factory(tmpdir_factory):
         """
         output_path = Path(str(tmpdir_factory.mktemp("certs"))) / "cert.pem"
         # Must be Text on PY2.
-        cert, key = make_tls_cert(u"localhost")
+        cert, key = make_tls_cert("localhost")
         with open(str(output_path), "wb") as f:
             f.write(serialize_cert(cert))
             f.write(serialize_key(key))

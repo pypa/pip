@@ -70,7 +70,7 @@ class TestUserCacheDir:
             return
 
         def my_get_win_folder(csidl_name):
-            return u"\u00DF\u00E4\u03B1\u20AC"
+            return "\u00DF\u00E4\u03B1\u20AC"
 
         monkeypatch.setattr(_appdirs, "_get_win_folder", my_get_win_folder)
 

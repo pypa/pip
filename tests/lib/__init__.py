@@ -306,7 +306,7 @@ class TestPipResult(object):
             if not (egg_link_contents.endswith('\n.') and
                     egg_link_contents[:-2].endswith(pkg_dir)):
                 raise TestFailure(textwrap.dedent(
-                    u'''\
+                    '''\
                     Incorrect egg_link file {egg_link_file!r}
                     Expected ending: {expected_ending!r}
                     ------- Actual contents -------

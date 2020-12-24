@@ -90,7 +90,7 @@ def make_subprocess_output_error(
         # Use a unicode string to avoid "UnicodeEncodeError: 'ascii'
         # codec can't encode character ..." in Python 2 when a format
         # argument (e.g. `output`) has a non-ascii character.
-        u'Command errored out with exit status {exit_status}:\n'
+        'Command errored out with exit status {exit_status}:\n'
         ' command: {command_display}\n'
         '     cwd: {cwd_display}\n'
         'Complete output ({line_count} lines):\n{output}{divider}'

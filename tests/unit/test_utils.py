@@ -419,12 +419,12 @@ def test_rmtree_retries_for_3sec(tmpdir, monkeypatch):
 
 if sys.byteorder == "little":
     expected_byte_string = (
-        u"b'\\xff\\xfe/\\x00p\\x00a\\x00t\\x00h\\x00/"
+        "b'\\xff\\xfe/\\x00p\\x00a\\x00t\\x00h\\x00/"
         "\\x00d\\x00\\xe9\\x00f\\x00'"
     )
 elif sys.byteorder == "big":
     expected_byte_string = (
-        u"b'\\xfe\\xff\\x00/\\x00p\\x00a\\x00t\\x00h\\"
+        "b'\\xfe\\xff\\x00/\\x00p\\x00a\\x00t\\x00h\\"
         "x00/\\x00d\\x00\\xe9\\x00f'"
     )
 
@@ -432,12 +432,12 @@ elif sys.byteorder == "big":
 @pytest.mark.parametrize('path, fs_encoding, expected', [
     (None, None, None),
     # Test passing a text (unicode) string.
-    (u'/path/déf', None, u'/path/déf'),
+    ('/path/déf', None, '/path/déf'),
     # Test a bytes object with a non-ascii character.
-    (u'/path/déf'.encode('utf-8'), 'utf-8', u'/path/déf'),
+    ('/path/déf'.encode('utf-8'), 'utf-8', '/path/déf'),
     # Test a bytes object with a character that can't be decoded.
-    (u'/path/déf'.encode('utf-8'), 'ascii', u"b'/path/d\\xc3\\xa9f'"),
-    (u'/path/déf'.encode('utf-16'), 'utf-8', expected_byte_string),
+    ('/path/déf'.encode('utf-8'), 'ascii', "b'/path/d\\xc3\\xa9f'"),
+    ('/path/déf'.encode('utf-16'), 'utf-8', expected_byte_string),
 ])
 def test_path_to_display(monkeypatch, path, fs_encoding, expected):
     monkeypatch.setattr(sys, 'getfilesystemencoding', lambda: fs_encoding)
@@ -572,17 +572,17 @@ class TestEncoding(object):
         assert auto_decode(data) == "Django==1.4.2"
 
     def test_auto_decode_no_bom(self):
-        assert auto_decode(b'foobar') == u'foobar'
+        assert auto_decode(b'foobar') == 'foobar'
 
     def test_auto_decode_pep263_headers(self):
-        latin1_req = u'# coding=latin1\n# Pas trop de café'
+        latin1_req = '# coding=latin1\n# Pas trop de café'
         assert auto_decode(latin1_req.encode('latin1')) == latin1_req
 
     def test_auto_decode_no_preferred_encoding(self):
         om, em = Mock(), Mock()
         om.return_value = 'ascii'
         em.return_value = None
-        data = u'data'
+        data = 'data'
         with patch('sys.getdefaultencoding', om):
             with patch('locale.getpreferredencoding', em):
                 ret = auto_decode(data.encode(sys.getdefaultencoding()))
