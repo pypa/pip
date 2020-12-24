@@ -68,7 +68,7 @@ def parse_command(args):
 
     # --version
     if general_options.version:
-        sys.stdout.write(parser.version)  # type: ignore
+        sys.stdout.write(parser.version)
         sys.stdout.write(os.linesep)
         sys.exit()
 
