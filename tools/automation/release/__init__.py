@@ -4,7 +4,6 @@ These are written according to the order they are called in.
 """
 
 import contextlib
-import io
 import os
 import pathlib
 import subprocess
@@ -75,7 +74,7 @@ def generate_authors(filename: str) -> None:
     authors = get_author_list()
 
     # Write our authors to the AUTHORS file
-    with io.open(filename, "w", encoding="utf-8") as fp:
+    with open(filename, "w", encoding="utf-8") as fp:
         fp.write("\n".join(authors))
         fp.write("\n")
 

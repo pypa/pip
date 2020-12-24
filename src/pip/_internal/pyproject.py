@@ -1,4 +1,3 @@
-import io
 import os
 from collections import namedtuple
 
@@ -62,7 +61,7 @@ def load_pyproject_toml(
     has_setup = os.path.isfile(setup_py)
 
     if has_pyproject:
-        with io.open(pyproject_toml, encoding="utf-8") as f:
+        with open(pyproject_toml, encoding="utf-8") as f:
             pp_toml = toml.load(f)
         build_system = pp_toml.get("build-system")
     else:
