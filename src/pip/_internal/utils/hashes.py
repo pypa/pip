@@ -153,7 +153,7 @@ class MissingHashes(Hashes):
         """Don't offer the ``hashes`` kwarg."""
         # Pass our favorite hash in to generate a "gotten hash". With the
         # empty list, it will never match, so an error will always raise.
-        super(MissingHashes, self).__init__(hashes={FAVORITE_HASH: []})
+        super().__init__(hashes={FAVORITE_HASH: []})
 
     def _raise(self, gots):
         # type: (Dict[str, _Hash]) -> NoReturn

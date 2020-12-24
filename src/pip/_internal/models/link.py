@@ -76,7 +76,7 @@ class Link(KeyBasedCompareMixin):
         self.requires_python = requires_python if requires_python else None
         self.yanked_reason = yanked_reason
 
-        super(Link, self).__init__(key=url, defining_class=Link)
+        super().__init__(key=url, defining_class=Link)
 
         self.cache_link_parsing = cache_link_parsing
 

@@ -28,7 +28,7 @@ class PipXmlrpcTransport(xmlrpc_client.Transport):
 
     def __init__(self, index_url, session, use_datetime=False):
         # type: (str, PipSession, bool) -> None
-        xmlrpc_client.Transport.__init__(self, use_datetime)
+        super().__init__(use_datetime)
         index_parts = urllib_parse.urlparse(index_url)
         self._scheme = index_parts.scheme
         self._session = session

@@ -110,7 +110,7 @@ class Configuration(object):
 
     def __init__(self, isolated, load_only=None):
         # type: (bool, Optional[Kind]) -> None
-        super(Configuration, self).__init__()
+        super().__init__()
 
         if load_only is not None and load_only not in VALID_LOAD_ONLY:
             raise ConfigurationError(

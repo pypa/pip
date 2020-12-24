@@ -67,7 +67,7 @@ else:
 
 class _RequestHandler(WSGIRequestHandler):
     def make_environ(self):
-        environ = super(_RequestHandler, self).make_environ()
+        environ = super().make_environ()
 
         # From pallets/werkzeug#1469, will probably be in release after
         # 0.16.0.

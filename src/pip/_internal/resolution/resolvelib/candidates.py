@@ -304,7 +304,7 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
                 template.link is template.original_link):
             ireq.original_link_is_in_wheel_cache = True
 
-        super(LinkCandidate, self).__init__(
+        super().__init__(
             link=link,
             source_link=source_link,
             ireq=ireq,
@@ -332,7 +332,7 @@ class EditableCandidate(_InstallRequirementBackedCandidate):
         version=None,  # type: Optional[_BaseVersion]
     ):
         # type: (...) -> None
-        super(EditableCandidate, self).__init__(
+        super().__init__(
             link=link,
             source_link=link,
             ireq=make_install_req_from_editable(link, template),

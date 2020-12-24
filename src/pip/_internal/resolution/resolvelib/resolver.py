@@ -57,7 +57,7 @@ class Resolver(BaseResolver):
         upgrade_strategy,  # type: str
         py_version_info=None,  # type: Optional[Tuple[int, ...]]
     ):
-        super(Resolver, self).__init__()
+        super().__init__()
         assert upgrade_strategy in self._allowed_strategies
 
         self.factory = Factory(

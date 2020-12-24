@@ -121,7 +121,7 @@ class TempDirectory(object):
         kind="temp",  # type: str
         globally_managed=False,  # type: bool
     ):
-        super(TempDirectory, self).__init__()
+        super().__init__()
 
         if delete is _default:
             if path is not None:
@@ -231,7 +231,7 @@ class AdjacentTempDirectory(TempDirectory):
     def __init__(self, original, delete=None):
         # type: (str, Optional[bool]) -> None
         self.original = original.rstrip('/\\')
-        super(AdjacentTempDirectory, self).__init__(delete=delete)
+        super().__init__(delete=delete)
 
     @classmethod
     def _generate_names(cls, name):

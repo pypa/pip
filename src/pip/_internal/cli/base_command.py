@@ -52,7 +52,7 @@ class Command(CommandContextMixIn):
 
     def __init__(self, name, summary, isolated=False):
         # type: (str, str, bool) -> None
-        super(Command, self).__init__()
+        super().__init__()
         parser_kw = {
             'usage': self.usage,
             'prog': '{} {}'.format(get_prog(), name),

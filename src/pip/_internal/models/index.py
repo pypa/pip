@@ -10,7 +10,7 @@ class PackageIndex(object):
 
     def __init__(self, url, file_storage_domain):
         # type: (str, str) -> None
-        super(PackageIndex, self).__init__()
+        super().__init__()
         self.url = url
         self.netloc = urllib_parse.urlsplit(url).netloc
         self.simple_url = self._url_for_path('simple')

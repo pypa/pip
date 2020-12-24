@@ -68,7 +68,7 @@ def _match_vcs_scheme(url):
 class _NotHTML(Exception):
     def __init__(self, content_type, request_desc):
         # type: (str, str) -> None
-        super(_NotHTML, self).__init__(content_type, request_desc)
+        super().__init__(content_type, request_desc)
         self.content_type = content_type
         self.request_desc = request_desc
 

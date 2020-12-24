@@ -84,7 +84,7 @@ class Subversion(VersionControl):
         if scheme == 'ssh':
             # The --username and --password options can't be used for
             # svn+ssh URLs, so keep the auth information in the URL.
-            return super(Subversion, cls).get_netloc_and_auth(netloc, scheme)
+            return super().get_netloc_and_auth(netloc, scheme)
 
         return split_auth_from_netloc(netloc)
 
@@ -92,7 +92,7 @@ class Subversion(VersionControl):
     def get_url_rev_and_auth(cls, url):
         # type: (str) -> Tuple[str, Optional[str], AuthInfo]
         # hotfix the URL scheme after removing svn+ from svn+ssh:// readd it
-        url, rev, user_pass = super(Subversion, cls).get_url_rev_and_auth(url)
+        url, rev, user_pass = super().get_url_rev_and_auth(url)
         if url.startswith('ssh://'):
             url = 'svn+' + url
         return url, rev, user_pass
@@ -197,7 +197,7 @@ class Subversion(VersionControl):
         #   Empty tuple: Could not parse version.
         self._vcs_version = None  # type: Optional[Tuple[int, ...]]
 
-        super(Subversion, self).__init__()
+        super().__init__()
 
     def call_vcs_version(self):
         # type: () -> Tuple[int, ...]

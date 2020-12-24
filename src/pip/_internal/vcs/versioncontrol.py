@@ -288,7 +288,7 @@ class VcsSupport(object):
         # systems
         urllib_parse.uses_netloc.extend(self.schemes)
         urllib_parse.uses_fragment.extend(self.schemes)
-        super(VcsSupport, self).__init__()
+        super().__init__()
 
     def __iter__(self):
         # type: () -> Iterator[str]

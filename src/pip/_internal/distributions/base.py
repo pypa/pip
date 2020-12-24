@@ -28,7 +28,7 @@ class AbstractDistribution(object, metaclass=abc.ABCMeta):
     """
     def __init__(self, req):
         # type: (InstallRequirement) -> None
-        super(AbstractDistribution, self).__init__()
+        super().__init__()
         self.req = req
 
     @abc.abstractmethod

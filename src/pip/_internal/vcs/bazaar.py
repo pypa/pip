@@ -31,7 +31,7 @@ class Bazaar(VersionControl):
     )
 
     def __init__(self, *args, **kwargs):
-        super(Bazaar, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         # This is only needed for python <2.7.5
         # Register lp but do not expose as a scheme to support bzr+lp.
         if getattr(urllib_parse, 'uses_fragment', None):
@@ -82,7 +82,7 @@ class Bazaar(VersionControl):
     def get_url_rev_and_auth(cls, url):
         # type: (str) -> Tuple[str, Optional[str], AuthInfo]
         # hotfix the URL scheme after removing bzr+ from bzr+ssh:// readd it
-        url, rev, user_pass = super(Bazaar, cls).get_url_rev_and_auth(url)
+        url, rev, user_pass = super().get_url_rev_and_auth(url)
         if url.startswith('ssh://'):
             url = 'bzr+' + url
         return url, rev, user_pass

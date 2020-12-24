@@ -393,10 +393,10 @@ class Git(VersionControl):
         if '://' not in url:
             assert 'file:' not in url
             url = url.replace('git+', 'git+ssh://')
-            url, rev, user_pass = super(Git, cls).get_url_rev_and_auth(url)
+            url, rev, user_pass = super().get_url_rev_and_auth(url)
             url = url.replace('ssh://', '')
         else:
-            url, rev, user_pass = super(Git, cls).get_url_rev_and_auth(url)
+            url, rev, user_pass = super().get_url_rev_and_auth(url)
 
         return url, rev, user_pass
 
@@ -411,7 +411,7 @@ class Git(VersionControl):
 
     @classmethod
     def get_repository_root(cls, location):
-        loc = super(Git, cls).get_repository_root(location)
+        loc = super().get_repository_root(location)
         if loc:
             return loc
         try:

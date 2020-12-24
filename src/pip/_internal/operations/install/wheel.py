@@ -449,7 +449,7 @@ class ScriptFile(object):
 class MissingCallableSuffix(InstallationError):
     def __init__(self, entry_point):
         # type: (str) -> None
-        super(MissingCallableSuffix, self).__init__(
+        super().__init__(
             "Invalid script entry point: {} - A callable "
             "suffix is required. Cf https://packaging.python.org/"
             "specifications/entry-points/#use-for-scripts for more "
@@ -468,7 +468,7 @@ class PipScriptMaker(ScriptMaker):
     def make(self, specification, options=None):
         # type: (str, Dict[str, Any]) -> List[str]
         _raise_for_invalid_entrypoint(specification)
-        return super(PipScriptMaker, self).make(specification, options)
+        return super().make(specification, options)
 
 
 def _install_wheel(
