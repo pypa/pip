@@ -39,7 +39,6 @@ if MYPY_CHECK_RUNNING:
         List,
         Mapping,
         Optional,
-        Text,
         Tuple,
         Type,
         Union,
@@ -58,7 +57,7 @@ logger = logging.getLogger(__name__)
 
 
 def is_url(name):
-    # type: (Union[str, Text]) -> bool
+    # type: (str) -> bool
     """
     Return true if the name looks like a URL.
     """
@@ -92,7 +91,7 @@ def call_subprocess(
     extra_ok_returncodes=None,  # type: Optional[Iterable[int]]
     log_failed_cmd=True  # type: Optional[bool]
 ):
-    # type: (...) -> Text
+    # type: (...) -> str
     """
     Args:
       extra_ok_returncodes: an iterable of integer return codes that are
@@ -764,7 +763,7 @@ class VersionControl(object):
         extra_ok_returncodes=None,  # type: Optional[Iterable[int]]
         log_failed_cmd=True  # type: bool
     ):
-        # type: (...) -> Text
+        # type: (...) -> str
         """
         Run a VCS subcommand
         This is simply a wrapper around call_subprocess that adds the VCS

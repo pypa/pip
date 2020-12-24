@@ -33,7 +33,7 @@ from pip._internal.utils.unpacking import SUPPORTED_EXTENSIONS
 from pip._internal.utils.urls import url_to_path
 
 if MYPY_CHECK_RUNNING:
-    from typing import FrozenSet, Iterable, List, Optional, Set, Text, Tuple, Union
+    from typing import FrozenSet, Iterable, List, Optional, Set, Tuple, Union
 
     from pip._vendor.packaging.tags import Tag
     from pip._vendor.packaging.version import _BaseVersion
@@ -149,7 +149,7 @@ class LinkEvaluator(object):
         self.project_name = project_name
 
     def evaluate_link(self, link):
-        # type: (Link) -> Tuple[bool, Optional[Text]]
+        # type: (Link) -> Tuple[bool, Optional[str]]
         """
         Determine whether a link is a candidate for installation.
 
@@ -736,7 +736,7 @@ class PackageFinder(object):
         return no_eggs + eggs
 
     def _log_skipped_link(self, link, reason):
-        # type: (Link, Text) -> None
+        # type: (Link, str) -> None
         if link not in self._logged_links:
             # Mark this as a unicode string to prevent "UnicodeEncodeError:
             # 'ascii' codec can't encode character" in Python 2 when
@@ -761,9 +761,7 @@ class PackageFinder(object):
         return InstallationCandidate(
             name=link_evaluator.project_name,
             link=link,
-            # Convert the Text result to str since InstallationCandidate
-            # accepts str.
-            version=str(result),
+            version=result,
         )
 
     def evaluate_links(self, link_evaluator, links):

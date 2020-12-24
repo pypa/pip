@@ -6,18 +6,18 @@ from urllib import request as urllib_request
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional, Text, Union
+    from typing import Optional
 
 
 def get_url_scheme(url):
-    # type: (Union[str, Text]) -> Optional[Text]
+    # type: (str) -> Optional[str]
     if ':' not in url:
         return None
     return url.split(':', 1)[0].lower()
 
 
 def path_to_url(path):
-    # type: (Union[str, Text]) -> str
+    # type: (str) -> str
     """
     Convert a path to a file: URL.  The path will be made absolute and have
     quoted path parts.

@@ -14,7 +14,7 @@ import sys
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Callable, Optional, Protocol, Text, TypeVar, Union
+    from typing import Callable, Optional, Protocol, TypeVar, Union
 
     # Used in the @lru_cache polyfill.
     F = TypeVar('F')
@@ -57,7 +57,7 @@ def has_tls():
 
 
 def str_to_display(data, desc=None):
-    # type: (Union[bytes, Text], Optional[str]) -> Text
+    # type: (Union[bytes, str], Optional[str]) -> str
     """
     For display or logging purposes, convert a bytes object (or text) to
     text (e.g. unicode in Python 2) safe for output.
@@ -124,7 +124,7 @@ def str_to_display(data, desc=None):
 
 
 def console_to_str(data):
-    # type: (bytes) -> Text
+    # type: (bytes) -> str
     """Return a string, safe for output, of subprocess output.
     """
     return str_to_display(data, desc='Subprocess output')

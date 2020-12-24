@@ -11,14 +11,14 @@ from pip._internal.utils.subprocess import (
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import List, Optional, Text
+    from typing import List, Optional
 
 logger = logging.getLogger(__name__)
 
 
 def format_command_result(
     command_args,  # type: List[str]
-    command_output,  # type: Text
+    command_output,  # type: str
 ):
     # type: (...) -> str
     """Format command information for logging."""
@@ -42,7 +42,7 @@ def get_legacy_build_wheel_path(
     temp_dir,  # type: str
     name,  # type: str
     command_args,  # type: List[str]
-    command_output,  # type: Text
+    command_output,  # type: str
 ):
     # type: (...) -> Optional[str]
     """Return the path to the wheel in the temporary build directory."""

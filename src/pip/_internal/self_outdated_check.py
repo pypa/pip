@@ -18,7 +18,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     import optparse
-    from typing import Any, Dict, Text, Union
+    from typing import Any, Dict
 
     from pip._internal.network.session import PipSession
 
@@ -30,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 
 def _get_statefile_name(key):
-    # type: (Union[str, Text]) -> str
+    # type: (str) -> str
     key_bytes = ensure_binary(key)
     name = hashlib.sha224(key_bytes).hexdigest()
     return name

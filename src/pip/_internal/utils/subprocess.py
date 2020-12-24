@@ -11,7 +11,7 @@ from pip._internal.utils.misc import HiddenText, path_to_display
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Callable, Iterable, List, Mapping, Optional, Text, Union
+    from typing import Any, Callable, Iterable, List, Mapping, Optional, Union
 
     CommandArgs = List[Union[str, HiddenText]]
 
@@ -66,10 +66,10 @@ def reveal_command_args(args):
 def make_subprocess_output_error(
     cmd_args,     # type: Union[List[str], CommandArgs]
     cwd,          # type: Optional[str]
-    lines,        # type: List[Text]
+    lines,        # type: List[str]
     exit_status,  # type: int
 ):
-    # type: (...) -> Text
+    # type: (...) -> str
     """
     Create and return the error message to use to log a subprocess error
     with command output.
@@ -117,7 +117,7 @@ def call_subprocess(
     spinner=None,  # type: Optional[SpinnerInterface]
     log_failed_cmd=True  # type: Optional[bool]
 ):
-    # type: (...) -> Text
+    # type: (...) -> str
     """
     Args:
       show_stdout: if true, use INFO to log the subprocess's stderr and

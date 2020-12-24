@@ -19,7 +19,7 @@ from pip._internal.utils.misc import ensure_dir
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Iterable, List, Optional, Text, Union
+    from typing import Iterable, List, Optional
     from zipfile import ZipInfo
 
 
@@ -51,7 +51,7 @@ def current_umask():
 
 
 def split_leading_dir(path):
-    # type: (Union[str, Text]) -> List[Union[str, Text]]
+    # type: (str) -> List[str]
     path = path.lstrip('/').lstrip('\\')
     if (
         '/' in path and (
@@ -67,7 +67,7 @@ def split_leading_dir(path):
 
 
 def has_leading_dir(paths):
-    # type: (Iterable[Union[str, Text]]) -> bool
+    # type: (Iterable[str]) -> bool
     """Returns true if all the paths have the same leading path name
     (i.e., everything is in one subdirectory in an archive)"""
     common_prefix = None
@@ -83,7 +83,7 @@ def has_leading_dir(paths):
 
 
 def is_within_directory(directory, target):
-    # type: ((Union[str, Text]), (Union[str, Text])) -> bool
+    # type: (str, str) -> bool
     """
     Return true if the absolute path of target is within the directory
     """
@@ -95,7 +95,7 @@ def is_within_directory(directory, target):
 
 
 def set_extracted_file_to_default_mode_plus_executable(path):
-    # type: (Union[str, Text]) -> None
+    # type: (str) -> None
     """
     Make file present at path have execute for user/group/world
     (chmod +x) is no-op on windows per python docs

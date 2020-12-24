@@ -14,18 +14,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from types import TracebackType
-    from typing import (
-        Any,
-        Callable,
-        Dict,
-        Iterable,
-        List,
-        Optional,
-        Text,
-        Tuple,
-        Type,
-        Union,
-    )
+    from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Type
 
     from werkzeug.serving import BaseWSGIServer
 
@@ -166,7 +155,7 @@ def server_running(server):
 
 
 def text_html_response(text):
-    # type: (Text) -> Responder
+    # type: (str) -> Responder
     def responder(environ, start_response):
         # type: (Environ, StartResponse) -> Body
         start_response("200 OK", [
@@ -178,7 +167,7 @@ def text_html_response(text):
 
 
 def html5_page(text):
-    # type: (Union[Text, str]) -> Text
+    # type: (str) -> str
     return dedent(u"""
     <!DOCTYPE html>
     <html>
