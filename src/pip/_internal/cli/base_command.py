@@ -1,7 +1,5 @@
 """Base Command class, and related routines"""
 
-from __future__ import absolute_import, print_function
-
 import logging
 import logging.config
 import optparse

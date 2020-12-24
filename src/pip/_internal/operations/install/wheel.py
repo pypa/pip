@@ -1,8 +1,6 @@
 """Support for installing and building the "wheel" binary package format.
 """
 
-from __future__ import absolute_import
-
 import collections
 import compileall
 import contextlib

@@ -6,8 +6,6 @@ The intention is to rewrite current usages gradually, keeping the tests pass,
 and eventually drop this after all usages are changed.
 """
 
-from __future__ import absolute_import
-
 import os
 
 from pip._vendor import appdirs as _appdirs

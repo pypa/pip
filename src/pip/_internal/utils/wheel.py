@@ -1,8 +1,6 @@
 """Support functions for working with wheel files.
 """
 
-from __future__ import absolute_import
-
 import logging
 from email.parser import Parser
 from zipfile import BadZipFile, ZipFile

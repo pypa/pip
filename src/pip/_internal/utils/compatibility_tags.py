@@ -1,8 +1,6 @@
 """Generate and work with PEP 425 Compatibility Tags.
 """
 
-from __future__ import absolute_import
-
 import re
 
 from pip._vendor.packaging.tags import (

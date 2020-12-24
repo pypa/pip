@@ -1,5 +1,3 @@
-from __future__ import division
-
 import itertools
 import sys
 from signal import SIGINT, default_int_handler, signal

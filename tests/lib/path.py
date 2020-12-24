@@ -1,8 +1,6 @@
 # flake8: noqa
 # -*- coding: utf-8 -*-
 # Author: Aziz Köksal
-from __future__ import absolute_import
-
 import glob
 import os
 
