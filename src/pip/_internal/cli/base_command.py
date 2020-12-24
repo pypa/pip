@@ -128,7 +128,7 @@ class Command(CommandContextMixIn):
         # Set verbosity so that it can be used elsewhere.
         self.verbosity = options.verbose - options.quiet
 
-        level_number = setup_logging(
+        self.level_number = setup_logging(
             verbosity=self.verbosity,
             no_color=options.no_color,
             user_log_file=options.log,
@@ -186,6 +186,12 @@ class Command(CommandContextMixIn):
                 "This will become an error in pip 21.0."
             )
 
+        runner = self.run if 'pdb' in sys.modules else self._trap_run
+        status = runner(options, args)
+        self.handle_pip_version_check(options)
+        return status
+
+    def _trap_run(self, options, args):
         try:
             status = self.run(options, args)
             assert isinstance(status, int)
@@ -210,7 +216,7 @@ class Command(CommandContextMixIn):
             # Bypass our logger and write any remaining messages to stderr
             # because stdout no longer works.
             print('ERROR: Pipe to stdout was broken', file=sys.stderr)
-            if level_number <= logging.DEBUG:
+            if self.level_number <= logging.DEBUG:
                 traceback.print_exc(file=sys.stderr)
 
             return ERROR
@@ -223,5 +229,3 @@ class Command(CommandContextMixIn):
             logger.critical('Exception:', exc_info=True)
 
             return UNKNOWN_ERROR
-        finally:
-            self.handle_pip_version_check(options)
