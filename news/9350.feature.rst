@@ -1,0 +1,1 @@
+When invoking commands under a debugger, exceptions are no longer trapped.
