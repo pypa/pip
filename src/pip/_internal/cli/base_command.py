@@ -186,10 +186,14 @@ class Command(CommandContextMixIn):
                 "This will become an error in pip 21.0."
             )
 
-        runner = self.run if 'pdb' in sys.modules else self._trap_run
+        runner = self.run if self._is_debug() else self._trap_run
         status = runner(options, args)
         self.handle_pip_version_check(options)
         return status
+
+    @staticmethod
+    def _is_debug():
+        return 'pdb' in sys.modules
 
     def _trap_run(self, options, args):
         try:
