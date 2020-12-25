@@ -276,7 +276,7 @@ class Resolver(BaseResolver):
                 # Mark this as a unicode string to prevent
                 # "UnicodeEncodeError: 'ascii' codec can't encode character"
                 # in Python 2 when the reason contains non-ascii characters.
-                u'The candidate selected for download or install is a '
+                'The candidate selected for download or install is a '
                 'yanked version: {candidate}\n'
                 'Reason for being yanked: {reason}'
             ).format(candidate=best_candidate, reason=reason)

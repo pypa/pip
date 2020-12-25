@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import locale
 import sys
 from logging import DEBUG, ERROR, INFO, WARNING
@@ -61,7 +60,7 @@ def test_make_subprocess_output_error__non_ascii_command_arg(monkeypatch):
         # Check in Python 2 that the str (bytes object) with the non-ascii
         # character has the encoding we expect. (This comes from the source
         # code encoding at the top of the file.)
-        assert cmd_args[1].decode('utf-8') == u'déf'
+        assert cmd_args[1].decode('utf-8') == 'déf'
 
     # We need to monkeypatch so the encoding will be correct on Windows.
     monkeypatch.setattr(locale, 'getpreferredencoding', lambda: 'utf-8')
@@ -71,13 +70,13 @@ def test_make_subprocess_output_error__non_ascii_command_arg(monkeypatch):
         lines=[],
         exit_status=1,
     )
-    expected = dedent(u"""\
+    expected = dedent("""\
     Command errored out with exit status 1:
      command: foo 'déf'
          cwd: /path/to/cwd
     Complete output (0 lines):
     ----------------------------------------""")
-    assert actual == expected, u'actual: {}'.format(actual)
+    assert actual == expected, 'actual: {}'.format(actual)
 
 
 @pytest.mark.skipif("sys.version_info < (3,)")
@@ -115,7 +114,7 @@ def test_make_subprocess_output_error__non_ascii_cwd_python_2(
     Test a str (bytes object) cwd with a non-ascii character in Python 2.
     """
     cmd_args = ['test']
-    cwd = u'/path/to/cwd/déf'.encode(encoding)
+    cwd = '/path/to/cwd/déf'.encode(encoding)
     monkeypatch.setattr(sys, 'getfilesystemencoding', lambda: encoding)
     actual = make_subprocess_output_error(
         cmd_args=cmd_args,
@@ -123,13 +122,13 @@ def test_make_subprocess_output_error__non_ascii_cwd_python_2(
         lines=[],
         exit_status=1,
     )
-    expected = dedent(u"""\
+    expected = dedent("""\
     Command errored out with exit status 1:
      command: test
          cwd: /path/to/cwd/déf
     Complete output (0 lines):
     ----------------------------------------""")
-    assert actual == expected, u'actual: {}'.format(actual)
+    assert actual == expected, 'actual: {}'.format(actual)
 
 
 # This test is mainly important for checking unicode in Python 2.
@@ -137,21 +136,21 @@ def test_make_subprocess_output_error__non_ascii_line():
     """
     Test a line with a non-ascii character.
     """
-    lines = [u'curly-quote: \u2018\n']
+    lines = ['curly-quote: \u2018\n']
     actual = make_subprocess_output_error(
         cmd_args=['test'],
         cwd='/path/to/cwd',
         lines=lines,
         exit_status=1,
     )
-    expected = dedent(u"""\
+    expected = dedent("""\
     Command errored out with exit status 1:
      command: test
          cwd: /path/to/cwd
     Complete output (1 lines):
     curly-quote: \u2018
     ----------------------------------------""")
-    assert actual == expected, u'actual: {}'.format(actual)
+    assert actual == expected, 'actual: {}'.format(actual)
 
 
 class FakeSpinner(SpinnerInterface):

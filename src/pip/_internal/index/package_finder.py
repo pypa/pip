@@ -161,10 +161,7 @@ class LinkEvaluator(object):
         version = None
         if link.is_yanked and not self._allow_yanked:
             reason = link.yanked_reason or '<none given>'
-            # Mark this as a unicode string to prevent "UnicodeEncodeError:
-            # 'ascii' codec can't encode character" in Python 2 when
-            # the reason contains non-ascii characters.
-            return (False, u'yanked for reason: {}'.format(reason))
+            return (False, 'yanked for reason: {}'.format(reason))
 
         if link.egg_fragment:
             egg_info = link.egg_fragment
@@ -738,12 +735,9 @@ class PackageFinder(object):
     def _log_skipped_link(self, link, reason):
         # type: (Link, str) -> None
         if link not in self._logged_links:
-            # Mark this as a unicode string to prevent "UnicodeEncodeError:
-            # 'ascii' codec can't encode character" in Python 2 when
-            # the reason contains non-ascii characters.
-            #   Also, put the link at the end so the reason is more visible
-            # and because the link string is usually very long.
-            logger.debug(u'Skipping link: %s: %s', reason, link)
+            # Put the link at the end so the reason is more visible and because
+            # the link string is usually very long.
+            logger.debug('Skipping link: %s: %s', reason, link)
             self._logged_links.add(link)
 
     def get_install_candidate(self, link_evaluator, link):

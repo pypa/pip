@@ -382,14 +382,14 @@ def test_clean_link(url, clean_url):
     ('<a href="/pkg4-1.0.tar.gz" data-yanked="version &lt 1"></a>',
         'version < 1'),
     # Test a yanked reason with a non-ascii character.
-    (u'<a href="/pkg-1.0.tar.gz" data-yanked="curlyquote \u2018"></a>',
-        u'curlyquote \u2018'),
+    ('<a href="/pkg-1.0.tar.gz" data-yanked="curlyquote \u2018"></a>',
+        'curlyquote \u2018'),
 ])
 def test_parse_links__yanked_reason(anchor_html, expected):
     html = (
         # Mark this as a unicode string for Python 2 since anchor_html
         # can contain non-ascii.
-        u'<html><head><meta charset="utf-8"><head>'
+        '<html><head><meta charset="utf-8"><head>'
         '<body>{}</body></html>'
     ).format(anchor_html)
     html_bytes = html.encode('utf-8')
@@ -552,7 +552,7 @@ def make_fake_html_response(url):
     """
     Create a fake requests.Response object.
     """
-    html = dedent(u"""\
+    html = dedent("""\
     <html><head><meta name="api-version" value="2" /></head>
     <body>
     <a href="/abc-1.0.tar.gz#md5=000000000">abc-1.0.tar.gz</a>

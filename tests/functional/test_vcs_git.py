@@ -259,13 +259,13 @@ def test_resolve_commit_not_on_branch(script, tmp_path):
     repo_path.mkdir()
     script.run("git", "init", cwd=str(repo_path))
 
-    repo_file.write_text(u".")
+    repo_file.write_text(".")
     script.run("git", "add", "file.txt", cwd=str(repo_path))
     script.run("git", "commit", "-m", "initial commit", cwd=str(repo_path))
     script.run("git", "checkout", "-b", "abranch", cwd=str(repo_path))
 
     # create a commit
-    repo_file.write_text(u"..")
+    repo_file.write_text("..")
     script.run("git", "commit", "-a", "-m", "commit 1", cwd=str(repo_path))
     commit = script.run(
         "git", "rev-parse", "HEAD", cwd=str(repo_path)

@@ -168,7 +168,7 @@ def text_html_response(text):
 
 def html5_page(text):
     # type: (str) -> str
-    return dedent(u"""
+    return dedent("""
     <!DOCTYPE html>
     <html>
       <body>

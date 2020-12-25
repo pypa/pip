@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # pip documentation build configuration file, created by
 # sphinx-quickstart on Tue Apr 22 22:08:49 2008
 #
@@ -239,8 +237,8 @@ latex_documents = [
     (
         'index',
         'pip.tex',
-        u'pip Documentation',
-        u'pip developers',
+        'pip Documentation',
+        'pip developers',
         'manual',
     ),
 ]
@@ -269,8 +267,8 @@ man_pages = [
     (
         'index',
         'pip',
-        u'package manager for Python packages',
-        u'pip developers',
+        'package manager for Python packages',
+        'pip developers',
         1
     )
 ]
@@ -295,11 +293,11 @@ if not raw_subcommands:
 for fname in raw_subcommands:
     fname_base = to_document_name(fname, man_dir)
     outname = 'pip-' + fname_base.split('/')[1]
-    description = u'description of {} command'.format(
+    description = 'description of {} command'.format(
         outname.replace('-', ' ')
     )
 
-    man_pages.append((fname_base, outname, description, u'pip developers', 1))
+    man_pages.append((fname_base, outname, description, 'pip developers', 1))
 
 # -- Options for docs_feedback_sphinxext --------------------------------------
 

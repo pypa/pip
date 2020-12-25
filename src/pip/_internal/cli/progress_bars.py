@@ -125,7 +125,7 @@ class BlueEmojiBar(IncrementalBar):
     suffix = "%(percent)d%%"
     bar_prefix = " "
     bar_suffix = " "
-    phases = (u"\U0001F539", u"\U0001F537", u"\U0001F535")  # type: Any
+    phases = ("\U0001F539", "\U0001F537", "\U0001F535")
 
 
 class DownloadProgressMixin(object):

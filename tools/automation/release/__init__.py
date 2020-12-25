@@ -76,8 +76,8 @@ def generate_authors(filename: str) -> None:
 
     # Write our authors to the AUTHORS file
     with io.open(filename, "w", encoding="utf-8") as fp:
-        fp.write(u"\n".join(authors))
-        fp.write(u"\n")
+        fp.write("\n".join(authors))
+        fp.write("\n")
 
 
 def commit_file(session: Session, filename: str, *, message: str) -> None:

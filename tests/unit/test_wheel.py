@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Tests for wheel binary packages and .dist-info."""
 import csv
 import logging
@@ -81,13 +79,13 @@ def test_get_legacy_build_wheel_path__multiple_names(caplog):
 @pytest.mark.parametrize(
     "console_scripts",
     [
-        u"pip = pip._internal.main:pip",
-        u"pip:pip = pip._internal.main:pip",
-        u"進入點 = 套件.模組:函式",
+        "pip = pip._internal.main:pip",
+        "pip:pip = pip._internal.main:pip",
+        "進入點 = 套件.模組:函式",
     ],
 )
 def test_get_entrypoints(console_scripts):
-    entry_points_text = u"""
+    entry_points_text = """
         [console_scripts]
         {}
         [section]
@@ -125,8 +123,8 @@ def test_get_entrypoints_no_entrypoints():
 
 @pytest.mark.parametrize("outrows, expected", [
     ([
-        (u'', '', 'a'),
-        (u'', '', ''),
+        ('', '', 'a'),
+        ('', '', ''),
     ], [
         ('', '', ''),
         ('', '', 'a'),
@@ -134,16 +132,16 @@ def test_get_entrypoints_no_entrypoints():
     ([
         # Include an int to check avoiding the following error:
         # > TypeError: '<' not supported between instances of 'str' and 'int'
-        (u'', '', 1),
-        (u'', '', ''),
+        ('', '', 1),
+        ('', '', ''),
     ], [
         ('', '', ''),
         ('', '', '1'),
     ]),
     ([
         # Test the normalization correctly encode everything for csv.writer().
-        (u'😉', '', 1),
-        (u'', '', ''),
+        ('😉', '', 1),
+        ('', '', ''),
     ], [
         ('', '', ''),
         ('😉', '', '1'),
@@ -160,7 +158,7 @@ def call_get_csv_rows_for_installed(tmpdir, text):
 
     # Test that an installed file appearing in RECORD has its filename
     # updated in the new RECORD file.
-    installed = {u'a': 'z'}
+    installed = {'a': 'z'}
     changed = set()
     generated = []
     lib_dir = '/lib/dir'

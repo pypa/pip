@@ -240,7 +240,7 @@ def record_file_maker_wrapper(
     if record_callback is not _default:
         records = record_callback(records)
 
-    with StringIO(newline=u"") as buf:
+    with StringIO(newline="") as buf:
         writer = csv23.writer(buf)
         for record in records:
             writer.writerow(map(ensure_text, record))

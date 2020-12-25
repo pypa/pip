@@ -47,7 +47,7 @@ def test_cache_hash():
     assert h == "72aa79d3315c181d2cc23239d7109a782de663b6f89982624d8c1e86"
     h = _hash_dict({"url": "https://g.c/o/r", "subdirectory": "sd"})
     assert h == "8b13391b6791bf7f3edeabb41ea4698d21bcbdbba7f9c7dc9339750d"
-    h = _hash_dict({"subdirectory": u"/\xe9e"})
+    h = _hash_dict({"subdirectory": "/\xe9e"})
     assert h == "f83b32dfa27a426dec08c21bf006065dd003d0aac78e7fc493d9014d"
 
 

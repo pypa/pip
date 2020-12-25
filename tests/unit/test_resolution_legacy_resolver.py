@@ -245,7 +245,7 @@ class TestYankedWarning(object):
         # Test no reason given.
         ('', '<none given>'),
         # Test a unicode string with a non-ascii character.
-        (u'curly quote: \u2018', u'curly quote: \u2018'),
+        ('curly quote: \u2018', 'curly quote: \u2018'),
     ])
     def test_sort_best_candidate__yanked_reason(
         self, caplog, monkeypatch, yanked_reason, expected_reason,
