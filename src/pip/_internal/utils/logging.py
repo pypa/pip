@@ -110,7 +110,7 @@ class IndentingFormatter(logging.Formatter):
             with their record's timestamp.
         """
         self.add_timestamp = kwargs.pop("add_timestamp", False)
-        super(IndentingFormatter, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def get_message_start(self, formatted, levelno):
         """
@@ -133,7 +133,7 @@ class IndentingFormatter(logging.Formatter):
         Calls the standard formatter, but will indent all of the log message
         lines by our current indentation level.
         """
-        formatted = super(IndentingFormatter, self).format(record)
+        formatted = super().format(record)
         message_start = self.get_message_start(formatted, record.levelno)
         formatted = message_start + formatted
 
@@ -169,7 +169,7 @@ class ColorizedStreamHandler(logging.StreamHandler):
         COLORS = []
 
     def __init__(self, stream=None, no_color=None):
-        logging.StreamHandler.__init__(self, stream)
+        super().__init__(stream)
         self._no_color = no_color
 
         if WINDOWS and colorama:
@@ -228,7 +228,7 @@ class ColorizedStreamHandler(logging.StreamHandler):
                 _is_broken_pipe_error(exc_class, exc)):
             raise BrokenStdoutLoggingError()
 
-        return super(ColorizedStreamHandler, self).handleError(record)
+        return super().handleError(record)
 
 
 class BetterRotatingFileHandler(logging.handlers.RotatingFileHandler):
@@ -256,7 +256,7 @@ class ExcludeLoggerFilter(Filter):
     def filter(self, record):
         # The base Filter class allows only records from a logger (or its
         # children).
-        return not super(ExcludeLoggerFilter, self).filter(record)
+        return not super().filter(record)
 
 
 def setup_logging(verbosity, no_color, user_log_file):

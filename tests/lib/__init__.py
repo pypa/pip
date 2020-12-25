@@ -506,7 +506,7 @@ class PipTestEnvironment(TestFileEnvironment):
         self.pip_expect_warning = kwargs.pop('pip_expect_warning', None)
 
         # Call the TestFileEnvironment __init__
-        super(PipTestEnvironment, self).__init__(base_path, *args, **kwargs)
+        super().__init__(base_path, *args, **kwargs)
 
         # Expand our absolute path directories into relative
         for name in ["base", "venv", "bin", "lib", "site_packages",
@@ -531,7 +531,7 @@ class PipTestEnvironment(TestFileEnvironment):
         if fn.endswith('__pycache__') or fn.endswith(".pyc"):
             result = True
         else:
-            result = super(PipTestEnvironment, self)._ignore_file(fn)
+            result = super()._ignore_file(fn)
         return result
 
     def _find_traverse(self, path, result):
@@ -542,7 +542,7 @@ class PipTestEnvironment(TestFileEnvironment):
             if not self.temp_path or path != 'tmp':
                 result[path] = FoundDir(self.base_path, path)
         else:
-            super(PipTestEnvironment, self)._find_traverse(path, result)
+            super()._find_traverse(path, result)
 
     def run(self, *args, **kw):
         """
@@ -620,7 +620,7 @@ class PipTestEnvironment(TestFileEnvironment):
         # Pass expect_stderr=True to allow any stderr.  We do this because
         # we do our checking of stderr further on in check_stderr().
         kw['expect_stderr'] = True
-        result = super(PipTestEnvironment, self).run(cwd=cwd, *args, **kw)
+        result = super().run(cwd=cwd, *args, **kw)
 
         if expect_error and not allow_error:
             if result.returncode == 0:

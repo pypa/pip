@@ -124,7 +124,7 @@ class Resolver(BaseResolver):
         py_version_info=None,  # type: Optional[Tuple[int, ...]]
     ):
         # type: (...) -> None
-        super(Resolver, self).__init__()
+        super().__init__()
         assert upgrade_strategy in self._allowed_strategies
 
         if py_version_info is None:

@@ -106,8 +106,7 @@ class NetworkConnectionError(PipError):
         if (self.response is not None and not self.request and
                 hasattr(response, 'request')):
             self.request = self.response.request
-        super(NetworkConnectionError, self).__init__(
-            error_msg, response, request)
+        super().__init__(error_msg, response, request)
 
     def __str__(self):
         # type: () -> str
@@ -357,7 +356,7 @@ class ConfigurationFileCouldNotBeLoaded(ConfigurationError):
 
     def __init__(self, reason="could not be loaded", fname=None, error=None):
         # type: (str, Optional[str], Optional[configparser.Error]) -> None
-        super(ConfigurationFileCouldNotBeLoaded, self).__init__(error)
+        super().__init__(error)
         self.reason = reason
         self.fname = fname
         self.error = error

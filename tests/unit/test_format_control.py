@@ -8,7 +8,7 @@ from pip._internal.models.format_control import FormatControl
 class SimpleCommand(Command):
 
     def __init__(self):
-        super(SimpleCommand, self).__init__('fake', 'fake summary')
+        super().__init__('fake', 'fake summary')
 
     def add_options(self):
         self.cmd_opts.add_option(cmdoptions.no_binary())

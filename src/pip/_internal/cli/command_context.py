@@ -13,7 +13,7 @@ if MYPY_CHECK_RUNNING:
 class CommandContextMixIn(object):
     def __init__(self):
         # type: () -> None
-        super(CommandContextMixIn, self).__init__()
+        super().__init__()
         self._in_main_context = False
         self._main_context = ExitStack()
 

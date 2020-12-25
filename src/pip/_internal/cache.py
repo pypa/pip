@@ -46,7 +46,7 @@ class Cache(object):
 
     def __init__(self, cache_dir, format_control, allowed_formats):
         # type: (str, FormatControl, Set[str]) -> None
-        super(Cache, self).__init__()
+        super().__init__()
         assert not cache_dir or os.path.isabs(cache_dir)
         self.cache_dir = cache_dir or None
         self.format_control = format_control
@@ -175,9 +175,7 @@ class SimpleWheelCache(Cache):
 
     def __init__(self, cache_dir, format_control):
         # type: (str, FormatControl) -> None
-        super(SimpleWheelCache, self).__init__(
-            cache_dir, format_control, {"binary"}
-        )
+        super().__init__(cache_dir, format_control, {"binary"})
 
     def get_path_for_link_legacy(self, link):
         # type: (Link) -> str
@@ -262,9 +260,7 @@ class EphemWheelCache(SimpleWheelCache):
             globally_managed=True,
         )
 
-        super(EphemWheelCache, self).__init__(
-            self._temp_dir.path, format_control
-        )
+        super().__init__(self._temp_dir.path, format_control)
 
 
 class CacheEntry(object):
@@ -286,9 +282,7 @@ class WheelCache(Cache):
 
     def __init__(self, cache_dir, format_control):
         # type: (str, FormatControl) -> None
-        super(WheelCache, self).__init__(
-            cache_dir, format_control, {'binary'}
-        )
+        super().__init__(cache_dir, format_control, {'binary'})
         self._wheel_cache = SimpleWheelCache(cache_dir, format_control)
         self._ephem_cache = EphemWheelCache(format_control)
 

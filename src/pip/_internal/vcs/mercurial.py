@@ -134,7 +134,7 @@ class Mercurial(VersionControl):
 
     @classmethod
     def get_repository_root(cls, location):
-        loc = super(Mercurial, cls).get_repository_root(location)
+        loc = super().get_repository_root(location)
         if loc:
             return loc
         try:

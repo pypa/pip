@@ -298,7 +298,7 @@ class RequirementPreparer(object):
         lazy_wheel,  # type: bool
     ):
         # type: (...) -> None
-        super(RequirementPreparer, self).__init__()
+        super().__init__()
 
         self.src_dir = src_dir
         self.build_dir = build_dir

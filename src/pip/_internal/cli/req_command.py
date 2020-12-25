@@ -51,7 +51,7 @@ class SessionCommandMixin(CommandContextMixIn):
     """
     def __init__(self):
         # type: () -> None
-        super(SessionCommandMixin, self).__init__()
+        super().__init__()
         self._session = None  # Optional[PipSession]
 
     @classmethod
@@ -190,7 +190,7 @@ class RequirementCommand(IndexGroupCommand):
 
     def __init__(self, *args, **kw):
         # type: (Any, Any) -> None
-        super(RequirementCommand, self).__init__(*args, **kw)
+        super().__init__(*args, **kw)
 
         self.cmd_opts.add_option(cmdoptions.no_clean())
 

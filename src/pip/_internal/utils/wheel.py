@@ -32,13 +32,13 @@ class WheelMetadata(DictMetadata):
     """
     def __init__(self, metadata, wheel_name):
         # type: (Dict[str, bytes], str) -> None
-        super(WheelMetadata, self).__init__(metadata)
+        super().__init__(metadata)
         self._wheel_name = wheel_name
 
     def get_metadata(self, name):
         # type: (str) -> str
         try:
-            return super(WheelMetadata, self).get_metadata(name)
+            return super().get_metadata(name)
         except UnicodeDecodeError as e:
             # Augment the default error with the origin of the file.
             raise UnsupportedWheel(

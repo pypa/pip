@@ -21,7 +21,7 @@ class InstallationCandidate(KeyBasedCompareMixin):
         self.version = parse_version(version)  # type: _BaseVersion
         self.link = link
 
-        super(InstallationCandidate, self).__init__(
+        super().__init__(
             key=(self.name, self.version, self.link),
             defining_class=InstallationCandidate
         )

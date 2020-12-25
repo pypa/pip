@@ -27,11 +27,11 @@ class FakeCommand(Command):
                 raise SystemExit(1)
 
         self.run_func = run_func
-        super(FakeCommand, self).__init__(self._name, self._name)
+        super().__init__(self._name, self._name)
 
     def main(self, args):
         args.append("--disable-pip-version-check")
-        return super(FakeCommand, self).main(args)
+        return super().main(args)
 
     def run(self, options, args):
         logging.getLogger("pip.tests").info("fake")

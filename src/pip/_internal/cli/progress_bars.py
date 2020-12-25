@@ -76,10 +76,7 @@ class InterruptibleMixin(object):
         Save the original SIGINT handler for later.
         """
         # https://github.com/python/mypy/issues/5887
-        super(InterruptibleMixin, self).__init__(  # type: ignore
-            *args,
-            **kwargs
-        )
+        super().__init__(*args, **kwargs)  # type: ignore
 
         self.original_handler = signal(SIGINT, self.handle_sigint)
 
@@ -99,7 +96,7 @@ class InterruptibleMixin(object):
         This should happen regardless of whether the progress display finishes
         normally, or gets interrupted.
         """
-        super(InterruptibleMixin, self).finish()  # type: ignore
+        super().finish()  # type: ignore
         signal(SIGINT, self.original_handler)
 
     def handle_sigint(self, signum, frame):  # type: ignore
@@ -133,10 +130,7 @@ class DownloadProgressMixin(object):
     def __init__(self, *args, **kwargs):
         # type: (List[Any], Dict[Any, Any]) -> None
         # https://github.com/python/mypy/issues/5887
-        super(DownloadProgressMixin, self).__init__(  # type: ignore
-            *args,
-            **kwargs
-        )
+        super().__init__(*args, **kwargs)  # type: ignore
         self.message = (" " * (
             get_indentation() + 2
         )) + self.message  # type: str
@@ -185,7 +179,7 @@ class WindowsMixin(object):
             self.hide_cursor = False
 
         # https://github.com/python/mypy/issues/5887
-        super(WindowsMixin, self).__init__(*args, **kwargs)  # type: ignore
+        super().__init__(*args, **kwargs)  # type: ignore
 
         # Check if we are running on Windows and we have the colorama module,
         # if we do then wrap our file with it.

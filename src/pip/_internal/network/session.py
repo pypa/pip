@@ -211,17 +211,13 @@ class LocalFSAdapter(BaseAdapter):
 class InsecureHTTPAdapter(HTTPAdapter):
 
     def cert_verify(self, conn, url, verify, cert):
-        super(InsecureHTTPAdapter, self).cert_verify(
-            conn=conn, url=url, verify=False, cert=cert
-        )
+        super().cert_verify(conn=conn, url=url, verify=False, cert=cert)
 
 
 class InsecureCacheControlAdapter(CacheControlAdapter):
 
     def cert_verify(self, conn, url, verify, cert):
-        super(InsecureCacheControlAdapter, self).cert_verify(
-            conn=conn, url=url, verify=False, cert=cert
-        )
+        super().cert_verify(conn=conn, url=url, verify=False, cert=cert)
 
 
 class PipSession(requests.Session):
@@ -238,7 +234,7 @@ class PipSession(requests.Session):
         trusted_hosts = kwargs.pop("trusted_hosts", [])  # type: List[str]
         index_urls = kwargs.pop("index_urls", None)
 
-        super(PipSession, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         # Namespace the attribute with "pip_" just in case to prevent
         # possible conflicts with the base class.
@@ -425,4 +421,4 @@ class PipSession(requests.Session):
         kwargs.setdefault("timeout", self.timeout)
 
         # Dispatch the actual request
-        return super(PipSession, self).request(method, url, *args, **kwargs)
+        return super().request(method, url, *args, **kwargs)

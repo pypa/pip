@@ -27,7 +27,7 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
         kwargs['max_help_position'] = 30
         kwargs['indent_increment'] = 1
         kwargs['width'] = shutil.get_terminal_size()[0] - 2
-        optparse.IndentedHelpFormatter.__init__(self, *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def format_option_strings(self, option):
         return self._format_option_strings(option)
@@ -113,7 +113,7 @@ class UpdatingDefaultsHelpFormatter(PrettyHelpFormatter):
         if self.parser is not None:
             self.parser._update_defaults(self.parser.defaults)
             default_values = self.parser.defaults.get(option.dest)
-        help_text = optparse.IndentedHelpFormatter.expand_default(self, option)
+        help_text = super().expand_default(option)
 
         if default_values and option.metavar == 'URL':
             if isinstance(default_values, str):
@@ -162,7 +162,7 @@ class ConfigOptionParser(CustomOptionParser):
         self.config = Configuration(isolated)
 
         assert self.name
-        optparse.OptionParser.__init__(self, *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def check_default(self, option, key, val):
         try:
