@@ -1,9 +1,9 @@
+import functools
 import itertools
 import operator
 
 from pip._vendor.six.moves import collections_abc  # type: ignore
 
-from pip._internal.utils.compat import lru_cache
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -88,7 +88,7 @@ class FoundCandidates(collections_abc.Sequence):
         # performance reasons).
         raise NotImplementedError("don't do this")
 
-    @lru_cache(maxsize=1)
+    @functools.lru_cache(maxsize=1)
     def __bool__(self):
         # type: () -> bool
         if self._prefers_installed and self._installed:
