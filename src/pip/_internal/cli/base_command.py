@@ -1,5 +1,7 @@
 """Base Command class, and related routines"""
 
+import bdb
+import gc
 import logging
 import logging.config
 import optparse
@@ -193,7 +195,9 @@ class Command(CommandContextMixIn):
 
     @staticmethod
     def _is_debug():
-        return 'pdb' in sys.modules
+        return any(
+            isinstance(ob, bdb.Bdb)
+            for ob in gc.get_objects())
 
     def _trap_run(self, options, args):
         try:
