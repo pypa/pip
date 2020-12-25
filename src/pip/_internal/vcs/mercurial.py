@@ -87,6 +87,7 @@ class Mercurial(VersionControl):
 
     @classmethod
     def get_remote_url(cls, location):
+        # type: (str) -> str
         url = cls.run_command(
             ['showconfig', 'paths.default'],
             cwd=location).strip()
