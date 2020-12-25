@@ -46,10 +46,8 @@ if MYPY_CHECK_RUNNING:
         Iterator,
         List,
         Optional,
-        Text,
         Tuple,
         TypeVar,
-        Union,
     )
 
     from pip._vendor.pkg_resources import Distribution
@@ -155,7 +153,7 @@ def rmtree_errorhandler(func, path, exc_info):
 
 
 def path_to_display(path):
-    # type: (Optional[Union[str, Text]]) -> Optional[Text]
+    # type: (Optional[str]) -> Optional[str]
     """
     Convert a bytes (or text) path to text (unicode in Python 2) for display
     and logging purposes.
@@ -181,7 +179,7 @@ def path_to_display(path):
 
 
 def display_path(path):
-    # type: (Union[str, Text]) -> str
+    # type: (str) -> str
     """Gives the display value for a given path, making it relative to cwd
     if possible."""
     path = os.path.normcase(os.path.abspath(path))
@@ -885,7 +883,7 @@ def is_console_interactive():
 
 
 def hash_file(path, blocksize=1 << 20):
-    # type: (Text, int) -> Tuple[Any, int]
+    # type: (str, int) -> Tuple[Any, int]
     """Return (hash, length) for path using hashlib.sha256()
     """
 

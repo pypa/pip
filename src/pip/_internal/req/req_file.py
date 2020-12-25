@@ -156,7 +156,7 @@ def parse_requirements(
 
 
 def preprocess(content):
-    # type: (Text) -> ReqFileLines
+    # type: (str) -> ReqFileLines
     """Split, filter, and join lines, and return a line iterator
 
     :param content: the content of the requirements file
@@ -396,7 +396,7 @@ class RequirementsFileParser(object):
 def get_line_parser(finder):
     # type: (Optional[PackageFinder]) -> LineParser
     def parse_line(line):
-        # type: (Text) -> Tuple[str, Values]
+        # type: (str) -> Tuple[str, Values]
         # Build new parser for each line since it accumulates appendable
         # options.
         parser = build_parser()
@@ -415,7 +415,7 @@ def get_line_parser(finder):
 
 
 def break_args_options(line):
-    # type: (Text) -> Tuple[str, Text]
+    # type: (str) -> Tuple[str, str]
     """Break up the line into an args and options string.  We only want to shlex
     (and then optparse) the options, not the args.  args can contain markers
     which are corrupted by shlex.
@@ -468,7 +468,7 @@ def join_lines(lines_enum):
     comments).  The joined line takes on the index of the first line.
     """
     primary_line_number = None
-    new_line = []  # type: List[Text]
+    new_line = []  # type: List[str]
     for line_number, line in lines_enum:
         if not line.endswith('\\') or COMMENT_RE.match(line):
             if COMMENT_RE.match(line):
@@ -535,7 +535,7 @@ def expand_env_variables(lines_enum):
 
 
 def get_file_content(url, session):
-    # type: (str, PipSession) -> Tuple[str, Text]
+    # type: (str, PipSession) -> Tuple[str, str]
     """Gets the content of a file; it may be a filename, file: URL, or
     http: URL.  Returns (location, content).  Content is unicode.
     Respects # -*- coding: declarations on the retrieved files.

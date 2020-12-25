@@ -14,7 +14,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import path_to_url, url_to_path
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional, Text, Tuple, Union
+    from typing import Optional, Tuple, Union
 
     from pip._internal.index.collector import HTMLPage
     from pip._internal.utils.hashes import Hashes
@@ -38,7 +38,7 @@ class Link(KeyBasedCompareMixin):
         url,                   # type: str
         comes_from=None,       # type: Optional[Union[str, HTMLPage]]
         requires_python=None,  # type: Optional[str]
-        yanked_reason=None,    # type: Optional[Text]
+        yanked_reason=None,    # type: Optional[str]
         cache_link_parsing=True,  # type: bool
     ):
         # type: (...) -> None

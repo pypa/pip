@@ -7,7 +7,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 if MYPY_CHECK_RUNNING:
     import configparser
     from hashlib import _Hash
-    from typing import Any, Dict, List, Optional, Text
+    from typing import Any, Dict, List, Optional
 
     from pip._vendor.pkg_resources import Distribution
     from pip._vendor.requests.models import Request, Response
@@ -95,7 +95,7 @@ class NetworkConnectionError(PipError):
     """HTTP connection error"""
 
     def __init__(self, error_msg, response=None, request=None):
-        # type: (Text, Response, Request) -> None
+        # type: (str, Response, Request) -> None
         """
         Initialize NetworkConnectionError with  `request` and `response`
         objects.
