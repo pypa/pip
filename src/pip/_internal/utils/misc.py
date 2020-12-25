@@ -1,6 +1,5 @@
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
-# mypy: disallow-untyped-defs=False
 
 import contextlib
 import errno
@@ -16,16 +15,21 @@ import sys
 import urllib.parse
 from io import StringIO
 from itertools import filterfalse, tee, zip_longest
+from types import TracebackType
 from typing import (
     Any,
     AnyStr,
+    BinaryIO,
     Callable,
     Container,
+    ContextManager,
     Iterable,
     Iterator,
     List,
     Optional,
+    TextIO,
     Tuple,
+    Type,
     TypeVar,
     cast,
 )
@@ -64,8 +68,10 @@ __all__ = [
 
 logger = logging.getLogger(__name__)
 
-VersionInfo = Tuple[int, int, int]
 T = TypeVar("T")
+ExcInfo = Tuple[Type[BaseException], BaseException, TracebackType]
+VersionInfo = Tuple[int, int, int]
+NetlocTuple = Tuple[str, Tuple[Optional[str], Optional[str]]]
 
 
 def get_pip_version():
@@ -132,6 +138,7 @@ def rmtree(dir, ignore_errors=False):
 
 
 def rmtree_errorhandler(func, path, exc_info):
+    # type: (Callable[..., Any], str, ExcInfo) -> None
     """On Windows, the files in .svn are read-only, so when rmtree() tries to
     remove them, an exception is thrown.  We catch that here, remove the
     read-only attribute, and hopefully continue without problems."""
@@ -279,6 +286,7 @@ def is_installable_dir(path):
 
 
 def read_chunks(file, size=io.DEFAULT_BUFFER_SIZE):
+    # type: (BinaryIO, int) -> Iterator[bytes]
     """Yield pieces of data from a file-like object until EOF."""
     while True:
         chunk = file.read(size)
@@ -491,19 +499,24 @@ def write_output(msg, *args):
 
 
 class StreamWrapper(StringIO):
+    orig_stream = None  # type: TextIO
+
     @classmethod
     def from_stream(cls, orig_stream):
+        # type: (TextIO) -> StreamWrapper
         cls.orig_stream = orig_stream
         return cls()
 
     # compileall.compile_dir() needs stdout.encoding to print to stdout
+    # https://github.com/python/mypy/issues/4125
     @property
-    def encoding(self):
+    def encoding(self):  # type: ignore
         return self.orig_stream.encoding
 
 
 @contextlib.contextmanager
 def captured_output(stream_name):
+    # type: (str) -> Iterator[StreamWrapper]
     """Return a context manager used by captured_stdout/stdin/stderr
     that temporarily replaces the sys stream *stream_name* with a StringIO.
 
@@ -518,6 +531,7 @@ def captured_output(stream_name):
 
 
 def captured_stdout():
+    # type: () -> ContextManager[StreamWrapper]
     """Capture the output of sys.stdout:
 
        with captured_stdout() as stdout:
@@ -530,6 +544,7 @@ def captured_stdout():
 
 
 def captured_stderr():
+    # type: () -> ContextManager[StreamWrapper]
     """
     See captured_stdout().
     """
@@ -538,6 +553,7 @@ def captured_stderr():
 
 # Simulates an enum
 def enum(*sequential, **named):
+    # type: (*Any, **Any) -> Type[Any]
     enums = dict(zip(sequential, range(len(sequential))), **named)
     reverse = {value: key for key, value in enums.items()}
     enums["reverse_mapping"] = reverse
@@ -579,6 +595,7 @@ def parse_netloc(netloc):
 
 
 def split_auth_from_netloc(netloc):
+    # type: (str) -> NetlocTuple
     """
     Parse out and remove the auth information from a netloc.
 
@@ -591,17 +608,20 @@ def split_auth_from_netloc(netloc):
     # behaves if more than one @ is present (which can be checked using
     # the password attribute of urlsplit()'s return value).
     auth, netloc = netloc.rsplit("@", 1)
+    pw = None  # type: Optional[str]
     if ":" in auth:
         # Split from the left because that's how urllib.parse.urlsplit()
         # behaves if more than one : is present (which again can be checked
         # using the password attribute of the return value)
-        user_pass = auth.split(":", 1)
+        user, pw = auth.split(":", 1)
     else:
-        user_pass = auth, None
+        user, pw = auth, None
 
-    user_pass = tuple(None if x is None else urllib.parse.unquote(x) for x in user_pass)
+    user = urllib.parse.unquote(user)
+    if pw is not None:
+        pw = urllib.parse.unquote(pw)
 
-    return netloc, user_pass
+    return netloc, (user, pw)
 
 
 def redact_netloc(netloc):
@@ -628,6 +648,7 @@ def redact_netloc(netloc):
 
 
 def _transform_url(url, transform_netloc):
+    # type: (str, Callable[[str], Tuple[Any, ...]]) -> Tuple[str, NetlocTuple]
     """Transform and replace netloc in a url.
 
     transform_netloc is a function taking the netloc and returning a
@@ -642,14 +663,16 @@ def _transform_url(url, transform_netloc):
     # stripped url
     url_pieces = (purl.scheme, netloc_tuple[0], purl.path, purl.query, purl.fragment)
     surl = urllib.parse.urlunsplit(url_pieces)
-    return surl, netloc_tuple
+    return surl, cast("NetlocTuple", netloc_tuple)
 
 
 def _get_netloc(netloc):
+    # type: (str) -> NetlocTuple
     return split_auth_from_netloc(netloc)
 
 
 def _redact_netloc(netloc):
+    # type: (str) -> Tuple[str,]
     return (redact_netloc(netloc),)
 
 
@@ -765,6 +788,7 @@ def hash_file(path, blocksize=1 << 20):
 
 
 def is_wheel_installed():
+    # type: () -> bool
     """
     Return whether the wheel package is installed.
     """
