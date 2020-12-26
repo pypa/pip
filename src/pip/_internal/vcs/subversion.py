@@ -14,7 +14,7 @@ from pip._internal.utils.misc import (
 )
 from pip._internal.utils.subprocess import make_command
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from pip._internal.vcs.versioncontrol import VersionControl, vcs
+from pip._internal.vcs.versioncontrol import RemoteNotFoundError, VersionControl, vcs
 
 _svn_xml_url_re = re.compile('url="([^"]+)"')
 _svn_rev_re = re.compile(r'committed-rev="(\d+)"')
@@ -110,6 +110,7 @@ class Subversion(VersionControl):
 
     @classmethod
     def get_remote_url(cls, location):
+        # type: (str) -> str
         # In cases where the source is in a subdirectory, not alongside
         # setup.py we have to look up in the location until we find a real
         # setup.py
@@ -125,7 +126,7 @@ class Subversion(VersionControl):
                     "parent directories)",
                     orig_location,
                 )
-                return None
+                raise RemoteNotFoundError
 
         return cls._get_svn_url_rev(location)[0]
 

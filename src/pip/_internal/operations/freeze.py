@@ -225,8 +225,7 @@ def get_requirement_info(dist):
             "falling back to uneditable format", exc
         )
     else:
-        if req is not None:
-            return (req, True, [])
+        return (req, True, [])
 
     logger.warning(
         'Could not determine repository location of %s', location

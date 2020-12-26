@@ -409,7 +409,7 @@ class VersionControl:
 
     @classmethod
     def get_src_requirement(cls, repo_dir, project_name):
-        # type: (str, str) -> Optional[str]
+        # type: (str, str) -> str
         """
         Return the requirement string to use to redownload the files
         currently at the given repository directory.
@@ -422,8 +422,6 @@ class VersionControl:
             {repository_url}@{revision}#egg={project_name}
         """
         repo_url = cls.get_remote_url(repo_dir)
-        if repo_url is None:
-            return None
 
         if cls.should_add_vcs_url_prefix(repo_url):
             repo_url = '{}+{}'.format(cls.name, repo_url)

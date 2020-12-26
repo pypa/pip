@@ -8,7 +8,7 @@ from pip._internal.utils.misc import display_path, rmtree
 from pip._internal.utils.subprocess import make_command
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import path_to_url
-from pip._internal.vcs.versioncontrol import VersionControl, vcs
+from pip._internal.vcs.versioncontrol import RemoteNotFoundError, VersionControl, vcs
 
 if MYPY_CHECK_RUNNING:
     from typing import Optional, Tuple
@@ -81,6 +81,7 @@ class Bazaar(VersionControl):
 
     @classmethod
     def get_remote_url(cls, location):
+        # type: (str) -> str
         urls = cls.run_command(['info'], cwd=location)
         for line in urls.splitlines():
             line = line.strip()
@@ -91,7 +92,7 @@ class Bazaar(VersionControl):
                     if cls._is_local_repository(repo):
                         return path_to_url(repo)
                     return repo
-        return None
+        raise RemoteNotFoundError
 
     @classmethod
     def get_revision(cls, location):
