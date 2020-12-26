@@ -21,7 +21,6 @@ from pip._internal.exceptions import NetworkConnectionError
 from pip._internal.models.link import Link
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.network.utils import raise_for_status
-from pip._internal.utils.compat import lru_cache
 from pip._internal.utils.filetypes import is_archive_file
 from pip._internal.utils.misc import pairwise, redact_auth_from_url
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -311,7 +310,7 @@ def with_cached_html_pages(
     `page` has `page.cache_link_parsing == False`.
     """
 
-    @lru_cache(maxsize=None)
+    @functools.lru_cache(maxsize=None)
     def wrapper(cacheable_page):
         # type: (CacheablePageContent) -> List[Link]
         return list(fn(cacheable_page.page))

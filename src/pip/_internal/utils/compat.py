@@ -5,7 +5,6 @@ distributions."""
 # mypy: disallow-untyped-defs=False
 
 import codecs
-import functools
 import locale
 import logging
 import os
@@ -14,15 +13,7 @@ import sys
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Callable, Optional, Protocol, TypeVar, Union
-
-    # Used in the @lru_cache polyfill.
-    F = TypeVar('F')
-
-    class LruCache(Protocol):
-        def __call__(self, maxsize=None):
-            # type: (Optional[int]) -> Callable[[F], F]
-            raise NotImplementedError
+    from typing import Optional, Union
 
 try:
     import ipaddress
@@ -185,16 +176,3 @@ stdlib_pkgs = {"python", "wsgiref", "argparse"}
 # windows detection, covers cpython and ironpython
 WINDOWS = (sys.platform.startswith("win") or
            (sys.platform == 'cli' and os.name == 'nt'))
-
-
-# Fallback to noop_lru_cache in Python 2
-# TODO: this can be removed when python 2 support is dropped!
-def noop_lru_cache(maxsize=None):
-    # type: (Optional[int]) -> Callable[[F], F]
-    def _wrapper(f):
-        # type: (F) -> F
-        return f
-    return _wrapper
-
-
-lru_cache = getattr(functools, "lru_cache", noop_lru_cache)  # type: LruCache
