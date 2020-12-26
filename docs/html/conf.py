@@ -11,6 +11,7 @@
 
 import glob
 import os
+import pathlib
 import re
 import sys
 
@@ -34,6 +35,7 @@ extensions = [
     'sphinx.ext.intersphinx',
     # third-party:
     'sphinx_inline_tabs',
+    'sphinxcontrib.towncrier',
     # in-tree:
     'docs_feedback_sphinxext',
     'pip_sphinxext',
@@ -314,3 +316,10 @@ docs_feedback_questions_list = (
     'What content was useful?',
     'What content was not useful?',
 )
+
+# -- Options for towncrier_draft extension -----------------------------------
+
+towncrier_draft_autoversion_mode = 'draft'  # or: 'sphinx-release', 'sphinx-version'
+towncrier_draft_include_empty = True
+towncrier_draft_working_directory = pathlib.Path(docs_dir).parent
+# Not yet supported: towncrier_draft_config_path = 'pyproject.toml'  # relative to cwd
