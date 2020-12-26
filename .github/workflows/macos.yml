@@ -2,8 +2,6 @@ name: MacOS
 
 on:
   push:
-    branches:
-    - master
   pull_request:
   schedule:
   # Run every Friday at 18:02 UTC
