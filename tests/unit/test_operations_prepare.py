@@ -189,7 +189,7 @@ class Test_unpack_url:
         Test when the file url hash fragment is wrong
         """
         self.prep(tmpdir, data)
-        url = '{}#md5=bogus'.format(self.dist_url.url)
+        url = f'{self.dist_url.url}#md5=bogus'
         dist_url = Link(url)
         with pytest.raises(HashMismatch):
             unpack_url(dist_url,

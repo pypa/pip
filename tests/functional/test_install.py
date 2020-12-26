@@ -530,7 +530,7 @@ def test_hashed_install_failure(script, tmpdir):
 
 def assert_re_match(pattern, text):
     assert re.search(pattern, text), (
-        "Could not find {!r} in {!r}".format(pattern, text)
+        f"Could not find {pattern!r} in {text!r}"
     )
 
 
@@ -1023,7 +1023,7 @@ def test_install_package_with_prefix(script, data):
     install_path = (
         distutils.sysconfig.get_python_lib(prefix=rel_prefix_path) /
         # we still test for egg-info because no-binary implies setup.py install
-        'simple-1.0-py{}.egg-info'.format(pyversion)
+        f'simple-1.0-py{pyversion}.egg-info'
     )
     result.did_create(install_path)
 
@@ -1040,7 +1040,7 @@ def test_install_editable_with_prefix(script):
 
     if hasattr(sys, "pypy_version_info"):
         site_packages = os.path.join(
-            'prefix', 'lib', 'python{}'.format(pyversion), 'site-packages')
+            'prefix', 'lib', f'python{pyversion}', 'site-packages')
     else:
         site_packages = distutils.sysconfig.get_python_lib(prefix='prefix')
 
@@ -1086,7 +1086,7 @@ def test_install_package_that_emits_unicode(script, data):
     )
     assert (
         'FakeError: this package designed to fail on install' in result.stderr
-    ), 'stderr: {}'.format(result.stderr)
+    ), f'stderr: {result.stderr}'
     assert 'UnicodeDecodeError' not in result.stderr
     assert 'UnicodeDecodeError' not in result.stdout
 
@@ -1838,7 +1838,7 @@ def test_install_sends_client_cert(install_args, script, cert_factory, data):
         file_response(str(data.packages / "simple-3.0.tar.gz")),
     ]
 
-    url = "https://{}:{}/simple".format(server.host, server.port)
+    url = f"https://{server.host}:{server.port}/simple"
 
     args = ["install", "-vvv", "--cert", cert_path, "--client-cert", cert_path]
     args.extend(["--index-url", url])

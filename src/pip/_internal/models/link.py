@@ -83,7 +83,7 @@ class Link(KeyBasedCompareMixin):
     def __str__(self):
         # type: () -> str
         if self.requires_python:
-            rp = ' (requires-python:{})'.format(self.requires_python)
+            rp = f' (requires-python:{self.requires_python})'
         else:
             rp = ''
         if self.comes_from:
@@ -94,7 +94,7 @@ class Link(KeyBasedCompareMixin):
 
     def __repr__(self):
         # type: () -> str
-        return '<Link {}>'.format(self)
+        return f'<Link {self}>'
 
     @property
     def url(self):

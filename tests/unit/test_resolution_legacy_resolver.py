@@ -34,7 +34,7 @@ class FakeDist(pkg_resources.DistInfoDistribution):
         self.metadata = metadata
 
     def __str__(self):
-        return '<distribution {!r}>'.format(self.project_name)
+        return f'<distribution {self.project_name!r}>'
 
     def has_metadata(self, name):
         return (name == self.metadata_name)
@@ -47,7 +47,7 @@ class FakeDist(pkg_resources.DistInfoDistribution):
 def make_fake_dist(requires_python=None, metadata_name=None):
     metadata = 'Name: test\n'
     if requires_python is not None:
-        metadata += 'Requires-Python:{}'.format(requires_python)
+        metadata += f'Requires-Python:{requires_python}'
 
     return FakeDist(metadata, metadata_name=metadata_name)
 

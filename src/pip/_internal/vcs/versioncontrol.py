@@ -77,9 +77,9 @@ def make_vcs_requirement_url(repo_url, rev, project_name, subdir=None):
       project_name: the (unescaped) project name.
     """
     egg_project_name = pkg_resources.to_filename(project_name)
-    req = '{}@{}#egg={}'.format(repo_url, rev, egg_project_name)
+    req = f'{repo_url}@{rev}#egg={egg_project_name}'
     if subdir:
-        req += '&subdirectory={}'.format(subdir)
+        req += f'&subdirectory={subdir}'
 
     return req
 
@@ -236,7 +236,7 @@ class RevOptions:
 
     def __repr__(self):
         # type: () -> str
-        return '<RevOptions {}: rev={!r}>'.format(self.vc_class.name, self.rev)
+        return f'<RevOptions {self.vc_class.name}: rev={self.rev!r}>'
 
     @property
     def arg_rev(self):
@@ -264,7 +264,7 @@ class RevOptions:
         if not self.rev:
             return ''
 
-        return ' (to revision {})'.format(self.rev)
+        return f' (to revision {self.rev})'
 
     def make_new(self, rev):
         # type: (str) -> RevOptions
@@ -388,7 +388,7 @@ class VersionControl:
         Return whether the vcs prefix (e.g. "git+") should be added to a
         repository's remote url when used in a requirement.
         """
-        return not remote_url.lower().startswith('{}:'.format(cls.name))
+        return not remote_url.lower().startswith(f'{cls.name}:')
 
     @classmethod
     def get_subdirectory(cls, location):
@@ -424,7 +424,7 @@ class VersionControl:
         repo_url = cls.get_remote_url(repo_dir)
 
         if cls.should_add_vcs_url_prefix(repo_url):
-            repo_url = '{}+{}'.format(cls.name, repo_url)
+            repo_url = f'{cls.name}+{repo_url}'
 
         revision = cls.get_requirement_revision(repo_dir)
         subdir = cls.get_subdirectory(repo_dir)

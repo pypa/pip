@@ -98,7 +98,7 @@ class TestBasicLoading(ConfigurationMixin):
             """))
 
         result = script.pip("config", "debug")
-        assert "{}, exists: True".format(config_file) in result.stdout
+        assert f"{config_file}, exists: True" in result.stdout
         assert "global.timeout: 60" in result.stdout
         assert "freeze.timeout: 10" in result.stdout
         assert re.search(r"env:\n(  .+\n)+", result.stdout)
@@ -117,7 +117,7 @@ class TestBasicLoading(ConfigurationMixin):
         script.pip("config", "--user", "set", "freeze.timeout", "10")
 
         result = script.pip("config", "debug")
-        assert "{}, exists: True".format(new_config_file) in result.stdout
+        assert f"{new_config_file}, exists: True" in result.stdout
         assert "global.timeout: 60" in result.stdout
         assert "freeze.timeout: 10" in result.stdout
         assert re.search(r"user:\n(  .+\n)+", result.stdout)
@@ -134,7 +134,7 @@ class TestBasicLoading(ConfigurationMixin):
         script.pip("config", "--site", "set", "freeze.timeout", "10")
 
         result = script.pip("config", "debug")
-        assert "{}, exists: True".format(site_config_file) in result.stdout
+        assert f"{site_config_file}, exists: True" in result.stdout
         assert "global.timeout: 60" in result.stdout
         assert "freeze.timeout: 10" in result.stdout
         assert re.search(r"site:\n(  .+\n)+", result.stdout)
@@ -149,4 +149,4 @@ class TestBasicLoading(ConfigurationMixin):
         # So we just check if the file can be identified
         global_config_file = get_configuration_files()[kinds.GLOBAL][0]
         result = script.pip("config", "debug")
-        assert "{}, exists:".format(global_config_file) in result.stdout
+        assert f"{global_config_file}, exists:" in result.stdout

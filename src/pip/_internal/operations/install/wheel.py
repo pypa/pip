@@ -360,7 +360,7 @@ def get_console_script_specs(console):
             )
 
         scripts_to_generate.append(
-            'pip{} = {}'.format(get_major_minor_version(), pip_script)
+            f'pip{get_major_minor_version()} = {pip_script}'
         )
         # Delete any other versioned pip entry points
         pip_ep = [k for k in console if re.match(r'pip(\d(\.\d)?)?$', k)]

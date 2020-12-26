@@ -79,7 +79,7 @@ def message_from_dict(headers):
 
 def dist_info_path(name, version, path):
     # type: (str, str, str) -> str
-    return "{}-{}.dist-info/{}".format(name, version, path)
+    return f"{name}-{version}.dist-info/{path}"
 
 
 def make_metadata_file(
@@ -162,7 +162,7 @@ def make_entry_points_file(
 
     lines = []
     for section, values in entry_points_data.items():
-        lines.append("[{}]".format(section))
+        lines.append(f"[{section}]")
         lines.extend(values)
 
     return File(
@@ -190,9 +190,9 @@ def make_metadata_files(name, version, files):
 
 def make_data_files(name, version, files):
     # type: (str, str, Dict[str, AnyStr]) -> List[File]
-    data_dir = "{}-{}.data".format(name, version)
+    data_dir = f"{name}-{version}.data"
     return [
-        File("{}/{}".format(data_dir, name), ensure_binary(contents))
+        File(f"{data_dir}/{name}", ensure_binary(contents))
         for name, contents in files.items()
     ]
 
@@ -258,7 +258,7 @@ def wheel_name(name, version, pythons, abis, platforms):
         ".".join(abis),
         ".".join(platforms),
     ])
-    return "{}.whl".format(stem)
+    return f"{stem}.whl"
 
 
 class WheelBuilder:

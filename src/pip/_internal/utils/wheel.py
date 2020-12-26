@@ -57,7 +57,7 @@ def pkg_resources_distribution_for_wheel(wheel_zip, name, location):
     info_dir, _ = parse_wheel(wheel_zip, name)
 
     metadata_files = [
-        p for p in wheel_zip.namelist() if p.startswith("{}/".format(info_dir))
+        p for p in wheel_zip.namelist() if p.startswith(f"{info_dir}/")
     ]
 
     metadata_text = {}  # type: Dict[str, bytes]
@@ -152,7 +152,7 @@ def read_wheel_metadata_file(source, path):
         # and RuntimeError for password-protected files
     except (BadZipFile, KeyError, RuntimeError) as e:
         raise UnsupportedWheel(
-            "could not read {!r} file: {!r}".format(path, e)
+            f"could not read {path!r} file: {e!r}"
         )
 
 
@@ -161,14 +161,14 @@ def wheel_metadata(source, dist_info_dir):
     """Return the WHEEL metadata of an extracted wheel, if possible.
     Otherwise, raise UnsupportedWheel.
     """
-    path = "{}/WHEEL".format(dist_info_dir)
+    path = f"{dist_info_dir}/WHEEL"
     # Zip file path separators must be /
     wheel_contents = read_wheel_metadata_file(source, path)
 
     try:
         wheel_text = ensure_str(wheel_contents)
     except UnicodeDecodeError as e:
-        raise UnsupportedWheel("error decoding {!r}: {!r}".format(path, e))
+        raise UnsupportedWheel(f"error decoding {path!r}: {e!r}")
 
     # FeedParser (used by Parser) does not raise any exceptions. The returned
     # message may have .defects populated, but for backwards-compatibility we
@@ -190,7 +190,7 @@ def wheel_version(wheel_data):
     try:
         return tuple(map(int, version.split('.')))
     except ValueError:
-        raise UnsupportedWheel("invalid Wheel-Version: {!r}".format(version))
+        raise UnsupportedWheel(f"invalid Wheel-Version: {version!r}")
 
 
 def check_compatibility(version, name):

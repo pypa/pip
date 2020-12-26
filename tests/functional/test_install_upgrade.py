@@ -470,5 +470,5 @@ def test_install_find_existing_package_canonicalize(script, req1, req2):
     result = script.pip(
         "install", "--no-index", "--find-links", pkg_container, "pkg",
     )
-    satisfied_message = "Requirement already satisfied: {}".format(req2)
+    satisfied_message = f"Requirement already satisfied: {req2}"
     assert satisfied_message in result.stdout, str(result)

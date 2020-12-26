@@ -116,7 +116,7 @@ def get_prog():
     try:
         prog = os.path.basename(sys.argv[0])
         if prog in ('__main__.py', '-c'):
-            return "{} -m pip".format(sys.executable)
+            return f"{sys.executable} -m pip"
         else:
             return prog
     except (AttributeError, TypeError, IndexError):
@@ -676,8 +676,8 @@ def build_netloc(host, port):
         return host
     if ':' in host:
         # Only wrap host with square brackets when it is IPv6
-        host = '[{}]'.format(host)
-    return '{}:{}'.format(host, port)
+        host = f'[{host}]'
+    return f'{host}:{port}'
 
 
 def build_url_from_netloc(netloc, scheme='https'):
@@ -687,8 +687,8 @@ def build_url_from_netloc(netloc, scheme='https'):
     """
     if netloc.count(':') >= 2 and '@' not in netloc and '[' not in netloc:
         # It must be a bare IPv6 address, so wrap it with brackets.
-        netloc = '[{}]'.format(netloc)
-    return '{}://{}'.format(scheme, netloc)
+        netloc = f'[{netloc}]'
+    return f'{scheme}://{netloc}'
 
 
 def parse_netloc(netloc):

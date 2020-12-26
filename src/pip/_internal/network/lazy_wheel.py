@@ -190,7 +190,7 @@ class LazyZipOverHTTP:
         # type: (int, int, Dict[str, str]) -> Response
         """Return HTTP response to a range request from start to end."""
         headers = base_headers.copy()
-        headers['Range'] = 'bytes={}-{}'.format(start, end)
+        headers['Range'] = f'bytes={start}-{end}'
         # TODO: Get range requests to be correctly cached
         headers['Cache-Control'] = 'no-cache'
         return self._session.get(self._url, headers=headers, stream=True)

@@ -181,7 +181,7 @@ def pip_self_version_check(session, options):
         # command context, so be pragmatic here and suggest the command
         # that's always available. This does not accommodate spaces in
         # `sys.executable`.
-        pip_cmd = "{} -m pip".format(sys.executable)
+        pip_cmd = f"{sys.executable} -m pip"
         logger.warning(
             "You are using pip version %s; however, version %s is "
             "available.\nYou should consider upgrading via the "

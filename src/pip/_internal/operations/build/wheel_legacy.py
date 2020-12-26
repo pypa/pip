@@ -23,7 +23,7 @@ def format_command_result(
     # type: (...) -> str
     """Format command information for logging."""
     command_desc = format_command_args(command_args)
-    text = 'Command arguments: {}\n'.format(command_desc)
+    text = f'Command arguments: {command_desc}\n'
 
     if not command_output:
         text += 'Command output: None'
@@ -32,7 +32,7 @@ def format_command_result(
     else:
         if not command_output.endswith('\n'):
             command_output += '\n'
-        text += 'Command output:\n{}{}'.format(command_output, LOG_DIVIDER)
+        text += f'Command output:\n{command_output}{LOG_DIVIDER}'
 
     return text
 
@@ -87,7 +87,7 @@ def build_wheel_legacy(
         destination_dir=tempd,
     )
 
-    spin_message = 'Building wheel for {} (setup.py)'.format(name)
+    spin_message = f'Building wheel for {name} (setup.py)'
     with open_spinner(spin_message) as spinner:
         logger.debug('Destination directory: %s', tempd)
 

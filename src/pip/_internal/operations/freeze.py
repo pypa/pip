@@ -56,7 +56,7 @@ def freeze(
     find_links = find_links or []
 
     for link in find_links:
-        yield '-f {}'.format(link)
+        yield f'-f {link}'
     installations = {}  # type: Dict[str, FrozenRequirement]
 
     for dist in get_installed_distributions(
@@ -195,7 +195,7 @@ def get_requirement_info(dist):
             location,
         )
         comments = [
-            '# Editable install with no version control ({})'.format(req)
+            f'# Editable install with no version control ({req})'
         ]
         return (location, True, comments)
 
@@ -269,5 +269,5 @@ class FrozenRequirement:
         # type: () -> str
         req = self.req
         if self.editable:
-            req = '-e {}'.format(req)
+            req = f'-e {req}'
         return '\n'.join(list(self.comments) + [str(req)]) + '\n'

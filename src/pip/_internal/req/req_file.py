@@ -201,7 +201,7 @@ def handle_requirement_line(
             if dest in line.opts.__dict__ and line.opts.__dict__[dest]:
                 req_options[dest] = line.opts.__dict__[dest]
 
-        line_source = 'line {} of {}'.format(line.lineno, line.filename)
+        line_source = f'line {line.lineno} of {line.filename}'
         return ParsedRequirement(
             requirement=line.requirement,
             is_editable=line.is_editable,
@@ -271,7 +271,7 @@ def handle_option_line(
 
         if session:
             for host in opts.trusted_hosts or []:
-                source = 'line {} of {}'.format(lineno, filename)
+                source = f'line {lineno} of {filename}'
                 session.add_trusted_host(host, source=source)
 
 
@@ -381,7 +381,7 @@ class RequirementsFileParser:
                 args_str, opts = self._line_parser(line)
             except OptionParsingError as e:
                 # add offending line
-                msg = 'Invalid requirement: {}\n{}'.format(line, e.msg)
+                msg = f'Invalid requirement: {line}\n{e.msg}'
                 raise RequirementsFileParseError(msg)
 
             yield ParsedLine(
@@ -559,6 +559,6 @@ def get_file_content(url, session):
             content = auto_decode(f.read())
     except IOError as exc:
         raise InstallationError(
-            'Could not open requirements file: {}'.format(exc)
+            f'Could not open requirements file: {exc}'
         )
     return url, content

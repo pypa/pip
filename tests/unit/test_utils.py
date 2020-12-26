@@ -63,11 +63,11 @@ class Tests_EgglinkPath:
         self.user_site = 'USER_SITE'
         self.user_site_egglink = os.path.join(
             self.user_site,
-            '{}.egg-link'.format(project)
+            f'{project}.egg-link'
         )
         self.site_packages_egglink = os.path.join(
             self.site_packages,
-            '{}.egg-link'.format(project),
+            f'{project}.egg-link',
         )
 
         # patches
@@ -440,7 +440,7 @@ elif sys.byteorder == "big":
 def test_path_to_display(monkeypatch, path, fs_encoding, expected):
     monkeypatch.setattr(sys, 'getfilesystemencoding', lambda: fs_encoding)
     actual = path_to_display(path)
-    assert actual == expected, 'actual: {!r}'.format(actual)
+    assert actual == expected, f'actual: {actual!r}'
 
 
 class Test_normalize_path:

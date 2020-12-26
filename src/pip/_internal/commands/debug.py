@@ -66,7 +66,7 @@ def get_module_from_module_name(module_name):
         module_name = 'pkg_resources'
 
     __import__(
-        'pip._vendor.{}'.format(module_name),
+        f'pip._vendor.{module_name}',
         globals(),
         locals(),
         level=0
@@ -126,7 +126,7 @@ def show_tags(options):
     formatted_target = target_python.format_given()
     suffix = ''
     if formatted_target:
-        suffix = ' (target: {})'.format(formatted_target)
+        suffix = f' (target: {formatted_target})'
 
     msg = 'Compatible tags: {}{}'.format(len(tags), suffix)
     logger.info(msg)

@@ -14,7 +14,7 @@ def test_no_clean_option_blocks_cleaning_after_install(script, data):
     build = script.base_path / 'pip-build'
     script.pip(
         'install', '--no-clean', '--no-index', '--build', build,
-        '--find-links={}'.format(data.find_links), 'simple',
+        f'--find-links={data.find_links}', 'simple',
         expect_temp=True,
         # TODO: allow_stderr_warning is used for the --build deprecation,
         #       remove it when removing support for --build

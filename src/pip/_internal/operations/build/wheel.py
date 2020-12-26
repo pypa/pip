@@ -34,7 +34,7 @@ def build_wheel_pep517(
         logger.debug('Destination directory: %s', tempd)
 
         runner = runner_with_spinner_message(
-            'Building wheel for {} (PEP 517)'.format(name)
+            f'Building wheel for {name} (PEP 517)'
         )
         with backend.subprocess_runner(runner):
             wheel_name = backend.build_wheel(

@@ -116,7 +116,7 @@ def _get_custom_interpreter(implementation=None, version=None):
         implementation = interpreter_name()
     if version is None:
         version = interpreter_version()
-    return "{}{}".format(implementation, version)
+    return f"{implementation}{version}"
 
 
 def get_supported(

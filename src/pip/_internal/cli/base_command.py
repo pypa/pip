@@ -55,7 +55,7 @@ class Command(CommandContextMixIn):
         super().__init__()
         parser_kw = {
             'usage': self.usage,
-            'prog': '{} {}'.format(get_prog(), name),
+            'prog': f'{get_prog()} {name}',
             'formatter': UpdatingDefaultsHelpFormatter(),
             'add_help_option': False,
             'name': name,
@@ -70,7 +70,7 @@ class Command(CommandContextMixIn):
         self.tempdir_registry = None  # type: Optional[TempDirRegistry]
 
         # Commands should add options to this option group
-        optgroup_name = '{} Options'.format(self.name.capitalize())
+        optgroup_name = f'{self.name.capitalize()} Options'
         self.cmd_opts = optparse.OptionGroup(self.parser, optgroup_name)
 
         # Add the general options

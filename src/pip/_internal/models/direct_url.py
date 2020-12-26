@@ -46,7 +46,7 @@ def _get_required(d, expected_type, key, default=None):
     # type: (Dict[str, Any], Type[T], str, Optional[T]) -> T
     value = _get(d, expected_type, key, default)
     if value is None:
-        raise DirectUrlValidationError("{} must have a value".format(key))
+        raise DirectUrlValidationError(f"{key} must have a value")
     return value
 
 

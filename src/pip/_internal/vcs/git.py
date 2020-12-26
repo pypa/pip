@@ -147,12 +147,12 @@ class Git(VersionControl):
             except ValueError:
                 # Include the offending line to simplify troubleshooting if
                 # this error ever occurs.
-                raise ValueError('unexpected show-ref line: {!r}'.format(line))
+                raise ValueError(f'unexpected show-ref line: {line!r}')
 
             refs[ref] = sha
 
-        branch_ref = 'refs/remotes/origin/{}'.format(rev)
-        tag_ref = 'refs/tags/{}'.format(rev)
+        branch_ref = f'refs/remotes/origin/{rev}'
+        tag_ref = f'refs/tags/{rev}'
 
         sha = refs.get(branch_ref)
         if sha is not None:
@@ -266,7 +266,7 @@ class Git(VersionControl):
             elif self.get_current_branch(dest) != branch_name:
                 # Then a specific branch was requested, and that branch
                 # is not yet checked out.
-                track_branch = 'origin/{}'.format(branch_name)
+                track_branch = f'origin/{branch_name}'
                 cmd_args = [
                     'checkout', '-b', branch_name, '--track', track_branch,
                 ]

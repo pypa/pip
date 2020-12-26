@@ -391,13 +391,13 @@ class Factory:
             if parent is None:
                 req_disp = str(req)
             else:
-                req_disp = '{} (from {})'.format(req, parent.name)
+                req_disp = f'{req} (from {parent.name})'
             logger.critical(
                 "Could not find a version that satisfies the requirement %s",
                 req_disp,
             )
             return DistributionNotFound(
-                'No matching distribution found for {}'.format(req)
+                f'No matching distribution found for {req}'
             )
 
         # OK, we now have a list of requirements that can't all be
@@ -415,7 +415,7 @@ class Factory:
             # type: (Candidate) -> str
             ireq = parent.get_install_requirement()
             if not ireq or not ireq.comes_from:
-                return "{}=={}".format(parent.name, parent.version)
+                return f"{parent.name}=={parent.version}"
             if isinstance(ireq.comes_from, InstallRequirement):
                 return str(ireq.comes_from.name)
             return str(ireq.comes_from)

@@ -60,7 +60,7 @@ def test_str_to_display(data, expected):
     actual = str_to_display(data)
     assert actual == expected, (
         # Show the encoding for easier troubleshooting.
-        'encoding: {!r}'.format(locale.getpreferredencoding())
+        f'encoding: {locale.getpreferredencoding()!r}'
     )
 
 
@@ -79,7 +79,7 @@ def test_str_to_display__encoding(monkeypatch, data, encoding, expected):
     actual = str_to_display(data)
     assert actual == expected, (
         # Show the encoding for easier troubleshooting.
-        'encoding: {!r}'.format(locale.getpreferredencoding())
+        f'encoding: {locale.getpreferredencoding()!r}'
     )
 
 
@@ -96,7 +96,7 @@ def test_str_to_display__decode_error(monkeypatch, caplog):
 
     assert actual == expected, (
         # Show the encoding for easier troubleshooting.
-        'encoding: {!r}'.format(locale.getpreferredencoding())
+        f'encoding: {locale.getpreferredencoding()!r}'
     )
     assert len(caplog.records) == 1
     record = caplog.records[0]

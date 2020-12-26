@@ -152,7 +152,7 @@ class DownloadProgressMixin:
     def pretty_eta(self):
         # type: () -> str
         if self.eta:  # type: ignore
-            return "eta {}".format(self.eta_td)  # type: ignore
+            return f"eta {self.eta_td}"  # type: ignore
         return ""
 
     def iter(self, it):  # type: ignore

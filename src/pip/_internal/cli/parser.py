@@ -82,7 +82,7 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
             description = description.rstrip()
             # dedent, then reindent
             description = self.indent_lines(textwrap.dedent(description), "  ")
-            description = '{}:\n{}\n'.format(label, description)
+            description = f'{label}:\n{description}\n'
             return description
         else:
             return ''
@@ -168,7 +168,7 @@ class ConfigOptionParser(CustomOptionParser):
         try:
             return option.check_value(key, val)
         except optparse.OptionValueError as exc:
-            print("An error occurred during configuration: {}".format(exc))
+            print(f"An error occurred during configuration: {exc}")
             sys.exit(3)
 
     def _get_ordered_configuration_items(self):
@@ -279,4 +279,4 @@ class ConfigOptionParser(CustomOptionParser):
 
     def error(self, msg):
         self.print_usage(sys.stderr)
-        self.exit(UNKNOWN_ERROR, "{}\n".format(msg))
+        self.exit(UNKNOWN_ERROR, f"{msg}\n")

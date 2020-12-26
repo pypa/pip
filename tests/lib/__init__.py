@@ -373,7 +373,7 @@ def _one_or_both(a, b):
     if not a:
         return str(b)
 
-    return "{a}\n{b}".format(a=a, b=b)
+    return f"{a}\n{b}"
 
 
 def make_check_stderr_message(stderr, line, reason):
@@ -748,7 +748,7 @@ def _create_main_file(dir_path, name=None, output=None):
     def main():
         print({!r})
     """.format(output))
-    filename = '{}.py'.format(name)
+    filename = f'{name}.py'
     dir_path.joinpath(filename).write_text(text)
 
 
@@ -983,14 +983,14 @@ def create_really_basic_wheel(name, version):
         z.writestr(path, contents)
         records.append((path, digest(contents), str(len(contents))))
 
-    dist_info = "{}-{}.dist-info".format(name, version)
-    record_path = "{}/RECORD".format(dist_info)
+    dist_info = f"{name}-{version}.dist-info"
+    record_path = f"{dist_info}/RECORD"
     records = [(record_path, "", "")]
     buf = BytesIO()
     with ZipFile(buf, "w") as z:
-        add_file("{}/WHEEL".format(dist_info), "Wheel-Version: 1.0")
+        add_file(f"{dist_info}/WHEEL", "Wheel-Version: 1.0")
         add_file(
-            "{}/METADATA".format(dist_info),
+            f"{dist_info}/METADATA",
             dedent(
                 """\
                 Metadata-Version: 2.1
@@ -1023,10 +1023,10 @@ def create_basic_wheel_for_package(
     # Fix wheel distribution name by replacing runs of non-alphanumeric
     # characters with an underscore _ as per PEP 491
     name = re.sub(r"[^\w\d.]+", "_", name, re.UNICODE)
-    archive_name = "{}-{}-py2.py3-none-any.whl".format(name, version)
+    archive_name = f"{name}-{version}-py2.py3-none-any.whl"
     archive_path = script.scratch_path / archive_name
 
-    package_init_py = "{name}/__init__.py".format(name=name)
+    package_init_py = f"{name}/__init__.py"
     assert package_init_py not in extra_files
     extra_files[package_init_py] = textwrap.dedent(
         """
@@ -1037,7 +1037,7 @@ def create_basic_wheel_for_package(
     ).format(version=version, name=name)
 
     requires_dist = depends + [
-        '{package}; extra == "{extra}"'.format(package=package, extra=extra)
+        f'{package}; extra == "{extra}"'
         for extra, packages in extras.items()
         for package in packages
     ]
@@ -1118,7 +1118,7 @@ def need_executable(name, check_cmd):
             subprocess.check_output(check_cmd)
         except (OSError, subprocess.CalledProcessError):
             return pytest.mark.skip(
-                reason='{name} is not available'.format(name=name))(fn)
+                reason=f'{name} is not available')(fn)
         return fn
     return wrapper
 
