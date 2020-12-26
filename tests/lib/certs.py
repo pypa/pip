@@ -9,7 +9,7 @@ from cryptography.x509.oid import NameOID
 
 
 def make_tls_cert(hostname):
-    # type: (str) -> Tuple[x509.Certificate, rsa.RSAPrivateKey]
+    # type: (str) -> Tuple[x509.Certificate, rsa.RSAPrivateKeyWithSerialization]
     key = rsa.generate_private_key(
         public_exponent=65537,
         key_size=2048,
@@ -36,7 +36,7 @@ def make_tls_cert(hostname):
 
 
 def serialize_key(key):
-    # type: (rsa.RSAPrivateKey) -> bytes
+    # type: (rsa.RSAPrivateKeyWithSerialization) -> bytes
     return key.private_bytes(
         encoding=serialization.Encoding.PEM,
         format=serialization.PrivateFormat.TraditionalOpenSSL,

@@ -26,6 +26,7 @@ class Path(str):
         return super().__new__(cls)
 
     def __div__(self, path):
+        # type: (str) -> Path
         """
         Joins this path with another path.
 

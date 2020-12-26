@@ -67,7 +67,7 @@ repos:
   rev: v0.800
   hooks:
   - id: mypy
-    exclude: docs|tests
+    exclude: ^(docs|tests/(data|functional|unit|yaml))
     args: ["--pretty"]
     additional_dependencies: ['nox==2020.12.31']
 

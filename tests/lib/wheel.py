@@ -28,11 +28,7 @@ from pip._vendor.requests.structures import CaseInsensitiveDict
 
 from tests.lib.path import Path
 
-# path, digest, size
-RecordLike = Tuple[str, str, str]
-RecordCallback = Callable[
-    [List["Record"]], Union[str, bytes, List[RecordLike]]
-]
+RecordCallback = Callable[[List["Record"]], List["Record"]]
 # As would be used in metadata
 HeaderValue = Union[str, List[str]]
 
@@ -88,7 +84,7 @@ def make_metadata_file(
     updates,  # type: Defaulted[Dict[str, HeaderValue]]
     body,  # type: Defaulted[AnyStr]
 ):
-    # type: () -> File
+    # type: (...) -> Optional[File]
     if value is None:
         return None
 
@@ -211,7 +207,7 @@ def digest(contents):
 def record_file_maker_wrapper(
     name,  # type: str
     version,  # type: str
-    files,  # type: List[File]
+    files,  # type: Iterable[File]
     record,  # type: Defaulted[Optional[AnyStr]]
     record_callback,  # type: Defaulted[RecordCallback]
 ):
@@ -241,15 +237,15 @@ def record_file_maker_wrapper(
 
     with StringIO(newline="") as buf:
         writer = csv.writer(buf)
-        for record in records:
-            writer.writerow(record)
+        for r in records:
+            writer.writerow(r)
         contents = buf.getvalue().encode("utf-8")
 
     yield File(record_path, contents)
 
 
 def wheel_name(name, version, pythons, abis, platforms):
-    # type: (str, str, str, str, str) -> str
+    # type: (str, str, Iterable[str], Iterable[str], Iterable[str]) -> str
     stem = "-".join([
         name,
         version,
@@ -265,7 +261,7 @@ class WheelBuilder:
     """
 
     def __init__(self, name, files):
-        # type: (str, List[File]) -> None
+        # type: (str, Iterable[File]) -> None
         self._name = name
         self._files = files
 

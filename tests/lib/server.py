@@ -5,8 +5,7 @@ import threading
 from base64 import b64encode
 from contextlib import contextmanager
 from textwrap import dedent
-from types import TracebackType
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Type
+from typing import TYPE_CHECKING, Any, Callable, Dict, Iterable, Iterator
 from unittest.mock import Mock
 
 from werkzeug.serving import BaseWSGIServer, WSGIRequestHandler
@@ -14,14 +13,10 @@ from werkzeug.serving import make_server as _make_server
 
 from .compat import nullcontext
 
-Environ = Dict[str, str]
-Status = str
-Headers = Iterable[Tuple[str, str]]
-ExcInfo = Tuple[Type[BaseException], BaseException, TracebackType]
-Write = Callable[[bytes], None]
-StartResponse = Callable[[Status, Headers, Optional[ExcInfo]], Write]
-Body = List[bytes]
-Responder = Callable[[Environ, StartResponse], Body]
+if TYPE_CHECKING:
+    from _typeshed.wsgi import StartResponse, WSGIApplication, WSGIEnvironment
+
+Body = Iterable[bytes]
 
 
 class MockServer(BaseWSGIServer):
@@ -77,13 +72,15 @@ class _RequestHandler(WSGIRequestHandler):
         return environ
 
 
-def _mock_wsgi_adapter(mock):
-    # type: (Callable[[Environ, StartResponse], Responder]) -> Responder
+def _mock_wsgi_adapter(
+        mock  # type: Callable[[WSGIEnvironment, StartResponse], WSGIApplication]
+):
+    # type: (...) -> WSGIApplication
     """Uses a mock to record function arguments and provide
     the actual function that should respond.
     """
     def adapter(environ, start_response):
-        # type: (Environ, StartResponse) -> Body
+        # type: (WSGIEnvironment, StartResponse) -> Body
         try:
             responder = mock(environ, start_response)
         except StopIteration:
@@ -135,7 +132,7 @@ def make_mock_server(**kwargs):
 
 @contextmanager
 def server_running(server):
-    # type: (BaseWSGIServer) -> None
+    # type: (BaseWSGIServer) -> Iterator[None]
     """Context manager for running the provided server in a separate thread.
     """
     thread = threading.Thread(target=server.serve_forever)
@@ -153,9 +150,9 @@ def server_running(server):
 
 
 def text_html_response(text):
-    # type: (str) -> Responder
+    # type: (str) -> WSGIApplication
     def responder(environ, start_response):
-        # type: (Environ, StartResponse) -> Body
+        # type: (WSGIEnvironment, StartResponse) -> Body
         start_response("200 OK", [
             ("Content-Type", "text/html; charset=UTF-8"),
         ])
@@ -177,7 +174,7 @@ def html5_page(text):
 
 
 def index_page(spec):
-    # type: (Dict[str, str]) -> Responder
+    # type: (Dict[str, str]) -> WSGIApplication
     def link(name, value):
         return '<a href="{}">{}</a>'.format(
             value, name
@@ -188,7 +185,7 @@ def index_page(spec):
 
 
 def package_page(spec):
-    # type: (Dict[str, str]) -> Responder
+    # type: (Dict[str, str]) -> WSGIApplication
     def link(name, value):
         return '<a href="{}">{}</a>'.format(
             value, name
@@ -199,9 +196,9 @@ def package_page(spec):
 
 
 def file_response(path):
-    # type: (str) -> Responder
+    # type: (str) -> WSGIApplication
     def responder(environ, start_response):
-        # type: (Environ, StartResponse) -> Body
+        # type: (WSGIEnvironment, StartResponse) -> Body
         size = os.stat(path).st_size
         start_response(
             "200 OK", [
@@ -217,11 +214,11 @@ def file_response(path):
 
 
 def authorization_response(path):
-    # type: (str) -> Responder
+    # type: (str) -> WSGIApplication
     correct_auth = "Basic " + b64encode(b"USERNAME:PASSWORD").decode("ascii")
 
     def responder(environ, start_response):
-        # type: (Environ, StartResponse) -> Body
+        # type: (WSGIEnvironment, StartResponse) -> Body
 
         if environ.get('HTTP_AUTHORIZATION') == correct_auth:
             size = os.stat(path).st_size
