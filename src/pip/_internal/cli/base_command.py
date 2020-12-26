@@ -195,7 +195,9 @@ class Command(CommandContextMixIn):
 
     @staticmethod
     def _is_debug():
-        return any(
+        # check 'bdb' in sys.modules as quick approximation for
+        # common case where bdb isn't involved.
+        return 'bdb' in sys.modules and any(
             isinstance(ob, bdb.Bdb)
             for ob in gc.get_objects())
 
