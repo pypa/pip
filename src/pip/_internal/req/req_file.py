@@ -553,7 +553,7 @@ def get_file_content(url, session):
     try:
         with open(url, 'rb') as f:
             content = auto_decode(f.read())
-    except IOError as exc:
+    except OSError as exc:
         raise InstallationError(
             f'Could not open requirements file: {exc}'
         )

@@ -50,7 +50,7 @@ class SelfCheckState:
             try:
                 with open(self.statefile_path) as statefile:
                     self.state = json.load(statefile)
-            except (IOError, ValueError, KeyError):
+            except (OSError, ValueError, KeyError):
                 # Explicitly suppressing exceptions, since we don't want to
                 # error out if the cache file is invalid.
                 pass

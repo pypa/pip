@@ -138,7 +138,7 @@ def rmtree_errorhandler(func, path, exc_info):
     read-only attribute, and hopefully continue without problems."""
     try:
         has_attr_readonly = not (os.stat(path).st_mode & stat.S_IWRITE)
-    except (IOError, OSError):
+    except OSError:
         # it's equivalent to os.path.exists
         return
 
