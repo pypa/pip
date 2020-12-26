@@ -286,7 +286,6 @@ class VcsSupport(object):
         # Register more schemes with urlparse for various version control
         # systems
         urllib_parse.uses_netloc.extend(self.schemes)
-        urllib_parse.uses_fragment.extend(self.schemes)
         super().__init__()
 
     def __iter__(self):
