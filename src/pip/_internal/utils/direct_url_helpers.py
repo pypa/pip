@@ -1,3 +1,4 @@
+import json
 import logging
 
 from pip._internal.models.direct_url import (
@@ -10,12 +11,6 @@ from pip._internal.models.direct_url import (
 )
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs import vcs
-
-try:
-    from json import JSONDecodeError
-except ImportError:
-    # PY2
-    JSONDecodeError = ValueError  # type: ignore
 
 if MYPY_CHECK_RUNNING:
     from typing import Optional
@@ -114,7 +109,7 @@ def dist_get_direct_url(dist):
         return DirectUrl.from_json(dist.get_metadata(DIRECT_URL_METADATA_NAME))
     except (
         DirectUrlValidationError,
-        JSONDecodeError,
+        json.JSONDecodeError,
         UnicodeDecodeError
     ) as e:
         logger.warning(
