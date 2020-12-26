@@ -340,8 +340,7 @@ class PipSession(requests.Session):
 
     def iter_secure_origins(self):
         # type: () -> Iterator[SecureOrigin]
-        for secure_origin in SECURE_ORIGINS:
-            yield secure_origin
+        yield from SECURE_ORIGINS
         for host, port in self.pip_trusted_origins:
             yield ('*', host, '*' if port is None else port)
 

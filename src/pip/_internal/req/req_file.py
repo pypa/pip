@@ -334,8 +334,7 @@ class RequirementsFileParser:
         # type: (str, bool) -> Iterator[ParsedLine]
         """Parse a given file, yielding parsed lines.
         """
-        for line in self._parse_and_recurse(filename, constraint):
-            yield line
+        yield from self._parse_and_recurse(filename, constraint)
 
     def _parse_and_recurse(self, filename, constraint):
         # type: (str, bool) -> Iterator[ParsedLine]
@@ -363,10 +362,7 @@ class RequirementsFileParser:
                         os.path.dirname(filename), req_path,
                     )
 
-                for inner_line in self._parse_and_recurse(
-                    req_path, nested_constraint,
-                ):
-                    yield inner_line
+                yield from self._parse_and_recurse(req_path, nested_constraint)
             else:
                 yield line
 
