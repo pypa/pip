@@ -52,7 +52,7 @@ def make_fake_dist(requires_python=None, metadata_name=None):
     return FakeDist(metadata, metadata_name=metadata_name)
 
 
-class TestCheckDistRequiresPython(object):
+class TestCheckDistRequiresPython:
 
     """
     Test _check_dist_requires_python().
@@ -173,7 +173,7 @@ class TestCheckDistRequiresPython(object):
         )
 
 
-class TestYankedWarning(object):
+class TestYankedWarning:
     """
     Test _populate_link() emits warning if one or more candidates are yanked.
     """

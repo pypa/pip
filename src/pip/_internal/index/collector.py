@@ -284,7 +284,7 @@ def _create_link_from_element(
     return link
 
 
-class CacheablePageContent(object):
+class CacheablePageContent:
     def __init__(self, page):
         # type: (HTMLPage) -> None
         assert page.cache_link_parsing
@@ -350,7 +350,7 @@ def parse_links(page):
         yield link
 
 
-class HTMLPage(object):
+class HTMLPage:
     """Represents one page, along with its URL"""
 
     def __init__(
@@ -524,7 +524,7 @@ def group_locations(locations, expand_dir=False):
     return files, urls
 
 
-class CollectedLinks(object):
+class CollectedLinks:
 
     """
     Encapsulates the return value of a call to LinkCollector.collect_links().
@@ -559,7 +559,7 @@ class CollectedLinks(object):
         self.project_urls = project_urls
 
 
-class LinkCollector(object):
+class LinkCollector:
 
     """
     Responsible for collecting Link objects from all configured locations,

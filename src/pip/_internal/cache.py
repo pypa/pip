@@ -33,7 +33,7 @@ def _hash_dict(d):
     return hashlib.sha224(s.encode("ascii")).hexdigest()
 
 
-class Cache(object):
+class Cache:
     """An abstract class - provides cache directories for data from links
 
 
@@ -263,7 +263,7 @@ class EphemWheelCache(SimpleWheelCache):
         super().__init__(self._temp_dir.path, format_control)
 
 
-class CacheEntry(object):
+class CacheEntry:
     def __init__(
         self,
         link,  # type: Link

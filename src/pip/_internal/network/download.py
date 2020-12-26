@@ -133,7 +133,7 @@ def _http_get_download(session, link):
     return resp
 
 
-class Downloader(object):
+class Downloader:
     def __init__(
         self,
         session,  # type: PipSession
@@ -166,7 +166,7 @@ class Downloader(object):
         return filepath, content_type
 
 
-class BatchDownloader(object):
+class BatchDownloader:
 
     def __init__(
         self,

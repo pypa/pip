@@ -12,7 +12,7 @@ from pip._internal.req.constructors import (
 from pip._internal.req.req_install import InstallRequirement
 
 
-class TestInstallRequirementBuildDirectory(object):
+class TestInstallRequirementBuildDirectory:
     # no need to test symlinks on Windows
     @pytest.mark.skipif("sys.platform == 'win32'")
     def test_tmp_build_directory(self):
@@ -51,7 +51,7 @@ class TestInstallRequirementBuildDirectory(object):
         assert requirement.link is not None
 
 
-class TestInstallRequirementFrom(object):
+class TestInstallRequirementFrom:
 
     def test_install_req_from_string_invalid_requirement(self):
         """

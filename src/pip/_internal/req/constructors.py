@@ -171,7 +171,7 @@ def deduce_helpful_msg(req):
     return msg
 
 
-class RequirementParts(object):
+class RequirementParts:
     def __init__(
             self,
             requirement,  # type: Optional[Requirement]

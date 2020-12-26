@@ -77,7 +77,7 @@ SUPPORTED_OPTIONS_REQ = [
 SUPPORTED_OPTIONS_REQ_DEST = [str(o().dest) for o in SUPPORTED_OPTIONS_REQ]
 
 
-class ParsedRequirement(object):
+class ParsedRequirement:
     def __init__(
         self,
         requirement,  # type:str
@@ -96,7 +96,7 @@ class ParsedRequirement(object):
         self.line_source = line_source
 
 
-class ParsedLine(object):
+class ParsedLine:
     def __init__(
         self,
         filename,  # type: str
@@ -320,7 +320,7 @@ def handle_line(
         return None
 
 
-class RequirementsFileParser(object):
+class RequirementsFileParser:
     def __init__(
         self,
         session,  # type: PipSession

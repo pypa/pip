@@ -14,7 +14,7 @@ from pip._internal.utils.misc import ensure_dir
 kinds = pip._internal.configuration.kinds
 
 
-class ConfigurationMixin(object):
+class ConfigurationMixin:
 
     def setup(self):
         self.configuration = pip._internal.configuration.Configuration(

@@ -98,7 +98,7 @@ def _check_link_requires_python(
     return True
 
 
-class LinkEvaluator(object):
+class LinkEvaluator:
 
     """
     Responsible for evaluating links for a particular project.
@@ -311,7 +311,7 @@ def filter_unallowed_hashes(
     return filtered
 
 
-class CandidatePreferences(object):
+class CandidatePreferences:
 
     """
     Encapsulates some of the preferences for filtering and sorting
@@ -331,7 +331,7 @@ class CandidatePreferences(object):
         self.prefer_binary = prefer_binary
 
 
-class BestCandidateResult(object):
+class BestCandidateResult:
     """A collection of candidates, returned by `PackageFinder.find_best_candidate`.
 
     This class is only intended to be instantiated by CandidateEvaluator's
@@ -376,7 +376,7 @@ class BestCandidateResult(object):
         return iter(self._applicable_candidates)
 
 
-class CandidateEvaluator(object):
+class CandidateEvaluator:
 
     """
     Responsible for filtering and sorting candidates for installation based
@@ -572,7 +572,7 @@ class CandidateEvaluator(object):
         )
 
 
-class PackageFinder(object):
+class PackageFinder:
     """This finds packages.
 
     This is meant to match easy_install's technique for looking for

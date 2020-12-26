@@ -261,7 +261,7 @@ def wheel_name(name, version, pythons, abis, platforms):
     return "{}.whl".format(stem)
 
 
-class WheelBuilder(object):
+class WheelBuilder:
     """A wheel that can be saved or converted to several formats.
     """
 

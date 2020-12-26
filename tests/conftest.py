@@ -457,13 +457,13 @@ def data(tmpdir):
     return TestData.copy(tmpdir.joinpath("data"))
 
 
-class InMemoryPipResult(object):
+class InMemoryPipResult:
     def __init__(self, returncode, stdout):
         self.returncode = returncode
         self.stdout = stdout
 
 
-class InMemoryPip(object):
+class InMemoryPip:
     def pip(self, *args):
         orig_stdout = sys.stdout
         stdout = io.StringIO()
@@ -506,7 +506,7 @@ def cert_factory(tmpdir_factory):
     return factory
 
 
-class MockServer(object):
+class MockServer:
     def __init__(self, server):
         # type: (_MockServer) -> None
         self._server = server

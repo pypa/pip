@@ -13,7 +13,7 @@ from pip._internal.exceptions import InstallationError
 from pip._internal.utils.unpacking import is_within_directory, untar_file, unzip_file
 
 
-class TestUnpackArchives(object):
+class TestUnpackArchives:
     """
     test_tar.tgz/test_tar.zip have content as follows engineered to confirm 3
     things:

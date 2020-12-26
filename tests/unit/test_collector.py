@@ -640,7 +640,7 @@ def check_links_include(links, names):
         )
 
 
-class TestLinkCollector(object):
+class TestLinkCollector:
 
     @patch('pip._internal.index.collector._get_html_response')
     def test_fetch_page(self, mock_get_html_response):

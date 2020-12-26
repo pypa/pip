@@ -324,7 +324,7 @@ def test_download_specify_platform(script, data):
     )
 
 
-class TestDownloadPlatformManylinuxes(object):
+class TestDownloadPlatformManylinuxes:
     """
     "pip download --platform" downloads a .whl archive supported for
     manylinux platforms.

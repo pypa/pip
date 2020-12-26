@@ -11,7 +11,7 @@ if MYPY_CHECK_RUNNING:
     ]
 
 
-class BaseResolver(object):
+class BaseResolver:
     def resolve(self, root_reqs, check_supported_wheels):
         # type: (List[InstallRequirement], bool) -> RequirementSet
         raise NotImplementedError()

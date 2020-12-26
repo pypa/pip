@@ -146,7 +146,7 @@ def make_test_finder(
     )
 
 
-class TestData(object):
+class TestData:
     """
     Represents a bundle of pre-created test data.
 
@@ -230,7 +230,7 @@ class TestFailure(AssertionError):
     pass
 
 
-class TestPipResult(object):
+class TestPipResult:
 
     def __init__(self, impl, verbose=False):
         self._impl = impl

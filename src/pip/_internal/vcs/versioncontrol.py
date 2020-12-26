@@ -204,7 +204,7 @@ class RemoteNotFoundError(Exception):
     pass
 
 
-class RevOptions(object):
+class RevOptions:
 
     """
     Encapsulates a VCS-specific revision to install, along with any VCS
@@ -277,7 +277,7 @@ class RevOptions(object):
         return self.vc_class.make_rev_options(rev, extra_args=self.extra_args)
 
 
-class VcsSupport(object):
+class VcsSupport:
     _registry = {}  # type: Dict[str, VersionControl]
     schemes = ['ssh', 'git', 'hg', 'bzr', 'sftp', 'svn']
 
@@ -371,7 +371,7 @@ class VcsSupport(object):
 vcs = VcsSupport()
 
 
-class VersionControl(object):
+class VersionControl:
     name = ''
     dirname = ''
     repo_name = ''

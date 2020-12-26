@@ -92,7 +92,7 @@ def _get_dist(metadata_directory):
     )
 
 
-class InstallRequirement(object):
+class InstallRequirement:
     """
     Represents something that may be installed later on, may have information
     about where to fetch the relevant requirement and also contains logic for

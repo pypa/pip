@@ -236,7 +236,7 @@ def get_requirement_info(dist):
     return (None, False, comments)
 
 
-class FrozenRequirement(object):
+class FrozenRequirement:
     def __init__(self, name, req, editable, comments=()):
         # type: (str, Union[str, Requirement], bool, Iterable[str]) -> None
         self.name = name

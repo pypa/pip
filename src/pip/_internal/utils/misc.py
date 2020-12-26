@@ -573,7 +573,7 @@ def write_output(msg, *args):
     logger.info(msg, *args)
 
 
-class FakeFile(object):
+class FakeFile:
     """Wrap a list of lines in an object with readline() to make
     ConfigParser happy."""
     def __init__(self, lines):
@@ -805,7 +805,7 @@ def redact_auth_from_url(url):
     return _transform_url(url, _redact_netloc)[0]
 
 
-class HiddenText(object):
+class HiddenText:
     def __init__(
         self,
         secret,    # type: str

@@ -9,7 +9,7 @@ import virtualenv as _virtualenv
 from .path import Path
 
 
-class VirtualEnvironment(object):
+class VirtualEnvironment:
     """
     An abstraction around virtual environments, currently it only uses
     virtualenv but in the future it could use pyvenv.

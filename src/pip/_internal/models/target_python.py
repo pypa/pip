@@ -10,7 +10,7 @@ if MYPY_CHECK_RUNNING:
     from pip._vendor.packaging.tags import Tag
 
 
-class TargetPython(object):
+class TargetPython:
 
     """
     Encapsulates the properties of a Python interpreter one is targeting

@@ -1,7 +1,7 @@
 from urllib import parse as urllib_parse
 
 
-class PackageIndex(object):
+class PackageIndex:
     """Represents a Package Index and provides easier access to endpoints
     """
 

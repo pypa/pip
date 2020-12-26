@@ -161,7 +161,7 @@ def test_copy_source_tree_with_unreadable_dir_fails(clean_project, tmpdir):
     assert expected_files == copied_files
 
 
-class Test_unpack_url(object):
+class Test_unpack_url:
 
     def prep(self, tmpdir, data):
         self.build_dir = tmpdir.joinpath('build')
