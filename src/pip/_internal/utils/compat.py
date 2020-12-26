@@ -15,21 +15,8 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 if MYPY_CHECK_RUNNING:
     from typing import Optional, Union
 
-try:
-    import ipaddress
-except ImportError:
-    try:
-        from pip._vendor import ipaddress  # type: ignore
-    except ImportError:
-        import ipaddr as ipaddress  # type: ignore
-        ipaddress.ip_address = ipaddress.IPAddress  # type: ignore
-        ipaddress.ip_network = ipaddress.IPNetwork  # type: ignore
 
-
-__all__ = [
-    "ipaddress", "console_to_str",
-    "get_path_uid", "stdlib_pkgs", "WINDOWS",
-]
+__all__ = ["console_to_str", "get_path_uid", "stdlib_pkgs", "WINDOWS"]
 
 
 logger = logging.getLogger(__name__)

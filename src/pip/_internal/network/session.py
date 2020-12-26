@@ -6,6 +6,7 @@ network request configuration and behavior.
 # mypy: disallow-untyped-defs=False
 
 import email.utils
+import ipaddress
 import json
 import logging
 import mimetypes
@@ -27,7 +28,7 @@ from pip._internal.network.auth import MultiDomainBasicAuth
 from pip._internal.network.cache import SafeFileCache
 
 # Import ssl from compat so the initial import occurs in only one place.
-from pip._internal.utils.compat import has_tls, ipaddress
+from pip._internal.utils.compat import has_tls
 from pip._internal.utils.glibc import libc_ver
 from pip._internal.utils.misc import (
     build_url_from_netloc,
