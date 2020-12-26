@@ -255,7 +255,7 @@ class InstallRequirement:
         # type: () -> Optional[str]
         if self.req is None:
             return None
-        return six.ensure_str(pkg_resources.safe_name(self.req.name))
+        return pkg_resources.safe_name(self.req.name)
 
     @property
     def specifier(self):
