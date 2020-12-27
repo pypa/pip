@@ -8,9 +8,10 @@ from textwrap import dedent
 from typing import TYPE_CHECKING
 from unittest.mock import Mock
 
-from pip._vendor.contextlib2 import nullcontext
 from werkzeug.serving import WSGIRequestHandler
 from werkzeug.serving import make_server as _make_server
+
+from .compat import nullcontext
 
 if TYPE_CHECKING:
     from types import TracebackType

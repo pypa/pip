@@ -7,12 +7,11 @@ import shutil
 import subprocess
 import sys
 import time
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
-from pip._vendor.contextlib2 import ExitStack, nullcontext
 from setuptools.wheel import Wheel
 
 from pip._internal.cli.main import main as pip_entry_point
@@ -22,6 +21,8 @@ from tests.lib.certs import make_tls_cert, serialize_cert, serialize_key
 from tests.lib.path import Path
 from tests.lib.server import make_mock_server, server_running
 from tests.lib.venv import VirtualEnvironment
+
+from .lib.compat import nullcontext
 
 if TYPE_CHECKING:
     from typing import Dict, Iterable
