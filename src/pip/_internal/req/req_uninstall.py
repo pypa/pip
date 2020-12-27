@@ -13,7 +13,6 @@ from pip._internal.locations import bin_py, bin_user
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
-    FakeFile,
     ask,
     dist_in_usersite,
     dist_is_local,
@@ -90,7 +89,7 @@ def uninstallation_paths(dist):
 
     UninstallPathSet.add() takes care of the __pycache__ .py[co].
     """
-    r = csv.reader(FakeFile(dist.get_metadata_lines('RECORD')))
+    r = csv.reader(dist.get_metadata_lines('RECORD'))
     for row in r:
         path = os.path.join(dist.location, row[0])
         yield path
