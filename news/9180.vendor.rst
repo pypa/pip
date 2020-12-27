@@ -1,0 +1,2 @@
+Upgrade resolvelib to 0.5.4 to fix error when an existing incompatibility is
+unable to be applied to a backtracked state.
