@@ -1,5 +1,14 @@
+"""Utilities to lazily create and visit candidates found.
+
+Creating and visiting a candidate is a *very* costly operation. It involves
+fetching, extracting, potentially building modules from source, and verifying
+distribution metadata. It is therefore crucial for performance to keep
+everything here lazy all the way down, so we only touch candidates that we
+absolutely need, and not "download the world" when we only need one version of
+something.
+"""
+
 import itertools
-import operator
 
 from pip._vendor.six.moves import collections_abc  # type: ignore
 
@@ -32,18 +41,21 @@ def _insert_installed(installed, others):
     already-installed package. Candidates from index are returned in their
     normal ordering, except replaced when the version is already installed.
 
-    Since candidates from index are already sorted by reverse version order,
-    `sorted()` here would keep the ordering mostly intact, only shuffling the
-    already-installed candidate into the correct position. We put the already-
-    installed candidate in front of those from the index, so it's put in front
-    after sorting due to Python sorting's stableness guarentee.
+    The implementation iterates through and yields other candidates, inserting
+    the installed candidate exactly once before we start yielding older or
+    equivalent candidates, or after all other candidates if they are all newer.
     """
-    candidates = sorted(
-        itertools.chain([installed], others),
-        key=operator.attrgetter("version"),
-        reverse=True,
-    )
-    return iter(candidates)
+    installed_yielded = False
+    for candidate in others:
+        # If the installed candidate is better, yield it first.
+        if not installed_yielded and installed.version >= candidate.version:
+            yield installed
+            installed_yielded = True
+        yield candidate
+
+    # If the installed candidate is older than all other candidates.
+    if not installed_yielded:
+        yield installed
 
 
 class FoundCandidates(collections_abc.Sequence):
