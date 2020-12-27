@@ -1,0 +1,1 @@
+Fix error when an existing incompatibility is unable to be applied to a backtracked state.
