@@ -8,7 +8,6 @@ from tempfile import NamedTemporaryFile
 from zipfile import BadZipfile, ZipFile
 
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE
-from pip._vendor.six.moves import range
 
 from pip._internal.network.utils import HEADERS, raise_for_status, response_chunks
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -45,7 +44,7 @@ def dist_from_wheel_url(name, url, session):
         return pkg_resources_distribution_for_wheel(zip_file, name, wheel.name)
 
 
-class LazyZipOverHTTP(object):
+class LazyZipOverHTTP:
     """File-like object mapped to a ZIP file over HTTP.
 
     This uses HTTP range requests to lazily fetch the file's content,
@@ -191,7 +190,7 @@ class LazyZipOverHTTP(object):
         # type: (int, int, Dict[str, str]) -> Response
         """Return HTTP response to a range request from start to end."""
         headers = base_headers.copy()
-        headers['Range'] = 'bytes={}-{}'.format(start, end)
+        headers['Range'] = f'bytes={start}-{end}'
         # TODO: Get range requests to be correctly cached
         headers['Cache-Control'] = 'no-cache'
         return self._session.get(self._url, headers=headers, stream=True)

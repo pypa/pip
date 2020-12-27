@@ -10,7 +10,7 @@ if MYPY_CHECK_RUNNING:
     from pip._vendor.packaging.tags import Tag
 
 
-class TargetPython(object):
+class TargetPython:
 
     """
     Encapsulates the properties of a Python interpreter one is targeting
@@ -86,7 +86,7 @@ class TargetPython(object):
             ('implementation', self.implementation),
         ]
         return ' '.join(
-            '{}={!r}'.format(key, value) for key, value in key_values
+            f'{key}={value!r}' for key, value in key_values
             if value is not None
         )
 

@@ -1,21 +1,12 @@
-from __future__ import absolute_import
-
 import hashlib
-
-from pip._vendor.six import iteritems, iterkeys, itervalues
 
 from pip._internal.exceptions import HashMismatch, HashMissing, InstallationError
 from pip._internal.utils.misc import read_chunks
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
+    from hashlib import _Hash
     from typing import BinaryIO, Dict, Iterator, List, NoReturn
-
-    from pip._vendor.six import PY3
-    if PY3:
-        from hashlib import _Hash
-    else:
-        from hashlib import _hash as _Hash
 
 
 # The recommended hash algo of the moment. Change this whenever the state of
@@ -28,7 +19,7 @@ FAVORITE_HASH = 'sha256'
 STRONG_HASHES = ['sha256', 'sha384', 'sha512']
 
 
-class Hashes(object):
+class Hashes:
     """A wrapper that builds multiple hashes at once and checks them against
     known-good values
 
@@ -60,7 +51,7 @@ class Hashes(object):
 
         # Otherwise only hashes that present in both objects are allowed.
         new = {}
-        for alg, values in iteritems(other._allowed):
+        for alg, values in other._allowed.items():
             if alg not in self._allowed:
                 continue
             new[alg] = [v for v in values if v in self._allowed[alg]]
@@ -89,19 +80,19 @@ class Hashes(object):
 
         """
         gots = {}
-        for hash_name in iterkeys(self._allowed):
+        for hash_name in self._allowed.keys():
             try:
                 gots[hash_name] = hashlib.new(hash_name)
             except (ValueError, TypeError):
                 raise InstallationError(
-                    'Unknown hash name: {}'.format(hash_name)
+                    f'Unknown hash name: {hash_name}'
                 )
 
         for chunk in chunks:
-            for hash in itervalues(gots):
+            for hash in gots.values():
                 hash.update(chunk)
 
-        for hash_name, got in iteritems(gots):
+        for hash_name, got in gots.items():
             if got.hexdigest() in self._allowed[hash_name]:
                 return
         self._raise(gots)
@@ -162,7 +153,7 @@ class MissingHashes(Hashes):
         """Don't offer the ``hashes`` kwarg."""
         # Pass our favorite hash in to generate a "gotten hash". With the
         # empty list, it will never match, so an error will always raise.
-        super(MissingHashes, self).__init__(hashes={FAVORITE_HASH: []})
+        super().__init__(hashes={FAVORITE_HASH: []})
 
     def _raise(self, gots):
         # type: (Dict[str, _Hash]) -> NoReturn

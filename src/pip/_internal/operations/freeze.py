@@ -1,10 +1,7 @@
-from __future__ import absolute_import
-
 import collections
 import logging
 import os
 
-from pip._vendor import six
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.pkg_resources import RequirementParseError
 
@@ -59,7 +56,7 @@ def freeze(
     find_links = find_links or []
 
     for link in find_links:
-        yield '-f {}'.format(link)
+        yield f'-f {link}'
     installations = {}  # type: Dict[str, FrozenRequirement]
 
     for dist in get_installed_distributions(
@@ -162,7 +159,7 @@ def freeze(
 
         # Warn about requirements that were included multiple times (in a
         # single requirements file or in different requirements files).
-        for name, files in six.iteritems(req_files):
+        for name, files in req_files.items():
             if len(files) > 1:
                 logger.warning("Requirement %s included multiple times [%s]",
                                name, ', '.join(sorted(set(files))))
@@ -198,7 +195,7 @@ def get_requirement_info(dist):
             location,
         )
         comments = [
-            '# Editable install with no version control ({})'.format(req)
+            f'# Editable install with no version control ({req})'
         ]
         return (location, True, comments)
 
@@ -228,8 +225,7 @@ def get_requirement_info(dist):
             "falling back to uneditable format", exc
         )
     else:
-        if req is not None:
-            return (req, True, [])
+        return (req, True, [])
 
     logger.warning(
         'Could not determine repository location of %s', location
@@ -239,7 +235,7 @@ def get_requirement_info(dist):
     return (None, False, comments)
 
 
-class FrozenRequirement(object):
+class FrozenRequirement:
     def __init__(self, name, req, editable, comments=()):
         # type: (str, Union[str, Requirement], bool, Iterable[str]) -> None
         self.name = name
@@ -273,5 +269,5 @@ class FrozenRequirement(object):
         # type: () -> str
         req = self.req
         if self.editable:
-            req = '-e {}'.format(req)
+            req = f'-e {req}'
         return '\n'.join(list(self.comments) + [str(req)]) + '\n'

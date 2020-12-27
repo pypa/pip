@@ -432,7 +432,7 @@ def test_finder_installs_pre_releases_with_version_spec():
     assert found.link.url == "https://foo/bar-2.0b1.tar.gz"
 
 
-class TestLinkEvaluator(object):
+class TestLinkEvaluator:
 
     def make_test_link_evaluator(self, formats):
         target_python = TargetPython()
@@ -474,7 +474,7 @@ class TestLinkEvaluator(object):
 def test_process_project_url(data):
     project_name = 'simple'
     index_url = data.index_url('simple')
-    project_url = Link('{}/{}'.format(index_url, project_name))
+    project_url = Link(f'{index_url}/{project_name}')
     finder = make_test_finder(index_urls=[index_url])
     link_evaluator = finder.make_link_evaluator(project_name)
     actual = finder.process_project_url(

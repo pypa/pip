@@ -14,18 +14,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from types import TracebackType
-    from typing import (
-        Any,
-        Callable,
-        Dict,
-        Iterable,
-        List,
-        Optional,
-        Text,
-        Tuple,
-        Type,
-        Union,
-    )
+    from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Type
 
     from werkzeug.serving import BaseWSGIServer
 
@@ -67,7 +56,7 @@ else:
 
 class _RequestHandler(WSGIRequestHandler):
     def make_environ(self):
-        environ = super(_RequestHandler, self).make_environ()
+        environ = super().make_environ()
 
         # From pallets/werkzeug#1469, will probably be in release after
         # 0.16.0.
@@ -166,7 +155,7 @@ def server_running(server):
 
 
 def text_html_response(text):
-    # type: (Text) -> Responder
+    # type: (str) -> Responder
     def responder(environ, start_response):
         # type: (Environ, StartResponse) -> Body
         start_response("200 OK", [
@@ -178,8 +167,8 @@ def text_html_response(text):
 
 
 def html5_page(text):
-    # type: (Union[Text, str]) -> Text
-    return dedent(u"""
+    # type: (str) -> str
+    return dedent("""
     <!DOCTYPE html>
     <html>
       <body>

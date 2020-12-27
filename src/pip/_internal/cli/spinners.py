@@ -1,5 +1,3 @@
-from __future__ import absolute_import, division
-
 import contextlib
 import itertools
 import logging
@@ -18,7 +16,7 @@ if MYPY_CHECK_RUNNING:
 logger = logging.getLogger(__name__)
 
 
-class SpinnerInterface(object):
+class SpinnerInterface:
     def spin(self):
         # type: () -> None
         raise NotImplementedError()
@@ -111,7 +109,7 @@ class NonInteractiveSpinner(SpinnerInterface):
         self._finished = True
 
 
-class RateLimiter(object):
+class RateLimiter:
     def __init__(self, min_update_interval_seconds):
         # type: (float) -> None
         self._min_update_interval_seconds = min_update_interval_seconds

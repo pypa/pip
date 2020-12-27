@@ -11,12 +11,11 @@ Some terminology:
   A single word describing where the configuration key-value pair came from
 """
 
+import configparser
 import locale
 import logging
 import os
 import sys
-
-from pip._vendor.six.moves import configparser
 
 from pip._internal.exceptions import (
     ConfigurationError,
@@ -95,7 +94,7 @@ def get_configuration_files():
     }
 
 
-class Configuration(object):
+class Configuration:
     """Handles management of configuration.
 
     Provides an interface to accessing and managing configuration files.
@@ -111,7 +110,7 @@ class Configuration(object):
 
     def __init__(self, isolated, load_only=None):
         # type: (bool, Optional[Kind]) -> None
-        super(Configuration, self).__init__()
+        super().__init__()
 
         if load_only is not None and load_only not in VALID_LOAD_ONLY:
             raise ConfigurationError(
@@ -165,7 +164,7 @@ class Configuration(object):
         try:
             return self._dictionary[key]
         except KeyError:
-            raise ConfigurationError("No such key - {}".format(key))
+            raise ConfigurationError(f"No such key - {key}")
 
     def set_value(self, key, value):
         # type: (str, Any) -> None
@@ -194,7 +193,7 @@ class Configuration(object):
 
         assert self.load_only
         if key not in self._config[self.load_only]:
-            raise ConfigurationError("No such key - {}".format(key))
+            raise ConfigurationError(f"No such key - {key}")
 
         fname, parser = self._get_parser_to_modify()
 
@@ -404,4 +403,4 @@ class Configuration(object):
 
     def __repr__(self):
         # type: () -> str
-        return "{}({!r})".format(self.__class__.__name__, self._dictionary)
+        return f"{self.__class__.__name__}({self._dictionary!r})"

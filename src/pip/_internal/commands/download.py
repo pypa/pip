@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 import os
 
@@ -56,6 +54,7 @@ class DownloadCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.no_build_isolation())
         self.cmd_opts.add_option(cmdoptions.use_pep517())
         self.cmd_opts.add_option(cmdoptions.no_use_pep517())
+        self.cmd_opts.add_option(cmdoptions.ignore_requires_python())
 
         self.cmd_opts.add_option(
             '-d', '--dest', '--destination-dir', '--destination-directory',
@@ -96,6 +95,7 @@ class DownloadCommand(RequirementCommand):
             options=options,
             session=session,
             target_python=target_python,
+            ignore_requires_python=options.ignore_requires_python,
         )
 
         req_tracker = self.enter_context(get_requirement_tracker())
@@ -122,6 +122,7 @@ class DownloadCommand(RequirementCommand):
             preparer=preparer,
             finder=finder,
             options=options,
+            ignore_requires_python=options.ignore_requires_python,
             py_version_info=options.python_version,
         )
 

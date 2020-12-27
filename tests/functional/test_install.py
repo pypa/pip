@@ -9,7 +9,6 @@ import textwrap
 from os.path import curdir, join, pardir
 
 import pytest
-from pip._vendor.six import PY2
 
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.models.index import PyPI, TestPyPI
@@ -26,8 +25,6 @@ from tests.lib import (
     pyversion,
     pyversion_tuple,
     requirements_file,
-    skip_if_not_python2,
-    skip_if_python2,
     windows_workaround_7667,
 )
 from tests.lib.filesystem import make_socket_file
@@ -533,7 +530,7 @@ def test_hashed_install_failure(script, tmpdir):
 
 def assert_re_match(pattern, text):
     assert re.search(pattern, text), (
-        "Could not find {!r} in {!r}".format(pattern, text)
+        f"Could not find {pattern!r} in {text!r}"
     )
 
 
@@ -658,22 +655,7 @@ def test_editable_install__local_dir_no_setup_py_with_pyproject(
     assert 'A "pyproject.toml" file was found' in msg
 
 
-@skip_if_not_python2
-@pytest.mark.xfail
-def test_install_argparse_shadowed(script):
-    # When argparse is in the stdlib, we support installing it
-    # even though that's pretty useless because older packages did need to
-    # depend on it, and not having its metadata will cause pkg_resources
-    # requirements checks to fail // trigger easy-install, both of which are
-    # bad.
-    # XXX: Note, this test hits the outside-environment check, not the
-    # in-stdlib check, because our tests run in virtualenvs...
-    result = script.pip('install', 'argparse>=1.4')
-    assert "Not uninstalling argparse" in result.stdout
-
-
 @pytest.mark.network
-@skip_if_python2
 def test_upgrade_argparse_shadowed(script):
     # If argparse is installed - even if shadowed for imported - we support
     # upgrading it and properly remove the older versions files.
@@ -1041,7 +1023,7 @@ def test_install_package_with_prefix(script, data):
     install_path = (
         distutils.sysconfig.get_python_lib(prefix=rel_prefix_path) /
         # we still test for egg-info because no-binary implies setup.py install
-        'simple-1.0-py{}.egg-info'.format(pyversion)
+        f'simple-1.0-py{pyversion}.egg-info'
     )
     result.did_create(install_path)
 
@@ -1058,7 +1040,7 @@ def test_install_editable_with_prefix(script):
 
     if hasattr(sys, "pypy_version_info"):
         site_packages = os.path.join(
-            'prefix', 'lib', 'python{}'.format(pyversion), 'site-packages')
+            'prefix', 'lib', f'python{pyversion}', 'site-packages')
     else:
         site_packages = distutils.sysconfig.get_python_lib(prefix='prefix')
 
@@ -1104,7 +1086,7 @@ def test_install_package_that_emits_unicode(script, data):
     )
     assert (
         'FakeError: this package designed to fail on install' in result.stderr
-    ), 'stderr: {}'.format(result.stderr)
+    ), f'stderr: {result.stderr}'
     assert 'UnicodeDecodeError' not in result.stderr
     assert 'UnicodeDecodeError' not in result.stdout
 
@@ -1568,7 +1550,7 @@ def test_install_incompatible_python_requires_wheel(script, with_wheel):
     """))
     script.run(
         'python', 'setup.py', 'bdist_wheel', '--universal',
-        cwd=pkga_path, allow_stderr_warning=PY2,
+        cwd=pkga_path,
     )
     result = script.pip('install', './pkga/dist/pkga-0.1-py2.py3-none-any.whl',
                         expect_error=True)
@@ -1837,7 +1819,6 @@ def test_install_yanked_file_and_print_warning(script, data):
     assert 'Successfully installed simple-3.0\n' in result.stdout, str(result)
 
 
-@skip_if_python2
 @pytest.mark.parametrize("install_args", [
     (),
     ("--trusted-host", "localhost"),
@@ -1857,7 +1838,7 @@ def test_install_sends_client_cert(install_args, script, cert_factory, data):
         file_response(str(data.packages / "simple-3.0.tar.gz")),
     ]
 
-    url = "https://{}:{}/simple".format(server.host, server.port)
+    url = f"https://{server.host}:{server.port}/simple"
 
     args = ["install", "-vvv", "--cert", cert_path, "--client-cert", cert_path]
     args.extend(["--index-url", url])

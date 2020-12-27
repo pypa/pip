@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import os
 import re
 import shutil
@@ -15,7 +13,7 @@ from textwrap import dedent
 from zipfile import ZipFile
 
 import pytest
-from pip._vendor.six import PY2, ensure_binary, text_type
+from pip._vendor.six import ensure_binary
 from scripttest import FoundDir, TestFileEnvironment
 
 from pip._internal.index.collector import LinkCollector
@@ -148,7 +146,7 @@ def make_test_finder(
     )
 
 
-class TestData(object):
+class TestData:
     """
     Represents a bundle of pre-created test data.
 
@@ -232,7 +230,7 @@ class TestFailure(AssertionError):
     pass
 
 
-class TestPipResult(object):
+class TestPipResult:
 
     def __init__(self, impl, verbose=False):
         self._impl = impl
@@ -308,7 +306,7 @@ class TestPipResult(object):
             if not (egg_link_contents.endswith('\n.') and
                     egg_link_contents[:-2].endswith(pkg_dir)):
                 raise TestFailure(textwrap.dedent(
-                    u'''\
+                    '''\
                     Incorrect egg_link file {egg_link_file!r}
                     Expected ending: {expected_ending!r}
                     ------- Actual contents -------
@@ -375,7 +373,7 @@ def _one_or_both(a, b):
     if not a:
         return str(b)
 
-    return "{a}\n{b}".format(a=a, b=b)
+    return f"{a}\n{b}"
 
 
 def make_check_stderr_message(stderr, line, reason):
@@ -508,7 +506,7 @@ class PipTestEnvironment(TestFileEnvironment):
         self.pip_expect_warning = kwargs.pop('pip_expect_warning', None)
 
         # Call the TestFileEnvironment __init__
-        super(PipTestEnvironment, self).__init__(base_path, *args, **kwargs)
+        super().__init__(base_path, *args, **kwargs)
 
         # Expand our absolute path directories into relative
         for name in ["base", "venv", "bin", "lib", "site_packages",
@@ -533,7 +531,7 @@ class PipTestEnvironment(TestFileEnvironment):
         if fn.endswith('__pycache__') or fn.endswith(".pyc"):
             result = True
         else:
-            result = super(PipTestEnvironment, self)._ignore_file(fn)
+            result = super()._ignore_file(fn)
         return result
 
     def _find_traverse(self, path, result):
@@ -544,7 +542,7 @@ class PipTestEnvironment(TestFileEnvironment):
             if not self.temp_path or path != 'tmp':
                 result[path] = FoundDir(self.base_path, path)
         else:
-            super(PipTestEnvironment, self)._find_traverse(path, result)
+            super()._find_traverse(path, result)
 
     def run(self, *args, **kw):
         """
@@ -622,7 +620,7 @@ class PipTestEnvironment(TestFileEnvironment):
         # Pass expect_stderr=True to allow any stderr.  We do this because
         # we do our checking of stderr further on in check_stderr().
         kw['expect_stderr'] = True
-        result = super(PipTestEnvironment, self).run(cwd=cwd, *args, **kw)
+        result = super().run(cwd=cwd, *args, **kw)
 
         if expect_error and not allow_error:
             if result.returncode == 0:
@@ -750,7 +748,7 @@ def _create_main_file(dir_path, name=None, output=None):
     def main():
         print({!r})
     """.format(output))
-    filename = '{}.py'.format(name)
+    filename = f'{name}.py'
     dir_path.joinpath(filename).write_text(text)
 
 
@@ -985,14 +983,14 @@ def create_really_basic_wheel(name, version):
         z.writestr(path, contents)
         records.append((path, digest(contents), str(len(contents))))
 
-    dist_info = "{}-{}.dist-info".format(name, version)
-    record_path = "{}/RECORD".format(dist_info)
+    dist_info = f"{name}-{version}.dist-info"
+    record_path = f"{dist_info}/RECORD"
     records = [(record_path, "", "")]
     buf = BytesIO()
     with ZipFile(buf, "w") as z:
-        add_file("{}/WHEEL".format(dist_info), "Wheel-Version: 1.0")
+        add_file(f"{dist_info}/WHEEL", "Wheel-Version: 1.0")
         add_file(
-            "{}/METADATA".format(dist_info),
+            f"{dist_info}/METADATA",
             dedent(
                 """\
                 Metadata-Version: 2.1
@@ -1025,10 +1023,10 @@ def create_basic_wheel_for_package(
     # Fix wheel distribution name by replacing runs of non-alphanumeric
     # characters with an underscore _ as per PEP 491
     name = re.sub(r"[^\w\d.]+", "_", name, re.UNICODE)
-    archive_name = "{}-{}-py2.py3-none-any.whl".format(name, version)
+    archive_name = f"{name}-{version}-py2.py3-none-any.whl"
     archive_path = script.scratch_path / archive_name
 
-    package_init_py = "{name}/__init__.py".format(name=name)
+    package_init_py = f"{name}/__init__.py"
     assert package_init_py not in extra_files
     extra_files[package_init_py] = textwrap.dedent(
         """
@@ -1039,7 +1037,7 @@ def create_basic_wheel_for_package(
     ).format(version=version, name=name)
 
     requires_dist = depends + [
-        '{package}; extra == "{extra}"'.format(package=package, extra=extra)
+        f'{package}; extra == "{extra}"'
         for extra, packages in extras.items()
         for package in packages
     ]
@@ -1099,15 +1097,12 @@ def create_basic_sdist_for_package(
         path.parent.mkdir(exist_ok=True, parents=True)
         path.write_bytes(ensure_binary(files[fname]))
 
-    # The base_dir cast is required to make `shutil.make_archive()` use
-    # Unicode paths on Python 2, making it able to properly archive
-    # files with non-ASCII names.
     retval = script.scratch_path / archive_name
     generated = shutil.make_archive(
         retval,
         'gztar',
         root_dir=script.temp_path,
-        base_dir=text_type(os.curdir),
+        base_dir=os.curdir,
     )
     shutil.move(generated, retval)
 
@@ -1123,7 +1118,7 @@ def need_executable(name, check_cmd):
             subprocess.check_output(check_cmd)
         except (OSError, subprocess.CalledProcessError):
             return pytest.mark.skip(
-                reason='{name} is not available'.format(name=name))(fn)
+                reason=f'{name} is not available')(fn)
         return fn
     return wrapper
 
@@ -1162,10 +1157,6 @@ def need_mercurial(fn):
     return pytest.mark.mercurial(need_executable(
         'Mercurial', ('hg', 'version')
     )(fn))
-
-
-skip_if_python2 = pytest.mark.skipif(PY2, reason="Non-Python 2 only")
-skip_if_not_python2 = pytest.mark.skipif(not PY2, reason="Python 2 only")
 
 
 # Workaround for test failures after new wheel release.

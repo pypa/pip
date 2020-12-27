@@ -26,7 +26,7 @@ def _find_egg_info(directory):
 
     if not filenames:
         raise InstallationError(
-            "No .egg-info directory found in {}".format(directory)
+            f"No .egg-info directory found in {directory}"
         )
 
     if len(filenames) > 1:

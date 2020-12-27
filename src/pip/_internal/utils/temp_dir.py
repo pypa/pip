@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import errno
 import itertools
 import logging
@@ -47,7 +45,7 @@ def global_tempdir_manager():
             _tempdir_manager = old_tempdir_manager
 
 
-class TempDirectoryTypeRegistry(object):
+class TempDirectoryTypeRegistry:
     """Manages temp directory behavior
     """
 
@@ -88,14 +86,14 @@ def tempdir_registry():
         _tempdir_registry = old_tempdir_registry
 
 
-class _Default(object):
+class _Default:
     pass
 
 
 _default = _Default()
 
 
-class TempDirectory(object):
+class TempDirectory:
     """Helper class that owns and cleans up a temporary directory.
 
     This class can be used as a context manager or as an OO representation of a
@@ -123,7 +121,7 @@ class TempDirectory(object):
         kind="temp",  # type: str
         globally_managed=False,  # type: bool
     ):
-        super(TempDirectory, self).__init__()
+        super().__init__()
 
         if delete is _default:
             if path is not None:
@@ -153,13 +151,13 @@ class TempDirectory(object):
     def path(self):
         # type: () -> str
         assert not self._deleted, (
-            "Attempted to access deleted path: {}".format(self._path)
+            f"Attempted to access deleted path: {self._path}"
         )
         return self._path
 
     def __repr__(self):
         # type: () -> str
-        return "<{} {!r}>".format(self.__class__.__name__, self.path)
+        return f"<{self.__class__.__name__} {self.path!r}>"
 
     def __enter__(self):
         # type: (_T) -> _T
@@ -186,7 +184,7 @@ class TempDirectory(object):
         # scripts, so we canonicalize the path by traversing potential
         # symlinks here.
         path = os.path.realpath(
-            tempfile.mkdtemp(prefix="pip-{}-".format(kind))
+            tempfile.mkdtemp(prefix=f"pip-{kind}-")
         )
         logger.debug("Created temporary directory: %s", path)
         return path
@@ -233,7 +231,7 @@ class AdjacentTempDirectory(TempDirectory):
     def __init__(self, original, delete=None):
         # type: (str, Optional[bool]) -> None
         self.original = original.rstrip('/\\')
-        super(AdjacentTempDirectory, self).__init__(delete=delete)
+        super().__init__(delete=delete)
 
     @classmethod
     def _generate_names(cls, name):
@@ -277,7 +275,7 @@ class AdjacentTempDirectory(TempDirectory):
         else:
             # Final fallback on the default behavior.
             path = os.path.realpath(
-                tempfile.mkdtemp(prefix="pip-{}-".format(kind))
+                tempfile.mkdtemp(prefix=f"pip-{kind}-")
             )
 
         logger.debug("Created temporary directory: %s", path)

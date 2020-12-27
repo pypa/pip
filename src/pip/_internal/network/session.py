@@ -6,12 +6,14 @@ network request configuration and behavior.
 # mypy: disallow-untyped-defs=False
 
 import email.utils
+import ipaddress
 import json
 import logging
 import mimetypes
 import os
 import platform
 import sys
+import urllib.parse
 import warnings
 
 from pip._vendor import requests, six, urllib3
@@ -19,7 +21,6 @@ from pip._vendor.cachecontrol import CacheControlAdapter
 from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
 from pip._vendor.requests.models import Response
 from pip._vendor.requests.structures import CaseInsensitiveDict
-from pip._vendor.six.moves.urllib import parse as urllib_parse
 from pip._vendor.urllib3.exceptions import InsecureRequestWarning
 
 from pip import __version__
@@ -27,7 +28,7 @@ from pip._internal.network.auth import MultiDomainBasicAuth
 from pip._internal.network.cache import SafeFileCache
 
 # Import ssl from compat so the initial import occurs in only one place.
-from pip._internal.utils.compat import has_tls, ipaddress
+from pip._internal.utils.compat import has_tls
 from pip._internal.utils.glibc import libc_ver
 from pip._internal.utils.misc import (
     build_url_from_netloc,
@@ -211,17 +212,13 @@ class LocalFSAdapter(BaseAdapter):
 class InsecureHTTPAdapter(HTTPAdapter):
 
     def cert_verify(self, conn, url, verify, cert):
-        super(InsecureHTTPAdapter, self).cert_verify(
-            conn=conn, url=url, verify=False, cert=cert
-        )
+        super().cert_verify(conn=conn, url=url, verify=False, cert=cert)
 
 
 class InsecureCacheControlAdapter(CacheControlAdapter):
 
     def cert_verify(self, conn, url, verify, cert):
-        super(InsecureCacheControlAdapter, self).cert_verify(
-            conn=conn, url=url, verify=False, cert=cert
-        )
+        super().cert_verify(conn=conn, url=url, verify=False, cert=cert)
 
 
 class PipSession(requests.Session):
@@ -238,7 +235,7 @@ class PipSession(requests.Session):
         trusted_hosts = kwargs.pop("trusted_hosts", [])  # type: List[str]
         index_urls = kwargs.pop("index_urls", None)
 
-        super(PipSession, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
         # Namespace the attribute with "pip_" just in case to prevent
         # possible conflicts with the base class.
@@ -321,9 +318,9 @@ class PipSession(requests.Session):
             string came from.
         """
         if not suppress_logging:
-            msg = 'adding trusted host: {!r}'.format(host)
+            msg = f'adding trusted host: {host!r}'
             if source is not None:
-                msg += ' (from {})'.format(source)
+                msg += f' (from {source})'
             logger.info(msg)
 
         host_port = parse_netloc(host)
@@ -343,15 +340,14 @@ class PipSession(requests.Session):
 
     def iter_secure_origins(self):
         # type: () -> Iterator[SecureOrigin]
-        for secure_origin in SECURE_ORIGINS:
-            yield secure_origin
+        yield from SECURE_ORIGINS
         for host, port in self.pip_trusted_origins:
             yield ('*', host, '*' if port is None else port)
 
     def is_secure_origin(self, location):
         # type: (Link) -> bool
         # Determine if this url used a secure transport mechanism
-        parsed = urllib_parse.urlparse(str(location))
+        parsed = urllib.parse.urlparse(str(location))
         origin_protocol, origin_host, origin_port = (
             parsed.scheme, parsed.hostname, parsed.port,
         )
@@ -425,4 +421,4 @@ class PipSession(requests.Session):
         kwargs.setdefault("timeout", self.timeout)
 
         # Dispatch the actual request
-        return super(PipSession, self).request(method, url, *args, **kwargs)
+        return super().request(method, url, *args, **kwargs)

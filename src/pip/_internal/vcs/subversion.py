@@ -1,8 +1,6 @@
 # The following comment should be removed at some point in the future.
 # mypy: disallow-untyped-defs=False
 
-from __future__ import absolute_import
-
 import logging
 import os
 import re
@@ -16,7 +14,7 @@ from pip._internal.utils.misc import (
 )
 from pip._internal.utils.subprocess import make_command
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from pip._internal.vcs.versioncontrol import VersionControl, vcs
+from pip._internal.vcs.versioncontrol import RemoteNotFoundError, VersionControl, vcs
 
 _svn_xml_url_re = re.compile('url="([^"]+)"')
 _svn_rev_re = re.compile(r'committed-rev="(\d+)"')
@@ -86,7 +84,7 @@ class Subversion(VersionControl):
         if scheme == 'ssh':
             # The --username and --password options can't be used for
             # svn+ssh URLs, so keep the auth information in the URL.
-            return super(Subversion, cls).get_netloc_and_auth(netloc, scheme)
+            return super().get_netloc_and_auth(netloc, scheme)
 
         return split_auth_from_netloc(netloc)
 
@@ -94,7 +92,7 @@ class Subversion(VersionControl):
     def get_url_rev_and_auth(cls, url):
         # type: (str) -> Tuple[str, Optional[str], AuthInfo]
         # hotfix the URL scheme after removing svn+ from svn+ssh:// readd it
-        url, rev, user_pass = super(Subversion, cls).get_url_rev_and_auth(url)
+        url, rev, user_pass = super().get_url_rev_and_auth(url)
         if url.startswith('ssh://'):
             url = 'svn+' + url
         return url, rev, user_pass
@@ -112,6 +110,7 @@ class Subversion(VersionControl):
 
     @classmethod
     def get_remote_url(cls, location):
+        # type: (str) -> str
         # In cases where the source is in a subdirectory, not alongside
         # setup.py we have to look up in the location until we find a real
         # setup.py
@@ -127,7 +126,7 @@ class Subversion(VersionControl):
                     "parent directories)",
                     orig_location,
                 )
-                return None
+                raise RemoteNotFoundError
 
         return cls._get_svn_url_rev(location)[0]
 
@@ -201,7 +200,7 @@ class Subversion(VersionControl):
         #   Empty tuple: Could not parse version.
         self._vcs_version = None  # type: Optional[Tuple[int, ...]]
 
-        super(Subversion, self).__init__()
+        super().__init__()
 
     def call_vcs_version(self):
         # type: () -> Tuple[int, ...]

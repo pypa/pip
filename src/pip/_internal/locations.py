@@ -3,8 +3,6 @@
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
 
-from __future__ import absolute_import
-
 import os
 import os.path
 import platform
@@ -113,8 +111,8 @@ def distutils_scheme(
     # NOTE: setting user or home has the side-effect of creating the home dir
     # or user base for installations during finalize_options()
     # ideally, we'd prefer a scheme class that has no side-effects.
-    assert not (user and prefix), "user={} prefix={}".format(user, prefix)
-    assert not (home and prefix), "home={} prefix={}".format(home, prefix)
+    assert not (user and prefix), f"user={user} prefix={prefix}"
+    assert not (home and prefix), f"home={home} prefix={prefix}"
     i.user = user or i.user
     if user or home:
         i.prefix = ""
@@ -140,7 +138,7 @@ def distutils_scheme(
             i.prefix,
             'include',
             'site',
-            'python{}'.format(get_major_minor_version()),
+            f'python{get_major_minor_version()}',
             dist_name,
         )
 

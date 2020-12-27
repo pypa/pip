@@ -10,8 +10,6 @@ pass on state. To be consistent, all options will follow this design.
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
 
-from __future__ import absolute_import
-
 import os
 import textwrap
 import warnings
@@ -48,7 +46,7 @@ def raise_option_error(parser, option, msg):
       option: an Option instance.
       msg: the error text.
     """
-    msg = '{} error: {}'.format(option, msg)
+    msg = f'{option} error: {msg}'
     msg = textwrap.fill(' '.join(msg.split()))
     parser.error(msg)
 

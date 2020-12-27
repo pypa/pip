@@ -6,7 +6,6 @@ import textwrap
 
 import pytest
 from mock import patch
-from pip._vendor.six import PY2
 from pretend import stub
 
 import pip._internal.req.req_file  # this will be monkeypatched
@@ -68,7 +67,7 @@ def parse_reqfile(
         )
 
 
-class TestPreprocess(object):
+class TestPreprocess:
     """tests for `preprocess`"""
 
     def test_comments_and_joins_case1(self):
@@ -98,7 +97,7 @@ class TestPreprocess(object):
         assert list(result) == [(1, 'req1'), (3, 'req2')]
 
 
-class TestIgnoreComments(object):
+class TestIgnoreComments:
     """tests for `ignore_comment`"""
 
     def test_ignore_line(self):
@@ -117,7 +116,7 @@ class TestIgnoreComments(object):
         assert list(result) == [(1, 'req1'), (2, 'req'), (3, 'req2')]
 
 
-class TestJoinLines(object):
+class TestJoinLines:
     """tests for `join_lines`"""
 
     def test_join_lines(self):
@@ -184,7 +183,7 @@ def line_processor(
     return process_line
 
 
-class TestProcessLine(object):
+class TestProcessLine:
     """tests for `process_line`"""
 
     def test_parser_error(self, line_processor):
@@ -220,12 +219,11 @@ class TestProcessLine(object):
                 line_number=3
             )
 
-        package_name = "u'my-package=1.0'" if PY2 else "'my-package=1.0'"
         expected = (
-            "Invalid requirement: {} "
+            "Invalid requirement: 'my-package=1.0' "
             '(from line 3 of path/requirements.txt)\n'
             'Hint: = is not a valid operator. Did you mean == ?'
-        ).format(package_name)
+        )
         assert str(exc.value) == expected
 
     def test_yield_line_requirement(self, line_processor):
@@ -272,7 +270,7 @@ class TestProcessLine(object):
 
     def test_yield_editable_constraint(self, line_processor):
         url = 'git+https://url#egg=SomeProject'
-        line = '-e {}'.format(url)
+        line = f'-e {url}'
         filename = 'filename'
         comes_from = '-c {} (line {})'.format(filename, 1)
         req = install_req_from_editable(
@@ -434,7 +432,7 @@ class TestProcessLine(object):
                 return None, '-r reqs.txt'
             elif filename == 'http://me.com/me/reqs.txt':
                 return None, req_name
-            assert False, 'Unexpected file requested {}'.format(filename)
+            assert False, f'Unexpected file requested {filename}'
 
         monkeypatch.setattr(
             pip._internal.req.req_file, 'get_file_content', get_file_content
@@ -480,7 +478,7 @@ class TestProcessLine(object):
         # POSIX-ify the path, since Windows backslashes aren't supported.
         other_req_file_str = str(other_req_file).replace('\\', '/')
 
-        req_file.write_text('-r {}'.format(other_req_file_str))
+        req_file.write_text(f'-r {other_req_file_str}')
         other_req_file.write_text(req_name)
 
         reqs = list(parse_reqfile(str(req_file), session=session))
@@ -500,10 +498,10 @@ class TestProcessLine(object):
 
         def get_file_content(filename, *args, **kwargs):
             if filename == str(req_file):
-                return None, '-r {}'.format(nested_req_file)
+                return None, f'-r {nested_req_file}'
             elif filename == nested_req_file:
                 return None, req_name
-            assert False, 'Unexpected file requested {}'.format(filename)
+            assert False, f'Unexpected file requested {filename}'
 
         monkeypatch.setattr(
             pip._internal.req.req_file, 'get_file_content', get_file_content
@@ -515,7 +513,7 @@ class TestProcessLine(object):
         assert not result[0].constraint
 
 
-class TestBreakOptionsArgs(object):
+class TestBreakOptionsArgs:
 
     def test_no_args(self):
         assert ('', '--option') == break_args_options('--option')
@@ -532,7 +530,7 @@ class TestBreakOptionsArgs(object):
         assert ('arg arg', '--long') == result
 
 
-class TestOptionVariants(object):
+class TestOptionVariants:
 
     # this suite is really just testing optparse, but added it anyway
 
@@ -557,7 +555,7 @@ class TestOptionVariants(object):
         assert finder.index_urls == ['url']
 
 
-class TestParseRequirements(object):
+class TestParseRequirements:
     """tests for `parse_reqfile`"""
 
     @pytest.mark.network

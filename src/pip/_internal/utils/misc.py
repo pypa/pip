@@ -2,8 +2,6 @@
 # mypy: strict-optional=False
 # mypy: disallow-untyped-defs=False
 
-from __future__ import absolute_import
-
 import contextlib
 import errno
 import getpass
@@ -15,8 +13,10 @@ import posixpath
 import shutil
 import stat
 import sys
+import urllib.parse
 from collections import deque
-from itertools import tee
+from io import StringIO
+from itertools import filterfalse, tee, zip_longest
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.utils import canonicalize_name
@@ -24,25 +24,16 @@ from pip._vendor.packaging.utils import canonicalize_name
 # NOTE: retrying is not annotated in typeshed as on 2017-07-17, which is
 #       why we ignore the type on this import.
 from pip._vendor.retrying import retry  # type: ignore
-from pip._vendor.six import PY2, text_type
-from pip._vendor.six.moves import filter, filterfalse, input, map, zip_longest
-from pip._vendor.six.moves.urllib import parse as urllib_parse
-from pip._vendor.six.moves.urllib.parse import unquote as urllib_unquote
 
 from pip import __version__
 from pip._internal.exceptions import CommandError
 from pip._internal.locations import get_major_minor_version, site_packages, user_site
-from pip._internal.utils.compat import WINDOWS, expanduser, stdlib_pkgs, str_to_display
+from pip._internal.utils.compat import WINDOWS, expanduser, stdlib_pkgs
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING, cast
 from pip._internal.utils.virtualenv import (
     running_under_virtualenv,
     virtualenv_no_global,
 )
-
-if PY2:
-    from io import BytesIO as StringIO
-else:
-    from io import StringIO
 
 if MYPY_CHECK_RUNNING:
     from typing import (
@@ -54,10 +45,8 @@ if MYPY_CHECK_RUNNING:
         Iterator,
         List,
         Optional,
-        Text,
         Tuple,
         TypeVar,
-        Union,
     )
 
     from pip._vendor.pkg_resources import Distribution
@@ -126,7 +115,7 @@ def get_prog():
     try:
         prog = os.path.basename(sys.argv[0])
         if prog in ('__main__.py', '-c'):
-            return "{} -m pip".format(sys.executable)
+            return f"{sys.executable} -m pip"
         else:
             return prog
     except (AttributeError, TypeError, IndexError):
@@ -148,7 +137,7 @@ def rmtree_errorhandler(func, path, exc_info):
     read-only attribute, and hopefully continue without problems."""
     try:
         has_attr_readonly = not (os.stat(path).st_mode & stat.S_IWRITE)
-    except (IOError, OSError):
+    except OSError:
         # it's equivalent to os.path.exists
         return
 
@@ -163,7 +152,7 @@ def rmtree_errorhandler(func, path, exc_info):
 
 
 def path_to_display(path):
-    # type: (Optional[Union[str, Text]]) -> Optional[Text]
+    # type: (Optional[str]) -> Optional[str]
     """
     Convert a bytes (or text) path to text (unicode in Python 2) for display
     and logging purposes.
@@ -173,7 +162,7 @@ def path_to_display(path):
     """
     if path is None:
         return None
-    if isinstance(path, text_type):
+    if isinstance(path, str):
         return path
     # Otherwise, path is a bytes object (str in Python 2).
     try:
@@ -181,29 +170,18 @@ def path_to_display(path):
     except UnicodeDecodeError:
         # Include the full bytes to make troubleshooting easier, even though
         # it may not be very human readable.
-        if PY2:
-            # Convert the bytes to a readable str representation using
-            # repr(), and then convert the str to unicode.
-            #   Also, we add the prefix "b" to the repr() return value both
-            # to make the Python 2 output look like the Python 3 output, and
-            # to signal to the user that this is a bytes representation.
-            display_path = str_to_display('b{!r}'.format(path))
-        else:
-            # Silence the "F821 undefined name 'ascii'" flake8 error since
-            # in Python 3 ascii() is a built-in.
-            display_path = ascii(path)  # noqa: F821
+        # Silence the "F821 undefined name 'ascii'" flake8 error since
+        # ascii() is a built-in.
+        display_path = ascii(path)  # noqa: F821
 
     return display_path
 
 
 def display_path(path):
-    # type: (Union[str, Text]) -> str
+    # type: (str) -> str
     """Gives the display value for a given path, making it relative to cwd
     if possible."""
     path = os.path.normcase(os.path.abspath(path))
-    if sys.version_info[0] == 2:
-        path = path.decode(sys.getfilesystemencoding(), 'replace')
-        path = path.encode(sys.getdefaultencoding(), 'replace')
     if path.startswith(os.getcwd() + os.path.sep):
         path = '.' + path[len(os.getcwd()):]
     return path
@@ -594,7 +572,7 @@ def write_output(msg, *args):
     logger.info(msg, *args)
 
 
-class FakeFile(object):
+class FakeFile:
     """Wrap a list of lines in an object with readline() to make
     ConfigParser happy."""
     def __init__(self, lines):
@@ -697,8 +675,8 @@ def build_netloc(host, port):
         return host
     if ':' in host:
         # Only wrap host with square brackets when it is IPv6
-        host = '[{}]'.format(host)
-    return '{}:{}'.format(host, port)
+        host = f'[{host}]'
+    return f'{host}:{port}'
 
 
 def build_url_from_netloc(netloc, scheme='https'):
@@ -708,8 +686,8 @@ def build_url_from_netloc(netloc, scheme='https'):
     """
     if netloc.count(':') >= 2 and '@' not in netloc and '[' not in netloc:
         # It must be a bare IPv6 address, so wrap it with brackets.
-        netloc = '[{}]'.format(netloc)
-    return '{}://{}'.format(scheme, netloc)
+        netloc = f'[{netloc}]'
+    return f'{scheme}://{netloc}'
 
 
 def parse_netloc(netloc):
@@ -718,7 +696,7 @@ def parse_netloc(netloc):
     Return the host-port pair from a netloc.
     """
     url = build_url_from_netloc(netloc)
-    parsed = urllib_parse.urlparse(url)
+    parsed = urllib.parse.urlparse(url)
     return parsed.hostname, parsed.port
 
 
@@ -744,7 +722,7 @@ def split_auth_from_netloc(netloc):
         user_pass = auth, None
 
     user_pass = tuple(
-        None if x is None else urllib_unquote(x) for x in user_pass
+        None if x is None else urllib.parse.unquote(x) for x in user_pass
     )
 
     return netloc, user_pass
@@ -766,7 +744,7 @@ def redact_netloc(netloc):
         user = '****'
         password = ''
     else:
-        user = urllib_parse.quote(user)
+        user = urllib.parse.quote(user)
         password = ':****'
     return '{user}{password}@{netloc}'.format(user=user,
                                               password=password,
@@ -783,13 +761,13 @@ def _transform_url(url, transform_netloc):
     Returns a tuple containing the transformed url as item 0 and the
     original tuple returned by transform_netloc as item 1.
     """
-    purl = urllib_parse.urlsplit(url)
+    purl = urllib.parse.urlsplit(url)
     netloc_tuple = transform_netloc(purl.netloc)
     # stripped url
     url_pieces = (
         purl.scheme, netloc_tuple[0], purl.path, purl.query, purl.fragment
     )
-    surl = urllib_parse.urlunsplit(url_pieces)
+    surl = urllib.parse.urlunsplit(url_pieces)
     return surl, netloc_tuple
 
 
@@ -826,7 +804,7 @@ def redact_auth_from_url(url):
     return _transform_url(url, _redact_netloc)[0]
 
 
-class HiddenText(object):
+class HiddenText:
     def __init__(
         self,
         secret,    # type: str
@@ -853,12 +831,6 @@ class HiddenText(object):
         # The string being used for redaction doesn't also have to match,
         # just the raw, original string.
         return (self.secret == other.secret)
-
-    # We need to provide an explicit __ne__ implementation for Python 2.
-    # TODO: remove this when we drop PY2 support.
-    def __ne__(self, other):
-        # type: (Any) -> bool
-        return not self == other
 
 
 def hide_value(value):
@@ -910,7 +882,7 @@ def is_console_interactive():
 
 
 def hash_file(path, blocksize=1 << 20):
-    # type: (Text, int) -> Tuple[Any, int]
+    # type: (str, int) -> Tuple[Any, int]
     """Return (hash, length) for path using hashlib.sha256()
     """
 

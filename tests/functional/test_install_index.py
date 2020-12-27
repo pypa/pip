@@ -1,7 +1,6 @@
 import os
 import textwrap
-
-from pip._vendor.six.moves.urllib import parse as urllib_parse
+import urllib.parse
 
 
 def test_find_links_relative_path(script, data, with_wheel):
@@ -59,7 +58,7 @@ def test_file_index_url_quoting(script, data, with_wheel):
     """
     Test url quoting of file index url with a space
     """
-    index_url = data.index_url(urllib_parse.quote("in dex"))
+    index_url = data.index_url(urllib.parse.quote("in dex"))
     result = script.pip(
         'install', '-vvv', '--index-url', index_url, 'simple'
     )

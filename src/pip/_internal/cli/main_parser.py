@@ -68,7 +68,7 @@ def parse_command(args):
 
     # --version
     if general_options.version:
-        sys.stdout.write(parser.version)  # type: ignore
+        sys.stdout.write(parser.version)
         sys.stdout.write(os.linesep)
         sys.exit()
 
@@ -83,9 +83,9 @@ def parse_command(args):
     if cmd_name not in commands_dict:
         guess = get_similar_commands(cmd_name)
 
-        msg = ['unknown command "{}"'.format(cmd_name)]
+        msg = [f'unknown command "{cmd_name}"']
         if guess:
-            msg.append('maybe you meant "{}"'.format(guess))
+            msg.append(f'maybe you meant "{guess}"')
 
         raise CommandError(' - '.join(msg))
 

@@ -26,7 +26,7 @@ def format_name(project, extras):
     return "{}[{}]".format(project, ",".join(canonical_extras))
 
 
-class Constraint(object):
+class Constraint:
     def __init__(self, specifier, hashes):
         # type: (SpecifierSet, Hashes) -> None
         self.specifier = specifier
@@ -66,7 +66,7 @@ class Constraint(object):
         return self.specifier.contains(candidate.version, prereleases=True)
 
 
-class Requirement(object):
+class Requirement:
     @property
     def project_name(self):
         # type: () -> str
@@ -101,7 +101,7 @@ class Requirement(object):
         raise NotImplementedError("Subclass should override")
 
 
-class Candidate(object):
+class Candidate:
     @property
     def project_name(self):
         # type: () -> str

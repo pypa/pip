@@ -1,15 +1,13 @@
 # The following comment should be removed at some point in the future.
 # mypy: disallow-untyped-defs=False
 
-from __future__ import absolute_import
-
 import logging
 import os.path
 import re
+import urllib.parse
+import urllib.request
 
 from pip._vendor.packaging.version import parse as parse_version
-from pip._vendor.six.moves.urllib import parse as urllib_parse
-from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.utils.misc import display_path, hide_url
@@ -30,8 +28,8 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.vcs.versioncontrol import AuthInfo, RevOptions
 
 
-urlsplit = urllib_parse.urlsplit
-urlunsplit = urllib_parse.urlunsplit
+urlsplit = urllib.parse.urlsplit
+urlunsplit = urllib.parse.urlunsplit
 
 
 logger = logging.getLogger(__name__)
@@ -155,12 +153,12 @@ class Git(VersionControl):
             except ValueError:
                 # Include the offending line to simplify troubleshooting if
                 # this error ever occurs.
-                raise ValueError('unexpected show-ref line: {!r}'.format(line))
+                raise ValueError(f'unexpected show-ref line: {line!r}')
 
             refs[ref] = sha
 
-        branch_ref = 'refs/remotes/origin/{}'.format(rev)
-        tag_ref = 'refs/tags/{}'.format(rev)
+        branch_ref = f'refs/remotes/origin/{rev}'
+        tag_ref = f'refs/tags/{rev}'
 
         sha = refs.get(branch_ref)
         if sha is not None:
@@ -274,7 +272,7 @@ class Git(VersionControl):
             elif self.get_current_branch(dest) != branch_name:
                 # Then a specific branch was requested, and that branch
                 # is not yet checked out.
-                track_branch = 'origin/{}'.format(branch_name)
+                track_branch = f'origin/{branch_name}'
                 cmd_args = [
                     'checkout', '-b', branch_name, '--track', track_branch,
                 ]
@@ -311,6 +309,7 @@ class Git(VersionControl):
 
     @classmethod
     def get_remote_url(cls, location):
+        # type: (str) -> str
         """
         Return URL of the first remote encountered.
 
@@ -401,7 +400,7 @@ class Git(VersionControl):
             initial_slashes = path[:-len(path.lstrip('/'))]
             newpath = (
                 initial_slashes +
-                urllib_request.url2pathname(path)
+                urllib.request.url2pathname(path)
                 .replace('\\', '/').lstrip('/')
             )
             after_plus = scheme.find('+') + 1
@@ -412,10 +411,10 @@ class Git(VersionControl):
         if '://' not in url:
             assert 'file:' not in url
             url = url.replace('git+', 'git+ssh://')
-            url, rev, user_pass = super(Git, cls).get_url_rev_and_auth(url)
+            url, rev, user_pass = super().get_url_rev_and_auth(url)
             url = url.replace('ssh://', '')
         else:
-            url, rev, user_pass = super(Git, cls).get_url_rev_and_auth(url)
+            url, rev, user_pass = super().get_url_rev_and_auth(url)
 
         return url, rev, user_pass
 
@@ -430,7 +429,7 @@ class Git(VersionControl):
 
     @classmethod
     def get_repository_root(cls, location):
-        loc = super(Git, cls).get_repository_root(location)
+        loc = super().get_repository_root(location)
         if loc:
             return loc
         try:

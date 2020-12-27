@@ -1,10 +1,8 @@
-import errno
 import logging
 from threading import Thread
 
 import pytest
 from mock import patch
-from pip._vendor.six import PY2
 
 from pip._internal.utils.logging import (
     BrokenStdoutLoggingError,
@@ -17,20 +15,7 @@ from pip._internal.utils.misc import captured_stderr, captured_stdout
 logger = logging.getLogger(__name__)
 
 
-# This is a Python 2/3 compatibility helper.
-def _make_broken_pipe_error():
-    """
-    Return an exception object representing a broken pipe.
-    """
-    if PY2:
-        # This is one way a broken pipe error can show up in Python 2
-        # (a non-Windows example in this case).
-        return IOError(errno.EPIPE, 'Broken pipe')
-
-    return BrokenPipeError()  # noqa: F821
-
-
-class TestIndentingFormatter(object):
+class TestIndentingFormatter:
     """Test ``pip._internal.utils.logging.IndentingFormatter``."""
 
     def make_record(self, msg, level_name):
@@ -125,7 +110,7 @@ class TestIndentingFormatter(object):
         assert results[0] == results[1]
 
 
-class TestColorizedStreamHandler(object):
+class TestColorizedStreamHandler:
 
     def _make_log_record(self):
         attrs = {
@@ -146,7 +131,7 @@ class TestColorizedStreamHandler(object):
         with captured_stderr() as stderr:
             handler = ColorizedStreamHandler(stream=stderr)
             with patch('sys.stderr.flush') as mock_flush:
-                mock_flush.side_effect = _make_broken_pipe_error()
+                mock_flush.side_effect = BrokenPipeError()
                 # The emit() call raises no exception.
                 handler.emit(record)
 
@@ -154,13 +139,9 @@ class TestColorizedStreamHandler(object):
 
         assert err_text.startswith('my error')
         # Check that the logging framework tried to log the exception.
-        if PY2:
-            assert 'IOError: [Errno 32] Broken pipe' in err_text
-            assert 'Logged from file' in err_text
-        else:
-            assert 'Logging error' in err_text
-            assert 'BrokenPipeError' in err_text
-            assert "Message: 'my error'" in err_text
+        assert 'Logging error' in err_text
+        assert 'BrokenPipeError' in err_text
+        assert "Message: 'my error'" in err_text
 
     def test_broken_pipe_in_stdout_write(self):
         """
@@ -173,7 +154,7 @@ class TestColorizedStreamHandler(object):
         with captured_stdout() as stdout:
             handler = ColorizedStreamHandler(stream=stdout)
             with patch('sys.stdout.write') as mock_write:
-                mock_write.side_effect = _make_broken_pipe_error()
+                mock_write.side_effect = BrokenPipeError()
                 with pytest.raises(BrokenStdoutLoggingError):
                     handler.emit(record)
 
@@ -188,7 +169,7 @@ class TestColorizedStreamHandler(object):
         with captured_stdout() as stdout:
             handler = ColorizedStreamHandler(stream=stdout)
             with patch('sys.stdout.flush') as mock_flush:
-                mock_flush.side_effect = _make_broken_pipe_error()
+                mock_flush.side_effect = BrokenPipeError()
                 with pytest.raises(BrokenStdoutLoggingError):
                     handler.emit(record)
 

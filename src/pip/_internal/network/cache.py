@@ -29,7 +29,7 @@ def suppressed_cache_errors():
     """
     try:
         yield
-    except (OSError, IOError):
+    except OSError:
         pass
 
 
@@ -42,7 +42,7 @@ class SafeFileCache(BaseCache):
     def __init__(self, directory):
         # type: (str) -> None
         assert directory is not None, "Cache directory must not be None."
-        super(SafeFileCache, self).__init__()
+        super().__init__()
         self.directory = directory
 
     def _get_cache_path(self, name):

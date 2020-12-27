@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-#
 # pip documentation build configuration file, created by
 # sphinx-quickstart on Tue Apr 22 22:08:49 2008
 #
@@ -13,6 +11,7 @@
 
 import glob
 import os
+import pathlib
 import re
 import sys
 
@@ -36,6 +35,7 @@ extensions = [
     'sphinx.ext.intersphinx',
     # third-party:
     'sphinx_inline_tabs',
+    'sphinxcontrib.towncrier',
     # in-tree:
     'docs_feedback_sphinxext',
     'pip_sphinxext',
@@ -239,8 +239,8 @@ latex_documents = [
     (
         'index',
         'pip.tex',
-        u'pip Documentation',
-        u'pip developers',
+        'pip Documentation',
+        'pip developers',
         'manual',
     ),
 ]
@@ -269,8 +269,8 @@ man_pages = [
     (
         'index',
         'pip',
-        u'package manager for Python packages',
-        u'pip developers',
+        'package manager for Python packages',
+        'pip developers',
         1
     )
 ]
@@ -295,11 +295,11 @@ if not raw_subcommands:
 for fname in raw_subcommands:
     fname_base = to_document_name(fname, man_dir)
     outname = 'pip-' + fname_base.split('/')[1]
-    description = u'description of {} command'.format(
+    description = 'description of {} command'.format(
         outname.replace('-', ' ')
     )
 
-    man_pages.append((fname_base, outname, description, u'pip developers', 1))
+    man_pages.append((fname_base, outname, description, 'pip developers', 1))
 
 # -- Options for docs_feedback_sphinxext --------------------------------------
 
@@ -307,7 +307,7 @@ for fname in raw_subcommands:
 # NOTE: 'important', 'note', 'tip', 'warning' or 'admonition'.
 docs_feedback_admonition_type = 'important'
 docs_feedback_big_doc_lines = 50  # bigger docs will have a banner on top
-docs_feedback_email = 'Docs UX Team <docs-feedback+ux/pip.pypa.io@pypa.io>'
+docs_feedback_email = 'Docs UX Team <docs-feedback@pypa.io>'
 docs_feedback_excluded_documents = {  # these won't have any banners
     'news', 'reference/index',
 }
@@ -316,3 +316,10 @@ docs_feedback_questions_list = (
     'What content was useful?',
     'What content was not useful?',
 )
+
+# -- Options for towncrier_draft extension -----------------------------------
+
+towncrier_draft_autoversion_mode = 'draft'  # or: 'sphinx-release', 'sphinx-version'
+towncrier_draft_include_empty = True
+towncrier_draft_working_directory = pathlib.Path(docs_dir).parent
+# Not yet supported: towncrier_draft_config_path = 'pyproject.toml'  # relative to cwd

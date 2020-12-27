@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import errno
 import logging
 import operator
@@ -437,10 +435,10 @@ class InstallCommand(RequirementCommand):
                 write_output(
                     'Successfully installed %s', installed_desc,
                 )
-        except EnvironmentError as error:
+        except OSError as error:
             show_traceback = (self.verbosity >= 1)
 
-            message = create_env_error_message(
+            message = create_os_error_message(
                 error, show_traceback, options.use_user_site,
             )
             logger.error(message, exc_info=show_traceback)  # noqa
@@ -699,16 +697,16 @@ def reject_location_related_install_options(requirements, options):
     )
 
 
-def create_env_error_message(error, show_traceback, using_user_site):
-    # type: (EnvironmentError, bool, bool) -> str
-    """Format an error message for an EnvironmentError
+def create_os_error_message(error, show_traceback, using_user_site):
+    # type: (OSError, bool, bool) -> str
+    """Format an error message for an OSError
 
     It may occur anytime during the execution of the install command.
     """
     parts = []
 
     # Mention the error if we are not going to show a traceback
-    parts.append("Could not install packages due to an EnvironmentError")
+    parts.append("Could not install packages due to an OSError")
     if not show_traceback:
         parts.append(": ")
         parts.append(str(error))

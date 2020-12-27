@@ -9,11 +9,11 @@ from cryptography.x509.oid import NameOID
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Text, Tuple
+    from typing import Tuple
 
 
 def make_tls_cert(hostname):
-    # type: (Text) -> Tuple[x509.Certificate, rsa.RSAPrivateKey]
+    # type: (str) -> Tuple[x509.Certificate, rsa.RSAPrivateKey]
     key = rsa.generate_private_key(
         public_exponent=65537,
         key_size=2048,

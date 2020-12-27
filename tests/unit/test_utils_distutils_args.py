@@ -50,7 +50,7 @@ def test_multiple_invocations_do_not_keep_options():
     ("root", "11"),
 ])
 def test_all_value_options_work(name, value):
-    result = parse_distutils_args(["--{}={}".format(name, value)])
+    result = parse_distutils_args([f"--{name}={value}"])
     key_name = name.replace("-", "_")
     assert result[key_name] == value
 

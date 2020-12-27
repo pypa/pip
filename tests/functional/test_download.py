@@ -4,7 +4,6 @@ import textwrap
 from hashlib import sha256
 
 import pytest
-from pip._vendor.six import PY2
 
 from pip._internal.cli.status_codes import ERROR
 from pip._internal.utils.urls import path_to_url
@@ -325,7 +324,7 @@ def test_download_specify_platform(script, data):
     )
 
 
-class TestDownloadPlatformManylinuxes(object):
+class TestDownloadPlatformManylinuxes:
     """
     "pip download --platform" downloads a .whl archive supported for
     manylinux platforms.
@@ -365,7 +364,7 @@ class TestDownloadPlatformManylinuxes(object):
         """
         Earlier manylinuxes are compatible with later manylinuxes.
         """
-        wheel = 'fake-1.0-py2.py3-none-{}.whl'.format(wheel_abi)
+        wheel = f'fake-1.0-py2.py3-none-{wheel_abi}.whl'
         fake_wheel(data, wheel)
         result = script.pip(
             'download', '--no-index', '--find-links', data.find_links,
@@ -490,10 +489,9 @@ def make_wheel_with_python_requires(script, package_name, python_requires):
     package_dir.joinpath('setup.py').write_text(text)
     script.run(
         'python', 'setup.py', 'bdist_wheel', '--universal', cwd=package_dir,
-        allow_stderr_warning=PY2,
     )
 
-    file_name = '{}-1.0-py2.py3-none-any.whl'.format(package_name)
+    file_name = f'{package_name}-1.0-py2.py3-none-any.whl'
     return package_dir / 'dist' / file_name
 
 
@@ -523,11 +521,39 @@ def test_download__python_version_used_for_python_requires(
         "ERROR: Package 'mypackage' requires a different Python: "
         "3.3.0 not in '==3.2'"
     )
-    assert expected_err in result.stderr, 'stderr: {}'.format(result.stderr)
+    assert expected_err in result.stderr, f'stderr: {result.stderr}'
 
     # Now try with a --python-version that satisfies the Requires-Python.
     args = make_args('32')
     script.pip(*args)  # no exception
+
+
+def test_download_ignore_requires_python_dont_fail_with_wrong_python(
+    script,
+    with_wheel,
+):
+    """
+    Test that --ignore-requires-python ignores Requires-Python check.
+    """
+    wheel_path = make_wheel_with_python_requires(
+        script,
+        "mypackage",
+        python_requires="==999",
+    )
+    wheel_dir = os.path.dirname(wheel_path)
+
+    result = script.pip(
+        "download",
+        "--ignore-requires-python",
+        "--no-index",
+        "--find-links",
+        wheel_dir,
+        "--only-binary=:all:",
+        "--dest",
+        ".",
+        "mypackage==1.0",
+    )
+    result.did_create(Path('scratch') / 'mypackage-1.0-py2.py3-none-any.whl')
 
 
 def test_download_specify_abi(script, data):
@@ -837,8 +863,8 @@ def test_download_http_url_bad_hash(
         file_response(simple_pkg)
     ])
     mock_server.start()
-    base_address = 'http://{}:{}'.format(mock_server.host, mock_server.port)
-    url = "{}/simple-1.0.tar.gz#sha256={}".format(base_address, digest)
+    base_address = f'http://{mock_server.host}:{mock_server.port}'
+    url = f"{base_address}/simple-1.0.tar.gz#sha256={digest}"
 
     shared_script.pip('download', '-d', str(download_dir), url)
 

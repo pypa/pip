@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import collections
 import logging
 
@@ -21,14 +19,14 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 
-class InstallationResult(object):
+class InstallationResult:
     def __init__(self, name):
         # type: (str) -> None
         self.name = name
 
     def __repr__(self):
         # type: () -> str
-        return "InstallationResult(name={!r})".format(self.name)
+        return f"InstallationResult(name={self.name!r})"
 
 
 def _validate_requirements(
@@ -36,7 +34,7 @@ def _validate_requirements(
 ):
     # type: (...) -> Iterator[Tuple[str, InstallRequirement]]
     for req in requirements:
-        assert req.name, "invalid to-be-installed requirement: {}".format(req)
+        assert req.name, f"invalid to-be-installed requirement: {req}"
         yield req.name, req
 
 

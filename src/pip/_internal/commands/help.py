@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.exceptions import CommandError
@@ -34,9 +32,9 @@ class HelpCommand(Command):
         if cmd_name not in commands_dict:
             guess = get_similar_commands(cmd_name)
 
-            msg = ['unknown command "{}"'.format(cmd_name)]
+            msg = [f'unknown command "{cmd_name}"']
             if guess:
-                msg.append('maybe you meant "{}"'.format(guess))
+                msg.append(f'maybe you meant "{guess}"')
 
             raise CommandError(' - '.join(msg))
 

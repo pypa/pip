@@ -1,12 +1,9 @@
 # The following comment should be removed at some point in the future.
 # mypy: disallow-untyped-defs=False
 
-from __future__ import absolute_import
-
+import configparser
 import logging
 import os
-
-from pip._vendor.six.moves import configparser
 
 from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.utils.misc import display_path
@@ -90,6 +87,7 @@ class Mercurial(VersionControl):
 
     @classmethod
     def get_remote_url(cls, location):
+        # type: (str) -> str
         url = cls.run_command(
             ['showconfig', 'paths.default'],
             show_stdout=False,
@@ -148,7 +146,7 @@ class Mercurial(VersionControl):
 
     @classmethod
     def get_repository_root(cls, location):
-        loc = super(Mercurial, cls).get_repository_root(location)
+        loc = super().get_repository_root(location)
         if loc:
             return loc
         try:

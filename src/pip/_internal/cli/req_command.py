@@ -9,8 +9,6 @@ import logging
 import os
 from functools import partial
 
-from pip._vendor.six import PY2
-
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.command_context import CommandContextMixIn
@@ -53,7 +51,7 @@ class SessionCommandMixin(CommandContextMixIn):
     """
     def __init__(self):
         # type: () -> None
-        super(SessionCommandMixin, self).__init__()
+        super().__init__()
         self._session = None  # Optional[PipSession]
 
     @classmethod
@@ -192,7 +190,7 @@ class RequirementCommand(IndexGroupCommand):
 
     def __init__(self, *args, **kw):
         # type: (Any, Any) -> None
-        super(RequirementCommand, self).__init__(*args, **kw)
+        super().__init__(*args, **kw)
 
         self.cmd_opts.add_option(cmdoptions.no_clean())
 
@@ -200,14 +198,6 @@ class RequirementCommand(IndexGroupCommand):
     def determine_resolver_variant(options):
         # type: (Values) -> str
         """Determines which resolver should be used, based on the given options."""
-        # We didn't want to change things for Python 2, since it's nearly done with
-        # and we're using performance improvements that only work on Python 3.
-        if PY2:
-            if '2020-resolver' in options.features_enabled:
-                return "2020-resolver"
-            else:
-                return "legacy"
-
         if "legacy-resolver" in options.deprecated_features_enabled:
             return "legacy"
 

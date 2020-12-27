@@ -57,7 +57,7 @@ class Resolver(BaseResolver):
         upgrade_strategy,  # type: str
         py_version_info=None,  # type: Optional[Tuple[int, ...]]
     ):
-        super(Resolver, self).__init__()
+        super().__init__()
         assert upgrade_strategy in self._allowed_strategies
 
         self.factory = Factory(
@@ -189,14 +189,14 @@ class Resolver(BaseResolver):
                 # The reason can contain non-ASCII characters, Unicode
                 # is required for Python 2.
                 msg = (
-                    u'The candidate selected for download or install is a '
-                    u'yanked version: {name!r} candidate (version {version} '
-                    u'at {link})\nReason for being yanked: {reason}'
+                    'The candidate selected for download or install is a '
+                    'yanked version: {name!r} candidate (version {version} '
+                    'at {link})\nReason for being yanked: {reason}'
                 ).format(
                     name=candidate.name,
                     version=candidate.version,
                     link=link,
-                    reason=link.yanked_reason or u'<none given>',
+                    reason=link.yanked_reason or '<none given>',
                 )
                 logger.warning(msg)
 

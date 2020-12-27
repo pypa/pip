@@ -5,7 +5,6 @@ import textwrap
 
 import pytest
 
-from tests.lib import skip_if_python2
 from tests.lib.server import (
     authorization_response,
     file_response,
@@ -101,9 +100,9 @@ def test_command_line_append_flags(script, virtualenv, data):
         in result.stdout
     )
     assert (
-        'Skipping link: not a file: {}'.format(data.find_links) in
+        f'Skipping link: not a file: {data.find_links}' in
         result.stdout
-    ), 'stdout: {}'.format(result.stdout)
+    ), f'stdout: {result.stdout}'
 
 
 @pytest.mark.network
@@ -125,12 +124,11 @@ def test_command_line_appends_correctly(script, data):
         in result.stdout
     ), result.stdout
     assert (
-        'Skipping link: not a file: {}'.format(data.find_links) in
+        f'Skipping link: not a file: {data.find_links}' in
         result.stdout
-    ), 'stdout: {}'.format(result.stdout)
+    ), f'stdout: {result.stdout}'
 
 
-@skip_if_python2
 def test_config_file_override_stack(
     script, virtualenv, mock_server, shared_data
 ):
@@ -145,7 +143,7 @@ def test_config_file_override_stack(
         file_response(shared_data.packages.joinpath("INITools-0.2.tar.gz")),
     ])
     mock_server.start()
-    base_address = "http://{}:{}".format(mock_server.host, mock_server.port)
+    base_address = f"http://{mock_server.host}:{mock_server.port}"
 
     config_file = script.scratch_path / "test-pip.cfg"
 
@@ -168,7 +166,7 @@ def test_config_file_override_stack(
     )
     script.pip('install', '-vvv', 'INITools', expect_error=True)
     script.pip(
-        'install', '-vvv', '--index-url', "{}/simple3".format(base_address),
+        'install', '-vvv', '--index-url', f"{base_address}/simple3",
         'INITools',
     )
 
@@ -238,18 +236,17 @@ def test_prompt_for_authentication(script, data, cert_factory):
         authorization_response(str(data.packages / "simple-3.0.tar.gz")),
     ]
 
-    url = "https://{}:{}/simple".format(server.host, server.port)
+    url = f"https://{server.host}:{server.port}/simple"
 
     with server_running(server):
         result = script.pip('install', "--index-url", url,
                             "--cert", cert_path, "--client-cert", cert_path,
                             'simple', expect_error=True)
 
-    assert 'User for {}:{}'.format(server.host, server.port) in \
+    assert f'User for {server.host}:{server.port}' in \
            result.stdout, str(result)
 
 
-@skip_if_python2
 def test_do_not_prompt_for_authentication(script, data, cert_factory):
     """Test behaviour if --no-input option is given while installing
     from a index url requiring authentication
@@ -269,7 +266,7 @@ def test_do_not_prompt_for_authentication(script, data, cert_factory):
         authorization_response(str(data.packages / "simple-3.0.tar.gz")),
     ]
 
-    url = "https://{}:{}/simple".format(server.host, server.port)
+    url = f"https://{server.host}:{server.port}/simple"
 
     with server_running(server):
         result = script.pip('install', "--index-url", url,

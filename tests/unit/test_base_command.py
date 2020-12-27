@@ -27,11 +27,11 @@ class FakeCommand(Command):
                 raise SystemExit(1)
 
         self.run_func = run_func
-        super(FakeCommand, self).__init__(self._name, self._name)
+        super().__init__(self._name, self._name)
 
     def main(self, args):
         args.append("--disable-pip-version-check")
-        return super(FakeCommand, self).main(args)
+        return super().main(args)
 
     def run(self, options, args):
         logging.getLogger("pip.tests").info("fake")
@@ -52,7 +52,7 @@ class FakeCommandWithUnicode(FakeCommand):
         )
 
 
-class TestCommand(object):
+class TestCommand:
 
     def call_main(self, capsys, args):
         """
@@ -159,7 +159,7 @@ def test_base_command_global_tempdir_cleanup(kind, exists):
     assert temp_dir._tempdir_manager is None
     assert temp_dir._tempdir_registry is None
 
-    class Holder(object):
+    class Holder:
         value = None
 
     def create_temp_dirs(options, args):

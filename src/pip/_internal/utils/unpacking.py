@@ -1,8 +1,6 @@
 """Utilities related archives.
 """
 
-from __future__ import absolute_import
-
 import logging
 import os
 import shutil
@@ -21,7 +19,7 @@ from pip._internal.utils.misc import ensure_dir
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Iterable, List, Optional, Text, Union
+    from typing import Iterable, List, Optional
     from zipfile import ZipInfo
 
 
@@ -53,7 +51,7 @@ def current_umask():
 
 
 def split_leading_dir(path):
-    # type: (Union[str, Text]) -> List[Union[str, Text]]
+    # type: (str) -> List[str]
     path = path.lstrip('/').lstrip('\\')
     if (
         '/' in path and (
@@ -69,7 +67,7 @@ def split_leading_dir(path):
 
 
 def has_leading_dir(paths):
-    # type: (Iterable[Union[str, Text]]) -> bool
+    # type: (Iterable[str]) -> bool
     """Returns true if all the paths have the same leading path name
     (i.e., everything is in one subdirectory in an archive)"""
     common_prefix = None
@@ -85,7 +83,7 @@ def has_leading_dir(paths):
 
 
 def is_within_directory(directory, target):
-    # type: ((Union[str, Text]), (Union[str, Text])) -> bool
+    # type: (str, str) -> bool
     """
     Return true if the absolute path of target is within the directory
     """
@@ -97,7 +95,7 @@ def is_within_directory(directory, target):
 
 
 def set_extracted_file_to_default_mode_plus_executable(path):
-    # type: (Union[str, Text]) -> None
+    # type: (str) -> None
     """
     Make file present at path have execute for user/group/world
     (chmod +x) is no-op on windows per python docs
@@ -192,8 +190,7 @@ def untar_file(filename, location):
         for member in tar.getmembers():
             fn = member.name
             if leading:
-                # https://github.com/python/mypy/issues/1174
-                fn = split_leading_dir(fn)[1]  # type: ignore
+                fn = split_leading_dir(fn)[1]
             path = os.path.join(location, fn)
             if not is_within_directory(location, path):
                 message = (
@@ -234,8 +231,7 @@ def untar_file(filename, location):
                     shutil.copyfileobj(fp, destfp)
                 fp.close()
                 # Update the timestamp (useful for cython compiled files)
-                # https://github.com/python/typeshed/issues/2673
-                tar.utime(member, path)  # type: ignore
+                tar.utime(member, path)
                 # member have any execute permissions for user/group/world?
                 if member.mode & 0o111:
                     set_extracted_file_to_default_mode_plus_executable(path)
@@ -277,5 +273,5 @@ def unpack_file(
             filename, location, content_type,
         )
         raise InstallationError(
-            'Cannot determine archive format of {}'.format(location)
+            f'Cannot determine archive format of {location}'
         )

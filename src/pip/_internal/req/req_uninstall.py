@@ -1,17 +1,16 @@
-from __future__ import absolute_import
-
 import csv
 import functools
 import logging
 import os
 import sys
 import sysconfig
+from importlib.util import cache_from_source
 
 from pip._vendor import pkg_resources
 
 from pip._internal.exceptions import UninstallationError
 from pip._internal.locations import bin_py, bin_user
-from pip._internal.utils.compat import WINDOWS, cache_from_source, uses_pycache
+from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     FakeFile,
@@ -215,7 +214,7 @@ def compress_for_output_listing(paths):
     return will_remove, will_skip
 
 
-class StashedUninstallPathSet(object):
+class StashedUninstallPathSet:
     """A set of file rename operations to stash files while
     tentatively uninstalling them."""
     def __init__(self):
@@ -326,7 +325,7 @@ class StashedUninstallPathSet(object):
         return bool(self._moves)
 
 
-class UninstallPathSet(object):
+class UninstallPathSet:
     """A set of file paths to be removed in the uninstallation of a
     requirement."""
     def __init__(self, dist):
@@ -363,7 +362,7 @@ class UninstallPathSet(object):
 
         # __pycache__ files can show up after 'installed-files.txt' is created,
         # due to imports
-        if os.path.splitext(path)[1] == '.py' and uses_pycache:
+        if os.path.splitext(path)[1] == '.py':
             self.add(cache_from_source(path))
 
     def add_pth(self, pth_file, entry):
@@ -591,7 +590,7 @@ class UninstallPathSet(object):
         return paths_to_remove
 
 
-class UninstallPthEntries(object):
+class UninstallPthEntries:
     def __init__(self, pth_file):
         # type: (str) -> None
         self.file = pth_file
@@ -609,7 +608,7 @@ class UninstallPthEntries(object):
         # treats non-absolute paths with drive letter markings like c:foo\bar
         # as absolute paths. It also does not recognize UNC paths if they don't
         # have more than "\\sever\share". Valid examples: "\\server\share\" or
-        # "\\server\share\folder". Python 2.7.8+ support UNC in splitdrive.
+        # "\\server\share\folder".
         if WINDOWS and not os.path.splitdrive(entry)[0]:
             entry = entry.replace('\\', '/')
         self.entries.add(entry)

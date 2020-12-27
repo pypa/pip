@@ -1,0 +1,7 @@
+# Slow pre-commit checks we don't want to run locally with each commit.
+
+repos:
+- repo: https://github.com/mgedmin/check-manifest
+  rev: '0.43'
+  hooks:
+  - id: check-manifest

@@ -1,6 +1,7 @@
 import logging
 import os.path
 import re
+import urllib.request
 import uuid
 from textwrap import dedent
 
@@ -9,7 +10,6 @@ import pretend
 import pytest
 from mock import Mock, patch
 from pip._vendor import html5lib, requests
-from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip._internal.exceptions import NetworkConnectionError
 from pip._internal.index.collector import (
@@ -30,7 +30,7 @@ from pip._internal.index.collector import (
 from pip._internal.models.index import PyPI
 from pip._internal.models.link import Link
 from pip._internal.network.session import PipSession
-from tests.lib import make_test_link_collector, skip_if_python2
+from tests.lib import make_test_link_collector
 
 
 @pytest.mark.parametrize(
@@ -382,14 +382,14 @@ def test_clean_link(url, clean_url):
     ('<a href="/pkg4-1.0.tar.gz" data-yanked="version &lt 1"></a>',
         'version < 1'),
     # Test a yanked reason with a non-ascii character.
-    (u'<a href="/pkg-1.0.tar.gz" data-yanked="curlyquote \u2018"></a>',
-        u'curlyquote \u2018'),
+    ('<a href="/pkg-1.0.tar.gz" data-yanked="curlyquote \u2018"></a>',
+        'curlyquote \u2018'),
 ])
 def test_parse_links__yanked_reason(anchor_html, expected):
     html = (
         # Mark this as a unicode string for Python 2 since anchor_html
         # can contain non-ascii.
-        u'<html><head><meta charset="utf-8"><head>'
+        '<html><head><meta charset="utf-8"><head>'
         '<body>{}</body></html>'
     ).format(anchor_html)
     html_bytes = html.encode('utf-8')
@@ -398,7 +398,7 @@ def test_parse_links__yanked_reason(anchor_html, expected):
         encoding=None,
         # parse_links() is cached by url, so we inject a random uuid to ensure
         # the page content isn't cached.
-        url='https://example.com/simple-{}/'.format(uuid.uuid4()),
+        url=f'https://example.com/simple-{uuid.uuid4()}/',
     )
     links = list(parse_links(page))
     link, = links
@@ -406,7 +406,6 @@ def test_parse_links__yanked_reason(anchor_html, expected):
     assert actual == expected
 
 
-@skip_if_python2
 def test_parse_links_caches_same_page_by_url():
     html = (
         '<html><head><meta charset="utf-8"><head>'
@@ -553,7 +552,7 @@ def make_fake_html_response(url):
     """
     Create a fake requests.Response object.
     """
-    html = dedent(u"""\
+    html = dedent("""\
     <html><head><meta name="api-version" value="2" /></head>
     <body>
     <a href="/abc-1.0.tar.gz#md5=000000000">abc-1.0.tar.gz</a>
@@ -569,7 +568,7 @@ def test_get_html_page_directory_append_index(tmpdir):
     dirpath = tmpdir / "something"
     dirpath.mkdir()
     dir_url = "file:///{}".format(
-        urllib_request.pathname2url(dirpath).lstrip("/"),
+        urllib.request.pathname2url(dirpath).lstrip("/"),
     )
     expected_url = "{}/index.html".format(dir_url.rstrip("/"))
 
@@ -581,7 +580,7 @@ def test_get_html_page_directory_append_index(tmpdir):
         actual = _get_html_page(Link(dir_url), session=session)
         assert mock_func.mock_calls == [
             mock.call(expected_url, session=session),
-        ], 'actual calls: {}'.format(mock_func.mock_calls)
+        ], f'actual calls: {mock_func.mock_calls}'
 
         assert actual.content == fake_response.content
         assert actual.encoding is None
@@ -637,11 +636,11 @@ def check_links_include(links, names):
     """
     for name in names:
         assert any(link.url.endswith(name) for link in links), (
-            'name {!r} not among links: {}'.format(name, links)
+            f'name {name!r} not among links: {links}'
         )
 
 
-class TestLinkCollector(object):
+class TestLinkCollector:
 
     @patch('pip._internal.index.collector._get_html_response')
     def test_fetch_page(self, mock_get_html_response):

@@ -221,7 +221,7 @@ class ConfigurationCommand(Command):
         write_output("%s:", 'env_var')
         with indent_log():
             for key, value in sorted(self.configuration.get_environ_vars()):
-                env_var = 'PIP_{}'.format(key.upper())
+                env_var = f'PIP_{key.upper()}'
                 write_output("%s=%r", env_var, value)
 
     def open_in_editor(self, options, args):

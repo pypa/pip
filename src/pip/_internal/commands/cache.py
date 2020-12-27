@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 import os
 import textwrap
@@ -156,7 +154,7 @@ class CacheCommand(Command):
         for filename in files:
             wheel = os.path.basename(filename)
             size = filesystem.format_file_size(filename)
-            results.append(' - {} ({})'.format(wheel, size))
+            results.append(f' - {wheel} ({size})')
         logger.info('Cache contents:\n')
         logger.info('\n'.join(sorted(results)))
 

@@ -1,16 +1,11 @@
 """Base Command class, and related routines"""
 
-from __future__ import absolute_import, print_function
-
 import logging
 import logging.config
 import optparse
 import os
-import platform
 import sys
 import traceback
-
-from pip._vendor.six import PY2
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.command_context import CommandContextMixIn
@@ -56,10 +51,10 @@ class Command(CommandContextMixIn):
 
     def __init__(self, name, summary, isolated=False):
         # type: (str, str, bool) -> None
-        super(Command, self).__init__()
+        super().__init__()
         parser_kw = {
             'usage': self.usage,
-            'prog': '{} {}'.format(get_prog(), name),
+            'prog': f'{get_prog()} {name}',
             'formatter': UpdatingDefaultsHelpFormatter(),
             'add_help_option': False,
             'name': name,
@@ -74,7 +69,7 @@ class Command(CommandContextMixIn):
         self.tempdir_registry = None  # type: Optional[TempDirRegistry]
 
         # Commands should add options to this option group
-        optgroup_name = '{} Options'.format(self.name.capitalize())
+        optgroup_name = f'{self.name.capitalize()} Options'
         self.cmd_opts = optparse.OptionGroup(self.parser, optgroup_name)
 
         # Add the general options
@@ -138,35 +133,6 @@ class Command(CommandContextMixIn):
             user_log_file=options.log,
         )
 
-        if (
-            sys.version_info[:2] == (2, 7) and
-            not options.no_python_version_warning
-        ):
-            message = (
-                "pip 21.0 will drop support for Python 2.7 in January 2021. "
-                "More details about Python 2 support in pip can be found at "
-                "https://pip.pypa.io/en/latest/development/release-process/#python-2-support"  # noqa
-            )
-            if platform.python_implementation() == "CPython":
-                message = (
-                    "Python 2.7 reached the end of its life on January "
-                    "1st, 2020. Please upgrade your Python as Python 2.7 "
-                    "is no longer maintained. "
-                ) + message
-            deprecated(message, replacement=None, gone_in="21.0")
-
-        if (
-            sys.version_info[:2] == (3, 5) and
-            not options.no_python_version_warning
-        ):
-            message = (
-                "Python 3.5 reached the end of its life on September "
-                "13th, 2020. Please upgrade your Python as Python 3.5 "
-                "is no longer maintained. pip 21.0 will drop support "
-                "for Python 3.5 in January 2021."
-            )
-            deprecated(message, replacement=None, gone_in="21.0")
-
         # TODO: Try to get these passing down from the command?
         #       without resorting to os.environ to hold these.
         #       This also affects isolated builds and it should.
@@ -212,7 +178,7 @@ class Command(CommandContextMixIn):
                 issue=8333,
             )
 
-        if '2020-resolver' in options.features_enabled and not PY2:
+        if '2020-resolver' in options.features_enabled:
             logger.warning(
                 "--use-feature=2020-resolver no longer has any effect, "
                 "since it is now the default dependency resolver in pip. "

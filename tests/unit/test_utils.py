@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 util tests
 
@@ -65,11 +63,11 @@ class Tests_EgglinkPath:
         self.user_site = 'USER_SITE'
         self.user_site_egglink = os.path.join(
             self.user_site,
-            '{}.egg-link'.format(project)
+            f'{project}.egg-link'
         )
         self.site_packages_egglink = os.path.join(
             self.site_packages,
-            '{}.egg-link'.format(project),
+            f'{project}.egg-link',
         )
 
         # patches
@@ -190,7 +188,7 @@ class Tests_EgglinkPath:
 @patch('pip._internal.utils.misc.dist_in_usersite')
 @patch('pip._internal.utils.misc.dist_is_local')
 @patch('pip._internal.utils.misc.dist_is_editable')
-class TestsGetDistributions(object):
+class TestsGetDistributions:
     """Test get_installed_distributions() and get_distribution().
     """
     class MockWorkingSet(list):
@@ -419,12 +417,12 @@ def test_rmtree_retries_for_3sec(tmpdir, monkeypatch):
 
 if sys.byteorder == "little":
     expected_byte_string = (
-        u"b'\\xff\\xfe/\\x00p\\x00a\\x00t\\x00h\\x00/"
+        "b'\\xff\\xfe/\\x00p\\x00a\\x00t\\x00h\\x00/"
         "\\x00d\\x00\\xe9\\x00f\\x00'"
     )
 elif sys.byteorder == "big":
     expected_byte_string = (
-        u"b'\\xfe\\xff\\x00/\\x00p\\x00a\\x00t\\x00h\\"
+        "b'\\xfe\\xff\\x00/\\x00p\\x00a\\x00t\\x00h\\"
         "x00/\\x00d\\x00\\xe9\\x00f'"
     )
 
@@ -432,20 +430,20 @@ elif sys.byteorder == "big":
 @pytest.mark.parametrize('path, fs_encoding, expected', [
     (None, None, None),
     # Test passing a text (unicode) string.
-    (u'/path/déf', None, u'/path/déf'),
+    ('/path/déf', None, '/path/déf'),
     # Test a bytes object with a non-ascii character.
-    (u'/path/déf'.encode('utf-8'), 'utf-8', u'/path/déf'),
+    ('/path/déf'.encode('utf-8'), 'utf-8', '/path/déf'),
     # Test a bytes object with a character that can't be decoded.
-    (u'/path/déf'.encode('utf-8'), 'ascii', u"b'/path/d\\xc3\\xa9f'"),
-    (u'/path/déf'.encode('utf-16'), 'utf-8', expected_byte_string),
+    ('/path/déf'.encode('utf-8'), 'ascii', "b'/path/d\\xc3\\xa9f'"),
+    ('/path/déf'.encode('utf-16'), 'utf-8', expected_byte_string),
 ])
 def test_path_to_display(monkeypatch, path, fs_encoding, expected):
     monkeypatch.setattr(sys, 'getfilesystemencoding', lambda: fs_encoding)
     actual = path_to_display(path)
-    assert actual == expected, 'actual: {!r}'.format(actual)
+    assert actual == expected, f'actual: {actual!r}'
 
 
-class Test_normalize_path(object):
+class Test_normalize_path:
     # Technically, symlinks are possible on Windows, but you need a special
     # permission bit to create them, and Python 2 doesn't support it anyway, so
     # it's easiest just to skip this test on Windows altogether.
@@ -482,7 +480,7 @@ class Test_normalize_path(object):
             os.chdir(orig_working_dir)
 
 
-class TestHashes(object):
+class TestHashes:
     """Tests for pip._internal.utils.hashes"""
 
     @pytest.mark.parametrize('hash_name, hex_digest, expected', [
@@ -552,7 +550,7 @@ class TestHashes(object):
         assert cache[Hashes({'sha256': ['ab', 'cd']})] == 42
 
 
-class TestEncoding(object):
+class TestEncoding:
     """Tests for pip._internal.utils.encoding"""
 
     def test_auto_decode_utf_16_le(self):
@@ -572,17 +570,17 @@ class TestEncoding(object):
         assert auto_decode(data) == "Django==1.4.2"
 
     def test_auto_decode_no_bom(self):
-        assert auto_decode(b'foobar') == u'foobar'
+        assert auto_decode(b'foobar') == 'foobar'
 
     def test_auto_decode_pep263_headers(self):
-        latin1_req = u'# coding=latin1\n# Pas trop de café'
+        latin1_req = '# coding=latin1\n# Pas trop de café'
         assert auto_decode(latin1_req.encode('latin1')) == latin1_req
 
     def test_auto_decode_no_preferred_encoding(self):
         om, em = Mock(), Mock()
         om.return_value = 'ascii'
         em.return_value = None
-        data = u'data'
+        data = 'data'
         with patch('sys.getdefaultencoding', om):
             with patch('locale.getpreferredencoding', em):
                 ret = auto_decode(data.encode(sys.getdefaultencoding()))
@@ -598,7 +596,7 @@ def raises(error):
     raise error
 
 
-class TestGlibc(object):
+class TestGlibc:
     @pytest.mark.skipif("sys.platform == 'win32'")
     def test_glibc_version_string(self, monkeypatch):
         monkeypatch.setattr(
@@ -643,7 +641,7 @@ def test_normalize_version_info(version_info, expected):
     assert actual == expected
 
 
-class TestGetProg(object):
+class TestGetProg:
 
     @pytest.mark.parametrize(
         ("argv", "executable", "expected"),

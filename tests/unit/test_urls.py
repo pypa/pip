@@ -1,8 +1,8 @@
 import os
 import sys
+import urllib.request
 
 import pytest
-from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip._internal.utils.urls import get_url_scheme, path_to_url, url_to_path
 
@@ -21,7 +21,7 @@ def test_get_url_scheme(url, expected):
 def test_path_to_url_unix():
     assert path_to_url('/tmp/file') == 'file:///tmp/file'
     path = os.path.join(os.getcwd(), 'file')
-    assert path_to_url('file') == 'file://' + urllib_request.pathname2url(path)
+    assert path_to_url('file') == 'file://' + urllib.request.pathname2url(path)
 
 
 @pytest.mark.skipif("sys.platform != 'win32'")
@@ -30,7 +30,7 @@ def test_path_to_url_win():
     assert path_to_url('c:\\tmp\\file') == 'file:///C:/tmp/file'
     assert path_to_url(r'\\unc\as\path') == 'file://unc/as/path'
     path = os.path.join(os.getcwd(), 'file')
-    assert path_to_url('file') == 'file:' + urllib_request.pathname2url(path)
+    assert path_to_url('file') == 'file:' + urllib.request.pathname2url(path)
 
 
 @pytest.mark.parametrize("url,win_expected,non_win_expected", [

@@ -8,6 +8,7 @@ import pytest
 
 from pip._internal.utils.misc import hide_url
 from pip._internal.vcs.bazaar import Bazaar
+from pip._internal.vcs.versioncontrol import RemoteNotFoundError
 from tests.lib import (
     _test_path_to_file_url,
     _vcs_add,
@@ -65,3 +66,15 @@ def test_export_rev(script, tmpdir):
 
     with open(export_dir / 'test_file', 'r') as f:
         assert f.read() == 'something initial'
+
+
+@need_bzr
+def test_get_remote_url__no_remote(script, tmpdir):
+    repo_dir = tmpdir / 'temp-repo'
+    repo_dir.mkdir()
+    repo_dir = str(repo_dir)
+
+    script.run('bzr', 'init', repo_dir)
+
+    with pytest.raises(RemoteNotFoundError):
+        Bazaar().get_remote_url(repo_dir)

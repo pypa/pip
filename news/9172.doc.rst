@@ -1,0 +1,1 @@
+Render the unreleased pip version change notes on the news page in docs.

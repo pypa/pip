@@ -88,9 +88,9 @@ def make_install_req_from_dist(dist, template):
     if template.req:
         line = str(template.req)
     elif template.link:
-        line = "{} @ {}".format(project_name, template.link.url)
+        line = f"{project_name} @ {template.link.url}"
     else:
-        line = "{}=={}".format(project_name, dist.parsed_version)
+        line = f"{project_name}=={dist.parsed_version}"
     ireq = install_req_from_line(
         line,
         user_supplied=template.user_supplied,
@@ -141,11 +141,11 @@ class _InstallRequirementBackedCandidate(Candidate):
         self._ireq = ireq
         self._name = name
         self._version = version
-        self._dist = None  # type: Optional[Distribution]
+        self.dist = self._prepare()
 
     def __str__(self):
         # type: () -> str
-        return "{} {}".format(self.name, self.version)
+        return f"{self.name} {self.version}"
 
     def __repr__(self):
         # type: () -> str
@@ -209,8 +209,6 @@ class _InstallRequirementBackedCandidate(Candidate):
     def _check_metadata_consistency(self, dist):
         # type: (Distribution) -> None
         """Check for consistency of project name and version of dist."""
-        # TODO: (Longer term) Rather than abort, reject this candidate
-        #       and backtrack. This would need resolvelib support.
         name = canonicalize_name(dist.project_name)
         if self._name is not None and self._name != name:
             raise MetadataInconsistent(self._ireq, "name", dist.project_name)
@@ -219,25 +217,17 @@ class _InstallRequirementBackedCandidate(Candidate):
             raise MetadataInconsistent(self._ireq, "version", dist.version)
 
     def _prepare(self):
-        # type: () -> None
-        if self._dist is not None:
-            return
+        # type: () -> Distribution
         try:
             dist = self._prepare_distribution()
         except HashError as e:
+            # Provide HashError the underlying ireq that caused it. This
+            # provides context for the resulting error message to show the
+            # offending line to the user.
             e.req = self._ireq
             raise
-
-        assert dist is not None, "Distribution already installed"
         self._check_metadata_consistency(dist)
-        self._dist = dist
-
-    @property
-    def dist(self):
-        # type: () -> Distribution
-        if self._dist is None:
-            self._prepare()
-        return self._dist
+        return dist
 
     def _get_requires_python_dependency(self):
         # type: () -> Optional[Requirement]
@@ -261,7 +251,6 @@ class _InstallRequirementBackedCandidate(Candidate):
 
     def get_install_requirement(self):
         # type: () -> Optional[InstallRequirement]
-        self._prepare()
         return self._ireq
 
 
@@ -288,7 +277,7 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
             wheel = Wheel(ireq.link.filename)
             wheel_name = canonicalize_name(wheel.name)
             assert name == wheel_name, (
-                "{!r} != {!r} for wheel".format(name, wheel_name)
+                f"{name!r} != {wheel_name!r} for wheel"
             )
             # Version may not be present for PEP 508 direct URLs
             if version is not None:
@@ -304,7 +293,7 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
                 template.link is template.original_link):
             ireq.original_link_is_in_wheel_cache = True
 
-        super(LinkCandidate, self).__init__(
+        super().__init__(
             link=link,
             source_link=source_link,
             ireq=ireq,
@@ -332,7 +321,7 @@ class EditableCandidate(_InstallRequirementBackedCandidate):
         version=None,  # type: Optional[_BaseVersion]
     ):
         # type: (...) -> None
-        super(EditableCandidate, self).__init__(
+        super().__init__(
             link=link,
             source_link=link,
             ireq=make_install_req_from_editable(link, template),
@@ -416,7 +405,7 @@ class AlreadyInstalledCandidate(Candidate):
 
     def format_for_error(self):
         # type: () -> str
-        return "{} {} (Installed)".format(self.name, self.version)
+        return f"{self.name} {self.version} (Installed)"
 
     def iter_dependencies(self, with_requires):
         # type: (bool) -> Iterable[Optional[Requirement]]
@@ -584,7 +573,7 @@ class RequiresPythonCandidate(Candidate):
 
     def __str__(self):
         # type: () -> str
-        return "Python {}".format(self._version)
+        return f"Python {self._version}"
 
     @property
     def project_name(self):
@@ -604,7 +593,7 @@ class RequiresPythonCandidate(Candidate):
 
     def format_for_error(self):
         # type: () -> str
-        return "Python {}".format(self.version)
+        return f"Python {self.version}"
 
     def iter_dependencies(self, with_requires):
         # type: (bool) -> Iterable[Optional[Requirement]]

@@ -5,11 +5,9 @@ from importlib import import_module
 from math import factorial
 from sys import modules
 
-from pip._vendor.six import PY2
-from pip._vendor.six.moves import map
 from pytest import mark
 
-DUNDER_IMPORT = '__builtin__.__import__' if PY2 else 'builtins.__import__'
+DUNDER_IMPORT = 'builtins.__import__'
 FUNC, ITERABLE = factorial, range(42)
 MAPS = 'map_multiprocess', 'map_multithread'
 _import = __import__
@@ -63,9 +61,8 @@ def test_lack_sem_open(name, monkeypatch):
 def test_have_sem_open(name, monkeypatch):
     """Test fallback when sem_open is available."""
     monkeypatch.setattr(DUNDER_IMPORT, have_sem_open)
-    impl = '_map_fallback' if PY2 else '_{}'.format(name)
     with tmp_import_parallel() as parallel:
-        assert getattr(parallel, name) is getattr(parallel, impl)
+        assert getattr(parallel, name) is getattr(parallel, f'_{name}')
 
 
 @mark.parametrize('name', MAPS)

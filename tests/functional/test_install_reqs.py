@@ -16,7 +16,7 @@ from tests.lib.local_repos import local_checkout
 from tests.lib.path import Path
 
 
-class ArgRecordingSdist(object):
+class ArgRecordingSdist:
     def __init__(self, sdist_path, args_path):
         self.sdist_path = sdist_path
         self._args_path = args_path
@@ -55,7 +55,7 @@ def arg_recording_sdist_maker(script):
         sdist_path = create_basic_sdist_for_package(
             script, name, "0.1.0", extra_files
         )
-        args_path = output_dir / "{}.json".format(name)
+        args_path = output_dir / f"{name}.json"
         return ArgRecordingSdist(sdist_path, args_path)
 
     return _arg_recording_sdist_maker

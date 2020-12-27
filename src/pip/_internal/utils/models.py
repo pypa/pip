@@ -6,7 +6,7 @@
 import operator
 
 
-class KeyBasedCompareMixin(object):
+class KeyBasedCompareMixin:
     """Provides comparison capabilities that is based on a key
     """
 

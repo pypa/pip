@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 from collections import OrderedDict
 
@@ -19,7 +17,7 @@ if MYPY_CHECK_RUNNING:
 logger = logging.getLogger(__name__)
 
 
-class RequirementSet(object):
+class RequirementSet:
 
     def __init__(self, check_supported_wheels=True):
         # type: (bool) -> None

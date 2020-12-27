@@ -1,7 +1,4 @@
-from __future__ import absolute_import
-
 import contextlib
-import errno
 import hashlib
 import logging
 import os
@@ -64,7 +61,7 @@ def get_requirement_tracker():
             yield tracker
 
 
-class RequirementTracker(object):
+class RequirementTracker:
 
     def __init__(self, root):
         # type: (str) -> None
@@ -105,10 +102,8 @@ class RequirementTracker(object):
         try:
             with open(entry_path) as fp:
                 contents = fp.read()
-        except IOError as e:
-            # if the error is anything other than "file does not exist", raise.
-            if e.errno != errno.ENOENT:
-                raise
+        except FileNotFoundError:
+            pass
         else:
             message = '{} is already being built: {}'.format(
                 req.link, contents)

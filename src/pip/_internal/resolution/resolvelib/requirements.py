@@ -122,7 +122,7 @@ class RequiresPythonRequirement(Requirement):
 
     def __str__(self):
         # type: () -> str
-        return "Python {}".format(self.specifier)
+        return f"Python {self.specifier}"
 
     def __repr__(self):
         # type: () -> str
@@ -158,3 +158,44 @@ class RequiresPythonRequirement(Requirement):
         # already implements the prerelease logic, and would have filtered out
         # prerelease candidates if the user does not expect them.
         return self.specifier.contains(candidate.version, prereleases=True)
+
+
+class UnsatisfiableRequirement(Requirement):
+    """A requirement that cannot be satisfied.
+    """
+    def __init__(self, name):
+        # type: (str) -> None
+        self._name = name
+
+    def __str__(self):
+        # type: () -> str
+        return "{} (unavailable)".format(self._name)
+
+    def __repr__(self):
+        # type: () -> str
+        return "{class_name}({name!r})".format(
+            class_name=self.__class__.__name__,
+            name=str(self._name),
+        )
+
+    @property
+    def project_name(self):
+        # type: () -> str
+        return self._name
+
+    @property
+    def name(self):
+        # type: () -> str
+        return self._name
+
+    def format_for_error(self):
+        # type: () -> str
+        return str(self)
+
+    def get_candidate_lookup(self):
+        # type: () -> CandidateLookup
+        return None, None
+
+    def is_satisfied_by(self, candidate):
+        # type: (Candidate) -> bool
+        return False

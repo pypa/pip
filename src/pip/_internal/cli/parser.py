@@ -3,20 +3,17 @@
 # The following comment should be removed at some point in the future.
 # mypy: disallow-untyped-defs=False
 
-from __future__ import absolute_import
-
 import logging
 import optparse
+import shutil
 import sys
 import textwrap
 from distutils.util import strtobool
 
 from pip._vendor.contextlib2 import suppress
-from pip._vendor.six import string_types
 
 from pip._internal.cli.status_codes import UNKNOWN_ERROR
 from pip._internal.configuration import Configuration, ConfigurationError
-from pip._internal.utils.compat import get_terminal_size
 from pip._internal.utils.misc import redact_auth_from_url
 
 logger = logging.getLogger(__name__)
@@ -29,8 +26,8 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
         # help position must be aligned with __init__.parseopts.description
         kwargs['max_help_position'] = 30
         kwargs['indent_increment'] = 1
-        kwargs['width'] = get_terminal_size()[0] - 2
-        optparse.IndentedHelpFormatter.__init__(self, *args, **kwargs)
+        kwargs['width'] = shutil.get_terminal_size()[0] - 2
+        super().__init__(*args, **kwargs)
 
     def format_option_strings(self, option):
         return self._format_option_strings(option)
@@ -85,7 +82,7 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
             description = description.rstrip()
             # dedent, then reindent
             description = self.indent_lines(textwrap.dedent(description), "  ")
-            description = '{}:\n{}\n'.format(label, description)
+            description = f'{label}:\n{description}\n'
             return description
         else:
             return ''
@@ -116,10 +113,10 @@ class UpdatingDefaultsHelpFormatter(PrettyHelpFormatter):
         if self.parser is not None:
             self.parser._update_defaults(self.parser.defaults)
             default_values = self.parser.defaults.get(option.dest)
-        help_text = optparse.IndentedHelpFormatter.expand_default(self, option)
+        help_text = super().expand_default(option)
 
         if default_values and option.metavar == 'URL':
-            if isinstance(default_values, string_types):
+            if isinstance(default_values, str):
                 default_values = [default_values]
 
             # If its not a list, we should abort and just return the help text
@@ -165,13 +162,13 @@ class ConfigOptionParser(CustomOptionParser):
         self.config = Configuration(isolated)
 
         assert self.name
-        optparse.OptionParser.__init__(self, *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def check_default(self, option, key, val):
         try:
             return option.check_value(key, val)
         except optparse.OptionValueError as exc:
-            print("An error occurred during configuration: {}".format(exc))
+            print(f"An error occurred during configuration: {exc}")
             sys.exit(3)
 
     def _get_ordered_configuration_items(self):
@@ -275,11 +272,11 @@ class ConfigOptionParser(CustomOptionParser):
         defaults = self._update_defaults(self.defaults.copy())  # ours
         for option in self._get_all_options():
             default = defaults.get(option.dest)
-            if isinstance(default, string_types):
+            if isinstance(default, str):
                 opt_str = option.get_opt_string()
                 defaults[option.dest] = option.check_value(opt_str, default)
         return optparse.Values(defaults)
 
     def error(self, msg):
         self.print_usage(sys.stderr)
-        self.exit(UNKNOWN_ERROR, "{}\n".format(msg))
+        self.exit(UNKNOWN_ERROR, f"{msg}\n")

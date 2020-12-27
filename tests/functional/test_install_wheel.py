@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import csv
 import distutils
 import glob
@@ -8,7 +6,7 @@ import shutil
 
 import pytest
 
-from tests.lib import create_basic_wheel_for_package, skip_if_python2
+from tests.lib import create_basic_wheel_for_package
 from tests.lib.path import Path
 from tests.lib.wheel import make_wheel
 
@@ -16,7 +14,7 @@ from tests.lib.wheel import make_wheel
 # assert_installed expects a package subdirectory, so give it to them
 def make_wheel_with_file(name, version, **kwargs):
     extra_files = kwargs.setdefault("extra_files", {})
-    extra_files["{}/__init__.py".format(name)] = "# example"
+    extra_files[f"{name}/__init__.py"] = "# example"
     return make_wheel(name=name, version=version, **kwargs)
 
 
@@ -118,7 +116,6 @@ def test_basic_install_from_wheel_file(script, data):
 
 # Installation seems to work, but scripttest fails to check.
 # I really don't care now since we're desupporting it soon anyway.
-@skip_if_python2
 def test_basic_install_from_unicode_wheel(script, data):
     """
     Test installing from a wheel (that has a script)
@@ -394,8 +391,6 @@ def test_install_from_wheel_gen_uppercase_entrypoint(
         assert bool(os.access(script.base_path / wrapper_file, os.X_OK))
 
 
-# pkg_resources.EntryPoint() does not parse unicode correctly on Python 2.
-@skip_if_python2
 def test_install_from_wheel_gen_unicode_entrypoint(script):
     make_wheel(
         "script_wheel_unicode",
@@ -651,8 +646,6 @@ def test_wheel_installs_ok_with_badly_encoded_irrelevant_dist_info_file(
     )
 
 
-# Metadata is not decoded on Python 2.
-@skip_if_python2
 def test_wheel_install_fails_with_badly_encoded_metadata(script):
     package = create_basic_wheel_for_package(
         script,
@@ -698,7 +691,7 @@ def test_wheel_with_file_in_data_dir_has_reasonable_error(
     result = script.pip(
         "install", "--no-index", str(wheel_path), expect_error=True
     )
-    assert "simple-0.1.0.data/{}".format(name) in result.stderr
+    assert f"simple-0.1.0.data/{name}" in result.stderr
 
 
 def test_wheel_with_unknown_subdir_in_data_dir_has_reasonable_error(

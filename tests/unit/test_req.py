@@ -58,7 +58,7 @@ def get_processed_req_from_line(line, fname='file', lineno=1):
     return req
 
 
-class TestRequirementSet(object):
+class TestRequirementSet:
     """RequirementSet tests"""
 
     def setup(self):
@@ -317,7 +317,7 @@ class TestRequirementSet(object):
         ))
 
 
-class TestInstallRequirement(object):
+class TestInstallRequirement:
     def setup(self):
         self.tempdir = tempfile.mkdtemp()
 
@@ -454,14 +454,14 @@ class TestInstallRequirement(object):
     def test_markers_url(self):
         # test "URL; markers" syntax
         url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
-        line = '{}; python_version >= "3"'.format(url)
+        line = f'{url}; python_version >= "3"'
         req = install_req_from_line(line)
         assert req.link.url == url, req.url
         assert str(req.markers) == 'python_version >= "3"'
 
         # without space, markers are part of the URL
         url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
-        line = '{};python_version >= "3"'.format(url)
+        line = f'{url};python_version >= "3"'
         req = install_req_from_line(line)
         assert req.link.url == line, req.url
         assert req.markers is None
@@ -560,7 +560,7 @@ class TestInstallRequirement(object):
         with pytest.raises(InstallationError) as e:
             install_req_from_line(test_name)
         err_msg = e.value.args[0]
-        assert "Invalid requirement: '{}'".format(test_name) == err_msg
+        assert f"Invalid requirement: '{test_name}'" == err_msg
 
     def test_requirement_file(self):
         req_file_path = os.path.join(self.tempdir, 'test.txt')

@@ -1,18 +1,14 @@
 # The following comment should be removed at some point in the future.
 # mypy: disallow-untyped-defs=False
 
-from __future__ import absolute_import
-
 import logging
 import os
-
-from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 from pip._internal.utils.misc import display_path, rmtree
 from pip._internal.utils.subprocess import make_command
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import path_to_url
-from pip._internal.vcs.versioncontrol import VersionControl, vcs
+from pip._internal.vcs.versioncontrol import RemoteNotFoundError, VersionControl, vcs
 
 if MYPY_CHECK_RUNNING:
     from typing import Optional, Tuple
@@ -32,13 +28,6 @@ class Bazaar(VersionControl):
         'bzr', 'bzr+http', 'bzr+https', 'bzr+ssh', 'bzr+sftp', 'bzr+ftp',
         'bzr+lp',
     )
-
-    def __init__(self, *args, **kwargs):
-        super(Bazaar, self).__init__(*args, **kwargs)
-        # This is only needed for python <2.7.5
-        # Register lp but do not expose as a scheme to support bzr+lp.
-        if getattr(urllib_parse, 'uses_fragment', None):
-            urllib_parse.uses_fragment.extend(['lp'])
 
     @staticmethod
     def get_base_rev_args(rev):
@@ -86,13 +75,14 @@ class Bazaar(VersionControl):
     def get_url_rev_and_auth(cls, url):
         # type: (str) -> Tuple[str, Optional[str], AuthInfo]
         # hotfix the URL scheme after removing bzr+ from bzr+ssh:// readd it
-        url, rev, user_pass = super(Bazaar, cls).get_url_rev_and_auth(url)
+        url, rev, user_pass = super().get_url_rev_and_auth(url)
         if url.startswith('ssh://'):
             url = 'bzr+' + url
         return url, rev, user_pass
 
     @classmethod
     def get_remote_url(cls, location):
+        # type: (str) -> str
         urls = cls.run_command(
             ['info'], show_stdout=False, stdout_only=True, cwd=location
         )
@@ -105,7 +95,7 @@ class Bazaar(VersionControl):
                     if cls._is_local_repository(repo):
                         return path_to_url(repo)
                     return repo
-        return None
+        raise RemoteNotFoundError
 
     @classmethod
     def get_revision(cls, location):

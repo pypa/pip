@@ -1,7 +1,5 @@
 import abc
 
-from pip._vendor.six import add_metaclass
-
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -13,8 +11,7 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.req import InstallRequirement
 
 
-@add_metaclass(abc.ABCMeta)
-class AbstractDistribution(object):
+class AbstractDistribution(metaclass=abc.ABCMeta):
     """A base class for handling installable artifacts.
 
     The requirements for anything installable are as follows:
@@ -29,10 +26,9 @@ class AbstractDistribution(object):
      - we must be able to create a Distribution object exposing the
        above metadata.
     """
-
     def __init__(self, req):
         # type: (InstallRequirement) -> None
-        super(AbstractDistribution, self).__init__()
+        super().__init__()
         self.req = req
 
     @abc.abstractmethod

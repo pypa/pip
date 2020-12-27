@@ -6,7 +6,7 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.models.format_control import FormatControl
 
 
-class SelectionPreferences(object):
+class SelectionPreferences:
     """
     Encapsulates the candidate selection preferences for downloading
     and installing files.

@@ -21,8 +21,7 @@ def assert_installed(script, **kwargs):
         for val in json.loads(ret.stdout)
     )
     expected = set((canonicalize_name(k), v) for k, v in kwargs.items())
-    assert expected <= installed, \
-        "{!r} not all in {!r}".format(expected, installed)
+    assert expected <= installed, f"{expected!r} not all in {installed!r}"
 
 
 def assert_not_installed(script, *args):
@@ -34,17 +33,16 @@ def assert_not_installed(script, *args):
     # None of the given names should be listed as installed, i.e. their
     # intersection should be empty.
     expected = set(canonicalize_name(k) for k in args)
-    assert not (expected & installed), \
-        "{!r} contained in {!r}".format(expected, installed)
+    assert not (expected & installed), f"{expected!r} contained in {installed!r}"
 
 
 def assert_editable(script, *args):
     # This simply checks whether all of the listed packages have a
     # corresponding .egg-link file installed.
     # TODO: Implement a more rigorous way to test for editable installations.
-    egg_links = set("{}.egg-link".format(arg) for arg in args)
+    egg_links = set(f"{arg}.egg-link" for arg in args)
     assert egg_links <= set(os.listdir(script.site_packages_path)), \
-        "{!r} not all found in {!r}".format(args, script.site_packages_path)
+        f"{args!r} not all found in {script.site_packages_path!r}"
 
 
 def test_new_resolver_can_install(script):
@@ -732,7 +730,7 @@ def test_new_resolver_constraint_on_path_empty(
     setup_py.write_text(text)
 
     constraints_txt = script.scratch_path / "constraints.txt"
-    constraints_txt.write_text("foo=={}".format(constraint_version))
+    constraints_txt.write_text(f"foo=={constraint_version}")
 
     result = script.pip(
         "install",
@@ -858,7 +856,7 @@ def test_new_resolver_upgrade_strategy(script):
     assert_installed(script, dep="2.0.0")
 
 
-class TestExtraMerge(object):
+class TestExtraMerge:
     """
     Test installing a package that depends the same package with different
     extras, one listed as required and the other as in extra.
@@ -1067,8 +1065,8 @@ def test_new_resolver_prefers_installed_in_upgrade_if_latest(script):
 def test_new_resolver_presents_messages_when_backtracking_a_lot(script, N):
     # Generate a set of wheels that will definitely cause backtracking.
     for index in range(1, N+1):
-        A_version = "{index}.0.0".format(index=index)
-        B_version = "{index}.0.0".format(index=index)
+        A_version = f"{index}.0.0"
+        B_version = f"{index}.0.0"
         C_version = "{index_minus_one}.0.0".format(index_minus_one=index - 1)
 
         depends = ["B == " + B_version]
@@ -1079,15 +1077,15 @@ def test_new_resolver_presents_messages_when_backtracking_a_lot(script, N):
         create_basic_wheel_for_package(script, "A", A_version, depends=depends)
 
     for index in range(1, N+1):
-        B_version = "{index}.0.0".format(index=index)
-        C_version = "{index}.0.0".format(index=index)
+        B_version = f"{index}.0.0"
+        C_version = f"{index}.0.0"
         depends = ["C == " + C_version]
 
         print("B", B_version, "C", C_version)
         create_basic_wheel_for_package(script, "B", B_version, depends=depends)
 
     for index in range(1, N+1):
-        C_version = "{index}.0.0".format(index=index)
+        C_version = f"{index}.0.0"
         print("C", C_version)
         create_basic_wheel_for_package(script, "C", C_version)
 
@@ -1138,7 +1136,7 @@ def test_new_resolver_check_wheel_version_normalized(
     metadata_version,
     filename_version,
 ):
-    filename = "simple-{}-py2.py3-none-any.whl".format(filename_version)
+    filename = f"simple-{filename_version}-py2.py3-none-any.whl"
 
     wheel_builder = make_wheel(name="simple", version=metadata_version)
     wheel_builder.save_to(script.scratch_path / filename)
@@ -1218,3 +1216,64 @@ def test_new_resolver_does_not_reinstall_when_from_a_local_index(script):
     assert "Installing collected packages: simple" not in result.stdout, str(result)
     assert "Requirement already satisfied: simple" in result.stdout, str(result)
     assert_installed(script, simple="0.1.0")
+
+
+def test_new_resolver_skip_inconsistent_metadata(script):
+    create_basic_wheel_for_package(script, "A", "1")
+
+    a_2 = create_basic_wheel_for_package(script, "A", "2")
+    a_2.rename(a_2.parent.joinpath("a-3-py2.py3-none-any.whl"))
+
+    result = script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "--verbose",
+        "A",
+        allow_stderr_warning=True,
+    )
+
+    assert " different version in metadata: '2'" in result.stderr, str(result)
+    assert_installed(script, a="1")
+
+
+@pytest.mark.parametrize(
+    "upgrade",
+    [True, False],
+    ids=["upgrade", "no-upgrade"],
+)
+def test_new_resolver_lazy_fetch_candidates(script, upgrade):
+    create_basic_wheel_for_package(script, "myuberpkg", "1")
+    create_basic_wheel_for_package(script, "myuberpkg", "2")
+    create_basic_wheel_for_package(script, "myuberpkg", "3")
+
+    # Install an old version first.
+    script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "myuberpkg==1",
+    )
+
+    # Now install the same package again, maybe with the upgrade flag.
+    if upgrade:
+        pip_upgrade_args = ["--upgrade"]
+    else:
+        pip_upgrade_args = []
+    result = script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "myuberpkg",
+        *pip_upgrade_args  # Trailing comma fails on Python 2.
+    )
+
+    # pip should install the version preferred by the strategy...
+    if upgrade:
+        assert_installed(script, myuberpkg="3")
+    else:
+        assert_installed(script, myuberpkg="1")
+
+    # But should reach there in the best route possible, without trying
+    # candidates it does not need to.
+    assert "myuberpkg-2" not in result.stdout, str(result)

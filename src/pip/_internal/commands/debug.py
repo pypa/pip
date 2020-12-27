@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import locale
 import logging
 import os
@@ -36,12 +34,7 @@ def show_value(name, value):
 def show_sys_implementation():
     # type: () -> None
     logger.info('sys.implementation:')
-    if hasattr(sys, 'implementation'):
-        implementation = sys.implementation  # type: ignore
-        implementation_name = implementation.name
-    else:
-        implementation_name = ''
-
+    implementation_name = sys.implementation.name
     with indent_log():
         show_value('name', implementation_name)
 
@@ -73,7 +66,7 @@ def get_module_from_module_name(module_name):
         module_name = 'pkg_resources'
 
     __import__(
-        'pip._vendor.{}'.format(module_name),
+        f'pip._vendor.{module_name}',
         globals(),
         locals(),
         level=0
@@ -88,13 +81,7 @@ def get_vendor_version_from_module(module_name):
 
     if not version:
         # Try to find version in debundled module info
-        # The type for module.__file__ is Optional[str] in
-        # Python 2, and str in Python 3. The type: ignore is
-        # added to account for Python 2, instead of a cast
-        # and should be removed once we drop Python 2 support
-        pkg_set = pkg_resources.WorkingSet(
-            [os.path.dirname(module.__file__)]  # type: ignore
-        )
+        pkg_set = pkg_resources.WorkingSet([os.path.dirname(module.__file__)])
         package = pkg_set.find(pkg_resources.Requirement.parse(module_name))
         version = getattr(package, 'version', None)
 
@@ -139,7 +126,7 @@ def show_tags(options):
     formatted_target = target_python.format_given()
     suffix = ''
     if formatted_target:
-        suffix = ' (target: {})'.format(formatted_target)
+        suffix = f' (target: {formatted_target})'
 
     msg = 'Compatible tags: {}{}'.format(len(tags), suffix)
     logger.info(msg)

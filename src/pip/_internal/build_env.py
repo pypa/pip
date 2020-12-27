@@ -46,7 +46,7 @@ class _Prefix:
             self.lib_dirs = [purelib, platlib]
 
 
-class BuildEnvironment(object):
+class BuildEnvironment:
     """Creates and manages an isolated environment to install build deps
     """
 

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import datetime
 import hashlib
 import json
@@ -20,7 +18,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     import optparse
-    from typing import Any, Dict, Text, Union
+    from typing import Any, Dict
 
     from pip._internal.network.session import PipSession
 
@@ -32,13 +30,13 @@ logger = logging.getLogger(__name__)
 
 
 def _get_statefile_name(key):
-    # type: (Union[str, Text]) -> str
+    # type: (str) -> str
     key_bytes = ensure_binary(key)
     name = hashlib.sha224(key_bytes).hexdigest()
     return name
 
 
-class SelfCheckState(object):
+class SelfCheckState:
     def __init__(self, cache_dir):
         # type: (str) -> None
         self.state = {}  # type: Dict[str, Any]
@@ -52,7 +50,7 @@ class SelfCheckState(object):
             try:
                 with open(self.statefile_path) as statefile:
                     self.state = json.load(statefile)
-            except (IOError, ValueError, KeyError):
+            except (OSError, ValueError, KeyError):
                 # Explicitly suppressing exceptions, since we don't want to
                 # error out if the cache file is invalid.
                 pass
@@ -183,7 +181,7 @@ def pip_self_version_check(session, options):
         # command context, so be pragmatic here and suggest the command
         # that's always available. This does not accommodate spaces in
         # `sys.executable`.
-        pip_cmd = "{} -m pip".format(sys.executable)
+        pip_cmd = f"{sys.executable} -m pip"
         logger.warning(
             "You are using pip version %s; however, version %s is "
             "available.\nYou should consider upgrading via the "

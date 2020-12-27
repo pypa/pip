@@ -9,8 +9,6 @@ Package containing all pip commands
 # return type of difflib.get_close_matches to be reported
 # as List[Sequence[str]] whereas it should have been List[str]
 
-from __future__ import absolute_import
-
 import importlib
 from collections import OrderedDict, namedtuple
 

@@ -1,20 +1,17 @@
-from __future__ import absolute_import
-
 import logging
 import os
+import shlex
 import subprocess
 
-from pip._vendor.six.moves import shlex_quote
-
 from pip._internal.cli.spinners import SpinnerInterface, open_spinner
-from pip._internal.exceptions import InstallationError
+from pip._internal.exceptions import InstallationSubprocessError
 from pip._internal.utils.compat import console_to_str, str_to_display
 from pip._internal.utils.logging import subprocess_logger
 from pip._internal.utils.misc import HiddenText, path_to_display
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Any, Callable, Iterable, List, Mapping, Optional, Text, Union
+    from typing import Any, Callable, Iterable, List, Mapping, Optional, Union
 
     CommandArgs = List[Union[str, HiddenText]]
 
@@ -51,8 +48,8 @@ def format_command_args(args):
     # has type unicode and includes a non-ascii character.  (The type
     # checker doesn't ensure the annotations are correct in all cases.)
     return ' '.join(
-        shlex_quote(str(arg)) if isinstance(arg, HiddenText)
-        else shlex_quote(arg) for arg in args
+        shlex.quote(str(arg)) if isinstance(arg, HiddenText)
+        else shlex.quote(arg) for arg in args
     )
 
 
@@ -69,10 +66,10 @@ def reveal_command_args(args):
 def make_subprocess_output_error(
     cmd_args,     # type: Union[List[str], CommandArgs]
     cwd,          # type: Optional[str]
-    lines,        # type: List[Text]
+    lines,        # type: List[str]
     exit_status,  # type: int
 ):
-    # type: (...) -> Text
+    # type: (...) -> str
     """
     Create and return the error message to use to log a subprocess error
     with command output.
@@ -93,7 +90,7 @@ def make_subprocess_output_error(
         # Use a unicode string to avoid "UnicodeEncodeError: 'ascii'
         # codec can't encode character ..." in Python 2 when a format
         # argument (e.g. `output`) has a non-ascii character.
-        u'Command errored out with exit status {exit_status}:\n'
+        'Command errored out with exit status {exit_status}:\n'
         ' command: {command_display}\n'
         '     cwd: {cwd_display}\n'
         'Complete output ({line_count} lines):\n{output}{divider}'
@@ -121,7 +118,7 @@ def call_subprocess(
     log_failed_cmd=True,  # type: Optional[bool]
     stdout_only=False,  # type: Optional[bool]
 ):
-    # type: (...) -> Text
+    # type: (...) -> str
     """
     Args:
       show_stdout: if true, use INFO to log the subprocess's stderr and
@@ -258,11 +255,7 @@ def call_subprocess(
                     exit_status=proc.returncode,
                 )
                 subprocess_logger.error(msg)
-            exc_msg = (
-                'Command errored out with exit status {}: {} '
-                'Check the logs for full command output.'
-            ).format(proc.returncode, command_desc)
-            raise InstallationError(exc_msg)
+            raise InstallationSubprocessError(proc.returncode, command_desc)
         elif on_returncode == 'warn':
             subprocess_logger.warning(
                 'Command "%s" had error code %s in %s',
