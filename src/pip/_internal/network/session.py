@@ -13,8 +13,8 @@ import mimetypes
 import os
 import platform
 import sys
+import urllib.parse
 import warnings
-from urllib import parse as urllib_parse
 
 from pip._vendor import requests, six, urllib3
 from pip._vendor.cachecontrol import CacheControlAdapter
@@ -347,7 +347,7 @@ class PipSession(requests.Session):
     def is_secure_origin(self, location):
         # type: (Link) -> bool
         # Determine if this url used a secure transport mechanism
-        parsed = urllib_parse.urlparse(str(location))
+        parsed = urllib.parse.urlparse(str(location))
         origin_protocol, origin_host, origin_port = (
             parsed.scheme, parsed.hostname, parsed.port,
         )

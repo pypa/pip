@@ -5,7 +5,7 @@ import os
 import shutil
 import subprocess
 import sys
-from urllib import parse as urllib_parse
+import urllib.parse
 
 from pip._vendor import pkg_resources
 
@@ -284,7 +284,7 @@ class VcsSupport:
         # type: () -> None
         # Register more schemes with urlparse for various version control
         # systems
-        urllib_parse.uses_netloc.extend(self.schemes)
+        urllib.parse.uses_netloc.extend(self.schemes)
         super().__init__()
 
     def __iter__(self):
@@ -518,7 +518,7 @@ class VersionControl:
 
         Returns: (url, rev, (username, password)).
         """
-        scheme, netloc, path, query, frag = urllib_parse.urlsplit(url)
+        scheme, netloc, path, query, frag = urllib.parse.urlsplit(url)
         if '+' not in scheme:
             raise ValueError(
                 "Sorry, {!r} is a malformed VCS url. "
@@ -537,7 +537,7 @@ class VersionControl:
                     "which is not supported. Include a revision after @ "
                     "or remove @ from the URL.".format(url)
                 )
-        url = urllib_parse.urlunsplit((scheme, netloc, path, query, ''))
+        url = urllib.parse.urlunsplit((scheme, netloc, path, query, ''))
         return url, rev, user_pass
 
     @staticmethod
@@ -571,7 +571,7 @@ class VersionControl:
         Normalize a URL for comparison by unquoting it and removing any
         trailing slash.
         """
-        return urllib_parse.unquote(url).rstrip('/')
+        return urllib.parse.unquote(url).rstrip('/')
 
     @classmethod
     def compare_urls(cls, url1, url2):

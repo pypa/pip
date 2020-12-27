@@ -4,8 +4,8 @@
 import logging
 import os.path
 import re
-from urllib import parse as urllib_parse
-from urllib import request as urllib_request
+import urllib.parse
+import urllib.request
 
 from pip._vendor.packaging.version import parse as parse_version
 
@@ -28,8 +28,8 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.vcs.versioncontrol import AuthInfo, RevOptions
 
 
-urlsplit = urllib_parse.urlsplit
-urlunsplit = urllib_parse.urlunsplit
+urlsplit = urllib.parse.urlsplit
+urlunsplit = urllib.parse.urlunsplit
 
 
 logger = logging.getLogger(__name__)
@@ -383,7 +383,7 @@ class Git(VersionControl):
             initial_slashes = path[:-len(path.lstrip('/'))]
             newpath = (
                 initial_slashes +
-                urllib_request.url2pathname(path)
+                urllib.request.url2pathname(path)
                 .replace('\\', '/').lstrip('/')
             )
             after_plus = scheme.find('+') + 1

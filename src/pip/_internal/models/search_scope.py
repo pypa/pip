@@ -2,7 +2,7 @@ import itertools
 import logging
 import os
 import posixpath
-from urllib import parse as urllib_parse
+import urllib.parse
 
 from pip._vendor.packaging.utils import canonicalize_name
 
@@ -53,7 +53,7 @@ class SearchScope:
         # relies on TLS.
         if not has_tls():
             for link in itertools.chain(index_urls, built_find_links):
-                parsed = urllib_parse.urlparse(link)
+                parsed = urllib.parse.urlparse(link)
                 if parsed.scheme == 'https':
                     logger.warning(
                         'pip is configured with locations that require '
@@ -86,7 +86,7 @@ class SearchScope:
                 redacted_index_url = redact_auth_from_url(url)
 
                 # Parse the URL
-                purl = urllib_parse.urlsplit(redacted_index_url)
+                purl = urllib.parse.urlsplit(redacted_index_url)
 
                 # URL is generally invalid if scheme and netloc is missing
                 # there are issues with Python and URL parsing, so this test
@@ -122,7 +122,7 @@ class SearchScope:
             # type: (str) -> str
             loc = posixpath.join(
                 url,
-                urllib_parse.quote(canonicalize_name(project_name)))
+                urllib.parse.quote(canonicalize_name(project_name)))
             # For maximum compatibility with easy_install, ensure the path
             # ends in a trailing slash.  Although this isn't in the spec
             # (and PyPI can handle it without the slash) some other index

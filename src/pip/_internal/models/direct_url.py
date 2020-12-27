@@ -1,7 +1,7 @@
 """ PEP 610 """
 import json
 import re
-from urllib import parse as urllib_parse
+import urllib.parse
 
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -194,9 +194,9 @@ class DirectUrl:
         environment variables as specified in PEP 610, or it is ``git``
         in the case of a git URL.
         """
-        purl = urllib_parse.urlsplit(self.url)
+        purl = urllib.parse.urlsplit(self.url)
         netloc = self._remove_auth_from_netloc(purl.netloc)
-        surl = urllib_parse.urlunsplit(
+        surl = urllib.parse.urlunsplit(
             (purl.scheme, netloc, purl.path, purl.query, purl.fragment)
         )
         return surl

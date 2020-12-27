@@ -9,9 +9,9 @@ import logging
 import mimetypes
 import os
 import re
+import urllib.parse
+import urllib.request
 from collections import OrderedDict
-from urllib import parse as urllib_parse
-from urllib import request as urllib_request
 
 from pip._vendor import html5lib, requests
 from pip._vendor.distlib.compat import unescape
@@ -94,7 +94,7 @@ def _ensure_html_response(url, session):
     Raises `_NotHTTP` if the URL is not available for a HEAD request, or
     `_NotHTML` if the content type is not text/html.
     """
-    scheme, netloc, path, query, fragment = urllib_parse.urlsplit(url)
+    scheme, netloc, path, query, fragment = urllib.parse.urlsplit(url)
     if scheme not in {'http', 'https'}:
         raise _NotHTTP()
 
@@ -192,7 +192,7 @@ def _clean_url_path_part(part):
     Clean a "part" of a URL path (i.e. after splitting on "@" characters).
     """
     # We unquote prior to quoting to make sure nothing is double quoted.
-    return urllib_parse.quote(urllib_parse.unquote(part))
+    return urllib.parse.quote(urllib.parse.unquote(part))
 
 
 def _clean_file_url_path(part):
@@ -206,7 +206,7 @@ def _clean_file_url_path(part):
     # should not be quoted. On Linux where drive letters do not
     # exist, the colon should be quoted. We rely on urllib.request
     # to do the right thing here.
-    return urllib_request.pathname2url(urllib_request.url2pathname(part))
+    return urllib.request.pathname2url(urllib.request.url2pathname(part))
 
 
 # percent-encoded:                   /
@@ -245,11 +245,11 @@ def _clean_link(url):
     """
     # Split the URL into parts according to the general structure
     # `scheme://netloc/path;parameters?query#fragment`.
-    result = urllib_parse.urlparse(url)
+    result = urllib.parse.urlparse(url)
     # If the netloc is empty, then the URL refers to a local filesystem path.
     is_local_path = not result.netloc
     path = _clean_url_path(result.path, is_local_path=is_local_path)
-    return urllib_parse.urlunparse(result._replace(path=path))
+    return urllib.parse.urlunparse(result._replace(path=path))
 
 
 def _create_link_from_element(
@@ -265,7 +265,7 @@ def _create_link_from_element(
     if not href:
         return None
 
-    url = _clean_link(urllib_parse.urljoin(base_url, href))
+    url = _clean_link(urllib.parse.urljoin(base_url, href))
     pyrequire = anchor.get('data-requires-python')
     pyrequire = unescape(pyrequire) if pyrequire else None
 
@@ -416,13 +416,13 @@ def _get_html_page(link, session=None):
         return None
 
     # Tack index.html onto file:// URLs that point to directories
-    scheme, _, path, _, _, _ = urllib_parse.urlparse(url)
-    if (scheme == 'file' and os.path.isdir(urllib_request.url2pathname(path))):
+    scheme, _, path, _, _, _ = urllib.parse.urlparse(url)
+    if (scheme == 'file' and os.path.isdir(urllib.request.url2pathname(path))):
         # add trailing slash if not present so urljoin doesn't trim
         # final segment
         if not url.endswith('/'):
             url += '/'
-        url = urllib_parse.urljoin(url, 'index.html')
+        url = urllib.parse.urljoin(url, 'index.html')
         logger.debug(' file: URL is directory, getting %s', url)
 
     try:

@@ -13,11 +13,10 @@ import posixpath
 import shutil
 import stat
 import sys
+import urllib.parse
 from collections import deque
 from io import StringIO
 from itertools import filterfalse, tee, zip_longest
-from urllib import parse as urllib_parse
-from urllib.parse import unquote as urllib_unquote
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.utils import canonicalize_name
@@ -697,7 +696,7 @@ def parse_netloc(netloc):
     Return the host-port pair from a netloc.
     """
     url = build_url_from_netloc(netloc)
-    parsed = urllib_parse.urlparse(url)
+    parsed = urllib.parse.urlparse(url)
     return parsed.hostname, parsed.port
 
 
@@ -723,7 +722,7 @@ def split_auth_from_netloc(netloc):
         user_pass = auth, None
 
     user_pass = tuple(
-        None if x is None else urllib_unquote(x) for x in user_pass
+        None if x is None else urllib.parse.unquote(x) for x in user_pass
     )
 
     return netloc, user_pass
@@ -745,7 +744,7 @@ def redact_netloc(netloc):
         user = '****'
         password = ''
     else:
-        user = urllib_parse.quote(user)
+        user = urllib.parse.quote(user)
         password = ':****'
     return '{user}{password}@{netloc}'.format(user=user,
                                               password=password,
@@ -762,13 +761,13 @@ def _transform_url(url, transform_netloc):
     Returns a tuple containing the transformed url as item 0 and the
     original tuple returned by transform_netloc as item 1.
     """
-    purl = urllib_parse.urlsplit(url)
+    purl = urllib.parse.urlsplit(url)
     netloc_tuple = transform_netloc(purl.netloc)
     # stripped url
     url_pieces = (
         purl.scheme, netloc_tuple[0], purl.path, purl.query, purl.fragment
     )
-    surl = urllib_parse.urlunsplit(url_pieces)
+    surl = urllib.parse.urlunsplit(url_pieces)
     return surl, netloc_tuple
 
 
