@@ -2,11 +2,10 @@ import os
 import signal
 import ssl
 import threading
-from contextlib import contextmanager
+from contextlib import contextmanager, nullcontext
 from textwrap import dedent
 
 from mock import Mock
-from pip._vendor.contextlib2 import nullcontext
 from werkzeug.serving import WSGIRequestHandler
 from werkzeug.serving import make_server as _make_server
 

@@ -1,6 +1,4 @@
-from contextlib import contextmanager
-
-from pip._vendor.contextlib2 import ExitStack
+from contextlib import ExitStack, contextmanager
 
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 

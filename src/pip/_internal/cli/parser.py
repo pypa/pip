@@ -8,9 +8,8 @@ import optparse
 import shutil
 import sys
 import textwrap
+from contextlib import suppress
 from distutils.util import strtobool
-
-from pip._vendor.contextlib2 import suppress
 
 from pip._internal.cli.status_codes import UNKNOWN_ERROR
 from pip._internal.configuration import Configuration, ConfigurationError
