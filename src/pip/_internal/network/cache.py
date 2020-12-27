@@ -29,7 +29,7 @@ def suppressed_cache_errors():
     """
     try:
         yield
-    except (OSError, IOError):
+    except OSError:
         pass
 
 

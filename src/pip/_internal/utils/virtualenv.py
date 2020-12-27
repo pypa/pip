@@ -53,7 +53,7 @@ def _get_pyvenv_cfg_lines():
         # writes with UTF-8. (pypa/pip#8717)
         with open(pyvenv_cfg_file, encoding='utf-8') as f:
             return f.read().splitlines()  # avoids trailing newlines
-    except IOError:
+    except OSError:
         return None
 
 

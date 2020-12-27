@@ -1,4 +1,3 @@
-import errno
 import fnmatch
 import os
 import os.path
@@ -64,7 +63,7 @@ def copy2_fixed(src, dest):
     """
     try:
         shutil.copy2(src, dest)
-    except (OSError, IOError):
+    except OSError:
         for f in [src, dest]:
             try:
                 is_socket_file = is_socket(f)
@@ -148,27 +147,22 @@ def _test_writable_dir_win(path):
         file = os.path.join(path, name)
         try:
             fd = os.open(file, os.O_RDWR | os.O_CREAT | os.O_EXCL)
-        # Python 2 doesn't support FileExistsError and PermissionError.
-        except OSError as e:
-            # exception FileExistsError
-            if e.errno == errno.EEXIST:
-                continue
-            # exception PermissionError
-            if e.errno == errno.EPERM or e.errno == errno.EACCES:
-                # This could be because there's a directory with the same name.
-                # But it's highly unlikely there's a directory called that,
-                # so we'll assume it's because the parent dir is not writable.
-                # This could as well be because the parent dir is not readable,
-                # due to non-privileged user access.
-                return False
-            raise
+        except FileExistsError:
+            pass
+        except PermissionError:
+            # This could be because there's a directory with the same name.
+            # But it's highly unlikely there's a directory called that,
+            # so we'll assume it's because the parent dir is not writable.
+            # This could as well be because the parent dir is not readable,
+            # due to non-privileged user access.
+            return False
         else:
             os.close(fd)
             os.unlink(file)
             return True
 
     # This should never be reached
-    raise EnvironmentError(
+    raise OSError(
         'Unexpected condition testing for writable directory'
     )
 

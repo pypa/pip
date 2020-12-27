@@ -1,6 +1,5 @@
 """Handles all VCS (version control) support"""
 
-import errno
 import logging
 import os
 import shutil
@@ -772,16 +771,13 @@ class VersionControl:
                                    extra_environ=extra_environ,
                                    extra_ok_returncodes=extra_ok_returncodes,
                                    log_failed_cmd=log_failed_cmd)
-        except OSError as e:
+        except FileNotFoundError:
             # errno.ENOENT = no such file or directory
             # In other words, the VCS executable isn't available
-            if e.errno == errno.ENOENT:
-                raise BadCommand(
-                    'Cannot find command {cls.name!r} - do you have '
-                    '{cls.name!r} installed and in your '
-                    'PATH?'.format(**locals()))
-            else:
-                raise  # re-raise exception if a different error occurred
+            raise BadCommand(
+                'Cannot find command {cls.name!r} - do you have '
+                '{cls.name!r} installed and in your '
+                'PATH?'.format(**locals()))
 
     @classmethod
     def is_repository_directory(cls, path):
