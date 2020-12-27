@@ -2,7 +2,7 @@
 """
 
 import logging
-from urllib import parse as urllib_parse
+import urllib.parse
 
 # NOTE: XMLRPC Client is not annotated in typeshed as on 2017-07-17, which is
 #       why we ignore the type on this import
@@ -29,14 +29,14 @@ class PipXmlrpcTransport(xmlrpc_client.Transport):
     def __init__(self, index_url, session, use_datetime=False):
         # type: (str, PipSession, bool) -> None
         super().__init__(use_datetime)
-        index_parts = urllib_parse.urlparse(index_url)
+        index_parts = urllib.parse.urlparse(index_url)
         self._scheme = index_parts.scheme
         self._session = session
 
     def request(self, host, handler, request_body, verbose=False):
         # type: (str, str, Dict[str, str], bool) -> None
         parts = (self._scheme, host, handler, None, None, None)
-        url = urllib_parse.urlunparse(parts)
+        url = urllib.parse.urlunparse(parts)
         try:
             headers = {'Content-Type': 'text/xml'}
             response = self._session.post(url, data=request_body,

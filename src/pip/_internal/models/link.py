@@ -1,7 +1,7 @@
 import os
 import posixpath
 import re
-from urllib import parse as urllib_parse
+import urllib.parse
 
 from pip._internal.utils.filetypes import WHEEL_EXTENSION
 from pip._internal.utils.misc import (
@@ -67,7 +67,7 @@ class Link(KeyBasedCompareMixin):
         if url.startswith('\\\\'):
             url = path_to_url(url)
 
-        self._parsed_url = urllib_parse.urlsplit(url)
+        self._parsed_url = urllib.parse.urlsplit(url)
         # Store the url as a private attribute to prevent accidentally
         # trying to set a new value.
         self._url = url
@@ -112,7 +112,7 @@ class Link(KeyBasedCompareMixin):
             netloc, user_pass = split_auth_from_netloc(self.netloc)
             return netloc
 
-        name = urllib_parse.unquote(name)
+        name = urllib.parse.unquote(name)
         assert name, (
             'URL {self._url!r} produced no filename'.format(**locals()))
         return name
@@ -138,7 +138,7 @@ class Link(KeyBasedCompareMixin):
     @property
     def path(self):
         # type: () -> str
-        return urllib_parse.unquote(self._parsed_url.path)
+        return urllib.parse.unquote(self._parsed_url.path)
 
     def splitext(self):
         # type: () -> Tuple[str, str]
@@ -153,7 +153,7 @@ class Link(KeyBasedCompareMixin):
     def url_without_fragment(self):
         # type: () -> str
         scheme, netloc, path, query, fragment = self._parsed_url
-        return urllib_parse.urlunsplit((scheme, netloc, path, query, None))
+        return urllib.parse.urlunsplit((scheme, netloc, path, query, None))
 
     _egg_fragment_re = re.compile(r'[#&]egg=([^&]*)')
 

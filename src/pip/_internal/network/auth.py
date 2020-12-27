@@ -5,7 +5,7 @@ providing credentials in the context of network requests.
 """
 
 import logging
-from urllib import parse as urllib_parse
+import urllib.parse
 
 from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
 from pip._vendor.requests.utils import get_netrc_auth
@@ -250,7 +250,7 @@ class MultiDomainBasicAuth(AuthBase):
         if not self.prompting:
             return resp
 
-        parsed = urllib_parse.urlparse(resp.url)
+        parsed = urllib.parse.urlparse(resp.url)
 
         # Prompt the user for a new username and password
         username, password, save = self._prompt_for_password(parsed.netloc)

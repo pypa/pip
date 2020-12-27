@@ -1,9 +1,9 @@
 import logging
 import os.path
 import re
+import urllib.request
 import uuid
 from textwrap import dedent
-from urllib import request as urllib_request
 
 import mock
 import pretend
@@ -568,7 +568,7 @@ def test_get_html_page_directory_append_index(tmpdir):
     dirpath = tmpdir / "something"
     dirpath.mkdir()
     dir_url = "file:///{}".format(
-        urllib_request.pathname2url(dirpath).lstrip("/"),
+        urllib.request.pathname2url(dirpath).lstrip("/"),
     )
     expected_url = "{}/index.html".format(dir_url.rstrip("/"))
 

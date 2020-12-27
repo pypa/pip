@@ -6,7 +6,7 @@ import optparse
 import os
 import re
 import shlex
-from urllib import parse as urllib_parse
+import urllib.parse
 
 from pip._internal.cli import cmdoptions
 from pip._internal.exceptions import InstallationError, RequirementsFileParseError
@@ -354,7 +354,7 @@ class RequirementsFileParser:
                 # original file is over http
                 if SCHEME_RE.search(filename):
                     # do a url join so relative paths work
-                    req_path = urllib_parse.urljoin(filename, req_path)
+                    req_path = urllib.parse.urljoin(filename, req_path)
                 # original file and nested file are paths
                 elif not SCHEME_RE.search(req_path):
                     # do a join so relative paths work

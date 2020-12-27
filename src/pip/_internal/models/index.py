@@ -1,4 +1,4 @@
-from urllib import parse as urllib_parse
+import urllib.parse
 
 
 class PackageIndex:
@@ -12,7 +12,7 @@ class PackageIndex:
         # type: (str, str) -> None
         super().__init__()
         self.url = url
-        self.netloc = urllib_parse.urlsplit(url).netloc
+        self.netloc = urllib.parse.urlsplit(url).netloc
         self.simple_url = self._url_for_path('simple')
         self.pypi_url = self._url_for_path('pypi')
 
@@ -23,7 +23,7 @@ class PackageIndex:
 
     def _url_for_path(self, path):
         # type: (str) -> str
-        return urllib_parse.urljoin(self.url, path)
+        return urllib.parse.urljoin(self.url, path)
 
 
 PyPI = PackageIndex(
