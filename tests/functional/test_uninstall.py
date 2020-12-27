@@ -57,24 +57,14 @@ def test_basic_uninstall_distutils(script):
     ) in result.stderr
 
 
-def test_uninstall_archive(script, caplog):
-    name = 'GTrolls.tar.gz'
-    result = script.pip('uninstall', name, '-y', expect_error=True)
+@pytest.mark.parametrize("name",
+                         ["GTrolls.tar.gz",
+                          "https://guyto.com/archives/"])
+def test_uninstall_invalid_parameter(script, caplog, name):
+    result = script.pip("uninstall", name, "-y", expect_error=True)
     expected_message = (
-        "Invalid requirement: '{}' ignored -"
-        " the uninstall command expects named"
-        " requirements/requirements file.".format(name)
-    )
-    assert expected_message in result.stderr
-
-
-def test_uninstall_url(script, caplog):
-    name = 'https://gt.com/archives/'
-    result = script.pip('uninstall', name, '-y', expect_error=True)
-    expected_message = (
-        "Invalid requirement: '{}' ignored -"
-        " the uninstall command expects named"
-        " requirements/requirements file.".format(name)
+        f"Invalid requirement: '{name}' ignored -"
+        f" the uninstall command expects named requirements."
     )
     assert expected_message in result.stderr
 
