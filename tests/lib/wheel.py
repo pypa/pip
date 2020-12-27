@@ -1,5 +1,6 @@
 """Helper for building wheels as would be in test cases.
 """
+import csv
 import itertools
 from base64 import urlsafe_b64encode
 from collections import namedtuple
@@ -11,7 +12,6 @@ from hashlib import sha256
 from io import BytesIO, StringIO
 from zipfile import ZipFile
 
-import csv23
 from pip._vendor.requests.structures import CaseInsensitiveDict
 from pip._vendor.six import ensure_binary, ensure_text
 
@@ -241,7 +241,7 @@ def record_file_maker_wrapper(
         records = record_callback(records)
 
     with StringIO(newline="") as buf:
-        writer = csv23.writer(buf)
+        writer = csv.writer(buf)
         for record in records:
             writer.writerow(map(ensure_text, record))
         contents = buf.getvalue().encode("utf-8")

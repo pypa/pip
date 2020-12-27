@@ -1,7 +1,5 @@
 --use-feature=2020-resolver
 cryptography==2.8
-csv23
-enum34; python_version < '3.4'
 freezegun
 mock
 pretend
