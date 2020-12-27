@@ -572,22 +572,6 @@ def write_output(msg, *args):
     logger.info(msg, *args)
 
 
-class FakeFile:
-    """Wrap a list of lines in an object with readline() to make
-    ConfigParser happy."""
-    def __init__(self, lines):
-        self._gen = iter(lines)
-
-    def readline(self):
-        try:
-            return next(self._gen)
-        except StopIteration:
-            return ''
-
-    def __iter__(self):
-        return self._gen
-
-
 class StreamWrapper(StringIO):
 
     @classmethod
