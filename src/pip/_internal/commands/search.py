@@ -79,7 +79,14 @@ class SearchCommand(Command, SessionCommandMixin):
 
         transport = PipXmlrpcTransport(index_url, session)
         pypi = xmlrpc_client.ServerProxy(index_url, transport)
-        hits = pypi.search({'name': query, 'summary': query}, 'or')
+        try:
+            hits = pypi.search({'name': query, 'summary': query}, 'or')
+        except xmlrpc_client.Fault as fault:
+            message = "XMLRPC request failed [code: {code}]\n{string}".format(
+                code=fault.faultCode,
+                string=fault.faultString,
+            )
+            raise CommandError(message)
         return hits
 
 
