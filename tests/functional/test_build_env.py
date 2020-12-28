@@ -17,7 +17,6 @@ def run_with_build_env(script, setup_script_contents,
     build_env_script.write_text(
         dedent(
             '''
-            from __future__ import print_function
             import subprocess
             import sys
 
@@ -161,8 +160,6 @@ def test_build_env_overlay_prefix_has_priority(script):
                                        'installing pkg==4.3 in normal')
         ''',
         '''
-        from __future__ import print_function
-
         print(__import__('pkg').__version__)
         ''')
     assert result.stdout.strip() == '2.0', str(result)
@@ -195,7 +192,6 @@ def test_build_env_isolation(script):
     run_with_build_env(
         script, '',
         r'''
-        from __future__ import print_function
         from distutils.sysconfig import get_python_lib
         import sys
 
