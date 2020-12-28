@@ -19,12 +19,6 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING, cast
 if MYPY_CHECK_RUNNING:
     from typing import Any, BinaryIO, Iterator, List, Union
 
-    class NamedTemporaryFileResult(BinaryIO):
-        @property
-        def file(self):
-            # type: () -> BinaryIO
-            pass
-
 
 def check_path_owner(path):
     # type: (str) -> bool
@@ -86,7 +80,7 @@ def is_socket(path):
 
 @contextmanager
 def adjacent_tmp_file(path, **kwargs):
-    # type: (str, **Any) -> Iterator[NamedTemporaryFileResult]
+    # type: (str, **Any) -> Iterator[BinaryIO]
     """Return a file-like object pointing to a tmp file next to path.
 
     The file is created securely and is ensured to be written to disk
@@ -102,12 +96,12 @@ def adjacent_tmp_file(path, **kwargs):
         suffix='.tmp',
         **kwargs
     ) as f:
-        result = cast('NamedTemporaryFileResult', f)
+        result = cast('BinaryIO', f)
         try:
             yield result
         finally:
-            result.file.flush()
-            os.fsync(result.file.fileno())
+            result.flush()
+            os.fsync(result.fileno())
 
 
 _replace_retry = retry(stop_max_delay=1000, wait_fixed=250)
