@@ -46,6 +46,7 @@ else:
     from typing import (
         IO,
         Any,
+        BinaryIO,
         Callable,
         Dict,
         Iterable,
@@ -65,7 +66,6 @@ else:
     from pip._vendor.pkg_resources import Distribution
 
     from pip._internal.models.scheme import Scheme
-    from pip._internal.utils.filesystem import NamedTemporaryFileResult
 
     RecordPath = NewType('RecordPath', str)
     InstalledCSVRow = Tuple[RecordPath, str, Union[int, str]]
@@ -742,7 +742,7 @@ def _install_wheel(
 
     @contextlib.contextmanager
     def _generate_file(path, **kwargs):
-        # type: (str, **Any) -> Iterator[NamedTemporaryFileResult]
+        # type: (str, **Any) -> Iterator[BinaryIO]
         with adjacent_tmp_file(path, **kwargs) as f:
             yield f
         os.chmod(f.name, generated_file_mode)
