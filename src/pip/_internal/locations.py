@@ -5,11 +5,9 @@
 
 import os
 import os.path
-import platform
 import site
 import sys
 import sysconfig
-from distutils import sysconfig as distutils_sysconfig
 from distutils.command.install import SCHEME_KEYS  # type: ignore
 from distutils.command.install import install as distutils_install_command
 
@@ -60,11 +58,6 @@ def get_src_prefix():
 
 site_packages = sysconfig.get_path("purelib")  # type: Optional[str]
 
-# This is because of a bug in PyPy's sysconfig module, see
-# https://bitbucket.org/pypy/pypy/issues/2506/sysconfig-returns-incorrect-paths
-# for more information.
-if platform.python_implementation().lower() == "pypy":
-    site_packages = distutils_sysconfig.get_python_lib()
 try:
     # Use getusersitepackages if this is present, as it ensures that the
     # value is initialised properly.
