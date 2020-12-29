@@ -1,0 +1,1 @@
+This change fixes pip freeze by suppressing warnings for invalid packages.

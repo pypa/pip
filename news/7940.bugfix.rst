@@ -1,0 +1,1 @@
+This change adds a warning for situations where pip is run with sudo.
