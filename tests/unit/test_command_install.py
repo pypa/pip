@@ -89,9 +89,13 @@ def test_rejection_for_location_requirement_options():
     # show_traceback = True, using_user_site = False
     (OSError("Illegal byte sequence"), True, False, 'Could not'
         ' install packages due to an OSError.\n'),
-    (OSError(errno.EACCES, "No file permission"), True, False, 'Could'
-        ' not install packages due to an OSError.\nConsider using the'
-        ' `--user` option or check the permissions.\n'),
+    (OSError(errno.EACCES, "No file permission"), True, False,
+        'Could not install packages due to an OSError.'
+        '\nConsider using the `--user` option or check the permissions.'
+        '\nOftentimes packages are unnecessarily installed with `sudo pip`, '
+        'which sets the folder owner to root. In this '
+        'case, consider changing the owner to $USER: '
+        '`$ sudo chown -R $USER [package folder]`.\n'),
     # show_traceback = False, using_user_site = True
     (OSError("Illegal byte sequence"), False, True, 'Could not'
         ' install packages due to an OSError: Illegal byte'
@@ -104,9 +108,13 @@ def test_rejection_for_location_requirement_options():
         ' install packages due to an OSError: Illegal byte sequence'
         '\n'),
     (OSError(errno.EACCES, "No file permission"), False, False,
-        'Could not install packages due to an OSError: [Errno 13] No'
-        ' file permission\nConsider using the `--user` option or check the'
-        ' permissions.\n'),
+        'Could not install packages due to an OSError: '
+        '[Errno 13] No file permission\nConsider using the `--user` '
+        'option or check the permissions.'
+        '\nOftentimes packages are unnecessarily installed with `sudo pip`, '
+        'which sets the folder owner to root. In this '
+        'case, consider changing the owner to $USER: '
+        '`$ sudo chown -R $USER [package folder]`.\n')
 ])
 def test_create_os_error_message(
     error, show_traceback, using_user_site, expected
