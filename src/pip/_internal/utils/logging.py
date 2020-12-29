@@ -45,7 +45,7 @@ if WINDOWS:
     # https://bugs.python.org/issue30418
     def _is_broken_pipe_error(exc_class, exc):
         """See the docstring for non-Windows below."""
-        return ((exc_class is BrokenPipeError) or  # noqa: F821
+        return ((exc_class is BrokenPipeError) or
                 (exc_class is OSError and
                  exc.errno in (errno.EINVAL, errno.EPIPE)))
 else:
@@ -58,7 +58,7 @@ else:
           exc_class: an exception class.
           exc: an exception instance.
         """
-        return (exc_class is BrokenPipeError)  # noqa: F821
+        return (exc_class is BrokenPipeError)
 
 
 @contextlib.contextmanager

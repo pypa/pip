@@ -31,7 +31,7 @@ if MYPY_CHECK_RUNNING:
 logger = logging.getLogger(__name__)
 
 try:
-    import keyring  # noqa
+    import keyring
 except ImportError:
     keyring = None
 except Exception as exc:
