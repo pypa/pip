@@ -398,8 +398,21 @@ class UninstallPathSet:
                 for_rename = compress_for_rename(self.paths)
 
                 for path in sorted(compact(for_rename)):
-                    moved.stash(path)
                     logger.debug('Removing file or directory %s', path)
+                    try:
+                        moved.stash(path)
+                    except PermissionError as ex:
+                        raise UninstallationError(
+                            "{!r}\nFailed to uninstall {!r} because "
+                            "this user lacks permissions to the package "
+                            "folder. Consider using the `--user` option or "
+                            "check the permissions.\nOftentimes packages "
+                            "are unnecessarily installed with `sudo pip`, "
+                            "which sets the folder owner to root. In this "
+                            "case, consider changing the owner to $USER: "
+                            "`$ sudo chown -R $USER [package folder]`"
+                            .format(str(ex), dist_name_version)
+                        )
 
                 for pth in self.pth.values():
                     pth.remove()

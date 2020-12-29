@@ -327,6 +327,11 @@ def renames(old, new):
     """Like os.renames(), but handles renaming across devices."""
     # Implementation borrowed from os.renames().
     head, tail = os.path.split(new)
+    if not os.access(old, os.W_OK):
+        raise PermissionError(
+            'Rename aborted. User does not have write access to ' + old
+        )
+
     if head and tail and not os.path.exists(head):
         os.makedirs(head)
 
@@ -458,6 +463,7 @@ def get_installed_distributions(
     return [d for d in working_set
             if local_test(d) and
             d.key not in skip and
+            d.key[0].isalnum() and
             editable_test(d) and
             editables_only_test(d) and
             user_test(d)
