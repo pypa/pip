@@ -125,7 +125,7 @@ def test_freeze_with_invalid_names(script):
     invalid_pkgnames = (
         'trailingdash-', 'trailingunderscore_', 'trailingdot.'
     )
-    ignored_pkgnames = )
+    ignored_pkgnames = (
         '-leadingdash', '_leadingunderscore', '.leadingdot'
     )
 
