@@ -123,9 +123,12 @@ def test_freeze_with_invalid_names(script):
 
     valid_pkgnames = ('middle-dash', 'middle_underscore', 'middle.dot')
     invalid_pkgnames = (
-        '_leadingunderscore', '.leadingdot',
         'trailingdash-', 'trailingunderscore_', 'trailingdot.'
     )
+    ignored_pkgnames = )
+        '-leadingdash', '_leadingunderscore', '.leadingdot'
+    )
+
     for pkgname in valid_pkgnames + invalid_pkgnames:
         fake_install(pkgname, script.site_packages_path)
     result = script.pip('freeze', expect_stderr=True)
@@ -142,6 +145,9 @@ def test_freeze_with_invalid_names(script):
             'distribution {}...'.format(dist_repr)
         )
         _check_output(result.stderr, expected)
+    for pkgname in ignored_pkgnames:
+        assert(pkgname not in result.stdout)
+        assert(pkgname not in result.stderr)
 
     # Also check that the parse error details occur at least once.
     # We only need to find one occurrence to know that exception details
