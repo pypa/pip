@@ -68,8 +68,6 @@ if MYPY_CHECK_RUNNING:
 
     C = TypeVar("C")
     Cache = Dict[Link, C]
-    VersionCandidates = Dict[_BaseVersion, Candidate]
-
 
 logger = logging.getLogger(__name__)
 
