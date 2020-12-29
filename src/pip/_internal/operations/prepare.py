@@ -38,9 +38,8 @@ from pip._internal.utils.unpacking import unpack_file
 from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
-    from typing import Callable, Dict, Iterable, List, Optional, Tuple
+    from typing import Dict, Iterable, List, Optional, Tuple
 
-    from mypy_extensions import TypedDict
     from pip._vendor.pkg_resources import Distribution
 
     from pip._internal.index.package_finder import PackageFinder
@@ -50,16 +49,6 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.req.req_tracker import RequirementTracker
     from pip._internal.utils.hashes import Hashes
 
-    CopytreeKwargs = TypedDict(
-        'CopytreeKwargs',
-        {
-            'copy_function': Callable[[str, str], None],
-            'ignore': Callable[[str, List[str]], List[str]],
-            'ignore_dangling_symlinks': bool,
-            'symlinks': bool,
-        },
-        total=False,
-    )
 
 logger = logging.getLogger(__name__)
 
