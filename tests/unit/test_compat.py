@@ -5,12 +5,7 @@ import sys
 import pytest
 
 import pip._internal.utils.compat as pip_compat
-from pip._internal.utils.compat import (
-    console_to_str,
-    expanduser,
-    get_path_uid,
-    str_to_display,
-)
+from pip._internal.utils.compat import console_to_str, get_path_uid, str_to_display
 
 
 def test_get_path_uid():
@@ -127,16 +122,3 @@ def test_console_to_str_warning(monkeypatch):
     monkeypatch.setattr(locale, 'getpreferredencoding', lambda: 'utf-8')
     monkeypatch.setattr(pip_compat.logger, 'warning', check_warning)
     console_to_str(some_bytes)
-
-
-@pytest.mark.parametrize("home,path,expanded", [
-    ("/Users/test", "~", "/Users/test"),
-    ("/Users/test", "~/.cache", "/Users/test/.cache"),
-    # Verify that we are not affected by https://bugs.python.org/issue14768
-    ("/", "~", "/"),
-    ("/", "~/.cache", "/.cache"),
-])
-def test_expanduser(home, path, expanded, monkeypatch):
-    monkeypatch.setenv("HOME", home)
-    monkeypatch.setenv("USERPROFILE", home)
-    assert expanduser(path) == expanded

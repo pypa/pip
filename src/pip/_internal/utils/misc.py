@@ -28,7 +28,7 @@ from pip._vendor.retrying import retry  # type: ignore
 from pip import __version__
 from pip._internal.exceptions import CommandError
 from pip._internal.locations import get_major_minor_version, site_packages, user_site
-from pip._internal.utils.compat import WINDOWS, expanduser, stdlib_pkgs
+from pip._internal.utils.compat import WINDOWS, stdlib_pkgs
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING, cast
 from pip._internal.utils.virtualenv import (
     running_under_virtualenv,
@@ -302,7 +302,7 @@ def normalize_path(path, resolve_symlinks=True):
     Convert a path to its canonical, case-normalized, absolute version.
 
     """
-    path = expanduser(path)
+    path = os.path.expanduser(path)
     if resolve_symlinks:
         path = os.path.realpath(path)
     else:

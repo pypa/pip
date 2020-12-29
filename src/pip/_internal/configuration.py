@@ -22,7 +22,7 @@ from pip._internal.exceptions import (
     ConfigurationFileCouldNotBeLoaded,
 )
 from pip._internal.utils import appdirs
-from pip._internal.utils.compat import WINDOWS, expanduser
+from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import ensure_dir, enum
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -80,7 +80,7 @@ def get_configuration_files():
 
     site_config_file = os.path.join(sys.prefix, CONFIG_BASENAME)
     legacy_config_file = os.path.join(
-        expanduser('~'),
+        os.path.expanduser('~'),
         'pip' if WINDOWS else '.pip',
         CONFIG_BASENAME,
     )

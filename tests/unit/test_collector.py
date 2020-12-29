@@ -733,7 +733,7 @@ def test_link_collector_create(
     assert search_scope.index_urls == expected_index_urls
 
 
-@patch('pip._internal.utils.misc.expanduser')
+@patch('os.path.expanduser')
 def test_link_collector_create_find_links_expansion(
     mock_expanduser, tmpdir,
 ):
