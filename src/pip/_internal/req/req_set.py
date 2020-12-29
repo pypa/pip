@@ -24,7 +24,7 @@ class RequirementSet:
         """Create a RequirementSet.
         """
 
-        self.requirements = OrderedDict()  # type: Dict[str, InstallRequirement]  # noqa: E501
+        self.requirements = OrderedDict()  # type: Dict[str, InstallRequirement]
         self.check_supported_wheels = check_supported_wheels
 
         self.unnamed_requirements = []  # type: List[InstallRequirement]
@@ -69,7 +69,7 @@ class RequirementSet:
         parent_req_name=None,  # type: Optional[str]
         extras_requested=None  # type: Optional[Iterable[str]]
     ):
-        # type: (...) -> Tuple[List[InstallRequirement], Optional[InstallRequirement]]  # noqa: E501
+        # type: (...) -> Tuple[List[InstallRequirement], Optional[InstallRequirement]]
         """Add install_req as a requirement to install.
 
         :param parent_req_name: The name of the requirement that needed this

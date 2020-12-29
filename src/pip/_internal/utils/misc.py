@@ -170,9 +170,7 @@ def path_to_display(path):
     except UnicodeDecodeError:
         # Include the full bytes to make troubleshooting easier, even though
         # it may not be very human readable.
-        # Silence the "F821 undefined name 'ascii'" flake8 error since
-        # ascii() is a built-in.
-        display_path = ascii(path)  # noqa: F821
+        display_path = ascii(path)
 
     return display_path
 
