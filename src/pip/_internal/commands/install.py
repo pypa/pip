@@ -722,9 +722,9 @@ def create_os_error_message(error, show_traceback, using_user_site):
         user_option_part = "Consider using the `--user` option"
         permissions_part = "Check the permissions"
         chown_part = ("Oftentimes packages are unnecessarily installed with "
-            "`sudo pip`, which sets the folder owner to root. In this case, "
-            "consider changing the owner to $USER: "
-            "`$ sudo chown -R $USER [package folder]`")
+                "`sudo pip`, which sets the folder owner to root. In this case, "
+                "consider changing the owner to $USER: "
+                "`$ sudo chown -R $USER [package folder]`")
 
         if not using_user_site:
             parts.extend([
