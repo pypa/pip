@@ -123,7 +123,7 @@ def test_freeze_with_invalid_names(script):
 
     valid_pkgnames = ('middle-dash', 'middle_underscore', 'middle.dot')
     invalid_pkgnames = (
-        '-leadingdash', '_leadingunderscore', '.leadingdot',
+        '_leadingunderscore', '.leadingdot',
         'trailingdash-', 'trailingunderscore_', 'trailingdot.'
     )
     for pkgname in valid_pkgnames + invalid_pkgnames:

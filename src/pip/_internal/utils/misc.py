@@ -463,7 +463,7 @@ def get_installed_distributions(
     return [d for d in working_set
             if local_test(d) and
             d.key not in skip and
-            d.key[0].isalnum() and
+            '-' not in d.key[0] and
             editable_test(d) and
             editables_only_test(d) and
             user_test(d)
