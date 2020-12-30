@@ -164,11 +164,6 @@ class _InstallRequirementBackedCandidate(Candidate):
             return self._link == other._link
         return False
 
-    # Needed for Python 2, which does not implement this by default
-    def __ne__(self, other):
-        # type: (Any) -> bool
-        return not self.__eq__(other)
-
     @property
     def source_link(self):
         # type: () -> Optional[Link]
@@ -378,11 +373,6 @@ class AlreadyInstalledCandidate(Candidate):
             return self.name == other.name and self.version == other.version
         return False
 
-    # Needed for Python 2, which does not implement this by default
-    def __ne__(self, other):
-        # type: (Any) -> bool
-        return not self.__eq__(other)
-
     @property
     def project_name(self):
         # type: () -> str
@@ -474,11 +464,6 @@ class ExtrasCandidate(Candidate):
         if isinstance(other, self.__class__):
             return self.base == other.base and self.extras == other.extras
         return False
-
-    # Needed for Python 2, which does not implement this by default
-    def __ne__(self, other):
-        # type: (Any) -> bool
-        return not self.__eq__(other)
 
     @property
     def project_name(self):

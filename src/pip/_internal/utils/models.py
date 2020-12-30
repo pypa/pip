@@ -34,9 +34,6 @@ class KeyBasedCompareMixin:
     def __eq__(self, other):
         return self._compare(other, operator.__eq__)
 
-    def __ne__(self, other):
-        return self._compare(other, operator.__ne__)
-
     def _compare(self, other, method):
         if not isinstance(other, self._defining_class):
             return NotImplemented
