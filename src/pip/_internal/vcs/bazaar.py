@@ -96,6 +96,7 @@ class Bazaar(VersionControl):
 
     @classmethod
     def get_revision(cls, location):
+        # type: (str) -> str
         revision = cls.run_command(
             ['revno'], cwd=location,
         )
