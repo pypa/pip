@@ -1,0 +1,1 @@
+Bring back the "(from versions: ...)" message, that was shown on resolution failures.
