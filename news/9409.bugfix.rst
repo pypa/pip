@@ -1,0 +1,2 @@
+``--user`` is no longer suggested incorrectly when pip fails with a permission
+error in a virtual environment.

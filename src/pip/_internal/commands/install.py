@@ -35,7 +35,10 @@ from pip._internal.utils.misc import (
     write_output,
 )
 from pip._internal.utils.temp_dir import TempDirectory
-from pip._internal.utils.virtualenv import virtualenv_no_global
+from pip._internal.utils.virtualenv import (
+    running_under_virtualenv,
+    virtualenv_no_global,
+)
 from pip._internal.wheel_builder import (
     BinaryAllowedPredicate,
     build,
@@ -725,7 +728,7 @@ def create_os_error_message(error, show_traceback, using_user_site):
         user_option_part = "Consider using the `--user` option"
         permissions_part = "Check the permissions"
 
-        if not using_user_site:
+        if not running_under_virtualenv() and not using_user_site:
             parts.extend([
                 user_option_part, " or ",
                 permissions_part.lower(),
