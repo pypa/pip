@@ -74,6 +74,7 @@ repos:
   - id: mypy
     exclude: docs|tests
     args: ["--pretty"]
+    additional_dependencies: ['nox==2020.12.31']
 
 - repo: https://github.com/pre-commit/pygrep-hooks
   rev: v1.7.0
