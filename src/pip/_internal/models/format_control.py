@@ -36,10 +36,6 @@ class FormatControl:
             for k in self.__slots__
         )
 
-    def __ne__(self, other):
-        # type: (object) -> bool
-        return not self.__eq__(other)
-
     def __repr__(self):
         # type: () -> str
         return "{}({}, {})".format(

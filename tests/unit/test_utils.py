@@ -847,8 +847,7 @@ class TestHiddenText:
         hidden2 = HiddenText('secret', redacted='####')
 
         assert hidden1 == hidden2
-        # Also test __ne__.  This assertion fails in Python 2 without
-        # defining HiddenText.__ne__.
+        # Also test __ne__.
         assert not hidden1 != hidden2
 
     def test_equality_different_secret(self):
