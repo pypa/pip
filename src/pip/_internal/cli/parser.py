@@ -14,6 +14,10 @@ from pip._vendor.contextlib2 import suppress
 from pip._internal.cli.status_codes import UNKNOWN_ERROR
 from pip._internal.configuration import Configuration, ConfigurationError
 from pip._internal.utils.misc import redact_auth_from_url, strtobool
+from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
+if MYPY_CHECK_RUNNING:
+    from typing import Any
 
 logger = logging.getLogger(__name__)
 
@@ -154,10 +158,15 @@ class ConfigOptionParser(CustomOptionParser):
     """Custom option parser which updates its defaults by checking the
     configuration files and environmental variables"""
 
-    def __init__(self, *args, **kwargs):
-        self.name = kwargs.pop('name')
-
-        isolated = kwargs.pop("isolated", False)
+    def __init__(
+        self,
+        *args,  # type: Any
+        name,  # type: str
+        isolated=False,  # type: bool
+        **kwargs,  # type: Any
+    ):
+        # type: (...) -> None
+        self.name = name
         self.config = Configuration(isolated)
 
         assert self.name

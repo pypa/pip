@@ -39,7 +39,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import url_to_path
 
 if MYPY_CHECK_RUNNING:
-    from typing import Iterator, List, Optional, Tuple, Union
+    from typing import Any, Iterator, List, Optional, Sequence, Tuple, Union
 
     from pip._internal.models.link import Link
 
@@ -225,16 +225,20 @@ class PipSession(requests.Session):
 
     timeout = None  # type: Optional[int]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(
+        self,
+        *args,  # type: Any
+        retries=0,  # type: int
+        cache=None,  # type: Optional[str]
+        trusted_hosts=(),  # type: Sequence[str]
+        index_urls=None,  # type: Optional[List[str]]
+        **kwargs,  # type: Any
+    ):
+        # type: (...) -> None
         """
         :param trusted_hosts: Domains not to emit warnings for when not using
             HTTPS.
         """
-        retries = kwargs.pop("retries", 0)
-        cache = kwargs.pop("cache", None)
-        trusted_hosts = kwargs.pop("trusted_hosts", [])  # type: List[str]
-        index_urls = kwargs.pop("index_urls", None)
-
         super().__init__(*args, **kwargs)
 
         # Namespace the attribute with "pip_" just in case to prevent
