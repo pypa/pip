@@ -1,6 +1,6 @@
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from typing import TYPE_CHECKING
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import List, Optional
 
     from .base import BaseDistribution, BaseEnvironment

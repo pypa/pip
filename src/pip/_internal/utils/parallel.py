@@ -21,12 +21,11 @@ __all__ = ['map_multiprocess', 'map_multithread']
 from contextlib import contextmanager
 from multiprocessing import Pool as ProcessPool
 from multiprocessing.dummy import Pool as ThreadPool
+from typing import TYPE_CHECKING
 
 from pip._vendor.requests.adapters import DEFAULT_POOLSIZE
 
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from multiprocessing import pool
     from typing import Callable, Iterable, Iterator, TypeVar, Union
 

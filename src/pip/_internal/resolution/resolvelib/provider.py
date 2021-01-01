@@ -1,10 +1,10 @@
-from pip._vendor.resolvelib.providers import AbstractProvider
+from typing import TYPE_CHECKING
 
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._vendor.resolvelib.providers import AbstractProvider
 
 from .base import Constraint
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import Any, Dict, Iterable, Optional, Sequence, Tuple, Union
 
     from .base import Candidate, Requirement

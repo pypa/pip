@@ -1,7 +1,8 @@
-import pip._internal.utils.inject_securetransport  # noqa
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from typing import TYPE_CHECKING
 
-if MYPY_CHECK_RUNNING:
+import pip._internal.utils.inject_securetransport  # noqa
+
+if TYPE_CHECKING:
     from typing import List, Optional
 
 

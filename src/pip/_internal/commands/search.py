@@ -3,6 +3,7 @@ import shutil
 import sys
 import textwrap
 from collections import OrderedDict
+from typing import TYPE_CHECKING
 
 from pip._vendor.packaging.version import parse as parse_version
 
@@ -19,9 +20,8 @@ from pip._internal.models.index import PyPI
 from pip._internal.network.xmlrpc import PipXmlrpcTransport
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import write_output
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from optparse import Values
     from typing import Dict, List, Optional
 

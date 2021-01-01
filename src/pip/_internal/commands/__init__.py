@@ -4,10 +4,9 @@ Package containing all pip commands
 
 import importlib
 from collections import OrderedDict, namedtuple
+from typing import TYPE_CHECKING
 
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import Any, Optional
 
     from pip._internal.cli.base_command import Command

@@ -4,6 +4,7 @@ import cgi
 import logging
 import mimetypes
 import os
+from typing import TYPE_CHECKING
 
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE
 
@@ -13,9 +14,8 @@ from pip._internal.models.index import PyPI
 from pip._internal.network.cache import is_from_cache
 from pip._internal.network.utils import HEADERS, raise_for_status, response_chunks
 from pip._internal.utils.misc import format_size, redact_auth_from_url, splitext
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import Iterable, Optional, Tuple
 
     from pip._vendor.requests.models import Response

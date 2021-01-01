@@ -7,6 +7,7 @@ import shutil
 import sys
 import uuid
 import zipfile
+from typing import TYPE_CHECKING
 
 from pip._vendor import pkg_resources, six
 from pip._vendor.packaging.requirements import Requirement
@@ -48,11 +49,10 @@ from pip._internal.utils.misc import (
 )
 from pip._internal.utils.packaging import get_metadata
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.virtualenv import running_under_virtualenv
 from pip._internal.vcs import vcs
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import Any, Dict, Iterable, List, Optional, Sequence, Union
 
     from pip._vendor.packaging.markers import Marker

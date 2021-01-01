@@ -1,13 +1,13 @@
 """Legacy editable installation process, i.e. `setup.py develop`.
 """
 import logging
+from typing import TYPE_CHECKING
 
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.setuptools_build import make_setuptools_develop_args
 from pip._internal.utils.subprocess import call_subprocess
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import List, Optional, Sequence
 
     from pip._internal.build_env import BuildEnvironment

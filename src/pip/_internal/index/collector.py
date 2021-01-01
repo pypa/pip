@@ -12,6 +12,7 @@ import re
 import urllib.parse
 import urllib.request
 from collections import OrderedDict
+from typing import TYPE_CHECKING
 
 from pip._vendor import html5lib, requests
 from pip._vendor.distlib.compat import unescape
@@ -23,11 +24,10 @@ from pip._internal.models.search_scope import SearchScope
 from pip._internal.network.utils import raise_for_status
 from pip._internal.utils.filetypes import is_archive_file
 from pip._internal.utils.misc import pairwise, redact_auth_from_url
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import path_to_url, url_to_path
 from pip._internal.vcs import is_url, vcs
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     import xml.etree.ElementTree
     from optparse import Values
     from typing import (

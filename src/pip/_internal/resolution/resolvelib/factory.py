@@ -1,5 +1,6 @@
 import functools
 import logging
+from typing import TYPE_CHECKING
 
 from pip._vendor.packaging.utils import canonicalize_name
 
@@ -20,7 +21,6 @@ from pip._internal.utils.misc import (
     dist_in_usersite,
     get_installed_distributions,
 )
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
 from .base import Constraint
@@ -39,7 +39,7 @@ from .requirements import (
     UnsatisfiableRequirement,
 )
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import (
         Dict,
         FrozenSet,

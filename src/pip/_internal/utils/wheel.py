@@ -3,6 +3,7 @@
 
 import logging
 from email.parser import Parser
+from typing import TYPE_CHECKING
 from zipfile import BadZipFile, ZipFile
 
 from pip._vendor.packaging.utils import canonicalize_name
@@ -10,9 +11,8 @@ from pip._vendor.pkg_resources import DistInfoDistribution
 
 from pip._internal.exceptions import UnsupportedWheel
 from pip._internal.utils.pkg_resources import DictMetadata
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from email.message import Message
     from typing import Dict, Tuple
 

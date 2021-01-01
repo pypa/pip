@@ -1,14 +1,14 @@
 import logging
 from email.parser import FeedParser
+from typing import TYPE_CHECKING
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging import specifiers, version
 
 from pip._internal.exceptions import NoneMetadataError
 from pip._internal.utils.misc import display_path
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from email.message import Message
     from typing import Optional, Tuple
 

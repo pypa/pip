@@ -1,5 +1,6 @@
 import logging
 import sys
+from typing import TYPE_CHECKING
 
 from pip._vendor.packaging.specifiers import InvalidSpecifier, SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
@@ -14,11 +15,10 @@ from pip._internal.req.constructors import (
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.misc import dist_is_editable, normalize_version_info
 from pip._internal.utils.packaging import get_requires_python
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 from .base import Candidate, format_name
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import Any, FrozenSet, Iterable, Optional, Tuple, Union
 
     from pip._vendor.packaging.version import _BaseVersion

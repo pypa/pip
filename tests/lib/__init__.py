@@ -10,6 +10,7 @@ from contextlib import contextmanager
 from hashlib import sha256
 from io import BytesIO
 from textwrap import dedent
+from typing import TYPE_CHECKING
 from zipfile import ZipFile
 
 import pytest
@@ -22,11 +23,10 @@ from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.network.session import PipSession
 from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from tests.lib.path import Path, curdir
 from tests.lib.wheel import make_wheel
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import List, Optional
 
     from pip._internal.models.target_python import TargetPython

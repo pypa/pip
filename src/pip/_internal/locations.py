@@ -10,14 +10,14 @@ import sys
 import sysconfig
 from distutils.command.install import SCHEME_KEYS
 from distutils.command.install import install as distutils_install_command
+from typing import TYPE_CHECKING, cast
 
 from pip._internal.models.scheme import Scheme
 from pip._internal.utils import appdirs
 from pip._internal.utils.compat import WINDOWS
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING, cast
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from distutils.cmd import Command as DistutilsCommand
     from typing import Dict, List, Optional, Union
 

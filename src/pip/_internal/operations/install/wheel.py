@@ -14,6 +14,7 @@ import sys
 import warnings
 from base64 import urlsafe_b64encode
 from itertools import chain, filterfalse, starmap
+from typing import TYPE_CHECKING, cast
 from zipfile import ZipFile
 
 from pip._vendor import pkg_resources
@@ -27,7 +28,6 @@ from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
 from pip._internal.models.scheme import SCHEME_KEYS
 from pip._internal.utils.filesystem import adjacent_tmp_file, replace
 from pip._internal.utils.misc import captured_stdout, ensure_dir, hash_file, partition
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.unpacking import (
     current_umask,
     is_within_directory,
@@ -36,12 +36,7 @@ from pip._internal.utils.unpacking import (
 )
 from pip._internal.utils.wheel import parse_wheel, pkg_resources_distribution_for_wheel
 
-# Use the custom cast function at runtime to make cast work,
-# and import typing.cast when performing pre-commit and type
-# checks
-if not MYPY_CHECK_RUNNING:
-    from pip._internal.utils.typing import cast
-else:
+if TYPE_CHECKING:
     from email.message import Message
     from typing import (
         IO,
@@ -59,7 +54,6 @@ else:
         Set,
         Tuple,
         Union,
-        cast,
     )
     from zipfile import ZipInfo
 

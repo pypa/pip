@@ -1,9 +1,8 @@
 from distutils.errors import DistutilsArgError
 from distutils.fancy_getopt import FancyGetopt
+from typing import TYPE_CHECKING
 
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import Dict, List
 
 

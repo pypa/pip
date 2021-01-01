@@ -1,5 +1,6 @@
 import json
 import logging
+from typing import TYPE_CHECKING
 
 from pip._internal.models.direct_url import (
     DIRECT_URL_METADATA_NAME,
@@ -9,10 +10,9 @@ from pip._internal.models.direct_url import (
     DirInfo,
     VcsInfo,
 )
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs import vcs
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import Optional
 
     from pip._vendor.pkg_resources import Distribution

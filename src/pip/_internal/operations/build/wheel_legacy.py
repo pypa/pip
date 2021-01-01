@@ -1,5 +1,6 @@
 import logging
 import os.path
+from typing import TYPE_CHECKING
 
 from pip._internal.cli.spinners import open_spinner
 from pip._internal.utils.setuptools_build import make_setuptools_bdist_wheel_args
@@ -8,9 +9,8 @@ from pip._internal.utils.subprocess import (
     call_subprocess,
     format_command_args,
 )
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import List, Optional
 
 logger = logging.getLogger(__name__)

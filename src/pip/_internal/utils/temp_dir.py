@@ -4,13 +4,13 @@ import logging
 import os.path
 import tempfile
 from contextlib import contextmanager
+from typing import TYPE_CHECKING
 
 from pip._vendor.contextlib2 import ExitStack
 
 from pip._internal.utils.misc import enum, rmtree
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import Any, Dict, Iterator, Optional, TypeVar, Union
 
     _T = TypeVar('_T', bound='TempDirectory')

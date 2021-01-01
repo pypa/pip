@@ -1,14 +1,14 @@
 import logging
 from collections import OrderedDict
+from typing import TYPE_CHECKING
 
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.models.wheel import Wheel
 from pip._internal.utils import compatibility_tags
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import Dict, Iterable, List, Optional, Tuple
 
     from pip._internal.req.req_install import InstallRequirement

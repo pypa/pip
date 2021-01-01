@@ -1,10 +1,10 @@
-from pip._vendor.packaging.utils import canonicalize_name
+from typing import TYPE_CHECKING
 
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._vendor.packaging.utils import canonicalize_name
 
 from .base import Requirement, format_name
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from pip._vendor.packaging.specifiers import SpecifierSet
 
     from pip._internal.req.req_install import InstallRequirement

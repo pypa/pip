@@ -1,12 +1,12 @@
 import logging
+from typing import TYPE_CHECKING
 
 from pip._internal.build_env import BuildEnvironment
 from pip._internal.distributions.base import AbstractDistribution
 from pip._internal.exceptions import InstallationError
 from pip._internal.utils.subprocess import runner_with_spinner_message
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import Set, Tuple
 
     from pip._vendor.pkg_resources import Distribution

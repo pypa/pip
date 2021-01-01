@@ -1,6 +1,7 @@
 import functools
 import logging
 import os
+from typing import TYPE_CHECKING
 
 from pip._vendor import six
 from pip._vendor.packaging.utils import canonicalize_name
@@ -19,12 +20,11 @@ from pip._internal.resolution.resolvelib.reporter import (
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.filetypes import is_archive_file
 from pip._internal.utils.misc import dist_is_editable
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 from .base import Constraint
 from .factory import Factory
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import Dict, List, Optional, Set, Tuple
 
     from pip._vendor.resolvelib.resolvers import Result

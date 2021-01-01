@@ -8,6 +8,7 @@ import subprocess
 import sys
 import time
 from contextlib import contextmanager
+from typing import TYPE_CHECKING
 from unittest.mock import patch
 
 import pytest
@@ -16,14 +17,13 @@ from setuptools.wheel import Wheel
 
 from pip._internal.cli.main import main as pip_entry_point
 from pip._internal.utils.temp_dir import global_tempdir_manager
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from tests.lib import DATA_DIR, SRC_DIR, PipTestEnvironment, TestData
 from tests.lib.certs import make_tls_cert, serialize_cert, serialize_key
 from tests.lib.path import Path
 from tests.lib.server import make_mock_server, server_running
 from tests.lib.venv import VirtualEnvironment
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import Dict, Iterable
 
     from tests.lib.server import MockServer as _MockServer

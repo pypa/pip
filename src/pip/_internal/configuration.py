@@ -16,6 +16,7 @@ import locale
 import logging
 import os
 import sys
+from typing import TYPE_CHECKING
 
 from pip._internal.exceptions import (
     ConfigurationError,
@@ -24,9 +25,8 @@ from pip._internal.exceptions import (
 from pip._internal.utils import appdirs
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import ensure_dir, enum
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import Any, Dict, Iterable, List, NewType, Optional, Tuple
 
     RawConfigParser = configparser.RawConfigParser  # Shorthand

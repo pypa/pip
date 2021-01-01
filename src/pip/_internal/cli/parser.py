@@ -8,15 +8,15 @@ import optparse
 import shutil
 import sys
 import textwrap
+from typing import TYPE_CHECKING
 
 from pip._vendor.contextlib2 import suppress
 
 from pip._internal.cli.status_codes import UNKNOWN_ERROR
 from pip._internal.configuration import Configuration, ConfigurationError
 from pip._internal.utils.misc import redact_auth_from_url, strtobool
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import Any
 
 logger = logging.getLogger(__name__)

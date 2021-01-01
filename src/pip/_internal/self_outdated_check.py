@@ -4,6 +4,7 @@ import json
 import logging
 import os.path
 import sys
+from typing import TYPE_CHECKING
 
 from pip._vendor.packaging import version as packaging_version
 
@@ -13,9 +14,8 @@ from pip._internal.metadata import get_default_environment
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.utils.filesystem import adjacent_tmp_file, check_path_owner, replace
 from pip._internal.utils.misc import ensure_dir, get_installed_version
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     import optparse
     from typing import Any, Dict
 

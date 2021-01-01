@@ -2,6 +2,7 @@ import os
 import posixpath
 import re
 import urllib.parse
+from typing import TYPE_CHECKING
 
 from pip._internal.utils.filetypes import WHEEL_EXTENSION
 from pip._internal.utils.misc import (
@@ -10,10 +11,9 @@ from pip._internal.utils.misc import (
     splitext,
 )
 from pip._internal.utils.models import KeyBasedCompareMixin
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import path_to_url, url_to_path
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import Optional, Tuple, Union
 
     from pip._internal.index.collector import HTMLPage

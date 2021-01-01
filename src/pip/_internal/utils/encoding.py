@@ -2,10 +2,9 @@ import codecs
 import locale
 import re
 import sys
+from typing import TYPE_CHECKING
 
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import List, Tuple
 
 BOMS = [
