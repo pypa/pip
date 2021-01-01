@@ -128,7 +128,11 @@ class Subversion(VersionControl):
                 )
                 raise RemoteNotFoundError
 
-        return cls._get_svn_url_rev(location)[0]
+        url, _rev = cls._get_svn_url_rev(location)
+        if url is None:
+            raise RemoteNotFoundError
+
+        return url
 
     @classmethod
     def _get_svn_url_rev(cls, location):
