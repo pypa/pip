@@ -345,6 +345,7 @@ class Git(VersionControl):
 
     @classmethod
     def get_revision(cls, location, rev=None):
+        # type: (str, Optional[str]) -> str
         if rev is None:
             rev = 'HEAD'
         current_rev = cls.run_command(

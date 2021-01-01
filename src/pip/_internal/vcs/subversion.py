@@ -49,6 +49,7 @@ class Subversion(VersionControl):
 
     @classmethod
     def get_revision(cls, location):
+        # type: (str) -> str
         """
         Return the maximum revision for all files under a given location
         """
@@ -73,7 +74,7 @@ class Subversion(VersionControl):
                 dirs[:] = []
                 continue    # not part of the same svn tree, skip it
             revision = max(revision, localrev)
-        return revision
+        return str(revision)
 
     @classmethod
     def get_netloc_and_auth(cls, netloc, scheme):

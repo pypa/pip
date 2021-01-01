@@ -97,6 +97,7 @@ class Mercurial(VersionControl):
 
     @classmethod
     def get_revision(cls, location):
+        # type: (str) -> str
         """
         Return the repository-local changeset revision number, as an integer.
         """
