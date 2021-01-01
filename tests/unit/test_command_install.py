@@ -4,6 +4,7 @@ from unittest.mock import patch
 import pytest
 from pip._vendor.packaging.requirements import Requirement
 
+from pip._internal.commands import install
 from pip._internal.commands.install import (
     create_os_error_message,
     decide_user_install,
@@ -109,7 +110,8 @@ def test_rejection_for_location_requirement_options():
         ' permissions.\n'),
 ])
 def test_create_os_error_message(
-    error, show_traceback, using_user_site, expected
+    monkeypatch, error, show_traceback, using_user_site, expected
 ):
+    monkeypatch.setattr(install, "running_under_virtualenv", lambda: False)
     msg = create_os_error_message(error, show_traceback, using_user_site)
     assert msg == expected
