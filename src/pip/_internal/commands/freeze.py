@@ -93,7 +93,7 @@ class FreezeCommand(Command):
                 issue=9069,
             )
 
-        freeze_kwargs = dict(
+        for line in freeze(
             requirement=options.requirements,
             find_links=options.find_links,
             local_only=options.local,
@@ -102,8 +102,6 @@ class FreezeCommand(Command):
             isolated=options.isolated_mode,
             skip=skip,
             exclude_editable=options.exclude_editable,
-        )
-
-        for line in freeze(**freeze_kwargs):
+        ):
             sys.stdout.write(line + '\n')
         return SUCCESS
