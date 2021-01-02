@@ -430,3 +430,28 @@ class TestCallSubprocess:
                 [sys.executable, '-c', 'input()'],
                 show_stdout=True,
             )
+
+
+def test_unicode_decode_error(caplog):
+    if locale.getpreferredencoding() != "UTF-8":
+        pytest.skip("locale.getpreferredencoding() is not UTF-8")
+    caplog.set_level(INFO)
+    call_subprocess(
+        [
+            sys.executable,
+            "-c",
+            "import sys; sys.stdout.buffer.write(b'\\xff')",
+        ],
+        show_stdout=True
+    )
+
+    assert len(caplog.records) == 3
+    # First log record is "Running command ..."
+    assert caplog.record_tuples[1:] == [
+        (
+            "pip._internal.utils.compat",
+            WARNING,
+            "Subprocess output does not appear to be encoded as UTF-8",
+        ),
+        ("pip.subprocessor", INFO, "\\xff"),
+    ]
