@@ -14,7 +14,6 @@ import shutil
 import stat
 import sys
 import urllib.parse
-from collections import deque
 from io import StringIO
 from itertools import filterfalse, tee, zip_longest
 
@@ -633,11 +632,6 @@ def get_installed_version(dist_name, working_set=None):
     # Check to see if we got an installed distribution or not, if we did
     # we want to return it's version.
     return dist.version if dist else None
-
-
-def consume(iterator):
-    """Consume an iterable at C speed."""
-    deque(iterator, maxlen=0)
 
 
 # Simulates an enum
