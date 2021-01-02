@@ -46,22 +46,7 @@ def test_get_path_uid_symlink_without_NOFOLLOW(tmpdir, monkeypatch):
         get_path_uid(fs)
 
 
-@pytest.mark.parametrize('data, expected', [
-    ('abc', 'abc'),
-    # Test text input with non-ascii characters.
-    ('déf', 'déf'),
-])
-def test_str_to_display(data, expected):
-    actual = str_to_display(data)
-    assert actual == expected, (
-        # Show the encoding for easier troubleshooting.
-        f'encoding: {locale.getpreferredencoding()!r}'
-    )
-
-
 @pytest.mark.parametrize('data, encoding, expected', [
-    # Test str input with non-ascii characters.
-    ('déf', 'utf-8', 'déf'),
     # Test bytes input with non-ascii characters:
     ('déf'.encode('utf-8'), 'utf-8', 'déf'),
     # Test a Windows encoding.

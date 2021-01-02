@@ -6,7 +6,7 @@ from typing import Any, Callable, Iterable, List, Mapping, Optional, Union
 
 from pip._internal.cli.spinners import SpinnerInterface, open_spinner
 from pip._internal.exceptions import InstallationSubprocessError
-from pip._internal.utils.compat import console_to_str, str_to_display
+from pip._internal.utils.compat import console_to_str
 from pip._internal.utils.logging import subprocess_logger
 from pip._internal.utils.misc import HiddenText
 
@@ -74,11 +74,6 @@ def make_subprocess_output_error(
     :param lines: A list of lines, each ending with a newline.
     """
     command = format_command_args(cmd_args)
-    # Convert `command` and `cwd` to text (unicode in Python 2) so we can use
-    # them as arguments in the unicode format string below. This avoids
-    # "UnicodeDecodeError: 'ascii' codec can't decode byte ..." in Python 2
-    # if either contains a non-ascii character.
-    command_display = str_to_display(command, desc='command bytes')
 
     # We know the joined output value ends in a newline.
     output = ''.join(lines)
@@ -92,7 +87,7 @@ def make_subprocess_output_error(
         'Complete output ({line_count} lines):\n{output}{divider}'
     ).format(
         exit_status=exit_status,
-        command_display=command_display,
+        command_display=command,
         cwd_display=cwd,
         line_count=len(lines),
         output=output,

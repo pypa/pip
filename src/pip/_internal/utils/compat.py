@@ -9,7 +9,7 @@ import locale
 import logging
 import os
 import sys
-from typing import Optional, Union
+from typing import Optional
 
 __all__ = ["console_to_str", "get_path_uid", "stdlib_pkgs", "WINDOWS"]
 
@@ -30,7 +30,7 @@ def has_tls():
 
 
 def str_to_display(data, desc=None):
-    # type: (Union[bytes, str], Optional[str]) -> str
+    # type: (bytes, Optional[str]) -> str
     """
     For display or logging purposes, convert a bytes object (or text) to
     text (e.g. unicode in Python 2) safe for output.
@@ -48,10 +48,7 @@ def str_to_display(data, desc=None):
     We also ensure that the output can be safely written to standard output
     without encoding errors.
     """
-    if isinstance(data, str):
-        return data
 
-    # Otherwise, data is a bytes object (str in Python 2).
     # First, get the encoding we assume. This is the preferred
     # encoding for the locale, unless that is not found, or
     # it is ASCII, in which case assume UTF-8
