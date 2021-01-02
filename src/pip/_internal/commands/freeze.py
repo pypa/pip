@@ -1,10 +1,8 @@
 import sys
 
-from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import SUCCESS
-from pip._internal.models.format_control import FormatControl
 from pip._internal.operations.freeze import freeze
 from pip._internal.utils.compat import stdlib_pkgs
 from pip._internal.utils.deprecation import deprecated
@@ -78,8 +76,6 @@ class FreezeCommand(Command):
 
     def run(self, options, args):
         # type: (Values, List[str]) -> int
-        format_control = FormatControl(set(), set())
-        wheel_cache = WheelCache(options.cache_dir, format_control)
         skip = set(stdlib_pkgs)
         if not options.freeze_all:
             skip.update(DEV_PKGS)
@@ -104,7 +100,6 @@ class FreezeCommand(Command):
             user_only=options.user,
             paths=options.path,
             isolated=options.isolated_mode,
-            wheel_cache=wheel_cache,
             skip=skip,
             exclude_editable=options.exclude_editable,
         )

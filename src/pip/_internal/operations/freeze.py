@@ -33,8 +33,6 @@ if MYPY_CHECK_RUNNING:
 
     from pip._vendor.pkg_resources import Distribution, Requirement
 
-    from pip._internal.cache import WheelCache
-
     RequirementInfo = Tuple[Optional[Union[str, Requirement]], bool, List[str]]
 
 
@@ -48,7 +46,6 @@ def freeze(
     user_only=False,  # type: bool
     paths=None,  # type: Optional[List[str]]
     isolated=False,  # type: bool
-    wheel_cache=None,  # type: Optional[WheelCache]
     exclude_editable=False,  # type: bool
     skip=()  # type: Container[str]
 ):
