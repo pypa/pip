@@ -4,14 +4,11 @@ distributions."""
 # The following comment should be removed at some point in the future.
 # mypy: disallow-untyped-defs=False
 
-import codecs
-import locale
 import logging
 import os
 import sys
-from typing import Optional
 
-__all__ = ["console_to_str", "get_path_uid", "stdlib_pkgs", "WINDOWS"]
+__all__ = ["get_path_uid", "stdlib_pkgs", "WINDOWS"]
 
 
 logger = logging.getLogger(__name__)
@@ -27,77 +24,6 @@ def has_tls():
 
     from pip._vendor.urllib3.util import IS_PYOPENSSL
     return IS_PYOPENSSL
-
-
-def str_to_display(data, desc=None):
-    # type: (bytes, Optional[str]) -> str
-    """
-    For display or logging purposes, convert a bytes object (or text) to
-    text (e.g. unicode in Python 2) safe for output.
-
-    :param desc: An optional phrase describing the input data, for use in
-        the log message if a warning is logged. Defaults to "Bytes object".
-
-    This function should never error out and so can take a best effort
-    approach. It is okay to be lossy if needed since the return value is
-    just for display.
-
-    We assume the data is in the locale preferred encoding. If it won't
-    decode properly, we warn the user but decode as best we can.
-
-    We also ensure that the output can be safely written to standard output
-    without encoding errors.
-    """
-
-    # First, get the encoding we assume. This is the preferred
-    # encoding for the locale, unless that is not found, or
-    # it is ASCII, in which case assume UTF-8
-    encoding = locale.getpreferredencoding()
-    if (not encoding) or codecs.lookup(encoding).name == "ascii":
-        encoding = "utf-8"
-
-    # Now try to decode the data - if we fail, warn the user and
-    # decode with replacement.
-    try:
-        decoded_data = data.decode(encoding)
-    except UnicodeDecodeError:
-        logger.warning(
-            '%s does not appear to be encoded as %s',
-            desc or 'Bytes object',
-            encoding,
-        )
-        decoded_data = data.decode(encoding, errors="backslashreplace")
-
-    # Make sure we can print the output, by encoding it to the output
-    # encoding with replacement of unencodable characters, and then
-    # decoding again.
-    # We use stderr's encoding because it's less likely to be
-    # redirected and if we don't find an encoding we skip this
-    # step (on the assumption that output is wrapped by something
-    # that won't fail).
-    # The double getattr is to deal with the possibility that we're
-    # being called in a situation where sys.__stderr__ doesn't exist,
-    # or doesn't have an encoding attribute. Neither of these cases
-    # should occur in normal pip use, but there's no harm in checking
-    # in case people use pip in (unsupported) unusual situations.
-    output_encoding = getattr(getattr(sys, "__stderr__", None),
-                              "encoding", None)
-
-    if output_encoding:
-        output_encoded = decoded_data.encode(
-            output_encoding,
-            errors="backslashreplace"
-        )
-        decoded_data = output_encoded.decode(output_encoding)
-
-    return decoded_data
-
-
-def console_to_str(data):
-    # type: (bytes) -> str
-    """Return a string, safe for output, of subprocess output.
-    """
-    return str_to_display(data, desc='Subprocess output')
 
 
 def get_path_uid(path):

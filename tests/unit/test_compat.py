@@ -1,11 +1,8 @@
-import locale
 import os
-import sys
 
 import pytest
 
-import pip._internal.utils.compat as pip_compat
-from pip._internal.utils.compat import console_to_str, get_path_uid, str_to_display
+from pip._internal.utils.compat import get_path_uid
 
 
 def test_get_path_uid():
@@ -44,66 +41,3 @@ def test_get_path_uid_symlink_without_NOFOLLOW(tmpdir, monkeypatch):
     os.symlink(f, fs)
     with pytest.raises(OSError):
         get_path_uid(fs)
-
-
-@pytest.mark.parametrize('data, encoding, expected', [
-    # Test bytes input with non-ascii characters:
-    ('déf'.encode('utf-8'), 'utf-8', 'déf'),
-    # Test a Windows encoding.
-    ('déf'.encode('cp1252'), 'cp1252', 'déf'),
-    # Test a Windows encoding with incompatibly encoded text.
-    ('déf'.encode('utf-8'), 'cp1252', 'dÃ©f'),
-])
-def test_str_to_display__encoding(monkeypatch, data, encoding, expected):
-    monkeypatch.setattr(locale, 'getpreferredencoding', lambda: encoding)
-    actual = str_to_display(data)
-    assert actual == expected, (
-        # Show the encoding for easier troubleshooting.
-        f'encoding: {locale.getpreferredencoding()!r}'
-    )
-
-
-def test_str_to_display__decode_error(monkeypatch, caplog):
-    monkeypatch.setattr(locale, 'getpreferredencoding', lambda: 'utf-8')
-    # Encode with an incompatible encoding.
-    data = 'ab'.encode('utf-16')
-    actual = str_to_display(data)
-    # Keep the expected value endian safe
-    if sys.byteorder == "little":
-        expected = "\\xff\\xfea\x00b\x00"
-    elif sys.byteorder == "big":
-        expected = "\\xfe\\xff\x00a\x00b"
-
-    assert actual == expected, (
-        # Show the encoding for easier troubleshooting.
-        f'encoding: {locale.getpreferredencoding()!r}'
-    )
-    assert len(caplog.records) == 1
-    record = caplog.records[0]
-    assert record.levelname == 'WARNING'
-    assert record.message == (
-        'Bytes object does not appear to be encoded as utf-8'
-    )
-
-
-def test_console_to_str(monkeypatch):
-    some_bytes = b"a\xE9\xC3\xE9b"
-    encodings = ('ascii', 'utf-8', 'iso-8859-1', 'iso-8859-5',
-                 'koi8_r', 'cp850')
-    for e in encodings:
-        monkeypatch.setattr(locale, 'getpreferredencoding', lambda: e)
-        result = console_to_str(some_bytes)
-        assert result.startswith("a")
-        assert result.endswith("b")
-
-
-def test_console_to_str_warning(monkeypatch):
-    some_bytes = b"a\xE9b"
-
-    def check_warning(msg, *args, **kwargs):
-        assert 'does not appear to be encoded as' in msg
-        assert args[0] == 'Subprocess output'
-
-    monkeypatch.setattr(locale, 'getpreferredencoding', lambda: 'utf-8')
-    monkeypatch.setattr(pip_compat.logger, 'warning', check_warning)
-    console_to_str(some_bytes)

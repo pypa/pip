@@ -445,13 +445,6 @@ def test_unicode_decode_error(caplog):
         show_stdout=True
     )
 
-    assert len(caplog.records) == 3
+    assert len(caplog.records) == 2
     # First log record is "Running command ..."
-    assert caplog.record_tuples[1:] == [
-        (
-            "pip._internal.utils.compat",
-            WARNING,
-            "Subprocess output does not appear to be encoded as UTF-8",
-        ),
-        ("pip.subprocessor", INFO, "\\xff"),
-    ]
+    assert caplog.record_tuples[1] == ("pip.subprocessor", INFO, "\\xff")
