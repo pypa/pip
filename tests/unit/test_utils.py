@@ -38,7 +38,6 @@ from pip._internal.utils.misc import (
     normalize_path,
     normalize_version_info,
     parse_netloc,
-    path_to_display,
     redact_auth_from_url,
     redact_netloc,
     remove_auth_from_url,
@@ -429,22 +428,6 @@ elif sys.byteorder == "big":
         "b'\\xfe\\xff\\x00/\\x00p\\x00a\\x00t\\x00h\\"
         "x00/\\x00d\\x00\\xe9\\x00f'"
     )
-
-
-@pytest.mark.parametrize('path, fs_encoding, expected', [
-    (None, None, None),
-    # Test passing a text (unicode) string.
-    ('/path/déf', None, '/path/déf'),
-    # Test a bytes object with a non-ascii character.
-    ('/path/déf'.encode('utf-8'), 'utf-8', '/path/déf'),
-    # Test a bytes object with a character that can't be decoded.
-    ('/path/déf'.encode('utf-8'), 'ascii', "b'/path/d\\xc3\\xa9f'"),
-    ('/path/déf'.encode('utf-16'), 'utf-8', expected_byte_string),
-])
-def test_path_to_display(monkeypatch, path, fs_encoding, expected):
-    monkeypatch.setattr(sys, 'getfilesystemencoding', lambda: fs_encoding)
-    actual = path_to_display(path)
-    assert actual == expected, f'actual: {actual!r}'
 
 
 class Test_normalize_path:
