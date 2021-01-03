@@ -22,8 +22,8 @@ class Path(str):
 
     def __new__(cls, *paths):
         if len(paths):
-            return str.__new__(cls, os.path.join(*paths))
-        return str.__new__(cls)
+            return super().__new__(cls, os.path.join(*paths))
+        return super().__new__(cls)
 
     def __div__(self, path):
         """
@@ -74,7 +74,7 @@ class Path(str):
         return "Path({inner})".format(inner=str.__repr__(self))
 
     def __hash__(self):
-        return str.__hash__(self)
+        return super().__hash__()
 
     @property
     def name(self):

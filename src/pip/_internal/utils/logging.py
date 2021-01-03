@@ -205,7 +205,7 @@ class ColorizedStreamHandler(logging.StreamHandler):
 
     def format(self, record):
         # type: (logging.LogRecord) -> str
-        msg = logging.StreamHandler.format(self, record)
+        msg = super().format(record)
 
         if self.should_color():
             for level, color in self.COLORS:
@@ -238,7 +238,7 @@ class BetterRotatingFileHandler(logging.handlers.RotatingFileHandler):
     def _open(self):
         # type: () -> IO[Any]
         ensure_dir(os.path.dirname(self.baseFilename))
-        return logging.handlers.RotatingFileHandler._open(self)
+        return super()._open()
 
 
 class MaxLevelFilter(Filter):
