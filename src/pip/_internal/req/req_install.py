@@ -800,6 +800,17 @@ class InstallRequirement:
             self.install_succeeded = True
             return
 
+        if self.legacy_install_reason == 9769:
+            deprecated(
+                reason=(
+                    "Installing {} using the legacy 'setup.py install' "
+                    "method, due to binaries being disabled for it.".format(self.name)
+                ),
+                replacement="--use-feature=always-install-via-wheel",
+                gone_in=None,
+                issue=9769,
+            )
+
         # TODO: Why don't we do this for editable installs?
 
         # Extend the list of global and install options passed on to

@@ -1,0 +1,9 @@
+Deprecate legacy setup.py install when --no-binary is used:
+
+- add a new feature flag ``--use-feature=always-install-via-wheel``, that is intended to become the default and only mechanism in the future
+- when ``--no-binary`` is used without the feature flag, emit a deprecation warning about the fallback to ``setup.py install``
+- when ``--no-binary`` is used with the feature flag, build a wheel from the sdist (via PEP 517 or ``setup.py bdist_wheel``) then install it
+- when ``--no-binary`` is used with the feature flag, the wheel that was built locally is cached (unless the cache is disabled)
+- since ``--install-option``, ``--build-option`` and ``--global-option`` imply ``--no-binary``, the deprecation warning will be emitted when these options are used without the feature flag
+- deprecate ``--install-option``
+- allow using ``--build-option`` in the ``install`` command, as well as in ``requirement.txt`` lines, as a transitory mechanism until the ecosystem supports PEP 517 config settings, which are meant to replace both ``--build-options`` and ``--global-options``
