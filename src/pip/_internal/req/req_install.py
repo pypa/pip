@@ -864,7 +864,7 @@ class InstallRequirement:
                     format(self.name)
                 ),
                 replacement="to fix the wheel build issue reported above",
-                gone_in="21.0",
+                gone_in=None,
                 issue=8368,
             )
 
