@@ -105,7 +105,10 @@ class WheelCommand(RequirementCommand):
         session = self.get_default_session(options)
 
         finder = self._build_package_finder(options, session)
-        wheel_cache = WheelCache(options.cache_dir, options.format_control)
+        if "always-install-via-wheel" in options.features_enabled:
+            wheel_cache = WheelCache(options.cache_dir)
+        else:
+            wheel_cache = WheelCache(options.cache_dir, options.format_control)
 
         options.wheel_dir = normalize_path(options.wheel_dir)
         ensure_dir(options.wheel_dir)
