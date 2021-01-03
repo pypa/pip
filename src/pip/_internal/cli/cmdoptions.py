@@ -824,6 +824,15 @@ install_options = partial(
     "directory path, be sure to use absolute path.",
 )  # type: Callable[..., Option]
 
+build_options = partial(
+    Option,
+    "--build-option",
+    dest="build_options",
+    metavar="options",
+    action="append",
+    help="Extra arguments to be supplied to 'setup.py bdist_wheel'.",
+)  # type: Callable[..., Option]
+
 global_options = partial(
     Option,
     "--global-option",

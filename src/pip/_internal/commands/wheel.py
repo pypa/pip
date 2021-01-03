@@ -54,13 +54,6 @@ class WheelCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.no_binary())
         self.cmd_opts.add_option(cmdoptions.only_binary())
         self.cmd_opts.add_option(cmdoptions.prefer_binary())
-        self.cmd_opts.add_option(
-            '--build-option',
-            dest='build_options',
-            metavar='options',
-            action='append',
-            help="Extra arguments to be supplied to 'setup.py bdist_wheel'.",
-        )
         self.cmd_opts.add_option(cmdoptions.no_build_isolation())
         self.cmd_opts.add_option(cmdoptions.use_pep517())
         self.cmd_opts.add_option(cmdoptions.no_use_pep517())
@@ -81,6 +74,7 @@ class WheelCommand(RequirementCommand):
             help="Don't verify if built wheel is valid.",
         )
 
+        self.cmd_opts.add_option(cmdoptions.build_options())
         self.cmd_opts.add_option(
             '--global-option',
             dest='global_options',
