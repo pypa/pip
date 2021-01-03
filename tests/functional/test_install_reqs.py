@@ -601,10 +601,10 @@ def test_install_distribution_union_with_versions(
         assert "Cannot install localextras[bar]" in result.stderr
         assert (
             "localextras[bar] 0.0.1 depends on localextras 0.0.1"
-        ) in result.stdout
+        ) in result.stderr
         assert (
             "localextras[baz] 0.0.2 depends on localextras 0.0.2"
-        ) in result.stdout
+        ) in result.stderr
     else:
         assert (
             "Successfully installed LocalExtras-0.0.1 simple-3.0 "

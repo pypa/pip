@@ -469,9 +469,8 @@ class Factory:
             info = "the requested packages"
 
         msg = "Cannot install {} because these package versions " \
-            "have conflicting dependencies.".format(info)
-        logger.critical(msg)
-        msg = "\nThe conflict is caused by:"
+            "have conflicting dependencies.\n".format(info)
+        msg = msg + "\nThe conflict is caused by:"
         for req, parent in e.causes:
             msg = msg + "\n    "
             if parent:
@@ -489,7 +488,7 @@ class Factory:
             "2. remove package versions to allow pip attempt to solve " + \
             "the dependency conflict\n"
 
-        logger.info(msg)
+        logger.critical(msg)
 
         return DistributionNotFound(
             "ResolutionImpossible: for help visit "
