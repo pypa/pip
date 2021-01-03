@@ -217,6 +217,7 @@ class InstallCommand(RequirementCommand):
 
         self.cmd_opts.add_option(cmdoptions.config_settings())
         self.cmd_opts.add_option(cmdoptions.install_options())
+        self.cmd_opts.add_option(cmdoptions.build_options())
         self.cmd_opts.add_option(cmdoptions.global_options())
 
         self.cmd_opts.add_option(
@@ -434,8 +435,8 @@ class InstallCommand(RequirementCommand):
                 reqs_to_build,
                 wheel_cache=wheel_cache,
                 verify=True,
-                build_options=[],
-                global_options=[],
+                build_options=options.build_options or [],
+                global_options=options.global_options or [],
             )
 
             # If we're using PEP 517, we cannot do a legacy setup.py install
