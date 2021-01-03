@@ -1,0 +1,6 @@
+Add an ``always-install-via-wheel`` feature flag. When enabled, ``--no-binary``
+no longer implies using the legacy ``setup.py install`` path, and instead
+a wheel is built locally before installing. ``--build-option`` and
+``--global-option`` are now passed to ``setup.py bdist_wheel`` in ``pip
+install``, as it was already done in ``pip wheel``. ``--install-option`` is
+ignored (because there is no ``setup.py install`` involved).

@@ -724,6 +724,17 @@ def test_install_global_option(script):
     assert not result.files_created
 
 
+def test_install_global_option_does_not_disable_wheel_building(
+    script, data, with_wheel
+):
+    res = script.pip(
+        'install', '--no-index', '--global-option=-v', '-f', data.find_links,
+        '--use-feature=always-install-via-wheel',
+        'upper', expect_stderr=True)
+    assert "Successfully installed upper-2.0" in str(res), str(res)
+    assert "Building wheel for upper" in str(res), str(res)
+
+
 def test_install_with_hacked_egg_info(script, data):
     """
     test installing a package which defines its own egg_info class
@@ -1437,6 +1448,17 @@ def test_install_no_binary_disables_building_wheels(script, data, with_wheel):
     # And these two fell back to sdist based installed.
     assert "Running setup.py install for wheelb" in str(res), str(res)
     assert "Running setup.py install for upper" in str(res), str(res)
+
+
+def test_install_no_binary_does_not_disable_building_wheels(
+    script, data, with_wheel
+):
+    res = script.pip(
+        'install', '--no-index', '--no-binary=upper', '-f', data.find_links,
+        '--use-feature=always-install-via-wheel',
+        'upper', expect_stderr=True)
+    assert "Successfully installed upper-2.0" in str(res), str(res)
+    assert "Building wheel for upper" in str(res), str(res)
 
 
 @pytest.mark.network

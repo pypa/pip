@@ -315,8 +315,9 @@ Per-requirement Overrides
 -------------------------
 
 Since version 7.0 pip supports controlling the command line options given to
-``setup.py`` via requirements files. This disables the use of wheels (cached or
-otherwise) for that package, as ``setup.py`` does not exist for wheels.
+``setup.py`` via requirements files.  Unless the ``always-install-via-wheel``
+feature is enabled, this disables the use of wheels (cached or otherwise),
+as ``setup.py`` does not exist for wheels.
 
 The ``--global-option`` and ``--install-option`` options are used to pass
 options to ``setup.py``. For example:
@@ -333,6 +334,10 @@ script as:
  ::
 
    python setup.py --no-user-cfg install --prefix='/usr/local' --no-compile
+
+When the ``always-install-via-wheel`` feature is enabled, ``--install-option``
+is ignored, and ``--global-option`` is passed to the ``setup.py bdist_wheel``
+command that is used to create a wheel that will be installed.
 
 Note that the only way of giving more than one option to ``setup.py``
 is through multiple ``--global-option`` and ``--install-option``

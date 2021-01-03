@@ -501,12 +501,15 @@ def no_binary():
         callback=_handle_no_binary,
         type="str",
         default=format_control,
-        help="Do not use binary packages. Can be supplied multiple times, and "
+        help="Do not download binary packages nor use the wheel cache. "
+        "Can be supplied multiple times, and "
         'each time adds to the existing value. Accepts either ":all:" to '
         'disable all binary packages, ":none:" to empty the set (notice '
         "the colons), or one or more package names with commas between "
         "them (no colons). Note that some packages are tricky to compile "
-        "and may fail to install when this option is used on them.",
+        "and may fail to install when this option is used on them. "
+        "Additionally, this option forces the use of the legacy 'setup.py install' "
+        "path, unless the 'always-install-via-wheel' feature is enabled.",
     )
 
 
@@ -821,7 +824,10 @@ install_options = partial(
     'command (use like --install-option="--install-scripts=/usr/local/'
     'bin"). Use multiple --install-option options to pass multiple '
     "options to setup.py install. If you are using an option with a "
-    "directory path, be sure to use absolute path.",
+    "directory path, be sure to use absolute path. "
+    "This option implies '--no-binary :all:'. "
+    "It is ignored by the 'pip install' command when the "
+    "'always-install-via-wheel' feature is enabled.",
 )  # type: Callable[..., Option]
 
 build_options = partial(
@@ -830,7 +836,10 @@ build_options = partial(
     dest="build_options",
     metavar="options",
     action="append",
-    help="Extra arguments to be supplied to 'setup.py bdist_wheel'.",
+    help="Extra arguments to be supplied to 'setup.py bdist_wheel'. "
+    "This option implies '--no-binary :all:'."
+    "It is ignored by the 'pip install' command unless the "
+    "'always-install-via-wheel' feature is enabled.",
 )  # type: Callable[..., Option]
 
 global_options = partial(
@@ -840,7 +849,8 @@ global_options = partial(
     action="append",
     metavar="options",
     help="Extra global options to be supplied to the setup.py "
-    "call before the install or bdist_wheel command.",
+    "call before the install or bdist_wheel command. "
+    "This option implies '--no-binary :all:'.",
 )  # type: Callable[..., Option]
 
 no_clean = partial(
@@ -965,7 +975,7 @@ use_new_feature = partial(
     metavar="feature",
     action="append",
     default=[],
-    choices=["2020-resolver", "fast-deps", "in-tree-build"],
+    choices=["2020-resolver", "fast-deps", "in-tree-build", "always-install-via-wheel"],
     help="Enable new functionality, that may be backward incompatible.",
 )  # type: Callable[..., Option]
 
