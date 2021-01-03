@@ -68,6 +68,12 @@ def check_install_build_global(
     :param check_options: The options to check, if not supplied defaults to
         options.
     """
+    if "always-install-via-wheel" in options.features_enabled:
+        # In this mode, we accept --global-option and --build-option that are
+        # passed to setup.py bdist_wheel. --install-option is not allowed at
+        # all in this mode, since setup.py install will not be used.
+        return
+
     if check_options is None:
         check_options = options
 
@@ -78,6 +84,7 @@ def check_install_build_global(
     if any(map(getname, names)):
         control = options.format_control
         control.disallow_binaries()
+        # TODO this should be a deprecation
         logger.warning(
             "Disabling all use of wheels due to the use of --build-option "
             "/ --global-option / --install-option.",
@@ -1000,7 +1007,7 @@ use_new_feature: Callable[..., Option] = partial(
     metavar="feature",
     action="append",
     default=[],
-    choices=["2020-resolver", "fast-deps", "truststore"],
+    choices=["2020-resolver", "fast-deps", "truststore", "always-install-via-wheel"],
     help="Enable new functionality, that may be backward incompatible.",
 )
 

@@ -52,8 +52,12 @@ from pip._internal.wheel_builder import (
 logger = getLogger(__name__)
 
 
-def get_check_binary_allowed(format_control: FormatControl) -> BinaryAllowedPredicate:
+def get_check_binary_allowed(
+    format_control: FormatControl, features_enabled: List[str]
+) -> BinaryAllowedPredicate:
     def check_binary_allowed(req: InstallRequirement) -> bool:
+        if "always-install-via-wheel" in features_enabled:
+            return True
         canonical_name = canonicalize_name(req.name or "")
         allowed_formats = format_control.get_allowed_formats(canonical_name)
         return "binary" in allowed_formats
@@ -406,7 +410,9 @@ class InstallCommand(RequirementCommand):
                 modifying_pip = pip_req.satisfied_by is None
             protect_pip_from_modification_on_windows(modifying_pip=modifying_pip)
 
-            check_binary_allowed = get_check_binary_allowed(finder.format_control)
+            check_binary_allowed = get_check_binary_allowed(
+                finder.format_control, options.features_enabled
+            )
 
             reqs_to_build = [
                 r

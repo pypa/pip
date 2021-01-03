@@ -79,8 +79,8 @@ def _should_build(
 
     if not check_binary_allowed(req):
         logger.info(
-            "Skipping wheel build for %s, due to binaries being disabled for it.",
-            req.name,
+            "Using legacy 'setup.py install' for %s, due to binaries "
+            "being disabled for it.", req.name,
         )
         return False
 
