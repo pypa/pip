@@ -1,5 +1,6 @@
 """Base Command class, and related routines"""
 
+import functools
 import logging
 import logging.config
 import optparse
@@ -7,7 +8,7 @@ import os
 import sys
 import traceback
 from optparse import Values
-from typing import List, Optional, Tuple
+from typing import Any, Callable, List, Optional, Tuple
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.command_context import CommandContextMixIn
@@ -169,46 +170,60 @@ class Command(CommandContextMixIn):
                 "This will become an error in pip 21.0."
             )
 
+        def intercepts_unhandled_exc(
+            run_func: Callable[..., int]
+        ) -> Callable[..., int]:
+            @functools.wraps(run_func)
+            def exc_logging_wrapper(*args: Any) -> int:
+                try:
+                    status = run_func(*args)
+                    assert isinstance(status, int)
+                    return status
+                except PreviousBuildDirError as exc:
+                    logger.critical(str(exc))
+                    logger.debug("Exception information:", exc_info=True)
+
+                    return PREVIOUS_BUILD_DIR_ERROR
+                except (
+                    InstallationError,
+                    UninstallationError,
+                    BadCommand,
+                    NetworkConnectionError,
+                ) as exc:
+                    logger.critical(str(exc))
+                    logger.debug("Exception information:", exc_info=True)
+
+                    return ERROR
+                except CommandError as exc:
+                    logger.critical("%s", exc)
+                    logger.debug("Exception information:", exc_info=True)
+
+                    return ERROR
+                except BrokenStdoutLoggingError:
+                    # Bypass our logger and write any remaining messages to
+                    # stderr because stdout no longer works.
+                    print("ERROR: Pipe to stdout was broken", file=sys.stderr)
+                    if level_number <= logging.DEBUG:
+                        traceback.print_exc(file=sys.stderr)
+
+                    return ERROR
+                except KeyboardInterrupt:
+                    logger.critical("Operation cancelled by user")
+                    logger.debug("Exception information:", exc_info=True)
+
+                    return ERROR
+                except BaseException:
+                    logger.critical("Exception:", exc_info=True)
+
+                    return UNKNOWN_ERROR
+
+            return exc_logging_wrapper
+
         try:
-            status = self.run(options, args)
-            assert isinstance(status, int)
-            return status
-        except PreviousBuildDirError as exc:
-            logger.critical(str(exc))
-            logger.debug("Exception information:", exc_info=True)
-
-            return PREVIOUS_BUILD_DIR_ERROR
-        except (
-            InstallationError,
-            UninstallationError,
-            BadCommand,
-            NetworkConnectionError,
-        ) as exc:
-            logger.critical(str(exc))
-            logger.debug("Exception information:", exc_info=True)
-
-            return ERROR
-        except CommandError as exc:
-            logger.critical("%s", exc)
-            logger.debug("Exception information:", exc_info=True)
-
-            return ERROR
-        except BrokenStdoutLoggingError:
-            # Bypass our logger and write any remaining messages to stderr
-            # because stdout no longer works.
-            print("ERROR: Pipe to stdout was broken", file=sys.stderr)
-            if level_number <= logging.DEBUG:
-                traceback.print_exc(file=sys.stderr)
-
-            return ERROR
-        except KeyboardInterrupt:
-            logger.critical("Operation cancelled by user")
-            logger.debug("Exception information:", exc_info=True)
-
-            return ERROR
-        except BaseException:
-            logger.critical("Exception:", exc_info=True)
-
-            return UNKNOWN_ERROR
+            if not options.debug_mode:
+                run = intercepts_unhandled_exc(self.run)
+            else:
+                run = self.run
+            return run(options, args)
         finally:
             self.handle_pip_version_check(options)
