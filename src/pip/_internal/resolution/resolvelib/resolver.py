@@ -79,9 +79,9 @@ class Resolver(BaseResolver):
         # type: (List[InstallRequirement], bool) -> RequirementSet
 
         constraints = {}  # type: Dict[str, Constraint]
-        user_requested = set()  # type: Set[str]
+        user_requested = {}  # type: Dict[str, int]
         requirements = []
-        for req in root_reqs:
+        for i, req in enumerate(root_reqs):
             if req.constraint:
                 # Ensure we only accept valid constraints
                 problem = check_invalid_constraint_type(req)
@@ -96,7 +96,9 @@ class Resolver(BaseResolver):
                     constraints[name] = Constraint.from_ireq(req)
             else:
                 if req.user_supplied and req.name:
-                    user_requested.add(canonicalize_name(req.name))
+                    canonical_name = canonicalize_name(req.name)
+                    if canonical_name not in user_requested:
+                        user_requested[canonical_name] = i
                 r = self.factory.make_requirement_from_install_req(
                     req, requested_extras=(),
                 )
