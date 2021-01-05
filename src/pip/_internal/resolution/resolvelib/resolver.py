@@ -110,10 +110,13 @@ class Resolver(BaseResolver):
             upgrade_strategy=self.upgrade_strategy,
             user_requested=user_requested,
         )
+
+        resolver_progress_path = os.environ.get("PIP_RESOLVER_PROGRESS", "")
         if "PIP_RESOLVER_DEBUG" in os.environ:
-            reporter = PipDebuggingReporter()
+            reporter = PipDebuggingReporter(resolver_progress_path)
         else:
-            reporter = PipReporter()
+            reporter = PipReporter(resolver_progress_path)
+
         resolver = RLResolver(provider, reporter)
 
         try:

@@ -14,10 +14,29 @@ if MYPY_CHECK_RUNNING:
 logger = getLogger(__name__)
 
 
-class PipReporter(BaseReporter):
+class _BasePipReporter(BaseReporter):
+    def __init__(self, resolver_progress_path):
+        # type: (str) -> None
+        super().__init__()
+        self._resolver_progress_path = resolver_progress_path
+        self._indent = 0
 
-    def __init__(self):
-        # type: () -> None
+    def backtracking(self, candidate):
+        self._indent -= 1
+        with open(self._resolver_progress_path, "a") as f:
+            f.write("{}Back {}".format(" " * self._indent, candidate))
+
+    def pinning(self, candidate):
+        with open(self._resolver_progress_path, "a") as f:
+            f.write("{}Pin  {}".format(" " * self._indent, candidate))
+        self._indent += 1
+
+
+class PipReporter(_BasePipReporter):
+
+    def __init__(self, resolver_progress_path):
+        # type: (str) -> None
+        super().__init__(resolver_progress_path)
         self.backtracks_by_package = defaultdict(int)  # type: DefaultDict[str, int]
 
         self._messages_at_backtrack = {
@@ -42,6 +61,7 @@ class PipReporter(BaseReporter):
 
     def backtracking(self, candidate):
         # type: (Candidate) -> None
+        super().backtracking(candidate)
         self.backtracks_by_package[candidate.name] += 1
 
         count = self.backtracks_by_package[candidate.name]
@@ -52,7 +72,7 @@ class PipReporter(BaseReporter):
         logger.info("INFO: %s", message.format(package_name=candidate.name))
 
 
-class PipDebuggingReporter(BaseReporter):
+class PipDebuggingReporter(_BasePipReporter):
     """A reporter that does an info log for every event it sees."""
 
     def starting(self):
@@ -77,8 +97,10 @@ class PipDebuggingReporter(BaseReporter):
 
     def backtracking(self, candidate):
         # type: (Candidate) -> None
+        super().backtracking(candidate)
         logger.info("Reporter.backtracking(%r)", candidate)
 
     def pinning(self, candidate):
         # type: (Candidate) -> None
+        super().pinning(candidate)
         logger.info("Reporter.pinning(%r)", candidate)
