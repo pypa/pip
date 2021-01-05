@@ -347,6 +347,7 @@ class InstallCommand(RequirementCommand):
             _, build_failures = build(
                 reqs_to_build,
                 wheel_cache=wheel_cache,
+                verify=True,
                 build_options=[],
                 global_options=[],
             )
