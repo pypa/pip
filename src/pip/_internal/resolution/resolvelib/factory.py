@@ -228,8 +228,11 @@ class Factory:
             all_yanked = all(ican.link.is_yanked for ican in icans)
 
             # PackageFinder returns earlier versions first, so we reverse.
+            versions_found = set()  # type: Set[_BaseVersion]
             for ican in reversed(icans):
                 if not all_yanked and ican.link.is_yanked:
+                    continue
+                if ican.version in versions_found:
                     continue
                 candidate = self._make_candidate_from_link(
                     link=ican.link,
@@ -241,6 +244,7 @@ class Factory:
                 if candidate is None:
                     continue
                 yield candidate
+                versions_found.add(ican.version)
 
         return FoundCandidates(
             iter_index_candidates,
