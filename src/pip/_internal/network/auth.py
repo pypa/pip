@@ -27,54 +27,66 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.vcs.versioncontrol import AuthInfo
 
     Credentials = Tuple[str, str, str]
+    Keyring = Any  # TODO: Use a more-specific type for the keyring module
+
 
 logger = logging.getLogger(__name__)
 
-try:
-    import keyring
-except ImportError:
-    keyring = None
-except Exception as exc:
-    logger.warning(
-        "Keyring is skipped due to an exception: %s", str(exc),
-    )
-    keyring = None
-
-
-def get_keyring_auth(url, username):
-    # type: (str, str) -> Optional[AuthInfo]
-    """Return the tuple auth for a given url from keyring."""
-    global keyring
-    if not url or not keyring:
-        return None
-
-    try:
-        try:
-            get_credential = keyring.get_credential
-        except AttributeError:
-            pass
-        else:
-            logger.debug("Getting credentials from keyring for %s", url)
-            cred = get_credential(url, username)
-            if cred is not None:
-                return cred.username, cred.password
-            return None
-
-        if username:
-            logger.debug("Getting password from keyring for %s", url)
-            password = keyring.get_password(url, username)
-            if password:
-                return username, password
-
-    except Exception as exc:
-        logger.warning(
-            "Keyring is skipped due to an exception: %s", str(exc),
-        )
-        keyring = None
-    return None
-
 
 class MultiDomainBasicAuth(AuthBase):
+    @classmethod
+    def get_keyring(cls):
+        # type: () -> Optional[Keyring]
+        # Cache so the import is attempted at most once
+        if hasattr(cls, '_keyring'):
+            return cls._keyring
+
+        try:
+            import keyring
+        except ImportError:
+            keyring = None
+        except Exception as exc:
+            logger.warning(
+                "Keyring is skipped due to an exception: %s", str(exc),
+            )
+            keyring = None
+
+        cls._keyring = keyring
+        return keyring
+
+    @classmethod
+    def get_keyring_auth(cls, url, username):
+        # type: (str, str) -> Optional[AuthInfo]
+        """Return the tuple auth for a given url from keyring."""
+        keyring = cls.get_keyring()
+        if not url or not keyring:
+            return None
+
+        try:
+            try:
+                get_credential = keyring.get_credential
+            except AttributeError:
+                pass
+            else:
+                logger.debug("Getting credentials from keyring for %s", url)
+                cred = get_credential(url, username)
+                if cred is not None:
+                    return cred.username, cred.password
+                return None
+
+            if username:
+                logger.debug("Getting password from keyring for %s", url)
+                password = keyring.get_password(url, username)
+                if password:
+                    return username, password
+
+        except Exception as exc:
+            logger.warning(
+                "Keyring is skipped due to an exception: %s", str(exc),
+            )
+            cls._keyring = None
+        return None
+
 
     def __init__(self, prompting=True, index_urls=None):
         # type: (bool, Optional[List[str]]) -> None
@@ -153,8 +165,8 @@ class MultiDomainBasicAuth(AuthBase):
         if allow_keyring:
             # The index url is more specific than the netloc, so try it first
             kr_auth = (
-                get_keyring_auth(index_url, username) or
-                get_keyring_auth(netloc, username)
+                self.get_keyring_auth(index_url, username) or
+                self.get_keyring_auth(netloc, username)
             )
             if kr_auth:
                 logger.debug("Found credentials in keyring for %s", netloc)
@@ -226,7 +238,7 @@ class MultiDomainBasicAuth(AuthBase):
         username = ask_input(f"User for {netloc}: ")
         if not username:
             return None, None, False
-        auth = get_keyring_auth(netloc, username)
+        auth = self.get_keyring_auth(netloc, username)
         if auth and auth[0] is not None and auth[1] is not None:
             return auth[0], auth[1], False
         password = ask_password("Password: ")
@@ -235,7 +247,7 @@ class MultiDomainBasicAuth(AuthBase):
     # Factored out to allow for easy patching in tests
     def _should_save_password_to_keyring(self):
         # type: () -> bool
-        if not keyring:
+        if not self.get_keyring():
             return False
         return ask("Save credentials to keyring [y/N]: ", ["y", "n"]) == "y"
 
@@ -296,6 +308,7 @@ class MultiDomainBasicAuth(AuthBase):
     def save_credentials(self, resp, **kwargs):
         # type: (Response, **Any) -> None
         """Response callback to save credentials on success."""
+        keyring = self.get_keyring()
         assert keyring is not None, "should never reach here without keyring"
         if not keyring:
             return
