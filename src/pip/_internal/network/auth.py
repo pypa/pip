@@ -87,11 +87,11 @@ class MultiDomainBasicAuth(AuthBase):
             cls._keyring = None
         return None
 
-
-    def __init__(self, prompting=True, index_urls=None):
-        # type: (bool, Optional[List[str]]) -> None
+    def __init__(self, use_keyring=True, prompting=True, index_urls=None):
+        # type: (bool, bool, Optional[List[str]]) -> None
         self.prompting = prompting
         self.index_urls = index_urls
+        self.use_keyring = use_keyring
         self.passwords = {}  # type: Dict[str, AuthInfo]
         # When the user is prompted to enter credentials and keyring is
         # available, we will offer to save them. If the user accepts,
@@ -162,7 +162,7 @@ class MultiDomainBasicAuth(AuthBase):
                 return netrc_auth
 
         # If we don't have a password and keyring is available, use it.
-        if allow_keyring:
+        if allow_keyring and self.use_keyring:
             # The index url is more specific than the netloc, so try it first
             kr_auth = (
                 self.get_keyring_auth(index_url, username) or
