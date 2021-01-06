@@ -73,9 +73,6 @@ class Path(str):
     def __repr__(self):
         return "Path({inner})".format(inner=str.__repr__(self))
 
-    def __hash__(self):
-        return super().__hash__()
-
     @property
     def name(self):
         """
