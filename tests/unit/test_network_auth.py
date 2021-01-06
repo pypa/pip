@@ -90,6 +90,10 @@ class KeyringModuleV1:
         self.saved_passwords.append((system, username, password))
 
 
+class MDBA_KeyringV1(MultiDomainBasicAuth):
+    _keyring = KeyringModuleV1()
+
+
 @pytest.mark.parametrize('url, expect', (
     ("http://example.com/path1", (None, None)),
     # path1 URLs will be resolved by netloc
@@ -99,10 +103,8 @@ class KeyringModuleV1:
     ("http://example.com/path2/path3", (None, None)),
     ("http://foo@example.com/path2/path3", ("foo", "foo!url")),
 ))
-def test_keyring_get_password(monkeypatch, url, expect):
-    keyring = KeyringModuleV1()
-    monkeypatch.setattr('pip._internal.network.auth.keyring', keyring)
-    auth = MultiDomainBasicAuth(index_urls=["http://example.com/path2"])
+def test_keyring_get_password(url, expect):
+    auth = MDBA_KeyringV1(index_urls=["http://example.com/path2"])
 
     actual = auth._get_new_credentials(url, allow_netrc=False,
                                        allow_keyring=True)
@@ -110,9 +112,7 @@ def test_keyring_get_password(monkeypatch, url, expect):
 
 
 def test_keyring_get_password_after_prompt(monkeypatch):
-    keyring = KeyringModuleV1()
-    monkeypatch.setattr('pip._internal.network.auth.keyring', keyring)
-    auth = MultiDomainBasicAuth()
+    auth = MDBA_KeyringV1()
 
     def ask_input(prompt):
         assert prompt == "User for example.com: "
@@ -124,9 +124,7 @@ def test_keyring_get_password_after_prompt(monkeypatch):
 
 
 def test_keyring_get_password_after_prompt_when_none(monkeypatch):
-    keyring = KeyringModuleV1()
-    monkeypatch.setattr('pip._internal.network.auth.keyring', keyring)
-    auth = MultiDomainBasicAuth()
+    auth = MDBA_KeyringV1()
 
     def ask_input(prompt):
         assert prompt == "User for unknown.com: "
@@ -143,10 +141,8 @@ def test_keyring_get_password_after_prompt_when_none(monkeypatch):
     assert actual == ("user", "fake_password", True)
 
 
-def test_keyring_get_password_username_in_index(monkeypatch):
-    keyring = KeyringModuleV1()
-    monkeypatch.setattr('pip._internal.network.auth.keyring', keyring)
-    auth = MultiDomainBasicAuth(index_urls=["http://user@example.com/path2"])
+def test_keyring_get_password_username_in_index():
+    auth = MDBA_KeyringV1(index_urls=["http://user@example.com/path2"])
     get = functools.partial(
         auth._get_new_credentials,
         allow_netrc=False,
@@ -164,9 +160,7 @@ def test_keyring_get_password_username_in_index(monkeypatch):
 ))
 def test_keyring_set_password(monkeypatch, response_status, creds,
                               expect_save):
-    keyring = KeyringModuleV1()
-    monkeypatch.setattr('pip._internal.network.auth.keyring', keyring)
-    auth = MultiDomainBasicAuth(prompting=True)
+    auth = MDBA_KeyringV1(prompting=True)
     monkeypatch.setattr(auth, '_get_url_and_credentials',
                         lambda u: (u, None, None))
     monkeypatch.setattr(auth, '_prompt_for_password', lambda *a: creds)
@@ -203,6 +197,7 @@ def test_keyring_set_password(monkeypatch, response_status, creds,
 
     auth.handle_401(resp)
 
+    keyring = auth.get_keyring()
     if expect_save:
         assert keyring.saved_passwords == [("example.com", creds[0], creds[1])]
     else:
@@ -228,16 +223,17 @@ class KeyringModuleV2:
         return None
 
 
+class MDBA_KeyringV2(MultiDomainBasicAuth):
+    _keyring = KeyringModuleV2()
+
+
 @pytest.mark.parametrize('url, expect', (
     ("http://example.com/path1", ("username", "netloc")),
     ("http://example.com/path2/path3", ("username", "url")),
     ("http://user2@example.com/path2/path3", ("username", "url")),
 ))
-def test_keyring_get_credential(monkeypatch, url, expect):
-    monkeypatch.setattr(
-        pip._internal.network.auth, 'keyring', KeyringModuleV2()
-    )
-    auth = MultiDomainBasicAuth(index_urls=["http://example.com/path2"])
+def test_keyring_get_credential(url, expect):
+    auth = MDBA_KeyringV1(index_urls=["http://example.com/path2"])
 
     assert auth._get_new_credentials(
         url, allow_netrc=False, allow_keyring=True
@@ -255,11 +251,13 @@ class KeyringModuleBroken:
         raise Exception("This keyring is broken!")
 
 
-def test_broken_keyring_disables_keyring(monkeypatch):
-    keyring_broken = KeyringModuleBroken()
-    monkeypatch.setattr(pip._internal.network.auth, 'keyring', keyring_broken)
+class MDBA_KeyringBroken(MultiDomainBasicAuth):
+    _keyring = KeyringModuleBroken()
 
+
+def test_broken_keyring_disables_keyring(monkeypatch):
     auth = MultiDomainBasicAuth(index_urls=["http://example.com/"])
+    keyring_broken = auth.get_keyring()
 
     assert keyring_broken._call_count == 0
     for i in range(5):
