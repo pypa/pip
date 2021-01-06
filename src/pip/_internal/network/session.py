@@ -234,6 +234,7 @@ class PipSession(requests.Session):
         cache = kwargs.pop("cache", None)
         trusted_hosts = kwargs.pop("trusted_hosts", [])  # type: List[str]
         index_urls = kwargs.pop("index_urls", None)
+        use_keyring = kwargs.pop("use_keyring", False)
 
         super().__init__(*args, **kwargs)
 
@@ -245,7 +246,10 @@ class PipSession(requests.Session):
         self.headers["User-Agent"] = user_agent()
 
         # Attach our Authentication handler to the session
-        self.auth = MultiDomainBasicAuth(index_urls=index_urls)
+        self.auth = MultiDomainBasicAuth(
+            use_keyring=use_keyring,
+            index_urls=index_urls,
+        )
 
         # Create our urllib3.Retry instance which will allow us to customize
         # how we handle retries.
