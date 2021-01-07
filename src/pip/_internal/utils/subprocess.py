@@ -191,7 +191,7 @@ def call_subprocess(
         proc.stdin.close()
         # In this mode, stdout and stderr are in the same pipe.
         while True:
-            line = proc.stdout.readline()
+            line = proc.stdout.readline()  # type: str
             if not line:
                 break
             line = line.rstrip()
