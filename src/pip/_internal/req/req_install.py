@@ -625,31 +625,12 @@ class InstallRequirement:
         if self.link.scheme == 'file':
             # Static paths don't get updated
             return
-        assert '+' in self.link.url, \
-            "bad url: {self.link.url!r}".format(**locals())
-        vc_type, url = self.link.url.split('+', 1)
-        vcs_backend = vcs.get_backend(vc_type)
-        if vcs_backend:
-            if not self.link.is_vcs:
-                reason = (
-                    "This form of VCS requirement is being deprecated: {}."
-                ).format(
-                    self.link.url
-                )
-                replacement = None
-                if self.link.url.startswith("git+git@"):
-                    replacement = (
-                        "git+https://git@example.com/..., "
-                        "git+ssh://git@example.com/..., "
-                        "or the insecure git+git://git@example.com/..."
-                    )
-                deprecated(reason, replacement, gone_in="21.0", issue=7554)
-            hidden_url = hide_url(self.link.url)
-            vcs_backend.obtain(self.source_dir, url=hidden_url)
-        else:
-            assert 0, (
-                'Unexpected version control type (in {}): {}'.format(
-                    self.link, vc_type))
+        vcs_backend = vcs.get_backend_for_scheme(self.link.scheme)
+        # Editable requirements are validated in Requirement constructors.
+        # So here, if it's neither a path nor a valid VCS URL, it's a bug.
+        assert vcs_backend, f"Unsupported VCS URL {self.link.url}"
+        hidden_url = hide_url(self.link.url)
+        vcs_backend.obtain(self.source_dir, url=hidden_url)
 
     # Top-level Actions
     def uninstall(self, auto_confirm=False, verbose=False):

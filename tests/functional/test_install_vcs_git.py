@@ -1,5 +1,6 @@
 import pytest
 
+from pip._internal.utils.urls import path_to_url
 from tests.lib import pyversion  # noqa: F401
 from tests.lib import (
     _change_test_package_version,
@@ -454,7 +455,7 @@ def test_check_submodule_addition(script):
     )
 
     install_result = script.pip(
-        'install', '-e', 'git+' + module_path + '#egg=version_pkg'
+        'install', '-e', 'git+' + path_to_url(module_path) + '#egg=version_pkg'
     )
     install_result.did_create(
         script.venv / 'src/version-pkg/testpkg/static/testfile'
@@ -467,7 +468,7 @@ def test_check_submodule_addition(script):
 
     # expect error because git may write to stderr
     update_result = script.pip(
-        'install', '-e', 'git+' + module_path + '#egg=version_pkg',
+        'install', '-e', 'git+' + path_to_url(module_path) + '#egg=version_pkg',
         '--upgrade',
     )
 
