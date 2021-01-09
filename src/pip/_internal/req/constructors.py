@@ -116,10 +116,11 @@ def parse_editable(editable_req):
             break
 
     if '+' not in url:
+        backends = ", ".join([backend.name + '+' for backend in vcs.backends])
         raise InstallationError(
-            '{} is not a valid editable requirement. '
-            'It should either be a path to a local project or a VCS URL '
-            '(beginning with svn+, git+, hg+, or bzr+).'.format(editable_req)
+            f'{editable_req} is not a valid editable requirement. '
+            f'It should either be a path to a local project or a VCS URL '
+            f'(beginning with {backends}).'
         )
 
     vc_type = url.split('+', 1)[0].lower()
