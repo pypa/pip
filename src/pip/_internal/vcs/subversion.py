@@ -137,7 +137,7 @@ class Subversion(VersionControl):
 
     @classmethod
     def _get_svn_url_rev(cls, location):
-        from pip._internal.exceptions import SubProcessError
+        from pip._internal.exceptions import InstallationError
 
         entries_path = os.path.join(location, cls.dirname, 'entries')
         if os.path.exists(entries_path):
@@ -170,12 +170,14 @@ class Subversion(VersionControl):
                 # are only potentially needed for remote server requests.
                 xml = cls.run_command(
                     ['info', '--xml', location],
+                    show_stdout=False,
+                    stdout_only=True,
                 )
                 url = _svn_info_xml_url_re.search(xml).group(1)
                 revs = [
                     int(m.group(1)) for m in _svn_info_xml_rev_re.finditer(xml)
                 ]
-            except SubProcessError:
+            except InstallationError:
                 url, revs = None, []
 
         if revs:
@@ -221,8 +223,9 @@ class Subversion(VersionControl):
         #   svn, version 1.12.0-SlikSvn (SlikSvn/1.12.0)
         #      compiled May 28 2019, 13:44:56 on x86_64-microsoft-windows6.2
         version_prefix = 'svn, version '
-        version = self.run_command(['--version'])
-
+        version = self.run_command(
+            ['--version'], show_stdout=False, stdout_only=True
+        )
         if not version.startswith(version_prefix):
             return ()
 
@@ -304,7 +307,7 @@ class Subversion(VersionControl):
                 'export', self.get_remote_call_options(),
                 rev_options.to_args(), url, location,
             )
-            self.run_command(cmd_args)
+            self.run_command(cmd_args, show_stdout=False)
 
     def fetch_new(self, dest, url, rev_options):
         # type: (str, HiddenText, RevOptions) -> None

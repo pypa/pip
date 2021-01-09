@@ -5,7 +5,7 @@ import configparser
 import logging
 import os
 
-from pip._internal.exceptions import BadCommand, SubProcessError
+from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.utils.misc import display_path
 from pip._internal.utils.subprocess import make_command
 from pip._internal.utils.temp_dir import TempDirectory
@@ -44,7 +44,7 @@ class Mercurial(VersionControl):
             self.unpack(temp_dir.path, url=url)
 
             self.run_command(
-                ['archive', location], cwd=temp_dir.path
+                ['archive', location], show_stdout=False, cwd=temp_dir.path
             )
 
     def fetch_new(self, dest, url, rev_options):
@@ -90,7 +90,10 @@ class Mercurial(VersionControl):
         # type: (str) -> str
         url = cls.run_command(
             ['showconfig', 'paths.default'],
-            cwd=location).strip()
+            show_stdout=False,
+            stdout_only=True,
+            cwd=location,
+        ).strip()
         if cls._is_local_repository(url):
             url = path_to_url(url)
         return url.strip()
@@ -102,7 +105,11 @@ class Mercurial(VersionControl):
         Return the repository-local changeset revision number, as an integer.
         """
         current_revision = cls.run_command(
-            ['parents', '--template={rev}'], cwd=location).strip()
+            ['parents', '--template={rev}'],
+            show_stdout=False,
+            stdout_only=True,
+            cwd=location,
+        ).strip()
         return current_revision
 
     @classmethod
@@ -113,7 +120,10 @@ class Mercurial(VersionControl):
         """
         current_rev_hash = cls.run_command(
             ['parents', '--template={node}'],
-            cwd=location).strip()
+            show_stdout=False,
+            stdout_only=True,
+            cwd=location,
+        ).strip()
         return current_rev_hash
 
     @classmethod
@@ -129,7 +139,8 @@ class Mercurial(VersionControl):
         """
         # find the repo root
         repo_root = cls.run_command(
-            ['root'], cwd=location).strip()
+            ['root'], show_stdout=False, stdout_only=True, cwd=location
+        ).strip()
         if not os.path.isabs(repo_root):
             repo_root = os.path.abspath(os.path.join(location, repo_root))
         return find_path_to_setup_from_repo_root(location, repo_root)
@@ -143,13 +154,16 @@ class Mercurial(VersionControl):
             r = cls.run_command(
                 ['root'],
                 cwd=location,
+                show_stdout=False,
+                stdout_only=True,
+                on_returncode='raise',
                 log_failed_cmd=False,
             )
         except BadCommand:
             logger.debug("could not determine if %s is under hg control "
                          "because hg is not available", location)
             return None
-        except SubProcessError:
+        except InstallationError:
             return None
         return os.path.normpath(r.rstrip('\r\n'))
 

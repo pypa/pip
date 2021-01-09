@@ -3,15 +3,12 @@
 import logging
 import os
 import shutil
-import subprocess
 import sys
 import urllib.parse
 
 from pip._vendor import pkg_resources
 
-from pip._internal.exceptions import BadCommand, InstallationError, SubProcessError
-from pip._internal.utils.compat import console_to_str
-from pip._internal.utils.logging import subprocess_logger
+from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.utils.misc import (
     ask_path_exists,
     backup_dir,
@@ -20,12 +17,7 @@ from pip._internal.utils.misc import (
     hide_value,
     rmtree,
 )
-from pip._internal.utils.subprocess import (
-    format_command_args,
-    make_command,
-    make_subprocess_output_error,
-    reveal_command_args,
-)
+from pip._internal.utils.subprocess import call_subprocess, make_command
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import get_url_scheme
 
@@ -43,6 +35,7 @@ if MYPY_CHECK_RUNNING:
         Union,
     )
 
+    from pip._internal.cli.spinners import SpinnerInterface
     from pip._internal.utils.misc import HiddenText
     from pip._internal.utils.subprocess import CommandArgs
 
@@ -81,94 +74,6 @@ def make_vcs_requirement_url(repo_url, rev, project_name, subdir=None):
         req += f'&subdirectory={subdir}'
 
     return req
-
-
-def call_subprocess(
-    cmd,  # type: Union[List[str], CommandArgs]
-    cwd=None,  # type: Optional[str]
-    extra_environ=None,  # type: Optional[Mapping[str, Any]]
-    extra_ok_returncodes=None,  # type: Optional[Iterable[int]]
-    log_failed_cmd=True  # type: Optional[bool]
-):
-    # type: (...) -> str
-    """
-    Args:
-      extra_ok_returncodes: an iterable of integer return codes that are
-        acceptable, in addition to 0. Defaults to None, which means [].
-      log_failed_cmd: if false, failed commands are not logged,
-        only raised.
-    """
-    if extra_ok_returncodes is None:
-        extra_ok_returncodes = []
-
-    # log the subprocess output at DEBUG level.
-    log_subprocess = subprocess_logger.debug
-
-    env = os.environ.copy()
-    if extra_environ:
-        env.update(extra_environ)
-
-    # Whether the subprocess will be visible in the console.
-    showing_subprocess = True
-
-    command_desc = format_command_args(cmd)
-    try:
-        proc = subprocess.Popen(
-            # Convert HiddenText objects to the underlying str.
-            reveal_command_args(cmd),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            cwd=cwd
-        )
-        if proc.stdin:
-            proc.stdin.close()
-    except Exception as exc:
-        if log_failed_cmd:
-            subprocess_logger.critical(
-                "Error %s while executing command %s", exc, command_desc,
-            )
-        raise
-    all_output = []
-    while True:
-        # The "line" value is a unicode string in Python 2.
-        line = None
-        if proc.stdout:
-            line = console_to_str(proc.stdout.readline())
-        if not line:
-            break
-        line = line.rstrip()
-        all_output.append(line + '\n')
-
-        # Show the line immediately.
-        log_subprocess(line)
-    try:
-        proc.wait()
-    finally:
-        if proc.stdout:
-            proc.stdout.close()
-        if proc.stderr:
-            proc.stderr.close()
-
-    proc_had_error = (
-        proc.returncode and proc.returncode not in extra_ok_returncodes
-    )
-    if proc_had_error:
-        if not showing_subprocess and log_failed_cmd:
-            # Then the subprocess streams haven't been logged to the
-            # console yet.
-            msg = make_subprocess_output_error(
-                cmd_args=cmd,
-                cwd=cwd,
-                lines=all_output,
-                exit_status=proc.returncode,
-            )
-            subprocess_logger.error(msg)
-        exc_msg = (
-            'Command errored out with exit status {}: {} '
-            'Check the logs for full command output.'
-        ).format(proc.returncode, command_desc)
-        raise SubProcessError(exc_msg)
-    return ''.join(all_output)
 
 
 def find_path_to_setup_from_repo_root(location, repo_root):
@@ -754,10 +659,15 @@ class VersionControl:
     def run_command(
         cls,
         cmd,  # type: Union[List[str], CommandArgs]
+        show_stdout=True,  # type: bool
         cwd=None,  # type: Optional[str]
-        extra_environ=None,  # type: Optional[Mapping[str, Any]]
+        on_returncode='raise',  # type: str
         extra_ok_returncodes=None,  # type: Optional[Iterable[int]]
-        log_failed_cmd=True  # type: bool
+        command_desc=None,  # type: Optional[str]
+        extra_environ=None,  # type: Optional[Mapping[str, Any]]
+        spinner=None,  # type: Optional[SpinnerInterface]
+        log_failed_cmd=True,  # type: bool
+        stdout_only=False,  # type: bool
     ):
         # type: (...) -> str
         """
@@ -767,10 +677,15 @@ class VersionControl:
         """
         cmd = make_command(cls.name, *cmd)
         try:
-            return call_subprocess(cmd, cwd,
-                                   extra_environ=extra_environ,
+            return call_subprocess(cmd, show_stdout, cwd,
+                                   on_returncode=on_returncode,
                                    extra_ok_returncodes=extra_ok_returncodes,
-                                   log_failed_cmd=log_failed_cmd)
+                                   command_desc=command_desc,
+                                   extra_environ=extra_environ,
+                                   unset_environ=cls.unset_environ,
+                                   spinner=spinner,
+                                   log_failed_cmd=log_failed_cmd,
+                                   stdout_only=stdout_only)
         except FileNotFoundError:
             # errno.ENOENT = no such file or directory
             # In other words, the VCS executable isn't available

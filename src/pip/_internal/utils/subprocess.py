@@ -115,7 +115,8 @@ def call_subprocess(
     extra_environ=None,  # type: Optional[Mapping[str, Any]]
     unset_environ=None,  # type: Optional[Iterable[str]]
     spinner=None,  # type: Optional[SpinnerInterface]
-    log_failed_cmd=True  # type: Optional[bool]
+    log_failed_cmd=True,  # type: Optional[bool]
+    stdout_only=False,  # type: Optional[bool]
 ):
     # type: (...) -> str
     """
@@ -127,6 +128,9 @@ def call_subprocess(
       unset_environ: an iterable of environment variable names to unset
         prior to calling subprocess.Popen().
       log_failed_cmd: if false, failed commands are not logged, only raised.
+      stdout_only: if true, return only stdout, else return both. When true,
+        logging of both stdout and stderr occurs when the subprocess has
+        terminated, else logging occurs as subprocess output is produced.
     """
     if extra_ok_returncodes is None:
         extra_ok_returncodes = []
@@ -177,12 +181,12 @@ def call_subprocess(
         proc = subprocess.Popen(
             # Convert HiddenText objects to the underlying str.
             reveal_command_args(cmd),
-            stderr=subprocess.STDOUT, stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE, cwd=cwd, env=env,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT if not stdout_only else subprocess.PIPE,
+            cwd=cwd,
+            env=env,
         )
-        assert proc.stdin
-        assert proc.stdout
-        proc.stdin.close()
     except Exception as exc:
         if log_failed_cmd:
             subprocess_logger.critical(
@@ -190,25 +194,46 @@ def call_subprocess(
             )
         raise
     all_output = []
-    while True:
-        # The "line" value is a unicode string in Python 2.
-        line = console_to_str(proc.stdout.readline())
-        if not line:
-            break
-        line = line.rstrip()
-        all_output.append(line + '\n')
+    if not stdout_only:
+        assert proc.stdout
+        assert proc.stdin
+        proc.stdin.close()
+        # In this mode, stdout and stderr are in the same pipe.
+        while True:
+            # The "line" value is a unicode string in Python 2.
+            line = console_to_str(proc.stdout.readline())
+            if not line:
+                break
+            line = line.rstrip()
+            all_output.append(line + '\n')
 
-        # Show the line immediately.
-        log_subprocess(line)
-        # Update the spinner.
-        if use_spinner:
-            assert spinner
-            spinner.spin()
-    try:
-        proc.wait()
-    finally:
-        if proc.stdout:
-            proc.stdout.close()
+            # Show the line immediately.
+            log_subprocess(line)
+            # Update the spinner.
+            if use_spinner:
+                assert spinner
+                spinner.spin()
+        try:
+            proc.wait()
+        finally:
+            if proc.stdout:
+                proc.stdout.close()
+        output = ''.join(all_output)
+    else:
+        # In this mode, stdout and stderr are in different pipes.
+        # We must use communicate() which is the only safe way to read both.
+        out_bytes, err_bytes = proc.communicate()
+        # log line by line to preserve pip log indenting
+        out = console_to_str(out_bytes)
+        for out_line in out.splitlines():
+            log_subprocess(out_line)
+        all_output.append(out)
+        err = console_to_str(err_bytes)
+        for err_line in err.splitlines():
+            log_subprocess(err_line)
+        all_output.append(err)
+        output = out
+
     proc_had_error = (
         proc.returncode and proc.returncode not in extra_ok_returncodes
     )
@@ -243,7 +268,7 @@ def call_subprocess(
         else:
             raise ValueError('Invalid value: on_returncode={!r}'.format(
                              on_returncode))
-    return ''.join(all_output)
+    return output
 
 
 def runner_with_spinner_message(message):
