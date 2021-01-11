@@ -694,7 +694,7 @@ class VersionControl:
                 f'locally, globally (ask admin), or check your PATH. '
                 f'See possible solutions at '
                 f'https://pip.pypa.io/en/latest/reference/pip_freeze/'
-                f'#issues.'
+                f'#fixing-permission-denied.'
             )
 
     @classmethod
