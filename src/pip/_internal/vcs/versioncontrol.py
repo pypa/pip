@@ -690,11 +690,11 @@ class VersionControl:
             # only for another user. So, the current user don't have
             # permission to call the other user command.
             raise BadCommand(
-                f'No permission to execute {cls.name!r} - install it '
-                f'locally, globally (ask admin), or check your PATH. '
-                f'See possible solutions at '
-                f'https://pip.pypa.io/en/latest/reference/pip_freeze/'
-                f'#fixing-permission-denied.'
+                f"No permission to execute {cls.name!r} - install it "
+                f"locally, globally (ask admin), or check your PATH. "
+                f"See possible solutions at "
+                f"https://pip.pypa.io/en/latest/reference/pip_freeze/"
+                f"#fixing-permission-denied."
             )
 
     @classmethod
