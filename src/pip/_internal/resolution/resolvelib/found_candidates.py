@@ -16,21 +16,9 @@ from pip._internal.utils.compat import lru_cache
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Callable, Iterator, Optional, Set
-
-    from pip._vendor.packaging.version import _BaseVersion
+    from typing import Callable, Iterator, Optional
 
     from .base import Candidate
-
-
-def _deduplicated_by_version(candidates):
-    # type: (Iterator[Candidate]) -> Iterator[Candidate]
-    returned = set()  # type: Set[_BaseVersion]
-    for candidate in candidates:
-        if candidate.version in returned:
-            continue
-        returned.add(candidate.version)
-        yield candidate
 
 
 def _insert_installed(installed, others):
@@ -86,12 +74,15 @@ class FoundCandidates(collections_abc.Sequence):
     def __iter__(self):
         # type: () -> Iterator[Candidate]
         if not self._installed:
-            candidates = self._get_others()
-        elif self._prefers_installed:
-            candidates = itertools.chain([self._installed], self._get_others())
-        else:
-            candidates = _insert_installed(self._installed, self._get_others())
-        return _deduplicated_by_version(candidates)
+            return self._get_others()
+        others = (
+            candidate
+            for candidate in self._get_others()
+            if candidate.version != self._installed.version
+        )
+        if self._prefers_installed:
+            return itertools.chain([self._installed], others)
+        return _insert_installed(self._installed, others)
 
     def __len__(self):
         # type: () -> int
