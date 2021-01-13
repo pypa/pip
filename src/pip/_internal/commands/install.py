@@ -28,6 +28,7 @@ from pip._internal.req.req_install import InstallRequirement
 from pip._internal.req.req_tracker import get_requirement_tracker
 from pip._internal.utils.distutils_args import parse_distutils_args
 from pip._internal.utils.filesystem import test_writable_dir
+from pip._internal.utils.logging import VERBOSE
 from pip._internal.utils.misc import (
     ensure_dir,
     get_pip_version,
@@ -235,7 +236,7 @@ class InstallCommand(RequirementCommand):
 
         install_options = options.install_options or []
 
-        logger.debug("Using %s", get_pip_version())
+        logger.log(VERBOSE, "Using %s", get_pip_version())
         options.use_user_site = decide_user_install(
             options.use_user_site,
             prefix_path=options.prefix_path,

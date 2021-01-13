@@ -1,0 +1,2 @@
+Require ``-vv`` for full debug-level output, ``-v`` now enables an intermediate level of verbosity,
+e.g. showing subprocess output of ``setup.py install`` but not all dependency resolution debug output.

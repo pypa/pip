@@ -29,6 +29,11 @@ _log_state = threading.local()
 subprocess_logger = getLogger("pip.subprocessor")
 
 
+# custom log level for `--verbose` output
+# between DEBUG and INFO
+VERBOSE = 15
+
+
 class BrokenStdoutLoggingError(Exception):
     """
     Raised if BrokenPipeError occurs for the stdout stream while logging.
@@ -271,19 +276,22 @@ def setup_logging(verbosity, no_color, user_log_file):
     Returns the requested logging level, as its integer value.
     """
 
+    logging.addLevelName(VERBOSE, "VERBOSE")
     # Determine the level to be logging at.
-    if verbosity >= 1:
-        level = "DEBUG"
+    if verbosity >= 2:
+        level_number = logging.DEBUG
+    elif verbosity == 1:
+        level_number = VERBOSE
     elif verbosity == -1:
-        level = "WARNING"
+        level_number = logging.WARNING
     elif verbosity == -2:
-        level = "ERROR"
+        level_number = logging.ERROR
     elif verbosity <= -3:
-        level = "CRITICAL"
+        level_number = logging.CRITICAL
     else:
-        level = "INFO"
+        level_number = logging.INFO
 
-    level_number = getattr(logging, level)
+    level = logging.getLevelName(level_number)
 
     # The "root" logger should match the "console" level *unless* we also need
     # to log to a user log file.
