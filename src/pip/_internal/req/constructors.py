@@ -118,7 +118,7 @@ def parse_editable(editable_req):
     link = Link(url)
 
     if not link.is_vcs:
-        backends = ", ".join([backend.name + '+' for backend in vcs.backends])
+        backends = ", ".join(f"{backend.name}+" for backend in vcs.backends)
         raise InstallationError(
             f'{editable_req} is not a valid editable requirement. '
             f'It should either be a path to a local project or a VCS URL '
