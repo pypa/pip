@@ -1,0 +1,1 @@
+Require ``-vv`` for full debug-level output, ``-v`` now only enables showing subprocess output, e.g. of ``setup.py install``.

@@ -246,7 +246,7 @@ def setup_logging(verbosity, no_color, user_log_file):
     """
 
     # Determine the level to be logging at.
-    if verbosity >= 1:
+    if verbosity >= 2:
         level = "DEBUG"
     elif verbosity == -1:
         level = "WARNING"
@@ -256,6 +256,14 @@ def setup_logging(verbosity, no_color, user_log_file):
         level = "CRITICAL"
     else:
         level = "INFO"
+
+    if verbosity == 1:
+        # verbosity 1 means only subprocess logging is debug-level
+        # disabling capture of subprocess output
+        subprocess_level = "DEBUG"
+        subprocess_logger.setLevel(subprocess_level)
+    else:
+        subprocess_level = level
 
     level_number = getattr(logging, level)
 
@@ -334,7 +342,7 @@ def setup_logging(verbosity, no_color, user_log_file):
             # A handler responsible for logging to the console messages
             # from the "subprocessor" logger.
             "console_subprocess": {
-                "level": level,
+                "level": subprocess_level,
                 "class": handler_classes["stream"],
                 "no_color": no_color,
                 "stream": log_streams["stderr"],

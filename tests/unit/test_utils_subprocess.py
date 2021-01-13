@@ -255,6 +255,7 @@ class TestCallSubprocess:
             command = 'print("Hello"); print("world")'
 
         caplog.set_level(log_level)
+        subprocess_logger.setLevel(log_level)
         spinner = FakeSpinner()
         args = [sys.executable, '-c', command]
 

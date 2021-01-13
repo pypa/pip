@@ -80,7 +80,7 @@ class TestCommand:
         """
         Test raising BrokenStdoutLoggingError with debug logging enabled.
         """
-        stderr = self.call_main(capsys, ['-v'])
+        stderr = self.call_main(capsys, ['-vv'])
 
         assert 'ERROR: Pipe to stdout was broken' in stderr
         assert 'Traceback (most recent call last):' in stderr
