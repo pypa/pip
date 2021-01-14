@@ -7,6 +7,7 @@ import logging
 import logging.handlers
 import os
 import sys
+from datetime import datetime
 from logging import Filter, getLogger
 from typing import TYPE_CHECKING
 
@@ -33,6 +34,7 @@ except Exception:
 
 _log_state = threading.local()
 subprocess_logger = getLogger('pip.subprocessor')
+logger = getLogger(__name__)
 
 
 class BrokenStdoutLoggingError(Exception):
@@ -85,7 +87,8 @@ def get_indentation():
 
 
 class IndentingFormatter(logging.Formatter):
-    default_time_format = "%Y-%m-%dT%H:%M:%S"
+    default_time_format = "%H:%M:%S"
+    default_msec_format = '%s.%03d'
 
     def __init__(
         self,
@@ -368,5 +371,8 @@ def setup_logging(verbosity, no_color, user_log_file):
             }
         },
     })
+
+    timestart = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+    logger.debug(f"--- Logging started {timestart} ---")
 
     return level_number
