@@ -373,6 +373,6 @@ def setup_logging(verbosity, no_color, user_log_file):
     })
 
     timestart = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
-    logger.debug(f"--- Logging started {timestart} ---")
+    logger.debug("--- Logging started %s ---", timestart)
 
     return level_number
