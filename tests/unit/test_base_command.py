@@ -102,7 +102,9 @@ def test_log_command_success(fixed_time, tmpdir):
     log_path = tmpdir.joinpath('log')
     cmd.main(['fake', '--log', log_path])
     with open(log_path) as f:
-        assert f.read().rstrip() == '2019-01-17T06:00:37,040 fake'
+        c = f.read().splitlines()
+        assert c[0].startswith('06:00:37.040 --- Logging started')
+        assert c[1].startswith('06:00:37.040 fake')
 
 
 def test_log_command_error(fixed_time, tmpdir):
@@ -111,7 +113,9 @@ def test_log_command_error(fixed_time, tmpdir):
     log_path = tmpdir.joinpath('log')
     cmd.main(['fake', '--log', log_path])
     with open(log_path) as f:
-        assert f.read().startswith('2019-01-17T06:00:37,040 fake')
+        c = f.read().splitlines()
+        assert c[0].startswith('06:00:37.040 ---')
+        assert c[1].startswith('06:00:37.040 fake')
 
 
 def test_log_file_command_error(fixed_time, tmpdir):
@@ -120,7 +124,9 @@ def test_log_file_command_error(fixed_time, tmpdir):
     log_file_path = tmpdir.joinpath('log_file')
     cmd.main(['fake', '--log-file', log_file_path])
     with open(log_file_path) as f:
-        assert f.read().startswith('2019-01-17T06:00:37,040 fake')
+        c = f.read().splitlines()
+        assert c[0].startswith('06:00:37.040 ---')
+        assert c[1].startswith('06:00:37.040 fake')
 
 
 def test_log_unicode_messages(fixed_time, tmpdir):
