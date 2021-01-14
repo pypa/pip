@@ -49,11 +49,11 @@ class TestIndentingFormatter:
 
     @pytest.mark.parametrize('level_name, expected', [
         ('INFO',
-         '2019-01-17T06:00:37,040 hello\n'
-         '2019-01-17T06:00:37,040 world'),
+         '06:00:37.040 hello\n'
+         '06:00:37.040 world'),
         ('WARNING',
-         '2019-01-17T06:00:37,040 WARNING: hello\n'
-         '2019-01-17T06:00:37,040 world'),
+         '06:00:37.040 WARNING: hello\n'
+         '06:00:37.040 world'),
     ])
     def test_format_with_timestamp(self, level_name, expected, utc):
         record = self.make_record('hello\nworld', level_name=level_name)
