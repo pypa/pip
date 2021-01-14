@@ -1,0 +1,1 @@
+Add separator for file log, shorten timestamps, use . for msecs
