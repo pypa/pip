@@ -355,7 +355,11 @@ def test_cache_purge_too_many_args(
     cached http files or wheels."""
     result = script.pip('cache', 'purge', 'aaa', '--verbose',
                         expect_error=True)
-    assert result.stdout == ''
+
+    output = result.stdout.splitlines()
+    assert len(output) == 1
+    assert output[0].startswith('--- Logging started')
+    assert output[0].endswith('---')
 
     # This would be `result.stderr == ...`, but pip prints deprecation
     # warnings on Python 2.7, so we check if the _line_ is in stderr.
