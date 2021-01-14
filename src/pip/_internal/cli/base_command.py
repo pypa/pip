@@ -6,6 +6,7 @@ import optparse
 import os
 import sys
 import traceback
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 from pip._internal.cli import cmdoptions
@@ -185,6 +186,9 @@ class Command(CommandContextMixIn):
             )
 
         try:
+            timestart = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
+            logger.debug("--- Logging started %s ---", timestart)
+
             status = self.run(options, args)
             assert isinstance(status, int)
             return status

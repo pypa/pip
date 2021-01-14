@@ -7,7 +7,6 @@ import logging
 import logging.handlers
 import os
 import sys
-from datetime import datetime
 from logging import Filter, getLogger
 from typing import TYPE_CHECKING
 
@@ -371,8 +370,5 @@ def setup_logging(verbosity, no_color, user_log_file):
             }
         },
     })
-
-    timestart = datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S.%f')[:-3]
-    logger.debug("--- Logging started %s ---", timestart)
 
     return level_number
