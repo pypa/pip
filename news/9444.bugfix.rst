@@ -1,0 +1,1 @@
+Permit ``pip uninstall -r`` to accept requirements files containing ``--install-option`` or ``--global-option``.

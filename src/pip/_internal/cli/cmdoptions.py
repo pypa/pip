@@ -73,8 +73,9 @@ def check_install_build_global(
         return getattr(check_options, n, None)
 
     names = ["build_options", "global_options", "install_options"]
-    if any(map(getname, names)):
-        control = options.format_control
+
+    control = getattr(options, "format_control", None)
+    if control and any(map(getname, names)):
         control.disallow_binaries()
         warnings.warn(
             "Disabling all use of wheels due to the use of --build-option "
