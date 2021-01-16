@@ -11,7 +11,7 @@ pep517==0.9.1
 progress==1.5
 pyparsing==2.4.7
 requests==2.25.1
-    certifi==2020.12.5
+    certifi==2020.12.05
     chardet==4.0.0
     idna==2.10
     urllib3==1.26.2
