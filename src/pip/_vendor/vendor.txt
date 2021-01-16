@@ -5,14 +5,14 @@ contextlib2==0.6.0.post1
 distlib==0.3.1
 distro==1.5.0
 html5lib==1.1
-msgpack==1.0.0
+msgpack==1.0.2
 packaging==20.8
 pep517==0.9.1
 progress==1.5
 pyparsing==2.4.7
-requests==2.25.0
-    certifi==2020.11.08
-    chardet==3.0.4
+requests==2.25.1
+    certifi==2020.12.5
+    chardet==4.0.0
     idna==2.10
     urllib3==1.26.2
 resolvelib==0.5.4
