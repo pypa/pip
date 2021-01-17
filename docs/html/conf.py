@@ -78,6 +78,12 @@ towncrier_draft_include_empty = True
 towncrier_draft_working_directory = pathlib.Path(docs_dir).parent
 # Not yet supported: towncrier_draft_config_path = 'pyproject.toml'  # relative to cwd
 
+# -- Options for myst-parser ----------------------------------------------------------
+
+myst_enable_extensions = ["deflist"]
+myst_url_schemes = ("http", "https", "mailto")
+myst_heading_anchors = 2
+
 # -- Options for HTML -----------------------------------------------------------------
 
 html_theme = "furo"
