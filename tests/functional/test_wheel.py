@@ -169,6 +169,25 @@ def test_pip_wheel_builds_editable(script, data):
     result.did_create(wheel_file_path)
 
 
+@pytest.mark.network
+def test_pip_wheel_git_editable_keeps_clone(script, tmpdir):
+    """
+    Test that `pip wheel -e giturl` preserves a git clone in src.
+    """
+    script.pip(
+        'wheel',
+        '--no-deps',
+        '-e',
+        'git+https://github.com/pypa/pip-test-package#egg=pip-test-package',
+        '--src',
+        tmpdir / 'src',
+        '--wheel-dir',
+        tmpdir,
+    )
+    assert (tmpdir / 'src' / 'pip-test-package').exists()
+    assert (tmpdir / 'src' / 'pip-test-package' / '.git').exists()
+
+
 def test_pip_wheel_builds_editable_does_not_create_zip(script, data, tmpdir):
     """
     Test 'pip wheel' of editables does not create zip files
