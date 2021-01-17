@@ -14,6 +14,8 @@ sys.path.insert(0, docs_dir)
 
 extensions = [
     # first-party extensions
+    "sphinx.ext.autodoc",
+    "sphinx.ext.todo",
     "sphinx.ext.extlinks",
     "sphinx.ext.intersphinx",
     # our extensions
