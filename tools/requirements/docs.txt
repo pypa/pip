@@ -1,5 +1,6 @@
 sphinx == 3.2.1
 furo
+myst_parser
 sphinx-inline-tabs
 sphinxcontrib-towncrier
 
