@@ -30,7 +30,7 @@ class Mercurial(VersionControl):
     dirname = '.hg'
     repo_name = 'clone'
     schemes = (
-        'hg', 'hg+file', 'hg+http', 'hg+https', 'hg+ssh', 'hg+static-http',
+        'hg+file', 'hg+http', 'hg+https', 'hg+ssh', 'hg+static-http',
     )
 
     @staticmethod

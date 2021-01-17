@@ -38,7 +38,7 @@ class Subversion(VersionControl):
     dirname = '.svn'
     repo_name = 'checkout'
     schemes = (
-        'svn', 'svn+ssh', 'svn+http', 'svn+https', 'svn+svn', 'svn+file'
+        'svn+ssh', 'svn+http', 'svn+https', 'svn+svn', 'svn+file'
     )
 
     @classmethod
