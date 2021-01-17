@@ -34,6 +34,7 @@ extensions = [
     'sphinx.ext.extlinks',
     'sphinx.ext.intersphinx',
     # third-party:
+    'myst_parser',
     'sphinx_inline_tabs',
     'sphinxcontrib.towncrier',
     # in-tree:
