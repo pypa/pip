@@ -37,7 +37,6 @@ extensions = [
     'sphinx_inline_tabs',
     'sphinxcontrib.towncrier',
     # in-tree:
-    'docs_feedback_sphinxext',
     'pip_sphinxext',
 ]
 
