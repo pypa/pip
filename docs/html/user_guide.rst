@@ -226,7 +226,7 @@ In practice, there are 4 common uses of Requirements files:
    ``sometag``.  You'd reference it in your requirements file with a line like
    so::
 
-     git+https://myvcs.com/some_dependency@sometag#egg=SomeDependency
+     SomeDependency @ git+https://myvcs.com/some_dependency@sometag
 
    If ``SomeDependency`` was previously a top-level requirement in your
    requirements file, then **replace** that line with the new line. If

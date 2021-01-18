@@ -66,8 +66,8 @@ for the name and project version (this is in theory slightly less reliable
 than using the ``egg_info`` command, but avoids downloading and processing
 unnecessary numbers of files).
 
-Any URL may use the ``#egg=name`` syntax (see :ref:`VCS Support`) to
-explicitly state the project name.
+The :pep:`508` requirement syntax can be used to explicitly state the project
+name (see :ref:`VCS Support`).
 
 Satisfying Requirements
 -----------------------
@@ -396,12 +396,13 @@ the :ref:`--editable <install_--editable>` option) or not.
   (referencing a specific commit) if and only if the install is done using the
   editable option.
 
-The "project name" component of the URL suffix ``egg=<project name>``
-is used by pip in its dependency logic to identify the project prior
-to pip downloading and analyzing the metadata. For projects
-where ``setup.py`` is not in the root of project, the "subdirectory" component
-is used. The value of the "subdirectory" component should be a path starting
-from the root of the project to where ``setup.py`` is located.
+The "project name" of a requirement specified by URL can be explicitly set
+with the :pep:`508` requirement syntax. This value is used by pip in its
+dependency logic to identify the project prior to pip downloading and analyzing
+the metadata. For projects where ``setup.py`` is not in the root of project,
+the "subdirectory" component is used. The value of the "subdirectory" component
+should be a path starting from the root of the project to where ``setup.py``
+is located.
 
 If your repository layout is::
 
@@ -418,13 +419,13 @@ Then, to install from this repository, the syntax would be:
 
    .. code-block:: shell
 
-      python -m pip install -e "vcs+protocol://repo_url/#egg=pkg&subdirectory=pkg_dir"
+      python -m pip install -e "pkg @ vcs+protocol://repo_url/#subdirectory=pkg_dir"
 
 .. tab:: Windows
 
    .. code-block:: shell
 
-      py -m pip install -e "vcs+protocol://repo_url/#egg=pkg&subdirectory=pkg_dir"
+      py -m pip install -e "pkg @ vcs+protocol://repo_url/#subdirectory=pkg_dir"
 
 
 Git
@@ -441,17 +442,17 @@ pip currently supports cloning over ``git``, ``git+http``, ``git+https``,
 
 Here are the supported forms::
 
-    [-e] git+http://git.example.com/MyProject#egg=MyProject
-    [-e] git+https://git.example.com/MyProject#egg=MyProject
-    [-e] git+ssh://git.example.com/MyProject#egg=MyProject
-    [-e] git+file:///home/user/projects/MyProject#egg=MyProject
+    [-e] MyProject@git+http://git.example.com/MyProject
+    [-e] MyProject@git+https://git.example.com/MyProject
+    [-e] MyProject@git+ssh://git.example.com/MyProject
+    [-e] MyProject@git+file:///home/user/projects/MyProject
 
 Passing a branch name, a commit hash, a tag name or a git ref is possible like so::
 
-    [-e] git+https://git.example.com/MyProject.git@master#egg=MyProject
-    [-e] git+https://git.example.com/MyProject.git@v1.0#egg=MyProject
-    [-e] git+https://git.example.com/MyProject.git@da39a3ee5e6b4b0d3255bfef95601890afd80709#egg=MyProject
-    [-e] git+https://git.example.com/MyProject.git@refs/pull/123/head#egg=MyProject
+    [-e] MyProject@git+https://git.example.com/MyProject.git@master
+    [-e] MyProject@git+https://git.example.com/MyProject.git@v1.0
+    [-e] MyProject@git+https://git.example.com/MyProject.git@da39a3ee5e6b4b0d3255bfef95601890afd80709
+    [-e] MyProject@git+https://git.example.com/MyProject.git@refs/pull/123/head
 
 When passing a commit hash, specifying a full hash is preferable to a partial
 hash because a full hash allows pip to operate more efficiently (e.g. by
@@ -467,18 +468,18 @@ The supported schemes are: ``hg+file``, ``hg+http``, ``hg+https``,
 
 Here are the supported forms::
 
-    [-e] hg+http://hg.myproject.org/MyProject#egg=MyProject
-    [-e] hg+https://hg.myproject.org/MyProject#egg=MyProject
-    [-e] hg+ssh://hg.myproject.org/MyProject#egg=MyProject
-    [-e] hg+file:///home/user/projects/MyProject#egg=MyProject
+    [-e] MyProject@hg+http://hg.myproject.org/MyProject
+    [-e] MyProject@hg+https://hg.myproject.org/MyProject
+    [-e] MyProject@hg+ssh://hg.myproject.org/MyProject
+    [-e] MyProject@hg+file:///home/user/projects/MyProject
 
 You can also specify a revision number, a revision hash, a tag name or a local
 branch name like so::
 
-    [-e] hg+http://hg.example.com/MyProject@da39a3ee5e6b#egg=MyProject
-    [-e] hg+http://hg.example.com/MyProject@2019#egg=MyProject
-    [-e] hg+http://hg.example.com/MyProject@v1.0#egg=MyProject
-    [-e] hg+http://hg.example.com/MyProject@special_feature#egg=MyProject
+    [-e] MyProject@hg+http://hg.example.com/MyProject@da39a3ee5e6b
+    [-e] MyProject@hg+http://hg.example.com/MyProject@2019
+    [-e] MyProject@hg+http://hg.example.com/MyProject@v1.0
+    [-e] MyProject@hg+http://hg.example.com/MyProject@special_feature
 
 Subversion
 ^^^^^^^^^^
@@ -487,14 +488,14 @@ pip supports the URL schemes ``svn``, ``svn+svn``, ``svn+http``, ``svn+https``, 
 
 Here are some of the supported forms::
 
-    [-e] svn+https://svn.example.com/MyProject#egg=MyProject
-    [-e] svn+ssh://svn.example.com/MyProject#egg=MyProject
-    [-e] svn+ssh://user@svn.example.com/MyProject#egg=MyProject
+    [-e] MyProject@svn+https://svn.example.com/MyProject
+    [-e] MyProject@svn+ssh://svn.example.com/MyProject
+    [-e] MyProject@svn+ssh://user@svn.example.com/MyProject
 
 You can also give specific revisions to an SVN URL, like so::
 
-    [-e] svn+svn://svn.example.com/svn/MyProject#egg=MyProject
-    [-e] svn+http://svn.example.com/svn/MyProject/trunk@2019#egg=MyProject
+    [-e] MyProject@svn+svn://svn.example.com/svn/MyProject
+    [-e] MyProject@svn+http://svn.example.com/svn/MyProject/trunk@2019
 
 which will check out revision 2019.  ``@{20080101}`` would also check
 out the revision from 2008-01-01. You can only check out specific
@@ -508,16 +509,16 @@ pip supports Bazaar using the ``bzr+http``, ``bzr+https``, ``bzr+ssh``,
 
 Here are the supported forms::
 
-    [-e] bzr+http://bzr.example.com/MyProject/trunk#egg=MyProject
-    [-e] bzr+sftp://user@example.com/MyProject/trunk#egg=MyProject
-    [-e] bzr+ssh://user@example.com/MyProject/trunk#egg=MyProject
-    [-e] bzr+ftp://user@example.com/MyProject/trunk#egg=MyProject
-    [-e] bzr+lp:MyProject#egg=MyProject
+    [-e] MyProject@bzr+http://bzr.example.com/MyProject/trunk
+    [-e] MyProject@bzr+sftp://user@example.com/MyProject/trunk
+    [-e] MyProject@bzr+ssh://user@example.com/MyProject/trunk
+    [-e] MyProject@bzr+ftp://user@example.com/MyProject/trunk
+    [-e] MyProject@bzr+lp:MyProject
 
 Tags or revisions can be installed like so::
 
-    [-e] bzr+https://bzr.example.com/MyProject/trunk@2019#egg=MyProject
-    [-e] bzr+http://bzr.example.com/MyProject/trunk@v1.0#egg=MyProject
+    [-e] MyProject@bzr+https://bzr.example.com/MyProject/trunk@2019
+    [-e] MyProject@bzr+http://bzr.example.com/MyProject/trunk@v1.0
 
 Using Environment Variables
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -527,8 +528,8 @@ makes it possible to reference private repositories without having to store
 access tokens in the requirements file. For example, a private git repository
 allowing Basic Auth for authentication can be refenced like this::
 
-    [-e] git+http://${AUTH_USER}:${AUTH_PASSWORD}@git.example.com/MyProject#egg=MyProject
-    [-e] git+https://${AUTH_USER}:${AUTH_PASSWORD}@git.example.com/MyProject#egg=MyProject
+    [-e] MyProject@git+http://${AUTH_USER}:${AUTH_PASSWORD}@git.example.com/MyProject
+    [-e] MyProject@git+https://${AUTH_USER}:${AUTH_PASSWORD}@git.example.com/MyProject
 
 .. note::
 
@@ -827,14 +828,14 @@ You can install local projects or VCS projects in "editable" mode:
    .. code-block:: shell
 
       python -m pip install -e path/to/SomeProject
-      python -m pip install -e git+http://repo/my_project.git#egg=SomeProject
+      python -m pip install -e SomeProject@git+http://repo/my_project.git
 
 .. tab:: Windows
 
    .. code-block:: shell
 
       py -m pip install -e path/to/SomeProject
-      py -m pip install -e git+http://repo/my_project.git#egg=SomeProject
+      py -m pip install -e SomeProject@git+http://repo/my_project.git
 
 
 (See the :ref:`VCS Support` section above for more information on VCS-related syntax.)
@@ -956,7 +957,7 @@ Examples
 
          py -m pip install SomePackage            # latest version
          py -m pip install SomePackage==1.0.4     # specific version
-         py -m pip install 'SomePackage>=1.0.4'   # minimum version
+         py -m pip install "SomePackage>=1.0.4"   # minimum version
 
 
 #. Install a list of requirements specified in a file.  See the :ref:`Requirements files <Requirements Files>`.
@@ -1027,21 +1028,21 @@ Examples
 
       .. code-block:: shell
 
-         python -m pip install -e git+https://git.repo/some_pkg.git#egg=SomePackage          # from git
-         python -m pip install -e hg+https://hg.repo/some_pkg.git#egg=SomePackage            # from mercurial
-         python -m pip install -e svn+svn://svn.repo/some_pkg/trunk/#egg=SomePackage         # from svn
-         python -m pip install -e git+https://git.repo/some_pkg.git@feature#egg=SomePackage  # from 'feature' branch
-         python -m pip install -e "git+https://git.repo/some_repo.git#egg=subdir&subdirectory=subdir_path" # install a python package from a repo subdirectory
+         python -m pip install -e SomePackage@git+https://git.repo/some_pkg.git          # from git
+         python -m pip install -e SomePackage@hg+https://hg.repo/some_pkg                # from mercurial
+         python -m pip install -e SomePackage@svn+svn://svn.repo/some_pkg/trunk/         # from svn
+         python -m pip install -e SomePackage@git+https://git.repo/some_pkg.git@feature  # from 'feature' branch
+         python -m pip install -e SomePackage@git+https://git.repo/some_repo.git#subdirectory=subdir_path # install a python package from a repo subdirectory
 
    .. tab:: Windows
 
       .. code-block:: shell
 
-         py -m pip install -e git+https://git.repo/some_pkg.git#egg=SomePackage          # from git
-         py -m pip install -e hg+https://hg.repo/some_pkg.git#egg=SomePackage            # from mercurial
-         py -m pip install -e svn+svn://svn.repo/some_pkg/trunk/#egg=SomePackage         # from svn
-         py -m pip install -e git+https://git.repo/some_pkg.git@feature#egg=SomePackage  # from 'feature' branch
-         py -m pip install -e "git+https://git.repo/some_repo.git#egg=subdir&subdirectory=subdir_path" # install a python package from a repo subdirectory
+         py -m pip install -e SomePackage@git+https://git.repo/some_pkg.git          # from git
+         py -m pip install -e SomePackage@hg+https://hg.repo/some_pkg                # from mercurial
+         py -m pip install -e SomePackage@svn+svn://svn.repo/some_pkg/trunk/         # from svn
+         py -m pip install -e SomePackage@git+https://git.repo/some_pkg.git@feature  # from 'feature' branch
+         py -m pip install -e SomePackage@git+https://git.repo/some_repo.git#subdirectory=subdir_path # install a python package from a repo subdirectory
 
 #. Install a package with `setuptools extras`_.
 
