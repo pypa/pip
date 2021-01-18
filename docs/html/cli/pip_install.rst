@@ -761,39 +761,6 @@ To opt in to the future behavior, specify the ``--use-feature=in-tree-build``
 option in pip's command line.
 
 
-.. _`editable-installs`:
-
-"Editable" Installs
-^^^^^^^^^^^^^^^^^^^
-
-"Editable" installs are fundamentally `"setuptools develop mode"
-<https://setuptools.readthedocs.io/en/latest/setuptools.html#development-mode>`_
-installs.
-
-You can install local projects or VCS projects in "editable" mode:
-
-.. tab:: Unix/macOS
-
-   .. code-block:: shell
-
-      python -m pip install -e path/to/SomeProject
-      python -m pip install -e git+http://repo/my_project.git#egg=SomeProject
-
-.. tab:: Windows
-
-   .. code-block:: shell
-
-      py -m pip install -e path/to/SomeProject
-      py -m pip install -e git+http://repo/my_project.git#egg=SomeProject
-
-
-(See the :ref:`VCS Support` section above for more information on VCS-related syntax.)
-
-For local projects, the "SomeProject.egg-info" directory is created relative to
-the project path.  This is one advantage over just using ``setup.py develop``,
-which creates the "egg-info" directly relative the current working directory.
-
-
 .. _`controlling-setup-requires`:
 
 Controlling setup_requires

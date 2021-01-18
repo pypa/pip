@@ -6,4 +6,5 @@ Explanations provide detailed information on key topics and concepts.
 authentication
 caching
 configuration
+editable-installs
 ```
