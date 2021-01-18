@@ -1,12 +1,13 @@
 """pip sphinx extensions"""
 
 import optparse
+import re
 import sys
 from textwrap import dedent
 
 from docutils import nodes
 from docutils.parsers import rst
-from docutils.statemachine import ViewList
+from docutils.statemachine import StringList, ViewList
 
 from pip._internal.cli import cmdoptions
 from pip._internal.commands import commands_dict, create_command
@@ -147,6 +148,84 @@ class PipReqFileOptionsReference(PipOptions):
             )
 
 
+class PipCLIDirective(rst.Directive):
+    """
+    - Only works when used in a MyST document.
+    - Requires sphinx-inline-tabs' tab directive.
+    """
+
+    has_content = True
+    optional_arguments = 1
+
+    def run(self):
+        node = nodes.paragraph()
+        node.document = self.state.document
+
+        os_variants = {
+            "Linux": {
+                "highlighter": "console",
+                "executable": "python",
+                "prompt": "$",
+            },
+            "MacOS": {
+                "highlighter": "console",
+                "executable": "python",
+                "prompt": "$",
+            },
+            "Windows": {
+                "highlighter": "doscon",
+                "executable": "py",
+                "prompt": "C:>",
+            },
+        }
+
+        if self.arguments:
+            assert self.arguments == ["in-a-venv"]
+            in_virtual_environment = True
+        else:
+            in_virtual_environment = False
+
+        lines = []
+        # Create a tab for each OS
+        for os, variant in os_variants.items():
+
+            # Unpack the values
+            prompt = variant["prompt"]
+            highlighter = variant["highlighter"]
+            if in_virtual_environment:
+                executable = "python"
+                pip_spelling = "pip"
+            else:
+                executable = variant["executable"]
+                pip_spelling = f"{executable} -m pip"
+
+            # Substitute the various "prompts" into the correct variants
+            substitution_pipeline = [
+                (
+                    r"(^|(?<=\n))\$ python",
+                    f"{prompt} {executable}",
+                ),
+                (
+                    r"(^|(?<=\n))\$ pip",
+                    f"{prompt} {pip_spelling}",
+                ),
+            ]
+            content = self.block_text
+            for pattern, substitution in substitution_pipeline:
+                content = re.sub(pattern, substitution, content)
+
+            # Write the tab
+            lines.append(f"````{{tab}} {os}")
+            lines.append(f"```{highlighter}")
+            lines.append(f"{content}")
+            lines.append("```")
+            lines.append("````")
+
+        string_list = StringList(lines)
+        self.state.nested_parse(string_list, 0, node)
+        return [node]
+
+
 def setup(app):
     app.add_directive("pip-command-usage", PipCommandUsage)
     app.add_directive("pip-command-description", PipCommandDescription)
@@ -156,3 +235,4 @@ def setup(app):
     app.add_directive(
         "pip-requirements-file-options-ref-list", PipReqFileOptionsReference
     )
+    app.add_directive("pip-cli", PipCLIDirective)
