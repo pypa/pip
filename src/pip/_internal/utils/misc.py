@@ -18,7 +18,6 @@ from io import StringIO
 from itertools import filterfalse, tee, zip_longest
 
 from pip._vendor import pkg_resources
-from pip._vendor.packaging.utils import canonicalize_name
 
 # NOTE: retrying is not annotated in typeshed as on 2017-07-17, which is
 #       why we ignore the type on this import.
@@ -402,86 +401,20 @@ def get_installed_distributions(
         paths=None  # type: Optional[List[str]]
 ):
     # type: (...) -> List[Distribution]
+    """Return a list of installed Distribution objects.
+
+    Left for compatibility until direct pkg_resources uses are refactored out.
     """
-    Return a list of installed Distribution objects.
-
-    If ``local_only`` is True (default), only return installations
-    local to the current virtualenv, if in a virtualenv.
-
-    ``skip`` argument is an iterable of lower-case project names to
-    ignore; defaults to stdlib_pkgs
-
-    If ``include_editables`` is False, don't report editables.
-
-    If ``editables_only`` is True , only report editables.
-
-    If ``user_only`` is True , only report installations in the user
-    site directory.
-
-    If ``paths`` is set, only report the distributions present at the
-    specified list of locations.
-    """
-    if paths:
-        working_set = pkg_resources.WorkingSet(paths)
-    else:
-        working_set = pkg_resources.working_set
-
-    if local_only:
-        local_test = dist_is_local
-    else:
-        def local_test(d):
-            return True
-
-    if include_editables:
-        def editable_test(d):
-            return True
-    else:
-        def editable_test(d):
-            return not dist_is_editable(d)
-
-    if editables_only:
-        def editables_only_test(d):
-            return dist_is_editable(d)
-    else:
-        def editables_only_test(d):
-            return True
-
-    if user_only:
-        user_test = dist_in_usersite
-    else:
-        def user_test(d):
-            return True
-
-    return [d for d in working_set
-            if local_test(d) and
-            d.key not in skip and
-            editable_test(d) and
-            editables_only_test(d) and
-            user_test(d)
-            ]
-
-
-def _search_distribution(req_name):
-    # type: (str) -> Optional[Distribution]
-    """Find a distribution matching the ``req_name`` in the environment.
-
-    This searches from *all* distributions available in the environment, to
-    match the behavior of ``pkg_resources.get_distribution()``.
-    """
-    # Canonicalize the name before searching in the list of
-    # installed distributions and also while creating the package
-    # dictionary to get the Distribution object
-    req_name = canonicalize_name(req_name)
-    packages = get_installed_distributions(
-        local_only=False,
-        skip=(),
-        include_editables=True,
-        editables_only=False,
-        user_only=False,
-        paths=None,
+    from pip._internal.metadata import get_environment
+    from pip._internal.metadata.pkg_resources import Distribution as _Dist
+    dists = get_environment(paths).iter_installed_distributions(
+        local_only=local_only,
+        skip=skip,
+        include_editables=include_editables,
+        editables_only=editables_only,
+        user_only=user_only,
     )
-    pkg_dict = {canonicalize_name(p.key): p for p in packages}
-    return pkg_dict.get(req_name)
+    return [cast(_Dist, dist)._dist for dist in dists]
 
 
 def get_distribution(req_name):
@@ -490,26 +423,15 @@ def get_distribution(req_name):
 
     This searches from *all* distributions available in the environment, to
     match the behavior of ``pkg_resources.get_distribution()``.
+
+    Left for compatibility until direct pkg_resources uses are refactored out.
     """
-
-    # Search the distribution by looking through the working set
-    dist = _search_distribution(req_name)
-
-    # If distribution could not be found, call working_set.require
-    # to update the working set, and try to find the distribution
-    # again.
-    # This might happen for e.g. when you install a package
-    # twice, once using setup.py develop and again using setup.py install.
-    # Now when run pip uninstall twice, the package gets removed
-    # from the working set in the first uninstall, so we have to populate
-    # the working set again so that pip knows about it and the packages
-    # gets picked up and is successfully uninstalled the second time too.
-    if not dist:
-        try:
-            pkg_resources.working_set.require(req_name)
-        except pkg_resources.DistributionNotFound:
-            return None
-    return _search_distribution(req_name)
+    from pip._internal.metadata import get_environment
+    from pip._internal.metadata.pkg_resources import Distribution as _Dist
+    dist = get_environment().get_distribution(req_name)
+    if dist is None:
+        return None
+    return cast(_Dist, dist)._dist
 
 
 def egg_link_path(dist):

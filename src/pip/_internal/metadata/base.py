@@ -47,10 +47,12 @@ class BaseEnvironment:
 
     def get_distribution(self, name):
         # type: (str) -> Optional[BaseDistribution]
+        """Given a requirement name, return the installed distributions."""
         raise NotImplementedError()
 
     def iter_distributions(self):
         # type: () -> Iterator[BaseDistribution]
+        """Iterate through installed distributions."""
         raise NotImplementedError()
 
     def iter_installed_distributions(
@@ -62,6 +64,17 @@ class BaseEnvironment:
         user_only=False,  # type: bool
     ):
         # type: (...) -> Iterator[BaseDistribution]
+        """Return a list of installed distributions.
+
+        :param local_only: If True (default), only return installations
+        local to the current virtualenv, if in a virtualenv.
+        :param skip: An iterable of canonicalized project names to ignore;
+            defaults to ``stdlib_pkgs``.
+        :param include_editables: If False, don't report editables.
+        :param editables_only: If True, only report editables.
+        :param user_only: If True, only report installations in the user
+        site directory.
+        """
         it = self.iter_distributions()
         if local_only:
             it = (d for d in it if d.local)
