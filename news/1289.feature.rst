@@ -1,0 +1,1 @@
+Add support to install a PEP 508 URL-specified requirement as editable.

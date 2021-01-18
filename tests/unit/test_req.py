@@ -606,6 +606,23 @@ def test_parse_editable_vcs_extras():
     )
 
 
+@pytest.mark.parametrize(
+    "req_str, expected",
+    [
+        (
+            'foo[extra] @ svn+http://foo ; os_name == "nt"',
+            ('foo ; os_name == "nt"', 'svn+http://foo', {'extra'}),
+        ),
+        (
+            'foo @ svn+http://foo',
+            ('foo', 'svn+http://foo', set()),
+        ),
+    ],
+)
+def test_parse_editable_pep508(req_str, expected):
+    assert parse_editable(req_str) == expected
+
+
 @patch('pip._internal.req.req_install.os.path.abspath')
 @patch('pip._internal.req.req_install.os.path.exists')
 @patch('pip._internal.req.req_install.os.path.isdir')

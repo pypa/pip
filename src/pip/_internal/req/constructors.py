@@ -70,11 +70,24 @@ def parse_editable(editable_req):
         - a requirement name
         - an URL
         - extras
-        - editable options
     Accepted requirements:
-        svn+http://blahblah@rev#egg=Foobar[baz]&subdirectory=version_subdir
-        .[some_extra]
+        - svn+http://blahblah@rev#egg=Foobar[baz]&subdirectory=version_subdir
+        - local_path[some_extra]
+        - Foobar[extra] @ svn+http://blahblah@rev#subdirectory=subdir ; markers
     """
+    try:
+        req = Requirement(editable_req)
+    except InvalidRequirement:
+        pass
+    else:
+        if req.url:
+            # Join the marker back into the name part. This will be parsed out
+            # later into a Requirement again.
+            if req.marker:
+                name = f"{req.name} ; {req.marker}"
+            else:
+                name = req.name
+            return (name, req.url, req.extras)
 
     url = editable_req
 
