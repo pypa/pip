@@ -7,7 +7,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 if MYPY_CHECK_RUNNING:
     import configparser
     from hashlib import _Hash
-    from typing import Any, Dict, List, Optional
+    from typing import Dict, List, Optional
 
     from pip._vendor.pkg_resources import Distribution
     from pip._vendor.requests.models import Request, Response
@@ -123,17 +123,20 @@ class MetadataInconsistent(InstallationError):
     that do not match the information previously obtained from sdist filename
     or user-supplied ``#egg=`` value.
     """
-    def __init__(self, ireq, field, built):
-        # type: (InstallRequirement, str, Any) -> None
+    def __init__(self, ireq, field, f_val, m_val):
+        # type: (InstallRequirement, str, str, str) -> None
         self.ireq = ireq
         self.field = field
-        self.built = built
+        self.f_val = f_val
+        self.m_val = m_val
 
     def __str__(self):
         # type: () -> str
-        return "Requested {} has different {} in metadata: {!r}".format(
-            self.ireq, self.field, self.built,
+        template = (
+            "Requested {} has inconsistent {}: "
+            "filename has {!r}, but metadata has {!r}"
         )
+        return template.format(self.ireq, self.field, self.f_val, self.m_val)
 
 
 class InstallationSubprocessError(InstallationError):

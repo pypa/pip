@@ -1233,7 +1233,9 @@ def test_new_resolver_skip_inconsistent_metadata(script):
         allow_stderr_warning=True,
     )
 
-    assert " different version in metadata: '2'" in result.stderr, str(result)
+    assert (
+        " inconsistent version: filename has '3', but metadata has '2'"
+    ) in result.stderr, str(result)
     assert_installed(script, a="1")
 
 

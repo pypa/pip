@@ -1455,7 +1455,7 @@ def test_install_editable_with_wrong_egg_name(script, resolver_variant):
             "for project name pkga. Fix your #egg=pkgb "
             "fragments.") in result.stderr
     if resolver_variant == "2020-resolver":
-        assert "has different name in metadata" in result.stderr, str(result)
+        assert "has inconsistent" in result.stderr, str(result)
     else:
         assert "Successfully installed pkga" in str(result), str(result)
 
