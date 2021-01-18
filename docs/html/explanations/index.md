@@ -8,4 +8,5 @@ caching
 configuration
 editable-installs
 repeatable-installs
+requirements-files
 ```
