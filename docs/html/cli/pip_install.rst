@@ -569,68 +569,6 @@ overridden by using ``--cert`` option or by using ``PIP_CERT``,
 ``REQUESTS_CA_BUNDLE``, or ``CURL_CA_BUNDLE`` environment variables.
 
 
-.. _`Caching`:
-
-Caching
--------
-
-Starting with v6.0, pip provides an on-by-default cache which functions
-similarly to that of a web browser. While the cache is on by default and is
-designed do the right thing by default you can disable the cache and always
-access PyPI by utilizing the ``--no-cache-dir`` option.
-
-When making any HTTP request pip will first check its local cache to determine
-if it has a suitable response stored for that request which has not expired. If
-it does then it simply returns that response and doesn't make the request.
-
-If it has a response stored, but it has expired, then it will attempt to make a
-conditional request to refresh the cache which will either return an empty
-response telling pip to simply use the cached item (and refresh the expiration
-timer) or it will return a whole new response which pip can then store in the
-cache.
-
-While this cache attempts to minimize network activity, it does not prevent
-network access altogether. If you want a local install solution that
-circumvents accessing PyPI, see :ref:`Installing from local packages`.
-
-The default location for the cache directory depends on the operating system:
-
-Unix
-  :file:`~/.cache/pip` and it respects the ``XDG_CACHE_HOME`` directory.
-macOS
-  :file:`~/Library/Caches/pip`.
-Windows
-  :file:`<CSIDL_LOCAL_APPDATA>\\pip\\Cache`
-
-Run ``pip cache dir`` to show the cache directory and see :ref:`pip cache` to
-inspect and manage pip’s cache.
-
-
-.. _`Wheel cache`:
-
-Wheel Cache
-^^^^^^^^^^^
-
-pip will read from the subdirectory ``wheels`` within the pip cache directory
-and use any packages found there. This is disabled via the same
-``--no-cache-dir`` option that disables the HTTP cache. The internal structure
-of that is not part of the pip API. As of 7.0, pip makes a subdirectory for
-each sdist that wheels are built from and places the resulting wheels inside.
-
-As of version 20.0, pip also caches wheels when building from an immutable Git
-reference (i.e. a commit hash).
-
-pip attempts to choose the best wheels from those built in preference to
-building a new wheel. Note that this means when a package has both optional
-C extensions and builds ``py`` tagged wheels when the C extension can't be built
-that pip will not attempt to build a better wheel for Pythons that would have
-supported it, once any generic wheel is built. To correct this, make sure that
-the wheels are built with Python specific tags - e.g. pp on PyPy.
-
-When no wheels are found for an sdist, pip will attempt to build a wheel
-automatically and insert it into the wheel cache.
-
-
 .. _`hash-checking mode`:
 
 Hash-Checking Mode
