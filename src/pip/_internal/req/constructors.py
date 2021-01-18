@@ -461,3 +461,19 @@ def install_req_from_parsed_requirement(
             user_supplied=user_supplied,
         )
     return req
+
+
+def install_req_from_link_and_ireq(link, ireq):
+    # type: (Link, InstallRequirement) -> InstallRequirement
+    return InstallRequirement(
+        req=ireq.req,
+        comes_from=ireq.comes_from,
+        editable=ireq.editable,
+        link=link,
+        markers=ireq.markers,
+        use_pep517=ireq.use_pep517,
+        isolated=ireq.isolated,
+        install_options=ireq.install_options,
+        global_options=ireq.global_options,
+        hash_options=ireq.hash_options,
+    )

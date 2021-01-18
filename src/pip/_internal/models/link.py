@@ -240,3 +240,9 @@ class Link(KeyBasedCompareMixin):
         assert self.hash is not None
 
         return hashes.is_hash_allowed(self.hash_name, hex_digest=self.hash)
+
+
+# TODO: Relax this comparison logic to ignore, for example, fragments.
+def links_equivalent(link1, link2):
+    # type: (Link, Link) -> bool
+    return link1 == link2

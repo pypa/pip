@@ -840,8 +840,8 @@ def check_invalid_constraint_type(req):
     problem = ""
     if not req.name:
         problem = "Unnamed requirements are not allowed as constraints"
-    elif req.link:
-        problem = "Links are not allowed as constraints"
+    elif req.editable:
+        problem = "Editable requirements are not allowed as constraints"
     elif req.extras:
         problem = "Constraints cannot have extras"
 

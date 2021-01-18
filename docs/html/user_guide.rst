@@ -254,9 +254,11 @@ Constraints Files
 
 Constraints files are requirements files that only control which version of a
 requirement is installed, not whether it is installed or not. Their syntax and
-contents is nearly identical to :ref:`Requirements Files`. There is one key
-difference: Including a package in a constraints file does not trigger
-installation of the package.
+contents is a subset of :ref:`Requirements Files`, with several kinds of syntax
+not allowed: constraints must have a name, they cannot be editable, and they
+cannot specify extras. In terms of semantics, there is one key difference:
+Including a package in a constraints file does not trigger installation of the
+package.
 
 Use a constraints file like so:
 

@@ -405,7 +405,7 @@ def test_constraints_constrain_to_local_editable(
         expect_error=(resolver_variant == "2020-resolver"),
     )
     if resolver_variant == "2020-resolver":
-        assert 'Links are not allowed as constraints' in result.stderr
+        assert 'Editable requirements are not allowed as constraints' in result.stderr
     else:
         assert 'Running setup.py develop for singlemodule' in result.stdout
 
@@ -419,12 +419,8 @@ def test_constraints_constrain_to_local(script, data, resolver_variant):
         'install', '--no-index', '-f', data.find_links, '-c',
         script.scratch_path / 'constraints.txt', 'singlemodule',
         allow_stderr_warning=True,
-        expect_error=(resolver_variant == "2020-resolver"),
     )
-    if resolver_variant == "2020-resolver":
-        assert 'Links are not allowed as constraints' in result.stderr
-    else:
-        assert 'Running setup.py install for singlemodule' in result.stdout
+    assert 'Running setup.py install for singlemodule' in result.stdout
 
 
 def test_constrained_to_url_install_same_url(script, data, resolver_variant):
@@ -438,7 +434,11 @@ def test_constrained_to_url_install_same_url(script, data, resolver_variant):
         expect_error=(resolver_variant == "2020-resolver"),
     )
     if resolver_variant == "2020-resolver":
-        assert 'Links are not allowed as constraints' in result.stderr
+        assert 'Cannot install singlemodule 0.0.1' in result.stderr, str(result)
+        assert (
+            'because these package versions have conflicting dependencies.'
+            in result.stderr
+        ), str(result)
     else:
         assert ('Running setup.py install for singlemodule'
                 in result.stdout), str(result)
@@ -489,7 +489,7 @@ def test_install_with_extras_from_constraints(script, data, resolver_variant):
         expect_error=(resolver_variant == "2020-resolver"),
     )
     if resolver_variant == "2020-resolver":
-        assert 'Links are not allowed as constraints' in result.stderr
+        assert 'Constraints cannot have extras' in result.stderr
     else:
         result.did_create(script.site_packages / 'simple')
 
@@ -521,7 +521,7 @@ def test_install_with_extras_joined(script, data, resolver_variant):
         expect_error=(resolver_variant == "2020-resolver"),
     )
     if resolver_variant == "2020-resolver":
-        assert 'Links are not allowed as constraints' in result.stderr
+        assert 'Constraints cannot have extras' in result.stderr
     else:
         result.did_create(script.site_packages / 'simple')
         result.did_create(script.site_packages / 'singlemodule.py')
@@ -538,7 +538,7 @@ def test_install_with_extras_editable_joined(script, data, resolver_variant):
         expect_error=(resolver_variant == "2020-resolver"),
     )
     if resolver_variant == "2020-resolver":
-        assert 'Links are not allowed as constraints' in result.stderr
+        assert 'Editable requirements are not allowed as constraints' in result.stderr
     else:
         result.did_create(script.site_packages / 'simple')
         result.did_create(script.site_packages / 'singlemodule.py')

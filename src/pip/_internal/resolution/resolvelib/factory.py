@@ -32,6 +32,7 @@ from pip._internal.index.package_finder import PackageFinder
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
 from pip._internal.operations.prepare import RequirementPreparer
+from pip._internal.req.constructors import install_req_from_link_and_ireq
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.resolution.base import InstallRequirementProvider
 from pip._internal.utils.compatibility_tags import get_supported
@@ -263,6 +264,46 @@ class Factory:
                 explicit_candidates.add(cand)
             if ireq is not None:
                 ireqs.append(ireq)
+
+        for link in constraint.links:
+            if not ireqs:
+                # If we hit this condition, then we cannot construct a candidate.
+                # However, if we hit this condition, then none of the requirements
+                # provided an ireq, so they must have provided an explicit candidate.
+                # In that case, either the candidate matches, in which case this loop
+                # doesn't need to do anything, or it doesn't, in which case there's
+                # nothing this loop can do to recover.
+                break
+            if link.is_wheel:
+                wheel = Wheel(link.filename)
+                # Check whether the provided wheel is compatible with the target
+                # platform.
+                if not wheel.supported(self._finder.target_python.get_tags()):
+                    # We are constrained to install a wheel that is incompatible with
+                    # the target architecture, so there are no valid candidates.
+                    # Return early, with no candidates.
+                    return ()
+            # Create a "fake" InstallRequirement that's basically a clone of
+            # what "should" be the template, but with original_link set to link.
+            # Using the given requirement is necessary for preserving hash
+            # requirements, but without the original_link, direct_url.json
+            # won't be created.
+            ireq = install_req_from_link_and_ireq(link, ireqs[0])
+            candidate = self._make_candidate_from_link(
+                link,
+                extras=frozenset(),
+                template=ireq,
+                name=canonicalize_name(ireq.name) if ireq.name else None,
+                version=None,
+            )
+            if candidate is None:
+                # _make_candidate_from_link returns None if the wheel fails to build.
+                # We are constrained to install this wheel, so there are no valid
+                # candidates.
+                # Return early, with no candidates.
+                return ()
+
+            explicit_candidates.add(candidate)
 
         # If none of the requirements want an explicit candidate, we can ask
         # the finder for candidates.
