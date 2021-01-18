@@ -7,4 +7,5 @@ authentication
 caching
 configuration
 editable-installs
+repeatable-installs
 ```
