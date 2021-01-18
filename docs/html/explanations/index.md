@@ -9,4 +9,5 @@ configuration
 editable-installs
 repeatable-installs
 requirements-files
+user-installs
 ```
