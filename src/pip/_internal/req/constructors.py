@@ -115,23 +115,17 @@ def parse_editable(editable_req):
             url = f'{version_control}+{url}'
             break
 
-    if '+' not in url:
+    link = Link(url)
+
+    if not link.is_vcs:
+        backends = ", ".join(vcs.all_schemes)
         raise InstallationError(
-            '{} is not a valid editable requirement. '
-            'It should either be a path to a local project or a VCS URL '
-            '(beginning with svn+, git+, hg+, or bzr+).'.format(editable_req)
+            f'{editable_req} is not a valid editable requirement. '
+            f'It should either be a path to a local project or a VCS URL '
+            f'(beginning with {backends}).'
         )
 
-    vc_type = url.split('+', 1)[0].lower()
-
-    if not vcs.get_backend(vc_type):
-        backends = ", ".join([bends.name + '+URL' for bends in vcs.backends])
-        error_message = "For --editable={}, " \
-                        "only {} are currently supported".format(
-                            editable_req, backends)
-        raise InstallationError(error_message)
-
-    package_name = Link(url).egg_fragment
+    package_name = link.egg_fragment
     if not package_name:
         raise InstallationError(
             "Could not detect requirement name for '{}', please specify one "

@@ -47,7 +47,7 @@ class Git(VersionControl):
     dirname = '.git'
     repo_name = 'clone'
     schemes = (
-        'git', 'git+http', 'git+https', 'git+ssh', 'git+git', 'git+file',
+        'git+http', 'git+https', 'git+ssh', 'git+git', 'git+file',
     )
     # Prevent the user's environment variables from interfering with pip:
     # https://github.com/pypa/pip/issues/1130

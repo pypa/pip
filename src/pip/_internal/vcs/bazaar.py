@@ -25,8 +25,8 @@ class Bazaar(VersionControl):
     dirname = '.bzr'
     repo_name = 'branch'
     schemes = (
-        'bzr', 'bzr+http', 'bzr+https', 'bzr+ssh', 'bzr+sftp', 'bzr+ftp',
-        'bzr+lp',
+        'bzr+http', 'bzr+https', 'bzr+ssh', 'bzr+sftp', 'bzr+ftp',
+        'bzr+lp', 'bzr+file'
     )
 
     @staticmethod
