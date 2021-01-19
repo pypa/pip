@@ -405,9 +405,14 @@ def get_installed_distributions(
 
     Left for compatibility until direct pkg_resources uses are refactored out.
     """
-    from pip._internal.metadata import get_environment
+    from pip._internal.metadata import get_default_environment, get_environment
     from pip._internal.metadata.pkg_resources import Distribution as _Dist
-    dists = get_environment(paths).iter_installed_distributions(
+
+    if paths is None:
+        env = get_default_environment()
+    else:
+        env = get_environment(paths)
+    dists = env.iter_installed_distributions(
         local_only=local_only,
         skip=skip,
         include_editables=include_editables,
@@ -426,9 +431,9 @@ def get_distribution(req_name):
 
     Left for compatibility until direct pkg_resources uses are refactored out.
     """
-    from pip._internal.metadata import get_environment
+    from pip._internal.metadata import get_default_environment
     from pip._internal.metadata.pkg_resources import Distribution as _Dist
-    dist = get_environment().get_distribution(req_name)
+    dist = get_default_environment().get_distribution(req_name)
     if dist is None:
         return None
     return cast(_Dist, dist)._dist

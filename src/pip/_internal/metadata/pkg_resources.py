@@ -54,7 +54,7 @@ class Environment(BaseEnvironment):
 
     @classmethod
     def from_paths(cls, paths):
-        # type: (List[str]) -> BaseEnvironment
+        # type: (Optional[List[str]]) -> BaseEnvironment
         return cls(pkg_resources.WorkingSet(paths))
 
     def _search_distribution(self, name):

@@ -42,7 +42,7 @@ class BaseEnvironment:
 
     @classmethod
     def from_paths(cls, paths):
-        # type: (List[str]) -> BaseEnvironment
+        # type: (Optional[List[str]]) -> BaseEnvironment
         raise NotImplementedError()
 
     def get_distribution(self, name):

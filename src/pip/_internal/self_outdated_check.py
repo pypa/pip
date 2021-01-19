@@ -10,7 +10,7 @@ from pip._vendor.six import ensure_binary
 
 from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import PackageFinder
-from pip._internal.metadata import get_environment
+from pip._internal.metadata import get_default_environment
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.utils.filesystem import adjacent_tmp_file, check_path_owner, replace
 from pip._internal.utils.misc import ensure_dir, get_installed_version
@@ -103,7 +103,7 @@ def was_installed_by_pip(pkg):
     This is used not to display the upgrade message when pip is in fact
     installed by system package manager, such as dnf on Fedora.
     """
-    dist = get_environment().get_distribution(pkg)
+    dist = get_default_environment().get_distribution(pkg)
     return dist is not None and "pip" == dist.installer
 
 

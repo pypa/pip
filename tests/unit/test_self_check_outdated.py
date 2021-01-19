@@ -105,7 +105,7 @@ def test_pip_self_version_check(monkeypatch, stored_time, installed_ver,
                         pretend.call_recorder(lambda *a, **kw: None))
     monkeypatch.setattr(logger, 'debug',
                         pretend.call_recorder(lambda s, exc_info=None: None))
-    monkeypatch.setattr(self_outdated_check, 'get_environment',
+    monkeypatch.setattr(self_outdated_check, 'get_default_environment',
                         lambda: MockEnvironment(installer))
 
     fake_state = pretend.stub(
