@@ -4,7 +4,7 @@ import subprocess
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
-from pip._internal.configuration import Configuration, get_configuration_files, kinds
+from pip._internal.configuration import Configuration, Kind, get_configuration_files
 from pip._internal.exceptions import PipError
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import get_prog, write_output
@@ -13,8 +13,6 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 if MYPY_CHECK_RUNNING:
     from optparse import Values
     from typing import Any, List, Optional
-
-    from pip._internal.configuration import Kind
 
 logger = logging.getLogger(__name__)
 
@@ -137,9 +135,9 @@ class ConfigurationCommand(Command):
     def _determine_file(self, options, need_value):
         # type: (Values, bool) -> Optional[Kind]
         file_options = [key for key, value in (
-            (kinds.USER, options.user_file),
-            (kinds.GLOBAL, options.global_file),
-            (kinds.SITE, options.site_file),
+            (Kind.USER, options.user_file),
+            (Kind.GLOBAL, options.global_file),
+            (Kind.SITE, options.site_file),
         ) if value]
 
         if not file_options:
@@ -148,11 +146,11 @@ class ConfigurationCommand(Command):
             # Default to user, unless there's a site file.
             elif any(
                 os.path.exists(site_config_file)
-                for site_config_file in get_configuration_files()[kinds.SITE]
+                for site_config_file in get_configuration_files()[Kind.SITE]
             ):
-                return kinds.SITE
+                return Kind.SITE
             else:
-                return kinds.USER
+                return Kind.USER
         elif len(file_options) == 1:
             return file_options[0]
 
@@ -197,8 +195,12 @@ class ConfigurationCommand(Command):
         self.print_env_var_values()
         # Iterate over config files and print if they exist, and the
         # key-value pairs present in them if they do
-        for variant, files in sorted(self.configuration.iter_config_files()):
-            write_output("%s:", variant)
+        config_files = sorted(
+            self.configuration.iter_config_files(),
+            key=lambda kind_files: (kind_files[0].value, kind_files[1:]),
+        )
+        for variant, files in config_files:
+            write_output("%s:", variant.value)
             for fname in files:
                 with indent_log():
                     file_exists = os.path.exists(fname)

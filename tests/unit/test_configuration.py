@@ -4,7 +4,7 @@
 import pytest
 from mock import MagicMock
 
-from pip._internal.configuration import get_configuration_files, kinds
+from pip._internal.configuration import Kind, get_configuration_files
 from pip._internal.exceptions import ConfigurationError
 from tests.lib.configuration_helpers import ConfigurationMixin
 
@@ -12,19 +12,19 @@ from tests.lib.configuration_helpers import ConfigurationMixin
 class TestConfigurationLoading(ConfigurationMixin):
 
     def test_global_loading(self):
-        self.patch_configuration(kinds.GLOBAL, {"test.hello": "1"})
+        self.patch_configuration(Kind.GLOBAL, {"test.hello": "1"})
 
         self.configuration.load()
         assert self.configuration.get_value("test.hello") == "1"
 
     def test_user_loading(self):
-        self.patch_configuration(kinds.USER, {"test.hello": "2"})
+        self.patch_configuration(Kind.USER, {"test.hello": "2"})
 
         self.configuration.load()
         assert self.configuration.get_value("test.hello") == "2"
 
     def test_site_loading(self):
-        self.patch_configuration(kinds.SITE, {"test.hello": "3"})
+        self.patch_configuration(Kind.SITE, {"test.hello": "3"})
 
         self.configuration.load()
         assert self.configuration.get_value("test.hello") == "3"
@@ -87,49 +87,49 @@ class TestConfigurationPrecedence(ConfigurationMixin):
     # configuration options
 
     def test_env_overides_site(self):
-        self.patch_configuration(kinds.SITE, {"test.hello": "1"})
-        self.patch_configuration(kinds.ENV, {"test.hello": "0"})
+        self.patch_configuration(Kind.SITE, {"test.hello": "1"})
+        self.patch_configuration(Kind.ENV, {"test.hello": "0"})
         self.configuration.load()
 
         assert self.configuration.get_value("test.hello") == "0"
 
     def test_env_overides_user(self):
-        self.patch_configuration(kinds.USER, {"test.hello": "2"})
-        self.patch_configuration(kinds.ENV, {"test.hello": "0"})
+        self.patch_configuration(Kind.USER, {"test.hello": "2"})
+        self.patch_configuration(Kind.ENV, {"test.hello": "0"})
         self.configuration.load()
 
         assert self.configuration.get_value("test.hello") == "0"
 
     def test_env_overides_global(self):
-        self.patch_configuration(kinds.GLOBAL, {"test.hello": "3"})
-        self.patch_configuration(kinds.ENV, {"test.hello": "0"})
+        self.patch_configuration(Kind.GLOBAL, {"test.hello": "3"})
+        self.patch_configuration(Kind.ENV, {"test.hello": "0"})
         self.configuration.load()
 
         assert self.configuration.get_value("test.hello") == "0"
 
     def test_site_overides_user(self):
-        self.patch_configuration(kinds.USER, {"test.hello": "2"})
-        self.patch_configuration(kinds.SITE, {"test.hello": "1"})
+        self.patch_configuration(Kind.USER, {"test.hello": "2"})
+        self.patch_configuration(Kind.SITE, {"test.hello": "1"})
         self.configuration.load()
 
         assert self.configuration.get_value("test.hello") == "1"
 
     def test_site_overides_global(self):
-        self.patch_configuration(kinds.GLOBAL, {"test.hello": "3"})
-        self.patch_configuration(kinds.SITE, {"test.hello": "1"})
+        self.patch_configuration(Kind.GLOBAL, {"test.hello": "3"})
+        self.patch_configuration(Kind.SITE, {"test.hello": "1"})
         self.configuration.load()
 
         assert self.configuration.get_value("test.hello") == "1"
 
     def test_user_overides_global(self):
-        self.patch_configuration(kinds.GLOBAL, {"test.hello": "3"})
-        self.patch_configuration(kinds.USER, {"test.hello": "2"})
+        self.patch_configuration(Kind.GLOBAL, {"test.hello": "3"})
+        self.patch_configuration(Kind.USER, {"test.hello": "2"})
         self.configuration.load()
 
         assert self.configuration.get_value("test.hello") == "2"
 
     def test_env_not_overriden_by_environment_var(self, monkeypatch):
-        self.patch_configuration(kinds.ENV, {"test.hello": "1"})
+        self.patch_configuration(Kind.ENV, {"test.hello": "1"})
         monkeypatch.setenv("PIP_HELLO", "5")
 
         self.configuration.load()
@@ -138,7 +138,7 @@ class TestConfigurationPrecedence(ConfigurationMixin):
         assert self.configuration.get_value(":env:.hello") == "5"
 
     def test_site_not_overriden_by_environment_var(self, monkeypatch):
-        self.patch_configuration(kinds.SITE, {"test.hello": "2"})
+        self.patch_configuration(Kind.SITE, {"test.hello": "2"})
         monkeypatch.setenv("PIP_HELLO", "5")
 
         self.configuration.load()
@@ -147,7 +147,7 @@ class TestConfigurationPrecedence(ConfigurationMixin):
         assert self.configuration.get_value(":env:.hello") == "5"
 
     def test_user_not_overriden_by_environment_var(self, monkeypatch):
-        self.patch_configuration(kinds.USER, {"test.hello": "3"})
+        self.patch_configuration(Kind.USER, {"test.hello": "3"})
         monkeypatch.setenv("PIP_HELLO", "5")
 
         self.configuration.load()
@@ -156,7 +156,7 @@ class TestConfigurationPrecedence(ConfigurationMixin):
         assert self.configuration.get_value(":env:.hello") == "5"
 
     def test_global_not_overriden_by_environment_var(self, monkeypatch):
-        self.patch_configuration(kinds.GLOBAL, {"test.hello": "4"})
+        self.patch_configuration(Kind.GLOBAL, {"test.hello": "4"})
         monkeypatch.setenv("PIP_HELLO", "5")
 
         self.configuration.load()
@@ -179,7 +179,7 @@ class TestConfigurationModification(ConfigurationMixin):
             assert False, "Should have raised an error."
 
     def test_site_modification(self):
-        self.configuration.load_only = kinds.SITE
+        self.configuration.load_only = Kind.SITE
         self.configuration.load()
 
         # Mock out the method
@@ -191,12 +191,12 @@ class TestConfigurationModification(ConfigurationMixin):
         # get the path to site config file
         assert mymock.call_count == 1
         assert mymock.call_args[0][0] == (
-            get_configuration_files()[kinds.SITE][0]
+            get_configuration_files()[Kind.SITE][0]
         )
 
     def test_user_modification(self):
         # get the path to local config file
-        self.configuration.load_only = kinds.USER
+        self.configuration.load_only = Kind.USER
         self.configuration.load()
 
         # Mock out the method
@@ -209,12 +209,12 @@ class TestConfigurationModification(ConfigurationMixin):
         assert mymock.call_count == 1
         assert mymock.call_args[0][0] == (
             # Use new config file
-            get_configuration_files()[kinds.USER][1]
+            get_configuration_files()[Kind.USER][1]
         )
 
     def test_global_modification(self):
         # get the path to local config file
-        self.configuration.load_only = kinds.GLOBAL
+        self.configuration.load_only = Kind.GLOBAL
         self.configuration.load()
 
         # Mock out the method
@@ -226,5 +226,5 @@ class TestConfigurationModification(ConfigurationMixin):
         # get the path to user config file
         assert mymock.call_count == 1
         assert mymock.call_args[0][0] == (
-            get_configuration_files()[kinds.GLOBAL][-1]
+            get_configuration_files()[Kind.GLOBAL][-1]
         )

@@ -10,9 +10,6 @@ import textwrap
 import pip._internal.configuration
 from pip._internal.utils.misc import ensure_dir
 
-# This is so that tests don't need to import pip._internal.configuration.
-kinds = pip._internal.configuration.kinds
-
 
 class ConfigurationMixin:
 

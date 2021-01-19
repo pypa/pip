@@ -452,9 +452,9 @@ class TestOptionsConfigFiles:
         "args, expect",
         (
             ([], None),
-            (["--global"], "global"),
-            (["--site"], "site"),
-            (["--user"], "user"),
+            (["--global"], pip._internal.configuration.Kind.GLOBAL),
+            (["--site"], pip._internal.configuration.Kind.SITE),
+            (["--user"], pip._internal.configuration.Kind.USER),
             (["--global", "--user"], PipError),
             (["--global", "--site"], PipError),
             (["--global", "--site", "--user"], PipError),
