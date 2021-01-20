@@ -9,4 +9,4 @@ Changelog
 
 .. towncrier-draft-entries:: |release|, unreleased as on
 
-.. include:: ../../NEWS.rst
+.. pip-news-include:: ../../NEWS.rst

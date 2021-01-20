@@ -1,16 +1,75 @@
 """pip sphinx extensions"""
 
 import optparse
+import pathlib
+import re
 import sys
 from textwrap import dedent
 
-from docutils import nodes
+from docutils import nodes, statemachine
 from docutils.parsers import rst
 from docutils.statemachine import ViewList
 
 from pip._internal.cli import cmdoptions
 from pip._internal.commands import commands_dict, create_command
 from pip._internal.req.req_file import SUPPORTED_OPTIONS
+
+
+class PipNewsInclude(rst.Directive):
+    required_arguments = 1
+
+    def _is_version_section_title_underline(self, prev, curr):
+        """Find a ==== line that marks the version section title."""
+        if prev is None:
+            return False
+        if re.match(r"^=+$", curr) is None:
+            return False
+        if len(curr) < len(prev):
+            return False
+        return True
+
+    def _iter_lines_with_refs(self, lines):
+        """Transform the input lines to add a ref before each section title.
+
+        This is done by looking one line ahead and locate a title's underline,
+        and add a ref before the title text.
+
+        Dots in the version is converted into dash, and a ``v`` is prefixed.
+        This makes Sphinx use them as HTML ``id`` verbatim without generating
+        auto numbering (which would make the the anchors unstable).
+        """
+        prev = None
+        for line in lines:
+            # Transform the previous line to include an explicit ref.
+            if self._is_version_section_title_underline(prev, line):
+                vref = prev.split(None, 1)[0].replace(".", "-")
+                yield f".. _`v{vref}`:"
+                yield ""  # Empty line between ref and the title.
+            if prev is not None:
+                yield prev
+            prev = line
+        if prev is not None:
+            yield prev
+
+    def run(self):
+        source = self.state_machine.input_lines.source(
+            self.lineno - self.state_machine.input_offset - 1,
+        )
+        path = (
+            pathlib.Path(source)
+            .resolve()
+            .parent
+            .joinpath(self.arguments[0])
+            .resolve()
+        )
+        include_lines = statemachine.string2lines(
+            path.read_text(encoding="utf-8"),
+            self.state.document.settings.tab_width,
+            convert_whitespace=True,
+        )
+        include_lines = list(self._iter_lines_with_refs(include_lines))
+        self.state_machine.insert_input(include_lines, str(path))
+        return []
 
 
 class PipCommandUsage(rst.Directive):
@@ -162,3 +221,4 @@ def setup(app):
     app.add_directive(
         'pip-requirements-file-options-ref-list', PipReqFileOptionsReference
     )
+    app.add_directive('pip-news-include', PipNewsInclude)
