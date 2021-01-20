@@ -302,7 +302,7 @@ cert = partial(
     dest='cert',
     type='path',
     metavar='path',
-    help="Path to CA bundle. Replaces default CA bundle.",
+    help="Path to PEM-encoded CA certificate bundle. If provided, overrides the default.",
 )  # type: Callable[..., Option]
 
 client_cert = partial(
