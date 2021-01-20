@@ -8,13 +8,12 @@ import optparse
 import shutil
 import sys
 import textwrap
-from distutils.util import strtobool
 
 from pip._vendor.contextlib2 import suppress
 
 from pip._internal.cli.status_codes import UNKNOWN_ERROR
 from pip._internal.configuration import Configuration, ConfigurationError
-from pip._internal.utils.misc import redact_auth_from_url
+from pip._internal.utils.misc import redact_auth_from_url, strtobool
 
 logger = logging.getLogger(__name__)
 
