@@ -1,6 +1,8 @@
 """pip sphinx extensions"""
 
 import optparse
+import re
+import subprocess
 import sys
 from textwrap import dedent
 
@@ -11,6 +13,41 @@ from docutils.statemachine import ViewList
 from pip._internal.cli import cmdoptions
 from pip._internal.commands import commands_dict, create_command
 from pip._internal.req.req_file import SUPPORTED_OPTIONS
+
+
+class PipTowncrierDraft(rst.Directive):
+    required_arguments = 0
+
+    def _find_section_title(self, lines):
+        for i, line in enumerate(lines):
+            if not re.match(r"^=+$", line) or i == 0:
+                continue
+            title_match = re.match(
+                r"^(?P<version>[^ ]+) \((?P<date>[^\)]+)\)$",
+                lines[i - 1],
+            )
+            if not title_match:
+                continue
+            return i - 1, title_match.group("version", "date")
+        return None, (None, None)
+
+    def run(self):
+        lines = subprocess.check_output(
+            [sys.executable, "-m", "towncrier", "--draft"],
+            stderr=subprocess.DEVNULL,
+            text=True,
+        ).splitlines(keepends=False)
+
+        index, (version, date) = self._find_section_title(lines)
+        assert index is not None, "section title not found"
+        assert version is not None, "version not found in title"
+        assert date is not None, "date not found in title"
+
+        lines[index] = f"{version}, unreleased as in {date}"
+        lines[index + 1] = lines[index + 1][0] * len(lines[index])
+        self.state_machine.insert_input(lines, "")
+
+        return []
 
 
 class PipCommandUsage(rst.Directive):
@@ -154,6 +191,7 @@ class PipReqFileOptionsReference(PipOptions):
 
 
 def setup(app):
+    app.add_directive('pip-towncrier-draft', PipTowncrierDraft)
     app.add_directive('pip-command-usage', PipCommandUsage)
     app.add_directive('pip-command-description', PipCommandDescription)
     app.add_directive('pip-command-options', PipCommandOptions)

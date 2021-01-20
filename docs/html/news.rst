@@ -7,6 +7,6 @@ Changelog
     Major and minor releases of pip also include changes listed within
     prior beta releases.
 
-.. towncrier-draft-entries:: |release|, unreleased as on
+.. pip-towncrier-draft::
 
 .. include:: ../../NEWS.rst
