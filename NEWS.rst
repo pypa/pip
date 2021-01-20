@@ -116,6 +116,8 @@ Vendored Libraries
 20.3.3 (2020-12-15)
 ===================
 
+.. _v20-3-3-bug-fixes:
+
 Bug Fixes
 ---------
 
@@ -127,12 +129,16 @@ Bug Fixes
 20.3.2 (2020-12-15)
 ===================
 
+.. _v20-3-2-features:
+
 Features
 --------
 
 - New resolver: Resolve direct and pinned (``==`` or ``===``) requirements first
   to improve resolver performance. (`#9185 <https://github.com/pypa/pip/issues/9185>`_)
 - Add a mechanism to delay resolving certain packages, and use it for setuptools. (`#9249 <https://github.com/pypa/pip/issues/9249>`_)
+
+.. _v20-3-2-bug-fixes:
 
 Bug Fixes
 ---------
@@ -148,10 +154,14 @@ Bug Fixes
 - New resolver: Discard a candidate if it fails to provide metadata from source,
   or if the provided metadata is inconsistent, instead of quitting outright. (`#9246 <https://github.com/pypa/pip/issues/9246>`_)
 
+.. _v20-3-2-vendored-libraries:
+
 Vendored Libraries
 ------------------
 
 - Update vendoring to 20.8
+
+.. _v20-3-2-improved-documentation:
 
 Improved Documentation
 ----------------------
@@ -163,6 +173,8 @@ Improved Documentation
 
 20.3.1 (2020-12-03)
 ===================
+
+.. _v20-3-1-deprecations-and-removals:
 
 Deprecations and Removals
 -------------------------
@@ -176,10 +188,14 @@ Deprecations and Removals
 20.3 (2020-11-30)
 =================
 
+.. _v20-3-deprecations-and-removals:
+
 Deprecations and Removals
 -------------------------
 
 - Remove --unstable-feature flag as it has been deprecated. (`#9133 <https://github.com/pypa/pip/issues/9133>`_)
+
+.. _v20-3-features:
 
 Features
 --------
@@ -187,6 +203,8 @@ Features
 - Add support for :pep:`600`: Future 'manylinux' Platform Tags for Portable Linux Built Distributions. (`#9077 <https://github.com/pypa/pip/issues/9077>`_)
 - The new resolver now resolves packages in a deterministic order. (`#9100 <https://github.com/pypa/pip/issues/9100>`_)
 - Add support for MacOS Big Sur compatibility tags. (`#9138 <https://github.com/pypa/pip/issues/9138>`_)
+
+.. _v20-3-bug-fixes:
 
 Bug Fixes
 ---------
@@ -203,6 +221,8 @@ Bug Fixes
 - New Resolver: editable installations are done, regardless of whether
   the already-installed distribution is editable. (`#9169 <https://github.com/pypa/pip/issues/9169>`_)
 
+.. _v20-3-vendored-libraries:
+
 Vendored Libraries
 ------------------
 
@@ -214,6 +234,8 @@ Vendored Libraries
 - Upgrade resolvelib to 0.5.3
 - Upgrade toml to 0.10.2
 - Upgrade urllib3 to 1.26.2
+
+.. _v20-3-improved-documentation:
 
 Improved Documentation
 ----------------------
@@ -227,6 +249,8 @@ Improved Documentation
 20.3b1 (2020-10-31)
 ===================
 
+.. _v20-3b1-deprecations-and-removals:
+
 Deprecations and Removals
 -------------------------
 
@@ -236,6 +260,8 @@ Deprecations and Removals
 - Document that certain removals can be fast tracked. (`#8417 <https://github.com/pypa/pip/issues/8417>`_)
 - Document that Python versions are generally supported until PyPI usage falls below 5%. (`#8927 <https://github.com/pypa/pip/issues/8927>`_)
 - Deprecate ``--find-links`` option in ``pip freeze`` (`#9069 <https://github.com/pypa/pip/issues/9069>`_)
+
+.. _v20-3b1-features:
 
 Features
 --------
@@ -263,6 +289,8 @@ Features
 - Log an informational message when backtracking takes multiple rounds on a specific package. (`#8975 <https://github.com/pypa/pip/issues/8975>`_)
 - Switch to the new dependency resolver by default. (`#9019 <https://github.com/pypa/pip/issues/9019>`_)
 - Remove the ``--build-dir`` option, as per the deprecation. (`#9049 <https://github.com/pypa/pip/issues/9049>`_)
+
+.. _v20-3b1-bug-fixes:
 
 Bug Fixes
 ---------
@@ -292,11 +320,15 @@ Bug Fixes
   with editable=True. Render it as a non-editable ``file://`` URL until modern
   editable installs are standardized and supported. (`#8996 <https://github.com/pypa/pip/issues/8996>`_)
 
+.. _v20-3b1-vendored-libraries:
+
 Vendored Libraries
 ------------------
 
 - Fix devendoring instructions to explicitly state that ``vendor.txt`` should not be removed.
   It is mandatory for ``pip debug`` command.
+
+.. _v20-3b1-improved-documentation:
 
 Improved Documentation
 ----------------------
@@ -315,11 +347,15 @@ Improved Documentation
 20.2.4 (2020-10-16)
 ===================
 
+.. _v20-2-4-deprecations-and-removals:
+
 Deprecations and Removals
 -------------------------
 
 - Document that certain removals can be fast tracked. (`#8417 <https://github.com/pypa/pip/issues/8417>`_)
 - Document that Python versions are generally supported until PyPI usage falls below 5%. (`#8927 <https://github.com/pypa/pip/issues/8927>`_)
+
+.. _v20-2-4-features:
 
 Features
 --------
@@ -334,6 +370,8 @@ Features
 - New resolver: Tweak resolution logic to improve user experience when
   user-supplied requirements conflict. (`#8924 <https://github.com/pypa/pip/issues/8924>`_)
 
+.. _v20-2-4-bug-fixes:
+
 Bug Fixes
 ---------
 
@@ -344,6 +382,8 @@ Bug Fixes
 - New resolver: If a package appears multiple times in user specification with
   different ``--hash`` options, only hashes that present in all specifications
   should be allowed. (`#8839 <https://github.com/pypa/pip/issues/8839>`_)
+
+.. _v20-2-4-improved-documentation:
 
 Improved Documentation
 ----------------------
@@ -356,10 +396,14 @@ Improved Documentation
 20.2.3 (2020-09-08)
 ===================
 
+.. _v20-2-3-deprecations-and-removals:
+
 Deprecations and Removals
 -------------------------
 
 - Deprecate support for Python 3.5 (`#8181 <https://github.com/pypa/pip/issues/8181>`_)
+
+.. _v20-2-3-features:
 
 Features
 --------
@@ -373,6 +417,8 @@ Features
 
 20.2.2 (2020-08-11)
 ===================
+
+.. _v20-2-2-bug-fixes:
 
 Bug Fixes
 ---------
@@ -395,10 +441,14 @@ Bug Fixes
 20.2.1 (2020-08-04)
 ===================
 
+.. _v20-2-1-features:
+
 Features
 --------
 
 - Ignore require-virtualenv in ``pip list`` (`#8603 <https://github.com/pypa/pip/issues/8603>`_)
+
+.. _v20-2-1-bug-fixes:
 
 Bug Fixes
 ---------
@@ -413,6 +463,8 @@ Bug Fixes
 - Use UTF-8 to handle ZIP archive entries on Python 2 according to PEP 427, so
   non-ASCII paths can be resolved as expected. (`#8684 <https://github.com/pypa/pip/issues/8684>`_)
 
+.. _v20-2-1-improved-documentation:
+
 Improved Documentation
 ----------------------
 
@@ -424,6 +476,8 @@ Improved Documentation
 
 20.2 (2020-07-29)
 =================
+
+.. _v20-2-deprecations-and-removals:
 
 Deprecations and Removals
 -------------------------
@@ -438,6 +492,8 @@ Deprecations and Removals
   the resolution process. Using the TMPDIR/TEMP/TMP environment variable, possibly
   combined with --no-clean covers known use cases. (`#8372 <https://github.com/pypa/pip/issues/8372>`_)
 - Remove undocumented and deprecated option ``--always-unzip`` (`#8408 <https://github.com/pypa/pip/issues/8408>`_)
+
+.. _v20-2-features:
 
 Features
 --------
@@ -469,6 +525,8 @@ Features
   invoke ``pip`` with ``--use-feature=fast-deps``. (`#8588 <https://github.com/pypa/pip/issues/8588>`_)
 - Support ``--use-feature`` in requirements files (`#8601 <https://github.com/pypa/pip/issues/8601>`_)
 
+.. _v20-2-bug-fixes:
+
 Bug Fixes
 ---------
 
@@ -481,6 +539,8 @@ Bug Fixes
 - Headers provided by wheels in .data directories are now correctly installed
   into the user-provided locations, such as ``--prefix``, instead of the virtual
   environment pip is running in. (`#8521 <https://github.com/pypa/pip/issues/8521>`_)
+
+.. _v20-2-vendored-libraries:
 
 Vendored Libraries
 ------------------
@@ -496,6 +556,8 @@ Vendored Libraries
 - Upgrade six to 1.15.0
 - Upgrade toml to 0.10.1
 - Upgrade urllib3 to 1.25.9
+
+.. _v20-2-improved-documentation:
 
 Improved Documentation
 ----------------------
@@ -516,12 +578,16 @@ Improved Documentation
 20.2b1 (2020-05-21)
 ===================
 
+.. _v20-2b1-bug-fixes:
+
 Bug Fixes
 ---------
 
 - Correctly treat wheels containing non-ASCII file contents so they can be
   installed on Windows. (`#5712 <https://github.com/pypa/pip/issues/5712>`_)
 - Prompt the user for password if the keyring backend doesn't return one (`#7998 <https://github.com/pypa/pip/issues/7998>`_)
+
+.. _v20-2b1-improved-documentation:
 
 Improved Documentation
 ----------------------
@@ -533,12 +599,16 @@ Improved Documentation
 20.1.1 (2020-05-19)
 ===================
 
+.. _v20-1-1-deprecations-and-removals:
+
 Deprecations and Removals
 -------------------------
 
 - Revert building of local directories in place, restoring the pre-20.1
   behaviour of copying to a temporary directory. (`#7555 <https://github.com/pypa/pip/issues/7555>`_)
 - Drop parallelization from ``pip list --outdated``. (`#8167 <https://github.com/pypa/pip/issues/8167>`_)
+
+.. _v20-1-1-bug-fixes:
 
 Bug Fixes
 ---------
@@ -553,15 +623,21 @@ Bug Fixes
 20.1 (2020-04-28)
 =================
 
+.. _v20-1-process:
+
 Process
 -------
 
 - Document that pip 21.0 will drop support for Python 2.7.
 
+.. _v20-1-features:
+
 Features
 --------
 
 - Add ``pip cache dir`` to show the cache directory. (`#7350 <https://github.com/pypa/pip/issues/7350>`_)
+
+.. _v20-1-bug-fixes:
 
 Bug Fixes
 ---------
@@ -576,6 +652,8 @@ Bug Fixes
 20.1b1 (2020-04-21)
 ===================
 
+.. _v20-1b1-deprecations-and-removals:
+
 Deprecations and Removals
 -------------------------
 
@@ -584,6 +662,8 @@ Deprecations and Removals
 - Building of local directories is now done in place, instead of a temporary
   location containing a copy of the directory tree. (`#7555 <https://github.com/pypa/pip/issues/7555>`_)
 - Remove unused ``tests/scripts/test_all_pip.py`` test script and the ``tests/scripts`` folder. (`#7680 <https://github.com/pypa/pip/issues/7680>`_)
+
+.. _v20-1b1-features:
 
 Features
 --------
@@ -596,6 +676,8 @@ Features
 - Indicate when wheel building is skipped, due to lack of the ``wheel`` package. (`#7768 <https://github.com/pypa/pip/issues/7768>`_)
 - Change default behaviour to always cache responses from trusted-host source. (`#7847 <https://github.com/pypa/pip/issues/7847>`_)
 - An alpha version of a new resolver is available via ``--unstable-feature=resolver``. (`#988 <https://github.com/pypa/pip/issues/988>`_)
+
+.. _v20-1b1-bug-fixes:
 
 Bug Fixes
 ---------
@@ -615,6 +697,8 @@ Bug Fixes
 - Significantly speedup ``pip list --outdated`` by parallelizing index interaction. (`#7962 <https://github.com/pypa/pip/issues/7962>`_)
 - Improve Windows compatibility when detecting writability in folder. (`#8013 <https://github.com/pypa/pip/issues/8013>`_)
 
+.. _v20-1b1-vendored-libraries:
+
 Vendored Libraries
 ------------------
 
@@ -633,6 +717,8 @@ Vendored Libraries
 - Add toml as a vendored dependency.
 - Upgrade urllib3 to 1.25.8.
 
+.. _v20-1b1-improved-documentation:
+
 Improved Documentation
 ----------------------
 
@@ -649,10 +735,14 @@ Improved Documentation
 20.0.2 (2020-01-24)
 ===================
 
+.. _v20-0-2-bug-fixes:
+
 Bug Fixes
 ---------
 
 - Fix a regression in generation of compatibility tags. (`#7626 <https://github.com/pypa/pip/issues/7626>`_)
+
+.. _v20-0-2-vendored-libraries:
 
 Vendored Libraries
 ------------------
@@ -665,6 +755,8 @@ Vendored Libraries
 20.0.1 (2020-01-21)
 ===================
 
+.. _v20-0-1-bug-fixes:
+
 Bug Fixes
 ---------
 
@@ -676,10 +768,14 @@ Bug Fixes
 20.0 (2020-01-21)
 =================
 
+.. _v20-0-process:
+
 Process
 -------
 
 - Switch to a dedicated CLI tool for vendoring dependencies.
+
+.. _v20-0-deprecations-and-removals:
 
 Deprecations and Removals
 -------------------------
@@ -704,6 +800,8 @@ Deprecations and Removals
   will be removed in pip 21.0. Switch to ``git+https://`` or
   ``git+ssh://``. ``git+git://`` also works but its use is discouraged as it is
   insecure. (`#7543 <https://github.com/pypa/pip/issues/7543>`_)
+
+.. _v20-0-features:
 
 Features
 --------
@@ -739,6 +837,8 @@ Features
   * ``--requirement``, ``-r``
   * ``--editable``, ``-e`` (`#980 <https://github.com/pypa/pip/issues/980>`_)
 
+.. _v20-0-bug-fixes:
+
 Bug Fixes
 ---------
 
@@ -768,6 +868,8 @@ Bug Fixes
   case with the http cache. (`#7488 <https://github.com/pypa/pip/issues/7488>`_)
 - Correctly handle relative cache directory provided via --cache-dir. (`#7541 <https://github.com/pypa/pip/issues/7541>`_)
 
+.. _v20-0-vendored-libraries:
+
 Vendored Libraries
 ------------------
 
@@ -781,6 +883,8 @@ Vendored Libraries
 - Upgrade pyparsing to 2.4.2
 - Upgrade six to 1.12.0
 - Upgrade urllib3 to 1.25.6
+
+.. _v20-0-improved-documentation:
 
 Improved Documentation
 ----------------------
@@ -798,10 +902,14 @@ Improved Documentation
 19.3.1 (2019-10-17)
 ===================
 
+.. _v19-3-1-features:
+
 Features
 --------
 
 - Document Python 3.8 support. (`#7219 <https://github.com/pypa/pip/issues/7219>`_)
+
+.. _v19-3-1-bug-fixes:
 
 Bug Fixes
 ---------
@@ -814,6 +922,8 @@ Bug Fixes
 19.3 (2019-10-14)
 =================
 
+.. _v19-3-deprecations-and-removals:
+
 Deprecations and Removals
 -------------------------
 
@@ -821,6 +931,8 @@ Deprecations and Removals
   to SVN repositories. Users relying on this can get the original behavior
   by prefixing their URL with ``svn+`` (which is backwards-compatible). (`#7037 <https://github.com/pypa/pip/issues/7037>`_)
 - Remove the deprecated ``--venv`` option from ``pip config``. (`#7163 <https://github.com/pypa/pip/issues/7163>`_)
+
+.. _v19-3-features:
 
 Features
 --------
@@ -834,6 +946,8 @@ Features
   to manylinux2010.  It allows carefully compiled binary wheels to be installed
   on compatible Linux platforms.  The manylinux2014 platform tag definition can
   be found in `PEP599 <https://www.python.org/dev/peps/pep-0599/>`_. (`#7102 <https://github.com/pypa/pip/issues/7102>`_)
+
+.. _v19-3-bug-fixes:
 
 Bug Fixes
 ---------
@@ -868,6 +982,8 @@ Bug Fixes
 - Fix ``pip freeze`` not showing correct entry for mercurial packages that use subdirectories. (`#7071 <https://github.com/pypa/pip/issues/7071>`_)
 - Fix a crash when ``sys.stdin`` is set to ``None``, such as on AWS Lambda. (`#7118 <https://github.com/pypa/pip/issues/7118>`_, `#7119 <https://github.com/pypa/pip/issues/7119>`_)
 
+.. _v19-3-vendored-libraries:
+
 Vendored Libraries
 ------------------
 
@@ -882,6 +998,8 @@ Vendored Libraries
 - Upgrade setuptools to 41.4.0
 - Upgrade urllib3 to 1.25.6
 
+.. _v19-3-improved-documentation:
+
 Improved Documentation
 ----------------------
 
@@ -895,6 +1013,8 @@ Improved Documentation
 19.2.3 (2019-08-25)
 ===================
 
+.. _v19-2-3-bug-fixes:
+
 Bug Fixes
 ---------
 
@@ -905,6 +1025,8 @@ Bug Fixes
 
 19.2.2 (2019-08-11)
 ===================
+
+.. _v19-2-2-bug-fixes:
 
 Bug Fixes
 ---------
@@ -919,6 +1041,8 @@ Bug Fixes
 19.2.1 (2019-07-23)
 ===================
 
+.. _v19-2-1-bug-fixes:
+
 Bug Fixes
 ---------
 
@@ -931,11 +1055,15 @@ Bug Fixes
 19.2 (2019-07-22)
 =================
 
+.. _v19-2-deprecations-and-removals:
+
 Deprecations and Removals
 -------------------------
 
 - Drop support for EOL Python 3.4. (`#6685 <https://github.com/pypa/pip/issues/6685>`_)
 - Improve deprecation messages to include the version in which the functionality will be removed. (`#6549 <https://github.com/pypa/pip/issues/6549>`_)
+
+.. _v19-2-features:
 
 Features
 --------
@@ -963,6 +1091,8 @@ Features
   installations. (`#6404 <https://github.com/pypa/pip/issues/6404>`_)
 - Add a ``--path`` argument to ``pip list`` to support ``--target``
   installations. (`#6551 <https://github.com/pypa/pip/issues/6551>`_)
+
+.. _v19-2-bug-fixes:
 
 Bug Fixes
 ---------
@@ -994,6 +1124,8 @@ Bug Fixes
 - Improve error message printed when an invalid editable requirement is provided. (`#6648 <https://github.com/pypa/pip/issues/6648>`_)
 - Improve error message formatting when a command errors out in a subprocess. (`#6651 <https://github.com/pypa/pip/issues/6651>`_)
 
+.. _v19-2-vendored-libraries:
+
 Vendored Libraries
 ------------------
 
@@ -1003,6 +1135,8 @@ Vendored Libraries
 - Upgrade requests to 2.22.0
 - Upgrade urllib3 to 1.25.3
 - Patch vendored html5lib, to prefer using `collections.abc` where possible.
+
+.. _v19-2-improved-documentation:
 
 Improved Documentation
 ----------------------
@@ -1018,11 +1152,15 @@ Improved Documentation
 19.1.1 (2019-05-06)
 ===================
 
+.. _v19-1-1-features:
+
 Features
 --------
 
 - Restore ``pyproject.toml`` handling to how it was with pip 19.0.3 to prevent
   the need to add ``--no-use-pep517`` when installing in editable mode. (`#6434 <https://github.com/pypa/pip/issues/6434>`_)
+
+.. _v19-1-1-bug-fixes:
 
 Bug Fixes
 ---------
@@ -1035,6 +1173,8 @@ Bug Fixes
 
 19.1 (2019-04-23)
 =================
+
+.. _v19-1-features:
 
 Features
 --------
@@ -1055,6 +1195,8 @@ Features
 - Error out with an informative message if one tries to install a
   ``pyproject.toml``-style (PEP 517) source tree using ``--editable`` mode. (`#6314 <https://github.com/pypa/pip/issues/6314>`_)
 - When downloading a package, the ETA and average speed now only update once per second for better legibility. (`#6319 <https://github.com/pypa/pip/issues/6319>`_)
+
+.. _v19-1-bug-fixes:
 
 Bug Fixes
 ---------
@@ -1078,6 +1220,8 @@ Bug Fixes
   ``pyproject.toml``-style. (`#6370 <https://github.com/pypa/pip/issues/6370>`_)
 - Fix ``NameError`` when handling an invalid requirement. (`#6419 <https://github.com/pypa/pip/issues/6419>`_)
 
+.. _v19-1-vendored-libraries:
+
 Vendored Libraries
 ------------------
 
@@ -1086,6 +1230,8 @@ Vendored Libraries
 - Update progress to 1.5
 - Updated pyparsing to 2.4.0
 - Updated pkg_resources to 41.0.1 (via setuptools)
+
+.. _v19-1-improved-documentation:
 
 Improved Documentation
 ----------------------
@@ -1099,6 +1245,8 @@ Improved Documentation
 19.0.3 (2019-02-20)
 ===================
 
+.. _v19-0-3-bug-fixes:
+
 Bug Fixes
 ---------
 
@@ -1111,6 +1259,8 @@ Bug Fixes
 
 19.0.2 (2019-02-09)
 ===================
+
+.. _v19-0-2-bug-fixes:
 
 Bug Fixes
 ---------
@@ -1132,6 +1282,8 @@ Bug Fixes
 - The Python 2 end of life warning now only shows on CPython, which is the
   implementation that has announced end of life plans. (`#6207 <https://github.com/pypa/pip/issues/6207>`_)
 
+.. _v19-0-2-improved-documentation:
+
 Improved Documentation
 ----------------------
 
@@ -1142,6 +1294,8 @@ Improved Documentation
 
 19.0.1 (2019-01-23)
 ===================
+
+.. _v19-0-1-bug-fixes:
 
 Bug Fixes
 ---------
@@ -1154,6 +1308,8 @@ Bug Fixes
 19.0 (2019-01-22)
 =================
 
+.. _v19-0-deprecations-and-removals:
+
 Deprecations and Removals
 -------------------------
 
@@ -1163,6 +1319,8 @@ Deprecations and Removals
 - Remove the deprecated ``--process-dependency-links`` option. (`#6060 <https://github.com/pypa/pip/issues/6060>`_)
 - Remove the deprecated SVN editable detection based on dependency links
   during freeze. (`#5866 <https://github.com/pypa/pip/issues/5866>`_)
+
+.. _v19-0-features:
 
 Features
 --------
@@ -1175,6 +1333,8 @@ Features
 - Include the package name in a freeze warning if the package is not installed. (`#5943 <https://github.com/pypa/pip/issues/5943>`_)
 - Warn when dropping an ``--[extra-]index-url`` value that points to an existing local directory. (`#5827 <https://github.com/pypa/pip/issues/5827>`_)
 - Prefix pip's ``--log`` file lines with their timestamp. (`#6141 <https://github.com/pypa/pip/issues/6141>`_)
+
+.. _v19-0-bug-fixes:
 
 Bug Fixes
 ---------
@@ -1199,6 +1359,8 @@ Bug Fixes
 - Properly decode special characters in SVN URL credentials. (`#5968 <https://github.com/pypa/pip/issues/5968>`_)
 - Make ``PIP_NO_CACHE_DIR`` disable the cache also for truthy values like ``"true"``, ``"yes"``, ``"1"``, etc. (`#5735 <https://github.com/pypa/pip/issues/5735>`_)
 
+.. _v19-0-vendored-libraries:
+
 Vendored Libraries
 ------------------
 
@@ -1216,6 +1378,8 @@ Vendored Libraries
 - Update six to 1.12.0
 - Update urllib3 to 1.24.1
 
+.. _v19-0-improved-documentation:
+
 Improved Documentation
 ----------------------
 
@@ -1229,6 +1393,8 @@ Improved Documentation
 
 18.1 (2018-10-05)
 =================
+
+.. _v18-1-features:
 
 Features
 --------
@@ -1244,6 +1410,8 @@ Features
 - Add support for Python 3.7. (`#5561 <https://github.com/pypa/pip/issues/5561>`_)
 - Malformed configuration files now show helpful error messages, instead of tracebacks. (`#5798 <https://github.com/pypa/pip/issues/5798>`_)
 
+.. _v18-1-bug-fixes:
+
 Bug Fixes
 ---------
 
@@ -1258,6 +1426,8 @@ Bug Fixes
 - Avoid traceback printing on autocomplete after flags in the CLI. (`#5751 <https://github.com/pypa/pip/issues/5751>`_)
 - Fix incorrect parsing of egg names if pip needs to guess the package name. (`#5819 <https://github.com/pypa/pip/issues/5819>`_)
 
+.. _v18-1-vendored-libraries:
+
 Vendored Libraries
 ------------------
 
@@ -1267,6 +1437,8 @@ Vendored Libraries
 - Add pep517 version 0.2
 - Upgrade pytoml to 0.1.19
 - Upgrade pkg_resources to 40.4.3 (via setuptools)
+
+.. _v18-1-improved-documentation:
 
 Improved Documentation
 ----------------------
@@ -1279,6 +1451,8 @@ Improved Documentation
 18.0 (2018-07-22)
 =================
 
+.. _v18-0-process:
+
 Process
 -------
 
@@ -1287,6 +1461,8 @@ Process
   warnings.
 - Adopt and document NEWS fragment writing style.
 - Switch to releasing a new, non-bug fix version of pip every 3 months.
+
+.. _v18-0-deprecations-and-removals:
 
 Deprecations and Removals
 -------------------------
@@ -1299,6 +1475,8 @@ Deprecations and Removals
   For the past 2 years, it's only been redirecting users to use the newer
   https://bootstrap.pypa.io/get-pip.py location.
 
+.. _v18-0-features:
+
 Features
 --------
 
@@ -1307,6 +1485,8 @@ Features
   which have ``<file>``, ``<dir>`` or ``<path>`` as metavar. (#4842, #5125)
 - Add support for installing PEP 518 build dependencies from source. (#5229)
 - Improve status message when upgrade is skipped due to only-if-needed strategy. (#5319)
+
+.. _v18-0-bug-fixes:
 
 Bug Fixes
 ---------
@@ -1333,6 +1513,8 @@ Bug Fixes
 - Fix a crash that occurs when PATH not set, while generating script location warning. (#5558)
 - Disallow packages with ``pyproject.toml`` files that have an empty build-system table. (#5627)
 
+.. _v18-0-vendored-libraries:
+
 Vendored Libraries
 ------------------
 
@@ -1347,6 +1529,8 @@ Vendored Libraries
 - Update requests to 2.19.1.
 - Update urllib3 to 1.23.
 
+.. _v18-0-improved-documentation:
+
 Improved Documentation
 ----------------------
 
@@ -1359,11 +1543,15 @@ Improved Documentation
 10.0.1 (2018-04-19)
 ===================
 
+.. _v10-0-1-features:
+
 Features
 --------
 
 - Switch the default repository to the new "PyPI 2.0" running at
   https://pypi.org/. (#5214)
+
+.. _v10-0-1-bug-fixes:
 
 Bug Fixes
 ---------
@@ -1376,6 +1564,8 @@ Bug Fixes
 - A crash when reinstalling from VCS requirements has been fixed. (#5251)
 - Fix PEP 518 support when pip is installed in the user site. (#5524)
 
+.. _v10-0-1-vendored-libraries:
+
 Vendored Libraries
 ------------------
 
@@ -1386,6 +1576,8 @@ Vendored Libraries
 
 10.0.0 (2018-04-14)
 ===================
+
+.. _v10-0-0-bug-fixes:
 
 Bug Fixes
 ---------
@@ -1408,6 +1600,8 @@ Bug Fixes
 10.0.0b2 (2018-04-02)
 =====================
 
+.. _v10-0-0b2-bug-fixes:
+
 Bug Fixes
 ---------
 
@@ -1419,6 +1613,8 @@ Bug Fixes
 
 10.0.0b1 (2018-03-31)
 =====================
+
+.. _v10-0-0b1-deprecations-and-removals:
 
 Deprecations and Removals
 -------------------------
@@ -1446,6 +1642,8 @@ Deprecations and Removals
 - Deprecate SVN detection based on dependency links in ``pip freeze``. (#4449)
 - Move all of pip's APIs into the pip._internal package, properly reflecting
   the fact that pip does not currently have any public APIs. (#4696, #4700)
+
+.. _v10-0-0b1-features:
 
 Features
 --------
@@ -1517,6 +1715,8 @@ Features
   system package manager in 'pip list'. Specifically, 'pip list -v' also shows
   the installer of package if it has that meta data. (#949)
 - Show install locations when list command ran with "-v" option. (#979)
+
+.. _v10-0-0b1-bug-fixes:
 
 Bug Fixes
 ---------
@@ -1602,6 +1802,8 @@ Bug Fixes
 - Add a ``--no-user`` option and use it when installing build dependencies.
   (#5085)
 
+.. _v10-0-0b1-vendored-libraries:
+
 Vendored Libraries
 ------------------
 
@@ -1624,6 +1826,8 @@ Vendored Libraries
 - Upgraded six to 1.11.0.
 - Vendored urllib3 at 1.22.
 - Upgraded webencodings to 0.5.1.
+
+.. _v10-0-0b1-improved-documentation:
 
 Improved Documentation
 ----------------------

@@ -6,20 +6,27 @@
 {{ underline * title|length }}
 {%- endmacro -%}
 
-{{ sectitle(versiondata.version, versiondata.date, '=') }}
+{%- macro deftitle(version, title, underline) -%}
+.. _v{{ version.replace('.', '-') }}-{{ title.lower().replace(' ', '-') }}:
 
+{{ title }}
+{{ underline * title|length }}
+{%- endmacro -%}
+
+{%- set underline = "=" -%}
+{{ sectitle(versiondata.version, versiondata.date, underline) }}
 {% for section in sections %}
-{% set underline = "-" %}
+{%- set underline = "-" -%}
 {% if section %}
 {{ section }}
-{{ underline * section|length }}{% set underline = "~" %}
+{{ underline * section|length }}
+{%- set underline = "~" -%}
 
 {% endif %}
 {% if sections[section] %}
 {% for category, val in definitions.items() if category in sections[section] and category != 'trivial' %}
 
-{{ definitions[category]['name'] }}
-{{ underline * definitions[category]['name']|length }}
+{{ deftitle(versiondata.version, definitions[category]['name'], underline) }}
 
 {% if definitions[category]['showcontent'] %}
 {% for text, values in sections[section][category]|dictsort(by='value') %}
