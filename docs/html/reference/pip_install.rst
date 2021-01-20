@@ -561,8 +561,14 @@ See the :ref:`pip install Examples<pip install Examples>`.
 SSL Certificate Verification
 ----------------------------
 
-Starting with v1.3, pip provides SSL certificate verification over https, to
-prevent man-in-the-middle attacks against PyPI downloads.
+Starting with v1.3, pip provides SSL certificate verification over HTTP, to
+prevent man-in-the-middle attacks against PyPI downloads. This is handled by
+`requests <https://pypi.org/project/requests/>`_ which by default uses a
+bundled CA certificate store provided by
+`certifi <https://pypi.org/project/certifi/>`_ and does not use the system
+certificate store. This may by overridden by using ``--cert`` option or by
+using ``REQUESTS_CA_BUNDLE`` or ``CURL_CA_BUNDLE`` `environment variables <https://requests.readthedocs.io/en/latest/user/advanced/#verification>`_
+supported by ``requests``.
 
 
 .. _`Caching`:
