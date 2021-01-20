@@ -567,8 +567,9 @@ prevent man-in-the-middle attacks against PyPI downloads. This is handled by
 bundled CA certificate store provided by
 `certifi <https://pypi.org/project/certifi/>`_ and does not use the system
 certificate store. This may by overridden by using ``--cert`` option or by
-using ``REQUESTS_CA_BUNDLE`` or ``CURL_CA_BUNDLE`` `environment variables <https://requests.readthedocs.io/en/latest/user/advanced/#verification>`_
-supported by ``requests``.
+using ``PIP_CERT`` environment variable; additional
+`environment variables <https://requests.readthedocs.io/en/latest/user/advanced/#verification>`_
+are also supported by ``requests``.
 
 
 .. _`Caching`:
