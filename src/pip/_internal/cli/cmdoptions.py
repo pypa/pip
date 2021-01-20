@@ -302,7 +302,7 @@ cert = partial(
     dest='cert',
     type='path',
     metavar='path',
-    help="Path to alternate CA bundle.",
+    help="Path to CA bundle. Replaces default CA bundle.",
 )  # type: Callable[..., Option]
 
 client_cert = partial(
