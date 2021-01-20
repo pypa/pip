@@ -1,4 +1,5 @@
 sphinx == 3.2.1
+towncrier >= 19.9.0rc1
 furo
 sphinx-inline-tabs
 sphinxcontrib-towncrier

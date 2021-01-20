@@ -85,7 +85,7 @@ def commit_file(session: Session, filename: str, *, message: str) -> None:
 
 
 def generate_news(session: Session, version: str) -> None:
-    session.install("towncrier")
+    session.install("towncrier>=19.9.0rc1")
     session.run("towncrier", "--yes", "--version", version, silent=True)
 
 

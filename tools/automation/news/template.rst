@@ -1,7 +1,17 @@
+{%- macro sectitle(version, project_date, underline) -%}
+.. _v{{ version.replace('.', '-') }}:
+
+{% set title = version + ' (' + project_date + ')' %}
+{{ title }}
+{{ underline * title|length }}
+{%- endmacro -%}
+
+{{ sectitle(versiondata.version, versiondata.date, '=') }}
+
 {% for section in sections %}
 {% set underline = "-" %}
 {% if section %}
-{{section}}
+{{ section }}
 {{ underline * section|length }}{% set underline = "~" %}
 
 {% endif %}
