@@ -9,18 +9,26 @@ from textwrap import dedent
 from docutils import nodes
 from docutils.parsers import rst
 from docutils.statemachine import ViewList
+from sphinx.util.docutils import SphinxDirective
 
 from pip._internal.cli import cmdoptions
 from pip._internal.commands import commands_dict, create_command
 from pip._internal.req.req_file import SUPPORTED_OPTIONS
 
 
-class PipTowncrierDraft(rst.Directive):
+class PipTowncrierDraft(SphinxDirective):
     """Render unreleased news fragments and insert the result.
 
-    This calls ``towncrier --draft`` and changes the section title to reflect
-    the changes are not yet in a release, and insert the rendered rst into
-    the document.
+    sphinxcontrib-towncrier uses towncrier internals and is currently not
+    compatible with towncrier 19.9+, which we require to render custom section
+    titles. (sphinx-contrib/sphinxcontrib-towncrier#44)
+
+    When run, ``towncrier --draft`` is called to generate rst, and the section
+    title is changed to reflect they are not yet in a release. The rendered rst
+    is then inserted into the document.
+
+    This implementation uses the ``towncrier_draft_working_directory`` config
+    from sphinxcontrib-towncrier.
     """
 
     required_arguments = 0
@@ -43,6 +51,7 @@ class PipTowncrierDraft(rst.Directive):
             [sys.executable, "-m", "towncrier", "--draft"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
+            cwd=self.env.config.towncrier_draft_working_directory,
             text=True,
         )
         if proc.wait() != 0:
@@ -204,6 +213,11 @@ class PipReqFileOptionsReference(PipOptions):
 
 
 def setup(app):
+    app.add_config_value(
+        'towncrier_draft_working_directory',
+        default=None,
+        rebuild='html',
+    )
     app.add_directive('pip-towncrier-draft', PipTowncrierDraft)
     app.add_directive('pip-command-usage', PipCommandUsage)
     app.add_directive('pip-command-description', PipCommandDescription)
