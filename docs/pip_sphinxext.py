@@ -43,7 +43,7 @@ class PipTowncrierDraft(rst.Directive):
         assert version is not None, "version not found in title"
         assert date is not None, "date not found in title"
 
-        lines[index] = f"{version}, unreleased as in {date}"
+        lines[index] = f"Unreleased, as of {date}"
         lines[index + 1] = lines[index + 1][0] * len(lines[index])
         self.state_machine.insert_input(lines, "")
 
