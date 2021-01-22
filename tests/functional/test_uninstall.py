@@ -444,6 +444,35 @@ def test_uninstall_from_reqs_file(script, tmpdir):
     )
 
 
+def test_uninstall_per_setup_options(script):
+    """
+    Check that uninstall works with per-setup options are specified
+    """
+    pkg_name = 'pkga'
+    pkga_path = create_test_package_with_setup(
+        script,
+        name=pkg_name, version='1.0',
+    )
+    script.scratch_path.joinpath("test-req.txt").write_text(
+        textwrap.dedent(f"""
+            {pkg_name} --install-option="-v"
+        """)
+    )
+
+    result = script.pip('install', pkga_path)
+    result2 = script.pip('uninstall', '-r', 'test-req.txt', '-y')
+    assert_all_changes(
+        result,
+        result2,
+        [
+            script.venv / 'build',
+            script.venv / 'src',
+            script.scratch / 'test-req.txt',
+            script.site_packages / 'easy-install.pth',
+        ],
+    )
+
+
 def test_uninstallpathset_no_paths(caplog):
     """
     Test UninstallPathSet logs notification when there are no paths to
