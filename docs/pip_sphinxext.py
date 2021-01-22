@@ -16,6 +16,13 @@ from pip._internal.req.req_file import SUPPORTED_OPTIONS
 
 
 class PipTowncrierDraft(rst.Directive):
+    """Render unreleased news fragments and insert the result.
+
+    This calls ``towncrier --draft`` and changes the section title to reflect
+    the changes are not yet in a release, and insert the rendered rst into
+    the document.
+    """
+
     required_arguments = 0
 
     def _find_section_title(self, lines):
@@ -32,12 +39,18 @@ class PipTowncrierDraft(rst.Directive):
         return None, (None, None)
 
     def run(self):
-        lines = subprocess.check_output(
+        proc = subprocess.Popen(
             [sys.executable, "-m", "towncrier", "--draft"],
-            stderr=subprocess.DEVNULL,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
             text=True,
-        ).splitlines(keepends=False)
+        )
+        if proc.wait() != 0:
+            print(proc.stdout.read())
+            print(proc.stderr.read(), file=sys.stderr)
+            raise RuntimeError("failed to run towncrier; see logs above")
 
+        lines = proc.stdout.read().splitlines(keepends=False)
         index, (version, date) = self._find_section_title(lines)
         assert index is not None, "section title not found"
         assert version is not None, "version not found in title"
