@@ -1699,7 +1699,7 @@ errors. Specifically:
 Per our :ref:`Python 2 Support` policy, pip 20.3 users who are using
 Python 2 will use the legacy resolver by default. Python 2 users
 should upgrade to Python 3 as soon as possible, since in pip 21.0 in
-January 2021, pip will drop support for Python 2 altogether.
+January 2021, pip dropped support for Python 2 altogether.
 
 
 How to upgrade and migrate
