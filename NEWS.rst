@@ -9,6 +9,39 @@
 
 .. towncrier release notes start
 
+20.3.4 (2021-01-23)
+===================
+
+Features
+--------
+
+- ``pip wheel`` now verifies the built wheel contains valid metadata, and can be
+  installed by a subsequent ``pip install``. This can be disabled with
+  ``--no-verify``. (`#9206 <https://github.com/pypa/pip/issues/9206>`_)
+- Improve presentation of XMLRPC errors in pip search. (`#9315 <https://github.com/pypa/pip/issues/9315>`_)
+
+Bug Fixes
+---------
+
+- Fixed hanging VCS subprocess calls when the VCS outputs a large amount of data
+  on stderr. Restored logging of VCS errors that was inadvertently removed in pip
+  20.2. (`#8876 <https://github.com/pypa/pip/issues/8876>`_)
+- Fix error when an existing incompatibility is unable to be applied to a backtracked state. (`#9180 <https://github.com/pypa/pip/issues/9180>`_)
+- New resolver: Discard a faulty distribution, instead of quitting outright.
+  This implementation is taken from 20.2.2, with a fix that always makes the
+  resolver iterate through candidates from indexes lazily, to avoid downloading
+  candidates we do not need. (`#9203 <https://github.com/pypa/pip/issues/9203>`_)
+- New resolver: Discard a source distribution if it fails to generate metadata,
+  instead of quitting outright. This implementation is taken from 20.2.2, with a
+  fix that always makes the resolver iterate through candidates from indexes
+  lazily, to avoid downloading candidates we do not need. (`#9246 <https://github.com/pypa/pip/issues/9246>`_)
+
+Vendored Libraries
+------------------
+
+- Upgrade resolvelib to 0.5.4.
+
+
 20.3.3 (2020-12-15)
 ===================
 
