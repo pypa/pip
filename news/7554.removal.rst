@@ -1,2 +1,0 @@
-Remove support for VCS pseudo URLs editable requirements. It was emitting
-deprecation warning since version 20.0.

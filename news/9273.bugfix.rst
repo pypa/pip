@@ -1,3 +1,0 @@
-Fix a regression that made ``pip wheel`` do a VCS export instead of a VCS clone
-for editable requirements. This broke VCS requirements that need the VCS
-information to build correctly.

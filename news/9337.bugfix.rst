@@ -1,2 +1,0 @@
-Fix ``pip download`` of editable VCS requirements that need VCS information
-to build correctly.
