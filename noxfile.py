@@ -324,7 +324,7 @@ def upload_release(session):
     # Sanity check: Make sure the files are correctly named.
     distfile_names = map(os.path.basename, distribution_files)
     expected_distribution_files = [
-        f"pip-{version}-py2.py3-none-any.whl",
+        f"pip-{version}-py3-none-any.whl",
         f"pip-{version}.tar.gz",
     ]
     if sorted(distfile_names) != sorted(expected_distribution_files):
