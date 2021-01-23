@@ -1,0 +1,3 @@
+New resolver: Error message shown when a wheel contains inconsistent metadata
+is made more helpful by including both values from the file name and internal
+metadata.
