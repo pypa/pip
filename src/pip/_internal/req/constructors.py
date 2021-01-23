@@ -23,7 +23,6 @@ from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
 from pip._internal.pyproject import make_pyproject_path
 from pip._internal.req.req_install import InstallRequirement
-from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.filetypes import is_archive_file
 from pip._internal.utils.misc import is_installable_dir
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -365,8 +364,7 @@ def parse_req_from_line(name, line_source):
                 spec_str = str(spec)
                 if spec_str.endswith(']'):
                     msg = f"Extras after version '{spec_str}'."
-                    replace = "moving the extras before version specifiers"
-                    deprecated(msg, replacement=replace, gone_in="21.0")
+                    raise InstallationError(msg)
     else:
         req = None
 

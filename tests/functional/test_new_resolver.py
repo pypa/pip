@@ -226,32 +226,6 @@ def test_new_resolver_installs_extras(tmpdir, script, root_dep):
     assert_installed(script, base="0.1.0", dep="0.1.0")
 
 
-def test_new_resolver_installs_extras_deprecated(tmpdir, script):
-    req_file = tmpdir.joinpath("requirements.txt")
-    req_file.write_text("base >= 0.1.0[add]")
-
-    create_basic_wheel_for_package(
-        script,
-        "base",
-        "0.1.0",
-        extras={"add": ["dep"]},
-    )
-    create_basic_wheel_for_package(
-        script,
-        "dep",
-        "0.1.0",
-    )
-    result = script.pip(
-        "install",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
-        "-r", req_file,
-        expect_stderr=True
-    )
-    assert "DEPRECATION: Extras after version" in result.stderr
-    assert_installed(script, base="0.1.0", dep="0.1.0")
-
-
 def test_new_resolver_installs_extras_warn_missing(script):
     create_basic_wheel_for_package(
         script,
