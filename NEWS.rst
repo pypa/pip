@@ -1,3 +1,49 @@
+21.0 (2021-01-23)
+=================
+
+Deprecations and Removals
+-------------------------
+
+- Drop support for Python 2. (`#6148 <https://github.com/pypa/pip/issues/6148>`_)
+- Remove support for legacy wheel cache entries that were created with pip
+  versions older than 20.0. (`#7502 <https://github.com/pypa/pip/issues/7502>`_)
+- Remove support for VCS pseudo URLs editable requirements. It was emitting
+  deprecation warning since version 20.0. (`#7554 <https://github.com/pypa/pip/issues/7554>`_)
+- Modernise the codebase after Python 2. (`#8802 <https://github.com/pypa/pip/issues/8802>`_)
+- Drop support for Python 3.5. (`#9189 <https://github.com/pypa/pip/issues/9189>`_)
+- Remove the VCS export feature that was used only with editable VCS
+  requirements and had correctness issues. (`#9338 <https://github.com/pypa/pip/issues/9338>`_)
+
+Features
+--------
+
+- Add ``--ignore-requires-python`` support to pip download. (`#1884 <https://github.com/pypa/pip/issues/1884>`_)
+- New resolver: Error message shown when a wheel contains inconsistent metadata
+  is made more helpful by including both values from the file name and internal
+  metadata. (`#9186 <https://github.com/pypa/pip/issues/9186>`_)
+
+Bug Fixes
+---------
+
+- Fix a regression that made ``pip wheel`` do a VCS export instead of a VCS clone
+  for editable requirements. This broke VCS requirements that need the VCS
+  information to build correctly. (`#9273 <https://github.com/pypa/pip/issues/9273>`_)
+- Fix ``pip download`` of editable VCS requirements that need VCS information
+  to build correctly. (`#9337 <https://github.com/pypa/pip/issues/9337>`_)
+
+Vendored Libraries
+------------------
+
+- Upgrade msgpack to 1.0.2.
+- Upgrade requests to 2.25.1.
+
+Improved Documentation
+----------------------
+
+- Render the unreleased pip version change notes on the news page in docs. (`#9172 <https://github.com/pypa/pip/issues/9172>`_)
+- Fix broken email link in docs feedback banners. (`#9343 <https://github.com/pypa/pip/issues/9343>`_)
+
+
 .. note
 
     You should *NOT* be adding new change log entries to this file, this

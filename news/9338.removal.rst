@@ -1,2 +1,0 @@
-Remove the VCS export feature that was used only with editable VCS
-requirements and had correctness issues.
