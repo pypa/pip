@@ -6,6 +6,7 @@ import sys
 import pip._vendor
 from pip._vendor import pkg_resources
 from pip._vendor.certifi import where
+from pip._vendor.packaging.version import parse as parse_version
 
 from pip import __file__ as pip_location
 from pip._internal.cli import cmdoptions
@@ -100,7 +101,7 @@ def show_actual_vendor_versions(vendor_txt_versions):
             extra_message = ' (Unable to locate actual module version, using'\
                             ' vendor.txt specified version)'
             actual_version = expected_version
-        elif actual_version != expected_version:
+        elif parse_version(actual_version) != parse_version(expected_version):
             extra_message = ' (CONFLICT: vendor.txt suggests version should'\
                             ' be {})'.format(expected_version)
         logger.info('%s==%s%s', module_name, actual_version, extra_message)
