@@ -394,6 +394,7 @@ Nick Timkovich
 Nicolas Bock
 Nicole Harris
 Nikhil Benesch
+Nikita Chepanov
 Nikolay Korolev
 Nitesh Sharma
 Noah
@@ -466,6 +467,7 @@ Remi Rampin
 Rene Dudfield
 Riccardo Magliocchetti
 Richard Jones
+Richard Si
 Ricky Ng-Adam
 RobberPhex
 Robert Collins
