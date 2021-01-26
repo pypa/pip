@@ -8,7 +8,7 @@ import os.path
 import site
 import sys
 import sysconfig
-from distutils.command.install import SCHEME_KEYS  # type: ignore
+from distutils.command.install import SCHEME_KEYS
 from distutils.command.install import install as distutils_install_command
 
 from pip._internal.models.scheme import Scheme
