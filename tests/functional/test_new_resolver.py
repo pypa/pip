@@ -1266,7 +1266,7 @@ def test_new_resolver_no_fetch_no_satisfying(script):
         "--find-links", script.scratch_path,
         "myuberpkg",
     )
-    assert "Processing ./myuberpkg-1-" in result.stdout, str(result)
+    assert "Processing " in result.stdout, str(result)
 
     # Try to upgrade the package. This should NOT emit the "Processing"
     # message because the currently installed version is latest.
@@ -1277,4 +1277,4 @@ def test_new_resolver_no_fetch_no_satisfying(script):
         "--upgrade",
         "myuberpkg",
     )
-    assert "Processing ./myuberpkg-1-" not in result.stdout, str(result)
+    assert "Processing " not in result.stdout, str(result)
