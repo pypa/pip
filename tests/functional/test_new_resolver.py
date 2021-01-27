@@ -1253,3 +1253,28 @@ def test_new_resolver_lazy_fetch_candidates(script, upgrade):
     # But should reach there in the best route possible, without trying
     # candidates it does not need to.
     assert "myuberpkg-2" not in result.stdout, str(result)
+
+
+def test_new_resolver_no_fetch_no_satisfying(script):
+    create_basic_wheel_for_package(script, "myuberpkg", "1")
+
+    # Install the package. This should emit a "Processing" message for
+    # fetching the distribution from the --find-links page.
+    result = script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "myuberpkg",
+    )
+    assert "Processing ./myuberpkg-1-" in result.stdout, str(result)
+
+    # Try to upgrade the package. This should NOT emit the "Processing"
+    # message because the currently installed version is latest.
+    result = script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "--upgrade",
+        "myuberpkg",
+    )
+    assert "Processing ./myuberpkg-1-" not in result.stdout, str(result)
