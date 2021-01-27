@@ -1,3 +1,4 @@
+import functools
 import logging
 
 from pip._vendor.packaging.utils import canonicalize_name
@@ -65,6 +66,7 @@ if MYPY_CHECK_RUNNING:
 
     from .base import Candidate, Requirement
     from .candidates import BaseCandidate
+    from .found_candidates import IndexCandidateInfo
 
     C = TypeVar("C")
     Cache = Dict[Link, C]
@@ -213,8 +215,8 @@ class Factory:
                     template=template,
                 )
 
-        def iter_index_candidates():
-            # type: () -> Iterator[Candidate]
+        def iter_index_candidate_infos():
+            # type: () -> Iterator[IndexCandidateInfo]
             result = self._finder.find_best_candidate(
                 project_name=name,
                 specifier=specifier,
@@ -228,26 +230,21 @@ class Factory:
             all_yanked = all(ican.link.is_yanked for ican in icans)
 
             # PackageFinder returns earlier versions first, so we reverse.
-            versions_found = set()  # type: Set[_BaseVersion]
             for ican in reversed(icans):
                 if not all_yanked and ican.link.is_yanked:
                     continue
-                if ican.version in versions_found:
-                    continue
-                candidate = self._make_candidate_from_link(
+                func = functools.partial(
+                    self._make_candidate_from_link,
                     link=ican.link,
                     extras=extras,
                     template=template,
                     name=name,
                     version=ican.version,
                 )
-                if candidate is None:
-                    continue
-                yield candidate
-                versions_found.add(ican.version)
+                yield ican.version, func
 
         return FoundCandidates(
-            iter_index_candidates,
+            iter_index_candidate_infos,
             installed_candidate,
             prefers_installed,
         )
