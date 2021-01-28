@@ -124,6 +124,7 @@ def make_test_finder(
     allow_all_prereleases=False,  # type: bool
     session=None,                 # type: Optional[PipSession]
     target_python=None,           # type: Optional[TargetPython]
+    use_source_priority=False,    # type: bool
 ):
     # type: (...) -> PackageFinder
     """
@@ -137,6 +138,7 @@ def make_test_finder(
     selection_prefs = SelectionPreferences(
         allow_yanked=True,
         allow_all_prereleases=allow_all_prereleases,
+        use_source_priority=use_source_priority,
     )
 
     return PackageFinder.create(

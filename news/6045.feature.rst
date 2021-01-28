@@ -1,8 +1,9 @@
-Prioritize package lookup according to their source.
+Allow prioritizing package lookup according to their source.
 
-Sources now behave as fallback to each other: if a candidate is found in a
-higher priority source, it will be downloaded from that source even if a higher
-version of the package is found in another source.
+When using ``--use-feature=source-priority``, ources now behave as fallback to
+each other: if a candidate is found in a higher priority source, it will be
+downloaded from that source even if a higher version of the package is found in
+another source.
 
 Sources are ordered from highest to lowest priority as:
 

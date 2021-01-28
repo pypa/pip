@@ -13,7 +13,8 @@ class SelectionPreferences:
     """
 
     __slots__ = ['allow_yanked', 'allow_all_prereleases', 'format_control',
-                 'prefer_binary', 'ignore_requires_python']
+                 'prefer_binary', 'ignore_requires_python',
+                 'use_source_priority']
 
     # Don't include an allow_yanked default value to make sure each call
     # site considers whether yanked releases are allowed. This also causes
@@ -26,6 +27,7 @@ class SelectionPreferences:
         format_control=None,          # type: Optional[FormatControl]
         prefer_binary=False,          # type: bool
         ignore_requires_python=None,  # type: Optional[bool]
+        use_source_priority=False,    # type: bool
     ):
         # type: (...) -> None
         """Create a SelectionPreferences object.
@@ -39,6 +41,8 @@ class SelectionPreferences:
             dist over a new source dist.
         :param ignore_requires_python: Whether to ignore incompatible
             "Requires-Python" values in links. Defaults to False.
+        :param use_source_priority: Whether to sort candidates using their source
+            priority.
         """
         if ignore_requires_python is None:
             ignore_requires_python = False
@@ -48,3 +52,4 @@ class SelectionPreferences:
         self.format_control = format_control
         self.prefer_binary = prefer_binary
         self.ignore_requires_python = ignore_requires_python
+        self.use_source_priority = use_source_priority

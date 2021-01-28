@@ -322,6 +322,7 @@ class CandidatePreferences:
         self,
         prefer_binary=False,  # type: bool
         allow_all_prereleases=False,  # type: bool
+        use_source_priority=False,  # type: bool
     ):
         # type: (...) -> None
         """
@@ -329,6 +330,7 @@ class CandidatePreferences:
         """
         self.allow_all_prereleases = allow_all_prereleases
         self.prefer_binary = prefer_binary
+        self.use_source_priority = use_source_priority
 
 
 class BestCandidateResult:
@@ -392,6 +394,7 @@ class CandidateEvaluator:
         allow_all_prereleases=False,  # type: bool
         specifier=None,       # type: Optional[specifiers.BaseSpecifier]
         hashes=None,          # type: Optional[Hashes]
+        use_source_priority=False,  # type: bool
     ):
         # type: (...) -> CandidateEvaluator
         """Create a CandidateEvaluator object.
@@ -403,6 +406,8 @@ class CandidateEvaluator:
             (e.g. `packaging.specifiers.SpecifierSet`) to filter applicable
             versions.
         :param hashes: An optional collection of allowed hashes.
+        :param use_source_priority: Whether to sort candidates using their source
+            priority.
         """
         if target_python is None:
             target_python = TargetPython()
@@ -418,6 +423,7 @@ class CandidateEvaluator:
             prefer_binary=prefer_binary,
             allow_all_prereleases=allow_all_prereleases,
             hashes=hashes,
+            use_source_priority=use_source_priority,
         )
 
     def __init__(
@@ -428,6 +434,7 @@ class CandidateEvaluator:
         prefer_binary=False,  # type: bool
         allow_all_prereleases=False,  # type: bool
         hashes=None,                  # type: Optional[Hashes]
+        use_source_priority=False,    # type: bool
     ):
         # type: (...) -> None
         """
@@ -440,6 +447,7 @@ class CandidateEvaluator:
         self._project_name = project_name
         self._specifier = specifier
         self._supported_tags = supported_tags
+        self._use_source_priority = use_source_priority
 
     def get_applicable_candidates(
         self,
@@ -516,6 +524,9 @@ class CandidateEvaluator:
         build_tag = ()  # type: BuildTag
         binary_preference = 0
         link = candidate.link
+        source_priority = 0
+        if self._use_source_priority:
+            source_priority = candidate.source_priority
         if link.is_wheel:
             # can raise InvalidWheelFilename
             wheel = Wheel(link.filename)
@@ -536,8 +547,8 @@ class CandidateEvaluator:
         has_allowed_hash = int(link.is_hash_allowed(self._hashes))
         yank_value = -1 * int(link.is_yanked)  # -1 for yanked.
         return (
-            has_allowed_hash, yank_value, binary_preference,
-            candidate.source_priority, candidate.version, build_tag, pri,
+            has_allowed_hash, yank_value, binary_preference, source_priority,
+            candidate.version, build_tag, pri,
         )
 
     def sort_best_candidate(
@@ -642,6 +653,7 @@ class PackageFinder:
         candidate_prefs = CandidatePreferences(
             prefer_binary=selection_prefs.prefer_binary,
             allow_all_prereleases=selection_prefs.allow_all_prereleases,
+            use_source_priority=selection_prefs.use_source_priority,
         )
 
         return cls(
@@ -871,6 +883,7 @@ class PackageFinder:
             allow_all_prereleases=candidate_prefs.allow_all_prereleases,
             specifier=specifier,
             hashes=hashes,
+            use_source_priority=candidate_prefs.use_source_priority,
         )
 
     @functools.lru_cache(maxsize=None)

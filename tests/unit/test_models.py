@@ -58,4 +58,6 @@ class TestInstallationCandidate:
         obj = candidate.InstallationCandidate(
             "A", "1.0.0", "https://somewhere.com/path/A-1.0.0.tar.gz", 1
         )
-        assert obj._compare_key == (obj.name, obj.source_priority, obj.version, obj.link)
+        assert obj._compare_key == (
+            obj.name, obj.source_priority, obj.version, obj.link
+        )
