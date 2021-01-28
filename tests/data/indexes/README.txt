@@ -13,3 +13,7 @@ for testing url quoting with indexes
 simple
 ------
 contains index page for "simple" pkg
+
+simplev2
+--------
+contains index page for "simple" pkg at version 1 and 2

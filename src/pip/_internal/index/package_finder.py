@@ -45,7 +45,7 @@ if MYPY_CHECK_RUNNING:
 
     BuildTag = Union[Tuple[()], Tuple[int, str]]
     CandidateSortingKey = (
-        Tuple[int, int, int, _BaseVersion, BuildTag, Optional[int]]
+        Tuple[int, int, int, int, _BaseVersion, BuildTag, Optional[int]]
     )
 
 
@@ -499,8 +499,9 @@ class CandidateEvaluator:
         yanked (in the sense of PEP 592) are always less preferred than
         candidates that haven't been yanked. Then:
 
-        If not finding wheels, they are sorted by version only.
-        If finding wheels, then the sort order is by version, then:
+        If not finding wheels, they are sorted by source priority and version only.
+        If finding wheels, then the sort order is by source priority and version,
+        then:
           1. existing installs
           2. wheels ordered via Wheel.support_index_min(self._supported_tags)
           3. source archives
@@ -535,8 +536,8 @@ class CandidateEvaluator:
         has_allowed_hash = int(link.is_hash_allowed(self._hashes))
         yank_value = -1 * int(link.is_yanked)  # -1 for yanked.
         return (
-            has_allowed_hash, yank_value, binary_preference, candidate.version,
-            build_tag, pri,
+            has_allowed_hash, yank_value, binary_preference,
+            candidate.source_priority, candidate.version, build_tag, pri,
         )
 
     def sort_best_candidate(
@@ -740,8 +741,8 @@ class PackageFinder:
             logger.debug('Skipping link: %s: %s', reason, link)
             self._logged_links.add(link)
 
-    def get_install_candidate(self, link_evaluator, link):
-        # type: (LinkEvaluator, Link) -> Optional[InstallationCandidate]
+    def get_install_candidate(self, link_evaluator, link, source_priority):
+        # type: (LinkEvaluator, Link, int) -> Optional[InstallationCandidate]
         """
         If the link is a candidate for install, convert it to an
         InstallationCandidate and return it. Otherwise, return None.
@@ -756,23 +757,31 @@ class PackageFinder:
             name=link_evaluator.project_name,
             link=link,
             version=result,
+            source_priority=source_priority,
         )
 
-    def evaluate_links(self, link_evaluator, links):
-        # type: (LinkEvaluator, Iterable[Link]) -> List[InstallationCandidate]
+    def evaluate_links(
+        self,
+        link_evaluator,   # type: LinkEvaluator
+        links,            # type: Iterable[Link]
+        source_priority,  # type: int
+    ):
+        # type: (...) -> List[InstallationCandidate]
         """
         Convert links that are candidates to InstallationCandidate objects.
         """
         candidates = []
         for link in self._sort_links(links):
-            candidate = self.get_install_candidate(link_evaluator, link)
+            candidate = self.get_install_candidate(
+                link_evaluator, link, source_priority,
+            )
             if candidate is not None:
                 candidates.append(candidate)
 
         return candidates
 
-    def process_project_url(self, project_url, link_evaluator):
-        # type: (Link, LinkEvaluator) -> List[InstallationCandidate]
+    def process_project_url(self, project_url, link_evaluator, source_priority):
+        # type: (Link, LinkEvaluator, int) -> List[InstallationCandidate]
         logger.debug(
             'Fetching project page and analyzing links: %s', project_url,
         )
@@ -786,6 +795,7 @@ class PackageFinder:
             package_links = self.evaluate_links(
                 link_evaluator,
                 links=page_links,
+                source_priority=source_priority,
             )
 
         return package_links
@@ -798,6 +808,11 @@ class PackageFinder:
         This checks index_urls and find_links.
         All versions found are returned as an InstallationCandidate list.
 
+        Each InstallationCandidate's priority is defined as:
+        * 2 (Highest): Candidates from the configured file locations.
+        * 1: Candidates from the configured find_links.
+        * 0 and lower: Candidates from the PEP 503 indexes in order.
+
         See LinkEvaluator.evaluate_link() for details on which files
         are accepted.
         """
@@ -808,18 +823,23 @@ class PackageFinder:
         find_links_versions = self.evaluate_links(
             link_evaluator,
             links=collected_links.find_links,
+            source_priority=1,
         )
 
         page_versions = []
-        for project_url in collected_links.project_urls:
+        for prio, project_url in enumerate(collected_links.project_urls):
             package_links = self.process_project_url(
-                project_url, link_evaluator=link_evaluator,
+                project_url,
+                link_evaluator=link_evaluator,
+                # highest priority here to the first project url
+                source_priority=-prio,
             )
             page_versions.extend(package_links)
 
         file_versions = self.evaluate_links(
             link_evaluator,
             links=collected_links.files,
+            source_priority=2,
         )
         if file_versions:
             file_versions.sort(reverse=True)

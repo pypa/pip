@@ -414,6 +414,24 @@ def test_finder_installs_dev_releases(data):
     assert found.link.url.endswith("bar-2.0.dev1.tar.gz"), found.link.url
 
 
+def test_finder_prioritize_first_index(data):
+    """
+    Test PackageFinder prioritizes the first index before the second one.
+    """
+    req = install_req_from_line("simple")
+    index_urls = [data.index_url("simple"), data.index_url("simplev2")]
+
+    finder = make_test_finder(index_urls=index_urls)
+    found = finder.find_requirement(req, False)
+    assert "simple-1.0.tar.gz" in found.link.url
+
+    index_urls.reverse()
+
+    finder = make_test_finder(index_urls=index_urls)
+    found = finder.find_requirement(req, False)
+    assert "simple-2.0.tar.gz" in found.link.url
+
+
 def test_finder_installs_pre_releases_with_version_spec():
     """
     Test PackageFinder only accepts stable versioned releases by default.
@@ -478,7 +496,7 @@ def test_process_project_url(data):
     finder = make_test_finder(index_urls=[index_url])
     link_evaluator = finder.make_link_evaluator(project_name)
     actual = finder.process_project_url(
-        project_url, link_evaluator=link_evaluator,
+        project_url, link_evaluator=link_evaluator, source_priority=0,
     )
 
     assert len(actual) == 1

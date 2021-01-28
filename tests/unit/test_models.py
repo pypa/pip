@@ -45,16 +45,17 @@ class TestInstallationCandidate:
 
     def test_sets_correct_variables(self):
         obj = candidate.InstallationCandidate(
-            "A", "1.0.0", "https://somewhere.com/path/A-1.0.0.tar.gz"
+            "A", "1.0.0", "https://somewhere.com/path/A-1.0.0.tar.gz", 1
         )
         assert obj.name == "A"
         assert obj.version == parse_version("1.0.0")
         assert obj.link == "https://somewhere.com/path/A-1.0.0.tar.gz"
+        assert obj.source_priority == 1
 
     # NOTE: This isn't checking the ordering logic; only the data provided to
     #       it is correct.
     def test_sets_the_right_key(self):
         obj = candidate.InstallationCandidate(
-            "A", "1.0.0", "https://somewhere.com/path/A-1.0.0.tar.gz"
+            "A", "1.0.0", "https://somewhere.com/path/A-1.0.0.tar.gz", 1
         )
-        assert obj._compare_key == (obj.name, obj.version, obj.link)
+        assert obj._compare_key == (obj.name, obj.source_priority, obj.version, obj.link)

@@ -1,0 +1,12 @@
+Prioritize package lookup according to their source.
+
+Sources now behave as fallback to each other: if a candidate is found in a
+higher priority source, it will be downloaded from that source even if a higher
+version of the package is found in another source.
+
+Sources are ordered from highest to lowest priority as:
+
+* ``--find-links`` archives
+* ``--find-links`` links
+* links from PEP 503 indexes: base index (pypi.org or ``--index-url``) first,
+  then other indexes in the order specified by ``--extra-index-url``
