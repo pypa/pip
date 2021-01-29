@@ -94,6 +94,17 @@ repos:
     exclude: ^news/(.gitignore|.*\.(process|removal|feature|bugfix|vendor|doc|trivial).rst)
     files: ^news/
 
+- repo: local
+  hooks:
+  - id: check-trove-classifiers
+    name: Check Trove Classifiers
+    language: python
+    language_version: python3
+    additional_dependencies:
+      - trove-classifiers
+    entry: python tools/check_trove_classifiers.py
+    files: ^setup\.(py|cfg)
+
 - repo: https://github.com/mgedmin/check-manifest
   rev: '0.46'
   hooks:
