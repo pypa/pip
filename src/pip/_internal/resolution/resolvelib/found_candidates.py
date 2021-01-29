@@ -9,20 +9,62 @@ something.
 """
 
 import functools
-import itertools
 
 from pip._vendor.six.moves import collections_abc  # type: ignore
 
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Callable, Iterator, Optional
+    from typing import Callable, Iterator, Optional, Set, Tuple
+
+    from pip._vendor.packaging.version import _BaseVersion
 
     from .base import Candidate
 
+    IndexCandidateInfo = Tuple[_BaseVersion, Callable[[], Optional[Candidate]]]
 
-def _insert_installed(installed, others):
-    # type: (Candidate, Iterator[Candidate]) -> Iterator[Candidate]
+
+def _iter_built(infos):
+    # type: (Iterator[IndexCandidateInfo]) -> Iterator[Candidate]
+    """Iterator for ``FoundCandidates``.
+
+    This iterator is used the package is not already installed. Candidates
+    from index come later in their normal ordering.
+    """
+    versions_found = set()  # type: Set[_BaseVersion]
+    for version, func in infos:
+        if version in versions_found:
+            continue
+        candidate = func()
+        if candidate is None:
+            continue
+        yield candidate
+        versions_found.add(version)
+
+
+def _iter_built_with_prepended(installed, infos):
+    # type: (Candidate, Iterator[IndexCandidateInfo]) -> Iterator[Candidate]
+    """Iterator for ``FoundCandidates``.
+
+    This iterator is used when the resolver prefers the already-installed
+    candidate and NOT to upgrade. The installed candidate is therefore
+    always yielded first, and candidates from index come later in their
+    normal ordering, except skipped when the version is already installed.
+    """
+    yield installed
+    versions_found = {installed.version}  # type: Set[_BaseVersion]
+    for version, func in infos:
+        if version in versions_found:
+            continue
+        candidate = func()
+        if candidate is None:
+            continue
+        yield candidate
+        versions_found.add(version)
+
+
+def _iter_built_with_inserted(installed, infos):
+    # type: (Candidate, Iterator[IndexCandidateInfo]) -> Iterator[Candidate]
     """Iterator for ``FoundCandidates``.
 
     This iterator is used when the resolver prefers to upgrade an
@@ -33,16 +75,22 @@ def _insert_installed(installed, others):
     the installed candidate exactly once before we start yielding older or
     equivalent candidates, or after all other candidates if they are all newer.
     """
-    installed_yielded = False
-    for candidate in others:
+    versions_found = set()  # type: Set[_BaseVersion]
+    for version, func in infos:
+        if version in versions_found:
+            continue
         # If the installed candidate is better, yield it first.
-        if not installed_yielded and installed.version >= candidate.version:
+        if installed.version >= version:
             yield installed
-            installed_yielded = True
+            versions_found.add(installed.version)
+        candidate = func()
+        if candidate is None:
+            continue
         yield candidate
+        versions_found.add(version)
 
     # If the installed candidate is older than all other candidates.
-    if not installed_yielded:
+    if installed.version not in versions_found:
         yield installed
 
 
@@ -56,11 +104,11 @@ class FoundCandidates(collections_abc.Sequence):
     """
     def __init__(
         self,
-        get_others,  # type: Callable[[], Iterator[Candidate]]
+        get_infos,  # type: Callable[[], Iterator[IndexCandidateInfo]]
         installed,  # type: Optional[Candidate]
         prefers_installed,  # type: bool
     ):
-        self._get_others = get_others
+        self._get_infos = get_infos
         self._installed = installed
         self._prefers_installed = prefers_installed
 
@@ -73,16 +121,12 @@ class FoundCandidates(collections_abc.Sequence):
 
     def __iter__(self):
         # type: () -> Iterator[Candidate]
+        infos = self._get_infos()
         if not self._installed:
-            return self._get_others()
-        others = (
-            candidate
-            for candidate in self._get_others()
-            if candidate.version != self._installed.version
-        )
+            return _iter_built(infos)
         if self._prefers_installed:
-            return itertools.chain([self._installed], others)
-        return _insert_installed(self._installed, others)
+            return _iter_built_with_prepended(self._installed, infos)
+        return _iter_built_with_inserted(self._installed, infos)
 
     def __len__(self):
         # type: () -> int
