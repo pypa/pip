@@ -7,11 +7,11 @@ import shutil
 import subprocess
 import sys
 import time
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 
 import pytest
 from mock import patch
-from pip._vendor.contextlib2 import ExitStack, nullcontext
+from pip._vendor.contextlib2 import nullcontext
 from setuptools.wheel import Wheel
 
 from pip._internal.cli.main import main as pip_entry_point

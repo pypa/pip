@@ -3,9 +3,8 @@ import itertools
 import logging
 import os.path
 import tempfile
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 
-from pip._vendor.contextlib2 import ExitStack
 from pip._vendor.six import ensure_text
 
 from pip._internal.utils.compat import WINDOWS

@@ -1,10 +1,10 @@
 import os
+from contextlib import ExitStack
 from email import message_from_string
 from io import BytesIO
 from zipfile import ZipFile
 
 import pytest
-from pip._vendor.contextlib2 import ExitStack
 
 from pip._internal.exceptions import UnsupportedWheel
 from pip._internal.utils import wheel
