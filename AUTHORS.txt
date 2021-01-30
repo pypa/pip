@@ -228,6 +228,7 @@ gkdoc
 Gopinath M
 GOTO Hayato
 gpiks
+Greg Roodt
 Greg Ward
 Guilherme Espada
 gutsytechster
@@ -236,6 +237,7 @@ gzpan123
 Hanjun Kim
 Hari Charan
 Harsh Vardhan
+Henry Schreiner
 Herbert Pfennig
 Hsiaoming Yang
 Hugo
