@@ -12,10 +12,10 @@ import warnings
 from ._compat import string_types, with_metaclass
 from ._typing import TYPE_CHECKING
 from .utils import canonicalize_version
-from .version import Version, LegacyVersion, parse
+from .version import LegacyVersion, Version, parse
 
 if TYPE_CHECKING:  # pragma: no cover
-    from typing import List, Dict, Union, Iterable, Iterator, Optional, Callable, Tuple
+    from typing import Callable, Dict, Iterable, Iterator, List, Optional, Tuple, Union
 
     ParsedVersion = Union[Version, LegacyVersion]
     UnparsedVersion = Union[Version, LegacyVersion, str]
