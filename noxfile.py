@@ -174,11 +174,14 @@ def vendoring(session):
 
     def pinned_requirements(path):
         # type: (Path) -> Iterator[Tuple[str, str]]
-        for line in path.read_text().splitlines():
-            one, two = line.split("==", 1)
+        for line in path.read_text().splitlines(keepends=False):
+            one, sep, two = line.partition("==")
+            if not sep:
+                continue
             name = one.strip()
-            version = two.split("#")[0].strip()
-            yield name, version
+            version = two.split("#", 1)[0].strip()
+            if name and version:
+                yield name, version
 
     vendor_txt = Path("src/pip/_vendor/vendor.txt")
     for name, old_version in pinned_requirements(vendor_txt):
