@@ -28,7 +28,7 @@ def _iter_built(infos):
     # type: (Iterator[IndexCandidateInfo]) -> Iterator[Candidate]
     """Iterator for ``FoundCandidates``.
 
-    This iterator is used the package is not already installed. Candidates
+    This iterator is used when the package is not already installed. Candidates
     from index come later in their normal ordering.
     """
     versions_found = set()  # type: Set[_BaseVersion]
