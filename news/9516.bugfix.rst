@@ -1,3 +1,0 @@
-New resolver: Download and prepare a distribution only at the last possible
-moment to avoid unnecessary network access when the same version is already
-installed locally.
