@@ -1,3 +1,20 @@
+21.0.1 (2021-01-30)
+===================
+
+Bug Fixes
+---------
+
+- commands: debug: Use packaging.version.parse to compare between versions. (`#9461 <https://github.com/pypa/pip/issues/9461>`_)
+- New resolver: Download and prepare a distribution only at the last possible
+  moment to avoid unnecessary network access when the same version is already
+  installed locally. (`#9516 <https://github.com/pypa/pip/issues/9516>`_)
+
+Vendored Libraries
+------------------
+
+- Upgrade packaging to 20.9
+
+
 21.0 (2021-01-23)
 =================
 
