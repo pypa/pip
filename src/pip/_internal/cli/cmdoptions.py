@@ -766,6 +766,15 @@ no_use_pep517 = partial(
     help=SUPPRESS_HELP
 )  # type: Any
 
+use_keyring = partial(
+    Option,
+    '--use-keyring',
+    dest='use_keyring',
+    action='store_true',
+    default=False,
+    help="Attempt to get credentials from the user's keyring."
+)  # type: Any
+
 install_options = partial(
     Option,
     '--install-option',

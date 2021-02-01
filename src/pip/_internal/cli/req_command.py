@@ -90,6 +90,7 @@ class SessionCommandMixin(CommandContextMixIn):
             ),
             retries=retries if retries is not None else options.retries,
             trusted_hosts=options.trusted_hosts,
+            use_keyring=options.use_keyring,
             index_urls=self._get_index_urls(options),
         )
 
