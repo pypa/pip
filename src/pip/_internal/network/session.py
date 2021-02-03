@@ -37,6 +37,7 @@ from pip._internal.utils.misc import (
 )
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import url_to_path
+from ..compat import ensure_str
 
 if MYPY_CHECK_RUNNING:
     from typing import Iterator, List, Optional, Tuple, Union
@@ -370,10 +371,10 @@ class PipSession(requests.Session):
                 addr = ipaddress.ip_address(
                     None
                     if origin_host is None
-                    else str(origin_host)
+                    else ensure_str(origin_host)
                 )
                 network = ipaddress.ip_network(
-                    str(secure_host)
+                    ensure_str(secure_host)
                 )
             except ValueError:
                 # We don't have both a valid address or a valid network, so

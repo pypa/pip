@@ -8,6 +8,7 @@ from contextlib import ExitStack, contextmanager
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import enum, rmtree
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from ..compat import ensure_str
 
 if MYPY_CHECK_RUNNING:
     from typing import Any, Dict, Iterator, Optional, TypeVar, Union
@@ -199,7 +200,7 @@ class TempDirectory:
         # natively for paths, and the bytes-text conversion omission avoids
         # errors caused by the environment configuring encodings incorrectly.
         if WINDOWS:
-            rmtree(str(self._path))
+            rmtree(ensure_str(self._path))
         else:
             rmtree(self._path)
 

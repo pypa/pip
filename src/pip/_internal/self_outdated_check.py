@@ -15,6 +15,8 @@ from pip._internal.utils.misc import ensure_dir, get_distribution, get_installed
 from pip._internal.utils.packaging import get_installer
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
+from .compat import ensure_binary
+
 if MYPY_CHECK_RUNNING:
     import optparse
     from typing import Any, Dict
@@ -30,7 +32,7 @@ logger = logging.getLogger(__name__)
 
 def _get_statefile_name(key):
     # type: (str) -> str
-    key_bytes = bytes(key)
+    key_bytes = ensure_binary(key)
     name = hashlib.sha224(key_bytes).hexdigest()
     return name
 
@@ -84,7 +86,7 @@ class SelfCheckState:
         text = json.dumps(state, sort_keys=True, separators=(",", ":"))
 
         with adjacent_tmp_file(self.statefile_path) as f:
-            f.write(bytes(text))
+            f.write(ensure_binary(text))
 
         try:
             # Since we have a prefix-specific state file, we can just

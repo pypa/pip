@@ -52,6 +52,8 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.virtualenv import running_under_virtualenv
 from pip._internal.vcs import vcs
 
+from ..compat import ensure_str
+
 if MYPY_CHECK_RUNNING:
     from typing import Any, Dict, Iterable, List, Optional, Sequence, Union
 
@@ -255,7 +257,7 @@ class InstallRequirement:
         # type: () -> Optional[str]
         if self.req is None:
             return None
-        return str(pkg_resources.safe_name(self.req.name))
+        return ensure_str(pkg_resources.safe_name(self.req.name))
 
     @property
     def specifier(self):

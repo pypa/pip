@@ -35,6 +35,7 @@ from pip._internal.utils.unpacking import (
 )
 from pip._internal.utils.wheel import parse_wheel, pkg_resources_distribution_for_wheel
 
+from ...compat import ensure_str
 # Use the custom cast function at runtime to make cast work,
 # and import typing.cast when performing pre-commit and type
 # checks
@@ -243,7 +244,7 @@ def _normalized_outrows(outrows):
     # For additional background, see--
     # https://github.com/pypa/pip/issues/5868
     return sorted(
-        (str(record_path, encoding='utf-8'), hash_, str(size))
+        (ensure_str(record_path, encoding='utf-8'), hash_, str(size))
         for record_path, hash_, size in outrows
     )
 
@@ -267,7 +268,7 @@ def _fs_to_record_path(path, relative_to=None):
 
 def _parse_record_path(record_column):
     # type: (str) -> RecordPath
-    p = str(record_column, encoding='utf-8')
+    p = ensure_str(record_column, encoding='utf-8')
     return cast('RecordPath', p)
 
 
@@ -524,7 +525,7 @@ def _install_wheel(
         names = wheel_zip.namelist()
         # If a flag is set, names may be unicode in Python 2. We convert to
         # text explicitly so these are valid for lookup in RECORD.
-        decoded_names = map(str, names)
+        decoded_names = map(ensure_str, names)
         for name in decoded_names:
             yield cast("RecordPath", name)
 
@@ -558,8 +559,8 @@ def _install_wheel(
         # type: (ZipFile, Scheme) -> Callable[[RecordPath], File]
         scheme_paths = {}
         for key in SCHEME_KEYS:
-            encoded_key = str(key)
-            scheme_paths[encoded_key] = str(
+            encoded_key = ensure_str(key)
+            scheme_paths[encoded_key] = ensure_str(
                 getattr(scheme, key), encoding=sys.getfilesystemencoding()
             )
 
@@ -606,7 +607,7 @@ def _install_wheel(
 
     make_root_scheme_file = root_scheme_file_maker(
         wheel_zip,
-        str(lib_dir, encoding=sys.getfilesystemencoding()),
+        ensure_str(lib_dir, encoding=sys.getfilesystemencoding()),
     )
     files = map(make_root_scheme_file, root_scheme_paths)
 
@@ -689,7 +690,7 @@ def _install_wheel(
                 for path in pyc_source_file_paths():
                     # Python 2's `compileall.compile_file` requires a str in
                     # error cases, so we must convert to the native type.
-                    path_arg = str(
+                    path_arg = ensure_str(
                         path, encoding=sys.getfilesystemencoding()
                     )
                     success = compileall.compile_file(
