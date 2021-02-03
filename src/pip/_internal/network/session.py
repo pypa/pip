@@ -37,6 +37,7 @@ from pip._internal.utils.misc import (
 )
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import url_to_path
+
 from ..compat import ensure_str
 
 if MYPY_CHECK_RUNNING:

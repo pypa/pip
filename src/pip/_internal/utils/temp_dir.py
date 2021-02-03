@@ -8,6 +8,7 @@ from contextlib import ExitStack, contextmanager
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import enum, rmtree
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
 from ..compat import ensure_str
 
 if MYPY_CHECK_RUNNING:

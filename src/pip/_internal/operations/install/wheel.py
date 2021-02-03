@@ -36,6 +36,7 @@ from pip._internal.utils.unpacking import (
 from pip._internal.utils.wheel import parse_wheel, pkg_resources_distribution_for_wheel
 
 from ...compat import ensure_str
+
 # Use the custom cast function at runtime to make cast work,
 # and import typing.cast when performing pre-commit and type
 # checks

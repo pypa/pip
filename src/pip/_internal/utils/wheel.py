@@ -14,7 +14,6 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 from ..compat import ensure_str
 
-
 if MYPY_CHECK_RUNNING:
     from email.message import Message
     from typing import Dict, Tuple

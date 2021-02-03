@@ -1,7 +1,9 @@
 from pip._vendor.pkg_resources import yield_lines
 
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+
 from ..compat import ensure_str
+
 if MYPY_CHECK_RUNNING:
     from typing import Dict, Iterable, List
 
