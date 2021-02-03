@@ -9,8 +9,7 @@ something.
 """
 
 import functools
-
-from pip._vendor.six.moves import collections_abc  # type: ignore
+from collections.abc import Sequence
 
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -94,7 +93,7 @@ def _iter_built_with_inserted(installed, infos):
         yield installed
 
 
-class FoundCandidates(collections_abc.Sequence):
+class FoundCandidates(Sequence):
     """A lazy sequence to provide candidates to the resolver.
 
     The intended usage is to return this from `find_matches()` so the resolver

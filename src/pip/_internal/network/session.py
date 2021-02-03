@@ -16,7 +16,7 @@ import sys
 import urllib.parse
 import warnings
 
-from pip._vendor import requests, six, urllib3
+from pip._vendor import requests, urllib3
 from pip._vendor.cachecontrol import CacheControlAdapter
 from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
 from pip._vendor.requests.models import Response
@@ -370,10 +370,10 @@ class PipSession(requests.Session):
                 addr = ipaddress.ip_address(
                     None
                     if origin_host is None
-                    else six.ensure_text(origin_host)
+                    else str(origin_host)
                 )
                 network = ipaddress.ip_network(
-                    six.ensure_text(secure_host)
+                    str(secure_host)
                 )
             except ValueError:
                 # We don't have both a valid address or a valid network, so

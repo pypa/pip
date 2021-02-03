@@ -1,5 +1,4 @@
 from pip._vendor.pkg_resources import yield_lines
-from pip._vendor.six import ensure_str
 
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -21,7 +20,7 @@ class DictMetadata:
     def get_metadata(self, name):
         # type: (str) -> str
         try:
-            return ensure_str(self._metadata[name])
+            return str(self._metadata[name])
         except UnicodeDecodeError as e:
             # Mirrors handling done in pkg_resources.NullProvider.
             e.reason += f" in {name} file"

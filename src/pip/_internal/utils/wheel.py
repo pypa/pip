@@ -7,7 +7,6 @@ from zipfile import BadZipFile, ZipFile
 
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.pkg_resources import DistInfoDistribution
-from pip._vendor.six import ensure_str
 
 from pip._internal.exceptions import UnsupportedWheel
 from pip._internal.utils.pkg_resources import DictMetadata
@@ -66,7 +65,7 @@ def pkg_resources_distribution_for_wheel(wheel_zip, name, location):
         # We coerce them to native str type to match the types used in the rest
         # of the code. This cannot fail because unicode can always be encoded
         # with UTF-8.
-        full_path = ensure_str(path)
+        full_path = str(path)
         _, metadata_name = full_path.split("/", 1)
 
         try:
@@ -141,7 +140,7 @@ def wheel_dist_info_dir(source, name):
 
     # Zip file paths can be unicode or str depending on the zip entry flags,
     # so normalize it.
-    return ensure_str(info_dir)
+    return str(info_dir)
 
 
 def read_wheel_metadata_file(source, path):
@@ -166,7 +165,7 @@ def wheel_metadata(source, dist_info_dir):
     wheel_contents = read_wheel_metadata_file(source, path)
 
     try:
-        wheel_text = ensure_str(wheel_contents)
+        wheel_text = str(wheel_contents)
     except UnicodeDecodeError as e:
         raise UnsupportedWheel(f"error decoding {path!r}: {e!r}")
 

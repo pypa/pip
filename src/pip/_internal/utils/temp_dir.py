@@ -3,10 +3,7 @@ import itertools
 import logging
 import os.path
 import tempfile
-from contextlib import contextmanager
-
-from pip._vendor.contextlib2 import ExitStack
-from pip._vendor.six import ensure_text
+from contextlib import ExitStack, contextmanager
 
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import enum, rmtree
@@ -202,7 +199,7 @@ class TempDirectory:
         # natively for paths, and the bytes-text conversion omission avoids
         # errors caused by the environment configuring encodings incorrectly.
         if WINDOWS:
-            rmtree(ensure_text(self._path))
+            rmtree(str(self._path))
         else:
             rmtree(self._path)
 

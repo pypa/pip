@@ -8,7 +8,7 @@ import sys
 import uuid
 import zipfile
 
-from pip._vendor import pkg_resources, six
+from pip._vendor import pkg_resources
 from pip._vendor.packaging.requirements import Requirement
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
@@ -255,7 +255,7 @@ class InstallRequirement:
         # type: () -> Optional[str]
         if self.req is None:
             return None
-        return six.ensure_str(pkg_resources.safe_name(self.req.name))
+        return str(pkg_resources.safe_name(self.req.name))
 
     @property
     def specifier(self):
@@ -827,7 +827,7 @@ class InstallRequirement:
             )
         except LegacyInstallFailure as exc:
             self.install_succeeded = False
-            six.reraise(*exc.parent)
+            raise exc.parent
         except Exception:
             self.install_succeeded = True
             raise

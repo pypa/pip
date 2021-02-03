@@ -6,7 +6,6 @@ import os.path
 import sys
 
 from pip._vendor.packaging import version as packaging_version
-from pip._vendor.six import ensure_binary
 
 from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import PackageFinder
@@ -31,7 +30,7 @@ logger = logging.getLogger(__name__)
 
 def _get_statefile_name(key):
     # type: (str) -> str
-    key_bytes = ensure_binary(key)
+    key_bytes = bytes(key)
     name = hashlib.sha224(key_bytes).hexdigest()
     return name
 
@@ -85,7 +84,7 @@ class SelfCheckState:
         text = json.dumps(state, sort_keys=True, separators=(",", ":"))
 
         with adjacent_tmp_file(self.statefile_path) as f:
-            f.write(ensure_binary(text))
+            f.write(bytes(text))
 
         try:
             # Since we have a prefix-specific state file, we can just

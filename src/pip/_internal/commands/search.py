@@ -3,13 +3,10 @@ import shutil
 import sys
 import textwrap
 from collections import OrderedDict
+from xmlrpc import client as xmlrpc_client
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.version import parse as parse_version
-
-# NOTE: XMLRPC Client is not annotated in typeshed as on 2017-07-17, which is
-#       why we ignore the type on this import
-from pip._vendor.six.moves import xmlrpc_client  # type: ignore
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.req_command import SessionCommandMixin
