@@ -80,7 +80,7 @@ def parse_editable(editable_req):
     except InvalidRequirement:
         pass
     else:
-        if req.url:
+        if req.url and "://" in req.url:
             # Join the marker back into the name part. This will be parsed out
             # later into a Requirement again.
             if req.marker:
