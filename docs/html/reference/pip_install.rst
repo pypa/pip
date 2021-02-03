@@ -1029,7 +1029,7 @@ Examples
 
          python -m pip install -e git+https://git.repo/some_pkg.git#egg=SomePackage          # from git
          python -m pip install -e hg+https://hg.repo/some_pkg.git#egg=SomePackage            # from mercurial
-         python -m python -m pip install -e svn+svn://svn.repo/some_pkg/trunk/#egg=SomePackage         # from svn
+         python -m pip install -e svn+svn://svn.repo/some_pkg/trunk/#egg=SomePackage         # from svn
          python -m pip install -e git+https://git.repo/some_pkg.git@feature#egg=SomePackage  # from 'feature' branch
          python -m pip install -e "git+https://git.repo/some_repo.git#egg=subdir&subdirectory=subdir_path" # install a python package from a repo subdirectory
 
