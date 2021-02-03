@@ -1,22 +1,19 @@
 ---
 name: Bug report
-about: |
-  Create a report to help us improve
-
-  ⚠ If you're reporting an issue for `--use-feature=2020-resolver`, use
-  the "Dependency resolver failures / errors" template instead.
-title: '[Bug]: '
+about: Something is not working correctly.
+title: ""
 labels: "S: needs triage, type: bug"
 issue_body: true  # default: true, adds a classic WSYWIG textarea, if on
 inputs:
 - type: description
   attributes:
     value: |
-      **Environment**
-
-      ⚠ If you're reporting an issue for `--use-feature=2020-resolver`,
+      ⚠
+      If you're reporting an issue for `--use-feature=2020-resolver`,
       use the "Dependency resolver failures / errors" template instead.
-
+- type: description
+  attributes:
+    value: **Environment**
 - type: input
   attributes:
     label: pip version
