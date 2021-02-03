@@ -1,6 +1,7 @@
 import functools
 import logging
 from typing import (
+    TYPE_CHECKING,
     Dict,
     FrozenSet,
     Iterable,
@@ -59,6 +60,14 @@ from .requirements import (
     SpecifierRequirement,
     UnsatisfiableRequirement,
 )
+
+if TYPE_CHECKING:
+    from typing import Protocol
+
+    class ConflictCause(Protocol):
+        requirement: RequiresPythonRequirement
+        parent: Candidate
+
 
 logger = logging.getLogger(__name__)
 
@@ -387,21 +396,25 @@ class Factory:
             )
         return None
 
-    def _report_requires_python_error(
-        self,
-        requirement,  # type: RequiresPythonRequirement
-        template,  # type: Candidate
-    ):
-        # type: (...) -> UnsupportedPythonVersion
-        message_format = (
-            "Package {package!r} requires a different Python: "
-            "{version} not in {specifier!r}"
-        )
-        message = message_format.format(
-            package=template.name,
-            version=self._python_candidate.version,
-            specifier=str(requirement.specifier),
-        )
+    def _report_requires_python_error(self, causes):
+        # type: (Sequence[ConflictCause]) -> UnsupportedPythonVersion
+        assert causes, "Requires-Python error reported with no cause"
+
+        version = self._python_candidate.version
+
+        if len(causes) == 1:
+            specifier = str(causes[0].requirement.specifier)
+            message = (
+                f"Package {causes[0].parent.name!r} requires a different "
+                f"Python: {version} not in {specifier!r}"
+            )
+            return UnsupportedPythonVersion(message)
+
+        message = f"Packages require a different Python. {version} not in:"
+        for cause in causes:
+            package = cause.parent.format_for_error()
+            specifier = str(cause.requirement.specifier)
+            message += f"\n{specifier!r} (required by {package})"
         return UnsupportedPythonVersion(message)
 
     def _report_single_requirement_conflict(self, req, parent):
@@ -427,12 +440,14 @@ class Factory:
 
         # If one of the things we can't solve is "we need Python X.Y",
         # that is what we report.
-        for cause in e.causes:
-            if isinstance(cause.requirement, RequiresPythonRequirement):
-                return self._report_requires_python_error(
-                    cause.requirement,
-                    cause.parent,
-                )
+        requires_python_causes = [
+            cause
+            for cause in e.causes
+            if isinstance(cause.requirement, RequiresPythonRequirement)
+            and not cause.requirement.is_satisfied_by(self._python_candidate)
+        ]
+        if requires_python_causes:
+            return self._report_requires_python_error(requires_python_causes)
 
         # Otherwise, we have a set of causes which can't all be satisfied
         # at once.
