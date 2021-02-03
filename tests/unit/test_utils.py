@@ -196,21 +196,21 @@ class TestsGetDistributions:
             pass
 
     workingset = MockWorkingSet((
-        Mock(test_name="global", key="global"),
-        Mock(test_name="editable", key="editable"),
-        Mock(test_name="normal", key="normal"),
-        Mock(test_name="user", key="user"),
+        Mock(test_name="global", project_name="global"),
+        Mock(test_name="editable", project_name="editable"),
+        Mock(test_name="normal", project_name="normal"),
+        Mock(test_name="user", project_name="user"),
     ))
 
     workingset_stdlib = MockWorkingSet((
-        Mock(test_name='normal', key='argparse'),
-        Mock(test_name='normal', key='wsgiref')
+        Mock(test_name='normal', project_name='argparse'),
+        Mock(test_name='normal', project_name='wsgiref')
     ))
 
     workingset_freeze = MockWorkingSet((
-        Mock(test_name='normal', key='pip'),
-        Mock(test_name='normal', key='setuptools'),
-        Mock(test_name='normal', key='distribute')
+        Mock(test_name='normal', project_name='pip'),
+        Mock(test_name='normal', project_name='setuptools'),
+        Mock(test_name='normal', project_name='distribute')
     ))
 
     def dist_is_editable(self, dist):
@@ -290,9 +290,13 @@ class TestsGetDistributions:
     @pytest.mark.parametrize(
         "working_set, req_name",
         itertools.chain(
-            itertools.product([workingset], (d.key for d in workingset)),
             itertools.product(
-                [workingset_stdlib], (d.key for d in workingset_stdlib),
+                [workingset],
+                (d.project_name for d in workingset),
+            ),
+            itertools.product(
+                [workingset_stdlib],
+                (d.project_name for d in workingset_stdlib),
             ),
         ),
     )
@@ -312,7 +316,7 @@ class TestsGetDistributions:
         with patch("pip._vendor.pkg_resources.working_set", working_set):
             dist = get_distribution(req_name)
         assert dist is not None
-        assert dist.key == req_name
+        assert dist.project_name == req_name
 
     @patch('pip._vendor.pkg_resources.working_set', workingset)
     def test_get_distribution_nonexist(
