@@ -4,11 +4,18 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 if MYPY_CHECK_RUNNING:
     from typing import Container, Iterator, List, Optional
 
+    from pip._vendor.packaging.version import _BaseVersion
+
 
 class BaseDistribution:
     @property
     def canonical_name(self):
         # type: () -> str
+        raise NotImplementedError()
+
+    @property
+    def version(self):
+        # type: () -> _BaseVersion
         raise NotImplementedError()
 
     @property
