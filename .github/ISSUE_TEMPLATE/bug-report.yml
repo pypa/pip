@@ -13,7 +13,7 @@ inputs:
       use the "Dependency resolver failures / errors" template instead.
 - type: description
   attributes:
-    value: **Environment**
+    value: "**Environment**"
 - type: input
   attributes:
     label: pip version
