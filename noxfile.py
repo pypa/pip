@@ -149,6 +149,22 @@ def docs(session):
     session.run(*get_sphinx_build_command("man"))
 
 
+@nox.session(name="docs-live")
+def docs_live(session):
+    # type: (nox.Session) -> None
+    session.install("-e", ".")
+    session.install("-r", REQUIREMENTS["docs"], "sphinx-autobuild")
+
+    session.run(
+        "sphinx-autobuild",
+        "-d=docs/build/doctrees/livehtml",
+        "-b=dirhtml",
+        "docs/html",
+        "docs/build/livehtml",
+        *session.posargs,
+    )
+
+
 @nox.session
 def lint(session):
     # type: (nox.Session) -> None
