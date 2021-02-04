@@ -9,6 +9,12 @@ if MYPY_CHECK_RUNNING:
 
 class BaseDistribution:
     @property
+    def metadata_version(self):
+        # type: () -> Optional[str]
+        """Value of "Metadata-Version:" in the distribution, if available."""
+        raise NotImplementedError()
+
+    @property
     def canonical_name(self):
         # type: () -> str
         raise NotImplementedError()

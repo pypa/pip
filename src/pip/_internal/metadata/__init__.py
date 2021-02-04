@@ -3,7 +3,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 if MYPY_CHECK_RUNNING:
     from typing import List, Optional
 
-    from .base import BaseEnvironment
+    from .base import BaseDistribution, BaseEnvironment
 
 
 def get_default_environment():
@@ -30,3 +30,17 @@ def get_environment(paths):
     from .pkg_resources import Environment
 
     return Environment.from_paths(paths)
+
+
+def get_wheel_distribution(wheel_path, canonical_name):
+    # type: (str, str) -> BaseDistribution
+    """Get the representation of the specified wheel's distribution metadata.
+
+    This returns a Distribution instance from the chosen backend based on
+    the given wheel's ``.dist-info`` directory.
+
+    :param canonical_name: Normalized project name of the given wheel.
+    """
+    from .pkg_resources import Distribution
+
+    return Distribution.from_wheel(wheel_path, canonical_name)
