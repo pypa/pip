@@ -1,9 +1,12 @@
+import zipfile
+
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.utils import misc  # TODO: Move definition here.
 from pip._internal.utils.packaging import get_installer
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.wheel import pkg_resources_distribution_for_wheel
 
 from .base import BaseDistribution, BaseEnvironment
 
@@ -17,6 +20,21 @@ class Distribution(BaseDistribution):
     def __init__(self, dist):
         # type: (pkg_resources.Distribution) -> None
         self._dist = dist
+
+    @classmethod
+    def from_wheel(cls, path, name):
+        # type: (str, str) -> Distribution
+        with zipfile.ZipFile(path, allowZip64=True) as zf:
+            dist = pkg_resources_distribution_for_wheel(zf, name, path)
+        return cls(dist)
+
+    @property
+    def metadata_version(self):
+        # type: () -> Optional[str]
+        for line in self._dist.get_metadata_lines(self._dist.PKG_INFO):
+            if line.lower().startswith("metadata-version:"):
+                return line.split(":", 1)[-1].strip()
+        return None
 
     @property
     def canonical_name(self):
