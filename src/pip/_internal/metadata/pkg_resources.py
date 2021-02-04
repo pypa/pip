@@ -10,6 +10,8 @@ from .base import BaseDistribution, BaseEnvironment
 if MYPY_CHECK_RUNNING:
     from typing import Iterator, List, Optional
 
+    from pip._vendor.packaging.version import _BaseVersion
+
 
 class Distribution(BaseDistribution):
     def __init__(self, dist):
@@ -20,6 +22,11 @@ class Distribution(BaseDistribution):
     def canonical_name(self):
         # type: () -> str
         return canonicalize_name(self._dist.project_name)
+
+    @property
+    def version(self):
+        # type: () -> _BaseVersion
+        return self._dist.parsed_version
 
     @property
     def installer(self):

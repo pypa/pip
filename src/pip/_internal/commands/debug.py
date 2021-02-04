@@ -4,7 +4,6 @@ import os
 import sys
 
 import pip._vendor
-from pip._vendor import pkg_resources
 from pip._vendor.certifi import where
 from pip._vendor.packaging.version import parse as parse_version
 
@@ -13,6 +12,7 @@ from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.cli.status_codes import SUCCESS
+from pip._internal.metadata import get_environment
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import get_pip_version
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -81,10 +81,11 @@ def get_vendor_version_from_module(module_name):
     version = getattr(module, '__version__', None)
 
     if not version:
-        # Try to find version in debundled module info
-        pkg_set = pkg_resources.WorkingSet([os.path.dirname(module.__file__)])
-        package = pkg_set.find(pkg_resources.Requirement.parse(module_name))
-        version = getattr(package, 'version', None)
+        # Try to find version in debundled module info.
+        env = get_environment([os.path.dirname(module.__file__)])
+        dist = env.get_distribution(module_name)
+        if dist:
+            version = str(dist.version)
 
     return version
 
