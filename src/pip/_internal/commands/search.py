@@ -4,7 +4,6 @@ import sys
 import textwrap
 from collections import OrderedDict
 
-from pip._vendor import pkg_resources
 from pip._vendor.packaging.version import parse as parse_version
 
 # NOTE: XMLRPC Client is not annotated in typeshed as on 2017-07-17, which is
@@ -15,10 +14,11 @@ from pip._internal.cli.base_command import Command
 from pip._internal.cli.req_command import SessionCommandMixin
 from pip._internal.cli.status_codes import NO_MATCHES_FOUND, SUCCESS
 from pip._internal.exceptions import CommandError
+from pip._internal.metadata import get_default_environment
 from pip._internal.models.index import PyPI
 from pip._internal.network.xmlrpc import PipXmlrpcTransport
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.misc import get_distribution, write_output
+from pip._internal.utils.misc import write_output
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -127,7 +127,7 @@ def print_results(hits, name_column_width=None, terminal_width=None):
             for hit in hits
         ]) + 4
 
-    installed_packages = [p.project_name for p in pkg_resources.working_set]
+    env = get_default_environment()
     for hit in hits:
         name = hit['name']
         summary = hit['summary'] or ''
@@ -145,9 +145,8 @@ def print_results(hits, name_column_width=None, terminal_width=None):
             **locals())
         try:
             write_output(line)
-            if name in installed_packages:
-                dist = get_distribution(name)
-                assert dist is not None
+            dist = env.get_distribution(name)
+            if dist is not None:
                 with indent_log():
                     if dist.version == latest:
                         write_output('INSTALLED: %s (latest)', dist.version)
