@@ -36,7 +36,7 @@ if MYPY_CHECK_RUNNING:
     from typing import FrozenSet, Iterable, List, Optional, Set, Tuple, Union
 
     from pip._vendor.packaging.tags import Tag
-    from pip._vendor.packaging.version import _BaseVersion
+    from pip._vendor.packaging.version import LegacyVersion, Version
 
     from pip._internal.index.collector import LinkCollector
     from pip._internal.models.search_scope import SearchScope
@@ -45,7 +45,7 @@ if MYPY_CHECK_RUNNING:
 
     BuildTag = Union[Tuple[()], Tuple[int, str]]
     CandidateSortingKey = (
-        Tuple[int, int, int, _BaseVersion, BuildTag, Optional[int]]
+        Tuple[int, int, int, Union[LegacyVersion, Version], BuildTag, Optional[int]]
     )
 
 
@@ -891,7 +891,7 @@ class PackageFinder:
         )
         best_candidate = best_candidate_result.best_candidate
 
-        installed_version = None    # type: Optional[_BaseVersion]
+        installed_version = None    # type: Optional[Union[LegacyVersion, Version]]
         if req.satisfied_by is not None:
             installed_version = parse_version(req.satisfied_by.version)
 

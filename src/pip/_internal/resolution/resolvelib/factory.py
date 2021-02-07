@@ -51,10 +51,11 @@ if MYPY_CHECK_RUNNING:
         Set,
         Tuple,
         TypeVar,
+        Union,
     )
 
     from pip._vendor.packaging.specifiers import SpecifierSet
-    from pip._vendor.packaging.version import _BaseVersion
+    from pip._vendor.packaging.version import LegacyVersion, Version
     from pip._vendor.pkg_resources import Distribution
     from pip._vendor.resolvelib import ResolutionImpossible
 
@@ -138,7 +139,7 @@ class Factory:
         extras,  # type: FrozenSet[str]
         template,  # type: InstallRequirement
         name,  # type: Optional[str]
-        version,  # type: Optional[_BaseVersion]
+        version,  # type: Optional[Union[LegacyVersion, Version]]
     ):
         # type: (...) -> Optional[Candidate]
         # TODO: Check already installed candidate, and use it if the link and

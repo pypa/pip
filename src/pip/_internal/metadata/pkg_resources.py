@@ -11,9 +11,9 @@ from pip._internal.utils.wheel import pkg_resources_distribution_for_wheel
 from .base import BaseDistribution, BaseEnvironment
 
 if MYPY_CHECK_RUNNING:
-    from typing import Iterator, List, Optional
+    from typing import Iterator, List, Optional, Union
 
-    from pip._vendor.packaging.version import _BaseVersion
+    from pip._vendor.packaging.version import LegacyVersion, Version
 
 
 class Distribution(BaseDistribution):
@@ -43,7 +43,7 @@ class Distribution(BaseDistribution):
 
     @property
     def version(self):
-        # type: () -> _BaseVersion
+        # type: () -> Union[LegacyVersion, Version]
         return self._dist.parsed_version
 
     @property

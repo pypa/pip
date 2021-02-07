@@ -15,13 +15,15 @@ from pip._vendor.six.moves import collections_abc  # type: ignore
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Callable, Iterator, Optional, Set, Tuple
+    from typing import Callable, Iterator, Optional, Set, Tuple, Union
 
-    from pip._vendor.packaging.version import _BaseVersion
+    from pip._vendor.packaging.version import LegacyVersion, Version
 
     from .base import Candidate
 
-    IndexCandidateInfo = Tuple[_BaseVersion, Callable[[], Optional[Candidate]]]
+    IndexCandidateInfo = Tuple[
+        Union[LegacyVersion, Version], Callable[[], Optional[Candidate]]
+    ]
 
 
 def _iter_built(infos):
@@ -31,7 +33,7 @@ def _iter_built(infos):
     This iterator is used when the package is not already installed. Candidates
     from index come later in their normal ordering.
     """
-    versions_found = set()  # type: Set[_BaseVersion]
+    versions_found = set()  # type: Set[Union[LegacyVersion, Version]]
     for version, func in infos:
         if version in versions_found:
             continue
@@ -52,7 +54,7 @@ def _iter_built_with_prepended(installed, infos):
     normal ordering, except skipped when the version is already installed.
     """
     yield installed
-    versions_found = {installed.version}  # type: Set[_BaseVersion]
+    versions_found = {installed.version}  # type: Set[Union[LegacyVersion, Version]]
     for version, func in infos:
         if version in versions_found:
             continue
@@ -75,7 +77,7 @@ def _iter_built_with_inserted(installed, infos):
     the installed candidate exactly once before we start yielding older or
     equivalent candidates, or after all other candidates if they are all newer.
     """
-    versions_found = set()  # type: Set[_BaseVersion]
+    versions_found = set()  # type: Set[Union[LegacyVersion, Version]]
     for version, func in infos:
         if version in versions_found:
             continue

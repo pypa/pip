@@ -2,9 +2,9 @@ from pip._internal.utils.misc import stdlib_pkgs  # TODO: Move definition here.
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Container, Iterator, List, Optional
+    from typing import Container, Iterator, List, Optional, Union
 
-    from pip._vendor.packaging.version import _BaseVersion
+    from pip._vendor.packaging.version import LegacyVersion, Version
 
 
 class BaseDistribution:
@@ -21,7 +21,7 @@ class BaseDistribution:
 
     @property
     def version(self):
-        # type: () -> _BaseVersion
+        # type: () -> Union[LegacyVersion, Version]
         raise NotImplementedError()
 
     @property

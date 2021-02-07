@@ -21,7 +21,7 @@ from .base import Candidate, format_name
 if MYPY_CHECK_RUNNING:
     from typing import Any, FrozenSet, Iterable, Optional, Tuple, Union
 
-    from pip._vendor.packaging.version import _BaseVersion
+    from pip._vendor.packaging.version import LegacyVersion
     from pip._vendor.pkg_resources import Distribution
 
     from pip._internal.models.link import Link
@@ -132,7 +132,7 @@ class _InstallRequirementBackedCandidate(Candidate):
         ireq,          # type: InstallRequirement
         factory,       # type: Factory
         name=None,     # type: Optional[str]
-        version=None,  # type: Optional[_BaseVersion]
+        version=None,  # type: Optional[Union[LegacyVersion, Version]]
     ):
         # type: (...) -> None
         self._link = link
@@ -184,7 +184,7 @@ class _InstallRequirementBackedCandidate(Candidate):
 
     @property
     def version(self):
-        # type: () -> _BaseVersion
+        # type: () -> Union[LegacyVersion, Version]
         if self._version is None:
             self._version = self.dist.parsed_version
         return self._version
@@ -267,7 +267,7 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
         template,        # type: InstallRequirement
         factory,       # type: Factory
         name=None,     # type: Optional[str]
-        version=None,  # type: Optional[_BaseVersion]
+        version=None,  # type: Optional[Union[LegacyVersion, Version]]
     ):
         # type: (...) -> None
         source_link = link
@@ -322,7 +322,7 @@ class EditableCandidate(_InstallRequirementBackedCandidate):
         template,        # type: InstallRequirement
         factory,       # type: Factory
         name=None,     # type: Optional[str]
-        version=None,  # type: Optional[_BaseVersion]
+        version=None,  # type: Optional[Union[LegacyVersion, Version]]
     ):
         # type: (...) -> None
         super().__init__(
@@ -394,7 +394,7 @@ class AlreadyInstalledCandidate(Candidate):
 
     @property
     def version(self):
-        # type: () -> _BaseVersion
+        # type: () -> Union[LegacyVersion, Version]
         return self.dist.parsed_version
 
     @property
@@ -487,7 +487,7 @@ class ExtrasCandidate(Candidate):
 
     @property
     def version(self):
-        # type: () -> _BaseVersion
+        # type: () -> Union[LegacyVersion, Version]
         return self.base.version
 
     def format_for_error(self):
@@ -582,7 +582,7 @@ class RequiresPythonCandidate(Candidate):
 
     @property
     def version(self):
-        # type: () -> _BaseVersion
+        # type: () -> Union[LegacyVersion, Version]
         return self._version
 
     def format_for_error(self):
