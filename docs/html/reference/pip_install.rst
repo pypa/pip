@@ -919,8 +919,7 @@ No other build system commands are invoked by the ``pip install`` command.
 Installing a package from a wheel does not invoke the build system at all.
 
 .. _PyPI: https://pypi.org/
-.. _setuptools extras: https://setuptools.readthedocs.io/en/latest/setuptools.html#declaring-extras-optional-features-with-their-own-dependencies
-
+.. _setuptools extras: https://setuptools.readthedocs.io/en/latest/userguide/dependency_management.html#optional-dependencies
 
 
 .. _`pip install Options`:
