@@ -9,31 +9,37 @@ import logging
 import mimetypes
 import os
 import re
+import urllib.parse
+import urllib.request
 from collections import OrderedDict
 
 from pip._vendor import html5lib, requests
 from pip._vendor.distlib.compat import unescape
 from pip._vendor.requests.exceptions import RetryError, SSLError
-from pip._vendor.six.moves.urllib import parse as urllib_parse
-from pip._vendor.six.moves.urllib import request as urllib_request
 
 from pip._internal.exceptions import NetworkConnectionError
 from pip._internal.models.link import Link
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.network.utils import raise_for_status
-from pip._internal.utils.filetypes import ARCHIVE_EXTENSIONS
+from pip._internal.utils.filetypes import is_archive_file
 from pip._internal.utils.misc import pairwise, redact_auth_from_url
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import path_to_url, url_to_path
 from pip._internal.vcs import is_url, vcs
 
 if MYPY_CHECK_RUNNING:
+    import xml.etree.ElementTree
     from optparse import Values
     from typing import (
-        Callable, Iterable, List, MutableMapping, Optional,
-        Protocol, Sequence, Tuple, TypeVar, Union,
+        Callable,
+        Iterable,
+        List,
+        MutableMapping,
+        Optional,
+        Sequence,
+        Tuple,
+        Union,
     )
-    import xml.etree.ElementTree
 
     from pip._vendor.requests import Response
 
@@ -42,29 +48,8 @@ if MYPY_CHECK_RUNNING:
     HTMLElement = xml.etree.ElementTree.Element
     ResponseHeaders = MutableMapping[str, str]
 
-    # Used in the @lru_cache polyfill.
-    F = TypeVar('F')
-
-    class LruCache(Protocol):
-        def __call__(self, maxsize=None):
-            # type: (Optional[int]) -> Callable[[F], F]
-            raise NotImplementedError
-
 
 logger = logging.getLogger(__name__)
-
-
-# Fallback to noop_lru_cache in Python 2
-# TODO: this can be removed when python 2 support is dropped!
-def noop_lru_cache(maxsize=None):
-    # type: (Optional[int]) -> Callable[[F], F]
-    def _wrapper(f):
-        # type: (F) -> F
-        return f
-    return _wrapper
-
-
-_lru_cache = getattr(functools, "lru_cache", noop_lru_cache)  # type: LruCache
 
 
 def _match_vcs_scheme(url):
@@ -79,21 +64,10 @@ def _match_vcs_scheme(url):
     return None
 
 
-def _is_url_like_archive(url):
-    # type: (str) -> bool
-    """Return whether the URL looks like an archive.
-    """
-    filename = Link(url).filename
-    for bad_ext in ARCHIVE_EXTENSIONS:
-        if filename.endswith(bad_ext):
-            return True
-    return False
-
-
 class _NotHTML(Exception):
     def __init__(self, content_type, request_desc):
         # type: (str, str) -> None
-        super(_NotHTML, self).__init__(content_type, request_desc)
+        super().__init__(content_type, request_desc)
         self.content_type = content_type
         self.request_desc = request_desc
 
@@ -120,7 +94,7 @@ def _ensure_html_response(url, session):
     Raises `_NotHTTP` if the URL is not available for a HEAD request, or
     `_NotHTML` if the content type is not text/html.
     """
-    scheme, netloc, path, query, fragment = urllib_parse.urlsplit(url)
+    scheme, netloc, path, query, fragment = urllib.parse.urlsplit(url)
     if scheme not in {'http', 'https'}:
         raise _NotHTTP()
 
@@ -144,7 +118,7 @@ def _get_html_response(url, session):
     3. Check the Content-Type header to make sure we got HTML, and raise
        `_NotHTML` otherwise.
     """
-    if _is_url_like_archive(url):
+    if is_archive_file(Link(url).filename):
         _ensure_html_response(url, session=session)
 
     logger.debug('Getting page %s', redact_auth_from_url(url))
@@ -218,7 +192,7 @@ def _clean_url_path_part(part):
     Clean a "part" of a URL path (i.e. after splitting on "@" characters).
     """
     # We unquote prior to quoting to make sure nothing is double quoted.
-    return urllib_parse.quote(urllib_parse.unquote(part))
+    return urllib.parse.quote(urllib.parse.unquote(part))
 
 
 def _clean_file_url_path(part):
@@ -232,7 +206,7 @@ def _clean_file_url_path(part):
     # should not be quoted. On Linux where drive letters do not
     # exist, the colon should be quoted. We rely on urllib.request
     # to do the right thing here.
-    return urllib_request.pathname2url(urllib_request.url2pathname(part))
+    return urllib.request.pathname2url(urllib.request.url2pathname(part))
 
 
 # percent-encoded:                   /
@@ -271,11 +245,11 @@ def _clean_link(url):
     """
     # Split the URL into parts according to the general structure
     # `scheme://netloc/path;parameters?query#fragment`.
-    result = urllib_parse.urlparse(url)
+    result = urllib.parse.urlparse(url)
     # If the netloc is empty, then the URL refers to a local filesystem path.
     is_local_path = not result.netloc
     path = _clean_url_path(result.path, is_local_path=is_local_path)
-    return urllib_parse.urlunparse(result._replace(path=path))
+    return urllib.parse.urlunparse(result._replace(path=path))
 
 
 def _create_link_from_element(
@@ -291,7 +265,7 @@ def _create_link_from_element(
     if not href:
         return None
 
-    url = _clean_link(urllib_parse.urljoin(base_url, href))
+    url = _clean_link(urllib.parse.urljoin(base_url, href))
     pyrequire = anchor.get('data-requires-python')
     pyrequire = unescape(pyrequire) if pyrequire else None
 
@@ -310,7 +284,7 @@ def _create_link_from_element(
     return link
 
 
-class CacheablePageContent(object):
+class CacheablePageContent:
     def __init__(self, page):
         # type: (HTMLPage) -> None
         assert page.cache_link_parsing
@@ -336,7 +310,7 @@ def with_cached_html_pages(
     `page` has `page.cache_link_parsing == False`.
     """
 
-    @_lru_cache(maxsize=None)
+    @functools.lru_cache(maxsize=None)
     def wrapper(cacheable_page):
         # type: (CacheablePageContent) -> List[Link]
         return list(fn(cacheable_page.page))
@@ -376,7 +350,7 @@ def parse_links(page):
         yield link
 
 
-class HTMLPage(object):
+class HTMLPage:
     """Represents one page, along with its URL"""
 
     def __init__(
@@ -442,13 +416,13 @@ def _get_html_page(link, session=None):
         return None
 
     # Tack index.html onto file:// URLs that point to directories
-    scheme, _, path, _, _, _ = urllib_parse.urlparse(url)
-    if (scheme == 'file' and os.path.isdir(urllib_request.url2pathname(path))):
+    scheme, _, path, _, _, _ = urllib.parse.urlparse(url)
+    if (scheme == 'file' and os.path.isdir(urllib.request.url2pathname(path))):
         # add trailing slash if not present so urljoin doesn't trim
         # final segment
         if not url.endswith('/'):
             url += '/'
-        url = urllib_parse.urljoin(url, 'index.html')
+        url = urllib.parse.urljoin(url, 'index.html')
         logger.debug(' file: URL is directory, getting %s', url)
 
     try:
@@ -473,7 +447,7 @@ def _get_html_page(link, session=None):
         reason += str(exc)
         _handle_get_page_fail(link, reason, meth=logger.info)
     except requests.ConnectionError as exc:
-        _handle_get_page_fail(link, "connection error: {}".format(exc))
+        _handle_get_page_fail(link, f"connection error: {exc}")
     except requests.Timeout:
         _handle_get_page_fail(link, "timed out")
     else:
@@ -550,7 +524,7 @@ def group_locations(locations, expand_dir=False):
     return files, urls
 
 
-class CollectedLinks(object):
+class CollectedLinks:
 
     """
     Encapsulates the return value of a call to LinkCollector.collect_links().
@@ -585,7 +559,7 @@ class CollectedLinks(object):
         self.project_urls = project_urls
 
 
-class LinkCollector(object):
+class LinkCollector:
 
     """
     Responsible for collecting Link objects from all configured locations,
@@ -682,7 +656,7 @@ class LinkCollector(object):
             ),
         ]
         for link in url_locations:
-            lines.append('* {}'.format(link))
+            lines.append(f'* {link}')
         logger.debug('\n'.join(lines))
 
         return CollectedLinks(

@@ -4,19 +4,15 @@ import subprocess
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
-from pip._internal.configuration import (
-    Configuration,
-    get_configuration_files,
-    kinds,
-)
+from pip._internal.configuration import Configuration, get_configuration_files, kinds
 from pip._internal.exceptions import PipError
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import get_prog, write_output
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import List, Any, Optional
     from optparse import Values
+    from typing import Any, List, Optional
 
     from pip._internal.configuration import Kind
 
@@ -225,7 +221,7 @@ class ConfigurationCommand(Command):
         write_output("%s:", 'env_var')
         with indent_log():
             for key, value in sorted(self.configuration.get_environ_vars()):
-                env_var = 'PIP_{}'.format(key.upper())
+                env_var = f'PIP_{key.upper()}'
                 write_output("%s=%r", env_var, value)
 
     def open_in_editor(self, options, args):

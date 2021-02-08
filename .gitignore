@@ -39,6 +39,10 @@ tests/data/common_wheels/
 # For Visual Studio Code
 .vscode/
 
+# For Sublime Text
+*.sublime-workspace
+*.sublime-project
+
 # Scratch Pad for experiments
 .scratch/
 

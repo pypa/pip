@@ -48,3 +48,32 @@ def test_build_wheel_with_deps(data, script):
     assert fnmatch.filter(created, 'requiresPaste-3.1.4-*.whl')
     assert fnmatch.filter(created, 'Paste-3.4.2-*.whl')
     assert fnmatch.filter(created, 'six-*.whl')
+
+
+@mark.network
+def test_require_hash(script, tmp_path):
+    reqs = tmp_path / 'requirements.txt'
+    reqs.write_text(
+        'idna==2.10'
+        ' --hash=sha256:'
+        'b97d804b1e9b523befed77c48dacec60e6dcb0b5391d57af6a65a312a90648c0'
+        ' --hash=sha256:'
+        'b307872f855b18632ce0c21c5e45be78c0ea7ae4c15c828c20788b26921eb3f6'
+    )
+    result = script.pip(
+        'download', '--use-feature=fast-deps', '-r', str(reqs),
+        allow_stderr_warning=True,
+    )
+    created = list(map(basename, result.files_created))
+    assert fnmatch.filter(created, 'idna-2.10*')
+
+
+@mark.network
+def test_hash_mismatch(script, tmp_path):
+    reqs = tmp_path / 'requirements.txt'
+    reqs.write_text('idna==2.10 --hash=sha256:irna')
+    result = script.pip(
+        'download', '--use-feature=fast-deps', '-r', str(reqs),
+        expect_error=True,
+    )
+    assert 'DO NOT MATCH THE HASHES' in result.stderr

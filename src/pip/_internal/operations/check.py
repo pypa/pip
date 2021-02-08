@@ -7,19 +7,16 @@ from collections import namedtuple
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.pkg_resources import RequirementParseError
 
-from pip._internal.distributions import (
-    make_distribution_for_install_requirement,
-)
+from pip._internal.distributions import make_distribution_for_install_requirement
 from pip._internal.utils.misc import get_installed_distributions
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 logger = logging.getLogger(__name__)
 
 if MYPY_CHECK_RUNNING:
+    from typing import Any, Callable, Dict, List, Optional, Set, Tuple
+
     from pip._internal.req.req_install import InstallRequirement
-    from typing import (
-        Any, Callable, Dict, Optional, Set, Tuple, List
-    )
 
     # Shorthands
     PackageSet = Dict[str, 'PackageDetails']
@@ -48,8 +45,8 @@ def create_package_set_from_installed(**kwargs):
         name = canonicalize_name(dist.project_name)
         try:
             package_set[name] = PackageDetails(dist.version, dist.requires())
-        except RequirementParseError as e:
-            # Don't crash on broken metadata
+        except (OSError, RequirementParseError) as e:
+            # Don't crash on unreadable or broken metadata
             logger.warning("Error parsing requirements for %s: %s", name, e)
             problems = True
     return package_set, problems

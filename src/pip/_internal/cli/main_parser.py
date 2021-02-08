@@ -5,17 +5,14 @@ import os
 import sys
 
 from pip._internal.cli import cmdoptions
-from pip._internal.cli.parser import (
-    ConfigOptionParser,
-    UpdatingDefaultsHelpFormatter,
-)
+from pip._internal.cli.parser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip._internal.commands import commands_dict, get_similar_commands
 from pip._internal.exceptions import CommandError
 from pip._internal.utils.misc import get_pip_version, get_prog
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Tuple, List
+    from typing import List, Tuple
 
 
 __all__ = ["create_main_parser", "parse_command"]
@@ -71,7 +68,7 @@ def parse_command(args):
 
     # --version
     if general_options.version:
-        sys.stdout.write(parser.version)  # type: ignore
+        sys.stdout.write(parser.version)
         sys.stdout.write(os.linesep)
         sys.exit()
 
@@ -86,9 +83,9 @@ def parse_command(args):
     if cmd_name not in commands_dict:
         guess = get_similar_commands(cmd_name)
 
-        msg = ['unknown command "{}"'.format(cmd_name)]
+        msg = [f'unknown command "{cmd_name}"']
         if guess:
-            msg.append('maybe you meant "{}"'.format(guess))
+            msg.append(f'maybe you meant "{guess}"')
 
         raise CommandError(' - '.join(msg))
 

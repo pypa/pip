@@ -5,6 +5,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from pip._vendor.packaging.version import _BaseVersion
+
     from pip._internal.models.link import Link
 
 
@@ -20,7 +21,7 @@ class InstallationCandidate(KeyBasedCompareMixin):
         self.version = parse_version(version)  # type: _BaseVersion
         self.link = link
 
-        super(InstallationCandidate, self).__init__(
+        super().__init__(
             key=(self.name, self.version, self.link),
             defining_class=InstallationCandidate
         )

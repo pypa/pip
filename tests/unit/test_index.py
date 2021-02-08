@@ -131,9 +131,9 @@ class TestLinkEvaluator:
         ('bad metadata', False,
          (False, 'yanked for reason: bad metadata')),
         # Test a unicode string with a non-ascii character.
-        (u'curly quote: \u2018', True, (True, '1.12')),
-        (u'curly quote: \u2018', False,
-         (False, u'yanked for reason: curly quote: \u2018')),
+        ('curly quote: \u2018', True, (True, '1.12')),
+        ('curly quote: \u2018', False,
+         (False, 'yanked for reason: curly quote: \u2018')),
     ])
     def test_evaluate_link__allow_yanked(
         self, yanked_reason, allow_yanked, expected,
@@ -763,7 +763,7 @@ def test_find_name_version_sep(fragment, canonical_name, expected):
 def test_find_name_version_sep_failure(fragment, canonical_name):
     with pytest.raises(ValueError) as ctx:
         _find_name_version_sep(fragment, canonical_name)
-    message = "{} does not match {}".format(fragment, canonical_name)
+    message = f"{fragment} does not match {canonical_name}"
     assert str(ctx.value) == message
 
 

@@ -5,7 +5,7 @@ from mock import patch
 from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.commands.install import (
-    create_env_error_message,
+    create_os_error_message,
     decide_user_install,
     reject_location_related_install_options,
 )
@@ -81,35 +81,35 @@ def test_rejection_for_location_requirement_options():
 
 @pytest.mark.parametrize('error, show_traceback, using_user_site, expected', [
     # show_traceback = True, using_user_site = True
-    (EnvironmentError("Illegal byte sequence"), True, True, 'Could not install'
-        ' packages due to an EnvironmentError.\n'),
-    (EnvironmentError(errno.EACCES, "No file permission"), True, True, 'Could'
-        ' not install packages due to an EnvironmentError.\nCheck the'
+    (OSError("Illegal byte sequence"), True, True, 'Could not install'
+        ' packages due to an OSError.\n'),
+    (OSError(errno.EACCES, "No file permission"), True, True, 'Could'
+        ' not install packages due to an OSError.\nCheck the'
         ' permissions.\n'),
     # show_traceback = True, using_user_site = False
-    (EnvironmentError("Illegal byte sequence"), True, False, 'Could not'
-        ' install packages due to an EnvironmentError.\n'),
-    (EnvironmentError(errno.EACCES, "No file permission"), True, False, 'Could'
-        ' not install packages due to an EnvironmentError.\nConsider using the'
+    (OSError("Illegal byte sequence"), True, False, 'Could not'
+        ' install packages due to an OSError.\n'),
+    (OSError(errno.EACCES, "No file permission"), True, False, 'Could'
+        ' not install packages due to an OSError.\nConsider using the'
         ' `--user` option or check the permissions.\n'),
     # show_traceback = False, using_user_site = True
-    (EnvironmentError("Illegal byte sequence"), False, True, 'Could not'
-        ' install packages due to an EnvironmentError: Illegal byte'
+    (OSError("Illegal byte sequence"), False, True, 'Could not'
+        ' install packages due to an OSError: Illegal byte'
         ' sequence\n'),
-    (EnvironmentError(errno.EACCES, "No file permission"), False, True, 'Could'
-        ' not install packages due to an EnvironmentError: [Errno 13] No file'
+    (OSError(errno.EACCES, "No file permission"), False, True, 'Could'
+        ' not install packages due to an OSError: [Errno 13] No file'
         ' permission\nCheck the permissions.\n'),
     # show_traceback = False, using_user_site = False
-    (EnvironmentError("Illegal byte sequence"), False, False, 'Could not'
-        ' install packages due to an EnvironmentError: Illegal byte sequence'
+    (OSError("Illegal byte sequence"), False, False, 'Could not'
+        ' install packages due to an OSError: Illegal byte sequence'
         '\n'),
-    (EnvironmentError(errno.EACCES, "No file permission"), False, False,
-        'Could not install packages due to an EnvironmentError: [Errno 13] No'
+    (OSError(errno.EACCES, "No file permission"), False, False,
+        'Could not install packages due to an OSError: [Errno 13] No'
         ' file permission\nConsider using the `--user` option or check the'
         ' permissions.\n'),
 ])
-def test_create_env_error_message(
+def test_create_os_error_message(
     error, show_traceback, using_user_site, expected
 ):
-    msg = create_env_error_message(error, show_traceback, using_user_site)
+    msg = create_os_error_message(error, show_traceback, using_user_site)
     assert msg == expected

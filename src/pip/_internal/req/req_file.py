@@ -2,31 +2,32 @@
 Requirements file parsing
 """
 
-from __future__ import absolute_import
-
 import optparse
 import os
 import re
 import shlex
-import sys
-
-from pip._vendor.six.moves.urllib import parse as urllib_parse
+import urllib.parse
 
 from pip._internal.cli import cmdoptions
-from pip._internal.exceptions import (
-    InstallationError,
-    RequirementsFileParseError,
-)
+from pip._internal.exceptions import InstallationError, RequirementsFileParseError
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.network.utils import raise_for_status
 from pip._internal.utils.encoding import auto_decode
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from pip._internal.utils.urls import get_url_scheme
+from pip._internal.utils.urls import get_url_scheme, url_to_path
 
 if MYPY_CHECK_RUNNING:
     from optparse import Values
     from typing import (
-        Any, Callable, Dict, Iterator, List, NoReturn, Optional, Text, Tuple,
+        Any,
+        Callable,
+        Dict,
+        Iterator,
+        List,
+        NoReturn,
+        Optional,
+        Text,
+        Tuple,
     )
 
     from pip._internal.index.package_finder import PackageFinder
@@ -76,7 +77,7 @@ SUPPORTED_OPTIONS_REQ = [
 SUPPORTED_OPTIONS_REQ_DEST = [str(o().dest) for o in SUPPORTED_OPTIONS_REQ]
 
 
-class ParsedRequirement(object):
+class ParsedRequirement:
     def __init__(
         self,
         requirement,  # type:str
@@ -95,12 +96,11 @@ class ParsedRequirement(object):
         self.line_source = line_source
 
 
-class ParsedLine(object):
+class ParsedLine:
     def __init__(
         self,
         filename,  # type: str
         lineno,  # type: int
-        comes_from,  # type: Optional[str]
         args,  # type: str
         opts,  # type: Values
         constraint,  # type: bool
@@ -108,7 +108,6 @@ class ParsedLine(object):
         # type: (...) -> None
         self.filename = filename
         self.lineno = lineno
-        self.comes_from = comes_from
         self.opts = opts
         self.constraint = constraint
 
@@ -129,7 +128,6 @@ def parse_requirements(
     filename,  # type: str
     session,  # type: PipSession
     finder=None,  # type: Optional[PackageFinder]
-    comes_from=None,  # type: Optional[str]
     options=None,  # type: Optional[optparse.Values]
     constraint=False,  # type: bool
 ):
@@ -139,13 +137,12 @@ def parse_requirements(
     :param filename:    Path or url of requirements file.
     :param session:     PipSession instance.
     :param finder:      Instance of pip.index.PackageFinder.
-    :param comes_from:  Origin description of requirements.
     :param options:     cli options.
     :param constraint:  If true, parsing a constraint file rather than
         requirements file.
     """
     line_parser = get_line_parser(finder)
-    parser = RequirementsFileParser(session, line_parser, comes_from)
+    parser = RequirementsFileParser(session, line_parser)
 
     for parsed_line in parser.parse(filename, constraint):
         parsed_req = handle_line(
@@ -159,7 +156,7 @@ def parse_requirements(
 
 
 def preprocess(content):
-    # type: (Text) -> ReqFileLines
+    # type: (str) -> ReqFileLines
     """Split, filter, and join lines, and return a line iterator
 
     :param content: the content of the requirements file
@@ -204,7 +201,7 @@ def handle_requirement_line(
             if dest in line.opts.__dict__ and line.opts.__dict__[dest]:
                 req_options[dest] = line.opts.__dict__[dest]
 
-        line_source = 'line {} of {}'.format(line.lineno, line.filename)
+        line_source = f'line {line.lineno} of {line.filename}'
         return ParsedRequirement(
             requirement=line.requirement,
             is_editable=line.is_editable,
@@ -256,6 +253,10 @@ def handle_option_line(
                 value = relative_to_reqs_file
             find_links.append(value)
 
+        if session:
+            # We need to update the auth urls in session
+            session.update_index_urls(index_urls)
+
         search_scope = SearchScope(
             find_links=find_links,
             index_urls=index_urls,
@@ -270,7 +271,7 @@ def handle_option_line(
 
         if session:
             for host in opts.trusted_hosts or []:
-                source = 'line {} of {}'.format(lineno, filename)
+                source = f'line {lineno} of {filename}'
                 session.add_trusted_host(host, source=source)
 
 
@@ -319,24 +320,21 @@ def handle_line(
         return None
 
 
-class RequirementsFileParser(object):
+class RequirementsFileParser:
     def __init__(
         self,
         session,  # type: PipSession
         line_parser,  # type: LineParser
-        comes_from,  # type: Optional[str]
     ):
         # type: (...) -> None
         self._session = session
         self._line_parser = line_parser
-        self._comes_from = comes_from
 
     def parse(self, filename, constraint):
         # type: (str, bool) -> Iterator[ParsedLine]
         """Parse a given file, yielding parsed lines.
         """
-        for line in self._parse_and_recurse(filename, constraint):
-            yield line
+        yield from self._parse_and_recurse(filename, constraint)
 
     def _parse_and_recurse(self, filename, constraint):
         # type: (str, bool) -> Iterator[ParsedLine]
@@ -356,7 +354,7 @@ class RequirementsFileParser(object):
                 # original file is over http
                 if SCHEME_RE.search(filename):
                     # do a url join so relative paths work
-                    req_path = urllib_parse.urljoin(filename, req_path)
+                    req_path = urllib.parse.urljoin(filename, req_path)
                 # original file and nested file are paths
                 elif not SCHEME_RE.search(req_path):
                     # do a join so relative paths work
@@ -364,18 +362,13 @@ class RequirementsFileParser(object):
                         os.path.dirname(filename), req_path,
                     )
 
-                for inner_line in self._parse_and_recurse(
-                    req_path, nested_constraint,
-                ):
-                    yield inner_line
+                yield from self._parse_and_recurse(req_path, nested_constraint)
             else:
                 yield line
 
     def _parse_file(self, filename, constraint):
         # type: (str, bool) -> Iterator[ParsedLine]
-        _, content = get_file_content(
-            filename, self._session, comes_from=self._comes_from
-        )
+        _, content = get_file_content(filename, self._session)
 
         lines_enum = preprocess(content)
 
@@ -384,13 +377,12 @@ class RequirementsFileParser(object):
                 args_str, opts = self._line_parser(line)
             except OptionParsingError as e:
                 # add offending line
-                msg = 'Invalid requirement: {}\n{}'.format(line, e.msg)
+                msg = f'Invalid requirement: {line}\n{e.msg}'
                 raise RequirementsFileParseError(msg)
 
             yield ParsedLine(
                 filename,
                 line_number,
-                self._comes_from,
                 args_str,
                 opts,
                 constraint,
@@ -400,7 +392,7 @@ class RequirementsFileParser(object):
 def get_line_parser(finder):
     # type: (Optional[PackageFinder]) -> LineParser
     def parse_line(line):
-        # type: (Text) -> Tuple[str, Values]
+        # type: (str) -> Tuple[str, Values]
         # Build new parser for each line since it accumulates appendable
         # options.
         parser = build_parser()
@@ -410,14 +402,8 @@ def get_line_parser(finder):
             defaults.format_control = finder.format_control
 
         args_str, options_str = break_args_options(line)
-        # Prior to 2.7.3, shlex cannot deal with unicode entries
-        if sys.version_info < (2, 7, 3):
-            # https://github.com/python/mypy/issues/1174
-            options_str = options_str.encode('utf8')  # type: ignore
 
-        # https://github.com/python/mypy/issues/1174
-        opts, _ = parser.parse_args(
-            shlex.split(options_str), defaults)  # type: ignore
+        opts, _ = parser.parse_args(shlex.split(options_str), defaults)
 
         return args_str, opts
 
@@ -425,7 +411,7 @@ def get_line_parser(finder):
 
 
 def break_args_options(line):
-    # type: (Text) -> Tuple[str, Text]
+    # type: (str) -> Tuple[str, str]
     """Break up the line into an args and options string.  We only want to shlex
     (and then optparse) the options, not the args.  args can contain markers
     which are corrupted by shlex.
@@ -439,7 +425,7 @@ def break_args_options(line):
         else:
             args.append(token)
             options.pop(0)
-    return ' '.join(args), ' '.join(options)  # type: ignore
+    return ' '.join(args), ' '.join(options)
 
 
 class OptionParsingError(Exception):
@@ -478,7 +464,7 @@ def join_lines(lines_enum):
     comments).  The joined line takes on the index of the first line.
     """
     primary_line_number = None
-    new_line = []  # type: List[Text]
+    new_line = []  # type: List[str]
     for line_number, line in lines_enum:
         if not line.endswith('\\') or COMMENT_RE.match(line):
             if COMMENT_RE.match(line):
@@ -544,15 +530,14 @@ def expand_env_variables(lines_enum):
         yield line_number, line
 
 
-def get_file_content(url, session, comes_from=None):
-    # type: (str, PipSession, Optional[str]) -> Tuple[str, Text]
+def get_file_content(url, session):
+    # type: (str, PipSession) -> Tuple[str, str]
     """Gets the content of a file; it may be a filename, file: URL, or
     http: URL.  Returns (location, content).  Content is unicode.
     Respects # -*- coding: declarations on the retrieved files.
 
     :param url:         File path or url.
     :param session:     PipSession instance.
-    :param comes_from:  Origin description of requirements.
     """
     scheme = get_url_scheme(url)
 
@@ -563,30 +548,13 @@ def get_file_content(url, session, comes_from=None):
         return resp.url, resp.text
 
     elif scheme == 'file':
-        if comes_from and comes_from.startswith('http'):
-            raise InstallationError(
-                'Requirements file {} references URL {}, '
-                'which is local'.format(comes_from, url)
-            )
-
-        path = url.split(':', 1)[1]
-        path = path.replace('\\', '/')
-        match = _url_slash_drive_re.match(path)
-        if match:
-            path = match.group(1) + ':' + path.split('|', 1)[1]
-        path = urllib_parse.unquote(path)
-        if path.startswith('/'):
-            path = '/' + path.lstrip('/')
-        url = path
+        url = url_to_path(url)
 
     try:
         with open(url, 'rb') as f:
             content = auto_decode(f.read())
-    except IOError as exc:
+    except OSError as exc:
         raise InstallationError(
-            'Could not open requirements file: {}'.format(exc)
+            f'Could not open requirements file: {exc}'
         )
     return url, content
-
-
-_url_slash_drive_re = re.compile(r'/*([a-z])\|', re.I)

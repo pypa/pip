@@ -2,9 +2,8 @@
 Contains functional tests of the Mercurial class.
 """
 
+import configparser
 import os
-
-from pip._vendor.six.moves import configparser
 
 from pip._internal.utils.misc import hide_url
 from pip._internal.vcs.mercurial import Mercurial

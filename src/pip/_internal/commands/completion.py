@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import sys
 import textwrap
 
@@ -9,8 +7,8 @@ from pip._internal.utils.misc import get_prog
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import List
     from optparse import Values
+    from typing import List
 
 BASE_COMPLETION = """
 # pip {shell} completion start{script}# pip {shell} completion end

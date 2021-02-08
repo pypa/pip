@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import textwrap
 
 from tests.lib import _create_main_file, _git_commit

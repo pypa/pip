@@ -17,7 +17,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import path_to_url
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional, Set, List, Any, Dict
+    from typing import Any, Dict, List, Optional, Set
 
     from pip._vendor.packaging.tags import Tag
 
@@ -33,7 +33,7 @@ def _hash_dict(d):
     return hashlib.sha224(s.encode("ascii")).hexdigest()
 
 
-class Cache(object):
+class Cache:
     """An abstract class - provides cache directories for data from links
 
 
@@ -46,7 +46,7 @@ class Cache(object):
 
     def __init__(self, cache_dir, format_control, allowed_formats):
         # type: (str, FormatControl, Set[str]) -> None
-        super(Cache, self).__init__()
+        super().__init__()
         assert not cache_dir or os.path.isabs(cache_dir)
         self.cache_dir = cache_dir or None
         self.format_control = format_control
@@ -54,34 +54,6 @@ class Cache(object):
 
         _valid_formats = {"source", "binary"}
         assert self.allowed_formats.union(_valid_formats) == _valid_formats
-
-    def _get_cache_path_parts_legacy(self, link):
-        # type: (Link) -> List[str]
-        """Get parts of part that must be os.path.joined with cache_dir
-
-        Legacy cache key (pip < 20) for compatibility with older caches.
-        """
-
-        # We want to generate an url to use as our cache key, we don't want to
-        # just re-use the URL because it might have other items in the fragment
-        # and we don't care about those.
-        key_parts = [link.url_without_fragment]
-        if link.hash_name is not None and link.hash is not None:
-            key_parts.append("=".join([link.hash_name, link.hash]))
-        key_url = "#".join(key_parts)
-
-        # Encode our key url with sha224, we'll use this because it has similar
-        # security properties to sha256, but with a shorter total output (and
-        # thus less secure). However the differences don't make a lot of
-        # difference for our use case here.
-        hashed = hashlib.sha224(key_url.encode()).hexdigest()
-
-        # We want to nest the directories some to prevent having a ton of top
-        # level directories where we might run out of sub directories on some
-        # FS.
-        parts = [hashed[:2], hashed[2:4], hashed[4:6], hashed[6:]]
-
-        return parts
 
     def _get_cache_path_parts(self, link):
         # type: (Link) -> List[str]
@@ -139,16 +111,7 @@ class Cache(object):
         if os.path.isdir(path):
             for candidate in os.listdir(path):
                 candidates.append((candidate, path))
-        # TODO remove legacy path lookup in pip>=21
-        legacy_path = self.get_path_for_link_legacy(link)
-        if os.path.isdir(legacy_path):
-            for candidate in os.listdir(legacy_path):
-                candidates.append((candidate, legacy_path))
         return candidates
-
-    def get_path_for_link_legacy(self, link):
-        # type: (Link) -> str
-        raise NotImplementedError()
 
     def get_path_for_link(self, link):
         # type: (Link) -> str
@@ -175,15 +138,7 @@ class SimpleWheelCache(Cache):
 
     def __init__(self, cache_dir, format_control):
         # type: (str, FormatControl) -> None
-        super(SimpleWheelCache, self).__init__(
-            cache_dir, format_control, {"binary"}
-        )
-
-    def get_path_for_link_legacy(self, link):
-        # type: (Link) -> str
-        parts = self._get_cache_path_parts_legacy(link)
-        assert self.cache_dir
-        return os.path.join(self.cache_dir, "wheels", *parts)
+        super().__init__(cache_dir, format_control, {"binary"})
 
     def get_path_for_link(self, link):
         # type: (Link) -> str
@@ -262,12 +217,10 @@ class EphemWheelCache(SimpleWheelCache):
             globally_managed=True,
         )
 
-        super(EphemWheelCache, self).__init__(
-            self._temp_dir.path, format_control
-        )
+        super().__init__(self._temp_dir.path, format_control)
 
 
-class CacheEntry(object):
+class CacheEntry:
     def __init__(
         self,
         link,  # type: Link
@@ -286,15 +239,9 @@ class WheelCache(Cache):
 
     def __init__(self, cache_dir, format_control):
         # type: (str, FormatControl) -> None
-        super(WheelCache, self).__init__(
-            cache_dir, format_control, {'binary'}
-        )
+        super().__init__(cache_dir, format_control, {'binary'})
         self._wheel_cache = SimpleWheelCache(cache_dir, format_control)
         self._ephem_cache = EphemWheelCache(format_control)
-
-    def get_path_for_link_legacy(self, link):
-        # type: (Link) -> str
-        return self._wheel_cache.get_path_for_link_legacy(link)
 
     def get_path_for_link(self, link):
         # type: (Link) -> str

@@ -116,7 +116,7 @@ Modifications
 Automatic Vendoring
 ===================
 
-Vendoring is automated via the ``vendoring`` tool from the content of
+Vendoring is automated via the `vendoring <https://pypi.org/project/vendoring/>`_ tool from the content of
 ``pip/_vendor/vendor.txt`` and the different patches in
 ``tools/automation/vendoring/patches``.
 Launch it via ``vendoring sync . -v`` (requires ``vendoring>=0.2.2``).
@@ -132,7 +132,7 @@ semi-supported method (that we don't test in our CI) and requires a bit of
 extra work on your end in order to solve the problems described above.
 
 1. Delete everything in ``pip/_vendor/`` **except** for
-   ``pip/_vendor/__init__.py``.
+   ``pip/_vendor/__init__.py`` and ``pip/_vendor/vendor.txt``.
 2. Generate wheels for each of pip's dependencies (and any of their
    dependencies) using your patched copies of these libraries. These must be
    placed somewhere on the filesystem that pip can access (``pip/_vendor`` is

@@ -1,9 +1,6 @@
-from __future__ import absolute_import
-
 import os
 import subprocess
-
-from pip._vendor.six.moves.urllib import request as urllib_request
+import urllib.request
 
 from pip._internal.utils.misc import hide_url
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -21,19 +18,16 @@ def _create_svn_initools_repo(initools_dir):
     directory = os.path.dirname(initools_dir)
     subprocess.check_call('svnadmin create INITools'.split(), cwd=directory)
 
-    filename, _ = urllib_request.urlretrieve(
+    filename, _ = urllib.request.urlretrieve(
         'http://bitbucket.org/hltbra/pip-initools-dump/raw/8b55c908a320/'
         'INITools_modified.dump'
     )
-    devnull = open(os.devnull, 'w')
-    dump = open(filename)
-    subprocess.check_call(
-        ['svnadmin', 'load', initools_dir],
-        stdin=dump,
-        stdout=devnull,
-    )
-    dump.close()
-    devnull.close()
+    with open(filename) as dump:
+        subprocess.check_call(
+            ['svnadmin', 'load', initools_dir],
+            stdin=dump,
+            stdout=subprocess.DEVNULL,
+        )
     os.remove(filename)
 
 

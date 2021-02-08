@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """Tests for wheel binary packages and .dist-info."""
 import csv
 import logging
@@ -19,15 +17,13 @@ from pip._internal.models.direct_url import (
     DirectUrl,
 )
 from pip._internal.models.scheme import Scheme
-from pip._internal.operations.build.wheel_legacy import (
-    get_legacy_build_wheel_path,
-)
+from pip._internal.operations.build.wheel_legacy import get_legacy_build_wheel_path
 from pip._internal.operations.install import wheel
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import hash_file
 from pip._internal.utils.unpacking import unpack_file
 from pip._internal.utils.wheel import pkg_resources_distribution_for_wheel
-from tests.lib import DATA_DIR, assert_paths_equal, skip_if_python2
+from tests.lib import DATA_DIR, assert_paths_equal
 from tests.lib.wheel import make_wheel
 
 
@@ -83,13 +79,13 @@ def test_get_legacy_build_wheel_path__multiple_names(caplog):
 @pytest.mark.parametrize(
     "console_scripts",
     [
-        u"pip = pip._internal.main:pip",
-        u"pip:pip = pip._internal.main:pip",
-        pytest.param(u"進入點 = 套件.模組:函式", marks=skip_if_python2),
+        "pip = pip._internal.main:pip",
+        "pip:pip = pip._internal.main:pip",
+        "進入點 = 套件.模組:函式",
     ],
 )
 def test_get_entrypoints(console_scripts):
-    entry_points_text = u"""
+    entry_points_text = """
         [console_scripts]
         {}
         [section]
@@ -127,8 +123,8 @@ def test_get_entrypoints_no_entrypoints():
 
 @pytest.mark.parametrize("outrows, expected", [
     ([
-        (u'', '', 'a'),
-        (u'', '', ''),
+        ('', '', 'a'),
+        ('', '', ''),
     ], [
         ('', '', ''),
         ('', '', 'a'),
@@ -136,16 +132,16 @@ def test_get_entrypoints_no_entrypoints():
     ([
         # Include an int to check avoiding the following error:
         # > TypeError: '<' not supported between instances of 'str' and 'int'
-        (u'', '', 1),
-        (u'', '', ''),
+        ('', '', 1),
+        ('', '', ''),
     ], [
         ('', '', ''),
         ('', '', '1'),
     ]),
     ([
         # Test the normalization correctly encode everything for csv.writer().
-        (u'😉', '', 1),
-        (u'', '', ''),
+        ('😉', '', 1),
+        ('', '', ''),
     ], [
         ('', '', ''),
         ('😉', '', '1'),
@@ -162,7 +158,7 @@ def call_get_csv_rows_for_installed(tmpdir, text):
 
     # Test that an installed file appearing in RECORD has its filename
     # updated in the new RECORD file.
-    installed = {u'a': 'z'}
+    installed = {'a': 'z'}
     changed = set()
     generated = []
     lib_dir = '/lib/dir'
@@ -227,7 +223,7 @@ def test_wheel_root_is_purelib(text, expected):
     assert wheel.wheel_root_is_purelib(message_from_string(text)) == expected
 
 
-class TestWheelFile(object):
+class TestWheelFile:
 
     def test_unpack_wheel_no_flatten(self, tmpdir):
         filepath = os.path.join(DATA_DIR, 'packages',
@@ -236,7 +232,7 @@ class TestWheelFile(object):
         assert os.path.isdir(os.path.join(tmpdir, 'meta-1.0.dist-info'))
 
 
-class TestInstallUnpackedWheel(object):
+class TestInstallUnpackedWheel:
     """
     Tests for moving files from wheel src to scheme paths
     """
@@ -491,7 +487,7 @@ class TestInstallUnpackedWheel(object):
         assert entrypoint in exc_text
 
 
-class TestMessageAboutScriptsNotOnPATH(object):
+class TestMessageAboutScriptsNotOnPATH:
 
     tilde_warning_msg = (
         "NOTE: The current PATH contains path(s) starting with `~`, "
@@ -600,16 +596,14 @@ class TestMessageAboutScriptsNotOnPATH(object):
         )
         assert retval is None
 
-    def test_missing_PATH_env_treated_as_empty_PATH_env(self):
+    def test_missing_PATH_env_treated_as_empty_PATH_env(self, monkeypatch):
         scripts = ['a/b/foo']
 
-        env = os.environ.copy()
-        del env['PATH']
-        with patch.dict('os.environ', env, clear=True):
-            retval_missing = wheel.message_about_scripts_not_on_PATH(scripts)
+        monkeypatch.delenv('PATH')
+        retval_missing = wheel.message_about_scripts_not_on_PATH(scripts)
 
-        with patch.dict('os.environ', {'PATH': ''}):
-            retval_empty = wheel.message_about_scripts_not_on_PATH(scripts)
+        monkeypatch.setenv('PATH', '')
+        retval_empty = wheel.message_about_scripts_not_on_PATH(scripts)
 
         assert retval_missing == retval_empty
 
@@ -650,7 +644,7 @@ class TestMessageAboutScriptsNotOnPATH(object):
         assert self.tilde_warning_msg not in retval
 
 
-class TestWheelHashCalculators(object):
+class TestWheelHashCalculators:
 
     def prep(self, tmpdir):
         self.test_file = tmpdir.joinpath("hash.file")

@@ -27,7 +27,7 @@ def generate_yaml_tests(directory):
         base = data.get("base", {})
         cases = data["cases"]
 
-        for resolver in 'old', 'new':
+        for resolver in 'legacy', '2020-resolver':
             for i, case_template in enumerate(cases):
                 case = base.copy()
                 case.update(case_template)
@@ -39,7 +39,7 @@ def generate_yaml_tests(directory):
                 case[":resolver:"] = resolver
 
                 skip = case.pop("skip", False)
-                assert skip in [False, True, 'old', 'new']
+                assert skip in [False, True, 'legacy', '2020-resolver']
                 if skip is True or skip == resolver:
                     case = pytest.param(case, marks=pytest.mark.xfail)
 
@@ -77,31 +77,31 @@ def convert_to_dict(string):
 
     for part in parts[1:]:
         verb, args_str = stripping_split(part, " ", 1)
-        assert verb in ["depends"], "Unknown verb {!r}".format(verb)
+        assert verb in ["depends"], f"Unknown verb {verb!r}"
 
         retval[verb] = stripping_split(args_str, ",")
 
     return retval
 
 
-def handle_request(script, action, requirement, options, new_resolver=False):
+def handle_request(script, action, requirement, options, resolver_variant):
     if action == 'install':
         args = ['install']
-        if new_resolver:
-            args.append("--use-feature=2020-resolver")
+        if resolver_variant == "legacy":
+            args.append("--use-deprecated=legacy-resolver")
         args.extend(["--no-index", "--find-links",
                      path_to_url(script.scratch_path)])
     elif action == 'uninstall':
         args = ['uninstall', '--yes']
     else:
-        raise "Did not excpet action: {!r}".format(action)
+        raise f"Did not excpet action: {action!r}"
 
     if isinstance(requirement, str):
         args.append(requirement)
     elif isinstance(requirement, list):
         args.extend(requirement)
     else:
-        raise "requirement neither str nor list {!r}".format(requirement)
+        raise f"requirement neither str nor list {requirement!r}"
 
     args.extend(options)
     args.append("--verbose")
@@ -177,13 +177,13 @@ def test_yaml_based(script, case):
             if action in request:
                 break
         else:
-            raise "Unsupported request {!r}".format(request)
+            raise f"Unsupported request {request!r}"
 
         # Perform the requested action
         effect = handle_request(script, action,
                                 request[action],
                                 request.get('options', '').split(),
-                                case[':resolver:'] == 'new')
+                                resolver_variant=case[':resolver:'])
         result = effect['result']
 
         if 0:  # for analyzing output easier

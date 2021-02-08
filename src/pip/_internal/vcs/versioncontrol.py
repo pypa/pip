@@ -1,24 +1,14 @@
 """Handles all VCS (version control) support"""
 
-from __future__ import absolute_import
-
-import errno
 import logging
 import os
 import shutil
-import subprocess
 import sys
+import urllib.parse
 
 from pip._vendor import pkg_resources
-from pip._vendor.six.moves.urllib import parse as urllib_parse
 
-from pip._internal.exceptions import (
-    BadCommand,
-    InstallationError,
-    SubProcessError,
-)
-from pip._internal.utils.compat import console_to_str, samefile
-from pip._internal.utils.logging import subprocess_logger
+from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.utils.misc import (
     ask_path_exists,
     backup_dir,
@@ -27,20 +17,25 @@ from pip._internal.utils.misc import (
     hide_value,
     rmtree,
 )
-from pip._internal.utils.subprocess import (
-    format_command_args,
-    make_command,
-    make_subprocess_output_error,
-    reveal_command_args,
-)
+from pip._internal.utils.subprocess import call_subprocess, make_command
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import get_url_scheme
 
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Dict, Iterable, Iterator, List, Optional, Text, Tuple,
-        Type, Union, Mapping, Any
+        Any,
+        Dict,
+        Iterable,
+        Iterator,
+        List,
+        Mapping,
+        Optional,
+        Tuple,
+        Type,
+        Union,
     )
+
+    from pip._internal.cli.spinners import SpinnerInterface
     from pip._internal.utils.misc import HiddenText
     from pip._internal.utils.subprocess import CommandArgs
 
@@ -54,7 +49,7 @@ logger = logging.getLogger(__name__)
 
 
 def is_url(name):
-    # type: (Union[str, Text]) -> bool
+    # type: (str) -> bool
     """
     Return true if the name looks like a URL.
     """
@@ -74,97 +69,11 @@ def make_vcs_requirement_url(repo_url, rev, project_name, subdir=None):
       project_name: the (unescaped) project name.
     """
     egg_project_name = pkg_resources.to_filename(project_name)
-    req = '{}@{}#egg={}'.format(repo_url, rev, egg_project_name)
+    req = f'{repo_url}@{rev}#egg={egg_project_name}'
     if subdir:
-        req += '&subdirectory={}'.format(subdir)
+        req += f'&subdirectory={subdir}'
 
     return req
-
-
-def call_subprocess(
-    cmd,  # type: Union[List[str], CommandArgs]
-    cwd=None,  # type: Optional[str]
-    extra_environ=None,  # type: Optional[Mapping[str, Any]]
-    extra_ok_returncodes=None,  # type: Optional[Iterable[int]]
-    log_failed_cmd=True  # type: Optional[bool]
-):
-    # type: (...) -> Text
-    """
-    Args:
-      extra_ok_returncodes: an iterable of integer return codes that are
-        acceptable, in addition to 0. Defaults to None, which means [].
-      log_failed_cmd: if false, failed commands are not logged,
-        only raised.
-    """
-    if extra_ok_returncodes is None:
-        extra_ok_returncodes = []
-
-    # log the subprocess output at DEBUG level.
-    log_subprocess = subprocess_logger.debug
-
-    env = os.environ.copy()
-    if extra_environ:
-        env.update(extra_environ)
-
-    # Whether the subprocess will be visible in the console.
-    showing_subprocess = True
-
-    command_desc = format_command_args(cmd)
-    try:
-        proc = subprocess.Popen(
-            # Convert HiddenText objects to the underlying str.
-            reveal_command_args(cmd),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            cwd=cwd
-        )
-        if proc.stdin:
-            proc.stdin.close()
-    except Exception as exc:
-        if log_failed_cmd:
-            subprocess_logger.critical(
-                "Error %s while executing command %s", exc, command_desc,
-            )
-        raise
-    all_output = []
-    while True:
-        # The "line" value is a unicode string in Python 2.
-        line = None
-        if proc.stdout:
-            line = console_to_str(proc.stdout.readline())
-        if not line:
-            break
-        line = line.rstrip()
-        all_output.append(line + '\n')
-
-        # Show the line immediately.
-        log_subprocess(line)
-    try:
-        proc.wait()
-    finally:
-        if proc.stdout:
-            proc.stdout.close()
-
-    proc_had_error = (
-        proc.returncode and proc.returncode not in extra_ok_returncodes
-    )
-    if proc_had_error:
-        if not showing_subprocess and log_failed_cmd:
-            # Then the subprocess streams haven't been logged to the
-            # console yet.
-            msg = make_subprocess_output_error(
-                cmd_args=cmd,
-                cwd=cwd,
-                lines=all_output,
-                exit_status=proc.returncode,
-            )
-            subprocess_logger.error(msg)
-        exc_msg = (
-            'Command errored out with exit status {}: {} '
-            'Check the logs for full command output.'
-        ).format(proc.returncode, command_desc)
-        raise SubProcessError(exc_msg)
-    return ''.join(all_output)
 
 
 def find_path_to_setup_from_repo_root(location, repo_root):
@@ -189,7 +98,7 @@ def find_path_to_setup_from_repo_root(location, repo_root):
             )
             return None
 
-    if samefile(repo_root, location):
+    if os.path.samefile(repo_root, location):
         return None
 
     return os.path.relpath(location, repo_root)
@@ -199,7 +108,7 @@ class RemoteNotFoundError(Exception):
     pass
 
 
-class RevOptions(object):
+class RevOptions:
 
     """
     Encapsulates a VCS-specific revision to install, along with any VCS
@@ -231,7 +140,7 @@ class RevOptions(object):
 
     def __repr__(self):
         # type: () -> str
-        return '<RevOptions {}: rev={!r}>'.format(self.vc_class.name, self.rev)
+        return f'<RevOptions {self.vc_class.name}: rev={self.rev!r}>'
 
     @property
     def arg_rev(self):
@@ -259,7 +168,7 @@ class RevOptions(object):
         if not self.rev:
             return ''
 
-        return ' (to revision {})'.format(self.rev)
+        return f' (to revision {self.rev})'
 
     def make_new(self, rev):
         # type: (str) -> RevOptions
@@ -272,7 +181,7 @@ class RevOptions(object):
         return self.vc_class.make_rev_options(rev, extra_args=self.extra_args)
 
 
-class VcsSupport(object):
+class VcsSupport:
     _registry = {}  # type: Dict[str, VersionControl]
     schemes = ['ssh', 'git', 'hg', 'bzr', 'sftp', 'svn']
 
@@ -280,11 +189,8 @@ class VcsSupport(object):
         # type: () -> None
         # Register more schemes with urlparse for various version control
         # systems
-        urllib_parse.uses_netloc.extend(self.schemes)
-        # Python >= 2.7.4, 3.3 doesn't have uses_fragment
-        if getattr(urllib_parse, 'uses_fragment', None):
-            urllib_parse.uses_fragment.extend(self.schemes)
-        super(VcsSupport, self).__init__()
+        urllib.parse.uses_netloc.extend(self.schemes)
+        super().__init__()
 
     def __iter__(self):
         # type: () -> Iterator[str]
@@ -369,7 +275,7 @@ class VcsSupport(object):
 vcs = VcsSupport()
 
 
-class VersionControl(object):
+class VersionControl:
     name = ''
     dirname = ''
     repo_name = ''
@@ -386,7 +292,7 @@ class VersionControl(object):
         Return whether the vcs prefix (e.g. "git+") should be added to a
         repository's remote url when used in a requirement.
         """
-        return not remote_url.lower().startswith('{}:'.format(cls.name))
+        return not remote_url.lower().startswith(f'{cls.name}:')
 
     @classmethod
     def get_subdirectory(cls, location):
@@ -407,7 +313,7 @@ class VersionControl(object):
 
     @classmethod
     def get_src_requirement(cls, repo_dir, project_name):
-        # type: (str, str) -> Optional[str]
+        # type: (str, str) -> str
         """
         Return the requirement string to use to redownload the files
         currently at the given repository directory.
@@ -420,11 +326,9 @@ class VersionControl(object):
             {repository_url}@{revision}#egg={project_name}
         """
         repo_url = cls.get_remote_url(repo_dir)
-        if repo_url is None:
-            return None
 
         if cls.should_add_vcs_url_prefix(repo_url):
-            repo_url = '{}+{}'.format(cls.name, repo_url)
+            repo_url = f'{cls.name}+{repo_url}'
 
         revision = cls.get_requirement_revision(repo_dir)
         subdir = cls.get_subdirectory(repo_dir)
@@ -519,7 +423,7 @@ class VersionControl(object):
 
         Returns: (url, rev, (username, password)).
         """
-        scheme, netloc, path, query, frag = urllib_parse.urlsplit(url)
+        scheme, netloc, path, query, frag = urllib.parse.urlsplit(url)
         if '+' not in scheme:
             raise ValueError(
                 "Sorry, {!r} is a malformed VCS url. "
@@ -538,7 +442,7 @@ class VersionControl(object):
                     "which is not supported. Include a revision after @ "
                     "or remove @ from the URL.".format(url)
                 )
-        url = urllib_parse.urlunsplit((scheme, netloc, path, query, ''))
+        url = urllib.parse.urlunsplit((scheme, netloc, path, query, ''))
         return url, rev, user_pass
 
     @staticmethod
@@ -572,7 +476,7 @@ class VersionControl(object):
         Normalize a URL for comparison by unquoting it and removing any
         trailing slash.
         """
-        return urllib_parse.unquote(url).rstrip('/')
+        return urllib.parse.unquote(url).rstrip('/')
 
     @classmethod
     def compare_urls(cls, url1, url2):
@@ -755,12 +659,17 @@ class VersionControl(object):
     def run_command(
         cls,
         cmd,  # type: Union[List[str], CommandArgs]
+        show_stdout=True,  # type: bool
         cwd=None,  # type: Optional[str]
-        extra_environ=None,  # type: Optional[Mapping[str, Any]]
+        on_returncode='raise',  # type: str
         extra_ok_returncodes=None,  # type: Optional[Iterable[int]]
-        log_failed_cmd=True  # type: bool
+        command_desc=None,  # type: Optional[str]
+        extra_environ=None,  # type: Optional[Mapping[str, Any]]
+        spinner=None,  # type: Optional[SpinnerInterface]
+        log_failed_cmd=True,  # type: bool
+        stdout_only=False,  # type: bool
     ):
-        # type: (...) -> Text
+        # type: (...) -> str
         """
         Run a VCS subcommand
         This is simply a wrapper around call_subprocess that adds the VCS
@@ -768,20 +677,22 @@ class VersionControl(object):
         """
         cmd = make_command(cls.name, *cmd)
         try:
-            return call_subprocess(cmd, cwd,
-                                   extra_environ=extra_environ,
+            return call_subprocess(cmd, show_stdout, cwd,
+                                   on_returncode=on_returncode,
                                    extra_ok_returncodes=extra_ok_returncodes,
-                                   log_failed_cmd=log_failed_cmd)
-        except OSError as e:
+                                   command_desc=command_desc,
+                                   extra_environ=extra_environ,
+                                   unset_environ=cls.unset_environ,
+                                   spinner=spinner,
+                                   log_failed_cmd=log_failed_cmd,
+                                   stdout_only=stdout_only)
+        except FileNotFoundError:
             # errno.ENOENT = no such file or directory
             # In other words, the VCS executable isn't available
-            if e.errno == errno.ENOENT:
-                raise BadCommand(
-                    'Cannot find command {cls.name!r} - do you have '
-                    '{cls.name!r} installed and in your '
-                    'PATH?'.format(**locals()))
-            else:
-                raise  # re-raise exception if a different error occurred
+            raise BadCommand(
+                'Cannot find command {cls.name!r} - do you have '
+                '{cls.name!r} installed and in your '
+                'PATH?'.format(**locals()))
 
     @classmethod
     def is_repository_directory(cls, path):

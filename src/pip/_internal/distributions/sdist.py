@@ -10,6 +10,7 @@ if MYPY_CHECK_RUNNING:
     from typing import Set, Tuple
 
     from pip._vendor.pkg_resources import Distribution
+
     from pip._internal.index.package_finder import PackageFinder
 
 
@@ -51,7 +52,7 @@ class SourceDistribution(AbstractDistribution):
                 requirement=self.req,
                 conflicting_with=conflicting_with,
                 description=', '.join(
-                    '{} is incompatible with {}'.format(installed, wanted)
+                    f'{installed} is incompatible with {wanted}'
                     for installed, wanted in sorted(conflicting)
                 )
             )

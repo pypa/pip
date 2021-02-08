@@ -1,9 +1,10 @@
 import functools
 import logging
+import os
 
 from pip._vendor import six
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.resolvelib import BaseReporter, ResolutionImpossible
+from pip._vendor.resolvelib import ResolutionImpossible
 from pip._vendor.resolvelib import Resolver as RLResolver
 
 from pip._internal.exceptions import InstallationError
@@ -11,15 +12,21 @@ from pip._internal.req.req_install import check_invalid_constraint_type
 from pip._internal.req.req_set import RequirementSet
 from pip._internal.resolution.base import BaseResolver
 from pip._internal.resolution.resolvelib.provider import PipProvider
+from pip._internal.resolution.resolvelib.reporter import (
+    PipDebuggingReporter,
+    PipReporter,
+)
+from pip._internal.utils.deprecation import deprecated
+from pip._internal.utils.filetypes import is_archive_file
 from pip._internal.utils.misc import dist_is_editable
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
+from .base import Constraint
 from .factory import Factory
 
 if MYPY_CHECK_RUNNING:
     from typing import Dict, List, Optional, Set, Tuple
 
-    from pip._vendor.packaging.specifiers import SpecifierSet
     from pip._vendor.resolvelib.resolvers import Result
     from pip._vendor.resolvelib.structs import Graph
 
@@ -49,17 +56,8 @@ class Resolver(BaseResolver):
         force_reinstall,  # type: bool
         upgrade_strategy,  # type: str
         py_version_info=None,  # type: Optional[Tuple[int, ...]]
-        lazy_wheel=False,  # type: bool
     ):
-        super(Resolver, self).__init__()
-        if lazy_wheel:
-            logger.warning(
-                'pip is using lazily downloaded wheels using HTTP '
-                'range requests to obtain dependency information. '
-                'This experimental feature is enabled through '
-                '--use-feature=fast-deps and it is not ready for production.'
-            )
-
+        super().__init__()
         assert upgrade_strategy in self._allowed_strategies
 
         self.factory = Factory(
@@ -72,7 +70,6 @@ class Resolver(BaseResolver):
             ignore_installed=ignore_installed,
             ignore_requires_python=ignore_requires_python,
             py_version_info=py_version_info,
-            lazy_wheel=lazy_wheel,
         )
         self.ignore_dependencies = ignore_dependencies
         self.upgrade_strategy = upgrade_strategy
@@ -81,7 +78,7 @@ class Resolver(BaseResolver):
     def resolve(self, root_reqs, check_supported_wheels):
         # type: (List[InstallRequirement], bool) -> RequirementSet
 
-        constraints = {}  # type: Dict[str, SpecifierSet]
+        constraints = {}  # type: Dict[str, Constraint]
         user_requested = set()  # type: Set[str]
         requirements = []
         for req in root_reqs:
@@ -90,12 +87,13 @@ class Resolver(BaseResolver):
                 problem = check_invalid_constraint_type(req)
                 if problem:
                     raise InstallationError(problem)
-
+                if not req.match_markers():
+                    continue
                 name = canonicalize_name(req.name)
                 if name in constraints:
-                    constraints[name] = constraints[name] & req.specifier
+                    constraints[name] &= req
                 else:
-                    constraints[name] = req.specifier
+                    constraints[name] = Constraint.from_ireq(req)
             else:
                 if req.user_supplied and req.name:
                     user_requested.add(canonicalize_name(req.name))
@@ -112,7 +110,10 @@ class Resolver(BaseResolver):
             upgrade_strategy=self.upgrade_strategy,
             user_requested=user_requested,
         )
-        reporter = BaseReporter()
+        if "PIP_RESOLVER_DEBUG" in os.environ:
+            reporter = PipDebuggingReporter()
+        else:
+            reporter = PipReporter()
         resolver = RLResolver(provider, reporter)
 
         try:
@@ -133,20 +134,52 @@ class Resolver(BaseResolver):
 
             # Check if there is already an installation under the same name,
             # and set a flag for later stages to uninstall it, if needed.
-            # * There isn't, good -- no uninstalltion needed.
-            # * The --force-reinstall flag is set. Always reinstall.
-            # * The installation is different in version or editable-ness, so
-            #   we need to uninstall it to install the new distribution.
-            # * The installed version is the same as the pending distribution.
-            #   Skip this distrubiton altogether to save work.
             installed_dist = self.factory.get_dist_to_uninstall(candidate)
             if installed_dist is None:
+                # There is no existing installation -- nothing to uninstall.
                 ireq.should_reinstall = False
             elif self.factory.force_reinstall:
+                # The --force-reinstall flag is set -- reinstall.
                 ireq.should_reinstall = True
             elif installed_dist.parsed_version != candidate.version:
+                # The installation is different in version -- reinstall.
                 ireq.should_reinstall = True
-            elif dist_is_editable(installed_dist) != candidate.is_editable:
+            elif candidate.is_editable or dist_is_editable(installed_dist):
+                # The incoming distribution is editable, or different in
+                # editable-ness to installation -- reinstall.
+                ireq.should_reinstall = True
+            elif candidate.source_link.is_file:
+                # The incoming distribution is under file://
+                if candidate.source_link.is_wheel:
+                    # is a local wheel -- do nothing.
+                    logger.info(
+                        "%s is already installed with the same version as the "
+                        "provided wheel. Use --force-reinstall to force an "
+                        "installation of the wheel.",
+                        ireq.name,
+                    )
+                    continue
+
+                looks_like_sdist = (
+                    is_archive_file(candidate.source_link.file_path)
+                    and candidate.source_link.ext != ".zip"
+                )
+                if looks_like_sdist:
+                    # is a local sdist -- show a deprecation warning!
+                    reason = (
+                        "Source distribution is being reinstalled despite an "
+                        "installed package having the same name and version as "
+                        "the installed package."
+                    )
+                    replacement = "use --force-reinstall"
+                    deprecated(
+                        reason=reason,
+                        replacement=replacement,
+                        gone_in="21.1",
+                        issue=8711,
+                    )
+
+                # is a local sdist or path -- reinstall
                 ireq.should_reinstall = True
             else:
                 continue
@@ -156,19 +189,21 @@ class Resolver(BaseResolver):
                 # The reason can contain non-ASCII characters, Unicode
                 # is required for Python 2.
                 msg = (
-                    u'The candidate selected for download or install is a '
-                    u'yanked version: {name!r} candidate (version {version} '
-                    u'at {link})\nReason for being yanked: {reason}'
+                    'The candidate selected for download or install is a '
+                    'yanked version: {name!r} candidate (version {version} '
+                    'at {link})\nReason for being yanked: {reason}'
                 ).format(
                     name=candidate.name,
                     version=candidate.version,
                     link=link,
-                    reason=link.yanked_reason or u'<none given>',
+                    reason=link.yanked_reason or '<none given>',
                 )
                 logger.warning(msg)
 
             req_set.add_named_requirement(ireq)
 
+        reqs = req_set.all_requirements
+        self.factory.preparer.prepare_linked_requirements_more(reqs)
         return req_set
 
     def get_installation_order(self, req_set):
@@ -187,7 +222,10 @@ class Resolver(BaseResolver):
         assert self._result is not None, "must call resolve() first"
 
         graph = self._result.graph
-        weights = get_topological_weights(graph)
+        weights = get_topological_weights(
+            graph,
+            expected_node_count=len(self._result.mapping) + 1,
+        )
 
         sorted_items = sorted(
             req_set.requirements.items(),
@@ -197,8 +235,8 @@ class Resolver(BaseResolver):
         return [ireq for _, ireq in sorted_items]
 
 
-def get_topological_weights(graph):
-    # type: (Graph) -> Dict[Optional[str], int]
+def get_topological_weights(graph, expected_node_count):
+    # type: (Graph, int) -> Dict[Optional[str], int]
     """Assign weights to each node based on how "deep" they are.
 
     This implementation may change at any point in the future without prior
@@ -238,7 +276,7 @@ def get_topological_weights(graph):
 
     # Sanity checks
     assert weights[None] == 0
-    assert len(weights) == len(graph)
+    assert len(weights) == expected_node_count
 
     return weights
 

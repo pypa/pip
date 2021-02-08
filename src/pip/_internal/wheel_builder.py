@@ -6,7 +6,13 @@ import os.path
 import re
 import shutil
 
+from pip._vendor.packaging.utils import canonicalize_name, canonicalize_version
+from pip._vendor.packaging.version import InvalidVersion, Version
+
+from pip._internal.exceptions import InvalidWheelFilename, UnsupportedWheel
+from pip._internal.metadata import get_wheel_distribution
 from pip._internal.models.link import Link
+from pip._internal.models.wheel import Wheel
 from pip._internal.operations.build.wheel import build_wheel_pep517
 from pip._internal.operations.build.wheel_legacy import build_wheel_legacy
 from pip._internal.utils.logging import indent_log
@@ -19,9 +25,7 @@ from pip._internal.utils.urls import path_to_url
 from pip._internal.vcs import vcs
 
 if MYPY_CHECK_RUNNING:
-    from typing import (
-        Any, Callable, Iterable, List, Optional, Tuple,
-    )
+    from typing import Any, Callable, Iterable, List, Optional, Tuple
 
     from pip._internal.cache import WheelCache
     from pip._internal.req.req_install import InstallRequirement
@@ -70,6 +74,9 @@ def _should_build(
     if req.editable or not req.source_dir:
         return False
 
+    if req.use_pep517:
+        return True
+
     if not check_binary_allowed(req):
         logger.info(
             "Skipping wheel build for %s, due to binaries "
@@ -77,7 +84,7 @@ def _should_build(
         )
         return False
 
-    if not req.use_pep517 and not is_wheel_installed():
+    if not is_wheel_installed():
         # we don't build legacy requirements if wheel is not installed
         logger.info(
             "Using legacy 'setup.py install' for %s, "
@@ -162,9 +169,41 @@ def _always_true(_):
     return True
 
 
+def _verify_one(req, wheel_path):
+    # type: (InstallRequirement, str) -> None
+    canonical_name = canonicalize_name(req.name)
+    w = Wheel(os.path.basename(wheel_path))
+    if canonicalize_name(w.name) != canonical_name:
+        raise InvalidWheelFilename(
+            "Wheel has unexpected file name: expected {!r}, "
+            "got {!r}".format(canonical_name, w.name),
+        )
+    dist = get_wheel_distribution(wheel_path, canonical_name)
+    if canonicalize_version(dist.version) != canonicalize_version(w.version):
+        raise InvalidWheelFilename(
+            "Wheel has unexpected file name: expected {!r}, "
+            "got {!r}".format(str(dist.version), w.version),
+        )
+    metadata_version_value = dist.metadata_version
+    if metadata_version_value is None:
+        raise UnsupportedWheel("Missing Metadata-Version")
+    try:
+        metadata_version = Version(metadata_version_value)
+    except InvalidVersion:
+        msg = "Invalid Metadata-Version: {}".format(metadata_version_value)
+        raise UnsupportedWheel(msg)
+    if (metadata_version >= Version("1.2")
+            and not isinstance(dist.version, Version)):
+        raise UnsupportedWheel(
+            "Metadata 1.2 mandates PEP 440 version, "
+            "but {!r} is not".format(str(dist.version))
+        )
+
+
 def _build_one(
     req,  # type: InstallRequirement
     output_dir,  # type: str
+    verify,  # type: bool
     build_options,  # type: List[str]
     global_options,  # type: List[str]
 ):
@@ -184,9 +223,16 @@ def _build_one(
 
     # Install build deps into temporary directory (PEP 518)
     with req.build_env:
-        return _build_one_inside_env(
+        wheel_path = _build_one_inside_env(
             req, output_dir, build_options, global_options
         )
+    if wheel_path and verify:
+        try:
+            _verify_one(req, wheel_path)
+        except (InvalidWheelFilename, UnsupportedWheel) as e:
+            logger.warning("Built wheel for %s is invalid: %s", req.name, e)
+            return None
+    return wheel_path
 
 
 def _build_one_inside_env(
@@ -259,6 +305,7 @@ def _clean_one_legacy(req, global_options):
 def build(
     requirements,  # type: Iterable[InstallRequirement]
     wheel_cache,  # type: WheelCache
+    verify,  # type: bool
     build_options,  # type: List[str]
     global_options,  # type: List[str]
 ):
@@ -282,7 +329,7 @@ def build(
         for req in requirements:
             cache_dir = _get_cache_dir(req, wheel_cache)
             wheel_file = _build_one(
-                req, cache_dir, build_options, global_options
+                req, cache_dir, verify, build_options, global_options
             )
             if wheel_file:
                 # Update the link for this.

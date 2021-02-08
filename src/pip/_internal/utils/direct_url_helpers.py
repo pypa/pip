@@ -1,3 +1,4 @@
+import json
 import logging
 
 from pip._internal.models.direct_url import (
@@ -11,18 +12,12 @@ from pip._internal.models.direct_url import (
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs import vcs
 
-try:
-    from json import JSONDecodeError
-except ImportError:
-    # PY2
-    JSONDecodeError = ValueError  # type: ignore
-
 if MYPY_CHECK_RUNNING:
     from typing import Optional
 
-    from pip._internal.models.link import Link
-
     from pip._vendor.pkg_resources import Distribution
+
+    from pip._internal.models.link import Link
 
 logger = logging.getLogger(__name__)
 
@@ -43,10 +38,6 @@ def direct_url_as_pep440_direct_reference(direct_url, name):
             fragments.append(direct_url.info.hash)
     else:
         assert isinstance(direct_url.info, DirInfo)
-        # pip should never reach this point for editables, since
-        # pip freeze inspects the editable project location to produce
-        # the requirement string
-        assert not direct_url.info.editable
         requirement += direct_url.url
     if direct_url.subdirectory:
         fragments.append("subdirectory=" + direct_url.subdirectory)
@@ -97,7 +88,7 @@ def direct_url_from_link(link, source_dir=None, link_is_in_wheel_cache=False):
         hash = None
         hash_name = link.hash_name
         if hash_name:
-            hash = "{}={}".format(hash_name, link.hash)
+            hash = f"{hash_name}={link.hash}"
         return DirectUrl(
             url=link.url_without_fragment,
             info=ArchiveInfo(hash=hash),
@@ -118,7 +109,7 @@ def dist_get_direct_url(dist):
         return DirectUrl.from_json(dist.get_metadata(DIRECT_URL_METADATA_NAME))
     except (
         DirectUrlValidationError,
-        JSONDecodeError,
+        json.JSONDecodeError,
         UnicodeDecodeError
     ) as e:
         logger.warning(

@@ -1,5 +1,3 @@
-from __future__ import with_statement
-
 import json
 import logging
 import os
@@ -13,11 +11,7 @@ import pytest
 
 from pip._internal.req.constructors import install_req_from_line
 from pip._internal.utils.misc import rmtree
-from tests.lib import (
-    assert_all_changes,
-    create_test_package_with_setup,
-    need_svn,
-)
+from tests.lib import assert_all_changes, create_test_package_with_setup, need_svn
 from tests.lib.local_repos import local_checkout, local_repo
 
 
@@ -69,6 +63,9 @@ def test_basic_uninstall_with_scripts(script):
     Uninstall an easy_installed package with scripts.
 
     """
+    # setuptools 52 removed easy_install.
+    script.pip("install", "setuptools==51.3.3", use_module=True)
+
     result = script.easy_install('PyLogo', expect_stderr=True)
     easy_install_pth = script.site_packages / 'easy-install.pth'
     pylogo = sys.platform == 'win32' and 'pylogo' or 'PyLogo'
@@ -87,6 +84,9 @@ def test_uninstall_easy_install_after_import(script):
     Uninstall an easy_installed package after it's been imported
 
     """
+    # setuptools 52 removed easy_install.
+    script.pip("install", "setuptools==51.3.3", use_module=True)
+
     result = script.easy_install('INITools==0.2', expect_stderr=True)
     # the import forces the generation of __pycache__ if the version of python
     # supports it
@@ -110,6 +110,9 @@ def test_uninstall_trailing_newline(script):
     lacks a trailing newline
 
     """
+    # setuptools 52 removed easy_install.
+    script.pip("install", "setuptools==51.3.3", use_module=True)
+
     script.easy_install('INITools==0.2', expect_stderr=True)
     script.easy_install('PyLogo', expect_stderr=True)
     easy_install_pth = script.site_packages_path / 'easy-install.pth'
@@ -291,8 +294,10 @@ def test_uninstall_easy_installed_console_scripts(script):
     """
     Test uninstalling package with console_scripts that is easy_installed.
     """
-    # setuptools >= 42.0.0 deprecates easy_install and prints a warning when
-    # used
+    # setuptools 52 removed easy_install and prints a warning after 42 when
+    # the command is used.
+    script.pip("install", "setuptools==51.3.3", use_module=True)
+
     result = script.easy_install('discover', allow_stderr_warning=True)
     result.did_create(script.bin / 'discover' + script.exe)
     result2 = script.pip('uninstall', 'discover', '-y')
@@ -307,6 +312,7 @@ def test_uninstall_easy_installed_console_scripts(script):
     )
 
 
+@pytest.mark.xfail
 @pytest.mark.network
 @need_svn
 def test_uninstall_editable_from_svn(script, tmpdir):
@@ -372,6 +378,7 @@ def _test_uninstall_editable_with_source_outside_venv(
     )
 
 
+@pytest.mark.xfail
 @pytest.mark.network
 @need_svn
 def test_uninstall_from_reqs_file(script, tmpdir):
@@ -420,8 +427,9 @@ def test_uninstallpathset_no_paths(caplog):
     Test UninstallPathSet logs notification when there are no paths to
     uninstall
     """
-    from pip._internal.req.req_uninstall import UninstallPathSet
     from pkg_resources import get_distribution
+
+    from pip._internal.req.req_uninstall import UninstallPathSet
 
     caplog.set_level(logging.INFO)
 

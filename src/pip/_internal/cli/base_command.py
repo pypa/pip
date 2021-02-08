@@ -1,21 +1,15 @@
 """Base Command class, and related routines"""
 
-from __future__ import absolute_import, print_function
-
 import logging
 import logging.config
 import optparse
 import os
-import platform
 import sys
 import traceback
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.command_context import CommandContextMixIn
-from pip._internal.cli.parser import (
-    ConfigOptionParser,
-    UpdatingDefaultsHelpFormatter,
-)
+from pip._internal.cli.parser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip._internal.cli.status_codes import (
     ERROR,
     PREVIOUS_BUILD_DIR_ERROR,
@@ -28,26 +22,22 @@ from pip._internal.exceptions import (
     InstallationError,
     NetworkConnectionError,
     PreviousBuildDirError,
-    SubProcessError,
     UninstallationError,
 )
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.logging import BrokenStdoutLoggingError, setup_logging
 from pip._internal.utils.misc import get_prog, normalize_path
-from pip._internal.utils.temp_dir import (
-    global_tempdir_manager,
-    tempdir_registry,
-)
+from pip._internal.utils.temp_dir import global_tempdir_manager, tempdir_registry
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
 if MYPY_CHECK_RUNNING:
-    from typing import List, Optional, Tuple, Any
     from optparse import Values
+    from typing import Any, List, Optional, Tuple
 
     from pip._internal.utils.temp_dir import (
-        TempDirectoryTypeRegistry as TempDirRegistry
+        TempDirectoryTypeRegistry as TempDirRegistry,
     )
 
 __all__ = ['Command']
@@ -61,10 +51,10 @@ class Command(CommandContextMixIn):
 
     def __init__(self, name, summary, isolated=False):
         # type: (str, str, bool) -> None
-        super(Command, self).__init__()
+        super().__init__()
         parser_kw = {
             'usage': self.usage,
-            'prog': '{} {}'.format(get_prog(), name),
+            'prog': f'{get_prog()} {name}',
             'formatter': UpdatingDefaultsHelpFormatter(),
             'add_help_option': False,
             'name': name,
@@ -79,7 +69,7 @@ class Command(CommandContextMixIn):
         self.tempdir_registry = None  # type: Optional[TempDirRegistry]
 
         # Commands should add options to this option group
-        optgroup_name = '{} Options'.format(self.name.capitalize())
+        optgroup_name = f'{self.name.capitalize()} Options'
         self.cmd_opts = optparse.OptionGroup(self.parser, optgroup_name)
 
         # Add the general options
@@ -143,23 +133,6 @@ class Command(CommandContextMixIn):
             user_log_file=options.log,
         )
 
-        if (
-            sys.version_info[:2] == (2, 7) and
-            not options.no_python_version_warning
-        ):
-            message = (
-                "pip 21.0 will drop support for Python 2.7 in January 2021. "
-                "More details about Python 2 support in pip can be found at "
-                "https://pip.pypa.io/en/latest/development/release-process/#python-2-support"  # noqa
-            )
-            if platform.python_implementation() == "CPython":
-                message = (
-                    "Python 2.7 reached the end of its life on January "
-                    "1st, 2020. Please upgrade your Python as Python 2.7 "
-                    "is no longer maintained. "
-                ) + message
-            deprecated(message, replacement=None, gone_in=None)
-
         # TODO: Try to get these passing down from the command?
         #       without resorting to os.environ to hold these.
         #       This also affects isolated builds and it should.
@@ -195,22 +168,22 @@ class Command(CommandContextMixIn):
             deprecated(
                 reason=(
                     "The -b/--build/--build-dir/--build-directory "
-                    "option is deprecated."
+                    "option is deprecated and has no effect anymore."
                 ),
                 replacement=(
                     "use the TMPDIR/TEMP/TMP environment variable, "
                     "possibly combined with --no-clean"
                 ),
-                gone_in="20.3",
+                gone_in="21.1",
                 issue=8333,
             )
 
-        if 'resolver' in options.unstable_features:
-            logger.critical(
-                "--unstable-feature=resolver is no longer supported, and "
-                "has been replaced with --use-feature=2020-resolver instead."
+        if '2020-resolver' in options.features_enabled:
+            logger.warning(
+                "--use-feature=2020-resolver no longer has any effect, "
+                "since it is now the default dependency resolver in pip. "
+                "This will become an error in pip 21.0."
             )
-            sys.exit(ERROR)
 
         try:
             status = self.run(options, args)
@@ -222,7 +195,7 @@ class Command(CommandContextMixIn):
 
             return PREVIOUS_BUILD_DIR_ERROR
         except (InstallationError, UninstallationError, BadCommand,
-                SubProcessError, NetworkConnectionError) as exc:
+                NetworkConnectionError) as exc:
             logger.critical(str(exc))
             logger.debug('Exception information:', exc_info=True)
 

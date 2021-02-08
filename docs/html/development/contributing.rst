@@ -70,15 +70,17 @@ such, but it is preferred to have a dedicated issue (for example, in case the
 PR ends up rejected due to code quality reasons).
 
 Once you have an issue or pull request, you take the number and you create a
-file inside of the ``news/`` directory named after that issue number with an
-extension of ``removal``, ``feature``, ``bugfix``, or ``doc``. Thus if your
-issue or PR number is ``1234`` and this change is fixing a bug, then you would
-create a file ``news/1234.bugfix``. PRs can span multiple categories by creating
-multiple files (for instance, if you added a feature and deprecated/removed the
-old feature at the same time, you would create ``news/NNNN.feature`` and
-``news/NNNN.removal``). Likewise if a PR touches multiple issues/PRs you may
-create a file for each of them with the exact same contents and Towncrier will
-deduplicate them.
+file inside of the ``news/`` directory, named after that issue number with a
+"type" of ``removal``, ``feature``, ``bugfix``, or ``doc`` associated with it.
+
+If your issue or PR number is ``1234`` and this change is fixing a bug,
+then you would create a file ``news/1234.bugfix.rst``. PRs can span multiple
+categories by creating multiple files (for instance, if you added a feature and
+deprecated/removed the old feature at the same time, you would create
+``news/NNNN.feature.rst`` and ``news/NNNN.removal.rst``).
+
+If a PR touches multiple issues/PRs, you may create a file for each of them
+with the exact same contents and Towncrier will deduplicate them.
 
 Contents of a NEWS entry
 ------------------------
@@ -107,22 +109,22 @@ A trivial change is anything that does not warrant an entry in the news file.
 Some examples are: Code refactors that don't change anything as far as the
 public is concerned, typo fixes, white space modification, etc. To mark a PR
 as trivial a contributor simply needs to add a randomly named, empty file to
-the ``news/`` directory with the extension of ``.trivial``. If you are on a
+the ``news/`` directory with the extension of ``.trivial.rst``. If you are on a
 POSIX like operating system, one can be added by running
-``touch news/$(uuidgen).trivial``. On Windows, the same result can be achieved
-in Powershell using ``New-Item "news/$([guid]::NewGuid()).trivial"``. Core
-committers may also add a "trivial" label to the PR which will accomplish the
-same thing.
+``touch news/$(uuidgen).trivial.rst``. On Windows, the same result can be
+achieved in Powershell using ``New-Item "news/$([guid]::NewGuid()).trivial.rst"``.
+Core committers may also add a "trivial" label to the PR which will accomplish
+the same thing.
 
 Upgrading, removing, or adding a new vendored library gets a special mention
-using a ``news/<library>.vendor`` file. This is in addition to any features,
+using a ``news/<library>.vendor.rst`` file. This is in addition to any features,
 bugfixes, or other kinds of news that pulling in this library may have. This
 uses the library name as the key so that updating the same library twice doesn't
 produce two news file entries.
 
 Changes to the processes, policies, or other non code related changed that are
-otherwise notable can be done using a ``news/<name>.process`` file. This is not
-typically used, but can be used for things like changing version schemes,
+otherwise notable can be done using a ``news/<name>.process.rst`` file. This is
+not typically used, but can be used for things like changing version schemes,
 updating deprecation policy, etc.
 
 

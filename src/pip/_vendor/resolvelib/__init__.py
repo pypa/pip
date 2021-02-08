@@ -11,7 +11,7 @@ __all__ = [
     "ResolutionTooDeep",
 ]
 
-__version__ = "0.4.0"
+__version__ = "0.5.4"
 
 
 from .providers import AbstractProvider, AbstractResolver

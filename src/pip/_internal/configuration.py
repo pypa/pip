@@ -11,29 +11,40 @@ Some terminology:
   A single word describing where the configuration key-value pair came from
 """
 
+import configparser
 import locale
 import logging
 import os
 import sys
-
-from pip._vendor.six.moves import configparser
 
 from pip._internal.exceptions import (
     ConfigurationError,
     ConfigurationFileCouldNotBeLoaded,
 )
 from pip._internal.utils import appdirs
-from pip._internal.utils.compat import WINDOWS, expanduser
+from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import ensure_dir, enum
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import (
-        Any, Dict, Iterable, List, NewType, Optional, Tuple
-    )
+    from typing import Any, Dict, Iterable, List, NewType, Optional, Tuple
 
     RawConfigParser = configparser.RawConfigParser  # Shorthand
     Kind = NewType("Kind", str)
+
+CONFIG_BASENAME = 'pip.ini' if WINDOWS else 'pip.conf'
+ENV_NAMES_IGNORED = "version", "help"
+
+# The kinds of configurations there are.
+kinds = enum(
+    USER="user",        # User Specific
+    GLOBAL="global",    # System Wide
+    SITE="site",        # [Virtual] Environment Specific
+    ENV="env",          # from PIP_CONFIG_FILE
+    ENV_VAR="env-var",  # from Environment Variables
+)
+OVERRIDE_ORDER = kinds.GLOBAL, kinds.USER, kinds.SITE, kinds.ENV, kinds.ENV_VAR
+VALID_LOAD_ONLY = kinds.USER, kinds.GLOBAL, kinds.SITE
 
 logger = logging.getLogger(__name__)
 
@@ -60,19 +71,6 @@ def _disassemble_key(name):
     return name.split(".", 1)
 
 
-# The kinds of configurations there are.
-kinds = enum(
-    USER="user",        # User Specific
-    GLOBAL="global",    # System Wide
-    SITE="site",        # [Virtual] Environment Specific
-    ENV="env",          # from PIP_CONFIG_FILE
-    ENV_VAR="env-var",  # from Environment Variables
-)
-
-
-CONFIG_BASENAME = 'pip.ini' if WINDOWS else 'pip.conf'
-
-
 def get_configuration_files():
     # type: () -> Dict[Kind, List[str]]
     global_config_files = [
@@ -82,7 +80,7 @@ def get_configuration_files():
 
     site_config_file = os.path.join(sys.prefix, CONFIG_BASENAME)
     legacy_config_file = os.path.join(
-        expanduser('~'),
+        os.path.expanduser('~'),
         'pip' if WINDOWS else '.pip',
         CONFIG_BASENAME,
     )
@@ -96,7 +94,7 @@ def get_configuration_files():
     }
 
 
-class Configuration(object):
+class Configuration:
     """Handles management of configuration.
 
     Provides an interface to accessing and managing configuration files.
@@ -112,31 +110,23 @@ class Configuration(object):
 
     def __init__(self, isolated, load_only=None):
         # type: (bool, Optional[Kind]) -> None
-        super(Configuration, self).__init__()
+        super().__init__()
 
-        _valid_load_only = [kinds.USER, kinds.GLOBAL, kinds.SITE, None]
-        if load_only not in _valid_load_only:
+        if load_only is not None and load_only not in VALID_LOAD_ONLY:
             raise ConfigurationError(
                 "Got invalid value for load_only - should be one of {}".format(
-                    ", ".join(map(repr, _valid_load_only[:-1]))
+                    ", ".join(map(repr, VALID_LOAD_ONLY))
                 )
             )
         self.isolated = isolated
         self.load_only = load_only
 
-        # The order here determines the override order.
-        self._override_order = [
-            kinds.GLOBAL, kinds.USER, kinds.SITE, kinds.ENV, kinds.ENV_VAR
-        ]
-
-        self._ignore_env_names = ["version", "help"]
-
         # Because we keep track of where we got the data from
         self._parsers = {
-            variant: [] for variant in self._override_order
+            variant: [] for variant in OVERRIDE_ORDER
         }  # type: Dict[Kind, List[Tuple[str, RawConfigParser]]]
         self._config = {
-            variant: {} for variant in self._override_order
+            variant: {} for variant in OVERRIDE_ORDER
         }  # type: Dict[Kind, Dict[str, Any]]
         self._modified_parsers = []  # type: List[Tuple[str, RawConfigParser]]
 
@@ -174,7 +164,7 @@ class Configuration(object):
         try:
             return self._dictionary[key]
         except KeyError:
-            raise ConfigurationError("No such key - {}".format(key))
+            raise ConfigurationError(f"No such key - {key}")
 
     def set_value(self, key, value):
         # type: (str, Any) -> None
@@ -203,7 +193,7 @@ class Configuration(object):
 
         assert self.load_only
         if key not in self._config[self.load_only]:
-            raise ConfigurationError("No such key - {}".format(key))
+            raise ConfigurationError(f"No such key - {key}")
 
         fname, parser = self._get_parser_to_modify()
 
@@ -257,7 +247,7 @@ class Configuration(object):
         #       are not needed here.
         retval = {}
 
-        for variant in self._override_order:
+        for variant in OVERRIDE_ORDER:
             retval.update(self._config[variant])
 
         return retval
@@ -348,12 +338,10 @@ class Configuration(object):
         # type: () -> Iterable[Tuple[str, str]]
         """Returns a generator with all environmental vars with prefix PIP_"""
         for key, val in os.environ.items():
-            should_be_yielded = (
-                key.startswith("PIP_") and
-                key[4:].lower() not in self._ignore_env_names
-            )
-            if should_be_yielded:
-                yield key[4:].lower(), val
+            if key.startswith("PIP_"):
+                name = key[4:].lower()
+                if name not in ENV_NAMES_IGNORED:
+                    yield name, val
 
     # XXX: This is patched in the tests.
     def iter_config_files(self):
@@ -415,4 +403,4 @@ class Configuration(object):
 
     def __repr__(self):
         # type: () -> str
-        return "{}({!r})".format(self.__class__.__name__, self._dictionary)
+        return f"{self.__class__.__name__}({self._dictionary!r})"

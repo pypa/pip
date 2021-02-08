@@ -17,12 +17,22 @@ class ExplicitRequirement(Requirement):
         # type: (Candidate) -> None
         self.candidate = candidate
 
+    def __str__(self):
+        # type: () -> str
+        return str(self.candidate)
+
     def __repr__(self):
         # type: () -> str
         return "{class_name}({candidate!r})".format(
             class_name=self.__class__.__name__,
             candidate=self.candidate,
         )
+
+    @property
+    def project_name(self):
+        # type: () -> str
+        # No need to canonicalise - the candidate did this
+        return self.candidate.project_name
 
     @property
     def name(self):
@@ -62,10 +72,14 @@ class SpecifierRequirement(Requirement):
         )
 
     @property
+    def project_name(self):
+        # type: () -> str
+        return canonicalize_name(self._ireq.req.name)
+
+    @property
     def name(self):
         # type: () -> str
-        canonical_name = canonicalize_name(self._ireq.req.name)
-        return format_name(canonical_name, self._extras)
+        return format_name(self.project_name, self._extras)
 
     def format_for_error(self):
         # type: () -> str
@@ -106,6 +120,10 @@ class RequiresPythonRequirement(Requirement):
         self.specifier = specifier
         self._candidate = match
 
+    def __str__(self):
+        # type: () -> str
+        return f"Python {self.specifier}"
+
     def __repr__(self):
         # type: () -> str
         return "{class_name}({specifier!r})".format(
@@ -114,13 +132,18 @@ class RequiresPythonRequirement(Requirement):
         )
 
     @property
+    def project_name(self):
+        # type: () -> str
+        return self._candidate.project_name
+
+    @property
     def name(self):
         # type: () -> str
         return self._candidate.name
 
     def format_for_error(self):
         # type: () -> str
-        return "Python " + str(self.specifier)
+        return str(self)
 
     def get_candidate_lookup(self):
         # type: () -> CandidateLookup
@@ -135,3 +158,44 @@ class RequiresPythonRequirement(Requirement):
         # already implements the prerelease logic, and would have filtered out
         # prerelease candidates if the user does not expect them.
         return self.specifier.contains(candidate.version, prereleases=True)
+
+
+class UnsatisfiableRequirement(Requirement):
+    """A requirement that cannot be satisfied.
+    """
+    def __init__(self, name):
+        # type: (str) -> None
+        self._name = name
+
+    def __str__(self):
+        # type: () -> str
+        return "{} (unavailable)".format(self._name)
+
+    def __repr__(self):
+        # type: () -> str
+        return "{class_name}({name!r})".format(
+            class_name=self.__class__.__name__,
+            name=str(self._name),
+        )
+
+    @property
+    def project_name(self):
+        # type: () -> str
+        return self._name
+
+    @property
+    def name(self):
+        # type: () -> str
+        return self._name
+
+    def format_for_error(self):
+        # type: () -> str
+        return str(self)
+
+    def get_candidate_lookup(self):
+        # type: () -> CandidateLookup
+        return None, None
+
+    def is_satisfied_by(self, candidate):
+        # type: (Candidate) -> bool
+        return False

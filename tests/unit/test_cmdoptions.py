@@ -21,4 +21,4 @@ from pip._internal.cli.cmdoptions import _convert_python_version
 ])
 def test_convert_python_version(value, expected):
     actual = _convert_python_version(value)
-    assert actual == expected, 'actual: {!r}'.format(actual)
+    assert actual == expected, f'actual: {actual!r}'

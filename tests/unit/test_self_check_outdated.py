@@ -17,12 +17,12 @@ from pip._internal.self_outdated_check import (
 from tests.lib.path import Path
 
 
-class MockBestCandidateResult(object):
+class MockBestCandidateResult:
     def __init__(self, best):
         self.best_candidate = best
 
 
-class MockPackageFinder(object):
+class MockPackageFinder:
 
     BASE_URL = 'https://pypi.org/simple/pip-{0}.tar.gz'
     PIP_PROJECT_NAME = 'pip'
@@ -43,7 +43,7 @@ class MockPackageFinder(object):
         return MockBestCandidateResult(self.INSTALLATION_CANDIDATES[0])
 
 
-class MockDistribution(object):
+class MockDistribution:
     def __init__(self, installer):
         self.installer = installer
 
@@ -55,6 +55,14 @@ class MockDistribution(object):
             yield self.installer
         else:
             raise NotImplementedError('nope')
+
+
+class MockEnvironment(object):
+    def __init__(self, installer):
+        self.installer = installer
+
+    def get_distribution(self, name):
+        return MockDistribution(self.installer)
 
 
 def _options():
@@ -97,8 +105,8 @@ def test_pip_self_version_check(monkeypatch, stored_time, installed_ver,
                         pretend.call_recorder(lambda *a, **kw: None))
     monkeypatch.setattr(logger, 'debug',
                         pretend.call_recorder(lambda s, exc_info=None: None))
-    monkeypatch.setattr(self_outdated_check, 'get_distribution',
-                        lambda name: MockDistribution(installer))
+    monkeypatch.setattr(self_outdated_check, 'get_default_environment',
+                        lambda: MockEnvironment(installer))
 
     fake_state = pretend.stub(
         state={"last_check": stored_time, 'pypi_version': installed_ver},

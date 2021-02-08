@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import locale
 import os
 import sys
@@ -7,12 +5,7 @@ import sys
 import pytest
 
 import pip._internal.utils.compat as pip_compat
-from pip._internal.utils.compat import (
-    console_to_str,
-    expanduser,
-    get_path_uid,
-    str_to_display,
-)
+from pip._internal.utils.compat import console_to_str, get_path_uid, str_to_display
 
 
 def test_get_path_uid():
@@ -54,43 +47,41 @@ def test_get_path_uid_symlink_without_NOFOLLOW(tmpdir, monkeypatch):
 
 
 @pytest.mark.parametrize('data, expected', [
-    ('abc', u'abc'),
-    # Test text (unicode in Python 2) input.
-    (u'abc', u'abc'),
+    ('abc', 'abc'),
     # Test text input with non-ascii characters.
-    (u'déf', u'déf'),
+    ('déf', 'déf'),
 ])
 def test_str_to_display(data, expected):
     actual = str_to_display(data)
     assert actual == expected, (
         # Show the encoding for easier troubleshooting.
-        'encoding: {!r}'.format(locale.getpreferredencoding())
+        f'encoding: {locale.getpreferredencoding()!r}'
     )
 
 
 @pytest.mark.parametrize('data, encoding, expected', [
     # Test str input with non-ascii characters.
-    ('déf', 'utf-8', u'déf'),
+    ('déf', 'utf-8', 'déf'),
     # Test bytes input with non-ascii characters:
-    (u'déf'.encode('utf-8'), 'utf-8', u'déf'),
+    ('déf'.encode('utf-8'), 'utf-8', 'déf'),
     # Test a Windows encoding.
-    (u'déf'.encode('cp1252'), 'cp1252', u'déf'),
+    ('déf'.encode('cp1252'), 'cp1252', 'déf'),
     # Test a Windows encoding with incompatibly encoded text.
-    (u'déf'.encode('utf-8'), 'cp1252', u'dÃ©f'),
+    ('déf'.encode('utf-8'), 'cp1252', 'dÃ©f'),
 ])
 def test_str_to_display__encoding(monkeypatch, data, encoding, expected):
     monkeypatch.setattr(locale, 'getpreferredencoding', lambda: encoding)
     actual = str_to_display(data)
     assert actual == expected, (
         # Show the encoding for easier troubleshooting.
-        'encoding: {!r}'.format(locale.getpreferredencoding())
+        f'encoding: {locale.getpreferredencoding()!r}'
     )
 
 
 def test_str_to_display__decode_error(monkeypatch, caplog):
     monkeypatch.setattr(locale, 'getpreferredencoding', lambda: 'utf-8')
     # Encode with an incompatible encoding.
-    data = u'ab'.encode('utf-16')
+    data = 'ab'.encode('utf-16')
     actual = str_to_display(data)
     # Keep the expected value endian safe
     if sys.byteorder == "little":
@@ -100,7 +91,7 @@ def test_str_to_display__decode_error(monkeypatch, caplog):
 
     assert actual == expected, (
         # Show the encoding for easier troubleshooting.
-        'encoding: {!r}'.format(locale.getpreferredencoding())
+        f'encoding: {locale.getpreferredencoding()!r}'
     )
     assert len(caplog.records) == 1
     record = caplog.records[0]
@@ -131,16 +122,3 @@ def test_console_to_str_warning(monkeypatch):
     monkeypatch.setattr(locale, 'getpreferredencoding', lambda: 'utf-8')
     monkeypatch.setattr(pip_compat.logger, 'warning', check_warning)
     console_to_str(some_bytes)
-
-
-@pytest.mark.parametrize("home,path,expanded", [
-    ("/Users/test", "~", "/Users/test"),
-    ("/Users/test", "~/.cache", "/Users/test/.cache"),
-    # Verify that we are not affected by https://bugs.python.org/issue14768
-    ("/", "~", "/"),
-    ("/", "~/.cache", "/.cache"),
-])
-def test_expanduser(home, path, expanded, monkeypatch):
-    monkeypatch.setenv("HOME", home)
-    monkeypatch.setenv("USERPROFILE", home)
-    assert expanduser(path) == expanded

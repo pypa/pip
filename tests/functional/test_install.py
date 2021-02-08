@@ -25,8 +25,6 @@ from tests.lib import (
     pyversion,
     pyversion_tuple,
     requirements_file,
-    skip_if_not_python2,
-    skip_if_python2,
     windows_workaround_7667,
 )
 from tests.lib.filesystem import make_socket_file
@@ -406,7 +404,7 @@ def test_vcs_url_urlquote_normalization(script, tmpdir):
     )
 
 
-@pytest.mark.parametrize("resolver", ["", "--use-feature=2020-resolver"])
+@pytest.mark.parametrize("resolver", ["", "--use-deprecated=legacy-resolver"])
 def test_basic_install_from_local_directory(
     script, data, resolver, with_wheel
 ):
@@ -532,12 +530,12 @@ def test_hashed_install_failure(script, tmpdir):
 
 def assert_re_match(pattern, text):
     assert re.search(pattern, text), (
-        "Could not find {!r} in {!r}".format(pattern, text)
+        f"Could not find {pattern!r} in {text!r}"
     )
 
 
 @pytest.mark.network
-@pytest.mark.fails_on_new_resolver
+@pytest.mark.skip("Fails on new resolver")
 def test_hashed_install_failure_later_flag(script, tmpdir):
     with requirements_file(
         "blessings==1.0\n"
@@ -657,22 +655,7 @@ def test_editable_install__local_dir_no_setup_py_with_pyproject(
     assert 'A "pyproject.toml" file was found' in msg
 
 
-@skip_if_not_python2
-@pytest.mark.xfail
-def test_install_argparse_shadowed(script):
-    # When argparse is in the stdlib, we support installing it
-    # even though that's pretty useless because older packages did need to
-    # depend on it, and not having its metadata will cause pkg_resources
-    # requirements checks to fail // trigger easy-install, both of which are
-    # bad.
-    # XXX: Note, this test hits the outside-environment check, not the
-    # in-stdlib check, because our tests run in virtualenvs...
-    result = script.pip('install', 'argparse>=1.4')
-    assert "Not uninstalling argparse" in result.stdout
-
-
 @pytest.mark.network
-@skip_if_python2
 def test_upgrade_argparse_shadowed(script):
     # If argparse is installed - even if shadowed for imported - we support
     # upgrading it and properly remove the older versions files.
@@ -757,6 +740,7 @@ def test_install_using_install_option_and_editable(script, tmpdir):
     result.did_create(script_file)
 
 
+@pytest.mark.xfail
 @pytest.mark.network
 @need_mercurial
 @windows_workaround_7667
@@ -939,7 +923,7 @@ def test_install_nonlocal_compatible_wheel(script, data):
 def test_install_nonlocal_compatible_wheel_path(
     script,
     data,
-    use_new_resolver
+    resolver_variant,
 ):
     target_dir = script.scratch_path / 'target'
 
@@ -950,9 +934,9 @@ def test_install_nonlocal_compatible_wheel_path(
         '--no-index',
         '--only-binary=:all:',
         Path(data.packages) / 'simplewheel-2.0-py3-fakeabi-fakeplat.whl',
-        expect_error=use_new_resolver
+        expect_error=(resolver_variant == "2020-resolver"),
     )
-    if use_new_resolver:
+    if resolver_variant == "2020-resolver":
         assert result.returncode == ERROR
     else:
         assert result.returncode == SUCCESS
@@ -1039,7 +1023,7 @@ def test_install_package_with_prefix(script, data):
     install_path = (
         distutils.sysconfig.get_python_lib(prefix=rel_prefix_path) /
         # we still test for egg-info because no-binary implies setup.py install
-        'simple-1.0-py{}.egg-info'.format(pyversion)
+        f'simple-1.0-py{pyversion}.egg-info'
     )
     result.did_create(install_path)
 
@@ -1056,7 +1040,7 @@ def test_install_editable_with_prefix(script):
 
     if hasattr(sys, "pypy_version_info"):
         site_packages = os.path.join(
-            'prefix', 'lib', 'python{}'.format(pyversion), 'site-packages')
+            'prefix', 'lib', f'python{pyversion}', 'site-packages')
     else:
         site_packages = distutils.sysconfig.get_python_lib(prefix='prefix')
 
@@ -1102,7 +1086,7 @@ def test_install_package_that_emits_unicode(script, data):
     )
     assert (
         'FakeError: this package designed to fail on install' in result.stderr
-    ), 'stderr: {}'.format(result.stderr)
+    ), f'stderr: {result.stderr}'
     assert 'UnicodeDecodeError' not in result.stderr
     assert 'UnicodeDecodeError' not in result.stdout
 
@@ -1454,7 +1438,7 @@ def test_install_no_binary_disables_cached_wheels(script, data, with_wheel):
     assert "Running setup.py install for upper" in str(res), str(res)
 
 
-def test_install_editable_with_wrong_egg_name(script, use_new_resolver):
+def test_install_editable_with_wrong_egg_name(script, resolver_variant):
     script.scratch_path.joinpath("pkga").mkdir()
     pkga_path = script.scratch_path / 'pkga'
     pkga_path.joinpath("setup.py").write_text(textwrap.dedent("""
@@ -1465,13 +1449,13 @@ def test_install_editable_with_wrong_egg_name(script, use_new_resolver):
     result = script.pip(
         'install', '--editable',
         'file://{pkga_path}#egg=pkgb'.format(**locals()),
-        expect_error=use_new_resolver,
+        expect_error=(resolver_variant == "2020-resolver"),
     )
     assert ("Generating metadata for package pkgb produced metadata "
             "for project name pkga. Fix your #egg=pkgb "
             "fragments.") in result.stderr
-    if use_new_resolver:
-        assert "has different name in metadata" in result.stderr, str(result)
+    if resolver_variant == "2020-resolver":
+        assert "has inconsistent" in result.stderr, str(result)
     else:
         assert "Successfully installed pkga" in str(result), str(result)
 
@@ -1503,7 +1487,7 @@ def test_double_install(script):
     assert msg not in result.stderr
 
 
-def test_double_install_fail(script, use_new_resolver):
+def test_double_install_fail(script, resolver_variant):
     """
     Test double install failing with two different version requirements
     """
@@ -1512,9 +1496,9 @@ def test_double_install_fail(script, use_new_resolver):
         'pip==7.*',
         'pip==7.1.2',
         # The new resolver is perfectly capable of handling this
-        expect_error=(not use_new_resolver)
+        expect_error=(resolver_variant == "legacy"),
     )
-    if not use_new_resolver:
+    if resolver_variant == "legacy":
         msg = ("Double requirement given: pip==7.1.2 (already in pip==7.*, "
                "name='pip')")
         assert msg in result.stderr
@@ -1565,7 +1549,9 @@ def test_install_incompatible_python_requires_wheel(script, with_wheel):
               version='0.1')
     """))
     script.run(
-        'python', 'setup.py', 'bdist_wheel', '--universal', cwd=pkga_path)
+        'python', 'setup.py', 'bdist_wheel', '--universal',
+        cwd=pkga_path,
+    )
     result = script.pip('install', './pkga/dist/pkga-0.1-py2.py3-none-any.whl',
                         expect_error=True)
     assert _get_expected_error_text() in result.stderr, str(result)
@@ -1697,7 +1683,7 @@ def test_install_conflict_results_in_warning(script, data):
     result2 = script.pip(
         'install', '--no-index', pkgB_path, allow_stderr_error=True,
     )
-    assert "pkga 1.0 has requirement pkgb==1.0" in result2.stderr, str(result2)
+    assert "pkga 1.0 requires pkgb==1.0" in result2.stderr, str(result2)
     assert "Successfully installed pkgB-2.0" in result2.stdout, str(result2)
 
 
@@ -1766,11 +1752,11 @@ def test_user_config_accepted(script):
 )
 @pytest.mark.parametrize("use_module", [True, False])
 def test_install_pip_does_not_modify_pip_when_satisfied(
-        script, install_args, expected_message, use_module, use_new_resolver):
+        script, install_args, expected_message, use_module, resolver_variant):
     """
     Test it doesn't upgrade the pip if it already satisfies the requirement.
     """
-    variation = "satisfied" if use_new_resolver else "up-to-date"
+    variation = "satisfied" if resolver_variant else "up-to-date"
     expected_message = expected_message.format(variation)
     result = script.pip_install_local(
         'pip', *install_args, use_module=use_module
@@ -1852,7 +1838,7 @@ def test_install_sends_client_cert(install_args, script, cert_factory, data):
         file_response(str(data.packages / "simple-3.0.tar.gz")),
     ]
 
-    url = "https://{}:{}/simple".format(server.host, server.port)
+    url = f"https://{server.host}:{server.port}/simple"
 
     args = ["install", "-vvv", "--cert", cert_path, "--client-cert", cert_path]
     args.extend(["--index-url", url])

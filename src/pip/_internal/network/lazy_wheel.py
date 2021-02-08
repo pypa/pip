@@ -8,13 +8,8 @@ from tempfile import NamedTemporaryFile
 from zipfile import BadZipfile, ZipFile
 
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE
-from pip._vendor.six.moves import range
 
-from pip._internal.network.utils import (
-    HEADERS,
-    raise_for_status,
-    response_chunks,
-)
+from pip._internal.network.utils import HEADERS, raise_for_status, response_chunks
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.wheel import pkg_resources_distribution_for_wheel
 
@@ -49,7 +44,7 @@ def dist_from_wheel_url(name, url, session):
         return pkg_resources_distribution_for_wheel(zip_file, name, wheel.name)
 
 
-class LazyZipOverHTTP(object):
+class LazyZipOverHTTP:
     """File-like object mapped to a ZIP file over HTTP.
 
     This uses HTTP range requests to lazily fetch the file's content,
@@ -109,8 +104,10 @@ class LazyZipOverHTTP(object):
         all bytes until EOF are returned.  Fewer than
         size bytes may be returned if EOF is reached.
         """
+        download_size = max(size, self._chunk_size)
         start, length = self.tell(), self._length
-        stop = start + size if 0 <= size <= length-start else length
+        stop = length if size < 0 else min(start+download_size, length)
+        start = max(0, stop-download_size)
         self._download(start, stop-1)
         return self._file.read(size)
 
@@ -192,8 +189,10 @@ class LazyZipOverHTTP(object):
     def _stream_response(self, start, end, base_headers=HEADERS):
         # type: (int, int, Dict[str, str]) -> Response
         """Return HTTP response to a range request from start to end."""
-        headers = {'Range': 'bytes={}-{}'.format(start, end)}
-        headers.update(base_headers)
+        headers = base_headers.copy()
+        headers['Range'] = f'bytes={start}-{end}'
+        # TODO: Get range requests to be correctly cached
+        headers['Cache-Control'] = 'no-cache'
         return self._session.get(self._url, headers=headers, stream=True)
 
     def _merge(self, start, end, left, right):

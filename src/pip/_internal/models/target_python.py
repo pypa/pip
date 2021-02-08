@@ -1,9 +1,6 @@
 import sys
 
-from pip._internal.utils.compatibility_tags import (
-    get_supported,
-    version_info_to_nodot,
-)
+from pip._internal.utils.compatibility_tags import get_supported, version_info_to_nodot
 from pip._internal.utils.misc import normalize_version_info
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
@@ -13,7 +10,7 @@ if MYPY_CHECK_RUNNING:
     from pip._vendor.packaging.tags import Tag
 
 
-class TargetPython(object):
+class TargetPython:
 
     """
     Encapsulates the properties of a Python interpreter one is targeting
@@ -22,9 +19,9 @@ class TargetPython(object):
 
     __slots__ = [
         "_given_py_version_info",
-        "abi",
+        "abis",
         "implementation",
-        "platform",
+        "platforms",
         "py_version",
         "py_version_info",
         "_valid_tags",
@@ -32,23 +29,23 @@ class TargetPython(object):
 
     def __init__(
         self,
-        platform=None,  # type: Optional[str]
+        platforms=None,  # type: Optional[List[str]]
         py_version_info=None,  # type: Optional[Tuple[int, ...]]
-        abi=None,  # type: Optional[str]
+        abis=None,  # type: Optional[List[str]]
         implementation=None,  # type: Optional[str]
     ):
         # type: (...) -> None
         """
-        :param platform: A string or None. If None, searches for packages
-            that are supported by the current system. Otherwise, will find
-            packages that can be built on the platform passed in. These
+        :param platforms: A list of strings or None. If None, searches for
+            packages that are supported by the current system. Otherwise, will
+            find packages that can be built on the platforms passed in. These
             packages will only be downloaded for distribution: they will
             not be built locally.
         :param py_version_info: An optional tuple of ints representing the
             Python version information to use (e.g. `sys.version_info[:3]`).
             This can have length 1, 2, or 3 when provided.
-        :param abi: A string or None. This is passed to compatibility_tags.py's
-            get_supported() function as is.
+        :param abis: A list of strings or None. This is passed to
+            compatibility_tags.py's get_supported() function as is.
         :param implementation: A string or None. This is passed to
             compatibility_tags.py's get_supported() function as is.
         """
@@ -62,9 +59,9 @@ class TargetPython(object):
 
         py_version = '.'.join(map(str, py_version_info[:2]))
 
-        self.abi = abi
+        self.abis = abis
         self.implementation = implementation
-        self.platform = platform
+        self.platforms = platforms
         self.py_version = py_version
         self.py_version_info = py_version_info
 
@@ -83,13 +80,13 @@ class TargetPython(object):
             )
 
         key_values = [
-            ('platform', self.platform),
+            ('platforms', self.platforms),
             ('version_info', display_version),
-            ('abi', self.abi),
+            ('abis', self.abis),
             ('implementation', self.implementation),
         ]
         return ' '.join(
-            '{}={!r}'.format(key, value) for key, value in key_values
+            f'{key}={value!r}' for key, value in key_values
             if value is not None
         )
 
@@ -111,8 +108,8 @@ class TargetPython(object):
 
             tags = get_supported(
                 version=version,
-                platform=self.platform,
-                abi=self.abi,
+                platforms=self.platforms,
+                abis=self.abis,
                 impl=self.implementation,
             )
             self._valid_tags = tags

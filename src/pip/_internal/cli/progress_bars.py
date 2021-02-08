@@ -1,10 +1,7 @@
-from __future__ import division
-
 import itertools
 import sys
 from signal import SIGINT, default_int_handler, signal
 
-from pip._vendor import six
 from pip._vendor.progress.bar import Bar, FillingCirclesBar, IncrementalBar
 from pip._vendor.progress.spinner import Spinner
 
@@ -36,8 +33,8 @@ def _select_progress_class(preferred, fallback):
     # Collect all of the possible characters we want to use with the preferred
     # bar.
     characters = [
-        getattr(preferred, "empty_fill", six.text_type()),
-        getattr(preferred, "fill", six.text_type()),
+        getattr(preferred, "empty_fill", ""),
+        getattr(preferred, "fill", ""),
     ]
     characters += list(getattr(preferred, "phases", []))
 
@@ -45,7 +42,7 @@ def _select_progress_class(preferred, fallback):
     # of the given file, if this works then we'll assume that we can use the
     # fancier bar and if not we'll fall back to the plaintext bar.
     try:
-        six.text_type().join(characters).encode(encoding)
+        "".join(characters).encode(encoding)
     except UnicodeEncodeError:
         return fallback
     else:
@@ -55,7 +52,7 @@ def _select_progress_class(preferred, fallback):
 _BaseBar = _select_progress_class(IncrementalBar, Bar)  # type: Any
 
 
-class InterruptibleMixin(object):
+class InterruptibleMixin:
     """
     Helper to ensure that self.finish() gets called on keyboard interrupt.
 
@@ -79,10 +76,7 @@ class InterruptibleMixin(object):
         Save the original SIGINT handler for later.
         """
         # https://github.com/python/mypy/issues/5887
-        super(InterruptibleMixin, self).__init__(  # type: ignore
-            *args,
-            **kwargs
-        )
+        super().__init__(*args, **kwargs)  # type: ignore
 
         self.original_handler = signal(SIGINT, self.handle_sigint)
 
@@ -102,7 +96,7 @@ class InterruptibleMixin(object):
         This should happen regardless of whether the progress display finishes
         normally, or gets interrupted.
         """
-        super(InterruptibleMixin, self).finish()  # type: ignore
+        super().finish()  # type: ignore
         signal(SIGINT, self.original_handler)
 
     def handle_sigint(self, signum, frame):  # type: ignore
@@ -128,18 +122,15 @@ class BlueEmojiBar(IncrementalBar):
     suffix = "%(percent)d%%"
     bar_prefix = " "
     bar_suffix = " "
-    phases = (u"\U0001F539", u"\U0001F537", u"\U0001F535")  # type: Any
+    phases = ("\U0001F539", "\U0001F537", "\U0001F535")
 
 
-class DownloadProgressMixin(object):
+class DownloadProgressMixin:
 
     def __init__(self, *args, **kwargs):
         # type: (List[Any], Dict[Any, Any]) -> None
         # https://github.com/python/mypy/issues/5887
-        super(DownloadProgressMixin, self).__init__(  # type: ignore
-            *args,
-            **kwargs
-        )
+        super().__init__(*args, **kwargs)  # type: ignore
         self.message = (" " * (
             get_indentation() + 2
         )) + self.message  # type: str
@@ -161,7 +152,7 @@ class DownloadProgressMixin(object):
     def pretty_eta(self):
         # type: () -> str
         if self.eta:  # type: ignore
-            return "eta {}".format(self.eta_td)  # type: ignore
+            return f"eta {self.eta_td}"  # type: ignore
         return ""
 
     def iter(self, it):  # type: ignore
@@ -173,7 +164,7 @@ class DownloadProgressMixin(object):
         self.finish()
 
 
-class WindowsMixin(object):
+class WindowsMixin:
 
     def __init__(self, *args, **kwargs):
         # type: (List[Any], Dict[Any, Any]) -> None
@@ -188,7 +179,7 @@ class WindowsMixin(object):
             self.hide_cursor = False
 
         # https://github.com/python/mypy/issues/5887
-        super(WindowsMixin, self).__init__(*args, **kwargs)  # type: ignore
+        super().__init__(*args, **kwargs)  # type: ignore
 
         # Check if we are running on Windows and we have the colorama module,
         # if we do then wrap our file with it.

@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 import os
 
@@ -56,6 +54,7 @@ class DownloadCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.no_build_isolation())
         self.cmd_opts.add_option(cmdoptions.use_pep517())
         self.cmd_opts.add_option(cmdoptions.no_use_pep517())
+        self.cmd_opts.add_option(cmdoptions.ignore_requires_python())
 
         self.cmd_opts.add_option(
             '-d', '--dest', '--destination-dir', '--destination-directory',
@@ -87,7 +86,6 @@ class DownloadCommand(RequirementCommand):
         cmdoptions.check_dist_restriction(options)
 
         options.download_dir = normalize_path(options.download_dir)
-
         ensure_dir(options.download_dir)
 
         session = self.get_default_session(options)
@@ -97,14 +95,13 @@ class DownloadCommand(RequirementCommand):
             options=options,
             session=session,
             target_python=target_python,
+            ignore_requires_python=options.ignore_requires_python,
         )
-        build_delete = (not (options.no_clean or options.build_dir))
 
         req_tracker = self.enter_context(get_requirement_tracker())
 
         directory = TempDirectory(
-            options.build_dir,
-            delete=build_delete,
+            delete=not options.no_clean,
             kind="download",
             globally_managed=True,
         )
@@ -125,6 +122,7 @@ class DownloadCommand(RequirementCommand):
             preparer=preparer,
             finder=finder,
             options=options,
+            ignore_requires_python=options.ignore_requires_python,
             py_version_info=options.python_version,
         )
 
@@ -134,10 +132,13 @@ class DownloadCommand(RequirementCommand):
             reqs, check_supported_wheels=True
         )
 
-        downloaded = ' '.join([req.name  # type: ignore
-                               for req in requirement_set.requirements.values()
-                               if req.successfully_downloaded])
+        downloaded = []  # type: List[str]
+        for req in requirement_set.requirements.values():
+            if req.satisfied_by is None:
+                assert req.name is not None
+                preparer.save_linked_requirement(req)
+                downloaded.append(req.name)
         if downloaded:
-            write_output('Successfully downloaded %s', downloaded)
+            write_output('Successfully downloaded %s', ' '.join(downloaded))
 
         return SUCCESS

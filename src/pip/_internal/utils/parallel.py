@@ -23,14 +23,12 @@ from multiprocessing import Pool as ProcessPool
 from multiprocessing.dummy import Pool as ThreadPool
 
 from pip._vendor.requests.adapters import DEFAULT_POOLSIZE
-from pip._vendor.six import PY2
-from pip._vendor.six.moves import map
 
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import Callable, Iterable, Iterator, Union, TypeVar
     from multiprocessing import pool
+    from typing import Callable, Iterable, Iterator, TypeVar, Union
 
     Pool = Union[pool.Pool, pool.ThreadPool]
     S = TypeVar('S')
@@ -100,7 +98,7 @@ def _map_multithread(func, iterable, chunksize=1):
         return pool.imap_unordered(func, iterable, chunksize)
 
 
-if LACK_SEM_OPEN or PY2:
+if LACK_SEM_OPEN:
     map_multiprocess = map_multithread = _map_fallback
 else:
     map_multiprocess = _map_multiprocess

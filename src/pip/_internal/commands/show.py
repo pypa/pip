@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import logging
 import os
 from email.parser import FeedParser
@@ -14,7 +12,7 @@ from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
     from optparse import Values
-    from typing import List, Dict, Iterator
+    from typing import Dict, Iterator, List
 
 logger = logging.getLogger(__name__)
 

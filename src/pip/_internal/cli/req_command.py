@@ -16,7 +16,6 @@ from pip._internal.exceptions import CommandError, PreviousBuildDirError
 from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.models.selection_prefs import SelectionPreferences
-from pip._internal.network.download import Downloader
 from pip._internal.network.session import PipSession
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req.constructors import (
@@ -39,10 +38,7 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.req.req_install import InstallRequirement
     from pip._internal.req.req_tracker import RequirementTracker
     from pip._internal.resolution.base import BaseResolver
-    from pip._internal.utils.temp_dir import (
-        TempDirectory,
-        TempDirectoryTypeRegistry,
-    )
+    from pip._internal.utils.temp_dir import TempDirectory, TempDirectoryTypeRegistry
 
 
 logger = logging.getLogger(__name__)
@@ -55,7 +51,7 @@ class SessionCommandMixin(CommandContextMixIn):
     """
     def __init__(self):
         # type: () -> None
-        super(SessionCommandMixin, self).__init__()
+        super().__init__()
         self._session = None  # Optional[PipSession]
 
     @classmethod
@@ -194,12 +190,22 @@ class RequirementCommand(IndexGroupCommand):
 
     def __init__(self, *args, **kw):
         # type: (Any, Any) -> None
-        super(RequirementCommand, self).__init__(*args, **kw)
+        super().__init__(*args, **kw)
 
         self.cmd_opts.add_option(cmdoptions.no_clean())
 
     @staticmethod
+    def determine_resolver_variant(options):
+        # type: (Values) -> str
+        """Determines which resolver should be used, based on the given options."""
+        if "legacy-resolver" in options.deprecated_features_enabled:
+            return "legacy"
+
+        return "2020-resolver"
+
+    @classmethod
     def make_requirement_preparer(
+        cls,
         temp_build_dir,           # type: TempDirectory
         options,                  # type: Values
         req_tracker,              # type: RequirementTracker
@@ -207,32 +213,49 @@ class RequirementCommand(IndexGroupCommand):
         finder,                   # type: PackageFinder
         use_user_site,            # type: bool
         download_dir=None,        # type: str
-        wheel_download_dir=None,  # type: str
     ):
         # type: (...) -> RequirementPreparer
         """
         Create a RequirementPreparer instance for the given parameters.
         """
-        downloader = Downloader(session, progress_bar=options.progress_bar)
-
         temp_build_dir_path = temp_build_dir.path
         assert temp_build_dir_path is not None
+
+        resolver_variant = cls.determine_resolver_variant(options)
+        if resolver_variant == "2020-resolver":
+            lazy_wheel = 'fast-deps' in options.features_enabled
+            if lazy_wheel:
+                logger.warning(
+                    'pip is using lazily downloaded wheels using HTTP '
+                    'range requests to obtain dependency information. '
+                    'This experimental feature is enabled through '
+                    '--use-feature=fast-deps and it is not ready for '
+                    'production.'
+                )
+        else:
+            lazy_wheel = False
+            if 'fast-deps' in options.features_enabled:
+                logger.warning(
+                    'fast-deps has no effect when used with the legacy resolver.'
+                )
 
         return RequirementPreparer(
             build_dir=temp_build_dir_path,
             src_dir=options.src_dir,
             download_dir=download_dir,
-            wheel_download_dir=wheel_download_dir,
             build_isolation=options.build_isolation,
             req_tracker=req_tracker,
-            downloader=downloader,
+            session=session,
+            progress_bar=options.progress_bar,
             finder=finder,
             require_hashes=options.require_hashes,
             use_user_site=use_user_site,
+            lazy_wheel=lazy_wheel,
         )
 
-    @staticmethod
+    @classmethod
     def make_resolver(
+        cls,
         preparer,                            # type: RequirementPreparer
         finder,                              # type: PackageFinder
         options,                             # type: Values
@@ -243,7 +266,7 @@ class RequirementCommand(IndexGroupCommand):
         force_reinstall=False,               # type: bool
         upgrade_strategy="to-satisfy-only",  # type: str
         use_pep517=None,                     # type: Optional[bool]
-        py_version_info=None            # type: Optional[Tuple[int, ...]]
+        py_version_info=None,                # type: Optional[Tuple[int, ...]]
     ):
         # type: (...) -> BaseResolver
         """
@@ -254,11 +277,13 @@ class RequirementCommand(IndexGroupCommand):
             isolated=options.isolated_mode,
             use_pep517=use_pep517,
         )
+        resolver_variant = cls.determine_resolver_variant(options)
         # The long import name and duplicated invocation is needed to convince
         # Mypy into correctly typechecking. Otherwise it would complain the
         # "Resolver" class being redefined.
-        if '2020-resolver' in options.features_enabled:
+        if resolver_variant == "2020-resolver":
             import pip._internal.resolution.resolvelib.resolver
+
             return pip._internal.resolution.resolvelib.resolver.Resolver(
                 preparer=preparer,
                 finder=finder,
@@ -271,7 +296,6 @@ class RequirementCommand(IndexGroupCommand):
                 force_reinstall=force_reinstall,
                 upgrade_strategy=upgrade_strategy,
                 py_version_info=py_version_info,
-                lazy_wheel='fast-deps' in options.features_enabled,
             )
         import pip._internal.resolution.legacy.resolver
         return pip._internal.resolution.legacy.resolver.Resolver(

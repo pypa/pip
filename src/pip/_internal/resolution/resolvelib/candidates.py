@@ -1,22 +1,17 @@
 import logging
 import sys
 
-from pip._vendor.contextlib2 import suppress
 from pip._vendor.packaging.specifiers import InvalidSpecifier, SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
 
 from pip._internal.exceptions import HashError, MetadataInconsistent
-from pip._internal.network.lazy_wheel import (
-    HTTPRangeRequestUnsupported,
-    dist_from_wheel_url,
-)
+from pip._internal.models.wheel import Wheel
 from pip._internal.req.constructors import (
     install_req_from_editable,
     install_req_from_line,
 )
 from pip._internal.req.req_install import InstallRequirement
-from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import dist_is_editable, normalize_version_info
 from pip._internal.utils.packaging import get_requires_python
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
@@ -29,7 +24,6 @@ if MYPY_CHECK_RUNNING:
     from pip._vendor.packaging.version import _BaseVersion
     from pip._vendor.pkg_resources import Distribution
 
-    from pip._internal.distributions import AbstractDistribution
     from pip._internal.models.link import Link
 
     from .base import Requirement
@@ -94,9 +88,9 @@ def make_install_req_from_dist(dist, template):
     if template.req:
         line = str(template.req)
     elif template.link:
-        line = "{} @ {}".format(project_name, template.link.url)
+        line = f"{project_name} @ {template.link.url}"
     else:
-        line = "{}=={}".format(project_name, dist.parsed_version)
+        line = f"{project_name}=={dist.parsed_version}"
     ireq = install_req_from_line(
         line,
         user_supplied=template.user_supplied,
@@ -147,8 +141,11 @@ class _InstallRequirementBackedCandidate(Candidate):
         self._ireq = ireq
         self._name = name
         self._version = version
-        self._dist = None  # type: Optional[Distribution]
-        self._prepared = False
+        self.dist = self._prepare()
+
+    def __str__(self):
+        # type: () -> str
+        return f"{self.name} {self.version}"
 
     def __repr__(self):
         # type: () -> str
@@ -167,23 +164,23 @@ class _InstallRequirementBackedCandidate(Candidate):
             return self._link == other._link
         return False
 
-    # Needed for Python 2, which does not implement this by default
-    def __ne__(self, other):
-        # type: (Any) -> bool
-        return not self.__eq__(other)
-
     @property
     def source_link(self):
         # type: () -> Optional[Link]
         return self._source_link
 
     @property
-    def name(self):
+    def project_name(self):
         # type: () -> str
         """The normalised name of the project the candidate refers to"""
         if self._name is None:
             self._name = canonicalize_name(self.dist.project_name)
         return self._name
+
+    @property
+    def name(self):
+        # type: () -> str
+        return self.project_name
 
     @property
     def version(self):
@@ -200,94 +197,64 @@ class _InstallRequirementBackedCandidate(Candidate):
             self._link.file_path if self._link.is_file else self._link
         )
 
-    def _prepare_abstract_distribution(self):
-        # type: () -> AbstractDistribution
+    def _prepare_distribution(self):
+        # type: () -> Distribution
         raise NotImplementedError("Override in subclass")
 
-    def _check_metadata_consistency(self):
-        # type: () -> None
+    def _check_metadata_consistency(self, dist):
+        # type: (Distribution) -> None
         """Check for consistency of project name and version of dist."""
-        # TODO: (Longer term) Rather than abort, reject this candidate
-        #       and backtrack. This would need resolvelib support.
-        dist = self._dist  # type: Distribution
-        name = canonicalize_name(dist.project_name)
-        if self._name is not None and self._name != name:
-            raise MetadataInconsistent(self._ireq, "name", dist.project_name)
-        version = dist.parsed_version
-        if self._version is not None and self._version != version:
-            raise MetadataInconsistent(self._ireq, "version", dist.version)
+        canonical_name = canonicalize_name(dist.project_name)
+        if self._name is not None and self._name != canonical_name:
+            raise MetadataInconsistent(
+                self._ireq,
+                "name",
+                self._name,
+                dist.project_name,
+            )
+        if self._version is not None and self._version != dist.parsed_version:
+            raise MetadataInconsistent(
+                self._ireq,
+                "version",
+                str(self._version),
+                dist.version,
+            )
 
     def _prepare(self):
-        # type: () -> None
-        if self._prepared:
-            return
+        # type: () -> Distribution
         try:
-            abstract_dist = self._prepare_abstract_distribution()
+            dist = self._prepare_distribution()
         except HashError as e:
+            # Provide HashError the underlying ireq that caused it. This
+            # provides context for the resulting error message to show the
+            # offending line to the user.
             e.req = self._ireq
             raise
+        self._check_metadata_consistency(dist)
+        return dist
 
-        self._dist = abstract_dist.get_pkg_resources_distribution()
-        assert self._dist is not None, "Distribution already installed"
-        self._check_metadata_consistency()
-        self._prepared = True
-
-    def _fetch_metadata(self):
-        # type: () -> None
-        """Fetch metadata, using lazy wheel if possible."""
-        preparer = self._factory.preparer
-        use_lazy_wheel = self._factory.use_lazy_wheel
-        remote_wheel = self._link.is_wheel and not self._link.is_file
-        if use_lazy_wheel and remote_wheel and not preparer.require_hashes:
-            assert self._name is not None
-            logger.info('Collecting %s', self._ireq.req or self._ireq)
-            # If HTTPRangeRequestUnsupported is raised, fallback silently.
-            with indent_log(), suppress(HTTPRangeRequestUnsupported):
-                logger.info(
-                    'Obtaining dependency information from %s %s',
-                    self._name, self._version,
-                )
-                url = self._link.url.split('#', 1)[0]
-                session = preparer.downloader._session
-                self._dist = dist_from_wheel_url(self._name, url, session)
-                self._check_metadata_consistency()
-        if self._dist is None:
-            self._prepare()
-
-    @property
-    def dist(self):
-        # type: () -> Distribution
-        if self._dist is None:
-            self._fetch_metadata()
-        return self._dist
-
-    def _get_requires_python_specifier(self):
-        # type: () -> Optional[SpecifierSet]
+    def _get_requires_python_dependency(self):
+        # type: () -> Optional[Requirement]
         requires_python = get_requires_python(self.dist)
         if requires_python is None:
             return None
         try:
             spec = SpecifierSet(requires_python)
         except InvalidSpecifier as e:
-            logger.warning(
-                "Package %r has an invalid Requires-Python: %s", self.name, e,
-            )
+            message = "Package %r has an invalid Requires-Python: %s"
+            logger.warning(message, self.name, e)
             return None
-        return spec
+        return self._factory.make_requires_python_requirement(spec)
 
-    def iter_dependencies(self):
-        # type: () -> Iterable[Optional[Requirement]]
-        for r in self.dist.requires():
+    def iter_dependencies(self, with_requires):
+        # type: (bool) -> Iterable[Optional[Requirement]]
+        requires = self.dist.requires() if with_requires else ()
+        for r in requires:
             yield self._factory.make_requirement_from_spec(str(r), self._ireq)
-        python_dep = self._factory.make_requires_python_requirement(
-            self._get_requires_python_specifier(),
-        )
-        if python_dep:
-            yield python_dep
+        yield self._get_requires_python_dependency()
 
     def get_install_requirement(self):
         # type: () -> Optional[InstallRequirement]
-        self._prepare()
         return self._ireq
 
 
@@ -309,13 +276,28 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
             logger.debug("Using cached wheel link: %s", cache_entry.link)
             link = cache_entry.link
         ireq = make_install_req_from_link(link, template)
+        assert ireq.link == link
+        if ireq.link.is_wheel and not ireq.link.is_file:
+            wheel = Wheel(ireq.link.filename)
+            wheel_name = canonicalize_name(wheel.name)
+            assert name == wheel_name, (
+                f"{name!r} != {wheel_name!r} for wheel"
+            )
+            # Version may not be present for PEP 508 direct URLs
+            if version is not None:
+                wheel_version = Version(wheel.version)
+                assert version == wheel_version, (
+                    "{!r} != {!r} for wheel {}".format(
+                        version, wheel_version, name
+                    )
+                )
 
         if (cache_entry is not None and
                 cache_entry.persistent and
                 template.link is template.original_link):
             ireq.original_link_is_in_wheel_cache = True
 
-        super(LinkCandidate, self).__init__(
+        super().__init__(
             link=link,
             source_link=source_link,
             ireq=ireq,
@@ -324,8 +306,8 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
             version=version,
         )
 
-    def _prepare_abstract_distribution(self):
-        # type: () -> AbstractDistribution
+    def _prepare_distribution(self):
+        # type: () -> Distribution
         return self._factory.preparer.prepare_linked_requirement(
             self._ireq, parallel_builds=True,
         )
@@ -343,7 +325,7 @@ class EditableCandidate(_InstallRequirementBackedCandidate):
         version=None,  # type: Optional[_BaseVersion]
     ):
         # type: (...) -> None
-        super(EditableCandidate, self).__init__(
+        super().__init__(
             link=link,
             source_link=link,
             ireq=make_install_req_from_editable(link, template),
@@ -352,8 +334,8 @@ class EditableCandidate(_InstallRequirementBackedCandidate):
             version=version,
         )
 
-    def _prepare_abstract_distribution(self):
-        # type: () -> AbstractDistribution
+    def _prepare_distribution(self):
+        # type: () -> Distribution
         return self._factory.preparer.prepare_editable_requirement(self._ireq)
 
 
@@ -379,6 +361,10 @@ class AlreadyInstalledCandidate(Candidate):
         skip_reason = "already satisfied"
         factory.preparer.prepare_installed_requirement(self._ireq, skip_reason)
 
+    def __str__(self):
+        # type: () -> str
+        return str(self.dist)
+
     def __repr__(self):
         # type: () -> str
         return "{class_name}({distribution!r})".format(
@@ -396,15 +382,15 @@ class AlreadyInstalledCandidate(Candidate):
             return self.name == other.name and self.version == other.version
         return False
 
-    # Needed for Python 2, which does not implement this by default
-    def __ne__(self, other):
-        # type: (Any) -> bool
-        return not self.__eq__(other)
+    @property
+    def project_name(self):
+        # type: () -> str
+        return canonicalize_name(self.dist.project_name)
 
     @property
     def name(self):
         # type: () -> str
-        return canonicalize_name(self.dist.project_name)
+        return self.project_name
 
     @property
     def version(self):
@@ -418,10 +404,12 @@ class AlreadyInstalledCandidate(Candidate):
 
     def format_for_error(self):
         # type: () -> str
-        return "{} {} (Installed)".format(self.name, self.version)
+        return f"{self.name} {self.version} (Installed)"
 
-    def iter_dependencies(self):
-        # type: () -> Iterable[Optional[Requirement]]
+    def iter_dependencies(self, with_requires):
+        # type: (bool) -> Iterable[Optional[Requirement]]
+        if not with_requires:
+            return
         for r in self.dist.requires():
             yield self._factory.make_requirement_from_spec(str(r), self._ireq)
 
@@ -463,6 +451,11 @@ class ExtrasCandidate(Candidate):
         self.base = base
         self.extras = extras
 
+    def __str__(self):
+        # type: () -> str
+        name, rest = str(self.base).split(" ", 1)
+        return "{}[{}] {}".format(name, ",".join(self.extras), rest)
+
     def __repr__(self):
         # type: () -> str
         return "{class_name}(base={base!r}, extras={extras!r})".format(
@@ -481,16 +474,16 @@ class ExtrasCandidate(Candidate):
             return self.base == other.base and self.extras == other.extras
         return False
 
-    # Needed for Python 2, which does not implement this by default
-    def __ne__(self, other):
-        # type: (Any) -> bool
-        return not self.__eq__(other)
+    @property
+    def project_name(self):
+        # type: () -> str
+        return self.base.project_name
 
     @property
     def name(self):
         # type: () -> str
         """The normalised name of the project the candidate refers to"""
-        return format_name(self.base.name, self.extras)
+        return format_name(self.base.project_name, self.extras)
 
     @property
     def version(self):
@@ -519,9 +512,15 @@ class ExtrasCandidate(Candidate):
         # type: () -> Optional[Link]
         return self.base.source_link
 
-    def iter_dependencies(self):
-        # type: () -> Iterable[Optional[Requirement]]
+    def iter_dependencies(self, with_requires):
+        # type: (bool) -> Iterable[Optional[Requirement]]
         factory = self.base._factory
+
+        # Add a dependency on the exact base
+        # (See note 2b in the class docstring)
+        yield factory.make_requirement_from_candidate(self.base)
+        if not with_requires:
+            return
 
         # The user may have specified extras that the candidate doesn't
         # support. We ignore any unsupported extras here.
@@ -534,10 +533,6 @@ class ExtrasCandidate(Candidate):
                 self.version,
                 extra
             )
-
-        # Add a dependency on the exact base
-        # (See note 2b in the class docstring)
-        yield factory.make_requirement_from_candidate(self.base)
 
         for r in self.base.dist.requires(valid_extras):
             requirement = factory.make_requirement_from_spec(
@@ -570,11 +565,20 @@ class RequiresPythonCandidate(Candidate):
     # only one RequiresPythonCandidate in a resolution, i.e. the host Python.
     # The built-in object.__eq__() and object.__ne__() do exactly what we want.
 
+    def __str__(self):
+        # type: () -> str
+        return f"Python {self._version}"
+
     @property
-    def name(self):
+    def project_name(self):
         # type: () -> str
         # Avoid conflicting with the PyPI package "Python".
         return "<Python from Requires-Python>"
+
+    @property
+    def name(self):
+        # type: () -> str
+        return self.project_name
 
     @property
     def version(self):
@@ -583,10 +587,10 @@ class RequiresPythonCandidate(Candidate):
 
     def format_for_error(self):
         # type: () -> str
-        return "Python {}".format(self.version)
+        return f"Python {self.version}"
 
-    def iter_dependencies(self):
-        # type: () -> Iterable[Optional[Requirement]]
+    def iter_dependencies(self, with_requires):
+        # type: (bool) -> Iterable[Optional[Requirement]]
         return ()
 
     def get_install_requirement(self):

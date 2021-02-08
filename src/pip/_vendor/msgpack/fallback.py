@@ -365,18 +365,19 @@ class Unpacker(object):
         return self._buffer[self._buff_i :]
 
     def read_bytes(self, n):
-        ret = self._read(n)
+        ret = self._read(n, raise_outofdata=False)
         self._consume()
         return ret
 
-    def _read(self, n):
+    def _read(self, n, raise_outofdata=True):
         # (int) -> bytearray
-        self._reserve(n)
+        self._reserve(n, raise_outofdata=raise_outofdata)
         i = self._buff_i
-        self._buff_i = i + n
-        return self._buffer[i : i + n]
+        ret = self._buffer[i : i + n]
+        self._buff_i = i + len(ret)
+        return ret
 
-    def _reserve(self, n):
+    def _reserve(self, n, raise_outofdata=True):
         remain_bytes = len(self._buffer) - self._buff_i - n
 
         # Fast path: buffer has n bytes already
@@ -404,7 +405,7 @@ class Unpacker(object):
             self._buffer += read_data
             remain_bytes -= len(read_data)
 
-        if len(self._buffer) < n + self._buff_i:
+        if len(self._buffer) < n + self._buff_i and raise_outofdata:
             self._buff_i = 0  # rollback
             raise OutOfData
 
@@ -743,7 +744,7 @@ class Packer(object):
     """
     MessagePack Packer
 
-    Usage:
+    Usage::
 
         packer = Packer()
         astream.write(packer.pack(a))
@@ -783,6 +784,29 @@ class Packer(object):
     :param str unicode_errors:
         The error handler for encoding unicode. (default: 'strict')
         DO NOT USE THIS!!  This option is kept for very specific usage.
+
+    Example of streaming deserialize from file-like object::
+
+        unpacker = Unpacker(file_like)
+        for o in unpacker:
+            process(o)
+
+    Example of streaming deserialize from socket::
+
+        unpacker = Unpacker()
+        while True:
+            buf = sock.recv(1024**2)
+            if not buf:
+                break
+            unpacker.feed(buf)
+            for o in unpacker:
+                process(o)
+
+    Raises ``ExtraData`` when *packed* contains extra bytes.
+    Raises ``OutOfData`` when *packed* is incomplete.
+    Raises ``FormatError`` when *packed* is not valid msgpack.
+    Raises ``StackError`` when *packed* contains too nested.
+    Other exceptions can be raised during unpacking.
     """
 
     def __init__(
@@ -920,7 +944,7 @@ class Packer(object):
                     len(obj), dict_iteritems(obj), nest_limit - 1
                 )
 
-            if self._datetime and check(obj, _DateTime):
+            if self._datetime and check(obj, _DateTime) and obj.tzinfo is not None:
                 obj = Timestamp.from_datetime(obj)
                 default_used = 1
                 continue

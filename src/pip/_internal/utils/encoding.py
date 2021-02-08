@@ -6,7 +6,7 @@ import sys
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
-    from typing import List, Tuple, Text
+    from typing import List, Tuple
 
 BOMS = [
     (codecs.BOM_UTF8, 'utf-8'),
@@ -16,13 +16,13 @@ BOMS = [
     (codecs.BOM_UTF32, 'utf-32'),
     (codecs.BOM_UTF32_BE, 'utf-32-be'),
     (codecs.BOM_UTF32_LE, 'utf-32-le'),
-]  # type: List[Tuple[bytes, Text]]
+]  # type: List[Tuple[bytes, str]]
 
 ENCODING_RE = re.compile(br'coding[:=]\s*([-\w.]+)')
 
 
 def auto_decode(data):
-    # type: (bytes) -> Text
+    # type: (bytes) -> str
     """Check a bytes string for a BOM to correctly detect the encoding
 
     Fallback to locale.getpreferredencoding(False) like open() on Python3"""

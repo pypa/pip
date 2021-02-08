@@ -17,4 +17,4 @@ cases:
   # the old resolver tries to install A 1.0.0 (which fails), but the new
   # resolver realises that A 1.0.0 cannot be installed and falls back to
   # installing the older version A 0.8.0 instead.
-  skip: old
+  skip: legacy

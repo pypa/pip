@@ -2,8 +2,6 @@
 # mypy: strict-optional=False
 # mypy: disallow-untyped-defs=False
 
-from __future__ import absolute_import
-
 import contextlib
 import errno
 import getpass
@@ -15,48 +13,40 @@ import posixpath
 import shutil
 import stat
 import sys
-from collections import deque
-from itertools import tee
+import urllib.parse
+from io import StringIO
+from itertools import filterfalse, tee, zip_longest
 
 from pip._vendor import pkg_resources
-from pip._vendor.packaging.utils import canonicalize_name
+
 # NOTE: retrying is not annotated in typeshed as on 2017-07-17, which is
 #       why we ignore the type on this import.
 from pip._vendor.retrying import retry  # type: ignore
-from pip._vendor.six import PY2, text_type
-from pip._vendor.six.moves import filter, filterfalse, input, map, zip_longest
-from pip._vendor.six.moves.urllib import parse as urllib_parse
-from pip._vendor.six.moves.urllib.parse import unquote as urllib_unquote
 
 from pip import __version__
 from pip._internal.exceptions import CommandError
-from pip._internal.locations import (
-    get_major_minor_version,
-    site_packages,
-    user_site,
-)
-from pip._internal.utils.compat import (
-    WINDOWS,
-    expanduser,
-    stdlib_pkgs,
-    str_to_display,
-)
+from pip._internal.locations import get_major_minor_version, site_packages, user_site
+from pip._internal.utils.compat import WINDOWS, stdlib_pkgs
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING, cast
 from pip._internal.utils.virtualenv import (
     running_under_virtualenv,
     virtualenv_no_global,
 )
 
-if PY2:
-    from io import BytesIO as StringIO
-else:
-    from io import StringIO
-
 if MYPY_CHECK_RUNNING:
     from typing import (
-        Any, AnyStr, Callable, Container, Iterable, Iterator, List, Optional,
-        Text, Tuple, TypeVar, Union,
+        Any,
+        AnyStr,
+        Callable,
+        Container,
+        Iterable,
+        Iterator,
+        List,
+        Optional,
+        Tuple,
+        TypeVar,
     )
+
     from pip._vendor.pkg_resources import Distribution
 
     VersionInfo = Tuple[int, int, int]
@@ -123,7 +113,7 @@ def get_prog():
     try:
         prog = os.path.basename(sys.argv[0])
         if prog in ('__main__.py', '-c'):
-            return "{} -m pip".format(sys.executable)
+            return f"{sys.executable} -m pip"
         else:
             return prog
     except (AttributeError, TypeError, IndexError):
@@ -134,7 +124,7 @@ def get_prog():
 # Retry every half second for up to 3 seconds
 @retry(stop_max_delay=3000, wait_fixed=500)
 def rmtree(dir, ignore_errors=False):
-    # type: (Text, bool) -> None
+    # type: (AnyStr, bool) -> None
     shutil.rmtree(dir, ignore_errors=ignore_errors,
                   onerror=rmtree_errorhandler)
 
@@ -145,7 +135,7 @@ def rmtree_errorhandler(func, path, exc_info):
     read-only attribute, and hopefully continue without problems."""
     try:
         has_attr_readonly = not (os.stat(path).st_mode & stat.S_IWRITE)
-    except (IOError, OSError):
+    except OSError:
         # it's equivalent to os.path.exists
         return
 
@@ -160,7 +150,7 @@ def rmtree_errorhandler(func, path, exc_info):
 
 
 def path_to_display(path):
-    # type: (Optional[Union[str, Text]]) -> Optional[Text]
+    # type: (Optional[str]) -> Optional[str]
     """
     Convert a bytes (or text) path to text (unicode in Python 2) for display
     and logging purposes.
@@ -170,7 +160,7 @@ def path_to_display(path):
     """
     if path is None:
         return None
-    if isinstance(path, text_type):
+    if isinstance(path, str):
         return path
     # Otherwise, path is a bytes object (str in Python 2).
     try:
@@ -178,29 +168,16 @@ def path_to_display(path):
     except UnicodeDecodeError:
         # Include the full bytes to make troubleshooting easier, even though
         # it may not be very human readable.
-        if PY2:
-            # Convert the bytes to a readable str representation using
-            # repr(), and then convert the str to unicode.
-            #   Also, we add the prefix "b" to the repr() return value both
-            # to make the Python 2 output look like the Python 3 output, and
-            # to signal to the user that this is a bytes representation.
-            display_path = str_to_display('b{!r}'.format(path))
-        else:
-            # Silence the "F821 undefined name 'ascii'" flake8 error since
-            # in Python 3 ascii() is a built-in.
-            display_path = ascii(path)  # noqa: F821
+        display_path = ascii(path)
 
     return display_path
 
 
 def display_path(path):
-    # type: (Union[str, Text]) -> str
+    # type: (str) -> str
     """Gives the display value for a given path, making it relative to cwd
     if possible."""
     path = os.path.normcase(os.path.abspath(path))
-    if sys.version_info[0] == 2:
-        path = path.decode(sys.getfilesystemencoding(), 'replace')
-        path = path.encode(sys.getdefaultencoding(), 'replace')
     if path.startswith(os.getcwd() + os.path.sep):
         path = '.' + path[len(os.getcwd()):]
     return path
@@ -266,6 +243,23 @@ def ask_password(message):
     return getpass.getpass(message)
 
 
+def strtobool(val):
+    # type: (str) -> int
+    """Convert a string representation of truth to true (1) or false (0).
+
+    True values are 'y', 'yes', 't', 'true', 'on', and '1'; false values
+    are 'n', 'no', 'f', 'false', 'off', and '0'.  Raises ValueError if
+    'val' is anything else.
+    """
+    val = val.lower()
+    if val in ('y', 'yes', 't', 'true', 'on', '1'):
+        return 1
+    elif val in ('n', 'no', 'f', 'false', 'off', '0'):
+        return 0
+    else:
+        raise ValueError("invalid truth value %r" % (val,))
+
+
 def format_size(bytes):
     # type: (float) -> str
     if bytes > 1000 * 1000:
@@ -323,7 +317,7 @@ def normalize_path(path, resolve_symlinks=True):
     Convert a path to its canonical, case-normalized, absolute version.
 
     """
-    path = expanduser(path)
+    path = os.path.expanduser(path)
     if resolve_symlinks:
         path = os.path.realpath(path)
     else:
@@ -424,97 +418,42 @@ def get_installed_distributions(
         paths=None  # type: Optional[List[str]]
 ):
     # type: (...) -> List[Distribution]
+    """Return a list of installed Distribution objects.
+
+    Left for compatibility until direct pkg_resources uses are refactored out.
     """
-    Return a list of installed Distribution objects.
+    from pip._internal.metadata import get_default_environment, get_environment
+    from pip._internal.metadata.pkg_resources import Distribution as _Dist
 
-    If ``local_only`` is True (default), only return installations
-    local to the current virtualenv, if in a virtualenv.
-
-    ``skip`` argument is an iterable of lower-case project names to
-    ignore; defaults to stdlib_pkgs
-
-    If ``include_editables`` is False, don't report editables.
-
-    If ``editables_only`` is True , only report editables.
-
-    If ``user_only`` is True , only report installations in the user
-    site directory.
-
-    If ``paths`` is set, only report the distributions present at the
-    specified list of locations.
-    """
-    if paths:
-        working_set = pkg_resources.WorkingSet(paths)
+    if paths is None:
+        env = get_default_environment()
     else:
-        working_set = pkg_resources.working_set
-
-    if local_only:
-        local_test = dist_is_local
-    else:
-        def local_test(d):
-            return True
-
-    if include_editables:
-        def editable_test(d):
-            return True
-    else:
-        def editable_test(d):
-            return not dist_is_editable(d)
-
-    if editables_only:
-        def editables_only_test(d):
-            return dist_is_editable(d)
-    else:
-        def editables_only_test(d):
-            return True
-
-    if user_only:
-        user_test = dist_in_usersite
-    else:
-        def user_test(d):
-            return True
-
-    return [d for d in working_set
-            if local_test(d) and
-            d.key not in skip and
-            editable_test(d) and
-            editables_only_test(d) and
-            user_test(d)
-            ]
-
-
-def search_distribution(req_name):
-
-    # Canonicalize the name before searching in the list of
-    # installed distributions and also while creating the package
-    # dictionary to get the Distribution object
-    req_name = canonicalize_name(req_name)
-    packages = get_installed_distributions(skip=())
-    pkg_dict = {canonicalize_name(p.key): p for p in packages}
-    return pkg_dict.get(req_name)
+        env = get_environment(paths)
+    dists = env.iter_installed_distributions(
+        local_only=local_only,
+        skip=skip,
+        include_editables=include_editables,
+        editables_only=editables_only,
+        user_only=user_only,
+    )
+    return [cast(_Dist, dist)._dist for dist in dists]
 
 
 def get_distribution(req_name):
-    """Given a requirement name, return the installed Distribution object"""
+    # type: (str) -> Optional[Distribution]
+    """Given a requirement name, return the installed Distribution object.
 
-    # Search the distribution by looking through the working set
-    dist = search_distribution(req_name)
+    This searches from *all* distributions available in the environment, to
+    match the behavior of ``pkg_resources.get_distribution()``.
 
-    # If distribution could not be found, call working_set.require
-    # to update the working set, and try to find the distribution
-    # again.
-    # This might happen for e.g. when you install a package
-    # twice, once using setup.py develop and again using setup.py install.
-    # Now when run pip uninstall twice, the package gets removed
-    # from the working set in the first uninstall, so we have to populate
-    # the working set again so that pip knows about it and the packages
-    # gets picked up and is successfully uninstalled the second time too.
-    if not dist:
-        try:
-            pkg_resources.working_set.require(req_name)
-        except pkg_resources.DistributionNotFound:
-            return None
-    return search_distribution(req_name)
+    Left for compatibility until direct pkg_resources uses are refactored out.
+    """
+    from pip._internal.metadata import get_default_environment
+    from pip._internal.metadata.pkg_resources import Distribution as _Dist
+    dist = get_default_environment().get_distribution(req_name)
+    if dist is None:
+        return None
+    return cast(_Dist, dist)._dist
 
 
 def egg_link_path(dist):
@@ -572,22 +511,6 @@ def dist_location(dist):
 def write_output(msg, *args):
     # type: (Any, Any) -> None
     logger.info(msg, *args)
-
-
-class FakeFile(object):
-    """Wrap a list of lines in an object with readline() to make
-    ConfigParser happy."""
-    def __init__(self, lines):
-        self._gen = iter(lines)
-
-    def readline(self):
-        try:
-            return next(self._gen)
-        except StopIteration:
-            return ''
-
-    def __iter__(self):
-        return self._gen
 
 
 class StreamWrapper(StringIO):
@@ -655,11 +578,6 @@ def get_installed_version(dist_name, working_set=None):
     return dist.version if dist else None
 
 
-def consume(iterator):
-    """Consume an iterable at C speed."""
-    deque(iterator, maxlen=0)
-
-
 # Simulates an enum
 def enum(*sequential, **named):
     enums = dict(zip(sequential, range(len(sequential))), **named)
@@ -677,8 +595,8 @@ def build_netloc(host, port):
         return host
     if ':' in host:
         # Only wrap host with square brackets when it is IPv6
-        host = '[{}]'.format(host)
-    return '{}:{}'.format(host, port)
+        host = f'[{host}]'
+    return f'{host}:{port}'
 
 
 def build_url_from_netloc(netloc, scheme='https'):
@@ -688,8 +606,8 @@ def build_url_from_netloc(netloc, scheme='https'):
     """
     if netloc.count(':') >= 2 and '@' not in netloc and '[' not in netloc:
         # It must be a bare IPv6 address, so wrap it with brackets.
-        netloc = '[{}]'.format(netloc)
-    return '{}://{}'.format(scheme, netloc)
+        netloc = f'[{netloc}]'
+    return f'{scheme}://{netloc}'
 
 
 def parse_netloc(netloc):
@@ -698,7 +616,7 @@ def parse_netloc(netloc):
     Return the host-port pair from a netloc.
     """
     url = build_url_from_netloc(netloc)
-    parsed = urllib_parse.urlparse(url)
+    parsed = urllib.parse.urlparse(url)
     return parsed.hostname, parsed.port
 
 
@@ -724,7 +642,7 @@ def split_auth_from_netloc(netloc):
         user_pass = auth, None
 
     user_pass = tuple(
-        None if x is None else urllib_unquote(x) for x in user_pass
+        None if x is None else urllib.parse.unquote(x) for x in user_pass
     )
 
     return netloc, user_pass
@@ -746,7 +664,7 @@ def redact_netloc(netloc):
         user = '****'
         password = ''
     else:
-        user = urllib_parse.quote(user)
+        user = urllib.parse.quote(user)
         password = ':****'
     return '{user}{password}@{netloc}'.format(user=user,
                                               password=password,
@@ -763,13 +681,13 @@ def _transform_url(url, transform_netloc):
     Returns a tuple containing the transformed url as item 0 and the
     original tuple returned by transform_netloc as item 1.
     """
-    purl = urllib_parse.urlsplit(url)
+    purl = urllib.parse.urlsplit(url)
     netloc_tuple = transform_netloc(purl.netloc)
     # stripped url
     url_pieces = (
         purl.scheme, netloc_tuple[0], purl.path, purl.query, purl.fragment
     )
-    surl = urllib_parse.urlunsplit(url_pieces)
+    surl = urllib.parse.urlunsplit(url_pieces)
     return surl, netloc_tuple
 
 
@@ -806,7 +724,7 @@ def redact_auth_from_url(url):
     return _transform_url(url, _redact_netloc)[0]
 
 
-class HiddenText(object):
+class HiddenText:
     def __init__(
         self,
         secret,    # type: str
@@ -833,12 +751,6 @@ class HiddenText(object):
         # The string being used for redaction doesn't also have to match,
         # just the raw, original string.
         return (self.secret == other.secret)
-
-    # We need to provide an explicit __ne__ implementation for Python 2.
-    # TODO: remove this when we drop PY2 support.
-    def __ne__(self, other):
-        # type: (Any) -> bool
-        return not self == other
 
 
 def hide_value(value):
@@ -890,7 +802,7 @@ def is_console_interactive():
 
 
 def hash_file(path, blocksize=1 << 20):
-    # type: (Text, int) -> Tuple[Any, int]
+    # type: (str, int) -> Tuple[Any, int]
     """Return (hash, length) for path using hashlib.sha256()
     """
 

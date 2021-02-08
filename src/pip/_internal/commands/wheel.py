@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-from __future__ import absolute_import
-
 import logging
 import os
 import shutil
@@ -21,6 +17,7 @@ if MYPY_CHECK_RUNNING:
     from optparse import Values
     from typing import List
 
+    from pip._internal.req.req_install import InstallRequirement
 
 logger = logging.getLogger(__name__)
 
@@ -81,6 +78,14 @@ class WheelCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.progress_bar())
 
         self.cmd_opts.add_option(
+            '--no-verify',
+            dest='no_verify',
+            action='store_true',
+            default=False,
+            help="Don't verify if built wheel is valid.",
+        )
+
+        self.cmd_opts.add_option(
             '--global-option',
             dest='global_options',
             action='append',
@@ -114,7 +119,6 @@ class WheelCommand(RequirementCommand):
         session = self.get_default_session(options)
 
         finder = self._build_package_finder(options, session)
-        build_delete = (not (options.no_clean or options.build_dir))
         wheel_cache = WheelCache(options.cache_dir, options.format_control)
 
         options.wheel_dir = normalize_path(options.wheel_dir)
@@ -123,8 +127,7 @@ class WheelCommand(RequirementCommand):
         req_tracker = self.enter_context(get_requirement_tracker())
 
         directory = TempDirectory(
-            options.build_dir,
-            delete=build_delete,
+            delete=not options.no_clean,
             kind="wheel",
             globally_managed=True,
         )
@@ -137,7 +140,7 @@ class WheelCommand(RequirementCommand):
             req_tracker=req_tracker,
             session=session,
             finder=finder,
-            wheel_download_dir=options.wheel_dir,
+            download_dir=options.wheel_dir,
             use_user_site=False,
         )
 
@@ -156,15 +159,18 @@ class WheelCommand(RequirementCommand):
             reqs, check_supported_wheels=True
         )
 
-        reqs_to_build = [
-            r for r in requirement_set.requirements.values()
-            if should_build_for_wheel_command(r)
-        ]
+        reqs_to_build = []  # type: List[InstallRequirement]
+        for req in requirement_set.requirements.values():
+            if req.is_wheel:
+                preparer.save_linked_requirement(req)
+            elif should_build_for_wheel_command(req):
+                reqs_to_build.append(req)
 
         # build wheels
         build_successes, build_failures = build(
             reqs_to_build,
             wheel_cache=wheel_cache,
+            verify=(not options.no_verify),
             build_options=options.build_options or [],
             global_options=options.global_options or [],
         )

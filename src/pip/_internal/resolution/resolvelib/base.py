@@ -1,5 +1,8 @@
+from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
 
+from pip._internal.req.req_install import InstallRequirement
+from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 if MYPY_CHECK_RUNNING:
@@ -8,7 +11,6 @@ if MYPY_CHECK_RUNNING:
     from pip._vendor.packaging.version import _BaseVersion
 
     from pip._internal.models.link import Link
-    from pip._internal.req.req_install import InstallRequirement
 
     CandidateLookup = Tuple[
         Optional["Candidate"],
@@ -24,10 +26,66 @@ def format_name(project, extras):
     return "{}[{}]".format(project, ",".join(canonical_extras))
 
 
-class Requirement(object):
+class Constraint:
+    def __init__(self, specifier, hashes):
+        # type: (SpecifierSet, Hashes) -> None
+        self.specifier = specifier
+        self.hashes = hashes
+
+    @classmethod
+    def empty(cls):
+        # type: () -> Constraint
+        return Constraint(SpecifierSet(), Hashes())
+
+    @classmethod
+    def from_ireq(cls, ireq):
+        # type: (InstallRequirement) -> Constraint
+        return Constraint(ireq.specifier, ireq.hashes(trust_internet=False))
+
+    def __nonzero__(self):
+        # type: () -> bool
+        return bool(self.specifier) or bool(self.hashes)
+
+    def __bool__(self):
+        # type: () -> bool
+        return self.__nonzero__()
+
+    def __and__(self, other):
+        # type: (InstallRequirement) -> Constraint
+        if not isinstance(other, InstallRequirement):
+            return NotImplemented
+        specifier = self.specifier & other.specifier
+        hashes = self.hashes & other.hashes(trust_internet=False)
+        return Constraint(specifier, hashes)
+
+    def is_satisfied_by(self, candidate):
+        # type: (Candidate) -> bool
+        # We can safely always allow prereleases here since PackageFinder
+        # already implements the prerelease logic, and would have filtered out
+        # prerelease candidates if the user does not expect them.
+        return self.specifier.contains(candidate.version, prereleases=True)
+
+
+class Requirement:
+    @property
+    def project_name(self):
+        # type: () -> str
+        """The "project name" of a requirement.
+
+        This is different from ``name`` if this requirement contains extras,
+        in which case ``name`` would contain the ``[...]`` part, while this
+        refers to the name of the project.
+        """
+        raise NotImplementedError("Subclass should override")
+
     @property
     def name(self):
         # type: () -> str
+        """The name identifying this requirement in the resolver.
+
+        This is different from ``project_name`` if this requirement contains
+        extras, where ``project_name`` would not contain the ``[...]`` part.
+        """
         raise NotImplementedError("Subclass should override")
 
     def is_satisfied_by(self, candidate):
@@ -43,10 +101,26 @@ class Requirement(object):
         raise NotImplementedError("Subclass should override")
 
 
-class Candidate(object):
+class Candidate:
+    @property
+    def project_name(self):
+        # type: () -> str
+        """The "project name" of the candidate.
+
+        This is different from ``name`` if this candidate contains extras,
+        in which case ``name`` would contain the ``[...]`` part, while this
+        refers to the name of the project.
+        """
+        raise NotImplementedError("Override in subclass")
+
     @property
     def name(self):
         # type: () -> str
+        """The name identifying this candidate in the resolver.
+
+        This is different from ``project_name`` if this candidate contains
+        extras, where ``project_name`` would not contain the ``[...]`` part.
+        """
         raise NotImplementedError("Override in subclass")
 
     @property
@@ -69,8 +143,8 @@ class Candidate(object):
         # type: () -> Optional[Link]
         raise NotImplementedError("Override in subclass")
 
-    def iter_dependencies(self):
-        # type: () -> Iterable[Optional[Requirement]]
+    def iter_dependencies(self, with_requires):
+        # type: (bool) -> Iterable[Optional[Requirement]]
         raise NotImplementedError("Override in subclass")
 
     def get_install_requirement(self):

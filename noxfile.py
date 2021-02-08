@@ -8,6 +8,7 @@ import glob
 import os
 import shutil
 import sys
+from pathlib import Path
 
 import nox
 
@@ -69,7 +70,7 @@ def should_update_common_wheels():
 #   completely to nox for all our automation. Contributors should prefer using
 #   `tox -e ...` until this note is removed.
 # -----------------------------------------------------------------------------
-@nox.session(python=["2.7", "3.5", "3.6", "3.7", "3.8", "pypy", "pypy3"])
+@nox.session(python=["3.6", "3.7", "3.8", "3.9", "pypy3"])
 def test(session):
     # Get the common wheels.
     if should_update_common_wheels():
@@ -146,15 +147,60 @@ def lint(session):
         args = session.posargs + ["--all-files"]
     else:
         args = ["--all-files", "--show-diff-on-failure"]
+    args.append("--hook-stage=manual")
 
     session.run("pre-commit", "run", *args)
 
 
 @nox.session
 def vendoring(session):
-    session.install("vendoring")
+    session.install("vendoring>=0.3.0")
 
-    session.run("vendoring", "sync", ".", "-v")
+    if "--upgrade" not in session.posargs:
+        session.run("vendoring", "sync", ".", "-v")
+        return
+
+    def pinned_requirements(path):
+        for line in path.read_text().splitlines():
+            one, two = line.split("==", 1)
+            name = one.strip()
+            version = two.split("#")[0].strip()
+            yield name, version
+
+    vendor_txt = Path("src/pip/_vendor/vendor.txt")
+    for name, old_version in pinned_requirements(vendor_txt):
+        if name == "setuptools":
+            continue
+
+        # update requirements.txt
+        session.run("vendoring", "update", ".", name)
+
+        # get the updated version
+        new_version = old_version
+        for inner_name, inner_version in pinned_requirements(vendor_txt):
+            if inner_name == name:
+                # this is a dedicated assignment, to make flake8 happy
+                new_version = inner_version
+                break
+        else:
+            session.error(f"Could not find {name} in {vendor_txt}")
+
+        # check if the version changed.
+        if new_version == old_version:
+            continue  # no change, nothing more to do here.
+
+        # synchronize the contents
+        session.run("vendoring", "sync", ".")
+
+        # Determine the correct message
+        message = f"Upgrade {name} to {new_version}"
+
+        # Write our news fragment
+        news_file = Path("news") / (name + ".vendor.rst")
+        news_file.write_text(message + "\n")  # "\n" appeases end-of-line-fixer
+
+        # Commit the changes
+        release.commit_file(session, ".", message=message)
 
 
 # -----------------------------------------------------------------------------
@@ -276,7 +322,7 @@ def upload_release(session):
     # Sanity check: Make sure the files are correctly named.
     distfile_names = map(os.path.basename, distribution_files)
     expected_distribution_files = [
-        f"pip-{version}-py2.py3-none-any.whl",
+        f"pip-{version}-py3-none-any.whl",
         f"pip-{version}.tar.gz",
     ]
     if sorted(distfile_names) != sorted(expected_distribution_files):

@@ -18,7 +18,6 @@ from pip._internal.exceptions import (
     InvalidWheelFilename,
     PreviousBuildDirError,
 )
-from pip._internal.network.download import Downloader
 from pip._internal.network.session import PipSession
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import InstallRequirement, RequirementSet
@@ -48,7 +47,6 @@ def get_processed_req_from_line(line, fname='file', lineno=1):
     parsed_line = ParsedLine(
         fname,
         lineno,
-        fname,
         args_str,
         opts,
         False,
@@ -60,7 +58,7 @@ def get_processed_req_from_line(line, fname='file', lineno=1):
     return req
 
 
-class TestRequirementSet(object):
+class TestRequirementSet:
     """RequirementSet tests"""
 
     def setup(self):
@@ -76,19 +74,21 @@ class TestRequirementSet(object):
             isolated=False,
             use_pep517=None,
         )
+        session = PipSession()
 
         with get_requirement_tracker() as tracker:
             preparer = RequirementPreparer(
                 build_dir=os.path.join(self.tempdir, 'build'),
                 src_dir=os.path.join(self.tempdir, 'src'),
                 download_dir=None,
-                wheel_download_dir=None,
                 build_isolation=True,
                 req_tracker=tracker,
-                downloader=Downloader(PipSession(), progress_bar="on"),
+                session=session,
+                progress_bar='on',
                 finder=finder,
                 require_hashes=require_hashes,
                 use_user_site=False,
+                lazy_wheel=False,
             )
             yield Resolver(
                 preparer=preparer,
@@ -317,7 +317,7 @@ class TestRequirementSet(object):
         ))
 
 
-class TestInstallRequirement(object):
+class TestInstallRequirement:
     def setup(self):
         self.tempdir = tempfile.mkdtemp()
 
@@ -454,14 +454,14 @@ class TestInstallRequirement(object):
     def test_markers_url(self):
         # test "URL; markers" syntax
         url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
-        line = '{}; python_version >= "3"'.format(url)
+        line = f'{url}; python_version >= "3"'
         req = install_req_from_line(line)
         assert req.link.url == url, req.url
         assert str(req.markers) == 'python_version >= "3"'
 
         # without space, markers are part of the URL
         url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
-        line = '{};python_version >= "3"'.format(url)
+        line = f'{url};python_version >= "3"'
         req = install_req_from_line(line)
         assert req.link.url == line, req.url
         assert req.markers is None
@@ -560,7 +560,7 @@ class TestInstallRequirement(object):
         with pytest.raises(InstallationError) as e:
             install_req_from_line(test_name)
         err_msg = e.value.args[0]
-        assert "Invalid requirement: '{}'".format(test_name) == err_msg
+        assert f"Invalid requirement: '{test_name}'" == err_msg
 
     def test_requirement_file(self):
         req_file_path = os.path.join(self.tempdir, 'test.txt')
@@ -570,7 +570,7 @@ class TestInstallRequirement(object):
             install_req_from_line(req_file_path)
         err_msg = e.value.args[0]
         assert "Invalid requirement" in err_msg
-        assert "It looks like a path. It does exist." in err_msg
+        assert "It looks like a path. The path does exist." in err_msg
         assert "appears to be a requirements file." in err_msg
         assert "If that is the case, use the '-r' flag to install" in err_msg
 

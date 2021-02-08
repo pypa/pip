@@ -4,13 +4,18 @@
 pip uninstall
 =============
 
-.. contents::
 
 
 Usage
 =====
 
-.. pip-command-usage:: uninstall
+.. tab:: Unix/macOS
+
+   .. pip-command-usage:: uninstall "python -m pip"
+
+.. tab:: Windows
+
+   .. pip-command-usage:: uninstall "py -m pip"
 
 
 Description
@@ -30,11 +35,24 @@ Examples
 
 #. Uninstall a package.
 
-  ::
+   .. tab:: Unix/macOS
 
-    $ pip uninstall simplejson
-    Uninstalling simplejson:
-      /home/me/env/lib/python2.7/site-packages/simplejson
-      /home/me/env/lib/python2.7/site-packages/simplejson-2.2.1-py2.7.egg-info
-    Proceed (y/n)? y
-      Successfully uninstalled simplejson
+      .. code-block:: console
+
+         $ python -m pip uninstall simplejson
+         Uninstalling simplejson:
+            /home/me/env/lib/python3.9/site-packages/simplejson
+            /home/me/env/lib/python3.9/site-packages/simplejson-2.2.1-py3.9.egg-info
+         Proceed (y/n)? y
+            Successfully uninstalled simplejson
+
+   .. tab:: Windows
+
+      .. code-block:: console
+
+         C:\> py -m pip uninstall simplejson
+         Uninstalling simplejson:
+            /home/me/env/lib/python3.9/site-packages/simplejson
+            /home/me/env/lib/python3.9/site-packages/simplejson-2.2.1-py3.9.egg-info
+         Proceed (y/n)? y
+            Successfully uninstalled simplejson

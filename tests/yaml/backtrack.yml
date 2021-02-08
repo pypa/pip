@@ -37,4 +37,4 @@ cases:
       - A 1.0.0
       - B 1.0.0
       - C 1.0.0
-  skip: old
+  skip: legacy

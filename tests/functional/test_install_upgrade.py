@@ -1,3 +1,4 @@
+import itertools
 import os
 import sys
 import textwrap
@@ -7,6 +8,7 @@ import pytest
 from tests.lib import pyversion  # noqa: F401
 from tests.lib import assert_all_changes
 from tests.lib.local_repos import local_checkout
+from tests.lib.wheel import make_wheel
 
 
 @pytest.mark.network
@@ -38,7 +40,7 @@ def test_invalid_upgrade_strategy_causes_error(script):
 
 def test_only_if_needed_does_not_upgrade_deps_when_satisfied(
     script,
-    use_new_resolver,
+    resolver_variant,
     with_wheel
 ):
     """
@@ -60,7 +62,7 @@ def test_only_if_needed_does_not_upgrade_deps_when_satisfied(
     ), "should not have uninstalled simple==2.0"
 
     msg = "Requirement already satisfied"
-    if not use_new_resolver:
+    if resolver_variant == "legacy":
         msg = msg + ", skipping upgrade: simple"
     assert (
         msg in result.stdout
@@ -182,7 +184,7 @@ def test_upgrade_if_requested(script, with_wheel):
     )
 
 
-def test_upgrade_with_newest_already_installed(script, data, use_new_resolver):
+def test_upgrade_with_newest_already_installed(script, data, resolver_variant):
     """
     If the newest version of a package is already installed, the package should
     not be reinstalled and the user should be informed.
@@ -192,7 +194,7 @@ def test_upgrade_with_newest_already_installed(script, data, use_new_resolver):
         'install', '--upgrade', '-f', data.find_links, '--no-index', 'simple'
     )
     assert not result.files_created, 'simple upgraded when it should not have'
-    if use_new_resolver:
+    if resolver_variant == "2020-resolver":
         msg = "Requirement already satisfied"
     else:
         msg = "already up-to-date"
@@ -394,7 +396,7 @@ def test_upgrade_vcs_req_with_dist_found(script):
     assert "pypi.org" not in result.stdout, result.stdout
 
 
-class TestUpgradeDistributeToSetuptools(object):
+class TestUpgradeDistributeToSetuptools:
     """
     From pip1.4 to pip6, pip supported a set of "hacks" (see Issue #1122) to
     allow distribute to conflict with setuptools, so that the following would
@@ -439,3 +441,34 @@ class TestUpgradeDistributeToSetuptools(object):
             cwd=pip_src,
             expect_stderr=True,
         )
+
+
+@pytest.mark.parametrize("req1, req2", list(itertools.product(
+    ["foo.bar", "foo_bar", "foo-bar"], ["foo.bar", "foo_bar", "foo-bar"],
+)))
+def test_install_find_existing_package_canonicalize(script, req1, req2):
+    """Ensure an already-installed dist is found no matter how the dist name
+    was normalized on installation. (pypa/pip#8645)
+    """
+    # Create and install a package that's not available in the later stage.
+    req_container = script.scratch_path.joinpath("foo-bar")
+    req_container.mkdir()
+    req_path = make_wheel("foo_bar", "1.0").save_to_dir(req_container)
+    script.pip("install", "--no-index", req_path)
+
+    # Depend on the previously installed, but now unavailable package.
+    pkg_container = script.scratch_path.joinpath("pkg")
+    pkg_container.mkdir()
+    make_wheel(
+        "pkg",
+        "1.0",
+        metadata_updates={"Requires-Dist": req2},
+    ).save_to_dir(pkg_container)
+
+    # Ensure the previously installed package can be correctly used to match
+    # the dependency.
+    result = script.pip(
+        "install", "--no-index", "--find-links", pkg_container, "pkg",
+    )
+    satisfied_message = f"Requirement already satisfied: {req2}"
+    assert satisfied_message in result.stdout, str(result)

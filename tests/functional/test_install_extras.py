@@ -104,9 +104,9 @@ def test_nonexistent_options_listed_in_order(script, data):
     assert matches == ['nonexistent', 'nope']
 
 
-def test_install_deprecated_extra(script, data):
+def test_install_fails_if_extra_at_end(script, data):
     """
-    Warn about deprecated order of specifiers and extras.
+    Fail if order of specifiers and extras is incorrect.
 
     Test uses a requirements file to avoid a testing issue where
     the specifier gets interpreted as shell redirect.
@@ -114,15 +114,12 @@ def test_install_deprecated_extra(script, data):
     script.scratch_path.joinpath("requirements.txt").write_text(
         "requires_simple_extra>=0.1[extra]"
     )
-    simple = script.site_packages / 'simple'
 
     result = script.pip(
         'install', '--no-index', '--find-links=' + data.find_links,
-        '-r', script.scratch_path / 'requirements.txt', expect_stderr=True,
+        '-r', script.scratch_path / 'requirements.txt', expect_error=True,
     )
-
-    result.did_create(simple)
-    assert ("DEPRECATION: Extras after version" in result.stderr)
+    assert "Extras after version" in result.stderr
 
 
 def test_install_special_extra(script):
@@ -171,5 +168,4 @@ def test_install_extra_merging(script, data, extra_to_install, simple_version):
         '{pkga_path}{extra_to_install}'.format(**locals()),
     )
 
-    assert ('Successfully installed pkga-0.1 simple-{}'.format(simple_version)
-            ) in result.stdout
+    assert f'Successfully installed pkga-0.1 simple-{simple_version}' in result.stdout
