@@ -209,6 +209,8 @@ class TestWheel:
         with pytest.raises(BestVersionAlreadyInstalled):
             finder.find_requirement(req, True)
 
+
+class TestCandidateEvaluator:
     def test_link_sorting(self):
         """
         Test link sorting
@@ -274,6 +276,37 @@ class TestWheel:
         sort_key = candidate_evaluator._sort_key
         results = sorted(links, key=sort_key, reverse=True)
         results2 = sorted(reversed(links), key=sort_key, reverse=True)
+        assert links == results == results2, results2
+
+    def test_build_tag_is_less_important_than_other_tags(self):
+        links = [
+            InstallationCandidate(
+                "simple",
+                "1.0",
+                Link('simple-1.0-1-py3-abi3-linux_x86_64.whl'),
+            ),
+            InstallationCandidate(
+                "simple",
+                '1.0',
+                Link('simple-1.0-2-py3-abi3-linux_i386.whl'),
+            ),
+            InstallationCandidate(
+                "simple",
+                '1.0',
+                Link('simple-1.0.tar.gz'),
+            ),
+        ]
+        valid_tags = [
+            Tag('py3', 'abi3', 'linux_x86_64'),
+            Tag('py3', 'abi3', 'linux_i386'),
+        ]
+        evaluator = CandidateEvaluator(
+            'my-project', supported_tags=valid_tags, specifier = SpecifierSet(),
+        )
+        sort_key = evaluator._sort_key
+        results = sorted(links, key=sort_key, reverse=True)
+        results2 = sorted(reversed(links), key=sort_key, reverse=True)
+
         assert links == results == results2, results2
 
 
