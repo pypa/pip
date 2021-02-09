@@ -530,7 +530,7 @@ class CandidateEvaluator:
         yank_value = -1 * int(link.is_yanked)  # -1 for yanked.
         return (
             has_allowed_hash, yank_value, binary_preference, candidate.version,
-            build_tag, pri,
+            pri, build_tag, 
         )
 
     def sort_best_candidate(
