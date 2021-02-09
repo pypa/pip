@@ -293,12 +293,18 @@ class TestCandidateEvaluator:
             InstallationCandidate(
                 "simple",
                 '1.0',
+                Link('simple-1.0-2-py3-any-none.whl'),
+            ),
+            InstallationCandidate(
+                "simple",
+                '1.0',
                 Link('simple-1.0.tar.gz'),
             ),
         ]
         valid_tags = [
             Tag('py3', 'abi3', 'linux_x86_64'),
             Tag('py3', 'abi3', 'linux_i386'),
+            Tag('py3', 'any', 'none'),
         ]
         evaluator = CandidateEvaluator(
             'my-project', supported_tags=valid_tags, specifier = SpecifierSet(),
