@@ -3,6 +3,7 @@ import functools
 import json
 import os
 import sys
+from pathlib import Path
 
 import freezegun
 import pretend
@@ -16,7 +17,6 @@ from pip._internal.self_outdated_check import (
     logger,
     pip_self_version_check,
 )
-from tests.lib.path import Path
 
 
 class MockBestCandidateResult:

@@ -2,13 +2,13 @@ import os.path
 import shutil
 import textwrap
 from hashlib import sha256
+from pathlib import Path
 
 import pytest
 
 from pip._internal.cli.status_codes import ERROR
 from pip._internal.utils.urls import path_to_url
 from tests.lib import create_really_basic_wheel
-from tests.lib.path import Path
 from tests.lib.server import file_response
 
 

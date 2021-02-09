@@ -8,6 +8,7 @@ import subprocess
 import sys
 import time
 from contextlib import ExitStack, contextmanager
+from pathlib import Path
 from typing import Dict, Iterable
 from unittest.mock import patch
 
@@ -18,7 +19,6 @@ from pip._internal.cli.main import main as pip_entry_point
 from pip._internal.utils.temp_dir import global_tempdir_manager
 from tests.lib import DATA_DIR, SRC_DIR, PipTestEnvironment, TestData
 from tests.lib.certs import make_tls_cert, serialize_cert, serialize_key
-from tests.lib.path import Path
 from tests.lib.server import MockServer as _MockServer
 from tests.lib.server import Responder, make_mock_server, server_running
 from tests.lib.venv import VirtualEnvironment
@@ -136,7 +136,7 @@ def tmpdir(request, tmpdir):
     """
     Return a temporary directory path object which is unique to each test
     function invocation, created as a sub directory of the base temporary
-    directory. The returned object is a ``tests.lib.path.Path`` object.
+    directory. The returned object is a ``pathlib.Path`` object.
 
     This uses the built-in tmpdir fixture from pytest itself but modified
     to return our typical path object instead of py.path.local as well as

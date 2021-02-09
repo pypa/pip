@@ -3,11 +3,11 @@ import distutils
 import glob
 import os
 import shutil
+from pathlib import Path
 
 import pytest
 
 from tests.lib import create_basic_wheel_for_package
-from tests.lib.path import Path
 from tests.lib.wheel import make_wheel
 
 

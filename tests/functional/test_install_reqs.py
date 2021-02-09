@@ -1,6 +1,7 @@
 import json
 import os
 import textwrap
+from pathlib import Path
 
 import pytest
 
@@ -13,7 +14,6 @@ from tests.lib import (
     requirements_file,
 )
 from tests.lib.local_repos import local_checkout
-from tests.lib.path import Path
 
 
 class ArgRecordingSdist:

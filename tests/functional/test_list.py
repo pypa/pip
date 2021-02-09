@@ -1,10 +1,10 @@
 import json
 import os
+from pathlib import Path
 
 import pytest
 
 from tests.lib import create_test_package_with_setup, wheel
-from tests.lib.path import Path
 
 
 @pytest.fixture(scope="session")

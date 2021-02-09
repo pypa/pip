@@ -7,6 +7,7 @@ import ssl
 import sys
 import textwrap
 from os.path import curdir, join, pardir
+from pathlib import Path
 
 import pytest
 
@@ -27,7 +28,6 @@ from tests.lib import (
 )
 from tests.lib.filesystem import make_socket_file
 from tests.lib.local_repos import local_checkout
-from tests.lib.path import Path
 from tests.lib.server import (
     file_response,
     make_mock_server,

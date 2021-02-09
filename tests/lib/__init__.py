@@ -9,6 +9,7 @@ from base64 import urlsafe_b64encode
 from contextlib import contextmanager
 from hashlib import sha256
 from io import BytesIO
+from pathlib import Path
 from textwrap import dedent
 from typing import List, Optional
 from zipfile import ZipFile
@@ -24,7 +25,6 @@ from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.network.session import PipSession
 from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
-from tests.lib.path import Path, curdir
 from tests.lib.wheel import make_wheel
 
 DATA_DIR = Path(__file__).parent.parent.joinpath("data").resolve()
@@ -61,7 +61,7 @@ def _test_path_to_file_url(path):
     Convert a test Path to a "file://" URL.
 
     Args:
-      path: a tests.lib.path.Path object.
+      path: a pathlib.Path object.
     """
     return 'file://' + path.resolve().replace('\\', '/')
 
@@ -317,14 +317,18 @@ class TestPipResult:
                 f'{pth_file} unexpectedly {maybe}updated by install'
             )
 
-        if (pkg_dir in self.files_created) == (curdir in without_files):
-            maybe = 'not ' if curdir in without_files else ''
-            files = sorted(self.files_created)
-            raise TestFailure(textwrap.dedent(f'''\
-            expected package directory {pkg_dir!r} {maybe}to be created
-            actually created:
-            {files}
-            '''))
+        if (pkg_dir in self.files_created) == (Path(os.curdir) in without_files):
+            raise TestFailure(textwrap.dedent(
+                '''
+                expected package directory {pkg_dir!r} {maybe}to be created
+                actually created:
+                {files}
+                '''
+            ).format(
+                pkg_dir=pkg_dir,
+                maybe=Path(os.curdir) in without_files and 'not ' or '',
+                files=sorted(self.files_created.keys()),
+            ))
 
         for f in with_files:
             normalized_path = os.path.normpath(pkg_dir / f)

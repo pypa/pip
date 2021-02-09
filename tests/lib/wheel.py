@@ -10,6 +10,7 @@ from enum import Enum
 from functools import partial
 from hashlib import sha256
 from io import BytesIO, StringIO
+from pathlib import Path
 from typing import (
     AnyStr,
     Callable,
@@ -25,8 +26,6 @@ from typing import (
 from zipfile import ZipFile
 
 from pip._vendor.requests.structures import CaseInsensitiveDict
-
-from tests.lib.path import Path
 
 # path, digest, size
 RecordLike = Tuple[str, str, str]

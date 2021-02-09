@@ -6,8 +6,7 @@ import subprocess
 import sys
 from functools import partial
 from itertools import chain
-
-from .path import Path
+from pathlib import Path
 
 
 def make_socket_file(path):

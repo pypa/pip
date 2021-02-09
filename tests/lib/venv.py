@@ -3,10 +3,9 @@ import shutil
 import sys
 import textwrap
 import venv as _venv
+from pathlib import Path
 
 import virtualenv as _virtualenv
-
-from .path import Path
 
 
 class VirtualEnvironment:

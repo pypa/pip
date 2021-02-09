@@ -1,7 +1,8 @@
+from pathlib import Path
+
 import pytest
 
 from pip._internal.cli.status_codes import ERROR, SUCCESS
-from tests.lib.path import Path
 from tests.lib.wheel import make_wheel
 
 
