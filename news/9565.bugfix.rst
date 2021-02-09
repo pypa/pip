@@ -1,9 +1,1 @@
 Make wheel compatibility tag preferences more important than the build tag
-
-For example: if both linux_x86_64 and linux_i386 are supported and linux_x86_64
-is preferred over linux_i386 the old behavior was to prefer
-simple-1.0-2-py3-abi3-linux_i386.whl over
-simple-1.0-1-py3-abi3-linux_x86_64.whl
-but now pip prefers
-simple-1.0-1-py3-abi3-linux_x86_64.whl over
-simple-1.0-2-py3-abi3-linux_i386.whl
