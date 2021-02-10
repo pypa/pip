@@ -32,7 +32,7 @@ class VirtualEnvironment:
         self.site = Path(lib) / 'site-packages'
         # Workaround for https://github.com/pypa/virtualenv/issues/306
         if hasattr(sys, "pypy_version_info"):
-            version_dir = '{0}'.format(*sys.version_info)
+            version_dir = '{}'.format(*sys.version_info)
             self.lib = Path(home, 'lib-python', version_dir)
         else:
             self.lib = Path(lib)

@@ -142,7 +142,7 @@ def check_error(error, result):
 
     for patter in patters:
         match = re.search(patter, result.stderr, re.I)
-        assert match, 'regex %r not found in stderr: %r' % (
+        assert match, 'regex {!r} not found in stderr: {!r}'.format(
             stderr, result.stderr)
 
 
