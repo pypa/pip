@@ -31,10 +31,7 @@ from typing import (
 )
 
 from pip._vendor.pkg_resources import Distribution
-
-# NOTE: retrying is not annotated in typeshed as on 2017-07-17, which is
-#       why we ignore the type on this import.
-from pip._vendor.retrying import retry  # type: ignore
+from pip._vendor.tenacity import retry, stop_after_delay, wait_fixed
 
 from pip import __version__
 from pip._internal.exceptions import CommandError
@@ -117,7 +114,8 @@ def get_prog():
 
 
 # Retry every half second for up to 3 seconds
-@retry(stop_max_delay=3000, wait_fixed=500)
+# Tenacity raises RetryError by default, explictly raise the original exception
+@retry(reraise=True, stop=stop_after_delay(3), wait=wait_fixed(0.5))
 def rmtree(dir, ignore_errors=False):
     # type: (AnyStr, bool) -> None
     shutil.rmtree(dir, ignore_errors=ignore_errors,
