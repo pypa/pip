@@ -1,7 +1,7 @@
 import errno
 
 import pytest
-from mock import patch
+from unittest.mock import patch
 from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.commands.install import (

@@ -5,10 +5,10 @@ import urllib.request
 import uuid
 from textwrap import dedent
 
-import mock
+from unittest import mock
 import pretend
 import pytest
-from mock import Mock, patch
+from unittest.mock import Mock, patch
 from pip._vendor import html5lib, requests
 
 from pip._internal.exceptions import NetworkConnectionError

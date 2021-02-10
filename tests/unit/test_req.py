@@ -6,7 +6,7 @@ import tempfile
 from functools import partial
 
 import pytest
-from mock import patch
+from unittest.mock import patch
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement

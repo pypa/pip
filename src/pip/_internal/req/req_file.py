@@ -33,9 +33,9 @@ if MYPY_CHECK_RUNNING:
     from pip._internal.index.package_finder import PackageFinder
     from pip._internal.network.session import PipSession
 
-    ReqFileLines = Iterator[Tuple[int, Text]]
+    ReqFileLines = Iterator[Tuple[int, str]]
 
-    LineParser = Callable[[Text], Tuple[str, Values]]
+    LineParser = Callable[[str], Tuple[str, Values]]
 
 
 __all__ = ['parse_requirements']

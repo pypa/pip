@@ -1,4 +1,4 @@
-import mock
+from unittest import mock
 import pytest
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.resolvelib.resolvers import Result

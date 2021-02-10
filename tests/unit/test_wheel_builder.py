@@ -1,7 +1,7 @@
 import logging
 
 import pytest
-from mock import patch
+from unittest.mock import patch
 
 from pip._internal import wheel_builder
 from pip._internal.models.link import Link

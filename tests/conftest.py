@@ -10,7 +10,7 @@ import time
 from contextlib import contextmanager
 
 import pytest
-from mock import patch
+from unittest.mock import patch
 from pip._vendor.contextlib2 import ExitStack, nullcontext
 from setuptools.wheel import Wheel
 

@@ -2,7 +2,7 @@
 """
 
 import pytest
-from mock import MagicMock
+from unittest.mock import MagicMock
 
 from pip._internal.configuration import get_configuration_files, kinds
 from pip._internal.exceptions import ConfigurationError

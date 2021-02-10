@@ -12,7 +12,7 @@ import time
 from io import BytesIO
 
 import pytest
-from mock import Mock, patch
+from unittest.mock import Mock, patch
 
 from pip._internal.exceptions import HashMismatch, HashMissing, InstallationError
 from pip._internal.utils.deprecation import PipDeprecationWarning, deprecated
@@ -436,9 +436,9 @@ elif sys.byteorder == "big":
     # Test passing a text (unicode) string.
     ('/path/déf', None, '/path/déf'),
     # Test a bytes object with a non-ascii character.
-    ('/path/déf'.encode('utf-8'), 'utf-8', '/path/déf'),
+    ('/path/déf'.encode(), 'utf-8', '/path/déf'),
     # Test a bytes object with a character that can't be decoded.
-    ('/path/déf'.encode('utf-8'), 'ascii', "b'/path/d\\xc3\\xa9f'"),
+    ('/path/déf'.encode(), 'ascii', "b'/path/d\\xc3\\xa9f'"),
     ('/path/déf'.encode('utf-16'), 'utf-8', expected_byte_string),
 ])
 def test_path_to_display(monkeypatch, path, fs_encoding, expected):

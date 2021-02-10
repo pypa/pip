@@ -1298,7 +1298,7 @@ def test_install_log(script, data, tmpdir):
             'install', data.src.joinpath('chattymodule')]
     result = script.pip(*args)
     assert 0 == result.stdout.count("HELLO FROM CHATTYMODULE")
-    with open(f, 'r') as fp:
+    with open(f) as fp:
         # one from egg_info, one from install
         assert 2 == fp.read().count("HELLO FROM CHATTYMODULE")
 
@@ -1321,7 +1321,7 @@ def test_cleanup_after_failed_wheel(script, with_wheel):
     # One of the effects of not cleaning up is broken scripts:
     script_py = script.bin_path / "script.py"
     assert script_py.exists(), script_py
-    shebang = open(script_py, 'r').readline().strip()
+    shebang = open(script_py).readline().strip()
     assert shebang != '#!python', shebang
     # OK, assert that we *said* we were cleaning up:
     # /!\ if in need to change this, also change test_pep517_no_legacy_cleanup

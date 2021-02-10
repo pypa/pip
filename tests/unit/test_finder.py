@@ -2,7 +2,7 @@ import logging
 import sys
 
 import pytest
-from mock import Mock, patch
+from unittest.mock import Mock, patch
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.tags import Tag
 from pkg_resources import parse_version

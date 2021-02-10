@@ -63,11 +63,11 @@ def test_str_to_display(data, expected):
     # Test str input with non-ascii characters.
     ('déf', 'utf-8', 'déf'),
     # Test bytes input with non-ascii characters:
-    ('déf'.encode('utf-8'), 'utf-8', 'déf'),
+    ('déf'.encode(), 'utf-8', 'déf'),
     # Test a Windows encoding.
     ('déf'.encode('cp1252'), 'cp1252', 'déf'),
     # Test a Windows encoding with incompatibly encoded text.
-    ('déf'.encode('utf-8'), 'cp1252', 'dÃ©f'),
+    ('déf'.encode(), 'cp1252', 'dÃ©f'),
 ])
 def test_str_to_display__encoding(monkeypatch, data, encoding, expected):
     monkeypatch.setattr(locale, 'getpreferredencoding', lambda: encoding)

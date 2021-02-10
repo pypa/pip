@@ -1,6 +1,6 @@
 import logging
 
-import mock
+from unittest import mock
 import pytest
 from pip._vendor import pkg_resources
 
