@@ -57,7 +57,7 @@ class MockDistribution:
             raise NotImplementedError('nope')
 
 
-class MockEnvironment(object):
+class MockEnvironment:
     def __init__(self, installer):
         self.installer = installer
 
