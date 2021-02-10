@@ -1,5 +1,4 @@
 from functools import partial
-
 from unittest.mock import MagicMock, patch
 
 from pip._internal.models.direct_url import (

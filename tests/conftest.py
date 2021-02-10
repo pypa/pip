@@ -8,9 +8,9 @@ import subprocess
 import sys
 import time
 from contextlib import contextmanager
+from unittest.mock import patch
 
 import pytest
-from unittest.mock import patch
 from pip._vendor.contextlib2 import ExitStack, nullcontext
 from setuptools.wheel import Wheel
 

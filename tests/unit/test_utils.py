@@ -10,9 +10,9 @@ import stat
 import sys
 import time
 from io import BytesIO
+from unittest.mock import Mock, patch
 
 import pytest
-from unittest.mock import Mock, patch
 
 from pip._internal.exceptions import HashMismatch, HashMissing, InstallationError
 from pip._internal.utils.deprecation import PipDeprecationWarning, deprecated

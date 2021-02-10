@@ -3,9 +3,9 @@ import logging
 import os
 import subprocess
 import textwrap
+from unittest.mock import patch
 
 import pytest
-from unittest.mock import patch
 from pretend import stub
 
 import pip._internal.req.req_file  # this will be monkeypatched
