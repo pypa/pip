@@ -26,10 +26,10 @@ if MYPY_CHECK_RUNNING:
     from typing import Dict, List, Optional
 
     from typing_extensions import TypedDict
-    TransformedHit = TypedDict(
-        'TransformedHit',
-        {'name': str, 'summary': str, 'versions': List[str]},
-    )
+    class TransformedHit(TypedDict):
+        name: str
+        summary: str
+        versions: List[str]
 
 logger = logging.getLogger(__name__)
 

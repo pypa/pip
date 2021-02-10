@@ -169,7 +169,7 @@ class UnsatisfiableRequirement(Requirement):
 
     def __str__(self):
         # type: () -> str
-        return "{} (unavailable)".format(self._name)
+        return f"{self._name} (unavailable)"
 
     def __repr__(self):
         # type: () -> str
