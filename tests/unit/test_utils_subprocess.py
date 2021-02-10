@@ -57,11 +57,6 @@ def test_make_subprocess_output_error__non_ascii_command_arg(monkeypatch):
     Test a command argument with a non-ascii character.
     """
     cmd_args = ['foo', 'déf']
-    if sys.version_info[0] == 2:
-        # Check in Python 2 that the str (bytes object) with the non-ascii
-        # character has the encoding we expect. (This comes from the source
-        # code encoding at the top of the file.)
-        assert cmd_args[1].decode('utf-8') == 'déf'
 
     # We need to monkeypatch so the encoding will be correct on Windows.
     monkeypatch.setattr(locale, 'getpreferredencoding', lambda: 'utf-8')
@@ -80,43 +75,12 @@ def test_make_subprocess_output_error__non_ascii_command_arg(monkeypatch):
     assert actual == expected, f'actual: {actual}'
 
 
-@pytest.mark.skipif("sys.version_info < (3,)")
 def test_make_subprocess_output_error__non_ascii_cwd_python_3(monkeypatch):
     """
     Test a str (text) cwd with a non-ascii character in Python 3.
     """
     cmd_args = ['test']
     cwd = '/path/to/cwd/déf'
-    actual = make_subprocess_output_error(
-        cmd_args=cmd_args,
-        cwd=cwd,
-        lines=[],
-        exit_status=1,
-    )
-    expected = dedent("""\
-    Command errored out with exit status 1:
-     command: test
-         cwd: /path/to/cwd/déf
-    Complete output (0 lines):
-    ----------------------------------------""")
-    assert actual == expected, f'actual: {actual}'
-
-
-@pytest.mark.parametrize('encoding', [
-    'utf-8',
-    # Test a Windows encoding.
-    'cp1252',
-])
-@pytest.mark.skipif("sys.version_info >= (3,)")
-def test_make_subprocess_output_error__non_ascii_cwd_python_2(
-    monkeypatch, encoding,
-):
-    """
-    Test a str (bytes object) cwd with a non-ascii character in Python 2.
-    """
-    cmd_args = ['test']
-    cwd = '/path/to/cwd/déf'.encode(encoding)
-    monkeypatch.setattr(sys, 'getfilesystemencoding', lambda: encoding)
     actual = make_subprocess_output_error(
         cmd_args=cmd_args,
         cwd=cwd,
