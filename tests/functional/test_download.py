@@ -850,6 +850,9 @@ def test_download_file_url_existing_bad_download(
 def test_download_http_url_bad_hash(
     shared_script, shared_data, tmpdir, mock_server
 ):
+    """
+    If already-downloaded file has bad checksum, re-download.
+    """
     download_dir = tmpdir / 'download'
     download_dir.mkdir()
     downloaded_path = download_dir / 'simple-1.0.tar.gz'
