@@ -9,7 +9,7 @@ import sys
 import tempfile
 
 import pytest
-from mock import Mock
+from unittest.mock import Mock
 
 from pip._internal.locations import distutils_scheme
 

@@ -2,7 +2,7 @@ import os
 import sys
 
 import pytest
-from mock import Mock
+from unittest.mock import Mock
 
 import pip._internal.req.req_uninstall
 from pip._internal.req.req_uninstall import (

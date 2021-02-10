@@ -6,7 +6,7 @@ import textwrap
 from email import message_from_string
 
 import pytest
-from mock import patch
+from unittest.mock import patch
 from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.exceptions import InstallationError

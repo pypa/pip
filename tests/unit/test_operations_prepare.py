@@ -4,7 +4,7 @@ from shutil import rmtree
 from tempfile import mkdtemp
 
 import pytest
-from mock import Mock, patch
+from unittest.mock import Mock, patch
 
 from pip._internal.exceptions import HashMismatch
 from pip._internal.models.link import Link

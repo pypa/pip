@@ -2,7 +2,7 @@ import os
 from unittest import TestCase
 
 import pytest
-from mock import patch
+from unittest.mock import patch
 from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.exceptions import BadCommand, InstallationError

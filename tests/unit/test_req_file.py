@@ -5,7 +5,7 @@ import subprocess
 import textwrap
 
 import pytest
-from mock import patch
+from unittest.mock import patch
 from pretend import stub
 
 import pip._internal.req.req_file  # this will be monkeypatched

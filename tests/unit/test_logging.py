@@ -2,7 +2,7 @@ import logging
 from threading import Thread
 
 import pytest
-from mock import patch
+from unittest.mock import patch
 
 from pip._internal.utils.logging import (
     BrokenStdoutLoggingError,
