@@ -551,7 +551,7 @@ class MockServer:
         """
         assert not self._running, "cannot get mock from running server"
         return [
-            call.args[0] for call in self._server.mock.call_args_list
+            call[0][0] for call in self._server.mock.call_args_list
         ]
 
 
