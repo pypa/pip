@@ -1,7 +1,7 @@
 import os
+from unittest.mock import Mock
 
 import pytest
-from unittest.mock import Mock
 from pip._vendor.cachecontrol.caches import FileCache
 
 from pip._internal.network.cache import SafeFileCache

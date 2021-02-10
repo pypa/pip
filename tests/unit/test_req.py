@@ -4,9 +4,9 @@ import shutil
 import sys
 import tempfile
 from functools import partial
+from unittest.mock import patch
 
 import pytest
-from unittest.mock import patch
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement

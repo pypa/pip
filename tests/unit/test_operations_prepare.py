@@ -2,9 +2,9 @@ import os
 import shutil
 from shutil import rmtree
 from tempfile import mkdtemp
+from unittest.mock import Mock, patch
 
 import pytest
-from unittest.mock import Mock, patch
 
 from pip._internal.exceptions import HashMismatch
 from pip._internal.models.link import Link
