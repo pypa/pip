@@ -6,8 +6,6 @@ from itertools import chain
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from typing import Dict, List, Union
-
     from sphinx.application import Sphinx
 
 
@@ -19,7 +17,7 @@ EMAIL_INDENT = 6
 def _modify_rst_document_source_on_read(
         app: Sphinx,
         docname: str,
-        source: List[str],
+        source: list[str],
 ) -> None:
     """Add info block to top and bottom of each document source.
 
@@ -120,7 +118,7 @@ def _modify_rst_document_source_on_read(
     ))
 
 
-def setup(app: Sphinx) -> Dict[str, Union[bool, str]]:
+def setup(app: Sphinx) -> dict[str, bool | str]:
     """Initialize the Sphinx extension.
 
     This function adds a callback for modifying the document sources
