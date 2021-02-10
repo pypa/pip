@@ -34,9 +34,9 @@ if TYPE_CHECKING:
 
 __all__ = ['parse_requirements']
 
-ReqFileLines = Iterator[Tuple[int, Text]]
+ReqFileLines = Iterator[Tuple[int, str]]
 
-LineParser = Callable[[Text], Tuple[str, Values]]
+LineParser = Callable[[str], Tuple[str, Values]]
 
 SCHEME_RE = re.compile(r'^(http|https|file):', re.I)
 COMMENT_RE = re.compile(r'(^|\s+)#.*$')
