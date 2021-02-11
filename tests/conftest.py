@@ -550,6 +550,8 @@ class MockServer:
         """Get environ for each received request.
         """
         assert not self._running, "cannot get mock from running server"
+        # Legacy: replace call[0][0] with call.args[0]
+        # when pip drops support for python3.7
         return [
             call[0][0] for call in self._server.mock.call_args_list
         ]
