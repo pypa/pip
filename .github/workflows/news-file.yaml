@@ -1,0 +1,61 @@
+on:
+  pull_request_target:
+    types: [labeled, unlabeled, opened, reopened, synchronize]
+jobs:
+  check-news-file:
+    runs-on: ubuntu-20.04
+    # Prevent this job from executing when a PR is opened against a fork
+    if: ${{github.repository == 'hexagonrecursion/pip'}}
+    steps:
+      - name: Install dependencies
+        run: sudo apt-get install -y curl grep jq jo
+      - name: Check if PR contains a news fragment or has trivial label
+        env:
+          # Pass GITHUB_TOKEN via an environment variable because the alternative is 
+          # building a shell script using string interpolation (and that would be EVIL)
+          GITHUB_TOKEN: ${{secrets.GITHUB_TOKEN}}
+        run: |
+          set -euo pipefail
+          
+          # Helper function for github api
+          curl_gh() {
+            curl \
+              -L \
+              -H 'Accept: application/vnd.github.v3+json' \
+              -H "Authorization: Bearer $GITHUB_TOKEN" \
+              "$@"
+          }
+          
+          # Deduplicate PR status posting logic
+          post_status() {
+            local URL="$1" STATE="$2" DESCRIPTION="$3"
+            local HELP_URL='https://pip.pypa.io/en/latest/development/contributing/#news-entries'
+            local PAYLOAD="$(jo state="$STATE" description="$DESCRIPTION" context=news-file/pr target_url="$HELP_URL")"
+            echo "::group::POST the status: STATE=$2 DESCRIPTION=$3"
+              # 2>&1 >out.txt is to prevent weird mixing of stderr and stdout
+              curl_gh -X POST "$URL" -d "$PAYLOAD" 2>&1 >out.txt
+              cat out.txt
+              rm out.txt
+            echo '::endgroup::'
+          }
+          
+          echo '::group::Event payload'
+            cat "$GITHUB_EVENT_PATH"
+          echo '::endgroup::'
+          STATUSES_URL="$(jq --raw-output '.pull_request.statuses_url' "$GITHUB_EVENT_PATH")"
+          PR_URL="$(jq --raw-output '.pull_request.url' "$GITHUB_EVENT_PATH")"
+          
+          if jq --exit-status '.pull_request.labels | any(.[].name; . == "trivial")' "$GITHUB_EVENT_PATH" > /dev/null; then
+            post_status "$STATUSES_URL" success 'Change is trivial'
+          else
+            echo "::group::GET $PR_URL/files"
+              curl_gh "$PR_URL/files" 2>&1 >files.json
+              cat files.json
+            echo '::endgroup::'
+            NEWS_FRAGMENT_RE='news/[^\./]+\.(process|removal|feature|bugfix|doc|vendor|trivial)\.rst$'
+            if jq --raw-output '.[].filename' files.json | grep -E "$NEWS_FRAGMENT_RE" > /dev/null; then
+              post_status "$STATUSES_URL" success 'PR has news fragment'
+            else
+              post_status "$STATUSES_URL" failure 'Missing news fragment or trivial label'
+            fi
+          fi
