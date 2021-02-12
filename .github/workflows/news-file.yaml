@@ -5,7 +5,7 @@ jobs:
   check-news-file:
     runs-on: ubuntu-20.04
     # Prevent this job from executing when a PR is opened against a fork
-    if: ${{github.repository == 'hexagonrecursion/pip'}}
+    if: ${{github.repository == 'pypa/pip'}}
     steps:
       - name: Install dependencies
         run: sudo apt-get install -y curl grep jq jo
