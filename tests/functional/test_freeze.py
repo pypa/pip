@@ -42,7 +42,7 @@ def _check_output(result, expected):
     actual = distribute_re.sub('', actual)
 
     def banner(msg):
-        return '\n========== {msg} ==========\n'.format(**locals())
+        return f'\n========== {msg} ==========\n'
 
     assert checker.check_output(expected, actual, ELLIPSIS), (
         banner('EXPECTED') + expected + banner('ACTUAL') + actual +
@@ -272,7 +272,7 @@ def test_freeze_git_clone(script, tmpdir):
     _check_output(result.stdout, expected)
 
     result = script.pip(
-        'freeze', '-f', '{repo_dir}#egg=pip_test_package'.format(**locals()),
+        'freeze', '-f', f'{repo_dir}#egg=pip_test_package',
         expect_stderr=True,
     )
     expected = textwrap.dedent(
@@ -337,7 +337,7 @@ def test_freeze_git_clone_srcdir(script, tmpdir):
     _check_output(result.stdout, expected)
 
     result = script.pip(
-        'freeze', '-f', '{repo_dir}#egg=pip_test_package'.format(**locals()),
+        'freeze', '-f', f'{repo_dir}#egg=pip_test_package',
         expect_stderr=True,
     )
     expected = textwrap.dedent(
@@ -378,7 +378,7 @@ def test_freeze_mercurial_clone_srcdir(script, tmpdir):
     _check_output(result.stdout, expected)
 
     result = script.pip(
-        'freeze', '-f', '{repo_dir}#egg=pip_test_package'.format(**locals()),
+        'freeze', '-f', f'{repo_dir}#egg=pip_test_package',
         expect_stderr=True,
     )
     expected = textwrap.dedent(
@@ -473,7 +473,7 @@ def test_freeze_mercurial_clone(script, tmpdir):
     _check_output(result.stdout, expected)
 
     result = script.pip(
-        'freeze', '-f', '{repo_dir}#egg=pip_test_package'.format(**locals()),
+        'freeze', '-f', f'{repo_dir}#egg=pip_test_package',
         expect_stderr=True,
     )
     expected = textwrap.dedent(
@@ -513,7 +513,7 @@ def test_freeze_bazaar_clone(script, tmpdir):
 
     result = script.pip(
         'freeze', '-f',
-        '{checkout_path}/#egg=django-wikiapp'.format(**locals()),
+        f'{checkout_path}/#egg=django-wikiapp',
         expect_stderr=True,
     )
     expected = textwrap.dedent("""\

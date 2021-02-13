@@ -194,7 +194,7 @@ class RequirementSet:
         if project_name in self.requirements:
             return self.requirements[project_name]
 
-        raise KeyError("No project with the name {name!r}".format(**locals()))
+        raise KeyError(f"No project with the name {name!r}")
 
     @property
     def all_requirements(self):

@@ -63,8 +63,8 @@ def test_correct_pip_version(script):
         if x.endswith('.py')
     ]
     assert not mismatch_py, (
-        'mismatched source files in {pip_folder!r} '
-        'and {pip_folder_outputed!r}: {mismatch_py!r}'.format(**locals())
+        f'mismatched source files in {pip_folder!r} '
+        f'and {pip_folder_outputed!r}: {mismatch_py!r}'
     )
 
 

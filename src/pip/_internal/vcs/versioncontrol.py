@@ -690,9 +690,8 @@ class VersionControl:
             # errno.ENOENT = no such file or directory
             # In other words, the VCS executable isn't available
             raise BadCommand(
-                'Cannot find command {cls.name!r} - do you have '
-                '{cls.name!r} installed and in your '
-                'PATH?'.format(**locals()))
+                f'Cannot find command {cls.name!r} - do you have '
+                f'{cls.name!r} installed and in your PATH?')
 
     @classmethod
     def is_repository_directory(cls, path):

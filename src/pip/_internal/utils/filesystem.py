@@ -67,8 +67,7 @@ def copy2_fixed(src, dest):
                 pass
             else:
                 if is_socket_file:
-                    raise shutil.SpecialFileError(
-                        "`{f}` is a socket".format(**locals()))
+                    raise shutil.SpecialFileError(f"`{f}` is a socket")
 
         raise
 

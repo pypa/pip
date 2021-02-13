@@ -288,15 +288,13 @@ class TestPipResult:
             if egg_link_path in self.files_created:
                 raise TestFailure(
                     'unexpected egg link file created: '
-                    '{egg_link_path!r}\n{self}'
-                    .format(**locals())
+                    f'{egg_link_path!r}\n{self}'
                 )
         else:
             if egg_link_path not in self.files_created:
                 raise TestFailure(
                     'expected egg link file missing: '
-                    '{egg_link_path!r}\n{self}'
-                    .format(**locals())
+                    f'{egg_link_path!r}\n{self}'
                 )
 
             egg_link_file = self.files_created[egg_link_path]
@@ -305,15 +303,14 @@ class TestPipResult:
             # FIXME: I don't understand why there's a trailing . here
             if not (egg_link_contents.endswith('\n.') and
                     egg_link_contents[:-2].endswith(pkg_dir)):
+                expected_ending = pkg_dir + '\n.'
                 raise TestFailure(textwrap.dedent(
-                    '''\
+                    f'''\
                     Incorrect egg_link file {egg_link_file!r}
                     Expected ending: {expected_ending!r}
                     ------- Actual contents -------
                     {egg_link_contents!r}
-                    -------------------------------'''.format(
-                        expected_ending=pkg_dir + '\n.',
-                        **locals())
+                    -------------------------------'''
                 ))
 
         if use_user_site:
@@ -322,36 +319,33 @@ class TestPipResult:
             pth_file = e.site_packages / 'easy-install.pth'
 
         if (pth_file in self.files_updated) == without_egg_link:
+            maybe = '' if without_egg_link else 'not '
             raise TestFailure(
-                '{pth_file} unexpectedly {maybe}updated by install'.format(
-                    maybe=not without_egg_link and 'not ' or '',
-                    **locals()))
+                f'{pth_file} unexpectedly {maybe}updated by install'
+            )
 
         if (pkg_dir in self.files_created) == (curdir in without_files):
-            raise TestFailure(textwrap.dedent('''\
+            maybe = 'not ' if curdir in without_files else ''
+            files = sorted(self.files_created.keys())
+            raise TestFailure(textwrap.dedent(f'''\
             expected package directory {pkg_dir!r} {maybe}to be created
             actually created:
             {files}
-            ''').format(
-                pkg_dir=pkg_dir,
-                maybe=curdir in without_files and 'not ' or '',
-                files=sorted(self.files_created.keys()),
-            ))
+            '''))
 
         for f in with_files:
             normalized_path = os.path.normpath(pkg_dir / f)
             if normalized_path not in self.files_created:
                 raise TestFailure(
-                    'Package directory {pkg_dir!r} missing '
-                    'expected content {f!r}'.format(**locals())
+                    f'Package directory {pkg_dir!r} missing '
+                    f'expected content {f!r}'
                 )
 
         for f in without_files:
             normalized_path = os.path.normpath(pkg_dir / f)
             if normalized_path in self.files_created:
                 raise TestFailure(
-                    'Package directory {pkg_dir!r} has unexpected content {f}'
-                    .format(**locals())
+                    f'Package directory {pkg_dir!r} has unexpected content {f}'
                 )
 
     def did_create(self, path, message=None):
@@ -511,7 +505,7 @@ class PipTestEnvironment(TestFileEnvironment):
         # Expand our absolute path directories into relative
         for name in ["base", "venv", "bin", "lib", "site_packages",
                      "user_base", "user_site", "user_bin", "scratch"]:
-            real_name = "{name}_path".format(**locals())
+            real_name = f"{name}_path"
             relative_path = Path(os.path.relpath(
                 getattr(self, real_name), self.base_path
             ))
@@ -565,7 +559,7 @@ class PipTestEnvironment(TestFileEnvironment):
             compatibility.
         """
         if self.verbose:
-            print('>> running {args} {kw}'.format(**locals()))
+            print(f'>> running {args} {kw}')
 
         cwd = kw.pop('cwd', None)
         run_from = kw.pop('run_from', None)
@@ -823,7 +817,7 @@ def _vcs_add(script, version_pkg_path, vcs='git'):
             '-m', 'initial version', cwd=version_pkg_path,
         )
     else:
-        raise ValueError('Unknown vcs: {vcs}'.format(**locals()))
+        raise ValueError(f'Unknown vcs: {vcs}')
     return version_pkg_path
 
 
@@ -932,7 +926,7 @@ def assert_raises_regexp(exception, reg, run, *args, **kwargs):
 
     try:
         run(*args, **kwargs)
-        assert False, "{exception} should have been thrown".format(**locals())
+        assert False, f"{exception} should have been thrown"
     except exception:
         e = sys.exc_info()[1]
         p = re.compile(reg)
@@ -958,11 +952,11 @@ def create_test_package_with_setup(script, **setup_kwargs):
     assert 'name' in setup_kwargs, setup_kwargs
     pkg_path = script.scratch_path / setup_kwargs['name']
     pkg_path.mkdir()
-    pkg_path.joinpath("setup.py").write_text(textwrap.dedent("""
+    pkg_path.joinpath("setup.py").write_text(textwrap.dedent(f"""
         from setuptools import setup
         kwargs = {setup_kwargs!r}
         setup(**kwargs)
-    """).format(**locals()))
+    """))
     return pkg_path
 
 

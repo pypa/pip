@@ -112,7 +112,7 @@ def test_command_line_appends_correctly(script, data):
 
     """
     script.environ['PIP_FIND_LINKS'] = (
-        'https://test.pypi.org {data.find_links}'.format(**locals())
+        f'https://test.pypi.org {data.find_links}'
     )
     result = script.pip(
         'install', '-vvv', 'INITools', '--trusted-host',

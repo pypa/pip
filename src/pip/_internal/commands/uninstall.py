@@ -75,8 +75,8 @@ class UninstallCommand(Command, SessionCommandMixin):
                     reqs_to_uninstall[canonicalize_name(req.name)] = req
         if not reqs_to_uninstall:
             raise InstallationError(
-                'You must give at least one requirement to {self.name} (see '
-                '"pip help {self.name}")'.format(**locals())
+                f'You must give at least one requirement to {self.name} (see '
+                f'"pip help {self.name}")'
             )
 
         protect_pip_from_modification_on_windows(

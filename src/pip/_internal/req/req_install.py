@@ -664,8 +664,7 @@ class InstallRequirement:
         def _clean_zip_name(name, prefix):
             # type: (str, str) -> str
             assert name.startswith(prefix + os.path.sep), (
-                "name {name!r} doesn't start with prefix {prefix!r}"
-                .format(**locals())
+                f"name {name!r} doesn't start with prefix {prefix!r}"
             )
             name = name[len(prefix) + 1:]
             name = name.replace(os.path.sep, '/')
