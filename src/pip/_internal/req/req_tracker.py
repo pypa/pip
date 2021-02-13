@@ -113,7 +113,7 @@ class RequirementTracker:
         assert req not in self._entries
 
         # Start tracking this requirement.
-        with open(entry_path, 'w') as fp:
+        with open(entry_path, 'w', encoding="utf-8") as fp:
             fp.write(str(req))
         self._entries.add(req)
 
