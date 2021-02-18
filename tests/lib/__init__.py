@@ -13,7 +13,6 @@ from textwrap import dedent
 from zipfile import ZipFile
 
 import pytest
-from pip._vendor.six import ensure_binary
 from scripttest import FoundDir, TestFileEnvironment
 
 from pip._internal.index.collector import LinkCollector
@@ -1095,7 +1094,7 @@ def create_basic_sdist_for_package(
     for fname in files:
         path = script.temp_path / fname
         path.parent.mkdir(exist_ok=True, parents=True)
-        path.write_bytes(ensure_binary(files[fname]))
+        path.write_bytes(files[fname].encode("utf-8"))
 
     retval = script.scratch_path / archive_name
     generated = shutil.make_archive(
