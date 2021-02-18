@@ -1,6 +1,3 @@
-# The following comment should be removed at some point in the future.
-# mypy: disallow-untyped-defs=False
-
 import configparser
 import logging
 import os
@@ -18,6 +15,8 @@ from pip._internal.vcs.versioncontrol import (
 )
 
 if MYPY_CHECK_RUNNING:
+    from typing import List, Optional
+
     from pip._internal.utils.misc import HiddenText
     from pip._internal.vcs.versioncontrol import RevOptions
 
@@ -35,6 +34,7 @@ class Mercurial(VersionControl):
 
     @staticmethod
     def get_base_rev_args(rev):
+        # type: (str) -> List[str]
         return [rev]
 
     def export(self, location, url):
@@ -114,6 +114,7 @@ class Mercurial(VersionControl):
 
     @classmethod
     def get_requirement_revision(cls, location):
+        # type: (str) -> str
         """
         Return the changeset identification hash, as a 40-character
         hexadecimal string
@@ -128,11 +129,13 @@ class Mercurial(VersionControl):
 
     @classmethod
     def is_commit_id_equal(cls, dest, name):
+        # type: (str, Optional[str]) -> bool
         """Always assume the versions don't match"""
         return False
 
     @classmethod
     def get_subdirectory(cls, location):
+        # type: (str) -> Optional[str]
         """
         Return the path to setup.py, relative to the repo root.
         Return None if setup.py is in the repo root.
@@ -147,6 +150,7 @@ class Mercurial(VersionControl):
 
     @classmethod
     def get_repository_root(cls, location):
+        # type: (str) -> Optional[str]
         loc = super().get_repository_root(location)
         if loc:
             return loc

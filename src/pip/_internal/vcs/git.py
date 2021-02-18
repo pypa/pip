@@ -1,6 +1,3 @@
-# The following comment should be removed at some point in the future.
-# mypy: disallow-untyped-defs=False
-
 import logging
 import os.path
 import re
@@ -22,7 +19,9 @@ from pip._internal.vcs.versioncontrol import (
 )
 
 if MYPY_CHECK_RUNNING:
-    from typing import Optional, Tuple
+    from typing import List, Optional, Tuple
+
+    from pip._vendor.packaging.version import _BaseVersion
 
     from pip._internal.utils.misc import HiddenText
     from pip._internal.vcs.versioncontrol import AuthInfo, RevOptions
@@ -39,6 +38,7 @@ HASH_REGEX = re.compile('^[a-fA-F0-9]{40}$')
 
 
 def looks_like_hash(sha):
+    # type: (str) -> bool
     return bool(HASH_REGEX.match(sha))
 
 
@@ -56,6 +56,7 @@ class Git(VersionControl):
 
     @staticmethod
     def get_base_rev_args(rev):
+        # type: (str) -> List[str]
         return [rev]
 
     def is_immutable_rev_checkout(self, url, dest):
@@ -76,6 +77,7 @@ class Git(VersionControl):
         return not is_tag_or_branch
 
     def get_git_version(self):
+        # type: () -> _BaseVersion
         VERSION_PFX = 'git version '
         version = self.run_command(
             ['version'], show_stdout=False, stdout_only=True
@@ -92,6 +94,7 @@ class Git(VersionControl):
 
     @classmethod
     def get_current_branch(cls, location):
+        # type: (str) -> Optional[str]
         """
         Return the current branch, or None if HEAD isn't at a branch
         (e.g. detached HEAD).
@@ -130,6 +133,7 @@ class Git(VersionControl):
 
     @classmethod
     def get_revision_sha(cls, dest, rev):
+        # type: (str, str) -> Tuple[Optional[str], bool]
         """
         Return (sha_or_none, is_branch), where sha_or_none is a commit hash
         if the revision names a remote branch or tag, otherwise None.
@@ -149,13 +153,13 @@ class Git(VersionControl):
         refs = {}
         for line in output.strip().splitlines():
             try:
-                sha, ref = line.split()
+                ref_sha, ref_name = line.split()
             except ValueError:
                 # Include the offending line to simplify troubleshooting if
                 # this error ever occurs.
                 raise ValueError(f'unexpected show-ref line: {line!r}')
 
-            refs[ref] = sha
+            refs[ref_name] = ref_sha
 
         branch_ref = f'refs/remotes/origin/{rev}'
         tag_ref = f'refs/tags/{rev}'
@@ -170,6 +174,7 @@ class Git(VersionControl):
 
     @classmethod
     def _should_fetch(cls, dest, rev):
+        # type: (str, str) -> bool
         """
         Return true if rev is a ref or is a commit that we don't have locally.
 
@@ -238,6 +243,7 @@ class Git(VersionControl):
 
     @classmethod
     def is_commit_id_equal(cls, dest, name):
+        # type: (str, Optional[str]) -> bool
         """
         Return whether the current commit hash equals the given name.
 
@@ -340,6 +346,7 @@ class Git(VersionControl):
 
     @classmethod
     def has_commit(cls, location, rev):
+        # type: (str, str) -> bool
         """
         Check if rev is a commit that is available in the local repository.
         """
@@ -369,6 +376,7 @@ class Git(VersionControl):
 
     @classmethod
     def get_subdirectory(cls, location):
+        # type: (str) -> Optional[str]
         """
         Return the path to setup.py, relative to the repo root.
         Return None if setup.py is in the repo root.
@@ -421,6 +429,7 @@ class Git(VersionControl):
 
     @classmethod
     def update_submodules(cls, location):
+        # type: (str) -> None
         if not os.path.exists(os.path.join(location, '.gitmodules')):
             return
         cls.run_command(
@@ -430,6 +439,7 @@ class Git(VersionControl):
 
     @classmethod
     def get_repository_root(cls, location):
+        # type: (str) -> Optional[str]
         loc = super().get_repository_root(location)
         if loc:
             return loc
