@@ -48,7 +48,7 @@ class SelfCheckState:
                 cache_dir, "selfcheck", _get_statefile_name(self.key)
             )
             try:
-                with open(self.statefile_path) as statefile:
+                with open(self.statefile_path, encoding="utf-8") as statefile:
                     self.state = json.load(statefile)
             except (OSError, ValueError, KeyError):
                 # Explicitly suppressing exceptions, since we don't want to

@@ -766,7 +766,7 @@ def _install_wheel(
     # Record the REQUESTED file
     if requested:
         requested_path = os.path.join(dest_info_dir, 'REQUESTED')
-        with open(requested_path, "w"):
+        with open(requested_path, "wb"):
             pass
         generated.append(requested_path)
 
