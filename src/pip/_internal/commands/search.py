@@ -140,7 +140,8 @@ def print_results(hits, name_column_width=None, terminal_width=None):
                 summary = ('\n' + ' ' * (name_column_width + 3)).join(
                     summary_lines)
 
-        line = f'{{{name} ({latest}):{name_column_width}}} - {summary}'
+        name_latest=f'{name} ({latest})'
+        line = f'{name_latest:{name_column_width}} - {summary}'
         try:
             write_output(line)
             dist = env.get_distribution(name)
