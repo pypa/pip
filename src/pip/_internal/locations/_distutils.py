@@ -5,61 +5,18 @@
 
 import os
 import os.path
-import site
 import sys
-import sysconfig
 from distutils.cmd import Command as DistutilsCommand
 from distutils.command.install import SCHEME_KEYS
 from distutils.command.install import install as distutils_install_command
 from typing import Dict, List, Optional, Union, cast
 
 from pip._internal.models.scheme import Scheme
-from pip._internal.utils import appdirs
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
-# Application Directories
-USER_CACHE_DIR = appdirs.user_cache_dir("pip")
+from .base import get_major_minor_version, user_site
 
-
-def get_major_minor_version():
-    # type: () -> str
-    """
-    Return the major-minor version of the current Python as a string, e.g.
-    "3.7" or "3.10".
-    """
-    return '{}.{}'.format(*sys.version_info)
-
-
-def get_src_prefix():
-    # type: () -> str
-    if running_under_virtualenv():
-        src_prefix = os.path.join(sys.prefix, 'src')
-    else:
-        # FIXME: keep src in cwd for now (it is not a temporary folder)
-        try:
-            src_prefix = os.path.join(os.getcwd(), 'src')
-        except OSError:
-            # In case the current working directory has been renamed or deleted
-            sys.exit(
-                "The folder you are executing pip from can no longer be found."
-            )
-
-    # under macOS + virtualenv sys.prefix is not properly resolved
-    # it is something like /path/to/python/bin/..
-    return os.path.abspath(src_prefix)
-
-
-# FIXME doesn't account for venv linked to global site-packages
-
-site_packages = sysconfig.get_path("purelib")  # type: Optional[str]
-
-try:
-    # Use getusersitepackages if this is present, as it ensures that the
-    # value is initialised properly.
-    user_site = site.getusersitepackages()
-except AttributeError:
-    user_site = site.USER_SITE
 
 if WINDOWS:
     bin_py = os.path.join(sys.prefix, 'Scripts')
@@ -78,7 +35,7 @@ else:
         bin_py = '/usr/local/bin'
 
 
-def distutils_scheme(
+def _distutils_scheme(
     dist_name, user=False, home=None, root=None, isolated=False, prefix=None
 ):
     # type:(str, bool, str, str, bool, str) -> Dict[str, str]
@@ -168,7 +125,7 @@ def get_scheme(
     :param prefix: indicates to use the "prefix" scheme and provides the
         base directory for the same
     """
-    scheme = distutils_scheme(
+    scheme = _distutils_scheme(
         dist_name, user, home, root, isolated, prefix
     )
     return Scheme(
@@ -178,3 +135,13 @@ def get_scheme(
         scripts=scheme["scripts"],
         data=scheme["data"],
     )
+
+
+def get_bin_prefix():
+    # type: () -> str
+    return bin_py
+
+
+def get_bin_user():
+    # type: () -> str
+    return bin_user
