@@ -178,7 +178,7 @@ class BatchDownloader:
         self._progress_bar = progress_bar
 
     def __call__(self, links, location):
-        # type: (Iterable[Link], str) -> Iterable[Tuple[str, Tuple[str, str]]]
+        # type: (Iterable[Link], str) -> Iterable[Tuple[Link, Tuple[str, str]]]
         """Download the files given by links into location."""
         for link in links:
             try:
@@ -199,4 +199,4 @@ class BatchDownloader:
                 for chunk in chunks:
                     content_file.write(chunk)
             content_type = resp.headers.get('Content-Type', '')
-            yield link.url, (filepath, content_type)
+            yield link, (filepath, content_type)
