@@ -326,7 +326,7 @@ class TestPipResult:
 
         if (pkg_dir in self.files_created) == (curdir in without_files):
             maybe = 'not ' if curdir in without_files else ''
-            files = sorted(self.files_created.keys())
+            files = sorted(self.files_created)
             raise TestFailure(textwrap.dedent(f'''\
             expected package directory {pkg_dir!r} {maybe}to be created
             actually created:
