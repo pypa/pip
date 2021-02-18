@@ -1,5 +1,6 @@
+from unittest.mock import patch
+
 import pytest
-from mock import patch
 
 from pip._internal.models.target_python import TargetPython
 from tests.lib import CURRENT_PY_VERSION_INFO, pyversion

@@ -1,7 +1,7 @@
 import sysconfig
+from unittest.mock import patch
 
 import pytest
-from mock import patch
 
 from pip._internal.utils import compatibility_tags
 

@@ -7,9 +7,9 @@ import os
 import shutil
 import sys
 import tempfile
+from unittest.mock import Mock
 
 import pytest
-from mock import Mock
 
 from pip._internal.locations import distutils_scheme
 

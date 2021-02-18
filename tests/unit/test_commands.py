@@ -1,5 +1,6 @@
+from unittest.mock import patch
+
 import pytest
-from mock import patch
 
 from pip._internal.cli.req_command import (
     IndexGroupCommand,
