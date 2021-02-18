@@ -52,19 +52,18 @@ class Command(CommandContextMixIn):
     def __init__(self, name, summary, isolated=False):
         # type: (str, str, bool) -> None
         super().__init__()
-        parser_kw = {
-            'usage': self.usage,
-            'prog': f'{get_prog()} {name}',
-            'formatter': UpdatingDefaultsHelpFormatter(),
-            'add_help_option': False,
-            'name': name,
-            'description': self.__doc__,
-            'isolated': isolated,
-        }
 
         self.name = name
         self.summary = summary
-        self.parser = ConfigOptionParser(**parser_kw)
+        self.parser = ConfigOptionParser(
+            usage=self.usage,
+            prog=f'{get_prog()} {name}',
+            formatter=UpdatingDefaultsHelpFormatter(),
+            add_help_option=False,
+            name=name,
+            description=self.__doc__,
+            isolated=isolated,
+        )
 
         self.tempdir_registry = None  # type: Optional[TempDirRegistry]
 

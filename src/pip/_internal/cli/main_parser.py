@@ -23,15 +23,13 @@ def create_main_parser():
     """Creates and returns the main parser for pip's CLI
     """
 
-    parser_kw = {
-        'usage': '\n%prog <command> [options]',
-        'add_help_option': False,
-        'formatter': UpdatingDefaultsHelpFormatter(),
-        'name': 'global',
-        'prog': get_prog(),
-    }
-
-    parser = ConfigOptionParser(**parser_kw)
+    parser = ConfigOptionParser(
+        usage='\n%prog <command> [options]',
+        add_help_option=False,
+        formatter=UpdatingDefaultsHelpFormatter(),
+        name='global',
+        prog=get_prog(),
+    )
     parser.disable_interspersed_args()
 
     parser.version = get_pip_version()

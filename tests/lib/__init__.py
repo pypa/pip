@@ -454,16 +454,15 @@ class PipTestEnvironment(TestFileEnvironment):
     exe = sys.platform == 'win32' and '.exe' or ''
     verbose = False
 
-    def __init__(self, base_path, *args, **kwargs):
+    def __init__(self, base_path, *args, virtualenv, pip_expect_warning=None, **kwargs):
         # Make our base_path a test.lib.path.Path object
         base_path = Path(base_path)
 
         # Store paths related to the virtual environment
-        venv = kwargs.pop("virtualenv")
-        self.venv_path = venv.location
-        self.lib_path = venv.lib
-        self.site_packages_path = venv.site
-        self.bin_path = venv.bin
+        self.venv_path = virtualenv.location
+        self.lib_path = virtualenv.lib
+        self.site_packages_path = virtualenv.site
+        self.bin_path = virtualenv.bin
 
         self.user_base_path = self.venv_path.joinpath("user")
         self.user_site_path = self.venv_path.joinpath(
@@ -503,7 +502,7 @@ class PipTestEnvironment(TestFileEnvironment):
 
         # Whether all pip invocations should expect stderr
         # (useful for Python version deprecation)
-        self.pip_expect_warning = kwargs.pop('pip_expect_warning', None)
+        self.pip_expect_warning = pip_expect_warning
 
         # Call the TestFileEnvironment __init__
         super().__init__(base_path, *args, **kwargs)
@@ -544,7 +543,16 @@ class PipTestEnvironment(TestFileEnvironment):
         else:
             super()._find_traverse(path, result)
 
-    def run(self, *args, **kw):
+    def run(
+        self,
+        *args,
+        cwd=None,
+        run_from=None,
+        allow_stderr_error=None,
+        allow_stderr_warning=None,
+        allow_error=None,
+        **kw,
+    ):
         """
         :param allow_stderr_error: whether a logged error is allowed in
             stderr.  Passing True for this argument implies
@@ -567,20 +575,12 @@ class PipTestEnvironment(TestFileEnvironment):
         if self.verbose:
             print('>> running {args} {kw}'.format(**locals()))
 
-        cwd = kw.pop('cwd', None)
-        run_from = kw.pop('run_from', None)
         assert not cwd or not run_from, "Don't use run_from; it's going away"
         cwd = cwd or run_from or self.cwd
         if sys.platform == 'win32':
             # Partial fix for ScriptTest.run using `shell=True` on Windows.
             args = [str(a).replace('^', '^^').replace('&', '^&') for a in args]
 
-        # Remove `allow_stderr_error`, `allow_stderr_warning` and
-        # `allow_error` before calling run() because PipTestEnvironment
-        # doesn't support them.
-        allow_stderr_error = kw.pop('allow_stderr_error', None)
-        allow_stderr_warning = kw.pop('allow_stderr_warning', None)
-        allow_error = kw.pop('allow_error', None)
         if allow_error:
             kw['expect_error'] = True
 
@@ -634,11 +634,11 @@ class PipTestEnvironment(TestFileEnvironment):
 
         return TestPipResult(result, verbose=self.verbose)
 
-    def pip(self, *args, **kwargs):
+    def pip(self, *args, use_module=True, **kwargs):
         __tracebackhide__ = True
         if self.pip_expect_warning:
             kwargs['allow_stderr_warning'] = True
-        if kwargs.pop('use_module', True):
+        if use_module:
             exe = 'python'
             args = ('-m', 'pip') + args
         else:
