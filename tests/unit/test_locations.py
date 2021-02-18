@@ -11,12 +11,17 @@ from unittest.mock import Mock
 
 import pytest
 
-from pip._internal.locations import distutils_scheme
+from pip._internal.locations import SCHEME_KEYS, get_scheme
 
 if sys.platform == 'win32':
     pwd = Mock()
 else:
     import pwd
+
+
+def _get_scheme_dict(*args, **kwargs):
+    scheme = get_scheme(*args, **kwargs)
+    return {k: getattr(scheme, k) for k in SCHEME_KEYS}
 
 
 class TestLocations:
@@ -83,8 +88,8 @@ class TestDistutilsScheme:
         # root is c:\somewhere\else or /somewhere/else
         root = os.path.normcase(os.path.abspath(
             os.path.join(os.path.sep, 'somewhere', 'else')))
-        norm_scheme = distutils_scheme("example")
-        root_scheme = distutils_scheme("example", root=root)
+        norm_scheme = _get_scheme_dict("example")
+        root_scheme = _get_scheme_dict("example", root=root)
 
         for key, value in norm_scheme.items():
             drive, path = os.path.splitdrive(os.path.abspath(value))
@@ -107,7 +112,7 @@ class TestDistutilsScheme:
             'find_config_files',
             lambda self: [f],
         )
-        scheme = distutils_scheme('example')
+        scheme = _get_scheme_dict('example')
         assert scheme['scripts'] == install_scripts
 
     @pytest.mark.incompatible_with_venv
@@ -129,15 +134,15 @@ class TestDistutilsScheme:
             'find_config_files',
             lambda self: [f],
         )
-        scheme = distutils_scheme('example')
+        scheme = _get_scheme_dict('example')
         assert scheme['platlib'] == install_lib + os.path.sep
         assert scheme['purelib'] == install_lib + os.path.sep
 
     def test_prefix_modifies_appropriately(self):
         prefix = os.path.abspath(os.path.join('somewhere', 'else'))
 
-        normal_scheme = distutils_scheme("example")
-        prefix_scheme = distutils_scheme("example", prefix=prefix)
+        normal_scheme = _get_scheme_dict("example")
+        prefix_scheme = _get_scheme_dict("example", prefix=prefix)
 
         def _calculate_expected(value):
             path = os.path.join(prefix, os.path.relpath(value, sys.prefix))

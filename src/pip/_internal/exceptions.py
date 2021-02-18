@@ -59,6 +59,21 @@ class NoneMetadataError(PipError):
         )
 
 
+class UserInstallationInvalid(InstallationError):
+    """A --user install is requested on an environment without user site."""
+
+    def __str__(self):
+        # type: () -> str
+        return "User base directory is not specified"
+
+
+class InvalidSchemeCombination(InstallationError):
+    def __str__(self):
+        # type: () -> str
+        before = ", ".join(str(a) for a in self.args[:-1])
+        return f"Cannot set {before} and {self.args[-1]} together"
+
+
 class DistributionNotFound(InstallationError):
     """Raised when a distribution cannot be found to satisfy a requirement"""
 
