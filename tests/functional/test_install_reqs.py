@@ -645,7 +645,7 @@ def test_install_unsupported_wheel_file(script, data):
     # Trying to install a local wheel with an incompatible version/type
     # should fail.
     path = data.packages.joinpath("simple.dist-0.1-py1-none-invalid.whl")
-    script.scratch_path.joinpath("wheel-file.txt").write_text(path + '\n'))
+    script.scratch_path.joinpath("wheel-file.txt").write_text(path + '\n')
     result = script.pip(
         'install', '-r', script.scratch_path / 'wheel-file.txt',
         expect_error=True,
