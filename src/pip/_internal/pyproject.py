@@ -1,13 +1,13 @@
 import os
 from collections import namedtuple
+from typing import TYPE_CHECKING
 
 from pip._vendor import toml
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 
 from pip._internal.exceptions import InstallationError
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import Any, List, Optional
 
 

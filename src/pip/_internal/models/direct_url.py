@@ -2,10 +2,9 @@
 import json
 import re
 import urllib.parse
+from typing import TYPE_CHECKING
 
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import Any, Dict, Iterable, Optional, Type, TypeVar, Union
 
     T = TypeVar("T")
@@ -156,7 +155,7 @@ class DirInfo:
         return _filter_none(editable=self.editable or None)
 
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     InfoType = Union[ArchiveInfo, DirInfo, VcsInfo]
 
 

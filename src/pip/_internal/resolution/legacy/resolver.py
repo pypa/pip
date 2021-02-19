@@ -18,6 +18,7 @@ import logging
 import sys
 from collections import defaultdict
 from itertools import chain
+from typing import TYPE_CHECKING
 
 from pip._vendor.packaging import specifiers
 
@@ -35,9 +36,8 @@ from pip._internal.utils.compatibility_tags import get_supported
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import dist_in_usersite, normalize_version_info
 from pip._internal.utils.packaging import check_requires_python, get_requires_python
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import DefaultDict, List, Optional, Set, Tuple
 
     from pip._vendor.pkg_resources import Distribution

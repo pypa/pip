@@ -9,12 +9,11 @@ something.
 """
 
 import functools
+from typing import TYPE_CHECKING
 
 from pip._vendor.six.moves import collections_abc  # type: ignore
 
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import Callable, Iterator, Optional, Set, Tuple
 
     from pip._vendor.packaging.version import _BaseVersion

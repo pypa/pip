@@ -6,6 +6,7 @@
 import functools
 import logging
 import re
+from typing import TYPE_CHECKING
 
 from pip._vendor.packaging import specifiers
 from pip._vendor.packaging.utils import canonicalize_name
@@ -28,11 +29,10 @@ from pip._internal.utils.filetypes import WHEEL_EXTENSION
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import build_netloc
 from pip._internal.utils.packaging import check_requires_python
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.unpacking import SUPPORTED_EXTENSIONS
 from pip._internal.utils.urls import url_to_path
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import FrozenSet, Iterable, List, Optional, Set, Tuple, Union
 
     from pip._vendor.packaging.tags import Tag

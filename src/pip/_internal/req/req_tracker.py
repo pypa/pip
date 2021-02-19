@@ -2,13 +2,13 @@ import contextlib
 import hashlib
 import logging
 import os
+from typing import TYPE_CHECKING
 
 from pip._vendor import contextlib2
 
 from pip._internal.utils.temp_dir import TempDirectory
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from types import TracebackType
     from typing import Dict, Iterator, Optional, Set, Type, Union
 

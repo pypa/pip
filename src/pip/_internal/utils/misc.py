@@ -16,6 +16,7 @@ import sys
 import urllib.parse
 from io import StringIO
 from itertools import filterfalse, tee, zip_longest
+from typing import TYPE_CHECKING, cast
 
 from pip._vendor import pkg_resources
 
@@ -27,13 +28,12 @@ from pip import __version__
 from pip._internal.exceptions import CommandError
 from pip._internal.locations import get_major_minor_version, site_packages, user_site
 from pip._internal.utils.compat import WINDOWS, stdlib_pkgs
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING, cast
 from pip._internal.utils.virtualenv import (
     running_under_virtualenv,
     virtualenv_no_global,
 )
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import (
         Any,
         AnyStr,

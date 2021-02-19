@@ -5,6 +5,7 @@ import os
 import sys
 import sysconfig
 from importlib.util import cache_from_source
+from typing import TYPE_CHECKING
 
 from pip._vendor import pkg_resources
 
@@ -23,9 +24,8 @@ from pip._internal.utils.misc import (
     rmtree,
 )
 from pip._internal.utils.temp_dir import AdjacentTempDirectory, TempDirectory
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import (
         Any,
         Callable,

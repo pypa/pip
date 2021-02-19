@@ -1,6 +1,7 @@
 import logging
 import os
 import re
+from typing import TYPE_CHECKING
 
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
@@ -10,7 +11,6 @@ from pip._internal.utils.misc import (
     split_auth_from_netloc,
 )
 from pip._internal.utils.subprocess import make_command
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs.versioncontrol import RemoteNotFoundError, VersionControl, vcs
 
 _svn_xml_url_re = re.compile('url="([^"]+)"')
@@ -19,7 +19,7 @@ _svn_info_xml_rev_re = re.compile(r'\s*revision="(\d+)"')
 _svn_info_xml_url_re = re.compile(r'<url>(.*)</url>')
 
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import List, Optional, Tuple
 
     from pip._internal.utils.misc import HiddenText

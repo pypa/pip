@@ -1,13 +1,13 @@
 import os
 import subprocess
 import urllib.request
+from typing import TYPE_CHECKING
 
 from pip._internal.utils.misc import hide_url
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs import vcs
 from tests.lib import path_to_url
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from tests.lib.path import Path
 
 

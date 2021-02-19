@@ -15,6 +15,7 @@ import platform
 import sys
 import urllib.parse
 import warnings
+from typing import TYPE_CHECKING
 
 from pip._vendor import requests, urllib3
 from pip._vendor.cachecontrol import CacheControlAdapter
@@ -35,10 +36,9 @@ from pip._internal.utils.misc import (
     get_installed_version,
     parse_netloc,
 )
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import url_to_path
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import Any, Iterator, List, Optional, Sequence, Tuple, Union
 
     from pip._internal.models.link import Link

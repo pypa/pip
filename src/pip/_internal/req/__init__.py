@@ -1,14 +1,14 @@
 import collections
 import logging
+from typing import TYPE_CHECKING
 
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 from .req_file import parse_requirements
 from .req_install import InstallRequirement
 from .req_set import RequirementSet
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import Iterator, List, Optional, Sequence, Tuple
 
 __all__ = [

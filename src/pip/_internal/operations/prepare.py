@@ -8,6 +8,7 @@ import logging
 import mimetypes
 import os
 import shutil
+from typing import TYPE_CHECKING
 
 from pip._vendor.packaging.utils import canonicalize_name
 
@@ -33,11 +34,10 @@ from pip._internal.utils.hashes import MissingHashes
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import display_path, hide_url, path_to_display, rmtree
 from pip._internal.utils.temp_dir import TempDirectory
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.unpacking import unpack_file
 from pip._internal.vcs import vcs
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import Dict, Iterable, List, Optional, Tuple
 
     from pip._vendor.pkg_resources import Distribution

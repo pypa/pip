@@ -10,14 +10,14 @@ from enum import Enum
 from functools import partial
 from hashlib import sha256
 from io import BytesIO, StringIO
+from typing import TYPE_CHECKING
 from zipfile import ZipFile
 
 from pip._vendor.requests.structures import CaseInsensitiveDict
 
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from tests.lib.path import Path
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import (
         AnyStr,
         Callable,
@@ -51,7 +51,7 @@ class Default(Enum):
 _default = Default.token
 
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     T = TypeVar("T")
 
     class Defaulted(Union[Default, T]):

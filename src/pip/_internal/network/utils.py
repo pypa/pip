@@ -1,9 +1,10 @@
+from typing import TYPE_CHECKING
+
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
 
 from pip._internal.exceptions import NetworkConnectionError
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import Dict, Iterator
 
 # The following comments and HTTP headers were originally added by

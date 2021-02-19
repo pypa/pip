@@ -3,9 +3,9 @@
 import csv
 from email import message_from_string
 from functools import partial
+from typing import TYPE_CHECKING
 from zipfile import ZipFile
 
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from tests.lib.wheel import (
     _default,
     make_metadata_file,
@@ -14,7 +14,7 @@ from tests.lib.wheel import (
     message_from_dict,
 )
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from email import Message
 
 

@@ -5,6 +5,7 @@ import os
 import shutil
 import site
 from optparse import SUPPRESS_HELP
+from typing import TYPE_CHECKING
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.utils import canonicalize_name
@@ -29,11 +30,10 @@ from pip._internal.utils.misc import (
     write_output,
 )
 from pip._internal.utils.temp_dir import TempDirectory
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.virtualenv import virtualenv_no_global
 from pip._internal.wheel_builder import build, should_build_for_install_command
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from optparse import Values
     from typing import Iterable, List, Optional
 
