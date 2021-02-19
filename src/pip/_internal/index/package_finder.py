@@ -194,7 +194,7 @@ class LinkEvaluator:
                     # simplify troubleshooting compatibility issues.
                     file_tags = wheel.get_formatted_file_tags()
                     reason = (
-                        "none of the wheel's tags match: {}".format(
+                        "none of the wheel's tags ({}) are compatible (run pip debug --verbose to show compatible tags)".format(
                             ', '.join(file_tags)
                         )
                     )
