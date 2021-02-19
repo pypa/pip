@@ -47,12 +47,13 @@ def _warn_if_mismatch(old, new, *, key):
     # type: (pathlib.Path, pathlib.Path, str) -> None
     if old == new:
         return
+    issue_url = "https://github.com/pypa/pip/issues/9617"
     message = (
-        "Value for %s does not match. Please report this: <URL HERE>"
+        "Value for %s does not match. Please report this to %s"
         "\ndistutils: %s"
         "\nsysconfig: %s"
     )
-    logger.warning(message, key, old, new)
+    logger.warning(message, key, issue_url, old, new)
 
 
 def get_scheme(
