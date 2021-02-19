@@ -131,8 +131,16 @@ def get_prefixed_libs(prefix):
     """Return the lib locations under ``prefix``."""
     old_pure, old_plat = _distutils.get_prefixed_libs(prefix)
     new_pure, new_plat = _sysconfig.get_prefixed_libs(prefix)
-    _warn_if_mismatch(old_pure, new_pure, key="prefixed-purelib")
-    _warn_if_mismatch(old_plat, new_plat, key="prefixed-platlib")
+    _warn_if_mismatch(
+        pathlib.Path(old_pure),
+        pathlib.Path(new_pure),
+        key="prefixed-purelib",
+    )
+    _warn_if_mismatch(
+        pathlib.Path(old_plat),
+        pathlib.Path(new_plat),
+        key="prefixed-platlib",
+    )
     if old_pure == old_plat:
         return [old_pure]
     return [old_pure, old_plat]

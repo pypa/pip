@@ -43,6 +43,6 @@ def get_src_prefix():
 try:
     # Use getusersitepackages if this is present, as it ensures that the
     # value is initialised properly.
-    user_site = site.getusersitepackages()
+    user_site = site.getusersitepackages()  # type: typing.Optional[str]
 except AttributeError:
     user_site = site.USER_SITE
