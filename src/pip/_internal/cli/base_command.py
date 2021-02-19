@@ -6,6 +6,7 @@ import optparse
 import os
 import sys
 import traceback
+from typing import TYPE_CHECKING
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.command_context import CommandContextMixIn
@@ -29,10 +30,9 @@ from pip._internal.utils.filesystem import check_path_owner
 from pip._internal.utils.logging import BrokenStdoutLoggingError, setup_logging
 from pip._internal.utils.misc import get_prog, normalize_path
 from pip._internal.utils.temp_dir import global_tempdir_manager, tempdir_registry
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from optparse import Values
     from typing import Any, List, Optional, Tuple
 
@@ -52,19 +52,18 @@ class Command(CommandContextMixIn):
     def __init__(self, name, summary, isolated=False):
         # type: (str, str, bool) -> None
         super().__init__()
-        parser_kw = {
-            'usage': self.usage,
-            'prog': f'{get_prog()} {name}',
-            'formatter': UpdatingDefaultsHelpFormatter(),
-            'add_help_option': False,
-            'name': name,
-            'description': self.__doc__,
-            'isolated': isolated,
-        }
 
         self.name = name
         self.summary = summary
-        self.parser = ConfigOptionParser(**parser_kw)
+        self.parser = ConfigOptionParser(
+            usage=self.usage,
+            prog=f'{get_prog()} {name}',
+            formatter=UpdatingDefaultsHelpFormatter(),
+            add_help_option=False,
+            name=name,
+            description=self.__doc__,
+            isolated=isolated,
+        )
 
         self.tempdir_registry = None  # type: Optional[TempDirRegistry]
 

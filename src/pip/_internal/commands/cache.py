@@ -1,14 +1,14 @@
 import logging
 import os
 import textwrap
+from typing import TYPE_CHECKING
 
 import pip._internal.utils.filesystem as filesystem
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.exceptions import CommandError, PipError
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from optparse import Values
     from typing import Any, List
 

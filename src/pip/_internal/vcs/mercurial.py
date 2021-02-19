@@ -1,15 +1,12 @@
-# The following comment should be removed at some point in the future.
-# mypy: disallow-untyped-defs=False
-
 import configparser
 import logging
 import os
+from typing import TYPE_CHECKING
 
 from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.utils.misc import display_path
 from pip._internal.utils.subprocess import make_command
 from pip._internal.utils.temp_dir import TempDirectory
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import path_to_url
 from pip._internal.vcs.versioncontrol import (
     VersionControl,
@@ -17,7 +14,9 @@ from pip._internal.vcs.versioncontrol import (
     vcs,
 )
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
+    from typing import List, Optional
+
     from pip._internal.utils.misc import HiddenText
     from pip._internal.vcs.versioncontrol import RevOptions
 
@@ -35,6 +34,7 @@ class Mercurial(VersionControl):
 
     @staticmethod
     def get_base_rev_args(rev):
+        # type: (str) -> List[str]
         return [rev]
 
     def export(self, location, url):
@@ -114,6 +114,7 @@ class Mercurial(VersionControl):
 
     @classmethod
     def get_requirement_revision(cls, location):
+        # type: (str) -> str
         """
         Return the changeset identification hash, as a 40-character
         hexadecimal string
@@ -128,11 +129,13 @@ class Mercurial(VersionControl):
 
     @classmethod
     def is_commit_id_equal(cls, dest, name):
+        # type: (str, Optional[str]) -> bool
         """Always assume the versions don't match"""
         return False
 
     @classmethod
     def get_subdirectory(cls, location):
+        # type: (str) -> Optional[str]
         """
         Return the path to setup.py, relative to the repo root.
         Return None if setup.py is in the repo root.
@@ -147,6 +150,7 @@ class Mercurial(VersionControl):
 
     @classmethod
     def get_repository_root(cls, location):
+        # type: (str) -> Optional[str]
         loc = super().get_repository_root(location)
         if loc:
             return loc

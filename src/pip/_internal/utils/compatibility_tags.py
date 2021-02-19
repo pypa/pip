@@ -2,6 +2,7 @@
 """
 
 import re
+from typing import TYPE_CHECKING
 
 from pip._vendor.packaging.tags import (
     Tag,
@@ -13,9 +14,7 @@ from pip._vendor.packaging.tags import (
     mac_platforms,
 )
 
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import List, Optional, Tuple
 
     from pip._vendor.packaging.tags import PythonVersion

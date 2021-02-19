@@ -1,8 +1,9 @@
+from typing import TYPE_CHECKING
+
 from pip._internal.distributions.sdist import SourceDistribution
 from pip._internal.distributions.wheel import WheelDistribution
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from pip._internal.distributions.base import AbstractDistribution
     from pip._internal.req.req_install import InstallRequirement
 

@@ -2,17 +2,17 @@ import os
 import signal
 import ssl
 import threading
+from base64 import b64encode
 from contextlib import contextmanager
 from textwrap import dedent
+from typing import TYPE_CHECKING
+from unittest.mock import Mock
 
-from mock import Mock
 from pip._vendor.contextlib2 import nullcontext
 from werkzeug.serving import WSGIRequestHandler
 from werkzeug.serving import make_server as _make_server
 
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from types import TracebackType
     from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Type
 
@@ -219,14 +219,26 @@ def file_response(path):
 
 
 def authorization_response(path):
+    # type: (str) -> Responder
+    correct_auth = "Basic " + b64encode(b"USERNAME:PASSWORD").decode("ascii")
+
     def responder(environ, start_response):
         # type: (Environ, StartResponse) -> Body
 
-        start_response(
-            "401 Unauthorized", [
-                ("WWW-Authenticate", "Basic"),
-            ],
-        )
+        if environ.get('HTTP_AUTHORIZATION') == correct_auth:
+            size = os.stat(path).st_size
+            start_response(
+                "200 OK", [
+                    ("Content-Type", "application/octet-stream"),
+                    ("Content-Length", str(size)),
+                ],
+            )
+        else:
+            start_response(
+                "401 Unauthorized", [
+                    ("WWW-Authenticate", "Basic"),
+                ],
+            )
 
         with open(path, 'rb') as f:
             return [f.read()]

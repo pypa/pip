@@ -5,6 +5,7 @@ import logging
 import os
 import sys
 from distutils.util import change_root
+from typing import TYPE_CHECKING
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.utils.logging import indent_log
@@ -12,9 +13,8 @@ from pip._internal.utils.misc import ensure_dir
 from pip._internal.utils.setuptools_build import make_setuptools_install_args
 from pip._internal.utils.subprocess import runner_with_spinner_message
 from pip._internal.utils.temp_dir import TempDirectory
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import List, Optional, Sequence
 
     from pip._internal.build_env import BuildEnvironment

@@ -7,6 +7,7 @@ import shutil
 import sys
 import uuid
 import zipfile
+from typing import TYPE_CHECKING
 
 from pip._vendor import pkg_resources, six
 from pip._vendor.packaging.requirements import Requirement
@@ -42,17 +43,15 @@ from pip._internal.utils.misc import (
     dist_in_site_packages,
     dist_in_usersite,
     get_distribution,
-    get_installed_version,
     hide_url,
     redact_auth_from_url,
 )
 from pip._internal.utils.packaging import get_metadata
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.virtualenv import running_under_virtualenv
 from pip._internal.vcs import vcs
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import Any, Dict, Iterable, List, Optional, Sequence, Union
 
     from pip._vendor.packaging.markers import Marker
@@ -255,7 +254,7 @@ class InstallRequirement:
         # type: () -> Optional[str]
         if self.req is None:
             return None
-        return six.ensure_str(pkg_resources.safe_name(self.req.name))
+        return pkg_resources.safe_name(self.req.name)
 
     @property
     def specifier(self):
@@ -272,11 +271,6 @@ class InstallRequirement:
         specifiers = self.specifier
         return (len(specifiers) == 1 and
                 next(iter(specifiers)).operator in {'==', '==='})
-
-    @property
-    def installed_version(self):
-        # type: () -> Optional[str]
-        return get_installed_version(self.name)
 
     def match_markers(self, extras_requested=None):
         # type: (Optional[Iterable[str]]) -> bool

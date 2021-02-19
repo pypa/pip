@@ -11,6 +11,7 @@ InstallRequirement.
 import logging
 import os
 import re
+from typing import TYPE_CHECKING
 
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
@@ -25,11 +26,10 @@ from pip._internal.pyproject import make_pyproject_path
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.filetypes import is_archive_file
 from pip._internal.utils.misc import is_installable_dir
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import path_to_url
 from pip._internal.vcs import is_url, vcs
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import Any, Dict, Optional, Set, Tuple, Union
 
     from pip._internal.req.req_file import ParsedRequirement

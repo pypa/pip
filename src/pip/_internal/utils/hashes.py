@@ -1,10 +1,10 @@
 import hashlib
+from typing import TYPE_CHECKING
 
 from pip._internal.exceptions import HashMismatch, HashMissing, InstallationError
 from pip._internal.utils.misc import read_chunks
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from hashlib import _Hash
     from typing import BinaryIO, Dict, Iterator, List, NoReturn
 

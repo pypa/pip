@@ -1,11 +1,11 @@
-from pip._vendor.resolvelib.providers import AbstractProvider
+from typing import TYPE_CHECKING
 
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._vendor.resolvelib.providers import AbstractProvider
 
 from .base import Constraint
 
-if MYPY_CHECK_RUNNING:
-    from typing import Any, Dict, Iterable, Optional, Sequence, Set, Tuple, Union
+if TYPE_CHECKING:
+    from typing import Any, Dict, Iterable, Optional, Sequence, Tuple, Union
 
     from .base import Candidate, Requirement
     from .factory import Factory
@@ -46,7 +46,7 @@ class PipProvider(AbstractProvider):
         constraints,  # type: Dict[str, Constraint]
         ignore_dependencies,  # type: bool
         upgrade_strategy,  # type: str
-        user_requested,  # type: Set[str]
+        user_requested,  # type: Dict[str, int]
     ):
         # type: (...) -> None
         self._factory = factory
@@ -77,7 +77,8 @@ class PipProvider(AbstractProvider):
         * If equal, prefer if any requirements contain ``===`` and ``==``.
         * If equal, prefer if requirements include version constraints, e.g.
           ``>=`` and ``<``.
-        * If equal, prefer user-specified (non-transitive) requirements.
+        * If equal, prefer user-specified (non-transitive) requirements, and
+          order user-specified requirements by the order they are specified.
         * If equal, order alphabetically for consistency (helps debuggability).
         """
 
@@ -115,8 +116,8 @@ class PipProvider(AbstractProvider):
             return 3
 
         restrictive = _get_restrictive_rating(req for req, _ in information)
-        transitive = all(parent is not None for _, parent in information)
         key = next(iter(candidates)).name if candidates else ""
+        order = self._user_requested.get(key, float("inf"))
 
         # HACK: Setuptools have a very long and solid backward compatibility
         # track record, and extremely few projects would request a narrow,
@@ -128,7 +129,7 @@ class PipProvider(AbstractProvider):
         # while we work on "proper" branch pruning techniques.
         delay_this = (key == "setuptools")
 
-        return (delay_this, restrictive, transitive, key)
+        return (delay_this, restrictive, order, key)
 
     def find_matches(self, requirements):
         # type: (Sequence[Requirement]) -> Iterable[Candidate]

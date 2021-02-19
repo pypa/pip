@@ -1,4 +1,5 @@
 import sys
+from typing import TYPE_CHECKING
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
@@ -6,11 +7,10 @@ from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.operations.freeze import freeze
 from pip._internal.utils.compat import stdlib_pkgs
 from pip._internal.utils.deprecation import deprecated
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 DEV_PKGS = {'pip', 'setuptools', 'distribute', 'wheel'}
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from optparse import Values
     from typing import List
 

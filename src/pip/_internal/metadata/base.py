@@ -1,7 +1,8 @@
-from pip._internal.utils.misc import stdlib_pkgs  # TODO: Move definition here.
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from typing import TYPE_CHECKING
 
-if MYPY_CHECK_RUNNING:
+from pip._internal.utils.misc import stdlib_pkgs  # TODO: Move definition here.
+
+if TYPE_CHECKING:
     from typing import Container, Iterator, List, Optional
 
     from pip._vendor.packaging.version import _BaseVersion

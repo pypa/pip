@@ -1,5 +1,6 @@
 import json
 import logging
+from typing import TYPE_CHECKING
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.req_command import IndexGroupCommand
@@ -17,9 +18,8 @@ from pip._internal.utils.misc import (
 )
 from pip._internal.utils.packaging import get_installer
 from pip._internal.utils.parallel import map_multithread
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from optparse import Values
     from typing import Iterator, List, Set, Tuple
 

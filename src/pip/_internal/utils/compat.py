@@ -9,10 +9,9 @@ import locale
 import logging
 import os
 import sys
+from typing import TYPE_CHECKING
 
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import Optional, Union
 
 

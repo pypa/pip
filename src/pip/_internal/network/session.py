@@ -15,8 +15,9 @@ import platform
 import sys
 import urllib.parse
 import warnings
+from typing import TYPE_CHECKING
 
-from pip._vendor import requests, six, urllib3
+from pip._vendor import requests, urllib3
 from pip._vendor.cachecontrol import CacheControlAdapter
 from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
 from pip._vendor.requests.models import Response
@@ -24,22 +25,18 @@ from pip._vendor.requests.structures import CaseInsensitiveDict
 from pip._vendor.urllib3.exceptions import InsecureRequestWarning
 
 from pip import __version__
+from pip._internal.metadata import get_default_environment
 from pip._internal.network.auth import MultiDomainBasicAuth
 from pip._internal.network.cache import SafeFileCache
 
 # Import ssl from compat so the initial import occurs in only one place.
 from pip._internal.utils.compat import has_tls
 from pip._internal.utils.glibc import libc_ver
-from pip._internal.utils.misc import (
-    build_url_from_netloc,
-    get_installed_version,
-    parse_netloc,
-)
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.misc import build_url_from_netloc, parse_netloc
 from pip._internal.utils.urls import url_to_path
 
-if MYPY_CHECK_RUNNING:
-    from typing import Iterator, List, Optional, Tuple, Union
+if TYPE_CHECKING:
+    from typing import Any, Iterator, List, Optional, Sequence, Tuple, Union
 
     from pip._internal.models.link import Link
 
@@ -156,9 +153,9 @@ def user_agent():
         import _ssl as ssl
         data["openssl_version"] = ssl.OPENSSL_VERSION
 
-    setuptools_version = get_installed_version("setuptools")
-    if setuptools_version is not None:
-        data["setuptools_version"] = setuptools_version
+    setuptools_dist = get_default_environment().get_distribution("setuptools")
+    if setuptools_dist is not None:
+        data["setuptools_version"] = str(setuptools_dist.version)
 
     # Use None rather than False so as not to give the impression that
     # pip knows it is not being run under CI.  Rather, it is a null or
@@ -225,16 +222,20 @@ class PipSession(requests.Session):
 
     timeout = None  # type: Optional[int]
 
-    def __init__(self, *args, **kwargs):
+    def __init__(
+        self,
+        *args,  # type: Any
+        retries=0,  # type: int
+        cache=None,  # type: Optional[str]
+        trusted_hosts=(),  # type: Sequence[str]
+        index_urls=None,  # type: Optional[List[str]]
+        **kwargs,  # type: Any
+    ):
+        # type: (...) -> None
         """
         :param trusted_hosts: Domains not to emit warnings for when not using
             HTTPS.
         """
-        retries = kwargs.pop("retries", 0)
-        cache = kwargs.pop("cache", None)
-        trusted_hosts = kwargs.pop("trusted_hosts", [])  # type: List[str]
-        index_urls = kwargs.pop("index_urls", None)
-
         super().__init__(*args, **kwargs)
 
         # Namespace the attribute with "pip_" just in case to prevent
@@ -367,14 +368,8 @@ class PipSession(requests.Session):
                 continue
 
             try:
-                addr = ipaddress.ip_address(
-                    None
-                    if origin_host is None
-                    else six.ensure_text(origin_host)
-                )
-                network = ipaddress.ip_network(
-                    six.ensure_text(secure_host)
-                )
+                addr = ipaddress.ip_address(origin_host)
+                network = ipaddress.ip_network(secure_host)
             except ValueError:
                 # We don't have both a valid address or a valid network, so
                 # we'll check this origin against hostnames.

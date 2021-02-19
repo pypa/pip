@@ -6,6 +6,7 @@ providing credentials in the context of network requests.
 
 import logging
 import urllib.parse
+from typing import TYPE_CHECKING
 
 from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
 from pip._vendor.requests.utils import get_netrc_auth
@@ -17,9 +18,8 @@ from pip._internal.utils.misc import (
     remove_auth_from_url,
     split_auth_netloc_from_url,
 )
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import Any, Dict, List, Optional, Tuple
 
     from pip._vendor.requests.models import Request, Response
@@ -112,7 +112,7 @@ class MultiDomainBasicAuth(AuthBase):
         return None
 
     def _get_new_credentials(self, original_url, allow_netrc=True,
-                             allow_keyring=True):
+                             allow_keyring=False):
         # type: (str, bool, bool) -> AuthInfo
         """Find and return credentials for the specified URL."""
         # Split the credentials and netloc from the url.
@@ -252,8 +252,15 @@ class MultiDomainBasicAuth(AuthBase):
 
         parsed = urllib.parse.urlparse(resp.url)
 
+        # Query the keyring for credentials:
+        username, password = self._get_new_credentials(resp.url,
+                                                       allow_netrc=False,
+                                                       allow_keyring=True)
+
         # Prompt the user for a new username and password
-        username, password, save = self._prompt_for_password(parsed.netloc)
+        save = False
+        if not username and not password:
+            username, password, save = self._prompt_for_password(parsed.netloc)
 
         # Store the new username and password to use for future requests
         self._credentials_to_save = None

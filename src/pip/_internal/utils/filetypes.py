@@ -1,9 +1,10 @@
 """Filetype information.
 """
-from pip._internal.utils.misc import splitext
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from typing import TYPE_CHECKING
 
-if MYPY_CHECK_RUNNING:
+from pip._internal.utils.misc import splitext
+
+if TYPE_CHECKING:
     from typing import Tuple
 
 WHEEL_EXTENSION = '.whl'

@@ -1,9 +1,7 @@
-# The following comment should be removed at some point in the future.
-# mypy: disallow-untyped-defs=False
-
 import logging
 import os
 import re
+from typing import TYPE_CHECKING
 
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
@@ -13,7 +11,6 @@ from pip._internal.utils.misc import (
     split_auth_from_netloc,
 )
 from pip._internal.utils.subprocess import make_command
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs.versioncontrol import RemoteNotFoundError, VersionControl, vcs
 
 _svn_xml_url_re = re.compile('url="([^"]+)"')
@@ -22,8 +19,8 @@ _svn_info_xml_rev_re = re.compile(r'\s*revision="(\d+)"')
 _svn_info_xml_url_re = re.compile(r'<url>(.*)</url>')
 
 
-if MYPY_CHECK_RUNNING:
-    from typing import Optional, Tuple
+if TYPE_CHECKING:
+    from typing import List, Optional, Tuple
 
     from pip._internal.utils.misc import HiddenText
     from pip._internal.utils.subprocess import CommandArgs
@@ -43,10 +40,12 @@ class Subversion(VersionControl):
 
     @classmethod
     def should_add_vcs_url_prefix(cls, remote_url):
+        # type: (str) -> bool
         return True
 
     @staticmethod
     def get_base_rev_args(rev):
+        # type: (str) -> List[str]
         return ['-r', rev]
 
     @classmethod
@@ -71,6 +70,7 @@ class Subversion(VersionControl):
             dirurl, localrev = cls._get_svn_url_rev(base)
 
             if base == location:
+                assert dirurl is not None
                 base = dirurl + '/'   # save the root url
             elif not dirurl or not dirurl.startswith(base):
                 dirs[:] = []
@@ -80,6 +80,7 @@ class Subversion(VersionControl):
 
     @classmethod
     def get_netloc_and_auth(cls, netloc, scheme):
+        # type: (str, str) -> Tuple[str, Tuple[Optional[str], Optional[str]]]
         """
         This override allows the auth information to be passed to svn via the
         --username and --password options instead of via the URL.
@@ -139,6 +140,7 @@ class Subversion(VersionControl):
 
     @classmethod
     def _get_svn_url_rev(cls, location):
+        # type: (str) -> Tuple[Optional[str], int]
         from pip._internal.exceptions import InstallationError
 
         entries_path = os.path.join(location, cls.dirname, 'entries')
@@ -148,13 +150,14 @@ class Subversion(VersionControl):
         else:  # subversion >= 1.7 does not have the 'entries' file
             data = ''
 
+        url = None
         if (data.startswith('8') or
                 data.startswith('9') or
                 data.startswith('10')):
-            data = list(map(str.splitlines, data.split('\n\x0c\n')))
-            del data[0][0]  # get rid of the '8'
-            url = data[0][3]
-            revs = [int(d[9]) for d in data if len(d) > 9 and d[9]] + [0]
+            entries = list(map(str.splitlines, data.split('\n\x0c\n')))
+            del entries[0][0]  # get rid of the '8'
+            url = entries[0][3]
+            revs = [int(d[9]) for d in entries if len(d) > 9 and d[9]] + [0]
         elif data.startswith('<?xml'):
             match = _svn_xml_url_re.search(data)
             if not match:
@@ -175,7 +178,9 @@ class Subversion(VersionControl):
                     show_stdout=False,
                     stdout_only=True,
                 )
-                url = _svn_info_xml_url_re.search(xml).group(1)
+                match = _svn_info_xml_url_re.search(xml)
+                assert match is not None
+                url = match.group(1)
                 revs = [
                     int(m.group(1)) for m in _svn_info_xml_rev_re.finditer(xml)
                 ]
@@ -191,6 +196,7 @@ class Subversion(VersionControl):
 
     @classmethod
     def is_commit_id_equal(cls, dest, name):
+        # type: (str, Optional[str]) -> bool
         """Always assume the versions don't match"""
         return False
 

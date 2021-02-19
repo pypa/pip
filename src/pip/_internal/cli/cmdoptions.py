@@ -16,6 +16,7 @@ import warnings
 from functools import partial
 from optparse import SUPPRESS_HELP, Option, OptionGroup
 from textwrap import dedent
+from typing import TYPE_CHECKING
 
 from pip._vendor.packaging.utils import canonicalize_name
 
@@ -27,9 +28,8 @@ from pip._internal.models.index import PyPI
 from pip._internal.models.target_python import TargetPython
 from pip._internal.utils.hashes import STRONG_HASHES
 from pip._internal.utils.misc import strtobool
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from optparse import OptionParser, Values
     from typing import Any, Callable, Dict, Optional, Tuple
 

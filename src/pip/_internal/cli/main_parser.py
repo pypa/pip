@@ -3,15 +3,15 @@
 
 import os
 import sys
+from typing import TYPE_CHECKING
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.parser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip._internal.commands import commands_dict, get_similar_commands
 from pip._internal.exceptions import CommandError
 from pip._internal.utils.misc import get_pip_version, get_prog
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-if MYPY_CHECK_RUNNING:
+if TYPE_CHECKING:
     from typing import List, Tuple
 
 
@@ -23,15 +23,13 @@ def create_main_parser():
     """Creates and returns the main parser for pip's CLI
     """
 
-    parser_kw = {
-        'usage': '\n%prog <command> [options]',
-        'add_help_option': False,
-        'formatter': UpdatingDefaultsHelpFormatter(),
-        'name': 'global',
-        'prog': get_prog(),
-    }
-
-    parser = ConfigOptionParser(**parser_kw)
+    parser = ConfigOptionParser(
+        usage='\n%prog <command> [options]',
+        add_help_option=False,
+        formatter=UpdatingDefaultsHelpFormatter(),
+        name='global',
+        prog=get_prog(),
+    )
     parser.disable_interspersed_args()
 
     parser.version = get_pip_version()
