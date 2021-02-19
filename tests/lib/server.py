@@ -5,31 +5,28 @@ import threading
 from base64 import b64encode
 from contextlib import contextmanager
 from textwrap import dedent
-from typing import TYPE_CHECKING
+from types import TracebackType
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Type
 from unittest.mock import Mock
 
-from werkzeug.serving import WSGIRequestHandler
+from werkzeug.serving import BaseWSGIServer, WSGIRequestHandler
 from werkzeug.serving import make_server as _make_server
 
 from .compat import nullcontext
 
-if TYPE_CHECKING:
-    from types import TracebackType
-    from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Type
+Environ = Dict[str, str]
+Status = str
+Headers = Iterable[Tuple[str, str]]
+ExcInfo = Tuple[Type[BaseException], BaseException, TracebackType]
+Write = Callable[[bytes], None]
+StartResponse = Callable[[Status, Headers, Optional[ExcInfo]], Write]
+Body = List[bytes]
+Responder = Callable[[Environ, StartResponse], Body]
 
-    from werkzeug.serving import BaseWSGIServer
 
-    Environ = Dict[str, str]
-    Status = str
-    Headers = Iterable[Tuple[str, str]]
-    ExcInfo = Tuple[Type[BaseException], BaseException, TracebackType]
-    Write = Callable[[bytes], None]
-    StartResponse = Callable[[Status, Headers, Optional[ExcInfo]], Write]
-    Body = List[bytes]
-    Responder = Callable[[Environ, StartResponse], Body]
+class MockServer(BaseWSGIServer):
+    mock = Mock()  # type: Mock
 
-    class MockServer(BaseWSGIServer):
-        mock = Mock()  # type: Mock
 
 # Applies on Python 2 and Windows.
 if not hasattr(signal, "pthread_sigmask"):

@@ -7,12 +7,9 @@ and eventually drop this after all usages are changed.
 """
 
 import os
-from typing import TYPE_CHECKING
+from typing import List
 
 from pip._vendor import appdirs as _appdirs
-
-if TYPE_CHECKING:
-    from typing import List
 
 
 def user_cache_dir(appname):

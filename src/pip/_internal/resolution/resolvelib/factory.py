@@ -1,9 +1,25 @@
 import functools
 import logging
-from typing import TYPE_CHECKING
+from typing import (
+    Dict,
+    FrozenSet,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    TypeVar,
+)
 
+from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.packaging.version import _BaseVersion
+from pip._vendor.pkg_resources import Distribution
+from pip._vendor.resolvelib import ResolutionImpossible
 
+from pip._internal.cache import CacheEntry, WheelCache
 from pip._internal.exceptions import (
     DistributionNotFound,
     InstallationError,
@@ -12,8 +28,12 @@ from pip._internal.exceptions import (
     UnsupportedPythonVersion,
     UnsupportedWheel,
 )
+from pip._internal.index.package_finder import PackageFinder
+from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
+from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req.req_install import InstallRequirement
+from pip._internal.resolution.base import InstallRequirementProvider
 from pip._internal.utils.compatibility_tags import get_supported
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.misc import (
@@ -23,15 +43,16 @@ from pip._internal.utils.misc import (
 )
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
-from .base import Constraint
+from .base import Candidate, Constraint, Requirement
 from .candidates import (
     AlreadyInstalledCandidate,
+    BaseCandidate,
     EditableCandidate,
     ExtrasCandidate,
     LinkCandidate,
     RequiresPythonCandidate,
 )
-from .found_candidates import FoundCandidates
+from .found_candidates import FoundCandidates, IndexCandidateInfo
 from .requirements import (
     ExplicitRequirement,
     RequiresPythonRequirement,
@@ -39,39 +60,10 @@ from .requirements import (
     UnsatisfiableRequirement,
 )
 
-if TYPE_CHECKING:
-    from typing import (
-        Dict,
-        FrozenSet,
-        Iterable,
-        Iterator,
-        List,
-        Optional,
-        Sequence,
-        Set,
-        Tuple,
-        TypeVar,
-    )
-
-    from pip._vendor.packaging.specifiers import SpecifierSet
-    from pip._vendor.packaging.version import _BaseVersion
-    from pip._vendor.pkg_resources import Distribution
-    from pip._vendor.resolvelib import ResolutionImpossible
-
-    from pip._internal.cache import CacheEntry, WheelCache
-    from pip._internal.index.package_finder import PackageFinder
-    from pip._internal.models.link import Link
-    from pip._internal.operations.prepare import RequirementPreparer
-    from pip._internal.resolution.base import InstallRequirementProvider
-
-    from .base import Candidate, Requirement
-    from .candidates import BaseCandidate
-    from .found_candidates import IndexCandidateInfo
-
-    C = TypeVar("C")
-    Cache = Dict[Link, C]
-
 logger = logging.getLogger(__name__)
+
+C = TypeVar("C")
+Cache = Dict[Link, C]
 
 
 class Factory:

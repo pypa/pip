@@ -2,15 +2,12 @@
 """
 
 import os
-from typing import TYPE_CHECKING
 
+from pip._vendor.pep517.wrappers import Pep517HookCaller
+
+from pip._internal.build_env import BuildEnvironment
 from pip._internal.utils.subprocess import runner_with_spinner_message
 from pip._internal.utils.temp_dir import TempDirectory
-
-if TYPE_CHECKING:
-    from pip._vendor.pep517.wrappers import Pep517HookCaller
-
-    from pip._internal.build_env import BuildEnvironment
 
 
 def generate_metadata(build_env, backend):

@@ -2,10 +2,7 @@ import os
 import sys
 import urllib.parse
 import urllib.request
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from typing import Optional
+from typing import Optional
 
 
 def get_url_scheme(url):

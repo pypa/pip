@@ -1,13 +1,10 @@
 import sys
-from typing import TYPE_CHECKING
+from typing import List, Optional, Tuple
+
+from pip._vendor.packaging.tags import Tag
 
 from pip._internal.utils.compatibility_tags import get_supported, version_info_to_nodot
 from pip._internal.utils.misc import normalize_version_info
-
-if TYPE_CHECKING:
-    from typing import List, Optional, Tuple
-
-    from pip._vendor.packaging.tags import Tag
 
 
 class TargetPython:

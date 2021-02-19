@@ -8,9 +8,10 @@ import logging
 import mimetypes
 import os
 import shutil
-from typing import TYPE_CHECKING
+from typing import Dict, Iterable, List, Optional, Tuple
 
 from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.pkg_resources import Distribution
 
 from pip._internal.distributions import make_distribution_for_install_requirement
 from pip._internal.distributions.installed import InstalledDistribution
@@ -23,32 +24,24 @@ from pip._internal.exceptions import (
     PreviousBuildDirError,
     VcsHashUnsupported,
 )
+from pip._internal.index.package_finder import PackageFinder
+from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
 from pip._internal.network.download import BatchDownloader, Downloader
 from pip._internal.network.lazy_wheel import (
     HTTPRangeRequestUnsupported,
     dist_from_wheel_url,
 )
+from pip._internal.network.session import PipSession
+from pip._internal.req.req_install import InstallRequirement
+from pip._internal.req.req_tracker import RequirementTracker
 from pip._internal.utils.filesystem import copy2_fixed
-from pip._internal.utils.hashes import MissingHashes
+from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import display_path, hide_url, path_to_display, rmtree
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.unpacking import unpack_file
 from pip._internal.vcs import vcs
-
-if TYPE_CHECKING:
-    from typing import Dict, Iterable, List, Optional, Tuple
-
-    from pip._vendor.pkg_resources import Distribution
-
-    from pip._internal.index.package_finder import PackageFinder
-    from pip._internal.models.link import Link
-    from pip._internal.network.session import PipSession
-    from pip._internal.req.req_install import InstallRequirement
-    from pip._internal.req.req_tracker import RequirementTracker
-    from pip._internal.utils.hashes import Hashes
-
 
 logger = logging.getLogger(__name__)
 

@@ -1,5 +1,6 @@
 import logging
-from typing import TYPE_CHECKING
+from optparse import Values
+from typing import Any, List
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
@@ -10,10 +11,6 @@ from pip._internal.operations.check import (
 from pip._internal.utils.misc import write_output
 
 logger = logging.getLogger(__name__)
-
-if TYPE_CHECKING:
-    from optparse import Values
-    from typing import Any, List
 
 
 class CheckCommand(Command):

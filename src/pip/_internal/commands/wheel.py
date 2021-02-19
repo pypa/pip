@@ -1,23 +1,19 @@
 import logging
 import os
 import shutil
-from typing import TYPE_CHECKING
+from optparse import Values
+from typing import List
 
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.req_command import RequirementCommand, with_cleanup
 from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.exceptions import CommandError
+from pip._internal.req.req_install import InstallRequirement
 from pip._internal.req.req_tracker import get_requirement_tracker
 from pip._internal.utils.misc import ensure_dir, normalize_path
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.wheel_builder import build, should_build_for_wheel_command
-
-if TYPE_CHECKING:
-    from optparse import Values
-    from typing import List
-
-    from pip._internal.req.req_install import InstallRequirement
 
 logger = logging.getLogger(__name__)
 

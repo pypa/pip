@@ -3,10 +3,7 @@ import os
 import re
 import site
 import sys
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from typing import List, Optional
+from typing import List, Optional
 
 logger = logging.getLogger(__name__)
 _INCLUDE_SYSTEM_SITE_PACKAGES_REGEX = re.compile(

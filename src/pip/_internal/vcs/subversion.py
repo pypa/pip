@@ -1,33 +1,31 @@
 import logging
 import os
 import re
-from typing import TYPE_CHECKING
+from typing import List, Optional, Tuple
 
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
+    HiddenText,
     display_path,
     is_console_interactive,
     rmtree,
     split_auth_from_netloc,
 )
-from pip._internal.utils.subprocess import make_command
-from pip._internal.vcs.versioncontrol import RemoteNotFoundError, VersionControl, vcs
+from pip._internal.utils.subprocess import CommandArgs, make_command
+from pip._internal.vcs.versioncontrol import (
+    AuthInfo,
+    RemoteNotFoundError,
+    RevOptions,
+    VersionControl,
+    vcs,
+)
+
+logger = logging.getLogger(__name__)
 
 _svn_xml_url_re = re.compile('url="([^"]+)"')
 _svn_rev_re = re.compile(r'committed-rev="(\d+)"')
 _svn_info_xml_rev_re = re.compile(r'\s*revision="(\d+)"')
 _svn_info_xml_url_re = re.compile(r'<url>(.*)</url>')
-
-
-if TYPE_CHECKING:
-    from typing import List, Optional, Tuple
-
-    from pip._internal.utils.misc import HiddenText
-    from pip._internal.utils.subprocess import CommandArgs
-    from pip._internal.vcs.versioncontrol import AuthInfo, RevOptions
-
-
-logger = logging.getLogger(__name__)
 
 
 class Subversion(VersionControl):

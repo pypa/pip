@@ -18,10 +18,12 @@ import logging
 import sys
 from collections import defaultdict
 from itertools import chain
-from typing import TYPE_CHECKING
+from typing import DefaultDict, List, Optional, Set, Tuple
 
 from pip._vendor.packaging import specifiers
+from pip._vendor.pkg_resources import Distribution
 
+from pip._internal.cache import WheelCache
 from pip._internal.exceptions import (
     BestVersionAlreadyInstalled,
     DistributionNotFound,
@@ -29,29 +31,23 @@ from pip._internal.exceptions import (
     HashErrors,
     UnsupportedPythonVersion,
 )
-from pip._internal.req.req_install import check_invalid_constraint_type
+from pip._internal.index.package_finder import PackageFinder
+from pip._internal.models.link import Link
+from pip._internal.operations.prepare import RequirementPreparer
+from pip._internal.req.req_install import (
+    InstallRequirement,
+    check_invalid_constraint_type,
+)
 from pip._internal.req.req_set import RequirementSet
-from pip._internal.resolution.base import BaseResolver
+from pip._internal.resolution.base import BaseResolver, InstallRequirementProvider
 from pip._internal.utils.compatibility_tags import get_supported
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import dist_in_usersite, normalize_version_info
 from pip._internal.utils.packaging import check_requires_python, get_requires_python
 
-if TYPE_CHECKING:
-    from typing import DefaultDict, List, Optional, Set, Tuple
-
-    from pip._vendor.pkg_resources import Distribution
-
-    from pip._internal.cache import WheelCache
-    from pip._internal.index.package_finder import PackageFinder
-    from pip._internal.models.link import Link
-    from pip._internal.operations.prepare import RequirementPreparer
-    from pip._internal.req.req_install import InstallRequirement
-    from pip._internal.resolution.base import InstallRequirementProvider
-
-    DiscoveredDependencies = DefaultDict[str, List[InstallRequirement]]
-
 logger = logging.getLogger(__name__)
+
+DiscoveredDependencies = DefaultDict[str, List[InstallRequirement]]
 
 
 def _check_dist_requires_python(

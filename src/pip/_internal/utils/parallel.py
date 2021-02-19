@@ -20,18 +20,15 @@ __all__ = ['map_multiprocess', 'map_multithread']
 
 from contextlib import contextmanager
 from multiprocessing import Pool as ProcessPool
+from multiprocessing import pool
 from multiprocessing.dummy import Pool as ThreadPool
-from typing import TYPE_CHECKING
+from typing import Callable, Iterable, Iterator, TypeVar, Union
 
 from pip._vendor.requests.adapters import DEFAULT_POOLSIZE
 
-if TYPE_CHECKING:
-    from multiprocessing import pool
-    from typing import Callable, Iterable, Iterator, TypeVar, Union
-
-    Pool = Union[pool.Pool, pool.ThreadPool]
-    S = TypeVar('S')
-    T = TypeVar('T')
+Pool = Union[pool.Pool, pool.ThreadPool]
+S = TypeVar('S')
+T = TypeVar('T')
 
 # On platforms without sem_open, multiprocessing[.dummy] Pool
 # cannot be created.

@@ -1,6 +1,8 @@
 import json
 import logging
-from typing import TYPE_CHECKING
+from typing import Optional
+
+from pip._vendor.pkg_resources import Distribution
 
 from pip._internal.models.direct_url import (
     DIRECT_URL_METADATA_NAME,
@@ -10,14 +12,8 @@ from pip._internal.models.direct_url import (
     DirInfo,
     VcsInfo,
 )
+from pip._internal.models.link import Link
 from pip._internal.vcs import vcs
-
-if TYPE_CHECKING:
-    from typing import Optional
-
-    from pip._vendor.pkg_resources import Distribution
-
-    from pip._internal.models.link import Link
 
 logger = logging.getLogger(__name__)
 

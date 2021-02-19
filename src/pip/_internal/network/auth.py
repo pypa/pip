@@ -6,9 +6,10 @@ providing credentials in the context of network requests.
 
 import logging
 import urllib.parse
-from typing import TYPE_CHECKING
+from typing import Any, Dict, List, Optional, Tuple
 
 from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
+from pip._vendor.requests.models import Request, Response
 from pip._vendor.requests.utils import get_netrc_auth
 
 from pip._internal.utils.misc import (
@@ -18,17 +19,11 @@ from pip._internal.utils.misc import (
     remove_auth_from_url,
     split_auth_netloc_from_url,
 )
-
-if TYPE_CHECKING:
-    from typing import Any, Dict, List, Optional, Tuple
-
-    from pip._vendor.requests.models import Request, Response
-
-    from pip._internal.vcs.versioncontrol import AuthInfo
-
-    Credentials = Tuple[str, str, str]
+from pip._internal.vcs.versioncontrol import AuthInfo
 
 logger = logging.getLogger(__name__)
+
+Credentials = Tuple[str, str, str]
 
 try:
     import keyring

@@ -1,14 +1,10 @@
 from collections import defaultdict
 from logging import getLogger
-from typing import TYPE_CHECKING
+from typing import Any, DefaultDict
 
 from pip._vendor.resolvelib.reporters import BaseReporter
 
-if TYPE_CHECKING:
-    from typing import Any, DefaultDict
-
-    from .base import Candidate, Requirement
-
+from .base import Candidate, Requirement
 
 logger = getLogger(__name__)
 

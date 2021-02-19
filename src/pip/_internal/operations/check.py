@@ -3,30 +3,26 @@
 
 import logging
 from collections import namedtuple
-from typing import TYPE_CHECKING
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple
 
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.pkg_resources import RequirementParseError
 
 from pip._internal.distributions import make_distribution_for_install_requirement
+from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.misc import get_installed_distributions
 
 logger = logging.getLogger(__name__)
 
-if TYPE_CHECKING:
-    from typing import Any, Callable, Dict, List, Optional, Set, Tuple
+# Shorthands
+PackageSet = Dict[str, 'PackageDetails']
+Missing = Tuple[str, Any]
+Conflicting = Tuple[str, str, Any]
 
-    from pip._internal.req.req_install import InstallRequirement
-
-    # Shorthands
-    PackageSet = Dict[str, 'PackageDetails']
-    Missing = Tuple[str, Any]
-    Conflicting = Tuple[str, str, Any]
-
-    MissingDict = Dict[str, List[Missing]]
-    ConflictingDict = Dict[str, List[Conflicting]]
-    CheckResult = Tuple[MissingDict, ConflictingDict]
-    ConflictDetails = Tuple[PackageSet, CheckResult]
+MissingDict = Dict[str, List[Missing]]
+ConflictingDict = Dict[str, List[Conflicting]]
+CheckResult = Tuple[MissingDict, ConflictingDict]
+ConflictDetails = Tuple[PackageSet, CheckResult]
 
 PackageDetails = namedtuple('PackageDetails', ['version', 'requires'])
 

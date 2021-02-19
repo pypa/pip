@@ -1,15 +1,14 @@
 """Exceptions used throughout package"""
 
+import configparser
 from itertools import chain, groupby, repeat
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Dict, List, Optional
+
+from pip._vendor.pkg_resources import Distribution
+from pip._vendor.requests.models import Request, Response
 
 if TYPE_CHECKING:
-    import configparser
     from hashlib import _Hash
-    from typing import Dict, List, Optional
-
-    from pip._vendor.pkg_resources import Distribution
-    from pip._vendor.requests.models import Request, Response
 
     from pip._internal.req.req_install import InstallRequirement
 

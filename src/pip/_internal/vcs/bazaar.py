@@ -1,18 +1,17 @@
 import logging
 import os
-from typing import TYPE_CHECKING
+from typing import List, Optional, Tuple
 
-from pip._internal.utils.misc import display_path, rmtree
+from pip._internal.utils.misc import HiddenText, display_path, rmtree
 from pip._internal.utils.subprocess import make_command
 from pip._internal.utils.urls import path_to_url
-from pip._internal.vcs.versioncontrol import RemoteNotFoundError, VersionControl, vcs
-
-if TYPE_CHECKING:
-    from typing import List, Optional, Tuple
-
-    from pip._internal.utils.misc import HiddenText
-    from pip._internal.vcs.versioncontrol import AuthInfo, RevOptions
-
+from pip._internal.vcs.versioncontrol import (
+    AuthInfo,
+    RemoteNotFoundError,
+    RevOptions,
+    VersionControl,
+    vcs,
+)
 
 logger = logging.getLogger(__name__)
 

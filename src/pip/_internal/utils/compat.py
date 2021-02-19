@@ -9,11 +9,7 @@ import locale
 import logging
 import os
 import sys
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from typing import Optional, Union
-
+from typing import Optional, Union
 
 __all__ = ["console_to_str", "get_path_uid", "stdlib_pkgs", "WINDOWS"]
 

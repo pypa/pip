@@ -1,9 +1,6 @@
-from typing import TYPE_CHECKING
+from typing import Optional
 
-if TYPE_CHECKING:
-    from typing import Optional
-
-    from pip._internal.models.format_control import FormatControl
+from pip._internal.models.format_control import FormatControl
 
 
 class SelectionPreferences:

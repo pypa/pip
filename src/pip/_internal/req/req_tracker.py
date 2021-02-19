@@ -2,16 +2,12 @@ import contextlib
 import hashlib
 import logging
 import os
-from typing import TYPE_CHECKING
+from types import TracebackType
+from typing import Dict, Iterator, Optional, Set, Type, Union
 
+from pip._internal.models.link import Link
+from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.temp_dir import TempDirectory
-
-if TYPE_CHECKING:
-    from types import TracebackType
-    from typing import Dict, Iterator, Optional, Set, Type, Union
-
-    from pip._internal.models.link import Link
-    from pip._internal.req.req_install import InstallRequirement
 
 logger = logging.getLogger(__name__)
 

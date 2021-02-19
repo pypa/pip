@@ -1,15 +1,9 @@
-from typing import TYPE_CHECKING
-
+from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
 
-from .base import Requirement, format_name
+from pip._internal.req.req_install import InstallRequirement
 
-if TYPE_CHECKING:
-    from pip._vendor.packaging.specifiers import SpecifierSet
-
-    from pip._internal.req.req_install import InstallRequirement
-
-    from .base import Candidate, CandidateLookup
+from .base import Candidate, CandidateLookup, Requirement, format_name
 
 
 class ExplicitRequirement(Requirement):
