@@ -382,10 +382,6 @@ class TestInstallRequirement:
         with pytest.raises(InstallationError):
             reqset.add_requirement(req)
 
-    def test_installed_version_not_installed(self):
-        req = install_req_from_line('simple-0.1-py2.py3-none-any.whl')
-        assert req.installed_version is None
-
     def test_str(self):
         req = install_req_from_line('simple==0.1')
         assert str(req) == 'simple==0.1'

@@ -6,14 +6,14 @@ import os.path
 import sys
 from typing import TYPE_CHECKING
 
-from pip._vendor.packaging import version as packaging_version
+from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.metadata import get_default_environment
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.utils.filesystem import adjacent_tmp_file, check_path_owner, replace
-from pip._internal.utils.misc import ensure_dir, get_installed_version
+from pip._internal.utils.misc import ensure_dir
 
 if TYPE_CHECKING:
     import optparse
@@ -114,11 +114,11 @@ def pip_self_version_check(session, options):
     the active virtualenv or in the user's USER_CACHE_DIR keyed off the prefix
     of the pip script path.
     """
-    installed_version = get_installed_version("pip")
-    if not installed_version:
+    installed_dist = get_default_environment().get_distribution("pip")
+    if not installed_dist:
         return
 
-    pip_version = packaging_version.parse(installed_version)
+    pip_version = installed_dist.version
     pypi_version = None
 
     try:
@@ -162,7 +162,7 @@ def pip_self_version_check(session, options):
             # save that we've performed a check
             state.save(pypi_version, current_time)
 
-        remote_version = packaging_version.parse(pypi_version)
+        remote_version = parse_version(pypi_version)
 
         local_version_is_older = (
             pip_version < remote_version and

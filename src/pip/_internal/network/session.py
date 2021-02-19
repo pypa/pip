@@ -25,17 +25,14 @@ from pip._vendor.requests.structures import CaseInsensitiveDict
 from pip._vendor.urllib3.exceptions import InsecureRequestWarning
 
 from pip import __version__
+from pip._internal.metadata import get_default_environment
 from pip._internal.network.auth import MultiDomainBasicAuth
 from pip._internal.network.cache import SafeFileCache
 
 # Import ssl from compat so the initial import occurs in only one place.
 from pip._internal.utils.compat import has_tls
 from pip._internal.utils.glibc import libc_ver
-from pip._internal.utils.misc import (
-    build_url_from_netloc,
-    get_installed_version,
-    parse_netloc,
-)
+from pip._internal.utils.misc import build_url_from_netloc, parse_netloc
 from pip._internal.utils.urls import url_to_path
 
 if TYPE_CHECKING:
@@ -156,9 +153,9 @@ def user_agent():
         import _ssl as ssl
         data["openssl_version"] = ssl.OPENSSL_VERSION
 
-    setuptools_version = get_installed_version("setuptools")
-    if setuptools_version is not None:
-        data["setuptools_version"] = setuptools_version
+    setuptools_dist = get_default_environment().get_distribution("setuptools")
+    if setuptools_dist is not None:
+        data["setuptools_version"] = str(setuptools_dist.version)
 
     # Use None rather than False so as not to give the impression that
     # pip knows it is not being run under CI.  Rather, it is a null or

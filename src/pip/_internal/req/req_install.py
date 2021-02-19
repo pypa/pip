@@ -43,7 +43,6 @@ from pip._internal.utils.misc import (
     dist_in_site_packages,
     dist_in_usersite,
     get_distribution,
-    get_installed_version,
     hide_url,
     redact_auth_from_url,
 )
@@ -272,11 +271,6 @@ class InstallRequirement:
         specifiers = self.specifier
         return (len(specifiers) == 1 and
                 next(iter(specifiers)).operator in {'==', '==='})
-
-    @property
-    def installed_version(self):
-        # type: () -> Optional[str]
-        return get_installed_version(self.name)
 
     def match_markers(self, extras_requested=None):
         # type: (Optional[Iterable[str]]) -> bool

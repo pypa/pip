@@ -7,7 +7,6 @@ import site
 from optparse import SUPPRESS_HELP
 from typing import TYPE_CHECKING
 
-from pip._vendor import pkg_resources
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.cache import WheelCache
@@ -17,6 +16,7 @@ from pip._internal.cli.req_command import RequirementCommand, with_cleanup
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.exceptions import CommandError, InstallationError
 from pip._internal.locations import distutils_scheme
+from pip._internal.metadata import get_environment
 from pip._internal.operations.check import check_install_conflicts
 from pip._internal.req import install_given_reqs
 from pip._internal.req.req_tracker import get_requirement_tracker
@@ -24,7 +24,6 @@ from pip._internal.utils.distutils_args import parse_distutils_args
 from pip._internal.utils.filesystem import test_writable_dir
 from pip._internal.utils.misc import (
     ensure_dir,
-    get_installed_version,
     get_pip_version,
     protect_pip_from_modification_on_windows,
     write_output,
@@ -407,18 +406,16 @@ class InstallCommand(RequirementCommand):
                 prefix=options.prefix_path,
                 isolated=options.isolated_mode,
             )
-            working_set = pkg_resources.WorkingSet(lib_locations)
+            env = get_environment(lib_locations)
 
             installed.sort(key=operator.attrgetter('name'))
             items = []
             for result in installed:
                 item = result.name
                 try:
-                    installed_version = get_installed_version(
-                        result.name, working_set=working_set
-                    )
-                    if installed_version:
-                        item += '-' + installed_version
+                    installed_dist = env.get_distribution(item)
+                    if installed_dist is not None:
+                        item = f"{item}-{installed_dist.version}"
                 except Exception:
                     pass
                 items.append(item)
