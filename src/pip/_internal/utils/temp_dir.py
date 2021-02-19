@@ -3,10 +3,8 @@ import itertools
 import logging
 import os.path
 import tempfile
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 from typing import TYPE_CHECKING
-
-from pip._vendor.contextlib2 import ExitStack
 
 from pip._internal.utils.misc import enum, rmtree
 

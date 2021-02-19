@@ -4,8 +4,6 @@ import logging
 import os
 from typing import TYPE_CHECKING
 
-from pip._vendor import contextlib2
-
 from pip._internal.utils.temp_dir import TempDirectory
 
 if TYPE_CHECKING:
@@ -49,7 +47,7 @@ def update_env_context_manager(**changes):
 def get_requirement_tracker():
     # type: () -> Iterator[RequirementTracker]
     root = os.environ.get('PIP_REQ_TRACKER')
-    with contextlib2.ExitStack() as ctx:
+    with contextlib.ExitStack() as ctx:
         if root is None:
             root = ctx.enter_context(
                 TempDirectory(kind='req-tracker')

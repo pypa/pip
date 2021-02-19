@@ -1,7 +1,5 @@
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
 from typing import TYPE_CHECKING
-
-from pip._vendor.contextlib2 import ExitStack
 
 if TYPE_CHECKING:
     from typing import ContextManager, Iterator, TypeVar
