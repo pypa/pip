@@ -170,7 +170,9 @@ class TestLinkEvaluator:
         link = Link('https://example.com/sample-1.0-py2.py3-none-any.whl')
         actual = evaluator.evaluate_link(link)
         expected = (
-            False, "none of the wheel's tags match: py2-none-any, py3-none-any"
+            False,
+            "none of the wheel's tags (py2-none-any, py3-none-any) are compatible "
+            "(run pip debug --verbose to show compatible tags)"
         )
         assert actual == expected
 
