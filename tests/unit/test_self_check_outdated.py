@@ -51,7 +51,7 @@ class MockDistribution:
         self.version = parse_version(version)
 
 
-class MockEnvironment(object):
+class MockEnvironment:
     def __init__(self, installer, installed_version):
         self.installer = installer
         self.installed_version = installed_version
