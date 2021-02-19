@@ -1,7 +1,7 @@
 import logging
 import pathlib
 import sysconfig
-from typing import Optional
+from typing import List, Optional
 
 from pip._internal.models.scheme import SCHEME_KEYS, Scheme
 
@@ -19,6 +19,9 @@ __all__ = [
     "get_bin_prefix",
     "get_bin_user",
     "get_major_minor_version",
+    "get_platlib",
+    "get_prefixed_libs",
+    "get_purelib",
     "get_scheme",
     "get_src_prefix",
     "init_backend",
@@ -102,3 +105,33 @@ def get_bin_user():
     new = _sysconfig.get_bin_user()
     _warn_if_mismatch(pathlib.Path(old), pathlib.Path(new), key="bin_user")
     return old
+
+
+def get_purelib():
+    # type: () -> str
+    """Return the default pure-Python lib location."""
+    old = _distutils.get_purelib()
+    new = _sysconfig.get_purelib()
+    _warn_if_mismatch(pathlib.Path(old), pathlib.Path(new), key="purelib")
+    return old
+
+
+def get_platlib():
+    # type: () -> str
+    """Return the default platform-shared lib location."""
+    old = _distutils.get_platlib()
+    new = _sysconfig.get_platlib()
+    _warn_if_mismatch(pathlib.Path(old), pathlib.Path(new), key="platlib")
+    return old
+
+
+def get_prefixed_libs(prefix):
+    # type: (str) -> List[str]
+    """Return the lib locations under ``prefix``."""
+    old_pure, old_plat = _distutils.get_prefixed_libs(prefix)
+    new_pure, new_plat = _sysconfig.get_prefixed_libs(prefix)
+    _warn_if_mismatch(old_pure, new_pure, key="prefixed-purelib")
+    _warn_if_mismatch(old_plat, new_plat, key="prefixed-platlib")
+    if old_pure == old_plat:
+        return [old_pure]
+    return [old_pure, old_plat]

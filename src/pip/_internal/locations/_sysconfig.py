@@ -135,3 +135,19 @@ def get_bin_prefix():
 
 def get_bin_user():
     return sysconfig.get_path("scripts", scheme=_infer_scheme("user"))
+
+
+def get_purelib():
+    # type: () -> str
+    return sysconfig.get_path("purelib")
+
+
+def get_platlib():
+    # type: () -> str
+    return sysconfig.get_path("platlib")
+
+
+def get_prefixed_libs(prefix):
+    # type: (str) -> typing.Tuple[str, str]
+    paths = sysconfig.get_paths(vars={"base": prefix, "platbase": prefix})
+    return (paths["purelib"], paths["platlib"])

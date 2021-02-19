@@ -9,7 +9,8 @@ import sys
 from distutils.cmd import Command as DistutilsCommand
 from distutils.command.install import SCHEME_KEYS
 from distutils.command.install import install as distutils_install_command
-from typing import Dict, List, Optional, Union, cast
+from distutils.sysconfig import get_python_lib
+from typing import Dict, List, Optional, Tuple, Union, cast
 
 from pip._internal.models.scheme import Scheme
 from pip._internal.utils.compat import WINDOWS
@@ -145,3 +146,21 @@ def get_bin_prefix():
 def get_bin_user():
     # type: () -> str
     return bin_user
+
+
+def get_purelib():
+    # type: () -> str
+    return get_python_lib(plat_specific=False)
+
+
+def get_platlib():
+    # type: () -> str
+    return get_python_lib(plat_specific=True)
+
+
+def get_prefixed_libs(prefix):
+    # type: (str) -> Tuple[str, str]
+    return (
+        get_python_lib(plat_specific=False, prefix=prefix),
+        get_python_lib(plat_specific=True, prefix=prefix),
+    )
