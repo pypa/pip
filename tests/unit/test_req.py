@@ -511,7 +511,7 @@ class TestInstallRequirement:
     def test_extras_for_line_path_requirement(self):
         line = 'SomeProject[ex1,ex2]'
         filename = 'filename'
-        comes_from = f'-r {filename} (line {1})'
+        comes_from = f'-r {filename} (line 1)'
         req = install_req_from_line(line, comes_from=comes_from)
         assert len(req.extras) == 2
         assert req.extras == {'ex1', 'ex2'}
@@ -519,7 +519,7 @@ class TestInstallRequirement:
     def test_extras_for_line_url_requirement(self):
         line = 'git+https://url#egg=SomeProject[ex1,ex2]'
         filename = 'filename'
-        comes_from = f'-r {filename} (line {1})'
+        comes_from = f'-r {filename} (line 1)'
         req = install_req_from_line(line, comes_from=comes_from)
         assert len(req.extras) == 2
         assert req.extras == {'ex1', 'ex2'}
@@ -527,7 +527,7 @@ class TestInstallRequirement:
     def test_extras_for_editable_path_requirement(self):
         url = '.[ex1,ex2]'
         filename = 'filename'
-        comes_from = f'-r {filename} (line {1})'
+        comes_from = f'-r {filename} (line 1)'
         req = install_req_from_editable(url, comes_from=comes_from)
         assert len(req.extras) == 2
         assert req.extras == {'ex1', 'ex2'}
@@ -535,7 +535,7 @@ class TestInstallRequirement:
     def test_extras_for_editable_url_requirement(self):
         url = 'git+https://url#egg=SomeProject[ex1,ex2]'
         filename = 'filename'
-        comes_from = f'-r {filename} (line {1})'
+        comes_from = f'-r {filename} (line 1)'
         req = install_req_from_editable(url, comes_from=comes_from)
         assert len(req.extras) == 2
         assert req.extras == {'ex1', 'ex2'}

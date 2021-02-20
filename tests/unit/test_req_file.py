@@ -229,14 +229,14 @@ class TestProcessLine:
     def test_yield_line_requirement(self, line_processor):
         line = 'SomeProject'
         filename = 'filename'
-        comes_from = f'-r {filename} (line {1})'
+        comes_from = f'-r {filename} (line 1)'
         req = install_req_from_line(line, comes_from=comes_from)
         assert repr(line_processor(line, filename, 1)[0]) == repr(req)
 
     def test_yield_pep440_line_requirement(self, line_processor):
         line = 'SomeProject @ https://url/SomeProject-py2-py3-none-any.whl'
         filename = 'filename'
-        comes_from = f'-r {filename} (line {1})'
+        comes_from = f'-r {filename} (line 1)'
         req = install_req_from_line(line, comes_from=comes_from)
         assert repr(line_processor(line, filename, 1)[0]) == repr(req)
 
@@ -255,7 +255,7 @@ class TestProcessLine:
     ):
         line = 'SomeProject >= 2'
         filename = 'filename'
-        comes_from = f'-r {filename} (line {1})'
+        comes_from = f'-r {filename} (line 1)'
         req = install_req_from_line(line, comes_from=comes_from)
         assert repr(line_processor(line, filename, 1)[0]) == repr(req)
         assert str(req.req.specifier) == '>=2'
@@ -264,7 +264,7 @@ class TestProcessLine:
         url = 'git+https://url#egg=SomeProject'
         line = f'-e {url}'
         filename = 'filename'
-        comes_from = f'-r {filename} (line {1})'
+        comes_from = f'-r {filename} (line 1)'
         req = install_req_from_editable(url, comes_from=comes_from)
         assert repr(line_processor(line, filename, 1)[0]) == repr(req)
 
