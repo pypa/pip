@@ -8,7 +8,7 @@ from pip._internal.cli.spinners import SpinnerInterface, open_spinner
 from pip._internal.exceptions import InstallationSubprocessError
 from pip._internal.utils.compat import console_to_str, str_to_display
 from pip._internal.utils.logging import subprocess_logger
-from pip._internal.utils.misc import HiddenText, path_to_display
+from pip._internal.utils.misc import HiddenText
 
 CommandArgs = List[Union[str, HiddenText]]
 
@@ -79,7 +79,6 @@ def make_subprocess_output_error(
     # "UnicodeDecodeError: 'ascii' codec can't decode byte ..." in Python 2
     # if either contains a non-ascii character.
     command_display = str_to_display(command, desc='command bytes')
-    cwd_display = path_to_display(cwd)
 
     # We know the joined output value ends in a newline.
     output = ''.join(lines)
@@ -94,7 +93,7 @@ def make_subprocess_output_error(
     ).format(
         exit_status=exit_status,
         command_display=command_display,
-        cwd_display=cwd_display,
+        cwd_display=cwd,
         line_count=len(lines),
         output=output,
         divider=LOG_DIVIDER,

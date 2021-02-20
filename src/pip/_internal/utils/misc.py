@@ -144,30 +144,6 @@ def rmtree_errorhandler(func, path, exc_info):
         raise
 
 
-def path_to_display(path):
-    # type: (Optional[str]) -> Optional[str]
-    """
-    Convert a bytes (or text) path to text (unicode in Python 2) for display
-    and logging purposes.
-
-    This function should never error out. Also, this function is mainly needed
-    for Python 2 since in Python 3 str paths are already text.
-    """
-    if path is None:
-        return None
-    if isinstance(path, str):
-        return path
-    # Otherwise, path is a bytes object (str in Python 2).
-    try:
-        display_path = path.decode(sys.getfilesystemencoding(), 'strict')
-    except UnicodeDecodeError:
-        # Include the full bytes to make troubleshooting easier, even though
-        # it may not be very human readable.
-        display_path = ascii(path)
-
-    return display_path
-
-
 def display_path(path):
     # type: (str) -> str
     """Gives the display value for a given path, making it relative to cwd

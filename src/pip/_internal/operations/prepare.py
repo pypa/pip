@@ -38,7 +38,7 @@ from pip._internal.req.req_tracker import RequirementTracker
 from pip._internal.utils.filesystem import copy2_fixed
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.misc import display_path, hide_url, path_to_display, rmtree
+from pip._internal.utils.misc import display_path, hide_url, rmtree
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.unpacking import unpack_file
 from pip._internal.vcs import vcs
@@ -121,8 +121,8 @@ def _copy2_ignoring_special_files(src, dest):
         logger.warning(
             "Ignoring special file error '%s' encountered copying %s to %s.",
             str(e),
-            path_to_display(src),
-            path_to_display(dest),
+            src,
+            dest,
         )
 
 
