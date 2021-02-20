@@ -45,13 +45,21 @@ from pip._internal.utils.virtualenv import (
     virtualenv_no_global,
 )
 
-__all__ = ['rmtree', 'display_path', 'backup_dir',
-           'ask', 'splitext',
-           'format_size', 'is_installable_dir',
-           'normalize_path',
-           'renames', 'get_prog',
-           'captured_stdout', 'ensure_dir',
-           'remove_auth_from_url']
+__all__ = [
+    "rmtree",
+    "display_path",
+    "backup_dir",
+    "ask",
+    "splitext",
+    "format_size",
+    "is_installable_dir",
+    "normalize_path",
+    "renames",
+    "get_prog",
+    "captured_stdout",
+    "ensure_dir",
+    "remove_auth_from_url",
+]
 
 
 logger = logging.getLogger(__name__)
@@ -65,10 +73,10 @@ def get_pip_version():
     pip_pkg_dir = os.path.join(os.path.dirname(__file__), "..", "..")
     pip_pkg_dir = os.path.abspath(pip_pkg_dir)
 
-    return (
-        'pip {} from {} (python {})'.format(
-            __version__, pip_pkg_dir, get_major_minor_version(),
-        )
+    return "pip {} from {} (python {})".format(
+        __version__,
+        pip_pkg_dir,
+        get_major_minor_version(),
     )
 
 
@@ -89,7 +97,7 @@ def normalize_version_info(py_version_info):
     elif len(py_version_info) > 3:
         py_version_info = py_version_info[:3]
 
-    return cast('VersionInfo', py_version_info)
+    return cast("VersionInfo", py_version_info)
 
 
 def ensure_dir(path):
@@ -107,21 +115,20 @@ def get_prog():
     # type: () -> str
     try:
         prog = os.path.basename(sys.argv[0])
-        if prog in ('__main__.py', '-c'):
+        if prog in ("__main__.py", "-c"):
             return f"{sys.executable} -m pip"
         else:
             return prog
     except (AttributeError, TypeError, IndexError):
         pass
-    return 'pip'
+    return "pip"
 
 
 # Retry every half second for up to 3 seconds
 @retry(stop_max_delay=3000, wait_fixed=500)
 def rmtree(dir, ignore_errors=False):
     # type: (AnyStr, bool) -> None
-    shutil.rmtree(dir, ignore_errors=ignore_errors,
-                  onerror=rmtree_errorhandler)
+    shutil.rmtree(dir, ignore_errors=ignore_errors, onerror=rmtree_errorhandler)
 
 
 def rmtree_errorhandler(func, path, exc_info):
@@ -150,11 +157,11 @@ def display_path(path):
     if possible."""
     path = os.path.normcase(os.path.abspath(path))
     if path.startswith(os.getcwd() + os.path.sep):
-        path = '.' + path[len(os.getcwd()):]
+        path = "." + path[len(os.getcwd()) :]
     return path
 
 
-def backup_dir(dir, ext='.bak'):
+def backup_dir(dir, ext=".bak"):
     # type: (str, str) -> str
     """Figure out the name of a directory to back up the given dir to
     (adding .bak, .bak2, etc)"""
@@ -168,7 +175,7 @@ def backup_dir(dir, ext='.bak'):
 
 def ask_path_exists(message, options):
     # type: (str, Iterable[str]) -> str
-    for action in os.environ.get('PIP_EXISTS_ACTION', '').split():
+    for action in os.environ.get("PIP_EXISTS_ACTION", "").split():
         if action in options:
             return action
     return ask(message, options)
@@ -177,10 +184,9 @@ def ask_path_exists(message, options):
 def _check_no_input(message):
     # type: (str) -> None
     """Raise an error if no input is allowed."""
-    if os.environ.get('PIP_NO_INPUT'):
+    if os.environ.get("PIP_NO_INPUT"):
         raise Exception(
-            'No input was expected ($PIP_NO_INPUT set); question: {}'.format(
-                message)
+            "No input was expected ($PIP_NO_INPUT set); question: {}".format(message)
         )
 
 
@@ -193,8 +199,8 @@ def ask(message, options):
         response = response.strip().lower()
         if response not in options:
             print(
-                'Your response ({!r}) was not one of the expected responses: '
-                '{}'.format(response, ', '.join(options))
+                "Your response ({!r}) was not one of the expected responses: "
+                "{}".format(response, ", ".join(options))
             )
         else:
             return response
@@ -223,9 +229,9 @@ def strtobool(val):
     'val' is anything else.
     """
     val = val.lower()
-    if val in ('y', 'yes', 't', 'true', 'on', '1'):
+    if val in ("y", "yes", "t", "true", "on", "1"):
         return 1
-    elif val in ('n', 'no', 'f', 'false', 'off', '0'):
+    elif val in ("n", "no", "f", "false", "off", "0"):
         return 0
     else:
         raise ValueError("invalid truth value %r" % (val,))
@@ -234,13 +240,13 @@ def strtobool(val):
 def format_size(bytes):
     # type: (float) -> str
     if bytes > 1000 * 1000:
-        return '{:.1f} MB'.format(bytes / 1000.0 / 1000)
+        return "{:.1f} MB".format(bytes / 1000.0 / 1000)
     elif bytes > 10 * 1000:
-        return '{} kB'.format(int(bytes / 1000))
+        return "{} kB".format(int(bytes / 1000))
     elif bytes > 1000:
-        return '{:.1f} kB'.format(bytes / 1000.0)
+        return "{:.1f} kB".format(bytes / 1000.0)
     else:
-        return '{} bytes'.format(int(bytes))
+        return "{} bytes".format(int(bytes))
 
 
 def tabulate(rows):
@@ -253,21 +259,20 @@ def tabulate(rows):
     (['foobar     2000', '3735928559'], [10, 4])
     """
     rows = [tuple(map(str, row)) for row in rows]
-    sizes = [max(map(len, col)) for col in zip_longest(*rows, fillvalue='')]
+    sizes = [max(map(len, col)) for col in zip_longest(*rows, fillvalue="")]
     table = [" ".join(map(str.ljust, row, sizes)).rstrip() for row in rows]
     return table, sizes
 
 
 def is_installable_dir(path):
     # type: (str) -> bool
-    """Is path is a directory containing setup.py or pyproject.toml?
-    """
+    """Is path is a directory containing setup.py or pyproject.toml?"""
     if not os.path.isdir(path):
         return False
-    setup_py = os.path.join(path, 'setup.py')
+    setup_py = os.path.join(path, "setup.py")
     if os.path.isfile(setup_py):
         return True
-    pyproject_toml = os.path.join(path, 'pyproject.toml')
+    pyproject_toml = os.path.join(path, "pyproject.toml")
     if os.path.isfile(pyproject_toml):
         return True
     return False
@@ -300,7 +305,7 @@ def splitext(path):
     # type: (str) -> Tuple[str, str]
     """Like os.path.splitext, but take off .tar too"""
     base, ext = posixpath.splitext(path)
-    if base.lower().endswith('.tar'):
+    if base.lower().endswith(".tar"):
         ext = base[-4:] + ext
         base = base[:-4]
     return base, ext
@@ -374,19 +379,19 @@ def dist_is_editable(dist):
     Return True if given Distribution is an editable install.
     """
     for path_item in sys.path:
-        egg_link = os.path.join(path_item, dist.project_name + '.egg-link')
+        egg_link = os.path.join(path_item, dist.project_name + ".egg-link")
         if os.path.isfile(egg_link):
             return True
     return False
 
 
 def get_installed_distributions(
-        local_only=True,  # type: bool
-        skip=stdlib_pkgs,  # type: Container[str]
-        include_editables=True,  # type: bool
-        editables_only=False,  # type: bool
-        user_only=False,  # type: bool
-        paths=None  # type: Optional[List[str]]
+    local_only=True,  # type: bool
+    skip=stdlib_pkgs,  # type: Container[str]
+    include_editables=True,  # type: bool
+    editables_only=False,  # type: bool
+    user_only=False,  # type: bool
+    paths=None,  # type: Optional[List[str]]
 ):
     # type: (...) -> List[Distribution]
     """Return a list of installed Distribution objects.
@@ -421,6 +426,7 @@ def get_distribution(req_name):
     """
     from pip._internal.metadata import get_default_environment
     from pip._internal.metadata.pkg_resources import Distribution as _Dist
+
     dist = get_default_environment().get_distribution(req_name)
     if dist is None:
         return None
@@ -457,7 +463,7 @@ def egg_link_path(dist):
         sites.append(site_packages)
 
     for site in sites:
-        egglink = os.path.join(site, dist.project_name) + '.egg-link'
+        egglink = os.path.join(site, dist.project_name) + ".egg-link"
         if os.path.isfile(egglink):
             return egglink
     return None
@@ -485,7 +491,6 @@ def write_output(msg, *args):
 
 
 class StreamWrapper(StringIO):
-
     @classmethod
     def from_stream(cls, orig_stream):
         cls.orig_stream = orig_stream
@@ -521,22 +526,22 @@ def captured_stdout():
 
     Taken from Lib/support/__init__.py in the CPython repo.
     """
-    return captured_output('stdout')
+    return captured_output("stdout")
 
 
 def captured_stderr():
     """
     See captured_stdout().
     """
-    return captured_output('stderr')
+    return captured_output("stderr")
 
 
 # Simulates an enum
 def enum(*sequential, **named):
     enums = dict(zip(sequential, range(len(sequential))), **named)
     reverse = {value: key for key, value in enums.items()}
-    enums['reverse_mapping'] = reverse
-    return type('Enum', (), enums)
+    enums["reverse_mapping"] = reverse
+    return type("Enum", (), enums)
 
 
 def build_netloc(host, port):
@@ -546,21 +551,21 @@ def build_netloc(host, port):
     """
     if port is None:
         return host
-    if ':' in host:
+    if ":" in host:
         # Only wrap host with square brackets when it is IPv6
-        host = f'[{host}]'
-    return f'{host}:{port}'
+        host = f"[{host}]"
+    return f"{host}:{port}"
 
 
-def build_url_from_netloc(netloc, scheme='https'):
+def build_url_from_netloc(netloc, scheme="https"):
     # type: (str, str) -> str
     """
     Build a full URL from a netloc.
     """
-    if netloc.count(':') >= 2 and '@' not in netloc and '[' not in netloc:
+    if netloc.count(":") >= 2 and "@" not in netloc and "[" not in netloc:
         # It must be a bare IPv6 address, so wrap it with brackets.
-        netloc = f'[{netloc}]'
-    return f'{scheme}://{netloc}'
+        netloc = f"[{netloc}]"
+    return f"{scheme}://{netloc}"
 
 
 def parse_netloc(netloc):
@@ -579,24 +584,22 @@ def split_auth_from_netloc(netloc):
 
     Returns: (netloc, (username, password)).
     """
-    if '@' not in netloc:
+    if "@" not in netloc:
         return netloc, (None, None)
 
     # Split from the right because that's how urllib.parse.urlsplit()
     # behaves if more than one @ is present (which can be checked using
     # the password attribute of urlsplit()'s return value).
-    auth, netloc = netloc.rsplit('@', 1)
-    if ':' in auth:
+    auth, netloc = netloc.rsplit("@", 1)
+    if ":" in auth:
         # Split from the left because that's how urllib.parse.urlsplit()
         # behaves if more than one : is present (which again can be checked
         # using the password attribute of the return value)
-        user_pass = auth.split(':', 1)
+        user_pass = auth.split(":", 1)
     else:
         user_pass = auth, None
 
-    user_pass = tuple(
-        None if x is None else urllib.parse.unquote(x) for x in user_pass
-    )
+    user_pass = tuple(None if x is None else urllib.parse.unquote(x) for x in user_pass)
 
     return netloc, user_pass
 
@@ -614,14 +617,14 @@ def redact_netloc(netloc):
     if user is None:
         return netloc
     if password is None:
-        user = '****'
-        password = ''
+        user = "****"
+        password = ""
     else:
         user = urllib.parse.quote(user)
-        password = ':****'
-    return '{user}{password}@{netloc}'.format(user=user,
-                                              password=password,
-                                              netloc=netloc)
+        password = ":****"
+    return "{user}{password}@{netloc}".format(
+        user=user, password=password, netloc=netloc
+    )
 
 
 def _transform_url(url, transform_netloc):
@@ -637,9 +640,7 @@ def _transform_url(url, transform_netloc):
     purl = urllib.parse.urlsplit(url)
     netloc_tuple = transform_netloc(purl.netloc)
     # stripped url
-    url_pieces = (
-        purl.scheme, netloc_tuple[0], purl.path, purl.query, purl.fragment
-    )
+    url_pieces = (purl.scheme, netloc_tuple[0], purl.path, purl.query, purl.fragment)
     surl = urllib.parse.urlunsplit(url_pieces)
     return surl, netloc_tuple
 
@@ -680,7 +681,7 @@ def redact_auth_from_url(url):
 class HiddenText:
     def __init__(
         self,
-        secret,    # type: str
+        secret,  # type: str
         redacted,  # type: str
     ):
         # type: (...) -> None
@@ -689,7 +690,7 @@ class HiddenText:
 
     def __repr__(self):
         # type: (...) -> str
-        return '<HiddenText {!r}>'.format(str(self))
+        return "<HiddenText {!r}>".format(str(self))
 
     def __str__(self):
         # type: (...) -> str
@@ -703,12 +704,12 @@ class HiddenText:
 
         # The string being used for redaction doesn't also have to match,
         # just the raw, original string.
-        return (self.secret == other.secret)
+        return self.secret == other.secret
 
 
 def hide_value(value):
     # type: (str) -> HiddenText
-    return HiddenText(value, redacted='****')
+    return HiddenText(value, redacted="****")
 
 
 def hide_url(url):
@@ -727,41 +728,36 @@ def protect_pip_from_modification_on_windows(modifying_pip):
     pip_names = [
         "pip.exe",
         "pip{}.exe".format(sys.version_info[0]),
-        "pip{}.{}.exe".format(*sys.version_info[:2])
+        "pip{}.{}.exe".format(*sys.version_info[:2]),
     ]
 
     # See https://github.com/pypa/pip/issues/1299 for more discussion
     should_show_use_python_msg = (
-        modifying_pip and
-        WINDOWS and
-        os.path.basename(sys.argv[0]) in pip_names
+        modifying_pip and WINDOWS and os.path.basename(sys.argv[0]) in pip_names
     )
 
     if should_show_use_python_msg:
-        new_command = [
-            sys.executable, "-m", "pip"
-        ] + sys.argv[1:]
+        new_command = [sys.executable, "-m", "pip"] + sys.argv[1:]
         raise CommandError(
-            'To modify pip, please run the following command:\n{}'
-            .format(" ".join(new_command))
+            "To modify pip, please run the following command:\n{}".format(
+                " ".join(new_command)
+            )
         )
 
 
 def is_console_interactive():
     # type: () -> bool
-    """Is this console interactive?
-    """
+    """Is this console interactive?"""
     return sys.stdin is not None and sys.stdin.isatty()
 
 
 def hash_file(path, blocksize=1 << 20):
     # type: (str, int) -> Tuple[Any, int]
-    """Return (hash, length) for path using hashlib.sha256()
-    """
+    """Return (hash, length) for path using hashlib.sha256()"""
 
     h = hashlib.sha256()
     length = 0
-    with open(path, 'rb') as f:
+    with open(path, "rb") as f:
         for block in read_chunks(f, size=blocksize):
             length += len(block)
             h.update(block)
