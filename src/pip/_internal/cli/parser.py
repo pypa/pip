@@ -23,15 +23,15 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
 
     def __init__(self, *args, **kwargs):
         # help position must be aligned with __init__.parseopts.description
-        kwargs['max_help_position'] = 30
-        kwargs['indent_increment'] = 1
-        kwargs['width'] = shutil.get_terminal_size()[0] - 2
+        kwargs["max_help_position"] = 30
+        kwargs["indent_increment"] = 1
+        kwargs["width"] = shutil.get_terminal_size()[0] - 2
         super().__init__(*args, **kwargs)
 
     def format_option_strings(self, option):
         return self._format_option_strings(option)
 
-    def _format_option_strings(self, option, mvarfmt=' <{}>', optsep=', '):
+    def _format_option_strings(self, option, mvarfmt=" <{}>", optsep=", "):
         """
         Return a comma-separated list of option strings and metavars.
 
@@ -52,49 +52,48 @@ class PrettyHelpFormatter(optparse.IndentedHelpFormatter):
             metavar = option.metavar or option.dest.lower()
             opts.append(mvarfmt.format(metavar.lower()))
 
-        return ''.join(opts)
+        return "".join(opts)
 
     def format_heading(self, heading):
-        if heading == 'Options':
-            return ''
-        return heading + ':\n'
+        if heading == "Options":
+            return ""
+        return heading + ":\n"
 
     def format_usage(self, usage):
         """
         Ensure there is only one newline between usage and the first heading
         if there is no description.
         """
-        msg = '\nUsage: {}\n'.format(
-            self.indent_lines(textwrap.dedent(usage), "  "))
+        msg = "\nUsage: {}\n".format(self.indent_lines(textwrap.dedent(usage), "  "))
         return msg
 
     def format_description(self, description):
         # leave full control over description to us
         if description:
-            if hasattr(self.parser, 'main'):
-                label = 'Commands'
+            if hasattr(self.parser, "main"):
+                label = "Commands"
             else:
-                label = 'Description'
+                label = "Description"
             # some doc strings have initial newlines, some don't
-            description = description.lstrip('\n')
+            description = description.lstrip("\n")
             # some doc strings have final newlines and spaces, some don't
             description = description.rstrip()
             # dedent, then reindent
             description = self.indent_lines(textwrap.dedent(description), "  ")
-            description = f'{label}:\n{description}\n'
+            description = f"{label}:\n{description}\n"
             return description
         else:
-            return ''
+            return ""
 
     def format_epilog(self, epilog):
         # leave full control over epilog to us
         if epilog:
             return epilog
         else:
-            return ''
+            return ""
 
     def indent_lines(self, text, indent):
-        new_lines = [indent + line for line in text.split('\n')]
+        new_lines = [indent + line for line in text.split("\n")]
         return "\n".join(new_lines)
 
 
@@ -114,7 +113,7 @@ class UpdatingDefaultsHelpFormatter(PrettyHelpFormatter):
             default_values = self.parser.defaults.get(option.dest)
         help_text = super().expand_default(option)
 
-        if default_values and option.metavar == 'URL':
+        if default_values and option.metavar == "URL":
             if isinstance(default_values, str):
                 default_values = [default_values]
 
@@ -123,14 +122,12 @@ class UpdatingDefaultsHelpFormatter(PrettyHelpFormatter):
                 default_values = []
 
             for val in default_values:
-                help_text = help_text.replace(
-                    val, redact_auth_from_url(val))
+                help_text = help_text.replace(val, redact_auth_from_url(val))
 
         return help_text
 
 
 class CustomOptionParser(optparse.OptionParser):
-
     def insert_option_group(self, idx, *args, **kwargs):
         """Insert an OptionGroup at a given position."""
         group = self.add_option_group(*args, **kwargs)
@@ -186,7 +183,7 @@ class ConfigOptionParser(CustomOptionParser):
             if not val:
                 logger.debug(
                     "Ignoring configuration key '%s' as it's value is empty.",
-                    section_key
+                    section_key,
                 )
                 continue
 
@@ -210,7 +207,7 @@ class ConfigOptionParser(CustomOptionParser):
         # Then set the options with those values
         for key, val in self._get_ordered_configuration_items():
             # '--' because configuration supports only long names
-            option = self.get_option('--' + key)
+            option = self.get_option("--" + key)
 
             # Ignore options not present in this parser. E.g. non-globals put
             # in [global] by users that want them to apply to all applicable
@@ -218,31 +215,31 @@ class ConfigOptionParser(CustomOptionParser):
             if option is None:
                 continue
 
-            if option.action in ('store_true', 'store_false'):
+            if option.action in ("store_true", "store_false"):
                 try:
                     val = strtobool(val)
                 except ValueError:
                     self.error(
-                        '{} is not a valid value for {} option, '  # noqa
-                        'please specify a boolean value like yes/no, '
-                        'true/false or 1/0 instead.'.format(val, key)
+                        "{} is not a valid value for {} option, "  # noqa
+                        "please specify a boolean value like yes/no, "
+                        "true/false or 1/0 instead.".format(val, key)
                     )
-            elif option.action == 'count':
+            elif option.action == "count":
                 with suppress(ValueError):
                     val = strtobool(val)
                 with suppress(ValueError):
                     val = int(val)
                 if not isinstance(val, int) or val < 0:
                     self.error(
-                        '{} is not a valid value for {} option, '  # noqa
-                        'please instead specify either a non-negative integer '
-                        'or a boolean value like yes/no or false/true '
-                        'which is equivalent to 1/0.'.format(val, key)
+                        "{} is not a valid value for {} option, "  # noqa
+                        "please instead specify either a non-negative integer "
+                        "or a boolean value like yes/no or false/true "
+                        "which is equivalent to 1/0.".format(val, key)
                     )
-            elif option.action == 'append':
+            elif option.action == "append":
                 val = val.split()
                 val = [self.check_default(option, key, v) for v in val]
-            elif option.action == 'callback':
+            elif option.action == "callback":
                 late_eval.add(option.dest)
                 opt_str = option.get_opt_string()
                 val = option.convert_value(opt_str, val)
