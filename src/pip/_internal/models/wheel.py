@@ -2,14 +2,11 @@
 name that have meaning.
 """
 import re
-from typing import TYPE_CHECKING
+from typing import List
 
 from pip._vendor.packaging.tags import Tag
 
 from pip._internal.exceptions import InvalidWheelFilename
-
-if TYPE_CHECKING:
-    from typing import List
 
 
 class Wheel:

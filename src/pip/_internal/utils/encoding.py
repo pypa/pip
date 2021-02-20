@@ -2,10 +2,7 @@ import codecs
 import locale
 import re
 import sys
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from typing import List, Tuple
+from typing import List, Tuple
 
 BOMS = [
     (codecs.BOM_UTF8, 'utf-8'),

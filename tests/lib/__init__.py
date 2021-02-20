@@ -10,7 +10,7 @@ from contextlib import contextmanager
 from hashlib import sha256
 from io import BytesIO
 from textwrap import dedent
-from typing import TYPE_CHECKING
+from typing import List, Optional
 from zipfile import ZipFile
 
 import pytest
@@ -21,16 +21,11 @@ from pip._internal.index.package_finder import PackageFinder
 from pip._internal.locations import get_major_minor_version
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
+from pip._internal.models.target_python import TargetPython
 from pip._internal.network.session import PipSession
 from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
 from tests.lib.path import Path, curdir
 from tests.lib.wheel import make_wheel
-
-if TYPE_CHECKING:
-    from typing import List, Optional
-
-    from pip._internal.models.target_python import TargetPython
-
 
 DATA_DIR = Path(__file__).parent.parent.joinpath("data").resolve()
 SRC_DIR = Path(__file__).resolve().parent.parent.parent

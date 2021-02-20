@@ -3,20 +3,15 @@
 
 import logging
 import urllib.parse
-from typing import TYPE_CHECKING
+from typing import Dict
 
 # NOTE: XMLRPC Client is not annotated in typeshed as on 2017-07-17, which is
 #       why we ignore the type on this import
 from pip._vendor.six.moves import xmlrpc_client  # type: ignore
 
 from pip._internal.exceptions import NetworkConnectionError
+from pip._internal.network.session import PipSession
 from pip._internal.network.utils import raise_for_status
-
-if TYPE_CHECKING:
-    from typing import Dict
-
-    from pip._internal.network.session import PipSession
-
 
 logger = logging.getLogger(__name__)
 

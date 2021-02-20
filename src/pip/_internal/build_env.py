@@ -8,7 +8,8 @@ import textwrap
 from collections import OrderedDict
 from distutils.sysconfig import get_python_lib
 from sysconfig import get_paths
-from typing import TYPE_CHECKING
+from types import TracebackType
+from typing import TYPE_CHECKING, Iterable, List, Optional, Set, Tuple, Type
 
 from pip._vendor.pkg_resources import Requirement, VersionConflict, WorkingSet
 
@@ -18,9 +19,6 @@ from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 
 if TYPE_CHECKING:
-    from types import TracebackType
-    from typing import Iterable, List, Optional, Set, Tuple, Type
-
     from pip._internal.index.package_finder import PackageFinder
 
 logger = logging.getLogger(__name__)

@@ -7,7 +7,7 @@ import stat
 import sys
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
-from typing import TYPE_CHECKING, cast
+from typing import Any, BinaryIO, Iterator, List, Union, cast
 
 # NOTE: retrying is not annotated in typeshed as on 2017-07-17, which is
 #       why we ignore the type on this import.
@@ -15,9 +15,6 @@ from pip._vendor.retrying import retry  # type: ignore
 
 from pip._internal.utils.compat import get_path_uid
 from pip._internal.utils.misc import format_size
-
-if TYPE_CHECKING:
-    from typing import Any, BinaryIO, Iterator, List, Union
 
 
 def check_path_owner(path):
@@ -96,7 +93,7 @@ def adjacent_tmp_file(path, **kwargs):
         suffix='.tmp',
         **kwargs
     ) as f:
-        result = cast('BinaryIO', f)
+        result = cast(BinaryIO, f)
         try:
             yield result
         finally:

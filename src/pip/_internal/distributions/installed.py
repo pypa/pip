@@ -1,13 +1,9 @@
-from typing import TYPE_CHECKING
+from typing import Optional
+
+from pip._vendor.pkg_resources import Distribution
 
 from pip._internal.distributions.base import AbstractDistribution
-
-if TYPE_CHECKING:
-    from typing import Optional
-
-    from pip._vendor.pkg_resources import Distribution
-
-    from pip._internal.index.package_finder import PackageFinder
+from pip._internal.index.package_finder import PackageFinder
 
 
 class InstalledDistribution(AbstractDistribution):

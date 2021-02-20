@@ -7,16 +7,19 @@ import shutil
 import sys
 import uuid
 import zipfile
-from typing import TYPE_CHECKING
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Union
 
 from pip._vendor import pkg_resources, six
+from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
+from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
 from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.pep517.wrappers import Pep517HookCaller
+from pip._vendor.pkg_resources import Distribution
 
-from pip._internal.build_env import NoOpBuildEnvironment
+from pip._internal.build_env import BuildEnvironment, NoOpBuildEnvironment
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_scheme
 from pip._internal.models.link import Link
@@ -50,16 +53,6 @@ from pip._internal.utils.packaging import get_metadata
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 from pip._internal.utils.virtualenv import running_under_virtualenv
 from pip._internal.vcs import vcs
-
-if TYPE_CHECKING:
-    from typing import Any, Dict, Iterable, List, Optional, Sequence, Union
-
-    from pip._vendor.packaging.markers import Marker
-    from pip._vendor.packaging.specifiers import SpecifierSet
-    from pip._vendor.pkg_resources import Distribution
-
-    from pip._internal.build_env import BuildEnvironment
-
 
 logger = logging.getLogger(__name__)
 

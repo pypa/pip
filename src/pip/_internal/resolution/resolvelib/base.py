@@ -1,22 +1,14 @@
-from typing import TYPE_CHECKING
+from typing import FrozenSet, Iterable, Optional, Tuple
 
 from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.packaging.version import _BaseVersion
 
+from pip._internal.models.link import Link
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.hashes import Hashes
 
-if TYPE_CHECKING:
-    from typing import FrozenSet, Iterable, Optional, Tuple
-
-    from pip._vendor.packaging.version import _BaseVersion
-
-    from pip._internal.models.link import Link
-
-    CandidateLookup = Tuple[
-        Optional["Candidate"],
-        Optional[InstallRequirement],
-    ]
+CandidateLookup = Tuple[Optional["Candidate"], Optional[InstallRequirement]]
 
 
 def format_name(project, extras):

@@ -5,9 +5,10 @@ import os
 import sys
 import sysconfig
 from importlib.util import cache_from_source
-from typing import TYPE_CHECKING
+from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Set, Tuple
 
 from pip._vendor import pkg_resources
+from pip._vendor.pkg_resources import Distribution
 
 from pip._internal.exceptions import UninstallationError
 from pip._internal.locations import bin_py, bin_user
@@ -24,21 +25,6 @@ from pip._internal.utils.misc import (
     rmtree,
 )
 from pip._internal.utils.temp_dir import AdjacentTempDirectory, TempDirectory
-
-if TYPE_CHECKING:
-    from typing import (
-        Any,
-        Callable,
-        Dict,
-        Iterable,
-        Iterator,
-        List,
-        Optional,
-        Set,
-        Tuple,
-    )
-
-    from pip._vendor.pkg_resources import Distribution
 
 logger = logging.getLogger(__name__)
 

@@ -11,45 +11,39 @@ import os
 import re
 import urllib.parse
 import urllib.request
+import xml.etree.ElementTree
 from collections import OrderedDict
-from typing import TYPE_CHECKING
+from optparse import Values
+from typing import (
+    Callable,
+    Iterable,
+    List,
+    MutableMapping,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 from pip._vendor import html5lib, requests
 from pip._vendor.distlib.compat import unescape
+from pip._vendor.requests import Response
 from pip._vendor.requests.exceptions import RetryError, SSLError
 
 from pip._internal.exceptions import NetworkConnectionError
 from pip._internal.models.link import Link
 from pip._internal.models.search_scope import SearchScope
+from pip._internal.network.session import PipSession
 from pip._internal.network.utils import raise_for_status
 from pip._internal.utils.filetypes import is_archive_file
 from pip._internal.utils.misc import pairwise, redact_auth_from_url
 from pip._internal.utils.urls import path_to_url, url_to_path
 from pip._internal.vcs import is_url, vcs
 
-if TYPE_CHECKING:
-    import xml.etree.ElementTree
-    from optparse import Values
-    from typing import (
-        Callable,
-        Iterable,
-        List,
-        MutableMapping,
-        Optional,
-        Sequence,
-        Tuple,
-        Union,
-    )
-
-    from pip._vendor.requests import Response
-
-    from pip._internal.network.session import PipSession
-
-    HTMLElement = xml.etree.ElementTree.Element
-    ResponseHeaders = MutableMapping[str, str]
-
-
 logger = logging.getLogger(__name__)
+
+HTMLElement = xml.etree.ElementTree.Element
+ResponseHeaders = MutableMapping[str, str]
 
 
 def _match_vcs_scheme(url):

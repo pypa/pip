@@ -9,14 +9,11 @@ import shutil
 import sys
 import textwrap
 from contextlib import suppress
-from typing import TYPE_CHECKING
+from typing import Any
 
 from pip._internal.cli.status_codes import UNKNOWN_ERROR
 from pip._internal.configuration import Configuration, ConfigurationError
 from pip._internal.utils.misc import redact_auth_from_url, strtobool
-
-if TYPE_CHECKING:
-    from typing import Any
 
 logger = logging.getLogger(__name__)
 

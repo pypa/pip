@@ -2,22 +2,16 @@
 """
 
 import logging
+from email.message import Message
 from email.parser import Parser
-from typing import TYPE_CHECKING
+from typing import Dict, Tuple
 from zipfile import BadZipFile, ZipFile
 
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.pkg_resources import DistInfoDistribution
+from pip._vendor.pkg_resources import DistInfoDistribution, Distribution
 
 from pip._internal.exceptions import UnsupportedWheel
 from pip._internal.utils.pkg_resources import DictMetadata
-
-if TYPE_CHECKING:
-    from email.message import Message
-    from typing import Dict, Tuple
-
-    from pip._vendor.pkg_resources import Distribution
-
 
 VERSION_COMPATIBLE = (1, 0)
 

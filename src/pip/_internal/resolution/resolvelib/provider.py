@@ -1,14 +1,9 @@
-from typing import TYPE_CHECKING
+from typing import Any, Dict, Iterable, Optional, Sequence, Tuple, Union
 
 from pip._vendor.resolvelib.providers import AbstractProvider
 
-from .base import Constraint
-
-if TYPE_CHECKING:
-    from typing import Any, Dict, Iterable, Optional, Sequence, Tuple, Union
-
-    from .base import Candidate, Requirement
-    from .factory import Factory
+from .base import Candidate, Constraint, Requirement
+from .factory import Factory
 
 # Notes on the relationship between the provider, the factory, and the
 # candidate and requirement classes.

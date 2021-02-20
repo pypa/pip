@@ -1,11 +1,8 @@
-from typing import TYPE_CHECKING
+from typing import Container, Iterator, List, Optional
+
+from pip._vendor.packaging.version import _BaseVersion
 
 from pip._internal.utils.misc import stdlib_pkgs  # TODO: Move definition here.
-
-if TYPE_CHECKING:
-    from typing import Container, Iterator, List, Optional
-
-    from pip._vendor.packaging.version import _BaseVersion
 
 
 class BaseDistribution:

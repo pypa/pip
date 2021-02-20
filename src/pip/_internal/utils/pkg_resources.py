@@ -1,9 +1,6 @@
-from typing import TYPE_CHECKING
+from typing import Dict, Iterable, List
 
 from pip._vendor.pkg_resources import yield_lines
-
-if TYPE_CHECKING:
-    from typing import Dict, Iterable, List
 
 
 class DictMetadata:

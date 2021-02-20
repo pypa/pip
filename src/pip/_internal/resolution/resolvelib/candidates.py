@@ -1,12 +1,14 @@
 import logging
 import sys
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any, FrozenSet, Iterable, Optional, Tuple, Union
 
 from pip._vendor.packaging.specifiers import InvalidSpecifier, SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.packaging.version import Version
+from pip._vendor.packaging.version import Version, _BaseVersion
+from pip._vendor.pkg_resources import Distribution
 
 from pip._internal.exceptions import HashError, MetadataInconsistent
+from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
 from pip._internal.req.constructors import (
     install_req_from_editable,
@@ -16,27 +18,18 @@ from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.misc import dist_is_editable, normalize_version_info
 from pip._internal.utils.packaging import get_requires_python
 
-from .base import Candidate, format_name
+from .base import Candidate, Requirement, format_name
 
 if TYPE_CHECKING:
-    from typing import Any, FrozenSet, Iterable, Optional, Tuple, Union
-
-    from pip._vendor.packaging.version import _BaseVersion
-    from pip._vendor.pkg_resources import Distribution
-
-    from pip._internal.models.link import Link
-
-    from .base import Requirement
     from .factory import Factory
 
-    BaseCandidate = Union[
-        "AlreadyInstalledCandidate",
-        "EditableCandidate",
-        "LinkCandidate",
-    ]
-
-
 logger = logging.getLogger(__name__)
+
+BaseCandidate = Union[
+    "AlreadyInstalledCandidate",
+    "EditableCandidate",
+    "LinkCandidate",
+]
 
 
 def make_install_req_from_link(link, template):

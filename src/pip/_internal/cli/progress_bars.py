@@ -1,7 +1,7 @@
 import itertools
 import sys
 from signal import SIGINT, default_int_handler, signal
-from typing import TYPE_CHECKING
+from typing import Any, Dict, List
 
 from pip._vendor.progress.bar import Bar, FillingCirclesBar, IncrementalBar
 from pip._vendor.progress.spinner import Spinner
@@ -9,9 +9,6 @@ from pip._vendor.progress.spinner import Spinner
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.logging import get_indentation
 from pip._internal.utils.misc import format_size
-
-if TYPE_CHECKING:
-    from typing import Any, Dict, List
 
 try:
     from pip._vendor import colorama

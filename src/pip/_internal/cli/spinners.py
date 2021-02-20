@@ -3,15 +3,12 @@ import itertools
 import logging
 import sys
 import time
-from typing import TYPE_CHECKING
+from typing import IO, Iterator
 
 from pip._vendor.progress import HIDE_CURSOR, SHOW_CURSOR
 
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.logging import get_indentation
-
-if TYPE_CHECKING:
-    from typing import IO, Iterator
 
 logger = logging.getLogger(__name__)
 

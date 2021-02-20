@@ -1,6 +1,7 @@
 import logging
 import os
-from typing import TYPE_CHECKING
+from optparse import Values
+from typing import List
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.cmdoptions import make_target_python
@@ -9,10 +10,6 @@ from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.req.req_tracker import get_requirement_tracker
 from pip._internal.utils.misc import ensure_dir, normalize_path, write_output
 from pip._internal.utils.temp_dir import TempDirectory
-
-if TYPE_CHECKING:
-    from optparse import Values
-    from typing import List
 
 logger = logging.getLogger(__name__)
 

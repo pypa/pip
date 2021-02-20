@@ -4,17 +4,13 @@ import logging
 import os.path
 import tempfile
 from contextlib import ExitStack, contextmanager
-from typing import TYPE_CHECKING
+from typing import Any, Dict, Iterator, Optional, TypeVar, Union
 
 from pip._internal.utils.misc import enum, rmtree
 
-if TYPE_CHECKING:
-    from typing import Any, Dict, Iterator, Optional, TypeVar, Union
-
-    _T = TypeVar('_T', bound='TempDirectory')
-
-
 logger = logging.getLogger(__name__)
+
+_T = TypeVar('_T', bound='TempDirectory')
 
 
 # Kinds of temporary directories. Only needed for ones that are
