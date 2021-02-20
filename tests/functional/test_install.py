@@ -395,16 +395,13 @@ def test_vcs_url_urlquote_normalization(script, tmpdir):
     )
 
 
-@pytest.mark.parametrize("resolver", ["", "--use-deprecated=legacy-resolver"])
 def test_basic_install_from_local_directory(
-    script, data, resolver, with_wheel
+    script, data, with_wheel
 ):
     """
     Test installing from a local directory.
     """
     args = ["install"]
-    if resolver:
-        args.append(resolver)
     to_install = data.packages.joinpath("FSPkg")
     args.append(to_install)
     result = script.pip(*args)
