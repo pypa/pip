@@ -1059,6 +1059,28 @@ def test_install_editable_with_prefix(script):
     result.did_create(install_path)
 
 
+@pytest.mark.network
+def test_install_editable_with_target(script):
+    pkg_path = script.scratch_path / 'pkg'
+    pkg_path.mkdir()
+    pkg_path.joinpath("setup.py").write_text(textwrap.dedent("""
+        from setuptools import setup
+        setup(
+            name='pkg',
+            install_requires=['watching_testrunner']
+        )
+    """))
+
+    target = script.scratch_path / 'target'
+    target.mkdir()
+    result = script.pip(
+        'install', '--editable', pkg_path, '--target', target
+    )
+
+    result.did_create(script.scratch / 'target' / 'pkg.egg-link')
+    result.did_create(script.scratch / 'target' / 'watching_testrunner.py')
+
+
 def test_install_package_conflict_prefix_and_user(script, data):
     """
     Test installing a package using pip install --prefix --user errors out
