@@ -1,14 +1,12 @@
 """Automation using nox.
 """
 
-# The following comment should be removed at some point in the future.
-# mypy: disallow-untyped-defs=False
-
 import glob
 import os
 import shutil
 import sys
 from pathlib import Path
+from typing import Iterator, List, Tuple
 
 import nox
 
@@ -34,20 +32,22 @@ VERSION_FILE = "src/pip/__init__.py"
 
 
 def run_with_protected_pip(session, *arguments):
+    # type: (nox.Session, *str) -> None
     """Do a session.run("pip", *arguments), using a "protected" pip.
 
     This invokes a wrapper script, that forwards calls to original virtualenv
     (stable) version, and not the code being tested. This ensures pip being
     used is not the code being tested.
     """
-    env = {"VIRTUAL_ENV": session.virtualenv.location}
+    # https://github.com/theacodes/nox/pull/377
+    env = {"VIRTUAL_ENV": session.virtualenv.location}  # type: ignore
 
     command = ("python", LOCATIONS["protected-pip"]) + arguments
-    kwargs = {"env": env, "silent": True}
-    session.run(*command, **kwargs)
+    session.run(*command, env=env, silent=True)
 
 
 def should_update_common_wheels():
+    # type: () -> bool
     # If the cache hasn't been created, create it.
     if not os.path.exists(LOCATIONS["common-wheels"]):
         return True
@@ -72,6 +72,7 @@ def should_update_common_wheels():
 # -----------------------------------------------------------------------------
 @nox.session(python=["3.6", "3.7", "3.8", "3.9", "pypy3"])
 def test(session):
+    # type: (nox.Session) -> None
     # Get the common wheels.
     if should_update_common_wheels():
         run_with_protected_pip(
@@ -88,7 +89,8 @@ def test(session):
         session.log(msg)
 
     # Build source distribution
-    sdist_dir = os.path.join(session.virtualenv.location, "sdist")
+    # https://github.com/theacodes/nox/pull/377
+    sdist_dir = os.path.join(session.virtualenv.location, "sdist")  # type: ignore
     if os.path.exists(sdist_dir):
         shutil.rmtree(sdist_dir, ignore_errors=True)
     session.run(
@@ -117,10 +119,12 @@ def test(session):
 
 @nox.session
 def docs(session):
+    # type: (nox.Session) -> None
     session.install("-e", ".")
     session.install("-r", REQUIREMENTS["docs"])
 
     def get_sphinx_build_command(kind):
+        # type: (str) -> List[str]
         # Having the conf.py in the docs/html is weird but needed because we
         # can not use a different configuration directory vs source directory
         # on RTD currently. So, we'll pass "-c docs/html" here.
@@ -141,6 +145,7 @@ def docs(session):
 
 @nox.session
 def lint(session):
+    # type: (nox.Session) -> None
     session.install("pre-commit")
 
     if session.posargs:
@@ -154,6 +159,7 @@ def lint(session):
 
 @nox.session
 def vendoring(session):
+    # type: (nox.Session) -> None
     session.install("vendoring>=0.3.0")
 
     if "--upgrade" not in session.posargs:
@@ -161,6 +167,7 @@ def vendoring(session):
         return
 
     def pinned_requirements(path):
+        # type: (Path) -> Iterator[Tuple[str, str]]
         for line in path.read_text().splitlines():
             one, two = line.split("==", 1)
             name = one.strip()
@@ -208,6 +215,7 @@ def vendoring(session):
 # -----------------------------------------------------------------------------
 @nox.session(name="prepare-release")
 def prepare_release(session):
+    # type: (nox.Session) -> None
     version = release.get_version_from_arguments(session)
     if not version:
         session.error("Usage: nox -s prepare-release -- <version>")
@@ -243,6 +251,7 @@ def prepare_release(session):
 
 @nox.session(name="build-release")
 def build_release(session):
+    # type: (nox.Session) -> None
     version = release.get_version_from_arguments(session)
     if not version:
         session.error("Usage: nox -s build-release -- YY.N[.P]")
@@ -274,6 +283,7 @@ def build_release(session):
 
 
 def build_dists(session):
+    # type: (nox.Session) -> List[str]
     """Return dists with valid metadata."""
     session.log(
         "# Check if there's any Git-untracked files before building the wheel",
@@ -302,6 +312,7 @@ def build_dists(session):
 
 @nox.session(name="upload-release")
 def upload_release(session):
+    # type: (nox.Session) -> None
     version = release.get_version_from_arguments(session)
     if not version:
         session.error("Usage: nox -s upload-release -- YY.N[.P]")
@@ -320,7 +331,7 @@ def upload_release(session):
             f"Remove dist/ and run 'nox -s build-release -- {version}'"
         )
     # Sanity check: Make sure the files are correctly named.
-    distfile_names = map(os.path.basename, distribution_files)
+    distfile_names = (os.path.basename(fn) for fn in distribution_files)
     expected_distribution_files = [
         f"pip-{version}-py3-none-any.whl",
         f"pip-{version}.tar.gz",
