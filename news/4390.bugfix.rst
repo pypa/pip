@@ -1,0 +1,1 @@
+Fix --target to work with --editable installs.
