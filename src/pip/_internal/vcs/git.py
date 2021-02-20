@@ -251,11 +251,13 @@ class Git(VersionControl):
 
         return cls.get_revision(dest) == name
 
-    def fetch_new(self, dest, url, rev_options):
-        # type: (str, HiddenText, RevOptions) -> None
+    def fetch_new(self, dest, url, rev_options, verbose):
+        # type: (str, HiddenText, RevOptions, bool) -> None
         rev_display = rev_options.to_display()
         logger.info('Cloning %s%s to %s', url, rev_display, display_path(dest))
-        self.run_command(make_command('clone', '-q', url, dest))
+
+        flags = ('--verbose', '--progress') if verbose else ('--quiet',)
+        self.run_command(make_command('clone', *flags, url, dest))
 
         if rev_options.rev:
             # Then a specific revision was requested.

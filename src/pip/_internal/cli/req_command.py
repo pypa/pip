@@ -251,6 +251,7 @@ class RequirementCommand(IndexGroupCommand):
             require_hashes=options.require_hashes,
             use_user_site=use_user_site,
             lazy_wheel=lazy_wheel,
+            verbose=options.verbose > 2,
         )
 
     @classmethod

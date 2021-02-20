@@ -67,11 +67,11 @@ def _get_prepared_distribution(
     return abstract_dist.get_pkg_resources_distribution()
 
 
-def unpack_vcs_link(link, location):
-    # type: (Link, str) -> None
+def unpack_vcs_link(link, location, verbose):
+    # type: (Link, str, bool) -> None
     vcs_backend = vcs.get_backend_for_scheme(link.scheme)
     assert vcs_backend is not None
-    vcs_backend.unpack(location, url=hide_url(link.url))
+    vcs_backend.unpack(location, url=hide_url(link.url), verbose=verbose)
 
 
 class File:
@@ -198,6 +198,7 @@ def unpack_url(
     link,  # type: Link
     location,  # type: str
     download,  # type: Downloader
+    verbose,  # type: bool
     download_dir=None,  # type: Optional[str]
     hashes=None,  # type: Optional[Hashes]
 ):
@@ -211,7 +212,7 @@ def unpack_url(
     """
     # non-editable vcs urls
     if link.is_vcs:
-        unpack_vcs_link(link, location)
+        unpack_vcs_link(link, location, verbose=verbose)
         return None
 
     # If it's a url to a local directory
@@ -285,6 +286,7 @@ class RequirementPreparer:
         require_hashes,  # type: bool
         use_user_site,  # type: bool
         lazy_wheel,  # type: bool
+        verbose,  # type: bool
     ):
         # type: (...) -> None
         super().__init__()
@@ -312,6 +314,9 @@ class RequirementPreparer:
 
         # Should wheels be downloaded lazily?
         self.use_lazy_wheel = lazy_wheel
+
+        # Should underlying tooling be verbose, or quiet?
+        self.verbose = verbose
 
         # Memoized downloaded files, as mapping of url: (path, mime type)
         self._downloaded = {}  # type: Dict[str, Tuple[str, str]]
@@ -479,6 +484,7 @@ class RequirementPreparer:
             try:
                 local_file = unpack_url(
                     link, req.source_dir, self._download,
+                    self.verbose,
                     self.download_dir, hashes,
                 )
             except NetworkConnectionError as exc:

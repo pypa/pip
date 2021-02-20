@@ -486,8 +486,8 @@ class VersionControl:
         """
         return (cls.normalize_url(url1) == cls.normalize_url(url2))
 
-    def fetch_new(self, dest, url, rev_options):
-        # type: (str, HiddenText, RevOptions) -> None
+    def fetch_new(self, dest, url, rev_options, verbose):
+        # type: (str, HiddenText, RevOptions, bool) -> None
         """
         Fetch a revision from a repository, in the case that this is the
         first fetch from the repository.
@@ -495,6 +495,7 @@ class VersionControl:
         Args:
           dest: the directory to fetch the repository to.
           rev_options: a RevOptions object.
+          verbose: flag for verbose output.
         """
         raise NotImplementedError
 
@@ -530,19 +531,20 @@ class VersionControl:
         """
         raise NotImplementedError
 
-    def obtain(self, dest, url):
-        # type: (str, HiddenText) -> None
+    def obtain(self, dest, url, verbose):
+        # type: (str, HiddenText, bool) -> None
         """
         Install or update in editable mode the package represented by this
         VersionControl object.
 
         :param dest: the repository directory in which to install or update.
         :param url: the repository URL starting with a vcs prefix.
+        :param verbose: flag for verbose output.
         """
         url, rev_options = self.get_url_rev_options(url)
 
         if not os.path.exists(dest):
-            self.fetch_new(dest, url, rev_options)
+            self.fetch_new(dest, url, rev_options, verbose=verbose)
             return
 
         rev_display = rev_options.to_display()
@@ -601,7 +603,7 @@ class VersionControl:
         if response == 'w':
             logger.warning('Deleting %s', display_path(dest))
             rmtree(dest)
-            self.fetch_new(dest, url, rev_options)
+            self.fetch_new(dest, url, rev_options, verbose=verbose)
             return
 
         if response == 'b':
@@ -610,7 +612,7 @@ class VersionControl:
                 'Backing up %s to %s', display_path(dest), dest_dir,
             )
             shutil.move(dest, dest_dir)
-            self.fetch_new(dest, url, rev_options)
+            self.fetch_new(dest, url, rev_options, verbose=verbose)
             return
 
         # Do nothing if the response is "i".
@@ -624,17 +626,18 @@ class VersionControl:
             )
             self.switch(dest, url, rev_options)
 
-    def unpack(self, location, url):
-        # type: (str, HiddenText) -> None
+    def unpack(self, location, url, verbose):
+        # type: (str, HiddenText, bool) -> None
         """
         Clean up current location and download the url repository
         (and vcs infos) into location
 
         :param url: the repository URL starting with a vcs prefix.
+        :param verbose: flag for verbose output.
         """
         if os.path.exists(location):
             rmtree(location)
-        self.obtain(location, url=url)
+        self.obtain(location, url=url, verbose=verbose)
 
     @classmethod
     def get_remote_url(cls, location):
