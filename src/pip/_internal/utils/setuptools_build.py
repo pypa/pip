@@ -103,7 +103,6 @@ def make_setuptools_develop_args(
     if prefix:
         args += ["--prefix", prefix]
     if home is not None:
-        # args += ["--home", home]
         args += ["--install-dir", home]
 
     if use_user_site:
