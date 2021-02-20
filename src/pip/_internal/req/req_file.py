@@ -17,7 +17,6 @@ from typing import (
     List,
     NoReturn,
     Optional,
-    Text,
     Tuple,
 )
 
