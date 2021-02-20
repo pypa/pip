@@ -1,1 +1,1 @@
-Fix --target to work with --editable installs.
+Fixed ``--target`` to work with ``--editable`` installs.
