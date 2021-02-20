@@ -47,11 +47,12 @@ def autocomplete():
             not current.startswith('-')
         )
         if should_list_installed:
-            installed = []
             lc = current.lower()
-            for dist in get_installed_distributions(local_only=True):
-                if dist.key.startswith(lc) and dist.key not in cwords[1:]:
-                    installed.append(dist.key)
+            installed = [
+                dist.key
+                for dist in get_installed_distributions(local_only=True)
+                if dist.key.startswith(lc) and dist.key not in cwords[1:]
+            ]
             # if there are no dists installed, fall back to option completion
             if installed:
                 for dist in installed:
