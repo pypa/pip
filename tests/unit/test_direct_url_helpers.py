@@ -1,6 +1,5 @@
 from functools import partial
-
-from mock import MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 from pip._internal.models.direct_url import (
     DIRECT_URL_METADATA_NAME,

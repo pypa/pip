@@ -1,3 +1,6 @@
+from optparse import Values
+from typing import List
+
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.cli.base_command import Command
@@ -10,11 +13,6 @@ from pip._internal.req.constructors import (
     install_req_from_parsed_requirement,
 )
 from pip._internal.utils.misc import protect_pip_from_modification_on_windows
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from optparse import Values
-    from typing import List
 
 
 class UninstallCommand(Command, SessionCommandMixin):

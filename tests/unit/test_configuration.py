@@ -1,8 +1,9 @@
 """Tests for all things related to the configuration
 """
 
+from unittest.mock import MagicMock
+
 import pytest
-from mock import MagicMock
 
 from pip._internal.configuration import get_configuration_files, kinds
 from pip._internal.exceptions import ConfigurationError

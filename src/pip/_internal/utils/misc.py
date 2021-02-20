@@ -16,8 +16,21 @@ import sys
 import urllib.parse
 from io import StringIO
 from itertools import filterfalse, tee, zip_longest
+from typing import (
+    Any,
+    AnyStr,
+    Callable,
+    Container,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Tuple,
+    TypeVar,
+    cast,
+)
 
-from pip._vendor import pkg_resources
+from pip._vendor.pkg_resources import Distribution
 
 # NOTE: retrying is not annotated in typeshed as on 2017-07-17, which is
 #       why we ignore the type on this import.
@@ -27,31 +40,10 @@ from pip import __version__
 from pip._internal.exceptions import CommandError
 from pip._internal.locations import get_major_minor_version, site_packages, user_site
 from pip._internal.utils.compat import WINDOWS, stdlib_pkgs
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING, cast
 from pip._internal.utils.virtualenv import (
     running_under_virtualenv,
     virtualenv_no_global,
 )
-
-if MYPY_CHECK_RUNNING:
-    from typing import (
-        Any,
-        AnyStr,
-        Callable,
-        Container,
-        Iterable,
-        Iterator,
-        List,
-        Optional,
-        Tuple,
-        TypeVar,
-    )
-
-    from pip._vendor.pkg_resources import Distribution
-
-    VersionInfo = Tuple[int, int, int]
-    T = TypeVar("T")
-
 
 __all__ = ['rmtree', 'display_path', 'backup_dir',
            'ask', 'splitext',
@@ -59,10 +51,13 @@ __all__ = ['rmtree', 'display_path', 'backup_dir',
            'normalize_path',
            'renames', 'get_prog',
            'captured_stdout', 'ensure_dir',
-           'get_installed_version', 'remove_auth_from_url']
+           'remove_auth_from_url']
 
 
 logger = logging.getLogger(__name__)
+
+VersionInfo = Tuple[int, int, int]
+T = TypeVar("T")
 
 
 def get_pip_version():
@@ -558,24 +553,6 @@ def captured_stderr():
     See captured_stdout().
     """
     return captured_output('stderr')
-
-
-def get_installed_version(dist_name, working_set=None):
-    """Get the installed version of dist_name avoiding pkg_resources cache"""
-    # Create a requirement that we'll look for inside of setuptools.
-    req = pkg_resources.Requirement.parse(dist_name)
-
-    if working_set is None:
-        # We want to avoid having this cached, so we need to construct a new
-        # working set each time.
-        working_set = pkg_resources.WorkingSet()
-
-    # Get the installed distribution from our working set
-    dist = working_set.find(req)
-
-    # Check to see if we got an installed distribution or not, if we did
-    # we want to return it's version.
-    return dist.version if dist else None
 
 
 # Simulates an enum

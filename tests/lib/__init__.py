@@ -10,10 +10,10 @@ from contextlib import contextmanager
 from hashlib import sha256
 from io import BytesIO
 from textwrap import dedent
+from typing import List, Optional
 from zipfile import ZipFile
 
 import pytest
-from pip._vendor.six import ensure_binary
 from scripttest import FoundDir, TestFileEnvironment
 
 from pip._internal.index.collector import LinkCollector
@@ -21,17 +21,11 @@ from pip._internal.index.package_finder import PackageFinder
 from pip._internal.locations import get_major_minor_version
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
+from pip._internal.models.target_python import TargetPython
 from pip._internal.network.session import PipSession
 from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from tests.lib.path import Path, curdir
 from tests.lib.wheel import make_wheel
-
-if MYPY_CHECK_RUNNING:
-    from typing import List, Optional
-
-    from pip._internal.models.target_python import TargetPython
-
 
 DATA_DIR = Path(__file__).parent.parent.joinpath("data").resolve()
 SRC_DIR = Path(__file__).resolve().parent.parent.parent
@@ -454,16 +448,15 @@ class PipTestEnvironment(TestFileEnvironment):
     exe = sys.platform == 'win32' and '.exe' or ''
     verbose = False
 
-    def __init__(self, base_path, *args, **kwargs):
+    def __init__(self, base_path, *args, virtualenv, pip_expect_warning=None, **kwargs):
         # Make our base_path a test.lib.path.Path object
         base_path = Path(base_path)
 
         # Store paths related to the virtual environment
-        venv = kwargs.pop("virtualenv")
-        self.venv_path = venv.location
-        self.lib_path = venv.lib
-        self.site_packages_path = venv.site
-        self.bin_path = venv.bin
+        self.venv_path = virtualenv.location
+        self.lib_path = virtualenv.lib
+        self.site_packages_path = virtualenv.site
+        self.bin_path = virtualenv.bin
 
         self.user_base_path = self.venv_path.joinpath("user")
         self.user_site_path = self.venv_path.joinpath(
@@ -503,7 +496,7 @@ class PipTestEnvironment(TestFileEnvironment):
 
         # Whether all pip invocations should expect stderr
         # (useful for Python version deprecation)
-        self.pip_expect_warning = kwargs.pop('pip_expect_warning', None)
+        self.pip_expect_warning = pip_expect_warning
 
         # Call the TestFileEnvironment __init__
         super().__init__(base_path, *args, **kwargs)
@@ -544,7 +537,16 @@ class PipTestEnvironment(TestFileEnvironment):
         else:
             super()._find_traverse(path, result)
 
-    def run(self, *args, **kw):
+    def run(
+        self,
+        *args,
+        cwd=None,
+        run_from=None,
+        allow_stderr_error=None,
+        allow_stderr_warning=None,
+        allow_error=None,
+        **kw,
+    ):
         """
         :param allow_stderr_error: whether a logged error is allowed in
             stderr.  Passing True for this argument implies
@@ -567,20 +569,12 @@ class PipTestEnvironment(TestFileEnvironment):
         if self.verbose:
             print('>> running {args} {kw}'.format(**locals()))
 
-        cwd = kw.pop('cwd', None)
-        run_from = kw.pop('run_from', None)
         assert not cwd or not run_from, "Don't use run_from; it's going away"
         cwd = cwd or run_from or self.cwd
         if sys.platform == 'win32':
             # Partial fix for ScriptTest.run using `shell=True` on Windows.
             args = [str(a).replace('^', '^^').replace('&', '^&') for a in args]
 
-        # Remove `allow_stderr_error`, `allow_stderr_warning` and
-        # `allow_error` before calling run() because PipTestEnvironment
-        # doesn't support them.
-        allow_stderr_error = kw.pop('allow_stderr_error', None)
-        allow_stderr_warning = kw.pop('allow_stderr_warning', None)
-        allow_error = kw.pop('allow_error', None)
         if allow_error:
             kw['expect_error'] = True
 
@@ -634,11 +628,11 @@ class PipTestEnvironment(TestFileEnvironment):
 
         return TestPipResult(result, verbose=self.verbose)
 
-    def pip(self, *args, **kwargs):
+    def pip(self, *args, use_module=True, **kwargs):
         __tracebackhide__ = True
         if self.pip_expect_warning:
             kwargs['allow_stderr_warning'] = True
-        if kwargs.pop('use_module', True):
+        if use_module:
             exe = 'python'
             args = ('-m', 'pip') + args
         else:
@@ -1095,7 +1089,7 @@ def create_basic_sdist_for_package(
     for fname in files:
         path = script.temp_path / fname
         path.parent.mkdir(exist_ok=True, parents=True)
-        path.write_bytes(ensure_binary(files[fname]))
+        path.write_bytes(files[fname].encode("utf-8"))
 
     retval = script.scratch_path / archive_name
     generated = shutil.make_archive(

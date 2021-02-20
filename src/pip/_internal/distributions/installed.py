@@ -1,12 +1,9 @@
+from typing import Optional
+
+from pip._vendor.pkg_resources import Distribution
+
 from pip._internal.distributions.base import AbstractDistribution
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import Optional
-
-    from pip._vendor.pkg_resources import Distribution
-
-    from pip._internal.index.package_finder import PackageFinder
+from pip._internal.index.package_finder import PackageFinder
 
 
 class InstalledDistribution(AbstractDistribution):

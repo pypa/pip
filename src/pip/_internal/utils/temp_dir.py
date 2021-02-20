@@ -3,22 +3,14 @@ import itertools
 import logging
 import os.path
 import tempfile
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
+from typing import Any, Dict, Iterator, Optional, TypeVar, Union
 
-from pip._vendor.contextlib2 import ExitStack
-from pip._vendor.six import ensure_text
-
-from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import enum, rmtree
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import Any, Dict, Iterator, Optional, TypeVar, Union
-
-    _T = TypeVar('_T', bound='TempDirectory')
-
 
 logger = logging.getLogger(__name__)
+
+_T = TypeVar('_T', bound='TempDirectory')
 
 
 # Kinds of temporary directories. Only needed for ones that are
@@ -196,15 +188,7 @@ class TempDirectory:
         self._deleted = True
         if not os.path.exists(self._path):
             return
-        # Make sure to pass unicode on Python 2 to make the contents also
-        # use unicode, ensuring non-ASCII names and can be represented.
-        # This is only done on Windows because POSIX platforms use bytes
-        # natively for paths, and the bytes-text conversion omission avoids
-        # errors caused by the environment configuring encodings incorrectly.
-        if WINDOWS:
-            rmtree(ensure_text(self._path))
-        else:
-            rmtree(self._path)
+        rmtree(self._path)
 
 
 class AdjacentTempDirectory(TempDirectory):

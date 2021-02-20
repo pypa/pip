@@ -13,21 +13,40 @@ import shutil
 import sys
 import warnings
 from base64 import urlsafe_b64encode
+from email.message import Message
 from itertools import chain, filterfalse, starmap
-from zipfile import ZipFile
+from typing import (
+    IO,
+    TYPE_CHECKING,
+    Any,
+    BinaryIO,
+    Callable,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    NewType,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+    cast,
+)
+from zipfile import ZipFile, ZipInfo
 
 from pip._vendor import pkg_resources
 from pip._vendor.distlib.scripts import ScriptMaker
 from pip._vendor.distlib.util import get_export_entry
+from pip._vendor.pkg_resources import Distribution
 from pip._vendor.six import ensure_str, ensure_text, reraise
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_major_minor_version
 from pip._internal.models.direct_url import DIRECT_URL_METADATA_NAME, DirectUrl
-from pip._internal.models.scheme import SCHEME_KEYS
+from pip._internal.models.scheme import SCHEME_KEYS, Scheme
 from pip._internal.utils.filesystem import adjacent_tmp_file, replace
 from pip._internal.utils.misc import captured_stdout, ensure_dir, hash_file, partition
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.unpacking import (
     current_umask,
     is_within_directory,
@@ -36,39 +55,8 @@ from pip._internal.utils.unpacking import (
 )
 from pip._internal.utils.wheel import parse_wheel, pkg_resources_distribution_for_wheel
 
-# Use the custom cast function at runtime to make cast work,
-# and import typing.cast when performing pre-commit and type
-# checks
-if not MYPY_CHECK_RUNNING:
-    from pip._internal.utils.typing import cast
-else:
-    from email.message import Message
-    from typing import (
-        IO,
-        Any,
-        BinaryIO,
-        Callable,
-        Dict,
-        Iterable,
-        Iterator,
-        List,
-        NewType,
-        Optional,
-        Protocol,
-        Sequence,
-        Set,
-        Tuple,
-        Union,
-        cast,
-    )
-    from zipfile import ZipInfo
-
-    from pip._vendor.pkg_resources import Distribution
-
-    from pip._internal.models.scheme import Scheme
-
-    RecordPath = NewType('RecordPath', str)
-    InstalledCSVRow = Tuple[RecordPath, str, Union[int, str]]
+if TYPE_CHECKING:
+    from typing import Protocol
 
     class File(Protocol):
         src_record_path = None  # type: RecordPath
@@ -81,6 +69,9 @@ else:
 
 
 logger = logging.getLogger(__name__)
+
+RecordPath = NewType('RecordPath', str)
+InstalledCSVRow = Tuple[RecordPath, str, Union[int, str]]
 
 
 def rehash(path, blocksize=1 << 20):
@@ -766,7 +757,7 @@ def _install_wheel(
     # Record the REQUESTED file
     if requested:
         requested_path = os.path.join(dest_info_dir, 'REQUESTED')
-        with open(requested_path, "w"):
+        with open(requested_path, "wb"):
             pass
         generated.append(requested_path)
 

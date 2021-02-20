@@ -1,16 +1,24 @@
 import functools
 import logging
 import os
+from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple
 
 from pip._vendor import six
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.resolvelib import ResolutionImpossible
 from pip._vendor.resolvelib import Resolver as RLResolver
+from pip._vendor.resolvelib.resolvers import Result
 
+from pip._internal.cache import WheelCache
 from pip._internal.exceptions import InstallationError
-from pip._internal.req.req_install import check_invalid_constraint_type
+from pip._internal.index.package_finder import PackageFinder
+from pip._internal.operations.prepare import RequirementPreparer
+from pip._internal.req.req_install import (
+    InstallRequirement,
+    check_invalid_constraint_type,
+)
 from pip._internal.req.req_set import RequirementSet
-from pip._internal.resolution.base import BaseResolver
+from pip._internal.resolution.base import BaseResolver, InstallRequirementProvider
 from pip._internal.resolution.resolvelib.provider import PipProvider
 from pip._internal.resolution.resolvelib.reporter import (
     PipDebuggingReporter,
@@ -19,23 +27,12 @@ from pip._internal.resolution.resolvelib.reporter import (
 from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.filetypes import is_archive_file
 from pip._internal.utils.misc import dist_is_editable
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 from .base import Constraint
 from .factory import Factory
 
-if MYPY_CHECK_RUNNING:
-    from typing import Dict, List, Optional, Set, Tuple
-
-    from pip._vendor.resolvelib.resolvers import Result
+if TYPE_CHECKING:
     from pip._vendor.resolvelib.structs import Graph
-
-    from pip._internal.cache import WheelCache
-    from pip._internal.index.package_finder import PackageFinder
-    from pip._internal.operations.prepare import RequirementPreparer
-    from pip._internal.req.req_install import InstallRequirement
-    from pip._internal.resolution.base import InstallRequirementProvider
-
 
 logger = logging.getLogger(__name__)
 
@@ -79,9 +76,9 @@ class Resolver(BaseResolver):
         # type: (List[InstallRequirement], bool) -> RequirementSet
 
         constraints = {}  # type: Dict[str, Constraint]
-        user_requested = set()  # type: Set[str]
+        user_requested = {}  # type: Dict[str, int]
         requirements = []
-        for req in root_reqs:
+        for i, req in enumerate(root_reqs):
             if req.constraint:
                 # Ensure we only accept valid constraints
                 problem = check_invalid_constraint_type(req)
@@ -96,7 +93,9 @@ class Resolver(BaseResolver):
                     constraints[name] = Constraint.from_ireq(req)
             else:
                 if req.user_supplied and req.name:
-                    user_requested.add(canonicalize_name(req.name))
+                    canonical_name = canonicalize_name(req.name)
+                    if canonical_name not in user_requested:
+                        user_requested[canonical_name] = i
                 r = self.factory.make_requirement_from_install_req(
                     req, requested_extras=(),
                 )

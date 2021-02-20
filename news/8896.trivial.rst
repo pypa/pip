@@ -1,0 +1,1 @@
+Separate the batched *download* of lazily-fetched wheel files from the preparation of regularly-downloaded requirements in ``RequirementPreparer.prepare_linked_requirements_more()``.

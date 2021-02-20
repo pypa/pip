@@ -9,19 +9,14 @@ something.
 """
 
 import functools
+from typing import Callable, Iterator, Optional, Set, Tuple
 
+from pip._vendor.packaging.version import _BaseVersion
 from pip._vendor.six.moves import collections_abc  # type: ignore
 
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from .base import Candidate
 
-if MYPY_CHECK_RUNNING:
-    from typing import Callable, Iterator, Optional, Set, Tuple
-
-    from pip._vendor.packaging.version import _BaseVersion
-
-    from .base import Candidate
-
-    IndexCandidateInfo = Tuple[_BaseVersion, Callable[[], Optional[Candidate]]]
+IndexCandidateInfo = Tuple[_BaseVersion, Callable[[], Optional[Candidate]]]
 
 
 def _iter_built(infos):

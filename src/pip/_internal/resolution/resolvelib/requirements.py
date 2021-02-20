@@ -1,15 +1,9 @@
+from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
 
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.req.req_install import InstallRequirement
 
-from .base import Requirement, format_name
-
-if MYPY_CHECK_RUNNING:
-    from pip._vendor.packaging.specifiers import SpecifierSet
-
-    from pip._internal.req.req_install import InstallRequirement
-
-    from .base import Candidate, CandidateLookup
+from .base import Candidate, CandidateLookup, Requirement, format_name
 
 
 class ExplicitRequirement(Requirement):

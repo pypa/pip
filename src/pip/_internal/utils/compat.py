@@ -9,12 +9,7 @@ import locale
 import logging
 import os
 import sys
-
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import Optional, Union
-
+from typing import Optional, Union
 
 __all__ = ["console_to_str", "get_path_uid", "stdlib_pkgs", "WINDOWS"]
 

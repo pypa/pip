@@ -4,9 +4,9 @@ import logging
 import os
 import textwrap
 from email import message_from_string
+from unittest.mock import patch
 
 import pytest
-from mock import patch
 from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.exceptions import InstallationError

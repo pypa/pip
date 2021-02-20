@@ -2,33 +2,31 @@ import os
 import signal
 import ssl
 import threading
+from base64 import b64encode
 from contextlib import contextmanager
 from textwrap import dedent
+from types import TracebackType
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Type
+from unittest.mock import Mock
 
-from mock import Mock
-from pip._vendor.contextlib2 import nullcontext
-from werkzeug.serving import WSGIRequestHandler
+from werkzeug.serving import BaseWSGIServer, WSGIRequestHandler
 from werkzeug.serving import make_server as _make_server
 
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from .compat import nullcontext
 
-if MYPY_CHECK_RUNNING:
-    from types import TracebackType
-    from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Type
+Environ = Dict[str, str]
+Status = str
+Headers = Iterable[Tuple[str, str]]
+ExcInfo = Tuple[Type[BaseException], BaseException, TracebackType]
+Write = Callable[[bytes], None]
+StartResponse = Callable[[Status, Headers, Optional[ExcInfo]], Write]
+Body = List[bytes]
+Responder = Callable[[Environ, StartResponse], Body]
 
-    from werkzeug.serving import BaseWSGIServer
 
-    Environ = Dict[str, str]
-    Status = str
-    Headers = Iterable[Tuple[str, str]]
-    ExcInfo = Tuple[Type[BaseException], BaseException, TracebackType]
-    Write = Callable[[bytes], None]
-    StartResponse = Callable[[Status, Headers, Optional[ExcInfo]], Write]
-    Body = List[bytes]
-    Responder = Callable[[Environ, StartResponse], Body]
+class MockServer(BaseWSGIServer):
+    mock = Mock()  # type: Mock
 
-    class MockServer(BaseWSGIServer):
-        mock = Mock()  # type: Mock
 
 # Applies on Python 2 and Windows.
 if not hasattr(signal, "pthread_sigmask"):
@@ -219,14 +217,26 @@ def file_response(path):
 
 
 def authorization_response(path):
+    # type: (str) -> Responder
+    correct_auth = "Basic " + b64encode(b"USERNAME:PASSWORD").decode("ascii")
+
     def responder(environ, start_response):
         # type: (Environ, StartResponse) -> Body
 
-        start_response(
-            "401 Unauthorized", [
-                ("WWW-Authenticate", "Basic"),
-            ],
-        )
+        if environ.get('HTTP_AUTHORIZATION') == correct_auth:
+            size = os.stat(path).st_size
+            start_response(
+                "200 OK", [
+                    ("Content-Type", "application/octet-stream"),
+                    ("Content-Length", str(size)),
+                ],
+            )
+        else:
+            start_response(
+                "401 Unauthorized", [
+                    ("WWW-Authenticate", "Basic"),
+                ],
+            )
 
         with open(path, 'rb') as f:
             return [f.read()]

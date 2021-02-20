@@ -2,11 +2,7 @@ import os
 import sys
 import urllib.parse
 import urllib.request
-
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import Optional
+from typing import Optional
 
 
 def get_url_scheme(url):

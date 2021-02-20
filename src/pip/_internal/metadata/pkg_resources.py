@@ -1,19 +1,15 @@
 import zipfile
+from typing import Iterator, List, Optional
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.packaging.version import _BaseVersion
 
 from pip._internal.utils import misc  # TODO: Move definition here.
 from pip._internal.utils.packaging import get_installer
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.wheel import pkg_resources_distribution_for_wheel
 
 from .base import BaseDistribution, BaseEnvironment
-
-if MYPY_CHECK_RUNNING:
-    from typing import Iterator, List, Optional
-
-    from pip._vendor.packaging.version import _BaseVersion
 
 
 class Distribution(BaseDistribution):

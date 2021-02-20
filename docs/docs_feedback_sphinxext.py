@@ -3,11 +3,7 @@
 from __future__ import annotations
 
 from itertools import chain
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from sphinx.application import Sphinx
-
+from sphinx.application import Sphinx
 
 DEFAULT_DOC_LINES_THRESHOLD = 250
 RST_INDENT = 4

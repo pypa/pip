@@ -5,14 +5,11 @@ import optparse
 import os
 import sys
 from itertools import chain
+from typing import Any, Iterable, List, Optional
 
 from pip._internal.cli.main_parser import create_main_parser
 from pip._internal.commands import commands_dict, create_command
 from pip._internal.utils.misc import get_installed_distributions
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import Any, Iterable, List, Optional
 
 
 def autocomplete():

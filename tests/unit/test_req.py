@@ -4,9 +4,9 @@ import shutil
 import sys
 import tempfile
 from functools import partial
+from unittest.mock import patch
 
 import pytest
-from mock import patch
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
@@ -381,10 +381,6 @@ class TestInstallRequirement:
 
         with pytest.raises(InstallationError):
             reqset.add_requirement(req)
-
-    def test_installed_version_not_installed(self):
-        req = install_req_from_line('simple-0.1-py2.py3-none-any.whl')
-        assert req.installed_version is None
 
     def test_str(self):
         req = install_req_from_line('simple==0.1')

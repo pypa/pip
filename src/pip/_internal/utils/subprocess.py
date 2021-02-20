@@ -2,18 +2,15 @@ import logging
 import os
 import shlex
 import subprocess
+from typing import Any, Callable, Iterable, List, Mapping, Optional, Union
 
 from pip._internal.cli.spinners import SpinnerInterface, open_spinner
 from pip._internal.exceptions import InstallationSubprocessError
 from pip._internal.utils.compat import console_to_str, str_to_display
 from pip._internal.utils.logging import subprocess_logger
 from pip._internal.utils.misc import HiddenText, path_to_display
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-if MYPY_CHECK_RUNNING:
-    from typing import Any, Callable, Iterable, List, Mapping, Optional, Union
-
-    CommandArgs = List[Union[str, HiddenText]]
+CommandArgs = List[Union[str, HiddenText]]
 
 
 LOG_DIVIDER = '----------------------------------------'

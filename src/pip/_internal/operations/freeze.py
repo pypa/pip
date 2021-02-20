@@ -1,9 +1,20 @@
 import collections
 import logging
 import os
+from typing import (
+    Container,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+)
 
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.pkg_resources import RequirementParseError
+from pip._vendor.pkg_resources import Distribution, Requirement, RequirementParseError
 
 from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.req.constructors import (
@@ -16,27 +27,10 @@ from pip._internal.utils.direct_url_helpers import (
     dist_get_direct_url,
 )
 from pip._internal.utils.misc import dist_is_editable, get_installed_distributions
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import (
-        Container,
-        Dict,
-        Iterable,
-        Iterator,
-        List,
-        Optional,
-        Set,
-        Tuple,
-        Union,
-    )
-
-    from pip._vendor.pkg_resources import Distribution, Requirement
-
-    RequirementInfo = Tuple[Optional[Union[str, Requirement]], bool, List[str]]
-
 
 logger = logging.getLogger(__name__)
+
+RequirementInfo = Tuple[Optional[Union[str, Requirement]], bool, List[str]]
 
 
 def freeze(

@@ -2,18 +2,12 @@ import contextlib
 import hashlib
 import logging
 import os
+from types import TracebackType
+from typing import Dict, Iterator, Optional, Set, Type, Union
 
-from pip._vendor import contextlib2
-
+from pip._internal.models.link import Link
+from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.temp_dir import TempDirectory
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from types import TracebackType
-    from typing import Dict, Iterator, Optional, Set, Type, Union
-
-    from pip._internal.models.link import Link
-    from pip._internal.req.req_install import InstallRequirement
 
 logger = logging.getLogger(__name__)
 
@@ -49,7 +43,7 @@ def update_env_context_manager(**changes):
 def get_requirement_tracker():
     # type: () -> Iterator[RequirementTracker]
     root = os.environ.get('PIP_REQ_TRACKER')
-    with contextlib2.ExitStack() as ctx:
+    with contextlib.ExitStack() as ctx:
         if root is None:
             root = ctx.enter_context(
                 TempDirectory(kind='req-tracker')
@@ -113,7 +107,7 @@ class RequirementTracker:
         assert req not in self._entries
 
         # Start tracking this requirement.
-        with open(entry_path, 'w') as fp:
+        with open(entry_path, 'w', encoding="utf-8") as fp:
             fp.write(str(req))
         self._entries.add(req)
 

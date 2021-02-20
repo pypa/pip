@@ -1,4 +1,5 @@
 import datetime
+import functools
 import json
 import os
 import sys
@@ -6,6 +7,7 @@ import sys
 import freezegun
 import pretend
 import pytest
+from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal import self_outdated_check
 from pip._internal.models.candidate import InstallationCandidate
@@ -44,25 +46,20 @@ class MockPackageFinder:
 
 
 class MockDistribution:
-    def __init__(self, installer):
+    def __init__(self, installer, version):
         self.installer = installer
-
-    def has_metadata(self, name):
-        return name == 'INSTALLER'
-
-    def get_metadata_lines(self, name):
-        if self.has_metadata(name):
-            yield self.installer
-        else:
-            raise NotImplementedError('nope')
+        self.version = parse_version(version)
 
 
-class MockEnvironment(object):
-    def __init__(self, installer):
+class MockEnvironment:
+    def __init__(self, installer, installed_version):
         self.installer = installer
+        self.installed_version = installed_version
 
     def get_distribution(self, name):
-        return MockDistribution(self.installer)
+        if self.installed_version is None:
+            return None
+        return MockDistribution(self.installer, self.installed_version)
 
 
 def _options():
@@ -97,16 +94,26 @@ def _options():
 def test_pip_self_version_check(monkeypatch, stored_time, installed_ver,
                                 new_ver, installer,
                                 check_if_upgrade_required, check_warn_logs):
-    monkeypatch.setattr(self_outdated_check, 'get_installed_version',
-                        lambda name: installed_ver)
-    monkeypatch.setattr(self_outdated_check, 'PackageFinder',
-                        MockPackageFinder)
-    monkeypatch.setattr(logger, 'warning',
-                        pretend.call_recorder(lambda *a, **kw: None))
-    monkeypatch.setattr(logger, 'debug',
-                        pretend.call_recorder(lambda s, exc_info=None: None))
-    monkeypatch.setattr(self_outdated_check, 'get_default_environment',
-                        lambda: MockEnvironment(installer))
+    monkeypatch.setattr(
+        self_outdated_check,
+        "get_default_environment",
+        functools.partial(MockEnvironment, installer, installed_ver),
+    )
+    monkeypatch.setattr(
+        self_outdated_check,
+        "PackageFinder",
+        MockPackageFinder,
+    )
+    monkeypatch.setattr(
+        logger,
+        "warning",
+        pretend.call_recorder(lambda *a, **kw: None),
+    )
+    monkeypatch.setattr(
+        logger,
+        "debug",
+        pretend.call_recorder(lambda s, exc_info=None: None),
+    )
 
     fake_state = pretend.stub(
         state={"last_check": stored_time, 'pypi_version': installed_ver},

@@ -1,9 +1,5 @@
 import sys
-
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import List, Optional, Sequence
+from typing import List, Optional, Sequence
 
 # Shim to wrap setup.py invocation with setuptools
 #

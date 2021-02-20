@@ -8,8 +8,8 @@ import optparse
 import shutil
 import sys
 import textwrap
-
-from pip._vendor.contextlib2 import suppress
+from contextlib import suppress
+from typing import Any
 
 from pip._internal.cli.status_codes import UNKNOWN_ERROR
 from pip._internal.configuration import Configuration, ConfigurationError
@@ -154,10 +154,15 @@ class ConfigOptionParser(CustomOptionParser):
     """Custom option parser which updates its defaults by checking the
     configuration files and environmental variables"""
 
-    def __init__(self, *args, **kwargs):
-        self.name = kwargs.pop('name')
-
-        isolated = kwargs.pop("isolated", False)
+    def __init__(
+        self,
+        *args,  # type: Any
+        name,  # type: str
+        isolated=False,  # type: bool
+        **kwargs,  # type: Any
+    ):
+        # type: (...) -> None
+        self.name = name
         self.config = Configuration(isolated)
 
         assert self.name

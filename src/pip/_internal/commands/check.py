@@ -1,4 +1,6 @@
 import logging
+from optparse import Values
+from typing import Any, List
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
@@ -7,13 +9,8 @@ from pip._internal.operations.check import (
     create_package_set_from_installed,
 )
 from pip._internal.utils.misc import write_output
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
 logger = logging.getLogger(__name__)
-
-if MYPY_CHECK_RUNNING:
-    from optparse import Values
-    from typing import Any, List
 
 
 class CheckCommand(Command):

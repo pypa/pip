@@ -7,6 +7,8 @@ import shutil
 import stat
 import tarfile
 import zipfile
+from typing import Iterable, List, Optional
+from zipfile import ZipInfo
 
 from pip._internal.exceptions import InstallationError
 from pip._internal.utils.filetypes import (
@@ -16,12 +18,6 @@ from pip._internal.utils.filetypes import (
     ZIP_EXTENSIONS,
 )
 from pip._internal.utils.misc import ensure_dir
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import Iterable, List, Optional
-    from zipfile import ZipInfo
-
 
 logger = logging.getLogger(__name__)
 

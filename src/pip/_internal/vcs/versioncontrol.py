@@ -5,11 +5,25 @@ import os
 import shutil
 import sys
 import urllib.parse
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Mapping,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 
 from pip._vendor import pkg_resources
 
+from pip._internal.cli.spinners import SpinnerInterface
 from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.utils.misc import (
+    HiddenText,
     ask_path_exists,
     backup_dir,
     display_path,
@@ -17,35 +31,15 @@ from pip._internal.utils.misc import (
     hide_value,
     rmtree,
 )
-from pip._internal.utils.subprocess import call_subprocess, make_command
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.subprocess import CommandArgs, call_subprocess, make_command
 from pip._internal.utils.urls import get_url_scheme
-
-if MYPY_CHECK_RUNNING:
-    from typing import (
-        Any,
-        Dict,
-        Iterable,
-        Iterator,
-        List,
-        Mapping,
-        Optional,
-        Tuple,
-        Type,
-        Union,
-    )
-
-    from pip._internal.cli.spinners import SpinnerInterface
-    from pip._internal.utils.misc import HiddenText
-    from pip._internal.utils.subprocess import CommandArgs
-
-    AuthInfo = Tuple[Optional[str], Optional[str]]
-
 
 __all__ = ['vcs']
 
 
 logger = logging.getLogger(__name__)
+
+AuthInfo = Tuple[Optional[str], Optional[str]]
 
 
 def is_url(name):

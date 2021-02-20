@@ -8,6 +8,7 @@ import logging.handlers
 import os
 import sys
 from logging import Filter, getLogger
+from typing import Any
 
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
@@ -83,14 +84,20 @@ def get_indentation():
 class IndentingFormatter(logging.Formatter):
     default_time_format = "%Y-%m-%dT%H:%M:%S"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(
+        self,
+        *args,  # type: Any
+        add_timestamp=False,  # type: bool
+        **kwargs,  # type: Any
+    ):
+        # type: (...) -> None
         """
         A logging.Formatter that obeys the indent_log() context manager.
 
         :param add_timestamp: A bool indicating output lines should be prefixed
             with their record's timestamp.
         """
-        self.add_timestamp = kwargs.pop("add_timestamp", False)
+        self.add_timestamp = add_timestamp
         super().__init__(*args, **kwargs)
 
     def get_message_start(self, formatted, levelno):
