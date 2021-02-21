@@ -46,7 +46,6 @@ repos:
         ^tests/functional/test_install|
         # Files in the root of the repository
         ^setup.py|
-        ^noxfile.py|
         # A blank ignore, to avoid merge conflicts later.
         ^$
 
