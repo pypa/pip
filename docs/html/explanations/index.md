@@ -6,6 +6,7 @@ Explanations provide detailed information on key topics and concepts.
 authentication
 caching
 configuration
+custom-install-options
 editable-installs
 repeatable-installs
 requirements-files
