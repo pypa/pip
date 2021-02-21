@@ -6,8 +6,7 @@ from pip._internal.utils.models import KeyBasedCompareMixin
 
 
 class InstallationCandidate(KeyBasedCompareMixin):
-    """Represents a potential "candidate" for installation.
-    """
+    """Represents a potential "candidate" for installation."""
 
     __slots__ = ["name", "version", "link"]
 
@@ -19,17 +18,17 @@ class InstallationCandidate(KeyBasedCompareMixin):
 
         super().__init__(
             key=(self.name, self.version, self.link),
-            defining_class=InstallationCandidate
+            defining_class=InstallationCandidate,
         )
 
     def __repr__(self):
         # type: () -> str
         return "<InstallationCandidate({!r}, {!r}, {!r})>".format(
-            self.name, self.version, self.link,
+            self.name, self.version, self.link
         )
 
     def __str__(self):
         # type: () -> str
-        return '{!r} candidate (version {} at {})'.format(
-            self.name, self.version, self.link,
+        return "{!r} candidate (version {} at {})".format(
+            self.name, self.version, self.link
         )

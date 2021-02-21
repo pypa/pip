@@ -19,8 +19,7 @@ if TYPE_CHECKING:
 
 
 class Link(KeyBasedCompareMixin):
-    """Represents a parsed link from a Package Index's simple URL
-    """
+    """Represents a parsed link from a Package Index's simple URL"""
 
     __slots__ = [
         "_parsed_url",
@@ -33,10 +32,10 @@ class Link(KeyBasedCompareMixin):
 
     def __init__(
         self,
-        url,                   # type: str
-        comes_from=None,       # type: Optional[Union[str, HTMLPage]]
+        url,  # type: str
+        comes_from=None,  # type: Optional[Union[str, HTMLPage]]
         requires_python=None,  # type: Optional[str]
-        yanked_reason=None,    # type: Optional[str]
+        yanked_reason=None,  # type: Optional[str]
         cache_link_parsing=True,  # type: bool
     ):
         # type: (...) -> None
@@ -62,7 +61,7 @@ class Link(KeyBasedCompareMixin):
         """
 
         # url can be a UNC windows share
-        if url.startswith('\\\\'):
+        if url.startswith("\\\\"):
             url = path_to_url(url)
 
         self._parsed_url = urllib.parse.urlsplit(url)
@@ -81,18 +80,19 @@ class Link(KeyBasedCompareMixin):
     def __str__(self):
         # type: () -> str
         if self.requires_python:
-            rp = f' (requires-python:{self.requires_python})'
+            rp = f" (requires-python:{self.requires_python})"
         else:
-            rp = ''
+            rp = ""
         if self.comes_from:
-            return '{} (from {}){}'.format(
-                redact_auth_from_url(self._url), self.comes_from, rp)
+            return "{} (from {}){}".format(
+                redact_auth_from_url(self._url), self.comes_from, rp
+            )
         else:
             return redact_auth_from_url(str(self._url))
 
     def __repr__(self):
         # type: () -> str
-        return f'<Link {self}>'
+        return f"<Link {self}>"
 
     @property
     def url(self):
@@ -102,7 +102,7 @@ class Link(KeyBasedCompareMixin):
     @property
     def filename(self):
         # type: () -> str
-        path = self.path.rstrip('/')
+        path = self.path.rstrip("/")
         name = posixpath.basename(path)
         if not name:
             # Make sure we don't leak auth information if the netloc
@@ -111,7 +111,7 @@ class Link(KeyBasedCompareMixin):
             return netloc
 
         name = urllib.parse.unquote(name)
-        assert name, f'URL {self._url!r} produced no filename'
+        assert name, f"URL {self._url!r} produced no filename"
         return name
 
     @property
@@ -139,7 +139,7 @@ class Link(KeyBasedCompareMixin):
 
     def splitext(self):
         # type: () -> Tuple[str, str]
-        return splitext(posixpath.basename(self.path.rstrip('/')))
+        return splitext(posixpath.basename(self.path.rstrip("/")))
 
     @property
     def ext(self):
@@ -152,7 +152,7 @@ class Link(KeyBasedCompareMixin):
         scheme, netloc, path, query, fragment = self._parsed_url
         return urllib.parse.urlunsplit((scheme, netloc, path, query, None))
 
-    _egg_fragment_re = re.compile(r'[#&]egg=([^&]*)')
+    _egg_fragment_re = re.compile(r"[#&]egg=([^&]*)")
 
     @property
     def egg_fragment(self):
@@ -162,7 +162,7 @@ class Link(KeyBasedCompareMixin):
             return None
         return match.group(1)
 
-    _subdirectory_fragment_re = re.compile(r'[#&]subdirectory=([^&]*)')
+    _subdirectory_fragment_re = re.compile(r"[#&]subdirectory=([^&]*)")
 
     @property
     def subdirectory_fragment(self):
@@ -172,9 +172,7 @@ class Link(KeyBasedCompareMixin):
             return None
         return match.group(1)
 
-    _hash_re = re.compile(
-        r'(sha1|sha224|sha384|sha256|sha512|md5)=([a-f0-9]+)'
-    )
+    _hash_re = re.compile(r"(sha1|sha224|sha384|sha256|sha512|md5)=([a-f0-9]+)")
 
     @property
     def hash(self):
@@ -195,12 +193,12 @@ class Link(KeyBasedCompareMixin):
     @property
     def show_url(self):
         # type: () -> str
-        return posixpath.basename(self._url.split('#', 1)[0].split('?', 1)[0])
+        return posixpath.basename(self._url.split("#", 1)[0].split("?", 1)[0])
 
     @property
     def is_file(self):
         # type: () -> bool
-        return self.scheme == 'file'
+        return self.scheme == "file"
 
     def is_existing_dir(self):
         # type: () -> bool
