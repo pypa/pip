@@ -29,8 +29,7 @@ def url_to_path(url):
     Convert a file: URL to a path.
     """
     assert url.startswith('file:'), (
-        "You can only turn file: urls into filenames (not {url!r})"
-        .format(**locals()))
+        f"You can only turn file: urls into filenames (not {url!r})")
 
     _, netloc, path, _, _ = urllib.parse.urlsplit(url)
 
@@ -42,8 +41,7 @@ def url_to_path(url):
         netloc = '\\\\' + netloc
     else:
         raise ValueError(
-            'non-local file URIs are not supported on this platform: {url!r}'
-            .format(**locals())
+            f'non-local file URIs are not supported on this platform: {url!r}'
         )
 
     path = urllib.request.url2pathname(netloc + path)

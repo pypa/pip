@@ -136,7 +136,7 @@ def test_install_special_extra(script):
     """))
 
     result = script.pip(
-        'install', '--no-index', '{pkga_path}[Hop_hOp-hoP]'.format(**locals()),
+        'install', '--no-index', f'{pkga_path}[Hop_hOp-hoP]',
         expect_error=True)
     assert (
         "Could not find a version that satisfies the requirement missing_pkg"
@@ -165,7 +165,7 @@ def test_install_extra_merging(script, data, extra_to_install, simple_version):
     """))
 
     result = script.pip_install_local(
-        '{pkga_path}{extra_to_install}'.format(**locals()),
+        f'{pkga_path}{extra_to_install}',
     )
 
     assert f'Successfully installed pkga-0.1 simple-{simple_version}' in result.stdout

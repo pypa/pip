@@ -50,10 +50,10 @@ class PipOptions(rst.Directive):
 
     def _format_option(self, option, cmd_name=None):
         bookmark_line = (
-            ".. _`{cmd_name}_{option._long_opts[0]}`:"
+            f".. _`{cmd_name}_{option._long_opts[0]}`:"
             if cmd_name else
-            ".. _`{option._long_opts[0]}`:"
-        ).format(**locals())
+            f".. _`{option._long_opts[0]}`:"
+        )
         line = ".. option:: "
         if option._short_opts:
             line += option._short_opts[0]

@@ -39,7 +39,7 @@ def create_main_parser():
 
     # create command listing for description
     description = [''] + [
-        '{name:27} {command_info.summary}'.format(**locals())
+        f'{name:27} {command_info.summary}'
         for name, command_info in commands_dict.items()
     ]
     parser.description = '\n'.join(description)
