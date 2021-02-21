@@ -6,7 +6,6 @@ from typing import Any, Callable, Iterable, List, Mapping, Optional, Union
 
 from pip._internal.cli.spinners import SpinnerInterface, open_spinner
 from pip._internal.exceptions import InstallationSubprocessError
-from pip._internal.utils.compat import console_to_str, str_to_display
 from pip._internal.utils.logging import subprocess_logger
 from pip._internal.utils.misc import HiddenText
 
@@ -74,11 +73,6 @@ def make_subprocess_output_error(
     :param lines: A list of lines, each ending with a newline.
     """
     command = format_command_args(cmd_args)
-    # Convert `command` and `cwd` to text (unicode in Python 2) so we can use
-    # them as arguments in the unicode format string below. This avoids
-    # "UnicodeDecodeError: 'ascii' codec can't decode byte ..." in Python 2
-    # if either contains a non-ascii character.
-    command_display = str_to_display(command, desc='command bytes')
 
     # We know the joined output value ends in a newline.
     output = ''.join(lines)
@@ -92,7 +86,7 @@ def make_subprocess_output_error(
         'Complete output ({line_count} lines):\n{output}{divider}'
     ).format(
         exit_status=exit_status,
-        command_display=command_display,
+        command_display=command,
         cwd_display=cwd,
         line_count=len(lines),
         output=output,
@@ -182,6 +176,7 @@ def call_subprocess(
             stderr=subprocess.STDOUT if not stdout_only else subprocess.PIPE,
             cwd=cwd,
             env=env,
+            errors="backslashreplace",
         )
     except Exception as exc:
         if log_failed_cmd:
@@ -196,8 +191,7 @@ def call_subprocess(
         proc.stdin.close()
         # In this mode, stdout and stderr are in the same pipe.
         while True:
-            # The "line" value is a unicode string in Python 2.
-            line = console_to_str(proc.stdout.readline())
+            line = proc.stdout.readline()  # type: str
             if not line:
                 break
             line = line.rstrip()
@@ -218,13 +212,11 @@ def call_subprocess(
     else:
         # In this mode, stdout and stderr are in different pipes.
         # We must use communicate() which is the only safe way to read both.
-        out_bytes, err_bytes = proc.communicate()
+        out, err = proc.communicate()
         # log line by line to preserve pip log indenting
-        out = console_to_str(out_bytes)
         for out_line in out.splitlines():
             log_subprocess(out_line)
         all_output.append(out)
-        err = console_to_str(err_bytes)
         for err_line in err.splitlines():
             log_subprocess(err_line)
         all_output.append(err)
