@@ -10,12 +10,12 @@ if TYPE_CHECKING:
 
 # The recommended hash algo of the moment. Change this whenever the state of
 # the art changes; it won't hurt backward compatibility.
-FAVORITE_HASH = 'sha256'
+FAVORITE_HASH = "sha256"
 
 
 # Names of hashlib algorithms allowed by the --hash option and ``pip hash``
 # Currently, those are the ones at least as collision-resistant as sha256.
-STRONG_HASHES = ['sha256', 'sha384', 'sha512']
+STRONG_HASHES = ["sha256", "sha384", "sha512"]
 
 
 class Hashes:
@@ -23,6 +23,7 @@ class Hashes:
     known-good values
 
     """
+
     def __init__(self, hashes=None):
         # type: (Dict[str, List[str]]) -> None
         """
@@ -63,7 +64,7 @@ class Hashes:
 
     def is_hash_allowed(
         self,
-        hash_name,   # type: str
+        hash_name,  # type: str
         hex_digest,  # type: str
     ):
         # type: (...) -> bool
@@ -83,9 +84,7 @@ class Hashes:
             try:
                 gots[hash_name] = hashlib.new(hash_name)
             except (ValueError, TypeError):
-                raise InstallationError(
-                    f'Unknown hash name: {hash_name}'
-                )
+                raise InstallationError(f"Unknown hash name: {hash_name}")
 
         for chunk in chunks:
             for hash in gots.values():
@@ -111,7 +110,7 @@ class Hashes:
 
     def check_against_path(self, path):
         # type: (str) -> None
-        with open(path, 'rb') as file:
+        with open(path, "rb") as file:
             return self.check_against_file(file)
 
     def __nonzero__(self):
@@ -132,11 +131,13 @@ class Hashes:
     def __hash__(self):
         # type: () -> int
         return hash(
-            ",".join(sorted(
-                ":".join((alg, digest))
-                for alg, digest_list in self._allowed.items()
-                for digest in digest_list
-            ))
+            ",".join(
+                sorted(
+                    ":".join((alg, digest))
+                    for alg, digest_list in self._allowed.items()
+                    for digest in digest_list
+                )
+            )
         )
 
 
@@ -147,6 +148,7 @@ class MissingHashes(Hashes):
     exception showing it to the user.
 
     """
+
     def __init__(self):
         # type: () -> None
         """Don't offer the ``hashes`` kwarg."""
