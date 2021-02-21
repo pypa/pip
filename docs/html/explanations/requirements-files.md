@@ -1,4 +1,4 @@
-# Requirements files
+# Requirements Files
 
 Requirements files contain a list of items to be installed using
 {ref}`pip install`.

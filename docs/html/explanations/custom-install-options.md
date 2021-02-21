@@ -1,4 +1,4 @@
-# Custom install options
+# Custom Install Options
 
 ```{versionadded} 7.0
 ```

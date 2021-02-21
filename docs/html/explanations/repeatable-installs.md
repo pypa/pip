@@ -1,4 +1,4 @@
-# Repeatable installs
+# Repeatable Installs
 
 pip can be used to achieve various levels of repeatable environments. This page
 walks through increasingly stricter definitions of what "repeatable" means.

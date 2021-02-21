@@ -1,4 +1,4 @@
-# Editable installs
+# Editable Installs
 
 Editable installs are a mechanism to circumvent the need of (re)installing a
 package on every change during development. With an editable install, changes
