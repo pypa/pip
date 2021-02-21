@@ -92,8 +92,9 @@ class Factory:
         self._build_failures = {}  # type: Cache[InstallationError]
         self._link_candidate_cache = {}  # type: Cache[LinkCandidate]
         self._editable_candidate_cache = {}  # type: Cache[EditableCandidate]
-        self._installed_candidate_cache = {
-        }  # type: Dict[str, AlreadyInstalledCandidate]
+        self._installed_candidate_cache = (
+            {}
+        )  # type: Dict[str, AlreadyInstalledCandidate]
 
         if not ignore_installed:
             self._installed_dists = {
@@ -145,8 +146,11 @@ class Factory:
             if link not in self._editable_candidate_cache:
                 try:
                     self._editable_candidate_cache[link] = EditableCandidate(
-                        link, template, factory=self,
-                        name=name, version=version,
+                        link,
+                        template,
+                        factory=self,
+                        name=name,
+                        version=version,
                     )
                 except (InstallationSubprocessError, MetadataInconsistent) as e:
                     logger.warning("Discarding %s. %s", link, e)
@@ -157,8 +161,11 @@ class Factory:
             if link not in self._link_candidate_cache:
                 try:
                     self._link_candidate_cache[link] = LinkCandidate(
-                        link, template, factory=self,
-                        name=name, version=version,
+                        link,
+                        template,
+                        factory=self,
+                        name=name,
+                        version=version,
                     )
                 except (InstallationSubprocessError, MetadataInconsistent) as e:
                     logger.warning("Discarding %s. %s", link, e)
@@ -268,7 +275,8 @@ class Factory:
             )
 
         return (
-            c for c in explicit_candidates
+            c
+            for c in explicit_candidates
             if constraint.is_satisfied_by(c)
             and all(req.is_satisfied_by(c) for req in requirements)
         )
@@ -278,7 +286,8 @@ class Factory:
         if not ireq.match_markers(requested_extras):
             logger.info(
                 "Ignoring %s: markers '%s' don't match your environment",
-                ireq.name, ireq.markers,
+                ireq.name,
+                ireq.markers,
             )
             return None
         if not ireq.link:
@@ -372,7 +381,8 @@ class Factory:
             raise InstallationError(
                 "Will not install to the user site because it will "
                 "lack sys.path precedence to {} in {}".format(
-                    dist.project_name, dist.location,
+                    dist.project_name,
+                    dist.location,
                 )
             )
         return None
@@ -418,14 +428,12 @@ class Factory:
             if parent is None:
                 req_disp = str(req)
             else:
-                req_disp = f'{req} (from {parent.name})'
+                req_disp = f"{req} (from {parent.name})"
             logger.critical(
                 "Could not find a version that satisfies the requirement %s",
                 req_disp,
             )
-            return DistributionNotFound(
-                f'No matching distribution found for {req}'
-            )
+            return DistributionNotFound(f"No matching distribution found for {req}")
 
         # OK, we now have a list of requirements that can't all be
         # satisfied at once.
@@ -461,26 +469,28 @@ class Factory:
         else:
             info = "the requested packages"
 
-        msg = "Cannot install {} because these package versions " \
+        msg = (
+            "Cannot install {} because these package versions "
             "have conflicting dependencies.".format(info)
+        )
         logger.critical(msg)
         msg = "\nThe conflict is caused by:"
         for req, parent in e.causes:
             msg = msg + "\n    "
             if parent:
-                msg = msg + "{} {} depends on ".format(
-                    parent.name,
-                    parent.version
-                )
+                msg = msg + "{} {} depends on ".format(parent.name, parent.version)
             else:
                 msg = msg + "The user requested "
             msg = msg + req.format_for_error()
 
-        msg = msg + "\n\n" + \
-            "To fix this you could try to:\n" + \
-            "1. loosen the range of package versions you've specified\n" + \
-            "2. remove package versions to allow pip attempt to solve " + \
-            "the dependency conflict\n"
+        msg = (
+            msg
+            + "\n\n"
+            + "To fix this you could try to:\n"
+            + "1. loosen the range of package versions you've specified\n"
+            + "2. remove package versions to allow pip attempt to solve "
+            + "the dependency conflict\n"
+        )
 
         logger.info(msg)
 

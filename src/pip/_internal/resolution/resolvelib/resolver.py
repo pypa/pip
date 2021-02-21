@@ -97,7 +97,7 @@ class Resolver(BaseResolver):
                     if canonical_name not in user_requested:
                         user_requested[canonical_name] = i
                 r = self.factory.make_requirement_from_install_req(
-                    req, requested_extras=(),
+                    req, requested_extras=()
                 )
                 if r is not None:
                     requirements.append(r)
@@ -118,7 +118,7 @@ class Resolver(BaseResolver):
         try:
             try_to_avoid_resolution_too_deep = 2000000
             self._result = resolver.resolve(
-                requirements, max_rounds=try_to_avoid_resolution_too_deep,
+                requirements, max_rounds=try_to_avoid_resolution_too_deep
             )
 
         except ResolutionImpossible as e:
@@ -188,14 +188,14 @@ class Resolver(BaseResolver):
                 # The reason can contain non-ASCII characters, Unicode
                 # is required for Python 2.
                 msg = (
-                    'The candidate selected for download or install is a '
-                    'yanked version: {name!r} candidate (version {version} '
-                    'at {link})\nReason for being yanked: {reason}'
+                    "The candidate selected for download or install is a "
+                    "yanked version: {name!r} candidate (version {version} "
+                    "at {link})\nReason for being yanked: {reason}"
                 ).format(
                     name=candidate.name,
                     version=candidate.version,
                     link=link,
-                    reason=link.yanked_reason or '<none given>',
+                    reason=link.yanked_reason or "<none given>",
                 )
                 logger.warning(msg)
 
@@ -281,7 +281,7 @@ def get_topological_weights(graph, expected_node_count):
 
 
 def _req_set_item_sorter(
-    item,     # type: Tuple[str, InstallRequirement]
+    item,  # type: Tuple[str, InstallRequirement]
     weights,  # type: Dict[Optional[str], int]
 ):
     # type: (...) -> Tuple[int, str]
