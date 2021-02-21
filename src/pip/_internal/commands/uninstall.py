@@ -1,7 +1,6 @@
+import logging
 from optparse import Values
 from typing import List
-
-import logging
 
 from pip._vendor.packaging.utils import canonicalize_name
 
@@ -66,9 +65,9 @@ class UninstallCommand(Command, SessionCommandMixin):
                 reqs_to_uninstall[canonicalize_name(req.name)] = req
             else:
                 logger.warning(
-                    "Invalid requirement: '%s' ignored -"
-                    " the uninstall command expects named"
-                    " requirements.", name
+                    f"Invalid requirement: '{name}' ignored -"
+                    f" the uninstall command expects named"
+                    f" requirements."
                 )
         for filename in options.requirements:
             for parsed_req in parse_requirements(
