@@ -20,7 +20,7 @@ from pip._internal.utils.urls import path_to_url
 @pytest.fixture
 def test_cases(data):
     def data_file(name):
-        return data.packages.joinpath(name)
+        return str(data.packages.joinpath(name))
 
     def data_url(name):
         return path_to_url(data_file(name))
@@ -61,7 +61,7 @@ def test_new_resolver_correct_number_of_matches(test_cases, factory):
         matches = factory.find_candidates(
             [req], Constraint.empty(), prefers_installed=False,
         )
-        assert sum(1 for _ in matches) == match_count
+        assert sum(1 for _ in matches) == match_count, matches
 
 
 def test_new_resolver_candidates_match_requirement(test_cases, factory):

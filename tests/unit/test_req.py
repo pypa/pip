@@ -132,7 +132,7 @@ class TestRequirementSet:
         """
         reqset = RequirementSet()
         req = install_req_from_editable(
-            data.packages.joinpath("LocalEnvironMarker")
+            str(data.packages.joinpath("LocalEnvironMarker"))
         )
         req.user_supplied = True
         reqset.add_requirement(req)
@@ -176,7 +176,7 @@ class TestRequirementSet:
         session = finder._link_collector.session
         command = create_command('install')
         with requirements_file('--require-hashes', tmpdir) as reqs_file:
-            options, args = command.parse_args(['-r', reqs_file])
+            options, args = command.parse_args(['-r', str(reqs_file)])
             command.get_requirements(args, options, finder, session)
         assert options.require_hashes
 
@@ -374,7 +374,7 @@ class TestInstallRequirement:
     def test_unsupported_wheel_local_file_requirement_raises(self, data):
         reqset = RequirementSet()
         req = install_req_from_line(
-            data.packages.joinpath('simple.dist-0.1-py1-none-invalid.whl'),
+            str(data.packages.joinpath('simple.dist-0.1-py1-none-invalid.whl')),
         )
         assert req.link is not None
         assert req.link.is_wheel

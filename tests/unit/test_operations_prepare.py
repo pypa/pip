@@ -136,7 +136,7 @@ def test_copy_source_tree_with_socket_fails_with_no_socket_error(
 
     errored_files = [err[0] for err in e.value.args[0]]
     assert len(errored_files) == 1
-    assert unreadable_file in errored_files
+    assert str(unreadable_file) in errored_files
 
     copied_files = get_filelist(target)
     # All files without errors should have been copied.
@@ -154,7 +154,7 @@ def test_copy_source_tree_with_unreadable_dir_fails(clean_project, tmpdir):
 
     errored_files = [err[0] for err in e.value.args[0]]
     assert len(errored_files) == 1
-    assert unreadable_file in errored_files
+    assert str(unreadable_file) in errored_files
 
     copied_files = get_filelist(target)
     # All files without errors should have been copied.

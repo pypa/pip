@@ -102,7 +102,7 @@ class TestUnpackArchives:
         Test unpacking a *.tgz, and setting execute permissions
         """
         test_file = data.packages.joinpath("test_tar.tgz")
-        untar_file(test_file, self.tempdir)
+        untar_file(str(test_file), str(self.tempdir))
         self.confirm_files()
         # Check the timestamp of an extracted file
         file_txt_path = os.path.join(self.tempdir, 'file.txt')

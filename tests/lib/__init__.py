@@ -482,8 +482,8 @@ class PipTestEnvironment(TestFileEnvironment):
 
         # Setup our environment
         environ = kwargs.setdefault("environ", os.environ.copy())
-        environ["PATH"] = Path.pathsep.join(
-            [self.bin_path] + [environ.get("PATH", [])],
+        environ["PATH"] = os.pathsep.join(
+            [str(self.bin_path)] + [environ.get("PATH", [])],
         )
         environ["PYTHONUSERBASE"] = self.user_base_path
         # Writing bytecode can mess up updated file detection

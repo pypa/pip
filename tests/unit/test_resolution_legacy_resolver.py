@@ -100,7 +100,7 @@ class TestCheckDistRequiresPython:
             version_info=(3, 6, 5),
             ignore_requires_python=True,
         )
-        assert len(caplog.records) == 1
+        assert len(caplog.records) == 1, caplog.records
         record = caplog.records[0]
         assert record.levelname == 'DEBUG'
         assert record.message == (
@@ -137,7 +137,7 @@ class TestCheckDistRequiresPython:
             version_info=(3, 6, 5),
             ignore_requires_python=False,
         )
-        assert len(caplog.records) == 1
+        assert len(caplog.records) == 1, caplog.records
         record = caplog.records[0]
         assert record.levelname == 'WARNING'
         assert record.message == (
@@ -211,7 +211,7 @@ class TestYankedWarning:
         resolver._populate_link(ireq)
 
         assert ireq.link == candidates[0].link
-        assert len(caplog.records) == 0
+        assert len(caplog.records) == 0, caplog.records
 
     def test_sort_best_candidate__all_yanked(self, caplog, monkeypatch):
         """
@@ -231,7 +231,7 @@ class TestYankedWarning:
         assert ireq.link == candidates[1].link
 
         # Check the log messages.
-        assert len(caplog.records) == 1
+        assert len(caplog.records) == 1, caplog.records
         record = caplog.records[0]
         assert record.levelname == 'WARNING'
         assert record.message == (
@@ -263,7 +263,7 @@ class TestYankedWarning:
 
         assert ireq.link == candidates[0].link
 
-        assert len(caplog.records) == 1
+        assert len(caplog.records) == 1, caplog.records
         record = caplog.records[0]
         assert record.levelname == 'WARNING'
         expected_message = (

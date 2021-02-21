@@ -568,7 +568,7 @@ def test_get_html_page_directory_append_index(tmpdir):
     dirpath = tmpdir / "something"
     dirpath.mkdir()
     dir_url = "file:///{}".format(
-        urllib.request.pathname2url(dirpath).lstrip("/"),
+        urllib.request.pathname2url(str(dirpath)).lstrip("/"),
     )
     expected_url = "{}/index.html".format(dir_url.rstrip("/"))
 

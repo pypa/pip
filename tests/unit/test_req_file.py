@@ -507,7 +507,7 @@ class TestProcessLine:
             pip._internal.req.req_file, 'get_file_content', get_file_content
         )
 
-        result = list(parse_reqfile(req_file, session=session))
+        result = list(parse_reqfile(str(req_file), session=session))
         assert len(result) == 1
         assert result[0].name == req_name
         assert not result[0].constraint
@@ -576,7 +576,7 @@ class TestParseRequirements:
             fp.write("--extra-index-url url1 \n")
             fp.write("--extra-index-url url2 ")
 
-        list(parse_reqfile(tmpdir.joinpath("req1.txt"), finder=finder,
+        list(parse_reqfile(str(tmpdir.joinpath("req1.txt")), finder=finder,
                            session=PipSession(), options=options))
 
         assert finder.index_urls == ['url1', 'url2']
@@ -602,7 +602,7 @@ class TestParseRequirements:
             getenv.side_effect = lambda n: env_vars[n]
 
             reqs = list(parse_reqfile(
-                tmpdir.joinpath('req1.txt'),
+                str(tmpdir.joinpath('req1.txt')),
                 finder=finder,
                 session=PipSession()
             ))
@@ -627,7 +627,7 @@ class TestParseRequirements:
             getenv.return_value = ''
 
             reqs = list(parse_reqfile(
-                tmpdir.joinpath('req1.txt'),
+                str(tmpdir.joinpath('req1.txt')),
                 finder=finder,
                 session=PipSession()
             ))
@@ -641,14 +641,14 @@ class TestParseRequirements:
         with open(tmpdir.joinpath("req1.txt"), "w") as fp:
             fp.write("--extra-index-url url1 \\\n--extra-index-url url2")
 
-        list(parse_reqfile(tmpdir.joinpath("req1.txt"), finder=finder,
+        list(parse_reqfile(str(tmpdir.joinpath("req1.txt")), finder=finder,
                            session=PipSession()))
 
         assert finder.index_urls == ['url1', 'url2']
 
     def test_req_file_parse_no_only_binary(self, data, finder):
         list(parse_reqfile(
-            data.reqfiles.joinpath("supported_options2.txt"),
+            str(data.reqfiles.joinpath("supported_options2.txt")),
             finder=finder,
             session=PipSession()))
         expected = FormatControl({'fred'}, {'wilma'})
@@ -661,7 +661,7 @@ class TestParseRequirements:
         with open(tmpdir.joinpath("req1.txt"), "w") as fp:
             fp.write("# Comment ")
 
-        reqs = list(parse_reqfile(tmpdir.joinpath("req1.txt"),
+        reqs = list(parse_reqfile(str(tmpdir.joinpath("req1.txt")),
                     finder=finder,
                     session=PipSession()))
 
@@ -674,7 +674,7 @@ class TestParseRequirements:
         with open(tmpdir.joinpath("req1.txt"), "w") as fp:
             fp.write("https://example.com/foo.tar.gz # Comment ")
 
-        reqs = list(parse_reqfile(tmpdir.joinpath("req1.txt"),
+        reqs = list(parse_reqfile(str(tmpdir.joinpath("req1.txt")),
                     finder=finder,
                     session=PipSession()))
 
@@ -688,7 +688,7 @@ class TestParseRequirements:
         with open(tmpdir.joinpath("req1.txt"), "w") as fp:
             fp.write("https://example.com/foo.tar.gz#egg=wat")
 
-        reqs = list(parse_reqfile(tmpdir.joinpath("req1.txt"),
+        reqs = list(parse_reqfile(str(tmpdir.joinpath("req1.txt")),
                     finder=finder,
                     session=PipSession()))
 
@@ -708,7 +708,7 @@ class TestParseRequirements:
     --no-index
             """)
 
-        parse_reqfile(tmpdir.joinpath("req.txt"), session=PipSession())
+        parse_reqfile(str(tmpdir.joinpath("req.txt")), session=PipSession())
 
     def test_install_requirements_with_options(self, tmpdir, finder, session,
                                                options):
@@ -722,7 +722,7 @@ class TestParseRequirements:
         '''.format(global_option=global_option, install_option=install_option)
 
         with requirements_file(content, tmpdir) as reqs_file:
-            req = next(parse_reqfile(reqs_file.resolve(),
+            req = next(parse_reqfile(str(reqs_file.resolve()),
                                      finder=finder,
                                      options=options,
                                      session=session))
