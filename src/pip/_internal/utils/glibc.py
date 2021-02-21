@@ -3,10 +3,7 @@
 
 import os
 import sys
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from typing import Optional, Tuple
+from typing import Optional, Tuple
 
 
 def glibc_version_string():

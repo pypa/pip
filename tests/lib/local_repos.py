@@ -1,14 +1,11 @@
 import os
 import subprocess
 import urllib.request
-from typing import TYPE_CHECKING
 
 from pip._internal.utils.misc import hide_url
 from pip._internal.vcs import vcs
 from tests.lib import path_to_url
-
-if TYPE_CHECKING:
-    from tests.lib.path import Path
+from tests.lib.path import Path
 
 
 def _create_svn_initools_repo(initools_dir):

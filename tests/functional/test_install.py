@@ -199,7 +199,7 @@ def test_pip_second_command_line_interface_works(
     if pyversion_tuple < (2, 7, 9):
         kwargs['expect_stderr'] = True
 
-    args = ['pip{pyversion}'.format(**globals())]
+    args = [f'pip{pyversion}']
     args.extend(['install', 'INITools==0.2'])
     args.extend(['-f', data.packages])
     result = script.run(*args, **kwargs)
@@ -727,11 +727,10 @@ def test_install_using_install_option_and_editable(script, tmpdir):
     """
     folder = 'script_folder'
     script.scratch_path.joinpath(folder).mkdir()
-    url = 'git+git://github.com/pypa/pip-test-package'
+    url = local_checkout('git+git://github.com/pypa/pip-test-package', tmpdir)
     result = script.pip(
-        'install', '-e', '{url}#egg=pip-test-package'
-        .format(url=local_checkout(url, tmpdir)),
-        '--install-option=--script-dir={folder}'.format(**locals()),
+        'install', '-e', f'{url}#egg=pip-test-package',
+        f'--install-option=--script-dir={folder}',
         expect_stderr=True)
     script_file = (
         script.venv / 'src' / 'pip-test-package' /
@@ -799,10 +798,7 @@ def test_install_folder_using_slash_in_the_end(script, with_wheel):
     pkg_path = script.scratch_path / 'mock'
     pkg_path.joinpath("setup.py").write_text(mock100_setup_py)
     result = script.pip('install', 'mock' + os.path.sep)
-    dist_info_folder = (
-        script.site_packages /
-        'mock-100.1.dist-info'
-    )
+    dist_info_folder = script.site_packages / 'mock-100.1.dist-info'
     result.did_create(dist_info_folder)
 
 
@@ -815,10 +811,7 @@ def test_install_folder_using_relative_path(script, with_wheel):
     pkg_path = script.scratch_path / 'initools' / 'mock'
     pkg_path.joinpath("setup.py").write_text(mock100_setup_py)
     result = script.pip('install', Path('initools') / 'mock')
-    dist_info_folder = (
-        script.site_packages /
-        'mock-100.1.dist-info'.format(**globals())
-    )
+    dist_info_folder = script.site_packages / 'mock-100.1.dist-info'
     result.did_create(dist_info_folder)
 
 
@@ -1294,7 +1287,7 @@ def test_install_subprocess_output_handling(script, data):
 def test_install_log(script, data, tmpdir):
     # test that verbose logs go to "--log" file
     f = tmpdir.joinpath("log.txt")
-    args = ['--log={f}'.format(**locals()),
+    args = [f'--log={f}',
             'install', data.src.joinpath('chattymodule')]
     result = script.pip(*args)
     assert 0 == result.stdout.count("HELLO FROM CHATTYMODULE")
@@ -1448,7 +1441,7 @@ def test_install_editable_with_wrong_egg_name(script, resolver_variant):
     """))
     result = script.pip(
         'install', '--editable',
-        'file://{pkga_path}#egg=pkgb'.format(**locals()),
+        f'file://{pkga_path}#egg=pkgb',
         expect_error=(resolver_variant == "2020-resolver"),
     )
     assert ("Generating metadata for package pkgb produced metadata "
@@ -1534,7 +1527,7 @@ def test_install_incompatible_python_requires_editable(script):
     """))
     result = script.pip(
         'install',
-        '--editable={pkga_path}'.format(**locals()),
+        f'--editable={pkga_path}',
         expect_error=True)
     assert _get_expected_error_text() in result.stderr, str(result)
 
@@ -1651,7 +1644,7 @@ def test_installed_files_recorded_in_deterministic_order(script, data):
     to_install = data.packages.joinpath("FSPkg")
     result = script.pip('install', to_install)
     fspkg_folder = script.site_packages / 'fspkg'
-    egg_info = 'FSPkg-0.1.dev0-py{pyversion}.egg-info'.format(**globals())
+    egg_info = f'FSPkg-0.1.dev0-py{pyversion}.egg-info'
     installed_files_path = (
         script.site_packages / egg_info / 'installed-files.txt'
     )
@@ -1714,10 +1707,10 @@ def test_target_install_ignores_distutils_config_install_prefix(script):
                             'pydistutils.cfg' if sys.platform == 'win32'
                             else '.pydistutils.cfg')
     distutils_config.write_text(textwrap.dedent(
-        '''
+        f'''
         [install]
         prefix={prefix}
-        '''.format(**locals())))
+        '''))
     target = script.scratch_path / 'target'
     result = script.pip_install_local('simplewheel', '-t', target)
 

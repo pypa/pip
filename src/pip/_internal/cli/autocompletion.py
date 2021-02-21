@@ -5,14 +5,11 @@ import optparse
 import os
 import sys
 from itertools import chain
-from typing import TYPE_CHECKING
+from typing import Any, Iterable, List, Optional
 
 from pip._internal.cli.main_parser import create_main_parser
 from pip._internal.commands import commands_dict, create_command
 from pip._internal.utils.misc import get_installed_distributions
-
-if TYPE_CHECKING:
-    from typing import Any, Iterable, List, Optional
 
 
 def autocomplete():
@@ -50,11 +47,12 @@ def autocomplete():
             not current.startswith('-')
         )
         if should_list_installed:
-            installed = []
             lc = current.lower()
-            for dist in get_installed_distributions(local_only=True):
-                if dist.key.startswith(lc) and dist.key not in cwords[1:]:
-                    installed.append(dist.key)
+            installed = [
+                dist.key
+                for dist in get_installed_distributions(local_only=True)
+                if dist.key.startswith(lc) and dist.key not in cwords[1:]
+            ]
             # if there are no dists installed, fall back to option completion
             if installed:
                 for dist in installed:

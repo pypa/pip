@@ -26,7 +26,8 @@ def get_version_from_arguments(session: Session) -> Optional[str]:
     # We delegate to a script here, so that it can depend on packaging.
     session.install("packaging")
     cmd = [
-        os.path.join(session.bin, "python"),
+        # https://github.com/theacodes/nox/pull/378
+        os.path.join(session.bin, "python"),  # type: ignore
         "tools/automation/release/check_version.py",
         version
     ]
@@ -153,11 +154,12 @@ def workdir(
     """Temporarily chdir when entering CM and chdir back on exit."""
     orig_dir = pathlib.Path.cwd()
 
-    nox_session.chdir(dir_path)
+    # https://github.com/theacodes/nox/pull/376
+    nox_session.chdir(dir_path)  # type: ignore
     try:
         yield dir_path
     finally:
-        nox_session.chdir(orig_dir)
+        nox_session.chdir(orig_dir)  # type: ignore
 
 
 @contextlib.contextmanager

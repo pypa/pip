@@ -8,14 +8,11 @@ import logging.handlers
 import os
 import sys
 from logging import Filter, getLogger
-from typing import TYPE_CHECKING
+from typing import Any
 
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
 from pip._internal.utils.misc import ensure_dir
-
-if TYPE_CHECKING:
-    from typing import Any
 
 try:
     import threading

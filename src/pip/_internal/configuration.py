@@ -16,7 +16,7 @@ import locale
 import logging
 import os
 import sys
-from typing import TYPE_CHECKING
+from typing import Any, Dict, Iterable, List, NewType, Optional, Tuple
 
 from pip._internal.exceptions import (
     ConfigurationError,
@@ -26,11 +26,8 @@ from pip._internal.utils import appdirs
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import ensure_dir, enum
 
-if TYPE_CHECKING:
-    from typing import Any, Dict, Iterable, List, NewType, Optional, Tuple
-
-    RawConfigParser = configparser.RawConfigParser  # Shorthand
-    Kind = NewType("Kind", str)
+RawConfigParser = configparser.RawConfigParser  # Shorthand
+Kind = NewType("Kind", str)
 
 CONFIG_BASENAME = 'pip.ini' if WINDOWS else 'pip.conf'
 ENV_NAMES_IGNORED = "version", "help"

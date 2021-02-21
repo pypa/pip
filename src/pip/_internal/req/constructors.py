@@ -11,7 +11,7 @@ InstallRequirement.
 import logging
 import os
 import re
-from typing import TYPE_CHECKING
+from typing import Any, Dict, Optional, Set, Tuple, Union
 
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
@@ -23,17 +23,12 @@ from pip._internal.models.index import PyPI, TestPyPI
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
 from pip._internal.pyproject import make_pyproject_path
+from pip._internal.req.req_file import ParsedRequirement
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.filetypes import is_archive_file
 from pip._internal.utils.misc import is_installable_dir
 from pip._internal.utils.urls import path_to_url
 from pip._internal.vcs import is_url, vcs
-
-if TYPE_CHECKING:
-    from typing import Any, Dict, Optional, Set, Tuple, Union
-
-    from pip._internal.req.req_file import ParsedRequirement
-
 
 __all__ = [
     "install_req_from_editable", "install_req_from_line",
@@ -261,8 +256,8 @@ def _get_url_from_path(path, name):
         if is_installable_dir(path):
             return path_to_url(path)
         raise InstallationError(
-            "Directory {name!r} is not installable. Neither 'setup.py' "
-            "nor 'pyproject.toml' found.".format(**locals())
+            f"Directory {name!r} is not installable. Neither 'setup.py' "
+            "nor 'pyproject.toml' found."
         )
     if not is_archive_file(path):
         return None
@@ -319,7 +314,7 @@ def parse_req_from_line(name, line_source):
         # wheel file
         if link.is_wheel:
             wheel = Wheel(link.filename)  # can raise InvalidWheelFilename
-            req_as_string = "{wheel.name}=={wheel.version}".format(**locals())
+            req_as_string = f"{wheel.name}=={wheel.version}"
         else:
             # set the req to the egg fragment.  when it's not there, this
             # will become an 'unnamed' requirement

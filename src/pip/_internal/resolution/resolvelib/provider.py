@@ -1,14 +1,9 @@
-from typing import TYPE_CHECKING
+from typing import Any, Dict, Iterable, Optional, Sequence, Tuple, Union
 
 from pip._vendor.resolvelib.providers import AbstractProvider
 
-from .base import Constraint
-
-if TYPE_CHECKING:
-    from typing import Any, Dict, Iterable, Optional, Sequence, Tuple, Union
-
-    from .base import Candidate, Requirement
-    from .factory import Factory
+from .base import Candidate, Constraint, Requirement
+from .factory import Factory
 
 # Notes on the relationship between the provider, the factory, and the
 # candidate and requirement classes.
@@ -63,7 +58,7 @@ class PipProvider(AbstractProvider):
         self,
         resolution,  # type: Optional[Candidate]
         candidates,  # type: Sequence[Candidate]
-        information  # type: Sequence[Tuple[Requirement, Candidate]]
+        information,  # type: Sequence[Tuple[Requirement, Candidate]]
     ):
         # type: (...) -> Any
         """Produce a sort key for given requirement based on preference.
@@ -104,9 +99,7 @@ class PipProvider(AbstractProvider):
                 return 0
             spec_sets = (ireq.specifier for ireq in ireqs if ireq)
             operators = [
-                specifier.operator
-                for spec_set in spec_sets
-                for specifier in spec_set
+                specifier.operator for spec_set in spec_sets for specifier in spec_set
             ]
             if any(op in ("==", "===") for op in operators):
                 return 1
@@ -127,7 +120,7 @@ class PipProvider(AbstractProvider):
         # delaying Setuptools helps reduce branches the resolver has to check.
         # This serves as a temporary fix for issues like "apache-airlfow[all]"
         # while we work on "proper" branch pruning techniques.
-        delay_this = (key == "setuptools")
+        delay_this = key == "setuptools"
 
         return (delay_this, restrictive, order, key)
 
@@ -152,7 +145,7 @@ class PipProvider(AbstractProvider):
             if self._upgrade_strategy == "eager":
                 return True
             elif self._upgrade_strategy == "only-if-needed":
-                return (name in self._user_requested)
+                return name in self._user_requested
             return False
 
         return self._factory.find_candidates(
@@ -168,8 +161,4 @@ class PipProvider(AbstractProvider):
     def get_dependencies(self, candidate):
         # type: (Candidate) -> Sequence[Requirement]
         with_requires = not self._ignore_dependencies
-        return [
-            r
-            for r in candidate.iter_dependencies(with_requires)
-            if r is not None
-        ]
+        return [r for r in candidate.iter_dependencies(with_requires) if r is not None]

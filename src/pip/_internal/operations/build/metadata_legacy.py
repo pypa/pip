@@ -3,15 +3,12 @@
 
 import logging
 import os
-from typing import TYPE_CHECKING
 
+from pip._internal.build_env import BuildEnvironment
 from pip._internal.exceptions import InstallationError
 from pip._internal.utils.setuptools_build import make_setuptools_egg_info_args
 from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory
-
-if TYPE_CHECKING:
-    from pip._internal.build_env import BuildEnvironment
 
 logger = logging.getLogger(__name__)
 

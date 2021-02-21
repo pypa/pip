@@ -3,13 +3,9 @@
 from __future__ import annotations
 
 from itertools import chain
-from typing import TYPE_CHECKING
+from typing import Dict, List, Union
 
-if TYPE_CHECKING:
-    from typing import Dict, List, Union
-
-    from sphinx.application import Sphinx
-
+from sphinx.application import Sphinx
 
 DEFAULT_DOC_LINES_THRESHOLD = 250
 RST_INDENT = 4

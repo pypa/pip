@@ -4,8 +4,8 @@ import operator
 import os
 import shutil
 import site
-from optparse import SUPPRESS_HELP
-from typing import TYPE_CHECKING
+from optparse import SUPPRESS_HELP, Values
+from typing import Iterable, List, Optional
 
 from pip._vendor.packaging.utils import canonicalize_name
 
@@ -17,8 +17,10 @@ from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.exceptions import CommandError, InstallationError
 from pip._internal.locations import distutils_scheme
 from pip._internal.metadata import get_environment
-from pip._internal.operations.check import check_install_conflicts
+from pip._internal.models.format_control import FormatControl
+from pip._internal.operations.check import ConflictDetails, check_install_conflicts
 from pip._internal.req import install_given_reqs
+from pip._internal.req.req_install import InstallRequirement
 from pip._internal.req.req_tracker import get_requirement_tracker
 from pip._internal.utils.distutils_args import parse_distutils_args
 from pip._internal.utils.filesystem import test_writable_dir
@@ -30,17 +32,11 @@ from pip._internal.utils.misc import (
 )
 from pip._internal.utils.temp_dir import TempDirectory
 from pip._internal.utils.virtualenv import virtualenv_no_global
-from pip._internal.wheel_builder import build, should_build_for_install_command
-
-if TYPE_CHECKING:
-    from optparse import Values
-    from typing import Iterable, List, Optional
-
-    from pip._internal.models.format_control import FormatControl
-    from pip._internal.operations.check import ConflictDetails
-    from pip._internal.req.req_install import InstallRequirement
-    from pip._internal.wheel_builder import BinaryAllowedPredicate
-
+from pip._internal.wheel_builder import (
+    BinaryAllowedPredicate,
+    build,
+    should_build_for_install_command,
+)
 
 logger = logging.getLogger(__name__)
 

@@ -14,12 +14,13 @@ import os
 import textwrap
 import warnings
 from functools import partial
-from optparse import SUPPRESS_HELP, Option, OptionGroup
+from optparse import SUPPRESS_HELP, Option, OptionGroup, OptionParser, Values
 from textwrap import dedent
-from typing import TYPE_CHECKING
+from typing import Any, Callable, Dict, Optional, Tuple
 
 from pip._vendor.packaging.utils import canonicalize_name
 
+from pip._internal.cli.parser import ConfigOptionParser
 from pip._internal.cli.progress_bars import BAR_TYPES
 from pip._internal.exceptions import CommandError
 from pip._internal.locations import USER_CACHE_DIR, get_src_prefix
@@ -28,12 +29,6 @@ from pip._internal.models.index import PyPI
 from pip._internal.models.target_python import TargetPython
 from pip._internal.utils.hashes import STRONG_HASHES
 from pip._internal.utils.misc import strtobool
-
-if TYPE_CHECKING:
-    from optparse import OptionParser, Values
-    from typing import Any, Callable, Dict, Optional, Tuple
-
-    from pip._internal.cli.parser import ConfigOptionParser
 
 
 def raise_option_error(parser, option, msg):

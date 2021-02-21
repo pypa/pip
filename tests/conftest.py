@@ -8,7 +8,7 @@ import subprocess
 import sys
 import time
 from contextlib import ExitStack, contextmanager
-from typing import TYPE_CHECKING
+from typing import Dict, Iterable
 from unittest.mock import patch
 
 import pytest
@@ -19,16 +19,11 @@ from pip._internal.utils.temp_dir import global_tempdir_manager
 from tests.lib import DATA_DIR, SRC_DIR, PipTestEnvironment, TestData
 from tests.lib.certs import make_tls_cert, serialize_cert, serialize_key
 from tests.lib.path import Path
-from tests.lib.server import make_mock_server, server_running
+from tests.lib.server import MockServer as _MockServer
+from tests.lib.server import Responder, make_mock_server, server_running
 from tests.lib.venv import VirtualEnvironment
 
 from .lib.compat import nullcontext
-
-if TYPE_CHECKING:
-    from typing import Dict, Iterable
-
-    from tests.lib.server import MockServer as _MockServer
-    from tests.lib.server import Responder
 
 
 def pytest_addoption(parser):
@@ -282,12 +277,12 @@ def pip_src(tmpdir_factory):
 
 def _common_wheel_editable_install(tmpdir_factory, common_wheels, package):
     wheel_candidates = list(
-        common_wheels.glob('{package}-*.whl'.format(**locals())))
+        common_wheels.glob(f'{package}-*.whl'))
     assert len(wheel_candidates) == 1, wheel_candidates
     install_dir = Path(str(tmpdir_factory.mktemp(package))) / 'install'
     Wheel(wheel_candidates[0]).install_as_egg(install_dir)
     (install_dir / 'EGG-INFO').rename(
-        install_dir / '{package}.egg-info'.format(**locals()))
+        install_dir / f'{package}.egg-info')
     assert compileall.compile_dir(str(install_dir), quiet=1)
     return install_dir
 

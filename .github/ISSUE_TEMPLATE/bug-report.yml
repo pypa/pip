@@ -4,27 +4,30 @@ about: Something is not working correctly.
 title: ""
 labels: "S: needs triage, type: bug"
 issue_body: true  # default: true, adds a classic WSYWIG textarea, if on
-inputs:
-- type: description
+body:
+- type: markdown
   attributes:
     value: |
       ⚠
       If you're reporting an issue for `--use-feature=2020-resolver`,
       use the "Dependency resolver failures / errors" template instead.
-- type: description
+- type: markdown
   attributes:
     value: "**Environment**"
 - type: input
   attributes:
     label: pip version
+  validations:
     required: true
 - type: input
   attributes:
     label: Python version
+  validations:
     required: true
 - type: input
   attributes:
     label: OS
+  validations:
     required: true
 - type: textarea
   attributes:
@@ -72,7 +75,7 @@ inputs:
       Read the [PSF Code of Conduct][CoC] first.
 
       [CoC]: https://github.com/pypa/.github/blob/main/CODE_OF_CONDUCT.md
-    choices:
+    options:
     - label: I agree to follow the PSF Code of Conduct
       required: true
 ...

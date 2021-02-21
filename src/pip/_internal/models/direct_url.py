@@ -2,16 +2,7 @@
 import json
 import re
 import urllib.parse
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from typing import Any, Dict, Iterable, Optional, Type, TypeVar, Union
-
-    T = TypeVar("T")
-
-
-DIRECT_URL_METADATA_NAME = "direct_url.json"
-ENV_VAR_RE = re.compile(r"^\$\{[A-Za-z0-9-_]+\}(:\$\{[A-Za-z0-9-_]+\})?$")
+from typing import Any, Dict, Iterable, Optional, Type, TypeVar, Union
 
 __all__ = [
     "DirectUrl",
@@ -20,6 +11,11 @@ __all__ = [
     "ArchiveInfo",
     "VcsInfo",
 ]
+
+T = TypeVar("T")
+
+DIRECT_URL_METADATA_NAME = "direct_url.json"
+ENV_VAR_RE = re.compile(r"^\$\{[A-Za-z0-9-_]+\}(:\$\{[A-Za-z0-9-_]+\})?$")
 
 
 class DirectUrlValidationError(Exception):
@@ -155,8 +151,7 @@ class DirInfo:
         return _filter_none(editable=self.editable or None)
 
 
-if TYPE_CHECKING:
-    InfoType = Union[ArchiveInfo, DirInfo, VcsInfo]
+InfoType = Union[ArchiveInfo, DirInfo, VcsInfo]
 
 
 class DirectUrl:

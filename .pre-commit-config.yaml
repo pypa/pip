@@ -31,7 +31,6 @@ repos:
         ^src/pip/_internal/network|
         ^src/pip/_internal/operations|
         ^src/pip/_internal/req|
-        ^src/pip/_internal/resolution|
         ^src/pip/_internal/utils|
         ^src/pip/_internal/vcs|
         ^src/pip/_internal/\w+\.py$|
@@ -74,6 +73,7 @@ repos:
   - id: mypy
     exclude: docs|tests
     args: ["--pretty"]
+    additional_dependencies: ['nox==2020.12.31']
 
 - repo: https://github.com/pre-commit/pygrep-hooks
   rev: v1.7.0

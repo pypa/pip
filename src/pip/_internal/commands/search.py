@@ -3,7 +3,8 @@ import shutil
 import sys
 import textwrap
 from collections import OrderedDict
-from typing import TYPE_CHECKING
+from optparse import Values
+from typing import TYPE_CHECKING, Dict, List, Optional
 
 from pip._vendor.packaging.version import parse as parse_version
 
@@ -22,10 +23,8 @@ from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import write_output
 
 if TYPE_CHECKING:
-    from optparse import Values
-    from typing import Dict, List, Optional
+    from typing import TypedDict
 
-    from typing_extensions import TypedDict
     TransformedHit = TypedDict(
         'TransformedHit',
         {'name': str, 'summary': str, 'versions': List[str]},
@@ -140,9 +139,8 @@ def print_results(hits, name_column_width=None, terminal_width=None):
                 summary = ('\n' + ' ' * (name_column_width + 3)).join(
                     summary_lines)
 
-        line = '{name_latest:{name_column_width}} - {summary}'.format(
-            name_latest='{name} ({latest})'.format(**locals()),
-            **locals())
+        name_latest = f'{name} ({latest})'
+        line = f'{name_latest:{name_column_width}} - {summary}'
         try:
             write_output(line)
             dist = env.get_distribution(name)

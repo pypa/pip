@@ -1,19 +1,14 @@
 import logging
+from email.message import Message
 from email.parser import FeedParser
-from typing import TYPE_CHECKING
+from typing import Optional, Tuple
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging import specifiers, version
+from pip._vendor.pkg_resources import Distribution
 
 from pip._internal.exceptions import NoneMetadataError
 from pip._internal.utils.misc import display_path
-
-if TYPE_CHECKING:
-    from email.message import Message
-    from typing import Optional, Tuple
-
-    from pip._vendor.pkg_resources import Distribution
-
 
 logger = logging.getLogger(__name__)
 

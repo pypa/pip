@@ -1,9 +1,6 @@
-from typing import TYPE_CHECKING
+from typing import List, Optional
 
-if TYPE_CHECKING:
-    from typing import List, Optional
-
-    from .base import BaseDistribution, BaseEnvironment
+from .base import BaseDistribution, BaseEnvironment
 
 
 def get_default_environment():

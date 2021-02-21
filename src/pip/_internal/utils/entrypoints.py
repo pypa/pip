@@ -1,10 +1,7 @@
 import sys
-from typing import TYPE_CHECKING
+from typing import List, Optional
 
 from pip._internal.cli.main import main
-
-if TYPE_CHECKING:
-    from typing import List, Optional
 
 
 def _wrapper(args=None):

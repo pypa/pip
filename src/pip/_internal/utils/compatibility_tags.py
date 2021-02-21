@@ -2,7 +2,7 @@
 """
 
 import re
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, List, Optional, Tuple
 
 from pip._vendor.packaging.tags import (
     Tag,
@@ -15,9 +15,8 @@ from pip._vendor.packaging.tags import (
 )
 
 if TYPE_CHECKING:
-    from typing import List, Optional, Tuple
-
     from pip._vendor.packaging.tags import PythonVersion
+
 
 _osx_arch_pat = re.compile(r'(.+)_(\d+)_(\d+)_(.+)')
 

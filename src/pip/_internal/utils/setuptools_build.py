@@ -1,8 +1,5 @@
 import sys
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from typing import List, Optional, Sequence
+from typing import List, Optional, Sequence
 
 # Shim to wrap setup.py invocation with setuptools
 #

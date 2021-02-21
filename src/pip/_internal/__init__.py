@@ -1,9 +1,6 @@
-from typing import TYPE_CHECKING
+from typing import List, Optional
 
 import pip._internal.utils.inject_securetransport  # noqa
-
-if TYPE_CHECKING:
-    from typing import List, Optional
 
 
 def main(args=None):

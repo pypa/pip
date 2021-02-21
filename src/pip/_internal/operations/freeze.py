@@ -1,10 +1,20 @@
 import collections
 import logging
 import os
-from typing import TYPE_CHECKING
+from typing import (
+    Container,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Set,
+    Tuple,
+    Union,
+)
 
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.pkg_resources import RequirementParseError
+from pip._vendor.pkg_resources import Distribution, Requirement, RequirementParseError
 
 from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.req.constructors import (
@@ -18,25 +28,9 @@ from pip._internal.utils.direct_url_helpers import (
 )
 from pip._internal.utils.misc import dist_is_editable, get_installed_distributions
 
-if TYPE_CHECKING:
-    from typing import (
-        Container,
-        Dict,
-        Iterable,
-        Iterator,
-        List,
-        Optional,
-        Set,
-        Tuple,
-        Union,
-    )
-
-    from pip._vendor.pkg_resources import Distribution, Requirement
-
-    RequirementInfo = Tuple[Optional[Union[str, Requirement]], bool, List[str]]
-
-
 logger = logging.getLogger(__name__)
+
+RequirementInfo = Tuple[Optional[Union[str, Requirement]], bool, List[str]]
 
 
 def freeze(

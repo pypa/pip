@@ -1,10 +1,6 @@
 from distutils.errors import DistutilsArgError
 from distutils.fancy_getopt import FancyGetopt
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from typing import Dict, List
-
+from typing import Dict, List
 
 _options = [
     ("exec-prefix=", None, ""),

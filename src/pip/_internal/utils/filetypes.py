@@ -1,11 +1,9 @@
 """Filetype information.
 """
-from typing import TYPE_CHECKING
+
+from typing import Tuple
 
 from pip._internal.utils.misc import splitext
-
-if TYPE_CHECKING:
-    from typing import Tuple
 
 WHEEL_EXTENSION = '.whl'
 BZ2_EXTENSIONS = ('.tar.bz2', '.tbz')  # type: Tuple[str, ...]

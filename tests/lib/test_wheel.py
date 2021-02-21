@@ -2,8 +2,8 @@
 """
 import csv
 from email import message_from_string
+from email.message import Message
 from functools import partial
-from typing import TYPE_CHECKING
 from zipfile import ZipFile
 
 from tests.lib.wheel import (
@@ -13,9 +13,6 @@ from tests.lib.wheel import (
     make_wheel_metadata_file,
     message_from_dict,
 )
-
-if TYPE_CHECKING:
-    from email import Message
 
 
 def test_message_from_dict_one_value():
