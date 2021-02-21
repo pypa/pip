@@ -4,6 +4,7 @@ The main purpose of this module is to expose LinkCollector.collect_links().
 
 import cgi
 import functools
+import html
 import itertools
 import logging
 import mimetypes
@@ -26,7 +27,6 @@ from typing import (
 )
 
 from pip._vendor import html5lib, requests
-from pip._vendor.distlib.compat import unescape
 from pip._vendor.requests import Response
 from pip._vendor.requests.exceptions import RetryError, SSLError
 
@@ -261,12 +261,11 @@ def _create_link_from_element(
 
     url = _clean_link(urllib.parse.urljoin(base_url, href))
     pyrequire = anchor.get('data-requires-python')
-    pyrequire = unescape(pyrequire) if pyrequire else None
+    pyrequire = html.unescape(pyrequire) if pyrequire else None
 
     yanked_reason = anchor.get('data-yanked')
     if yanked_reason:
-        # This is a unicode string in Python 2 (and 3).
-        yanked_reason = unescape(yanked_reason)
+        yanked_reason = html.unescape(yanked_reason)
 
     link = Link(
         url,
