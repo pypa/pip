@@ -22,6 +22,7 @@ class AbstractDistribution(metaclass=abc.ABCMeta):
      - we must be able to create a Distribution object exposing the
        above metadata.
     """
+
     def __init__(self, req):
         # type: (InstallRequirement) -> None
         super().__init__()
