@@ -20,7 +20,7 @@ def make_setuptools_shim_args(
     setup_py_path,  # type: str
     global_options=None,  # type: Sequence[str]
     no_user_config=False,  # type: bool
-    unbuffered_output=False  # type: bool
+    unbuffered_output=False,  # type: bool
 ):
     # type: (...) -> List[str]
     """
@@ -55,9 +55,7 @@ def make_setuptools_bdist_wheel_args(
     # relies on site.py to find parts of the standard library outside the
     # virtualenv.
     args = make_setuptools_shim_args(
-        setup_py_path,
-        global_options=global_options,
-        unbuffered_output=True
+        setup_py_path, global_options=global_options, unbuffered_output=True
     )
     args += ["bdist_wheel", "-d", destination_dir]
     args += build_options
@@ -70,9 +68,7 @@ def make_setuptools_clean_args(
 ):
     # type: (...) -> List[str]
     args = make_setuptools_shim_args(
-        setup_py_path,
-        global_options=global_options,
-        unbuffered_output=True
+        setup_py_path, global_options=global_options, unbuffered_output=True
     )
     args += ["clean", "--all"]
     return args
@@ -117,9 +113,7 @@ def make_setuptools_egg_info_args(
     no_user_config,  # type: bool
 ):
     # type: (...) -> List[str]
-    args = make_setuptools_shim_args(
-        setup_py_path, no_user_config=no_user_config
-    )
+    args = make_setuptools_shim_args(setup_py_path, no_user_config=no_user_config)
 
     args += ["egg_info"]
 
@@ -140,7 +134,7 @@ def make_setuptools_install_args(
     home,  # type: Optional[str]
     use_user_site,  # type: bool
     no_user_config,  # type: bool
-    pycompile  # type: bool
+    pycompile,  # type: bool
 ):
     # type: (...) -> List[str]
     assert not (use_user_site and prefix)
@@ -150,7 +144,7 @@ def make_setuptools_install_args(
         setup_py_path,
         global_options=global_options,
         no_user_config=no_user_config,
-        unbuffered_output=True
+        unbuffered_output=True,
     )
     args += ["install", "--record", record_filename]
     args += ["--single-version-externally-managed"]

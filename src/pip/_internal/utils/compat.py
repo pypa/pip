@@ -18,11 +18,13 @@ def has_tls():
     # type: () -> bool
     try:
         import _ssl  # noqa: F401  # ignore unused
+
         return True
     except ImportError:
         pass
 
     from pip._vendor.urllib3.util import IS_PYOPENSSL
+
     return IS_PYOPENSSL
 
 
@@ -39,7 +41,7 @@ def get_path_uid(path):
 
     :raises OSError: When path is a symlink or can't be read.
     """
-    if hasattr(os, 'O_NOFOLLOW'):
+    if hasattr(os, "O_NOFOLLOW"):
         fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
         file_uid = os.fstat(fd).st_uid
         os.close(fd)
@@ -51,8 +53,7 @@ def get_path_uid(path):
         else:
             # raise OSError for parity with os.O_NOFOLLOW above
             raise OSError(
-                "{} is a symlink; Will not return uid for symlinks".format(
-                    path)
+                "{} is a symlink; Will not return uid for symlinks".format(path)
             )
     return file_uid
 
@@ -66,5 +67,4 @@ stdlib_pkgs = {"python", "wsgiref", "argparse"}
 
 
 # windows detection, covers cpython and ironpython
-WINDOWS = (sys.platform.startswith("win") or
-           (sys.platform == 'cli' and os.name == 'nt'))
+WINDOWS = sys.platform.startswith("win") or (sys.platform == "cli" and os.name == "nt")
