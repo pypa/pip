@@ -87,7 +87,7 @@ def get_indentation():
 
 class IndentingFormatter(logging.Formatter):
     default_time_format = "%H:%M:%S"
-    default_msec_format = '%s.%03d'
+    default_msec_format = "%s.%03d"
 
     def __init__(
         self,
