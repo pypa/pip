@@ -24,9 +24,14 @@ class SpinnerInterface:
 
 
 class InteractiveSpinner(SpinnerInterface):
-    def __init__(self, message, file=None, spin_chars="-\\|/",
-                 # Empirically, 8 updates/second looks nice
-                 min_update_interval_seconds=0.125):
+    def __init__(
+        self,
+        message,
+        file=None,
+        spin_chars="-\\|/",
+        # Empirically, 8 updates/second looks nice
+        min_update_interval_seconds=0.125,
+    ):
         # type: (str, IO[str], str, float) -> None
         self._message = message
         if file is None:
