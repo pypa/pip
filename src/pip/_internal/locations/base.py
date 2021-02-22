@@ -4,6 +4,7 @@ import sys
 import sysconfig
 import typing
 
+from pip._internal.exceptions import UserInstallationInvalid
 from pip._internal.utils import appdirs
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.virtualenv import running_under_virtualenv
@@ -57,7 +58,8 @@ def get_bin_user():
     I'm honestly not sure if this is a bug (because ``get_scheme()`` puts it
     correctly under userbase), but we need to keep backwards compatibility.
     """
-    assert user_site is not None, "user site unavailable"
+    if user_site is None:
+        raise UserInstallationInvalid()
     if not WINDOWS:
         return os.path.join(user_site, "bin")
     # Special case for buildout, which uses 'bin' on Windows too?
