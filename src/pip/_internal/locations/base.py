@@ -5,6 +5,7 @@ import sysconfig
 import typing
 
 from pip._internal.utils import appdirs
+from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
 # Application Directories
@@ -46,3 +47,20 @@ try:
     user_site = site.getusersitepackages()  # type: typing.Optional[str]
 except AttributeError:
     user_site = site.USER_SITE
+
+
+if WINDOWS:
+    bin_py = os.path.join(sys.prefix, "Scripts")
+    bin_user = os.path.join(user_site, "Scripts")
+    # buildout uses 'bin' on Windows too?
+    if not os.path.exists(bin_py):
+        bin_py = os.path.join(sys.prefix, "bin")
+        bin_user = os.path.join(user_site, "bin")
+else:
+    bin_py = os.path.join(sys.prefix, "bin")
+    bin_user = os.path.join(user_site, "bin")
+
+    # Forcing to use /usr/local/bin for standard macOS framework installs
+    # Also log to ~/Library/Logs/ for use with the Console.app log viewer
+    if sys.platform[:6] == "darwin" and sys.prefix[:16] == "/System/Library/":
+        bin_py = "/usr/local/bin"

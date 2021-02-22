@@ -9,7 +9,7 @@ from pip._internal.exceptions import InvalidSchemeCombination, UserInstallationI
 from pip._internal.models.scheme import SCHEME_KEYS, Scheme
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
-from .base import get_major_minor_version
+from .base import bin_user, get_major_minor_version
 
 logger = logging.getLogger(__name__)
 
@@ -101,11 +101,21 @@ def get_scheme(
 
     paths = sysconfig.get_paths(scheme=scheme_name, vars=variables)
 
-    # Special header path for compatibility to distutils.
+    # Pip historically uses a special header path in virtual environments.
     if running_under_virtualenv():
-        base = variables.get("base", sys.prefix)
+        if user:
+            base = variables.get("userbase", sys.prefix)
+        else:
+            base = variables.get("base", sys.prefix)
         python_xy = f"python{get_major_minor_version()}"
         paths["include"] = os.path.join(base, "include", "site", python_xy)
+
+    # Special user scripts path on Windows for compatibility to distutils.
+    # See ``distutils.commands.install.INSTALL_SCHEMES["nt_user"]["scritps"]``.
+    if scheme_name == "nt_user":
+        base = variables.get("userbase", sys.prefix)
+        python_xy = f"Python{sys.version_info.major}{sys.version_info.minor}"
+        paths["scripts"] = os.path.join(base, python_xy, "Scripts")
 
     scheme = Scheme(
         platlib=paths["platlib"],
@@ -131,7 +141,10 @@ def get_bin_prefix():
 
 def get_bin_user():
     # type: () -> str
-    return sysconfig.get_paths(scheme=_infer_scheme("user"))["scripts"]
+    # pip puts the scripts directory in site-packages, not under userbase.
+    # I'm honestly not sure if this is a bug (because ``get_scheme()`` puts it
+    # correctly under userbase), but we need to be compatible.
+    return bin_user
 
 
 def get_purelib():
