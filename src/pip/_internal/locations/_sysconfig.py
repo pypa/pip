@@ -9,7 +9,7 @@ from pip._internal.exceptions import InvalidSchemeCombination, UserInstallationI
 from pip._internal.models.scheme import SCHEME_KEYS, Scheme
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
-from .base import bin_user, get_major_minor_version
+from .base import get_major_minor_version
 
 logger = logging.getLogger(__name__)
 
@@ -137,14 +137,6 @@ def get_bin_prefix():
     if sys.platform[:6] == "darwin" and sys.prefix[:16] == "/System/Library/":
         return "/usr/local/bin"
     return sysconfig.get_paths(scheme=_infer_scheme("prefix"))["scripts"]
-
-
-def get_bin_user():
-    # type: () -> str
-    # pip puts the scripts directory in site-packages, not under userbase.
-    # I'm honestly not sure if this is a bug (because ``get_scheme()`` puts it
-    # correctly under userbase), but we need to be compatible.
-    return bin_user
 
 
 def get_purelib():

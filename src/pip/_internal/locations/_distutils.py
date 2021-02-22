@@ -4,7 +4,7 @@
 # mypy: strict-optional=False
 
 import os
-import os.path
+import sys
 from distutils.cmd import Command as DistutilsCommand
 from distutils.command.install import SCHEME_KEYS
 from distutils.command.install import install as distutils_install_command
@@ -12,9 +12,10 @@ from distutils.sysconfig import get_python_lib
 from typing import Dict, List, Optional, Tuple, Union, cast
 
 from pip._internal.models.scheme import Scheme
+from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
-from .base import bin_py, bin_user, get_major_minor_version
+from .base import get_major_minor_version
 
 
 def _distutils_scheme(
@@ -118,12 +119,17 @@ def get_scheme(
 
 def get_bin_prefix():
     # type: () -> str
-    return bin_py
-
-
-def get_bin_user():
-    # type: () -> str
-    return bin_user
+    if WINDOWS:
+        bin_py = os.path.join(sys.prefix, "Scripts")
+        # buildout uses 'bin' on Windows too?
+        if not os.path.exists(bin_py):
+            bin_py = os.path.join(sys.prefix, "bin")
+        return bin_py
+    # Forcing to use /usr/local/bin for standard macOS framework installs
+    # Also log to ~/Library/Logs/ for use with the Console.app log viewer
+    if sys.platform[:6] == "darwin" and sys.prefix[:16] == "/System/Library/":
+        return "/usr/local/bin"
+    return os.path.join(sys.prefix, "bin")
 
 
 def get_purelib():

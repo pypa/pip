@@ -8,6 +8,7 @@ from pip._internal.models.scheme import SCHEME_KEYS, Scheme
 from . import _distutils, _sysconfig
 from .base import (
     USER_CACHE_DIR,
+    get_bin_user,
     get_major_minor_version,
     get_src_prefix,
     site_packages,
@@ -97,14 +98,6 @@ def get_bin_prefix():
     old = _distutils.get_bin_prefix()
     new = _sysconfig.get_bin_prefix()
     _warn_if_mismatch(pathlib.Path(old), pathlib.Path(new), key="bin_prefix")
-    return old
-
-
-def get_bin_user():
-    # type: () -> str
-    old = _distutils.get_bin_user()
-    new = _sysconfig.get_bin_user()
-    _warn_if_mismatch(pathlib.Path(old), pathlib.Path(new), key="bin_user")
     return old
 
 

@@ -49,18 +49,18 @@ except AttributeError:
     user_site = site.USER_SITE
 
 
-if WINDOWS:
-    bin_py = os.path.join(sys.prefix, "Scripts")
-    bin_user = os.path.join(user_site, "Scripts")
-    # buildout uses 'bin' on Windows too?
-    if not os.path.exists(bin_py):
-        bin_py = os.path.join(sys.prefix, "bin")
-        bin_user = os.path.join(user_site, "bin")
-else:
-    bin_py = os.path.join(sys.prefix, "bin")
-    bin_user = os.path.join(user_site, "bin")
+def get_bin_user():
+    # type: () -> str
+    """Get the user-site scripts directory.
 
-    # Forcing to use /usr/local/bin for standard macOS framework installs
-    # Also log to ~/Library/Logs/ for use with the Console.app log viewer
-    if sys.platform[:6] == "darwin" and sys.prefix[:16] == "/System/Library/":
-        bin_py = "/usr/local/bin"
+    Pip puts the scripts directory in site-packages, not under userbase.
+    I'm honestly not sure if this is a bug (because ``get_scheme()`` puts it
+    correctly under userbase), but we need to keep backwards compatibility.
+    """
+    assert user_site is not None, "user site unavailable"
+    if not WINDOWS:
+        return os.path.join(user_site, "bin")
+    # Special case for buildout, which uses 'bin' on Windows too?
+    if not os.path.exists(os.path.join(sys.prefix, "Scripts")):
+        os.path.join(user_site, "bin")
+    return os.path.join(user_site, "Scripts")
