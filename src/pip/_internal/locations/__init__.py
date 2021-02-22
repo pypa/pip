@@ -25,7 +25,6 @@ __all__ = [
     "get_purelib",
     "get_scheme",
     "get_src_prefix",
-    "init_backend",
     "site_packages",
     "user_site",
 ]
