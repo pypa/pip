@@ -18,7 +18,6 @@ from pip._internal.utils.virtualenv import running_under_virtualenv
 
 from .base import get_major_minor_version, user_site
 
-
 if WINDOWS:
     bin_py = os.path.join(sys.prefix, "Scripts")
     bin_user = os.path.join(user_site, "Scripts")
