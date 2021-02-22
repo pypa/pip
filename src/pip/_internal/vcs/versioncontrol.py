@@ -18,8 +18,6 @@ from typing import (
     Union,
 )
 
-from pip._vendor import pkg_resources
-
 from pip._internal.cli.spinners import SpinnerInterface
 from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.utils.misc import (
@@ -62,7 +60,7 @@ def make_vcs_requirement_url(repo_url, rev, project_name, subdir=None):
       repo_url: the remote VCS url, with any needed VCS prefix (e.g. "git+").
       project_name: the (unescaped) project name.
     """
-    egg_project_name = pkg_resources.to_filename(project_name)
+    egg_project_name = project_name.replace("-", "_")
     req = f'{repo_url}@{rev}#egg={egg_project_name}'
     if subdir:
         req += f'&subdirectory={subdir}'
