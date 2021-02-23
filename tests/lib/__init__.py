@@ -31,7 +31,6 @@ DATA_DIR = Path(__file__).parent.parent.joinpath("data").resolve()
 SRC_DIR = Path(__file__).resolve().parent.parent.parent
 
 pyversion = get_major_minor_version()
-pyversion_tuple = sys.version_info
 
 CURRENT_PY_VERSION_INFO = sys.version_info[:3]
 
@@ -1145,10 +1144,3 @@ def need_mercurial(fn):
     return pytest.mark.mercurial(need_executable(
         'Mercurial', ('hg', 'version')
     )(fn))
-
-
-# Workaround for test failures after new wheel release.
-windows_workaround_7667 = pytest.mark.skipif(
-    "sys.platform == 'win32' and sys.version_info < (3,)",
-    reason="Workaround for #7667",
-)
