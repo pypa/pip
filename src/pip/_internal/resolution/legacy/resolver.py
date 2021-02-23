@@ -12,13 +12,12 @@ for sub-dependencies
 
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
-# mypy: disallow-untyped-defs=False
 
 import logging
 import sys
 from collections import defaultdict
 from itertools import chain
-from typing import DefaultDict, List, Optional, Set, Tuple
+from typing import DefaultDict, Iterable, List, Optional, Set, Tuple
 
 from pip._vendor.packaging import specifiers
 from pip._vendor.pkg_resources import Distribution
@@ -388,6 +387,7 @@ class Resolver(BaseResolver):
         more_reqs = []  # type: List[InstallRequirement]
 
         def add_req(subreq, extras_requested):
+            # type: (Distribution, Iterable[str]) -> None
             sub_install_req = self._make_install_req(
                 str(subreq),
                 req_to_install,
@@ -447,6 +447,7 @@ class Resolver(BaseResolver):
         ordered_reqs = set()  # type: Set[InstallRequirement]
 
         def schedule(req):
+            # type: (InstallRequirement) -> None
             if req.satisfied_by or req in ordered_reqs:
                 return
             if req.constraint:

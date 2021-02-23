@@ -1,9 +1,6 @@
 """Stuff that differs in different Python versions and platform
 distributions."""
 
-# The following comment should be removed at some point in the future.
-# mypy: disallow-untyped-defs=False
-
 import logging
 import os
 import sys
