@@ -91,7 +91,7 @@ def generate_news(session: Session, version: str) -> None:
 
 
 def update_version_file(version: str, filepath: str) -> None:
-    with open(filepath, "r", encoding="utf-8") as f:
+    with open(filepath, encoding="utf-8") as f:
         content = list(f)
 
     file_modified = False
