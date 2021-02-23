@@ -14,35 +14,46 @@ from .base import get_major_minor_version
 logger = logging.getLogger(__name__)
 
 
+# Notes on _infer_* functions.
+# Unfortunately ``_get_default_scheme()`` is private, so there's no way to
+# ask things like "what is the '_prefix' scheme on this platform". These
+# functions try to answer that with some heuristics while accounting for ad-hoc
+# platforms not covered by CPython's default sysconfig implementation. If the
+# ad-hoc implementation does not fully implement sysconfig, we'll fall back to
+# a POSIX scheme.
+
 _AVAILABLE_SCHEMES = set(sysconfig.get_scheme_names())
 
 
-def _infer_scheme(variant):
-    # type: (typing.Literal["home", "prefix", "user"]) -> str
-    """Try to find a scheme for the current platform.
-
-    Unfortunately ``_get_default_scheme()`` is private, so there's no way to
-    ask things like "what is the '_home' scheme on this platform". This tries
-    to answer that with some heuristics while accounting for ad-hoc platforms
-    not covered by CPython's default sysconfig implementation.
-    """
-    # Most schemes are named like this e.g. "posix_home", "nt_user".
-    suffixed = f"{os.name}_{variant}"
+def _infer_prefix():
+    # type: () -> str
+    """Try to find a prefix scheme for the current platform."""
+    suffixed = f"{os.name}_prefix"
     if suffixed in _AVAILABLE_SCHEMES:
         return suffixed
-
-    # The user scheme is not available.
-    if variant == "user" and sysconfig.get_config_var("userbase") is None:
-        raise UserInstallationInvalid()
-
-    # On Windows, prefx and home schemes are the same and just called "nt".
-    if os.name in _AVAILABLE_SCHEMES:
+    if os.name in _AVAILABLE_SCHEMES:  # On Windows, prefx is just called "nt".
         return os.name
+    return "posix_prefix"
 
-    # Not sure what's happening, some obscure platform that does not fully
-    # implement sysconfig? Just use the POSIX scheme.
-    logger.warning("No %r scheme for %r; fallback to POSIX.", variant, os.name)
-    return f"posix_{variant}"
+
+def _infer_user():
+    # type: () -> str
+    """Try to find a user scheme for the current platform."""
+    suffixed = f"{os.name}_user"
+    if suffixed in _AVAILABLE_SCHEMES:
+        return suffixed
+    if "posix_user" not in _AVAILABLE_SCHEMES:  # User scheme unavailable.
+        raise UserInstallationInvalid()
+    return "posix_user"
+
+
+def _infer_home():
+    # type: () -> str
+    """Try to find a home for the current platform."""
+    suffixed = f"{os.name}_home"
+    if suffixed in _AVAILABLE_SCHEMES:
+        return suffixed
+    return "posix_home"
 
 
 # Update these keys if the user sets a custom home.
@@ -86,11 +97,11 @@ def get_scheme(
         raise InvalidSchemeCombination("--home", "--prefix")
 
     if home is not None:
-        scheme_name = _infer_scheme("home")
+        scheme_name = _infer_home()
     elif user:
-        scheme_name = _infer_scheme("user")
+        scheme_name = _infer_user()
     else:
-        scheme_name = _infer_scheme("prefix")
+        scheme_name = _infer_prefix()
 
     if home is not None:
         variables = {k: home for k in _HOME_KEYS}
@@ -136,7 +147,7 @@ def get_bin_prefix():
     # Forcing to use /usr/local/bin for standard macOS framework installs.
     if sys.platform[:6] == "darwin" and sys.prefix[:16] == "/System/Library/":
         return "/usr/local/bin"
-    return sysconfig.get_paths(scheme=_infer_scheme("prefix"))["scripts"]
+    return sysconfig.get_paths()["scripts"]
 
 
 def get_purelib():
