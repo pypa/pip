@@ -951,7 +951,7 @@ use_new_feature = partial(
     metavar="feature",
     action="append",
     default=[],
-    choices=["2020-resolver", "fast-deps"],
+    choices=["2020-resolver", "fast-deps", "in-tree-build"],
     help="Enable new functionality, that may be backward incompatible.",
 )  # type: Callable[..., Option]
 

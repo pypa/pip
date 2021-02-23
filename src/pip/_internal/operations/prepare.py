@@ -35,6 +35,7 @@ from pip._internal.network.lazy_wheel import (
 from pip._internal.network.session import PipSession
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.req.req_tracker import RequirementTracker
+from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.filesystem import copy2_fixed
 from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.logging import indent_log
@@ -207,8 +208,23 @@ def unpack_url(
         unpack_vcs_link(link, location)
         return None
 
-    # If it's a url to a local directory
+    # Once out-of-tree-builds are no longer supported, could potentially
+    # replace the below condition with `assert not link.is_existing_dir`
+    # - unpack_url does not need to be called for in-tree-builds.
+    #
+    # As further cleanup, _copy_source_tree and accompanying tests can
+    # be removed.
     if link.is_existing_dir():
+        deprecated(
+            "A future pip version will change local packages to be built "
+            "in-place without first copying to a temporary directory. "
+            "We recommend you use --use-feature=in-tree-build to test "
+            "your packages with this new behavior before it becomes the "
+            "default.\n",
+            replacement=None,
+            gone_in="21.3",
+            issue=7555
+        )
         if os.path.isdir(location):
             rmtree(location)
         _copy_source_tree(link.file_path, location)
@@ -278,6 +294,7 @@ class RequirementPreparer:
         require_hashes,  # type: bool
         use_user_site,  # type: bool
         lazy_wheel,  # type: bool
+        in_tree_build,  # type: bool
     ):
         # type: (...) -> None
         super().__init__()
@@ -305,6 +322,9 @@ class RequirementPreparer:
 
         # Should wheels be downloaded lazily?
         self.use_lazy_wheel = lazy_wheel
+
+        # Should in-tree builds be used for local paths?
+        self.in_tree_build = in_tree_build
 
         # Memoized downloaded files, as mapping of url: (path, mime type)
         self._downloaded = {}  # type: Dict[str, Tuple[str, str]]
@@ -339,6 +359,11 @@ class RequirementPreparer:
             # directory.
             return
         assert req.source_dir is None
+        if req.link.is_existing_dir() and self.in_tree_build:
+            # build local directories in-tree
+            req.source_dir = req.link.file_path
+            return
+
         # We always delete unpacked sdists after pip runs.
         req.ensure_has_source_dir(
             self.build_dir,
@@ -517,11 +542,14 @@ class RequirementPreparer:
 
         self._ensure_link_req_src_dir(req, parallel_builds)
         hashes = self._get_linked_req_hashes(req)
-        if link.url not in self._downloaded:
+
+        if link.is_existing_dir() and self.in_tree_build:
+            local_file = None
+        elif link.url not in self._downloaded:
             try:
                 local_file = unpack_url(
                     link, req.source_dir, self._download,
-                    self.download_dir, hashes,
+                    self.download_dir, hashes
                 )
             except NetworkConnectionError as exc:
                 raise InstallationError(
