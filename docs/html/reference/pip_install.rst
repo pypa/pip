@@ -1147,9 +1147,10 @@ Examples
 
        Using this option to search for packages which are not in the main
        repository (such as private packages) is unsafe, per a security
-       vulnerability called "dependency confusion": an attacker can claim the
-       package on the public repository in a way that will ensure it gets
-       chosen over the private package.
+       vulnerability called
+       `dependency confusion <https://azure.microsoft.com/en-us/resources/3-ways-to-mitigate-risk-using-private-package-feeds/>`_:
+       an attacker can claim the package on the public repository in a way that
+       will ensure it gets chosen over the private package.
 
    .. tab:: Unix/macOS
 
