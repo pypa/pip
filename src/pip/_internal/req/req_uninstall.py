@@ -5,8 +5,10 @@ import os
 import sys
 import sysconfig
 from importlib.util import cache_from_source
+from typing import Any, Callable, Dict, Iterable, Iterator, List, Optional, Set, Tuple
 
 from pip._vendor import pkg_resources
+from pip._vendor.pkg_resources import Distribution
 
 from pip._internal.exceptions import UninstallationError
 from pip._internal.locations import bin_py, bin_user
@@ -23,22 +25,6 @@ from pip._internal.utils.misc import (
     rmtree,
 )
 from pip._internal.utils.temp_dir import AdjacentTempDirectory, TempDirectory
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import (
-        Any,
-        Callable,
-        Dict,
-        Iterable,
-        Iterator,
-        List,
-        Optional,
-        Set,
-        Tuple,
-    )
-
-    from pip._vendor.pkg_resources import Distribution
 
 logger = logging.getLogger(__name__)
 
@@ -543,7 +529,7 @@ class UninstallPathSet:
 
         elif develop_egg_link:
             # develop egg
-            with open(develop_egg_link, 'r') as fh:
+            with open(develop_egg_link) as fh:
                 link_pointer = os.path.normcase(fh.readline().strip())
             assert (link_pointer == dist.location), (
                 'Egg-link {} does not match installed location of {} '

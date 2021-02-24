@@ -1,10 +1,8 @@
+from typing import Dict, Iterator
+
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
 
 from pip._internal.exceptions import NetworkConnectionError
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import Dict, Iterator
 
 # The following comments and HTTP headers were originally added by
 # Donald Stufft in git commit 22c562429a61bb77172039e480873fb239dd8c03.

@@ -25,7 +25,7 @@ Please take a look at our documentation for how to install and use pip:
 
 .. warning::
 
-   pip 21.0, in January 2021, will remove Python 2 support, per pip's
+   pip 21.0, in January 2021, removed Python 2 support, per pip's
    :ref:`Python 2 Support` policy. Please migrate to Python 3.
 
 If you find bugs, need help, or want to talk to the developers, please use our mailing lists or chat rooms:

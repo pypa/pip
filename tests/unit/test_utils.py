@@ -10,9 +10,9 @@ import stat
 import sys
 import time
 from io import BytesIO
+from unittest.mock import Mock, patch
 
 import pytest
-from mock import Mock, patch
 
 from pip._internal.exceptions import HashMismatch, HashMissing, InstallationError
 from pip._internal.utils.deprecation import PipDeprecationWarning, deprecated
@@ -38,7 +38,6 @@ from pip._internal.utils.misc import (
     normalize_path,
     normalize_version_info,
     parse_netloc,
-    path_to_display,
     redact_auth_from_url,
     redact_netloc,
     remove_auth_from_url,
@@ -196,21 +195,21 @@ class TestsGetDistributions:
             pass
 
     workingset = MockWorkingSet((
-        Mock(test_name="global", key="global"),
-        Mock(test_name="editable", key="editable"),
-        Mock(test_name="normal", key="normal"),
-        Mock(test_name="user", key="user"),
+        Mock(test_name="global", project_name="global"),
+        Mock(test_name="editable", project_name="editable"),
+        Mock(test_name="normal", project_name="normal"),
+        Mock(test_name="user", project_name="user"),
     ))
 
     workingset_stdlib = MockWorkingSet((
-        Mock(test_name='normal', key='argparse'),
-        Mock(test_name='normal', key='wsgiref')
+        Mock(test_name='normal', project_name='argparse'),
+        Mock(test_name='normal', project_name='wsgiref')
     ))
 
     workingset_freeze = MockWorkingSet((
-        Mock(test_name='normal', key='pip'),
-        Mock(test_name='normal', key='setuptools'),
-        Mock(test_name='normal', key='distribute')
+        Mock(test_name='normal', project_name='pip'),
+        Mock(test_name='normal', project_name='setuptools'),
+        Mock(test_name='normal', project_name='distribute')
     ))
 
     def dist_is_editable(self, dist):
@@ -290,9 +289,13 @@ class TestsGetDistributions:
     @pytest.mark.parametrize(
         "working_set, req_name",
         itertools.chain(
-            itertools.product([workingset], (d.key for d in workingset)),
             itertools.product(
-                [workingset_stdlib], (d.key for d in workingset_stdlib),
+                [workingset],
+                (d.project_name for d in workingset),
+            ),
+            itertools.product(
+                [workingset_stdlib],
+                (d.project_name for d in workingset_stdlib),
             ),
         ),
     )
@@ -312,7 +315,7 @@ class TestsGetDistributions:
         with patch("pip._vendor.pkg_resources.working_set", working_set):
             dist = get_distribution(req_name)
         assert dist is not None
-        assert dist.key == req_name
+        assert dist.project_name == req_name
 
     @patch('pip._vendor.pkg_resources.working_set', workingset)
     def test_get_distribution_nonexist(
@@ -425,22 +428,6 @@ elif sys.byteorder == "big":
         "b'\\xfe\\xff\\x00/\\x00p\\x00a\\x00t\\x00h\\"
         "x00/\\x00d\\x00\\xe9\\x00f'"
     )
-
-
-@pytest.mark.parametrize('path, fs_encoding, expected', [
-    (None, None, None),
-    # Test passing a text (unicode) string.
-    ('/path/déf', None, '/path/déf'),
-    # Test a bytes object with a non-ascii character.
-    ('/path/déf'.encode('utf-8'), 'utf-8', '/path/déf'),
-    # Test a bytes object with a character that can't be decoded.
-    ('/path/déf'.encode('utf-8'), 'ascii', "b'/path/d\\xc3\\xa9f'"),
-    ('/path/déf'.encode('utf-16'), 'utf-8', expected_byte_string),
-])
-def test_path_to_display(monkeypatch, path, fs_encoding, expected):
-    monkeypatch.setattr(sys, 'getfilesystemencoding', lambda: fs_encoding)
-    actual = path_to_display(path)
-    assert actual == expected, f'actual: {actual!r}'
 
 
 class Test_normalize_path:

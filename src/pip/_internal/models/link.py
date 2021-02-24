@@ -2,22 +2,20 @@ import os
 import posixpath
 import re
 import urllib.parse
+from typing import TYPE_CHECKING, Optional, Tuple, Union
 
 from pip._internal.utils.filetypes import WHEEL_EXTENSION
+from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.misc import (
     redact_auth_from_url,
     split_auth_from_netloc,
     splitext,
 )
 from pip._internal.utils.models import KeyBasedCompareMixin
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import path_to_url, url_to_path
 
-if MYPY_CHECK_RUNNING:
-    from typing import Optional, Tuple, Union
-
+if TYPE_CHECKING:
     from pip._internal.index.collector import HTMLPage
-    from pip._internal.utils.hashes import Hashes
 
 
 class Link(KeyBasedCompareMixin):
@@ -113,8 +111,7 @@ class Link(KeyBasedCompareMixin):
             return netloc
 
         name = urllib.parse.unquote(name)
-        assert name, (
-            'URL {self._url!r} produced no filename'.format(**locals()))
+        assert name, f'URL {self._url!r} produced no filename'
         return name
 
     @property

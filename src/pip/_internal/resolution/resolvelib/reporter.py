@@ -1,21 +1,15 @@
 from collections import defaultdict
 from logging import getLogger
+from typing import Any, DefaultDict
 
 from pip._vendor.resolvelib.reporters import BaseReporter
 
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import Any, DefaultDict
-
-    from .base import Candidate, Requirement
-
+from .base import Candidate, Requirement
 
 logger = getLogger(__name__)
 
 
 class PipReporter(BaseReporter):
-
     def __init__(self):
         # type: () -> None
         self.backtracks_by_package = defaultdict(int)  # type: DefaultDict[str, int]
@@ -37,7 +31,7 @@ class PipReporter(BaseReporter):
                 "runtime. If you want to abort this run, you can press "
                 "Ctrl + C to do so. To improve how pip performs, tell us what "
                 "happened here: https://pip.pypa.io/surveys/backtracking"
-            )
+            ),
         }
 
     def backtracking(self, candidate):

@@ -1,0 +1,4 @@
+Add a feature ``--use-feature=in-tree-build`` to build local projects in-place
+when installing. This is expected to become the default behavior in pip 21.3;
+see `Installing from local packages <https://pip.pypa.io/en/stable/user_guide/#installing-from-local-packages>`_
+for more information.

@@ -1,7 +1,25 @@
+import functools
 import logging
+from typing import (
+    Dict,
+    FrozenSet,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    TypeVar,
+)
 
+from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.packaging.version import _BaseVersion
+from pip._vendor.pkg_resources import Distribution
+from pip._vendor.resolvelib import ResolutionImpossible
 
+from pip._internal.cache import CacheEntry, WheelCache
 from pip._internal.exceptions import (
     DistributionNotFound,
     InstallationError,
@@ -10,8 +28,12 @@ from pip._internal.exceptions import (
     UnsupportedPythonVersion,
     UnsupportedWheel,
 )
+from pip._internal.index.package_finder import PackageFinder
+from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
+from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req.req_install import InstallRequirement
+from pip._internal.resolution.base import InstallRequirementProvider
 from pip._internal.utils.compatibility_tags import get_supported
 from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.misc import (
@@ -19,18 +41,18 @@ from pip._internal.utils.misc import (
     dist_in_usersite,
     get_installed_distributions,
 )
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
-from .base import Constraint
+from .base import Candidate, Constraint, Requirement
 from .candidates import (
     AlreadyInstalledCandidate,
+    BaseCandidate,
     EditableCandidate,
     ExtrasCandidate,
     LinkCandidate,
     RequiresPythonCandidate,
 )
-from .found_candidates import FoundCandidates
+from .found_candidates import FoundCandidates, IndexCandidateInfo
 from .requirements import (
     ExplicitRequirement,
     RequiresPythonRequirement,
@@ -38,38 +60,10 @@ from .requirements import (
     UnsatisfiableRequirement,
 )
 
-if MYPY_CHECK_RUNNING:
-    from typing import (
-        Dict,
-        FrozenSet,
-        Iterable,
-        Iterator,
-        List,
-        Optional,
-        Sequence,
-        Set,
-        Tuple,
-        TypeVar,
-    )
-
-    from pip._vendor.packaging.specifiers import SpecifierSet
-    from pip._vendor.packaging.version import _BaseVersion
-    from pip._vendor.pkg_resources import Distribution
-    from pip._vendor.resolvelib import ResolutionImpossible
-
-    from pip._internal.cache import CacheEntry, WheelCache
-    from pip._internal.index.package_finder import PackageFinder
-    from pip._internal.models.link import Link
-    from pip._internal.operations.prepare import RequirementPreparer
-    from pip._internal.resolution.base import InstallRequirementProvider
-
-    from .base import Candidate, Requirement
-    from .candidates import BaseCandidate
-
-    C = TypeVar("C")
-    Cache = Dict[Link, C]
-
 logger = logging.getLogger(__name__)
+
+C = TypeVar("C")
+Cache = Dict[Link, C]
 
 
 class Factory:
@@ -98,8 +92,9 @@ class Factory:
         self._build_failures = {}  # type: Cache[InstallationError]
         self._link_candidate_cache = {}  # type: Cache[LinkCandidate]
         self._editable_candidate_cache = {}  # type: Cache[EditableCandidate]
-        self._installed_candidate_cache = {
-        }  # type: Dict[str, AlreadyInstalledCandidate]
+        self._installed_candidate_cache = (
+            {}
+        )  # type: Dict[str, AlreadyInstalledCandidate]
 
         if not ignore_installed:
             self._installed_dists = {
@@ -151,8 +146,11 @@ class Factory:
             if link not in self._editable_candidate_cache:
                 try:
                     self._editable_candidate_cache[link] = EditableCandidate(
-                        link, template, factory=self,
-                        name=name, version=version,
+                        link,
+                        template,
+                        factory=self,
+                        name=name,
+                        version=version,
                     )
                 except (InstallationSubprocessError, MetadataInconsistent) as e:
                     logger.warning("Discarding %s. %s", link, e)
@@ -163,8 +161,11 @@ class Factory:
             if link not in self._link_candidate_cache:
                 try:
                     self._link_candidate_cache[link] = LinkCandidate(
-                        link, template, factory=self,
-                        name=name, version=version,
+                        link,
+                        template,
+                        factory=self,
+                        name=name,
+                        version=version,
                     )
                 except (InstallationSubprocessError, MetadataInconsistent) as e:
                     logger.warning("Discarding %s. %s", link, e)
@@ -213,8 +214,8 @@ class Factory:
                     template=template,
                 )
 
-        def iter_index_candidates():
-            # type: () -> Iterator[Candidate]
+        def iter_index_candidate_infos():
+            # type: () -> Iterator[IndexCandidateInfo]
             result = self._finder.find_best_candidate(
                 project_name=name,
                 specifier=specifier,
@@ -228,26 +229,21 @@ class Factory:
             all_yanked = all(ican.link.is_yanked for ican in icans)
 
             # PackageFinder returns earlier versions first, so we reverse.
-            versions_found = set()  # type: Set[_BaseVersion]
             for ican in reversed(icans):
                 if not all_yanked and ican.link.is_yanked:
                     continue
-                if ican.version in versions_found:
-                    continue
-                candidate = self._make_candidate_from_link(
+                func = functools.partial(
+                    self._make_candidate_from_link,
                     link=ican.link,
                     extras=extras,
                     template=template,
                     name=name,
                     version=ican.version,
                 )
-                if candidate is None:
-                    continue
-                yield candidate
-                versions_found.add(ican.version)
+                yield ican.version, func
 
         return FoundCandidates(
-            iter_index_candidates,
+            iter_index_candidate_infos,
             installed_candidate,
             prefers_installed,
         )
@@ -279,7 +275,8 @@ class Factory:
             )
 
         return (
-            c for c in explicit_candidates
+            c
+            for c in explicit_candidates
             if constraint.is_satisfied_by(c)
             and all(req.is_satisfied_by(c) for req in requirements)
         )
@@ -289,7 +286,8 @@ class Factory:
         if not ireq.match_markers(requested_extras):
             logger.info(
                 "Ignoring %s: markers '%s' don't match your environment",
-                ireq.name, ireq.markers,
+                ireq.name,
+                ireq.markers,
             )
             return None
         if not ireq.link:
@@ -383,7 +381,8 @@ class Factory:
             raise InstallationError(
                 "Will not install to the user site because it will "
                 "lack sys.path precedence to {} in {}".format(
-                    dist.project_name, dist.location,
+                    dist.project_name,
+                    dist.location,
                 )
             )
         return None
@@ -429,14 +428,12 @@ class Factory:
             if parent is None:
                 req_disp = str(req)
             else:
-                req_disp = f'{req} (from {parent.name})'
+                req_disp = f"{req} (from {parent.name})"
             logger.critical(
                 "Could not find a version that satisfies the requirement %s",
                 req_disp,
             )
-            return DistributionNotFound(
-                f'No matching distribution found for {req}'
-            )
+            return DistributionNotFound(f"No matching distribution found for {req}")
 
         # OK, we now have a list of requirements that can't all be
         # satisfied at once.
@@ -472,26 +469,28 @@ class Factory:
         else:
             info = "the requested packages"
 
-        msg = "Cannot install {} because these package versions " \
+        msg = (
+            "Cannot install {} because these package versions "
             "have conflicting dependencies.".format(info)
+        )
         logger.critical(msg)
         msg = "\nThe conflict is caused by:"
         for req, parent in e.causes:
             msg = msg + "\n    "
             if parent:
-                msg = msg + "{} {} depends on ".format(
-                    parent.name,
-                    parent.version
-                )
+                msg = msg + "{} {} depends on ".format(parent.name, parent.version)
             else:
                 msg = msg + "The user requested "
             msg = msg + req.format_for_error()
 
-        msg = msg + "\n\n" + \
-            "To fix this you could try to:\n" + \
-            "1. loosen the range of package versions you've specified\n" + \
-            "2. remove package versions to allow pip attempt to solve " + \
-            "the dependency conflict\n"
+        msg = (
+            msg
+            + "\n\n"
+            + "To fix this you could try to:\n"
+            + "1. loosen the range of package versions you've specified\n"
+            + "2. remove package versions to allow pip attempt to solve "
+            + "the dependency conflict\n"
+        )
 
         logger.info(msg)
 

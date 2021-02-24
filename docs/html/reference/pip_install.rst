@@ -812,7 +812,15 @@ You can install local projects by specifying the project path to pip:
 During regular installation, pip will copy the entire project directory to a
 temporary location and install from there. The exception is that pip will
 exclude .tox and .nox directories present in the top level of the project from
-being copied.
+being copied. This approach is the cause of several performance and correctness
+issues, so it is planned that pip 21.3 will change to install directly from the
+local project directory. Depending on the build backend used by the project,
+this may generate secondary build artifacts in the project directory, such as
+the ``.egg-info`` and ``build`` directories in the case of the setuptools
+backend.
+
+To opt in to the future behavior, specify the ``--use-feature=in-tree-build``
+option in pip's command line.
 
 
 .. _`editable-installs`:
@@ -1033,7 +1041,7 @@ Examples
 
          python -m pip install -e git+https://git.repo/some_pkg.git#egg=SomePackage          # from git
          python -m pip install -e hg+https://hg.repo/some_pkg.git#egg=SomePackage            # from mercurial
-         python -m python -m pip install -e svn+svn://svn.repo/some_pkg/trunk/#egg=SomePackage         # from svn
+         python -m pip install -e svn+svn://svn.repo/some_pkg/trunk/#egg=SomePackage         # from svn
          python -m pip install -e git+https://git.repo/some_pkg.git@feature#egg=SomePackage  # from 'feature' branch
          python -m pip install -e "git+https://git.repo/some_repo.git#egg=subdir&subdirectory=subdir_path" # install a python package from a repo subdirectory
 

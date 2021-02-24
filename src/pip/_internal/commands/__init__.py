@@ -4,14 +4,9 @@ Package containing all pip commands
 
 import importlib
 from collections import OrderedDict, namedtuple
+from typing import Any, Optional
 
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import Any, Optional
-
-    from pip._internal.cli.base_command import Command
-
+from pip._internal.cli.base_command import Command
 
 CommandInfo = namedtuple('CommandInfo', 'module_path, class_name, summary')
 

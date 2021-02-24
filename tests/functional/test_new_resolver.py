@@ -226,32 +226,6 @@ def test_new_resolver_installs_extras(tmpdir, script, root_dep):
     assert_installed(script, base="0.1.0", dep="0.1.0")
 
 
-def test_new_resolver_installs_extras_deprecated(tmpdir, script):
-    req_file = tmpdir.joinpath("requirements.txt")
-    req_file.write_text("base >= 0.1.0[add]")
-
-    create_basic_wheel_for_package(
-        script,
-        "base",
-        "0.1.0",
-        extras={"add": ["dep"]},
-    )
-    create_basic_wheel_for_package(
-        script,
-        "dep",
-        "0.1.0",
-    )
-    result = script.pip(
-        "install",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
-        "-r", req_file,
-        expect_stderr=True
-    )
-    assert "DEPRECATION: Extras after version" in result.stderr
-    assert_installed(script, base="0.1.0", dep="0.1.0")
-
-
 def test_new_resolver_installs_extras_warn_missing(script):
     create_basic_wheel_for_package(
         script,
@@ -1279,3 +1253,28 @@ def test_new_resolver_lazy_fetch_candidates(script, upgrade):
     # But should reach there in the best route possible, without trying
     # candidates it does not need to.
     assert "myuberpkg-2" not in result.stdout, str(result)
+
+
+def test_new_resolver_no_fetch_no_satisfying(script):
+    create_basic_wheel_for_package(script, "myuberpkg", "1")
+
+    # Install the package. This should emit a "Processing" message for
+    # fetching the distribution from the --find-links page.
+    result = script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "myuberpkg",
+    )
+    assert "Processing " in result.stdout, str(result)
+
+    # Try to upgrade the package. This should NOT emit the "Processing"
+    # message because the currently installed version is latest.
+    result = script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "--upgrade",
+        "myuberpkg",
+    )
+    assert "Processing " not in result.stdout, str(result)

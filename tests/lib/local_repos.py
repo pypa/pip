@@ -3,12 +3,9 @@ import subprocess
 import urllib.request
 
 from pip._internal.utils.misc import hide_url
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.vcs import vcs
 from tests.lib import path_to_url
-
-if MYPY_CHECK_RUNNING:
-    from tests.lib.path import Path
+from tests.lib.path import Path
 
 
 def _create_svn_initools_repo(initools_dir):

@@ -7,15 +7,19 @@ import shutil
 import sys
 import uuid
 import zipfile
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Union
 
 from pip._vendor import pkg_resources, six
+from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
+from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
 from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.pep517.wrappers import Pep517HookCaller
+from pip._vendor.pkg_resources import Distribution
 
-from pip._internal.build_env import NoOpBuildEnvironment
+from pip._internal.build_env import BuildEnvironment, NoOpBuildEnvironment
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_scheme
 from pip._internal.models.link import Link
@@ -42,25 +46,13 @@ from pip._internal.utils.misc import (
     dist_in_site_packages,
     dist_in_usersite,
     get_distribution,
-    get_installed_version,
     hide_url,
     redact_auth_from_url,
 )
 from pip._internal.utils.packaging import get_metadata
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.virtualenv import running_under_virtualenv
 from pip._internal.vcs import vcs
-
-if MYPY_CHECK_RUNNING:
-    from typing import Any, Dict, Iterable, List, Optional, Sequence, Union
-
-    from pip._vendor.packaging.markers import Marker
-    from pip._vendor.packaging.specifiers import SpecifierSet
-    from pip._vendor.pkg_resources import Distribution
-
-    from pip._internal.build_env import BuildEnvironment
-
 
 logger = logging.getLogger(__name__)
 
@@ -255,7 +247,7 @@ class InstallRequirement:
         # type: () -> Optional[str]
         if self.req is None:
             return None
-        return six.ensure_str(pkg_resources.safe_name(self.req.name))
+        return pkg_resources.safe_name(self.req.name)
 
     @property
     def specifier(self):
@@ -272,11 +264,6 @@ class InstallRequirement:
         specifiers = self.specifier
         return (len(specifiers) == 1 and
                 next(iter(specifiers)).operator in {'==', '==='})
-
-    @property
-    def installed_version(self):
-        # type: () -> Optional[str]
-        return get_installed_version(self.name)
 
     def match_markers(self, extras_requested=None):
         # type: (Optional[Iterable[str]]) -> bool
@@ -664,8 +651,7 @@ class InstallRequirement:
         def _clean_zip_name(name, prefix):
             # type: (str, str) -> str
             assert name.startswith(prefix + os.path.sep), (
-                "name {name!r} doesn't start with prefix {prefix!r}"
-                .format(**locals())
+                f"name {name!r} doesn't start with prefix {prefix!r}"
             )
             name = name[len(prefix) + 1:]
             name = name.replace(os.path.sep, '/')

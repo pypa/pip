@@ -62,7 +62,6 @@ if DEBUNDLED:
     vendored("cachecontrol")
     vendored("certifi")
     vendored("colorama")
-    vendored("contextlib2")
     vendored("distlib")
     vendored("distro")
     vendored("html5lib")

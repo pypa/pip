@@ -1,9 +1,6 @@
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from typing import Optional
 
-if MYPY_CHECK_RUNNING:
-    from typing import Optional
-
-    from pip._internal.models.format_control import FormatControl
+from pip._internal.models.format_control import FormatControl
 
 
 class SelectionPreferences:

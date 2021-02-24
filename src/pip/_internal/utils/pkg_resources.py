@@ -1,15 +1,11 @@
+from typing import Dict, Iterable, List
+
 from pip._vendor.pkg_resources import yield_lines
-from pip._vendor.six import ensure_str
-
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import Dict, Iterable, List
 
 
 class DictMetadata:
-    """IMetadataProvider that reads metadata files from a dictionary.
-    """
+    """IMetadataProvider that reads metadata files from a dictionary."""
+
     def __init__(self, metadata):
         # type: (Dict[str, bytes]) -> None
         self._metadata = metadata
@@ -21,7 +17,7 @@ class DictMetadata:
     def get_metadata(self, name):
         # type: (str) -> str
         try:
-            return ensure_str(self._metadata[name])
+            return self._metadata[name].decode()
         except UnicodeDecodeError as e:
             # Mirrors handling done in pkg_resources.NullProvider.
             e.reason += f" in {name} file"

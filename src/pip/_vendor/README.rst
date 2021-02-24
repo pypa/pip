@@ -116,7 +116,7 @@ Modifications
 Automatic Vendoring
 ===================
 
-Vendoring is automated via the ``vendoring`` tool from the content of
+Vendoring is automated via the `vendoring <https://pypi.org/project/vendoring/>`_ tool from the content of
 ``pip/_vendor/vendor.txt`` and the different patches in
 ``tools/automation/vendoring/patches``.
 Launch it via ``vendoring sync . -v`` (requires ``vendoring>=0.2.2``).

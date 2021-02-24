@@ -3,9 +3,9 @@ import logging
 import os
 import subprocess
 import textwrap
+from unittest.mock import patch
 
 import pytest
-from mock import patch
 from pretend import stub
 
 import pip._internal.req.req_file  # this will be monkeypatched
@@ -229,14 +229,14 @@ class TestProcessLine:
     def test_yield_line_requirement(self, line_processor):
         line = 'SomeProject'
         filename = 'filename'
-        comes_from = '-r {} (line {})'.format(filename, 1)
+        comes_from = f'-r {filename} (line 1)'
         req = install_req_from_line(line, comes_from=comes_from)
         assert repr(line_processor(line, filename, 1)[0]) == repr(req)
 
     def test_yield_pep440_line_requirement(self, line_processor):
         line = 'SomeProject @ https://url/SomeProject-py2-py3-none-any.whl'
         filename = 'filename'
-        comes_from = '-r {} (line {})'.format(filename, 1)
+        comes_from = f'-r {filename} (line 1)'
         req = install_req_from_line(line, comes_from=comes_from)
         assert repr(line_processor(line, filename, 1)[0]) == repr(req)
 
@@ -255,16 +255,16 @@ class TestProcessLine:
     ):
         line = 'SomeProject >= 2'
         filename = 'filename'
-        comes_from = '-r {} (line {})'.format(filename, 1)
+        comes_from = f'-r {filename} (line 1)'
         req = install_req_from_line(line, comes_from=comes_from)
         assert repr(line_processor(line, filename, 1)[0]) == repr(req)
         assert str(req.req.specifier) == '>=2'
 
     def test_yield_editable_requirement(self, line_processor):
         url = 'git+https://url#egg=SomeProject'
-        line = '-e {url}'.format(**locals())
+        line = f'-e {url}'
         filename = 'filename'
-        comes_from = '-r {} (line {})'.format(filename, 1)
+        comes_from = f'-r {filename} (line 1)'
         req = install_req_from_editable(url, comes_from=comes_from)
         assert repr(line_processor(line, filename, 1)[0]) == repr(req)
 
@@ -588,7 +588,7 @@ class TestParseRequirements:
         )
 
         def make_var(name):
-            return '${{{name}}}'.format(**locals())
+            return f'${{{name}}}'
 
         env_vars = collections.OrderedDict([
             ('GITHUB_TOKEN', 'notarealtoken'),

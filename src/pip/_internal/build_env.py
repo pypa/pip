@@ -8,6 +8,8 @@ import textwrap
 from collections import OrderedDict
 from distutils.sysconfig import get_python_lib
 from sysconfig import get_paths
+from types import TracebackType
+from typing import TYPE_CHECKING, Iterable, List, Optional, Set, Tuple, Type
 
 from pip._vendor.pkg_resources import Requirement, VersionConflict, WorkingSet
 
@@ -15,12 +17,8 @@ from pip import __file__ as pip_location
 from pip._internal.cli.spinners import open_spinner
 from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-if MYPY_CHECK_RUNNING:
-    from types import TracebackType
-    from typing import Iterable, List, Optional, Set, Tuple, Type
-
+if TYPE_CHECKING:
     from pip._internal.index.package_finder import PackageFinder
 
 logger = logging.getLogger(__name__)
