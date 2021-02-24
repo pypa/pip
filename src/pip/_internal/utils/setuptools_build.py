@@ -8,9 +8,11 @@ from typing import List, Optional, Sequence
 # invoking via the shim.  This avoids e.g. the following manifest_maker
 # warning: "warning: manifest_maker: standard file '-c' not found".
 _SETUPTOOLS_SHIM = (
-    "import sys, setuptools, tokenize; sys.argv[0] = {0!r}; __file__={0!r};"
-    "f=getattr(tokenize, 'open', open)(__file__);"
-    "code=f.read().replace('\\r\\n', '\\n');"
+    "import io, os, sys, setuptools, tokenize; sys.argv[0] = {0!r}; __file__={0!r};"
+    "f = getattr(tokenize, 'open', open)(__file__) "
+    "if os.path.exists(__file__) "
+    "else io.StringIO('from setuptools import setup; setup()');"
+    "code = f.read().replace('\\r\\n', '\\n');"
     "f.close();"
     "exec(compile(code, __file__, 'exec'))"
 )
