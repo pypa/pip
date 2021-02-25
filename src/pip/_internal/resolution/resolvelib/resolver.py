@@ -3,7 +3,6 @@ import logging
 import os
 from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple
 
-from pip._vendor import six
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.resolvelib import ResolutionImpossible
 from pip._vendor.resolvelib import Resolver as RLResolver
