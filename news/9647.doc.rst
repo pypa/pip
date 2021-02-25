@@ -1,1 +1,1 @@
-Add warning about --extra-index-url and dependency confusion
+Add warning about ``--extra-index-url`` and dependency confusion
