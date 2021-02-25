@@ -61,16 +61,27 @@ try:
 except AttributeError:
     user_site = site.USER_SITE
 
+
+def _get_bin_user():
+    # type: () -> str
+    scheme = "{}_user".format(os.name)
+    if scheme not in sysconfig.get_scheme_names():
+        scheme = "posix_user"  # Default to POSIX for unknown platforms.
+    path = sysconfig.get_path("scripts", scheme=scheme)
+    assert path is not None
+    return path
+
+
+bin_user = _get_bin_user()
+
 if WINDOWS:
     bin_py = os.path.join(sys.prefix, 'Scripts')
-    bin_user = os.path.join(user_site, 'Scripts')
     # buildout uses 'bin' on Windows too?
     if not os.path.exists(bin_py):
         bin_py = os.path.join(sys.prefix, 'bin')
-        bin_user = os.path.join(user_site, 'bin')
+        bin_user = os.path.join(os.path.dirname(bin_user), 'bin')
 else:
     bin_py = os.path.join(sys.prefix, 'bin')
-    bin_user = os.path.join(user_site, 'bin')
 
     # Forcing to use /usr/local/bin for standard macOS framework installs
     # Also log to ~/Library/Logs/ for use with the Console.app log viewer
