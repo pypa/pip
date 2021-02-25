@@ -122,7 +122,7 @@ class Resolver(BaseResolver):
             )
 
         except ResolutionImpossible as e:
-            error = self.factory.get_installation_error(e)
+            error = self.factory.get_installation_error(e, constraints)
             six.raise_from(error, e)
 
         req_set = RequirementSet(check_supported_wheels=check_supported_wheels)

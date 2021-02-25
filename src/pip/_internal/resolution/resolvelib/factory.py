@@ -404,8 +404,24 @@ class Factory:
         )
         return UnsupportedPythonVersion(message)
 
-    def get_installation_error(self, e):
-        # type: (ResolutionImpossible) -> InstallationError
+    def _report_single_requirement_conflict(self, req, parent):
+        # type: (Requirement, Candidate) -> DistributionNotFound
+        if parent is None:
+            req_disp = str(req)
+        else:
+            req_disp = f"{req} (from {parent.name})"
+        logger.critical(
+            "Could not find a version that satisfies the requirement %s",
+            req_disp,
+        )
+        return DistributionNotFound(f"No matching distribution found for {req}")
+
+    def get_installation_error(
+        self,
+        e,  # type: ResolutionImpossible
+        constraints,  # type: Dict[str, Constraint]
+    ):
+        # type: (...) -> InstallationError
 
         assert e.causes, "Installation error reported with no cause"
 
@@ -425,15 +441,8 @@ class Factory:
         # satisfied. We just report that case.
         if len(e.causes) == 1:
             req, parent = e.causes[0]
-            if parent is None:
-                req_disp = str(req)
-            else:
-                req_disp = f"{req} (from {parent.name})"
-            logger.critical(
-                "Could not find a version that satisfies the requirement %s",
-                req_disp,
-            )
-            return DistributionNotFound(f"No matching distribution found for {req}")
+            if req.name not in constraints:
+                return self._report_single_requirement_conflict(req, parent)
 
         # OK, we now have a list of requirements that can't all be
         # satisfied at once.
@@ -475,13 +484,20 @@ class Factory:
         )
         logger.critical(msg)
         msg = "\nThe conflict is caused by:"
+
+        relevant_constraints = set()
         for req, parent in e.causes:
+            if req.name in constraints:
+                relevant_constraints.add(req.name)
             msg = msg + "\n    "
             if parent:
                 msg = msg + "{} {} depends on ".format(parent.name, parent.version)
             else:
                 msg = msg + "The user requested "
             msg = msg + req.format_for_error()
+        for key in relevant_constraints:
+            spec = constraints[key].specifier
+            msg += f"\n    The user requested (constraint) {key}{spec}"
 
         msg = (
             msg
