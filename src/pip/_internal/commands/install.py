@@ -1,21 +1,12 @@
-# The following comment should be removed at some point in the future.
-# It's included for now because without it InstallCommand.run() has a
-# couple errors where we have to know req.name is str rather than
-# Optional[str] for the InstallRequirement req.
-# mypy: strict-optional=False
-# mypy: disallow-untyped-defs=False
-
-from __future__ import absolute_import
-
 import errno
 import logging
 import operator
 import os
 import shutil
 import site
-from optparse import SUPPRESS_HELP
+from optparse import SUPPRESS_HELP, Values
+from typing import Iterable, List, Optional
 
-from pip._vendor import pkg_resources
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.cache import WheelCache
@@ -25,31 +16,27 @@ from pip._internal.cli.req_command import RequirementCommand, with_cleanup
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.exceptions import CommandError, InstallationError
 from pip._internal.locations import distutils_scheme
-from pip._internal.operations.check import check_install_conflicts
+from pip._internal.metadata import get_environment
+from pip._internal.models.format_control import FormatControl
+from pip._internal.operations.check import ConflictDetails, check_install_conflicts
 from pip._internal.req import install_given_reqs
+from pip._internal.req.req_install import InstallRequirement
 from pip._internal.req.req_tracker import get_requirement_tracker
-from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.distutils_args import parse_distutils_args
 from pip._internal.utils.filesystem import test_writable_dir
 from pip._internal.utils.misc import (
     ensure_dir,
-    get_installed_version,
+    get_pip_version,
     protect_pip_from_modification_on_windows,
     write_output,
 )
 from pip._internal.utils.temp_dir import TempDirectory
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.virtualenv import virtualenv_no_global
-from pip._internal.wheel_builder import build, should_build_for_install_command
-
-if MYPY_CHECK_RUNNING:
-    from optparse import Values
-    from typing import Any, Iterable, List, Optional
-
-    from pip._internal.models.format_control import FormatControl
-    from pip._internal.req.req_install import InstallRequirement
-    from pip._internal.wheel_builder import BinaryAllowedPredicate
-
+from pip._internal.wheel_builder import (
+    BinaryAllowedPredicate,
+    build,
+    should_build_for_install_command,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -58,8 +45,6 @@ def get_check_binary_allowed(format_control):
     # type: (FormatControl) -> BinaryAllowedPredicate
     def check_binary_allowed(req):
         # type: (InstallRequirement) -> bool
-        if req.use_pep517:
-            return True
         canonical_name = canonicalize_name(req.name)
         allowed_formats = format_control.get_allowed_formats(canonical_name)
         return "binary" in allowed_formats
@@ -233,7 +218,7 @@ class InstallCommand(RequirementCommand):
 
     @with_cleanup
     def run(self, options, args):
-        # type: (Values, List[Any]) -> int
+        # type: (Values, List[str]) -> int
         if options.use_user_site and options.target_dir is not None:
             raise CommandError("Can not combine '--user' and '--target'")
 
@@ -246,6 +231,7 @@ class InstallCommand(RequirementCommand):
 
         install_options = options.install_options or []
 
+        logger.debug("Using %s", get_pip_version())
         options.use_user_site = decide_user_install(
             options.use_user_site,
             prefix_path=options.prefix_path,
@@ -282,14 +268,12 @@ class InstallCommand(RequirementCommand):
             target_python=target_python,
             ignore_requires_python=options.ignore_requires_python,
         )
-        build_delete = (not (options.no_clean or options.build_dir))
         wheel_cache = WheelCache(options.cache_dir, options.format_control)
 
         req_tracker = self.enter_context(get_requirement_tracker())
 
         directory = TempDirectory(
-            options.build_dir,
-            delete=build_delete,
+            delete=not options.no_clean,
             kind="install",
             globally_managed=True,
         )
@@ -297,7 +281,7 @@ class InstallCommand(RequirementCommand):
         try:
             reqs = self.get_requirements(args, options, finder, session)
 
-            warn_deprecated_install_options(
+            reject_location_related_install_options(
                 reqs, options.install_options
             )
 
@@ -331,7 +315,7 @@ class InstallCommand(RequirementCommand):
             try:
                 pip_req = requirement_set.get_requirement("pip")
             except KeyError:
-                modifying_pip = None
+                modifying_pip = False
             else:
                 # If we're not replacing an already installed pip,
                 # we're not modifying it.
@@ -354,35 +338,44 @@ class InstallCommand(RequirementCommand):
             _, build_failures = build(
                 reqs_to_build,
                 wheel_cache=wheel_cache,
+                verify=True,
                 build_options=[],
                 global_options=[],
             )
 
             # If we're using PEP 517, we cannot do a direct install
             # so we fail here.
-            # We don't care about failures building legacy
-            # requirements, as we'll fall through to a direct
-            # install for those.
-            pep517_build_failures = [
-                r for r in build_failures if r.use_pep517
-            ]
-            if pep517_build_failures:
+            pep517_build_failure_names = [
+                r.name   # type: ignore
+                for r in build_failures if r.use_pep517
+            ]  # type: List[str]
+            if pep517_build_failure_names:
                 raise InstallationError(
                     "Could not build wheels for {} which use"
                     " PEP 517 and cannot be installed directly".format(
-                        ", ".join(r.name for r in pep517_build_failures)))
+                        ", ".join(pep517_build_failure_names)
+                    )
+                )
+
+            # For now, we just warn about failures building legacy
+            # requirements, as we'll fall through to a direct
+            # install for those.
+            for r in build_failures:
+                if not r.use_pep517:
+                    r.legacy_install_reason = 8368
 
             to_install = resolver.get_installation_order(
                 requirement_set
             )
 
-            # Consistency Checking of the package set we're installing.
+            # Check for conflicts in the package set we're installing.
+            conflicts = None  # type: Optional[ConflictDetails]
             should_warn_about_conflicts = (
                 not options.ignore_dependencies and
                 options.warn_about_conflicts
             )
             if should_warn_about_conflicts:
-                self._warn_about_conflicts(to_install)
+                conflicts = self._determine_conflicts(to_install)
 
             # Don't warn about script install locations if
             # --target has been specified
@@ -409,37 +402,43 @@ class InstallCommand(RequirementCommand):
                 prefix=options.prefix_path,
                 isolated=options.isolated_mode,
             )
-            working_set = pkg_resources.WorkingSet(lib_locations)
+            env = get_environment(lib_locations)
 
             installed.sort(key=operator.attrgetter('name'))
             items = []
             for result in installed:
                 item = result.name
                 try:
-                    installed_version = get_installed_version(
-                        result.name, working_set=working_set
-                    )
-                    if installed_version:
-                        item += '-' + installed_version
+                    installed_dist = env.get_distribution(item)
+                    if installed_dist is not None:
+                        item = f"{item}-{installed_dist.version}"
                 except Exception:
                     pass
                 items.append(item)
+
+            if conflicts is not None:
+                self._warn_about_conflicts(
+                    conflicts,
+                    resolver_variant=self.determine_resolver_variant(options),
+                )
+
             installed_desc = ' '.join(items)
             if installed_desc:
                 write_output(
                     'Successfully installed %s', installed_desc,
                 )
-        except EnvironmentError as error:
+        except OSError as error:
             show_traceback = (self.verbosity >= 1)
 
-            message = create_env_error_message(
+            message = create_os_error_message(
                 error, show_traceback, options.use_user_site,
             )
-            logger.error(message, exc_info=show_traceback)
+            logger.error(message, exc_info=show_traceback)  # noqa
 
             return ERROR
 
         if options.target_dir:
+            assert target_temp_dir
             self._handle_target_dir(
                 options.target_dir, target_temp_dir, options.upgrade
             )
@@ -447,6 +446,7 @@ class InstallCommand(RequirementCommand):
         return SUCCESS
 
     def _handle_target_dir(self, target_dir, target_temp_dir, upgrade):
+        # type: (str, TempDirectory, bool) -> None
         ensure_dir(target_dir)
 
         # Checking both purelib and platlib directories for installed
@@ -501,41 +501,89 @@ class InstallCommand(RequirementCommand):
                     target_item_dir
                 )
 
-    def _warn_about_conflicts(self, to_install):
+    def _determine_conflicts(self, to_install):
+        # type: (List[InstallRequirement]) -> Optional[ConflictDetails]
         try:
-            package_set, _dep_info = check_install_conflicts(to_install)
+            return check_install_conflicts(to_install)
         except Exception:
-            logger.error("Error checking for conflicts.", exc_info=True)
-            return
-        missing, conflicting = _dep_info
+            logger.exception(
+                "Error while checking for conflicts. Please file an issue on "
+                "pip's issue tracker: https://github.com/pypa/pip/issues/new"
+            )
+            return None
 
-        # NOTE: There is some duplication here from pip check
+    def _warn_about_conflicts(self, conflict_details, resolver_variant):
+        # type: (ConflictDetails, str) -> None
+        package_set, (missing, conflicting) = conflict_details
+        if not missing and not conflicting:
+            return
+
+        parts = []  # type: List[str]
+        if resolver_variant == "legacy":
+            parts.append(
+                "pip's legacy dependency resolver does not consider dependency "
+                "conflicts when selecting packages. This behaviour is the "
+                "source of the following dependency conflicts."
+            )
+        else:
+            assert resolver_variant == "2020-resolver"
+            parts.append(
+                "pip's dependency resolver does not currently take into account "
+                "all the packages that are installed. This behaviour is the "
+                "source of the following dependency conflicts."
+            )
+
+        # NOTE: There is some duplication here, with commands/check.py
         for project_name in missing:
             version = package_set[project_name][0]
             for dependency in missing[project_name]:
-                logger.critical(
-                    "%s %s requires %s, which is not installed.",
-                    project_name, version, dependency[1],
+                message = (
+                    "{name} {version} requires {requirement}, "
+                    "which is not installed."
+                ).format(
+                    name=project_name,
+                    version=version,
+                    requirement=dependency[1],
                 )
+                parts.append(message)
 
         for project_name in conflicting:
             version = package_set[project_name][0]
             for dep_name, dep_version, req in conflicting[project_name]:
-                logger.critical(
-                    "%s %s has requirement %s, but you'll have %s %s which is "
-                    "incompatible.",
-                    project_name, version, req, dep_name, dep_version,
+                message = (
+                    "{name} {version} requires {requirement}, but {you} have "
+                    "{dep_name} {dep_version} which is incompatible."
+                ).format(
+                    name=project_name,
+                    version=version,
+                    requirement=req,
+                    dep_name=dep_name,
+                    dep_version=dep_version,
+                    you=("you" if resolver_variant == "2020-resolver" else "you'll")
                 )
+                parts.append(message)
+
+        logger.critical("\n".join(parts))
 
 
-def get_lib_location_guesses(*args, **kwargs):
-    scheme = distutils_scheme('', *args, **kwargs)
+def get_lib_location_guesses(
+        user=False,  # type: bool
+        home=None,  # type: Optional[str]
+        root=None,  # type: Optional[str]
+        isolated=False,  # type: bool
+        prefix=None  # type: Optional[str]
+):
+    # type:(...) -> List[str]
+    scheme = distutils_scheme('', user=user, home=home, root=root,
+                              isolated=isolated, prefix=prefix)
     return [scheme['purelib'], scheme['platlib']]
 
 
-def site_packages_writable(**kwargs):
+def site_packages_writable(root, isolated):
+    # type: (Optional[str], bool) -> bool
     return all(
-        test_writable_dir(d) for d in set(get_lib_location_guesses(**kwargs))
+        test_writable_dir(d) for d in set(
+            get_lib_location_guesses(root=root, isolated=isolated))
     )
 
 
@@ -599,7 +647,7 @@ def decide_user_install(
     return True
 
 
-def warn_deprecated_install_options(requirements, options):
+def reject_location_related_install_options(requirements, options):
     # type: (List[InstallRequirement], Optional[List[str]]) -> None
     """If any location-changing --install-option arguments were passed for
     requirements or on the command-line, then show a deprecation warning.
@@ -632,32 +680,25 @@ def warn_deprecated_install_options(requirements, options):
     if not offenders:
         return
 
-    deprecated(
-        reason=(
-            "Location-changing options found in --install-option: {}. "
-            "This configuration may cause unexpected behavior and is "
-            "unsupported.".format(
-                "; ".join(offenders)
-            )
-        ),
-        replacement=(
-            "using pip-level options like --user, --prefix, --root, and "
-            "--target"
-        ),
-        gone_in="20.2",
-        issue=7309,
+    raise CommandError(
+        "Location-changing options found in --install-option: {}."
+        " This is unsupported, use pip-level options like --user,"
+        " --prefix, --root, and --target instead.".format(
+            "; ".join(offenders)
+        )
     )
 
 
-def create_env_error_message(error, show_traceback, using_user_site):
-    """Format an error message for an EnvironmentError
+def create_os_error_message(error, show_traceback, using_user_site):
+    # type: (OSError, bool, bool) -> str
+    """Format an error message for an OSError
 
     It may occur anytime during the execution of the install command.
     """
     parts = []
 
     # Mention the error if we are not going to show a traceback
-    parts.append("Could not install packages due to an EnvironmentError")
+    parts.append("Could not install packages due to an OSError")
     if not show_traceback:
         parts.append(": ")
         parts.append(str(error))

@@ -1,18 +1,14 @@
 import os
+from contextlib import ExitStack
 from email import message_from_string
 from io import BytesIO
 from zipfile import ZipFile
 
 import pytest
-from pip._vendor.contextlib2 import ExitStack
 
 from pip._internal.exceptions import UnsupportedWheel
 from pip._internal.utils import wheel
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-from tests.lib import skip_if_python2
-
-if MYPY_CHECK_RUNNING:
-    from tests.lib.path import Path
+from tests.lib.path import Path
 
 
 @pytest.fixture
@@ -88,7 +84,6 @@ def test_wheel_metadata_fails_missing_wheel(tmpdir, zip_dir):
     assert "could not read" in str(e.value)
 
 
-@skip_if_python2
 def test_wheel_metadata_fails_on_bad_encoding(tmpdir, zip_dir):
     dist_info_dir = tmpdir / "simple-0.1.0.dist-info"
     dist_info_dir.mkdir()
@@ -114,7 +109,7 @@ def test_wheel_version_fails_on_no_wheel_version():
 def test_wheel_version_fails_on_bad_wheel_version(version):
     with pytest.raises(UnsupportedWheel) as e:
         wheel.wheel_version(
-            message_from_string("Wheel-Version: {}".format(version))
+            message_from_string(f"Wheel-Version: {version}")
         )
     assert "invalid Wheel-Version" in str(e.value)
 

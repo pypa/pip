@@ -1,8 +1,8 @@
 import os
 import sys
+from unittest.mock import Mock
 
 import pytest
-from mock import Mock
 
 import pip._internal.req.req_uninstall
 from pip._internal.req.req_uninstall import (
@@ -24,7 +24,7 @@ def mock_is_local(path):
 
 
 def test_uninstallation_paths():
-    class dist(object):
+    class dist:
         def get_metadata_lines(self, record):
             return ['file.py,,',
                     'file.pyc,,',
@@ -116,7 +116,7 @@ def test_compressed_listing(tmpdir):
     assert sorted(expected_rename) == sorted(compact(will_rename))
 
 
-class TestUninstallPathSet(object):
+class TestUninstallPathSet:
     def test_add(self, tmpdir, monkeypatch):
         monkeypatch.setattr(pip._internal.req.req_uninstall, 'is_local',
                             mock_is_local)
@@ -215,7 +215,7 @@ class TestUninstallPathSet(object):
         assert ups.paths == {path1}
 
 
-class TestStashedUninstallPathSet(object):
+class TestStashedUninstallPathSet:
     WALK_RESULT = [
         ("A", ["B", "C"], ["a.py"]),
         ("A/B", ["D"], ["b.py"]),

@@ -1,5 +1,6 @@
+from unittest.mock import patch
+
 import pytest
-from mock import patch
 
 from pip._internal.models.target_python import TargetPython
 from tests.lib import CURRENT_PY_VERSION_INFO, pyversion
@@ -45,16 +46,16 @@ class TestTargetPython:
         ({}, ''),
         (dict(py_version_info=(3, 6)), "version_info='3.6'"),
         (
-            dict(platform='darwin', py_version_info=(3, 6)),
-            "platform='darwin' version_info='3.6'",
+            dict(platforms=['darwin'], py_version_info=(3, 6)),
+            "platforms=['darwin'] version_info='3.6'",
         ),
         (
             dict(
-                platform='darwin', py_version_info=(3, 6), abi='cp36m',
+                platforms=['darwin'], py_version_info=(3, 6), abis=['cp36m'],
                 implementation='cp'
             ),
             (
-                "platform='darwin' version_info='3.6' abi='cp36m' "
+                "platforms=['darwin'] version_info='3.6' abis=['cp36m'] "
                 "implementation='cp'"
             ),
         ),

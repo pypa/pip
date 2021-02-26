@@ -1,4 +1,5 @@
 import datetime
+import functools
 import json
 import os
 import sys
@@ -6,98 +7,24 @@ import sys
 import freezegun
 import pretend
 import pytest
-from mock import patch
-from pip._vendor import pkg_resources
+from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal import self_outdated_check
 from pip._internal.models.candidate import InstallationCandidate
-from pip._internal.network.session import PipSession
 from pip._internal.self_outdated_check import (
     SelfCheckState,
     logger,
-    make_link_collector,
     pip_self_version_check,
 )
 from tests.lib.path import Path
 
 
-@pytest.mark.parametrize(
-    'find_links, no_index, suppress_no_index, expected', [
-        (['link1'], False, False,
-         (['link1'], ['default_url', 'url1', 'url2'])),
-        (['link1'], False, True, (['link1'], ['default_url', 'url1', 'url2'])),
-        (['link1'], True, False, (['link1'], [])),
-        # Passing suppress_no_index=True suppresses no_index=True.
-        (['link1'], True, True, (['link1'], ['default_url', 'url1', 'url2'])),
-        # Test options.find_links=False.
-        (False, False, False, ([], ['default_url', 'url1', 'url2'])),
-    ],
-)
-def test_make_link_collector(
-    find_links, no_index, suppress_no_index, expected,
-):
-    """
-    :param expected: the expected (find_links, index_urls) values.
-    """
-    expected_find_links, expected_index_urls = expected
-    session = PipSession()
-    options = pretend.stub(
-        find_links=find_links,
-        index_url='default_url',
-        extra_index_urls=['url1', 'url2'],
-        no_index=no_index,
-    )
-    link_collector = make_link_collector(
-        session, options=options, suppress_no_index=suppress_no_index,
-    )
-
-    assert link_collector.session is session
-
-    search_scope = link_collector.search_scope
-    assert search_scope.find_links == expected_find_links
-    assert search_scope.index_urls == expected_index_urls
-
-
-@patch('pip._internal.utils.misc.expanduser')
-def test_make_link_collector__find_links_expansion(mock_expanduser, tmpdir):
-    """
-    Test "~" expansion in --find-links paths.
-    """
-    # This is a mock version of expanduser() that expands "~" to the tmpdir.
-    def expand_path(path):
-        if path.startswith('~/'):
-            path = os.path.join(tmpdir, path[2:])
-        return path
-
-    mock_expanduser.side_effect = expand_path
-
-    session = PipSession()
-    options = pretend.stub(
-        find_links=['~/temp1', '~/temp2'],
-        index_url='default_url',
-        extra_index_urls=[],
-        no_index=False,
-    )
-    # Only create temp2 and not temp1 to test that "~" expansion only occurs
-    # when the directory exists.
-    temp2_dir = os.path.join(tmpdir, 'temp2')
-    os.mkdir(temp2_dir)
-
-    link_collector = make_link_collector(session, options=options)
-
-    search_scope = link_collector.search_scope
-    # Only ~/temp2 gets expanded. Also, the path is normalized when expanded.
-    expected_temp2_dir = os.path.normcase(temp2_dir)
-    assert search_scope.find_links == ['~/temp1', expected_temp2_dir]
-    assert search_scope.index_urls == ['default_url']
-
-
-class MockBestCandidateResult(object):
+class MockBestCandidateResult:
     def __init__(self, best):
         self.best_candidate = best
 
 
-class MockPackageFinder(object):
+class MockPackageFinder:
 
     BASE_URL = 'https://pypi.org/simple/pip-{0}.tar.gz'
     PIP_PROJECT_NAME = 'pip'
@@ -118,18 +45,21 @@ class MockPackageFinder(object):
         return MockBestCandidateResult(self.INSTALLATION_CANDIDATES[0])
 
 
-class MockDistribution(object):
-    def __init__(self, installer):
+class MockDistribution:
+    def __init__(self, installer, version):
         self.installer = installer
+        self.version = parse_version(version)
 
-    def has_metadata(self, name):
-        return name == 'INSTALLER'
 
-    def get_metadata_lines(self, name):
-        if self.has_metadata(name):
-            yield self.installer
-        else:
-            raise NotImplementedError('nope')
+class MockEnvironment:
+    def __init__(self, installer, installed_version):
+        self.installer = installer
+        self.installed_version = installed_version
+
+    def get_distribution(self, name):
+        if self.installed_version is None:
+            return None
+        return MockDistribution(self.installer, self.installed_version)
 
 
 def _options():
@@ -164,16 +94,26 @@ def _options():
 def test_pip_self_version_check(monkeypatch, stored_time, installed_ver,
                                 new_ver, installer,
                                 check_if_upgrade_required, check_warn_logs):
-    monkeypatch.setattr(self_outdated_check, 'get_installed_version',
-                        lambda name: installed_ver)
-    monkeypatch.setattr(self_outdated_check, 'PackageFinder',
-                        MockPackageFinder)
-    monkeypatch.setattr(logger, 'warning',
-                        pretend.call_recorder(lambda *a, **kw: None))
-    monkeypatch.setattr(logger, 'debug',
-                        pretend.call_recorder(lambda s, exc_info=None: None))
-    monkeypatch.setattr(pkg_resources, 'get_distribution',
-                        lambda name: MockDistribution(installer))
+    monkeypatch.setattr(
+        self_outdated_check,
+        "get_default_environment",
+        functools.partial(MockEnvironment, installer, installed_ver),
+    )
+    monkeypatch.setattr(
+        self_outdated_check,
+        "PackageFinder",
+        MockPackageFinder,
+    )
+    monkeypatch.setattr(
+        logger,
+        "warning",
+        pretend.call_recorder(lambda *a, **kw: None),
+    )
+    monkeypatch.setattr(
+        logger,
+        "debug",
+        pretend.call_recorder(lambda s, exc_info=None: None),
+    )
 
     fake_state = pretend.stub(
         state={"last_check": stored_time, 'pypi_version': installed_ver},

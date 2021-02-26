@@ -15,11 +15,17 @@ from pip._internal.req.req_file import SUPPORTED_OPTIONS
 
 class PipCommandUsage(rst.Directive):
     required_arguments = 1
+    optional_arguments = 3
 
     def run(self):
         cmd = create_command(self.arguments[0])
+        cmd_prefix = 'python -m pip'
+        if len(self.arguments) > 1:
+            cmd_prefix = " ".join(self.arguments[1:])
+            cmd_prefix = cmd_prefix.strip('"')
+            cmd_prefix = cmd_prefix.strip("'")
         usage = dedent(
-            cmd.usage.replace('%prog', 'pip {}'.format(cmd.name))
+            cmd.usage.replace('%prog', f'{cmd_prefix} {cmd.name}')
         ).strip()
         node = nodes.literal_block(usage, usage)
         return [node]
@@ -44,10 +50,10 @@ class PipOptions(rst.Directive):
 
     def _format_option(self, option, cmd_name=None):
         bookmark_line = (
-            ".. _`{cmd_name}_{option._long_opts[0]}`:"
+            f".. _`{cmd_name}_{option._long_opts[0]}`:"
             if cmd_name else
-            ".. _`{option._long_opts[0]}`:"
-        ).format(**locals())
+            f".. _`{option._long_opts[0]}`:"
+        )
         line = ".. option:: "
         if option._short_opts:
             line += option._short_opts[0]
@@ -57,7 +63,7 @@ class PipOptions(rst.Directive):
             line += option._long_opts[0]
         if option.takes_value():
             metavar = option.metavar or option.dest.lower()
-            line += " <{}>".format(metavar.lower())
+            line += f" <{metavar.lower()}>"
         # fix defaults
         opt_help = option.help.replace('%default', str(option.default))
         # fix paths with sys.prefix
@@ -117,7 +123,7 @@ class PipReqFileOptionsReference(PipOptions):
             if cmd.cmd_opts.has_option(opt_name):
                 return command
 
-        raise KeyError('Could not identify prefix of opt {}'.format(opt_name))
+        raise KeyError(f'Could not identify prefix of opt {opt_name}')
 
     def process_options(self):
         for option in SUPPORTED_OPTIONS:
@@ -137,7 +143,7 @@ class PipReqFileOptionsReference(PipOptions):
                 prefix = '{}_'.format(self.determine_opt_prefix(opt_name))
 
             self.view_list.append(
-                '  *  :ref:`{short}{long}<{prefix}{opt_name}>`'.format(
+                '*  :ref:`{short}{long}<{prefix}{opt_name}>`'.format(
                     short=short_opt_name,
                     long=opt_name,
                     prefix=prefix,

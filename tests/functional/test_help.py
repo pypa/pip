@@ -1,5 +1,6 @@
+from unittest.mock import Mock
+
 import pytest
-from mock import Mock
 
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.commands import commands_dict, create_command
@@ -62,6 +63,27 @@ def test_help_command_should_exit_status_error_when_cmd_does_not_exist(script):
     """
     result = script.pip('help', 'mycommand', expect_error=True)
     assert result.returncode == ERROR
+
+
+def test_help_command_redact_auth_from_url(script):
+    """
+    Test `help` on various subcommands redact auth from url
+    """
+    script.environ['PIP_INDEX_URL'] = 'https://user:secret@example.com'
+    result = script.pip('install', '--help')
+    assert result.returncode == SUCCESS
+    assert 'secret' not in result.stdout
+
+
+def test_help_command_redact_auth_from_url_with_extra_index_url(script):
+    """
+    Test `help` on various subcommands redact auth from url with extra index url
+    """
+    script.environ['PIP_INDEX_URL'] = 'https://user:secret@example.com'
+    script.environ['PIP_EXTRA_INDEX_URL'] = 'https://user:secret@example2.com'
+    result = script.pip('install', '--help')
+    assert result.returncode == SUCCESS
+    assert 'secret' not in result.stdout
 
 
 def test_help_commands_equally_functional(in_memory_pip):

@@ -1,7 +1,3 @@
-# The following comment should be removed at some point in the future.
-# mypy: disallow-untyped-defs=False
-
-import codecs
 import os
 import sys
 
@@ -9,21 +5,22 @@ from setuptools import find_packages, setup
 
 
 def read(rel_path):
+    # type: (str) -> str
     here = os.path.abspath(os.path.dirname(__file__))
     # intentionally *not* adding an encoding option to open, See:
     #   https://github.com/pypa/virtualenv/issues/201#issuecomment-3145690
-    with codecs.open(os.path.join(here, rel_path), 'r') as fp:
+    with open(os.path.join(here, rel_path)) as fp:
         return fp.read()
 
 
 def get_version(rel_path):
+    # type: (str) -> str
     for line in read(rel_path).splitlines():
         if line.startswith('__version__'):
             # __version__ = "0.9"
             delim = '"' if '"' in line else "'"
             return line.split(delim)[1]
-    else:
-        raise RuntimeError("Unable to find version string.")
+    raise RuntimeError("Unable to find version string.")
 
 
 long_description = read('README.rst')
@@ -41,13 +38,12 @@ setup(
         "License :: OSI Approved :: MIT License",
         "Topic :: Software Development :: Build Tools",
         "Programming Language :: Python",
-        "Programming Language :: Python :: 2",
-        "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.5",
+        "Programming Language :: Python :: 3 :: Only",
         "Programming Language :: Python :: 3.6",
         "Programming Language :: Python :: 3.7",
         "Programming Language :: Python :: 3.8",
+        "Programming Language :: Python :: 3.9",
         "Programming Language :: Python :: Implementation :: CPython",
         "Programming Language :: Python :: Implementation :: PyPy",
     ],
@@ -68,6 +64,7 @@ setup(
         exclude=["contrib", "docs", "tests*", "tasks"],
     ),
     package_data={
+        "pip": ["py.typed"],
         "pip._vendor": ["vendor.txt"],
         "pip._vendor.certifi": ["*.pem"],
         "pip._vendor.requests": ["*.pem"],
@@ -85,5 +82,5 @@ setup(
     },
 
     zip_safe=False,
-    python_requires='>=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*',
+    python_requires='>=3.6',
 )

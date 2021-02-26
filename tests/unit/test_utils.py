@@ -1,25 +1,20 @@
-# -*- coding: utf-8 -*-
-
 """
 util tests
 
 """
 import codecs
+import itertools
 import os
 import shutil
 import stat
 import sys
 import time
 from io import BytesIO
+from unittest.mock import Mock, patch
 
 import pytest
-from mock import Mock, patch
 
-from pip._internal.exceptions import (
-    HashMismatch,
-    HashMissing,
-    InstallationError,
-)
+from pip._internal.exceptions import HashMismatch, HashMissing, InstallationError
 from pip._internal.utils.deprecation import PipDeprecationWarning, deprecated
 from pip._internal.utils.encoding import BOMS, auto_decode
 from pip._internal.utils.glibc import (
@@ -34,6 +29,7 @@ from pip._internal.utils.misc import (
     build_url_from_netloc,
     egg_link_path,
     format_size,
+    get_distribution,
     get_installed_distributions,
     get_prog,
     hide_url,
@@ -42,7 +38,6 @@ from pip._internal.utils.misc import (
     normalize_path,
     normalize_version_info,
     parse_netloc,
-    path_to_display,
     redact_auth_from_url,
     redact_netloc,
     remove_auth_from_url,
@@ -67,11 +62,11 @@ class Tests_EgglinkPath:
         self.user_site = 'USER_SITE'
         self.user_site_egglink = os.path.join(
             self.user_site,
-            '{}.egg-link'.format(project)
+            f'{project}.egg-link'
         )
         self.site_packages_egglink = os.path.join(
             self.site_packages,
-            '{}.egg-link'.format(project),
+            f'{project}.egg-link',
         )
 
         # patches
@@ -192,26 +187,30 @@ class Tests_EgglinkPath:
 @patch('pip._internal.utils.misc.dist_in_usersite')
 @patch('pip._internal.utils.misc.dist_is_local')
 @patch('pip._internal.utils.misc.dist_is_editable')
-class Tests_get_installed_distributions:
-    """test util.get_installed_distributions"""
+class TestsGetDistributions:
+    """Test get_installed_distributions() and get_distribution().
+    """
+    class MockWorkingSet(list):
+        def require(self, name):
+            pass
 
-    workingset = [
-        Mock(test_name="global"),
-        Mock(test_name="editable"),
-        Mock(test_name="normal"),
-        Mock(test_name="user"),
-    ]
+    workingset = MockWorkingSet((
+        Mock(test_name="global", project_name="global"),
+        Mock(test_name="editable", project_name="editable"),
+        Mock(test_name="normal", project_name="normal"),
+        Mock(test_name="user", project_name="user"),
+    ))
 
-    workingset_stdlib = [
-        Mock(test_name='normal', key='argparse'),
-        Mock(test_name='normal', key='wsgiref')
-    ]
+    workingset_stdlib = MockWorkingSet((
+        Mock(test_name='normal', project_name='argparse'),
+        Mock(test_name='normal', project_name='wsgiref')
+    ))
 
-    workingset_freeze = [
-        Mock(test_name='normal', key='pip'),
-        Mock(test_name='normal', key='setuptools'),
-        Mock(test_name='normal', key='distribute')
-    ]
+    workingset_freeze = MockWorkingSet((
+        Mock(test_name='normal', project_name='pip'),
+        Mock(test_name='normal', project_name='setuptools'),
+        Mock(test_name='normal', project_name='distribute')
+    ))
 
     def dist_is_editable(self, dist):
         return dist.test_name == "editable"
@@ -286,6 +285,50 @@ class Tests_get_installed_distributions:
         dists = get_installed_distributions(
             skip=('setuptools', 'pip', 'distribute'))
         assert len(dists) == 0
+
+    @pytest.mark.parametrize(
+        "working_set, req_name",
+        itertools.chain(
+            itertools.product(
+                [workingset],
+                (d.project_name for d in workingset),
+            ),
+            itertools.product(
+                [workingset_stdlib],
+                (d.project_name for d in workingset_stdlib),
+            ),
+        ),
+    )
+    def test_get_distribution(
+        self,
+        mock_dist_is_editable,
+        mock_dist_is_local,
+        mock_dist_in_usersite,
+        working_set,
+        req_name,
+    ):
+        """Ensure get_distribution() finds all kinds of distributions.
+        """
+        mock_dist_is_editable.side_effect = self.dist_is_editable
+        mock_dist_is_local.side_effect = self.dist_is_local
+        mock_dist_in_usersite.side_effect = self.dist_in_usersite
+        with patch("pip._vendor.pkg_resources.working_set", working_set):
+            dist = get_distribution(req_name)
+        assert dist is not None
+        assert dist.project_name == req_name
+
+    @patch('pip._vendor.pkg_resources.working_set', workingset)
+    def test_get_distribution_nonexist(
+        self,
+        mock_dist_is_editable,
+        mock_dist_is_local,
+        mock_dist_in_usersite,
+    ):
+        mock_dist_is_editable.side_effect = self.dist_is_editable
+        mock_dist_is_local.side_effect = self.dist_is_local
+        mock_dist_in_usersite.side_effect = self.dist_in_usersite
+        dist = get_distribution("non-exist")
+        assert dist is None
 
 
 def test_rmtree_errorhandler_nonexistent_directory(tmpdir):
@@ -377,33 +420,17 @@ def test_rmtree_retries_for_3sec(tmpdir, monkeypatch):
 
 if sys.byteorder == "little":
     expected_byte_string = (
-        u"b'\\xff\\xfe/\\x00p\\x00a\\x00t\\x00h\\x00/"
+        "b'\\xff\\xfe/\\x00p\\x00a\\x00t\\x00h\\x00/"
         "\\x00d\\x00\\xe9\\x00f\\x00'"
     )
 elif sys.byteorder == "big":
     expected_byte_string = (
-        u"b'\\xfe\\xff\\x00/\\x00p\\x00a\\x00t\\x00h\\"
+        "b'\\xfe\\xff\\x00/\\x00p\\x00a\\x00t\\x00h\\"
         "x00/\\x00d\\x00\\xe9\\x00f'"
     )
 
 
-@pytest.mark.parametrize('path, fs_encoding, expected', [
-    (None, None, None),
-    # Test passing a text (unicode) string.
-    (u'/path/déf', None, u'/path/déf'),
-    # Test a bytes object with a non-ascii character.
-    (u'/path/déf'.encode('utf-8'), 'utf-8', u'/path/déf'),
-    # Test a bytes object with a character that can't be decoded.
-    (u'/path/déf'.encode('utf-8'), 'ascii', u"b'/path/d\\xc3\\xa9f'"),
-    (u'/path/déf'.encode('utf-16'), 'utf-8', expected_byte_string),
-])
-def test_path_to_display(monkeypatch, path, fs_encoding, expected):
-    monkeypatch.setattr(sys, 'getfilesystemencoding', lambda: fs_encoding)
-    actual = path_to_display(path)
-    assert actual == expected, 'actual: {!r}'.format(actual)
-
-
-class Test_normalize_path(object):
+class Test_normalize_path:
     # Technically, symlinks are possible on Windows, but you need a special
     # permission bit to create them, and Python 2 doesn't support it anyway, so
     # it's easiest just to skip this test on Windows altogether.
@@ -440,7 +467,7 @@ class Test_normalize_path(object):
             os.chdir(orig_working_dir)
 
 
-class TestHashes(object):
+class TestHashes:
     """Tests for pip._internal.utils.hashes"""
 
     @pytest.mark.parametrize('hash_name, hex_digest, expected', [
@@ -499,8 +526,18 @@ class TestHashes(object):
         assert not Hashes()
         assert not Hashes({})
 
+    def test_equality(self):
+        assert Hashes() == Hashes()
+        assert Hashes({'sha256': ['abcd']}) == Hashes({'sha256': ['abcd']})
+        assert Hashes({'sha256': ['ab', 'cd']}) == Hashes({'sha256': ['cd', 'ab']})
 
-class TestEncoding(object):
+    def test_hash(self):
+        cache = {}
+        cache[Hashes({'sha256': ['ab', 'cd']})] = 42
+        assert cache[Hashes({'sha256': ['ab', 'cd']})] == 42
+
+
+class TestEncoding:
     """Tests for pip._internal.utils.encoding"""
 
     def test_auto_decode_utf_16_le(self):
@@ -520,17 +557,17 @@ class TestEncoding(object):
         assert auto_decode(data) == "Django==1.4.2"
 
     def test_auto_decode_no_bom(self):
-        assert auto_decode(b'foobar') == u'foobar'
+        assert auto_decode(b'foobar') == 'foobar'
 
     def test_auto_decode_pep263_headers(self):
-        latin1_req = u'# coding=latin1\n# Pas trop de café'
+        latin1_req = '# coding=latin1\n# Pas trop de café'
         assert auto_decode(latin1_req.encode('latin1')) == latin1_req
 
     def test_auto_decode_no_preferred_encoding(self):
         om, em = Mock(), Mock()
         om.return_value = 'ascii'
         em.return_value = None
-        data = u'data'
+        data = 'data'
         with patch('sys.getdefaultencoding', om):
             with patch('locale.getpreferredencoding', em):
                 ret = auto_decode(data.encode(sys.getdefaultencoding()))
@@ -546,7 +583,7 @@ def raises(error):
     raise error
 
 
-class TestGlibc(object):
+class TestGlibc:
     @pytest.mark.skipif("sys.platform == 'win32'")
     def test_glibc_version_string(self, monkeypatch):
         monkeypatch.setattr(
@@ -591,7 +628,7 @@ def test_normalize_version_info(version_info, expected):
     assert actual == expected
 
 
-class TestGetProg(object):
+class TestGetProg:
 
     @pytest.mark.parametrize(
         ("argv", "executable", "expected"),
@@ -797,8 +834,7 @@ class TestHiddenText:
         hidden2 = HiddenText('secret', redacted='####')
 
         assert hidden1 == hidden2
-        # Also test __ne__.  This assertion fails in Python 2 without
-        # defining HiddenText.__ne__.
+        # Also test __ne__.
         assert not hidden1 != hidden2
 
     def test_equality_different_secret(self):

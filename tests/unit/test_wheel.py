@@ -1,16 +1,15 @@
-# -*- coding: utf-8 -*-
-
 """Tests for wheel binary packages and .dist-info."""
 import csv
 import logging
 import os
 import textwrap
 from email import message_from_string
+from unittest.mock import patch
 
 import pytest
-from mock import patch
 from pip._vendor.packaging.requirements import Requirement
 
+from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_scheme
 from pip._internal.models.direct_url import (
     DIRECT_URL_METADATA_NAME,
@@ -18,18 +17,14 @@ from pip._internal.models.direct_url import (
     DirectUrl,
 )
 from pip._internal.models.scheme import Scheme
-from pip._internal.operations.build.wheel_legacy import (
-    get_legacy_build_wheel_path,
-)
+from pip._internal.operations.build.wheel_legacy import get_legacy_build_wheel_path
 from pip._internal.operations.install import wheel
-from pip._internal.operations.install.wheel import (
-    MissingCallableSuffix,
-    _raise_for_invalid_entrypoint,
-)
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.misc import hash_file
 from pip._internal.utils.unpacking import unpack_file
+from pip._internal.utils.wheel import pkg_resources_distribution_for_wheel
 from tests.lib import DATA_DIR, assert_paths_equal
+from tests.lib.wheel import make_wheel
 
 
 def call_get_legacy_build_wheel_path(caplog, names):
@@ -81,43 +76,55 @@ def test_get_legacy_build_wheel_path__multiple_names(caplog):
     ]
 
 
-@pytest.mark.parametrize("console_scripts",
-                         ["pip = pip._internal.main:pip",
-                          "pip:pip = pip._internal.main:pip"])
-def test_get_entrypoints(tmpdir, console_scripts):
-    entry_points = tmpdir.joinpath("entry_points.txt")
-    with open(str(entry_points), "w") as fp:
-        fp.write("""
-            [console_scripts]
-            {}
-            [section]
-            common:one = module:func
-            common:two = module:other_func
-        """.format(console_scripts))
+@pytest.mark.parametrize(
+    "console_scripts",
+    [
+        "pip = pip._internal.main:pip",
+        "pip:pip = pip._internal.main:pip",
+        "進入點 = 套件.模組:函式",
+    ],
+)
+def test_get_entrypoints(console_scripts):
+    entry_points_text = """
+        [console_scripts]
+        {}
+        [section]
+        common:one = module:func
+        common:two = module:other_func
+    """.format(console_scripts)
 
-    assert wheel.get_entrypoints(str(entry_points)) == (
+    wheel_zip = make_wheel(
+        "simple",
+        "0.1.0",
+        extra_metadata_files={
+            "entry_points.txt": entry_points_text,
+        },
+    ).as_zipfile()
+    distribution = pkg_resources_distribution_for_wheel(
+        wheel_zip, "simple", "<in memory>"
+    )
+
+    assert wheel.get_entrypoints(distribution) == (
         dict([console_scripts.split(' = ')]),
         {},
     )
 
 
-def test_raise_for_invalid_entrypoint_ok():
-    _raise_for_invalid_entrypoint("hello = hello:main")
+def test_get_entrypoints_no_entrypoints():
+    wheel_zip = make_wheel("simple", "0.1.0").as_zipfile()
+    distribution = pkg_resources_distribution_for_wheel(
+        wheel_zip, "simple", "<in memory>"
+    )
 
-
-@pytest.mark.parametrize("entrypoint", [
-    "hello = hello",
-    "hello = hello:",
-])
-def test_raise_for_invalid_entrypoint_fail(entrypoint):
-    with pytest.raises(MissingCallableSuffix):
-        _raise_for_invalid_entrypoint(entrypoint)
+    console, gui = wheel.get_entrypoints(distribution)
+    assert console == {}
+    assert gui == {}
 
 
 @pytest.mark.parametrize("outrows, expected", [
     ([
-        (u'', '', 'a'),
-        (u'', '', ''),
+        ('', '', 'a'),
+        ('', '', ''),
     ], [
         ('', '', ''),
         ('', '', 'a'),
@@ -125,16 +132,16 @@ def test_raise_for_invalid_entrypoint_fail(entrypoint):
     ([
         # Include an int to check avoiding the following error:
         # > TypeError: '<' not supported between instances of 'str' and 'int'
-        (u'', '', 1),
-        (u'', '', ''),
+        ('', '', 1),
+        ('', '', ''),
     ], [
         ('', '', ''),
         ('', '', '1'),
     ]),
     ([
         # Test the normalization correctly encode everything for csv.writer().
-        (u'😉', '', 1),
-        (u'', '', ''),
+        ('😉', '', 1),
+        ('', '', ''),
     ], [
         ('', '', ''),
         ('😉', '', '1'),
@@ -151,17 +158,17 @@ def call_get_csv_rows_for_installed(tmpdir, text):
 
     # Test that an installed file appearing in RECORD has its filename
     # updated in the new RECORD file.
-    installed = {u'a': 'z'}
+    installed = {'a': 'z'}
     changed = set()
     generated = []
     lib_dir = '/lib/dir'
 
     with open(path, **wheel.csv_io_kwargs('r')) as f:
-        reader = csv.reader(f)
-        outrows = wheel.get_csv_rows_for_installed(
-            reader, installed=installed, changed=changed,
-            generated=generated, lib_dir=lib_dir,
-        )
+        record_rows = list(csv.reader(f))
+    outrows = wheel.get_csv_rows_for_installed(
+        record_rows, installed=installed, changed=changed,
+        generated=generated, lib_dir=lib_dir,
+    )
     return outrows
 
 
@@ -216,7 +223,7 @@ def test_wheel_root_is_purelib(text, expected):
     assert wheel.wheel_root_is_purelib(message_from_string(text)) == expected
 
 
-class TestWheelFile(object):
+class TestWheelFile:
 
     def test_unpack_wheel_no_flatten(self, tmpdir):
         filepath = os.path.join(DATA_DIR, 'packages',
@@ -225,15 +232,64 @@ class TestWheelFile(object):
         assert os.path.isdir(os.path.join(tmpdir, 'meta-1.0.dist-info'))
 
 
-class TestInstallUnpackedWheel(object):
+class TestInstallUnpackedWheel:
     """
     Tests for moving files from wheel src to scheme paths
     """
 
     def prep(self, data, tmpdir):
+        # Since Path implements __add__, os.path.join returns a Path object.
+        # Passing Path objects to interfaces expecting str (like
+        # `compileall.compile_file`) can cause failures, so we normalize it
+        # to a string here.
+        tmpdir = str(tmpdir)
         self.name = 'sample'
-        self.wheelpath = data.packages.joinpath(
-            'sample-1.2.0-py2.py3-none-any.whl')
+        self.wheelpath = make_wheel(
+            "sample",
+            "1.2.0",
+            metadata_body=textwrap.dedent(
+                """
+                A sample Python project
+                =======================
+
+                ...
+                """
+            ),
+            metadata_updates={
+                "Requires-Dist": ["peppercorn"],
+            },
+            extra_files={
+                "sample/__init__.py": textwrap.dedent(
+                    '''
+                    __version__ = '1.2.0'
+
+                    def main():
+                        """Entry point for the application script"""
+                        print("Call your main application code here")
+                    '''
+                ),
+                "sample/package_data.dat": "some data",
+            },
+            extra_metadata_files={
+                "DESCRIPTION.rst": textwrap.dedent(
+                    """
+                    A sample Python project
+                    =======================
+
+                    ...
+                    """
+                ),
+                "top_level.txt": "sample\n",
+                "empty_dir/empty_dir/": "",
+            },
+            extra_data_files={
+                "data/my_data/data_file": "some data",
+            },
+            entry_points={
+                "console_scripts": ["sample = sample:main"],
+                "gui_scripts": ["sample2 = sample:main"],
+            },
+        ).save_to_dir(tmpdir)
         self.req = Requirement('sample')
         self.src = os.path.join(tmpdir, 'src')
         self.dest = os.path.join(tmpdir, 'dest')
@@ -373,23 +429,65 @@ class TestInstallUnpackedWheel(object):
         """
         # e.g. https://github.com/pypa/pip/issues/1632#issuecomment-38027275
         self.prep(data, tmpdir)
-        src_empty_dir = os.path.join(
-            self.src_dist_info, 'empty_dir', 'empty_dir')
-        os.makedirs(src_empty_dir)
-        assert os.path.isdir(src_empty_dir)
         wheel.install_wheel(
             self.name,
             self.wheelpath,
             scheme=self.scheme,
             req_description=str(self.req),
-            _temp_dir_for_testing=self.src,
         )
         self.assert_installed(0o644)
         assert not os.path.isdir(
             os.path.join(self.dest_dist_info, 'empty_dir'))
 
+    @pytest.mark.parametrize(
+        "path",
+        ["/tmp/example", "../example", "./../example"]
+    )
+    def test_wheel_install_rejects_bad_paths(self, data, tmpdir, path):
+        self.prep(data, tmpdir)
+        wheel_path = make_wheel(
+            "simple", "0.1.0", extra_files={path: "example contents\n"}
+        ).save_to_dir(tmpdir)
+        with pytest.raises(InstallationError) as e:
+            wheel.install_wheel(
+                "simple",
+                str(wheel_path),
+                scheme=self.scheme,
+                req_description="simple",
+            )
 
-class TestMessageAboutScriptsNotOnPATH(object):
+        exc_text = str(e.value)
+        assert os.path.basename(wheel_path) in exc_text
+        assert "example" in exc_text
+
+    @pytest.mark.xfail(strict=True)
+    @pytest.mark.parametrize(
+        "entrypoint", ["hello = hello", "hello = hello:"]
+    )
+    @pytest.mark.parametrize(
+        "entrypoint_type", ["console_scripts", "gui_scripts"]
+    )
+    def test_invalid_entrypoints_fail(
+        self, data, tmpdir, entrypoint, entrypoint_type
+    ):
+        self.prep(data, tmpdir)
+        wheel_path = make_wheel(
+            "simple", "0.1.0", entry_points={entrypoint_type: [entrypoint]}
+        ).save_to_dir(tmpdir)
+        with pytest.raises(InstallationError) as e:
+            wheel.install_wheel(
+                "simple",
+                str(wheel_path),
+                scheme=self.scheme,
+                req_description="simple",
+            )
+
+        exc_text = str(e.value)
+        assert os.path.basename(wheel_path) in exc_text
+        assert entrypoint in exc_text
+
+
+class TestMessageAboutScriptsNotOnPATH:
 
     tilde_warning_msg = (
         "NOTE: The current PATH contains path(s) starting with `~`, "
@@ -498,16 +596,14 @@ class TestMessageAboutScriptsNotOnPATH(object):
         )
         assert retval is None
 
-    def test_missing_PATH_env_treated_as_empty_PATH_env(self):
+    def test_missing_PATH_env_treated_as_empty_PATH_env(self, monkeypatch):
         scripts = ['a/b/foo']
 
-        env = os.environ.copy()
-        del env['PATH']
-        with patch.dict('os.environ', env, clear=True):
-            retval_missing = wheel.message_about_scripts_not_on_PATH(scripts)
+        monkeypatch.delenv('PATH')
+        retval_missing = wheel.message_about_scripts_not_on_PATH(scripts)
 
-        with patch.dict('os.environ', {'PATH': ''}):
-            retval_empty = wheel.message_about_scripts_not_on_PATH(scripts)
+        monkeypatch.setenv('PATH', '')
+        retval_empty = wheel.message_about_scripts_not_on_PATH(scripts)
 
         assert retval_missing == retval_empty
 
@@ -548,7 +644,7 @@ class TestMessageAboutScriptsNotOnPATH(object):
         assert self.tilde_warning_msg not in retval
 
 
-class TestWheelHashCalculators(object):
+class TestWheelHashCalculators:
 
     def prep(self, tmpdir):
         self.test_file = tmpdir.joinpath("hash.file")

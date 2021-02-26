@@ -1,15 +1,9 @@
+from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
 
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.req.req_install import InstallRequirement
 
-from .base import Requirement, format_name
-
-if MYPY_CHECK_RUNNING:
-    from pip._vendor.packaging.specifiers import SpecifierSet
-
-    from pip._internal.req.req_install import InstallRequirement
-
-    from .base import Candidate, CandidateLookup
+from .base import Candidate, CandidateLookup, Requirement, format_name
 
 
 class ExplicitRequirement(Requirement):
@@ -17,12 +11,22 @@ class ExplicitRequirement(Requirement):
         # type: (Candidate) -> None
         self.candidate = candidate
 
+    def __str__(self):
+        # type: () -> str
+        return str(self.candidate)
+
     def __repr__(self):
         # type: () -> str
         return "{class_name}({candidate!r})".format(
             class_name=self.__class__.__name__,
             candidate=self.candidate,
         )
+
+    @property
+    def project_name(self):
+        # type: () -> str
+        # No need to canonicalise - the candidate did this
+        return self.candidate.project_name
 
     @property
     def name(self):
@@ -62,10 +66,14 @@ class SpecifierRequirement(Requirement):
         )
 
     @property
+    def project_name(self):
+        # type: () -> str
+        return canonicalize_name(self._ireq.req.name)
+
+    @property
     def name(self):
         # type: () -> str
-        canonical_name = canonicalize_name(self._ireq.req.name)
-        return format_name(canonical_name, self._extras)
+        return format_name(self.project_name, self._extras)
 
     def format_for_error(self):
         # type: () -> str
@@ -88,9 +96,11 @@ class SpecifierRequirement(Requirement):
 
     def is_satisfied_by(self, candidate):
         # type: (Candidate) -> bool
-        assert candidate.name == self.name, \
-            "Internal issue: Candidate is not for this requirement " \
-            " {} vs {}".format(candidate.name, self.name)
+        assert (
+            candidate.name == self.name
+        ), "Internal issue: Candidate is not for this requirement " " {} vs {}".format(
+            candidate.name, self.name
+        )
         # We can safely always allow prereleases here since PackageFinder
         # already implements the prerelease logic, and would have filtered out
         # prerelease candidates if the user does not expect them.
@@ -99,12 +109,16 @@ class SpecifierRequirement(Requirement):
 
 
 class RequiresPythonRequirement(Requirement):
-    """A requirement representing Requires-Python metadata.
-    """
+    """A requirement representing Requires-Python metadata."""
+
     def __init__(self, specifier, match):
         # type: (SpecifierSet, Candidate) -> None
         self.specifier = specifier
         self._candidate = match
+
+    def __str__(self):
+        # type: () -> str
+        return f"Python {self.specifier}"
 
     def __repr__(self):
         # type: () -> str
@@ -114,13 +128,18 @@ class RequiresPythonRequirement(Requirement):
         )
 
     @property
+    def project_name(self):
+        # type: () -> str
+        return self._candidate.project_name
+
+    @property
     def name(self):
         # type: () -> str
         return self._candidate.name
 
     def format_for_error(self):
         # type: () -> str
-        return "Python " + str(self.specifier)
+        return str(self)
 
     def get_candidate_lookup(self):
         # type: () -> CandidateLookup
@@ -135,3 +154,44 @@ class RequiresPythonRequirement(Requirement):
         # already implements the prerelease logic, and would have filtered out
         # prerelease candidates if the user does not expect them.
         return self.specifier.contains(candidate.version, prereleases=True)
+
+
+class UnsatisfiableRequirement(Requirement):
+    """A requirement that cannot be satisfied."""
+
+    def __init__(self, name):
+        # type: (str) -> None
+        self._name = name
+
+    def __str__(self):
+        # type: () -> str
+        return "{} (unavailable)".format(self._name)
+
+    def __repr__(self):
+        # type: () -> str
+        return "{class_name}({name!r})".format(
+            class_name=self.__class__.__name__,
+            name=str(self._name),
+        )
+
+    @property
+    def project_name(self):
+        # type: () -> str
+        return self._name
+
+    @property
+    def name(self):
+        # type: () -> str
+        return self._name
+
+    def format_for_error(self):
+        # type: () -> str
+        return str(self)
+
+    def get_candidate_lookup(self):
+        # type: () -> CandidateLookup
+        return None, None
+
+    def is_satisfied_by(self, candidate):
+        # type: (Candidate) -> bool
+        return False

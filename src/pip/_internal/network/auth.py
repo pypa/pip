@@ -5,10 +5,12 @@ providing credentials in the context of network requests.
 """
 
 import logging
+import urllib.parse
+from typing import Any, Dict, List, Optional, Tuple
 
 from pip._vendor.requests.auth import AuthBase, HTTPBasicAuth
+from pip._vendor.requests.models import Request, Response
 from pip._vendor.requests.utils import get_netrc_auth
-from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 from pip._internal.utils.misc import (
     ask,
@@ -17,21 +19,14 @@ from pip._internal.utils.misc import (
     remove_auth_from_url,
     split_auth_netloc_from_url,
 )
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import Dict, Optional, Tuple, List, Any
-
-    from pip._internal.vcs.versioncontrol import AuthInfo
-
-    from pip._vendor.requests.models import Response, Request
-
-    Credentials = Tuple[str, str, str]
+from pip._internal.vcs.versioncontrol import AuthInfo
 
 logger = logging.getLogger(__name__)
 
+Credentials = Tuple[str, str, str]
+
 try:
-    import keyring  # noqa
+    import keyring
 except ImportError:
     keyring = None
 except Exception as exc:
@@ -42,8 +37,9 @@ except Exception as exc:
 
 
 def get_keyring_auth(url, username):
-    # type: (str, str) -> Optional[AuthInfo]
+    # type: (Optional[str], Optional[str]) -> Optional[AuthInfo]
     """Return the tuple auth for a given url from keyring."""
+    global keyring
     if not url or not keyring:
         return None
 
@@ -69,6 +65,7 @@ def get_keyring_auth(url, username):
         logger.warning(
             "Keyring is skipped due to an exception: %s", str(exc),
         )
+        keyring = None
     return None
 
 
@@ -110,7 +107,7 @@ class MultiDomainBasicAuth(AuthBase):
         return None
 
     def _get_new_credentials(self, original_url, allow_netrc=True,
-                             allow_keyring=True):
+                             allow_keyring=False):
         # type: (str, bool, bool) -> AuthInfo
         """Find and return credentials for the specified URL."""
         # Split the credentials and netloc from the url.
@@ -197,7 +194,7 @@ class MultiDomainBasicAuth(AuthBase):
             (username is not None and password is not None) or
             # Credentials were not found
             (username is None and password is None)
-        ), "Could not load credentials from url: {}".format(original_url)
+        ), f"Could not load credentials from url: {original_url}"
 
         return url, username, password
 
@@ -221,7 +218,7 @@ class MultiDomainBasicAuth(AuthBase):
     # Factored out to allow for easy patching in tests
     def _prompt_for_password(self, netloc):
         # type: (str) -> Tuple[Optional[str], Optional[str], bool]
-        username = ask_input("User for {}: ".format(netloc))
+        username = ask_input(f"User for {netloc}: ")
         if not username:
             return None, None, False
         auth = get_keyring_auth(netloc, username)
@@ -248,10 +245,17 @@ class MultiDomainBasicAuth(AuthBase):
         if not self.prompting:
             return resp
 
-        parsed = urllib_parse.urlparse(resp.url)
+        parsed = urllib.parse.urlparse(resp.url)
+
+        # Query the keyring for credentials:
+        username, password = self._get_new_credentials(resp.url,
+                                                       allow_netrc=False,
+                                                       allow_keyring=True)
 
         # Prompt the user for a new username and password
-        username, password, save = self._prompt_for_password(parsed.netloc)
+        save = False
+        if not username and not password:
+            username, password, save = self._prompt_for_password(parsed.netloc)
 
         # Store the new username and password to use for future requests
         self._credentials_to_save = None

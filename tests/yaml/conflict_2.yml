@@ -25,4 +25,4 @@ cases:
         stderr: >-
           Cannot install six<1.12 and virtualenv 20.0.2 because these
           package versions have conflicting dependencies.
-  skip: old
+  skip: legacy

@@ -1,5 +1,4 @@
-# -*- coding: utf-8 -*-
-
+import csv
 import distutils
 import glob
 import os
@@ -7,7 +6,7 @@ import shutil
 
 import pytest
 
-from tests.lib import create_basic_wheel_for_package, skip_if_python2
+from tests.lib import create_basic_wheel_for_package
 from tests.lib.path import Path
 from tests.lib.wheel import make_wheel
 
@@ -15,7 +14,7 @@ from tests.lib.wheel import make_wheel
 # assert_installed expects a package subdirectory, so give it to them
 def make_wheel_with_file(name, version, **kwargs):
     extra_files = kwargs.setdefault("extra_files", {})
-    extra_files["{}/__init__.py".format(name)] = "# example"
+    extra_files[f"{name}/__init__.py"] = "# example"
     return make_wheel(name=name, version=version, **kwargs)
 
 
@@ -117,7 +116,6 @@ def test_basic_install_from_wheel_file(script, data):
 
 # Installation seems to work, but scripttest fails to check.
 # I really don't care now since we're desupporting it soon anyway.
-@skip_if_python2
 def test_basic_install_from_unicode_wheel(script, data):
     """
     Test installing from a wheel (that has a script)
@@ -145,14 +143,37 @@ def test_basic_install_from_unicode_wheel(script, data):
     result.did_create(file2)
 
 
-def test_install_from_wheel_with_headers(script, data):
+def get_header_scheme_path_for_script(script, dist_name):
+    command = (
+        "from pip._internal.locations import get_scheme;"
+        "scheme = get_scheme({!r});"
+        "print(scheme.headers);"
+    ).format(dist_name)
+    result = script.run('python', '-c', command).stdout
+    return Path(result.strip())
+
+
+def test_install_from_wheel_with_headers(script):
     """
     Test installing from a wheel file with headers
     """
-    package = data.packages.joinpath("headers.dist-0.1-py2.py3-none-any.whl")
+    header_text = '/* hello world */\n'
+    package = make_wheel(
+        'headers.dist',
+        '0.1',
+        extra_data_files={
+            'headers/header.h': header_text
+        },
+    ).save_to_dir(script.scratch_path)
     result = script.pip('install', package, '--no-index')
     dist_info_folder = script.site_packages / 'headers.dist-0.1.dist-info'
     result.did_create(dist_info_folder)
+
+    header_scheme_path = get_header_scheme_path_for_script(
+        script, 'headers.dist'
+    )
+    header_path = header_scheme_path / 'header.h'
+    assert header_path.read_text() == header_text
 
 
 def test_install_wheel_with_target(script, shared_data, with_wheel, tmpdir):
@@ -282,6 +303,28 @@ def test_wheel_record_lines_in_deterministic_order(script, data):
     assert record_lines == sorted(record_lines)
 
 
+def test_wheel_record_lines_have_hash_for_data_files(script):
+    package = make_wheel(
+        "simple",
+        "0.1.0",
+        extra_data_files={
+            "purelib/info.txt": "c",
+        },
+    ).save_to_dir(script.scratch_path)
+    script.pip("install", package)
+    record_file = (
+        script.site_packages_path / "simple-0.1.0.dist-info" / "RECORD"
+    )
+    record_text = record_file.read_text()
+    record_rows = list(csv.reader(record_text.splitlines()))
+    records = {
+        r[0]: r[1:] for r in record_rows
+    }
+    assert records["info.txt"] == [
+        "sha256=Ln0sA6lQeuJl7PW1NWiFpTOTogKdJBOUmXJloaJa78Y", "1"
+    ]
+
+
 @pytest.mark.incompatible_with_test_venv
 def test_install_user_wheel(script, shared_data, with_wheel, tmpdir):
     """
@@ -294,8 +337,8 @@ def test_install_user_wheel(script, shared_data, with_wheel, tmpdir):
         'install', 'has.script==1.0', '--user', '--no-index',
         '--find-links', tmpdir,
     )
-    egg_info_folder = script.user_site / 'has.script-1.0.dist-info'
-    result.did_create(egg_info_folder)
+    dist_info_folder = script.user_site / 'has.script-1.0.dist-info'
+    result.did_create(dist_info_folder)
     script_file = script.user_bin / 'script.py'
     result.did_create(script_file)
 
@@ -346,6 +389,26 @@ def test_install_from_wheel_gen_uppercase_entrypoint(
 
     if os.name != "nt":
         assert bool(os.access(script.base_path / wrapper_file, os.X_OK))
+
+
+def test_install_from_wheel_gen_unicode_entrypoint(script):
+    make_wheel(
+        "script_wheel_unicode",
+        "1.0",
+        console_scripts=["進入點 = 模組:函式"],
+    ).save_to_dir(script.scratch_path)
+
+    result = script.pip(
+        "install",
+        "--no-index",
+        "--find-links",
+        script.scratch_path,
+        "script_wheel_unicode",
+    )
+    if os.name == "nt":
+        result.did_create(script.bin.joinpath("進入點.exe"))
+    else:
+        result.did_create(script.bin.joinpath("進入點"))
 
 
 def test_install_from_wheel_with_legacy(script, shared_data, tmpdir):
@@ -583,8 +646,6 @@ def test_wheel_installs_ok_with_badly_encoded_irrelevant_dist_info_file(
     )
 
 
-# Metadata is not decoded on Python 2.
-@skip_if_python2
 def test_wheel_install_fails_with_badly_encoded_metadata(script):
     package = create_basic_wheel_for_package(
         script,
@@ -613,3 +674,36 @@ def test_correct_package_name_while_creating_wheel_bug(script, package_name):
     package = create_basic_wheel_for_package(script, package_name, '1.0')
     wheel_name = os.path.basename(package)
     assert wheel_name == 'simple_package-1.0-py2.py3-none-any.whl'
+
+
+@pytest.mark.parametrize("name", ["purelib", "abc"])
+def test_wheel_with_file_in_data_dir_has_reasonable_error(
+    script, tmpdir, name
+):
+    """Normally we expect entities in the .data directory to be in a
+    subdirectory, but if they are not then we should show a reasonable error
+    message that includes the path.
+    """
+    wheel_path = make_wheel(
+        "simple", "0.1.0", extra_data_files={name: "hello world"}
+    ).save_to_dir(tmpdir)
+
+    result = script.pip(
+        "install", "--no-index", str(wheel_path), expect_error=True
+    )
+    assert f"simple-0.1.0.data/{name}" in result.stderr
+
+
+def test_wheel_with_unknown_subdir_in_data_dir_has_reasonable_error(
+    script, tmpdir
+):
+    wheel_path = make_wheel(
+        "simple",
+        "0.1.0",
+        extra_data_files={"unknown/hello.txt": "hello world"}
+    ).save_to_dir(tmpdir)
+
+    result = script.pip(
+        "install", "--no-index", str(wheel_path), expect_error=True
+    )
+    assert "simple-0.1.0.data/unknown/hello.txt" in result.stderr

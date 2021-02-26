@@ -2,11 +2,9 @@ from email.message import Message
 
 import pytest
 from pip._vendor.pkg_resources import DistInfoDistribution, Requirement
-from pip._vendor.six import ensure_binary
 
 from pip._internal.utils.packaging import get_metadata, get_requires_python
 from pip._internal.utils.pkg_resources import DictMetadata
-from tests.lib import skip_if_python2
 
 
 def test_dict_metadata_works():
@@ -27,9 +25,7 @@ def test_dict_metadata_works():
         metadata["Provides-Extra"] = extra
     metadata["Requires-Python"] = requires_python
 
-    inner_metadata = DictMetadata({
-        "METADATA": ensure_binary(metadata.as_string())
-    })
+    inner_metadata = DictMetadata({"METADATA": metadata.as_bytes()})
     dist = DistInfoDistribution(
         location="<in-memory>", metadata=inner_metadata, project_name=name
     )
@@ -45,8 +41,6 @@ def test_dict_metadata_works():
     assert requires_python == get_requires_python(dist)
 
 
-# Metadata is not decoded on Python 2, so no chance for error.
-@skip_if_python2
 def test_dict_metadata_throws_on_bad_unicode():
     metadata = DictMetadata({
         "METADATA": b"\xff"

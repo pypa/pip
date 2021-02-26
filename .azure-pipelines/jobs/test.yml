@@ -9,8 +9,8 @@ jobs:
     vmImage: ${{ parameters.vmImage }}
   strategy:
     matrix:
-      "2.7":
-        python.version: '2.7'
+      "3.6":  # lowest Python version
+        python.version: '3.6'
         python.architecture: x64
       "3.8":
         python.version: '3.8'
@@ -29,12 +29,6 @@ jobs:
     vmImage: ${{ parameters.vmImage }}
   strategy:
     matrix:
-      "3.5":
-        python.version: '3.5'
-        python.architecture: x64
-      "3.6":
-        python.version: '3.6'
-        python.architecture: x64
       "3.7":
         python.version: '3.7'
         python.architecture: x64

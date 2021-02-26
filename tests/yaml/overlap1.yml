@@ -27,7 +27,7 @@ cases:
       - fussy 3.8.0
       - myapp 0.2.4
       - requests 1.3.0
-  skip: old
+  skip: legacy
 -
   request:
     - install: fussy

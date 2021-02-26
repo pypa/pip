@@ -6,7 +6,7 @@ from pip._internal.models.wheel import Wheel
 from pip._internal.utils import compatibility_tags
 
 
-class TestWheelFile(object):
+class TestWheelFile:
 
     def test_std_wheel_pattern(self):
         w = Wheel('simple-1.1.1-py2-none-any.whl')
@@ -76,7 +76,7 @@ class TestWheelFile(object):
         Wheels built for macOS 10.6 are supported on 10.9
         """
         tags = compatibility_tags.get_supported(
-            '27', platform='macosx_10_9_intel', impl='cp'
+            '27', platforms=['macosx_10_9_intel'], impl='cp'
         )
         w = Wheel('simple-0.1-cp27-none-macosx_10_6_intel.whl')
         assert w.supported(tags=tags)
@@ -88,32 +88,40 @@ class TestWheelFile(object):
         Wheels built for macOS 10.9 are not supported on 10.6
         """
         tags = compatibility_tags.get_supported(
-            '27', platform='macosx_10_6_intel', impl='cp'
+            '27', platforms=['macosx_10_6_intel'], impl='cp'
         )
         w = Wheel('simple-0.1-cp27-none-macosx_10_9_intel.whl')
         assert not w.supported(tags=tags)
 
+    @pytest.mark.xfail(
+        reason=(
+            "packaging.tags changed behaviour in this area, and @pradyunsg "
+            "decided as the release manager that this behaviour change is less "
+            "critical than Big Sur support for pip 20.3. See "
+            "https://github.com/pypa/packaging/pull/361 for further discussion."
+        )
+    )
     def test_supported_multiarch_darwin(self):
         """
         Multi-arch wheels (intel) are supported on components (i386, x86_64)
         """
         universal = compatibility_tags.get_supported(
-            '27', platform='macosx_10_5_universal', impl='cp'
+            '27', platforms=['macosx_10_5_universal'], impl='cp'
         )
         intel = compatibility_tags.get_supported(
-            '27', platform='macosx_10_5_intel', impl='cp'
+            '27', platforms=['macosx_10_5_intel'], impl='cp'
         )
         x64 = compatibility_tags.get_supported(
-            '27', platform='macosx_10_5_x86_64', impl='cp'
+            '27', platforms=['macosx_10_5_x86_64'], impl='cp'
         )
         i386 = compatibility_tags.get_supported(
-            '27', platform='macosx_10_5_i386', impl='cp'
+            '27', platforms=['macosx_10_5_i386'], impl='cp'
         )
         ppc = compatibility_tags.get_supported(
-            '27', platform='macosx_10_5_ppc', impl='cp'
+            '27', platforms=['macosx_10_5_ppc'], impl='cp'
         )
         ppc64 = compatibility_tags.get_supported(
-            '27', platform='macosx_10_5_ppc64', impl='cp'
+            '27', platforms=['macosx_10_5_ppc64'], impl='cp'
         )
 
         w = Wheel('simple-0.1-cp27-none-macosx_10_5_intel.whl')
@@ -136,10 +144,10 @@ class TestWheelFile(object):
         Single-arch wheels (x86_64) are not supported on multi-arch (intel)
         """
         universal = compatibility_tags.get_supported(
-            '27', platform='macosx_10_5_universal', impl='cp'
+            '27', platforms=['macosx_10_5_universal'], impl='cp'
         )
         intel = compatibility_tags.get_supported(
-            '27', platform='macosx_10_5_intel', impl='cp'
+            '27', platforms=['macosx_10_5_intel'], impl='cp'
         )
 
         w = Wheel('simple-0.1-cp27-none-macosx_10_5_i386.whl')

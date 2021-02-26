@@ -33,7 +33,7 @@ def test_no_color(script):
             pytest.skip("Unable to capture output using script: " + cmd)
 
         try:
-            with open("/tmp/pip-test-no-color.txt", "r") as output_file:
+            with open("/tmp/pip-test-no-color.txt") as output_file:
                 retval = output_file.read()
             return retval
         finally:

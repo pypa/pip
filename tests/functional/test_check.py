@@ -3,9 +3,11 @@ from tests.lib import create_test_package_with_setup
 
 def matches_expected_lines(string, expected_lines):
     # Ignore empty lines
-    output_lines = set(filter(None, string.splitlines()))
-    # Match regardless of order
-    return set(output_lines) == set(expected_lines)
+    output_lines = list(filter(None, string.splitlines()))
+    # We'll match the last n lines, given n lines to match.
+    last_few_output_lines = output_lines[-len(expected_lines):]
+    # And order does not matter
+    return set(last_few_output_lines) == set(expected_lines)
 
 
 def test_basic_check_clean(script):

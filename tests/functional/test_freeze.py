@@ -16,6 +16,7 @@ from tests.lib import (
     need_mercurial,
     need_svn,
     path_to_url,
+    wheel,
 )
 
 distribute_re = re.compile('^distribute==[0-9.]+\n', re.MULTILINE)
@@ -41,7 +42,7 @@ def _check_output(result, expected):
     actual = distribute_re.sub('', actual)
 
     def banner(msg):
-        return '\n========== {msg} ==========\n'.format(**locals())
+        return f'\n========== {msg} ==========\n'
 
     assert checker.check_output(expected, actual, ELLIPSIS), (
         banner('EXPECTED') + expected + banner('ACTUAL') + actual +
@@ -78,6 +79,25 @@ def test_freeze_with_pip(script):
     """Test pip shows itself"""
     result = script.pip('freeze', '--all')
     assert 'pip==' in result.stdout
+
+
+def test_exclude_and_normalization(script, tmpdir):
+    req_path = wheel.make_wheel(
+        name="Normalizable_Name", version="1.0").save_to_dir(tmpdir)
+    script.pip("install", "--no-index", req_path)
+    result = script.pip("freeze")
+    assert "Normalizable-Name" in result.stdout
+    result = script.pip("freeze", "--exclude", "normalizablE-namE")
+    assert "Normalizable-Name" not in result.stdout
+
+
+def test_freeze_multiple_exclude_with_all(script, with_wheel):
+    result = script.pip('freeze', '--all')
+    assert 'pip==' in result.stdout
+    assert 'wheel==' in result.stdout
+    result = script.pip('freeze', '--all', '--exclude', 'pip', '--exclude', 'wheel')
+    assert 'pip==' not in result.stdout
+    assert 'wheel==' not in result.stdout
 
 
 def test_freeze_with_invalid_names(script):
@@ -252,7 +272,7 @@ def test_freeze_git_clone(script, tmpdir):
     _check_output(result.stdout, expected)
 
     result = script.pip(
-        'freeze', '-f', '{repo_dir}#egg=pip_test_package'.format(**locals()),
+        'freeze', '-f', f'{repo_dir}#egg=pip_test_package',
         expect_stderr=True,
     )
     expected = textwrap.dedent(
@@ -317,7 +337,7 @@ def test_freeze_git_clone_srcdir(script, tmpdir):
     _check_output(result.stdout, expected)
 
     result = script.pip(
-        'freeze', '-f', '{repo_dir}#egg=pip_test_package'.format(**locals()),
+        'freeze', '-f', f'{repo_dir}#egg=pip_test_package',
         expect_stderr=True,
     )
     expected = textwrap.dedent(
@@ -358,7 +378,8 @@ def test_freeze_mercurial_clone_srcdir(script, tmpdir):
     _check_output(result.stdout, expected)
 
     result = script.pip(
-        'freeze', '-f', '{repo_dir}#egg=pip_test_package'.format(**locals())
+        'freeze', '-f', f'{repo_dir}#egg=pip_test_package',
+        expect_stderr=True,
     )
     expected = textwrap.dedent(
         """
@@ -452,7 +473,7 @@ def test_freeze_mercurial_clone(script, tmpdir):
     _check_output(result.stdout, expected)
 
     result = script.pip(
-        'freeze', '-f', '{repo_dir}#egg=pip_test_package'.format(**locals()),
+        'freeze', '-f', f'{repo_dir}#egg=pip_test_package',
         expect_stderr=True,
     )
     expected = textwrap.dedent(
@@ -474,7 +495,7 @@ def test_freeze_bazaar_clone(script, tmpdir):
     try:
         checkout_path = _create_test_package(script, vcs='bazaar')
     except OSError as e:
-        pytest.fail('Invoking `bzr` failed: {e}'.format(e=e))
+        pytest.fail(f'Invoking `bzr` failed: {e}')
 
     result = script.run(
         'bzr', 'checkout', checkout_path, 'bzr-package'
@@ -492,7 +513,7 @@ def test_freeze_bazaar_clone(script, tmpdir):
 
     result = script.pip(
         'freeze', '-f',
-        '{checkout_path}/#egg=django-wikiapp'.format(**locals()),
+        f'{checkout_path}/#egg=django-wikiapp',
         expect_stderr=True,
     )
     expected = textwrap.dedent("""\
@@ -531,7 +552,7 @@ def test_freeze_nested_vcs(script, outer_vcs, inner_vcs):
     result = script.pip("freeze", expect_stderr=True)
     _check_output(
         result.stdout,
-        "...-e {}+...#egg=version_pkg\n...".format(inner_vcs),
+        f"...-e {inner_vcs}+...#egg=version_pkg\n...",
     )
 
 
@@ -540,8 +561,6 @@ _freeze_req_opts = textwrap.dedent("""\
     # Unchanged requirements below this line
     -r ignore.txt
     --requirement ignore.txt
-    -Z ignore
-    --always-unzip ignore
     -f http://ignore
     -i http://ignore
     --pre
@@ -550,6 +569,7 @@ _freeze_req_opts = textwrap.dedent("""\
     --extra-index-url http://ignore
     --find-links http://ignore
     --index-url http://ignore
+    --use-feature 2020-resolver
 """)
 
 

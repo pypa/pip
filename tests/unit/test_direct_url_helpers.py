@@ -1,6 +1,5 @@
 from functools import partial
-
-from mock import MagicMock, patch
+from unittest.mock import MagicMock, patch
 
 from pip._internal.models.direct_url import (
     DIRECT_URL_METADATA_NAME,
@@ -47,6 +46,21 @@ def test_as_pep440_requirement_dir():
     direct_url = DirectUrl(
         url="file:///home/user/project",
         info=DirInfo(editable=False),
+    )
+    direct_url.validate()
+    assert (
+        direct_url_as_pep440_direct_reference(direct_url, "pkg") ==
+        "pkg @ file:///home/user/project"
+    )
+
+
+def test_as_pep440_requirement_editable_dir():
+    # direct_url_as_pep440_direct_reference behaves the same
+    # irrespective of the editable flag. It's the responsibility of
+    # callers to render it as editable
+    direct_url = DirectUrl(
+        url="file:///home/user/project",
+        info=DirInfo(editable=True),
     )
     direct_url.validate()
     assert (

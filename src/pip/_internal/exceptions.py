@@ -1,26 +1,16 @@
 """Exceptions used throughout package"""
 
-from __future__ import absolute_import
-
+import configparser
 from itertools import chain, groupby, repeat
+from typing import TYPE_CHECKING, Dict, List, Optional
 
-from pip._vendor.six import iteritems
+from pip._vendor.pkg_resources import Distribution
+from pip._vendor.requests.models import Request, Response
 
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import Any, Optional, List, Dict
-
-    from pip._vendor.pkg_resources import Distribution
-    from pip._vendor.six import PY3
-    from pip._vendor.six.moves import configparser
+if TYPE_CHECKING:
+    from hashlib import _Hash
 
     from pip._internal.req.req_install import InstallRequirement
-
-    if PY3:
-        from hashlib import _Hash
-    else:
-        from hashlib import _hash as _Hash
 
 
 class PipError(Exception):
@@ -90,13 +80,30 @@ class CommandError(PipError):
     """Raised when there is an error in command-line arguments"""
 
 
-class SubProcessError(PipError):
-    """Raised when there is an error raised while executing a
-    command in subprocess"""
-
-
 class PreviousBuildDirError(PipError):
     """Raised when there's a previous conflicting build directory"""
+
+
+class NetworkConnectionError(PipError):
+    """HTTP connection error"""
+
+    def __init__(self, error_msg, response=None, request=None):
+        # type: (str, Response, Request) -> None
+        """
+        Initialize NetworkConnectionError with  `request` and `response`
+        objects.
+        """
+        self.response = response
+        self.request = request
+        self.error_msg = error_msg
+        if (self.response is not None and not self.request and
+                hasattr(response, 'request')):
+            self.request = self.response.request
+        super().__init__(error_msg, response, request)
+
+    def __str__(self):
+        # type: () -> str
+        return str(self.error_msg)
 
 
 class InvalidWheelFilename(InstallationError):
@@ -114,17 +121,35 @@ class MetadataInconsistent(InstallationError):
     that do not match the information previously obtained from sdist filename
     or user-supplied ``#egg=`` value.
     """
-    def __init__(self, ireq, field, built):
-        # type: (InstallRequirement, str, Any) -> None
+    def __init__(self, ireq, field, f_val, m_val):
+        # type: (InstallRequirement, str, str, str) -> None
         self.ireq = ireq
         self.field = field
-        self.built = built
+        self.f_val = f_val
+        self.m_val = m_val
 
     def __str__(self):
         # type: () -> str
-        return "Requested {} has different {} in metadata: {!r}".format(
-            self.ireq, self.field, self.built,
+        template = (
+            "Requested {} has inconsistent {}: "
+            "filename has {!r}, but metadata has {!r}"
         )
+        return template.format(self.ireq, self.field, self.f_val, self.m_val)
+
+
+class InstallationSubprocessError(InstallationError):
+    """A subprocess call failed during installation."""
+    def __init__(self, returncode, description):
+        # type: (int, str) -> None
+        self.returncode = returncode
+        self.description = description
+
+    def __str__(self):
+        # type: () -> str
+        return (
+            "Command errored out with exit status {}: {} "
+            "Check the logs for full command output."
+        ).format(self.returncode, self.description)
 
 
 class HashErrors(InstallationError):
@@ -176,7 +201,7 @@ class HashError(InstallationError):
     """
     req = None  # type: Optional[InstallRequirement]
     head = ''
-    order = None  # type: Optional[int]
+    order = -1  # type: int
 
     def body(self):
         # type: () -> str
@@ -189,11 +214,11 @@ class HashError(InstallationError):
             its link already populated by the resolver's _populate_link().
 
         """
-        return '    {}'.format(self._requirement_name())
+        return f'    {self._requirement_name()}'
 
     def __str__(self):
         # type: () -> str
-        return '{}\n{}'.format(self.head, self.body())
+        return f'{self.head}\n{self.body()}'
 
     def _requirement_name(self):
         # type: () -> str
@@ -322,7 +347,7 @@ class HashMismatch(HashError):
             return chain([hash_name], repeat('    or'))
 
         lines = []  # type: List[str]
-        for hash_name, expecteds in iteritems(self.allowed):
+        for hash_name, expecteds in self.allowed.items():
             prefix = hash_then_or(hash_name)
             lines.extend(('        Expected {} {}'.format(next(prefix), e))
                          for e in expecteds)
@@ -342,7 +367,7 @@ class ConfigurationFileCouldNotBeLoaded(ConfigurationError):
 
     def __init__(self, reason="could not be loaded", fname=None, error=None):
         # type: (str, Optional[str], Optional[configparser.Error]) -> None
-        super(ConfigurationFileCouldNotBeLoaded, self).__init__(error)
+        super().__init__(error)
         self.reason = reason
         self.fname = fname
         self.error = error
@@ -350,8 +375,8 @@ class ConfigurationFileCouldNotBeLoaded(ConfigurationError):
     def __str__(self):
         # type: () -> str
         if self.fname is not None:
-            message_part = " in {}.".format(self.fname)
+            message_part = f" in {self.fname}."
         else:
             assert self.error is not None
-            message_part = ".\n{}\n".format(self.error)
-        return "Configuration file {}{}".format(self.reason, message_part)
+            message_part = f".\n{self.error}\n"
+        return f"Configuration file {self.reason}{message_part}"

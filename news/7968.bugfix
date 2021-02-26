@@ -1,1 +1,0 @@
-The VCS commands run by pip as subprocesses don't merge stdout and stderr anymore, improving the output parsing by subsequent commands.

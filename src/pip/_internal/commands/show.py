@@ -1,9 +1,9 @@
-from __future__ import absolute_import
-
 import json
 import logging
 import os
 from email.parser import FeedParser
+from optparse import Values
+from typing import Dict, Iterator, List
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.utils import canonicalize_name
@@ -11,11 +11,6 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.utils.misc import write_output
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from optparse import Values
-    from typing import List, Dict, Iterator, Any
 
 logger = logging.getLogger(__name__)
 

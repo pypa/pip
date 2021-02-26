@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import os
 import re
 import shutil
@@ -12,10 +10,10 @@ from contextlib import contextmanager
 from hashlib import sha256
 from io import BytesIO
 from textwrap import dedent
+from typing import List, Optional
 from zipfile import ZipFile
 
 import pytest
-from pip._vendor.six import PY2, ensure_binary, text_type
 from scripttest import FoundDir, TestFileEnvironment
 
 from pip._internal.index.collector import LinkCollector
@@ -23,22 +21,16 @@ from pip._internal.index.package_finder import PackageFinder
 from pip._internal.locations import get_major_minor_version
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
+from pip._internal.models.target_python import TargetPython
 from pip._internal.network.session import PipSession
 from pip._internal.utils.deprecation import DEPRECATION_MSG_PREFIX
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from tests.lib.path import Path, curdir
 from tests.lib.wheel import make_wheel
-
-if MYPY_CHECK_RUNNING:
-    from typing import List, Optional
-    from pip._internal.models.target_python import TargetPython
-
 
 DATA_DIR = Path(__file__).parent.parent.joinpath("data").resolve()
 SRC_DIR = Path(__file__).resolve().parent.parent.parent
 
 pyversion = get_major_minor_version()
-pyversion_tuple = sys.version_info
 
 CURRENT_PY_VERSION_INFO = sys.version_info[:3]
 
@@ -147,7 +139,7 @@ def make_test_finder(
     )
 
 
-class TestData(object):
+class TestData:
     """
     Represents a bundle of pre-created test data.
 
@@ -231,7 +223,7 @@ class TestFailure(AssertionError):
     pass
 
 
-class TestPipResult(object):
+class TestPipResult:
 
     def __init__(self, impl, verbose=False):
         self._impl = impl
@@ -289,15 +281,13 @@ class TestPipResult(object):
             if egg_link_path in self.files_created:
                 raise TestFailure(
                     'unexpected egg link file created: '
-                    '{egg_link_path!r}\n{self}'
-                    .format(**locals())
+                    f'{egg_link_path!r}\n{self}'
                 )
         else:
             if egg_link_path not in self.files_created:
                 raise TestFailure(
                     'expected egg link file missing: '
-                    '{egg_link_path!r}\n{self}'
-                    .format(**locals())
+                    f'{egg_link_path!r}\n{self}'
                 )
 
             egg_link_file = self.files_created[egg_link_path]
@@ -306,15 +296,14 @@ class TestPipResult(object):
             # FIXME: I don't understand why there's a trailing . here
             if not (egg_link_contents.endswith('\n.') and
                     egg_link_contents[:-2].endswith(pkg_dir)):
+                expected_ending = pkg_dir + '\n.'
                 raise TestFailure(textwrap.dedent(
-                    u'''\
+                    f'''\
                     Incorrect egg_link file {egg_link_file!r}
                     Expected ending: {expected_ending!r}
                     ------- Actual contents -------
                     {egg_link_contents!r}
-                    -------------------------------'''.format(
-                        expected_ending=pkg_dir + '\n.',
-                        **locals())
+                    -------------------------------'''
                 ))
 
         if use_user_site:
@@ -323,36 +312,33 @@ class TestPipResult(object):
             pth_file = e.site_packages / 'easy-install.pth'
 
         if (pth_file in self.files_updated) == without_egg_link:
+            maybe = '' if without_egg_link else 'not '
             raise TestFailure(
-                '{pth_file} unexpectedly {maybe}updated by install'.format(
-                    maybe=not without_egg_link and 'not ' or '',
-                    **locals()))
+                f'{pth_file} unexpectedly {maybe}updated by install'
+            )
 
         if (pkg_dir in self.files_created) == (curdir in without_files):
-            raise TestFailure(textwrap.dedent('''\
+            maybe = 'not ' if curdir in without_files else ''
+            files = sorted(self.files_created)
+            raise TestFailure(textwrap.dedent(f'''\
             expected package directory {pkg_dir!r} {maybe}to be created
             actually created:
             {files}
-            ''').format(
-                pkg_dir=pkg_dir,
-                maybe=curdir in without_files and 'not ' or '',
-                files=sorted(self.files_created.keys()),
-            ))
+            '''))
 
         for f in with_files:
             normalized_path = os.path.normpath(pkg_dir / f)
             if normalized_path not in self.files_created:
                 raise TestFailure(
-                    'Package directory {pkg_dir!r} missing '
-                    'expected content {f!r}'.format(**locals())
+                    f'Package directory {pkg_dir!r} missing '
+                    f'expected content {f!r}'
                 )
 
         for f in without_files:
             normalized_path = os.path.normpath(pkg_dir / f)
             if normalized_path in self.files_created:
                 raise TestFailure(
-                    'Package directory {pkg_dir!r} has unexpected content {f}'
-                    .format(**locals())
+                    f'Package directory {pkg_dir!r} has unexpected content {f}'
                 )
 
     def did_create(self, path, message=None):
@@ -374,7 +360,7 @@ def _one_or_both(a, b):
     if not a:
         return str(b)
 
-    return "{a}\n{b}".format(a=a, b=b)
+    return f"{a}\n{b}"
 
 
 def make_check_stderr_message(stderr, line, reason):
@@ -455,16 +441,15 @@ class PipTestEnvironment(TestFileEnvironment):
     exe = sys.platform == 'win32' and '.exe' or ''
     verbose = False
 
-    def __init__(self, base_path, *args, **kwargs):
+    def __init__(self, base_path, *args, virtualenv, pip_expect_warning=None, **kwargs):
         # Make our base_path a test.lib.path.Path object
         base_path = Path(base_path)
 
         # Store paths related to the virtual environment
-        venv = kwargs.pop("virtualenv")
-        self.venv_path = venv.location
-        self.lib_path = venv.lib
-        self.site_packages_path = venv.site
-        self.bin_path = venv.bin
+        self.venv_path = virtualenv.location
+        self.lib_path = virtualenv.lib
+        self.site_packages_path = virtualenv.site
+        self.bin_path = virtualenv.bin
 
         self.user_base_path = self.venv_path.joinpath("user")
         self.user_site_path = self.venv_path.joinpath(
@@ -492,10 +477,7 @@ class PipTestEnvironment(TestFileEnvironment):
         kwargs.setdefault("cwd", self.scratch_path)
 
         # Setup our environment
-        environ = kwargs.get("environ")
-        if environ is None:
-            environ = os.environ.copy()
-
+        environ = kwargs.setdefault("environ", os.environ.copy())
         environ["PATH"] = Path.pathsep.join(
             [self.bin_path] + [environ.get("PATH", [])],
         )
@@ -504,19 +486,18 @@ class PipTestEnvironment(TestFileEnvironment):
         environ["PYTHONDONTWRITEBYTECODE"] = "1"
         # Make sure we get UTF-8 on output, even on Windows...
         environ["PYTHONIOENCODING"] = "UTF-8"
-        kwargs["environ"] = environ
 
         # Whether all pip invocations should expect stderr
         # (useful for Python version deprecation)
-        self.pip_expect_warning = kwargs.pop('pip_expect_warning', None)
+        self.pip_expect_warning = pip_expect_warning
 
         # Call the TestFileEnvironment __init__
-        super(PipTestEnvironment, self).__init__(base_path, *args, **kwargs)
+        super().__init__(base_path, *args, **kwargs)
 
         # Expand our absolute path directories into relative
         for name in ["base", "venv", "bin", "lib", "site_packages",
                      "user_base", "user_site", "user_bin", "scratch"]:
-            real_name = "{name}_path".format(**locals())
+            real_name = f"{name}_path"
             relative_path = Path(os.path.relpath(
                 getattr(self, real_name), self.base_path
             ))
@@ -536,7 +517,7 @@ class PipTestEnvironment(TestFileEnvironment):
         if fn.endswith('__pycache__') or fn.endswith(".pyc"):
             result = True
         else:
-            result = super(PipTestEnvironment, self)._ignore_file(fn)
+            result = super()._ignore_file(fn)
         return result
 
     def _find_traverse(self, path, result):
@@ -547,9 +528,18 @@ class PipTestEnvironment(TestFileEnvironment):
             if not self.temp_path or path != 'tmp':
                 result[path] = FoundDir(self.base_path, path)
         else:
-            super(PipTestEnvironment, self)._find_traverse(path, result)
+            super()._find_traverse(path, result)
 
-    def run(self, *args, **kw):
+    def run(
+        self,
+        *args,
+        cwd=None,
+        run_from=None,
+        allow_stderr_error=None,
+        allow_stderr_warning=None,
+        allow_error=None,
+        **kw,
+    ):
         """
         :param allow_stderr_error: whether a logged error is allowed in
             stderr.  Passing True for this argument implies
@@ -570,22 +560,14 @@ class PipTestEnvironment(TestFileEnvironment):
             compatibility.
         """
         if self.verbose:
-            print('>> running {args} {kw}'.format(**locals()))
+            print(f'>> running {args} {kw}')
 
-        cwd = kw.pop('cwd', None)
-        run_from = kw.pop('run_from', None)
         assert not cwd or not run_from, "Don't use run_from; it's going away"
         cwd = cwd or run_from or self.cwd
         if sys.platform == 'win32':
             # Partial fix for ScriptTest.run using `shell=True` on Windows.
             args = [str(a).replace('^', '^^').replace('&', '^&') for a in args]
 
-        # Remove `allow_stderr_error`, `allow_stderr_warning` and
-        # `allow_error` before calling run() because PipTestEnvironment
-        # doesn't support them.
-        allow_stderr_error = kw.pop('allow_stderr_error', None)
-        allow_stderr_warning = kw.pop('allow_stderr_warning', None)
-        allow_error = kw.pop('allow_error', None)
         if allow_error:
             kw['expect_error'] = True
 
@@ -625,7 +607,7 @@ class PipTestEnvironment(TestFileEnvironment):
         # Pass expect_stderr=True to allow any stderr.  We do this because
         # we do our checking of stderr further on in check_stderr().
         kw['expect_stderr'] = True
-        result = super(PipTestEnvironment, self).run(cwd=cwd, *args, **kw)
+        result = super().run(cwd=cwd, *args, **kw)
 
         if expect_error and not allow_error:
             if result.returncode == 0:
@@ -639,11 +621,11 @@ class PipTestEnvironment(TestFileEnvironment):
 
         return TestPipResult(result, verbose=self.verbose)
 
-    def pip(self, *args, **kwargs):
+    def pip(self, *args, use_module=True, **kwargs):
         __tracebackhide__ = True
         if self.pip_expect_warning:
             kwargs['allow_stderr_warning'] = True
-        if kwargs.pop('use_module', True):
+        if use_module:
             exe = 'python'
             args = ('-m', 'pip') + args
         else:
@@ -753,7 +735,7 @@ def _create_main_file(dir_path, name=None, output=None):
     def main():
         print({!r})
     """.format(output))
-    filename = '{}.py'.format(name)
+    filename = f'{name}.py'
     dir_path.joinpath(filename).write_text(text)
 
 
@@ -828,7 +810,7 @@ def _vcs_add(script, version_pkg_path, vcs='git'):
             '-m', 'initial version', cwd=version_pkg_path,
         )
     else:
-        raise ValueError('Unknown vcs: {vcs}'.format(**locals()))
+        raise ValueError(f'Unknown vcs: {vcs}')
     return version_pkg_path
 
 
@@ -937,7 +919,7 @@ def assert_raises_regexp(exception, reg, run, *args, **kwargs):
 
     try:
         run(*args, **kwargs)
-        assert False, "{exception} should have been thrown".format(**locals())
+        assert False, f"{exception} should have been thrown"
     except exception:
         e = sys.exc_info()[1]
         p = re.compile(reg)
@@ -963,11 +945,11 @@ def create_test_package_with_setup(script, **setup_kwargs):
     assert 'name' in setup_kwargs, setup_kwargs
     pkg_path = script.scratch_path / setup_kwargs['name']
     pkg_path.mkdir()
-    pkg_path.joinpath("setup.py").write_text(textwrap.dedent("""
+    pkg_path.joinpath("setup.py").write_text(textwrap.dedent(f"""
         from setuptools import setup
         kwargs = {setup_kwargs!r}
         setup(**kwargs)
-    """).format(**locals()))
+    """))
     return pkg_path
 
 
@@ -988,14 +970,14 @@ def create_really_basic_wheel(name, version):
         z.writestr(path, contents)
         records.append((path, digest(contents), str(len(contents))))
 
-    dist_info = "{}-{}.dist-info".format(name, version)
-    record_path = "{}/RECORD".format(dist_info)
+    dist_info = f"{name}-{version}.dist-info"
+    record_path = f"{dist_info}/RECORD"
     records = [(record_path, "", "")]
     buf = BytesIO()
     with ZipFile(buf, "w") as z:
-        add_file("{}/WHEEL".format(dist_info), "Wheel-Version: 1.0")
+        add_file(f"{dist_info}/WHEEL", "Wheel-Version: 1.0")
         add_file(
-            "{}/METADATA".format(dist_info),
+            f"{dist_info}/METADATA",
             dedent(
                 """\
                 Metadata-Version: 2.1
@@ -1028,10 +1010,10 @@ def create_basic_wheel_for_package(
     # Fix wheel distribution name by replacing runs of non-alphanumeric
     # characters with an underscore _ as per PEP 491
     name = re.sub(r"[^\w\d.]+", "_", name, re.UNICODE)
-    archive_name = "{}-{}-py2.py3-none-any.whl".format(name, version)
+    archive_name = f"{name}-{version}-py2.py3-none-any.whl"
     archive_path = script.scratch_path / archive_name
 
-    package_init_py = "{name}/__init__.py".format(name=name)
+    package_init_py = f"{name}/__init__.py"
     assert package_init_py not in extra_files
     extra_files[package_init_py] = textwrap.dedent(
         """
@@ -1042,7 +1024,7 @@ def create_basic_wheel_for_package(
     ).format(version=version, name=name)
 
     requires_dist = depends + [
-        '{package}; extra == "{extra}"'.format(package=package, extra=extra)
+        f'{package}; extra == "{extra}"'
         for extra, packages in extras.items()
         for package in packages
     ]
@@ -1100,17 +1082,14 @@ def create_basic_sdist_for_package(
     for fname in files:
         path = script.temp_path / fname
         path.parent.mkdir(exist_ok=True, parents=True)
-        path.write_bytes(ensure_binary(files[fname]))
+        path.write_bytes(files[fname].encode("utf-8"))
 
-    # The base_dir cast is required to make `shutil.make_archive()` use
-    # Unicode paths on Python 2, making it able to properly archive
-    # files with non-ASCII names.
     retval = script.scratch_path / archive_name
     generated = shutil.make_archive(
         retval,
         'gztar',
         root_dir=script.temp_path,
-        base_dir=text_type(os.curdir),
+        base_dir=os.curdir,
     )
     shutil.move(generated, retval)
 
@@ -1126,7 +1105,7 @@ def need_executable(name, check_cmd):
             subprocess.check_output(check_cmd)
         except (OSError, subprocess.CalledProcessError):
             return pytest.mark.skip(
-                reason='{name} is not available'.format(name=name))(fn)
+                reason=f'{name} is not available')(fn)
         return fn
     return wrapper
 
@@ -1165,14 +1144,3 @@ def need_mercurial(fn):
     return pytest.mark.mercurial(need_executable(
         'Mercurial', ('hg', 'version')
     )(fn))
-
-
-skip_if_python2 = pytest.mark.skipif(PY2, reason="Non-Python 2 only")
-skip_if_not_python2 = pytest.mark.skipif(not PY2, reason="Python 2 only")
-
-
-# Workaround for test failures after new wheel release.
-windows_workaround_7667 = pytest.mark.skipif(
-    "sys.platform == 'win32' and sys.version_info < (3,)",
-    reason="Workaround for #7667",
-)

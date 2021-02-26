@@ -1,10 +1,9 @@
 """Tests for all things related to the configuration
 """
 
-import os
+from unittest.mock import MagicMock
 
 import pytest
-from mock import MagicMock
 
 from pip._internal.configuration import get_configuration_files, kinds
 from pip._internal.exceptions import ConfigurationError
@@ -31,48 +30,48 @@ class TestConfigurationLoading(ConfigurationMixin):
         self.configuration.load()
         assert self.configuration.get_value("test.hello") == "3"
 
-    def test_environment_config_loading(self):
+    def test_environment_config_loading(self, monkeypatch):
         contents = """
             [test]
             hello = 4
         """
 
         with self.tmpfile(contents) as config_file:
-            os.environ["PIP_CONFIG_FILE"] = config_file
+            monkeypatch.setenv("PIP_CONFIG_FILE", config_file)
 
             self.configuration.load()
             assert self.configuration.get_value("test.hello") == "4", \
                 self.configuration._config
 
-    def test_environment_var_loading(self):
-        os.environ["PIP_HELLO"] = "5"
+    def test_environment_var_loading(self, monkeypatch):
+        monkeypatch.setenv("PIP_HELLO", "5")
 
         self.configuration.load()
         assert self.configuration.get_value(":env:.hello") == "5"
 
     @pytest.mark.skipif("sys.platform == 'win32'")
-    def test_environment_var_does_not_load_lowercase(self):
-        os.environ["pip_hello"] = "5"
+    def test_environment_var_does_not_load_lowercase(self, monkeypatch):
+        monkeypatch.setenv("pip_hello", "5")
 
         self.configuration.load()
         with pytest.raises(ConfigurationError):
             self.configuration.get_value(":env:.hello")
 
-    def test_environment_var_does_not_load_version(self):
-        os.environ["PIP_VERSION"] = "True"
+    def test_environment_var_does_not_load_version(self, monkeypatch):
+        monkeypatch.setenv("PIP_VERSION", "True")
 
         self.configuration.load()
 
         with pytest.raises(ConfigurationError):
             self.configuration.get_value(":env:.version")
 
-    def test_environment_config_errors_if_malformed(self):
+    def test_environment_config_errors_if_malformed(self, monkeypatch):
         contents = """
             test]
             hello = 4
         """
         with self.tmpfile(contents) as config_file:
-            os.environ["PIP_CONFIG_FILE"] = config_file
+            monkeypatch.setenv("PIP_CONFIG_FILE", config_file)
             with pytest.raises(ConfigurationError) as err:
                 self.configuration.load()
 
@@ -130,36 +129,36 @@ class TestConfigurationPrecedence(ConfigurationMixin):
 
         assert self.configuration.get_value("test.hello") == "2"
 
-    def test_env_not_overriden_by_environment_var(self):
+    def test_env_not_overriden_by_environment_var(self, monkeypatch):
         self.patch_configuration(kinds.ENV, {"test.hello": "1"})
-        os.environ["PIP_HELLO"] = "5"
+        monkeypatch.setenv("PIP_HELLO", "5")
 
         self.configuration.load()
 
         assert self.configuration.get_value("test.hello") == "1"
         assert self.configuration.get_value(":env:.hello") == "5"
 
-    def test_site_not_overriden_by_environment_var(self):
+    def test_site_not_overriden_by_environment_var(self, monkeypatch):
         self.patch_configuration(kinds.SITE, {"test.hello": "2"})
-        os.environ["PIP_HELLO"] = "5"
+        monkeypatch.setenv("PIP_HELLO", "5")
 
         self.configuration.load()
 
         assert self.configuration.get_value("test.hello") == "2"
         assert self.configuration.get_value(":env:.hello") == "5"
 
-    def test_user_not_overriden_by_environment_var(self):
+    def test_user_not_overriden_by_environment_var(self, monkeypatch):
         self.patch_configuration(kinds.USER, {"test.hello": "3"})
-        os.environ["PIP_HELLO"] = "5"
+        monkeypatch.setenv("PIP_HELLO", "5")
 
         self.configuration.load()
 
         assert self.configuration.get_value("test.hello") == "3"
         assert self.configuration.get_value(":env:.hello") == "5"
 
-    def test_global_not_overriden_by_environment_var(self):
+    def test_global_not_overriden_by_environment_var(self, monkeypatch):
         self.patch_configuration(kinds.GLOBAL, {"test.hello": "4"})
-        os.environ["PIP_HELLO"] = "5"
+        monkeypatch.setenv("PIP_HELLO", "5")
 
         self.configuration.load()
 

@@ -1,2 +1,0 @@
-Improve "Running pip from source tree" section in getting-started
-to use editable installation instead of running pip directly from source.

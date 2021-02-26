@@ -1,6 +1,4 @@
 """Test the test support."""
-from __future__ import absolute_import
-
 import filecmp
 import re
 import sys
@@ -21,7 +19,7 @@ def assert_error_startswith(exc_type, expected_start):
         yield
 
     assert str(err.value).startswith(expected_start), (
-        'full message: {}'.format(err.value)
+        f'full message: {err.value}'
     )
 
 
@@ -65,8 +63,8 @@ def test_correct_pip_version(script):
         if x.endswith('.py')
     ]
     assert not mismatch_py, (
-        'mismatched source files in {pip_folder!r} '
-        'and {pip_folder_outputed!r}: {mismatch_py!r}'.format(**locals())
+        f'mismatched source files in {pip_folder!r} '
+        f'and {pip_folder_outputed!r}: {mismatch_py!r}'
     )
 
 
@@ -84,8 +82,8 @@ class TestPipTestEnvironment:
         """
         Call run() that prints stderr with the given prefix.
         """
-        text = '{}: hello, world\\n'.format(prefix)
-        command = 'import sys; sys.stderr.write("{}")'.format(text)
+        text = f'{prefix}: hello, world\\n'
+        command = f'import sys; sys.stderr.write("{text}")'
         args = [sys.executable, '-c', command]
         script.run(*args, **kwargs)
 

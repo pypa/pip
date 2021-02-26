@@ -38,13 +38,23 @@ To run the pip executable from your source tree during development, install pip
 locally using editable installation (inside a virtualenv).
 You can then invoke your local source tree pip normally.
 
-.. code-block:: console
+.. tab:: Unix/macOS
 
-    $ virtualenv venv # You can also use "python -m venv venv" from python3.3+
-    $ source venv/bin/activate
-    $ python -m pip install -e .
-    $ python -m pip --version
+    .. code-block:: shell
 
+        virtualenv venv # You can also use "python -m venv venv" from python3.3+
+        source venv/bin/activate
+        python -m pip install -e .
+        python -m pip --version
+
+.. tab:: Windows
+
+    .. code-block:: shell
+
+        virtualenv venv # You can also use "py -m venv venv" from python3.3+
+        venv\Scripts\activate
+        py -m pip install -e .
+        py -m pip --version
 
 Running Tests
 =============
@@ -69,7 +79,7 @@ To run tests without parallelization, run:
     $ tox -e py36
 
 The example above runs tests against Python 3.6. You can also use other
-versions like ``py27`` and ``pypy3``.
+versions like ``py39`` and ``pypy3``.
 
 ``tox`` has been configured to forward any additional arguments it is given to
 ``pytest``. This enables the use of pytest's `rich CLI`_. As an example, you
@@ -129,6 +139,13 @@ To build it locally, run:
 
 The built documentation can be found in the ``docs/build`` folder.
 
+For each Pull Request made the documentation is deployed following this link:
+
+.. code-block:: none
+
+    https://pip--<PR-NUMBER>.org.readthedocs.build/en/<PR-NUMBER>
+
+
 What Next?
 ==========
 
@@ -138,6 +155,11 @@ in order to start contributing.
 * Some `good first issues`_ on GitHub for new contributors
 * A deep dive into `pip's architecture`_
 * A guide on `triaging issues`_ for issue tracker
+* Getting started with Git
+
+  - `Hello World for Git`_
+  - `Understanding the GitHub flow`_
+  - `Start using Git on the command line`_
 
 
 .. _`open an issue`: https://github.com/pypa/pip/issues/new?title=Trouble+with+pip+development+environment
@@ -148,3 +170,6 @@ in order to start contributing.
 .. _`good first issues`: https://github.com/pypa/pip/labels/good%20first%20issue
 .. _`pip's architecture`: https://pip.pypa.io/en/latest/development/architecture/
 .. _`triaging issues`: https://pip.pypa.io/en/latest/development/issue-triage/
+.. _`Hello World for Git`: https://guides.github.com/activities/hello-world/
+.. _`Understanding the GitHub flow`: https://guides.github.com/introduction/flow/
+.. _`Start using Git on the command line`: https://docs.gitlab.com/ee/gitlab-basics/start-using-git.html

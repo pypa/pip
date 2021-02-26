@@ -1,24 +1,19 @@
-from __future__ import absolute_import, division
-
 import contextlib
 import itertools
 import logging
 import sys
 import time
+from typing import IO, Iterator
 
 from pip._vendor.progress import HIDE_CURSOR, SHOW_CURSOR
 
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.logging import get_indentation
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import Iterator, IO
 
 logger = logging.getLogger(__name__)
 
 
-class SpinnerInterface(object):
+class SpinnerInterface:
     def spin(self):
         # type: () -> None
         raise NotImplementedError()
@@ -29,9 +24,14 @@ class SpinnerInterface(object):
 
 
 class InteractiveSpinner(SpinnerInterface):
-    def __init__(self, message, file=None, spin_chars="-\\|/",
-                 # Empirically, 8 updates/second looks nice
-                 min_update_interval_seconds=0.125):
+    def __init__(
+        self,
+        message,
+        file=None,
+        spin_chars="-\\|/",
+        # Empirically, 8 updates/second looks nice
+        min_update_interval_seconds=0.125,
+    ):
         # type: (str, IO[str], str, float) -> None
         self._message = message
         if file is None:
@@ -106,12 +106,11 @@ class NonInteractiveSpinner(SpinnerInterface):
         # type: (str) -> None
         if self._finished:
             return
-        self._update(
-            "finished with status '{final_status}'".format(**locals()))
+        self._update(f"finished with status '{final_status}'")
         self._finished = True
 
 
-class RateLimiter(object):
+class RateLimiter:
     def __init__(self, min_update_interval_seconds):
         # type: (float) -> None
         self._min_update_interval_seconds = min_update_interval_seconds

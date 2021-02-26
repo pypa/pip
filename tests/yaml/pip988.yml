@@ -34,4 +34,4 @@ cases:
   #   - B 2.0.0
   #   - C 1.0.0
   # but because B 2.0.0 depends on C >=2.0.0 this is wrong
-  skip: old
+  skip: legacy

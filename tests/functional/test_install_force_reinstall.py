@@ -11,7 +11,7 @@ def check_installed_version(script, package, expected):
         if line.startswith('Version: '):
             version = line.split()[-1]
             break
-    assert version == expected, 'version {} != {}'.format(version, expected)
+    assert version == expected, f'version {version} != {expected}'
 
 
 def check_force_reinstall(script, specifier, expected):

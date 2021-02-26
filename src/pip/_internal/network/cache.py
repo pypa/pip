@@ -3,6 +3,7 @@
 
 import os
 from contextlib import contextmanager
+from typing import Iterator, Optional
 
 from pip._vendor.cachecontrol.cache import BaseCache
 from pip._vendor.cachecontrol.caches import FileCache
@@ -10,10 +11,6 @@ from pip._vendor.requests.models import Response
 
 from pip._internal.utils.filesystem import adjacent_tmp_file, replace
 from pip._internal.utils.misc import ensure_dir
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import Optional, Iterator
 
 
 def is_from_cache(response):
@@ -29,7 +26,7 @@ def suppressed_cache_errors():
     """
     try:
         yield
-    except (OSError, IOError):
+    except OSError:
         pass
 
 
@@ -42,7 +39,7 @@ class SafeFileCache(BaseCache):
     def __init__(self, directory):
         # type: (str) -> None
         assert directory is not None, "Cache directory must not be None."
-        super(SafeFileCache, self).__init__()
+        super().__init__()
         self.directory = directory
 
     def _get_cache_path(self, name):

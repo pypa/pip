@@ -1,4 +1,3 @@
-import errno
 import fnmatch
 import os
 import os.path
@@ -8,24 +7,14 @@ import stat
 import sys
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
+from typing import Any, BinaryIO, Iterator, List, Union, cast
 
 # NOTE: retrying is not annotated in typeshed as on 2017-07-17, which is
 #       why we ignore the type on this import.
 from pip._vendor.retrying import retry  # type: ignore
-from pip._vendor.six import PY2
 
 from pip._internal.utils.compat import get_path_uid
 from pip._internal.utils.misc import format_size
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING, cast
-
-if MYPY_CHECK_RUNNING:
-    from typing import Any, BinaryIO, Iterator, List, Union
-
-    class NamedTemporaryFileResult(BinaryIO):
-        @property
-        def file(self):
-            # type: () -> BinaryIO
-            pass
 
 
 def check_path_owner(path):
@@ -65,7 +54,7 @@ def copy2_fixed(src, dest):
     """
     try:
         shutil.copy2(src, dest)
-    except (OSError, IOError):
+    except OSError:
         for f in [src, dest]:
             try:
                 is_socket_file = is_socket(f)
@@ -75,8 +64,7 @@ def copy2_fixed(src, dest):
                 pass
             else:
                 if is_socket_file:
-                    raise shutil.SpecialFileError(
-                        "`{f}` is a socket".format(**locals()))
+                    raise shutil.SpecialFileError(f"`{f}` is a socket")
 
         raise
 
@@ -88,7 +76,7 @@ def is_socket(path):
 
 @contextmanager
 def adjacent_tmp_file(path, **kwargs):
-    # type: (str, **Any) -> Iterator[NamedTemporaryFileResult]
+    # type: (str, **Any) -> Iterator[BinaryIO]
     """Return a file-like object pointing to a tmp file next to path.
 
     The file is created securely and is ensured to be written to disk
@@ -101,31 +89,20 @@ def adjacent_tmp_file(path, **kwargs):
         delete=False,
         dir=os.path.dirname(path),
         prefix=os.path.basename(path),
-        suffix='.tmp',
-        **kwargs
+        suffix=".tmp",
+        **kwargs,
     ) as f:
-        result = cast('NamedTemporaryFileResult', f)
+        result = cast(BinaryIO, f)
         try:
             yield result
         finally:
-            result.file.flush()
-            os.fsync(result.file.fileno())
+            result.flush()
+            os.fsync(result.fileno())
 
 
 _replace_retry = retry(stop_max_delay=1000, wait_fixed=250)
 
-if PY2:
-    @_replace_retry
-    def replace(src, dest):
-        # type: (str, str) -> None
-        try:
-            os.rename(src, dest)
-        except OSError:
-            os.remove(dest)
-            os.rename(src, dest)
-
-else:
-    replace = _replace_retry(os.replace)
+replace = _replace_retry(os.replace)
 
 
 # test_writable_dir and _test_writable_dir_win are copied from Flit,
@@ -143,7 +120,7 @@ def test_writable_dir(path):
             break  # Should never get here, but infinite loops are bad
         path = parent
 
-    if os.name == 'posix':
+    if os.name == "posix":
         return os.access(path, os.W_OK)
 
     return _test_writable_dir_win(path)
@@ -153,36 +130,29 @@ def _test_writable_dir_win(path):
     # type: (str) -> bool
     # os.access doesn't work on Windows: http://bugs.python.org/issue2528
     # and we can't use tempfile: http://bugs.python.org/issue22107
-    basename = 'accesstest_deleteme_fishfingers_custard_'
-    alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789'
+    basename = "accesstest_deleteme_fishfingers_custard_"
+    alphabet = "abcdefghijklmnopqrstuvwxyz0123456789"
     for _ in range(10):
-        name = basename + ''.join(random.choice(alphabet) for _ in range(6))
+        name = basename + "".join(random.choice(alphabet) for _ in range(6))
         file = os.path.join(path, name)
         try:
             fd = os.open(file, os.O_RDWR | os.O_CREAT | os.O_EXCL)
-        # Python 2 doesn't support FileExistsError and PermissionError.
-        except OSError as e:
-            # exception FileExistsError
-            if e.errno == errno.EEXIST:
-                continue
-            # exception PermissionError
-            if e.errno == errno.EPERM or e.errno == errno.EACCES:
-                # This could be because there's a directory with the same name.
-                # But it's highly unlikely there's a directory called that,
-                # so we'll assume it's because the parent dir is not writable.
-                # This could as well be because the parent dir is not readable,
-                # due to non-privileged user access.
-                return False
-            raise
+        except FileExistsError:
+            pass
+        except PermissionError:
+            # This could be because there's a directory with the same name.
+            # But it's highly unlikely there's a directory called that,
+            # so we'll assume it's because the parent dir is not writable.
+            # This could as well be because the parent dir is not readable,
+            # due to non-privileged user access.
+            return False
         else:
             os.close(fd)
             os.unlink(file)
             return True
 
     # This should never be reached
-    raise EnvironmentError(
-        'Unexpected condition testing for writable directory'
-    )
+    raise OSError("Unexpected condition testing for writable directory")
 
 
 def find_files(path, pattern):

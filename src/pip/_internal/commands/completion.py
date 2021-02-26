@@ -1,16 +1,11 @@
-from __future__ import absolute_import
-
 import sys
 import textwrap
+from optparse import Values
+from typing import List
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.utils.misc import get_prog
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import List
-    from optparse import Values
 
 BASE_COMPLETION = """
 # pip {shell} completion start{script}# pip {shell} completion end
