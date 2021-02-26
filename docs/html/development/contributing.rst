@@ -109,12 +109,12 @@ A trivial change is anything that does not warrant an entry in the news file.
 Some examples are: Code refactors that don't change anything as far as the
 public is concerned, typo fixes, white space modification, etc. To mark a PR
 as trivial a contributor simply needs to add a randomly named, non-empty file to
-the ``news/`` directory with the extension of ``.trivial.rst``. Due to a bug in 
-the validation, the content of ``.trivial.rst`` must not be empty. Entering a blank 
-space in the ``.trivial.rst`` file is sufficient. If you are on a POSIX like 
-operating system, one can be added by running``touch news/$(uuidgen).trivial.rst``. 
-On Windows, the same result can beachieved in Powershell using 
-``New-Item "news/$([guid]::NewGuid()).trivial.rst"``. Core committers may also add 
+the ``news/`` directory with the extension of ``.trivial.rst``. Due to a bug in
+the validation, the content of ``.trivial.rst`` must not be empty. Entering a blank
+space in the ``.trivial.rst`` file is sufficient. If you are on a POSIX like
+operating system, one can be added by running``touch news/$(uuidgen).trivial.rst``.
+On Windows, the same result can beachieved in Powershell using
+``New-Item "news/$([guid]::NewGuid()).trivial.rst"``. Core committers may also add
 a "trivial" label to the PR which will accomplish the same thing.
 
 Upgrading, removing, or adding a new vendored library gets a special mention
