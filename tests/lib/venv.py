@@ -1,20 +1,15 @@
-from __future__ import absolute_import
-
 import compileall
 import shutil
 import sys
 import textwrap
+import venv as _venv
 
-import six
 import virtualenv as _virtualenv
 
 from .path import Path
 
-if six.PY3:
-    import venv as _venv
 
-
-class VirtualEnvironment(object):
+class VirtualEnvironment:
     """
     An abstraction around virtual environments, currently it only uses
     virtualenv but in the future it could use pyvenv.
@@ -37,14 +32,13 @@ class VirtualEnvironment(object):
         self.site = Path(lib) / 'site-packages'
         # Workaround for https://github.com/pypa/virtualenv/issues/306
         if hasattr(sys, "pypy_version_info"):
-            version_fmt = '{0}' if six.PY3 else '{0}.{1}'
-            version_dir = version_fmt.format(*sys.version_info)
+            version_dir = str(sys.version_info.major)
             self.lib = Path(home, 'lib-python', version_dir)
         else:
             self.lib = Path(lib)
 
     def __repr__(self):
-        return "<VirtualEnvironment {}>".format(self.location)
+        return f"<VirtualEnvironment {self.location}>"
 
     def _create(self, clear=False):
         if clear:

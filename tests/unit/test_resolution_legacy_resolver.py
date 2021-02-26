@@ -1,13 +1,10 @@
 import logging
+from unittest import mock
 
-import mock
 import pytest
 from pip._vendor import pkg_resources
 
-from pip._internal.exceptions import (
-    NoneMetadataError,
-    UnsupportedPythonVersion,
-)
+from pip._internal.exceptions import NoneMetadataError, UnsupportedPythonVersion
 from pip._internal.req.constructors import install_req_from_line
 from pip._internal.resolution.legacy.resolver import (
     Resolver,
@@ -37,7 +34,7 @@ class FakeDist(pkg_resources.DistInfoDistribution):
         self.metadata = metadata
 
     def __str__(self):
-        return '<distribution {!r}>'.format(self.project_name)
+        return f'<distribution {self.project_name!r}>'
 
     def has_metadata(self, name):
         return (name == self.metadata_name)
@@ -50,12 +47,12 @@ class FakeDist(pkg_resources.DistInfoDistribution):
 def make_fake_dist(requires_python=None, metadata_name=None):
     metadata = 'Name: test\n'
     if requires_python is not None:
-        metadata += 'Requires-Python:{}'.format(requires_python)
+        metadata += f'Requires-Python:{requires_python}'
 
     return FakeDist(metadata, metadata_name=metadata_name)
 
 
-class TestCheckDistRequiresPython(object):
+class TestCheckDistRequiresPython:
 
     """
     Test _check_dist_requires_python().
@@ -176,7 +173,7 @@ class TestCheckDistRequiresPython(object):
         )
 
 
-class TestYankedWarning(object):
+class TestYankedWarning:
     """
     Test _populate_link() emits warning if one or more candidates are yanked.
     """
@@ -248,7 +245,7 @@ class TestYankedWarning(object):
         # Test no reason given.
         ('', '<none given>'),
         # Test a unicode string with a non-ascii character.
-        (u'curly quote: \u2018', u'curly quote: \u2018'),
+        ('curly quote: \u2018', 'curly quote: \u2018'),
     ])
     def test_sort_best_candidate__yanked_reason(
         self, caplog, monkeypatch, yanked_reason, expected_reason,

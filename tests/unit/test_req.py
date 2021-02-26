@@ -4,9 +4,9 @@ import shutil
 import sys
 import tempfile
 from functools import partial
+from unittest.mock import patch
 
 import pytest
-from mock import patch
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
@@ -18,7 +18,6 @@ from pip._internal.exceptions import (
     InvalidWheelFilename,
     PreviousBuildDirError,
 )
-from pip._internal.network.download import Downloader
 from pip._internal.network.session import PipSession
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req import InstallRequirement, RequirementSet
@@ -48,7 +47,6 @@ def get_processed_req_from_line(line, fname='file', lineno=1):
     parsed_line = ParsedLine(
         fname,
         lineno,
-        fname,
         args_str,
         opts,
         False,
@@ -60,7 +58,7 @@ def get_processed_req_from_line(line, fname='file', lineno=1):
     return req
 
 
-class TestRequirementSet(object):
+class TestRequirementSet:
     """RequirementSet tests"""
 
     def setup(self):
@@ -76,19 +74,22 @@ class TestRequirementSet(object):
             isolated=False,
             use_pep517=None,
         )
+        session = PipSession()
 
         with get_requirement_tracker() as tracker:
             preparer = RequirementPreparer(
                 build_dir=os.path.join(self.tempdir, 'build'),
                 src_dir=os.path.join(self.tempdir, 'src'),
                 download_dir=None,
-                wheel_download_dir=None,
                 build_isolation=True,
                 req_tracker=tracker,
-                downloader=Downloader(PipSession(), progress_bar="on"),
+                session=session,
+                progress_bar='on',
                 finder=finder,
                 require_hashes=require_hashes,
                 use_user_site=False,
+                lazy_wheel=False,
+                in_tree_build=False,
             )
             yield Resolver(
                 preparer=preparer,
@@ -194,7 +195,7 @@ class TestRequirementSet(object):
         ))
         dir_path = data.packages.joinpath('FSPkg')
         reqset.add_requirement(get_processed_req_from_line(
-            'file://{dir_path}'.format(**locals()),
+            f'file://{dir_path}',
             lineno=2,
         ))
         finder = make_test_finder(find_links=[data.find_links])
@@ -254,7 +255,7 @@ class TestRequirementSet(object):
             (data.packages / 'simple-1.0.tar.gz').resolve())
         reqset = RequirementSet()
         reqset.add_requirement(get_processed_req_from_line(
-            '{file_url} --hash=sha256:badbad'.format(**locals()), lineno=1,
+            f'{file_url} --hash=sha256:badbad', lineno=1,
         ))
         finder = make_test_finder(find_links=[data.find_links])
         with self._basic_resolver(finder, require_hashes=True) as resolver:
@@ -317,7 +318,7 @@ class TestRequirementSet(object):
         ))
 
 
-class TestInstallRequirement(object):
+class TestInstallRequirement:
     def setup(self):
         self.tempdir = tempfile.mkdtemp()
 
@@ -381,10 +382,6 @@ class TestInstallRequirement(object):
 
         with pytest.raises(InstallationError):
             reqset.add_requirement(req)
-
-    def test_installed_version_not_installed(self):
-        req = install_req_from_line('simple-0.1-py2.py3-none-any.whl')
-        assert req.installed_version is None
 
     def test_str(self):
         req = install_req_from_line('simple==0.1')
@@ -454,14 +451,14 @@ class TestInstallRequirement(object):
     def test_markers_url(self):
         # test "URL; markers" syntax
         url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
-        line = '{}; python_version >= "3"'.format(url)
+        line = f'{url}; python_version >= "3"'
         req = install_req_from_line(line)
         assert req.link.url == url, req.url
         assert str(req.markers) == 'python_version >= "3"'
 
         # without space, markers are part of the URL
         url = 'http://foo.com/?p=bar.git;a=snapshot;h=v0.1;sf=tgz'
-        line = '{};python_version >= "3"'.format(url)
+        line = f'{url};python_version >= "3"'
         req = install_req_from_line(line)
         assert req.link.url == line, req.url
         assert req.markers is None
@@ -470,7 +467,7 @@ class TestInstallRequirement(object):
         # match
         for markers in (
             'python_version >= "1.0"',
-            'sys_platform == {sys.platform!r}'.format(**globals()),
+            f'sys_platform == {sys.platform!r}',
         ):
             line = 'name; ' + markers
             req = install_req_from_line(line)
@@ -480,7 +477,7 @@ class TestInstallRequirement(object):
         # don't match
         for markers in (
             'python_version >= "5.0"',
-            'sys_platform != {sys.platform!r}'.format(**globals()),
+            f'sys_platform != {sys.platform!r}',
         ):
             line = 'name; ' + markers
             req = install_req_from_line(line)
@@ -491,7 +488,7 @@ class TestInstallRequirement(object):
         # match
         for markers in (
             'python_version >= "1.0"',
-            'sys_platform == {sys.platform!r}'.format(**globals()),
+            f'sys_platform == {sys.platform!r}',
         ):
             line = 'name; ' + markers
             req = install_req_from_line(line, comes_from='')
@@ -501,7 +498,7 @@ class TestInstallRequirement(object):
         # don't match
         for markers in (
             'python_version >= "5.0"',
-            'sys_platform != {sys.platform!r}'.format(**globals()),
+            f'sys_platform != {sys.platform!r}',
         ):
             line = 'name; ' + markers
             req = install_req_from_line(line, comes_from='')
@@ -511,7 +508,7 @@ class TestInstallRequirement(object):
     def test_extras_for_line_path_requirement(self):
         line = 'SomeProject[ex1,ex2]'
         filename = 'filename'
-        comes_from = '-r {} (line {})'.format(filename, 1)
+        comes_from = f'-r {filename} (line 1)'
         req = install_req_from_line(line, comes_from=comes_from)
         assert len(req.extras) == 2
         assert req.extras == {'ex1', 'ex2'}
@@ -519,7 +516,7 @@ class TestInstallRequirement(object):
     def test_extras_for_line_url_requirement(self):
         line = 'git+https://url#egg=SomeProject[ex1,ex2]'
         filename = 'filename'
-        comes_from = '-r {} (line {})'.format(filename, 1)
+        comes_from = f'-r {filename} (line 1)'
         req = install_req_from_line(line, comes_from=comes_from)
         assert len(req.extras) == 2
         assert req.extras == {'ex1', 'ex2'}
@@ -527,7 +524,7 @@ class TestInstallRequirement(object):
     def test_extras_for_editable_path_requirement(self):
         url = '.[ex1,ex2]'
         filename = 'filename'
-        comes_from = '-r {} (line {})'.format(filename, 1)
+        comes_from = f'-r {filename} (line 1)'
         req = install_req_from_editable(url, comes_from=comes_from)
         assert len(req.extras) == 2
         assert req.extras == {'ex1', 'ex2'}
@@ -535,7 +532,7 @@ class TestInstallRequirement(object):
     def test_extras_for_editable_url_requirement(self):
         url = 'git+https://url#egg=SomeProject[ex1,ex2]'
         filename = 'filename'
-        comes_from = '-r {} (line {})'.format(filename, 1)
+        comes_from = f'-r {filename} (line 1)'
         req = install_req_from_editable(url, comes_from=comes_from)
         assert len(req.extras) == 2
         assert req.extras == {'ex1', 'ex2'}
@@ -560,7 +557,7 @@ class TestInstallRequirement(object):
         with pytest.raises(InstallationError) as e:
             install_req_from_line(test_name)
         err_msg = e.value.args[0]
-        assert "Invalid requirement: '{}'".format(test_name) == err_msg
+        assert f"Invalid requirement: '{test_name}'" == err_msg
 
     def test_requirement_file(self):
         req_file_path = os.path.join(self.tempdir, 'test.txt')
@@ -570,7 +567,7 @@ class TestInstallRequirement(object):
             install_req_from_line(req_file_path)
         err_msg = e.value.args[0]
         assert "Invalid requirement" in err_msg
-        assert "It looks like a path. It does exist." in err_msg
+        assert "It looks like a path. The path does exist." in err_msg
         assert "appears to be a requirements file." in err_msg
         assert "If that is the case, use the '-r' flag to install" in err_msg
 

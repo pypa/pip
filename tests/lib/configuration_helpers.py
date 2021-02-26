@@ -14,19 +14,7 @@ from pip._internal.utils.misc import ensure_dir
 kinds = pip._internal.configuration.kinds
 
 
-def reset_os_environ(old_environ):
-    """
-    Reset os.environ while preserving the same underlying mapping.
-    """
-    # Preserving the same mapping is preferable to assigning a new mapping
-    # because the latter has interfered with test isolation by, for example,
-    # preventing time.tzset() from working in subsequent tests after
-    # changing os.environ['TZ'] in those tests.
-    os.environ.clear()
-    os.environ.update(old_environ)
-
-
-class ConfigurationMixin(object):
+class ConfigurationMixin:
 
     def setup(self):
         self.configuration = pip._internal.configuration.Configuration(
@@ -34,13 +22,9 @@ class ConfigurationMixin(object):
         )
         self._files_to_clear = []
 
-        self._old_environ = os.environ.copy()
-
     def teardown(self):
         for fname in self._files_to_clear:
             fname.stop()
-
-        reset_os_environ(self._old_environ)
 
     def patch_configuration(self, variant, di):
         old = self.configuration._load_config_files

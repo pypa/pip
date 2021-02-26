@@ -1,22 +1,8 @@
 """ PEP 610 """
 import json
 import re
-
-from pip._vendor import six
-from pip._vendor.six.moves.urllib import parse as urllib_parse
-
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import (
-        Any, Dict, Iterable, Optional, Type, TypeVar, Union
-    )
-
-    T = TypeVar("T")
-
-
-DIRECT_URL_METADATA_NAME = "direct_url.json"
-ENV_VAR_RE = re.compile(r"^\$\{[A-Za-z0-9-_]+\}(:\$\{[A-Za-z0-9-_]+\})?$")
+import urllib.parse
+from typing import Any, Dict, Iterable, Optional, Type, TypeVar, Union
 
 __all__ = [
     "DirectUrl",
@@ -25,6 +11,11 @@ __all__ = [
     "ArchiveInfo",
     "VcsInfo",
 ]
+
+T = TypeVar("T")
+
+DIRECT_URL_METADATA_NAME = "direct_url.json"
+ENV_VAR_RE = re.compile(r"^\$\{[A-Za-z0-9-_]+\}(:\$\{[A-Za-z0-9-_]+\})?$")
 
 
 class DirectUrlValidationError(Exception):
@@ -37,8 +28,6 @@ def _get(d, expected_type, key, default=None):
     if key not in d:
         return default
     value = d[key]
-    if six.PY2 and expected_type is str:
-        expected_type = six.string_types  # type: ignore
     if not isinstance(value, expected_type):
         raise DirectUrlValidationError(
             "{!r} has unexpected type for {} (expected {})".format(
@@ -52,7 +41,7 @@ def _get_required(d, expected_type, key, default=None):
     # type: (Dict[str, Any], Type[T], str, Optional[T]) -> T
     value = _get(d, expected_type, key, default)
     if value is None:
-        raise DirectUrlValidationError("{} must have a value".format(key))
+        raise DirectUrlValidationError(f"{key} must have a value")
     return value
 
 
@@ -77,7 +66,7 @@ def _filter_none(**kwargs):
     return {k: v for k, v in kwargs.items() if v is not None}
 
 
-class VcsInfo(object):
+class VcsInfo:
     name = "vcs_info"
 
     def __init__(
@@ -118,7 +107,7 @@ class VcsInfo(object):
         )
 
 
-class ArchiveInfo(object):
+class ArchiveInfo:
     name = "archive_info"
 
     def __init__(
@@ -139,7 +128,7 @@ class ArchiveInfo(object):
         return _filter_none(hash=self.hash)
 
 
-class DirInfo(object):
+class DirInfo:
     name = "dir_info"
 
     def __init__(
@@ -162,11 +151,10 @@ class DirInfo(object):
         return _filter_none(editable=self.editable or None)
 
 
-if MYPY_CHECK_RUNNING:
-    InfoType = Union[ArchiveInfo, DirInfo, VcsInfo]
+InfoType = Union[ArchiveInfo, DirInfo, VcsInfo]
 
 
-class DirectUrl(object):
+class DirectUrl:
 
     def __init__(
         self,
@@ -200,9 +188,9 @@ class DirectUrl(object):
         environment variables as specified in PEP 610, or it is ``git``
         in the case of a git URL.
         """
-        purl = urllib_parse.urlsplit(self.url)
+        purl = urllib.parse.urlsplit(self.url)
         netloc = self._remove_auth_from_netloc(purl.netloc)
-        surl = urllib_parse.urlunsplit(
+        surl = urllib.parse.urlunsplit(
             (purl.scheme, netloc, purl.path, purl.query, purl.fragment)
         )
         return surl

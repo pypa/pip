@@ -16,4 +16,4 @@ cases:
           versions have conflicting dependencies.
         # TODO: Tweak this error message to make sense.
         # https://github.com/pypa/pip/issues/8495
-  skip: old
+  skip: legacy

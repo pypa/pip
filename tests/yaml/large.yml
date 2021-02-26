@@ -251,7 +251,7 @@ cases:
       - idna 2.7
       - pycparser 2.18
       - six 1.11.0
-  skip: old
+  skip: legacy
 -
   request:
     - install: cachecontrol
@@ -292,4 +292,4 @@ cases:
           html5lib 0.999999999 because these package versions have
           conflicting dependencies.
 
-  skip: old
+  skip: legacy

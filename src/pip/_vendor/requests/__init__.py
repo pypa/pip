@@ -57,18 +57,16 @@ def check_compatibility(urllib3_version, chardet_version):
     # Check urllib3 for compatibility.
     major, minor, patch = urllib3_version  # noqa: F811
     major, minor, patch = int(major), int(minor), int(patch)
-    # urllib3 >= 1.21.1, <= 1.25
+    # urllib3 >= 1.21.1, <= 1.26
     assert major == 1
     assert minor >= 21
-    assert minor <= 25
+    assert minor <= 26
 
     # Check chardet for compatibility.
     major, minor, patch = chardet_version.split('.')[:3]
     major, minor, patch = int(major), int(minor), int(patch)
-    # chardet >= 3.0.2, < 3.1.0
-    assert major == 3
-    assert minor < 1
-    assert patch >= 2
+    # chardet >= 3.0.2, < 5.0.0
+    assert (3, 0, 2) <= (major, minor, patch) < (5, 0, 0)
 
 
 def _check_cryptography(cryptography_version):
@@ -90,18 +88,29 @@ except (AssertionError, ValueError):
                   "version!".format(urllib3.__version__, chardet.__version__),
                   RequestsDependencyWarning)
 
-# Attempt to enable urllib3's SNI support, if possible
-from pip._internal.utils.compat import WINDOWS
-if not WINDOWS:
+# Attempt to enable urllib3's fallback for SNI support
+# if the standard library doesn't support SNI or the
+# 'ssl' library isn't available.
+try:
+    # Note: This logic prevents upgrading cryptography on Windows, if imported
+    #       as part of pip.
+    from pip._internal.utils.compat import WINDOWS
+    if not WINDOWS:
+        raise ImportError("pip internals: don't import cryptography on Windows")
     try:
+        import ssl
+    except ImportError:
+        ssl = None
+
+    if not getattr(ssl, "HAS_SNI", False):
         from pip._vendor.urllib3.contrib import pyopenssl
         pyopenssl.inject_into_urllib3()
 
         # Check cryptography version
         from cryptography import __version__ as cryptography_version
         _check_cryptography(cryptography_version)
-    except ImportError:
-        pass
+except ImportError:
+    pass
 
 # urllib3's DependencyWarnings should be silenced.
 from pip._vendor.urllib3.exceptions import DependencyWarning

@@ -2,23 +2,19 @@ import itertools
 import logging
 import os
 import posixpath
+import urllib.parse
+from typing import List
 
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.six.moves.urllib import parse as urllib_parse
 
 from pip._internal.models.index import PyPI
 from pip._internal.utils.compat import has_tls
 from pip._internal.utils.misc import normalize_path, redact_auth_from_url
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import List
-
 
 logger = logging.getLogger(__name__)
 
 
-class SearchScope(object):
+class SearchScope:
 
     """
     Encapsulates the locations that pip is configured to search.
@@ -53,7 +49,7 @@ class SearchScope(object):
         # relies on TLS.
         if not has_tls():
             for link in itertools.chain(index_urls, built_find_links):
-                parsed = urllib_parse.urlparse(link)
+                parsed = urllib.parse.urlparse(link)
                 if parsed.scheme == 'https':
                     logger.warning(
                         'pip is configured with locations that require '
@@ -86,7 +82,7 @@ class SearchScope(object):
                 redacted_index_url = redact_auth_from_url(url)
 
                 # Parse the URL
-                purl = urllib_parse.urlsplit(redacted_index_url)
+                purl = urllib.parse.urlsplit(redacted_index_url)
 
                 # URL is generally invalid if scheme and netloc is missing
                 # there are issues with Python and URL parsing, so this test
@@ -95,8 +91,8 @@ class SearchScope(object):
                 # exceptions for malformed URLs
                 if not purl.scheme and not purl.netloc:
                     logger.warning(
-                        'The index url "{}" seems invalid, '
-                        'please provide a scheme.'.format(redacted_index_url))
+                        'The index url "%s" seems invalid, '
+                        'please provide a scheme.', redacted_index_url)
 
                 redacted_index_urls.append(redacted_index_url)
 
@@ -122,7 +118,7 @@ class SearchScope(object):
             # type: (str) -> str
             loc = posixpath.join(
                 url,
-                urllib_parse.quote(canonicalize_name(project_name)))
+                urllib.parse.quote(canonicalize_name(project_name)))
             # For maximum compatibility with easy_install, ensure the path
             # ends in a trailing slash.  Although this isn't in the spec
             # (and PyPI can handle it without the slash) some other index

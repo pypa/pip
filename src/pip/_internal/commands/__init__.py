@@ -2,24 +2,11 @@
 Package containing all pip commands
 """
 
-# The following comment should be removed at some point in the future.
-# mypy: disallow-untyped-defs=False
-# There is currently a bug in python/typeshed mentioned at
-# https://github.com/python/typeshed/issues/3906 which causes the
-# return type of difflib.get_close_matches to be reported
-# as List[Sequence[str]] whereas it should have been List[str]
-
-from __future__ import absolute_import
-
 import importlib
 from collections import OrderedDict, namedtuple
+from typing import Any, Optional
 
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import Any
-    from pip._internal.cli.base_command import Command
-
+from pip._internal.cli.base_command import Command
 
 CommandInfo = namedtuple('CommandInfo', 'module_path, class_name, summary')
 
@@ -109,6 +96,7 @@ def create_command(name, **kwargs):
 
 
 def get_similar_commands(name):
+    # type: (str) -> Optional[str]
     """Command name auto-correct."""
     from difflib import get_close_matches
 
@@ -119,4 +107,4 @@ def get_similar_commands(name):
     if close_commands:
         return close_commands[0]
     else:
-        return False
+        return None

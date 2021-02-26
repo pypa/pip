@@ -1,13 +1,11 @@
+from typing import FrozenSet, Optional, Set
+
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.exceptions import CommandError
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import Optional, Set, FrozenSet
 
 
-class FormatControl(object):
+class FormatControl:
     """Helper for managing formats from which a package can be installed.
     """
 
@@ -35,10 +33,6 @@ class FormatControl(object):
             getattr(self, k) == getattr(other, k)
             for k in self.__slots__
         )
-
-    def __ne__(self, other):
-        # type: (object) -> bool
-        return not self.__eq__(other)
 
     def __repr__(self):
         # type: () -> str

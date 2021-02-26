@@ -4,6 +4,7 @@ from pip._internal.cli.req_command import RequirementCommand
 from pip._internal.commands.install import InstallCommand
 from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import PackageFinder
+
 # from pip._internal.models.index import PyPI
 from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
@@ -68,5 +69,5 @@ def provider(factory):
         constraints={},
         ignore_dependencies=False,
         upgrade_strategy="to-satisfy-only",
-        user_requested=set(),
+        user_requested={},
     )

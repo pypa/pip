@@ -21,4 +21,4 @@ cases:
       - poetry 1.0.5
       - sphinx 3.0.1
       - zappa 0.51.0
-  skip: old
+  skip: legacy

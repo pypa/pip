@@ -10,8 +10,58 @@ Do I need to install pip?
 pip is already installed if you are using Python 2 >=2.7.9 or Python 3 >=3.4
 downloaded from `python.org <https://www.python.org>`_ or if you are working
 in a :ref:`Virtual Environment <pypug:Creating and using Virtual Environments>`
-created by :ref:`pypug:virtualenv` or :ref:`pyvenv <pypug:venv>`.
-Just make sure to :ref:`upgrade pip <Upgrading pip>`.
+created by :ref:`pypug:virtualenv` or :ref:`venv <pypug:venv>`. Just make sure
+to :ref:`upgrade pip <Upgrading pip>`.
+
+Use the following command to check whether pip is installed:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: console
+
+      $ python -m pip --version
+      pip X.Y.Z from .../site-packages/pip (python X.Y)
+
+.. tab:: Windows
+
+   .. code-block:: console
+
+      C:\> py -m pip --version
+      pip X.Y.Z from ...\site-packages\pip (python X.Y)
+
+Using Linux Package Managers
+============================
+
+.. warning::
+
+   If you installed Python from a package manager on Linux, you should always
+   install pip for that Python installation using the same source.
+
+See `pypug:Installing pip/setuptools/wheel with Linux Package Managers <https://packaging.python.org/guides/installing-using-linux-tools/>`_
+in the Python Packaging User Guide.
+
+Here are ways to contact a few Linux package maintainers if you run into
+problems:
+
+* `Deadsnakes PPA <https://github.com/deadsnakes/issues>`_
+* `Debian Python Team <https://wiki.debian.org/Teams/PythonTeam>`_ (for general
+  issues related to ``apt``)
+* `Red Hat Bugzilla <https://bugzilla.redhat.com/>`_
+
+pip developers do not have control over how Linux distributions handle pip
+installations, and are unable to provide solutions to related issues in
+general.
+
+Using ensurepip
+===============
+
+Python >=3.4 can self-bootstrap pip with the built-in
+:ref:`ensurepip <pypug:ensurepip>` module. Refer to the standard library
+documentation for more details. Make sure to :ref:`upgrade pip <Upgrading pip>`
+after ``ensurepip`` installs pip.
+
+See the `Using Linux Package Managers`_ section if your Python reports
+``No module named ensurepip`` on Debian and derived systems (e.g. Ubuntu).
 
 
 .. _`get-pip`:
@@ -19,23 +69,32 @@ Just make sure to :ref:`upgrade pip <Upgrading pip>`.
 Installing with get-pip.py
 ==========================
 
-To install pip, securely [1]_ download ``get-pip.py`` by following
+.. warning::
+
+   Be cautious if you are using a Python install that is managed by your operating
+   system or another package manager. ``get-pip.py`` does not coordinate with
+   those tools, and may leave your system in an inconsistent state.
+
+To manually install pip, securely [1]_ download ``get-pip.py`` by following
 this link: `get-pip.py
 <https://bootstrap.pypa.io/get-pip.py>`_. Alternatively, use ``curl``::
 
  curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
 
 Then run the following command in the folder where you
-have downloaded ``get-pip.py``::
+have downloaded ``get-pip.py``:
 
- python get-pip.py
+.. tab:: Unix/macOS
 
+   .. code-block:: shell
 
-.. warning::
+      python get-pip.py
 
-   Be cautious if you are using a Python install that is managed by your operating
-   system or another package manager. ``get-pip.py`` does not coordinate with
-   those tools, and may leave your system in an inconsistent state.
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py get-pip.py
 
 ``get-pip.py`` also installs :ref:`pypug:setuptools` [2]_ and :ref:`pypug:wheel`
 if they are not already. :ref:`pypug:setuptools` is required to install
@@ -67,44 +126,79 @@ get-pip.py options
 install Options>` and the :ref:`general options <General Options>`. Below are
 some examples:
 
-Install from local copies of pip and setuptools::
+Install from local copies of pip and setuptools:
 
-  python get-pip.py --no-index --find-links=/local/copies
+.. tab:: Unix/macOS
 
-Install to the user site [3]_::
+   .. code-block:: shell
 
-  python get-pip.py --user
+      python get-pip.py --no-index --find-links=/local/copies
 
-Install behind a proxy::
+.. tab:: Windows
 
-  python get-pip.py --proxy="http://[user:passwd@]proxy.server:port"
+   .. code-block:: shell
+
+      py get-pip.py --no-index --find-links=/local/copies
+
+Install to the user site [3]_:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      python get-pip.py --user
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py get-pip.py --user
+
+Install behind a proxy:
+
+.. tab:: Unix/macOS
+
+   .. code-block:: shell
+
+      python get-pip.py --proxy="http://[user:passwd@]proxy.server:port"
+
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py get-pip.py --proxy="http://[user:passwd@]proxy.server:port"
 
 ``get-pip.py`` can also be used to install a specified combination of ``pip``,
-``setuptools``, and ``wheel`` using the same requirements syntax as pip::
+``setuptools``, and ``wheel`` using the same requirements syntax as pip:
 
-  python get-pip.py pip==9.0.2 wheel==0.30.0 setuptools==28.8.0
+.. tab:: Unix/macOS
 
+   .. code-block:: shell
 
-Using Linux Package Managers
-============================
+      python get-pip.py pip==9.0.2 wheel==0.30.0 setuptools==28.8.0
 
-See :ref:`pypug:Installing pip/setuptools/wheel with Linux Package Managers` in
-the `Python Packaging User Guide
-<https://packaging.python.org/guides/tool-recommendations/>`_.
+.. tab:: Windows
+
+   .. code-block:: shell
+
+      py get-pip.py pip==9.0.2 wheel==0.30.0 setuptools==28.8.0
 
 .. _`Upgrading pip`:
 
 Upgrading pip
 =============
 
-On Linux or macOS::
+.. tab:: Unix/macOS
 
- pip install -U pip
+   .. code-block:: shell
 
+      python -m pip install -U pip
 
-On Windows [4]_::
+.. tab:: Windows
 
- python -m pip install -U pip
+   .. code-block:: shell
+
+      py -m pip install -U pip
 
 
 .. _compatibility-requirements:
@@ -112,7 +206,7 @@ On Windows [4]_::
 Python and OS Compatibility
 ===========================
 
-pip works with CPython versions 2.7, 3.5, 3.6, 3.7, 3.8 and also PyPy.
+pip works with CPython versions 3.6, 3.7, 3.8, 3.9 and also PyPy.
 
 This means pip works on the latest patch version of each of these minor
 versions. Previous patch versions are supported on a best effort approach.
@@ -134,5 +228,3 @@ pip works on Unix/Linux, macOS, and Windows.
        ``--user`` installs for pip itself, should not be considered to be fully
        tested or endorsed. For discussion, see `Issue 1668
        <https://github.com/pypa/pip/issues/1668>`_.
-
-.. [4] https://github.com/pypa/pip/issues/1299

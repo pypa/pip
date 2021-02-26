@@ -10,14 +10,10 @@ import zipfile
 import pytest
 
 from pip._internal.exceptions import InstallationError
-from pip._internal.utils.unpacking import (
-    is_within_directory,
-    untar_file,
-    unzip_file,
-)
+from pip._internal.utils.unpacking import is_within_directory, untar_file, unzip_file
 
 
-class TestUnpackArchives(object):
+class TestUnpackArchives:
     """
     test_tar.tgz/test_tar.zip have content as follows engineered to confirm 3
     things:
@@ -70,14 +66,14 @@ class TestUnpackArchives(object):
             if expected_contents is not None:
                 with open(path, mode='rb') as f:
                     contents = f.read()
-                assert contents == expected_contents, 'fname: {}'.format(fname)
+                assert contents == expected_contents, f'fname: {fname}'
             if sys.platform == 'win32':
                 # the permissions tests below don't apply in windows
                 # due to os.chmod being a noop
                 continue
             mode = self.mode(path)
             assert mode == expected_mode, (
-                "mode: {}, expected mode: {}".format(mode, expected_mode)
+                f"mode: {mode}, expected mode: {expected_mode}"
             )
 
     def make_zip_file(self, filename, file_list):

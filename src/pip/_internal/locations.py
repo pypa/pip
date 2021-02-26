@@ -3,29 +3,20 @@
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
 
-from __future__ import absolute_import
-
 import os
 import os.path
-import platform
 import site
 import sys
 import sysconfig
-from distutils import sysconfig as distutils_sysconfig
-from distutils.command.install import SCHEME_KEYS  # type: ignore
+from distutils.cmd import Command as DistutilsCommand
+from distutils.command.install import SCHEME_KEYS
 from distutils.command.install import install as distutils_install_command
+from typing import Dict, List, Optional, Union, cast
 
 from pip._internal.models.scheme import Scheme
 from pip._internal.utils import appdirs
 from pip._internal.utils.compat import WINDOWS
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING, cast
 from pip._internal.utils.virtualenv import running_under_virtualenv
-
-if MYPY_CHECK_RUNNING:
-    from typing import Dict, List, Optional, Union
-
-    from distutils.cmd import Command as DistutilsCommand
-
 
 # Application Directories
 USER_CACHE_DIR = appdirs.user_cache_dir("pip")
@@ -63,11 +54,6 @@ def get_src_prefix():
 
 site_packages = sysconfig.get_path("purelib")  # type: Optional[str]
 
-# This is because of a bug in PyPy's sysconfig module, see
-# https://bitbucket.org/pypy/pypy/issues/2506/sysconfig-returns-incorrect-paths
-# for more information.
-if platform.python_implementation().lower() == "pypy":
-    site_packages = distutils_sysconfig.get_python_lib()
 try:
     # Use getusersitepackages if this is present, as it ensures that the
     # value is initialised properly.
@@ -75,16 +61,27 @@ try:
 except AttributeError:
     user_site = site.USER_SITE
 
+
+def _get_bin_user():
+    # type: () -> str
+    scheme = "{}_user".format(os.name)
+    if scheme not in sysconfig.get_scheme_names():
+        scheme = "posix_user"  # Default to POSIX for unknown platforms.
+    path = sysconfig.get_path("scripts", scheme=scheme)
+    assert path is not None
+    return path
+
+
+bin_user = _get_bin_user()
+
 if WINDOWS:
     bin_py = os.path.join(sys.prefix, 'Scripts')
-    bin_user = os.path.join(user_site, 'Scripts')
     # buildout uses 'bin' on Windows too?
     if not os.path.exists(bin_py):
         bin_py = os.path.join(sys.prefix, 'bin')
-        bin_user = os.path.join(user_site, 'bin')
+        bin_user = os.path.join(os.path.dirname(bin_user), 'bin')
 else:
     bin_py = os.path.join(sys.prefix, 'bin')
-    bin_user = os.path.join(user_site, 'bin')
 
     # Forcing to use /usr/local/bin for standard macOS framework installs
     # Also log to ~/Library/Logs/ for use with the Console.app log viewer
@@ -114,8 +111,8 @@ def distutils_scheme(
     # NOTE: setting user or home has the side-effect of creating the home dir
     # or user base for installations during finalize_options()
     # ideally, we'd prefer a scheme class that has no side-effects.
-    assert not (user and prefix), "user={} prefix={}".format(user, prefix)
-    assert not (home and prefix), "home={} prefix={}".format(home, prefix)
+    assert not (user and prefix), f"user={user} prefix={prefix}"
+    assert not (home and prefix), f"home={home} prefix={prefix}"
     i.user = user or i.user
     if user or home:
         i.prefix = ""
@@ -138,10 +135,10 @@ def distutils_scheme(
 
     if running_under_virtualenv():
         scheme['headers'] = os.path.join(
-            sys.prefix,
+            i.prefix,
             'include',
             'site',
-            'python{}'.format(get_major_minor_version()),
+            f'python{get_major_minor_version()}',
             dist_name,
         )
 

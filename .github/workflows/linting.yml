@@ -19,14 +19,13 @@ jobs:
         os:
         - Ubuntu
         - Windows
-        - MacOS
 
     steps:
     - uses: actions/checkout@v2
-    - name: Set up Python 3.8
-      uses: actions/setup-python@v1
+    - name: Set up Python 3.9
+      uses: actions/setup-python@v2
       with:
-        python-version: 3.8
+        python-version: 3.9
 
     # Setup Caching
     - name: pip cache
@@ -39,7 +38,7 @@ jobs:
           ${{ runner.os }}-
 
     - name: Set PY (for pre-commit cache)
-      run: echo "::set-env name=PY::$(python -c 'import hashlib, sys;print(hashlib.sha256(sys.version.encode()+sys.executable.encode()).hexdigest())')"
+      run: echo "PY=$(python -c 'import hashlib, sys;print(hashlib.sha256(sys.version.encode()+sys.executable.encode()).hexdigest())')" >> $GITHUB_ENV
     - name: pre-commit cache
       uses: actions/cache@v1
       with:

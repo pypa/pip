@@ -1,10 +1,11 @@
 """Tests for wheel helper.
 """
+import csv
 from email import message_from_string
+from email.message import Message
 from functools import partial
 from zipfile import ZipFile
 
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from tests.lib.wheel import (
     _default,
     make_metadata_file,
@@ -12,9 +13,6 @@ from tests.lib.wheel import (
     make_wheel_metadata_file,
     message_from_dict,
 )
-
-if MYPY_CHECK_RUNNING:
-    from email import Message
 
 
 def test_message_from_dict_one_value():
@@ -150,6 +148,47 @@ def test_make_wheel_basics(tmpdir):
             "simple-0.1.0.dist-info/RECORD",
             "simple-0.1.0.dist-info/WHEEL",
         }
+
+
+def test_make_wheel_default_record():
+    with make_wheel(
+        name="simple",
+        version="0.1.0",
+        extra_files={"simple/__init__.py": "a"},
+        extra_metadata_files={"LICENSE": "b"},
+        extra_data_files={"purelib/info.txt": "c"},
+    ).as_zipfile() as z:
+        record_bytes = z.read("simple-0.1.0.dist-info/RECORD")
+        record_text = record_bytes.decode()
+        record_rows = list(csv.reader(record_text.splitlines()))
+        records = {
+            row[0]: row[1:] for row in record_rows
+        }
+
+        expected = {
+            "simple/__init__.py": [
+                "sha256=ypeBEsobvcr6wjGzmiPcTaeG7_gUfE5yuYB3ha_uSLs", "1"
+            ],
+            "simple-0.1.0.data/purelib/info.txt": [
+                "sha256=Ln0sA6lQeuJl7PW1NWiFpTOTogKdJBOUmXJloaJa78Y", "1"
+            ],
+            "simple-0.1.0.dist-info/LICENSE": [
+                "sha256=PiPoFgA5WUoziU9lZOGxNIu9egCI1CxKy3PurtWcAJ0", "1"
+            ],
+            "simple-0.1.0.dist-info/RECORD": ["", ""],
+        }
+        for name, values in expected.items():
+            assert records[name] == values, name
+
+        # WHEEL and METADATA aren't constructed in a stable way, so just spot
+        # check.
+        expected_variable = {
+            "simple-0.1.0.dist-info/METADATA": "51",
+            "simple-0.1.0.dist-info/WHEEL": "104",
+        }
+        for name, length in expected_variable.items():
+            assert records[name][0].startswith("sha256="), name
+            assert records[name][1] == length, name
 
 
 def test_make_wheel_extra_files():

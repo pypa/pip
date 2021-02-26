@@ -6,7 +6,7 @@ from pip._vendor.packaging.version import parse as parse_version
 from pip._internal.models import candidate, index
 
 
-class TestPackageIndex(object):
+class TestPackageIndex:
     """Tests for pip._internal.models.index.PackageIndex
     """
 
@@ -41,7 +41,7 @@ class TestPackageIndex(object):
         assert pack_index.file_storage_domain == "test-files.pythonhosted.org"
 
 
-class TestInstallationCandidate(object):
+class TestInstallationCandidate:
 
     def test_sets_correct_variables(self):
         obj = candidate.InstallationCandidate(

@@ -1,9 +1,8 @@
+from typing import Dict, Iterator
+
 from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
 
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import Dict, Iterator
+from pip._internal.exceptions import NetworkConnectionError
 
 # The following comments and HTTP headers were originally added by
 # Donald Stufft in git commit 22c562429a61bb77172039e480873fb239dd8c03.
@@ -25,6 +24,33 @@ if MYPY_CHECK_RUNNING:
 # before sending because if that's the case I don't think it'll ever be
 # possible to make this work.
 HEADERS = {'Accept-Encoding': 'identity'}  # type: Dict[str, str]
+
+
+def raise_for_status(resp):
+    # type: (Response) -> None
+    http_error_msg = ''
+    if isinstance(resp.reason, bytes):
+        # We attempt to decode utf-8 first because some servers
+        # choose to localize their reason strings. If the string
+        # isn't utf-8, we fall back to iso-8859-1 for all other
+        # encodings.
+        try:
+            reason = resp.reason.decode('utf-8')
+        except UnicodeDecodeError:
+            reason = resp.reason.decode('iso-8859-1')
+    else:
+        reason = resp.reason
+
+    if 400 <= resp.status_code < 500:
+        http_error_msg = '%s Client Error: %s for url: %s' % (
+            resp.status_code, reason, resp.url)
+
+    elif 500 <= resp.status_code < 600:
+        http_error_msg = '%s Server Error: %s for url: %s' % (
+            resp.status_code, reason, resp.url)
+
+    if http_error_msg:
+        raise NetworkConnectionError(http_error_msg, response=resp)
 
 
 def response_chunks(response, chunk_size=CONTENT_CHUNK_SIZE):

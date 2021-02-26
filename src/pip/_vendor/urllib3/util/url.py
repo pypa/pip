@@ -1,10 +1,10 @@
 from __future__ import absolute_import
+
 import re
 from collections import namedtuple
 
 from ..exceptions import LocationParseError
 from ..packages import six
-
 
 url_attrs = ["scheme", "auth", "host", "port", "path", "query", "fragment"]
 
@@ -18,7 +18,7 @@ PERCENT_RE = re.compile(r"%[a-fA-F0-9]{2}")
 SCHEME_RE = re.compile(r"^(?:[a-zA-Z][a-zA-Z0-9+-]*:|/)")
 URI_RE = re.compile(
     r"^(?:([a-zA-Z][a-zA-Z0-9+.-]*):)?"
-    r"(?://([^/?#]*))?"
+    r"(?://([^\\/?#]*))?"
     r"([^?#]*)"
     r"(?:\?([^#]*))?"
     r"(?:#(.*))?$",

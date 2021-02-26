@@ -1,5 +1,6 @@
 """Helper for building wheels as would be in test cases.
 """
+import csv
 import itertools
 from base64 import urlsafe_b64encode
 from collections import namedtuple
@@ -9,28 +10,31 @@ from enum import Enum
 from functools import partial
 from hashlib import sha256
 from io import BytesIO, StringIO
+from typing import (
+    AnyStr,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    TypeVar,
+    Union,
+)
 from zipfile import ZipFile
 
-import csv23
 from pip._vendor.requests.structures import CaseInsensitiveDict
-from pip._vendor.six import ensure_binary, ensure_text, iteritems
 
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from tests.lib.path import Path
 
-if MYPY_CHECK_RUNNING:
-    from typing import (
-        AnyStr, Callable, Dict, List, Iterable, Optional, Tuple, Sequence,
-        TypeVar, Union,
-    )
-
-    # path, digest, size
-    RecordLike = Tuple[str, str, str]
-    RecordCallback = Callable[
-        [List["Record"]], Union[str, bytes, List[RecordLike]]
-    ]
-    # As would be used in metadata
-    HeaderValue = Union[str, List[str]]
+# path, digest, size
+RecordLike = Tuple[str, str, str]
+RecordCallback = Callable[
+    [List["Record"]], Union[str, bytes, List[RecordLike]]
+]
+# As would be used in metadata
+HeaderValue = Union[str, List[str]]
 
 
 File = namedtuple("File", ["name", "contents"])
@@ -43,14 +47,17 @@ class Default(Enum):
 
 _default = Default.token
 
+T = TypeVar("T")
 
-if MYPY_CHECK_RUNNING:
-    T = TypeVar("T")
+# A type which may be defaulted.
+Defaulted = Union[Default, T]
 
-    class Defaulted(Union[Default, T]):
-        """A type which may be defaulted.
-        """
-        pass
+
+def ensure_binary(value):
+    # type: (AnyStr) -> bytes
+    if isinstance(value, bytes):
+        return value
+    return value.encode()
 
 
 def message_from_dict(headers):
@@ -60,7 +67,7 @@ def message_from_dict(headers):
     List values are converted into repeated headers in the result.
     """
     message = Message()
-    for name, value in iteritems(headers):
+    for name, value in headers.items():
         if isinstance(value, list):
             for v in value:
                 message[name] = v
@@ -71,7 +78,7 @@ def message_from_dict(headers):
 
 def dist_info_path(name, version, path):
     # type: (str, str, str) -> str
-    return "{}-{}.dist-info/{}".format(name, version, path)
+    return f"{name}-{version}.dist-info/{path}"
 
 
 def make_metadata_file(
@@ -102,7 +109,7 @@ def make_metadata_file(
     if body is not _default:
         message.set_payload(body)
 
-    return File(path, ensure_binary(message_from_dict(metadata).as_string()))
+    return File(path, message_from_dict(metadata).as_bytes())
 
 
 def make_wheel_metadata_file(
@@ -131,7 +138,7 @@ def make_wheel_metadata_file(
     if updates is not _default:
         metadata.update(updates)
 
-    return File(path, ensure_binary(message_from_dict(metadata).as_string()))
+    return File(path, message_from_dict(metadata).as_bytes())
 
 
 def make_entry_points_file(
@@ -153,13 +160,13 @@ def make_entry_points_file(
         entry_points_data["console_scripts"] = console_scripts
 
     lines = []
-    for section, values in iteritems(entry_points_data):
-        lines.append("[{}]".format(section))
+    for section, values in entry_points_data.items():
+        lines.append(f"[{section}]")
         lines.extend(values)
 
     return File(
         dist_info_path(name, version, "entry_points.txt"),
-        ensure_binary("\n".join(lines)),
+        "\n".join(lines).encode(),
     )
 
 
@@ -167,7 +174,7 @@ def make_files(files):
     # type: (Dict[str, AnyStr]) -> List[File]
     return [
         File(name, ensure_binary(contents))
-        for name, contents in iteritems(files)
+        for name, contents in files.items()
     ]
 
 
@@ -176,16 +183,16 @@ def make_metadata_files(name, version, files):
     get_path = partial(dist_info_path, name, version)
     return [
         File(get_path(name), ensure_binary(contents))
-        for name, contents in iteritems(files)
+        for name, contents in files.items()
     ]
 
 
 def make_data_files(name, version, files):
     # type: (str, str, Dict[str, AnyStr]) -> List[File]
-    data_dir = "{}-{}.data".format(name, version)
+    data_dir = f"{name}-{version}.data"
     return [
-        File("{}/{}".format(data_dir, name), ensure_binary(contents))
-        for name, contents in iteritems(files)
+        File(f"{data_dir}/{name}", ensure_binary(contents))
+        for name, contents in files.items()
     ]
 
 
@@ -232,10 +239,10 @@ def record_file_maker_wrapper(
     if record_callback is not _default:
         records = record_callback(records)
 
-    with StringIO(newline=u"") as buf:
-        writer = csv23.writer(buf)
+    with StringIO(newline="") as buf:
+        writer = csv.writer(buf)
         for record in records:
-            writer.writerow(map(ensure_text, record))
+            writer.writerow(record)
         contents = buf.getvalue().encode("utf-8")
 
     yield File(record_path, contents)
@@ -250,10 +257,10 @@ def wheel_name(name, version, pythons, abis, platforms):
         ".".join(abis),
         ".".join(platforms),
     ])
-    return "{}.whl".format(stem)
+    return f"{stem}.whl"
 
 
-class WheelBuilder(object):
+class WheelBuilder:
     """A wheel that can be saved or converted to several formats.
     """
 

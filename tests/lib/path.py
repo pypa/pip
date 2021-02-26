@@ -1,13 +1,7 @@
 # flake8: noqa
-# -*- coding: utf-8 -*-
 # Author: Aziz Köksal
-from __future__ import absolute_import
-
 import glob
 import os
-import shutil
-
-from pip._vendor import six
 
 try:
     from os import supports_fd
@@ -15,11 +9,7 @@ except ImportError:
     supports_fd = set()
 
 
-
-_base = six.text_type if os.path.supports_unicode_filenames else str
-
-
-class Path(_base):
+class Path(str):
     """
     Models a path in an object oriented way.
     """
@@ -32,8 +22,8 @@ class Path(_base):
 
     def __new__(cls, *paths):
         if len(paths):
-            return _base.__new__(cls, os.path.join(*paths))
-        return _base.__new__(cls)
+            return super().__new__(cls, os.path.join(*paths))
+        return super().__new__(cls)
 
     def __div__(self, path):
         """
@@ -71,20 +61,17 @@ class Path(_base):
         >>> Path('/home/a') + 'bc.d'
         '/home/abc.d'
         """
-        return Path(_base(self) + path)
+        return Path(str(self) + path)
 
     def __radd__(self, path):
         """
         >>> '/home/a' + Path('bc.d')
         '/home/abc.d'
         """
-        return Path(path + _base(self))
+        return Path(path + str(self))
 
     def __repr__(self):
-        return u"Path({inner})".format(inner=_base.__repr__(self))
-
-    def __hash__(self):
-        return _base.__hash__(self)
+        return "Path({inner})".format(inner=str.__repr__(self))
 
     @property
     def name(self):

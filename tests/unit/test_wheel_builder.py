@@ -1,7 +1,7 @@
 import logging
+from unittest.mock import patch
 
 import pytest
-from mock import patch
 
 from pip._internal import wheel_builder
 from pip._internal.models.link import Link
@@ -53,17 +53,44 @@ class ReqMock:
 @pytest.mark.parametrize(
     "req, disallow_binaries, expected",
     [
-        (ReqMock(), False, True),
-        (ReqMock(), True, False),
+        # When binaries are allowed, we build.
+        (ReqMock(use_pep517=True), False, True),
+        (ReqMock(use_pep517=False), False, True),
+        # When binaries are disallowed, we don't build, unless pep517 is
+        # enabled.
+        (ReqMock(use_pep517=True), True, True),
+        (ReqMock(use_pep517=False), True, False),
+        # We don't build constraints.
         (ReqMock(constraint=True), False, False),
+        # We don't build reqs that are already wheels.
         (ReqMock(is_wheel=True), False, False),
+        # We don't build editables.
         (ReqMock(editable=True), False, False),
         (ReqMock(source_dir=None), False, False),
         # By default (i.e. when binaries are allowed), VCS requirements
         # should be built in install mode.
-        (ReqMock(link=Link("git+https://g.c/org/repo")), False, True),
+        (
+            ReqMock(link=Link("git+https://g.c/org/repo"), use_pep517=True),
+            False,
+            True,
+        ),
+        (
+            ReqMock(link=Link("git+https://g.c/org/repo"), use_pep517=False),
+            False,
+            True,
+        ),
         # Disallowing binaries, however, should cause them not to be built.
-        (ReqMock(link=Link("git+https://g.c/org/repo")), True, False),
+        # unless pep517 is enabled.
+        (
+            ReqMock(link=Link("git+https://g.c/org/repo"), use_pep517=True),
+            True,
+            True,
+        ),
+        (
+            ReqMock(link=Link("git+https://g.c/org/repo"), use_pep517=False),
+            True,
+            False,
+        ),
     ],
 )
 def test_should_build_for_install_command(req, disallow_binaries, expected):

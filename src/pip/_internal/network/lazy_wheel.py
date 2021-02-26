@@ -1,26 +1,23 @@
 """Lazy ZIP over HTTP"""
 
-__all__ = ['dist_from_wheel_url']
+__all__ = ['HTTPRangeRequestUnsupported', 'dist_from_wheel_url']
 
 from bisect import bisect_left, bisect_right
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
+from typing import Any, Dict, Iterator, List, Optional, Tuple
 from zipfile import BadZipfile, ZipFile
 
-from pip._vendor.requests.models import CONTENT_CHUNK_SIZE
-from pip._vendor.six.moves import range
+from pip._vendor.pkg_resources import Distribution
+from pip._vendor.requests.models import CONTENT_CHUNK_SIZE, Response
 
-from pip._internal.network.utils import HEADERS, response_chunks
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.network.session import PipSession
+from pip._internal.network.utils import HEADERS, raise_for_status, response_chunks
 from pip._internal.utils.wheel import pkg_resources_distribution_for_wheel
 
-if MYPY_CHECK_RUNNING:
-    from typing import Any, Dict, Iterator, List, Optional, Tuple
 
-    from pip._vendor.pkg_resources import Distribution
-    from pip._vendor.requests.models import Response
-
-    from pip._internal.network.session import PipSession
+class HTTPRangeRequestUnsupported(Exception):
+    pass
 
 
 def dist_from_wheel_url(name, url, session):
@@ -29,7 +26,8 @@ def dist_from_wheel_url(name, url, session):
 
     This uses HTTP range requests to only fetch the potion of the wheel
     containing metadata, just enough for the object to be constructed.
-    If such requests are not supported, RuntimeError is raised.
+    If such requests are not supported, HTTPRangeRequestUnsupported
+    is raised.
     """
     with LazyZipOverHTTP(url, session) as wheel:
         # For read-only ZIP files, ZipFile only needs methods read,
@@ -40,18 +38,19 @@ def dist_from_wheel_url(name, url, session):
         return pkg_resources_distribution_for_wheel(zip_file, name, wheel.name)
 
 
-class LazyZipOverHTTP(object):
+class LazyZipOverHTTP:
     """File-like object mapped to a ZIP file over HTTP.
 
     This uses HTTP range requests to lazily fetch the file's content,
     which is supposed to be fed to ZipFile.  If such requests are not
-    supported by the server, raise RuntimeError during initialization.
+    supported by the server, raise HTTPRangeRequestUnsupported
+    during initialization.
     """
 
     def __init__(self, url, session, chunk_size=CONTENT_CHUNK_SIZE):
         # type: (str, PipSession, int) -> None
         head = session.head(url, headers=HEADERS)
-        head.raise_for_status()
+        raise_for_status(head)
         assert head.status_code == 200
         self._session, self._url, self._chunk_size = session, url, chunk_size
         self._length = int(head.headers['Content-Length'])
@@ -60,7 +59,7 @@ class LazyZipOverHTTP(object):
         self._left = []  # type: List[int]
         self._right = []  # type: List[int]
         if 'bytes' not in head.headers.get('Accept-Ranges', 'none'):
-            raise RuntimeError('range request is not supported')
+            raise HTTPRangeRequestUnsupported('range request is not supported')
         self._check_zip()
 
     @property
@@ -99,8 +98,10 @@ class LazyZipOverHTTP(object):
         all bytes until EOF are returned.  Fewer than
         size bytes may be returned if EOF is reached.
         """
+        download_size = max(size, self._chunk_size)
         start, length = self.tell(), self._length
-        stop = start + size if 0 <= size <= length-start else length
+        stop = length if size < 0 else min(start+download_size, length)
+        start = max(0, stop-download_size)
         self._download(start, stop-1)
         return self._file.read(size)
 
@@ -182,8 +183,10 @@ class LazyZipOverHTTP(object):
     def _stream_response(self, start, end, base_headers=HEADERS):
         # type: (int, int, Dict[str, str]) -> Response
         """Return HTTP response to a range request from start to end."""
-        headers = {'Range': 'bytes={}-{}'.format(start, end)}
-        headers.update(base_headers)
+        headers = base_headers.copy()
+        headers['Range'] = f'bytes={start}-{end}'
+        # TODO: Get range requests to be correctly cached
+        headers['Cache-Control'] = 'no-cache'
         return self._session.get(self._url, headers=headers, stream=True)
 
     def _merge(self, start, end, left, right):

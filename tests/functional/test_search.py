@@ -5,17 +5,7 @@ import pytest
 
 from pip._internal.cli.status_codes import NO_MATCHES_FOUND, SUCCESS
 from pip._internal.commands import create_command
-from pip._internal.commands.search import (
-    highest_version,
-    print_results,
-    transform_hits,
-)
-from tests.lib import pyversion
-
-if pyversion >= '3':
-    VERBOSE_FALSE = False
-else:
-    VERBOSE_FALSE = 0
+from pip._internal.commands.search import highest_version, print_results, transform_hits
 
 
 def test_version_compare():
@@ -66,6 +56,7 @@ def test_pypi_xml_transformation():
 
 
 @pytest.mark.network
+@pytest.mark.search
 def test_basic_search(script):
     """
     End to end test of search command.
@@ -85,6 +76,7 @@ def test_basic_search(script):
             "https://github.com/pypa/warehouse/issues/3717 for more "
             "information."),
 )
+@pytest.mark.search
 def test_multiple_search(script):
     """
     Test searching for multiple packages at once.
@@ -98,6 +90,7 @@ def test_multiple_search(script):
     assert 'Tools for parsing and using INI-style files' in output.stdout
 
 
+@pytest.mark.search
 def test_search_missing_argument(script):
     """
     Test missing required argument for search
@@ -107,6 +100,7 @@ def test_search_missing_argument(script):
 
 
 @pytest.mark.network
+@pytest.mark.search
 def test_run_method_should_return_success_when_find_packages():
     """
     Test SearchCommand.run for found package
@@ -120,6 +114,7 @@ def test_run_method_should_return_success_when_find_packages():
 
 
 @pytest.mark.network
+@pytest.mark.search
 def test_run_method_should_return_no_matches_found_when_does_not_find_pkgs():
     """
     Test SearchCommand.run for no matches
@@ -133,6 +128,7 @@ def test_run_method_should_return_no_matches_found_when_does_not_find_pkgs():
 
 
 @pytest.mark.network
+@pytest.mark.search
 def test_search_should_exit_status_code_zero_when_find_packages(script):
     """
     Test search exit status code for package found
@@ -142,6 +138,7 @@ def test_search_should_exit_status_code_zero_when_find_packages(script):
 
 
 @pytest.mark.network
+@pytest.mark.search
 def test_search_exit_status_code_when_finds_no_package(script):
     """
     Test search exit status code for no matches
@@ -150,6 +147,7 @@ def test_search_exit_status_code_when_finds_no_package(script):
     assert result.returncode == NO_MATCHES_FOUND, result.returncode
 
 
+@pytest.mark.search
 def test_latest_prerelease_install_message(caplog, monkeypatch):
     """
     Test documentation for installing pre-release packages is displayed
@@ -178,6 +176,7 @@ def test_latest_prerelease_install_message(caplog, monkeypatch):
     assert get_dist.calls == [pretend.call('ni')]
 
 
+@pytest.mark.search
 def test_search_print_results_should_contain_latest_versions(caplog):
     """
     Test that printed search results contain the latest package versions

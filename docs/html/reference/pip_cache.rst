@@ -4,12 +4,17 @@
 pip cache
 ---------
 
-.. contents::
 
 Usage
 *****
 
-.. pip-command-usage:: cache
+.. tab:: Unix/macOS
+
+   .. pip-command-usage:: cache "python -m pip"
+
+.. tab:: Windows
+
+   .. pip-command-usage:: cache "py -m pip"
 
 Description
 ***********

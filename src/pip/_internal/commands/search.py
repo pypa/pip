@@ -1,35 +1,31 @@
-from __future__ import absolute_import
-
 import logging
+import shutil
 import sys
 import textwrap
+import xmlrpc.client
 from collections import OrderedDict
+from optparse import Values
+from typing import TYPE_CHECKING, Dict, List, Optional
 
-from pip._vendor import pkg_resources
 from pip._vendor.packaging.version import parse as parse_version
-# NOTE: XMLRPC Client is not annotated in typeshed as on 2017-07-17, which is
-#       why we ignore the type on this import
-from pip._vendor.six.moves import xmlrpc_client  # type: ignore
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.req_command import SessionCommandMixin
 from pip._internal.cli.status_codes import NO_MATCHES_FOUND, SUCCESS
 from pip._internal.exceptions import CommandError
+from pip._internal.metadata import get_default_environment
 from pip._internal.models.index import PyPI
 from pip._internal.network.xmlrpc import PipXmlrpcTransport
-from pip._internal.utils.compat import get_terminal_size
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.misc import get_distribution, write_output
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.misc import write_output
 
-if MYPY_CHECK_RUNNING:
-    from optparse import Values
-    from typing import List, Dict, Optional
-    from typing_extensions import TypedDict
-    TransformedHit = TypedDict(
-        'TransformedHit',
-        {'name': str, 'summary': str, 'versions': List[str]},
-    )
+if TYPE_CHECKING:
+    from typing import TypedDict
+
+    class TransformedHit(TypedDict):
+        name: str
+        summary: str
+        versions: List[str]
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +58,7 @@ class SearchCommand(Command, SessionCommandMixin):
 
         terminal_width = None
         if sys.stdout.isatty():
-            terminal_width = get_terminal_size()[0]
+            terminal_width = shutil.get_terminal_size()[0]
 
         print_results(hits, terminal_width=terminal_width)
         if pypi_hits:
@@ -76,8 +72,16 @@ class SearchCommand(Command, SessionCommandMixin):
         session = self.get_default_session(options)
 
         transport = PipXmlrpcTransport(index_url, session)
-        pypi = xmlrpc_client.ServerProxy(index_url, transport)
-        hits = pypi.search({'name': query, 'summary': query}, 'or')
+        pypi = xmlrpc.client.ServerProxy(index_url, transport)
+        try:
+            hits = pypi.search({'name': query, 'summary': query}, 'or')
+        except xmlrpc.client.Fault as fault:
+            message = "XMLRPC request failed [code: {code}]\n{string}".format(
+                code=fault.faultCode,
+                string=fault.faultString,
+            )
+            raise CommandError(message)
+        assert isinstance(hits, list)
         return hits
 
 
@@ -120,7 +124,7 @@ def print_results(hits, name_column_width=None, terminal_width=None):
             for hit in hits
         ]) + 4
 
-    installed_packages = [p.project_name for p in pkg_resources.working_set]
+    env = get_default_environment()
     for hit in hits:
         name = hit['name']
         summary = hit['summary'] or ''
@@ -133,13 +137,12 @@ def print_results(hits, name_column_width=None, terminal_width=None):
                 summary = ('\n' + ' ' * (name_column_width + 3)).join(
                     summary_lines)
 
-        line = '{name_latest:{name_column_width}} - {summary}'.format(
-            name_latest='{name} ({latest})'.format(**locals()),
-            **locals())
+        name_latest = f'{name} ({latest})'
+        line = f'{name_latest:{name_column_width}} - {summary}'
         try:
             write_output(line)
-            if name in installed_packages:
-                dist = get_distribution(name)
+            dist = env.get_distribution(name)
+            if dist is not None:
                 with indent_log():
                     if dist.version == latest:
                         write_output('INSTALLED: %s (latest)', dist.version)

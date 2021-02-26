@@ -23,11 +23,7 @@ from tests.lib import (
     need_svn,
     path_to_url,
     pyversion,
-    pyversion_tuple,
     requirements_file,
-    skip_if_not_python2,
-    skip_if_python2,
-    windows_workaround_7667,
 )
 from tests.lib.filesystem import make_socket_file
 from tests.lib.local_repos import local_checkout
@@ -188,28 +184,23 @@ def test_pep518_forkbombs(script, data, common_wheels, command, package):
 
 @pytest.mark.network
 def test_pip_second_command_line_interface_works(
-        script, pip_src, data, common_wheels, deprecated_python):
+        script, pip_src, data, common_wheels, deprecated_python, with_wheel
+):
     """
     Check if ``pip<PYVERSION>`` commands behaves equally
     """
     # Re-install pip so we get the launchers.
     script.pip_install_local('-f', common_wheels, pip_src)
-    # On old versions of Python, urllib3/requests will raise a warning about
-    # the lack of an SSLContext.
-    kwargs = {'expect_stderr': deprecated_python}
-    if pyversion_tuple < (2, 7, 9):
-        kwargs['expect_stderr'] = True
-
-    args = ['pip{pyversion}'.format(**globals())]
+    args = [f'pip{pyversion}']
     args.extend(['install', 'INITools==0.2'])
     args.extend(['-f', data.packages])
-    result = script.run(*args, **kwargs)
-    egg_info_folder = (
+    result = script.run(*args)
+    dist_info_folder = (
         script.site_packages /
-        'INITools-0.2-py{pyversion}.egg-info'.format(**globals())
+        'INITools-0.2.dist-info'
     )
     initools_folder = script.site_packages / 'initools'
-    result.did_create(egg_info_folder)
+    result.did_create(dist_info_folder)
     result.did_create(initools_folder)
 
 
@@ -231,17 +222,17 @@ def test_install_exit_status_code_when_blank_requirements_file(script):
 
 
 @pytest.mark.network
-def test_basic_install_from_pypi(script):
+def test_basic_install_from_pypi(script, with_wheel):
     """
     Test installing a package from PyPI.
     """
     result = script.pip('install', 'INITools==0.2')
-    egg_info_folder = (
+    dist_info_folder = (
         script.site_packages /
-        'INITools-0.2-py{pyversion}.egg-info'.format(**globals())
+        'INITools-0.2.dist-info'
     )
     initools_folder = script.site_packages / 'initools'
-    result.did_create(egg_info_folder)
+    result.did_create(dist_info_folder)
     result.did_create(initools_folder)
 
     # Should not display where it's looking for files
@@ -405,8 +396,10 @@ def test_vcs_url_urlquote_normalization(script, tmpdir):
     )
 
 
-@pytest.mark.parametrize("resolver", ["", "--use-feature=2020-resolver"])
-def test_basic_install_from_local_directory(script, data, resolver):
+@pytest.mark.parametrize("resolver", ["", "--use-deprecated=legacy-resolver"])
+def test_basic_install_from_local_directory(
+    script, data, resolver, with_wheel
+):
     """
     Test installing from a local directory.
     """
@@ -417,12 +410,12 @@ def test_basic_install_from_local_directory(script, data, resolver):
     args.append(to_install)
     result = script.pip(*args)
     fspkg_folder = script.site_packages / 'fspkg'
-    egg_info_folder = (
+    dist_info_folder = (
         script.site_packages /
-        'FSPkg-0.1.dev0-py{pyversion}.egg-info'.format(**globals())
+        'FSPkg-0.1.dev0.dist-info'
     )
     result.did_create(fspkg_folder)
-    result.did_create(egg_info_folder)
+    result.did_create(dist_info_folder)
 
 
 @pytest.mark.parametrize("test_type,editable", [
@@ -433,13 +426,15 @@ def test_basic_install_from_local_directory(script, data, resolver):
     ("embedded_rel_path", False),
     ("embedded_rel_path", True),
 ])
-def test_basic_install_relative_directory(script, data, test_type, editable):
+def test_basic_install_relative_directory(
+    script, data, test_type, editable, with_wheel
+):
     """
     Test installing a requirement using a relative path.
     """
-    egg_info_file = (
+    dist_info_folder = (
         script.site_packages /
-        'FSPkg-0.1.dev0-py{pyversion}.egg-info'.format(**globals())
+        'FSPkg-0.1.dev0.dist-info'
     )
     egg_link_file = (
         script.site_packages / 'FSPkg.egg-link'
@@ -465,7 +460,7 @@ def test_basic_install_relative_directory(script, data, test_type, editable):
     if not editable:
         result = script.pip('install', req_path,
                             cwd=script.scratch_path)
-        result.did_create(egg_info_file)
+        result.did_create(dist_info_folder)
         result.did_create(package_folder)
     else:
         # Editable install.
@@ -527,12 +522,12 @@ def test_hashed_install_failure(script, tmpdir):
 
 def assert_re_match(pattern, text):
     assert re.search(pattern, text), (
-        "Could not find {!r} in {!r}".format(pattern, text)
+        f"Could not find {pattern!r} in {text!r}"
     )
 
 
 @pytest.mark.network
-@pytest.mark.fails_on_new_resolver
+@pytest.mark.skip("Fails on new resolver")
 def test_hashed_install_failure_later_flag(script, tmpdir):
     with requirements_file(
         "blessings==1.0\n"
@@ -562,29 +557,54 @@ def test_hashed_install_failure_later_flag(script, tmpdir):
 
 
 def test_install_from_local_directory_with_symlinks_to_directories(
-        script, data):
+        script, data, with_wheel
+):
     """
     Test installing from a local directory containing symlinks to directories.
     """
     to_install = data.packages.joinpath("symlinks")
     result = script.pip('install', to_install)
     pkg_folder = script.site_packages / 'symlinks'
-    egg_info_folder = (
+    dist_info_folder = (
         script.site_packages /
-        'symlinks-0.1.dev0-py{pyversion}.egg-info'.format(**globals())
+        'symlinks-0.1.dev0.dist-info'
     )
     result.did_create(pkg_folder)
-    result.did_create(egg_info_folder)
+    result.did_create(dist_info_folder)
 
 
-@pytest.mark.skipif("sys.platform == 'win32' or sys.version_info < (3,)")
-def test_install_from_local_directory_with_socket_file(script, data, tmpdir):
+def test_install_from_local_directory_with_in_tree_build(
+    script, data, with_wheel
+):
+    """
+    Test installing from a local directory with --use-feature=in-tree-build.
+    """
+    to_install = data.packages.joinpath("FSPkg")
+    args = ["install", "--use-feature=in-tree-build", to_install]
+
+    in_tree_build_dir = to_install / "build"
+    assert not in_tree_build_dir.exists()
+    result = script.pip(*args)
+    fspkg_folder = script.site_packages / 'fspkg'
+    dist_info_folder = (
+        script.site_packages /
+        'FSPkg-0.1.dev0.dist-info'
+    )
+    result.did_create(fspkg_folder)
+    result.did_create(dist_info_folder)
+    assert in_tree_build_dir.exists()
+
+
+@pytest.mark.skipif("sys.platform == 'win32'")
+def test_install_from_local_directory_with_socket_file(
+    script, data, tmpdir, with_wheel
+):
     """
     Test installing from a local directory containing a socket file.
     """
-    egg_info_file = (
+    dist_info_folder = (
         script.site_packages /
-        "FSPkg-0.1.dev0-py{pyversion}.egg-info".format(**globals())
+        "FSPkg-0.1.dev0.dist-info"
     )
     package_folder = script.site_packages / "fspkg"
     to_copy = data.packages.joinpath("FSPkg")
@@ -597,7 +617,7 @@ def test_install_from_local_directory_with_socket_file(script, data, tmpdir):
 
     result = script.pip("install", "--verbose", to_install)
     result.did_create(package_folder)
-    result.did_create(egg_info_file)
+    result.did_create(dist_info_folder)
     assert str(socket_file_path) in result.stderr
 
 
@@ -649,22 +669,7 @@ def test_editable_install__local_dir_no_setup_py_with_pyproject(
     assert 'A "pyproject.toml" file was found' in msg
 
 
-@skip_if_not_python2
-@pytest.mark.xfail
-def test_install_argparse_shadowed(script):
-    # When argparse is in the stdlib, we support installing it
-    # even though that's pretty useless because older packages did need to
-    # depend on it, and not having its metadata will cause pkg_resources
-    # requirements checks to fail // trigger easy-install, both of which are
-    # bad.
-    # XXX: Note, this test hits the outside-environment check, not the
-    # in-stdlib check, because our tests run in virtualenvs...
-    result = script.pip('install', 'argparse>=1.4')
-    assert "Not uninstalling argparse" in result.stdout
-
-
 @pytest.mark.network
-@skip_if_python2
 def test_upgrade_argparse_shadowed(script):
     # If argparse is installed - even if shadowed for imported - we support
     # upgrading it and properly remove the older versions files.
@@ -673,7 +678,7 @@ def test_upgrade_argparse_shadowed(script):
     assert "Not uninstalling argparse" not in result.stdout
 
 
-def test_install_curdir(script, data):
+def test_install_curdir(script, data, with_wheel):
     """
     Test installing current directory ('.').
     """
@@ -684,27 +689,27 @@ def test_install_curdir(script, data):
         rmtree(egg_info)
     result = script.pip('install', curdir, cwd=run_from)
     fspkg_folder = script.site_packages / 'fspkg'
-    egg_info_folder = (
+    dist_info_folder = (
         script.site_packages /
-        'FSPkg-0.1.dev0-py{pyversion}.egg-info'.format(**globals())
+        'FSPkg-0.1.dev0.dist-info'
     )
     result.did_create(fspkg_folder)
-    result.did_create(egg_info_folder)
+    result.did_create(dist_info_folder)
 
 
-def test_install_pardir(script, data):
+def test_install_pardir(script, data, with_wheel):
     """
     Test installing parent directory ('..').
     """
     run_from = data.packages.joinpath("FSPkg", "fspkg")
     result = script.pip('install', pardir, cwd=run_from)
     fspkg_folder = script.site_packages / 'fspkg'
-    egg_info_folder = (
+    dist_info_folder = (
         script.site_packages /
-        'FSPkg-0.1.dev0-py{pyversion}.egg-info'.format(**globals())
+        'FSPkg-0.1.dev0.dist-info'
     )
     result.did_create(fspkg_folder)
-    result.did_create(egg_info_folder)
+    result.did_create(dist_info_folder)
 
 
 @pytest.mark.network
@@ -736,11 +741,10 @@ def test_install_using_install_option_and_editable(script, tmpdir):
     """
     folder = 'script_folder'
     script.scratch_path.joinpath(folder).mkdir()
-    url = 'git+git://github.com/pypa/pip-test-package'
+    url = local_checkout('git+git://github.com/pypa/pip-test-package', tmpdir)
     result = script.pip(
-        'install', '-e', '{url}#egg=pip-test-package'
-        .format(url=local_checkout(url, tmpdir)),
-        '--install-option=--script-dir={folder}'.format(**locals()),
+        'install', '-e', f'{url}#egg=pip-test-package',
+        f'--install-option=--script-dir={folder}',
         expect_stderr=True)
     script_file = (
         script.venv / 'src' / 'pip-test-package' /
@@ -749,9 +753,9 @@ def test_install_using_install_option_and_editable(script, tmpdir):
     result.did_create(script_file)
 
 
+@pytest.mark.xfail
 @pytest.mark.network
 @need_mercurial
-@windows_workaround_7667
 def test_install_global_option_using_editable(script, tmpdir):
     """
     Test using global distutils options, but in an editable installation
@@ -765,17 +769,17 @@ def test_install_global_option_using_editable(script, tmpdir):
 
 
 @pytest.mark.network
-def test_install_package_with_same_name_in_curdir(script):
+def test_install_package_with_same_name_in_curdir(script, with_wheel):
     """
     Test installing a package with the same name of a local folder
     """
     script.scratch_path.joinpath("mock==0.6").mkdir()
     result = script.pip('install', 'mock==0.6')
-    egg_folder = (
+    dist_info_folder = (
         script.site_packages /
-        'mock-0.6.0-py{pyversion}.egg-info'.format(**globals())
+        'mock-0.6.0.dist-info'
     )
-    result.did_create(egg_folder)
+    result.did_create(dist_info_folder)
 
 
 mock100_setup_py = textwrap.dedent('''\
@@ -784,7 +788,7 @@ mock100_setup_py = textwrap.dedent('''\
                               version='100.1')''')
 
 
-def test_install_folder_using_dot_slash(script):
+def test_install_folder_using_dot_slash(script, with_wheel):
     """
     Test installing a folder using pip install ./foldername
     """
@@ -792,14 +796,14 @@ def test_install_folder_using_dot_slash(script):
     pkg_path = script.scratch_path / 'mock'
     pkg_path.joinpath("setup.py").write_text(mock100_setup_py)
     result = script.pip('install', './mock')
-    egg_folder = (
+    dist_info_folder = (
         script.site_packages /
-        'mock-100.1-py{pyversion}.egg-info'.format(**globals())
+        'mock-100.1.dist-info'
     )
-    result.did_create(egg_folder)
+    result.did_create(dist_info_folder)
 
 
-def test_install_folder_using_slash_in_the_end(script):
+def test_install_folder_using_slash_in_the_end(script, with_wheel):
     r"""
     Test installing a folder using pip install foldername/ or foldername\
     """
@@ -807,14 +811,11 @@ def test_install_folder_using_slash_in_the_end(script):
     pkg_path = script.scratch_path / 'mock'
     pkg_path.joinpath("setup.py").write_text(mock100_setup_py)
     result = script.pip('install', 'mock' + os.path.sep)
-    egg_folder = (
-        script.site_packages /
-        'mock-100.1-py{pyversion}.egg-info'.format(**globals())
-    )
-    result.did_create(egg_folder)
+    dist_info_folder = script.site_packages / 'mock-100.1.dist-info'
+    result.did_create(dist_info_folder)
 
 
-def test_install_folder_using_relative_path(script):
+def test_install_folder_using_relative_path(script, with_wheel):
     """
     Test installing a folder using pip install folder1/folder2
     """
@@ -823,29 +824,26 @@ def test_install_folder_using_relative_path(script):
     pkg_path = script.scratch_path / 'initools' / 'mock'
     pkg_path.joinpath("setup.py").write_text(mock100_setup_py)
     result = script.pip('install', Path('initools') / 'mock')
-    egg_folder = (
-        script.site_packages /
-        'mock-100.1-py{pyversion}.egg-info'.format(**globals())
-    )
-    result.did_create(egg_folder)
+    dist_info_folder = script.site_packages / 'mock-100.1.dist-info'
+    result.did_create(dist_info_folder)
 
 
 @pytest.mark.network
-def test_install_package_which_contains_dev_in_name(script):
+def test_install_package_which_contains_dev_in_name(script, with_wheel):
     """
     Test installing package from PyPI which contains 'dev' in name
     """
     result = script.pip('install', 'django-devserver==0.0.4')
     devserver_folder = script.site_packages / 'devserver'
-    egg_info_folder = (
+    dist_info_folder = (
         script.site_packages /
-        'django_devserver-0.0.4-py{pyversion}.egg-info'.format(**globals())
+        'django_devserver-0.0.4.dist-info'
     )
     result.did_create(devserver_folder)
-    result.did_create(egg_info_folder)
+    result.did_create(dist_info_folder)
 
 
-def test_install_package_with_target(script):
+def test_install_package_with_target(script, with_wheel):
     """
     Test installing a package using pip install --target
     """
@@ -863,10 +861,11 @@ def test_install_package_with_target(script):
     result = script.pip_install_local('--upgrade', '-t',
                                       target_dir, "simple==2.0")
     result.did_update(Path('scratch') / 'target' / 'simple')
-    egg_folder = (
+    dist_info_folder = (
         Path('scratch') / 'target' /
-        'simple-2.0-py{pyversion}.egg-info'.format(**globals()))
-    result.did_create(egg_folder)
+        'simple-2.0.dist-info'
+    )
+    result.did_create(dist_info_folder)
 
     # Test install and upgrade of single-module package
     result = script.pip_install_local('-t', target_dir, 'singlemodule==0.0.0')
@@ -930,7 +929,7 @@ def test_install_nonlocal_compatible_wheel(script, data):
 def test_install_nonlocal_compatible_wheel_path(
     script,
     data,
-    use_new_resolver
+    resolver_variant,
 ):
     target_dir = script.scratch_path / 'target'
 
@@ -941,9 +940,9 @@ def test_install_nonlocal_compatible_wheel_path(
         '--no-index',
         '--only-binary=:all:',
         Path(data.packages) / 'simplewheel-2.0-py3-fakeabi-fakeplat.whl',
-        expect_error=use_new_resolver
+        expect_error=(resolver_variant == "2020-resolver"),
     )
-    if use_new_resolver:
+    if resolver_variant == "2020-resolver":
         assert result.returncode == ERROR
     else:
         assert result.returncode == SUCCESS
@@ -990,7 +989,7 @@ def test_install_with_target_and_scripts_no_warning(script, with_wheel):
     assert "--no-warn-script-location" not in result.stderr, str(result)
 
 
-def test_install_package_with_root(script, data):
+def test_install_package_with_root(script, data, with_wheel):
     """
     Test installing a package using pip install --root
     """
@@ -1001,7 +1000,7 @@ def test_install_package_with_root(script, data):
     )
     normal_install_path = (
         script.base_path / script.site_packages /
-        'simple-1.0-py{pyversion}.egg-info'.format(**globals())
+        'simple-1.0.dist-info'
     )
     # use distutils to change the root exactly how the --root option does it
     from distutils.util import change_root
@@ -1029,7 +1028,8 @@ def test_install_package_with_prefix(script, data):
     rel_prefix_path = script.scratch / 'prefix'
     install_path = (
         distutils.sysconfig.get_python_lib(prefix=rel_prefix_path) /
-        'simple-1.0-py{}.egg-info'.format(pyversion)
+        # we still test for egg-info because no-binary implies setup.py install
+        f'simple-1.0-py{pyversion}.egg-info'
     )
     result.did_create(install_path)
 
@@ -1046,7 +1046,7 @@ def test_install_editable_with_prefix(script):
 
     if hasattr(sys, "pypy_version_info"):
         site_packages = os.path.join(
-            'prefix', 'lib', 'python{}'.format(pyversion), 'site-packages')
+            'prefix', 'lib', f'python{pyversion}', 'site-packages')
     else:
         site_packages = distutils.sysconfig.get_python_lib(prefix='prefix')
 
@@ -1092,7 +1092,7 @@ def test_install_package_that_emits_unicode(script, data):
     )
     assert (
         'FakeError: this package designed to fail on install' in result.stderr
-    ), 'stderr: {}'.format(result.stderr)
+    ), f'stderr: {result.stderr}'
     assert 'UnicodeDecodeError' not in result.stderr
     assert 'UnicodeDecodeError' not in result.stdout
 
@@ -1109,7 +1109,7 @@ def test_install_package_with_latin1_setup(script, data):
     script.pip('install', to_install)
 
 
-def test_url_req_case_mismatch_no_index(script, data):
+def test_url_req_case_mismatch_no_index(script, data, with_wheel):
     """
     tar ball url requirements (with no egg fragment), that happen to have upper
     case project names, should be considered equal to later requirements that
@@ -1124,15 +1124,15 @@ def test_url_req_case_mismatch_no_index(script, data):
     )
 
     # only Upper-1.0.tar.gz should get installed.
-    egg_folder = script.site_packages / \
-        'Upper-1.0-py{pyversion}.egg-info'.format(**globals())
-    result.did_create(egg_folder)
-    egg_folder = script.site_packages / \
-        'Upper-2.0-py{pyversion}.egg-info'.format(**globals())
-    result.did_not_create(egg_folder)
+    dist_info_folder = script.site_packages / \
+        'Upper-1.0.dist-info'
+    result.did_create(dist_info_folder)
+    dist_info_folder = script.site_packages / \
+        'Upper-2.0.dist-info'
+    result.did_not_create(dist_info_folder)
 
 
-def test_url_req_case_mismatch_file_index(script, data):
+def test_url_req_case_mismatch_file_index(script, data, with_wheel):
     """
     tar ball url requirements (with no egg fragment), that happen to have upper
     case project names, should be considered equal to later requirements that
@@ -1153,15 +1153,15 @@ def test_url_req_case_mismatch_file_index(script, data):
     )
 
     # only Upper-1.0.tar.gz should get installed.
-    egg_folder = script.site_packages / \
-        'Dinner-1.0-py{pyversion}.egg-info'.format(**globals())
-    result.did_create(egg_folder)
-    egg_folder = script.site_packages / \
-        'Dinner-2.0-py{pyversion}.egg-info'.format(**globals())
-    result.did_not_create(egg_folder)
+    dist_info_folder = script.site_packages / \
+        'Dinner-1.0.dist-info'
+    result.did_create(dist_info_folder)
+    dist_info_folder = script.site_packages / \
+        'Dinner-2.0.dist-info'
+    result.did_not_create(dist_info_folder)
 
 
-def test_url_incorrect_case_no_index(script, data):
+def test_url_incorrect_case_no_index(script, data, with_wheel):
     """
     Same as test_url_req_case_mismatch_no_index, except testing for the case
     where the incorrect case is given in the name of the package to install
@@ -1172,15 +1172,15 @@ def test_url_incorrect_case_no_index(script, data):
     )
 
     # only Upper-2.0.tar.gz should get installed.
-    egg_folder = script.site_packages / \
-        'Upper-1.0-py{pyversion}.egg-info'.format(**globals())
-    result.did_not_create(egg_folder)
-    egg_folder = script.site_packages / \
-        'Upper-2.0-py{pyversion}.egg-info'.format(**globals())
-    result.did_create(egg_folder)
+    dist_info_folder = script.site_packages / \
+        'Upper-1.0.dist-info'
+    result.did_not_create(dist_info_folder)
+    dist_info_folder = script.site_packages / \
+        'Upper-2.0.dist-info'
+    result.did_create(dist_info_folder)
 
 
-def test_url_incorrect_case_file_index(script, data):
+def test_url_incorrect_case_file_index(script, data, with_wheel):
     """
     Same as test_url_req_case_mismatch_file_index, except testing for the case
     where the incorrect case is given in the name of the package to install
@@ -1192,12 +1192,12 @@ def test_url_incorrect_case_file_index(script, data):
     )
 
     # only Upper-2.0.tar.gz should get installed.
-    egg_folder = script.site_packages / \
-        'Dinner-1.0-py{pyversion}.egg-info'.format(**globals())
-    result.did_not_create(egg_folder)
-    egg_folder = script.site_packages / \
-        'Dinner-2.0-py{pyversion}.egg-info'.format(**globals())
-    result.did_create(egg_folder)
+    dist_info_folder = script.site_packages / \
+        'Dinner-1.0.dist-info'
+    result.did_not_create(dist_info_folder)
+    dist_info_folder = script.site_packages / \
+        'Dinner-2.0.dist-info'
+    result.did_create(dist_info_folder)
 
     # Should show index-url location in output
     assert "Looking in indexes: " in result.stdout
@@ -1300,11 +1300,11 @@ def test_install_subprocess_output_handling(script, data):
 def test_install_log(script, data, tmpdir):
     # test that verbose logs go to "--log" file
     f = tmpdir.joinpath("log.txt")
-    args = ['--log={f}'.format(**locals()),
+    args = [f'--log={f}',
             'install', data.src.joinpath('chattymodule')]
     result = script.pip(*args)
     assert 0 == result.stdout.count("HELLO FROM CHATTYMODULE")
-    with open(f, 'r') as fp:
+    with open(f) as fp:
         # one from egg_info, one from install
         assert 2 == fp.read().count("HELLO FROM CHATTYMODULE")
 
@@ -1327,7 +1327,8 @@ def test_cleanup_after_failed_wheel(script, with_wheel):
     # One of the effects of not cleaning up is broken scripts:
     script_py = script.bin_path / "script.py"
     assert script_py.exists(), script_py
-    shebang = open(script_py, 'r').readline().strip()
+    with open(script_py) as f:
+        shebang = f.readline().strip()
     assert shebang != '#!python', shebang
     # OK, assert that we *said* we were cleaning up:
     # /!\ if in need to change this, also change test_pep517_no_legacy_cleanup
@@ -1398,7 +1399,6 @@ def test_install_no_binary_disables_building_wheels(script, data, with_wheel):
 
 
 @pytest.mark.network
-@windows_workaround_7667
 def test_install_no_binary_builds_pep_517_wheel(script, data, with_wheel):
     to_install = data.packages.joinpath('pep517_setup_and_pyproject')
     res = script.pip(
@@ -1413,7 +1413,6 @@ def test_install_no_binary_builds_pep_517_wheel(script, data, with_wheel):
 
 
 @pytest.mark.network
-@windows_workaround_7667
 def test_install_no_binary_uses_local_backend(
         script, data, with_wheel, tmpdir):
     to_install = data.packages.joinpath('pep517_wrapper_buildsys')
@@ -1444,7 +1443,7 @@ def test_install_no_binary_disables_cached_wheels(script, data, with_wheel):
     assert "Running setup.py install for upper" in str(res), str(res)
 
 
-def test_install_editable_with_wrong_egg_name(script, use_new_resolver):
+def test_install_editable_with_wrong_egg_name(script, resolver_variant):
     script.scratch_path.joinpath("pkga").mkdir()
     pkga_path = script.scratch_path / 'pkga'
     pkga_path.joinpath("setup.py").write_text(textwrap.dedent("""
@@ -1454,14 +1453,14 @@ def test_install_editable_with_wrong_egg_name(script, use_new_resolver):
     """))
     result = script.pip(
         'install', '--editable',
-        'file://{pkga_path}#egg=pkgb'.format(**locals()),
-        expect_error=use_new_resolver,
+        f'file://{pkga_path}#egg=pkgb',
+        expect_error=(resolver_variant == "2020-resolver"),
     )
     assert ("Generating metadata for package pkgb produced metadata "
             "for project name pkga. Fix your #egg=pkgb "
             "fragments.") in result.stderr
-    if use_new_resolver:
-        assert "has different name in metadata" in result.stderr, str(result)
+    if resolver_variant == "2020-resolver":
+        assert "has inconsistent" in result.stderr, str(result)
     else:
         assert "Successfully installed pkga" in str(result), str(result)
 
@@ -1493,7 +1492,7 @@ def test_double_install(script):
     assert msg not in result.stderr
 
 
-def test_double_install_fail(script, use_new_resolver):
+def test_double_install_fail(script, resolver_variant):
     """
     Test double install failing with two different version requirements
     """
@@ -1502,9 +1501,9 @@ def test_double_install_fail(script, use_new_resolver):
         'pip==7.*',
         'pip==7.1.2',
         # The new resolver is perfectly capable of handling this
-        expect_error=(not use_new_resolver)
+        expect_error=(resolver_variant == "legacy"),
     )
-    if not use_new_resolver:
+    if resolver_variant == "legacy":
         msg = ("Double requirement given: pip==7.1.2 (already in pip==7.*, "
                "name='pip')")
         assert msg in result.stderr
@@ -1540,7 +1539,7 @@ def test_install_incompatible_python_requires_editable(script):
     """))
     result = script.pip(
         'install',
-        '--editable={pkga_path}'.format(**locals()),
+        f'--editable={pkga_path}',
         expect_error=True)
     assert _get_expected_error_text() in result.stderr, str(result)
 
@@ -1555,7 +1554,9 @@ def test_install_incompatible_python_requires_wheel(script, with_wheel):
               version='0.1')
     """))
     script.run(
-        'python', 'setup.py', 'bdist_wheel', '--universal', cwd=pkga_path)
+        'python', 'setup.py', 'bdist_wheel', '--universal',
+        cwd=pkga_path,
+    )
     result = script.pip('install', './pkga/dist/pkga-0.1-py2.py3-none-any.whl',
                         expect_error=True)
     assert _get_expected_error_text() in result.stderr, str(result)
@@ -1655,7 +1656,7 @@ def test_installed_files_recorded_in_deterministic_order(script, data):
     to_install = data.packages.joinpath("FSPkg")
     result = script.pip('install', to_install)
     fspkg_folder = script.site_packages / 'fspkg'
-    egg_info = 'FSPkg-0.1.dev0-py{pyversion}.egg-info'.format(**globals())
+    egg_info = f'FSPkg-0.1.dev0-py{pyversion}.egg-info'
     installed_files_path = (
         script.site_packages / egg_info / 'installed-files.txt'
     )
@@ -1687,7 +1688,7 @@ def test_install_conflict_results_in_warning(script, data):
     result2 = script.pip(
         'install', '--no-index', pkgB_path, allow_stderr_error=True,
     )
-    assert "pkga 1.0 has requirement pkgb==1.0" in result2.stderr, str(result2)
+    assert "pkga 1.0 requires pkgb==1.0" in result2.stderr, str(result2)
     assert "Successfully installed pkgB-2.0" in result2.stdout, str(result2)
 
 
@@ -1718,10 +1719,10 @@ def test_target_install_ignores_distutils_config_install_prefix(script):
                             'pydistutils.cfg' if sys.platform == 'win32'
                             else '.pydistutils.cfg')
     distutils_config.write_text(textwrap.dedent(
-        '''
+        f'''
         [install]
         prefix={prefix}
-        '''.format(**locals())))
+        '''))
     target = script.scratch_path / 'target'
     result = script.pip_install_local('simplewheel', '-t', target)
 
@@ -1756,11 +1757,11 @@ def test_user_config_accepted(script):
 )
 @pytest.mark.parametrize("use_module", [True, False])
 def test_install_pip_does_not_modify_pip_when_satisfied(
-        script, install_args, expected_message, use_module, use_new_resolver):
+        script, install_args, expected_message, use_module, resolver_variant):
     """
     Test it doesn't upgrade the pip if it already satisfies the requirement.
     """
-    variation = "satisfied" if use_new_resolver else "up-to-date"
+    variation = "satisfied" if resolver_variant else "up-to-date"
     expected_message = expected_message.format(variation)
     result = script.pip_install_local(
         'pip', *install_args, use_module=use_module
@@ -1842,7 +1843,7 @@ def test_install_sends_client_cert(install_args, script, cert_factory, data):
         file_response(str(data.packages / "simple-3.0.tar.gz")),
     ]
 
-    url = "https://{}:{}/simple".format(server.host, server.port)
+    url = f"https://{server.host}:{server.port}/simple"
 
     args = ["install", "-vvv", "--cert", cert_path, "--client-cert", cert_path]
     args.extend(["--index-url", url])
@@ -1854,7 +1855,9 @@ def test_install_sends_client_cert(install_args, script, cert_factory, data):
 
     assert server.mock.call_count == 2
     for call_args in server.mock.call_args_list:
-        environ, _ = call_args.args
+        # Legacy: replace call_args[0] with call_args.args
+        # when pip drops support for python3.7
+        environ, _ = call_args[0]
         assert "SSL_CLIENT_CERT" in environ
         assert environ["SSL_CLIENT_CERT"]
 
@@ -1902,3 +1905,10 @@ def test_install_verify_package_name_normalization(script, package_name):
     result = script.pip('install', package_name)
     assert 'Requirement already satisfied: {}'.format(
         package_name) in result.stdout
+
+
+def test_install_logs_pip_version_in_debug(script, shared_data):
+    fake_package = shared_data.packages / 'simple-2.0.tar.gz'
+    result = script.pip('install', '-v', fake_package)
+    pattern = "Using pip .* from .*"
+    assert_re_match(pattern, result.stdout)

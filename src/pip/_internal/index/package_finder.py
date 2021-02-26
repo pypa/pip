@@ -3,13 +3,15 @@
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
 
-from __future__ import absolute_import
-
+import functools
 import logging
 import re
+from typing import FrozenSet, Iterable, List, Optional, Set, Tuple, Union
 
 from pip._vendor.packaging import specifiers
+from pip._vendor.packaging.tags import Tag
 from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.packaging.version import _BaseVersion
 from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.exceptions import (
@@ -18,44 +20,32 @@ from pip._internal.exceptions import (
     InvalidWheelFilename,
     UnsupportedWheel,
 )
-from pip._internal.index.collector import parse_links
+from pip._internal.index.collector import LinkCollector, parse_links
 from pip._internal.models.candidate import InstallationCandidate
 from pip._internal.models.format_control import FormatControl
 from pip._internal.models.link import Link
+from pip._internal.models.search_scope import SearchScope
 from pip._internal.models.selection_prefs import SelectionPreferences
 from pip._internal.models.target_python import TargetPython
 from pip._internal.models.wheel import Wheel
+from pip._internal.req import InstallRequirement
 from pip._internal.utils.filetypes import WHEEL_EXTENSION
+from pip._internal.utils.hashes import Hashes
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import build_netloc
 from pip._internal.utils.packaging import check_requires_python
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.unpacking import SUPPORTED_EXTENSIONS
 from pip._internal.utils.urls import url_to_path
-
-if MYPY_CHECK_RUNNING:
-    from typing import (
-        FrozenSet, Iterable, List, Optional, Set, Text, Tuple, Union,
-    )
-
-    from pip._vendor.packaging.tags import Tag
-    from pip._vendor.packaging.version import _BaseVersion
-
-    from pip._internal.index.collector import LinkCollector
-    from pip._internal.models.search_scope import SearchScope
-    from pip._internal.req import InstallRequirement
-    from pip._internal.utils.hashes import Hashes
-
-    BuildTag = Union[Tuple[()], Tuple[int, str]]
-    CandidateSortingKey = (
-        Tuple[int, int, int, _BaseVersion, BuildTag, Optional[int]]
-    )
-
 
 __all__ = ['FormatControl', 'BestCandidateResult', 'PackageFinder']
 
 
 logger = logging.getLogger(__name__)
+
+BuildTag = Union[Tuple[()], Tuple[int, str]]
+CandidateSortingKey = (
+    Tuple[int, int, int, _BaseVersion, BuildTag, Optional[int]]
+)
 
 
 def _check_link_requires_python(
@@ -101,7 +91,7 @@ def _check_link_requires_python(
     return True
 
 
-class LinkEvaluator(object):
+class LinkEvaluator:
 
     """
     Responsible for evaluating links for a particular project.
@@ -152,7 +142,7 @@ class LinkEvaluator(object):
         self.project_name = project_name
 
     def evaluate_link(self, link):
-        # type: (Link) -> Tuple[bool, Optional[Text]]
+        # type: (Link) -> Tuple[bool, Optional[str]]
         """
         Determine whether a link is a candidate for installation.
 
@@ -164,10 +154,7 @@ class LinkEvaluator(object):
         version = None
         if link.is_yanked and not self._allow_yanked:
             reason = link.yanked_reason or '<none given>'
-            # Mark this as a unicode string to prevent "UnicodeEncodeError:
-            # 'ascii' codec can't encode character" in Python 2 when
-            # the reason contains non-ascii characters.
-            return (False, u'yanked for reason: {}'.format(reason))
+            return (False, f'yanked for reason: {reason}')
 
         if link.egg_fragment:
             egg_info = link.egg_fragment
@@ -177,7 +164,7 @@ class LinkEvaluator(object):
             if not ext:
                 return (False, 'not a file')
             if ext not in SUPPORTED_EXTENSIONS:
-                return (False, 'unsupported archive format: {}'.format(ext))
+                return (False, f'unsupported archive format: {ext}')
             if "binary" not in self._formats and ext == WHEEL_EXTENSION:
                 reason = 'No binaries permitted for {}'.format(
                     self.project_name)
@@ -200,7 +187,8 @@ class LinkEvaluator(object):
                     # simplify troubleshooting compatibility issues.
                     file_tags = wheel.get_formatted_file_tags()
                     reason = (
-                        "none of the wheel's tags match: {}".format(
+                        "none of the wheel's tags ({}) are compatible "
+                        "(run pip debug --verbose to show compatible tags)".format(
                             ', '.join(file_tags)
                         )
                     )
@@ -210,7 +198,7 @@ class LinkEvaluator(object):
 
         # This should be up by the self.ok_binary check, but see issue 2700.
         if "source" not in self._formats and ext != WHEEL_EXTENSION:
-            reason = 'No sources permitted for {}'.format(self.project_name)
+            reason = f'No sources permitted for {self.project_name}'
             return (False, reason)
 
         if not version:
@@ -218,7 +206,7 @@ class LinkEvaluator(object):
                 egg_info, self._canonical_name,
             )
         if not version:
-            reason = 'Missing project version for {}'.format(self.project_name)
+            reason = f'Missing project version for {self.project_name}'
             return (False, reason)
 
         match = self._py_version_re.search(version)
@@ -317,7 +305,7 @@ def filter_unallowed_hashes(
     return filtered
 
 
-class CandidatePreferences(object):
+class CandidatePreferences:
 
     """
     Encapsulates some of the preferences for filtering and sorting
@@ -337,7 +325,7 @@ class CandidatePreferences(object):
         self.prefer_binary = prefer_binary
 
 
-class BestCandidateResult(object):
+class BestCandidateResult:
     """A collection of candidates, returned by `PackageFinder.find_best_candidate`.
 
     This class is only intended to be instantiated by CandidateEvaluator's
@@ -382,7 +370,7 @@ class BestCandidateResult(object):
         return iter(self._applicable_candidates)
 
 
-class CandidateEvaluator(object):
+class CandidateEvaluator:
 
     """
     Responsible for filtering and sorting candidates for installation based
@@ -578,7 +566,7 @@ class CandidateEvaluator(object):
         )
 
 
-class PackageFinder(object):
+class PackageFinder:
     """This finds packages.
 
     This is meant to match easy_install's technique for looking for
@@ -739,14 +727,11 @@ class PackageFinder(object):
         return no_eggs + eggs
 
     def _log_skipped_link(self, link, reason):
-        # type: (Link, Text) -> None
+        # type: (Link, str) -> None
         if link not in self._logged_links:
-            # Mark this as a unicode string to prevent "UnicodeEncodeError:
-            # 'ascii' codec can't encode character" in Python 2 when
-            # the reason contains non-ascii characters.
-            #   Also, put the link at the end so the reason is more visible
-            # and because the link string is usually very long.
-            logger.debug(u'Skipping link: %s: %s', reason, link)
+            # Put the link at the end so the reason is more visible and because
+            # the link string is usually very long.
+            logger.debug('Skipping link: %s: %s', reason, link)
             self._logged_links.add(link)
 
     def get_install_candidate(self, link_evaluator, link):
@@ -764,9 +749,7 @@ class PackageFinder(object):
         return InstallationCandidate(
             name=link_evaluator.project_name,
             link=link,
-            # Convert the Text result to str since InstallationCandidate
-            # accepts str.
-            version=str(result),
+            version=result,
         )
 
     def evaluate_links(self, link_evaluator, links):
@@ -801,6 +784,7 @@ class PackageFinder(object):
 
         return package_links
 
+    @functools.lru_cache(maxsize=None)
     def find_all_candidates(self, project_name):
         # type: (str) -> List[InstallationCandidate]
         """Find all available InstallationCandidate for project_name
@@ -863,6 +847,7 @@ class PackageFinder(object):
             hashes=hashes,
         )
 
+    @functools.lru_cache(maxsize=None)
     def find_best_candidate(
         self,
         project_name,       # type: str
@@ -992,7 +977,7 @@ def _find_name_version_sep(fragment, canonical_name):
             continue
         if canonicalize_name(fragment[:i]) == canonical_name:
             return i
-    raise ValueError("{} does not match {}".format(fragment, canonical_name))
+    raise ValueError(f"{fragment} does not match {canonical_name}")
 
 
 def _extract_version_from_fragment(fragment, canonical_name):

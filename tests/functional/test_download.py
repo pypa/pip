@@ -308,8 +308,23 @@ def test_download_specify_platform(script, data):
         Path('scratch') / 'fake-2.0-py2.py3-none-linux_x86_64.whl'
     )
 
+    # Test with multiple supported platforms specified.
+    data.reset()
+    fake_wheel(data, 'fake-3.0-py2.py3-none-linux_x86_64.whl')
+    result = script.pip(
+        'download', '--no-index', '--find-links', data.find_links,
+        '--only-binary=:all:',
+        '--dest', '.',
+        '--platform', 'manylinux1_x86_64', '--platform', 'linux_x86_64',
+        '--platform', 'any',
+        'fake==3'
+    )
+    result.did_create(
+        Path('scratch') / 'fake-3.0-py2.py3-none-linux_x86_64.whl'
+    )
 
-class TestDownloadPlatformManylinuxes(object):
+
+class TestDownloadPlatformManylinuxes:
     """
     "pip download --platform" downloads a .whl archive supported for
     manylinux platforms.
@@ -349,7 +364,7 @@ class TestDownloadPlatformManylinuxes(object):
         """
         Earlier manylinuxes are compatible with later manylinuxes.
         """
-        wheel = 'fake-1.0-py2.py3-none-{}.whl'.format(wheel_abi)
+        wheel = f'fake-1.0-py2.py3-none-{wheel_abi}.whl'
         fake_wheel(data, wheel)
         result = script.pip(
             'download', '--no-index', '--find-links', data.find_links,
@@ -476,7 +491,7 @@ def make_wheel_with_python_requires(script, package_name, python_requires):
         'python', 'setup.py', 'bdist_wheel', '--universal', cwd=package_dir,
     )
 
-    file_name = '{}-1.0-py2.py3-none-any.whl'.format(package_name)
+    file_name = f'{package_name}-1.0-py2.py3-none-any.whl'
     return package_dir / 'dist' / file_name
 
 
@@ -506,11 +521,39 @@ def test_download__python_version_used_for_python_requires(
         "ERROR: Package 'mypackage' requires a different Python: "
         "3.3.0 not in '==3.2'"
     )
-    assert expected_err in result.stderr, 'stderr: {}'.format(result.stderr)
+    assert expected_err in result.stderr, f'stderr: {result.stderr}'
 
     # Now try with a --python-version that satisfies the Requires-Python.
     args = make_args('32')
     script.pip(*args)  # no exception
+
+
+def test_download_ignore_requires_python_dont_fail_with_wrong_python(
+    script,
+    with_wheel,
+):
+    """
+    Test that --ignore-requires-python ignores Requires-Python check.
+    """
+    wheel_path = make_wheel_with_python_requires(
+        script,
+        "mypackage",
+        python_requires="==999",
+    )
+    wheel_dir = os.path.dirname(wheel_path)
+
+    result = script.pip(
+        "download",
+        "--ignore-requires-python",
+        "--no-index",
+        "--find-links",
+        wheel_dir,
+        "--only-binary=:all:",
+        "--dest",
+        ".",
+        "mypackage==1.0",
+    )
+    result.did_create(Path('scratch') / 'mypackage-1.0-py2.py3-none-any.whl')
 
 
 def test_download_specify_abi(script, data):
@@ -571,6 +614,22 @@ def test_download_specify_abi(script, data):
         '--abi', 'none',
         'fake',
         expect_error=True,
+    )
+
+    data.reset()
+    fake_wheel(data, 'fake-1.0-fk2-otherabi-fake_platform.whl')
+    result = script.pip(
+        'download', '--no-index', '--find-links', data.find_links,
+        '--only-binary=:all:',
+        '--dest', '.',
+        '--python-version', '2',
+        '--implementation', 'fk',
+        '--platform', 'fake_platform',
+        '--abi', 'fakeabi', '--abi', 'otherabi', '--abi', 'none',
+        'fake'
+    )
+    result.did_create(
+        Path('scratch') / 'fake-1.0-fk2-otherabi-fake_platform.whl'
     )
 
 
@@ -791,6 +850,9 @@ def test_download_file_url_existing_bad_download(
 def test_download_http_url_bad_hash(
     shared_script, shared_data, tmpdir, mock_server
 ):
+    """
+    If already-downloaded file has bad checksum, re-download.
+    """
     download_dir = tmpdir / 'download'
     download_dir.mkdir()
     downloaded_path = download_dir / 'simple-1.0.tar.gz'
@@ -804,8 +866,8 @@ def test_download_http_url_bad_hash(
         file_response(simple_pkg)
     ])
     mock_server.start()
-    base_address = 'http://{}:{}'.format(mock_server.host, mock_server.port)
-    url = "{}/simple-1.0.tar.gz#sha256={}".format(base_address, digest)
+    base_address = f'http://{mock_server.host}:{mock_server.port}'
+    url = f"{base_address}/simple-1.0.tar.gz#sha256={digest}"
 
     shared_script.pip('download', '-d', str(download_dir), url)
 
@@ -816,3 +878,19 @@ def test_download_http_url_bad_hash(
     assert len(requests) == 1
     assert requests[0]['PATH_INFO'] == '/simple-1.0.tar.gz'
     assert requests[0]['HTTP_ACCEPT_ENCODING'] == 'identity'
+
+
+def test_download_editable(script, data, tmpdir):
+    """
+    Test 'pip download' of editables in requirement file.
+    """
+    editable_path = str(data.src / 'simplewheel-1.0').replace(os.path.sep, "/")
+    requirements_path = tmpdir / "requirements.txt"
+    requirements_path.write_text("-e " + editable_path + "\n")
+    download_dir = tmpdir / "download_dir"
+    script.pip(
+        'download', '--no-deps', '-r', str(requirements_path), '-d', str(download_dir)
+    )
+    downloads = os.listdir(download_dir)
+    assert len(downloads) == 1
+    assert downloads[0].endswith(".zip")

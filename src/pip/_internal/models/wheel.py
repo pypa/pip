@@ -2,17 +2,14 @@
 name that have meaning.
 """
 import re
+from typing import List
 
 from pip._vendor.packaging.tags import Tag
 
 from pip._internal.exceptions import InvalidWheelFilename
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import List
 
 
-class Wheel(object):
+class Wheel:
     """A wheel file"""
 
     wheel_file_re = re.compile(
@@ -30,7 +27,7 @@ class Wheel(object):
         wheel_info = self.wheel_file_re.match(filename)
         if not wheel_info:
             raise InvalidWheelFilename(
-                "{} is not a valid wheel filename.".format(filename)
+                f"{filename} is not a valid wheel filename."
             )
         self.filename = filename
         self.name = wheel_info.group('name').replace('_', '-')

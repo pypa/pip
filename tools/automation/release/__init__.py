@@ -4,7 +4,6 @@ These are written according to the order they are called in.
 """
 
 import contextlib
-import io
 import os
 import pathlib
 import subprocess
@@ -27,7 +26,8 @@ def get_version_from_arguments(session: Session) -> Optional[str]:
     # We delegate to a script here, so that it can depend on packaging.
     session.install("packaging")
     cmd = [
-        os.path.join(session.bin, "python"),
+        # https://github.com/theacodes/nox/pull/378
+        os.path.join(session.bin, "python"),  # type: ignore
         "tools/automation/release/check_version.py",
         version
     ]
@@ -75,9 +75,9 @@ def generate_authors(filename: str) -> None:
     authors = get_author_list()
 
     # Write our authors to the AUTHORS file
-    with io.open(filename, "w", encoding="utf-8") as fp:
-        fp.write(u"\n".join(authors))
-        fp.write(u"\n")
+    with open(filename, "w", encoding="utf-8") as fp:
+        fp.write("\n".join(authors))
+        fp.write("\n")
 
 
 def commit_file(session: Session, filename: str, *, message: str) -> None:
@@ -91,20 +91,20 @@ def generate_news(session: Session, version: str) -> None:
 
 
 def update_version_file(version: str, filepath: str) -> None:
-    with open(filepath, "r", encoding="utf-8") as f:
+    with open(filepath, encoding="utf-8") as f:
         content = list(f)
 
     file_modified = False
     with open(filepath, "w", encoding="utf-8") as f:
         for line in content:
             if line.startswith("__version__ ="):
-                f.write('__version__ = "{}"\n'.format(version))
+                f.write(f'__version__ = "{version}"\n')
                 file_modified = True
             else:
                 f.write(line)
 
     assert file_modified, \
-        "Version file {} did not get modified".format(filepath)
+        f"Version file {filepath} did not get modified"
 
 
 def create_git_tag(session: Session, tag_name: str, *, message: str) -> None:
@@ -154,11 +154,12 @@ def workdir(
     """Temporarily chdir when entering CM and chdir back on exit."""
     orig_dir = pathlib.Path.cwd()
 
-    nox_session.chdir(dir_path)
+    # https://github.com/theacodes/nox/pull/376
+    nox_session.chdir(dir_path)  # type: ignore
     try:
         yield dir_path
     finally:
-        nox_session.chdir(orig_dir)
+        nox_session.chdir(orig_dir)  # type: ignore
 
 
 @contextlib.contextmanager

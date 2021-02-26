@@ -8,15 +8,23 @@ import os
 import platform
 import sys
 
-from pip._vendor.pyparsing import ParseException, ParseResults, stringStart, stringEnd
-from pip._vendor.pyparsing import ZeroOrMore, Group, Forward, QuotedString
-from pip._vendor.pyparsing import Literal as L  # noqa
+from pip._vendor.pyparsing import (  # noqa: N817
+    Forward,
+    Group,
+    Literal as L,
+    ParseException,
+    ParseResults,
+    QuotedString,
+    ZeroOrMore,
+    stringEnd,
+    stringStart,
+)
 
 from ._compat import string_types
-from ._typing import MYPY_CHECK_RUNNING
-from .specifiers import Specifier, InvalidSpecifier
+from ._typing import TYPE_CHECKING
+from .specifiers import InvalidSpecifier, Specifier
 
-if MYPY_CHECK_RUNNING:  # pragma: no cover
+if TYPE_CHECKING:  # pragma: no cover
     from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
     Operator = Callable[[str, str], bool]

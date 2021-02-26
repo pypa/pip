@@ -1,17 +1,13 @@
 import logging
+from typing import Set, Tuple
+
+from pip._vendor.pkg_resources import Distribution
 
 from pip._internal.build_env import BuildEnvironment
 from pip._internal.distributions.base import AbstractDistribution
 from pip._internal.exceptions import InstallationError
+from pip._internal.index.package_finder import PackageFinder
 from pip._internal.utils.subprocess import runner_with_spinner_message
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import Set, Tuple
-
-    from pip._vendor.pkg_resources import Distribution
-    from pip._internal.index.package_finder import PackageFinder
-
 
 logger = logging.getLogger(__name__)
 
@@ -50,10 +46,10 @@ class SourceDistribution(AbstractDistribution):
             error_message = format_string.format(
                 requirement=self.req,
                 conflicting_with=conflicting_with,
-                description=', '.join(
-                    '{} is incompatible with {}'.format(installed, wanted)
+                description=", ".join(
+                    f"{installed} is incompatible with {wanted}"
                     for installed, wanted in sorted(conflicting)
-                )
+                ),
             )
             raise InstallationError(error_message)
 
@@ -64,15 +60,13 @@ class SourceDistribution(AbstractDistribution):
 
         self.req.build_env = BuildEnvironment()
         self.req.build_env.install_requirements(
-            finder, pyproject_requires, 'overlay',
-            "Installing build dependencies"
+            finder, pyproject_requires, "overlay", "Installing build dependencies"
         )
         conflicting, missing = self.req.build_env.check_requirements(
             self.req.requirements_to_check
         )
         if conflicting:
-            _raise_conflicts("PEP 517/518 supported requirements",
-                             conflicting)
+            _raise_conflicts("PEP 517/518 supported requirements", conflicting)
         if missing:
             logger.warning(
                 "Missing build requirements in pyproject.toml for %s.",
@@ -81,15 +75,13 @@ class SourceDistribution(AbstractDistribution):
             logger.warning(
                 "The project does not specify a build backend, and "
                 "pip cannot fall back to setuptools without %s.",
-                " and ".join(map(repr, sorted(missing)))
+                " and ".join(map(repr, sorted(missing))),
             )
         # Install any extra build dependencies that the backend requests.
         # This must be done in a second pass, as the pyproject.toml
         # dependencies must be installed before we can call the backend.
         with self.req.build_env:
-            runner = runner_with_spinner_message(
-                "Getting requirements to build wheel"
-            )
+            runner = runner_with_spinner_message("Getting requirements to build wheel")
             backend = self.req.pep517_backend
             assert backend is not None
             with backend.subprocess_runner(runner):
@@ -99,6 +91,5 @@ class SourceDistribution(AbstractDistribution):
         if conflicting:
             _raise_conflicts("the backend dependencies", conflicting)
         self.req.build_env.install_requirements(
-            finder, missing, 'normal',
-            "Installing backend dependencies"
+            finder, missing, "normal", "Installing backend dependencies"
         )
