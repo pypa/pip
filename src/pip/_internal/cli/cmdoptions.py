@@ -305,10 +305,10 @@ def exists_action():
 
 cert = partial(
     PipOption,
-    '--cert',
-    dest='cert',
-    type='path',
-    metavar='path',
+    "--cert",
+    dest="cert",
+    type="path",
+    metavar="path",
     help=(
         "Path to PEM-encoded CA certificate bundle. "
         "If provided, overrides the default. "
