@@ -111,10 +111,10 @@ public is concerned, typo fixes, white space modification, etc. To mark a PR
 as trivial a contributor simply needs to add a randomly named, non-empty file to
 the ``news/`` directory with the extension of ``.trivial.rst``. Due to a bug in
 the validation, the content of ``.trivial.rst`` must not be empty. Entering a
-short message on the change and a newline in the ``.trivial.rst`` file is sufficient. 
+short message on the change and a newline in the ``.trivial.rst`` file is sufficient.
 If you are on a POSIX like operating system, one can be added by running
-``echo "Short message on the change" > news/$(uuidgen).trivial.rst``. On Windows, 
-the same result can be achieved in Powershell using ``New-Item -Path 
+``echo "Short message on the change" > news/$(uuidgen).trivial.rst``. On Windows,
+the same result can be achieved in Powershell using ``New-Item -Path
 "news/$([guid]::NewGuid()).trivial.rst" -Value "Short message on the change`n"``.
 Core committers may also add a "trivial" label to the PR which will accomplish
 the same thing.
