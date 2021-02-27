@@ -412,7 +412,7 @@ class Factory:
             req_disp = f"{req} (from {parent.name})"
 
         cands = self._finder.find_all_candidates(req.project_name)
-        versions = [str(v) for v in sorted(set(c.version for c in cands))]
+        versions = [str(v) for v in sorted({c.version for c in cands})]
 
         logger.critical(
             "Could not find a version that satisfies the requirement %s "
