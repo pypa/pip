@@ -27,7 +27,22 @@ _AVAILABLE_SCHEMES = set(sysconfig.get_scheme_names())
 
 def _infer_prefix():
     # type: () -> str
-    """Try to find a prefix scheme for the current platform."""
+    """Try to find a prefix scheme for the current platform.
+
+    This tries:
+
+    * Implementation + OS, used by PyPy on Windows (``pypy_nt``).
+    * Implementation without OS, used by PyPy on POSIX (``pypy``).
+    * OS + "prefix", used by CPython on POSIX (``posix_prefix``).
+    * Just the OS name, used by CPython on Windows (``nt``).
+
+    If none of the above works, fall back to ``posix_prefix``.
+    """
+    implementation_suffixed = f"{sys.implementation.name}_{os.name}"
+    if implementation_suffixed in _AVAILABLE_SCHEMES:
+        return implementation_suffixed
+    if sys.implementation.name in _AVAILABLE_SCHEMES:
+        return sys.implementation.name
     suffixed = f"{os.name}_prefix"
     if suffixed in _AVAILABLE_SCHEMES:
         return suffixed
