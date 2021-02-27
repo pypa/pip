@@ -1,5 +1,6 @@
 import logging
 import pathlib
+import sys
 import sysconfig
 from typing import List, Optional
 
@@ -99,6 +100,22 @@ def get_scheme(
         # Extra join because distutils can return relative paths.
         old_v = pathlib.Path(base, getattr(old, k))
         new_v = pathlib.Path(getattr(new, k))
+
+        # distutils incorrectly put PyPy packages under ``site-packages/python``
+        # in the ``posix_home`` scheme, but PyPy devs said they expect the
+        # directory name to be ``pypy`` instead. So we treat this as a bug fix
+        # and not warn about it. See bpo-43307 and python/cpython#24628.
+        skip_pypy_special_case = (
+            sys.implementation.name == "pypy"
+            and home is not None
+            and k in ("platlib", "purelib")
+            and old_v.parent == new_v.parent
+            and old_v.name == "python"
+            and new_v.name == "pypy"
+        )
+        if skip_pypy_special_case:
+            continue
+
         warned.append(_warn_if_mismatch(old_v, new_v, key=f"scheme.{k}"))
 
     if any(warned):
