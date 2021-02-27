@@ -89,6 +89,7 @@ class TestRequirementSet:
                 require_hashes=require_hashes,
                 use_user_site=False,
                 lazy_wheel=False,
+                in_tree_build=False,
             )
             yield Resolver(
                 preparer=preparer,

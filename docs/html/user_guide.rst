@@ -1857,9 +1857,11 @@ We plan for the resolver changeover to proceed as follows, using
      environments, pip defaults to the old resolver, and the new one is
      available using the flag ``--use-feature=2020-resolver``.
 
-*    pip 21.0: pip uses new resolver, and the old resolver is no longer
-     available. Python 2 support is removed per our :ref:`Python 2
-     Support` policy.
+*    pip 21.0: pip uses new resolver by default, and the old resolver is
+     no longer supported. It will be removed after a currently undecided
+     amount of time, as the removal is dependent on pip's volunteer
+     maintainers' availability. Python 2 support is removed per our
+     :ref:`Python 2 Support` policy.
 
 Since this work will not change user-visible behavior described in the
 pip documentation, this change is not covered by the :ref:`Deprecation

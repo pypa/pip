@@ -23,9 +23,7 @@ from tests.lib import (
     need_svn,
     path_to_url,
     pyversion,
-    pyversion_tuple,
     requirements_file,
-    windows_workaround_7667,
 )
 from tests.lib.filesystem import make_socket_file
 from tests.lib.local_repos import local_checkout
@@ -193,16 +191,10 @@ def test_pip_second_command_line_interface_works(
     """
     # Re-install pip so we get the launchers.
     script.pip_install_local('-f', common_wheels, pip_src)
-    # On old versions of Python, urllib3/requests will raise a warning about
-    # the lack of an SSLContext.
-    kwargs = {'expect_stderr': deprecated_python}
-    if pyversion_tuple < (2, 7, 9):
-        kwargs['expect_stderr'] = True
-
     args = [f'pip{pyversion}']
     args.extend(['install', 'INITools==0.2'])
     args.extend(['-f', data.packages])
-    result = script.run(*args, **kwargs)
+    result = script.run(*args)
     dist_info_folder = (
         script.site_packages /
         'INITools-0.2.dist-info'
@@ -581,7 +573,29 @@ def test_install_from_local_directory_with_symlinks_to_directories(
     result.did_create(dist_info_folder)
 
 
-@pytest.mark.skipif("sys.platform == 'win32' or sys.version_info < (3,)")
+def test_install_from_local_directory_with_in_tree_build(
+    script, data, with_wheel
+):
+    """
+    Test installing from a local directory with --use-feature=in-tree-build.
+    """
+    to_install = data.packages.joinpath("FSPkg")
+    args = ["install", "--use-feature=in-tree-build", to_install]
+
+    in_tree_build_dir = to_install / "build"
+    assert not in_tree_build_dir.exists()
+    result = script.pip(*args)
+    fspkg_folder = script.site_packages / 'fspkg'
+    dist_info_folder = (
+        script.site_packages /
+        'FSPkg-0.1.dev0.dist-info'
+    )
+    result.did_create(fspkg_folder)
+    result.did_create(dist_info_folder)
+    assert in_tree_build_dir.exists()
+
+
+@pytest.mark.skipif("sys.platform == 'win32'")
 def test_install_from_local_directory_with_socket_file(
     script, data, tmpdir, with_wheel
 ):
@@ -742,7 +756,6 @@ def test_install_using_install_option_and_editable(script, tmpdir):
 @pytest.mark.xfail
 @pytest.mark.network
 @need_mercurial
-@windows_workaround_7667
 def test_install_global_option_using_editable(script, tmpdir):
     """
     Test using global distutils options, but in an editable installation
@@ -1291,7 +1304,7 @@ def test_install_log(script, data, tmpdir):
             'install', data.src.joinpath('chattymodule')]
     result = script.pip(*args)
     assert 0 == result.stdout.count("HELLO FROM CHATTYMODULE")
-    with open(f, 'r') as fp:
+    with open(f) as fp:
         # one from egg_info, one from install
         assert 2 == fp.read().count("HELLO FROM CHATTYMODULE")
 
@@ -1314,7 +1327,8 @@ def test_cleanup_after_failed_wheel(script, with_wheel):
     # One of the effects of not cleaning up is broken scripts:
     script_py = script.bin_path / "script.py"
     assert script_py.exists(), script_py
-    shebang = open(script_py, 'r').readline().strip()
+    with open(script_py) as f:
+        shebang = f.readline().strip()
     assert shebang != '#!python', shebang
     # OK, assert that we *said* we were cleaning up:
     # /!\ if in need to change this, also change test_pep517_no_legacy_cleanup
@@ -1385,7 +1399,6 @@ def test_install_no_binary_disables_building_wheels(script, data, with_wheel):
 
 
 @pytest.mark.network
-@windows_workaround_7667
 def test_install_no_binary_builds_pep_517_wheel(script, data, with_wheel):
     to_install = data.packages.joinpath('pep517_setup_and_pyproject')
     res = script.pip(
@@ -1400,7 +1413,6 @@ def test_install_no_binary_builds_pep_517_wheel(script, data, with_wheel):
 
 
 @pytest.mark.network
-@windows_workaround_7667
 def test_install_no_binary_uses_local_backend(
         script, data, with_wheel, tmpdir):
     to_install = data.packages.joinpath('pep517_wrapper_buildsys')

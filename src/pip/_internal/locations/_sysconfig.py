@@ -137,7 +137,7 @@ def get_scheme(
         paths["include"] = os.path.join(base, "include", "site", python_xy)
 
     # Special user scripts path on Windows for compatibility to distutils.
-    # See ``distutils.commands.install.INSTALL_SCHEMES["nt_user"]["scritps"]``.
+    # See ``distutils.commands.install.INSTALL_SCHEMES["nt_user"]["scripts"]``.
     if scheme_name == "nt_user":
         base = variables.get("userbase", sys.prefix)
         python_xy = f"Python{sys.version_info.major}{sys.version_info.minor}"

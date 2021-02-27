@@ -23,9 +23,7 @@ repos:
     exclude: |
       (?x)
         ^docs/|
-        ^src/pip/_internal/cli|
         ^src/pip/_internal/commands|
-        ^src/pip/_internal/distributions|
         ^src/pip/_internal/index|
         ^src/pip/_internal/models|
         ^src/pip/_internal/network|

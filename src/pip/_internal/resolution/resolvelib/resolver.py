@@ -3,7 +3,6 @@ import logging
 import os
 from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple
 
-from pip._vendor import six
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.resolvelib import ResolutionImpossible
 from pip._vendor.resolvelib import Resolver as RLResolver
@@ -122,8 +121,8 @@ class Resolver(BaseResolver):
             )
 
         except ResolutionImpossible as e:
-            error = self.factory.get_installation_error(e)
-            six.raise_from(error, e)
+            error = self.factory.get_installation_error(e, constraints)
+            raise error from e
 
         req_set = RequirementSet(check_supported_wheels=check_supported_wheels)
         for candidate in self._result.mapping.values():

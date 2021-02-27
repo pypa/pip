@@ -4,9 +4,7 @@ import sys
 import sysconfig
 import typing
 
-from pip._internal.exceptions import UserInstallationInvalid
 from pip._internal.utils import appdirs
-from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
 # Application Directories
@@ -48,21 +46,3 @@ try:
     user_site = site.getusersitepackages()  # type: typing.Optional[str]
 except AttributeError:
     user_site = site.USER_SITE
-
-
-def get_bin_user():
-    # type: () -> str
-    """Get the user-site scripts directory.
-
-    Pip puts the scripts directory in site-packages, not under userbase.
-    I'm honestly not sure if this is a bug (because ``get_scheme()`` puts it
-    correctly under userbase), but we need to keep backwards compatibility.
-    """
-    if user_site is None:
-        raise UserInstallationInvalid()
-    if not WINDOWS:
-        return os.path.join(user_site, "bin")
-    # Special case for buildout, which uses 'bin' on Windows too?
-    if not os.path.exists(os.path.join(sys.prefix, "Scripts")):
-        os.path.join(user_site, "bin")
-    return os.path.join(user_site, "Scripts")
