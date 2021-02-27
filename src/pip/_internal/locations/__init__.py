@@ -32,8 +32,7 @@ __all__ = [
 logger = logging.getLogger(__name__)
 
 
-def _default_base(*, user):
-    # type: (bool) -> str
+def _default_base(*, user: bool) -> str:
     if user:
         base = sysconfig.get_config_var("userbase")
     else:
@@ -42,8 +41,7 @@ def _default_base(*, user):
     return base
 
 
-def _warn_if_mismatch(old, new, *, key):
-    # type: (pathlib.Path, pathlib.Path, str) -> bool
+def _warn_if_mismatch(old: pathlib.Path, new: pathlib.Path, *, key: str) -> bool:
     if old == new:
         return False
     issue_url = "https://github.com/pypa/pip/issues/9617"
