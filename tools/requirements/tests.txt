@@ -1,7 +1,6 @@
 --use-feature=2020-resolver
 cryptography==2.8
 freezegun
-mock
 pretend
 pytest
 pytest-cov
