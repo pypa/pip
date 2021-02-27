@@ -20,16 +20,16 @@ def format_command_result(
     # type: (...) -> str
     """Format command information for logging."""
     command_desc = format_command_args(command_args)
-    text = f'Command arguments: {command_desc}\n'
+    text = f"Command arguments: {command_desc}\n"
 
     if not command_output:
-        text += 'Command output: None'
+        text += "Command output: None"
     elif logger.getEffectiveLevel() > logging.DEBUG:
-        text += 'Command output: [use --verbose to show]'
+        text += "Command output: [use --verbose to show]"
     else:
-        if not command_output.endswith('\n'):
-            command_output += '\n'
-        text += f'Command output:\n{command_output}{LOG_DIVIDER}'
+        if not command_output.endswith("\n"):
+            command_output += "\n"
+        text += f"Command output:\n{command_output}{LOG_DIVIDER}"
 
     return text
 
@@ -46,17 +46,15 @@ def get_legacy_build_wheel_path(
     # Sort for determinism.
     names = sorted(names)
     if not names:
-        msg = (
-            'Legacy build of wheel for {!r} created no files.\n'
-        ).format(name)
+        msg = ("Legacy build of wheel for {!r} created no files.\n").format(name)
         msg += format_command_result(command_args, command_output)
         logger.warning(msg)
         return None
 
     if len(names) > 1:
         msg = (
-            'Legacy build of wheel for {!r} created more than one file.\n'
-            'Filenames (choosing first): {}\n'
+            "Legacy build of wheel for {!r} created more than one file.\n"
+            "Filenames (choosing first): {}\n"
         ).format(name, names)
         msg += format_command_result(command_args, command_output)
         logger.warning(msg)
@@ -84,9 +82,9 @@ def build_wheel_legacy(
         destination_dir=tempd,
     )
 
-    spin_message = f'Building wheel for {name} (setup.py)'
+    spin_message = f"Building wheel for {name} (setup.py)"
     with open_spinner(spin_message) as spinner:
-        logger.debug('Destination directory: %s', tempd)
+        logger.debug("Destination directory: %s", tempd)
 
         try:
             output = call_subprocess(
@@ -96,7 +94,7 @@ def build_wheel_legacy(
             )
         except Exception:
             spinner.finish("error")
-            logger.error('Failed building wheel for %s', name)
+            logger.error("Failed building wheel for %s", name)
             return None
 
         names = os.listdir(tempd)

@@ -27,7 +27,6 @@ repos:
         ^src/pip/_internal/index|
         ^src/pip/_internal/models|
         ^src/pip/_internal/network|
-        ^src/pip/_internal/operations|
         ^src/pip/_internal/req|
         ^src/pip/_internal/vcs|
         ^src/pip/_internal/\w+\.py$|

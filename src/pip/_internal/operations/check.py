@@ -15,7 +15,7 @@ from pip._internal.utils.misc import get_installed_distributions
 logger = logging.getLogger(__name__)
 
 # Shorthands
-PackageSet = Dict[str, 'PackageDetails']
+PackageSet = Dict[str, "PackageDetails"]
 Missing = Tuple[str, Any]
 Conflicting = Tuple[str, str, Any]
 
@@ -24,13 +24,12 @@ ConflictingDict = Dict[str, List[Conflicting]]
 CheckResult = Tuple[MissingDict, ConflictingDict]
 ConflictDetails = Tuple[PackageSet, CheckResult]
 
-PackageDetails = namedtuple('PackageDetails', ['version', 'requires'])
+PackageDetails = namedtuple("PackageDetails", ["version", "requires"])
 
 
 def create_package_set_from_installed(**kwargs):
     # type: (**Any) -> Tuple[PackageSet, bool]
-    """Converts a list of distributions into a PackageSet.
-    """
+    """Converts a list of distributions into a PackageSet."""
     # Default to using all packages installed on the system
     if kwargs == {}:
         kwargs = {"local_only": False, "skip": ()}
@@ -109,14 +108,13 @@ def check_install_conflicts(to_install):
         package_set,
         check_package_set(
             package_set, should_ignore=lambda name: name not in whitelist
-        )
+        ),
     )
 
 
 def _simulate_installation_of(to_install, package_set):
     # type: (List[InstallRequirement], PackageSet) -> Set[str]
-    """Computes the version of packages after installing to_install.
-    """
+    """Computes the version of packages after installing to_install."""
 
     # Keep track of packages that were installed
     installed = set()

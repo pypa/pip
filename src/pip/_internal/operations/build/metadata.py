@@ -16,9 +16,7 @@ def generate_metadata(build_env, backend):
 
     Returns the generated metadata directory.
     """
-    metadata_tmpdir = TempDirectory(
-        kind="modern-metadata", globally_managed=True
-    )
+    metadata_tmpdir = TempDirectory(kind="modern-metadata", globally_managed=True)
 
     metadata_dir = metadata_tmpdir.path
 
@@ -28,8 +26,6 @@ def generate_metadata(build_env, backend):
         # consider the possibility that this hook doesn't exist.
         runner = runner_with_spinner_message("Preparing wheel metadata")
         with backend.subprocess_runner(runner):
-            distinfo_dir = backend.prepare_metadata_for_build_wheel(
-                metadata_dir
-            )
+            distinfo_dir = backend.prepare_metadata_for_build_wheel(metadata_dir)
 
     return os.path.join(metadata_dir, distinfo_dir)
