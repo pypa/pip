@@ -1,0 +1,1 @@
+Fixed ``--target`` to work with ``--editable`` installs.
