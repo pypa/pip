@@ -4,10 +4,12 @@ import optparse
 import re
 import sys
 from textwrap import dedent
+from typing import Iterable, List, Optional
 
 from docutils import nodes
 from docutils.parsers import rst
 from docutils.statemachine import StringList, ViewList
+from sphinx.application import Sphinx
 
 from pip._internal.cli import cmdoptions
 from pip._internal.commands import commands_dict, create_command
@@ -18,7 +20,7 @@ class PipCommandUsage(rst.Directive):
     required_arguments = 1
     optional_arguments = 3
 
-    def run(self):
+    def run(self) -> List[nodes.Node]:
         cmd = create_command(self.arguments[0])
         cmd_prefix = "python -m pip"
         if len(self.arguments) > 1:
@@ -33,11 +35,12 @@ class PipCommandUsage(rst.Directive):
 class PipCommandDescription(rst.Directive):
     required_arguments = 1
 
-    def run(self):
+    def run(self) -> List[nodes.Node]:
         node = nodes.paragraph()
         node.document = self.state.document
         desc = ViewList()
         cmd = create_command(self.arguments[0])
+        assert cmd.__doc__ is not None
         description = dedent(cmd.__doc__)
         for line in description.split("\n"):
             desc.append(line, "")
@@ -46,7 +49,9 @@ class PipCommandDescription(rst.Directive):
 
 
 class PipOptions(rst.Directive):
-    def _format_option(self, option, cmd_name=None):
+    def _format_option(
+        self, option: optparse.Option, cmd_name: Optional[str] = None
+    ) -> List[str]:
         bookmark_line = (
             f".. _`{cmd_name}_{option._long_opts[0]}`:"
             if cmd_name
@@ -60,22 +65,27 @@ class PipOptions(rst.Directive):
         elif option._long_opts:
             line += option._long_opts[0]
         if option.takes_value():
-            metavar = option.metavar or option.dest.lower()
+            metavar = option.metavar or option.dest
+            assert metavar is not None
             line += f" <{metavar.lower()}>"
         # fix defaults
-        opt_help = option.help.replace("%default", str(option.default))
+        assert option.help is not None
+        # https://github.com/python/typeshed/pull/5080
+        opt_help = option.help.replace("%default", str(option.default))  # type: ignore
         # fix paths with sys.prefix
         opt_help = opt_help.replace(sys.prefix, "<sys.prefix>")
         return [bookmark_line, "", line, "", "    " + opt_help, ""]
 
-    def _format_options(self, options, cmd_name=None):
+    def _format_options(
+        self, options: Iterable[optparse.Option], cmd_name: Optional[str] = None
+    ) -> None:
         for option in options:
             if option.help == optparse.SUPPRESS_HELP:
                 continue
             for line in self._format_option(option, cmd_name):
                 self.view_list.append(line, "")
 
-    def run(self):
+    def run(self) -> List[nodes.Node]:
         node = nodes.paragraph()
         node.document = self.state.document
         self.view_list = ViewList()
@@ -85,14 +95,14 @@ class PipOptions(rst.Directive):
 
 
 class PipGeneralOptions(PipOptions):
-    def process_options(self):
+    def process_options(self) -> None:
         self._format_options([o() for o in cmdoptions.general_group["options"]])
 
 
 class PipIndexOptions(PipOptions):
     required_arguments = 1
 
-    def process_options(self):
+    def process_options(self) -> None:
         cmd_name = self.arguments[0]
         self._format_options(
             [o() for o in cmdoptions.index_group["options"]],
@@ -103,7 +113,7 @@ class PipIndexOptions(PipOptions):
 class PipCommandOptions(PipOptions):
     required_arguments = 1
 
-    def process_options(self):
+    def process_options(self) -> None:
         cmd = create_command(self.arguments[0])
         self._format_options(
             cmd.parser.option_groups[0].option_list,
@@ -112,7 +122,7 @@ class PipCommandOptions(PipOptions):
 
 
 class PipReqFileOptionsReference(PipOptions):
-    def determine_opt_prefix(self, opt_name):
+    def determine_opt_prefix(self, opt_name: str) -> str:
         for command in commands_dict:
             cmd = create_command(command)
             if cmd.cmd_opts.has_option(opt_name):
@@ -120,7 +130,7 @@ class PipReqFileOptionsReference(PipOptions):
 
         raise KeyError(f"Could not identify prefix of opt {opt_name}")
 
-    def process_options(self):
+    def process_options(self) -> None:
         for option in SUPPORTED_OPTIONS:
             if getattr(option, "deprecated", False):
                 continue
@@ -157,7 +167,7 @@ class PipCLIDirective(rst.Directive):
     has_content = True
     optional_arguments = 1
 
-    def run(self):
+    def run(self) -> List[nodes.Node]:
         node = nodes.paragraph()
         node.document = self.state.document
 
@@ -226,7 +236,7 @@ class PipCLIDirective(rst.Directive):
         return [node]
 
 
-def setup(app):
+def setup(app: Sphinx) -> None:
     app.add_directive("pip-command-usage", PipCommandUsage)
     app.add_directive("pip-command-description", PipCommandDescription)
     app.add_directive("pip-command-options", PipCommandOptions)
