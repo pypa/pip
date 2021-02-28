@@ -5,6 +5,8 @@ import textwrap
 from doctest import ELLIPSIS, OutputChecker
 
 import pytest
+from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.pkg_resources import safe_name
 
 from tests.lib import (
     _create_test_package,
@@ -128,26 +130,23 @@ def test_freeze_with_invalid_names(script):
     )
     for pkgname in valid_pkgnames + invalid_pkgnames:
         fake_install(pkgname, script.site_packages_path)
-    result = script.pip('freeze', expect_stderr=True)
-    for pkgname in valid_pkgnames:
-        _check_output(
-            result.stdout,
-            '...{}==1.0...'.format(pkgname.replace('_', '-'))
-        )
-    for pkgname in invalid_pkgnames:
-        # Check that the full distribution repr is present.
-        dist_repr = '{} 1.0 ('.format(pkgname.replace('_', '-'))
-        expected = (
-            '...Could not generate requirement for '
-            'distribution {}...'.format(dist_repr)
-        )
-        _check_output(result.stderr, expected)
 
-    # Also check that the parse error details occur at least once.
-    # We only need to find one occurrence to know that exception details
-    # are logged.
-    expected = '...site-packages): Parse error at "...'
-    _check_output(result.stderr, expected)
+    result = script.pip('freeze', expect_stderr=True)
+
+    # Check all valid names are in the output.
+    output_lines = {line.strip() for line in result.stdout.splitlines()}
+    for name in valid_pkgnames:
+        assert f"{safe_name(name)}==1.0" in output_lines
+
+    # Check all invalid names are excluded from the output.
+    canonical_invalid_names = {canonicalize_name(n) for n in invalid_pkgnames}
+    for line in output_lines:
+        output_name, _, _ = line.partition("=")
+        assert canonicalize_name(output_name) not in canonical_invalid_names
+
+    # The invalid names should be logged.
+    for name in canonical_invalid_names:
+        assert f"Ignoring invalid distribution {name} (" in result.stderr
 
 
 @pytest.mark.git
