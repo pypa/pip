@@ -15,7 +15,7 @@ import pathlib
 import re
 import sys
 
-on_rtd = os.environ.get('READTHEDOCS', None) == 'True'
+on_rtd = os.environ.get("READTHEDOCS", None) == "True"
 
 docs_dir = os.path.dirname(os.path.dirname(__file__))
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -31,21 +31,21 @@ sys.path.insert(0, docs_dir)
 # extensions = ['sphinx.ext.autodoc']
 extensions = [
     # native:
-    'sphinx.ext.extlinks',
-    'sphinx.ext.intersphinx',
+    "sphinx.ext.extlinks",
+    "sphinx.ext.intersphinx",
     # third-party:
-    'sphinx_inline_tabs',
-    'sphinxcontrib.towncrier',
+    "sphinx_inline_tabs",
+    "sphinxcontrib.towncrier",
     # in-tree:
-    'docs_feedback_sphinxext',
-    'pip_sphinxext',
+    "docs_feedback_sphinxext",
+    "pip_sphinxext",
 ]
 
 # intersphinx
 intersphinx_cache_limit = 0
 intersphinx_mapping = {
-    'pypug': ('https://packaging.python.org/', None),
-    'pypa': ('https://www.pypa.io/en/latest/', None),
+    "pypug": ("https://packaging.python.org/", None),
+    "pypa": ("https://www.pypa.io/en/latest/", None),
 }
 
 
@@ -53,17 +53,17 @@ intersphinx_mapping = {
 templates_path = []
 
 # The suffix of source filenames.
-source_suffix = '.rst'
+source_suffix = ".rst"
 
 # The encoding of source files.
 # source_encoding = 'utf-8'
 
 # The master toctree document.
-master_doc = 'index'
+master_doc = "index"
 
 # General information about the project.
-project = 'pip'
-copyright = '2008-2020, PyPA'
+project = "pip"
+copyright = "2008-2020, PyPA"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -71,7 +71,7 @@ copyright = '2008-2020, PyPA'
 #
 # The short X.Y version.
 
-version = release = 'dev'
+version = release = "dev"
 
 # Readthedocs seems to install pip as an egg (via setup.py install) which
 # is somehow resulting in "import pip" picking up an older copy of pip.
@@ -79,14 +79,14 @@ version = release = 'dev'
 # read the version direct from the __init__.py file. (Yes, this is
 # fragile, but it works...)
 
-pip_init = os.path.join(docs_dir, '..', 'src', 'pip', '__init__.py')
+pip_init = os.path.join(docs_dir, "..", "src", "pip", "__init__.py")
 with open(pip_init) as f:
     for line in f:
         m = re.match(r'__version__ = "(.*)"', line)
         if m:
             __version__ = m.group(1)
             # The short X.Y version.
-            version = '.'.join(__version__.split('.')[:2])
+            version = ".".join(__version__.split(".")[:2])
             # The full version, including alpha/beta/rc tags.
             release = __version__
             break
@@ -105,14 +105,14 @@ print("pip release:", release)
 # non-false value, then it is used:
 # today = ''
 # Else, today_fmt is used as the format for a strftime call.
-today_fmt = '%B %d, %Y'
+today_fmt = "%B %d, %Y"
 
 # List of documents that shouldn't be included in the build.
 # unused_docs = []
 
 # List of directories, relative to source directory, that shouldn't be searched
 # for source files.
-exclude_patterns = ['build/']
+exclude_patterns = ["build/"]
 
 # The reST default role (used for this markup: `text`) to use for all documents
 # default_role = None
@@ -132,9 +132,9 @@ exclude_patterns = ['build/']
 # modindex_common_prefix = []
 
 extlinks = {
-    'issue': ('https://github.com/pypa/pip/issues/%s', '#'),
-    'pull': ('https://github.com/pypa/pip/pull/%s', 'PR #'),
-    'pypi': ('https://pypi.org/project/%s/', ''),
+    "issue": ("https://github.com/pypa/pip/issues/%s", "#"),
+    "pull": ("https://github.com/pypa/pip/pull/%s", "PR #"),
+    "pypi": ("https://pypi.org/project/%s/", ""),
 }
 
 # Turn off sphinx build warnings because of sphinx tabs during man pages build
@@ -176,7 +176,7 @@ html_static_path = []
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
-html_last_updated_fmt = '%b %d, %Y'
+html_last_updated_fmt = "%b %d, %Y"
 
 # If true, the Docutils Smart Quotes transform (originally based on
 # SmartyPants) will be used to convert characters like quotes and dashes
@@ -222,7 +222,7 @@ html_show_sourcelink = False
 # html_file_suffix = ''
 
 # Output file base name for HTML help builder.
-htmlhelp_basename = 'pipdocs'
+htmlhelp_basename = "pipdocs"
 
 
 # -- Options for LaTeX output -------------------------------------------------
@@ -237,11 +237,11 @@ htmlhelp_basename = 'pipdocs'
 # (source start file, target name, title, author, documentclass [howto/manual])
 latex_documents = [
     (
-        'index',
-        'pip.tex',
-        'pip Documentation',
-        'pip developers',
-        'manual',
+        "index",
+        "pip.tex",
+        "pip Documentation",
+        "pip developers",
+        "manual",
     ),
 ]
 
@@ -266,60 +266,50 @@ latex_documents = [
 
 # List of manual pages generated
 man_pages = [
-    (
-        'index',
-        'pip',
-        'package manager for Python packages',
-        'pip developers',
-        1
-    )
+    ("index", "pip", "package manager for Python packages", "pip developers", 1)
 ]
 
 
 def to_document_name(path, base_dir):
-    """Convert a provided path to a Sphinx "document name".
-    """
+    """Convert a provided path to a Sphinx "document name"."""
     relative_path = os.path.relpath(path, base_dir)
     root, _ = os.path.splitext(relative_path)
-    return root.replace(os.sep, '/')
+    return root.replace(os.sep, "/")
 
 
 # Here, we crawl the entire man/commands/ directory and list every file with
 # appropriate name and details
-man_dir = os.path.join(docs_dir, 'man')
-raw_subcommands = glob.glob(os.path.join(man_dir, 'commands/*.rst'))
+man_dir = os.path.join(docs_dir, "man")
+raw_subcommands = glob.glob(os.path.join(man_dir, "commands/*.rst"))
 if not raw_subcommands:
-    raise FileNotFoundError(
-        'The individual subcommand manpages could not be found!'
-    )
+    raise FileNotFoundError("The individual subcommand manpages could not be found!")
 for fname in raw_subcommands:
     fname_base = to_document_name(fname, man_dir)
-    outname = 'pip-' + fname_base.split('/')[1]
-    description = 'description of {} command'.format(
-        outname.replace('-', ' ')
-    )
+    outname = "pip-" + fname_base.split("/")[1]
+    description = "description of {} command".format(outname.replace("-", " "))
 
-    man_pages.append((fname_base, outname, description, 'pip developers', 1))
+    man_pages.append((fname_base, outname, description, "pip developers", 1))
 
 # -- Options for docs_feedback_sphinxext --------------------------------------
 
 # NOTE: Must be one of 'attention', 'caution', 'danger', 'error', 'hint',
 # NOTE: 'important', 'note', 'tip', 'warning' or 'admonition'.
-docs_feedback_admonition_type = 'important'
+docs_feedback_admonition_type = "important"
 docs_feedback_big_doc_lines = 50  # bigger docs will have a banner on top
-docs_feedback_email = 'Docs UX Team <docs-feedback@pypa.io>'
+docs_feedback_email = "Docs UX Team <docs-feedback@pypa.io>"
 docs_feedback_excluded_documents = {  # these won't have any banners
-    'news', 'reference/index',
+    "news",
+    "reference/index",
 }
 docs_feedback_questions_list = (
-    'What problem were you trying to solve when you came to this page?',
-    'What content was useful?',
-    'What content was not useful?',
+    "What problem were you trying to solve when you came to this page?",
+    "What content was useful?",
+    "What content was not useful?",
 )
 
 # -- Options for towncrier_draft extension -----------------------------------
 
-towncrier_draft_autoversion_mode = 'draft'  # or: 'sphinx-release', 'sphinx-version'
+towncrier_draft_autoversion_mode = "draft"  # or: 'sphinx-release', 'sphinx-version'
 towncrier_draft_include_empty = False
 towncrier_draft_working_directory = pathlib.Path(docs_dir).parent
 # Not yet supported: towncrier_draft_config_path = 'pyproject.toml'  # relative to cwd
