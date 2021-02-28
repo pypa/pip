@@ -410,10 +410,17 @@ class Factory:
             req_disp = str(req)
         else:
             req_disp = f"{req} (from {parent.name})"
+
+        cands = self._finder.find_all_candidates(req.project_name)
+        versions = [str(v) for v in sorted({c.version for c in cands})]
+
         logger.critical(
-            "Could not find a version that satisfies the requirement %s",
+            "Could not find a version that satisfies the requirement %s "
+            "(from versions: %s)",
             req_disp,
+            ", ".join(versions) or "none",
         )
+
         return DistributionNotFound(f"No matching distribution found for {req}")
 
     def get_installation_error(
