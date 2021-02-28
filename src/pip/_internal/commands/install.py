@@ -15,7 +15,7 @@ from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.cli.req_command import RequirementCommand, with_cleanup
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.exceptions import CommandError, InstallationError
-from pip._internal.locations import distutils_scheme
+from pip._internal.locations import get_scheme
 from pip._internal.metadata import get_environment
 from pip._internal.models.format_control import FormatControl
 from pip._internal.operations.check import ConflictDetails, check_install_conflicts
@@ -455,10 +455,10 @@ class InstallCommand(RequirementCommand):
 
         # Checking both purelib and platlib directories for installed
         # packages to be moved to target directory
-        scheme = distutils_scheme('', home=target_temp_dir.path)
-        purelib_dir = scheme['purelib']
-        platlib_dir = scheme['platlib']
-        data_dir = scheme['data']
+        scheme = get_scheme('', home=target_temp_dir.path)
+        purelib_dir = scheme.purelib
+        platlib_dir = scheme.platlib
+        data_dir = scheme.data
 
         if os.path.exists(purelib_dir):
             lib_dir_list.append(purelib_dir)
@@ -574,9 +574,15 @@ def get_lib_location_guesses(
         prefix=None  # type: Optional[str]
 ):
     # type:(...) -> List[str]
-    scheme = distutils_scheme('', user=user, home=home, root=root,
-                              isolated=isolated, prefix=prefix)
-    return [scheme['purelib'], scheme['platlib']]
+    scheme = get_scheme(
+        '',
+        user=user,
+        home=home,
+        root=root,
+        isolated=isolated,
+        prefix=prefix,
+    )
+    return [scheme.purelib, scheme.platlib]
 
 
 def site_packages_writable(root, isolated):

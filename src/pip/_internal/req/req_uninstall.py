@@ -11,7 +11,7 @@ from pip._vendor import pkg_resources
 from pip._vendor.pkg_resources import Distribution
 
 from pip._internal.exceptions import UninstallationError
-from pip._internal.locations import bin_py, bin_user
+from pip._internal.locations import get_bin_prefix, get_bin_user
 from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
@@ -36,9 +36,9 @@ def _script_names(dist, script_name, is_gui):
     Returns the list of file names
     """
     if dist_in_usersite(dist):
-        bin_dir = bin_user
+        bin_dir = get_bin_user()
     else:
-        bin_dir = bin_py
+        bin_dir = get_bin_prefix()
     exe_name = os.path.join(bin_dir, script_name)
     paths_to_remove = [exe_name]
     if WINDOWS:
@@ -551,9 +551,9 @@ class UninstallPathSet:
         if dist.has_metadata('scripts') and dist.metadata_isdir('scripts'):
             for script in dist.metadata_listdir('scripts'):
                 if dist_in_usersite(dist):
-                    bin_dir = bin_user
+                    bin_dir = get_bin_user()
                 else:
-                    bin_dir = bin_py
+                    bin_dir = get_bin_prefix()
                 paths_to_remove.add(os.path.join(bin_dir, script))
                 if WINDOWS:
                     paths_to_remove.add(os.path.join(bin_dir, script) + '.bat')
