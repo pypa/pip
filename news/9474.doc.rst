@@ -1,0 +1,1 @@
+pip's documentation has been rewritten. It now has an improved site structure, uses simpler language, has greater consistency across various sections and should be easier to navigate.
