@@ -4,6 +4,7 @@ from typing import Iterator, List, Optional
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import _BaseVersion
+from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.utils import misc  # TODO: Move definition here.
 from pip._internal.utils.packaging import get_installer
@@ -16,6 +17,7 @@ class Distribution(BaseDistribution):
     def __init__(self, dist):
         # type: (pkg_resources.Distribution) -> None
         self._dist = dist
+        self._version = None
 
     @classmethod
     def from_wheel(cls, path, name):
@@ -45,7 +47,9 @@ class Distribution(BaseDistribution):
     @property
     def version(self):
         # type: () -> _BaseVersion
-        return self._dist.parsed_version
+        if self._version is None:
+            self._version = parse_version(self._dist.version)
+        return self._version
 
     @property
     def installer(self):

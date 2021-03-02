@@ -4,6 +4,7 @@ import os
 from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple
 
 from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.resolvelib import ResolutionImpossible
 from pip._vendor.resolvelib import Resolver as RLResolver
 from pip._vendor.resolvelib.resolvers import Result
@@ -139,7 +140,7 @@ class Resolver(BaseResolver):
             elif self.factory.force_reinstall:
                 # The --force-reinstall flag is set -- reinstall.
                 ireq.should_reinstall = True
-            elif installed_dist.parsed_version != candidate.version:
+            elif parse_version(installed_dist.version) != candidate.version:
                 # The installation is different in version -- reinstall.
                 ireq.should_reinstall = True
             elif candidate.is_editable or dist_is_editable(installed_dist):
