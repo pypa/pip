@@ -1,3 +1,5 @@
+:orphan:
+
 .. raw:: html
 
     <script type="text/javascript">
