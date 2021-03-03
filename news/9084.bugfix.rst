@@ -1,0 +1,1 @@
+Extract the logic from package_finder.find_best_candidate and package_finder.find_all_candidate to static methods.
