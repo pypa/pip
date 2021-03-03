@@ -201,19 +201,6 @@ Upgrading pip
       py -m pip install -U pip
 
 
-.. _compatibility-requirements:
-
-Python and OS Compatibility
-===========================
-
-pip works with CPython versions 3.6, 3.7, 3.8, 3.9 and also PyPy.
-
-This means pip works on the latest patch version of each of these minor
-versions. Previous patch versions are supported on a best effort approach.
-
-pip works on Unix/Linux, macOS, and Windows.
-
-
 ----
 
 .. [1] "Secure" in this context means using a modern browser or a

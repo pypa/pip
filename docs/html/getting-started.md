@@ -9,10 +9,27 @@ pip is already installed if you are:
 - working in a
   [virtual environment](pypug:Creating\ and\ using\ Virtual\ Environments)
   created by [venv](pypug:venv) or [virtualenv](pypug:virtualenv).
-- using a modern version of Python (>= 3.5), downloaded from
-  [python.org](https://www.python.org)
-- using a modern version of Python (>= 3.5), that has not been patched by a
-  redistributor to remove pip and ensurepip.
+- using Python, downloaded from [python.org](https://www.python.org)
+- using Python, that has not been patched by a redistributor to remove pip and
+  `ensurepip`.
+
+## Compatibility
+
+The current version of pip works on:
+
+- Windows, Linux/Unix and MacOS.
+- (C)Python 3.6, 3.7, 3.8 and 3.9 and PyPy3 as well.
+
+pip is tested to work on the latest patch version of the Python interpreter,
+for each of the minor versions listed above. Previous patch versions are
+supported on a best effort approach.
+
+```{note}
+If you're using an older version of pip or Python, it is possible that
+the instructions on this page would not work for you. Please refer to the
+provider / redistributor of those older versions of pip/Python
+(eg: your Linux distribution) for support regarding them.
+```
 
 ### Checking if you have a working pip
 
