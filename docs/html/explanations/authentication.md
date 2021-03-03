@@ -42,8 +42,8 @@ version of pip, to be able to use characters that need to be percent-encoded.
 pip supports loading credentials from a user's `.netrc` file. If no credentials
 are part of the URL, pip will attempt to get authentication credentials for the
 URL's hostname from the user's `.netrc` file. This behaviour comes from the
-underlying use of [`requests`][pypi-requests], which in turn delegates it to
-the [Python standard library][netrc-std-lib].
+underlying use of {pypi}`requests`, which in turn delegates it to the
+[Python standard library's `netrc` module][netrc-std-lib].
 
 ```{note}
 As mentioned in the [standard library documentation for netrc][netrc-std-lib],
