@@ -116,6 +116,81 @@ def _check_link_requires_python(
     return True
 
 
+@functools.lru_cache(maxsize=None)
+def _find_best_candidate_cached(
+        self,
+        project_name,       # type: str
+        specifier=None,     # type: Optional[specifiers.BaseSpecifier]
+        hashes=None,        # type: Optional[Hashes]
+):
+    # type: (...) -> BestCandidateResult
+    """Find matches for the given project and specifier.
+
+    :param specifier: An optional object implementing `filter`
+        (e.g. `packaging.specifiers.SpecifierSet`) to filter applicable
+        versions.
+
+    :return: A `BestCandidateResult` instance, 
+        and cache the result to reduce future call's execution time.
+    """
+    candidates = self.find_all_candidates(project_name)
+    candidate_evaluator = self.make_candidate_evaluator(
+        project_name=project_name,
+        specifier=specifier,
+        hashes=hashes,
+    )
+    return candidate_evaluator.compute_best_candidate(candidates)
+
+
+@functools.lru_cache(maxsize=None)
+def _find_all_candidates_cached(
+        self,
+        project_name,       # type: str
+):
+    # type: (...) -> List[InstallationCandidate]
+    """Find all available InstallationCandidate for project_name
+
+    This checks index_urls and find_links.
+    All versions found are returned as an InstallationCandidate list,
+    and results are cached to reduce future call's execution time.
+
+    See LinkEvaluator.evaluate_link() for details on which files
+    are accepted.
+    """
+    collected_links = self._link_collector.collect_links(project_name)
+
+    link_evaluator = self.make_link_evaluator(project_name)
+
+    find_links_versions = self.evaluate_links(
+        link_evaluator,
+        links=collected_links.find_links,
+    )
+
+    page_versions = []
+    for project_url in collected_links.project_urls:
+        package_links = self.process_project_url(
+            project_url, link_evaluator=link_evaluator,
+        )
+        page_versions.extend(package_links)
+
+    file_versions = self.evaluate_links(
+        link_evaluator,
+        links=collected_links.files,
+    )
+    if file_versions:
+        file_versions.sort(reverse=True)
+        logger.debug(
+            'Local files found: %s',
+            ', '.join([
+                url_to_path(candidate.link.url)
+                for candidate in file_versions
+            ])
+        )
+
+    # This is an intentional priority ordering
+    return file_versions + find_links_versions + page_versions
+
+
 class LinkEvaluator:
 
     """
@@ -915,73 +990,6 @@ class PackageFinder:
 
         return package_links
 
-    def process_project_url(self, project_url, link_evaluator):
-        # type: (Link, LinkEvaluator) -> List[InstallationCandidate]
-        return PackageFinder.process_project_url_static(
-            self.get_state_as_tuple(),
-            project_url,
-            link_evaluator.get_state_as_tuple()
-        )
-
-    @staticmethod
-    @functools.lru_cache(maxsize=None)
-    def find_all_candidates_static(
-        package_finder_tuple,   # type: PackageFinderTuple
-        link_evaluator_tuple,   # type: LinkEvaluatorTuple
-        project_name            # type: str
-    ):
-        # type: (...) -> List[InstallationCandidate]
-        """Find all available InstallationCandidate for project_name
-
-        This checks index_urls and find_links.
-        All versions found are returned as an InstallationCandidate list.
-
-        See LinkEvaluator.evaluate_link() for details on which files
-        are accepted.
-        """
-
-        # Need to convert logged_links to normal set, so we can update it.
-        package_finder_tuple = PackageFinderTuple(
-            logged_links=set(package_finder_tuple.logged_links),
-            link_collector=package_finder_tuple.link_collector,
-            target_python=package_finder_tuple.target_python,
-            candidate_prefs=package_finder_tuple.candidate_prefs
-        )
-
-        # Just add link_collector to the tuple
-        collected_links = package_finder_tuple.link_collector.collect_links(
-            project_name
-        )
-
-        find_links_versions = PackageFinder.evaluate_links_static(
-            package_finder_tuple,
-            link_evaluator_tuple,
-            links=collected_links.find_links,
-        )
-
-        # Only needs link collector from package_finder
-        page_versions = []
-        for project_url in collected_links.project_urls:
-            package_links = PackageFinder.process_project_url_static(
-                package_finder_tuple,
-                project_url,
-                link_evaluator_tuple,
-            )
-            page_versions.extend(package_links)
-
-        file_versions = PackageFinder.evaluate_links_static(
-            package_finder_tuple,
-            link_evaluator_tuple,
-            links=collected_links.files,
-        )
-
-        if logger.isEnabledFor(logging.DEBUG) and file_candidates:
-            paths = [url_to_path(c.link.url) for c in file_candidates]
-            logger.debug("Local files found: %s", ", ".join(paths))
-
-        # This is an intentional priority ordering
-        return file_candidates + page_candidates
-
     def find_all_candidates(self, project_name):
         # type: (str) -> List[InstallationCandidate]
         """Find all available InstallationCandidate for project_name
@@ -992,33 +1000,7 @@ class PackageFinder:
         See LinkEvaluator.evaluate_link() for details on which files
         are accepted.
         """
-        link_evaluator = self.make_link_evaluator(project_name)
-
-        package_finder_tuple = self.get_state_as_tuple(True)
-        link_evaluator_tuple = link_evaluator.get_state_as_tuple()
-        return PackageFinder.find_all_candidates_static(
-            package_finder_tuple,
-            link_evaluator_tuple,
-            project_name
-        )
-
-    @staticmethod
-    def make_candidate_evaluator_static(
-        package_finder_tuple,   # type: PackageFinderTuple
-        project_name,           # type: str
-        specifier=None,         # type: Optional[specifiers.BaseSpecifier]
-        hashes=None,            # type: Optional[Hashes]
-    ):
-        # type: (...) -> CandidateEvaluator
-        candidate_prefs = package_finder_tuple.candidate_prefs
-        return CandidateEvaluator.create(
-            project_name=project_name,
-            target_python=package_finder_tuple.target_python,
-            prefer_binary=candidate_prefs.prefer_binary,
-            allow_all_prereleases=candidate_prefs.allow_all_prereleases,
-            specifier=specifier,
-            hashes=hashes,
-        )
+        return _find_all_candidates_cached(project_name)
 
     def make_candidate_evaluator(
         self,
@@ -1037,30 +1019,6 @@ class PackageFinder:
             hashes
         )
 
-    @staticmethod
-    @functools.lru_cache(maxsize=None)
-    def find_best_candidate_static(
-        package_finder_tuple,   # type: PackageFinderTuple
-        link_evaluator_tuple,   # type: LinkEvaluatorTuple
-        project_name,           # type: str
-        specifier=None,         # type: Optional[specifiers.BaseSpecifier]
-        hashes=None             # type: Optional[Hashes]
-    ):
-        # type: (...) -> BestCandidateResult
-        candidate_evaluator = PackageFinder.make_candidate_evaluator_static(
-            package_finder_tuple,
-            project_name,
-            specifier,
-            hashes
-        )
-        candidates = PackageFinder.find_all_candidates_static(
-            package_finder_tuple,
-            link_evaluator_tuple,
-            project_name
-        )
-
-        return candidate_evaluator.compute_best_candidate(candidates)
-
     def find_best_candidate(
         self,
         project_name,       # type: str
@@ -1074,20 +1032,10 @@ class PackageFinder:
             (e.g. `packaging.specifiers.SpecifierSet`) to filter applicable
             versions.
 
-        :return: A `BestCandidateResult` instance.
+        :return: A `BestCandidateResult` instance, 
+            called from a static function that caches function calls.
         """
-        link_evaluator = self.make_link_evaluator(project_name)
-
-        package_finder_tuple = self.get_state_as_tuple(True)
-        link_evaluator_tuple = link_evaluator.get_state_as_tuple()
-
-        return PackageFinder.find_best_candidate_static(
-            package_finder_tuple,
-            link_evaluator_tuple,
-            project_name,
-            specifier,
-            hashes
-        )
+        return _find_best_candidate_cached(project_name, specifier, hashes)
 
     def find_requirement(self, req, upgrade):
         # type: (InstallRequirement, bool) -> Optional[InstallationCandidate]
