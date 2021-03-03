@@ -5,6 +5,7 @@ import pytest
 from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.exceptions import InstallationError
+from pip._internal.models.link import Link
 from pip._internal.req.constructors import (
     install_req_from_line,
     install_req_from_req_string,
@@ -106,3 +107,26 @@ class TestInstallRequirementFrom:
         assert install_req.link.url == wheel_url
         assert install_req.req.url == wheel_url
         assert install_req.is_wheel
+
+    def test_install_req_vcs_without_wheel_warning(self, caplog):
+        """
+        Test to make sure that installing from VCS without wheel generates
+        a warning.
+        """
+        req = InstallRequirement(
+            Requirement("gputil==1.4.0"),
+            comes_from=[],
+            link=Link("git+https://github.com/llamafilm/gputil")
+        )
+
+        req.source_dir = os.curdir
+        req.install([])
+
+        actual = [(r.levelname, r.message) for r in caplog.records]
+        expected = (
+            'WARNING',
+            "Direct URL of package 'gputil' will not be recorded when using"
+            " legacy 'setup.py install'.\n"
+            "Consider installing the 'wheel' package."
+        )
+        assert expected in actual
