@@ -17,7 +17,6 @@ class Distribution(BaseDistribution):
     def __init__(self, dist):
         # type: (pkg_resources.Distribution) -> None
         self._dist = dist
-        self._version = None
 
     @classmethod
     def from_wheel(cls, path, name):
@@ -47,9 +46,7 @@ class Distribution(BaseDistribution):
     @property
     def version(self):
         # type: () -> _BaseVersion
-        if self._version is None:
-            self._version = parse_version(self._dist.version)
-        return self._version
+        return parse_version(self._dist.version)
 
     @property
     def installer(self):
