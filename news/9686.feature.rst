@@ -1,0 +1,1 @@
+Allow 'Enter' to automatically proceed with uninstall.
