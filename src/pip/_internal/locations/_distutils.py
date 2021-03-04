@@ -3,6 +3,7 @@
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
 
+import logging
 import os
 import sys
 from distutils.cmd import Command as DistutilsCommand
@@ -16,6 +17,8 @@ from pip._internal.utils.compat import WINDOWS
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
 from .base import get_major_minor_version
+
+logger = logging.getLogger(__name__)
 
 
 def _distutils_scheme(
@@ -36,7 +39,15 @@ def _distutils_scheme(
         dist_args["script_args"] = ["--no-user-cfg"]
 
     d = Distribution(dist_args)
-    d.parse_config_files()
+    try:
+        d.parse_config_files()
+    except UnicodeDecodeError:
+        # Typeshed does not include find_config_files() for some reason.
+        paths = d.find_config_files()  # type: ignore
+        logger.warning(
+            "Ignore distutils configs in %s due to encoding errors.",
+            ", ".join(os.path.basename(p) for p in paths),
+        )
     obj: Optional[DistutilsCommand] = None
     obj = d.get_command_obj("install", create=True)
     assert obj is not None
