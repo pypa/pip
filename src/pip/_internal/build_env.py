@@ -13,6 +13,7 @@ from sysconfig import get_paths
 from types import TracebackType
 from typing import TYPE_CHECKING, Iterable, Iterator, List, Optional, Set, Tuple, Type
 
+from pip._vendor.certifi import where
 from pip._vendor.pkg_resources import Requirement, VersionConflict, WorkingSet
 
 from pip import __file__ as pip_location
@@ -63,7 +64,7 @@ def _install_requirements(
     args = [
         sys.executable, standalone_pip, 'install',
         '--ignore-installed', '--no-user', '--prefix', prefix.path,
-        '--no-warn-script-location',
+        '--cert', where(), '--no-warn-script-location',
     ]  # type: List[str]
     if logger.getEffectiveLevel() <= logging.DEBUG:
         args.append('-v')
@@ -82,7 +83,6 @@ def _install_requirements(
         args.append('--no-index')
     for link in finder.find_links:
         args.extend(['--find-links', link])
-
     for host in finder.trusted_hosts:
         args.extend(['--trusted-host', host])
     if finder.allow_all_prereleases:
