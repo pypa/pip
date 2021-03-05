@@ -1,14 +1,17 @@
 """Build Environment used for isolation during sdist building
 """
 
+import contextlib
 import logging
 import os
+import pathlib
 import sys
 import textwrap
+import zipfile
 from collections import OrderedDict
 from sysconfig import get_paths
 from types import TracebackType
-from typing import TYPE_CHECKING, Iterable, List, Optional, Set, Tuple, Type
+from typing import TYPE_CHECKING, Iterable, Iterator, List, Optional, Set, Tuple, Type
 
 from pip._vendor.pkg_resources import Requirement, VersionConflict, WorkingSet
 
@@ -35,6 +38,61 @@ class _Prefix:
             vars={'base': path, 'platbase': path}
         )['scripts']
         self.lib_dirs = get_prefixed_libs(path)
+
+
+@contextlib.contextmanager
+def _create_standalone_pip() -> Iterator[str]:
+    """Create a zip file containing specified pip installation."""
+    source = pathlib.Path(pip_location).resolve().parent
+    with TempDirectory() as tmp_dir:
+        pip_zip = os.path.join(tmp_dir.path, "pip.zip")
+        with zipfile.ZipFile(pip_zip, "w") as zf:
+            for child in source.rglob("*"):
+                arcname = child.relative_to(source.parent)
+                zf.write(child, arcname.as_posix())
+        yield os.path.join(pip_zip, "pip")
+
+
+def _install_requirements(
+    standalone_pip: str,
+    finder: "PackageFinder",
+    requirements: Iterable[str],
+    prefix: _Prefix,
+    message: str,
+) -> None:
+    args = [
+        sys.executable, standalone_pip, 'install',
+        '--ignore-installed', '--no-user', '--prefix', prefix.path,
+        '--no-warn-script-location',
+    ]  # type: List[str]
+    if logger.getEffectiveLevel() <= logging.DEBUG:
+        args.append('-v')
+    for format_control in ('no_binary', 'only_binary'):
+        formats = getattr(finder.format_control, format_control)
+        args += [
+            '--' + format_control.replace('_', '-'),
+            ','.join(sorted(formats or {':none:'}))
+        ]
+    index_urls = finder.index_urls
+    if index_urls:
+        args.extend(['-i', index_urls[0]])
+        for extra_index in index_urls[1:]:
+            args.extend(['--extra-index-url', extra_index])
+    else:
+        args.append('--no-index')
+    for link in finder.find_links:
+        args.extend(['--find-links', link])
+
+    for host in finder.trusted_hosts:
+        args.extend(['--trusted-host', host])
+    if finder.allow_all_prereleases:
+        args.append('--pre')
+    if finder.prefer_binary:
+        args.append('--prefer-binary')
+    args.append('--')
+    args.extend(requirements)
+    with open_spinner(message) as spinner:
+        call_subprocess(args, spinner=spinner)
 
 
 class BuildEnvironment:
@@ -160,38 +218,14 @@ class BuildEnvironment:
         prefix.setup = True
         if not requirements:
             return
-        args = [
-            sys.executable, os.path.dirname(pip_location), 'install',
-            '--ignore-installed', '--no-user', '--prefix', prefix.path,
-            '--no-warn-script-location',
-        ]  # type: List[str]
-        if logger.getEffectiveLevel() <= logging.DEBUG:
-            args.append('-v')
-        for format_control in ('no_binary', 'only_binary'):
-            formats = getattr(finder.format_control, format_control)
-            args.extend(('--' + format_control.replace('_', '-'),
-                         ','.join(sorted(formats or {':none:'}))))
-
-        index_urls = finder.index_urls
-        if index_urls:
-            args.extend(['-i', index_urls[0]])
-            for extra_index in index_urls[1:]:
-                args.extend(['--extra-index-url', extra_index])
-        else:
-            args.append('--no-index')
-        for link in finder.find_links:
-            args.extend(['--find-links', link])
-
-        for host in finder.trusted_hosts:
-            args.extend(['--trusted-host', host])
-        if finder.allow_all_prereleases:
-            args.append('--pre')
-        if finder.prefer_binary:
-            args.append('--prefer-binary')
-        args.append('--')
-        args.extend(requirements)
-        with open_spinner(message) as spinner:
-            call_subprocess(args, spinner=spinner)
+        with _create_standalone_pip() as standalone_pip:
+            _install_requirements(
+                standalone_pip,
+                finder,
+                requirements,
+                prefix,
+                message,
+            )
 
 
 class NoOpBuildEnvironment(BuildEnvironment):
