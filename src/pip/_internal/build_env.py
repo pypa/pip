@@ -45,7 +45,7 @@ class _Prefix:
 def _create_standalone_pip() -> Iterator[str]:
     """Create a zip file containing specified pip installation."""
     source = pathlib.Path(pip_location).resolve().parent
-    with TempDirectory() as tmp_dir:
+    with TempDirectory(kind="standalone-pip") as tmp_dir:
         pip_zip = os.path.join(tmp_dir.path, "pip.zip")
         with zipfile.ZipFile(pip_zip, "w") as zf:
             for child in source.rglob("*"):
