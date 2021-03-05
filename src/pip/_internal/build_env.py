@@ -54,47 +54,6 @@ def _create_standalone_pip() -> Iterator[str]:
         yield os.path.join(pip_zip, "pip")
 
 
-def _install_requirements(
-    standalone_pip: str,
-    finder: "PackageFinder",
-    requirements: Iterable[str],
-    prefix: _Prefix,
-    message: str,
-) -> None:
-    args = [
-        sys.executable, standalone_pip, 'install',
-        '--ignore-installed', '--no-user', '--prefix', prefix.path,
-        '--cert', where(), '--no-warn-script-location',
-    ]  # type: List[str]
-    if logger.getEffectiveLevel() <= logging.DEBUG:
-        args.append('-v')
-    for format_control in ('no_binary', 'only_binary'):
-        formats = getattr(finder.format_control, format_control)
-        args += [
-            '--' + format_control.replace('_', '-'),
-            ','.join(sorted(formats or {':none:'}))
-        ]
-    index_urls = finder.index_urls
-    if index_urls:
-        args.extend(['-i', index_urls[0]])
-        for extra_index in index_urls[1:]:
-            args.extend(['--extra-index-url', extra_index])
-    else:
-        args.append('--no-index')
-    for link in finder.find_links:
-        args.extend(['--find-links', link])
-    for host in finder.trusted_hosts:
-        args.extend(['--trusted-host', host])
-    if finder.allow_all_prereleases:
-        args.append('--pre')
-    if finder.prefer_binary:
-        args.append('--prefer-binary')
-    args.append('--')
-    args.extend(requirements)
-    with open_spinner(message) as spinner:
-        call_subprocess(args, spinner=spinner)
-
-
 class BuildEnvironment:
     """Creates and manages an isolated environment to install build deps
     """
@@ -219,13 +178,54 @@ class BuildEnvironment:
         if not requirements:
             return
         with _create_standalone_pip() as standalone_pip:
-            _install_requirements(
+            self._install_requirements(
                 standalone_pip,
                 finder,
                 requirements,
                 prefix,
                 message,
             )
+
+    @staticmethod
+    def _install_requirements(
+        standalone_pip: str,
+        finder: "PackageFinder",
+        requirements: Iterable[str],
+        prefix: _Prefix,
+        message: str,
+    ) -> None:
+        args = [
+            sys.executable, standalone_pip, 'install',
+            '--ignore-installed', '--no-user', '--prefix', prefix.path,
+            '--no-warn-script-location', '--cert', where(),
+        ]  # type: List[str]
+        if logger.getEffectiveLevel() <= logging.DEBUG:
+            args.append('-v')
+        for format_control in ('no_binary', 'only_binary'):
+            formats = getattr(finder.format_control, format_control)
+            args.extend(('--' + format_control.replace('_', '-'),
+                         ','.join(sorted(formats or {':none:'}))))
+
+        index_urls = finder.index_urls
+        if index_urls:
+            args.extend(['-i', index_urls[0]])
+            for extra_index in index_urls[1:]:
+                args.extend(['--extra-index-url', extra_index])
+        else:
+            args.append('--no-index')
+        for link in finder.find_links:
+            args.extend(['--find-links', link])
+
+        for host in finder.trusted_hosts:
+            args.extend(['--trusted-host', host])
+        if finder.allow_all_prereleases:
+            args.append('--pre')
+        if finder.prefer_binary:
+            args.append('--prefer-binary')
+        args.append('--')
+        args.extend(requirements)
+        with open_spinner(message) as spinner:
+            call_subprocess(args, spinner=spinner)
 
 
 class NoOpBuildEnvironment(BuildEnvironment):
