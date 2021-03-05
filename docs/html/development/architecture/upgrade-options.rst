@@ -44,10 +44,15 @@ what *other* packages can be upgraded:
   pip command or a requirement file (i.e, they are direct requirements), or
   an upgraded parent needs a later version of the dependency than is
   currently installed.
-* ``to-satisfy-only`` (**undocumented**) - packages are not upgraded (not
-  even direct requirements) unless the currently installed version fails to
-  satisfy a requirement (either explicitly specified or a dependency). This
-  is actually the "default" strategy when ``--upgrade`` is not set.
+* ``to-satisfy-only`` (**undocumented, please avoid**) - packages are not
+  upgraded (not even direct requirements) unless the currently installed
+  version fails to satisfy a requirement (either explicitly specified or a
+  dependency).
+
+  * This is actually the "default" upgrade strategy when ``--upgrade`` is
+    *not set*, i.e. ``pip install AlreadyInstalled`` and
+    ``pip install --upgrade --upgrade-strategy=to-satisfy-only AlreadyInstalled``
+    yield the same behavior.
 
 ``--force-reinstall``
 
