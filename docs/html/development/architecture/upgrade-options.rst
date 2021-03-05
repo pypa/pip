@@ -30,7 +30,8 @@ candidate.
 ``--upgrade-strategy``
 
 This option affects which packages are allowed to be installed. It is only
-relevant if ``--upgrade`` is specified. The base behaviour is to allow
+relevant if ``--upgrade`` is specified (except for the ``to-satisfy-only``
+option mentioned below). The base behaviour is to allow
 packages specified on pip's command line to be upgraded. This option controls
 what *other* packages can be upgraded:
 
@@ -45,7 +46,8 @@ what *other* packages can be upgraded:
   currently installed.
 * ``to-satisfy-only`` (**undocumented**) - packages are not upgraded (not
   even direct requirements) unless the currently installed version fails to
-  satisfy a requirement (either explicitly specified or a dependency).
+  satisfy a requirement (either explicitly specified or a dependency). This
+  is actually the "default" strategy when ``--upgrade`` is not set.
 
 ``--force-reinstall``
 
