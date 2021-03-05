@@ -65,7 +65,11 @@ def _format_main_py(source: pathlib.Path) -> bytes:
 
 @contextlib.contextmanager
 def _create_standalone_pip() -> Iterator[str]:
-    """Create a zip file containing specified pip installation."""
+    """Create a "standalone pip" zip file.
+
+    The zip file contains a (modified) copy of the pip currently running.
+    It will be used to install requirements into the build environment.
+    """
     source = pathlib.Path(pip_location).resolve().parent
     with TempDirectory(kind="standalone-pip") as tmp_dir:
         pip_zip = os.path.join(tmp_dir.path, "pip.zip")
