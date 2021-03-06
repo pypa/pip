@@ -219,15 +219,6 @@ class RequirementCommand(IndexGroupCommand):
 
         self.cmd_opts.add_option(cmdoptions.no_clean())
 
-    @staticmethod
-    def determine_resolver_variant(options):
-        # type: (Values) -> str
-        """Determines which resolver should be used, based on the given options."""
-        if "legacy-resolver" in options.deprecated_features_enabled:
-            return "legacy"
-
-        return "2020-resolver"
-
     @classmethod
     def make_requirement_preparer(
         cls,
@@ -246,23 +237,15 @@ class RequirementCommand(IndexGroupCommand):
         temp_build_dir_path = temp_build_dir.path
         assert temp_build_dir_path is not None
 
-        resolver_variant = cls.determine_resolver_variant(options)
-        if resolver_variant == "2020-resolver":
-            lazy_wheel = "fast-deps" in options.features_enabled
-            if lazy_wheel:
-                logger.warning(
-                    "pip is using lazily downloaded wheels using HTTP "
-                    "range requests to obtain dependency information. "
-                    "This experimental feature is enabled through "
-                    "--use-feature=fast-deps and it is not ready for "
-                    "production."
-                )
-        else:
-            lazy_wheel = False
-            if "fast-deps" in options.features_enabled:
-                logger.warning(
-                    "fast-deps has no effect when used with the legacy resolver."
-                )
+        lazy_wheel = "fast-deps" in options.features_enabled
+        if lazy_wheel:
+            logger.warning(
+                "pip is using lazily downloaded wheels using HTTP "
+                "range requests to obtain dependency information. "
+                "This experimental feature is enabled through "
+                "--use-feature=fast-deps and it is not ready for "
+                "production."
+            )
 
         return RequirementPreparer(
             build_dir=temp_build_dir_path,
@@ -303,29 +286,12 @@ class RequirementCommand(IndexGroupCommand):
             isolated=options.isolated_mode,
             use_pep517=use_pep517,
         )
-        resolver_variant = cls.determine_resolver_variant(options)
         # The long import name and duplicated invocation is needed to convince
         # Mypy into correctly typechecking. Otherwise it would complain the
         # "Resolver" class being redefined.
-        if resolver_variant == "2020-resolver":
-            import pip._internal.resolution.resolvelib.resolver
+        import pip._internal.resolution.resolvelib.resolver
 
-            return pip._internal.resolution.resolvelib.resolver.Resolver(
-                preparer=preparer,
-                finder=finder,
-                wheel_cache=wheel_cache,
-                make_install_req=make_install_req,
-                use_user_site=use_user_site,
-                ignore_dependencies=options.ignore_dependencies,
-                ignore_installed=ignore_installed,
-                ignore_requires_python=ignore_requires_python,
-                force_reinstall=force_reinstall,
-                upgrade_strategy=upgrade_strategy,
-                py_version_info=py_version_info,
-            )
-        import pip._internal.resolution.legacy.resolver
-
-        return pip._internal.resolution.legacy.resolver.Resolver(
+        return pip._internal.resolution.resolvelib.resolver.Resolver(
             preparer=preparer,
             finder=finder,
             wheel_cache=wheel_cache,

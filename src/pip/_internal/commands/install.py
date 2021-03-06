@@ -421,10 +421,7 @@ class InstallCommand(RequirementCommand):
                 items.append(item)
 
             if conflicts is not None:
-                self._warn_about_conflicts(
-                    conflicts,
-                    resolver_variant=self.determine_resolver_variant(options),
-                )
+                self._warn_about_conflicts(conflicts)
 
             installed_desc = ' '.join(items)
             if installed_desc:
@@ -517,26 +514,18 @@ class InstallCommand(RequirementCommand):
             )
             return None
 
-    def _warn_about_conflicts(self, conflict_details, resolver_variant):
-        # type: (ConflictDetails, str) -> None
+    def _warn_about_conflicts(self, conflict_details):
+        # type: (ConflictDetails) -> None
         package_set, (missing, conflicting) = conflict_details
         if not missing and not conflicting:
             return
 
         parts = []  # type: List[str]
-        if resolver_variant == "legacy":
-            parts.append(
-                "pip's legacy dependency resolver does not consider dependency "
-                "conflicts when selecting packages. This behaviour is the "
-                "source of the following dependency conflicts."
-            )
-        else:
-            assert resolver_variant == "2020-resolver"
-            parts.append(
-                "pip's dependency resolver does not currently take into account "
-                "all the packages that are installed. This behaviour is the "
-                "source of the following dependency conflicts."
-            )
+        parts.append(
+            "pip's dependency resolver does not currently take into account "
+            "all the packages that are installed. This behaviour is the "
+            "source of the following dependency conflicts."
+        )
 
         # NOTE: There is some duplication here, with commands/check.py
         for project_name in missing:
@@ -556,7 +545,7 @@ class InstallCommand(RequirementCommand):
             version = package_set[project_name][0]
             for dep_name, dep_version, req in conflicting[project_name]:
                 message = (
-                    "{name} {version} requires {requirement}, but {you} have "
+                    "{name} {version} requires {requirement}, but you have "
                     "{dep_name} {dep_version} which is incompatible."
                 ).format(
                     name=project_name,
@@ -564,7 +553,6 @@ class InstallCommand(RequirementCommand):
                     requirement=req,
                     dep_name=dep_name,
                     dep_version=dep_version,
-                    you=("you" if resolver_variant == "2020-resolver" else "you'll")
                 )
                 parts.append(message)
 
