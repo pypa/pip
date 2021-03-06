@@ -13,10 +13,13 @@ from pip._vendor.packaging.requirements import Requirement
 
 from pip._internal.commands import create_command
 from pip._internal.exceptions import (
-    HashErrors,
+    HashMismatch,
+    HashMissing,
+    HashUnpinned,
     InstallationError,
     InvalidWheelFilename,
     PreviousBuildDirError,
+    VcsHashUnsupported,
 )
 from pip._internal.network.session import PipSession
 from pip._internal.operations.prepare import RequirementPreparer
@@ -36,7 +39,7 @@ from pip._internal.req.req_file import (
     handle_requirement_line,
 )
 from pip._internal.req.req_tracker import get_requirement_tracker
-from pip._internal.resolution.legacy.resolver import Resolver
+from pip._internal.resolution.resolvelib.resolver import Resolver
 from pip._internal.utils.urls import path_to_url
 from tests.lib import assert_raises_regexp, make_test_finder, requirements_file
 
@@ -101,6 +104,7 @@ class TestRequirementSet:
                 ignore_requires_python=False, force_reinstall=False,
             )
 
+    @pytest.mark.xfail(reason="New resolver doesn't raise PreviousBuildDirError.")
     def test_no_reuse_existing_build_dir(self, data):
         """Test prepare_files raise exception with previous build dir"""
 
@@ -158,7 +162,7 @@ class TestRequirementSet:
 
         with self._basic_resolver(finder, require_hashes=True) as resolver:
             assert_raises_regexp(
-                HashErrors,
+                HashMissing,
                 r'Hashes are required in --require-hashes mode, but they are '
                 r'missing .*\n'
                 r'    simple==1.0 --hash=sha256:393043e672415891885c9a2a0929b1'
@@ -180,6 +184,7 @@ class TestRequirementSet:
             command.get_requirements(args, options, finder, session)
         assert options.require_hashes
 
+    @pytest.mark.xfail(reason="New resolver shows this for only one requirement.")
     def test_unsupported_hashes(self, data):
         """VCS and dir links should raise errors when --require-hashes is
         on.
@@ -206,7 +211,7 @@ class TestRequirementSet:
 
         with self._basic_resolver(finder, require_hashes=True) as resolver:
             assert_raises_regexp(
-                HashErrors,
+                VcsHashUnsupported,
                 r"Can't verify hashes for these requirements because we don't "
                 r"have a way to hash version control repositories:\n"
                 r"    git\+git://github\.com/pypa/pip-test-package \(from -r "
@@ -220,6 +225,7 @@ class TestRequirementSet:
                 True,
             )
 
+    @pytest.mark.xfail(reason="New resolver shows only the first unpinned hash.")
     def test_unpinned_hash_checking(self, data):
         """Make sure prepare_files() raises an error when a requirement is not
         version-pinned in hash-checking mode.
@@ -239,7 +245,7 @@ class TestRequirementSet:
         finder = make_test_finder(find_links=[data.find_links])
         with self._basic_resolver(finder, require_hashes=True) as resolver:
             assert_raises_regexp(
-                HashErrors,
+                HashUnpinned,
                 # Make sure all failing requirements are listed:
                 r'versions pinned with ==. These do not:\n'
                 r'    simple .* \(from -r file \(line 1\)\)\n'
@@ -260,7 +266,7 @@ class TestRequirementSet:
         finder = make_test_finder(find_links=[data.find_links])
         with self._basic_resolver(finder, require_hashes=True) as resolver:
             assert_raises_regexp(
-                HashErrors,
+                HashMismatch,
                 r'THESE PACKAGES DO NOT MATCH THE HASHES.*\n'
                 r'    file:///.*/data/packages/simple-1\.0\.tar\.gz .*:\n'
                 r'        Expected sha256 badbad\n'
@@ -285,7 +291,7 @@ class TestRequirementSet:
 
         with self._basic_resolver(finder, require_hashes=True) as resolver:
             assert_raises_regexp(
-                HashErrors,
+                HashUnpinned,
                 r'In --require-hashes mode, all requirements must have their '
                 r'versions pinned.*\n'
                 r'    TopoRequires from .*$',
