@@ -12,7 +12,11 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.cmdoptions import make_target_python
-from pip._internal.cli.req_command import RequirementCommand, with_cleanup
+from pip._internal.cli.req_command import (
+    RequirementCommand,
+    warn_if_run_as_root,
+    with_cleanup,
+)
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.exceptions import CommandError, InstallationError
 from pip._internal.locations import distutils_scheme
@@ -443,6 +447,7 @@ class InstallCommand(RequirementCommand):
                 options.target_dir, target_temp_dir, options.upgrade
             )
 
+        warn_if_run_as_root()
         return SUCCESS
 
     def _handle_target_dir(self, target_dir, target_temp_dir, upgrade):
