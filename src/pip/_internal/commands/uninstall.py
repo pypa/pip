@@ -4,7 +4,7 @@ from typing import List
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.cli.base_command import Command
-from pip._internal.cli.req_command import SessionCommandMixin
+from pip._internal.cli.req_command import SessionCommandMixin, warn_if_run_as_root
 from pip._internal.cli.status_codes import SUCCESS
 from pip._internal.exceptions import InstallationError
 from pip._internal.req import parse_requirements
@@ -88,4 +88,5 @@ class UninstallCommand(Command, SessionCommandMixin):
             if uninstall_pathset:
                 uninstall_pathset.commit()
 
+        warn_if_run_as_root()
         return SUCCESS

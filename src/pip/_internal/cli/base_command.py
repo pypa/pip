@@ -149,8 +149,8 @@ class Command(CommandContextMixIn):
                     "The directory '%s' or its parent directory is not owned "
                     "or is not writable by the current user. The cache "
                     "has been disabled. Check the permissions and owner of "
-                    "that directory. If executing pip with sudo, you may want "
-                    "sudo's -H flag.",
+                    "that directory. If executing pip with sudo, you should "
+                    "use sudo's -H flag.",
                     options.cache_dir,
                 )
                 options.cache_dir = None
