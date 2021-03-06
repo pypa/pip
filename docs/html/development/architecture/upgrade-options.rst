@@ -35,7 +35,7 @@ packages specified on pip's command line to be upgraded. This option controls
 what *other* packages can be upgraded:
 
 * ``eager`` - all packages will be upgraded to the latest possible version.
-  It should be noted here that pip's current resolution algorithm isn't even
+  It should be noted here that pip's old resolution algorithm wasn't even
   aware of packages other than those specified on the command line, and
   those identified as dependencies. This may or may not be true of the new
   resolver.
