@@ -95,29 +95,6 @@ def pytest_collection_modifyitems(config, items):
             )
 
 
-@pytest.fixture(scope="session", autouse=True)
-def resolver_variant(request):
-    """Set environment variable to make pip default to the correct resolver.
-    """
-    resolver = request.config.getoption("--resolver")
-
-    # Handle the environment variables for this test.
-    features = set(os.environ.get("PIP_USE_FEATURE", "").split())
-    deprecated_features = set(os.environ.get("PIP_USE_DEPRECATED", "").split())
-
-    if resolver == "legacy":
-        deprecated_features.add("legacy-resolver")
-    else:
-        deprecated_features.discard("legacy-resolver")
-
-    env = {
-        "PIP_USE_FEATURE": " ".join(features),
-        "PIP_USE_DEPRECATED": " ".join(deprecated_features),
-    }
-    with patch.dict(os.environ, env):
-        yield resolver
-
-
 @pytest.fixture(scope='session')
 def tmpdir_factory(request, tmpdir_factory):
     """ Modified `tmpdir_factory` session fixture
