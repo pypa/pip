@@ -176,9 +176,11 @@ def warn_if_run_as_root():
     if sys.platform == "darwin" or sys.platform == "linux":
         if os.getuid() != 0:
             return
-    logger.warning("Running pip as root will break packages and permissions. "
-                   "You should install packages reliably by using venv: "
-                   "https://pip.pypa.io/warnings/venv")
+    logger.warning(
+        "Running pip as root will break packages and permissions. "
+        "You should install packages reliably by using venv: "
+        "https://pip.pypa.io/warnings/venv"
+    )
 
 
 def with_cleanup(func):
