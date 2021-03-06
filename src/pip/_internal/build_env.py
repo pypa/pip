@@ -41,28 +41,6 @@ class _Prefix:
         self.lib_dirs = get_prefixed_libs(path)
 
 
-_CERTIFI_WHERE_PATCH = """
-from pip._vendor import certifi
-certifi.where = lambda: {pem!r}
-"""
-
-
-def _format_init_py(source: pathlib.Path) -> bytes:
-    """Create a patched pip/__init__.py for the standalone pip.
-
-    The default ``certifi.where()`` relies on the certificate bundle being a
-    real physical file on-disk, so we monkey-patch it to return the one used
-    by this process instead.
-
-    Passing ``--cert`` to the standalone pip does not work, since ``requests``
-    calls ``where()`` unconditionally on import.
-    """
-    with source.open("rb") as f:
-        content = f.read()
-    patch = _CERTIFI_WHERE_PATCH.format(pem=where()).encode("utf-8")
-    return patch + content
-
-
 @contextlib.contextmanager
 def _create_standalone_pip() -> Iterator[str]:
     """Create a "standalone pip" zip file.
@@ -75,11 +53,7 @@ def _create_standalone_pip() -> Iterator[str]:
         pip_zip = os.path.join(tmp_dir.path, "pip.zip")
         with zipfile.ZipFile(pip_zip, "w") as zf:
             for child in source.rglob("*"):
-                arcname = child.relative_to(source.parent).as_posix()
-                if arcname == "pip/__init__.py":
-                    zf.writestr(arcname, _format_init_py(child))
-                else:
-                    zf.write(child, arcname)
+                zf.write(child, child.relative_to(source.parent).as_posix())
         yield os.path.join(pip_zip, "pip")
 
 
@@ -253,8 +227,9 @@ class BuildEnvironment:
             args.append('--prefer-binary')
         args.append('--')
         args.extend(requirements)
+        extra_environ = {"_PIP_STANDALONE_CERT": where()}
         with open_spinner(message) as spinner:
-            call_subprocess(args, spinner=spinner)
+            call_subprocess(args, spinner=spinner, extra_environ=extra_environ)
 
 
 class NoOpBuildEnvironment(BuildEnvironment):
