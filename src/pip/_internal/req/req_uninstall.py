@@ -438,10 +438,7 @@ class UninstallPathSet:
         if verbose:
             _display('Will actually move:', compress_for_rename(self.paths))
 
-        if ask('Proceed (Y/n)? ', ('y', 'n', '')) in ('y', ''):
-            return True
-        else:
-            return False
+        return ask('Proceed (Y/n)? ', ('y', 'n', '')) != 'n'
 
     def rollback(self):
         # type: () -> None
