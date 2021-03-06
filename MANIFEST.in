@@ -22,7 +22,7 @@ exclude noxfile.py
 
 recursive-include src/pip/_vendor *.pem
 recursive-include src/pip/_vendor py.typed
-recursive-include docs *.css *.rst *.py
+recursive-include docs *.css *.py *.rst *.md
 
 exclude src/pip/_vendor/six
 exclude src/pip/_vendor/six/moves
