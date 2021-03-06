@@ -45,12 +45,19 @@ class _Prefix:
 def _create_standalone_pip() -> Iterator[str]:
     """Create a "standalone pip" zip file.
 
-    The zip file contains a (modified) copy of the pip currently running.
+    The zip file's content is identical to the currently-running pip.
     It will be used to install requirements into the build environment.
     """
     source = pathlib.Path(pip_location).resolve().parent
+
+    # Return the current instance if it is already a zip file. This can happen
+    # if a PEP 517 requirement is an sdist itself.
+    if not source.is_dir() and source.parent.name == "__env_pip__.zip":
+        yield str(source)
+        return
+
     with TempDirectory(kind="standalone-pip") as tmp_dir:
-        pip_zip = os.path.join(tmp_dir.path, "pip.zip")
+        pip_zip = os.path.join(tmp_dir.path, "__env_pip__.zip")
         with zipfile.ZipFile(pip_zip, "w") as zf:
             for child in source.rglob("*"):
                 zf.write(child, child.relative_to(source.parent).as_posix())
