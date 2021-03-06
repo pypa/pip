@@ -96,9 +96,11 @@ class SpecifierRequirement(Requirement):
 
     def is_satisfied_by(self, candidate):
         # type: (Candidate) -> bool
-        assert candidate.name == self.name, \
-            "Internal issue: Candidate is not for this requirement " \
-            " {} vs {}".format(candidate.name, self.name)
+        assert (
+            candidate.name == self.name
+        ), "Internal issue: Candidate is not for this requirement " " {} vs {}".format(
+            candidate.name, self.name
+        )
         # We can safely always allow prereleases here since PackageFinder
         # already implements the prerelease logic, and would have filtered out
         # prerelease candidates if the user does not expect them.
@@ -107,8 +109,8 @@ class SpecifierRequirement(Requirement):
 
 
 class RequiresPythonRequirement(Requirement):
-    """A requirement representing Requires-Python metadata.
-    """
+    """A requirement representing Requires-Python metadata."""
+
     def __init__(self, specifier, match):
         # type: (SpecifierSet, Candidate) -> None
         self.specifier = specifier
@@ -155,8 +157,8 @@ class RequiresPythonRequirement(Requirement):
 
 
 class UnsatisfiableRequirement(Requirement):
-    """A requirement that cannot be satisfied.
-    """
+    """A requirement that cannot be satisfied."""
+
     def __init__(self, name):
         # type: (str) -> None
         self._name = name

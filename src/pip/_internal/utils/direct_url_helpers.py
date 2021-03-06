@@ -47,8 +47,8 @@ def direct_url_from_link(link, source_dir=None, link_is_in_wheel_cache=False):
     if link.is_vcs:
         vcs_backend = vcs.get_backend_for_scheme(link.scheme)
         assert vcs_backend
-        url, requested_revision, _ = (
-            vcs_backend.get_url_rev_and_auth(link.url_without_fragment)
+        url, requested_revision, _ = vcs_backend.get_url_rev_and_auth(
+            link.url_without_fragment
         )
         # For VCS links, we need to find out and add commit_id.
         if link_is_in_wheel_cache:
@@ -106,7 +106,7 @@ def dist_get_direct_url(dist):
     except (
         DirectUrlValidationError,
         json.JSONDecodeError,
-        UnicodeDecodeError
+        UnicodeDecodeError,
     ) as e:
         logger.warning(
             "Error parsing %s for %s: %s",

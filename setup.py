@@ -1,6 +1,3 @@
-# The following comment should be removed at some point in the future.
-# mypy: disallow-untyped-defs=False
-
 import os
 import sys
 
@@ -8,14 +5,16 @@ from setuptools import find_packages, setup
 
 
 def read(rel_path):
+    # type: (str) -> str
     here = os.path.abspath(os.path.dirname(__file__))
     # intentionally *not* adding an encoding option to open, See:
     #   https://github.com/pypa/virtualenv/issues/201#issuecomment-3145690
-    with open(os.path.join(here, rel_path), 'r') as fp:
+    with open(os.path.join(here, rel_path)) as fp:
         return fp.read()
 
 
 def get_version(rel_path):
+    # type: (str) -> str
     for line in read(rel_path).splitlines():
         if line.startswith('__version__'):
             # __version__ = "0.9"

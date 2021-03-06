@@ -277,12 +277,12 @@ def pip_src(tmpdir_factory):
 
 def _common_wheel_editable_install(tmpdir_factory, common_wheels, package):
     wheel_candidates = list(
-        common_wheels.glob('{package}-*.whl'.format(**locals())))
+        common_wheels.glob(f'{package}-*.whl'))
     assert len(wheel_candidates) == 1, wheel_candidates
     install_dir = Path(str(tmpdir_factory.mktemp(package))) / 'install'
     Wheel(wheel_candidates[0]).install_as_egg(install_dir)
     (install_dir / 'EGG-INFO').rename(
-        install_dir / '{package}.egg-info'.format(**locals()))
+        install_dir / f'{package}.egg-info')
     assert compileall.compile_dir(str(install_dir), quiet=1)
     return install_dir
 

@@ -25,6 +25,11 @@ class Distribution(BaseDistribution):
         return cls(dist)
 
     @property
+    def location(self):
+        # type: () -> Optional[str]
+        return self._dist.location
+
+    @property
     def metadata_version(self):
         # type: () -> Optional[str]
         for line in self._dist.get_metadata_lines(self._dist.PKG_INFO):
@@ -115,7 +120,7 @@ class Environment(BaseEnvironment):
             return None
         return self._search_distribution(name)
 
-    def iter_distributions(self):
+    def _iter_distributions(self):
         # type: () -> Iterator[BaseDistribution]
         for dist in self._ws:
             yield Distribution(dist)

@@ -561,8 +561,12 @@ See the :ref:`pip install Examples<pip install Examples>`.
 SSL Certificate Verification
 ----------------------------
 
-Starting with v1.3, pip provides SSL certificate verification over https, to
-prevent man-in-the-middle attacks against PyPI downloads.
+Starting with v1.3, pip provides SSL certificate verification over HTTP, to
+prevent man-in-the-middle attacks against PyPI downloads. This does not use
+the system certificate store but instead uses a bundled CA certificate
+store. The default bundled CA certificate store certificate store may be
+overridden by using ``--cert`` option or by using ``PIP_CERT``,
+``REQUESTS_CA_BUNDLE``, or ``CURL_CA_BUNDLE`` environment variables.
 
 
 .. _`Caching`:
@@ -808,7 +812,15 @@ You can install local projects by specifying the project path to pip:
 During regular installation, pip will copy the entire project directory to a
 temporary location and install from there. The exception is that pip will
 exclude .tox and .nox directories present in the top level of the project from
-being copied.
+being copied. This approach is the cause of several performance and correctness
+issues, so it is planned that pip 21.3 will change to install directly from the
+local project directory. Depending on the build backend used by the project,
+this may generate secondary build artifacts in the project directory, such as
+the ``.egg-info`` and ``build`` directories in the case of the setuptools
+backend.
+
+To opt in to the future behavior, specify the ``--use-feature=in-tree-build``
+option in pip's command line.
 
 
 .. _`editable-installs`:

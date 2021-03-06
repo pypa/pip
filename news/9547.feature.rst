@@ -1,0 +1,1 @@
+Add support for editable installs for project with only setup.cfg files.

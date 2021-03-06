@@ -1,0 +1,2 @@
+New resolver: Show relevant entries from user-supplied constraint files in the
+error message to improve debuggability.

@@ -2,8 +2,15 @@
 network request configuration and behavior.
 """
 
-# The following comment should be removed at some point in the future.
-# mypy: disallow-untyped-defs=False
+# When mypy runs on Windows the call to distro.linux_distribution() is skipped
+# resulting in the failure:
+#
+#     error: unused 'type: ignore' comment
+#
+# If the upstream module adds typing, this comment should be removed. See
+# https://github.com/nir0s/distro/pull/269
+#
+# mypy: warn-unused-ignores=False
 
 import email.utils
 import ipaddress
@@ -15,13 +22,14 @@ import platform
 import sys
 import urllib.parse
 import warnings
-from typing import Any, Iterator, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, Iterator, List, Mapping, Optional, Sequence, Tuple, Union
 
 from pip._vendor import requests, urllib3
 from pip._vendor.cachecontrol import CacheControlAdapter
 from pip._vendor.requests.adapters import BaseAdapter, HTTPAdapter
-from pip._vendor.requests.models import Response
+from pip._vendor.requests.models import PreparedRequest, Response
 from pip._vendor.requests.structures import CaseInsensitiveDict
+from pip._vendor.urllib3.connectionpool import ConnectionPool
 from pip._vendor.urllib3.exceptions import InsecureRequestWarning
 
 from pip import __version__
@@ -89,6 +97,7 @@ def looks_like_ci():
 
 
 def user_agent():
+    # type: () -> str
     """
     Return a string representing the user agent.
     """
@@ -98,15 +107,14 @@ def user_agent():
         "implementation": {
             "name": platform.python_implementation(),
         },
-    }
+    }  # type: Dict[str, Any]
 
     if data["implementation"]["name"] == 'CPython':
         data["implementation"]["version"] = platform.python_version()
     elif data["implementation"]["name"] == 'PyPy':
-        if sys.pypy_version_info.releaselevel == 'final':
-            pypy_version_info = sys.pypy_version_info[:3]
-        else:
-            pypy_version_info = sys.pypy_version_info
+        pypy_version_info = sys.pypy_version_info  # type: ignore
+        if pypy_version_info.releaselevel == 'final':
+            pypy_version_info = pypy_version_info[:3]
         data["implementation"]["version"] = ".".join(
             [str(x) for x in pypy_version_info]
         )
@@ -119,9 +127,12 @@ def user_agent():
 
     if sys.platform.startswith("linux"):
         from pip._vendor import distro
+
+        # https://github.com/nir0s/distro/pull/269
+        linux_distribution = distro.linux_distribution()  # type: ignore
         distro_infos = dict(filter(
             lambda x: x[1],
-            zip(["name", "version", "id"], distro.linux_distribution()),
+            zip(["name", "version", "id"], linux_distribution),
         ))
         libc = dict(filter(
             lambda x: x[1],
@@ -170,8 +181,16 @@ def user_agent():
 
 class LocalFSAdapter(BaseAdapter):
 
-    def send(self, request, stream=None, timeout=None, verify=None, cert=None,
-             proxies=None):
+    def send(
+        self,
+        request,  # type: PreparedRequest
+        stream=False,  # type: bool
+        timeout=None,  # type: Optional[Union[float, Tuple[float, float]]]
+        verify=True,  # type: Union[bool, str]
+        cert=None,  # type: Optional[Union[str, Tuple[str, str]]]
+        proxies=None,  # type:Optional[Mapping[str, str]]
+    ):
+        # type: (...) -> Response
         pathname = url_to_path(request.url)
 
         resp = Response()
@@ -198,18 +217,33 @@ class LocalFSAdapter(BaseAdapter):
         return resp
 
     def close(self):
+        # type: () -> None
         pass
 
 
 class InsecureHTTPAdapter(HTTPAdapter):
 
-    def cert_verify(self, conn, url, verify, cert):
+    def cert_verify(
+        self,
+        conn,  # type: ConnectionPool
+        url,  # type: str
+        verify,  # type: Union[bool, str]
+        cert,  # type: Optional[Union[str, Tuple[str, str]]]
+    ):
+        # type: (...) -> None
         super().cert_verify(conn=conn, url=url, verify=False, cert=cert)
 
 
 class InsecureCacheControlAdapter(CacheControlAdapter):
 
-    def cert_verify(self, conn, url, verify, cert):
+    def cert_verify(
+        self,
+        conn,  # type: ConnectionPool
+        url,  # type: str
+        verify,  # type: Union[bool, str]
+        cert,  # type: Optional[Union[str, Tuple[str, str]]]
+    ):
+        # type: (...) -> None
         super().cert_verify(conn=conn, url=url, verify=False, cert=cert)
 
 
@@ -407,6 +441,7 @@ class PipSession(requests.Session):
         return False
 
     def request(self, method, url, *args, **kwargs):
+        # type: (str, str, *Any, **Any) -> Response
         # Allow setting a default timeout on a session
         kwargs.setdefault("timeout", self.timeout)
 

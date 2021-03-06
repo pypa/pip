@@ -10,9 +10,11 @@ from typing import Iterator, List, Tuple
 
 import nox
 
+# fmt: off
 sys.path.append(".")
 from tools.automation import release  # isort:skip  # noqa
 sys.path.pop()
+# fmt: on
 
 nox.options.reuse_existing_virtualenvs = True
 nox.options.sessions = ["lint"]
@@ -75,17 +77,16 @@ def test(session):
     # type: (nox.Session) -> None
     # Get the common wheels.
     if should_update_common_wheels():
+        # fmt: off
         run_with_protected_pip(
             session,
             "wheel",
             "-w", LOCATIONS["common-wheels"],
             "-r", REQUIREMENTS["common-wheels"],
         )
+        # fmt: on
     else:
-        msg = (
-            "Re-using existing common-wheels at {}."
-            .format(LOCATIONS["common-wheels"])
-        )
+        msg = f"Re-using existing common-wheels at {LOCATIONS['common-wheels']}."
         session.log(msg)
 
     # Build source distribution
@@ -93,11 +94,14 @@ def test(session):
     sdist_dir = os.path.join(session.virtualenv.location, "sdist")  # type: ignore
     if os.path.exists(sdist_dir):
         shutil.rmtree(sdist_dir, ignore_errors=True)
+
+    # fmt: off
     session.run(
-        "python", "setup.py", "sdist",
-        "--formats=zip", "--dist-dir", sdist_dir,
+        "python", "setup.py", "sdist", "--formats=zip", "--dist-dir", sdist_dir,
         silent=True,
     )
+    # fmt: on
+
     generated_files = os.listdir(sdist_dir)
     assert len(generated_files) == 1
     generated_sdist = os.path.join(sdist_dir, generated_files[0])
@@ -129,6 +133,7 @@ def docs(session):
         # can not use a different configuration directory vs source directory
         # on RTD currently. So, we'll pass "-c docs/html" here.
         # See https://github.com/rtfd/readthedocs.org/issues/1543.
+        # fmt: off
         return [
             "sphinx-build",
             "-W",
@@ -138,6 +143,7 @@ def docs(session):
             "docs/" + kind,
             "docs/build/" + kind,
         ]
+        # fmt: on
 
     session.run(*get_sphinx_build_command("html"))
     session.run(*get_sphinx_build_command("man"))
@@ -168,11 +174,14 @@ def vendoring(session):
 
     def pinned_requirements(path):
         # type: (Path) -> Iterator[Tuple[str, str]]
-        for line in path.read_text().splitlines():
-            one, two = line.split("==", 1)
+        for line in path.read_text().splitlines(keepends=False):
+            one, sep, two = line.partition("==")
+            if not sep:
+                continue
             name = one.strip()
-            version = two.split("#")[0].strip()
-            yield name, version
+            version = two.split("#", 1)[0].strip()
+            if name and version:
+                yield name, version
 
     vendor_txt = Path("src/pip/_vendor/vendor.txt")
     for name, old_version in pinned_requirements(vendor_txt):
@@ -227,9 +236,7 @@ def prepare_release(session):
     session.log(f"# Updating {AUTHORS_FILE}")
     release.generate_authors(AUTHORS_FILE)
     if release.modified_files_in_git():
-        release.commit_file(
-            session, AUTHORS_FILE, message=f"Update {AUTHORS_FILE}",
-        )
+        release.commit_file(session, AUTHORS_FILE, message=f"Update {AUTHORS_FILE}")
     else:
         session.log(f"# No changes to {AUTHORS_FILE}")
 
@@ -276,7 +283,7 @@ def build_release(session):
 
         tmp_dist_paths = (build_dir / p for p in tmp_dists)
         session.log(f"# Copying dists from {build_dir}")
-        os.makedirs('dist', exist_ok=True)
+        os.makedirs("dist", exist_ok=True)
         for dist, final in zip(tmp_dist_paths, tmp_dists):
             session.log(f"# Copying {dist} to {final}")
             shutil.copy(dist, final)
@@ -291,7 +298,7 @@ def build_dists(session):
 
     has_forbidden_git_untracked_files = any(
         # Don't report the environment this session is running in
-        not untracked_file.startswith('.nox/build-release/')
+        not untracked_file.startswith(".nox/build-release/")
         for untracked_file in release.get_git_untracked_files()
     )
     if has_forbidden_git_untracked_files:
@@ -337,9 +344,7 @@ def upload_release(session):
         f"pip-{version}.tar.gz",
     ]
     if sorted(distfile_names) != sorted(expected_distribution_files):
-        session.error(
-            f"Distribution files do not seem to be for {version} release."
-        )
+        session.error(f"Distribution files do not seem to be for {version} release.")
 
     session.log("# Upload distributions")
     session.run("twine", "upload", *distribution_files)
