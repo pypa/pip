@@ -47,8 +47,8 @@ certifi.where = lambda: {pem!r}
 """
 
 
-def _format_main_py(source: pathlib.Path) -> bytes:
-    """Create a patched pip/__main__.py for the standalone pip.
+def _format_init_py(source: pathlib.Path) -> bytes:
+    """Create a patched pip/__init__.py for the standalone pip.
 
     The default ``certifi.where()`` relies on the certificate bundle being a
     real physical file on-disk, so we monkey-patch it to return the one used
@@ -76,8 +76,8 @@ def _create_standalone_pip() -> Iterator[str]:
         with zipfile.ZipFile(pip_zip, "w") as zf:
             for child in source.rglob("*"):
                 arcname = child.relative_to(source.parent).as_posix()
-                if arcname == "pip/__main__.py":
-                    zf.writestr(arcname, _format_main_py(child))
+                if arcname == "pip/__init__.py":
+                    zf.writestr(arcname, _format_init_py(child))
                 else:
                     zf.write(child, arcname)
         yield os.path.join(pip_zip, "pip")
