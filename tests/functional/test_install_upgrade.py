@@ -40,7 +40,6 @@ def test_invalid_upgrade_strategy_causes_error(script):
 
 def test_only_if_needed_does_not_upgrade_deps_when_satisfied(
     script,
-    resolver_variant,
     with_wheel
 ):
     """
@@ -61,11 +60,8 @@ def test_only_if_needed_does_not_upgrade_deps_when_satisfied(
         not in result.files_deleted
     ), "should not have uninstalled simple==2.0"
 
-    msg = "Requirement already satisfied"
-    if resolver_variant == "legacy":
-        msg = msg + ", skipping upgrade: simple"
     assert (
-        msg in result.stdout
+       "Requirement already satisfied" in result.stdout
     ), "did not print correct message for not-upgraded requirement"
 
 
@@ -184,7 +180,7 @@ def test_upgrade_if_requested(script, with_wheel):
     )
 
 
-def test_upgrade_with_newest_already_installed(script, data, resolver_variant):
+def test_upgrade_with_newest_already_installed(script, data):
     """
     If the newest version of a package is already installed, the package should
     not be reinstalled and the user should be informed.
@@ -194,11 +190,7 @@ def test_upgrade_with_newest_already_installed(script, data, resolver_variant):
         'install', '--upgrade', '-f', data.find_links, '--no-index', 'simple'
     )
     assert not result.files_created, 'simple upgraded when it should not have'
-    if resolver_variant == "2020-resolver":
-        msg = "Requirement already satisfied"
-    else:
-        msg = "already up-to-date"
-    assert msg in result.stdout, result.stdout
+    assert "Requirement already satisfied" in result.stdout, result.stdout
 
 
 @pytest.mark.network

@@ -925,7 +925,6 @@ def test_install_nonlocal_compatible_wheel(script, data):
 def test_install_nonlocal_compatible_wheel_path(
     script,
     data,
-    resolver_variant,
 ):
     target_dir = script.scratch_path / 'target'
 
@@ -936,15 +935,9 @@ def test_install_nonlocal_compatible_wheel_path(
         '--no-index',
         '--only-binary=:all:',
         Path(data.packages) / 'simplewheel-2.0-py3-fakeabi-fakeplat.whl',
-        expect_error=(resolver_variant == "2020-resolver"),
+        expect_error=True,
     )
-    if resolver_variant == "2020-resolver":
-        assert result.returncode == ERROR
-    else:
-        assert result.returncode == SUCCESS
-
-        distinfo = Path('scratch') / 'target' / 'simplewheel-2.0.dist-info'
-        result.did_create(distinfo)
+    assert result.returncode == ERROR
 
     # Test a full path requirement (without --target)
     result = script.pip(
@@ -1481,7 +1474,7 @@ def test_install_no_binary_disables_cached_wheels(script, data, with_wheel):
     assert "Running setup.py install for upper" in str(res), str(res)
 
 
-def test_install_editable_with_wrong_egg_name(script, resolver_variant):
+def test_install_editable_with_wrong_egg_name(script):
     script.scratch_path.joinpath("pkga").mkdir()
     pkga_path = script.scratch_path / 'pkga'
     pkga_path.joinpath("setup.py").write_text(textwrap.dedent("""
@@ -1492,15 +1485,12 @@ def test_install_editable_with_wrong_egg_name(script, resolver_variant):
     result = script.pip(
         'install', '--editable',
         f'file://{pkga_path}#egg=pkgb',
-        expect_error=(resolver_variant == "2020-resolver"),
+        expect_error=True,
     )
     assert ("Generating metadata for package pkgb produced metadata "
             "for project name pkga. Fix your #egg=pkgb "
             "fragments.") in result.stderr
-    if resolver_variant == "2020-resolver":
-        assert "has inconsistent" in result.stderr, str(result)
-    else:
-        assert "Successfully installed pkga" in str(result), str(result)
+    assert "has inconsistent" in result.stderr, str(result)
 
 
 def test_install_tar_xz(script, data):
@@ -1530,21 +1520,11 @@ def test_double_install(script):
     assert msg not in result.stderr
 
 
-def test_double_install_fail(script, resolver_variant):
+def test_double_install_fail(script):
     """
     Test double install failing with two different version requirements
     """
-    result = script.pip(
-        'install',
-        'pip==7.*',
-        'pip==7.1.2',
-        # The new resolver is perfectly capable of handling this
-        expect_error=(resolver_variant == "legacy"),
-    )
-    if resolver_variant == "legacy":
-        msg = ("Double requirement given: pip==7.1.2 (already in pip==7.*, "
-               "name='pip')")
-        assert msg in result.stderr
+    script.pip('install', 'pip==7.*', 'pip==7.1.2', expect_error=False)
 
 
 def _get_expected_error_text():
@@ -1788,23 +1768,21 @@ def test_user_config_accepted(script):
 
 
 @pytest.mark.parametrize(
-    'install_args, expected_message', [
-        ([], 'Requirement already satisfied: pip'),
-        (['--upgrade'], 'Requirement already {}: pip in'),
+    'install_args', [
+        [],
+        ['--upgrade'],
     ]
 )
 @pytest.mark.parametrize("use_module", [True, False])
 def test_install_pip_does_not_modify_pip_when_satisfied(
-        script, install_args, expected_message, use_module, resolver_variant):
+        script, install_args, use_module):
     """
     Test it doesn't upgrade the pip if it already satisfies the requirement.
     """
-    variation = "satisfied" if resolver_variant else "up-to-date"
-    expected_message = expected_message.format(variation)
     result = script.pip_install_local(
         'pip', *install_args, use_module=use_module
     )
-    assert expected_message in result.stdout, str(result)
+    assert 'Requirement already satisfied: pip in' in result.stdout, str(result)
 
 
 def test_ignore_yanked_file(script, data):
