@@ -1,7 +1,7 @@
 """Exceptions used throughout package"""
 
 import configparser
-from itertools import chain, groupby, repeat
+from itertools import chain, repeat
 from typing import TYPE_CHECKING, Dict, List, Optional
 
 from pip._vendor.pkg_resources import Distribution
@@ -165,37 +165,6 @@ class InstallationSubprocessError(InstallationError):
             "Command errored out with exit status {}: {} "
             "Check the logs for full command output."
         ).format(self.returncode, self.description)
-
-
-class HashErrors(InstallationError):
-    """Multiple HashError instances rolled into one for reporting"""
-
-    def __init__(self):
-        # type: () -> None
-        self.errors = []  # type: List[HashError]
-
-    def append(self, error):
-        # type: (HashError) -> None
-        self.errors.append(error)
-
-    def __str__(self):
-        # type: () -> str
-        lines = []
-        self.errors.sort(key=lambda e: e.order)
-        for cls, errors_of_cls in groupby(self.errors, lambda e: e.__class__):
-            lines.append(cls.head)
-            lines.extend(e.body() for e in errors_of_cls)
-        if lines:
-            return '\n'.join(lines)
-        return ''
-
-    def __nonzero__(self):
-        # type: () -> bool
-        return bool(self.errors)
-
-    def __bool__(self):
-        # type: () -> bool
-        return self.__nonzero__()
 
 
 class HashError(InstallationError):
