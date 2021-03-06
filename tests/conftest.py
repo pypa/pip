@@ -34,13 +34,6 @@ def pytest_addoption(parser):
         help="keep temporary test directories",
     )
     parser.addoption(
-        "--resolver",
-        action="store",
-        default="2020-resolver",
-        choices=["2020-resolver", "legacy"],
-        help="use given resolver in tests",
-    )
-    parser.addoption(
         "--use-venv",
         action="store_true",
         default=False,
