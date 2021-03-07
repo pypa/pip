@@ -554,7 +554,7 @@ then the latter value will be used.
 
 The names of the settings are derived from the long command line option, e.g.
 if you want to use a different package index (``--index-url``) and set the
-HTTP timeout (``--default-timeout``) to 60 seconds your config file would
+HTTP timeout (``--timeout``) to 60 seconds your config file would
 look like this:
 
 .. code-block:: ini
@@ -643,13 +643,13 @@ For example, to set the default timeout:
 
    .. code-block:: shell
 
-      export PIP_DEFAULT_TIMEOUT=60
+      export PIP_TIMEOUT=60
 
 .. tab:: Windows
 
    .. code-block:: shell
 
-      set PIP_DEFAULT_TIMEOUT=60
+      set PIP_TIMEOUT=60
 
 This is the same as passing the option to pip directly:
 
@@ -657,13 +657,13 @@ This is the same as passing the option to pip directly:
 
    .. code-block:: shell
 
-      python -m pip --default-timeout=60 [...]
+      python -m pip --timeout=60 [...]
 
 .. tab:: Windows
 
    .. code-block:: shell
 
-      py -m pip --default-timeout=60 [...]
+      py -m pip --timeout=60 [...]
 
 For command line options which can be repeated, use a space to separate
 multiple values. For example:
