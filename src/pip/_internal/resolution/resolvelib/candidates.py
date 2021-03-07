@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Any, FrozenSet, Iterable, Optional, Tuple, Uni
 from pip._vendor.packaging.specifiers import InvalidSpecifier, SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version, _BaseVersion
+from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.pkg_resources import Distribution
 
 from pip._internal.exceptions import HashError, MetadataInconsistent
@@ -180,7 +181,7 @@ class _InstallRequirementBackedCandidate(Candidate):
     def version(self):
         # type: () -> _BaseVersion
         if self._version is None:
-            self._version = self.dist.parsed_version
+            self._version = parse_version(self.dist.version)
         return self._version
 
     def format_for_error(self):
@@ -206,7 +207,8 @@ class _InstallRequirementBackedCandidate(Candidate):
                 self._name,
                 dist.project_name,
             )
-        if self._version is not None and self._version != dist.parsed_version:
+        parsed_version = parse_version(dist.version)
+        if self._version is not None and self._version != parsed_version:
             raise MetadataInconsistent(
                 self._ireq,
                 "version",
@@ -387,7 +389,7 @@ class AlreadyInstalledCandidate(Candidate):
     @property
     def version(self):
         # type: () -> _BaseVersion
-        return self.dist.parsed_version
+        return parse_version(self.dist.version)
 
     @property
     def is_editable(self):
