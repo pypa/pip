@@ -324,23 +324,21 @@ To install directly from a wheel archive:
 
       py -m pip install SomePackage-1.0-py2.py3-none-any.whl
 
-.. warning::
+To include optional dependencies provided in the ``provides_extras``
+metadata in the wheel, you must add quotes around the install target
+name:
 
-   To include optional dependencies provided in the ``provides_extras``
-   metadata in the wheel, you must add quotes around the install target
-   name:
-   
-   .. tab:: Unix/macOS
+.. tab:: Unix/macOS
 
-      .. code-block:: shell
+   .. code-block:: shell
 
-         python -m pip install 'SomePackage-1.0-py2.py3-none-any.whl[my-extras]'
+      python -m pip install './somepackage-1.0-py2.py3-none-any.whl[my-extras]'
 
-   .. tab:: Windows
+.. tab:: Windows
 
-      .. code-block:: shell
+   .. code-block:: shell
 
-         py -m pip install 'SomePackage-1.0-py2.py3-none-any.whl[my-extras]'
+      py -m pip install './somepackage-1.0-py2.py3-none-any.whl[my-extras]'
 
 For the cases where wheels are not available, pip offers :ref:`pip wheel` as a
 convenience, to build wheels for all your requirements and dependencies.
