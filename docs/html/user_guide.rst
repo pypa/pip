@@ -53,7 +53,7 @@ Specifiers`
 
       py -m pip install SomePackage            # latest version
       py -m pip install SomePackage==1.0.4     # specific version
-      py -m pip install 'SomePackage>=1.0.4'     # minimum version
+      py -m pip install 'SomePackage>=1.0.4'   # minimum version
 
 For more information and examples, see the :ref:`pip install` reference.
 
@@ -324,6 +324,23 @@ To install directly from a wheel archive:
 
       py -m pip install SomePackage-1.0-py2.py3-none-any.whl
 
+.. warning::
+
+   To include optional dependencies provided in the ``provides_extras``
+   metadata in the wheel, you must add quotes around the install target
+   name:
+   
+   .. tab:: Unix/macOS
+
+      .. code-block:: shell
+
+         python -m pip install 'SomePackage-1.0-py2.py3-none-any.whl[my-extras]'
+
+   .. tab:: Windows
+
+      .. code-block:: shell
+
+         py -m pip install 'SomePackage-1.0-py2.py3-none-any.whl[my-extras]'
 
 For the cases where wheels are not available, pip offers :ref:`pip wheel` as a
 convenience, to build wheels for all your requirements and dependencies.
