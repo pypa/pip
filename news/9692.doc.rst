@@ -1,0 +1,2 @@
+Describe ``--upgrade-strategy`` and direct requirements explicitly; add a brief
+example.
