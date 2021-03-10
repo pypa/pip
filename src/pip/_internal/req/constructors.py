@@ -182,7 +182,7 @@ def parse_req_from_editable(editable_req):
 
     if name is not None:
         try:
-            req = Requirement(name)
+            req = Requirement(name)  # type: Optional[Requirement]
         except InvalidRequirement:
             raise InstallationError(f"Invalid requirement: '{name}'")
     else:
@@ -335,7 +335,7 @@ def parse_req_from_line(name, line_source):
             return text
         return f'{text} (from {line_source})'
 
-    if req_as_string is not None:
+    def _parse_req_string(req_as_string: str) -> Requirement:
         try:
             req = Requirement(req_as_string)
         except InvalidRequirement:
@@ -363,6 +363,10 @@ def parse_req_from_line(name, line_source):
                 if spec_str.endswith(']'):
                     msg = f"Extras after version '{spec_str}'."
                     raise InstallationError(msg)
+        return req
+
+    if req_as_string is not None:
+        req = _parse_req_string(req_as_string)  # type: Optional[Requirement]
     else:
         req = None
 

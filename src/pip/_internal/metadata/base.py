@@ -1,10 +1,12 @@
 import logging
 import re
-from typing import Container, Iterator, List, Optional
+from typing import Container, Iterator, List, Optional, Union
 
-from pip._vendor.packaging.version import _BaseVersion
+from pip._vendor.packaging.version import LegacyVersion, Version
 
 from pip._internal.utils.misc import stdlib_pkgs  # TODO: Move definition here.
+
+DistributionVersion = Union[LegacyVersion, Version]
 
 logger = logging.getLogger(__name__)
 
@@ -34,7 +36,7 @@ class BaseDistribution:
 
     @property
     def version(self):
-        # type: () -> _BaseVersion
+        # type: () -> DistributionVersion
         raise NotImplementedError()
 
     @property

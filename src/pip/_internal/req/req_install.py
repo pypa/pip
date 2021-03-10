@@ -349,7 +349,7 @@ class InstallRequirement:
 
         # When parallel builds are enabled, add a UUID to the build directory
         # name so multiple builds do not interfere with each other.
-        dir_name = canonicalize_name(self.name)
+        dir_name = canonicalize_name(self.name)  # type: str
         if parallel_builds:
             dir_name = f"{dir_name}_{uuid.uuid4().hex}"
 
