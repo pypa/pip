@@ -1,11 +1,11 @@
 import collections
 import logging
-from typing import Iterator, List, Optional, Sequence, Tuple
+from typing import Iterator, List, Optional, Sequence, Tuple, Union, Callable, \
+    Iterable, Any
 import sys
 from functools import partial
 
-from pip._internal.utils.logging import indent_log
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from ..._internal.utils.logging import indent_log
 
 from .req_file import parse_requirements
 from .req_install import InstallRequirement
@@ -69,9 +69,7 @@ def install_given_reqs(
         )
 
     # pre allocate installed package names
-    installed = [None] * len(
-        to_install
-    )  # type: List[Union[None, InstallationResult, BaseException]]
+    installed = {name: None for name in to_install}
 
     install_args = [install_options, global_options, dict(
         root=root, home=home, prefix=prefix,
@@ -82,16 +80,16 @@ def install_given_reqs(
         # first try to install in parallel
         installed_pool = __safe_pool_map(
             partial(__single_install, install_args, in_subprocess=True),
-            to_install)
+            list(to_install.values()))
         if installed_pool:
-            installed = installed_pool
+            installed = dict(zip(to_install.keys(), to_install.values()))
 
-        for i, requirement in enumerate(to_install):
-            if installed[i] is None:
-                installed[i] = __single_install(
+        for name, requirement in to_install.items():
+            if installed[name] is None:
+                installed[name] = __single_install(
                     install_args, requirement, in_subprocess=False)
-            elif isinstance(installed[i], BaseException):
-                raise installed[i]   # type: ignore
+            elif isinstance(installed[name], BaseException):
+                raise installed[name]   # type: ignore
 
     return [i for i in installed if isinstance(i, InstallationResult)]
 
