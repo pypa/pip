@@ -81,8 +81,8 @@ def install_given_reqs(
 
     with indent_log():
         # first try to install in parallel
-        installed_pool = __safe_pool_map(
-            partial(__single_install, install_args, in_subprocess=True),
+        installed_pool = _safe_pool_map(
+            partial(_single_install, install_args, in_subprocess=True),
             list(to_install.values()))
         if installed_pool:
             installed = collections.OrderedDict(
@@ -90,7 +90,7 @@ def install_given_reqs(
 
         for name, requirement in to_install.items():
             if installed[name] is None:
-                installed_req = __single_install(
+                installed_req = _single_install(
                     install_args, requirement, in_subprocess=False)
                 installed[name] = installed_req  # type: ignore
             elif isinstance(installed[name], BaseException):
@@ -102,7 +102,7 @@ def install_given_reqs(
     ]
 
 
-def __safe_pool_map(
+def _safe_pool_map(
         func,               # type: Callable[[Any], Any]
         iterable,           # type: Iterable[Any]
 ):
@@ -116,7 +116,7 @@ def __safe_pool_map(
     return map_multiprocess_ordered(func, iterable)
 
 
-def __single_install(
+def _single_install(
         install_args,           # type: List[Any]
         requirement,            # type: InstallRequirement
         in_subprocess=False,    # type: bool
@@ -126,6 +126,9 @@ def __single_install(
     Install a single requirement, returns InstallationResult
     (to be called per requirement, either in parallel or serially)
     """
+
+    # if we are running inside a subprocess,
+    # then only clean wheel installation is supported
     if (in_subprocess and
             (requirement.should_reinstall or not requirement.is_wheel)):
         return None
