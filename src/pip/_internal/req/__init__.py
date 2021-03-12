@@ -1,20 +1,11 @@
 import collections
 import logging
 from functools import partial
-from typing import (
-    Any,
-    Callable,
-    Iterable,
-    Iterator,
-    List,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-)
+from typing import Iterator, List, Optional, Sequence, Tuple, Union
 
-from ..._internal.utils.logging import indent_log
-from ..utils.parallel import map_multiprocess_ordered
+from pip._internal.utils.logging import indent_log
+from pip._internal.utils.parallel import map_multiprocess_ordered
+
 from .req_file import parse_requirements
 from .req_install import InstallRequirement
 from .req_set import RequirementSet
@@ -35,6 +26,12 @@ class InstallationResult:
     def __repr__(self):
         # type: () -> str
         return f"InstallationResult(name={self.name!r})"
+
+
+_InstallArgs = collections.namedtuple(
+    '_InstallArgs',
+    ['install_options', 'global_options', 'kwargs']
+)
 
 
 def _validate_requirements(
@@ -72,52 +69,46 @@ def install_given_reqs(
         )
 
     # pre allocate installed package names
-    installed = collections.OrderedDict({name: None for name in to_install})
+    installed = []  # type: List[InstallationResult]
 
-    install_args = [install_options, global_options, dict(
-        root=root, home=home, prefix=prefix,
-        warn_script_location=warn_script_location,
-        use_user_site=use_user_site, pycompile=pycompile)]
+    # store install arguments
+    install_args = _InstallArgs(
+        install_options=install_options,
+        global_options=global_options,
+        kwargs=dict(
+            root=root, home=home, prefix=prefix,
+            warn_script_location=warn_script_location,
+            use_user_site=use_user_site, pycompile=pycompile
+        )
+    )
 
     with indent_log():
         # first try to install in parallel
-        installed_pool = _safe_pool_map(
+        installed_pool = map_multiprocess_ordered(
             partial(_single_install, install_args, in_subprocess=True),
-            list(to_install.values()))
-        if installed_pool:
-            installed = collections.OrderedDict(
-                zip(list(to_install.keys()), installed_pool))
+            requirements)
 
-        for name, requirement in to_install.items():
-            if installed[name] is None:
+        # check the results from the parallel installation,
+        # and fill-in missing installations or raise exception
+        for installed_req, requested_req in zip(installed_pool, requirements):
+            # if the requirement was not installed by the parallel pool,
+            # install serially here
+            if installed_req is None:
                 installed_req = _single_install(
-                    install_args, requirement, in_subprocess=False)
-                installed[name] = installed_req  # type: ignore
-            elif isinstance(installed[name], BaseException):
-                raise installed[name]   # type: ignore
+                    install_args, requested_req, in_subprocess=False)
 
-    return [
-        i for i in installed.values()  # type: ignore
-        if isinstance(i, InstallationResult)
-    ]
+            if isinstance(installed_req, BaseException):
+                # Raise an exception if we caught one
+                # during the parallel installation
+                raise installed_req
+            elif isinstance(installed_req, InstallationResult):
+                installed.append(installed_req)
 
-
-def _safe_pool_map(
-        func,               # type: Callable[[Any], Any]
-        iterable,           # type: Iterable[Any]
-):
-    # type: (...) -> Optional[List[Any]]
-    """
-    Safe call to Pool map, if Pool is not available return None
-    """
-    if not iterable:
-        return None
-
-    return map_multiprocess_ordered(func, iterable)
+    return installed
 
 
 def _single_install(
-        install_args,           # type: List[Any]
+        install_args,           # type: _InstallArgs
         requirement,            # type: InstallRequirement
         in_subprocess=False,    # type: bool
 ):
@@ -144,9 +135,9 @@ def _single_install(
 
     try:
         requirement.install(
-            install_args[0],   # install_options,
-            install_args[1],   # global_options,
-            **install_args[2]  # **kwargs
+            install_args.install_options,
+            install_args.global_options,
+            **install_args.kwargs
         )
     except (KeyboardInterrupt, SystemExit):
         # always raise, we catch it in external loop
