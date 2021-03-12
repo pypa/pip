@@ -68,7 +68,7 @@ def _map_fallback(func, iterable, chunksize=1):
     # type: (Callable[[S], T], Iterable[S], int) -> Iterator[T]
     """Make an iterator applying func to each element in iterable.
 
-    This function is the sequential fallback either on Python 2
+    This function is the sequential fallback
     where Pool.imap* doesn't react to KeyboardInterrupt
     or when sem_open is unavailable.
     """
@@ -79,7 +79,7 @@ def _map_ordered_fallback(func, iterable, chunksize=1):
     # type: (Callable[[S], T], Iterable[S], int) -> List[T]
     """Make a list applying func to each element in iterable.
 
-    This function is the sequential fallback either on Python 2
+    This function is the sequential fallback
     where Pool.imap* doesn't react to KeyboardInterrupt
     or when sem_open is unavailable.
     """
