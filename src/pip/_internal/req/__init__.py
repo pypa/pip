@@ -1,12 +1,20 @@
 import collections
 import logging
-from typing import Iterator, List, Optional, Sequence, Tuple, Union, Callable, \
-    Iterable, Any
 import sys
 from functools import partial
+from typing import (
+    Any,
+    Callable,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+)
 
 from ..._internal.utils.logging import indent_log
-
 from .req_file import parse_requirements
 from .req_install import InstallRequirement
 from .req_set import RequirementSet
@@ -69,7 +77,7 @@ def install_given_reqs(
         )
 
     # pre allocate installed package names
-    installed = {name: None for name in to_install}
+    installed = collections.OrderedDict({name: None for name in to_install})
 
     install_args = [install_options, global_options, dict(
         root=root, home=home, prefix=prefix,
@@ -82,12 +90,14 @@ def install_given_reqs(
             partial(__single_install, install_args, in_subprocess=True),
             list(to_install.values()))
         if installed_pool:
-            installed = dict(zip(to_install.keys(), to_install.values()))
+            installed = collections.OrderedDict(
+                zip(list(to_install.keys()), installed_pool))
 
         for name, requirement in to_install.items():
             if installed[name] is None:
-                installed[name] = __single_install(
+                installed_req = __single_install(
                     install_args, requirement, in_subprocess=False)
+                installed[name] = installed_req  # type: ignore
             elif isinstance(installed[name], BaseException):
                 raise installed[name]   # type: ignore
 
@@ -163,7 +173,7 @@ def __single_install(
         should_rollback = (requirement.should_reinstall and
                            not requirement.install_succeeded)
         # if install did not succeed, rollback previous uninstall
-        if should_rollback:
+        if should_rollback and uninstalled_pathset:
             uninstalled_pathset.rollback()
         if in_subprocess:
             return ex
@@ -171,6 +181,6 @@ def __single_install(
 
     should_commit = (requirement.should_reinstall and
                      requirement.install_succeeded)
-    if should_commit:
+    if should_commit and uninstalled_pathset:
         uninstalled_pathset.commit()
-    return InstallationResult(requirement.name)
+    return InstallationResult(requirement.name or '')
