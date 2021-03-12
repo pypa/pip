@@ -1,6 +1,5 @@
 import collections
 import logging
-import sys
 from functools import partial
 from typing import (
     Any,
@@ -15,14 +14,10 @@ from typing import (
 )
 
 from ..._internal.utils.logging import indent_log
+from ..utils.parallel import map_multiprocess_ordered
 from .req_file import parse_requirements
 from .req_install import InstallRequirement
 from .req_set import RequirementSet
-
-try:
-    from multiprocessing.pool import Pool  # noqa
-except ImportError:  # Platform-specific: No multiprocessing available
-    Pool = None   # type: ignore
 
 __all__ = [
     "RequirementSet", "InstallRequirement",
@@ -101,7 +96,10 @@ def install_given_reqs(
             elif isinstance(installed[name], BaseException):
                 raise installed[name]   # type: ignore
 
-    return [i for i in installed.values() if isinstance(i, InstallationResult)]
+    return [
+        i for i in installed.values()  # type: ignore
+        if isinstance(i, InstallationResult)
+    ]
 
 
 def __safe_pool_map(
@@ -112,32 +110,10 @@ def __safe_pool_map(
     """
     Safe call to Pool map, if Pool is not available return None
     """
-    # Disable multiprocessing on Windows python 2.7
-    if sys.platform == 'win32' and sys.version_info.major == 2:
+    if not iterable:
         return None
 
-    if not iterable or Pool is None:
-        return None
-
-    # first let's try to install in parallel,
-    # if we fail we do it by order.
-    try:
-        # Pool context would have been nice, but not supported on Python 2.7
-        # Once officially dropped, switch to context to avoid close/join calls
-        pool = Pool()
-    except ImportError:
-        return [func(i) for i in iterable]
-    else:
-        try:
-            # python 2.7 timeout=None will not catch KeyboardInterrupt
-            results = pool.map_async(func, iterable).get(timeout=999999)
-        except (KeyboardInterrupt, SystemExit):
-            pool.terminate()
-            raise
-        else:
-            pool.close()
-            pool.join()
-            return results
+    return map_multiprocess_ordered(func, iterable)
 
 
 def __single_install(

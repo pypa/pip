@@ -16,13 +16,17 @@ These helpers work like Python 3's map, with two differences:
   than using the default value of 1.
 """
 
-__all__ = ["map_multiprocess", "map_multithread"]
+__all__ = [
+    "map_multiprocess",
+    "map_multithread",
+    "map_multiprocess_ordered",
+]
 
 from contextlib import contextmanager
 from multiprocessing import Pool as ProcessPool
 from multiprocessing import pool
 from multiprocessing.dummy import Pool as ThreadPool
-from typing import Callable, Iterable, Iterator, TypeVar, Union
+from typing import Callable, Iterable, Iterator, List, TypeVar, Union
 
 from pip._vendor.requests.adapters import DEFAULT_POOLSIZE
 
@@ -49,6 +53,9 @@ def closing(pool):
     """Return a context manager making sure the pool closes properly."""
     try:
         yield pool
+    except (KeyboardInterrupt, SystemExit):
+        pool.terminate()
+        raise
     finally:
         # For Pool.imap*, close and join are needed
         # for the returned iterator to begin yielding.
@@ -68,6 +75,17 @@ def _map_fallback(func, iterable, chunksize=1):
     return map(func, iterable)
 
 
+def _map_ordered_fallback(func, iterable, chunksize=1):
+    # type: (Callable[[S], T], Iterable[S], int) -> List[T]
+    """Make a list applying func to each element in iterable.
+
+    This function is the sequential fallback either on Python 2
+    where Pool.imap* doesn't react to KeyboardInterrupt
+    or when sem_open is unavailable.
+    """
+    return list(map(func, iterable))
+
+
 def _map_multiprocess(func, iterable, chunksize=1):
     # type: (Callable[[S], T], Iterable[S], int) -> Iterator[T]
     """Chop iterable into chunks and submit them to a process pool.
@@ -79,6 +97,19 @@ def _map_multiprocess(func, iterable, chunksize=1):
     """
     with closing(ProcessPool()) as pool:
         return pool.imap_unordered(func, iterable, chunksize)
+
+
+def _map_multiprocess_ordered(func, iterable, chunksize=1):
+    # type: (Callable[[S], T], Iterable[S], int) -> List[T]
+    """Chop iterable into chunks and submit them to a process pool.
+
+    For very long iterables using a large value for chunksize can make
+    the job complete much faster than using the default value of 1.
+
+    Return an ordered list of the results.
+    """
+    with closing(ProcessPool()) as pool:
+        return pool.map(func, iterable, chunksize)
 
 
 def _map_multithread(func, iterable, chunksize=1):
@@ -96,6 +127,8 @@ def _map_multithread(func, iterable, chunksize=1):
 
 if LACK_SEM_OPEN:
     map_multiprocess = map_multithread = _map_fallback
+    map_multiprocess_ordered = _map_ordered_fallback
 else:
     map_multiprocess = _map_multiprocess
     map_multithread = _map_multithread
+    map_multiprocess_ordered = _map_multiprocess_ordered
