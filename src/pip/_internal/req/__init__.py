@@ -101,7 +101,7 @@ def install_given_reqs(
             elif isinstance(installed[name], BaseException):
                 raise installed[name]   # type: ignore
 
-    return [i for i in installed if isinstance(i, InstallationResult)]
+    return [i for i in installed.values() if isinstance(i, InstallationResult)]
 
 
 def __safe_pool_map(
@@ -160,6 +160,9 @@ def __single_install(
             uninstalled_pathset = requirement.uninstall(
                 auto_confirm=True
             )
+    else:
+        uninstalled_pathset = None
+
     try:
         requirement.install(
             install_args[0],   # install_options,
@@ -170,17 +173,14 @@ def __single_install(
         # always raise, we catch it in external loop
         raise
     except BaseException as ex:
-        should_rollback = (requirement.should_reinstall and
-                           not requirement.install_succeeded)
         # if install did not succeed, rollback previous uninstall
-        if should_rollback and uninstalled_pathset:
+        if uninstalled_pathset and not requirement.install_succeeded:
             uninstalled_pathset.rollback()
         if in_subprocess:
             return ex
         raise
 
-    should_commit = (requirement.should_reinstall and
-                     requirement.install_succeeded)
-    if should_commit and uninstalled_pathset:
+    if uninstalled_pathset and requirement.install_succeeded:
         uninstalled_pathset.commit()
+
     return InstallationResult(requirement.name or '')
