@@ -141,7 +141,8 @@ class LinkEvaluator:
 
         self.project_name = project_name
 
-    def evaluate_link(self, link):
+    @staticmethod
+    def evaluate_link_static(link_evaluator, link):
         # type: (Link) -> Tuple[bool, Optional[str]]
         """
         Determine whether a link is a candidate for installation.
@@ -152,7 +153,7 @@ class LinkEvaluator:
             the link fails to qualify.
         """
         version = None
-        if link.is_yanked and not self._allow_yanked:
+        if link.is_yanked and not link_evaluator._allow_yanked:
             reason = link.yanked_reason or '<none given>'
             return (False, f'yanked for reason: {reason}')
 
@@ -165,9 +166,9 @@ class LinkEvaluator:
                 return (False, 'not a file')
             if ext not in SUPPORTED_EXTENSIONS:
                 return (False, f'unsupported archive format: {ext}')
-            if "binary" not in self._formats and ext == WHEEL_EXTENSION:
+            if "binary" not in link_evaluator._formats and ext == WHEEL_EXTENSION:
                 reason = 'No binaries permitted for {}'.format(
-                    self.project_name)
+                    link_evaluator.project_name)
                 return (False, reason)
             if "macosx10" in link.path and ext == '.zip':
                 return (False, 'macosx10 one')
@@ -176,12 +177,12 @@ class LinkEvaluator:
                     wheel = Wheel(link.filename)
                 except InvalidWheelFilename:
                     return (False, 'invalid wheel filename')
-                if canonicalize_name(wheel.name) != self._canonical_name:
+                if canonicalize_name(wheel.name) != link_evaluator._canonical_name:
                     reason = 'wrong project name (not {})'.format(
-                        self.project_name)
+                        link_evaluator.project_name)
                     return (False, reason)
 
-                supported_tags = self._target_python.get_tags()
+                supported_tags = link_evaluator._target_python.get_tags()
                 if not wheel.supported(supported_tags):
                     # Include the wheel's tags in the reason string to
                     # simplify troubleshooting compatibility issues.
@@ -197,28 +198,28 @@ class LinkEvaluator:
                 version = wheel.version
 
         # This should be up by the self.ok_binary check, but see issue 2700.
-        if "source" not in self._formats and ext != WHEEL_EXTENSION:
-            reason = f'No sources permitted for {self.project_name}'
+        if "source" not in link_evaluator._formats and ext != WHEEL_EXTENSION:
+            reason = f'No sources permitted for {link_evaluator.project_name}'
             return (False, reason)
 
         if not version:
             version = _extract_version_from_fragment(
-                egg_info, self._canonical_name,
+                egg_info, link_evaluator._canonical_name,
             )
         if not version:
-            reason = f'Missing project version for {self.project_name}'
+            reason = f'Missing project version for {link_evaluator.project_name}'
             return (False, reason)
 
-        match = self._py_version_re.search(version)
+        match = link_evaluator._py_version_re.search(version)
         if match:
             version = version[:match.start()]
             py_version = match.group(1)
-            if py_version != self._target_python.py_version:
+            if py_version != link_evaluator._target_python.py_version:
                 return (False, 'Python version is incorrect')
 
         supports_python = _check_link_requires_python(
-            link, version_info=self._target_python.py_version_info,
-            ignore_requires_python=self._ignore_requires_python,
+            link, version_info=link_evaluator._target_python.py_version_info,
+            ignore_requires_python=link_evaluator._ignore_requires_python,
         )
         if not supports_python:
             # Return None for the reason text to suppress calling
@@ -228,6 +229,95 @@ class LinkEvaluator:
         logger.debug('Found link %s, version: %s', link, version)
 
         return (True, version)
+
+    def evaluate_link(self, link):
+        # type: (Link) -> Tuple[bool, Optional[str]]
+        """
+        Determine whether a link is a candidate for installation.
+
+        :return: A tuple (is_candidate, result), where `result` is (1) a
+            version string if `is_candidate` is True, and (2) if
+            `is_candidate` is False, an optional string to log the reason
+            the link fails to qualify.
+        """
+        return LinkEvaluator.evaluate_link_static(self, link)
+        # version = None
+        # if link.is_yanked and not self._allow_yanked:
+        #     reason = link.yanked_reason or '<none given>'
+        #     return (False, f'yanked for reason: {reason}')
+
+        # if link.egg_fragment:
+        #     egg_info = link.egg_fragment
+        #     ext = link.ext
+        # else:
+        #     egg_info, ext = link.splitext()
+        #     if not ext:
+        #         return (False, 'not a file')
+        #     if ext not in SUPPORTED_EXTENSIONS:
+        #         return (False, f'unsupported archive format: {ext}')
+        #     if "binary" not in self._formats and ext == WHEEL_EXTENSION:
+        #         reason = 'No binaries permitted for {}'.format(
+        #             self.project_name)
+        #         return (False, reason)
+        #     if "macosx10" in link.path and ext == '.zip':
+        #         return (False, 'macosx10 one')
+        #     if ext == WHEEL_EXTENSION:
+        #         try:
+        #             wheel = Wheel(link.filename)
+        #         except InvalidWheelFilename:
+        #             return (False, 'invalid wheel filename')
+        #         if canonicalize_name(wheel.name) != self._canonical_name:
+        #             reason = 'wrong project name (not {})'.format(
+        #                 self.project_name)
+        #             return (False, reason)
+
+        #         supported_tags = self._target_python.get_tags()
+        #         if not wheel.supported(supported_tags):
+        #             # Include the wheel's tags in the reason string to
+        #             # simplify troubleshooting compatibility issues.
+        #             file_tags = wheel.get_formatted_file_tags()
+        #             reason = (
+        #                 "none of the wheel's tags ({}) are compatible "
+        #                 "(run pip debug --verbose to show compatible tags)".format(
+        #                     ', '.join(file_tags)
+        #                 )
+        #             )
+        #             return (False, reason)
+
+        #         version = wheel.version
+
+        # # This should be up by the self.ok_binary check, but see issue 2700.
+        # if "source" not in self._formats and ext != WHEEL_EXTENSION:
+        #     reason = f'No sources permitted for {self.project_name}'
+        #     return (False, reason)
+
+        # if not version:
+        #     version = _extract_version_from_fragment(
+        #         egg_info, self._canonical_name,
+        #     )
+        # if not version:
+        #     reason = f'Missing project version for {self.project_name}'
+        #     return (False, reason)
+
+        # match = self._py_version_re.search(version)
+        # if match:
+        #     version = version[:match.start()]
+        #     py_version = match.group(1)
+        #     if py_version != self._target_python.py_version:
+        #         return (False, 'Python version is incorrect')
+
+        # supports_python = _check_link_requires_python(
+        #     link, version_info=self._target_python.py_version_info,
+        #     ignore_requires_python=self._ignore_requires_python,
+        # )
+        # if not supports_python:
+        #     # Return None for the reason text to suppress calling
+        #     # _log_skipped_link().
+        #     return (False, None)
+
+        # logger.debug('Found link %s, version: %s', link, version)
+
+        # return (True, version)
 
 
 def filter_unallowed_hashes(
@@ -709,12 +799,8 @@ class PackageFinder:
             ignore_requires_python=self._ignore_requires_python,
         )
 
-    def _sort_links(self, links):
-        # type: (Iterable[Link]) -> List[Link]
-        """
-        Returns elements of links in order, non-egg links first, egg links
-        second, while eliminating duplicates
-        """
+    @staticmethod
+    def _sort_links_static(links):
         eggs, no_eggs = [], []
         seen = set()  # type: Set[Link]
         for link in links:
@@ -726,24 +812,52 @@ class PackageFinder:
                     no_eggs.append(link)
         return no_eggs + eggs
 
-    def _log_skipped_link(self, link, reason):
+    def _sort_links(self, links):
+        # type: (Iterable[Link]) -> List[Link]
+        """
+        Returns elements of links in order, non-egg links first, egg links
+        second, while eliminating duplicates
+        """
+        return PackageFinder._sort_links_static(links)
+        # eggs, no_eggs = [], []
+        # seen = set()  # type: Set[Link]
+        # for link in links:
+        #     if link not in seen:
+        #         seen.add(link)
+        #         if link.egg_fragment:
+        #             eggs.append(link)
+        #         else:
+        #             no_eggs.append(link)
+        # return no_eggs + eggs
+
+    @staticmethod
+    def _log_skipped_link_static(package_finder, link, reason):
         # type: (Link, str) -> None
-        if link not in self._logged_links:
+        if link not in package_finder._logged_links:
             # Put the link at the end so the reason is more visible and because
             # the link string is usually very long.
             logger.debug('Skipping link: %s: %s', reason, link)
-            self._logged_links.add(link)
+            package_finder._logged_links.add(link)
+        
+    def _log_skipped_link(self, link, reason):
+        # type: (Link, str) -> None
+        PackageFinder._log_skipped_link_static(self, link, reason)
+        # if link not in self._logged_links:
+        #     # Put the link at the end so the reason is more visible and because
+        #     # the link string is usually very long.
+        #     logger.debug('Skipping link: %s: %s', reason, link)
+        #     self._logged_links.add(link)
 
-    def get_install_candidate(self, link_evaluator, link):
-        # type: (LinkEvaluator, Link) -> Optional[InstallationCandidate]
+    @staticmethod
+    def get_install_candidate_static(package_finder, link_evaluator, link):
         """
         If the link is a candidate for install, convert it to an
         InstallationCandidate and return it. Otherwise, return None.
         """
-        is_candidate, result = link_evaluator.evaluate_link(link)
+        is_candidate, result = LinkEvaluator.evaluate_link_static(link_evaluator, link)
         if not is_candidate:
             if result:
-                self._log_skipped_link(link, reason=result)
+                PackageFinder._log_skipped_link_static(package_finder, link, reason=result)
             return None
 
         return InstallationCandidate(
@@ -752,41 +866,97 @@ class PackageFinder:
             version=result,
         )
 
-    def evaluate_links(self, link_evaluator, links):
+    def get_install_candidate(self, link_evaluator, link):
+        # type: (LinkEvaluator, Link) -> Optional[InstallationCandidate]
+        """
+        If the link is a candidate for install, convert it to an
+        InstallationCandidate and return it. Otherwise, return None.
+        """
+        return PackageFinder.get_install_candidate_static(self, link_evaluator, link)
+        # is_candidate, result = link_evaluator.evaluate_link(link)
+        # if not is_candidate:
+        #     if result:
+        #         self._log_skipped_link(link, reason=result)
+        #     return None
+
+        # return InstallationCandidate(
+        #     name=link_evaluator.project_name,
+        #     link=link,
+        #     version=result,
+        # )
+
+    @staticmethod
+    def evaluate_links_static(package_finder, link_evaluator, links):
         # type: (LinkEvaluator, Iterable[Link]) -> List[InstallationCandidate]
         """
         Convert links that are candidates to InstallationCandidate objects.
         """
         candidates = []
-        for link in self._sort_links(links):
-            candidate = self.get_install_candidate(link_evaluator, link)
+        for link in PackageFinder._sort_links_static(links):
+            candidate = PackageFinder.get_install_candidate_static(package_finder, link_evaluator, link)
             if candidate is not None:
                 candidates.append(candidate)
 
         return candidates
 
-    def process_project_url(self, project_url, link_evaluator):
+    def evaluate_links(self, link_evaluator, links):
+        # type: (LinkEvaluator, Iterable[Link]) -> List[InstallationCandidate]
+        """
+        Convert links that are candidates to InstallationCandidate objects.
+        """
+        return PackageFinder.evaluate_links_static(self, link_evaluator, links)
+        # candidates = []
+        # for link in PackageFinder._sort_links_static(links):
+        #     candidate = PackageFinder.get_install_candidate_static(self, link_evaluator, link)
+        #     if candidate is not None:
+        #         candidates.append(candidate)
+
+        # return candidates
+
+    @staticmethod
+    def process_project_url_static(package_finder, project_url, link_evaluator):
         # type: (Link, LinkEvaluator) -> List[InstallationCandidate]
         logger.debug(
             'Fetching project page and analyzing links: %s', project_url,
         )
-        html_page = self._link_collector.fetch_page(project_url)
+        html_page = package_finder._link_collector.fetch_page(project_url)
         if html_page is None:
             return []
 
         page_links = list(parse_links(html_page))
 
         with indent_log():
-            package_links = self.evaluate_links(
+            package_links = PackageFinder.evaluate_links_static(
+                package_finder,
                 link_evaluator,
                 links=page_links,
             )
 
         return package_links
 
+    def process_project_url(self, project_url, link_evaluator):
+        # type: (Link, LinkEvaluator) -> List[InstallationCandidate]
+        return PackageFinder.process_project_url_static(self, project_url, link_evaluator)
+        # logger.debug(
+        #     'Fetching project page and analyzing links: %s', project_url,
+        # )
+        # html_page = self._link_collector.fetch_page(project_url)
+        # if html_page is None:
+        #     return []
+
+        # page_links = list(parse_links(html_page))
+
+        # with indent_log():
+        #     package_links = self.evaluate_links(
+        #         link_evaluator,
+        #         links=page_links,
+        #     )
+
+        # return package_links
+    
+    @staticmethod
     @functools.lru_cache(maxsize=None)
-    def find_all_candidates(self, project_name):
-        # type: (str) -> List[InstallationCandidate]
+    def find_all_candidates_static(package_finder, link_evaluator, project_name):
         """Find all available InstallationCandidate for project_name
 
         This checks index_urls and find_links.
@@ -795,23 +965,33 @@ class PackageFinder:
         See LinkEvaluator.evaluate_link() for details on which files
         are accepted.
         """
-        collected_links = self._link_collector.collect_links(project_name)
 
-        link_evaluator = self.make_link_evaluator(project_name)
+        # Just add link_collector to the tuple
+        collected_links = package_finder._link_collector.collect_links(project_name)
 
-        find_links_versions = self.evaluate_links(
+        # Refactored evaluate_links, _sort_links, get_install_candidate, _logged_skipped_link
+        # dependencies needed from PackageFinder :
+        #   * _logged_link (SHOULD FIND A WAY TO KEEP TRACK OF CHANGED IN _logged_link and apply the changes after cached method)
+        # and link_evaluator
+        #   * Everything
+        find_links_versions = PackageFinder.evaluate_links_static(
+            package_finder,
             link_evaluator,
             links=collected_links.find_links,
         )
 
+        # Only needs link collector from package_finder
         page_versions = []
         for project_url in collected_links.project_urls:
-            package_links = self.process_project_url(
-                project_url, link_evaluator=link_evaluator,
+            package_links = package_finder.process_project_url_static(
+                package_finder,
+                project_url, 
+                link_evaluator=link_evaluator,
             )
             page_versions.extend(package_links)
 
-        file_versions = self.evaluate_links(
+        file_versions = PackageFinder.evaluate_links_static(
+            package_finder,
             link_evaluator,
             links=collected_links.files,
         )
@@ -827,6 +1007,53 @@ class PackageFinder:
 
         # This is an intentional priority ordering
         return file_versions + find_links_versions + page_versions
+
+    # @functools.lru_cache(maxsize=None)
+    def find_all_candidates(self, project_name):
+        # type: (str) -> List[InstallationCandidate]
+        """Find all available InstallationCandidate for project_name
+
+        This checks index_urls and find_links.
+        All versions found are returned as an InstallationCandidate list.
+
+        See LinkEvaluator.evaluate_link() for details on which files
+        are accepted.
+        """
+        link_evaluator = self.make_link_evaluator(project_name)
+        
+        return PackageFinder.find_all_candidates_static(self, link_evaluator, project_name)
+        # collected_links = self._link_collector.collect_links(project_name)
+
+        # link_evaluator = self.make_link_evaluator(project_name)
+
+        # find_links_versions = self.evaluate_links(
+        #     link_evaluator,
+        #     links=collected_links.find_links,
+        # )
+
+        # page_versions = []
+        # for project_url in collected_links.project_urls:
+        #     package_links = self.process_project_url(
+        #         project_url, link_evaluator=link_evaluator,
+        #     )
+        #     page_versions.extend(package_links)
+
+        # file_versions = self.evaluate_links(
+        #     link_evaluator,
+        #     links=collected_links.files,
+        # )
+        # if file_versions:
+        #     file_versions.sort(reverse=True)
+        #     logger.debug(
+        #         'Local files found: %s',
+        #         ', '.join([
+        #             url_to_path(candidate.link.url)
+        #             for candidate in file_versions
+        #         ])
+        #     )
+
+        # # This is an intentional priority ordering
+        # return file_versions + find_links_versions + page_versions
 
     def make_candidate_evaluator(
         self,
