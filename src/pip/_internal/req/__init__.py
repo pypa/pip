@@ -30,7 +30,8 @@ class InstallationResult:
 
 _InstallArgs = collections.namedtuple(
     '_InstallArgs',
-    ['install_options', 'global_options', 'kwargs']
+    ['install_options', 'global_options', 'root', 'home', 'prefix',
+     'warn_script_location', 'use_user_site', 'pycompile']
 )
 
 
@@ -75,28 +76,43 @@ def install_given_reqs(
     install_args = _InstallArgs(
         install_options=install_options,
         global_options=global_options,
-        kwargs=dict(
-            root=root, home=home, prefix=prefix,
-            warn_script_location=warn_script_location,
-            use_user_site=use_user_site, pycompile=pycompile
-        )
+        root=root,
+        home=home,
+        prefix=prefix,
+        warn_script_location=warn_script_location,
+        use_user_site=use_user_site,
+        pycompile=pycompile,
     )
 
     with indent_log():
-        # first try to install in parallel
-        installed_pool = map_multiprocess_ordered(
-            partial(_single_install, install_args, in_subprocess=True),
-            requirements)
+        # get a list of packages we can install in parallel
+        parallel_reqs_index = [
+            i for i, req in enumerate(requirements)
+            if not req.should_reinstall and req.is_wheel]
+
+        # install packages parallel
+        if parallel_reqs_index:
+            parallel_reqs = map_multiprocess_ordered(
+                partial(_single_install, install_args, suppress_exception=True),
+                [requirements[i] for i in parallel_reqs_index])
+        else:
+            parallel_reqs = []
 
         # check the results from the parallel installation,
         # and fill-in missing installations or raise exception
-        for installed_req, requested_req in zip(installed_pool, requirements):
-            # if the requirement was not installed by the parallel pool,
-            # install serially here
-            if installed_req is None:
-                installed_req = _single_install(
-                    install_args, requested_req, in_subprocess=False)
+        for i, req in enumerate(requirements):
 
+            # select the install result from the parallel installation
+            # or install serially now
+            if parallel_reqs_index and parallel_reqs_index[0] == i:
+                installed_req = parallel_reqs.pop(0)
+                parallel_reqs_index.pop(0)
+            else:
+                installed_req = _single_install(
+                    install_args, req, suppress_exception=False)
+
+            # Now processes the installation result,
+            # throw exception or add into installed packages
             if isinstance(installed_req, BaseException):
                 # Raise an exception if we caught one
                 # during the parallel installation
@@ -108,21 +124,16 @@ def install_given_reqs(
 
 
 def _single_install(
-        install_args,           # type: _InstallArgs
-        requirement,            # type: InstallRequirement
-        in_subprocess=False,    # type: bool
+        install_args,                # type: _InstallArgs
+        requirement,                 # type: InstallRequirement
+        suppress_exception=False,    # type: bool
 ):
     # type: (...) -> Union[None, InstallationResult, BaseException]
     """
     Install a single requirement, returns InstallationResult
-    (to be called per requirement, either in parallel or serially)
+    (to be called per requirement, either in parallel or serially).
+    Notice the two lists are of the same length
     """
-
-    # if we are running inside a subprocess,
-    # then only clean wheel installation is supported
-    if (in_subprocess and
-            (requirement.should_reinstall or not requirement.is_wheel)):
-        return None
 
     if requirement.should_reinstall:
         logger.info('Attempting uninstall: %s', requirement.name)
@@ -135,18 +146,20 @@ def _single_install(
 
     try:
         requirement.install(
-            install_args.install_options,
-            install_args.global_options,
-            **install_args.kwargs
+            **install_args._asdict()
         )
     except (KeyboardInterrupt, SystemExit):
         # always raise, we catch it in external loop
         raise
-    except BaseException as ex:
+    except Exception as ex:
+        # Notice we might need to catch BaseException as this function
+        # can be executed from a subprocess.
+        # For the time being we keep the original catch Exception
+
         # if install did not succeed, rollback previous uninstall
         if uninstalled_pathset and not requirement.install_succeeded:
             uninstalled_pathset.rollback()
-        if in_subprocess:
+        if suppress_exception:
             return ex
         raise
 
