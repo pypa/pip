@@ -951,14 +951,12 @@ class PackageFinder:
         # type: (...) -> CandidateEvaluator
         """Create a CandidateEvaluator object to use.
         """
-        candidate_prefs = self._candidate_prefs
-        return CandidateEvaluator.create(
-            project_name=project_name,
-            target_python=self._target_python,
-            prefer_binary=candidate_prefs.prefer_binary,
-            allow_all_prereleases=candidate_prefs.allow_all_prereleases,
-            specifier=specifier,
-            hashes=hashes,
+        package_finder = self.get_state_as_tuple()
+        return PackageFinder.make_candidate_evaluator_static(
+            package_finder,
+            project_name,
+            specifier,
+            hashes
         )
     
     @staticmethod
@@ -995,11 +993,6 @@ class PackageFinder:
         package_finder = self.get_state_as_tuple(True)
         link_evaluator = link_evaluator.get_state_as_tuple()
 
-        # candidate_evaluator = self.make_candidate_evaluator(
-        #     project_name=project_name,
-        #     specifier=specifier,
-        #     hashes=hashes,
-        # )
         return PackageFinder.find_best_candidate_static(
             package_finder, 
             link_evaluator, 
