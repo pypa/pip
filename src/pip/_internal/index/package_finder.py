@@ -49,7 +49,7 @@ CandidateSortingKey = (
     Tuple[int, int, int, _BaseVersion, BuildTag, Optional[int]]
 )
 
-PackageFinderTuple = collections.namedtuple('PackageFinder', 'logged_links link_collector')
+PackageFinderTuple = collections.namedtuple('PackageFinder', 'logged_links link_collector target_python candidate_prefs')
 LinkEvaluatorTuple = collections.namedtuple('LinkEvaluator', 'project_name canonical_name formats target_python allow_yanked ignore_requires_python py_version_re')
 
 def _check_link_requires_python(
@@ -741,7 +741,7 @@ class PackageFinder:
         if immutable:
             logged_links = frozenset(logged_links)
 
-        return PackageFinderTuple(logged_links=logged_links, link_collector=self._link_collector)
+        return PackageFinderTuple(logged_links=logged_links, link_collector=self._link_collector, candidate_prefs=self._candidate_prefs, target_python=self._target_python)
     
     @staticmethod
     def _sort_links_static(links):
@@ -867,7 +867,8 @@ class PackageFinder:
         """
 
         # Need to convert logged_links to normal set, so we can update it.
-        package_finder = PackageFinderTuple(logged_links=set(package_finder.logged_links), link_collector=package_finder.link_collector)
+        package_finder = PackageFinderTuple(logged_links=set(package_finder.logged_links), link_collector=package_finder.link_collector, target_python=package_finder.target_python, candidate_prefs=package_finder.candidate_prefs)
+        
 
         # Just add link_collector to the tuple
         collected_links = package_finder.link_collector.collect_links(project_name)
@@ -924,6 +925,23 @@ class PackageFinder:
         link_evaluator = link_evaluator.get_state_as_tuple()
         return PackageFinder.find_all_candidates_static(package_finder, link_evaluator, project_name)
 
+    @staticmethod
+    def make_candidate_evaluator_static(
+        package_finder,
+        project_name,    # type: str
+        specifier=None,  # type: Optional[specifiers.BaseSpecifier]
+        hashes=None,     # type: Optional[Hashes]
+    ):
+        candidate_prefs = package_finder.candidate_prefs
+        return CandidateEvaluator.create(
+            project_name=project_name,
+            target_python=package_finder.target_python,
+            prefer_binary=candidate_prefs.prefer_binary,
+            allow_all_prereleases=candidate_prefs.allow_all_prereleases,
+            specifier=specifier,
+            hashes=hashes,
+        )
+
     def make_candidate_evaluator(
         self,
         project_name,    # type: str
@@ -945,7 +963,14 @@ class PackageFinder:
     
     @staticmethod
     @functools.lru_cache(maxsize=None)
-    def find_best_candidate_static(package_finder, link_evaluator, candidate_evaluator, project_name):
+    def find_best_candidate_static(
+        package_finder, 
+        link_evaluator, 
+        project_name,
+        specifier=None,     # type: Optional[specifiers.BaseSpecifier]
+        hashes=None
+    ):
+        candidate_evaluator = PackageFinder.make_candidate_evaluator_static(package_finder, project_name, specifier, hashes)
         candidates = PackageFinder.find_all_candidates_static(package_finder, link_evaluator, project_name)
 
         return candidate_evaluator.compute_best_candidate(candidates)
@@ -970,16 +995,17 @@ class PackageFinder:
         package_finder = self.get_state_as_tuple(True)
         link_evaluator = link_evaluator.get_state_as_tuple()
 
-        candidate_evaluator = self.make_candidate_evaluator(
-            project_name=project_name,
-            specifier=specifier,
-            hashes=hashes,
-        )
+        # candidate_evaluator = self.make_candidate_evaluator(
+        #     project_name=project_name,
+        #     specifier=specifier,
+        #     hashes=hashes,
+        # )
         return PackageFinder.find_best_candidate_static(
             package_finder, 
             link_evaluator, 
-            candidate_evaluator, 
-            project_name
+            project_name,
+            specifier,
+            hashes
         )
 
     def find_requirement(self, req, upgrade):
