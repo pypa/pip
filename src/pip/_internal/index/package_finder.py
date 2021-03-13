@@ -51,6 +51,7 @@ CandidateSortingKey = (
 )
 
 PackageFinderTuple = collections.namedtuple('PackageFinder', 'logged_links link_collector')
+LinkEvaluatorTuple = collections.namedtuple('LinkEvaluator', 'project_name canonical_name formats target_python allow_yanked ignore_requires_python py_version_re')
 
 def _check_link_requires_python(
     link,  # type: Link
@@ -145,6 +146,17 @@ class LinkEvaluator:
 
         self.project_name = project_name
 
+    def get_state_as_tuple(self):
+        return LinkEvaluatorTuple(
+            project_name=self.project_name,
+            canonical_name=self._canonical_name, 
+            formats=self._formats, 
+            target_python=self._target_python, 
+            allow_yanked=self._allow_yanked, 
+            ignore_requires_python=self._ignore_requires_python,
+            py_version_re=self._py_version_re
+        )
+    
     @staticmethod
     def evaluate_link_static(link_evaluator, link):
         # type: (Link) -> Tuple[bool, Optional[str]]
@@ -157,7 +169,7 @@ class LinkEvaluator:
             the link fails to qualify.
         """
         version = None
-        if link.is_yanked and not link_evaluator._allow_yanked:
+        if link.is_yanked and not link_evaluator.allow_yanked:
             reason = link.yanked_reason or '<none given>'
             return (False, f'yanked for reason: {reason}')
 
@@ -170,7 +182,7 @@ class LinkEvaluator:
                 return (False, 'not a file')
             if ext not in SUPPORTED_EXTENSIONS:
                 return (False, f'unsupported archive format: {ext}')
-            if "binary" not in link_evaluator._formats and ext == WHEEL_EXTENSION:
+            if "binary" not in link_evaluator.formats and ext == WHEEL_EXTENSION:
                 reason = 'No binaries permitted for {}'.format(
                     link_evaluator.project_name)
                 return (False, reason)
@@ -181,12 +193,12 @@ class LinkEvaluator:
                     wheel = Wheel(link.filename)
                 except InvalidWheelFilename:
                     return (False, 'invalid wheel filename')
-                if canonicalize_name(wheel.name) != link_evaluator._canonical_name:
+                if canonicalize_name(wheel.name) != link_evaluator.canonical_name:
                     reason = 'wrong project name (not {})'.format(
                         link_evaluator.project_name)
                     return (False, reason)
 
-                supported_tags = link_evaluator._target_python.get_tags()
+                supported_tags = link_evaluator.target_python.get_tags()
                 if not wheel.supported(supported_tags):
                     # Include the wheel's tags in the reason string to
                     # simplify troubleshooting compatibility issues.
@@ -202,28 +214,28 @@ class LinkEvaluator:
                 version = wheel.version
 
         # This should be up by the self.ok_binary check, but see issue 2700.
-        if "source" not in link_evaluator._formats and ext != WHEEL_EXTENSION:
+        if "source" not in link_evaluator.formats and ext != WHEEL_EXTENSION:
             reason = f'No sources permitted for {link_evaluator.project_name}'
             return (False, reason)
 
         if not version:
             version = _extract_version_from_fragment(
-                egg_info, link_evaluator._canonical_name,
+                egg_info, link_evaluator.canonical_name,
             )
         if not version:
             reason = f'Missing project version for {link_evaluator.project_name}'
             return (False, reason)
 
-        match = link_evaluator._py_version_re.search(version)
+        match = link_evaluator.py_version_re.search(version)
         if match:
             version = version[:match.start()]
             py_version = match.group(1)
-            if py_version != link_evaluator._target_python.py_version:
+            if py_version != link_evaluator.target_python.py_version:
                 return (False, 'Python version is incorrect')
 
         supports_python = _check_link_requires_python(
-            link, version_info=link_evaluator._target_python.py_version_info,
-            ignore_requires_python=link_evaluator._ignore_requires_python,
+            link, version_info=link_evaluator.target_python.py_version_info,
+            ignore_requires_python=link_evaluator.ignore_requires_python,
         )
         if not supports_python:
             # Return None for the reason text to suppress calling
@@ -244,84 +256,7 @@ class LinkEvaluator:
             `is_candidate` is False, an optional string to log the reason
             the link fails to qualify.
         """
-        return LinkEvaluator.evaluate_link_static(self, link)
-        # version = None
-        # if link.is_yanked and not self._allow_yanked:
-        #     reason = link.yanked_reason or '<none given>'
-        #     return (False, f'yanked for reason: {reason}')
-
-        # if link.egg_fragment:
-        #     egg_info = link.egg_fragment
-        #     ext = link.ext
-        # else:
-        #     egg_info, ext = link.splitext()
-        #     if not ext:
-        #         return (False, 'not a file')
-        #     if ext not in SUPPORTED_EXTENSIONS:
-        #         return (False, f'unsupported archive format: {ext}')
-        #     if "binary" not in self._formats and ext == WHEEL_EXTENSION:
-        #         reason = 'No binaries permitted for {}'.format(
-        #             self.project_name)
-        #         return (False, reason)
-        #     if "macosx10" in link.path and ext == '.zip':
-        #         return (False, 'macosx10 one')
-        #     if ext == WHEEL_EXTENSION:
-        #         try:
-        #             wheel = Wheel(link.filename)
-        #         except InvalidWheelFilename:
-        #             return (False, 'invalid wheel filename')
-        #         if canonicalize_name(wheel.name) != self._canonical_name:
-        #             reason = 'wrong project name (not {})'.format(
-        #                 self.project_name)
-        #             return (False, reason)
-
-        #         supported_tags = self._target_python.get_tags()
-        #         if not wheel.supported(supported_tags):
-        #             # Include the wheel's tags in the reason string to
-        #             # simplify troubleshooting compatibility issues.
-        #             file_tags = wheel.get_formatted_file_tags()
-        #             reason = (
-        #                 "none of the wheel's tags ({}) are compatible "
-        #                 "(run pip debug --verbose to show compatible tags)".format(
-        #                     ', '.join(file_tags)
-        #                 )
-        #             )
-        #             return (False, reason)
-
-        #         version = wheel.version
-
-        # # This should be up by the self.ok_binary check, but see issue 2700.
-        # if "source" not in self._formats and ext != WHEEL_EXTENSION:
-        #     reason = f'No sources permitted for {self.project_name}'
-        #     return (False, reason)
-
-        # if not version:
-        #     version = _extract_version_from_fragment(
-        #         egg_info, self._canonical_name,
-        #     )
-        # if not version:
-        #     reason = f'Missing project version for {self.project_name}'
-        #     return (False, reason)
-
-        # match = self._py_version_re.search(version)
-        # if match:
-        #     version = version[:match.start()]
-        #     py_version = match.group(1)
-        #     if py_version != self._target_python.py_version:
-        #         return (False, 'Python version is incorrect')
-
-        # supports_python = _check_link_requires_python(
-        #     link, version_info=self._target_python.py_version_info,
-        #     ignore_requires_python=self._ignore_requires_python,
-        # )
-        # if not supports_python:
-        #     # Return None for the reason text to suppress calling
-        #     # _log_skipped_link().
-        #     return (False, None)
-
-        # logger.debug('Found link %s, version: %s', link, version)
-
-        # return (True, version)
+        return LinkEvaluator.evaluate_link_static(self.get_state_as_tuple(), link)
 
 
 def filter_unallowed_hashes(
@@ -850,7 +785,7 @@ class PackageFinder:
         
     def _log_skipped_link(self, link, reason):
         # type: (Link, str) -> None
-        PackageFinder._log_skipped_link_static(get_state_as_tuple(), link, reason)
+        PackageFinder._log_skipped_link_static(self.get_state_as_tuple(), link, reason)
         # if link not in self._logged_links:
         #     # Put the link at the end so the reason is more visible and because
         #     # the link string is usually very long.
@@ -881,7 +816,7 @@ class PackageFinder:
         If the link is a candidate for install, convert it to an
         InstallationCandidate and return it. Otherwise, return None.
         """
-        return PackageFinder.get_install_candidate_static(get_state_as_tuple(), link_evaluator, link)
+        return PackageFinder.get_install_candidate_static(self.get_state_as_tuple(), link_evaluator.get_state_as_tuple(), link)
         # is_candidate, result = link_evaluator.evaluate_link(link)
         # if not is_candidate:
         #     if result:
@@ -913,14 +848,7 @@ class PackageFinder:
         """
         Convert links that are candidates to InstallationCandidate objects.
         """
-        return PackageFinder.evaluate_links_static(get_state_as_tuple(), link_evaluator, links)
-        # candidates = []
-        # for link in PackageFinder._sort_links_static(links):
-        #     candidate = PackageFinder.get_install_candidate_static(self, link_evaluator, link)
-        #     if candidate is not None:
-        #         candidates.append(candidate)
-
-        # return candidates
+        return PackageFinder.evaluate_links_static(self.get_state_as_tuple(), link_evaluator.get_state_as_tuple(), links)
 
     @staticmethod
     def process_project_url_static(package_finder, project_url, link_evaluator):
@@ -945,7 +873,11 @@ class PackageFinder:
 
     def process_project_url(self, project_url, link_evaluator):
         # type: (Link, LinkEvaluator) -> List[InstallationCandidate]
-        return PackageFinder.process_project_url_static(get_state_as_tuple(), project_url, link_evaluator)
+        return PackageFinder.process_project_url_static(
+            self.get_state_as_tuple(), 
+            project_url, 
+            link_evaluator.get_state_as_tuple()
+        )
     
     @staticmethod
     @functools.lru_cache(maxsize=None)
@@ -999,7 +931,6 @@ class PackageFinder:
         # This is an intentional priority ordering
         return file_candidates + page_candidates
 
-    # @functools.lru_cache(maxsize=None)
     def find_all_candidates(self, project_name):
         # type: (str) -> List[InstallationCandidate]
         """Find all available InstallationCandidate for project_name
@@ -1011,7 +942,9 @@ class PackageFinder:
         are accepted.
         """
         link_evaluator = self.make_link_evaluator(project_name)
+        
         package_finder = self.get_state_as_tuple(True)
+        link_evaluator = link_evaluator.get_state_as_tuple()
         return PackageFinder.find_all_candidates_static(package_finder, link_evaluator, project_name)
 
     def make_candidate_evaluator(
