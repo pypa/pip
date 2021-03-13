@@ -86,17 +86,24 @@ def install_given_reqs(
 
     with indent_log():
         # get a list of packages we can install in parallel
-        parallel_reqs_index = [
-            i for i, req in enumerate(requirements)
-            if not req.should_reinstall and req.is_wheel]
+        should_parallel_reqs = [
+            (i, req) for i, req in enumerate(requirements)
+            if not req.should_reinstall and req.is_wheel
+        ]
 
-        # install packages parallel
-        if parallel_reqs_index:
-            parallel_reqs = map_multiprocess_ordered(
-                partial(_single_install, install_args, suppress_exception=True),
-                [requirements[i] for i in parallel_reqs_index])
+        if should_parallel_reqs:
+            # install packages in parallel
+            should_parallel_indexes, should_parallel_values = zip(
+                *should_parallel_reqs)
+            parallel_reqs_dict = dict(
+                zip(should_parallel_indexes,
+                    map_multiprocess_ordered(
+                        partial(_single_install,
+                                install_args,
+                                suppress_exception=True),
+                        should_parallel_values)))
         else:
-            parallel_reqs = []
+            parallel_reqs_dict = {}
 
         # check the results from the parallel installation,
         # and fill-in missing installations or raise exception
@@ -104,10 +111,9 @@ def install_given_reqs(
 
             # select the install result from the parallel installation
             # or install serially now
-            if parallel_reqs_index and parallel_reqs_index[0] == i:
-                installed_req = parallel_reqs.pop(0)
-                parallel_reqs_index.pop(0)
-            else:
+            try:
+                installed_req = parallel_reqs_dict[i]
+            except KeyError:
                 installed_req = _single_install(
                     install_args, req, suppress_exception=False)
 
@@ -148,9 +154,6 @@ def _single_install(
         requirement.install(
             **install_args._asdict()
         )
-    except (KeyboardInterrupt, SystemExit):
-        # always raise, we catch it in external loop
-        raise
     except Exception as ex:
         # Notice we might need to catch BaseException as this function
         # can be executed from a subprocess.
