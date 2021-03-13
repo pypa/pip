@@ -919,7 +919,7 @@ class PackageFinder:
         are accepted.
         """
         link_evaluator = self.make_link_evaluator(project_name)
-        
+
         package_finder = self.get_state_as_tuple(True)
         link_evaluator = link_evaluator.get_state_as_tuple()
         return PackageFinder.find_all_candidates_static(package_finder, link_evaluator, project_name)
@@ -942,8 +942,14 @@ class PackageFinder:
             specifier=specifier,
             hashes=hashes,
         )
-
+    
+    @staticmethod
     @functools.lru_cache(maxsize=None)
+    def find_best_candidate_static(package_finder, link_evaluator, candidate_evaluator, project_name):
+        candidates = PackageFinder.find_all_candidates_static(package_finder, link_evaluator, project_name)
+
+        return candidate_evaluator.compute_best_candidate(candidates)
+    
     def find_best_candidate(
         self,
         project_name,       # type: str
@@ -959,13 +965,22 @@ class PackageFinder:
 
         :return: A `BestCandidateResult` instance.
         """
-        candidates = self.find_all_candidates(project_name)
+        link_evaluator = self.make_link_evaluator(project_name)
+
+        package_finder = self.get_state_as_tuple(True)
+        link_evaluator = link_evaluator.get_state_as_tuple()
+
         candidate_evaluator = self.make_candidate_evaluator(
             project_name=project_name,
             specifier=specifier,
             hashes=hashes,
         )
-        return candidate_evaluator.compute_best_candidate(candidates)
+        return PackageFinder.find_best_candidate_static(
+            package_finder, 
+            link_evaluator, 
+            candidate_evaluator, 
+            project_name
+        )
 
     def find_requirement(self, req, upgrade):
         # type: (InstallRequirement, bool) -> Optional[InstallationCandidate]
