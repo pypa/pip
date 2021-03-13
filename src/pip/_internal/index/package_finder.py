@@ -897,11 +897,6 @@ class PackageFinder:
         # Just add link_collector to the tuple
         collected_links = package_finder.link_collector.collect_links(project_name)
 
-        # Refactored evaluate_links, _sort_links, get_install_candidate, _logged_skipped_link
-        # dependencies needed from PackageFinder :
-        #   * _logged_link (SHOULD FIND A WAY TO KEEP TRACK OF CHANGED IN _logged_link and apply the changes after cached method)
-        # and link_evaluator
-        #   * Everything
         find_links_versions = PackageFinder.evaluate_links_static(
             package_finder,
             link_evaluator,
@@ -928,6 +923,8 @@ class PackageFinder:
             paths = [url_to_path(c.link.url) for c in file_candidates]
             logger.debug("Local files found: %s", ", ".join(paths))
 
+        # TODO: If necessary, return tuple of the candidates and logging_links so this can be updated in original function
+        
         # This is an intentional priority ordering
         return file_candidates + page_candidates
 
