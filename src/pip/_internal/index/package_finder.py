@@ -786,18 +786,10 @@ class PackageFinder:
     def _log_skipped_link(self, link, reason):
         # type: (Link, str) -> None
         PackageFinder._log_skipped_link_static(self.get_state_as_tuple(), link, reason)
-        # if link not in self._logged_links:
-        #     # Put the link at the end so the reason is more visible and because
-        #     # the link string is usually very long.
-        #     logger.debug('Skipping link: %s: %s', reason, link)
-        #     self._logged_links.add(link)
 
     @staticmethod
     def get_install_candidate_static(package_finder, link_evaluator, link):
-        """
-        If the link is a candidate for install, convert it to an
-        InstallationCandidate and return it. Otherwise, return None.
-        """
+        # type: (LinkEvaluator, Link) -> Optional[InstallationCandidate]
         is_candidate, result = LinkEvaluator.evaluate_link_static(link_evaluator, link)
         if not is_candidate:
             if result:
@@ -811,30 +803,19 @@ class PackageFinder:
         )
 
     def get_install_candidate(self, link_evaluator, link):
-        # type: (LinkEvaluator, Link) -> Optional[InstallationCandidate]
         """
         If the link is a candidate for install, convert it to an
         InstallationCandidate and return it. Otherwise, return None.
         """
-        return PackageFinder.get_install_candidate_static(self.get_state_as_tuple(), link_evaluator.get_state_as_tuple(), link)
-        # is_candidate, result = link_evaluator.evaluate_link(link)
-        # if not is_candidate:
-        #     if result:
-        #         self._log_skipped_link(link, reason=result)
-        #     return None
-
-        # return InstallationCandidate(
-        #     name=link_evaluator.project_name,
-        #     link=link,
-        #     version=result,
-        # )
+        return PackageFinder.get_install_candidate_static(
+            self.get_state_as_tuple(), 
+            link_evaluator.get_state_as_tuple(), 
+            link
+        )
 
     @staticmethod
     def evaluate_links_static(package_finder, link_evaluator, links):
         # type: (LinkEvaluator, Iterable[Link]) -> List[InstallationCandidate]
-        """
-        Convert links that are candidates to InstallationCandidate objects.
-        """
         candidates = []
         for link in PackageFinder._sort_links_static(links):
             candidate = PackageFinder.get_install_candidate_static(package_finder, link_evaluator, link)
@@ -848,7 +829,11 @@ class PackageFinder:
         """
         Convert links that are candidates to InstallationCandidate objects.
         """
-        return PackageFinder.evaluate_links_static(self.get_state_as_tuple(), link_evaluator.get_state_as_tuple(), links)
+        return PackageFinder.evaluate_links_static(
+            self.get_state_as_tuple(), 
+            link_evaluator.get_state_as_tuple(), 
+            links
+        )
 
     @staticmethod
     def process_project_url_static(package_finder, project_url, link_evaluator):
@@ -924,7 +909,7 @@ class PackageFinder:
             logger.debug("Local files found: %s", ", ".join(paths))
 
         # TODO: If necessary, return tuple of the candidates and logging_links so this can be updated in original function
-        
+
         # This is an intentional priority ordering
         return file_candidates + page_candidates
 
