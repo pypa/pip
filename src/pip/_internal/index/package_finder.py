@@ -5,6 +5,8 @@
 
 import functools
 import logging
+import collections
+
 import re
 from typing import FrozenSet, Iterable, List, Optional, Set, Tuple, Union
 
@@ -47,6 +49,7 @@ CandidateSortingKey = (
     Tuple[int, int, int, _BaseVersion, BuildTag, Optional[int]]
 )
 
+PackageFinderTuple = collections.namedtuple('PackageFinder', 'logged_links link_collector')
 
 def _check_link_requires_python(
     link,  # type: Link
@@ -655,7 +658,6 @@ class CandidateEvaluator:
             best_candidate=best_candidate,
         )
 
-
 class PackageFinder:
     """This finds packages.
 
@@ -798,7 +800,14 @@ class PackageFinder:
             allow_yanked=self._allow_yanked,
             ignore_requires_python=self._ignore_requires_python,
         )
+    
+    def get_state_as_tuple(self, immutable=False):
+        logged_links = self._logged_links
+        if immutable:
+            logged_links = frozenset(logged_links)
 
+        return PackageFinderTuple(logged_links=logged_links, link_collector=self._link_collector)
+    
     @staticmethod
     def _sort_links_static(links):
         eggs, no_eggs = [], []
@@ -819,29 +828,19 @@ class PackageFinder:
         second, while eliminating duplicates
         """
         return PackageFinder._sort_links_static(links)
-        # eggs, no_eggs = [], []
-        # seen = set()  # type: Set[Link]
-        # for link in links:
-        #     if link not in seen:
-        #         seen.add(link)
-        #         if link.egg_fragment:
-        #             eggs.append(link)
-        #         else:
-        #             no_eggs.append(link)
-        # return no_eggs + eggs
 
     @staticmethod
     def _log_skipped_link_static(package_finder, link, reason):
         # type: (Link, str) -> None
-        if link not in package_finder._logged_links:
+        if link not in package_finder.logged_links:
             # Put the link at the end so the reason is more visible and because
             # the link string is usually very long.
             logger.debug('Skipping link: %s: %s', reason, link)
-            package_finder._logged_links.add(link)
+            package_finder.logged_links.add(link)
         
     def _log_skipped_link(self, link, reason):
         # type: (Link, str) -> None
-        PackageFinder._log_skipped_link_static(self, link, reason)
+        PackageFinder._log_skipped_link_static(get_state_as_tuple(), link, reason)
         # if link not in self._logged_links:
         #     # Put the link at the end so the reason is more visible and because
         #     # the link string is usually very long.
@@ -872,7 +871,7 @@ class PackageFinder:
         If the link is a candidate for install, convert it to an
         InstallationCandidate and return it. Otherwise, return None.
         """
-        return PackageFinder.get_install_candidate_static(self, link_evaluator, link)
+        return PackageFinder.get_install_candidate_static(get_state_as_tuple(), link_evaluator, link)
         # is_candidate, result = link_evaluator.evaluate_link(link)
         # if not is_candidate:
         #     if result:
@@ -904,7 +903,7 @@ class PackageFinder:
         """
         Convert links that are candidates to InstallationCandidate objects.
         """
-        return PackageFinder.evaluate_links_static(self, link_evaluator, links)
+        return PackageFinder.evaluate_links_static(get_state_as_tuple(), link_evaluator, links)
         # candidates = []
         # for link in PackageFinder._sort_links_static(links):
         #     candidate = PackageFinder.get_install_candidate_static(self, link_evaluator, link)
@@ -919,7 +918,7 @@ class PackageFinder:
         logger.debug(
             'Fetching project page and analyzing links: %s', project_url,
         )
-        html_page = package_finder._link_collector.fetch_page(project_url)
+        html_page = package_finder.link_collector.fetch_page(project_url)
         if html_page is None:
             return []
 
@@ -936,23 +935,7 @@ class PackageFinder:
 
     def process_project_url(self, project_url, link_evaluator):
         # type: (Link, LinkEvaluator) -> List[InstallationCandidate]
-        return PackageFinder.process_project_url_static(self, project_url, link_evaluator)
-        # logger.debug(
-        #     'Fetching project page and analyzing links: %s', project_url,
-        # )
-        # html_page = self._link_collector.fetch_page(project_url)
-        # if html_page is None:
-        #     return []
-
-        # page_links = list(parse_links(html_page))
-
-        # with indent_log():
-        #     package_links = self.evaluate_links(
-        #         link_evaluator,
-        #         links=page_links,
-        #     )
-
-        # return package_links
+        return PackageFinder.process_project_url_static(get_state_as_tuple(), project_url, link_evaluator)
     
     @staticmethod
     @functools.lru_cache(maxsize=None)
@@ -966,8 +949,11 @@ class PackageFinder:
         are accepted.
         """
 
+        # Need to convert logged_links to normal set, so we can update it.
+        package_finder = PackageFinderTuple(logged_links=set(package_finder.logged_links), link_collector=package_finder.link_collector)
+
         # Just add link_collector to the tuple
-        collected_links = package_finder._link_collector.collect_links(project_name)
+        collected_links = package_finder.link_collector.collect_links(project_name)
 
         # Refactored evaluate_links, _sort_links, get_install_candidate, _logged_skipped_link
         # dependencies needed from PackageFinder :
@@ -983,7 +969,7 @@ class PackageFinder:
         # Only needs link collector from package_finder
         page_versions = []
         for project_url in collected_links.project_urls:
-            package_links = package_finder.process_project_url_static(
+            package_links = PackageFinder.process_project_url_static(
                 package_finder,
                 project_url, 
                 link_evaluator=link_evaluator,
@@ -1020,40 +1006,8 @@ class PackageFinder:
         are accepted.
         """
         link_evaluator = self.make_link_evaluator(project_name)
-        
-        return PackageFinder.find_all_candidates_static(self, link_evaluator, project_name)
-        # collected_links = self._link_collector.collect_links(project_name)
-
-        # link_evaluator = self.make_link_evaluator(project_name)
-
-        # find_links_versions = self.evaluate_links(
-        #     link_evaluator,
-        #     links=collected_links.find_links,
-        # )
-
-        # page_versions = []
-        # for project_url in collected_links.project_urls:
-        #     package_links = self.process_project_url(
-        #         project_url, link_evaluator=link_evaluator,
-        #     )
-        #     page_versions.extend(package_links)
-
-        # file_versions = self.evaluate_links(
-        #     link_evaluator,
-        #     links=collected_links.files,
-        # )
-        # if file_versions:
-        #     file_versions.sort(reverse=True)
-        #     logger.debug(
-        #         'Local files found: %s',
-        #         ', '.join([
-        #             url_to_path(candidate.link.url)
-        #             for candidate in file_versions
-        #         ])
-        #     )
-
-        # # This is an intentional priority ordering
-        # return file_versions + find_links_versions + page_versions
+        package_finder = self.get_state_as_tuple(True)
+        return PackageFinder.find_all_candidates_static(package_finder, link_evaluator, project_name)
 
     def make_candidate_evaluator(
         self,
