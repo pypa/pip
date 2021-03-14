@@ -1069,7 +1069,8 @@ class PackageFinder:
             (e.g. `packaging.specifiers.SpecifierSet`) to filter applicable
             versions.
 
-        :return: A `BestCandidateResult` instance.
+        :return: A `BestCandidateResult` instance,
+            called from a static function that caches function calls.
         """
         link_evaluator = self.make_link_evaluator(project_name)
 
