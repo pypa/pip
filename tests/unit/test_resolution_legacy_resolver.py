@@ -5,8 +5,8 @@ import pytest
 from pip._vendor import pkg_resources
 
 from pip._internal.exceptions import NoneMetadataError, UnsupportedPythonVersion
-from pip._internal.req.constructors import install_req_from_line
 from pip._internal.index.package_finder import PackageFinder
+from pip._internal.req.constructors import install_req_from_line
 from pip._internal.resolution.legacy.resolver import (
     Resolver,
     _check_dist_requires_python,
@@ -184,7 +184,11 @@ class TestYankedWarning:
 
         finder = make_test_finder()
         monkeypatch.setattr(finder, "find_all_candidates", _find_candidates)
-        monkeypatch.setattr(PackageFinder, "find_all_candidates_static", _find_candidates)
+        monkeypatch.setattr(
+            PackageFinder,
+            "find_all_candidates_static",
+            _find_candidates
+        )
 
         return Resolver(
             finder=finder,

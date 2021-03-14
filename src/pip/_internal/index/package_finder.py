@@ -6,9 +6,8 @@
 import functools
 import itertools
 import logging
-import collections
-
 import re
+from collections import namedtuple
 from typing import FrozenSet, Iterable, List, Optional, Set, Tuple, Union
 
 from pip._vendor.packaging import specifiers
@@ -50,8 +49,29 @@ CandidateSortingKey = (
     Tuple[int, int, int, _BaseVersion, Optional[int], BuildTag]
 )
 
-PackageFinderTuple = collections.namedtuple('PackageFinder', 'logged_links link_collector target_python candidate_prefs')
-LinkEvaluatorTuple = collections.namedtuple('LinkEvaluator', 'project_name canonical_name formats target_python allow_yanked ignore_requires_python py_version_re')
+PackageFinderTuple = namedtuple(
+    'PackageFinderTuple',
+    """
+    logged_links
+    link_collector
+    target_python
+    candidate_prefs
+    """
+)
+
+LinkEvaluatorTuple = namedtuple(
+    'LinkEvaluatorTuple',
+    """
+    project_name
+    canonical_name
+    formats
+    target_python
+    allow_yanked
+    ignore_requires_python
+    py_version_re
+    """
+)
+
 
 def _check_link_requires_python(
     link,  # type: Link
@@ -147,19 +167,20 @@ class LinkEvaluator:
         self.project_name = project_name
 
     def get_state_as_tuple(self):
+        # type: (LinkEvaluator) -> LinkEvaluatorTuple
         return LinkEvaluatorTuple(
             project_name=self.project_name,
-            canonical_name=self._canonical_name, 
-            formats=self._formats, 
-            target_python=self._target_python, 
-            allow_yanked=self._allow_yanked, 
+            canonical_name=self._canonical_name,
+            formats=self._formats,
+            target_python=self._target_python,
+            allow_yanked=self._allow_yanked,
             ignore_requires_python=self._ignore_requires_python,
             py_version_re=self._py_version_re
         )
-    
+
     @staticmethod
-    def evaluate_link_static(link_evaluator, link):
-        # type: (Link) -> Tuple[bool, Optional[str]]
+    def evaluate_link_static(link_evaluator_tuple, link):
+        # type: (LinkEvaluatorTuple, Link) -> Tuple[bool, Optional[str]]
         """
         Determine whether a link is a candidate for installation.
 
@@ -169,7 +190,7 @@ class LinkEvaluator:
             the link fails to qualify.
         """
         version = None
-        if link.is_yanked and not link_evaluator.allow_yanked:
+        if link.is_yanked and not link_evaluator_tuple.allow_yanked:
             reason = link.yanked_reason or '<none given>'
             return (False, f'yanked for reason: {reason}')
 
@@ -182,9 +203,9 @@ class LinkEvaluator:
                 return (False, 'not a file')
             if ext not in SUPPORTED_EXTENSIONS:
                 return (False, f'unsupported archive format: {ext}')
-            if "binary" not in link_evaluator.formats and ext == WHEEL_EXTENSION:
+            if "binary" not in link_evaluator_tuple.formats and ext == WHEEL_EXTENSION:
                 reason = 'No binaries permitted for {}'.format(
-                    link_evaluator.project_name)
+                    link_evaluator_tuple.project_name)
                 return (False, reason)
             if "macosx10" in link.path and ext == '.zip':
                 return (False, 'macosx10 one')
@@ -193,12 +214,12 @@ class LinkEvaluator:
                     wheel = Wheel(link.filename)
                 except InvalidWheelFilename:
                     return (False, 'invalid wheel filename')
-                if canonicalize_name(wheel.name) != link_evaluator.canonical_name:
+                if canonicalize_name(wheel.name) != link_evaluator_tuple.canonical_name:
                     reason = 'wrong project name (not {})'.format(
-                        link_evaluator.project_name)
+                        link_evaluator_tuple.project_name)
                     return (False, reason)
 
-                supported_tags = link_evaluator.target_python.get_tags()
+                supported_tags = link_evaluator_tuple.target_python.get_tags()
                 if not wheel.supported(supported_tags):
                     # Include the wheel's tags in the reason string to
                     # simplify troubleshooting compatibility issues.
@@ -214,28 +235,28 @@ class LinkEvaluator:
                 version = wheel.version
 
         # This should be up by the self.ok_binary check, but see issue 2700.
-        if "source" not in link_evaluator.formats and ext != WHEEL_EXTENSION:
-            reason = f'No sources permitted for {link_evaluator.project_name}'
+        if "source" not in link_evaluator_tuple.formats and ext != WHEEL_EXTENSION:
+            reason = f'No sources permitted for {link_evaluator_tuple.project_name}'
             return (False, reason)
 
         if not version:
             version = _extract_version_from_fragment(
-                egg_info, link_evaluator.canonical_name,
+                egg_info, link_evaluator_tuple.canonical_name,
             )
         if not version:
-            reason = f'Missing project version for {link_evaluator.project_name}'
+            reason = f'Missing project version for {link_evaluator_tuple.project_name}'
             return (False, reason)
 
-        match = link_evaluator.py_version_re.search(version)
+        match = link_evaluator_tuple.py_version_re.search(version)
         if match:
             version = version[:match.start()]
             py_version = match.group(1)
-            if py_version != link_evaluator.target_python.py_version:
+            if py_version != link_evaluator_tuple.target_python.py_version:
                 return (False, 'Python version is incorrect')
 
         supports_python = _check_link_requires_python(
-            link, version_info=link_evaluator.target_python.py_version_info,
-            ignore_requires_python=link_evaluator.ignore_requires_python,
+            link, version_info=link_evaluator_tuple.target_python.py_version_info,
+            ignore_requires_python=link_evaluator_tuple.ignore_requires_python,
         )
         if not supports_python:
             # Return None for the reason text to suppress calling
@@ -583,6 +604,7 @@ class CandidateEvaluator:
         if not candidates:
             return None
         best_candidate = max(candidates, key=self._sort_key)
+
         return best_candidate
 
     def compute_best_candidate(
@@ -602,6 +624,7 @@ class CandidateEvaluator:
             applicable_candidates=applicable_candidates,
             best_candidate=best_candidate,
         )
+
 
 class PackageFinder:
     """This finds packages.
@@ -745,16 +768,28 @@ class PackageFinder:
             allow_yanked=self._allow_yanked,
             ignore_requires_python=self._ignore_requires_python,
         )
-    
-    def get_state_as_tuple(self, immutable=False):
-        logged_links = self._logged_links
-        if immutable:
-            logged_links = frozenset(logged_links)
 
-        return PackageFinderTuple(logged_links=logged_links, link_collector=self._link_collector, candidate_prefs=self._candidate_prefs, target_python=self._target_python)
-    
+    def get_state_as_tuple(self, immutable=False):
+        # type: (bool) -> PackageFinderTuple
+
+        if immutable:
+            return PackageFinderTuple(
+                logged_links=frozenset(self._logged_links),
+                link_collector=self._link_collector,
+                candidate_prefs=self._candidate_prefs,
+                target_python=self._target_python
+            )
+
+        return PackageFinderTuple(
+            logged_links=self._logged_links,
+            link_collector=self._link_collector,
+            candidate_prefs=self._candidate_prefs,
+            target_python=self._target_python
+        )
+
     @staticmethod
     def _sort_links_static(links):
+        # type: (Iterable[Link]) -> List[Link]
         eggs, no_eggs = [], []
         seen = set()  # type: Set[Link]
         for link in links:
@@ -775,50 +810,70 @@ class PackageFinder:
         return PackageFinder._sort_links_static(links)
 
     @staticmethod
-    def _log_skipped_link_static(package_finder, link, reason):
-        # type: (Link, str) -> None
-        if link not in package_finder.logged_links:
+    def _log_skipped_link_static(package_finder_tuple, link, reason):
+        # type: (PackageFinderTuple, Link, str) -> None
+        if link not in package_finder_tuple.logged_links:
             # Put the link at the end so the reason is more visible and because
             # the link string is usually very long.
             logger.debug('Skipping link: %s: %s', reason, link)
-            package_finder.logged_links.add(link)
-        
+            package_finder_tuple.logged_links.add(link)
+
     def _log_skipped_link(self, link, reason):
         # type: (Link, str) -> None
         PackageFinder._log_skipped_link_static(self.get_state_as_tuple(), link, reason)
 
     @staticmethod
-    def get_install_candidate_static(package_finder, link_evaluator, link):
-        # type: (LinkEvaluator, Link) -> Optional[InstallationCandidate]
-        is_candidate, result = LinkEvaluator.evaluate_link_static(link_evaluator, link)
+    def get_install_candidate_static(
+        package_finder_tuple,   # type: PackageFinderTuple
+        link_evaluator_tuple,   # type: LinkEvaluatorTuple
+        link                    # type: Link
+    ):
+        # type: (...) -> Optional[InstallationCandidate]
+        is_candidate, result = LinkEvaluator.evaluate_link_static(
+            link_evaluator_tuple,
+            link
+        )
         if not is_candidate:
             if result:
-                PackageFinder._log_skipped_link_static(package_finder, link, reason=result)
+                PackageFinder._log_skipped_link_static(
+                    package_finder_tuple,
+                    link,
+                    reason=result
+                )
             return None
 
         return InstallationCandidate(
-            name=link_evaluator.project_name,
+            name=link_evaluator_tuple.project_name,
             link=link,
             version=result,
         )
 
     def get_install_candidate(self, link_evaluator, link):
+        # type: (LinkEvaluator, Link) -> Optional[InstallationCandidate]
         """
         If the link is a candidate for install, convert it to an
         InstallationCandidate and return it. Otherwise, return None.
         """
         return PackageFinder.get_install_candidate_static(
-            self.get_state_as_tuple(), 
-            link_evaluator.get_state_as_tuple(), 
+            self.get_state_as_tuple(),
+            link_evaluator.get_state_as_tuple(),
             link
         )
 
     @staticmethod
-    def evaluate_links_static(package_finder, link_evaluator, links):
-        # type: (LinkEvaluator, Iterable[Link]) -> List[InstallationCandidate]
+    def evaluate_links_static(
+        package_finder_tuple,   # type: PackageFinderTuple
+        link_evaluator_tuple,   # type: LinkEvaluatorTuple
+        links                   # type: Iterable[Link]
+    ):
+        # type: (...) -> List[InstallationCandidate]
         candidates = []
         for link in PackageFinder._sort_links_static(links):
-            candidate = PackageFinder.get_install_candidate_static(package_finder, link_evaluator, link)
+            candidate = PackageFinder.get_install_candidate_static(
+                package_finder_tuple,
+                link_evaluator_tuple,
+                link
+            )
             if candidate is not None:
                 candidates.append(candidate)
 
@@ -830,18 +885,22 @@ class PackageFinder:
         Convert links that are candidates to InstallationCandidate objects.
         """
         return PackageFinder.evaluate_links_static(
-            self.get_state_as_tuple(), 
-            link_evaluator.get_state_as_tuple(), 
+            self.get_state_as_tuple(),
+            link_evaluator.get_state_as_tuple(),
             links
         )
 
     @staticmethod
-    def process_project_url_static(package_finder, project_url, link_evaluator):
-        # type: (Link, LinkEvaluator) -> List[InstallationCandidate]
+    def process_project_url_static(
+        package_finder_tuple,   # type: PackageFinderTuple
+        project_url,            # type: Link
+        link_evaluator_tuple    # type: LinkEvaluatorTuple
+    ):
+        # type: (...) -> List[InstallationCandidate]
         logger.debug(
             'Fetching project page and analyzing links: %s', project_url,
         )
-        html_page = package_finder.link_collector.fetch_page(project_url)
+        html_page = package_finder_tuple.link_collector.fetch_page(project_url)
         if html_page is None:
             return []
 
@@ -849,8 +908,8 @@ class PackageFinder:
 
         with indent_log():
             package_links = PackageFinder.evaluate_links_static(
-                package_finder,
-                link_evaluator,
+                package_finder_tuple,
+                link_evaluator_tuple,
                 links=page_links,
             )
 
@@ -859,14 +918,19 @@ class PackageFinder:
     def process_project_url(self, project_url, link_evaluator):
         # type: (Link, LinkEvaluator) -> List[InstallationCandidate]
         return PackageFinder.process_project_url_static(
-            self.get_state_as_tuple(), 
-            project_url, 
+            self.get_state_as_tuple(),
+            project_url,
             link_evaluator.get_state_as_tuple()
         )
-    
+
     @staticmethod
     @functools.lru_cache(maxsize=None)
-    def find_all_candidates_static(package_finder, link_evaluator, project_name):
+    def find_all_candidates_static(
+        package_finder_tuple,   # type: PackageFinderTuple
+        link_evaluator_tuple,   # type: LinkEvaluatorTuple
+        project_name            # type: str
+    ):
+        # type: (...) -> List[InstallationCandidate]
         """Find all available InstallationCandidate for project_name
 
         This checks index_urls and find_links.
@@ -877,15 +941,21 @@ class PackageFinder:
         """
 
         # Need to convert logged_links to normal set, so we can update it.
-        package_finder = PackageFinderTuple(logged_links=set(package_finder.logged_links), link_collector=package_finder.link_collector, target_python=package_finder.target_python, candidate_prefs=package_finder.candidate_prefs)
-        
+        package_finder_tuple = PackageFinderTuple(
+            logged_links=set(package_finder_tuple.logged_links),
+            link_collector=package_finder_tuple.link_collector,
+            target_python=package_finder_tuple.target_python,
+            candidate_prefs=package_finder_tuple.candidate_prefs
+        )
 
         # Just add link_collector to the tuple
-        collected_links = package_finder.link_collector.collect_links(project_name)
+        collected_links = package_finder_tuple.link_collector.collect_links(
+            project_name
+        )
 
         find_links_versions = PackageFinder.evaluate_links_static(
-            package_finder,
-            link_evaluator,
+            package_finder_tuple,
+            link_evaluator_tuple,
             links=collected_links.find_links,
         )
 
@@ -893,23 +963,21 @@ class PackageFinder:
         page_versions = []
         for project_url in collected_links.project_urls:
             package_links = PackageFinder.process_project_url_static(
-                package_finder,
-                project_url, 
-                link_evaluator=link_evaluator,
+                package_finder_tuple,
+                project_url,
+                link_evaluator_tuple,
             )
             page_versions.extend(package_links)
 
         file_versions = PackageFinder.evaluate_links_static(
-            package_finder,
-            link_evaluator,
-            sorted(file_links_it, reverse=True),
+            package_finder_tuple,
+            link_evaluator_tuple,
+            links=collected_links.files,
         )
 
         if logger.isEnabledFor(logging.DEBUG) and file_candidates:
             paths = [url_to_path(c.link.url) for c in file_candidates]
             logger.debug("Local files found: %s", ", ".join(paths))
-
-        # TODO: If necessary, return tuple of the candidates and logging_links so this can be updated in original function
 
         # This is an intentional priority ordering
         return file_candidates + page_candidates
@@ -926,21 +994,26 @@ class PackageFinder:
         """
         link_evaluator = self.make_link_evaluator(project_name)
 
-        package_finder = self.get_state_as_tuple(True)
-        link_evaluator = link_evaluator.get_state_as_tuple()
-        return PackageFinder.find_all_candidates_static(package_finder, link_evaluator, project_name)
+        package_finder_tuple = self.get_state_as_tuple(True)
+        link_evaluator_tuple = link_evaluator.get_state_as_tuple()
+        return PackageFinder.find_all_candidates_static(
+            package_finder_tuple,
+            link_evaluator_tuple,
+            project_name
+        )
 
     @staticmethod
     def make_candidate_evaluator_static(
-        package_finder,
-        project_name,    # type: str
-        specifier=None,  # type: Optional[specifiers.BaseSpecifier]
-        hashes=None,     # type: Optional[Hashes]
+        package_finder_tuple,   # type: PackageFinderTuple
+        project_name,           # type: str
+        specifier=None,         # type: Optional[specifiers.BaseSpecifier]
+        hashes=None,            # type: Optional[Hashes]
     ):
-        candidate_prefs = package_finder.candidate_prefs
+        # type: (...) -> CandidateEvaluator
+        candidate_prefs = package_finder_tuple.candidate_prefs
         return CandidateEvaluator.create(
             project_name=project_name,
-            target_python=package_finder.target_python,
+            target_python=package_finder_tuple.target_python,
             prefer_binary=candidate_prefs.prefer_binary,
             allow_all_prereleases=candidate_prefs.allow_all_prereleases,
             specifier=specifier,
@@ -956,28 +1029,38 @@ class PackageFinder:
         # type: (...) -> CandidateEvaluator
         """Create a CandidateEvaluator object to use.
         """
-        package_finder = self.get_state_as_tuple()
+        package_finder_tuple = self.get_state_as_tuple()
         return PackageFinder.make_candidate_evaluator_static(
-            package_finder,
+            package_finder_tuple,
             project_name,
             specifier,
             hashes
         )
-    
+
     @staticmethod
     @functools.lru_cache(maxsize=None)
     def find_best_candidate_static(
-        package_finder, 
-        link_evaluator, 
-        project_name,
-        specifier=None,     # type: Optional[specifiers.BaseSpecifier]
-        hashes=None
+        package_finder_tuple,   # type: PackageFinderTuple
+        link_evaluator_tuple,   # type: LinkEvaluatorTuple
+        project_name,           # type: str
+        specifier=None,         # type: Optional[specifiers.BaseSpecifier]
+        hashes=None             # type: Optional[Hashes]
     ):
-        candidate_evaluator = PackageFinder.make_candidate_evaluator_static(package_finder, project_name, specifier, hashes)
-        candidates = PackageFinder.find_all_candidates_static(package_finder, link_evaluator, project_name)
+        # type: (...) -> BestCandidateResult
+        candidate_evaluator = PackageFinder.make_candidate_evaluator_static(
+            package_finder_tuple,
+            project_name,
+            specifier,
+            hashes
+        )
+        candidates = PackageFinder.find_all_candidates_static(
+            package_finder_tuple,
+            link_evaluator_tuple,
+            project_name
+        )
 
         return candidate_evaluator.compute_best_candidate(candidates)
-    
+
     def find_best_candidate(
         self,
         project_name,       # type: str
@@ -995,12 +1078,12 @@ class PackageFinder:
         """
         link_evaluator = self.make_link_evaluator(project_name)
 
-        package_finder = self.get_state_as_tuple(True)
-        link_evaluator = link_evaluator.get_state_as_tuple()
+        package_finder_tuple = self.get_state_as_tuple(True)
+        link_evaluator_tuple = link_evaluator.get_state_as_tuple()
 
         return PackageFinder.find_best_candidate_static(
-            package_finder, 
-            link_evaluator, 
+            package_finder_tuple,
+            link_evaluator_tuple,
             project_name,
             specifier,
             hashes
