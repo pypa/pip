@@ -92,16 +92,17 @@ def install_given_reqs(
         ]
 
         if should_parallel_reqs:
-            # install packages in parallel
+            # prepare for parallel execution
             should_parallel_indexes, should_parallel_values = zip(
                 *should_parallel_reqs)
+            # install packages in parallel
+            executed_parallel_reqs = map_multiprocess_ordered(
+                partial(_single_install, install_args, suppress_exception=True),
+                should_parallel_values
+            )
+            # collect back results
             parallel_reqs_dict = dict(
-                zip(should_parallel_indexes,
-                    map_multiprocess_ordered(
-                        partial(_single_install,
-                                install_args,
-                                suppress_exception=True),
-                        should_parallel_values)))
+                zip(should_parallel_indexes, executed_parallel_reqs))
         else:
             parallel_reqs_dict = {}
 
