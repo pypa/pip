@@ -579,6 +579,7 @@ class Factory:
             req_disp = f"{req} (from {parent.name})"
 
         cands = self._finder.find_all_candidates(req.project_name)
+        skips = self._finder.logged_links_rp()
         versions = [str(v) for v in sorted({c.version for c in cands})]
 
         logger.critical(
@@ -594,6 +595,12 @@ class Factory:
                 "using the '-r' flag to install the packages listed in "
                 "requirements.txt"
             )
+        logger.critical(
+            "Found versions that do not satisfy the requirement %s "
+            "(from versions: %s)",
+            req_disp,
+            ", ".join(skips) or "none",
+        )
 
         return DistributionNotFound(f"No matching distribution found for {req}")
 

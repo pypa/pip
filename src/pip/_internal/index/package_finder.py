@@ -225,7 +225,10 @@ class LinkEvaluator:
         if not supports_python:
             # Return None for the reason text to suppress calling
             # _log_skipped_link().
-            return (False, None)
+            return (
+                False,
+                '{} requires-python {}'.format(version, link.requires_python),
+            )
 
         logger.debug("Found link %s, version: %s", link, version)
 
@@ -609,7 +612,8 @@ class PackageFinder:
         self.format_control = format_control
 
         # These are boring links that have already been logged somehow.
-        self._logged_links: Set[Link] = set()
+        self._logged_links = set()  # type: Set[Link]
+        self._logged_links_rp = set()  # type: Set[str]
 
     # Don't include an allow_yanked default value to make sure each call
     # site considers whether yanked releases are allowed. This also causes
@@ -699,6 +703,12 @@ class PackageFinder:
             ignore_requires_python=self._ignore_requires_python,
         )
 
+    def logged_links_rp(self):
+        # type: () -> List[str]
+        skips = [skip for skip in self._logged_links_rp]
+        skips.sort()
+        return skips
+
     def _sort_links(self, links: Iterable[Link]) -> List[Link]:
         """
         Returns elements of links in order, non-egg links first, egg links
@@ -731,7 +741,9 @@ class PackageFinder:
         """
         is_candidate, result = link_evaluator.evaluate_link(link)
         if not is_candidate:
-            if result:
+            if 'requires-python' in result:
+                self._log_skipped_link_rp(result)
+            else:
                 self._log_skipped_link(link, reason=result)
             return None
 
@@ -740,6 +752,11 @@ class PackageFinder:
             link=link,
             version=result,
         )
+
+    def _log_skipped_link_rp(self, reason):
+        # type: (str) -> None
+        if reason not in self._logged_links_rp:
+            self._logged_links_rp.add(reason)
 
     def evaluate_links(
         self, link_evaluator: LinkEvaluator, links: Iterable[Link]
