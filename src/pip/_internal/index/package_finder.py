@@ -223,12 +223,8 @@ class LinkEvaluator:
             ignore_requires_python=self._ignore_requires_python,
         )
         if not supports_python:
-            # Return None for the reason text to suppress calling
-            # _log_skipped_link().
-            return (
-                False,
-                '{} requires-python {}'.format(version, link.requires_python),
-            )
+            reason = f'{version} requires-python {link.requires_python}'
+            return (False, reason)
 
         logger.debug("Found link %s, version: %s", link, version)
 
