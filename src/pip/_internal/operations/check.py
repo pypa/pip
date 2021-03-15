@@ -15,18 +15,17 @@ from pip._internal.utils.misc import get_installed_distributions
 if TYPE_CHECKING:
     from pip._vendor.packaging.utils import NormalizedName
 
-    # Shorthands
-    PackageSet = Dict[NormalizedName, 'PackageDetails']
-    Missing = Tuple[str, Any]
-    Conflicting = Tuple[str, str, Any]
-
-    MissingDict = Dict[NormalizedName, List[Missing]]
-    ConflictingDict = Dict[NormalizedName, List[Conflicting]]
-    CheckResult = Tuple[MissingDict, ConflictingDict]
-    ConflictDetails = Tuple[PackageSet, CheckResult]
-
-
 logger = logging.getLogger(__name__)
+
+# Shorthands
+PackageSet = Dict['NormalizedName', 'PackageDetails']
+Missing = Tuple[str, Any]
+Conflicting = Tuple[str, str, Any]
+
+MissingDict = Dict['NormalizedName', List[Missing]]
+ConflictingDict = Dict['NormalizedName', List[Conflicting]]
+CheckResult = Tuple[MissingDict, ConflictingDict]
+ConflictDetails = Tuple[PackageSet, CheckResult]
 
 PackageDetails = namedtuple('PackageDetails', ['version', 'requires'])
 
