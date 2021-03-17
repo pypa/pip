@@ -1,6 +1,5 @@
 import sys
 import textwrap
-from optparse import Values
 from typing import List
 
 from pip._internal.cli.base_command import Command
