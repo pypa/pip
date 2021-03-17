@@ -990,6 +990,78 @@ class PackageFinder:
 
         return package_links
 
+    def process_project_url(self, project_url, link_evaluator):
+        # type: (Link, LinkEvaluator) -> List[InstallationCandidate]
+        return PackageFinder.process_project_url_static(
+            self.get_state_as_tuple(),
+            project_url,
+            link_evaluator.get_state_as_tuple()
+        )
+
+    @staticmethod
+    @functools.lru_cache(maxsize=None)
+    def find_all_candidates_static(
+        package_finder_tuple,   # type: PackageFinderTuple
+        link_evaluator_tuple,   # type: LinkEvaluatorTuple
+        project_name            # type: str
+    ):
+        # type: (...) -> List[InstallationCandidate]
+        """Find all available InstallationCandidate for project_name
+
+        This checks index_urls and find_links.
+        All versions found are returned as an InstallationCandidate list.
+
+        See LinkEvaluator.evaluate_link() for details on which files
+        are accepted.
+        """
+
+        # Need to convert logged_links to normal set, so we can update it.
+        package_finder_tuple = PackageFinderTuple(
+            logged_links=set(package_finder_tuple.logged_links),
+            link_collector=package_finder_tuple.link_collector,
+            target_python=package_finder_tuple.target_python,
+            candidate_prefs=package_finder_tuple.candidate_prefs
+        )
+
+        # Add link_collector to the tuple
+        collected_links = package_finder_tuple.link_collector.collect_links(
+            project_name
+        )
+
+        find_links_versions = PackageFinder.evaluate_links_static(
+            package_finder_tuple,
+            link_evaluator_tuple,
+            links=collected_links.find_links,
+        )
+
+        # Only needs link collector from package_finder
+        page_versions = []
+        for project_url in collected_links.project_urls:
+            package_links = PackageFinder.process_project_url_static(
+                package_finder_tuple,
+                project_url,
+                link_evaluator_tuple,
+            )
+            page_versions.extend(package_links)
+
+        file_versions = PackageFinder.evaluate_links_static(
+            package_finder_tuple,
+            link_evaluator_tuple,
+            links=collected_links.files,
+        )
+        if file_versions:
+            file_versions.sort(reverse=True)
+            logger.debug(
+                'Local files found: %s',
+                ', '.join([
+                    url_to_path(candidate.link.url)
+                    for candidate in file_versions
+                ])
+            )
+
+        # This is an intentional priority ordering
+        return file_versions + find_links_versions + page_versions
+
     def find_all_candidates(self, project_name):
         # type: (str) -> List[InstallationCandidate]
         """Find all available InstallationCandidate for project_name

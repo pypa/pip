@@ -183,7 +183,6 @@ class TestYankedWarning:
             return mock_candidates
 
         finder = make_test_finder()
-        monkeypatch.setattr(finder, "find_all_candidates", _find_candidates)
         monkeypatch.setattr(
             PackageFinder,
             "find_all_candidates_static",
