@@ -700,11 +700,9 @@ class PackageFinder:
 
     def skipped_links_requires_python(self):
         # type: () -> List[str]
-        skips = [skip[1] for skip in self._logged_links if 'Requires-Python' in skip[1]]
-        # cleans duplicate package version found from different links
-        skips = list(dict.fromkeys(skips))
-        skips.sort()
-        return skips
+        return sorted(
+            {reason for _, reason in self._logged_links if 'Requires-Python' in reason}
+        )
 
     def logged_links_rp(self):
         # type: () -> List[str]
