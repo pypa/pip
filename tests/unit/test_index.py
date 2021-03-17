@@ -114,7 +114,7 @@ class TestLinkEvaluator:
         [
             ((3, 6, 5), None, (True, "1.12")),
             # Test an incompatible Python.
-            ((3, 6, 4), None, (False, '1.12 requires-python == 3.6.5')),
+            ((3, 6, 4), None, (False, '1.12 Requires-Python == 3.6.5')),
             # Test an incompatible Python with ignore_requires_python=True.
             ((3, 6, 4), True, (True, "1.12")),
         ],

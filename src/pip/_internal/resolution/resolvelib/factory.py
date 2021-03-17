@@ -579,7 +579,7 @@ class Factory:
             req_disp = f"{req} (from {parent.name})"
 
         cands = self._finder.find_all_candidates(req.project_name)
-        skips = self._finder.logged_links_rp()
+        skips = self._finder.skipped_links_requires_python()
         versions = [str(v) for v in sorted({c.version for c in cands})]
 
         logger.critical(
