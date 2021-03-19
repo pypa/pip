@@ -863,28 +863,6 @@ class PackageFinder:
         )
 
     @staticmethod
-    def _sort_links_static(links):
-        # type: (Iterable[Link]) -> List[Link]
-        eggs, no_eggs = [], []
-        seen = set()  # type: Set[Link]
-        for link in links:
-            if link not in seen:
-                seen.add(link)
-                if link.egg_fragment:
-                    eggs.append(link)
-                else:
-                    no_eggs.append(link)
-        return no_eggs + eggs
-
-    def _sort_links(self, links):
-        # type: (Iterable[Link]) -> List[Link]
-        """
-        Returns elements of links in order, non-egg links first, egg links
-        second, while eliminating duplicates
-        """
-        return PackageFinder._sort_links_static(links)
-
-    @staticmethod
     def _log_skipped_link_static(package_finder_tuple, link, reason):
         # type: (PackageFinderTuple, Link, str) -> None
         if link not in package_finder_tuple.logged_links:
@@ -895,10 +873,10 @@ class PackageFinder:
 
     def _log_skipped_link(self, link, reason):
         # type: (Link, str) -> None
-        PackageFinder._log_skipped_link_static(self.get_state_as_tuple(), link, reason)
+        self._log_skipped_link_static(self.get_state_as_tuple(), link, reason)
 
     @staticmethod
-    def get_install_candidate_static(
+    def _get_install_candidate_static(
         package_finder_tuple,   # type: PackageFinderTuple
         link_evaluator_tuple,   # type: LinkEvaluatorTuple
         link                    # type: Link
@@ -929,22 +907,33 @@ class PackageFinder:
         If the link is a candidate for install, convert it to an
         InstallationCandidate and return it. Otherwise, return None.
         """
-        return PackageFinder.get_install_candidate_static(
+        return self._get_install_candidate_static(
             self.get_state_as_tuple(),
             link_evaluator.get_state_as_tuple(),
             link
         )
 
     @staticmethod
-    def evaluate_links_static(
+    def _evaluate_links_static(
         package_finder_tuple,   # type: PackageFinderTuple
         link_evaluator_tuple,   # type: LinkEvaluatorTuple
         links                   # type: Iterable[Link]
     ):
         # type: (...) -> List[InstallationCandidate]
         candidates = []
-        for link in PackageFinder._sort_links_static(links):
-            candidate = PackageFinder.get_install_candidate_static(
+
+        eggs, no_eggs = [], []
+        seen = set()  # type: Set[Link]
+        for link in links:
+            if link not in seen:
+                seen.add(link)
+                if link.egg_fragment:
+                    eggs.append(link)
+                else:
+                    no_eggs.append(link)
+        links = no_eggs + eggs
+        for link in links:
+            candidate = PackageFinder._get_install_candidate_static(
                 package_finder_tuple,
                 link_evaluator_tuple,
                 link
@@ -959,14 +948,14 @@ class PackageFinder:
         """
         Convert links that are candidates to InstallationCandidate objects.
         """
-        return PackageFinder.evaluate_links_static(
+        return self._evaluate_links_static(
             self.get_state_as_tuple(),
             link_evaluator.get_state_as_tuple(),
             links
         )
 
     @staticmethod
-    def process_project_url_static(
+    def _process_project_url_static(
         package_finder_tuple,   # type: PackageFinderTuple
         project_url,            # type: Link
         link_evaluator_tuple    # type: LinkEvaluatorTuple
@@ -982,7 +971,7 @@ class PackageFinder:
         page_links = list(parse_links(html_page))
 
         with indent_log():
-            package_links = PackageFinder.evaluate_links_static(
+            package_links = PackageFinder._evaluate_links_static(
                 package_finder_tuple,
                 link_evaluator_tuple,
                 links=page_links,
@@ -992,7 +981,7 @@ class PackageFinder:
 
     def process_project_url(self, project_url, link_evaluator):
         # type: (Link, LinkEvaluator) -> List[InstallationCandidate]
-        return PackageFinder.process_project_url_static(
+        return self._process_project_url_static(
             self.get_state_as_tuple(),
             project_url,
             link_evaluator.get_state_as_tuple()
@@ -1000,7 +989,7 @@ class PackageFinder:
 
     @staticmethod
     @functools.lru_cache(maxsize=None)
-    def find_all_candidates_static(
+    def _find_all_candidates_static(
         package_finder_tuple,   # type: PackageFinderTuple
         link_evaluator_tuple,   # type: LinkEvaluatorTuple
         project_name            # type: str
@@ -1028,7 +1017,7 @@ class PackageFinder:
             project_name
         )
 
-        find_links_versions = PackageFinder.evaluate_links_static(
+        find_links_versions = PackageFinder._evaluate_links_static(
             package_finder_tuple,
             link_evaluator_tuple,
             links=collected_links.find_links,
@@ -1037,14 +1026,14 @@ class PackageFinder:
         # Only needs link collector from package_finder
         page_versions = []
         for project_url in collected_links.project_urls:
-            package_links = PackageFinder.process_project_url_static(
+            package_links = PackageFinder._process_project_url_static(
                 package_finder_tuple,
                 project_url,
                 link_evaluator_tuple,
             )
             page_versions.extend(package_links)
 
-        file_versions = PackageFinder.evaluate_links_static(
+        file_versions = PackageFinder._evaluate_links_static(
             package_finder_tuple,
             link_evaluator_tuple,
             links=collected_links.files,
@@ -1072,7 +1061,33 @@ class PackageFinder:
         See LinkEvaluator.evaluate_link() for details on which files
         are accepted.
         """
-        return _find_all_candidates_cached(project_name)
+        link_evaluator = self.make_link_evaluator(project_name)
+
+        package_finder_tuple = self.get_state_as_tuple(immutable=True)
+        link_evaluator_tuple = link_evaluator.get_state_as_tuple()
+        return self._find_all_candidates_static(
+            package_finder_tuple,
+            link_evaluator_tuple,
+            project_name
+        )
+
+    @staticmethod
+    def _make_candidate_evaluator_static(
+        package_finder_tuple,   # type: PackageFinderTuple
+        project_name,           # type: str
+        specifier=None,         # type: Optional[specifiers.BaseSpecifier]
+        hashes=None,            # type: Optional[Hashes]
+    ):
+        # type: (...) -> CandidateEvaluator
+        candidate_prefs = package_finder_tuple.candidate_prefs
+        return CandidateEvaluator.create(
+            project_name=project_name,
+            target_python=package_finder_tuple.target_python,
+            prefer_binary=candidate_prefs.prefer_binary,
+            allow_all_prereleases=candidate_prefs.allow_all_prereleases,
+            specifier=specifier,
+            hashes=hashes,
+        )
 
     def make_candidate_evaluator(
         self,
@@ -1084,12 +1099,36 @@ class PackageFinder:
         """Create a CandidateEvaluator object to use.
         """
         package_finder_tuple = self.get_state_as_tuple()
-        return PackageFinder.make_candidate_evaluator_static(
+        return self._make_candidate_evaluator_static(
             package_finder_tuple,
             project_name,
             specifier,
             hashes
         )
+
+    @staticmethod
+    @functools.lru_cache(maxsize=None)
+    def _find_best_candidate_static(
+        package_finder_tuple,   # type: PackageFinderTuple
+        link_evaluator_tuple,   # type: LinkEvaluatorTuple
+        project_name,           # type: str
+        specifier=None,         # type: Optional[specifiers.BaseSpecifier]
+        hashes=None             # type: Optional[Hashes]
+    ):
+        # type: (...) -> BestCandidateResult
+        candidate_evaluator = PackageFinder._make_candidate_evaluator_static(
+            package_finder_tuple,
+            project_name,
+            specifier,
+            hashes
+        )
+        candidates = PackageFinder._find_all_candidates_static(
+            package_finder_tuple,
+            link_evaluator_tuple,
+            project_name
+        )
+
+        return candidate_evaluator.compute_best_candidate(candidates)
 
     def find_best_candidate(
         self,
@@ -1107,7 +1146,18 @@ class PackageFinder:
         :return: A `BestCandidateResult` instance, 
             called from a static function that caches function calls.
         """
-        return _find_best_candidate_cached(project_name, specifier, hashes)
+        link_evaluator = self.make_link_evaluator(project_name)
+
+        package_finder_tuple = self.get_state_as_tuple(immutable=True)
+        link_evaluator_tuple = link_evaluator.get_state_as_tuple()
+
+        return self._find_best_candidate_static(
+            package_finder_tuple,
+            link_evaluator_tuple,
+            project_name,
+            specifier,
+            hashes
+        )
 
     def find_requirement(self, req, upgrade):
         # type: (InstallRequirement, bool) -> Optional[InstallationCandidate]

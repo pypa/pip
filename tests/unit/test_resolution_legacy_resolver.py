@@ -185,7 +185,7 @@ class TestYankedWarning:
         finder = make_test_finder()
         monkeypatch.setattr(
             PackageFinder,
-            "find_all_candidates_static",
+            "_find_all_candidates_static",
             _find_candidates
         )
 
