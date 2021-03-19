@@ -397,6 +397,7 @@ class InstallCommand(RequirementCommand):
                 warn_script_location=warn_script_location,
                 use_user_site=options.use_user_site,
                 pycompile=options.compile,
+                parallel_install="parallel-install" in options.features_enabled
             )
 
             lib_locations = get_lib_location_guesses(

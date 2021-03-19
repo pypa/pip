@@ -707,3 +707,21 @@ def test_wheel_with_unknown_subdir_in_data_dir_has_reasonable_error(
         "install", "--no-index", str(wheel_path), expect_error=True
     )
     assert "simple-0.1.0.data/unknown/hello.txt" in result.stderr
+
+
+def test_install_from_wheel_in_parallel_installs_deps(script, data, tmpdir):
+    """
+    Test can install dependencies of wheels in parellel
+    """
+    # 'requires_source' depends on the 'source' project
+    package = data.packages.joinpath(
+        "requires_source-1.0-py2.py3-none-any.whl"
+    )
+    shutil.copy(data.packages / "source-1.0.tar.gz", tmpdir)
+    result = script.pip(
+        '-vvv',
+        'install',
+        '--use-feature=parallel-install',
+        '--no-index', '--find-links', tmpdir, package,
+    )
+    result.assert_installed('source', editable=False)

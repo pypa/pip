@@ -54,6 +54,7 @@ def install_given_reqs(
     warn_script_location,  # type: bool
     use_user_site,  # type: bool
     pycompile,  # type: bool
+    parallel_install=False,  # type: bool
 ):
     # type: (...) -> List[InstallationResult]
     """
@@ -86,10 +87,13 @@ def install_given_reqs(
 
     with indent_log():
         # get a list of packages we can install in parallel
-        should_parallel_reqs = [
-            (i, req) for i, req in enumerate(requirements)
-            if not req.should_reinstall and req.is_wheel
-        ]
+        if parallel_install:
+            should_parallel_reqs = [
+                (i, req) for i, req in enumerate(requirements)
+                if not req.should_reinstall and req.is_wheel
+            ]
+        else:
+            should_parallel_reqs = []
 
         if should_parallel_reqs:
             # prepare for parallel execution
@@ -114,6 +118,9 @@ def install_given_reqs(
             # or install serially now
             try:
                 installed_req = parallel_reqs_dict[i]
+                if isinstance(installed_req, InstallationResult):
+                    logger.debug(
+                        'Successfully installed %s in parallel', req.name)
             except KeyError:
                 installed_req = _single_install(
                     install_args, req, suppress_exception=False)
@@ -126,6 +133,7 @@ def install_given_reqs(
                 raise installed_req
             elif isinstance(installed_req, InstallationResult):
                 installed.append(installed_req)
+                logger.debug('Successfully installed %s serially', req.name)
 
     return installed
 
