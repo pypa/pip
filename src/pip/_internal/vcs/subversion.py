@@ -3,12 +3,10 @@ import os
 import re
 from typing import List, Optional, Tuple
 
-from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import (
     HiddenText,
     display_path,
     is_console_interactive,
-    rmtree,
     split_auth_from_netloc,
 )
 from pip._internal.utils.subprocess import CommandArgs, make_command
@@ -272,7 +270,6 @@ class Subversion(VersionControl):
         in this class.
 
             - checkout
-            - export
             - switch
             - update
 
@@ -296,23 +293,6 @@ class Subversion(VersionControl):
             return ['--force-interactive']
 
         return []
-
-    def export(self, location, url):
-        # type: (str, HiddenText) -> None
-        """Export the svn repository at the url to the destination location"""
-        url, rev_options = self.get_url_rev_options(url)
-
-        logger.info('Exporting svn repository %s to %s', url, location)
-        with indent_log():
-            if os.path.exists(location):
-                # Subversion doesn't like to check out over an existing
-                # directory --force fixes this, but was only added in svn 1.5
-                rmtree(location)
-            cmd_args = make_command(
-                'export', self.get_remote_call_options(),
-                rev_options.to_args(), url, location,
-            )
-            self.run_command(cmd_args, show_stdout=False)
 
     def fetch_new(self, dest, url, rev_options):
         # type: (str, HiddenText, RevOptions) -> None

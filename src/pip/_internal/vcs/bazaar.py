@@ -1,8 +1,7 @@
 import logging
-import os
 from typing import List, Optional, Tuple
 
-from pip._internal.utils.misc import HiddenText, display_path, rmtree
+from pip._internal.utils.misc import HiddenText, display_path
 from pip._internal.utils.subprocess import make_command
 from pip._internal.utils.urls import path_to_url
 from pip._internal.vcs.versioncontrol import (
@@ -29,21 +28,6 @@ class Bazaar(VersionControl):
     def get_base_rev_args(rev):
         # type: (str) -> List[str]
         return ['-r', rev]
-
-    def export(self, location, url):
-        # type: (str, HiddenText) -> None
-        """
-        Export the Bazaar repository at the url to the destination location
-        """
-        # Remove the location to make sure Bazaar can export it correctly
-        if os.path.exists(location):
-            rmtree(location)
-
-        url, rev_options = self.get_url_rev_options(url)
-        self.run_command(
-            make_command('export', location, url, rev_options.to_args()),
-            show_stdout=False,
-        )
 
     def fetch_new(self, dest, url, rev_options):
         # type: (str, HiddenText, RevOptions) -> None

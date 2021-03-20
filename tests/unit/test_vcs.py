@@ -570,14 +570,6 @@ class TestSubversionArgs(TestCase):
             hide_url('http://svn.example.com/'), '/tmp/test',
         ])
 
-    def test_export(self):
-        self.svn.export(self.dest, hide_url(self.url))
-        self.assert_call_args([
-            'svn', 'export', '--non-interactive', '--username', 'username',
-            '--password', hide_value('password'),
-            hide_url('http://svn.example.com/'), '/tmp/test',
-        ])
-
     def test_fetch_new(self):
         self.svn.fetch_new(self.dest, hide_url(self.url), self.rev_options)
         self.assert_call_args([

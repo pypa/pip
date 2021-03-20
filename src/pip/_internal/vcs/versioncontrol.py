@@ -376,16 +376,6 @@ class VersionControl:
         drive, tail = os.path.splitdrive(repo)
         return repo.startswith(os.path.sep) or bool(drive)
 
-    def export(self, location, url):
-        # type: (str, HiddenText) -> None
-        """
-        Export the repository at the url to the destination location
-        i.e. only download the files, without vcs informations
-
-        :param url: the repository URL starting with a vcs prefix.
-        """
-        raise NotImplementedError
-
     @classmethod
     def get_netloc_and_auth(cls, netloc, scheme):
         # type: (str, str) -> Tuple[str, Tuple[Optional[str], Optional[str]]]
@@ -448,8 +438,8 @@ class VersionControl:
     def get_url_rev_options(self, url):
         # type: (HiddenText) -> Tuple[HiddenText, RevOptions]
         """
-        Return the URL and RevOptions object to use in obtain() and in
-        some cases export(), as a tuple (url, rev_options).
+        Return the URL and RevOptions object to use in obtain(),
+        as a tuple (url, rev_options).
         """
         secret_url, rev, user_pass = self.get_url_rev_and_auth(url.secret)
         username, secret_password = user_pass
