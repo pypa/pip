@@ -180,7 +180,7 @@ class TestYankedWarning:
     """
     def _make_test_resolver(self, monkeypatch, mock_candidates):
         def _find_candidates(package_finder, link_evaluator, project_name):
-            return mock_candidates
+            return (mock_candidates, [])
 
         finder = make_test_finder()
         monkeypatch.setattr(
