@@ -7,7 +7,6 @@ pytest-cov
 pytest-rerunfailures
 pytest-timeout
 pytest-xdist
-pyyaml
 scripttest
 setuptools>=39.2.0  # Needed for `setuptools.wheel.Wheel` support.
 https://github.com/pypa/virtualenv/archive/legacy.zip#egg=virtualenv
