@@ -67,8 +67,12 @@ def make_install_req_from_link(link, template):
 def make_install_req_from_editable(link, template):
     # type: (Link, InstallRequirement) -> InstallRequirement
     assert template.editable, "template not editable"
+    if template.name:
+        req_string = f"{template.name} @ {link.url}"
+    else:
+        req_string = link.url
     return install_req_from_editable(
-        link.url,
+        req_string,
         user_supplied=template.user_supplied,
         comes_from=template.comes_from,
         use_pep517=template.use_pep517,
