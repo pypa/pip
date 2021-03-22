@@ -159,6 +159,7 @@ class Factory:
                         factory=self,
                         name=name,
                         version=version,
+                        extras=extras,
                     )
                 except (InstallationSubprocessError, MetadataInconsistent) as e:
                     logger.warning("Discarding %s. %s", link, e)
@@ -174,6 +175,7 @@ class Factory:
                         factory=self,
                         name=name,
                         version=version,
+                        extras=extras,
                     )
                 except (InstallationSubprocessError, MetadataInconsistent) as e:
                     logger.warning("Discarding %s. %s", link, e)

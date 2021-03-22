@@ -33,8 +33,8 @@ BaseCandidate = Union[
 ]
 
 
-def make_install_req_from_link(link, template):
-    # type: (Link, InstallRequirement) -> InstallRequirement
+def make_install_req_from_link(link, template, extras=None):
+    # type: (Link, InstallRequirement, Optional[Iterable[str]]) -> InstallRequirement
     assert not template.editable, "template is editable"
     if template.req:
         line = str(template.req)
@@ -52,14 +52,15 @@ def make_install_req_from_link(link, template):
             global_options=template.global_options,
             hashes=template.hash_options,
         ),
+        extras=extras,
     )
     ireq.original_link = template.original_link
     ireq.link = link
     return ireq
 
 
-def make_install_req_from_editable(link, template):
-    # type: (Link, InstallRequirement) -> InstallRequirement
+def make_install_req_from_editable(link, template, extras):
+    # type: (Link, InstallRequirement, Iterable[str]) -> InstallRequirement
     assert template.editable, "template not editable"
     return install_req_from_editable(
         link.url,
@@ -73,6 +74,7 @@ def make_install_req_from_editable(link, template):
             global_options=template.global_options,
             hashes=template.hash_options,
         ),
+        extras=extras,
     )
 
 
@@ -97,6 +99,7 @@ def make_install_req_from_dist(dist, template):
             global_options=template.global_options,
             hashes=template.hash_options,
         ),
+        extras=None,
     )
     ireq.satisfied_by = dist
     return ireq
@@ -264,6 +267,7 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
         factory,  # type: Factory
         name=None,  # type: Optional[NormalizedName]
         version=None,  # type: Optional[CandidateVersion]
+        extras=None,  # type: Optional[Iterable[str]]
     ):
         # type: (...) -> None
         source_link = link
@@ -271,7 +275,7 @@ class LinkCandidate(_InstallRequirementBackedCandidate):
         if cache_entry is not None:
             logger.debug("Using cached wheel link: %s", cache_entry.link)
             link = cache_entry.link
-        ireq = make_install_req_from_link(link, template)
+        ireq = make_install_req_from_link(link, template, extras=extras)
         assert ireq.link == link
         if ireq.link.is_wheel and not ireq.link.is_file:
             wheel = Wheel(ireq.link.filename)
@@ -317,12 +321,17 @@ class EditableCandidate(_InstallRequirementBackedCandidate):
         factory,  # type: Factory
         name=None,  # type: Optional[NormalizedName]
         version=None,  # type: Optional[CandidateVersion]
+        extras=None,  # type: Optional[Iterable[str]]
     ):
         # type: (...) -> None
         super().__init__(
             link=link,
             source_link=link,
-            ireq=make_install_req_from_editable(link, template),
+            ireq=make_install_req_from_editable(
+                link,
+                template,
+                extras if extras else set(),
+            ),
             factory=factory,
             name=name,
             version=version,

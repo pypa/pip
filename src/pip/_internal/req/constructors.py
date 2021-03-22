@@ -11,7 +11,7 @@ InstallRequirement.
 import logging
 import os
 import re
-from typing import Any, Dict, Optional, Set, Tuple, Union
+from typing import Any, Dict, Iterable, Optional, Set, Tuple, Union
 
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
@@ -204,6 +204,7 @@ def install_req_from_editable(
     options=None,  # type: Optional[Dict[str, Any]]
     constraint=False,  # type: bool
     user_supplied=False,  # type: bool
+    extras=None,  # type: Optional[Iterable[str]]
 ):
     # type: (...) -> InstallRequirement
 
@@ -221,7 +222,7 @@ def install_req_from_editable(
         install_options=options.get("install_options", []) if options else [],
         global_options=options.get("global_options", []) if options else [],
         hash_options=options.get("hashes", {}) if options else {},
-        extras=parts.extras,
+        extras=parts.extras | (set(extras) if extras else set()),
     )
 
 
@@ -382,6 +383,7 @@ def install_req_from_line(
     constraint=False,  # type: bool
     line_source=None,  # type: Optional[str]
     user_supplied=False,  # type: bool
+    extras=None,  # type: Optional[Iterable[str]]
 ):
     # type: (...) -> InstallRequirement
     """Creates an InstallRequirement from a name, which might be a
@@ -399,7 +401,7 @@ def install_req_from_line(
         global_options=options.get("global_options", []) if options else [],
         hash_options=options.get("hashes", {}) if options else {},
         constraint=constraint,
-        extras=parts.extras,
+        extras=parts.extras | (set(extras) if extras else set()),
         user_supplied=user_supplied,
     )
 
@@ -410,6 +412,7 @@ def install_req_from_req_string(
     isolated=False,  # type: bool
     use_pep517=None,  # type: Optional[bool]
     user_supplied=False,  # type: bool
+    extras=None,  # type: Optional[Iterable[str]]
 ):
     # type: (...) -> InstallRequirement
     try:
@@ -436,6 +439,7 @@ def install_req_from_req_string(
         isolated=isolated,
         use_pep517=use_pep517,
         user_supplied=user_supplied,
+        extras=extras if extras else set(),
     )
 
 
@@ -444,6 +448,7 @@ def install_req_from_parsed_requirement(
     isolated=False,  # type: bool
     use_pep517=None,  # type: Optional[bool]
     user_supplied=False,  # type: bool
+    extras=None,  # type: Optional[Iterable[str]]
 ):
     # type: (...) -> InstallRequirement
     if parsed_req.is_editable:
@@ -454,6 +459,7 @@ def install_req_from_parsed_requirement(
             constraint=parsed_req.constraint,
             isolated=isolated,
             user_supplied=user_supplied,
+            extras=extras,
         )
 
     else:
@@ -466,5 +472,6 @@ def install_req_from_parsed_requirement(
             constraint=parsed_req.constraint,
             line_source=parsed_req.line_source,
             user_supplied=user_supplied,
+            extras=extras,
         )
     return req

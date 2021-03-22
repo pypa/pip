@@ -788,6 +788,7 @@ class InstallRequirement:
                 warn_script_location=warn_script_location,
                 direct_url=direct_url,
                 requested=self.user_supplied,
+                extras=self.extras,
             )
             self.install_succeeded = True
             return

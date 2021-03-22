@@ -456,9 +456,23 @@ def _raise_for_invalid_entrypoint(specification):
 
 
 class PipScriptMaker(ScriptMaker):
+    def __init__(self, *args, **kwargs):
+        # type: (*Any, **Any) -> None
+        self.extras = kwargs.pop("extras", set())
+        super().__init__(*args, **kwargs)
+
     def make(self, specification, options=None):
         # type: (str, Dict[str, Any]) -> List[str]
         _raise_for_invalid_entrypoint(specification)
+        if self.extras is not None:
+            entry = get_export_entry(specification)
+            if entry.flags and not any(extra in entry.flags for extra in self.extras):
+                logger.debug(
+                    "Excluding script %r as requested extras are %r",
+                    specification,
+                    self.extras,
+                )
+                return []
         return super().make(specification, options)
 
 
@@ -471,6 +485,7 @@ def _install_wheel(
     warn_script_location=True,  # type: bool
     direct_url=None,  # type: Optional[DirectUrl]
     requested=False,  # type: bool
+    extras=None,  # type: Optional[Iterable[str]]
 ):
     # type: (...) -> None
     """Install a wheel.
@@ -696,7 +711,7 @@ def _install_wheel(
                         record_installed(pyc_record_path, pyc_path)
         logger.debug(stdout.getvalue())
 
-    maker = PipScriptMaker(None, scheme.scripts)
+    maker = PipScriptMaker(None, scheme.scripts, extras=extras)
 
     # Ensure old scripts are overwritten.
     # See https://github.com/pypa/pip/issues/1800
@@ -803,6 +818,7 @@ def install_wheel(
     warn_script_location=True,  # type: bool
     direct_url=None,  # type: Optional[DirectUrl]
     requested=False,  # type: bool
+    extras=None,  # type: Optional[Iterable[str]]
 ):
     # type: (...) -> None
     with ZipFile(wheel_path, allowZip64=True) as z:
@@ -816,4 +832,5 @@ def install_wheel(
                 warn_script_location=warn_script_location,
                 direct_url=direct_url,
                 requested=requested,
+                extras=extras,
             )
