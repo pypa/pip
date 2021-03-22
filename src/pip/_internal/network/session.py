@@ -295,7 +295,7 @@ class PipSession(requests.Session):
             # Add a small amount of back off between failed requests in
             # order to prevent hammering the service.
             backoff_factor=0.25,
-        )
+        )  # type: ignore
 
         # Our Insecure HTTPAdapter disables HTTPS validation. It does not
         # support caching so we'll use it for all http:// URLs.

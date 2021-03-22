@@ -1,5 +1,5 @@
 from pip._vendor.packaging.specifiers import SpecifierSet
-from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 
 from pip._internal.req.req_install import InstallRequirement
 
@@ -24,7 +24,7 @@ class ExplicitRequirement(Requirement):
 
     @property
     def project_name(self):
-        # type: () -> str
+        # type: () -> NormalizedName
         # No need to canonicalise - the candidate did this
         return self.candidate.project_name
 
@@ -67,7 +67,8 @@ class SpecifierRequirement(Requirement):
 
     @property
     def project_name(self):
-        # type: () -> str
+        # type: () -> NormalizedName
+        assert self._ireq.req, "Specifier-backed ireq is always PEP 508"
         return canonicalize_name(self._ireq.req.name)
 
     @property
@@ -96,14 +97,14 @@ class SpecifierRequirement(Requirement):
 
     def is_satisfied_by(self, candidate):
         # type: (Candidate) -> bool
-        assert (
-            candidate.name == self.name
-        ), "Internal issue: Candidate is not for this requirement " " {} vs {}".format(
-            candidate.name, self.name
+        assert candidate.name == self.name, (
+            f"Internal issue: Candidate is not for this requirement "
+            f"{candidate.name} vs {self.name}"
         )
         # We can safely always allow prereleases here since PackageFinder
         # already implements the prerelease logic, and would have filtered out
         # prerelease candidates if the user does not expect them.
+        assert self._ireq.req, "Specifier-backed ireq is always PEP 508"
         spec = self._ireq.req.specifier
         return spec.contains(candidate.version, prereleases=True)
 
@@ -129,7 +130,7 @@ class RequiresPythonRequirement(Requirement):
 
     @property
     def project_name(self):
-        # type: () -> str
+        # type: () -> NormalizedName
         return self._candidate.project_name
 
     @property
@@ -160,7 +161,7 @@ class UnsatisfiableRequirement(Requirement):
     """A requirement that cannot be satisfied."""
 
     def __init__(self, name):
-        # type: (str) -> None
+        # type: (NormalizedName) -> None
         self._name = name
 
     def __str__(self):
@@ -176,7 +177,7 @@ class UnsatisfiableRequirement(Requirement):
 
     @property
     def project_name(self):
-        # type: () -> str
+        # type: () -> NormalizedName
         return self._name
 
     @property

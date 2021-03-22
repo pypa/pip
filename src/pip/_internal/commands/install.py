@@ -49,7 +49,7 @@ def get_check_binary_allowed(format_control):
     # type: (FormatControl) -> BinaryAllowedPredicate
     def check_binary_allowed(req):
         # type: (InstallRequirement) -> bool
-        canonical_name = canonicalize_name(req.name)
+        canonical_name = canonicalize_name(req.name or "")
         allowed_formats = format_control.get_allowed_formats(canonical_name)
         return "binary" in allowed_formats
 

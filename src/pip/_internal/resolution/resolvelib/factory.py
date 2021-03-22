@@ -15,8 +15,7 @@ from typing import (
 )
 
 from pip._vendor.packaging.specifiers import SpecifierSet
-from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.packaging.version import _BaseVersion
+from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 from pip._vendor.pkg_resources import Distribution
 from pip._vendor.resolvelib import ResolutionImpossible
 
@@ -44,7 +43,7 @@ from pip._internal.utils.misc import (
 )
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
-from .base import Candidate, Constraint, Requirement
+from .base import Candidate, CandidateVersion, Constraint, Requirement
 from .candidates import (
     AlreadyInstalledCandidate,
     BaseCandidate,
@@ -139,8 +138,8 @@ class Factory:
         link,  # type: Link
         extras,  # type: FrozenSet[str]
         template,  # type: InstallRequirement
-        name,  # type: Optional[str]
-        version,  # type: Optional[_BaseVersion]
+        name,  # type: Optional[NormalizedName]
+        version,  # type: Optional[CandidateVersion]
     ):
         # type: (...) -> Optional[Candidate]
         # TODO: Check already installed candidate, and use it if the link and
@@ -202,10 +201,12 @@ class Factory:
         # all of them.
         # Hopefully the Project model can correct this mismatch in the future.
         template = ireqs[0]
+        assert template.req, "Candidates found on index must be PEP 508"
         name = canonicalize_name(template.req.name)
 
         extras = frozenset()  # type: FrozenSet[str]
         for ireq in ireqs:
+            assert ireq.req, "Candidates found on index must be PEP 508"
             specifier &= ireq.req.specifier
             hashes &= ireq.hashes(trust_internet=False)
             extras |= frozenset(ireq.extras)
@@ -368,7 +369,7 @@ class Factory:
     def get_dist_to_uninstall(self, candidate):
         # type: (Candidate) -> Optional[Distribution]
         # TODO: Are there more cases this needs to return True? Editable?
-        dist = self._installed_dists.get(candidate.name)
+        dist = self._installed_dists.get(candidate.project_name)
         if dist is None:  # Not installed, no uninstallation required.
             return None
 

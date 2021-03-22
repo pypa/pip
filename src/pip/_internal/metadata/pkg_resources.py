@@ -3,14 +3,13 @@ from typing import Iterator, List, Optional
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.packaging.version import _BaseVersion
 from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.utils import misc  # TODO: Move definition here.
 from pip._internal.utils.packaging import get_installer
 from pip._internal.utils.wheel import pkg_resources_distribution_for_wheel
 
-from .base import BaseDistribution, BaseEnvironment
+from .base import BaseDistribution, BaseEnvironment, DistributionVersion
 
 
 class Distribution(BaseDistribution):
@@ -45,7 +44,7 @@ class Distribution(BaseDistribution):
 
     @property
     def version(self):
-        # type: () -> _BaseVersion
+        # type: () -> DistributionVersion
         return parse_version(self._dist.version)
 
     @property
