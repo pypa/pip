@@ -334,11 +334,25 @@ class Configuration:
     def get_environ_vars(self):
         # type: () -> Iterable[Tuple[str, str]]
         """Returns a generator with all environmental vars with prefix PIP_"""
-        for key, val in os.environ.items():
-            if key.startswith("PIP_"):
+        if sys.platform == 'OpenVMS':
+            # OpenVMS emulates environment via logicals
+            # there is no convenient way to translate logical names by mask
+            import re
+            out_stream = os.popen('SHOW LOGICAL PIP_*')
+            data = out_stream.read()
+            out_stream.close()
+            rgx = re.compile(r'\"(.*?)\" = \"(.*?)\"')
+            found = rgx.findall(data)
+            for key, val in found:
                 name = key[4:].lower()
                 if name not in ENV_NAMES_IGNORED:
                     yield name, val
+        else:
+            for key, val in os.environ.items():
+                if key.startswith("PIP_"):
+                    name = key[4:].lower()
+                    if name not in ENV_NAMES_IGNORED:
+                        yield name, val
 
     # XXX: This is patched in the tests.
     def iter_config_files(self):
