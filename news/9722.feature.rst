@@ -1,0 +1,1 @@
+OpenVMS support. Logical name translation by mask is done by DCL command.
