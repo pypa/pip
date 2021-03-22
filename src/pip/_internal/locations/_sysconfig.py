@@ -143,10 +143,13 @@ def get_scheme(
         python_xy = f"Python{sys.version_info.major}{sys.version_info.minor}"
         paths["scripts"] = os.path.join(base, python_xy, "Scripts")
 
+    # Substitute an empty name with "UNKNOWN" for distutils compatibility.
+    headers = os.path.join(paths["include"], dist_name or "UNKNOWN")
+
     scheme = Scheme(
         platlib=paths["platlib"],
         purelib=paths["purelib"],
-        headers=os.path.join(paths["include"], dist_name),
+        headers=headers,
         scripts=paths["scripts"],
         data=paths["data"],
     )
