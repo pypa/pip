@@ -456,6 +456,8 @@ class Factory:
             and not cause.requirement.is_satisfied_by(self._python_candidate)
         ]
         if requires_python_causes:
+            # The comprehension above makes sure all Requirement instances are
+            # RequiresPythonRequirement, so let's cast for convinience.
             return self._report_requires_python_error(
                 cast("Sequence[ConflictCause]", requires_python_causes),
             )
