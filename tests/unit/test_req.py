@@ -37,6 +37,7 @@ from pip._internal.req.req_file import (
 )
 from pip._internal.req.req_tracker import get_requirement_tracker
 from pip._internal.resolution.legacy.resolver import Resolver
+from pip._internal.utils.misc import redact_auth_from_url
 from pip._internal.utils.urls import path_to_url
 from tests.lib import assert_raises_regexp, make_test_finder, requirements_file
 
@@ -348,7 +349,9 @@ class TestInstallRequirement:
         parts = str(req.req).split('@', 1)
         assert len(parts) == 2
         assert parts[0].strip() == 'foo'
-        assert parts[1].strip() == url
+        # Requirements should be redacted
+        assert parts[1].strip() == redact_auth_from_url(url)
+        assert req.link.url == url
 
     def test_url_with_authentication_link_requirement(self):
         url = 'https://what@whatever.com/test-0.4-py2.py3-bogus-any.whl'
