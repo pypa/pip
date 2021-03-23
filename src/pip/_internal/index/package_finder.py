@@ -4,6 +4,7 @@
 # mypy: strict-optional=False
 
 import functools
+import itertools
 import logging
 import re
 from typing import FrozenSet, Iterable, List, Optional, Set, Tuple, Union
@@ -804,38 +805,41 @@ class PackageFinder:
         See LinkEvaluator.evaluate_link() for details on which files
         are accepted.
         """
-        collected_links = self._link_collector.collect_links(project_name)
-
         link_evaluator = self.make_link_evaluator(project_name)
 
-        find_links_versions = self.evaluate_links(
-            link_evaluator,
-            links=collected_links.find_links,
+        collected_sources = self._link_collector.collect_sources(
+            project_name=project_name,
+            candidates_from_page=functools.partial(
+                self.process_project_url,
+                link_evaluator=link_evaluator,
+            ),
         )
 
-        page_versions = []
-        for project_url in collected_links.project_urls:
-            package_links = self.process_project_url(
-                project_url, link_evaluator=link_evaluator,
-            )
-            page_versions.extend(package_links)
-
-        file_versions = self.evaluate_links(
-            link_evaluator,
-            links=collected_links.files,
+        page_candidates_it = itertools.chain.from_iterable(
+            source.page_candidates()
+            for sources in collected_sources
+            for source in sources
+            if source is not None
         )
-        if file_versions:
-            file_versions.sort(reverse=True)
-            logger.debug(
-                'Local files found: %s',
-                ', '.join([
-                    url_to_path(candidate.link.url)
-                    for candidate in file_versions
-                ])
-            )
+        page_candidates = list(page_candidates_it)
+
+        file_links_it = itertools.chain.from_iterable(
+            source.file_links()
+            for sources in collected_sources
+            for source in sources
+            if source is not None
+        )
+        file_candidates = self.evaluate_links(
+            link_evaluator,
+            sorted(file_links_it, reverse=True),
+        )
+
+        if logger.isEnabledFor(logging.DEBUG) and file_candidates:
+            paths = [url_to_path(c.link.url) for c in file_candidates]
+            logger.debug("Local files found: %s", ", ".join(paths))
 
         # This is an intentional priority ordering
-        return file_versions + find_links_versions + page_versions
+        return file_candidates + page_candidates
 
     def make_candidate_evaluator(
         self,
