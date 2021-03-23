@@ -1,0 +1,2 @@
+Only install ``console_scripts`` ``entrypoints`` that are flagged with an
+``extra`` if the ``extra`` is being installed.
