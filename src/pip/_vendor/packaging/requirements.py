@@ -146,7 +146,8 @@ class Requirement(object):
             parts.append(str(self.specifier))
 
         if self.url:
-            parts.append("@ {0}".format(self.url))
+            from pip._internal.utils.misc import redact_auth_from_url
+            parts.append("@ {0}".format(redact_auth_from_url(self.url)))
             if self.marker:
                 parts.append(" ")
 
