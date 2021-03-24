@@ -1,0 +1,1 @@
+Fix error while checking for conflicts when calling evaluate function
