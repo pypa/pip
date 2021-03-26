@@ -5,7 +5,6 @@ pretend
 pytest
 pytest-cov
 pytest-rerunfailures
-pytest-timeout
 pytest-xdist
 pyyaml
 scripttest
