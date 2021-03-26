@@ -124,6 +124,7 @@ def install_given_reqs(
             except KeyError:
                 installed_req = _single_install(
                     install_args, req, suppress_exception=False)
+                logger.debug('Successfully installed %s serially', req.name)
 
             # Now processes the installation result,
             # throw exception or add into installed packages
@@ -133,7 +134,6 @@ def install_given_reqs(
                 raise installed_req
             elif isinstance(installed_req, InstallationResult):
                 installed.append(installed_req)
-                logger.debug('Successfully installed %s serially', req.name)
 
     return installed
 

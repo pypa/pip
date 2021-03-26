@@ -711,7 +711,7 @@ def test_wheel_with_unknown_subdir_in_data_dir_has_reasonable_error(
 
 def test_install_from_wheel_in_parallel_installs_deps(script, data, tmpdir):
     """
-    Test can install dependencies of wheels in parellel
+    Test can install dependencies of wheels in parallel
     """
     # 'requires_source' depends on the 'source' project
     package = data.packages.joinpath(
@@ -723,5 +723,12 @@ def test_install_from_wheel_in_parallel_installs_deps(script, data, tmpdir):
         'install',
         '--use-feature=parallel-install',
         '--no-index', '--find-links', tmpdir, package,
+        expect_stderr=True,
     )
+    log_messages = [
+        msg for msg in result.stdout.split('\n')
+        if msg.lstrip().startswith('Successfully installed ')]
+    assert len(log_messages) == 3
+    assert 'serially' in log_messages[0]
+    assert 'parallel' in log_messages[1]
     result.assert_installed('source', editable=False)
