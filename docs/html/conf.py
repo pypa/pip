@@ -5,6 +5,7 @@ import os
 import pathlib
 import re
 import sys
+from typing import List, Tuple
 
 # Add the docs/ directory to sys.path, because pip_sphinxext.py is there.
 docs_dir = os.path.dirname(os.path.dirname(__file__))
@@ -93,10 +94,10 @@ html_use_index = False
 
 
 # List of manual pages generated
-def determine_man_pages():
+def determine_man_pages() -> List[Tuple[str, str, str, str, int]]:
     """Determine which man pages need to be generated."""
 
-    def to_document_name(path, base_dir):
+    def to_document_name(path: str, base_dir: str) -> str:
         """Convert a provided path to a Sphinx "document name"."""
         relative_path = os.path.relpath(path, base_dir)
         root, _ = os.path.splitext(relative_path)
