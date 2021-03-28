@@ -285,7 +285,7 @@ An issue may be considered resolved and closed when:
     - already tracked by another issue
 
   - A project-specific issue has been identified and the issue no
-    longer occurs as of the latest commit on the master branch.
+    longer occurs as of the latest commit on the main branch.
 
 - An enhancement or feature request no longer has a proponent and the maintainers
   don't think it's worth keeping open.

@@ -105,5 +105,5 @@ Within ``src/``:
 
 .. _`tracking issue`: https://github.com/pypa/pip/issues/6831
 .. _GitHub repository: https://github.com/pypa/pip/
-.. _tox.ini: https://github.com/pypa/pip/blob/master/tox.ini
+.. _tox.ini: https://github.com/pypa/pip/blob/main/tox.ini
 .. _improving the pip dependency resolver: https://github.com/pypa/pip/issues/988
