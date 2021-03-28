@@ -51,7 +51,6 @@ The ``README``, license, ``pyproject.toml``, ``setup.py``, and so on are in the 
   * ``functional/`` *[functional tests of pip’s CLI -- end-to-end, invoke pip in subprocess & check results of execution against desired result. This also is what makes test suite slow]*
   * ``lib/`` *[helpers for tests]*
   * ``unit/`` *[unit tests -- fast and small and nice!]*
-  * ``yaml/`` *[resolver tests! They’re written in YAML. This folder just contains .yaml files -- actual code for reading/running them is in lib/yaml.py . This is fine!]*
 
 * ``tools`` *[misc development workflow tools, like requirements files & Travis CI files & helpers for tox]*
 * ``.azure-pipelines``

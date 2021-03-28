@@ -34,7 +34,6 @@ repos:
         ^tools/|
         # Tests
         ^tests/conftest.py|
-        ^tests/yaml|
         ^tests/lib|
         ^tests/data|
         ^tests/unit|
@@ -44,7 +43,6 @@ repos:
         ^setup.py|
         # A blank ignore, to avoid merge conflicts later.
         ^$
-
 
 - repo: https://gitlab.com/pycqa/flake8
   rev: 3.8.4
