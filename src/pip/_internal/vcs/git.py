@@ -255,7 +255,7 @@ class Git(VersionControl):
         # type: (str, HiddenText, RevOptions) -> None
         rev_display = rev_options.to_display()
         logger.info('Cloning %s%s to %s', url, rev_display, display_path(dest))
-        self.run_command(make_command('clone', '-q', url, dest))
+        self.run_command(make_command('clone', '-q', '--filter=tree:0', url, dest))
 
         if rev_options.rev:
             # Then a specific revision was requested.
