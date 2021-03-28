@@ -45,6 +45,7 @@ def install_given_reqs(
     warn_script_location,  # type: bool
     use_user_site,  # type: bool
     pycompile,  # type: bool
+    maker_executable,  # type: Optional[str]
 ):
     # type: (...) -> List[InstallationResult]
     """
@@ -83,6 +84,7 @@ def install_given_reqs(
                     warn_script_location=warn_script_location,
                     use_user_site=use_user_site,
                     pycompile=pycompile,
+                    maker_executable=maker_executable,
                 )
             except Exception:
                 # if install did not succeed, rollback previous uninstall

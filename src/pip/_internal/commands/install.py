@@ -215,6 +215,15 @@ class InstallCommand(RequirementCommand):
         self.cmd_opts.add_option(cmdoptions.require_hashes())
         self.cmd_opts.add_option(cmdoptions.progress_bar())
 
+        # string (not file) to allow just "python.exe" on Windows
+        self.cmd_opts.add_option(
+            '--maker-executable',
+            dest='maker_executable',
+            metavar='string',
+            default=None,
+            help="Overwrite the path to the Python executable in "
+                 "launcher scripts to this string (wheels only).")
+
         index_opts = cmdoptions.make_option_group(
             cmdoptions.index_group,
             self.parser,
@@ -400,6 +409,7 @@ class InstallCommand(RequirementCommand):
                 warn_script_location=warn_script_location,
                 use_user_site=options.use_user_site,
                 pycompile=options.compile,
+                maker_executable=options.maker_executable,
             )
 
             lib_locations = get_lib_location_guesses(

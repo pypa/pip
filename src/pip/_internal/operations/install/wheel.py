@@ -471,6 +471,7 @@ def _install_wheel(
     warn_script_location=True,  # type: bool
     direct_url=None,  # type: Optional[DirectUrl]
     requested=False,  # type: bool
+    maker_executable=None,  # type: Optional[str]
 ):
     # type: (...) -> None
     """Install a wheel.
@@ -698,6 +699,9 @@ def _install_wheel(
 
     maker = PipScriptMaker(None, scheme.scripts)
 
+    if maker_executable:
+        maker.executable = maker_executable  # type: ignore
+
     # Ensure old scripts are overwritten.
     # See https://github.com/pypa/pip/issues/1800
     maker.clobber = True
@@ -803,6 +807,7 @@ def install_wheel(
     warn_script_location=True,  # type: bool
     direct_url=None,  # type: Optional[DirectUrl]
     requested=False,  # type: bool
+    maker_executable=None,  # type: Optional[str]
 ):
     # type: (...) -> None
     with ZipFile(wheel_path, allowZip64=True) as z:
@@ -816,4 +821,5 @@ def install_wheel(
                 warn_script_location=warn_script_location,
                 direct_url=direct_url,
                 requested=requested,
+                maker_executable=maker_executable,
             )

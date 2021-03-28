@@ -106,6 +106,7 @@ class InstallRequirement:
         constraint=False,  # type: bool
         extras=(),  # type: Iterable[str]
         user_supplied=False,  # type: bool
+        maker_executable=None,  # type: Optional[str]
     ):
         # type: (...) -> None
         assert req is None or isinstance(req, Requirement), req
@@ -114,6 +115,7 @@ class InstallRequirement:
         self.constraint = constraint
         self.editable = editable
         self.legacy_install_reason = None  # type: Optional[int]
+        self.maker_executable = maker_executable
 
         # source_dir is the local directory where the linked requirement is
         # located, or unpacked. In case unpacking is needed, creating and
@@ -741,7 +743,8 @@ class InstallRequirement:
         prefix=None,  # type: Optional[str]
         warn_script_location=True,  # type: bool
         use_user_site=False,  # type: bool
-        pycompile=True  # type: bool
+        pycompile=True,  # type: bool
+        maker_executable=None,  # type: Optional[str]
     ):
         # type: (...) -> None
         scheme = get_scheme(
@@ -788,6 +791,7 @@ class InstallRequirement:
                 warn_script_location=warn_script_location,
                 direct_url=direct_url,
                 requested=self.user_supplied,
+                maker_executable=maker_executable,
             )
             self.install_succeeded = True
             return
