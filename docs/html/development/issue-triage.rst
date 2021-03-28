@@ -229,7 +229,7 @@ Examples:
   (`link <https://github.com/pypa/pip/issues/6498#issuecomment-513501112>`__)
 - get-pip on system with no ``/usr/lib64``
   (`link <https://github.com/pypa/pip/issues/5379#issuecomment-515270576>`__)
-- reproducing with ``pip`` from master branch
+- reproducing with ``pip`` from current development branch
   (`link <https://github.com/pypa/pip/issues/6707#issue-467770959>`__)
 
 

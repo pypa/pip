@@ -448,7 +448,7 @@ Here are the supported forms::
 
 Passing a branch name, a commit hash, a tag name or a git ref is possible like so::
 
-    [-e] git+https://git.example.com/MyProject.git@master#egg=MyProject
+    [-e] git+https://git.example.com/MyProject.git@main#egg=MyProject
     [-e] git+https://git.example.com/MyProject.git@v1.0#egg=MyProject
     [-e] git+https://git.example.com/MyProject.git@da39a3ee5e6b4b0d3255bfef95601890afd80709#egg=MyProject
     [-e] git+https://git.example.com/MyProject.git@refs/pull/123/head#egg=MyProject
@@ -1062,7 +1062,7 @@ Examples
       .. code-block:: shell
 
          python -m pip install SomePackage[PDF]
-         python -m pip install "SomePackage[PDF] @ git+https://git.repo/SomePackage@master#subdirectory=subdir_path"
+         python -m pip install "SomePackage[PDF] @ git+https://git.repo/SomePackage@main#subdirectory=subdir_path"
          python -m pip install .[PDF]  # project in current directory
          python -m pip install SomePackage[PDF]==3.0
          python -m pip install SomePackage[PDF,EPUB]  # multiple extras
@@ -1072,7 +1072,7 @@ Examples
       .. code-block:: shell
 
          py -m pip install SomePackage[PDF]
-         py -m pip install "SomePackage[PDF] @ git+https://git.repo/SomePackage@master#subdirectory=subdir_path"
+         py -m pip install "SomePackage[PDF] @ git+https://git.repo/SomePackage@main#subdirectory=subdir_path"
          py -m pip install .[PDF]  # project in current directory
          py -m pip install SomePackage[PDF]==3.0
          py -m pip install SomePackage[PDF,EPUB]  # multiple extras
