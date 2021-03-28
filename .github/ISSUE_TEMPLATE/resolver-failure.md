@@ -7,9 +7,9 @@ labels: ["K: UX", "K: crash", "C: new resolver", "C: dependency resolution"]
 <!--
 Please provide as much information as you can about your failure, so that we can understand the root cause.
 
-Try if your issue has been fixed in the in-development version of pip. Use the following command to install pip from master:
+Try if your issue has been fixed in the in-development version of pip. Use the following command to install pip from the current development branch:
 
-    python -m pip install -U "pip @ https://github.com/pypa/pip/archive/master.zip"
+    python -m pip install -U "pip @ https://github.com/pypa/pip/archive/main.zip"
 -->
 
 **What did you want to do?**

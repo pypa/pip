@@ -1887,6 +1887,6 @@ announcements on the `low-traffic packaging announcements list`_ and
 .. _low-traffic packaging announcements list: https://mail.python.org/mailman3/lists/pypi-announce.python.org/
 .. _our survey on upgrades that create conflicts: https://docs.google.com/forms/d/e/1FAIpQLSeBkbhuIlSofXqCyhi3kGkLmtrpPOEBwr6iJA6SzHdxWKfqdA/viewform
 .. _the official Python blog: https://blog.python.org/
-.. _requests: https://requests.readthedocs.io/en/master/user/authentication/#netrc-authentication
+.. _requests: https://requests.readthedocs.io/en/latest/user/authentication/#netrc-authentication
 .. _Python standard library: https://docs.python.org/3/library/netrc.html
 .. _Python Windows launcher: https://docs.python.org/3/using/windows.html#launcher
