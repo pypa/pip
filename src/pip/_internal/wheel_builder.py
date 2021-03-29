@@ -187,7 +187,7 @@ def _verify_one(req, wheel_path):
     try:
         metadata_version = Version(metadata_version_value)
     except InvalidVersion:
-        msg = "Invalid Metadata-Version: {}".format(metadata_version_value)
+        msg = f"Invalid Metadata-Version: {metadata_version_value}"
         raise UnsupportedWheel(msg)
     if (metadata_version >= Version("1.2")
             and not isinstance(dist.version, Version)):
