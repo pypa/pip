@@ -514,7 +514,7 @@ class Factory:
                 relevant_constraints.add(req.name)
             msg = msg + "\n    "
             if parent:
-                msg = msg + "{} {} depends on ".format(parent.name, parent.version)
+                msg = msg + f"{parent.name} {parent.version} depends on "
             else:
                 msg = msg + "The user requested "
             msg = msg + req.format_for_error()
