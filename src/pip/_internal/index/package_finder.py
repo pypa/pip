@@ -434,7 +434,9 @@ class CandidateEvaluator:
         self._project_name = project_name
         self._specifier = specifier
         self._supported_tags = supported_tags
-        self._supported_tag_to_idx = {tag: idx for idx, tag in enumerate(supported_tags)}
+        self._supported_tag_to_idx = {
+            tag: idx for idx, tag in enumerate(supported_tags)
+        }
 
     def get_applicable_candidates(
         self,
@@ -515,7 +517,9 @@ class CandidateEvaluator:
             if self._prefer_binary:
                 binary_preference = 1
             try:
-                pri = -(wheel.support_index_min_fast(valid_tags, self._supported_tag_to_idx))
+                pri = -(wheel.support_index_min_fast(
+                    valid_tags, self._supported_tag_to_idx
+                ))
             except ValueError:
                 raise UnsupportedWheel(
                     "{} is not a supported wheel for this platform. It "

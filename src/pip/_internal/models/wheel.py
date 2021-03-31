@@ -2,7 +2,7 @@
 name that have meaning.
 """
 import re
-from typing import List
+from typing import Any, Dict, List, Set, Union
 
 from pip._vendor.packaging.tags import Tag
 
@@ -67,20 +67,16 @@ class Wheel:
         return min(tags.index(tag) for tag in self.file_tags if tag in tags)
 
     def support_index_min_fast(self, tags, tag_to_idx):
+        # type: (List[Tag], Dict[Tag, int]) -> int
         return min(tag_to_idx[tag] for tag in self.file_tags if tag in tag_to_idx)
 
     def supported(self, tags):
-        # type: (List[Tag]) -> bool
+        # type: (Union[List[Tag],Dict[Tag, Any],Set[Tag]]) -> bool
         """Return whether the wheel is compatible with one of the given tags.
 
         :param tags: the PEP 425 tags to check the wheel against.
         """
-        # not disjoint means has some overlap
-        # tags is a list (and long)
-        # file tags is a set (and short)
-        # print("len(tags)", len(tags), type(tags))
-        # print("len(file_tags)", len(self.file_tags), type(self.file_tags))
-        try:
-            return bool(self.file_tags & tags)
-        except TypeError:
-            return bool(self.file_tags & set(tags))
+        for itag in self.file_tags:
+            if itag in tags:
+                return True
+        return False
