@@ -1,5 +1,5 @@
 name: Bug report
-about: Something is not working correctly.
+description: Something is not working correctly.
 title: ""
 labels: "S: needs triage, type: bug"
 
