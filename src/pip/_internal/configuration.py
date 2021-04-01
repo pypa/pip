@@ -75,7 +75,14 @@ def get_configuration_files():
         for path in appdirs.site_config_dirs('pip')
     ]
 
-    site_config_file = os.path.join(sys.prefix, CONFIG_BASENAME)
+    site_config_files = [
+        os.path.join(sys.prefix, CONFIG_BASENAME)
+    ]
+    if getattr(sys, 'base_prefix', sys.prefix) != sys.prefix:
+        site_config_files.append(
+            os.path.join(sys.base_prefix, CONFIG_BASENAME),
+        )
+
     legacy_config_file = os.path.join(
         os.path.expanduser('~'),
         'pip' if WINDOWS else '.pip',
@@ -86,7 +93,7 @@ def get_configuration_files():
     )
     return {
         kinds.GLOBAL: global_config_files,
-        kinds.SITE: [site_config_file],
+        kinds.SITE: site_config_files,
         kinds.USER: [legacy_config_file, new_config_file],
     }
 

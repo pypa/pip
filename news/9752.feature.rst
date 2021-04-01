@@ -1,0 +1,1 @@
+Virtual environments may now inherit their pip config from the base environment.

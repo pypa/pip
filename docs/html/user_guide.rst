@@ -499,8 +499,8 @@ pip allows you to set all command line option defaults in a standard ini
 style config file.
 
 The names and locations of the configuration files vary slightly across
-platforms. You may have per-user, per-virtualenv or global (shared amongst
-all users) configuration:
+platforms. You may have per-user, per-site (e.g per virtualenv) or global
+(shared amongst all users) configuration:
 
 **Per-user**:
 
@@ -521,10 +521,12 @@ To find its location:
 You can set a custom path location for this config file using the environment
 variable ``PIP_CONFIG_FILE``.
 
-**Inside a virtualenv**:
+**Site (e.g inside a virtualenv)**
 
 * On Unix and macOS the file is :file:`$VIRTUAL_ENV/pip.conf`
 * On Windows the file is: :file:`%VIRTUAL_ENV%\\pip.ini`
+
+Additionally ``sys.base_prefix`` is searched for a pip config of the same name.
 
 **Global**:
 
@@ -546,7 +548,7 @@ the following order:
 
 1. The global file is read
 2. The per-user file is read
-3. The virtualenv-specific file is read
+3. The site file is read
 
 Each file read overrides any values read from previous files, so if the
 global timeout is specified in both the global file and the per-user file
