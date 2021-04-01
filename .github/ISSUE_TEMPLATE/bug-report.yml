@@ -9,8 +9,8 @@ body:
       label: Description
       description: >-
         A clear and concise description of what the bug is.
-      validations:
-        required: true
+    validations:
+      required: true
 
   - type: textarea
     attributes:
@@ -42,8 +42,8 @@ body:
         1. Get package from '...'
         2. Then run '...'
         3. An error occurs.
-      validations:
-        required: true
+    validations:
+      required: true
 
   - type: textarea
     attributes:
