@@ -174,7 +174,6 @@ def lint(session):
         args = session.posargs + ["--all-files"]
     else:
         args = ["--all-files", "--show-diff-on-failure"]
-    args.append("--hook-stage=manual")
 
     session.run("pre-commit", "run", *args)
 
