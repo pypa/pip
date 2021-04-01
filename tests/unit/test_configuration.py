@@ -189,10 +189,11 @@ class TestConfigurationModification(ConfigurationMixin):
 
         self.configuration.set_value("test.hello", "10")
 
-        # get the path to site config file
+        # get the path to site config file, mirroring the behaviour
+        # in _get_parser_to_modify.
         assert mymock.call_count == 1
         assert mymock.call_args[0][0] == (
-            get_configuration_files()[kinds.SITE][0]
+            get_configuration_files()[kinds.SITE][-1]
         )
 
     def test_user_modification(self):

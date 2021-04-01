@@ -75,13 +75,13 @@ def get_configuration_files():
         for path in appdirs.site_config_dirs('pip')
     ]
 
-    site_config_files = [
-        os.path.join(sys.prefix, CONFIG_BASENAME)
-    ]
+    site_config_files = []
     if getattr(sys, 'base_prefix', sys.prefix) != sys.prefix:
         site_config_files.append(
             os.path.join(sys.base_prefix, CONFIG_BASENAME),
         )
+    # A virtual environment config takes precedence over a base_prefix config.
+    site_config_files.append(os.path.join(sys.prefix, CONFIG_BASENAME))
 
     legacy_config_file = os.path.join(
         os.path.expanduser('~'),

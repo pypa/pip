@@ -1,4 +1,5 @@
 import os
+import sys
 from contextlib import contextmanager
 from tempfile import NamedTemporaryFile
 
@@ -433,12 +434,17 @@ class TestGeneralOptions(AddFakeCommandMixin):
 
 class TestOptionsConfigFiles:
 
-    def test_venv_config_file_found(self, monkeypatch):
+    @pytest.mark.parametrize("in_venv", (True, False))
+    def test_venv_config_file_found(self, monkeypatch, in_venv):
         # strict limit on the global config files list
         monkeypatch.setattr(
             pip._internal.utils.appdirs, 'site_config_dirs',
             lambda _: ['/a/place']
         )
+        if in_venv:
+            monkeypatch.setattr(sys, 'base_prefix', '/some/other/place')
+        else:
+            monkeypatch.setattr(sys, 'base_prefix', sys.prefix)
 
         cp = pip._internal.configuration.Configuration(isolated=False)
 
@@ -446,7 +452,11 @@ class TestOptionsConfigFiles:
         for _, val in cp.iter_config_files():
             files.extend(val)
 
-        assert len(files) == 4
+        if in_venv:
+            # With venvs we get the config from the base_prefix also.
+            assert len(files) == 5
+        else:
+            assert len(files) == 4
 
     @pytest.mark.parametrize(
         "args, expect",
