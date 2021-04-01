@@ -47,7 +47,6 @@ setup(
         "Programming Language :: Python :: Implementation :: PyPy",
     ],
     url="https://pip.pypa.io/",
-    keywords="distutils easy_install egg setuptools wheel virtualenv",
     project_urls={
         "Documentation": "https://pip.pypa.io",
         "Source": "https://github.com/pypa/pip",
