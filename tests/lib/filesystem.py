@@ -43,6 +43,4 @@ def get_filelist(base):
             (join_dirpath(p) for p in filenames),
         )
 
-    return set(chain.from_iterable(
-        join(*dirinfo) for dirinfo in os.walk(base)
-    ))
+    return set(chain.from_iterable(join(*dirinfo) for dirinfo in os.walk(base)))
