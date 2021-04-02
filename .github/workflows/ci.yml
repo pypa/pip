@@ -92,9 +92,6 @@ jobs:
           - 3.7
           - 3.8
           - 3.9
-        include:
-          - os: Ubuntu
-            python: pypy3
 
     steps:
       - uses: actions/checkout@v2
