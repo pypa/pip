@@ -253,6 +253,7 @@ class Retry(object):
                 "Using 'method_whitelist' with Retry is deprecated and "
                 "will be removed in v2.0. Use 'allowed_methods' instead",
                 DeprecationWarning,
+                stacklevel=2,
             )
             allowed_methods = method_whitelist
         if allowed_methods is _Default:
