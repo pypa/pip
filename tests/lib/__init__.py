@@ -1128,7 +1128,7 @@ def create_basic_sdist_for_package(script, name, version, extra_files=None):
     }
 
     # Some useful shorthands
-    archive_name = "{name}-{version}.tar.gz".format(name=name, version=version)
+    archive_name = f"{name}-{version}.tar.gz"
 
     # Replace key-values with formatted values
     for key, value in list(files.items()):

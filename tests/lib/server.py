@@ -188,7 +188,7 @@ def html5_page(text):
 def index_page(spec):
     # type: (Dict[str, str]) -> Responder
     def link(name, value):
-        return '<a href="{}">{}</a>'.format(value, name)
+        return f'<a href="{value}">{name}</a>'
 
     links = "".join(link(*kv) for kv in spec.items())
     return text_html_response(html5_page(links))
@@ -197,7 +197,7 @@ def index_page(spec):
 def package_page(spec):
     # type: (Dict[str, str]) -> Responder
     def link(name, value):
-        return '<a href="{}">{}</a>'.format(value, name)
+        return f'<a href="{value}">{name}</a>'
 
     links = "".join(link(*kv) for kv in spec.items())
     return text_html_response(html5_page(links))
