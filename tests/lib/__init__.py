@@ -306,13 +306,14 @@ class TestPipResult:
                 expected_ending = pkg_dir + "\n."
                 raise TestFailure(
                     textwrap.dedent(
-                        f"""\
-                    Incorrect egg_link file {egg_link_file!r}
-                    Expected ending: {expected_ending!r}
-                    ------- Actual contents -------
-                    {egg_link_contents!r}
-                    -------------------------------"""
-                    )
+                        f"""
+                        Incorrect egg_link file {egg_link_file!r}
+                        Expected ending: {expected_ending!r}
+                        ------- Actual contents -------
+                        {egg_link_contents!r}
+                        -------------------------------
+                        """
+                    ).strip()
                 )
 
         if use_user_site:
@@ -329,11 +330,11 @@ class TestPipResult:
             files = sorted(self.files_created)
             raise TestFailure(
                 textwrap.dedent(
-                    f"""\
-            expected package directory {pkg_dir!r} {maybe}to be created
-            actually created:
-            {files}
-            """
+                    f"""
+                    expected package directory {pkg_dir!r} {maybe}to be created
+                    actually created:
+                    {files}
+                    """
                 )
             )
 
@@ -758,12 +759,10 @@ def _create_main_file(dir_path, name=None, output=None):
     if output is None:
         output = "0.1"
     text = textwrap.dedent(
-        """\
-    def main():
-        print({!r})
-    """.format(
-            output
-        )
+        f"""
+        def main():
+            print({output!r})
+        """
     )
     filename = f"{name}.py"
     dir_path.joinpath(filename).write_text(text)
@@ -864,13 +863,16 @@ def _create_test_package_with_subdirectory(script, subdirectory):
     version_pkg_path.joinpath("setup.py").write_text(
         textwrap.dedent(
             """
-    from setuptools import setup, find_packages
-    setup(name='version_pkg',
-          version='0.1',
-          packages=find_packages(),
-          py_modules=['version_pkg'],
-          entry_points=dict(console_scripts=['version_pkg=version_pkg:main']))
-        """
+            from setuptools import setup, find_packages
+
+            setup(
+                name="version_pkg",
+                version="0.1",
+                packages=find_packages(),
+                py_modules=["version_pkg"],
+                entry_points=dict(console_scripts=["version_pkg=version_pkg:main"]),
+            )
+            """
         )
     )
 
@@ -881,13 +883,16 @@ def _create_test_package_with_subdirectory(script, subdirectory):
     subdirectory_path.joinpath("setup.py").write_text(
         textwrap.dedent(
             """
-from setuptools import setup, find_packages
-setup(name='version_subpkg',
-      version='0.1',
-      packages=find_packages(),
-      py_modules=['version_subpkg'],
-      entry_points=dict(console_scripts=['version_pkg=version_subpkg:main']))
-        """
+            from setuptools import find_packages, setup
+
+            setup(
+                name="version_subpkg",
+                version="0.1",
+                packages=find_packages(),
+                py_modules=["version_subpkg"],
+                entry_points=dict(console_scripts=["version_pkg=version_subpkg:main"]),
+            )
+            """
         )
     )
 
@@ -911,14 +916,14 @@ def _create_test_package_with_srcdir(script, name="version_pkg", vcs="git"):
     subdir_path.joinpath("setup.py").write_text(
         textwrap.dedent(
             """
-        from setuptools import setup, find_packages
-        setup(
-            name='{name}',
-            version='0.1',
-            packages=find_packages(),
-            package_dir={{'': 'src'}},
-        )
-    """.format(
+                from setuptools import setup, find_packages
+                setup(
+                    name="{name}",
+                    version="0.1",
+                    packages=find_packages(),
+                    package_dir={{"": "src"}},
+                )
+            """.format(
                 name=name
             )
         )
@@ -933,15 +938,15 @@ def _create_test_package(script, name="version_pkg", vcs="git"):
     version_pkg_path.joinpath("setup.py").write_text(
         textwrap.dedent(
             """
-        from setuptools import setup, find_packages
-        setup(
-            name='{name}',
-            version='0.1',
-            packages=find_packages(),
-            py_modules=['{name}'],
-            entry_points=dict(console_scripts=['{name}={name}:main'])
-        )
-    """.format(
+                from setuptools import setup, find_packages
+                setup(
+                    name="{name}",
+                    version="0.1",
+                    packages=find_packages(),
+                    py_modules=["{name}"],
+                    entry_points=dict(console_scripts=["{name}={name}:main"]),
+                )
+            """.format(
                 name=name
             )
         )
@@ -1007,10 +1012,10 @@ def create_test_package_with_setup(script, **setup_kwargs):
     pkg_path.joinpath("setup.py").write_text(
         textwrap.dedent(
             f"""
-        from setuptools import setup
-        kwargs = {setup_kwargs!r}
-        setup(**kwargs)
-    """
+                from setuptools import setup
+                kwargs = {setup_kwargs!r}
+                setup(**kwargs)
+            """
         )
     )
     return pkg_path
