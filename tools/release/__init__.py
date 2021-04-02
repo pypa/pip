@@ -28,7 +28,7 @@ def get_version_from_arguments(session: Session) -> Optional[str]:
     cmd = [
         # https://github.com/theacodes/nox/pull/378
         os.path.join(session.bin, "python"),  # type: ignore
-        "tools/automation/release/check_version.py",
+        "tools/release/check_version.py",
         version
     ]
     not_ok = subprocess.run(cmd).returncode
