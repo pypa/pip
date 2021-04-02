@@ -310,7 +310,7 @@ class TestCandidateEvaluator:
             Tag('py3', 'any', 'none'),
         ]
         evaluator = CandidateEvaluator(
-            'my-project', supported_tags=valid_tags, specifier = SpecifierSet(),
+            'my-project', supported_tags=valid_tags, specifier=SpecifierSet(),
         )
         sort_key = evaluator._sort_key
         results = sorted(links, key=sort_key, reverse=True)

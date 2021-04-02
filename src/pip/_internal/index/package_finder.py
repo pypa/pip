@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 
 BuildTag = Union[Tuple[()], Tuple[int, str]]
 CandidateSortingKey = (
-    Tuple[int, int, int, _BaseVersion, BuildTag, Optional[int]]
+    Tuple[int, int, int, _BaseVersion, Optional[int], BuildTag]
 )
 
 
@@ -530,7 +530,7 @@ class CandidateEvaluator:
         yank_value = -1 * int(link.is_yanked)  # -1 for yanked.
         return (
             has_allowed_hash, yank_value, binary_preference, candidate.version,
-            pri, build_tag, 
+            pri, build_tag,
         )
 
     def sort_best_candidate(
