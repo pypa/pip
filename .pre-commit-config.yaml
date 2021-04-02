@@ -38,8 +38,6 @@ repos:
         ^tests/unit|
         ^tests/functional/(?!test_install)|
         ^tests/functional/test_install|
-        # Files in the root of the repository
-        ^setup.py|
         # A blank ignore, to avoid merge conflicts later.
         ^$
 
