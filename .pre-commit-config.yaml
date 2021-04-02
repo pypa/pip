@@ -87,3 +87,10 @@ repos:
   hooks:
   - id: check-manifest
     stages: [manual]
+
+- repo: https://github.com/asottile/pyupgrade
+  rev: v2.11.0
+  hooks:
+  - id: pyupgrade
+    args: [--py36-plus]
+    exclude: tests/data/packages/BrokenEmitsUTF8/setup.py

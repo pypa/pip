@@ -170,7 +170,7 @@ class Path(str):
             f.write(content)
 
     def read_text(self):
-        with open(self, "r") as fp:
+        with open(self) as fp:
             return fp.read()
 
     def write_text(self, content):
