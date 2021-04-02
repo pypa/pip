@@ -1,21 +1,11 @@
-===============
-Reference Guide
-===============
+:orphan:
 
-.. toctree::
-   :maxdepth: 2
+.. meta::
 
-   pip
-   pip_install
-   pip_download
-   pip_uninstall
-   pip_freeze
-   pip_list
-   pip_show
-   pip_search
-   pip_cache
-   pip_check
-   pip_config
-   pip_wheel
-   pip_hash
-   pip_debug
+  :http-equiv=refresh: 3; url=../cli/
+
+This page has moved
+===================
+
+You should be redirected automatically in 3 seconds. If that didn't
+work, here's a link: :doc:`../cli/index`
