@@ -12,15 +12,17 @@ for sub-dependencies
 
 # The following comment should be removed at some point in the future.
 # mypy: strict-optional=False
-# mypy: disallow-untyped-defs=False
 
 import logging
 import sys
 from collections import defaultdict
 from itertools import chain
+from typing import DefaultDict, Iterable, List, Optional, Set, Tuple
 
 from pip._vendor.packaging import specifiers
+from pip._vendor.pkg_resources import Distribution
 
+from pip._internal.cache import WheelCache
 from pip._internal.exceptions import (
     BestVersionAlreadyInstalled,
     DistributionNotFound,
@@ -28,30 +30,23 @@ from pip._internal.exceptions import (
     HashErrors,
     UnsupportedPythonVersion,
 )
-from pip._internal.req.req_install import check_invalid_constraint_type
+from pip._internal.index.package_finder import PackageFinder
+from pip._internal.models.link import Link
+from pip._internal.operations.prepare import RequirementPreparer
+from pip._internal.req.req_install import (
+    InstallRequirement,
+    check_invalid_constraint_type,
+)
 from pip._internal.req.req_set import RequirementSet
-from pip._internal.resolution.base import BaseResolver
+from pip._internal.resolution.base import BaseResolver, InstallRequirementProvider
 from pip._internal.utils.compatibility_tags import get_supported
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import dist_in_usersite, normalize_version_info
 from pip._internal.utils.packaging import check_requires_python, get_requires_python
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import DefaultDict, List, Optional, Set, Tuple
-
-    from pip._vendor.pkg_resources import Distribution
-
-    from pip._internal.cache import WheelCache
-    from pip._internal.index.package_finder import PackageFinder
-    from pip._internal.models.link import Link
-    from pip._internal.operations.prepare import RequirementPreparer
-    from pip._internal.req.req_install import InstallRequirement
-    from pip._internal.resolution.base import InstallRequirementProvider
-
-    DiscoveredDependencies = DefaultDict[str, List[InstallRequirement]]
 
 logger = logging.getLogger(__name__)
+
+DiscoveredDependencies = DefaultDict[str, List[InstallRequirement]]
 
 
 def _check_dist_requires_python(
@@ -75,31 +70,32 @@ def _check_dist_requires_python(
     requires_python = get_requires_python(dist)
     try:
         is_compatible = check_requires_python(
-            requires_python, version_info=version_info,
+            requires_python, version_info=version_info
         )
     except specifiers.InvalidSpecifier as exc:
         logger.warning(
-            "Package %r has an invalid Requires-Python: %s",
-            dist.project_name, exc,
+            "Package %r has an invalid Requires-Python: %s", dist.project_name, exc
         )
         return
 
     if is_compatible:
         return
 
-    version = '.'.join(map(str, version_info))
+    version = ".".join(map(str, version_info))
     if ignore_requires_python:
         logger.debug(
-            'Ignoring failed Requires-Python check for package %r: '
-            '%s not in %r',
-            dist.project_name, version, requires_python,
+            "Ignoring failed Requires-Python check for package %r: " "%s not in %r",
+            dist.project_name,
+            version,
+            requires_python,
         )
         return
 
     raise UnsupportedPythonVersion(
-        'Package {!r} requires a different Python: {} not in {!r}'.format(
-            dist.project_name, version, requires_python,
-        ))
+        "Package {!r} requires a different Python: {} not in {!r}".format(
+            dist.project_name, version, requires_python
+        )
+    )
 
 
 class Resolver(BaseResolver):
@@ -146,8 +142,9 @@ class Resolver(BaseResolver):
         self.use_user_site = use_user_site
         self._make_install_req = make_install_req
 
-        self._discovered_dependencies = \
-            defaultdict(list)  # type: DiscoveredDependencies
+        self._discovered_dependencies = defaultdict(
+            list
+        )  # type: DiscoveredDependencies
 
     def resolve(self, root_reqs, check_supported_wheels):
         # type: (List[InstallRequirement], bool) -> RequirementSet
@@ -161,9 +158,7 @@ class Resolver(BaseResolver):
         possible to move the preparation to become a step separated from
         dependency resolution.
         """
-        requirement_set = RequirementSet(
-            check_supported_wheels=check_supported_wheels
-        )
+        requirement_set = RequirementSet(check_supported_wheels=check_supported_wheels)
         for req in root_reqs:
             if req.constraint:
                 check_invalid_constraint_type(req)
@@ -240,8 +235,8 @@ class Resolver(BaseResolver):
 
         if not self._is_upgrade_allowed(req_to_install):
             if self.upgrade_strategy == "only-if-needed":
-                return 'already satisfied, skipping upgrade'
-            return 'already satisfied'
+                return "already satisfied, skipping upgrade"
+            return "already satisfied"
 
         # Check for the possibility of an upgrade.  For link-based
         # requirements we have to pull the tree down and inspect to assess
@@ -251,7 +246,7 @@ class Resolver(BaseResolver):
                 self.finder.find_requirement(req_to_install, upgrade=True)
             except BestVersionAlreadyInstalled:
                 # Then the best version is installed.
-                return 'already up-to-date'
+                return "already up-to-date"
             except DistributionNotFound:
                 # No distribution found, so we squash the error.  It will
                 # be raised later when we re-try later to do the install.
@@ -271,14 +266,14 @@ class Resolver(BaseResolver):
         # Log a warning per PEP 592 if necessary before returning.
         link = best_candidate.link
         if link.is_yanked:
-            reason = link.yanked_reason or '<none given>'
+            reason = link.yanked_reason or "<none given>"
             msg = (
                 # Mark this as a unicode string to prevent
                 # "UnicodeEncodeError: 'ascii' codec can't encode character"
                 # in Python 2 when the reason contains non-ascii characters.
-                'The candidate selected for download or install is a '
-                'yanked version: {candidate}\n'
-                'Reason for being yanked: {reason}'
+                "The candidate selected for download or install is a "
+                "yanked version: {candidate}\n"
+                "Reason for being yanked: {reason}"
             ).format(candidate=best_candidate, reason=reason)
             logger.warning(msg)
 
@@ -309,7 +304,7 @@ class Resolver(BaseResolver):
             supported_tags=get_supported(),
         )
         if cache_entry is not None:
-            logger.debug('Using cached wheel link: %s', cache_entry.link)
+            logger.debug("Using cached wheel link: %s", cache_entry.link)
             if req.link is req.original_link and cache_entry.persistent:
                 req.original_link_is_in_wheel_cache = True
             req.link = cache_entry.link
@@ -328,9 +323,7 @@ class Resolver(BaseResolver):
         skip_reason = self._check_skip_installed(req)
 
         if req.satisfied_by:
-            return self.preparer.prepare_installed_requirement(
-                req, skip_reason
-            )
+            return self.preparer.prepare_installed_requirement(req, skip_reason)
 
         # We eagerly populate the link, since that's our "legacy" behavior.
         self._populate_link(req)
@@ -349,17 +342,17 @@ class Resolver(BaseResolver):
 
         if req.satisfied_by:
             should_modify = (
-                self.upgrade_strategy != "to-satisfy-only" or
-                self.force_reinstall or
-                self.ignore_installed or
-                req.link.scheme == 'file'
+                self.upgrade_strategy != "to-satisfy-only"
+                or self.force_reinstall
+                or self.ignore_installed
+                or req.link.scheme == "file"
             )
             if should_modify:
                 self._set_req_to_reinstall(req)
             else:
                 logger.info(
-                    'Requirement already satisfied (use --upgrade to upgrade):'
-                    ' %s', req,
+                    "Requirement already satisfied (use --upgrade to upgrade):" " %s",
+                    req,
                 )
         return dist
 
@@ -386,13 +379,15 @@ class Resolver(BaseResolver):
         # This will raise UnsupportedPythonVersion if the given Python
         # version isn't compatible with the distribution's Requires-Python.
         _check_dist_requires_python(
-            dist, version_info=self._py_version_info,
+            dist,
+            version_info=self._py_version_info,
             ignore_requires_python=self.ignore_requires_python,
         )
 
         more_reqs = []  # type: List[InstallRequirement]
 
         def add_req(subreq, extras_requested):
+            # type: (Distribution, Iterable[str]) -> None
             sub_install_req = self._make_install_req(
                 str(subreq),
                 req_to_install,
@@ -404,9 +399,7 @@ class Resolver(BaseResolver):
                 extras_requested=extras_requested,
             )
             if parent_req_name and add_to_parent:
-                self._discovered_dependencies[parent_req_name].append(
-                    add_to_parent
-                )
+                self._discovered_dependencies[parent_req_name].append(add_to_parent)
             more_reqs.extend(to_scan_again)
 
         with indent_log():
@@ -417,24 +410,19 @@ class Resolver(BaseResolver):
                 # 'unnamed' requirements can only come from being directly
                 # provided by the user.
                 assert req_to_install.user_supplied
-                requirement_set.add_requirement(
-                    req_to_install, parent_req_name=None,
-                )
+                requirement_set.add_requirement(req_to_install, parent_req_name=None)
 
             if not self.ignore_dependencies:
                 if req_to_install.extras:
                     logger.debug(
                         "Installing extra requirements: %r",
-                        ','.join(req_to_install.extras),
+                        ",".join(req_to_install.extras),
                     )
                 missing_requested = sorted(
                     set(req_to_install.extras) - set(dist.extras)
                 )
                 for missing in missing_requested:
-                    logger.warning(
-                        "%s does not provide the extra '%s'",
-                        dist, missing
-                    )
+                    logger.warning("%s does not provide the extra '%s'", dist, missing)
 
                 available_requested = sorted(
                     set(dist.extras) & set(req_to_install.extras)
@@ -459,6 +447,7 @@ class Resolver(BaseResolver):
         ordered_reqs = set()  # type: Set[InstallRequirement]
 
         def schedule(req):
+            # type: (InstallRequirement) -> None
             if req.satisfied_by or req in ordered_reqs:
                 return
             if req.constraint:

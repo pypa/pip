@@ -1,21 +1,17 @@
-# The following comment should be removed at some point in the future.
-# mypy: disallow-untyped-defs=False
-
 import logging
 import os
+from typing import List, Optional, Tuple
 
-from pip._internal.utils.misc import display_path, rmtree
+from pip._internal.utils.misc import HiddenText, display_path, rmtree
 from pip._internal.utils.subprocess import make_command
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import path_to_url
-from pip._internal.vcs.versioncontrol import RemoteNotFoundError, VersionControl, vcs
-
-if MYPY_CHECK_RUNNING:
-    from typing import Optional, Tuple
-
-    from pip._internal.utils.misc import HiddenText
-    from pip._internal.vcs.versioncontrol import AuthInfo, RevOptions
-
+from pip._internal.vcs.versioncontrol import (
+    AuthInfo,
+    RemoteNotFoundError,
+    RevOptions,
+    VersionControl,
+    vcs,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -25,12 +21,13 @@ class Bazaar(VersionControl):
     dirname = '.bzr'
     repo_name = 'branch'
     schemes = (
-        'bzr', 'bzr+http', 'bzr+https', 'bzr+ssh', 'bzr+sftp', 'bzr+ftp',
-        'bzr+lp',
+        'bzr+http', 'bzr+https', 'bzr+ssh', 'bzr+sftp', 'bzr+ftp',
+        'bzr+lp', 'bzr+file'
     )
 
     @staticmethod
     def get_base_rev_args(rev):
+        # type: (str) -> List[str]
         return ['-r', rev]
 
     def export(self, location, url):
@@ -107,6 +104,7 @@ class Bazaar(VersionControl):
 
     @classmethod
     def is_commit_id_equal(cls, dest, name):
+        # type: (str, Optional[str]) -> bool
         """Always assume the versions don't match"""
         return False
 

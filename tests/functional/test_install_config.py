@@ -112,7 +112,7 @@ def test_command_line_appends_correctly(script, data):
 
     """
     script.environ['PIP_FIND_LINKS'] = (
-        'https://test.pypi.org {data.find_links}'.format(**locals())
+        f'https://test.pypi.org {data.find_links}'
     )
     result = script.pip(
         'install', '-vvv', 'INITools', '--trusted-host',
@@ -274,3 +274,52 @@ def test_do_not_prompt_for_authentication(script, data, cert_factory):
                             '--no-input', 'simple', expect_error=True)
 
     assert "ERROR: HTTP error 401" in result.stderr
+
+
+@pytest.mark.parametrize("auth_needed", (True, False))
+def test_prompt_for_keyring_if_needed(script, data, cert_factory, auth_needed):
+    """Test behaviour while installing from a index url
+    requiring authentication and keyring is possible.
+    """
+    cert_path = cert_factory()
+    ctx = ssl.SSLContext(ssl.PROTOCOL_SSLv23)
+    ctx.load_cert_chain(cert_path, cert_path)
+    ctx.load_verify_locations(cafile=cert_path)
+    ctx.verify_mode = ssl.CERT_REQUIRED
+
+    response = authorization_response if auth_needed else file_response
+
+    server = make_mock_server(ssl_context=ctx)
+    server.mock.side_effect = [
+        package_page({
+            "simple-3.0.tar.gz": "/files/simple-3.0.tar.gz",
+        }),
+        response(str(data.packages / "simple-3.0.tar.gz")),
+        response(str(data.packages / "simple-3.0.tar.gz")),
+    ]
+
+    url = f"https://{server.host}:{server.port}/simple"
+
+    keyring_content = textwrap.dedent("""\
+        import os
+        import sys
+        from collections import namedtuple
+
+        Cred = namedtuple("Cred", ["username", "password"])
+
+        def get_credential(url, username):
+            sys.stderr.write("get_credential was called" + os.linesep)
+            return Cred("USERNAME", "PASSWORD")
+    """)
+    keyring_path = script.site_packages_path / 'keyring.py'
+    keyring_path.write_text(keyring_content)
+
+    with server_running(server):
+        result = script.pip('install', "--index-url", url,
+                            "--cert", cert_path, "--client-cert", cert_path,
+                            'simple')
+
+    if auth_needed:
+        assert "get_credential was called" in result.stderr
+    else:
+        assert "get_credential was called" not in result.stderr

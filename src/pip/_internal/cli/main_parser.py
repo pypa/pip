@@ -3,35 +3,28 @@
 
 import os
 import sys
+from typing import List, Tuple
 
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.parser import ConfigOptionParser, UpdatingDefaultsHelpFormatter
 from pip._internal.commands import commands_dict, get_similar_commands
 from pip._internal.exceptions import CommandError
 from pip._internal.utils.misc import get_pip_version, get_prog
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import List, Tuple
-
 
 __all__ = ["create_main_parser", "parse_command"]
 
 
 def create_main_parser():
     # type: () -> ConfigOptionParser
-    """Creates and returns the main parser for pip's CLI
-    """
+    """Creates and returns the main parser for pip's CLI"""
 
-    parser_kw = {
-        'usage': '\n%prog <command> [options]',
-        'add_help_option': False,
-        'formatter': UpdatingDefaultsHelpFormatter(),
-        'name': 'global',
-        'prog': get_prog(),
-    }
-
-    parser = ConfigOptionParser(**parser_kw)
+    parser = ConfigOptionParser(
+        usage="\n%prog <command> [options]",
+        add_help_option=False,
+        formatter=UpdatingDefaultsHelpFormatter(),
+        name="global",
+        prog=get_prog(),
+    )
     parser.disable_interspersed_args()
 
     parser.version = get_pip_version()
@@ -44,11 +37,11 @@ def create_main_parser():
     parser.main = True  # type: ignore
 
     # create command listing for description
-    description = [''] + [
-        '{name:27} {command_info.summary}'.format(**locals())
+    description = [""] + [
+        f"{name:27} {command_info.summary}"
         for name, command_info in commands_dict.items()
     ]
-    parser.description = '\n'.join(description)
+    parser.description = "\n".join(description)
 
     return parser
 
@@ -73,7 +66,7 @@ def parse_command(args):
         sys.exit()
 
     # pip || pip help -> print_help()
-    if not args_else or (args_else[0] == 'help' and len(args_else) == 1):
+    if not args_else or (args_else[0] == "help" and len(args_else) == 1):
         parser.print_help()
         sys.exit()
 
@@ -87,7 +80,7 @@ def parse_command(args):
         if guess:
             msg.append(f'maybe you meant "{guess}"')
 
-        raise CommandError(' - '.join(msg))
+        raise CommandError(" - ".join(msg))
 
     # all the args without the subcommand
     cmd_args = args[:]

@@ -228,6 +228,7 @@ gkdoc
 Gopinath M
 GOTO Hayato
 gpiks
+Greg Roodt
 Greg Ward
 Guilherme Espada
 gutsytechster
@@ -236,6 +237,7 @@ gzpan123
 Hanjun Kim
 Hari Charan
 Harsh Vardhan
+Henry Schreiner
 Herbert Pfennig
 Hsiaoming Yang
 Hugo
@@ -394,6 +396,7 @@ Nick Timkovich
 Nicolas Bock
 Nicole Harris
 Nikhil Benesch
+Nikita Chepanov
 Nikolay Korolev
 Nitesh Sharma
 Noah
@@ -466,6 +469,7 @@ Remi Rampin
 Rene Dudfield
 Riccardo Magliocchetti
 Richard Jones
+Richard Si
 Ricky Ng-Adam
 RobberPhex
 Robert Collins

@@ -4,9 +4,9 @@ import shutil
 import sys
 import tempfile
 from functools import partial
+from unittest.mock import patch
 
 import pytest
-from mock import patch
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
@@ -89,6 +89,7 @@ class TestRequirementSet:
                 require_hashes=require_hashes,
                 use_user_site=False,
                 lazy_wheel=False,
+                in_tree_build=False,
             )
             yield Resolver(
                 preparer=preparer,
@@ -194,7 +195,7 @@ class TestRequirementSet:
         ))
         dir_path = data.packages.joinpath('FSPkg')
         reqset.add_requirement(get_processed_req_from_line(
-            'file://{dir_path}'.format(**locals()),
+            f'file://{dir_path}',
             lineno=2,
         ))
         finder = make_test_finder(find_links=[data.find_links])
@@ -254,7 +255,7 @@ class TestRequirementSet:
             (data.packages / 'simple-1.0.tar.gz').resolve())
         reqset = RequirementSet()
         reqset.add_requirement(get_processed_req_from_line(
-            '{file_url} --hash=sha256:badbad'.format(**locals()), lineno=1,
+            f'{file_url} --hash=sha256:badbad', lineno=1,
         ))
         finder = make_test_finder(find_links=[data.find_links])
         with self._basic_resolver(finder, require_hashes=True) as resolver:
@@ -382,10 +383,6 @@ class TestInstallRequirement:
         with pytest.raises(InstallationError):
             reqset.add_requirement(req)
 
-    def test_installed_version_not_installed(self):
-        req = install_req_from_line('simple-0.1-py2.py3-none-any.whl')
-        assert req.installed_version is None
-
     def test_str(self):
         req = install_req_from_line('simple==0.1')
         assert str(req) == 'simple==0.1'
@@ -470,7 +467,7 @@ class TestInstallRequirement:
         # match
         for markers in (
             'python_version >= "1.0"',
-            'sys_platform == {sys.platform!r}'.format(**globals()),
+            f'sys_platform == {sys.platform!r}',
         ):
             line = 'name; ' + markers
             req = install_req_from_line(line)
@@ -480,7 +477,7 @@ class TestInstallRequirement:
         # don't match
         for markers in (
             'python_version >= "5.0"',
-            'sys_platform != {sys.platform!r}'.format(**globals()),
+            f'sys_platform != {sys.platform!r}',
         ):
             line = 'name; ' + markers
             req = install_req_from_line(line)
@@ -491,7 +488,7 @@ class TestInstallRequirement:
         # match
         for markers in (
             'python_version >= "1.0"',
-            'sys_platform == {sys.platform!r}'.format(**globals()),
+            f'sys_platform == {sys.platform!r}',
         ):
             line = 'name; ' + markers
             req = install_req_from_line(line, comes_from='')
@@ -501,7 +498,7 @@ class TestInstallRequirement:
         # don't match
         for markers in (
             'python_version >= "5.0"',
-            'sys_platform != {sys.platform!r}'.format(**globals()),
+            f'sys_platform != {sys.platform!r}',
         ):
             line = 'name; ' + markers
             req = install_req_from_line(line, comes_from='')
@@ -511,7 +508,7 @@ class TestInstallRequirement:
     def test_extras_for_line_path_requirement(self):
         line = 'SomeProject[ex1,ex2]'
         filename = 'filename'
-        comes_from = '-r {} (line {})'.format(filename, 1)
+        comes_from = f'-r {filename} (line 1)'
         req = install_req_from_line(line, comes_from=comes_from)
         assert len(req.extras) == 2
         assert req.extras == {'ex1', 'ex2'}
@@ -519,7 +516,7 @@ class TestInstallRequirement:
     def test_extras_for_line_url_requirement(self):
         line = 'git+https://url#egg=SomeProject[ex1,ex2]'
         filename = 'filename'
-        comes_from = '-r {} (line {})'.format(filename, 1)
+        comes_from = f'-r {filename} (line 1)'
         req = install_req_from_line(line, comes_from=comes_from)
         assert len(req.extras) == 2
         assert req.extras == {'ex1', 'ex2'}
@@ -527,7 +524,7 @@ class TestInstallRequirement:
     def test_extras_for_editable_path_requirement(self):
         url = '.[ex1,ex2]'
         filename = 'filename'
-        comes_from = '-r {} (line {})'.format(filename, 1)
+        comes_from = f'-r {filename} (line 1)'
         req = install_req_from_editable(url, comes_from=comes_from)
         assert len(req.extras) == 2
         assert req.extras == {'ex1', 'ex2'}
@@ -535,7 +532,7 @@ class TestInstallRequirement:
     def test_extras_for_editable_url_requirement(self):
         url = 'git+https://url#egg=SomeProject[ex1,ex2]'
         filename = 'filename'
-        comes_from = '-r {} (line {})'.format(filename, 1)
+        comes_from = f'-r {filename} (line 1)'
         req = install_req_from_editable(url, comes_from=comes_from)
         assert len(req.extras) == 2
         assert req.extras == {'ex1', 'ex2'}

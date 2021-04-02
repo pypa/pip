@@ -1,21 +1,15 @@
-from pip._vendor.packaging.specifiers import SpecifierSet
-from pip._vendor.packaging.utils import canonicalize_name
+from typing import FrozenSet, Iterable, Optional, Tuple, Union
 
+from pip._vendor.packaging.specifiers import SpecifierSet
+from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
+from pip._vendor.packaging.version import LegacyVersion, Version
+
+from pip._internal.models.link import Link
 from pip._internal.req.req_install import InstallRequirement
 from pip._internal.utils.hashes import Hashes
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 
-if MYPY_CHECK_RUNNING:
-    from typing import FrozenSet, Iterable, Optional, Tuple
-
-    from pip._vendor.packaging.version import _BaseVersion
-
-    from pip._internal.models.link import Link
-
-    CandidateLookup = Tuple[
-        Optional["Candidate"],
-        Optional[InstallRequirement],
-    ]
+CandidateLookup = Tuple[Optional["Candidate"], Optional[InstallRequirement]]
+CandidateVersion = Union[LegacyVersion, Version]
 
 
 def format_name(project, extras):
@@ -69,7 +63,7 @@ class Constraint:
 class Requirement:
     @property
     def project_name(self):
-        # type: () -> str
+        # type: () -> NormalizedName
         """The "project name" of a requirement.
 
         This is different from ``name`` if this requirement contains extras,
@@ -104,7 +98,7 @@ class Requirement:
 class Candidate:
     @property
     def project_name(self):
-        # type: () -> str
+        # type: () -> NormalizedName
         """The "project name" of the candidate.
 
         This is different from ``name`` if this candidate contains extras,
@@ -125,7 +119,7 @@ class Candidate:
 
     @property
     def version(self):
-        # type: () -> _BaseVersion
+        # type: () -> CandidateVersion
         raise NotImplementedError("Override in subclass")
 
     @property

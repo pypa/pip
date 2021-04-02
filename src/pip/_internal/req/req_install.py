@@ -7,15 +7,19 @@ import shutil
 import sys
 import uuid
 import zipfile
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Union
 
 from pip._vendor import pkg_resources, six
+from pip._vendor.packaging.markers import Marker
 from pip._vendor.packaging.requirements import Requirement
+from pip._vendor.packaging.specifiers import SpecifierSet
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import Version
 from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.pep517.wrappers import Pep517HookCaller
+from pip._vendor.pkg_resources import Distribution
 
-from pip._internal.build_env import NoOpBuildEnvironment
+from pip._internal.build_env import BuildEnvironment, NoOpBuildEnvironment
 from pip._internal.exceptions import InstallationError
 from pip._internal.locations import get_scheme
 from pip._internal.models.link import Link
@@ -42,25 +46,13 @@ from pip._internal.utils.misc import (
     dist_in_site_packages,
     dist_in_usersite,
     get_distribution,
-    get_installed_version,
     hide_url,
     redact_auth_from_url,
 )
 from pip._internal.utils.packaging import get_metadata
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.virtualenv import running_under_virtualenv
 from pip._internal.vcs import vcs
-
-if MYPY_CHECK_RUNNING:
-    from typing import Any, Dict, Iterable, List, Optional, Sequence, Union
-
-    from pip._vendor.packaging.markers import Marker
-    from pip._vendor.packaging.specifiers import SpecifierSet
-    from pip._vendor.pkg_resources import Distribution
-
-    from pip._internal.build_env import BuildEnvironment
-
 
 logger = logging.getLogger(__name__)
 
@@ -255,7 +247,7 @@ class InstallRequirement:
         # type: () -> Optional[str]
         if self.req is None:
             return None
-        return six.ensure_str(pkg_resources.safe_name(self.req.name))
+        return pkg_resources.safe_name(self.req.name)
 
     @property
     def specifier(self):
@@ -272,11 +264,6 @@ class InstallRequirement:
         specifiers = self.specifier
         return (len(specifiers) == 1 and
                 next(iter(specifiers)).operator in {'==', '==='})
-
-    @property
-    def installed_version(self):
-        # type: () -> Optional[str]
-        return get_installed_version(self.name)
 
     def match_markers(self, extras_requested=None):
         # type: (Optional[Iterable[str]]) -> bool
@@ -362,7 +349,7 @@ class InstallRequirement:
 
         # When parallel builds are enabled, add a UUID to the build directory
         # name so multiple builds do not interfere with each other.
-        dir_name = canonicalize_name(self.name)
+        dir_name = canonicalize_name(self.name)  # type: str
         if parallel_builds:
             dir_name = f"{dir_name}_{uuid.uuid4().hex}"
 
@@ -432,8 +419,16 @@ class InstallRequirement:
         if not existing_dist:
             return
 
-        existing_version = existing_dist.parsed_version
-        if not self.req.specifier.contains(existing_version, prereleases=True):
+        # pkg_resouces may contain a different copy of packaging.version from
+        # pip in if the downstream distributor does a poor job debundling pip.
+        # We avoid existing_dist.parsed_version and let SpecifierSet.contains
+        # parses the version instead.
+        existing_version = existing_dist.version
+        version_compatible = (
+            existing_version is not None and
+            self.req.specifier.contains(existing_version, prereleases=True)
+        )
+        if not version_compatible:
             self.satisfied_by = None
             if use_user_site:
                 if dist_in_usersite(existing_dist):
@@ -625,31 +620,12 @@ class InstallRequirement:
         if self.link.scheme == 'file':
             # Static paths don't get updated
             return
-        assert '+' in self.link.url, \
-            "bad url: {self.link.url!r}".format(**locals())
-        vc_type, url = self.link.url.split('+', 1)
-        vcs_backend = vcs.get_backend(vc_type)
-        if vcs_backend:
-            if not self.link.is_vcs:
-                reason = (
-                    "This form of VCS requirement is being deprecated: {}."
-                ).format(
-                    self.link.url
-                )
-                replacement = None
-                if self.link.url.startswith("git+git@"):
-                    replacement = (
-                        "git+https://git@example.com/..., "
-                        "git+ssh://git@example.com/..., "
-                        "or the insecure git+git://git@example.com/..."
-                    )
-                deprecated(reason, replacement, gone_in="21.0", issue=7554)
-            hidden_url = hide_url(self.link.url)
-            vcs_backend.obtain(self.source_dir, url=hidden_url)
-        else:
-            assert 0, (
-                'Unexpected version control type (in {}): {}'.format(
-                    self.link, vc_type))
+        vcs_backend = vcs.get_backend_for_scheme(self.link.scheme)
+        # Editable requirements are validated in Requirement constructors.
+        # So here, if it's neither a path nor a valid VCS URL, it's a bug.
+        assert vcs_backend, f"Unsupported VCS URL {self.link.url}"
+        hidden_url = hide_url(self.link.url)
+        vcs_backend.obtain(self.source_dir, url=hidden_url)
 
     # Top-level Actions
     def uninstall(self, auto_confirm=False, verbose=False):
@@ -683,8 +659,7 @@ class InstallRequirement:
         def _clean_zip_name(name, prefix):
             # type: (str, str) -> str
             assert name.startswith(prefix + os.path.sep), (
-                "name {name!r} doesn't start with prefix {prefix!r}"
-                .format(**locals())
+                f"name {name!r} doesn't start with prefix {prefix!r}"
             )
             name = name[len(prefix) + 1:]
             name = name.replace(os.path.sep, '/')

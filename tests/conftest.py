@@ -7,27 +7,23 @@ import shutil
 import subprocess
 import sys
 import time
-from contextlib import contextmanager
+from contextlib import ExitStack, contextmanager
+from typing import Dict, Iterable
+from unittest.mock import patch
 
 import pytest
-from mock import patch
-from pip._vendor.contextlib2 import ExitStack, nullcontext
 from setuptools.wheel import Wheel
 
 from pip._internal.cli.main import main as pip_entry_point
 from pip._internal.utils.temp_dir import global_tempdir_manager
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from tests.lib import DATA_DIR, SRC_DIR, PipTestEnvironment, TestData
 from tests.lib.certs import make_tls_cert, serialize_cert, serialize_key
 from tests.lib.path import Path
-from tests.lib.server import make_mock_server, server_running
+from tests.lib.server import MockServer as _MockServer
+from tests.lib.server import Responder, make_mock_server, server_running
 from tests.lib.venv import VirtualEnvironment
 
-if MYPY_CHECK_RUNNING:
-    from typing import Dict, Iterable
-
-    from tests.lib.server import MockServer as _MockServer
-    from tests.lib.server import Responder
+from .lib.compat import nullcontext
 
 
 def pytest_addoption(parser):
@@ -129,11 +125,8 @@ def tmpdir_factory(request, tmpdir_factory):
     """
     yield tmpdir_factory
     if not request.config.getoption("--keep-tmpdir"):
-        # py.path.remove() uses str paths on Python 2 and cannot
-        # handle non-ASCII file names. This works around the problem by
-        # passing a unicode object to rmtree().
         shutil.rmtree(
-            str(tmpdir_factory.getbasetemp()),
+            tmpdir_factory.getbasetemp(),
             ignore_errors=True,
         )
 
@@ -155,10 +148,7 @@ def tmpdir(request, tmpdir):
     # This should prevent us from needing a multiple gigabyte temporary
     # directory while running the tests.
     if not request.config.getoption("--keep-tmpdir"):
-        # py.path.remove() uses str paths on Python 2 and cannot
-        # handle non-ASCII file names. This works around the problem by
-        # passing a unicode object to rmtree().
-        shutil.rmtree(str(tmpdir), ignore_errors=True)
+        tmpdir.remove(ignore_errors=True)
 
 
 @pytest.fixture(autouse=True)
@@ -287,12 +277,12 @@ def pip_src(tmpdir_factory):
 
 def _common_wheel_editable_install(tmpdir_factory, common_wheels, package):
     wheel_candidates = list(
-        common_wheels.glob('{package}-*.whl'.format(**locals())))
+        common_wheels.glob(f'{package}-*.whl'))
     assert len(wheel_candidates) == 1, wheel_candidates
     install_dir = Path(str(tmpdir_factory.mktemp(package))) / 'install'
     Wheel(wheel_candidates[0]).install_as_egg(install_dir)
     (install_dir / 'EGG-INFO').rename(
-        install_dir / '{package}.egg-info'.format(**locals()))
+        install_dir / f'{package}.egg-info')
     assert compileall.compile_dir(str(install_dir), quiet=1)
     return install_dir
 
@@ -550,8 +540,10 @@ class MockServer:
         """Get environ for each received request.
         """
         assert not self._running, "cannot get mock from running server"
+        # Legacy: replace call[0][0] with call.args[0]
+        # when pip drops support for python3.7
         return [
-            call.args[0] for call in self._server.mock.call_args_list
+            call[0][0] for call in self._server.mock.call_args_list
         ]
 
 

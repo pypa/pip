@@ -10,35 +10,31 @@ from enum import Enum
 from functools import partial
 from hashlib import sha256
 from io import BytesIO, StringIO
+from typing import (
+    AnyStr,
+    Callable,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    TypeVar,
+    Union,
+)
 from zipfile import ZipFile
 
 from pip._vendor.requests.structures import CaseInsensitiveDict
-from pip._vendor.six import ensure_binary, ensure_text
 
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from tests.lib.path import Path
 
-if MYPY_CHECK_RUNNING:
-    from typing import (
-        AnyStr,
-        Callable,
-        Dict,
-        Iterable,
-        List,
-        Optional,
-        Sequence,
-        Tuple,
-        TypeVar,
-        Union,
-    )
-
-    # path, digest, size
-    RecordLike = Tuple[str, str, str]
-    RecordCallback = Callable[
-        [List["Record"]], Union[str, bytes, List[RecordLike]]
-    ]
-    # As would be used in metadata
-    HeaderValue = Union[str, List[str]]
+# path, digest, size
+RecordLike = Tuple[str, str, str]
+RecordCallback = Callable[
+    [List["Record"]], Union[str, bytes, List[RecordLike]]
+]
+# As would be used in metadata
+HeaderValue = Union[str, List[str]]
 
 
 File = namedtuple("File", ["name", "contents"])
@@ -51,14 +47,17 @@ class Default(Enum):
 
 _default = Default.token
 
+T = TypeVar("T")
 
-if MYPY_CHECK_RUNNING:
-    T = TypeVar("T")
+# A type which may be defaulted.
+Defaulted = Union[Default, T]
 
-    class Defaulted(Union[Default, T]):
-        """A type which may be defaulted.
-        """
-        pass
+
+def ensure_binary(value):
+    # type: (AnyStr) -> bytes
+    if isinstance(value, bytes):
+        return value
+    return value.encode()
 
 
 def message_from_dict(headers):
@@ -110,7 +109,7 @@ def make_metadata_file(
     if body is not _default:
         message.set_payload(body)
 
-    return File(path, ensure_binary(message_from_dict(metadata).as_string()))
+    return File(path, message_from_dict(metadata).as_bytes())
 
 
 def make_wheel_metadata_file(
@@ -139,7 +138,7 @@ def make_wheel_metadata_file(
     if updates is not _default:
         metadata.update(updates)
 
-    return File(path, ensure_binary(message_from_dict(metadata).as_string()))
+    return File(path, message_from_dict(metadata).as_bytes())
 
 
 def make_entry_points_file(
@@ -167,7 +166,7 @@ def make_entry_points_file(
 
     return File(
         dist_info_path(name, version, "entry_points.txt"),
-        ensure_binary("\n".join(lines)),
+        "\n".join(lines).encode(),
     )
 
 
@@ -243,7 +242,7 @@ def record_file_maker_wrapper(
     with StringIO(newline="") as buf:
         writer = csv.writer(buf)
         for record in records:
-            writer.writerow(map(ensure_text, record))
+            writer.writerow(record)
         contents = buf.getvalue().encode("utf-8")
 
     yield File(record_path, contents)

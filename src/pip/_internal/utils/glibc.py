@@ -3,11 +3,7 @@
 
 import os
 import sys
-
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import Optional, Tuple
+from typing import Optional, Tuple
 
 
 def glibc_version_string():

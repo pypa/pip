@@ -1,7 +1,6 @@
 # Expose a limited set of classes and functions so callers outside of
 # the vcs package don't need to import deeper than `pip._internal.vcs`.
-# (The test directory and imports protected by MYPY_CHECK_RUNNING may
-# still need to import from a vcs sub-package.)
+# (The test directory may still need to import from a vcs sub-package.)
 # Import all vcs modules to register each VCS in the VcsSupport object.
 import pip._internal.vcs.bazaar
 import pip._internal.vcs.git

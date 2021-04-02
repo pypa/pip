@@ -1699,7 +1699,7 @@ errors. Specifically:
 Per our :ref:`Python 2 Support` policy, pip 20.3 users who are using
 Python 2 will use the legacy resolver by default. Python 2 users
 should upgrade to Python 3 as soon as possible, since in pip 21.0 in
-January 2021, pip will drop support for Python 2 altogether.
+January 2021, pip dropped support for Python 2 altogether.
 
 
 How to upgrade and migrate
@@ -1857,9 +1857,11 @@ We plan for the resolver changeover to proceed as follows, using
      environments, pip defaults to the old resolver, and the new one is
      available using the flag ``--use-feature=2020-resolver``.
 
-*    pip 21.0: pip uses new resolver, and the old resolver is no longer
-     available. Python 2 support is removed per our :ref:`Python 2
-     Support` policy.
+*    pip 21.0: pip uses new resolver by default, and the old resolver is
+     no longer supported. It will be removed after a currently undecided
+     amount of time, as the removal is dependent on pip's volunteer
+     maintainers' availability. Python 2 support is removed per our
+     :ref:`Python 2 Support` policy.
 
 Since this work will not change user-visible behavior described in the
 pip documentation, this change is not covered by the :ref:`Deprecation
@@ -1885,6 +1887,6 @@ announcements on the `low-traffic packaging announcements list`_ and
 .. _low-traffic packaging announcements list: https://mail.python.org/mailman3/lists/pypi-announce.python.org/
 .. _our survey on upgrades that create conflicts: https://docs.google.com/forms/d/e/1FAIpQLSeBkbhuIlSofXqCyhi3kGkLmtrpPOEBwr6iJA6SzHdxWKfqdA/viewform
 .. _the official Python blog: https://blog.python.org/
-.. _requests: https://requests.readthedocs.io/en/master/user/authentication/#netrc-authentication
+.. _requests: https://requests.readthedocs.io/en/latest/user/authentication/#netrc-authentication
 .. _Python standard library: https://docs.python.org/3/library/netrc.html
 .. _Python Windows launcher: https://docs.python.org/3/using/windows.html#launcher

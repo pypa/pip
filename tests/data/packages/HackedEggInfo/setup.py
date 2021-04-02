@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from setuptools import setup
 from setuptools.command import egg_info as orig_egg_info
 

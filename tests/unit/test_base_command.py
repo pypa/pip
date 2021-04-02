@@ -1,8 +1,8 @@
 import logging
 import os
+from unittest.mock import Mock, patch
 
 import pytest
-from mock import Mock, patch
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import SUCCESS

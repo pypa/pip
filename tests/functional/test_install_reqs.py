@@ -68,11 +68,11 @@ def test_requirements_file(script, with_wheel):
 
     """
     other_lib_name, other_lib_version = 'anyjson', '0.3'
-    script.scratch_path.joinpath("initools-req.txt").write_text(textwrap.dedent("""\
+    script.scratch_path.joinpath("initools-req.txt").write_text(textwrap.dedent(f"""\
         INITools==0.2
         # and something else to test out:
         {other_lib_name}<={other_lib_version}
-        """.format(**locals())))
+        """))
     result = script.pip(
         'install', '-r', script.scratch_path / 'initools-req.txt'
     )
@@ -178,15 +178,14 @@ def test_multiple_requirements_files(script, tmpdir, with_wheel):
             other_lib_name
         ),
     )
-    script.scratch_path.joinpath(
-        "{other_lib_name}-req.txt".format(**locals())).write_text(
-            "{other_lib_name}<={other_lib_version}".format(**locals())
+    script.scratch_path.joinpath(f"{other_lib_name}-req.txt").write_text(
+            f"{other_lib_name}<={other_lib_version}"
     )
     result = script.pip(
         'install', '-r', script.scratch_path / 'initools-req.txt'
     )
     assert result.files_created[script.site_packages / other_lib_name].dir
-    fn = '{other_lib_name}-{other_lib_version}.dist-info'.format(**locals())
+    fn = f'{other_lib_name}-{other_lib_version}.dist-info'
     assert result.files_created[script.site_packages / fn].dir
     result.did_create(script.venv / 'src' / 'initools')
 
@@ -295,9 +294,9 @@ def test_wheel_user_with_prefix_in_pydistutils_cfg(
     user_cfg = os.path.join(os.path.expanduser('~'), user_filename)
     script.scratch_path.joinpath("bin").mkdir()
     with open(user_cfg, "w") as cfg:
-        cfg.write(textwrap.dedent("""
+        cfg.write(textwrap.dedent(f"""
             [install]
-            prefix={script.scratch_path}""".format(**locals())))
+            prefix={script.scratch_path}"""))
 
     result = script.pip(
         'install', '--user', '--no-index',
@@ -358,7 +357,7 @@ def test_constraints_local_editable_install_causes_error(
         assert 'Could not satisfy constraints' in result.stderr, str(result)
     else:
         # Because singlemodule only has 0.0.1 available.
-        assert 'No matching distribution found' in result.stderr, str(result)
+        assert 'Cannot install singlemodule 0.0.1' in result.stderr, str(result)
 
 
 @pytest.mark.network
@@ -387,7 +386,7 @@ def test_constraints_local_install_causes_error(
         assert 'Could not satisfy constraints' in result.stderr, str(result)
     else:
         # Because singlemodule only has 0.0.1 available.
-        assert 'No matching distribution found' in result.stderr, str(result)
+        assert 'Cannot install singlemodule 0.0.1' in result.stderr, str(result)
 
 
 def test_constraints_constrain_to_local_editable(
@@ -559,8 +558,7 @@ def test_install_distribution_duplicate_extras(script, data):
     package_name = to_install + "[bar]"
     with pytest.raises(AssertionError):
         result = script.pip_install_local(package_name, package_name)
-        expected = (
-            'Double requirement given: {package_name}'.format(**locals()))
+        expected = (f'Double requirement given: {package_name}')
         assert expected in result.stderr
 
 
@@ -571,7 +569,7 @@ def test_install_distribution_union_with_constraints(
 ):
     to_install = data.packages.joinpath("LocalExtras")
     script.scratch_path.joinpath("constraints.txt").write_text(
-        "{to_install}[bar]".format(**locals()))
+        f"{to_install}[bar]")
     result = script.pip_install_local(
         '-c', script.scratch_path / 'constraints.txt', to_install + '[baz]',
         allow_stderr_warning=True,
@@ -647,9 +645,7 @@ def test_install_unsupported_wheel_file(script, data):
     # Trying to install a local wheel with an incompatible version/type
     # should fail.
     path = data.packages.joinpath("simple.dist-0.1-py1-none-invalid.whl")
-    script.scratch_path.joinpath("wheel-file.txt").write_text(textwrap.dedent("""\
-        {path}
-        """.format(**locals())))
+    script.scratch_path.joinpath("wheel-file.txt").write_text(path + '\n')
     result = script.pip(
         'install', '-r', script.scratch_path / 'wheel-file.txt',
         expect_error=True,

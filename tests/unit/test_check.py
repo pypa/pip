@@ -1,7 +1,7 @@
 """Unit Tests for pip's dependency checking logic
 """
 
-import mock
+from unittest import mock
 
 from pip._internal.operations import check
 

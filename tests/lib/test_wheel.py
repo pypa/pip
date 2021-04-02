@@ -2,12 +2,10 @@
 """
 import csv
 from email import message_from_string
+from email.message import Message
 from functools import partial
 from zipfile import ZipFile
 
-from pip._vendor.six import ensure_text
-
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from tests.lib.wheel import (
     _default,
     make_metadata_file,
@@ -15,9 +13,6 @@ from tests.lib.wheel import (
     make_wheel_metadata_file,
     message_from_dict,
 )
-
-if MYPY_CHECK_RUNNING:
-    from email import Message
 
 
 def test_message_from_dict_one_value():
@@ -164,7 +159,7 @@ def test_make_wheel_default_record():
         extra_data_files={"purelib/info.txt": "c"},
     ).as_zipfile() as z:
         record_bytes = z.read("simple-0.1.0.dist-info/RECORD")
-        record_text = ensure_text(record_bytes)
+        record_text = record_bytes.decode()
         record_rows = list(csv.reader(record_text.splitlines()))
         records = {
             row[0]: row[1:] for row in record_rows

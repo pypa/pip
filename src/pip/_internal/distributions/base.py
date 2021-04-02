@@ -1,14 +1,10 @@
 import abc
+from typing import Optional
 
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._vendor.pkg_resources import Distribution
 
-if MYPY_CHECK_RUNNING:
-    from typing import Optional
-
-    from pip._vendor.pkg_resources import Distribution
-
-    from pip._internal.index.package_finder import PackageFinder
-    from pip._internal.req import InstallRequirement
+from pip._internal.index.package_finder import PackageFinder
+from pip._internal.req import InstallRequirement
 
 
 class AbstractDistribution(metaclass=abc.ABCMeta):
@@ -26,6 +22,7 @@ class AbstractDistribution(metaclass=abc.ABCMeta):
      - we must be able to create a Distribution object exposing the
        above metadata.
     """
+
     def __init__(self, req):
         # type: (InstallRequirement) -> None
         super().__init__()

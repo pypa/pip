@@ -46,7 +46,7 @@ class Tests_UninstallUserSite:
         # keep checking for egg-info because no-binary implies setup.py install
         egg_info_folder = (
             script.base_path / script.site_packages /
-            'pip_test_package-0.1-py{pyversion}.egg-info'.format(**globals())
+            f'pip_test_package-0.1-py{pyversion}.egg-info'
         )
         assert isdir(egg_info_folder)
 

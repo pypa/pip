@@ -7,13 +7,9 @@ and eventually drop this after all usages are changed.
 """
 
 import os
+from typing import List
 
 from pip._vendor import appdirs as _appdirs
-
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import List
 
 
 def user_cache_dir(appname):
@@ -25,7 +21,7 @@ def user_config_dir(appname, roaming=True):
     # type: (str, bool) -> str
     path = _appdirs.user_config_dir(appname, appauthor=False, roaming=roaming)
     if _appdirs.system == "darwin" and not os.path.isdir(path):
-        path = os.path.expanduser('~/.config/')
+        path = os.path.expanduser("~/.config/")
         if appname:
             path = os.path.join(path, appname)
     return path
@@ -38,5 +34,5 @@ def site_config_dirs(appname):
     dirval = _appdirs.site_config_dir(appname, appauthor=False, multipath=True)
     if _appdirs.system not in ["win32", "darwin"]:
         # always look in /etc directly as well
-        return dirval.split(os.pathsep) + ['/etc']
+        return dirval.split(os.pathsep) + ["/etc"]
     return [dirval]

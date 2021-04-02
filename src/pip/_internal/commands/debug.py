@@ -2,32 +2,29 @@ import locale
 import logging
 import os
 import sys
+from optparse import Values
+from types import ModuleType
+from typing import Any, Dict, List, Optional
 
 import pip._vendor
-from pip._vendor import pkg_resources
 from pip._vendor.certifi import where
+from pip._vendor.packaging.version import parse as parse_version
 
 from pip import __file__ as pip_location
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.cmdoptions import make_target_python
 from pip._internal.cli.status_codes import SUCCESS
+from pip._internal.configuration import Configuration
+from pip._internal.metadata import get_environment
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import get_pip_version
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from optparse import Values
-    from types import ModuleType
-    from typing import Dict, List, Optional
-
-    from pip._internal.configuration import Configuration
 
 logger = logging.getLogger(__name__)
 
 
 def show_value(name, value):
-    # type: (str, Optional[str]) -> None
+    # type: (str, Any) -> None
     logger.info('%s: %s', name, value)
 
 
@@ -80,10 +77,11 @@ def get_vendor_version_from_module(module_name):
     version = getattr(module, '__version__', None)
 
     if not version:
-        # Try to find version in debundled module info
-        pkg_set = pkg_resources.WorkingSet([os.path.dirname(module.__file__)])
-        package = pkg_set.find(pkg_resources.Requirement.parse(module_name))
-        version = getattr(package, 'version', None)
+        # Try to find version in debundled module info.
+        env = get_environment([os.path.dirname(module.__file__)])
+        dist = env.get_distribution(module_name)
+        if dist:
+            version = str(dist.version)
 
     return version
 
@@ -100,7 +98,7 @@ def show_actual_vendor_versions(vendor_txt_versions):
             extra_message = ' (Unable to locate actual module version, using'\
                             ' vendor.txt specified version)'
             actual_version = expected_version
-        elif actual_version != expected_version:
+        elif parse_version(actual_version) != parse_version(expected_version):
             extra_message = ' (CONFLICT: vendor.txt suggests version should'\
                             ' be {})'.format(expected_version)
         logger.info('%s==%s%s', module_name, actual_version, extra_message)

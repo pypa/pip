@@ -3,13 +3,22 @@
 # for complete details.
 from __future__ import absolute_import, division, print_function
 
-import string
 import re
+import string
 import sys
 
-from pip._vendor.pyparsing import stringStart, stringEnd, originalTextFor, ParseException
-from pip._vendor.pyparsing import ZeroOrMore, Word, Optional, Regex, Combine
-from pip._vendor.pyparsing import Literal as L  # noqa
+from pip._vendor.pyparsing import (  # noqa: N817
+    Combine,
+    Literal as L,
+    Optional,
+    ParseException,
+    Regex,
+    Word,
+    ZeroOrMore,
+    originalTextFor,
+    stringEnd,
+    stringStart,
+)
 
 from ._typing import TYPE_CHECKING
 from .markers import MARKER_EXPR, Marker

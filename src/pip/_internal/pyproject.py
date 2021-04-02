@@ -1,14 +1,11 @@
 import os
 from collections import namedtuple
+from typing import Any, List, Optional
 
 from pip._vendor import toml
 from pip._vendor.packaging.requirements import InvalidRequirement, Requirement
 
 from pip._internal.exceptions import InstallationError
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from typing import Any, List, Optional
 
 
 def _is_list_of_str(obj):

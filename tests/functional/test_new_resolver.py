@@ -16,23 +16,23 @@ from tests.lib.wheel import make_wheel
 
 def assert_installed(script, **kwargs):
     ret = script.pip('list', '--format=json')
-    installed = set(
+    installed = {
         (canonicalize_name(val['name']), val['version'])
         for val in json.loads(ret.stdout)
-    )
-    expected = set((canonicalize_name(k), v) for k, v in kwargs.items())
+    }
+    expected = {(canonicalize_name(k), v) for k, v in kwargs.items()}
     assert expected <= installed, f"{expected!r} not all in {installed!r}"
 
 
 def assert_not_installed(script, *args):
     ret = script.pip("list", "--format=json")
-    installed = set(
+    installed = {
         canonicalize_name(val["name"])
         for val in json.loads(ret.stdout)
-    )
+    }
     # None of the given names should be listed as installed, i.e. their
     # intersection should be empty.
-    expected = set(canonicalize_name(k) for k in args)
+    expected = {canonicalize_name(k) for k in args}
     assert not (expected & installed), f"{expected!r} contained in {installed!r}"
 
 
@@ -40,7 +40,7 @@ def assert_editable(script, *args):
     # This simply checks whether all of the listed packages have a
     # corresponding .egg-link file installed.
     # TODO: Implement a more rigorous way to test for editable installations.
-    egg_links = set(f"{arg}.egg-link" for arg in args)
+    egg_links = {f"{arg}.egg-link" for arg in args}
     assert egg_links <= set(os.listdir(script.site_packages_path)), \
         f"{args!r} not all found in {script.site_packages_path!r}"
 
@@ -223,32 +223,6 @@ def test_new_resolver_installs_extras(tmpdir, script, root_dep):
         "--find-links", script.scratch_path,
         "-r", req_file,
     )
-    assert_installed(script, base="0.1.0", dep="0.1.0")
-
-
-def test_new_resolver_installs_extras_deprecated(tmpdir, script):
-    req_file = tmpdir.joinpath("requirements.txt")
-    req_file.write_text("base >= 0.1.0[add]")
-
-    create_basic_wheel_for_package(
-        script,
-        "base",
-        "0.1.0",
-        extras={"add": ["dep"]},
-    )
-    create_basic_wheel_for_package(
-        script,
-        "dep",
-        "0.1.0",
-    )
-    result = script.pip(
-        "install",
-        "--no-cache-dir", "--no-index",
-        "--find-links", script.scratch_path,
-        "-r", req_file,
-        expect_stderr=True
-    )
-    assert "DEPRECATION: Extras after version" in result.stderr
     assert_installed(script, base="0.1.0", dep="0.1.0")
 
 
@@ -713,7 +687,7 @@ def test_new_resolver_constraint_on_dependency(script):
 @pytest.mark.parametrize(
     "constraint_version, expect_error, message",
     [
-        ("1.0", True, "ERROR: No matching distribution found for foo 2.0"),
+        ("1.0", True, "Cannot install foo 2.0"),
         ("2.0", False, "Successfully installed foo-2.0"),
     ],
 )
@@ -1233,7 +1207,9 @@ def test_new_resolver_skip_inconsistent_metadata(script):
         allow_stderr_warning=True,
     )
 
-    assert " different version in metadata: '2'" in result.stderr, str(result)
+    assert (
+        " inconsistent version: filename has '3', but metadata has '2'"
+    ) in result.stderr, str(result)
     assert_installed(script, a="1")
 
 
@@ -1277,3 +1253,28 @@ def test_new_resolver_lazy_fetch_candidates(script, upgrade):
     # But should reach there in the best route possible, without trying
     # candidates it does not need to.
     assert "myuberpkg-2" not in result.stdout, str(result)
+
+
+def test_new_resolver_no_fetch_no_satisfying(script):
+    create_basic_wheel_for_package(script, "myuberpkg", "1")
+
+    # Install the package. This should emit a "Processing" message for
+    # fetching the distribution from the --find-links page.
+    result = script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "myuberpkg",
+    )
+    assert "Processing " in result.stdout, str(result)
+
+    # Try to upgrade the package. This should NOT emit the "Processing"
+    # message because the currently installed version is latest.
+    result = script.pip(
+        "install",
+        "--no-cache-dir", "--no-index",
+        "--find-links", script.scratch_path,
+        "--upgrade",
+        "myuberpkg",
+    )
+    assert "Processing " not in result.stdout, str(result)

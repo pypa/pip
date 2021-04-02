@@ -8,8 +8,10 @@ import logging
 import mimetypes
 import os
 import shutil
+from typing import Dict, Iterable, List, Optional, Tuple
 
 from pip._vendor.packaging.utils import canonicalize_name
+from pip._vendor.pkg_resources import Distribution
 
 from pip._internal.distributions import make_distribution_for_install_requirement
 from pip._internal.distributions.installed import InstalledDistribution
@@ -22,33 +24,25 @@ from pip._internal.exceptions import (
     PreviousBuildDirError,
     VcsHashUnsupported,
 )
+from pip._internal.index.package_finder import PackageFinder
+from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
 from pip._internal.network.download import BatchDownloader, Downloader
 from pip._internal.network.lazy_wheel import (
     HTTPRangeRequestUnsupported,
     dist_from_wheel_url,
 )
+from pip._internal.network.session import PipSession
+from pip._internal.req.req_install import InstallRequirement
+from pip._internal.req.req_tracker import RequirementTracker
+from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.filesystem import copy2_fixed
-from pip._internal.utils.hashes import MissingHashes
+from pip._internal.utils.hashes import Hashes, MissingHashes
 from pip._internal.utils.logging import indent_log
-from pip._internal.utils.misc import display_path, hide_url, path_to_display, rmtree
+from pip._internal.utils.misc import display_path, hide_url, rmtree
 from pip._internal.utils.temp_dir import TempDirectory
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.unpacking import unpack_file
 from pip._internal.vcs import vcs
-
-if MYPY_CHECK_RUNNING:
-    from typing import Dict, Iterable, List, Optional, Tuple
-
-    from pip._vendor.pkg_resources import Distribution
-
-    from pip._internal.index.package_finder import PackageFinder
-    from pip._internal.models.link import Link
-    from pip._internal.network.session import PipSession
-    from pip._internal.req.req_install import InstallRequirement
-    from pip._internal.req.req_tracker import RequirementTracker
-    from pip._internal.utils.hashes import Hashes
-
 
 logger = logging.getLogger(__name__)
 
@@ -128,8 +122,8 @@ def _copy2_ignoring_special_files(src, dest):
         logger.warning(
             "Ignoring special file error '%s' encountered copying %s to %s.",
             str(e),
-            path_to_display(src),
-            path_to_display(dest),
+            src,
+            dest,
         )
 
 
@@ -214,8 +208,23 @@ def unpack_url(
         unpack_vcs_link(link, location)
         return None
 
-    # If it's a url to a local directory
+    # Once out-of-tree-builds are no longer supported, could potentially
+    # replace the below condition with `assert not link.is_existing_dir`
+    # - unpack_url does not need to be called for in-tree-builds.
+    #
+    # As further cleanup, _copy_source_tree and accompanying tests can
+    # be removed.
     if link.is_existing_dir():
+        deprecated(
+            "A future pip version will change local packages to be built "
+            "in-place without first copying to a temporary directory. "
+            "We recommend you use --use-feature=in-tree-build to test "
+            "your packages with this new behavior before it becomes the "
+            "default.\n",
+            replacement=None,
+            gone_in="21.3",
+            issue=7555
+        )
         if os.path.isdir(location):
             rmtree(location)
         _copy_source_tree(link.file_path, location)
@@ -285,6 +294,7 @@ class RequirementPreparer:
         require_hashes,  # type: bool
         use_user_site,  # type: bool
         lazy_wheel,  # type: bool
+        in_tree_build,  # type: bool
     ):
         # type: (...) -> None
         super().__init__()
@@ -312,6 +322,9 @@ class RequirementPreparer:
 
         # Should wheels be downloaded lazily?
         self.use_lazy_wheel = lazy_wheel
+
+        # Should in-tree builds be used for local paths?
+        self.in_tree_build = in_tree_build
 
         # Memoized downloaded files, as mapping of url: (path, mime type)
         self._downloaded = {}  # type: Dict[str, Tuple[str, str]]
@@ -346,6 +359,11 @@ class RequirementPreparer:
             # directory.
             return
         assert req.source_dir is None
+        if req.link.is_existing_dir() and self.in_tree_build:
+            # build local directories in-tree
+            req.source_dir = req.link.file_path
+            return
+
         # We always delete unpacked sdists after pip runs.
         req.ensure_has_source_dir(
             self.build_dir,
@@ -429,6 +447,39 @@ class RequirementPreparer:
             logger.debug('%s does not support range requests', url)
             return None
 
+    def _complete_partial_requirements(
+        self,
+        partially_downloaded_reqs,  # type: Iterable[InstallRequirement]
+        parallel_builds=False,      # type: bool
+    ):
+        # type: (...) -> None
+        """Download any requirements which were only fetched by metadata."""
+        # Download to a temporary directory. These will be copied over as
+        # needed for downstream 'download', 'wheel', and 'install' commands.
+        temp_dir = TempDirectory(kind="unpack", globally_managed=True).path
+
+        # Map each link to the requirement that owns it. This allows us to set
+        # `req.local_file_path` on the appropriate requirement after passing
+        # all the links at once into BatchDownloader.
+        links_to_fully_download = {}  # type: Dict[Link, InstallRequirement]
+        for req in partially_downloaded_reqs:
+            assert req.link
+            links_to_fully_download[req.link] = req
+
+        batch_download = self._batch_download(
+            links_to_fully_download.keys(),
+            temp_dir,
+        )
+        for link, (filepath, _) in batch_download:
+            logger.debug("Downloading link %s to %s", link, filepath)
+            req = links_to_fully_download[link]
+            req.local_file_path = filepath
+
+        # This step is necessary to ensure all lazy wheels are processed
+        # successfully by the 'download', 'wheel', and 'install' commands.
+        for req in partially_downloaded_reqs:
+            self._prepare_linked_requirement(req, parallel_builds)
+
     def prepare_linked_requirement(self, req, parallel_builds=False):
         # type: (InstallRequirement, bool) -> Distribution
         """Prepare a requirement to be obtained from req.link."""
@@ -458,15 +509,31 @@ class RequirementPreparer:
 
     def prepare_linked_requirements_more(self, reqs, parallel_builds=False):
         # type: (Iterable[InstallRequirement], bool) -> None
-        """Prepare a linked requirement more, if needed."""
+        """Prepare linked requirements more, if needed."""
         reqs = [req for req in reqs if req.needs_more_preparation]
-        links = [req.link for req in reqs]
-
-        # Let's download to a temporary directory.
-        tmpdir = TempDirectory(kind="unpack", globally_managed=True).path
-        self._downloaded.update(self._batch_download(links, tmpdir))
         for req in reqs:
-            self._prepare_linked_requirement(req, parallel_builds)
+            # Determine if any of these requirements were already downloaded.
+            if self.download_dir is not None and req.link.is_wheel:
+                hashes = self._get_linked_req_hashes(req)
+                file_path = _check_download_dir(req.link, self.download_dir, hashes)
+                if file_path is not None:
+                    self._downloaded[req.link.url] = file_path, None
+                    req.needs_more_preparation = False
+
+        # Prepare requirements we found were already downloaded for some
+        # reason. The other downloads will be completed separately.
+        partially_downloaded_reqs = []  # type: List[InstallRequirement]
+        for req in reqs:
+            if req.needs_more_preparation:
+                partially_downloaded_reqs.append(req)
+            else:
+                self._prepare_linked_requirement(req, parallel_builds)
+
+        # TODO: separate this part out from RequirementPreparer when the v1
+        # resolver can be removed!
+        self._complete_partial_requirements(
+            partially_downloaded_reqs, parallel_builds=parallel_builds,
+        )
 
     def _prepare_linked_requirement(self, req, parallel_builds):
         # type: (InstallRequirement, bool) -> Distribution
@@ -475,11 +542,14 @@ class RequirementPreparer:
 
         self._ensure_link_req_src_dir(req, parallel_builds)
         hashes = self._get_linked_req_hashes(req)
-        if link.url not in self._downloaded:
+
+        if link.is_existing_dir() and self.in_tree_build:
+            local_file = None
+        elif link.url not in self._downloaded:
             try:
                 local_file = unpack_url(
                     link, req.source_dir, self._download,
-                    self.download_dir, hashes,
+                    self.download_dir, hashes
                 )
             except NetworkConnectionError as exc:
                 raise InstallationError(

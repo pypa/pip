@@ -5,23 +5,17 @@ import hashlib
 import json
 import logging
 import os
+from typing import Any, Dict, List, Optional, Set
 
-from pip._vendor.packaging.tags import interpreter_name, interpreter_version
+from pip._vendor.packaging.tags import Tag, interpreter_name, interpreter_version
 from pip._vendor.packaging.utils import canonicalize_name
 
 from pip._internal.exceptions import InvalidWheelFilename
+from pip._internal.models.format_control import FormatControl
 from pip._internal.models.link import Link
 from pip._internal.models.wheel import Wheel
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
 from pip._internal.utils.urls import path_to_url
-
-if MYPY_CHECK_RUNNING:
-    from typing import Any, Dict, List, Optional, Set
-
-    from pip._vendor.packaging.tags import Tag
-
-    from pip._internal.models.format_control import FormatControl
 
 logger = logging.getLogger(__name__)
 

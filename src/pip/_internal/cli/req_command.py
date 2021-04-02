@@ -7,8 +7,12 @@ PackageFinder machinery and all its vendored dependencies, etc.
 
 import logging
 import os
+import sys
 from functools import partial
+from optparse import Values
+from typing import Any, List, Optional, Tuple
 
+from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.command_context import CommandContextMixIn
@@ -16,6 +20,7 @@ from pip._internal.exceptions import CommandError, PreviousBuildDirError
 from pip._internal.index.collector import LinkCollector
 from pip._internal.index.package_finder import PackageFinder
 from pip._internal.models.selection_prefs import SelectionPreferences
+from pip._internal.models.target_python import TargetPython
 from pip._internal.network.session import PipSession
 from pip._internal.operations.prepare import RequirementPreparer
 from pip._internal.req.constructors import (
@@ -25,21 +30,16 @@ from pip._internal.req.constructors import (
     install_req_from_req_string,
 )
 from pip._internal.req.req_file import parse_requirements
+from pip._internal.req.req_install import InstallRequirement
+from pip._internal.req.req_tracker import RequirementTracker
+from pip._internal.resolution.base import BaseResolver
 from pip._internal.self_outdated_check import pip_self_version_check
-from pip._internal.utils.temp_dir import tempdir_kinds
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from optparse import Values
-    from typing import Any, List, Optional, Tuple
-
-    from pip._internal.cache import WheelCache
-    from pip._internal.models.target_python import TargetPython
-    from pip._internal.req.req_install import InstallRequirement
-    from pip._internal.req.req_tracker import RequirementTracker
-    from pip._internal.resolution.base import BaseResolver
-    from pip._internal.utils.temp_dir import TempDirectory, TempDirectoryTypeRegistry
-
+from pip._internal.utils.temp_dir import (
+    TempDirectory,
+    TempDirectoryTypeRegistry,
+    tempdir_kinds,
+)
+from pip._internal.utils.virtualenv import running_under_virtualenv
 
 logger = logging.getLogger(__name__)
 
@@ -49,6 +49,7 @@ class SessionCommandMixin(CommandContextMixIn):
     """
     A class mixin for command classes needing _build_session().
     """
+
     def __init__(self):
         # type: () -> None
         super().__init__()
@@ -85,8 +86,7 @@ class SessionCommandMixin(CommandContextMixIn):
         assert not options.cache_dir or os.path.isabs(options.cache_dir)
         session = PipSession(
             cache=(
-                os.path.join(options.cache_dir, "http")
-                if options.cache_dir else None
+                os.path.join(options.cache_dir, "http") if options.cache_dir else None
             ),
             retries=retries if retries is not None else options.retries,
             trusted_hosts=options.trusted_hosts,
@@ -103,9 +103,7 @@ class SessionCommandMixin(CommandContextMixIn):
 
         # Handle timeouts
         if options.timeout or timeout:
-            session.timeout = (
-                timeout if timeout is not None else options.timeout
-            )
+            session.timeout = timeout if timeout is not None else options.timeout
 
         # Handle configured proxies
         if options.proxy:
@@ -136,16 +134,14 @@ class IndexGroupCommand(Command, SessionCommandMixin):
         This overrides the default behavior of not doing the check.
         """
         # Make sure the index_group options are present.
-        assert hasattr(options, 'no_index')
+        assert hasattr(options, "no_index")
 
         if options.disable_pip_version_check or options.no_index:
             return
 
         # Otherwise, check if we're using the latest version of pip available.
         session = self._build_session(
-            options,
-            retries=0,
-            timeout=min(5, options.timeout)
+            options, retries=0, timeout=min(5, options.timeout)
         )
         with session:
             pip_self_version_check(session, options)
@@ -158,11 +154,41 @@ KEEPABLE_TEMPDIR_TYPES = [
 ]
 
 
+def warn_if_run_as_root():
+    # type: () -> None
+    """Output a warning for sudo users on Unix.
+
+    In a virtual environment, sudo pip still writes to virtualenv.
+    On Windows, users may run pip as Administrator without issues.
+    This warning only applies to Unix root users outside of virtualenv.
+    """
+    if running_under_virtualenv():
+        return
+    if not hasattr(os, "getuid"):
+        return
+    # On Windows, there are no "system managed" Python packages. Installing as
+    # Administrator via pip is the correct way of updating system environments.
+    #
+    # We choose sys.platform over utils.compat.WINDOWS here to enable Mypy platform
+    # checks: https://mypy.readthedocs.io/en/stable/common_issues.html
+    if sys.platform == "win32" or sys.platform == "cygwin":
+        return
+    if sys.platform == "darwin" or sys.platform == "linux":
+        if os.getuid() != 0:
+            return
+    logger.warning(
+        "Running pip as root will break packages and permissions. "
+        "You should install packages reliably by using venv: "
+        "https://pip.pypa.io/warnings/venv"
+    )
+
+
 def with_cleanup(func):
     # type: (Any) -> Any
     """Decorator for common logic related to managing temporary
     directories.
     """
+
     def configure_tempdir_registry(registry):
         # type: (TempDirectoryTypeRegistry) -> None
         for t in KEEPABLE_TEMPDIR_TYPES:
@@ -187,7 +213,6 @@ def with_cleanup(func):
 
 
 class RequirementCommand(IndexGroupCommand):
-
     def __init__(self, *args, **kw):
         # type: (Any, Any) -> None
         super().__init__(*args, **kw)
@@ -206,13 +231,13 @@ class RequirementCommand(IndexGroupCommand):
     @classmethod
     def make_requirement_preparer(
         cls,
-        temp_build_dir,           # type: TempDirectory
-        options,                  # type: Values
-        req_tracker,              # type: RequirementTracker
-        session,                  # type: PipSession
-        finder,                   # type: PackageFinder
-        use_user_site,            # type: bool
-        download_dir=None,        # type: str
+        temp_build_dir,  # type: TempDirectory
+        options,  # type: Values
+        req_tracker,  # type: RequirementTracker
+        session,  # type: PipSession
+        finder,  # type: PackageFinder
+        use_user_site,  # type: bool
+        download_dir=None,  # type: str
     ):
         # type: (...) -> RequirementPreparer
         """
@@ -223,20 +248,20 @@ class RequirementCommand(IndexGroupCommand):
 
         resolver_variant = cls.determine_resolver_variant(options)
         if resolver_variant == "2020-resolver":
-            lazy_wheel = 'fast-deps' in options.features_enabled
+            lazy_wheel = "fast-deps" in options.features_enabled
             if lazy_wheel:
                 logger.warning(
-                    'pip is using lazily downloaded wheels using HTTP '
-                    'range requests to obtain dependency information. '
-                    'This experimental feature is enabled through '
-                    '--use-feature=fast-deps and it is not ready for '
-                    'production.'
+                    "pip is using lazily downloaded wheels using HTTP "
+                    "range requests to obtain dependency information. "
+                    "This experimental feature is enabled through "
+                    "--use-feature=fast-deps and it is not ready for "
+                    "production."
                 )
         else:
             lazy_wheel = False
-            if 'fast-deps' in options.features_enabled:
+            if "fast-deps" in options.features_enabled:
                 logger.warning(
-                    'fast-deps has no effect when used with the legacy resolver.'
+                    "fast-deps has no effect when used with the legacy resolver."
                 )
 
         return RequirementPreparer(
@@ -251,22 +276,23 @@ class RequirementCommand(IndexGroupCommand):
             require_hashes=options.require_hashes,
             use_user_site=use_user_site,
             lazy_wheel=lazy_wheel,
+            in_tree_build="in-tree-build" in options.features_enabled,
         )
 
     @classmethod
     def make_resolver(
         cls,
-        preparer,                            # type: RequirementPreparer
-        finder,                              # type: PackageFinder
-        options,                             # type: Values
-        wheel_cache=None,                    # type: Optional[WheelCache]
-        use_user_site=False,                 # type: bool
-        ignore_installed=True,               # type: bool
-        ignore_requires_python=False,        # type: bool
-        force_reinstall=False,               # type: bool
+        preparer,  # type: RequirementPreparer
+        finder,  # type: PackageFinder
+        options,  # type: Values
+        wheel_cache=None,  # type: Optional[WheelCache]
+        use_user_site=False,  # type: bool
+        ignore_installed=True,  # type: bool
+        ignore_requires_python=False,  # type: bool
+        force_reinstall=False,  # type: bool
         upgrade_strategy="to-satisfy-only",  # type: str
-        use_pep517=None,                     # type: Optional[bool]
-        py_version_info=None,                # type: Optional[Tuple[int, ...]]
+        use_pep517=None,  # type: Optional[bool]
+        py_version_info=None,  # type: Optional[Tuple[int, ...]]
     ):
         # type: (...) -> BaseResolver
         """
@@ -298,6 +324,7 @@ class RequirementCommand(IndexGroupCommand):
                 py_version_info=py_version_info,
             )
         import pip._internal.resolution.legacy.resolver
+
         return pip._internal.resolution.legacy.resolver.Resolver(
             preparer=preparer,
             finder=finder,
@@ -314,10 +341,10 @@ class RequirementCommand(IndexGroupCommand):
 
     def get_requirements(
         self,
-        args,             # type: List[str]
-        options,          # type: Values
-        finder,           # type: PackageFinder
-        session,          # type: PipSession
+        args,  # type: List[str]
+        options,  # type: Values
+        finder,  # type: PackageFinder
+        session,  # type: PipSession
     ):
         # type: (...) -> List[InstallRequirement]
         """
@@ -326,9 +353,12 @@ class RequirementCommand(IndexGroupCommand):
         requirements = []  # type: List[InstallRequirement]
         for filename in options.constraints:
             for parsed_req in parse_requirements(
-                    filename,
-                    constraint=True, finder=finder, options=options,
-                    session=session):
+                filename,
+                constraint=True,
+                finder=finder,
+                options=options,
+                session=session,
+            ):
                 req_to_add = install_req_from_parsed_requirement(
                     parsed_req,
                     isolated=options.isolated_mode,
@@ -338,7 +368,9 @@ class RequirementCommand(IndexGroupCommand):
 
         for req in args:
             req_to_add = install_req_from_line(
-                req, None, isolated=options.isolated_mode,
+                req,
+                None,
+                isolated=options.isolated_mode,
                 use_pep517=options.use_pep517,
                 user_supplied=True,
             )
@@ -356,8 +388,8 @@ class RequirementCommand(IndexGroupCommand):
         # NOTE: options.require_hashes may be set if --require-hashes is True
         for filename in options.requirements:
             for parsed_req in parse_requirements(
-                    filename,
-                    finder=finder, options=options, session=session):
+                filename, finder=finder, options=options, session=session
+            ):
                 req_to_add = install_req_from_parsed_requirement(
                     parsed_req,
                     isolated=options.isolated_mode,
@@ -371,16 +403,19 @@ class RequirementCommand(IndexGroupCommand):
             options.require_hashes = True
 
         if not (args or options.editables or options.requirements):
-            opts = {'name': self.name}
+            opts = {"name": self.name}
             if options.find_links:
                 raise CommandError(
-                    'You must give at least one requirement to {name} '
+                    "You must give at least one requirement to {name} "
                     '(maybe you meant "pip {name} {links}"?)'.format(
-                        **dict(opts, links=' '.join(options.find_links))))
+                        **dict(opts, links=" ".join(options.find_links))
+                    )
+                )
             else:
                 raise CommandError(
-                    'You must give at least one requirement to {name} '
-                    '(see "pip help {name}")'.format(**opts))
+                    "You must give at least one requirement to {name} "
+                    '(see "pip help {name}")'.format(**opts)
+                )
 
         return requirements
 
@@ -398,9 +433,9 @@ class RequirementCommand(IndexGroupCommand):
 
     def _build_package_finder(
         self,
-        options,               # type: Values
-        session,               # type: PipSession
-        target_python=None,    # type: Optional[TargetPython]
+        options,  # type: Values
+        session,  # type: PipSession
+        target_python=None,  # type: Optional[TargetPython]
         ignore_requires_python=None,  # type: Optional[bool]
     ):
         # type: (...) -> PackageFinder

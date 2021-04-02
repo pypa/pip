@@ -1,20 +1,20 @@
 import logging
 import os
 import subprocess
+from optparse import Values
+from typing import Any, List, Optional
 
 from pip._internal.cli.base_command import Command
 from pip._internal.cli.status_codes import ERROR, SUCCESS
-from pip._internal.configuration import Configuration, get_configuration_files, kinds
+from pip._internal.configuration import (
+    Configuration,
+    Kind,
+    get_configuration_files,
+    kinds,
+)
 from pip._internal.exceptions import PipError
 from pip._internal.utils.logging import indent_log
 from pip._internal.utils.misc import get_prog, write_output
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from optparse import Values
-    from typing import Any, List, Optional
-
-    from pip._internal.configuration import Kind
 
 logger = logging.getLogger(__name__)
 

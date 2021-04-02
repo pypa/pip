@@ -1,12 +1,7 @@
 from pip._vendor.packaging.version import parse as parse_version
 
+from pip._internal.models.link import Link
 from pip._internal.utils.models import KeyBasedCompareMixin
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
-
-if MYPY_CHECK_RUNNING:
-    from pip._vendor.packaging.version import _BaseVersion
-
-    from pip._internal.models.link import Link
 
 
 class InstallationCandidate(KeyBasedCompareMixin):
@@ -18,7 +13,7 @@ class InstallationCandidate(KeyBasedCompareMixin):
     def __init__(self, name, version, link):
         # type: (str, str, Link) -> None
         self.name = name
-        self.version = parse_version(version)  # type: _BaseVersion
+        self.version = parse_version(version)
         self.link = link
 
         super().__init__(

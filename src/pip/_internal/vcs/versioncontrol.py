@@ -5,11 +5,23 @@ import os
 import shutil
 import sys
 import urllib.parse
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Mapping,
+    Optional,
+    Tuple,
+    Type,
+    Union,
+)
 
-from pip._vendor import pkg_resources
-
+from pip._internal.cli.spinners import SpinnerInterface
 from pip._internal.exceptions import BadCommand, InstallationError
 from pip._internal.utils.misc import (
+    HiddenText,
     ask_path_exists,
     backup_dir,
     display_path,
@@ -17,35 +29,15 @@ from pip._internal.utils.misc import (
     hide_value,
     rmtree,
 )
-from pip._internal.utils.subprocess import call_subprocess, make_command
-from pip._internal.utils.typing import MYPY_CHECK_RUNNING
+from pip._internal.utils.subprocess import CommandArgs, call_subprocess, make_command
 from pip._internal.utils.urls import get_url_scheme
-
-if MYPY_CHECK_RUNNING:
-    from typing import (
-        Any,
-        Dict,
-        Iterable,
-        Iterator,
-        List,
-        Mapping,
-        Optional,
-        Tuple,
-        Type,
-        Union,
-    )
-
-    from pip._internal.cli.spinners import SpinnerInterface
-    from pip._internal.utils.misc import HiddenText
-    from pip._internal.utils.subprocess import CommandArgs
-
-    AuthInfo = Tuple[Optional[str], Optional[str]]
-
 
 __all__ = ['vcs']
 
 
 logger = logging.getLogger(__name__)
+
+AuthInfo = Tuple[Optional[str], Optional[str]]
 
 
 def is_url(name):
@@ -68,7 +60,7 @@ def make_vcs_requirement_url(repo_url, rev, project_name, subdir=None):
       repo_url: the remote VCS url, with any needed VCS prefix (e.g. "git+").
       project_name: the (unescaped) project name.
     """
-    egg_project_name = pkg_resources.to_filename(project_name)
+    egg_project_name = project_name.replace("-", "_")
     req = f'{repo_url}@{rev}#egg={egg_project_name}'
     if subdir:
         req += f'&subdirectory={subdir}'
@@ -690,9 +682,8 @@ class VersionControl:
             # errno.ENOENT = no such file or directory
             # In other words, the VCS executable isn't available
             raise BadCommand(
-                'Cannot find command {cls.name!r} - do you have '
-                '{cls.name!r} installed and in your '
-                'PATH?'.format(**locals()))
+                f'Cannot find command {cls.name!r} - do you have '
+                f'{cls.name!r} installed and in your PATH?')
 
     @classmethod
     def is_repository_directory(cls, path):
