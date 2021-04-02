@@ -434,6 +434,9 @@ class CandidateEvaluator:
         self._project_name = project_name
         self._specifier = specifier
         self._supported_tags = supported_tags
+        # Since the index of the tag in the _supported_tags list is used
+        # as a priority, precompute a map from tag to index/priority to be
+        # used in wheel.find_most_preferred_tag.
         self._wheel_tag_preferences = {
             tag: idx for idx, tag in enumerate(supported_tags)
         }
