@@ -251,7 +251,8 @@ class TestCandidateEvaluator:
         results = sorted(links, key=sort_key, reverse=True)
         results2 = sorted(reversed(links), key=sort_key, reverse=True)
 
-        assert links == results == results2, results2
+        assert links == results, results
+        assert links == results2, results2
 
     def test_link_sorting_wheels_with_build_tags(self):
         """Verify build tags affect sorting."""
@@ -276,7 +277,9 @@ class TestCandidateEvaluator:
         sort_key = candidate_evaluator._sort_key
         results = sorted(links, key=sort_key, reverse=True)
         results2 = sorted(reversed(links), key=sort_key, reverse=True)
-        assert links == results == results2, results2
+
+        assert links == results, results
+        assert links == results2, results2
 
     def test_build_tag_is_less_important_than_other_tags(self):
         links = [
@@ -313,7 +316,8 @@ class TestCandidateEvaluator:
         results = sorted(links, key=sort_key, reverse=True)
         results2 = sorted(reversed(links), key=sort_key, reverse=True)
 
-        assert links == results == results2, results2
+        assert links == results, results
+        assert links == results2, results2
 
 
 def test_finder_priority_file_over_page(data):
