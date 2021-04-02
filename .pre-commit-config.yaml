@@ -32,7 +32,6 @@ repos:
         ^src/pip/_internal/\w+\.py$|
         ^tools/|
         # Tests
-        ^tests/conftest.py|
         ^tests/lib|
         ^tests/data|
         ^tests/unit|
