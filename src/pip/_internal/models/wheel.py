@@ -85,7 +85,7 @@ class Wheel:
         return min(tag_to_priority[tag] for tag in self.file_tags if tag in tag_to_priority)
 
     def supported(self, tags):
-        # type: (Union[List[Tag],Dict[Tag, Any],Set[Tag]]) -> bool
+        # type: (Iterable[Tag]) -> bool
         """Return whether the wheel is compatible with one of the given tags.
 
         :param tags: the PEP 425 tags to check the wheel against.
