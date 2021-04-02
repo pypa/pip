@@ -1,5 +1,4 @@
---use-feature=2020-resolver
-cryptography==2.8
+cryptography
 freezegun
 pretend
 pytest
@@ -7,7 +6,7 @@ pytest-cov
 pytest-rerunfailures
 pytest-xdist
 scripttest
-setuptools>=39.2.0  # Needed for `setuptools.wheel.Wheel` support.
-https://github.com/pypa/virtualenv/archive/legacy.zip#egg=virtualenv
-werkzeug==0.16.0
+setuptools
+virtualenv < 20.0
+werkzeug
 wheel
