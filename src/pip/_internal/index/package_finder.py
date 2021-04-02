@@ -434,7 +434,7 @@ class CandidateEvaluator:
         self._project_name = project_name
         self._specifier = specifier
         self._supported_tags = supported_tags
-        self._supported_tag_to_idx = {
+        self._wheel_tag_preferences = {
             tag: idx for idx, tag in enumerate(supported_tags)
         }
 
@@ -517,8 +517,8 @@ class CandidateEvaluator:
             if self._prefer_binary:
                 binary_preference = 1
             try:
-                pri = -(wheel.support_index_min_fast(
-                    valid_tags, self._supported_tag_to_idx
+                pri = -(wheel.find_most_preferred_tag(
+                    valid_tags, self._wheel_tag_preferences
                 ))
             except ValueError:
                 raise UnsupportedWheel(
