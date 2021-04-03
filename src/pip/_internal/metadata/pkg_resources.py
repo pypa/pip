@@ -3,13 +3,13 @@ from typing import Iterator, List, Optional
 
 from pip._vendor import pkg_resources
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.packaging.version import _BaseVersion
+from pip._vendor.packaging.version import parse as parse_version
 
 from pip._internal.utils import misc  # TODO: Move definition here.
 from pip._internal.utils.packaging import get_installer
 from pip._internal.utils.wheel import pkg_resources_distribution_for_wheel
 
-from .base import BaseDistribution, BaseEnvironment
+from .base import BaseDistribution, BaseEnvironment, DistributionVersion
 
 
 class Distribution(BaseDistribution):
@@ -23,6 +23,11 @@ class Distribution(BaseDistribution):
         with zipfile.ZipFile(path, allowZip64=True) as zf:
             dist = pkg_resources_distribution_for_wheel(zf, name, path)
         return cls(dist)
+
+    @property
+    def location(self):
+        # type: () -> Optional[str]
+        return self._dist.location
 
     @property
     def metadata_version(self):
@@ -39,8 +44,8 @@ class Distribution(BaseDistribution):
 
     @property
     def version(self):
-        # type: () -> _BaseVersion
-        return self._dist.parsed_version
+        # type: () -> DistributionVersion
+        return parse_version(self._dist.version)
 
     @property
     def installer(self):
@@ -115,7 +120,7 @@ class Environment(BaseEnvironment):
             return None
         return self._search_distribution(name)
 
-    def iter_distributions(self):
+    def _iter_distributions(self):
         # type: () -> Iterator[BaseDistribution]
         for dist in self._ws:
             yield Distribution(dist)

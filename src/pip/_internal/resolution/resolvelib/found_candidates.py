@@ -97,6 +97,7 @@ class FoundCandidates(collections_abc.Sequence):
     page when remote packages are actually needed. This improve performances
     when suitable candidates are already installed on disk.
     """
+
     def __init__(
         self,
         get_infos,  # type: Callable[[], Iterator[IndexCandidateInfo]]

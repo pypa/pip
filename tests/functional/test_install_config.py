@@ -112,7 +112,7 @@ def test_command_line_appends_correctly(script, data):
 
     """
     script.environ['PIP_FIND_LINKS'] = (
-        'https://test.pypi.org {data.find_links}'.format(**locals())
+        f'https://test.pypi.org {data.find_links}'
     )
     result = script.pip(
         'install', '-vvv', 'INITools', '--trusted-host',
@@ -298,7 +298,7 @@ def test_prompt_for_keyring_if_needed(script, data, cert_factory, auth_needed):
         response(str(data.packages / "simple-3.0.tar.gz")),
     ]
 
-    url = "https://{}:{}/simple".format(server.host, server.port)
+    url = f"https://{server.host}:{server.port}/simple"
 
     keyring_content = textwrap.dedent("""\
         import os

@@ -4,7 +4,7 @@ import os
 import sys
 from optparse import Values
 from types import ModuleType
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import pip._vendor
 from pip._vendor.certifi import where
@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 
 def show_value(name, value):
-    # type: (str, Optional[str]) -> None
+    # type: (str, Any) -> None
     logger.info('%s: %s', name, value)
 
 

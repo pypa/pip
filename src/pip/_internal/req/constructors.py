@@ -77,16 +77,19 @@ def parse_editable(editable_req):
     url_no_extras, extras = _strip_extras(url)
 
     if os.path.isdir(url_no_extras):
-        if not os.path.exists(os.path.join(url_no_extras, 'setup.py')):
+        setup_py = os.path.join(url_no_extras, 'setup.py')
+        setup_cfg = os.path.join(url_no_extras, 'setup.cfg')
+        if not os.path.exists(setup_py) and not os.path.exists(setup_cfg):
             msg = (
-                'File "setup.py" not found. Directory cannot be installed '
-                'in editable mode: {}'.format(os.path.abspath(url_no_extras))
+                'File "setup.py" or "setup.cfg" not found. Directory cannot be '
+                'installed in editable mode: {}'
+                .format(os.path.abspath(url_no_extras))
             )
             pyproject_path = make_pyproject_path(url_no_extras)
             if os.path.isfile(pyproject_path):
                 msg += (
                     '\n(A "pyproject.toml" file was found, but editable '
-                    'mode currently requires a setup.py based build.)'
+                    'mode currently requires a setuptools-based build.)'
                 )
             raise InstallationError(msg)
 
@@ -140,7 +143,7 @@ def deduce_helpful_msg(req):
         msg = " The path does exist. "
         # Try to parse and check if it is a requirements file.
         try:
-            with open(req, 'r') as fp:
+            with open(req) as fp:
                 # parse first line only
                 next(parse_requirements(fp.read()))
                 msg += (
@@ -179,7 +182,7 @@ def parse_req_from_editable(editable_req):
 
     if name is not None:
         try:
-            req = Requirement(name)
+            req = Requirement(name)  # type: Optional[Requirement]
         except InvalidRequirement:
             raise InstallationError(f"Invalid requirement: '{name}'")
     else:
@@ -256,8 +259,8 @@ def _get_url_from_path(path, name):
         if is_installable_dir(path):
             return path_to_url(path)
         raise InstallationError(
-            "Directory {name!r} is not installable. Neither 'setup.py' "
-            "nor 'pyproject.toml' found.".format(**locals())
+            f"Directory {name!r} is not installable. Neither 'setup.py' "
+            "nor 'pyproject.toml' found."
         )
     if not is_archive_file(path):
         return None
@@ -314,7 +317,7 @@ def parse_req_from_line(name, line_source):
         # wheel file
         if link.is_wheel:
             wheel = Wheel(link.filename)  # can raise InvalidWheelFilename
-            req_as_string = "{wheel.name}=={wheel.version}".format(**locals())
+            req_as_string = f"{wheel.name}=={wheel.version}"
         else:
             # set the req to the egg fragment.  when it's not there, this
             # will become an 'unnamed' requirement
@@ -332,7 +335,7 @@ def parse_req_from_line(name, line_source):
             return text
         return f'{text} (from {line_source})'
 
-    if req_as_string is not None:
+    def _parse_req_string(req_as_string: str) -> Requirement:
         try:
             req = Requirement(req_as_string)
         except InvalidRequirement:
@@ -360,6 +363,10 @@ def parse_req_from_line(name, line_source):
                 if spec_str.endswith(']'):
                     msg = f"Extras after version '{spec_str}'."
                     raise InstallationError(msg)
+        return req
+
+    if req_as_string is not None:
+        req = _parse_req_string(req_as_string)  # type: Optional[Requirement]
     else:
         req = None
 

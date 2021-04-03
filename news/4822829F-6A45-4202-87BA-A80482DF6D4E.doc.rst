@@ -1,0 +1,2 @@
+Update "setuptools extras" link to match upstream.
+

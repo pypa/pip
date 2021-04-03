@@ -1,11 +1,28 @@
-from typing import Container, Iterator, List, Optional
+import logging
+import re
+from typing import Container, Iterator, List, Optional, Union
 
-from pip._vendor.packaging.version import _BaseVersion
+from pip._vendor.packaging.version import LegacyVersion, Version
 
 from pip._internal.utils.misc import stdlib_pkgs  # TODO: Move definition here.
 
+DistributionVersion = Union[LegacyVersion, Version]
+
+logger = logging.getLogger(__name__)
+
 
 class BaseDistribution:
+    @property
+    def location(self):
+        # type: () -> Optional[str]
+        """Where the distribution is loaded from.
+
+        A string value is not necessarily a filesystem path, since distributions
+        can be loaded from other sources, e.g. arbitrary zip archives. ``None``
+        means the distribution is created in-memory.
+        """
+        raise NotImplementedError()
+
     @property
     def metadata_version(self):
         # type: () -> Optional[str]
@@ -19,7 +36,7 @@ class BaseDistribution:
 
     @property
     def version(self):
-        # type: () -> _BaseVersion
+        # type: () -> DistributionVersion
         raise NotImplementedError()
 
     @property
@@ -61,10 +78,37 @@ class BaseEnvironment:
         """Given a requirement name, return the installed distributions."""
         raise NotImplementedError()
 
+    def _iter_distributions(self):
+        # type: () -> Iterator[BaseDistribution]
+        """Iterate through installed distributions.
+
+        This function should be implemented by subclass, but never called
+        directly. Use the public ``iter_distribution()`` instead, which
+        implements additional logic to make sure the distributions are valid.
+        """
+        raise NotImplementedError()
+
     def iter_distributions(self):
         # type: () -> Iterator[BaseDistribution]
         """Iterate through installed distributions."""
-        raise NotImplementedError()
+        for dist in self._iter_distributions():
+            # Make sure the distribution actually comes from a valid Python
+            # packaging distribution. Pip's AdjacentTempDirectory leaves folders
+            # e.g. ``~atplotlib.dist-info`` if cleanup was interrupted. The
+            # valid project name pattern is taken from PEP 508.
+            project_name_valid = re.match(
+                r"^([A-Z0-9]|[A-Z0-9][A-Z0-9._-]*[A-Z0-9])$",
+                dist.canonical_name,
+                flags=re.IGNORECASE,
+            )
+            if not project_name_valid:
+                logger.warning(
+                    "Ignoring invalid distribution %s (%s)",
+                    dist.canonical_name,
+                    dist.location,
+                )
+                continue
+            yield dist
 
     def iter_installed_distributions(
         self,

@@ -4,8 +4,8 @@ from pip._vendor.pkg_resources import yield_lines
 
 
 class DictMetadata:
-    """IMetadataProvider that reads metadata files from a dictionary.
-    """
+    """IMetadataProvider that reads metadata files from a dictionary."""
+
     def __init__(self, metadata):
         # type: (Dict[str, bytes]) -> None
         self._metadata = metadata

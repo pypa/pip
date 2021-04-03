@@ -1,0 +1,3 @@
+Start installation scheme migration from ``distutils`` to ``sysconfig``. A
+warning is implemented to detect differences between the two implementations to
+encourage user reports, so we can avoid breakages before they happen.

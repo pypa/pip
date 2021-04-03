@@ -12,10 +12,14 @@ from pip._vendor.packaging.utils import canonicalize_name
 from pip._internal.cache import WheelCache
 from pip._internal.cli import cmdoptions
 from pip._internal.cli.cmdoptions import make_target_python
-from pip._internal.cli.req_command import RequirementCommand, with_cleanup
+from pip._internal.cli.req_command import (
+    RequirementCommand,
+    warn_if_run_as_root,
+    with_cleanup,
+)
 from pip._internal.cli.status_codes import ERROR, SUCCESS
 from pip._internal.exceptions import CommandError, InstallationError
-from pip._internal.locations import distutils_scheme
+from pip._internal.locations import get_scheme
 from pip._internal.metadata import get_environment
 from pip._internal.models.format_control import FormatControl
 from pip._internal.operations.check import ConflictDetails, check_install_conflicts
@@ -45,7 +49,7 @@ def get_check_binary_allowed(format_control):
     # type: (FormatControl) -> BinaryAllowedPredicate
     def check_binary_allowed(req):
         # type: (InstallRequirement) -> bool
-        canonical_name = canonicalize_name(req.name)
+        canonical_name = canonicalize_name(req.name or "")
         allowed_formats = format_control.get_allowed_formats(canonical_name)
         return "binary" in allowed_formats
 
@@ -443,6 +447,7 @@ class InstallCommand(RequirementCommand):
                 options.target_dir, target_temp_dir, options.upgrade
             )
 
+        warn_if_run_as_root()
         return SUCCESS
 
     def _handle_target_dir(self, target_dir, target_temp_dir, upgrade):
@@ -455,10 +460,10 @@ class InstallCommand(RequirementCommand):
 
         # Checking both purelib and platlib directories for installed
         # packages to be moved to target directory
-        scheme = distutils_scheme('', home=target_temp_dir.path)
-        purelib_dir = scheme['purelib']
-        platlib_dir = scheme['platlib']
-        data_dir = scheme['data']
+        scheme = get_scheme('', home=target_temp_dir.path)
+        purelib_dir = scheme.purelib
+        platlib_dir = scheme.platlib
+        data_dir = scheme.data
 
         if os.path.exists(purelib_dir):
             lib_dir_list.append(purelib_dir)
@@ -574,9 +579,15 @@ def get_lib_location_guesses(
         prefix=None  # type: Optional[str]
 ):
     # type:(...) -> List[str]
-    scheme = distutils_scheme('', user=user, home=home, root=root,
-                              isolated=isolated, prefix=prefix)
-    return [scheme['purelib'], scheme['platlib']]
+    scheme = get_scheme(
+        '',
+        user=user,
+        home=home,
+        root=root,
+        isolated=isolated,
+        prefix=prefix,
+    )
+    return [scheme.purelib, scheme.platlib]
 
 
 def site_packages_writable(root, isolated):

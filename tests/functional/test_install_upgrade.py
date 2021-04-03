@@ -421,8 +421,7 @@ class TestUpgradeDistributeToSetuptools:
 
     def prep_ve(self, script, version, pip_src, distribute=False):
         self.script = script
-        self.script.pip_install_local(
-            'virtualenv=={version}'.format(**locals()))
+        self.script.pip_install_local(f'virtualenv=={version}')
         args = ['virtualenv', self.script.scratch_path / 'VE']
         if distribute:
             args.insert(1, '--distribute')

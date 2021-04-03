@@ -125,7 +125,7 @@ does not come with it included.
 
    pip install keyring
    echo your-password | keyring set pypi.company.com your-username
-   pip install your-package --extra-index-url https://pypi.company.com/
+   pip install your-package --index-url https://pypi.company.com/
 
 .. _keyring: https://pypi.org/project/keyring/
 
@@ -824,6 +824,21 @@ strategies supported:
 
 The default strategy is ``only-if-needed``. This was changed in pip 10.0 due to
 the breaking nature of ``eager`` when upgrading conflicting dependencies.
+
+It is important to note that ``--upgrade`` affects *direct requirements* (e.g.
+those specified on the command-line or via a requirements file) while
+``--upgrade-strategy`` affects *indirect requirements* (dependencies of direct
+requirements).
+
+As an example, say ``SomePackage`` has a dependency, ``SomeDependency``, and
+both of them are already installed but are not the latest avaialable versions:
+
+- ``pip install SomePackage``: will not upgrade the existing ``SomePackage`` or
+  ``SomeDependency``.
+- ``pip install --upgrade SomePackage``: will upgrade ``SomePackage``, but not
+  ``SomeDependency`` (unless a minimum requirement is not met).
+- ``pip install --upgrade SomePackage --upgrade-strategy=eager``: upgrades both
+  ``SomePackage`` and ``SomeDependency``.
 
 As an historic note, an earlier "fix" for getting the ``only-if-needed``
 behaviour was:
@@ -1857,9 +1872,11 @@ We plan for the resolver changeover to proceed as follows, using
      environments, pip defaults to the old resolver, and the new one is
      available using the flag ``--use-feature=2020-resolver``.
 
-*    pip 21.0: pip uses new resolver, and the old resolver is no longer
-     available. Python 2 support is removed per our :ref:`Python 2
-     Support` policy.
+*    pip 21.0: pip uses new resolver by default, and the old resolver is
+     no longer supported. It will be removed after a currently undecided
+     amount of time, as the removal is dependent on pip's volunteer
+     maintainers' availability. Python 2 support is removed per our
+     :ref:`Python 2 Support` policy.
 
 Since this work will not change user-visible behavior described in the
 pip documentation, this change is not covered by the :ref:`Deprecation
@@ -1885,6 +1902,6 @@ announcements on the `low-traffic packaging announcements list`_ and
 .. _low-traffic packaging announcements list: https://mail.python.org/mailman3/lists/pypi-announce.python.org/
 .. _our survey on upgrades that create conflicts: https://docs.google.com/forms/d/e/1FAIpQLSeBkbhuIlSofXqCyhi3kGkLmtrpPOEBwr6iJA6SzHdxWKfqdA/viewform
 .. _the official Python blog: https://blog.python.org/
-.. _requests: https://requests.readthedocs.io/en/master/user/authentication/#netrc-authentication
+.. _requests: https://requests.readthedocs.io/en/latest/user/authentication/#netrc-authentication
 .. _Python standard library: https://docs.python.org/3/library/netrc.html
 .. _Python Windows launcher: https://docs.python.org/3/using/windows.html#launcher

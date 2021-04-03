@@ -1,6 +1,7 @@
 import functools
 import logging
 from typing import (
+    TYPE_CHECKING,
     Dict,
     FrozenSet,
     Iterable,
@@ -11,11 +12,11 @@ from typing import (
     Set,
     Tuple,
     TypeVar,
+    cast,
 )
 
 from pip._vendor.packaging.specifiers import SpecifierSet
-from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.packaging.version import _BaseVersion
+from pip._vendor.packaging.utils import NormalizedName, canonicalize_name
 from pip._vendor.pkg_resources import Distribution
 from pip._vendor.resolvelib import ResolutionImpossible
 
@@ -43,7 +44,7 @@ from pip._internal.utils.misc import (
 )
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
-from .base import Candidate, Constraint, Requirement
+from .base import Candidate, CandidateVersion, Constraint, Requirement
 from .candidates import (
     AlreadyInstalledCandidate,
     BaseCandidate,
@@ -59,6 +60,14 @@ from .requirements import (
     SpecifierRequirement,
     UnsatisfiableRequirement,
 )
+
+if TYPE_CHECKING:
+    from typing import Protocol
+
+    class ConflictCause(Protocol):
+        requirement: RequiresPythonRequirement
+        parent: Candidate
+
 
 logger = logging.getLogger(__name__)
 
@@ -92,8 +101,9 @@ class Factory:
         self._build_failures = {}  # type: Cache[InstallationError]
         self._link_candidate_cache = {}  # type: Cache[LinkCandidate]
         self._editable_candidate_cache = {}  # type: Cache[EditableCandidate]
-        self._installed_candidate_cache = {
-        }  # type: Dict[str, AlreadyInstalledCandidate]
+        self._installed_candidate_cache = (
+            {}
+        )  # type: Dict[str, AlreadyInstalledCandidate]
 
         if not ignore_installed:
             self._installed_dists = {
@@ -129,8 +139,8 @@ class Factory:
         link,  # type: Link
         extras,  # type: FrozenSet[str]
         template,  # type: InstallRequirement
-        name,  # type: Optional[str]
-        version,  # type: Optional[_BaseVersion]
+        name,  # type: Optional[NormalizedName]
+        version,  # type: Optional[CandidateVersion]
     ):
         # type: (...) -> Optional[Candidate]
         # TODO: Check already installed candidate, and use it if the link and
@@ -145,8 +155,11 @@ class Factory:
             if link not in self._editable_candidate_cache:
                 try:
                     self._editable_candidate_cache[link] = EditableCandidate(
-                        link, template, factory=self,
-                        name=name, version=version,
+                        link,
+                        template,
+                        factory=self,
+                        name=name,
+                        version=version,
                     )
                 except (InstallationSubprocessError, MetadataInconsistent) as e:
                     logger.warning("Discarding %s. %s", link, e)
@@ -157,8 +170,11 @@ class Factory:
             if link not in self._link_candidate_cache:
                 try:
                     self._link_candidate_cache[link] = LinkCandidate(
-                        link, template, factory=self,
-                        name=name, version=version,
+                        link,
+                        template,
+                        factory=self,
+                        name=name,
+                        version=version,
                     )
                 except (InstallationSubprocessError, MetadataInconsistent) as e:
                     logger.warning("Discarding %s. %s", link, e)
@@ -186,10 +202,12 @@ class Factory:
         # all of them.
         # Hopefully the Project model can correct this mismatch in the future.
         template = ireqs[0]
+        assert template.req, "Candidates found on index must be PEP 508"
         name = canonicalize_name(template.req.name)
 
         extras = frozenset()  # type: FrozenSet[str]
         for ireq in ireqs:
+            assert ireq.req, "Candidates found on index must be PEP 508"
             specifier &= ireq.req.specifier
             hashes &= ireq.hashes(trust_internet=False)
             extras |= frozenset(ireq.extras)
@@ -268,7 +286,8 @@ class Factory:
             )
 
         return (
-            c for c in explicit_candidates
+            c
+            for c in explicit_candidates
             if constraint.is_satisfied_by(c)
             and all(req.is_satisfied_by(c) for req in requirements)
         )
@@ -278,7 +297,8 @@ class Factory:
         if not ireq.match_markers(requested_extras):
             logger.info(
                 "Ignoring %s: markers '%s' don't match your environment",
-                ireq.name, ireq.markers,
+                ireq.name,
+                ireq.markers,
             )
             return None
         if not ireq.link:
@@ -350,7 +370,7 @@ class Factory:
     def get_dist_to_uninstall(self, candidate):
         # type: (Candidate) -> Optional[Distribution]
         # TODO: Are there more cases this needs to return True? Editable?
-        dist = self._installed_dists.get(candidate.name)
+        dist = self._installed_dists.get(candidate.project_name)
         if dist is None:  # Not installed, no uninstallation required.
             return None
 
@@ -372,41 +392,75 @@ class Factory:
             raise InstallationError(
                 "Will not install to the user site because it will "
                 "lack sys.path precedence to {} in {}".format(
-                    dist.project_name, dist.location,
+                    dist.project_name,
+                    dist.location,
                 )
             )
         return None
 
-    def _report_requires_python_error(
-        self,
-        requirement,  # type: RequiresPythonRequirement
-        template,  # type: Candidate
-    ):
-        # type: (...) -> UnsupportedPythonVersion
-        message_format = (
-            "Package {package!r} requires a different Python: "
-            "{version} not in {specifier!r}"
-        )
-        message = message_format.format(
-            package=template.name,
-            version=self._python_candidate.version,
-            specifier=str(requirement.specifier),
-        )
+    def _report_requires_python_error(self, causes):
+        # type: (Sequence[ConflictCause]) -> UnsupportedPythonVersion
+        assert causes, "Requires-Python error reported with no cause"
+
+        version = self._python_candidate.version
+
+        if len(causes) == 1:
+            specifier = str(causes[0].requirement.specifier)
+            message = (
+                f"Package {causes[0].parent.name!r} requires a different "
+                f"Python: {version} not in {specifier!r}"
+            )
+            return UnsupportedPythonVersion(message)
+
+        message = f"Packages require a different Python. {version} not in:"
+        for cause in causes:
+            package = cause.parent.format_for_error()
+            specifier = str(cause.requirement.specifier)
+            message += f"\n{specifier!r} (required by {package})"
         return UnsupportedPythonVersion(message)
 
-    def get_installation_error(self, e):
-        # type: (ResolutionImpossible) -> InstallationError
+    def _report_single_requirement_conflict(self, req, parent):
+        # type: (Requirement, Optional[Candidate]) -> DistributionNotFound
+        if parent is None:
+            req_disp = str(req)
+        else:
+            req_disp = f"{req} (from {parent.name})"
+
+        cands = self._finder.find_all_candidates(req.project_name)
+        versions = [str(v) for v in sorted({c.version for c in cands})]
+
+        logger.critical(
+            "Could not find a version that satisfies the requirement %s "
+            "(from versions: %s)",
+            req_disp,
+            ", ".join(versions) or "none",
+        )
+
+        return DistributionNotFound(f"No matching distribution found for {req}")
+
+    def get_installation_error(
+        self,
+        e,  # type: ResolutionImpossible[Requirement, Candidate]
+        constraints,  # type: Dict[str, Constraint]
+    ):
+        # type: (...) -> InstallationError
 
         assert e.causes, "Installation error reported with no cause"
 
         # If one of the things we can't solve is "we need Python X.Y",
         # that is what we report.
-        for cause in e.causes:
-            if isinstance(cause.requirement, RequiresPythonRequirement):
-                return self._report_requires_python_error(
-                    cause.requirement,
-                    cause.parent,
-                )
+        requires_python_causes = [
+            cause
+            for cause in e.causes
+            if isinstance(cause.requirement, RequiresPythonRequirement)
+            and not cause.requirement.is_satisfied_by(self._python_candidate)
+        ]
+        if requires_python_causes:
+            # The comprehension above makes sure all Requirement instances are
+            # RequiresPythonRequirement, so let's cast for convinience.
+            return self._report_requires_python_error(
+                cast("Sequence[ConflictCause]", requires_python_causes),
+            )
 
         # Otherwise, we have a set of causes which can't all be satisfied
         # at once.
@@ -415,17 +469,8 @@ class Factory:
         # satisfied. We just report that case.
         if len(e.causes) == 1:
             req, parent = e.causes[0]
-            if parent is None:
-                req_disp = str(req)
-            else:
-                req_disp = f'{req} (from {parent.name})'
-            logger.critical(
-                "Could not find a version that satisfies the requirement %s",
-                req_disp,
-            )
-            return DistributionNotFound(
-                f'No matching distribution found for {req}'
-            )
+            if req.name not in constraints:
+                return self._report_single_requirement_conflict(req, parent)
 
         # OK, we now have a list of requirements that can't all be
         # satisfied at once.
@@ -461,26 +506,35 @@ class Factory:
         else:
             info = "the requested packages"
 
-        msg = "Cannot install {} because these package versions " \
+        msg = (
+            "Cannot install {} because these package versions "
             "have conflicting dependencies.".format(info)
+        )
         logger.critical(msg)
         msg = "\nThe conflict is caused by:"
+
+        relevant_constraints = set()
         for req, parent in e.causes:
+            if req.name in constraints:
+                relevant_constraints.add(req.name)
             msg = msg + "\n    "
             if parent:
-                msg = msg + "{} {} depends on ".format(
-                    parent.name,
-                    parent.version
-                )
+                msg = msg + f"{parent.name} {parent.version} depends on "
             else:
                 msg = msg + "The user requested "
             msg = msg + req.format_for_error()
+        for key in relevant_constraints:
+            spec = constraints[key].specifier
+            msg += f"\n    The user requested (constraint) {key}{spec}"
 
-        msg = msg + "\n\n" + \
-            "To fix this you could try to:\n" + \
-            "1. loosen the range of package versions you've specified\n" + \
-            "2. remove package versions to allow pip attempt to solve " + \
-            "the dependency conflict\n"
+        msg = (
+            msg
+            + "\n\n"
+            + "To fix this you could try to:\n"
+            + "1. loosen the range of package versions you've specified\n"
+            + "2. remove package versions to allow pip attempt to solve "
+            + "the dependency conflict\n"
+        )
 
         logger.info(msg)
 

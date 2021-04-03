@@ -13,8 +13,8 @@ requests==2.25.1
     certifi==2020.12.05
     chardet==4.0.0
     idna==2.10
-    urllib3==1.26.2
-resolvelib==0.5.4
+    urllib3==1.26.4
+resolvelib==0.5.5
 setuptools==44.0.0
 six==1.15.0
 tenacity==6.3.1

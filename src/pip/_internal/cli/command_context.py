@@ -1,7 +1,7 @@
 from contextlib import ExitStack, contextmanager
 from typing import ContextManager, Iterator, TypeVar
 
-_T = TypeVar('_T', covariant=True)
+_T = TypeVar("_T", covariant=True)
 
 
 class CommandContextMixIn:

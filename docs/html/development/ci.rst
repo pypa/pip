@@ -1,7 +1,8 @@
 .. note::
 
-    This section of the documentation is currently being written. pip
-    developers welcome your help to complete this documentation. If
+    This section of the documentation is currently out of date.
+
+    pip developers welcome your help to update this documentation. If
     you're interested in helping out, please let us know in the
     `tracking issue`_, or just submit a pull request and mention it in
     that tracking issue.
@@ -133,11 +134,11 @@ Actual testing
 |           |          +-------+---------------+-----------------+
 |           |          | PyPy3 |               |                 |
 |   MacOS   +----------+-------+---------------+-----------------+
-|           |          | CP3.6 |   Azure       |   Azure         |
+|           |          | CP3.6 |   Github      |   Github        |
 |           |          +-------+---------------+-----------------+
-|           |   x64    | CP3.7 |   Azure       |   Azure         |
+|           |   x64    | CP3.7 |   Github      |   Github        |
 |           |          +-------+---------------+-----------------+
-|           |          | CP3.8 |   Azure       |   Azure         |
+|           |          | CP3.8 |   Github      |   Github        |
 |           |          +-------+---------------+-----------------+
 |           |          | PyPy3 |               |                 |
 +-----------+----------+-------+---------------+-----------------+

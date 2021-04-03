@@ -1,9 +1,19 @@
-from typing import Any, Dict, Iterable, Optional, Sequence, Tuple, Union
+from typing import TYPE_CHECKING, Dict, Iterable, Optional, Sequence, Union
 
 from pip._vendor.resolvelib.providers import AbstractProvider
 
 from .base import Candidate, Constraint, Requirement
 from .factory import Factory
+
+if TYPE_CHECKING:
+    from pip._vendor.resolvelib.providers import Preference
+    from pip._vendor.resolvelib.resolvers import RequirementInformation
+
+    PreferenceInformation = RequirementInformation[Requirement, Candidate]
+
+    _ProviderBase = AbstractProvider[Requirement, Candidate, str]
+else:
+    _ProviderBase = AbstractProvider
 
 # Notes on the relationship between the provider, the factory, and the
 # candidate and requirement classes.
@@ -24,7 +34,7 @@ from .factory import Factory
 # services to those objects (access to pip's finder and preparer).
 
 
-class PipProvider(AbstractProvider):
+class PipProvider(_ProviderBase):
     """Pip's provider implementation for resolvelib.
 
     :params constraints: A mapping of constraints specified by the user. Keys
@@ -50,17 +60,17 @@ class PipProvider(AbstractProvider):
         self._upgrade_strategy = upgrade_strategy
         self._user_requested = user_requested
 
-    def identify(self, dependency):
+    def identify(self, requirement_or_candidate):
         # type: (Union[Requirement, Candidate]) -> str
-        return dependency.name
+        return requirement_or_candidate.name
 
     def get_preference(
         self,
         resolution,  # type: Optional[Candidate]
-        candidates,  # type: Sequence[Candidate]
-        information  # type: Sequence[Tuple[Requirement, Candidate]]
+        candidates,  # type: Iterable[Candidate]
+        information,  # type: Iterable[PreferenceInformation]
     ):
-        # type: (...) -> Any
+        # type: (...) -> Preference
         """Produce a sort key for given requirement based on preference.
 
         The lower the return value is, the more preferred this group of
@@ -99,9 +109,7 @@ class PipProvider(AbstractProvider):
                 return 0
             spec_sets = (ireq.specifier for ireq in ireqs if ireq)
             operators = [
-                specifier.operator
-                for spec_set in spec_sets
-                for specifier in spec_set
+                specifier.operator for spec_set in spec_sets for specifier in spec_set
             ]
             if any(op in ("==", "===") for op in operators):
                 return 1
@@ -122,7 +130,7 @@ class PipProvider(AbstractProvider):
         # delaying Setuptools helps reduce branches the resolver has to check.
         # This serves as a temporary fix for issues like "apache-airlfow[all]"
         # while we work on "proper" branch pruning techniques.
-        delay_this = (key == "setuptools")
+        delay_this = key == "setuptools"
 
         return (delay_this, restrictive, order, key)
 
@@ -147,7 +155,7 @@ class PipProvider(AbstractProvider):
             if self._upgrade_strategy == "eager":
                 return True
             elif self._upgrade_strategy == "only-if-needed":
-                return (name in self._user_requested)
+                return name in self._user_requested
             return False
 
         return self._factory.find_candidates(
@@ -163,8 +171,4 @@ class PipProvider(AbstractProvider):
     def get_dependencies(self, candidate):
         # type: (Candidate) -> Sequence[Requirement]
         with_requires = not self._ignore_dependencies
-        return [
-            r
-            for r in candidate.iter_dependencies(with_requires)
-            if r is not None
-        ]
+        return [r for r in candidate.iter_dependencies(with_requires) if r is not None]

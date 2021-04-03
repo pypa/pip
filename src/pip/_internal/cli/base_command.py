@@ -34,7 +34,7 @@ from pip._internal.utils.temp_dir import TempDirectoryTypeRegistry as TempDirReg
 from pip._internal.utils.temp_dir import global_tempdir_manager, tempdir_registry
 from pip._internal.utils.virtualenv import running_under_virtualenv
 
-__all__ = ['Command']
+__all__ = ["Command"]
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +51,7 @@ class Command(CommandContextMixIn):
         self.summary = summary
         self.parser = ConfigOptionParser(
             usage=self.usage,
-            prog=f'{get_prog()} {name}',
+            prog=f"{get_prog()} {name}",
             formatter=UpdatingDefaultsHelpFormatter(),
             add_help_option=False,
             name=name,
@@ -62,7 +62,7 @@ class Command(CommandContextMixIn):
         self.tempdir_registry = None  # type: Optional[TempDirRegistry]
 
         # Commands should add options to this option group
-        optgroup_name = f'{self.name.capitalize()} Options'
+        optgroup_name = f"{self.name.capitalize()} Options"
         self.cmd_opts = optparse.OptionGroup(self.parser, optgroup_name)
 
         # Add the general options
@@ -86,7 +86,7 @@ class Command(CommandContextMixIn):
         """
         # Make sure we do the pip version check if the index_group options
         # are present.
-        assert not hasattr(options, 'no_index')
+        assert not hasattr(options, "no_index")
 
     def run(self, options, args):
         # type: (Values, List[Any]) -> int
@@ -131,17 +131,15 @@ class Command(CommandContextMixIn):
         #       This also affects isolated builds and it should.
 
         if options.no_input:
-            os.environ['PIP_NO_INPUT'] = '1'
+            os.environ["PIP_NO_INPUT"] = "1"
 
         if options.exists_action:
-            os.environ['PIP_EXISTS_ACTION'] = ' '.join(options.exists_action)
+            os.environ["PIP_EXISTS_ACTION"] = " ".join(options.exists_action)
 
         if options.require_venv and not self.ignore_require_venv:
             # If a venv is required check if it can really be found
             if not running_under_virtualenv():
-                logger.critical(
-                    'Could not find an activated virtualenv (required).'
-                )
+                logger.critical("Could not find an activated virtualenv (required).")
                 sys.exit(VIRTUALENV_NOT_FOUND)
 
         if options.cache_dir:
@@ -151,8 +149,8 @@ class Command(CommandContextMixIn):
                     "The directory '%s' or its parent directory is not owned "
                     "or is not writable by the current user. The cache "
                     "has been disabled. Check the permissions and owner of "
-                    "that directory. If executing pip with sudo, you may want "
-                    "sudo's -H flag.",
+                    "that directory. If executing pip with sudo, you should "
+                    "use sudo's -H flag.",
                     options.cache_dir,
                 )
                 options.cache_dir = None
@@ -171,7 +169,7 @@ class Command(CommandContextMixIn):
                 issue=8333,
             )
 
-        if '2020-resolver' in options.features_enabled:
+        if "2020-resolver" in options.features_enabled:
             logger.warning(
                 "--use-feature=2020-resolver no longer has any effect, "
                 "since it is now the default dependency resolver in pip. "
@@ -184,35 +182,39 @@ class Command(CommandContextMixIn):
             return status
         except PreviousBuildDirError as exc:
             logger.critical(str(exc))
-            logger.debug('Exception information:', exc_info=True)
+            logger.debug("Exception information:", exc_info=True)
 
             return PREVIOUS_BUILD_DIR_ERROR
-        except (InstallationError, UninstallationError, BadCommand,
-                NetworkConnectionError) as exc:
+        except (
+            InstallationError,
+            UninstallationError,
+            BadCommand,
+            NetworkConnectionError,
+        ) as exc:
             logger.critical(str(exc))
-            logger.debug('Exception information:', exc_info=True)
+            logger.debug("Exception information:", exc_info=True)
 
             return ERROR
         except CommandError as exc:
-            logger.critical('%s', exc)
-            logger.debug('Exception information:', exc_info=True)
+            logger.critical("%s", exc)
+            logger.debug("Exception information:", exc_info=True)
 
             return ERROR
         except BrokenStdoutLoggingError:
             # Bypass our logger and write any remaining messages to stderr
             # because stdout no longer works.
-            print('ERROR: Pipe to stdout was broken', file=sys.stderr)
+            print("ERROR: Pipe to stdout was broken", file=sys.stderr)
             if level_number <= logging.DEBUG:
                 traceback.print_exc(file=sys.stderr)
 
             return ERROR
         except KeyboardInterrupt:
-            logger.critical('Operation cancelled by user')
-            logger.debug('Exception information:', exc_info=True)
+            logger.critical("Operation cancelled by user")
+            logger.debug("Exception information:", exc_info=True)
 
             return ERROR
         except BaseException:
-            logger.critical('Exception:', exc_info=True)
+            logger.critical("Exception:", exc_info=True)
 
             return UNKNOWN_ERROR
         finally:

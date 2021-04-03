@@ -1,13 +1,13 @@
 import functools
 import logging
 import os
-from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple
+from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple, cast
 
-from pip._vendor import six
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.resolvelib import ResolutionImpossible
+from pip._vendor.packaging.version import parse as parse_version
+from pip._vendor.resolvelib import BaseReporter, ResolutionImpossible
 from pip._vendor.resolvelib import Resolver as RLResolver
-from pip._vendor.resolvelib.resolvers import Result
+from pip._vendor.resolvelib.structs import DirectedGraph
 
 from pip._internal.cache import WheelCache
 from pip._internal.exceptions import InstallationError
@@ -28,11 +28,14 @@ from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.filetypes import is_archive_file
 from pip._internal.utils.misc import dist_is_editable
 
-from .base import Constraint
+from .base import Candidate, Constraint, Requirement
 from .factory import Factory
 
 if TYPE_CHECKING:
-    from pip._vendor.resolvelib.structs import Graph
+    from pip._vendor.resolvelib.resolvers import Result as RLResult
+
+    Result = RLResult[Requirement, Candidate, str]
+
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +89,7 @@ class Resolver(BaseResolver):
                     raise InstallationError(problem)
                 if not req.match_markers():
                     continue
+                assert req.name, "Constraint must be named"
                 name = canonicalize_name(req.name)
                 if name in constraints:
                     constraints[name] &= req
@@ -97,7 +101,7 @@ class Resolver(BaseResolver):
                     if canonical_name not in user_requested:
                         user_requested[canonical_name] = i
                 r = self.factory.make_requirement_from_install_req(
-                    req, requested_extras=(),
+                    req, requested_extras=()
                 )
                 if r is not None:
                     requirements.append(r)
@@ -110,23 +114,29 @@ class Resolver(BaseResolver):
             user_requested=user_requested,
         )
         if "PIP_RESOLVER_DEBUG" in os.environ:
-            reporter = PipDebuggingReporter()
+            reporter = PipDebuggingReporter()  # type: BaseReporter
         else:
             reporter = PipReporter()
-        resolver = RLResolver(provider, reporter)
+        resolver = RLResolver(
+            provider,
+            reporter,
+        )  # type: RLResolver[Requirement, Candidate, str]
 
         try:
             try_to_avoid_resolution_too_deep = 2000000
-            self._result = resolver.resolve(
-                requirements, max_rounds=try_to_avoid_resolution_too_deep,
+            result = self._result = resolver.resolve(
+                requirements, max_rounds=try_to_avoid_resolution_too_deep
             )
 
         except ResolutionImpossible as e:
-            error = self.factory.get_installation_error(e)
-            six.raise_from(error, e)
+            error = self.factory.get_installation_error(
+                cast("ResolutionImpossible[Requirement, Candidate]", e),
+                constraints,
+            )
+            raise error from e
 
         req_set = RequirementSet(check_supported_wheels=check_supported_wheels)
-        for candidate in self._result.mapping.values():
+        for candidate in result.mapping.values():
             ireq = candidate.get_install_requirement()
             if ireq is None:
                 continue
@@ -140,14 +150,14 @@ class Resolver(BaseResolver):
             elif self.factory.force_reinstall:
                 # The --force-reinstall flag is set -- reinstall.
                 ireq.should_reinstall = True
-            elif installed_dist.parsed_version != candidate.version:
+            elif parse_version(installed_dist.version) != candidate.version:
                 # The installation is different in version -- reinstall.
                 ireq.should_reinstall = True
             elif candidate.is_editable or dist_is_editable(installed_dist):
                 # The incoming distribution is editable, or different in
                 # editable-ness to installation -- reinstall.
                 ireq.should_reinstall = True
-            elif candidate.source_link.is_file:
+            elif candidate.source_link and candidate.source_link.is_file:
                 # The incoming distribution is under file://
                 if candidate.source_link.is_wheel:
                     # is a local wheel -- do nothing.
@@ -188,14 +198,14 @@ class Resolver(BaseResolver):
                 # The reason can contain non-ASCII characters, Unicode
                 # is required for Python 2.
                 msg = (
-                    'The candidate selected for download or install is a '
-                    'yanked version: {name!r} candidate (version {version} '
-                    'at {link})\nReason for being yanked: {reason}'
+                    "The candidate selected for download or install is a "
+                    "yanked version: {name!r} candidate (version {version} "
+                    "at {link})\nReason for being yanked: {reason}"
                 ).format(
                     name=candidate.name,
                     version=candidate.version,
                     link=link,
-                    reason=link.yanked_reason or '<none given>',
+                    reason=link.yanked_reason or "<none given>",
                 )
                 logger.warning(msg)
 
@@ -235,7 +245,7 @@ class Resolver(BaseResolver):
 
 
 def get_topological_weights(graph, expected_node_count):
-    # type: (Graph, int) -> Dict[Optional[str], int]
+    # type: (DirectedGraph[Optional[str]], int) -> Dict[Optional[str], int]
     """Assign weights to each node based on how "deep" they are.
 
     This implementation may change at any point in the future without prior
@@ -281,7 +291,7 @@ def get_topological_weights(graph, expected_node_count):
 
 
 def _req_set_item_sorter(
-    item,     # type: Tuple[str, InstallRequirement]
+    item,  # type: Tuple[str, InstallRequirement]
     weights,  # type: Dict[Optional[str], int]
 ):
     # type: (...) -> Tuple[int, str]
