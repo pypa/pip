@@ -86,7 +86,13 @@ def install_given_reqs(
     )
 
     with indent_log():
-        # get a list of packages we can install in parallel
+        # get a list of packages we can install in parallel.
+        # we will only select packaged wheels that do not require uninstalling
+        # previous version. This ensures that no console outputs is printed,
+        # making the stdout consistent in parallel execution. It also decreases
+        # the chance of package install failure, as we are only unzipping a
+        # wheel file (no compilation or script execution involved)
+
         if parallel_install:
             should_parallel_reqs = [
                 (i, req) for i, req in enumerate(requirements)
@@ -105,10 +111,10 @@ def install_given_reqs(
                 should_parallel_values
             )
             # collect back results
-            parallel_reqs_dict = dict(
+            parallel_install_results = dict(
                 zip(should_parallel_indexes, executed_parallel_reqs))
         else:
-            parallel_reqs_dict = {}
+            parallel_install_results = {}
 
         # check the results from the parallel installation,
         # and fill-in missing installations or raise exception
@@ -117,23 +123,23 @@ def install_given_reqs(
             # select the install result from the parallel installation
             # or install serially now
             try:
-                installed_req = parallel_reqs_dict[i]
-                if isinstance(installed_req, InstallationResult):
+                install_result = parallel_install_results[i]
+                if isinstance(install_result, InstallationResult):
                     logger.debug(
                         'Successfully installed %s in parallel', req.name)
             except KeyError:
-                installed_req = _single_install(
+                install_result = _single_install(
                     install_args, req, suppress_exception=False)
                 logger.debug('Successfully installed %s serially', req.name)
 
             # Now processes the installation result,
             # throw exception or add into installed packages
-            if isinstance(installed_req, BaseException):
+            if isinstance(install_result, BaseException):
                 # Raise an exception if we caught one
                 # during the parallel installation
-                raise installed_req
-            elif isinstance(installed_req, InstallationResult):
-                installed.append(installed_req)
+                raise install_result
+            elif isinstance(install_result, InstallationResult):
+                installed.append(install_result)
 
     return installed
 
