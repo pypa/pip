@@ -1,3 +1,4 @@
+import itertools
 from .compat import collections_abc
 
 
@@ -65,6 +66,31 @@ class DirectedGraph(object):
 
     def iter_parents(self, key):
         return iter(self._backwards[key])
+
+
+class IteratorMapping(collections_abc.Mapping):
+    def __init__(self, mapping, accessor, appends=None):
+        self._mapping = mapping
+        self._accessor = accessor
+        self._appends = appends or {}
+
+    def __contains__(self, key):
+        return key in self._mapping or key in self._appends
+
+    def __getitem__(self, k):
+        try:
+            v = self._mapping[k]
+        except KeyError:
+            return iter(self._appends[k])
+        return itertools.chain(self._accessor(v), self._appends.get(k, ()))
+
+    def __iter__(self):
+        more = (k for k in self._appends if k not in self._mapping)
+        return itertools.chain(self._mapping, more)
+
+    def __len__(self):
+        more = len(k for k in self._appends if k not in self._mapping)
+        return len(self._mapping) + more
 
 
 class _FactoryIterableView(object):

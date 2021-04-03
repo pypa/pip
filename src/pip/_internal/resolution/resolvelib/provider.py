@@ -1,4 +1,13 @@
-from typing import TYPE_CHECKING, Dict, Iterable, Optional, Sequence, Union
+from typing import (
+    TYPE_CHECKING,
+    Dict,
+    Iterable,
+    Iterator,
+    Mapping,
+    Optional,
+    Sequence,
+    Union,
+)
 
 from pip._vendor.resolvelib.providers import AbstractProvider
 
@@ -134,11 +143,16 @@ class PipProvider(_ProviderBase):
 
         return (delay_this, restrictive, order, key)
 
-    def find_matches(self, requirements):
-        # type: (Sequence[Requirement]) -> Iterable[Candidate]
-        if not requirements:
+    def find_matches(
+        self,
+        identifier: str,
+        requirements: Mapping[str, Iterator[Requirement]],
+        incompatibilities: Mapping[str, Iterator[Candidate]],
+    ) -> Iterable[Candidate]:
+        try:
+            current_requirements = requirements[identifier]
+        except KeyError:
             return []
-        name = requirements[0].project_name
 
         def _eligible_for_upgrade(name):
             # type: (str) -> bool
@@ -159,9 +173,9 @@ class PipProvider(_ProviderBase):
             return False
 
         return self._factory.find_candidates(
-            requirements,
-            constraint=self._constraints.get(name, Constraint.empty()),
-            prefers_installed=(not _eligible_for_upgrade(name)),
+            list(current_requirements),
+            constraint=self._constraints.get(identifier, Constraint.empty()),
+            prefers_installed=(not _eligible_for_upgrade(identifier)),
         )
 
     def is_satisfied_by(self, requirement, candidate):

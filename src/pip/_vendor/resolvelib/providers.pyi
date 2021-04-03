@@ -3,10 +3,10 @@ from typing import (
     Collection,
     Generic,
     Iterable,
+    Iterator,
     Mapping,
     Optional,
     Protocol,
-    Sequence,
     Union,
 )
 
@@ -31,7 +31,12 @@ class AbstractProvider(Generic[RT, CT, KT]):
         candidates: IterableView[CT],
         information: Collection[RequirementInformation[RT, CT]],
     ) -> Preference: ...
-    def find_matches(self, requirements: Sequence[RT]) -> Matches: ...
+    def find_matches(
+        self,
+        identifier: KT,
+        requirements: Mapping[KT, Iterator[RT]],
+        incompatibilities: Mapping[KT, Iterator[CT]],
+    ) -> Matches: ...
     def is_satisfied_by(self, requirement: RT, candidate: CT) -> bool: ...
     def get_dependencies(self, candidate: CT) -> Iterable[RT]: ...
 

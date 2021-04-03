@@ -50,8 +50,18 @@ class AbstractProvider(object):
         """
         raise NotImplementedError
 
-    def find_matches(self, requirements):
-        """Find all possible candidates that satisfy the given requirements.
+    def find_matches(self, identifier, requirements, incompatibilities):
+        """Find all possible candidates that satisfy given constraints.
+
+        :param identifier: An identifier as returned by ``identify()``. This
+            identifies the dependency matches of which should be returned.
+        :param requirements: A mapping of requirements that all returned
+            candidates must satisfy. Each key is an identifier, and the value
+            an iterator of requirements for that dependency.
+        :param incompatibilities: A mapping of known incompatibilities of
+            each dependency. Each key is an identifier, and the value an
+            iterator of incompatibilities known to the resolver. All
+            incompatibilities *must* be excluded from the return value.
 
         This should try to get candidates based on the requirements' types.
         For VCS, local, and archive requirements, the one-and-only match is
@@ -66,10 +76,6 @@ class AbstractProvider(object):
         * An collection of candidates.
         * An iterable of candidates. This will be consumed immediately into a
           list of candidates.
-
-        :param requirements: A collection of requirements which all of the
-            returned candidates must match. All requirements are guaranteed to
-            have the same identifier. The collection is never empty.
         """
         raise NotImplementedError
 
