@@ -476,6 +476,7 @@ class CandidateEvaluator:
             hashes=self._hashes,
             project_name=self._project_name,
         )
+
         return sorted(filtered_applicable_candidates, key=self._sort_key)
 
     def _sort_key(self, candidate):
@@ -517,8 +518,6 @@ class CandidateEvaluator:
         if link.is_wheel:
             # can raise InvalidWheelFilename
             wheel = Wheel(link.filename)
-            if self._prefer_binary:
-                binary_preference = 1
             try:
                 pri = -(wheel.find_most_preferred_tag(
                     valid_tags, self._wheel_tag_preferences
@@ -528,6 +527,8 @@ class CandidateEvaluator:
                     "{} is not a supported wheel for this platform. It "
                     "can't be sorted.".format(wheel.filename)
                 )
+            if self._prefer_binary:
+                binary_preference = 1
             if wheel.build_tag is not None:
                 match = re.match(r'^(\d+)(.*)$', wheel.build_tag)
                 build_tag_groups = match.groups()
@@ -552,7 +553,9 @@ class CandidateEvaluator:
         """
         if not candidates:
             return None
-        return max(candidates, key=self._sort_key)
+        best_candidate = max(candidates, key=self._sort_key)
+        return best_candidate
+
 
     def compute_best_candidate(
         self,
