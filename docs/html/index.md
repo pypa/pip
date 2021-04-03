@@ -13,7 +13,7 @@ install packages from the [Python Package Index][pypi] and other indexes.
 quickstart
 installing
 user_guide
-reference/index
+cli/index
 ```
 
 ```{toctree}

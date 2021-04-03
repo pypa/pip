@@ -193,7 +193,7 @@ def _check_no_input(message):
     """Raise an error if no input is allowed."""
     if os.environ.get("PIP_NO_INPUT"):
         raise Exception(
-            "No input was expected ($PIP_NO_INPUT set); question: {}".format(message)
+            f"No input was expected ($PIP_NO_INPUT set); question: {message}"
         )
 
 
@@ -241,7 +241,7 @@ def strtobool(val):
     elif val in ("n", "no", "f", "false", "off", "0"):
         return 0
     else:
-        raise ValueError("invalid truth value %r" % (val,))
+        raise ValueError(f"invalid truth value {val!r}")
 
 
 def format_size(bytes):

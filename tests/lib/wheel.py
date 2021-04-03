@@ -30,9 +30,7 @@ from tests.lib.path import Path
 
 # path, digest, size
 RecordLike = Tuple[str, str, str]
-RecordCallback = Callable[
-    [List["Record"]], Union[str, bytes, List[RecordLike]]
-]
+RecordCallback = Callable[[List["Record"]], Union[str, bytes, List[RecordLike]]]
 # As would be used in metadata
 HeaderValue = Union[str, List[str]]
 
@@ -97,11 +95,13 @@ def make_metadata_file(
     if value is not _default:
         return File(path, ensure_binary(value))
 
-    metadata = CaseInsensitiveDict({
-        "Metadata-Version": "2.1",
-        "Name": name,
-        "Version": version,
-    })
+    metadata = CaseInsensitiveDict(
+        {
+            "Metadata-Version": "2.1",
+            "Name": name,
+            "Version": version,
+        }
+    )
     if updates is not _default:
         metadata.update(updates)
 
@@ -128,12 +128,14 @@ def make_wheel_metadata_file(
     if value is not _default:
         return File(path, ensure_binary(value))
 
-    metadata = CaseInsensitiveDict({
-        "Wheel-Version": "1.0",
-        "Generator": "pip-test-suite",
-        "Root-Is-Purelib": "true",
-        "Tag": ["-".join(parts) for parts in tags],
-    })
+    metadata = CaseInsensitiveDict(
+        {
+            "Wheel-Version": "1.0",
+            "Generator": "pip-test-suite",
+            "Root-Is-Purelib": "true",
+            "Tag": ["-".join(parts) for parts in tags],
+        }
+    )
 
     if updates is not _default:
         metadata.update(updates)
@@ -172,10 +174,7 @@ def make_entry_points_file(
 
 def make_files(files):
     # type: (Dict[str, AnyStr]) -> List[File]
-    return [
-        File(name, ensure_binary(contents))
-        for name, contents in files.items()
-    ]
+    return [File(name, ensure_binary(contents)) for name, contents in files.items()]
 
 
 def make_metadata_files(name, version, files):
@@ -203,9 +202,7 @@ def urlsafe_b64encode_nopad(data):
 
 def digest(contents):
     # type: (bytes) -> str
-    return "sha256={}".format(
-        urlsafe_b64encode_nopad(sha256(contents).digest())
-    )
+    return "sha256={}".format(urlsafe_b64encode_nopad(sha256(contents).digest()))
 
 
 def record_file_maker_wrapper(
@@ -219,9 +216,7 @@ def record_file_maker_wrapper(
     records = []  # type: List[Record]
     for file in files:
         records.append(
-            Record(
-                file.name, digest(file.contents), str(len(file.contents))
-            )
+            Record(file.name, digest(file.contents), str(len(file.contents)))
         )
         yield file
 
@@ -250,19 +245,20 @@ def record_file_maker_wrapper(
 
 def wheel_name(name, version, pythons, abis, platforms):
     # type: (str, str, str, str, str) -> str
-    stem = "-".join([
-        name,
-        version,
-        ".".join(pythons),
-        ".".join(abis),
-        ".".join(platforms),
-    ])
+    stem = "-".join(
+        [
+            name,
+            version,
+            ".".join(pythons),
+            ".".join(abis),
+            ".".join(platforms),
+        ]
+    )
     return f"{stem}.whl"
 
 
 class WheelBuilder:
-    """A wheel that can be saved or converted to several formats.
-    """
+    """A wheel that can be saved or converted to several formats."""
 
     def __init__(self, name, files):
         # type: (str, List[File]) -> None
@@ -390,9 +386,7 @@ def make_wheel(
     tags = list(itertools.product(pythons, abis, platforms))
 
     possible_files = [
-        make_metadata_file(
-            name, version, metadata, metadata_updates, metadata_body
-        ),
+        make_metadata_file(name, version, metadata, metadata_updates, metadata_body),
         make_wheel_metadata_file(
             name, version, wheel_metadata, tags, wheel_metadata_updates
         ),
@@ -403,9 +397,7 @@ def make_wheel(
         possible_files.extend(make_files(extra_files))
 
     if extra_metadata_files is not _default:
-        possible_files.extend(
-            make_metadata_files(name, version, extra_metadata_files)
-        )
+        possible_files.extend(make_metadata_files(name, version, extra_metadata_files))
 
     if extra_data_files is not _default:
         possible_files.extend(make_data_files(name, version, extra_data_files))

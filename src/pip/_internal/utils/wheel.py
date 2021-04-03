@@ -36,7 +36,7 @@ class WheelMetadata(DictMetadata):
         except UnicodeDecodeError as e:
             # Augment the default error with the origin of the file.
             raise UnsupportedWheel(
-                "Error decoding metadata for {}: {}".format(self._wheel_name, e)
+                f"Error decoding metadata for {self._wheel_name}: {e}"
             )
 
 
