@@ -1000,6 +1000,13 @@ Examples
 
          py -m pip install --upgrade SomePackage
 
+    .. note::
+
+      This will guarantee an update to ``SomePackage`` as it is a direct
+      requirement, and possibly upgrade dependencies if their installed
+      versions do not meet the minimum requirements of ``SomePackage``.
+      Any non-requisite updates of its dependencies (indirect requirements)
+      will be affected by the ``--upgrade-strategy`` command.
 
 #. Install a local project in "editable" mode. See the section on :ref:`Editable Installs <editable-installs>`.
 

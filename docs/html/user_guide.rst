@@ -825,6 +825,21 @@ strategies supported:
 The default strategy is ``only-if-needed``. This was changed in pip 10.0 due to
 the breaking nature of ``eager`` when upgrading conflicting dependencies.
 
+It is important to note that ``--upgrade`` affects *direct requirements* (e.g.
+those specified on the command-line or via a requirements file) while
+``--upgrade-strategy`` affects *indirect requirements* (dependencies of direct
+requirements).
+
+As an example, say ``SomePackage`` has a dependency, ``SomeDependency``, and
+both of them are already installed but are not the latest avaialable versions:
+
+- ``pip install SomePackage``: will not upgrade the existing ``SomePackage`` or
+  ``SomeDependency``.
+- ``pip install --upgrade SomePackage``: will upgrade ``SomePackage``, but not
+  ``SomeDependency`` (unless a minimum requirement is not met).
+- ``pip install --upgrade SomePackage --upgrade-strategy=eager``: upgrades both
+  ``SomePackage`` and ``SomeDependency``.
+
 As an historic note, an earlier "fix" for getting the ``only-if-needed``
 behaviour was:
 
