@@ -12,6 +12,7 @@ from typing import (
     Set,
     Tuple,
     TypeVar,
+    cast,
 )
 
 from pip._vendor.packaging.specifiers import SpecifierSet
@@ -419,7 +420,7 @@ class Factory:
         return UnsupportedPythonVersion(message)
 
     def _report_single_requirement_conflict(self, req, parent):
-        # type: (Requirement, Candidate) -> DistributionNotFound
+        # type: (Requirement, Optional[Candidate]) -> DistributionNotFound
         if parent is None:
             req_disp = str(req)
         else:
@@ -439,7 +440,7 @@ class Factory:
 
     def get_installation_error(
         self,
-        e,  # type: ResolutionImpossible
+        e,  # type: ResolutionImpossible[Requirement, Candidate]
         constraints,  # type: Dict[str, Constraint]
     ):
         # type: (...) -> InstallationError
@@ -455,7 +456,11 @@ class Factory:
             and not cause.requirement.is_satisfied_by(self._python_candidate)
         ]
         if requires_python_causes:
-            return self._report_requires_python_error(requires_python_causes)
+            # The comprehension above makes sure all Requirement instances are
+            # RequiresPythonRequirement, so let's cast for convinience.
+            return self._report_requires_python_error(
+                cast("Sequence[ConflictCause]", requires_python_causes),
+            )
 
         # Otherwise, we have a set of causes which can't all be satisfied
         # at once.

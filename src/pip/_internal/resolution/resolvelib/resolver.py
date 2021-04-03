@@ -1,13 +1,13 @@
 import functools
 import logging
 import os
-from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple
+from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple, cast
 
 from pip._vendor.packaging.utils import canonicalize_name
 from pip._vendor.packaging.version import parse as parse_version
 from pip._vendor.resolvelib import BaseReporter, ResolutionImpossible
 from pip._vendor.resolvelib import Resolver as RLResolver
-from pip._vendor.resolvelib.resolvers import Result
+from pip._vendor.resolvelib.structs import DirectedGraph
 
 from pip._internal.cache import WheelCache
 from pip._internal.exceptions import InstallationError
@@ -28,11 +28,14 @@ from pip._internal.utils.deprecation import deprecated
 from pip._internal.utils.filetypes import is_archive_file
 from pip._internal.utils.misc import dist_is_editable
 
-from .base import Constraint
+from .base import Candidate, Constraint, Requirement
 from .factory import Factory
 
 if TYPE_CHECKING:
-    from pip._vendor.resolvelib.structs import DirectedGraph
+    from pip._vendor.resolvelib.resolvers import Result as RLResult
+
+    Result = RLResult[Requirement, Candidate, str]
+
 
 logger = logging.getLogger(__name__)
 
@@ -114,7 +117,10 @@ class Resolver(BaseResolver):
             reporter = PipDebuggingReporter()  # type: BaseReporter
         else:
             reporter = PipReporter()
-        resolver = RLResolver(provider, reporter)
+        resolver = RLResolver(
+            provider,
+            reporter,
+        )  # type: RLResolver[Requirement, Candidate, str]
 
         try:
             try_to_avoid_resolution_too_deep = 2000000
@@ -123,7 +129,10 @@ class Resolver(BaseResolver):
             )
 
         except ResolutionImpossible as e:
-            error = self.factory.get_installation_error(e, constraints)
+            error = self.factory.get_installation_error(
+                cast("ResolutionImpossible[Requirement, Candidate]", e),
+                constraints,
+            )
             raise error from e
 
         req_set = RequirementSet(check_supported_wheels=check_supported_wheels)
@@ -148,7 +157,7 @@ class Resolver(BaseResolver):
                 # The incoming distribution is editable, or different in
                 # editable-ness to installation -- reinstall.
                 ireq.should_reinstall = True
-            elif candidate.source_link.is_file:
+            elif candidate.source_link and candidate.source_link.is_file:
                 # The incoming distribution is under file://
                 if candidate.source_link.is_wheel:
                     # is a local wheel -- do nothing.
@@ -236,7 +245,7 @@ class Resolver(BaseResolver):
 
 
 def get_topological_weights(graph, expected_node_count):
-    # type: (DirectedGraph, int) -> Dict[Optional[str], int]
+    # type: (DirectedGraph[Optional[str]], int) -> Dict[Optional[str], int]
     """Assign weights to each node based on how "deep" they are.
 
     This implementation may change at any point in the future without prior

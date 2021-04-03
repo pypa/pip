@@ -2,12 +2,10 @@ class AbstractProvider(object):
     """Delegate class to provide requirement interface for the resolver."""
 
     def identify(self, requirement_or_candidate):
-        """Given a requirement or candidate, return an identifier for it.
+        """Given a requirement, return an identifier for it.
 
-        This is used in many places to identify a requirement or candidate,
-        e.g. whether two requirements should have their specifier parts merged,
-        whether two candidates would conflict with each other (because they
-        have same name but different versions).
+        This is used to identify a requirement, e.g. whether two requirements
+        should have their specifier parts merged.
         """
         raise NotImplementedError
 
