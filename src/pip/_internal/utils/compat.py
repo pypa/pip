@@ -1,9 +1,6 @@
 """Stuff that differs in different Python versions and platform
 distributions."""
 
-# The following comment should be removed at some point in the future.
-# mypy: disallow-untyped-defs=False
-
 import logging
 import os
 import sys
@@ -52,9 +49,7 @@ def get_path_uid(path):
             file_uid = os.stat(path).st_uid
         else:
             # raise OSError for parity with os.O_NOFOLLOW above
-            raise OSError(
-                "{} is a symlink; Will not return uid for symlinks".format(path)
-            )
+            raise OSError(f"{path} is a symlink; Will not return uid for symlinks")
     return file_uid
 
 

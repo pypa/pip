@@ -684,6 +684,18 @@ class VersionControl:
             raise BadCommand(
                 f'Cannot find command {cls.name!r} - do you have '
                 f'{cls.name!r} installed and in your PATH?')
+        except PermissionError:
+            # errno.EACCES = Permission denied
+            # This error occurs, for instance, when the command is installed
+            # only for another user. So, the current user don't have
+            # permission to call the other user command.
+            raise BadCommand(
+                f"No permission to execute {cls.name!r} - install it "
+                f"locally, globally (ask admin), or check your PATH. "
+                f"See possible solutions at "
+                f"https://pip.pypa.io/en/latest/reference/pip_freeze/"
+                f"#fixing-permission-denied."
+            )
 
     @classmethod
     def is_repository_directory(cls, path):

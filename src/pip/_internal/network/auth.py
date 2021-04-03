@@ -37,7 +37,7 @@ except Exception as exc:
 
 
 def get_keyring_auth(url, username):
-    # type: (str, str) -> Optional[AuthInfo]
+    # type: (Optional[str], Optional[str]) -> Optional[AuthInfo]
     """Return the tuple auth for a given url from keyring."""
     global keyring
     if not url or not keyring:

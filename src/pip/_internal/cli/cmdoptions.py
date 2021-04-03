@@ -309,7 +309,12 @@ cert = partial(
     dest="cert",
     type="path",
     metavar="path",
-    help="Path to alternate CA bundle.",
+    help=(
+        "Path to PEM-encoded CA certificate bundle. "
+        "If provided, overrides the default. "
+        "See 'SSL Certificate Verification' in pip documentation "
+        "for more information."
+    ),
 )  # type: Callable[..., Option]
 
 client_cert = partial(

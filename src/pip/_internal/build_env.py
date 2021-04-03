@@ -6,7 +6,6 @@ import os
 import sys
 import textwrap
 from collections import OrderedDict
-from distutils.sysconfig import get_python_lib
 from sysconfig import get_paths
 from types import TracebackType
 from typing import TYPE_CHECKING, Iterable, List, Optional, Set, Tuple, Type
@@ -15,6 +14,7 @@ from pip._vendor.pkg_resources import Requirement, VersionConflict, WorkingSet
 
 from pip import __file__ as pip_location
 from pip._internal.cli.spinners import open_spinner
+from pip._internal.locations import get_platlib, get_prefixed_libs, get_purelib
 from pip._internal.utils.subprocess import call_subprocess
 from pip._internal.utils.temp_dir import TempDirectory, tempdir_kinds
 
@@ -34,14 +34,7 @@ class _Prefix:
             'nt' if os.name == 'nt' else 'posix_prefix',
             vars={'base': path, 'platbase': path}
         )['scripts']
-        # Note: prefer distutils' sysconfig to get the
-        # library paths so PyPy is correctly supported.
-        purelib = get_python_lib(plat_specific=False, prefix=path)
-        platlib = get_python_lib(plat_specific=True, prefix=path)
-        if purelib == platlib:
-            self.lib_dirs = [purelib]
-        else:
-            self.lib_dirs = [purelib, platlib]
+        self.lib_dirs = get_prefixed_libs(path)
 
 
 class BuildEnvironment:
@@ -54,10 +47,10 @@ class BuildEnvironment:
             kind=tempdir_kinds.BUILD_ENV, globally_managed=True
         )
 
-        self._prefixes = OrderedDict((
+        self._prefixes = OrderedDict(
             (name, _Prefix(os.path.join(temp_dir.path, name)))
             for name in ('normal', 'overlay')
-        ))
+        )
 
         self._bin_dirs = []  # type: List[str]
         self._lib_dirs = []  # type: List[str]
@@ -69,10 +62,7 @@ class BuildEnvironment:
         # - ensure .pth files are honored
         # - prevent access to system site packages
         system_sites = {
-            os.path.normcase(site) for site in (
-                get_python_lib(plat_specific=False),
-                get_python_lib(plat_specific=True),
-            )
+            os.path.normcase(site) for site in (get_purelib(), get_platlib())
         }
         self._site_dir = os.path.join(temp_dir.path, 'site')
         if not os.path.exists(self._site_dir):

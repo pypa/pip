@@ -349,7 +349,7 @@ class InstallRequirement:
 
         # When parallel builds are enabled, add a UUID to the build directory
         # name so multiple builds do not interfere with each other.
-        dir_name = canonicalize_name(self.name)
+        dir_name = canonicalize_name(self.name)  # type: str
         if parallel_builds:
             dir_name = f"{dir_name}_{uuid.uuid4().hex}"
 
@@ -419,8 +419,16 @@ class InstallRequirement:
         if not existing_dist:
             return
 
-        existing_version = existing_dist.parsed_version
-        if not self.req.specifier.contains(existing_version, prereleases=True):
+        # pkg_resouces may contain a different copy of packaging.version from
+        # pip in if the downstream distributor does a poor job debundling pip.
+        # We avoid existing_dist.parsed_version and let SpecifierSet.contains
+        # parses the version instead.
+        existing_version = existing_dist.version
+        version_compatible = (
+            existing_version is not None and
+            self.req.specifier.contains(existing_version, prereleases=True)
+        )
+        if not version_compatible:
             self.satisfied_by = None
             if use_user_site:
                 if dist_in_usersite(existing_dist):

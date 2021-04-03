@@ -1,0 +1,2 @@
+Avoid parsing version to make the version check more robust against lousily
+debundled downstream distributions.

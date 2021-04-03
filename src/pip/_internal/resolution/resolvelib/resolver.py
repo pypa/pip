@@ -3,9 +3,9 @@ import logging
 import os
 from typing import TYPE_CHECKING, Dict, List, Optional, Set, Tuple
 
-from pip._vendor import six
 from pip._vendor.packaging.utils import canonicalize_name
-from pip._vendor.resolvelib import ResolutionImpossible
+from pip._vendor.packaging.version import parse as parse_version
+from pip._vendor.resolvelib import BaseReporter, ResolutionImpossible
 from pip._vendor.resolvelib import Resolver as RLResolver
 from pip._vendor.resolvelib.resolvers import Result
 
@@ -32,7 +32,7 @@ from .base import Constraint
 from .factory import Factory
 
 if TYPE_CHECKING:
-    from pip._vendor.resolvelib.structs import Graph
+    from pip._vendor.resolvelib.structs import DirectedGraph
 
 logger = logging.getLogger(__name__)
 
@@ -86,6 +86,7 @@ class Resolver(BaseResolver):
                     raise InstallationError(problem)
                 if not req.match_markers():
                     continue
+                assert req.name, "Constraint must be named"
                 name = canonicalize_name(req.name)
                 if name in constraints:
                     constraints[name] &= req
@@ -110,23 +111,23 @@ class Resolver(BaseResolver):
             user_requested=user_requested,
         )
         if "PIP_RESOLVER_DEBUG" in os.environ:
-            reporter = PipDebuggingReporter()
+            reporter = PipDebuggingReporter()  # type: BaseReporter
         else:
             reporter = PipReporter()
         resolver = RLResolver(provider, reporter)
 
         try:
             try_to_avoid_resolution_too_deep = 2000000
-            self._result = resolver.resolve(
+            result = self._result = resolver.resolve(
                 requirements, max_rounds=try_to_avoid_resolution_too_deep
             )
 
         except ResolutionImpossible as e:
-            error = self.factory.get_installation_error(e)
-            six.raise_from(error, e)
+            error = self.factory.get_installation_error(e, constraints)
+            raise error from e
 
         req_set = RequirementSet(check_supported_wheels=check_supported_wheels)
-        for candidate in self._result.mapping.values():
+        for candidate in result.mapping.values():
             ireq = candidate.get_install_requirement()
             if ireq is None:
                 continue
@@ -140,7 +141,7 @@ class Resolver(BaseResolver):
             elif self.factory.force_reinstall:
                 # The --force-reinstall flag is set -- reinstall.
                 ireq.should_reinstall = True
-            elif installed_dist.parsed_version != candidate.version:
+            elif parse_version(installed_dist.version) != candidate.version:
                 # The installation is different in version -- reinstall.
                 ireq.should_reinstall = True
             elif candidate.is_editable or dist_is_editable(installed_dist):
@@ -235,7 +236,7 @@ class Resolver(BaseResolver):
 
 
 def get_topological_weights(graph, expected_node_count):
-    # type: (Graph, int) -> Dict[Optional[str], int]
+    # type: (DirectedGraph, int) -> Dict[Optional[str], int]
     """Assign weights to each node based on how "deep" they are.
 
     This implementation may change at any point in the future without prior

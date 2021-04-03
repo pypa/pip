@@ -7,6 +7,7 @@ PackageFinder machinery and all its vendored dependencies, etc.
 
 import logging
 import os
+import sys
 from functools import partial
 from optparse import Values
 from typing import Any, List, Optional, Tuple
@@ -38,6 +39,7 @@ from pip._internal.utils.temp_dir import (
     TempDirectoryTypeRegistry,
     tempdir_kinds,
 )
+from pip._internal.utils.virtualenv import running_under_virtualenv
 
 logger = logging.getLogger(__name__)
 
@@ -150,6 +152,35 @@ KEEPABLE_TEMPDIR_TYPES = [
     tempdir_kinds.EPHEM_WHEEL_CACHE,
     tempdir_kinds.REQ_BUILD,
 ]
+
+
+def warn_if_run_as_root():
+    # type: () -> None
+    """Output a warning for sudo users on Unix.
+
+    In a virtual environment, sudo pip still writes to virtualenv.
+    On Windows, users may run pip as Administrator without issues.
+    This warning only applies to Unix root users outside of virtualenv.
+    """
+    if running_under_virtualenv():
+        return
+    if not hasattr(os, "getuid"):
+        return
+    # On Windows, there are no "system managed" Python packages. Installing as
+    # Administrator via pip is the correct way of updating system environments.
+    #
+    # We choose sys.platform over utils.compat.WINDOWS here to enable Mypy platform
+    # checks: https://mypy.readthedocs.io/en/stable/common_issues.html
+    if sys.platform == "win32" or sys.platform == "cygwin":
+        return
+    if sys.platform == "darwin" or sys.platform == "linux":
+        if os.getuid() != 0:
+            return
+    logger.warning(
+        "Running pip as root will break packages and permissions. "
+        "You should install packages reliably by using venv: "
+        "https://pip.pypa.io/warnings/venv"
+    )
 
 
 def with_cleanup(func):

@@ -162,9 +162,9 @@ class TestUninstallPathSet:
             pth.add(share_com)
         # Check that the paths were added to entries
         if on_windows:
-            check = set([tmpdir, relative, share, share_com])
+            check = {tmpdir, relative, share, share_com}
         else:
-            check = set([tmpdir, relative])
+            check = {tmpdir, relative}
         assert pth.entries == check
 
     @pytest.mark.skipif("sys.platform == 'win32'")

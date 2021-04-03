@@ -357,7 +357,7 @@ def test_constraints_local_editable_install_causes_error(
         assert 'Could not satisfy constraints' in result.stderr, str(result)
     else:
         # Because singlemodule only has 0.0.1 available.
-        assert 'No matching distribution found' in result.stderr, str(result)
+        assert 'Cannot install singlemodule 0.0.1' in result.stderr, str(result)
 
 
 @pytest.mark.network
@@ -386,7 +386,7 @@ def test_constraints_local_install_causes_error(
         assert 'Could not satisfy constraints' in result.stderr, str(result)
     else:
         # Because singlemodule only has 0.0.1 available.
-        assert 'No matching distribution found' in result.stderr, str(result)
+        assert 'Cannot install singlemodule 0.0.1' in result.stderr, str(result)
 
 
 def test_constraints_constrain_to_local_editable(

@@ -22,10 +22,10 @@ from pip._internal.utils.misc import write_output
 if TYPE_CHECKING:
     from typing import TypedDict
 
-    TransformedHit = TypedDict(
-        'TransformedHit',
-        {'name': str, 'summary': str, 'versions': List[str]},
-    )
+    class TransformedHit(TypedDict):
+        name: str
+        summary: str
+        versions: List[str]
 
 logger = logging.getLogger(__name__)
 

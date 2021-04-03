@@ -12,7 +12,7 @@ import nox
 
 # fmt: off
 sys.path.append(".")
-from tools.automation import release  # isort:skip  # noqa
+from tools import release  # isort:skip  # noqa
 sys.path.pop()
 # fmt: on
 
@@ -149,6 +149,22 @@ def docs(session):
     session.run(*get_sphinx_build_command("man"))
 
 
+@nox.session(name="docs-live")
+def docs_live(session):
+    # type: (nox.Session) -> None
+    session.install("-e", ".")
+    session.install("-r", REQUIREMENTS["docs"], "sphinx-autobuild")
+
+    session.run(
+        "sphinx-autobuild",
+        "-d=docs/build/doctrees/livehtml",
+        "-b=dirhtml",
+        "docs/html",
+        "docs/build/livehtml",
+        *session.posargs,
+    )
+
+
 @nox.session
 def lint(session):
     # type: (nox.Session) -> None
@@ -158,7 +174,6 @@ def lint(session):
         args = session.posargs + ["--all-files"]
     else:
         args = ["--all-files", "--show-diff-on-failure"]
-    args.append("--hook-stage=manual")
 
     session.run("pre-commit", "run", *args)
 
