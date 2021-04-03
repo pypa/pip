@@ -90,7 +90,4 @@ class Wheel:
 
         :param tags: the PEP 425 tags to check the wheel against.
         """
-        for itag in self.file_tags:
-            if itag in tags:
-                return True
-        return False
+        return not self.file_tags.isdisjoint(tags)
